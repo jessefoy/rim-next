@@ -15045,45 +15045,10 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   padding: 1px 5px;
 }
 
-/* Cluster: main button + thin divider + chevron (mic and camera) */
-.rim-cb-cluster {
-  display: inline-flex;
-  align-items: stretch;
-  background: transparent;
-  border-radius: 6px;
-  overflow: hidden;
-  transition: background 0.12s;
-}
-.rim-cb-cluster:hover { background: rgba(255,255,255,0.06); }
-.rim-cb-cluster--off .rim-cb-btn__icon { color: #f87171; }
-.rim-cb-cluster--off .rim-cb-btn__label { color: #f87171; }
-.rim-cb-cluster__divider {
-  width: 1px;
-  margin: 10px 0;
-  background: rgba(255,255,255,0.16);
-}
-.rim-cb-chevron {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  min-height: 52px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  color: #aaa;
-  font-size: 10px;
-  cursor: pointer;
-  border-radius: 0 6px 6px 0;
-  transition: background 0.12s, color 0.12s;
-}
-.rim-cb-chevron:hover {
-  background: rgba(255,255,255,0.12);
-  color: #fff;
-}
-.rim-cb-chevron:disabled { color: #555; cursor: default; }
-.rim-cb-chevron:disabled:hover { background: transparent; color: #555; }
-.rim-cb-cluster .rim-cb-btn:hover { background: rgba(255,255,255,0.08); }
+/* Mic / camera off — red icon + label (Zoom-style). Replaces the old
+   .rim-cb-cluster--off tint after the device-picker chevrons were removed. */
+.rim-cb-btn--off .rim-cb-btn__icon { color: #f87171; }
+.rim-cb-btn--off .rim-cb-btn__label { color: #f87171; }
 
 /* Share — green tint when active (Zoom uses a green Share button) */
 .rim-cb-btn--share-active {
@@ -15092,16 +15057,26 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-cb-btn--share-active:hover { background: rgba(34, 184, 100, 0.28); }
 
-/* Bell mode — amber tint when Krisp noise cancellation is OFF.
-   Default state (NC on, label "Bell mode") uses the standard button styling
-   so it reads as a quiet, available action. When tapped (NC off, label
-   "Clean voice") the amber tint signals "you're in a mode" without the
-   alarmist red treatment of mic-off. Returns to default on re-tap. */
+/* Bell mode — amber tint when Krisp noise cancellation is OFF (Bell mode ON).
+   Default state (NC on, Bell mode off) uses the standard button styling so it
+   reads as a quiet, available action. When on, the amber tint + "On" marker
+   signal the active mode without the alarmist red treatment of mic-off. The
+   label stays "Bell mode" in both states. Returns to default on re-tap. */
 .rim-cb-btn--bell-active {
   background: rgba(200, 130, 26, 0.22);
   color: #f4b461;
 }
 .rim-cb-btn--bell-active:hover { background: rgba(200, 130, 26, 0.32); }
+.rim-cb-btn--bell-active .rim-cb-btn__icon { color: #f4b461; }
+/* "On" marker on the Bell mode button — gold pill, distinct from the blue
+   count badges so it reads as a state, not a number. */
+.rim-cb-btn__badge--bell {
+  background: #c8821a;
+  color: #fff;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 
 /* End / Leave — red, slightly wider, distinct from the rest */
 .rim-cb-btn--end {
@@ -15168,57 +15143,6 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: #fcd34d;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-
-/* Device picker variant */
-.rim-cb-popover--devices {
-  min-width: 260px;
-  max-width: 320px;
-  padding: 4px 0;
-}
-.rim-cb-popover__section-label {
-  padding: 8px 14px 4px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: #aaa;
-  text-transform: none;
-  letter-spacing: 0.01em;
-}
-.rim-cb-popover__empty {
-  padding: 6px 14px 10px;
-  font-size: var(--text-ui);
-  color: #888;
-  font-style: italic;
-}
-.rim-cb-popover__divider {
-  height: 1px;
-  background: rgba(255,255,255,0.08);
-  margin: 4px 0;
-}
-.rim-cb-popover__item--device {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  font-size: var(--text-ui);
-}
-.rim-cb-popover__device-marker {
-  width: 12px;
-  text-align: center;
-  color: #4ade80;
-  font-size: 12px;
-  flex-shrink: 0;
-}
-.rim-cb-popover__device-label {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.rim-cb-popover__item--settings-link {
-  color: #93c5fd;
-  font-size: var(--text-ui);
-}
-.rim-cb-popover__item--settings-link:hover { background: rgba(147, 197, 253, 0.12); }
 
 /* Reactions popover variant — emoji row */
 .rim-cb-popover--reactions {

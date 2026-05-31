@@ -122,14 +122,6 @@ export function IconSettings(props: IconProps) {
   );
 }
 
-export function IconChevronUp(props: IconProps) {
-  return (
-    <Base {...props} size={props.size ?? 12}>
-      <polyline points="6 15 12 9 18 15" />
-    </Base>
-  );
-}
-
 export function IconBell(props: IconProps) {
   return (
     <Base {...props}>

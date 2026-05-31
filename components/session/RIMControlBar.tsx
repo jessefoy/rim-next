@@ -6,18 +6,21 @@
  * Layout LTR: Mute · Start Video | Participants · Chat | Share · Reactions
  *             · Settings · Bell mode (Co-host) · spacer · End (red)
  *
- * Mic and Video buttons are two-part clusters: main toggle on the left,
- * thin vertical divider, chevron on the right that opens an upward
- * device-picker popover (DevicePickerMenu — added in commit 2).
+ * Mic and Video are single toggle buttons. Device selection (mic / speaker /
+ * camera) lives in the Settings panel (VideoSettingsPanel), reached via the
+ * Settings button — the inline device-picker chevrons were removed (they
+ * duplicated Settings and read as dead controls).
  *
  * The Reactions and End buttons open upward popovers (ReactionsMenu, EndMenu).
  *
  * Bell mode (Co-host only) toggles Krisp noise cancellation OFF so the full
  * tone of bells, gongs, and singing bowls passes through unfiltered. NC is
  * on by default at every join; Bell mode is a deliberate per-bell action,
- * not a persisted preference. The state lives in RIMConference's
- * useKrispNoiseFilter hook and is passed in as the noiseFilterEnabled /
- * noiseFilterPending / onToggleNoiseFilter prop trio.
+ * not a persisted preference. The button label is stable ("Bell mode") and
+ * the on-state is shown with a gold highlight + "On" marker — the label no
+ * longer flips to "Clean voice", which read backwards. The state lives in
+ * RIMConference's useKrispNoiseFilter hook and is passed in as the
+ * noiseFilterEnabled / noiseFilterPending / onToggleNoiseFilter prop trio.
  */
 
 import { useRef, useState, useEffect } from "react";
@@ -25,7 +28,6 @@ import { useRoomContext, useLocalParticipant } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
 import ReactionsMenu from "./ReactionsMenu";
 import EndMenu from "./EndMenu";
-import DevicePickerMenu from "./DevicePickerMenu";
 import {
   IconMicOn,
   IconMicOff,
@@ -36,7 +38,6 @@ import {
   IconShare,
   IconReactions,
   IconSettings,
-  IconChevronUp,
   IconBell,
 } from "./ControlBarIcons";
 
@@ -56,7 +57,6 @@ interface Props {
   onToggleChat: () => void;
   settingsOpen: boolean;
   onToggleSettings: () => void;
-  onOpenSettings: () => void;
   participantCount: number;
   raisedHandCount: number;
   unreadChatCount?: number;
@@ -116,7 +116,6 @@ export default function RIMControlBar({
   onToggleChat,
   settingsOpen,
   onToggleSettings,
-  onOpenSettings,
   participantCount,
   raisedHandCount,
   unreadChatCount,
@@ -133,13 +132,9 @@ export default function RIMControlBar({
   const [pendingShare, setPendingShare] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
-  const [micPickerOpen, setMicPickerOpen] = useState(false);
-  const [camPickerOpen, setCamPickerOpen] = useState(false);
 
   const reactionsAnchor = useRef<HTMLButtonElement | null>(null);
   const endAnchor = useRef<HTMLButtonElement | null>(null);
-  const micChevronAnchor = useRef<HTMLButtonElement | null>(null);
-  const camChevronAnchor = useRef<HTMLButtonElement | null>(null);
 
   async function toggleMic() {
     if (!room) return;
@@ -170,81 +165,37 @@ export default function RIMControlBar({
 
   return (
     <div className="rim-cb" role="toolbar" aria-label="Session controls">
-      {/* ── Mic cluster: main + chevron ─────────────────────────── */}
-      <div className={`rim-cb-cluster${micEnabled ? "" : " rim-cb-cluster--off"} rim-cb-anchor`}>
-        <button
-          type="button"
-          className="rim-cb-btn rim-cb-btn--mic"
-          onClick={toggleMic}
-          disabled={pendingMic}
-          aria-pressed={micEnabled}
-          aria-label={micEnabled ? "Mute" : "Unmute"}
-        >
-          <span className="rim-cb-btn__icon" aria-hidden="true">
-            {micEnabled ? <IconMicOn /> : <IconMicOff />}
-          </span>
-          <span className="rim-cb-btn__label">{micEnabled ? "Mute" : "Unmute"}</span>
-        </button>
-        <span className="rim-cb-cluster__divider" aria-hidden="true" />
-        <button
-          ref={micChevronAnchor}
-          type="button"
-          className="rim-cb-chevron"
-          onClick={() => setMicPickerOpen((v) => !v)}
-          aria-haspopup="menu"
-          aria-expanded={micPickerOpen}
-          aria-label="Audio devices"
-          title="Audio devices"
-        >
-          <IconChevronUp />
-        </button>
-        <DevicePickerMenu
-          open={micPickerOpen}
-          onClose={() => setMicPickerOpen(false)}
-          anchorRef={micChevronAnchor}
-          variant="mic"
-          onOpenSettings={onOpenSettings}
-        />
-      </div>
+      {/* ── Mic ─────────────────────────────────────────────────── */}
+      <button
+        type="button"
+        className={`rim-cb-btn rim-cb-btn--mic${micEnabled ? "" : " rim-cb-btn--off"}`}
+        onClick={toggleMic}
+        disabled={pendingMic}
+        aria-pressed={micEnabled}
+        aria-label={micEnabled ? "Mute" : "Unmute"}
+      >
+        <span className="rim-cb-btn__icon" aria-hidden="true">
+          {micEnabled ? <IconMicOn /> : <IconMicOff />}
+        </span>
+        <span className="rim-cb-btn__label">{micEnabled ? "Mute" : "Unmute"}</span>
+      </button>
 
-      {/* ── Video cluster: main + chevron ───────────────────────── */}
-      <div className={`rim-cb-cluster${cameraEnabled ? "" : " rim-cb-cluster--off"} rim-cb-anchor`}>
-        <button
-          type="button"
-          className="rim-cb-btn rim-cb-btn--cam"
-          onClick={toggleCamera}
-          disabled={pendingCam}
-          aria-pressed={cameraEnabled}
-          aria-label={cameraEnabled ? "Stop Video" : "Start Video"}
-        >
-          <span className="rim-cb-btn__icon" aria-hidden="true">
-            {cameraEnabled ? <IconCamOn /> : <IconCamOff />}
-          </span>
-          <span className="rim-cb-btn__label">
-            {cameraEnabled ? "Stop Video" : "Start Video"}
-          </span>
-        </button>
-        <span className="rim-cb-cluster__divider" aria-hidden="true" />
-        <button
-          ref={camChevronAnchor}
-          type="button"
-          className="rim-cb-chevron"
-          onClick={() => setCamPickerOpen((v) => !v)}
-          aria-haspopup="menu"
-          aria-expanded={camPickerOpen}
-          aria-label="Camera devices"
-          title="Camera devices"
-        >
-          <IconChevronUp />
-        </button>
-        <DevicePickerMenu
-          open={camPickerOpen}
-          onClose={() => setCamPickerOpen(false)}
-          anchorRef={camChevronAnchor}
-          variant="camera"
-          onOpenSettings={onOpenSettings}
-        />
-      </div>
+      {/* ── Video ───────────────────────────────────────────────── */}
+      <button
+        type="button"
+        className={`rim-cb-btn rim-cb-btn--cam${cameraEnabled ? "" : " rim-cb-btn--off"}`}
+        onClick={toggleCamera}
+        disabled={pendingCam}
+        aria-pressed={cameraEnabled}
+        aria-label={cameraEnabled ? "Stop Video" : "Start Video"}
+      >
+        <span className="rim-cb-btn__icon" aria-hidden="true">
+          {cameraEnabled ? <IconCamOn /> : <IconCamOff />}
+        </span>
+        <span className="rim-cb-btn__label">
+          {cameraEnabled ? "Stop Video" : "Start Video"}
+        </span>
+      </button>
 
       {/* ── Participants ────────────────────────────────────────── */}
       <button
@@ -335,29 +286,37 @@ export default function RIMControlBar({
       </button>
 
       {/* ── Bell mode — Co-host only, only when Krisp is available ──
-          NC on (default) — voice is cleaned, ambient suppressed.
-          NC off (Bell mode active) — bells, gongs, singing bowls pass
-          through unfiltered. Reset to NC-on at every join.
-          Hidden when Krisp isn't supported in the browser, so the
-          button doesn't lie about its state. */}
+          Bell mode ON  (NC off) — bells, gongs, singing bowls pass through
+                                   unfiltered. Gold highlight + "On" marker.
+          Bell mode OFF (NC on, default) — voice cleaned, ambient suppressed.
+          The label stays "Bell mode" in both states (it used to flip to
+          "Clean voice", which read backwards); the on-state is shown by the
+          highlight and the "On" marker, not by changing the word. Resets to
+          OFF at every join. Hidden when Krisp isn't supported in the browser,
+          so the button can't lie about its state. */}
       {isCoHost && noiseFilterAvailable && (
         <button
           type="button"
-          className={`rim-cb-btn rim-cb-btn--bell${noiseFilterEnabled ? "" : " rim-cb-btn--bell-active"}`}
+          className={`rim-cb-btn rim-cb-btn--bell${!noiseFilterEnabled ? " rim-cb-btn--bell-active" : ""}`}
           onClick={onToggleNoiseFilter}
           disabled={noiseFilterPending}
           aria-pressed={!noiseFilterEnabled}
-          aria-label={noiseFilterEnabled ? "Enable Bell mode" : "Return to clean voice"}
+          aria-label={
+            noiseFilterEnabled
+              ? "Turn on Bell mode to let a bell's full tone through"
+              : "Bell mode is on — tap to return to clean voice"
+          }
           title={
             noiseFilterEnabled
               ? "Tap before ringing a bell to let its full tone through"
-              : "Bell mode is on — tap to return to clean voice"
+              : "Bell mode is on — bells pass through. Tap to return to clean voice."
           }
         >
           <span className="rim-cb-btn__icon" aria-hidden="true"><IconBell /></span>
-          <span className="rim-cb-btn__label">
-            {noiseFilterEnabled ? "Bell mode" : "Clean voice"}
-          </span>
+          <span className="rim-cb-btn__label">Bell mode</span>
+          {!noiseFilterEnabled && (
+            <span className="rim-cb-btn__badge rim-cb-btn__badge--bell">On</span>
+          )}
         </button>
       )}
 
