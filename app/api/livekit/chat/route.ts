@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { roomNameForProgram } from "@/lib/livekit";
+import { roomNameForProgram, sessionDisplayName } from "@/lib/livekit";
 
 /**
  * POST /api/livekit/chat
@@ -64,7 +64,12 @@ export async function POST(req: NextRequest) {
   if (session?.user?.id) {
     fromUserId = session.user.id;
     fromIdentity = session.user.id;
-    fromName = session.user.name || "Member";
+    // Full name (first + last) to match the tile/roster display, not just first.
+    const u = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { firstName: true, lastName: true, preferredName: true },
+    });
+    fromName = sessionDisplayName(u, session.user.name || "Member");
   } else {
     if (!program.isOpenAccess || !guestKey || guestKey !== program.guestAccessKey) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

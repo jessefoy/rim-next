@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { createRoomToken, roomNameForProgram } from "@/lib/livekit";
+import { createRoomToken, roomNameForProgram, sessionDisplayName } from "@/lib/livekit";
 import { resolveSessionRole } from "@/lib/livekitAuth";
 import { DEFAULT_HOSTING_HUB_SLUG, resolveTeacherPillLabel } from "@/lib/programHub";
 import { getActiveSessionWindow, describeInactiveWindow } from "@/lib/sessionWindow";
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
 
   const caller = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { avatarUrl: true },
+    select: { avatarUrl: true, firstName: true, lastName: true, preferredName: true },
   });
 
   const { isSessionHost, hasEndAllAuthority, isCoHost, isHostTeam, isProgramTeacher } =
@@ -178,7 +178,8 @@ export async function POST(req: NextRequest) {
   // explicit End-for-All, LiveKit's empty-room idle cleanup, and this
   // time gate refusing to issue tokens after the close window.
   const roomName = roomNameForProgram(program.slug, effectiveSessionDate);
-  const userName = session.user.name || "Member";
+  // Full name (first + last) for the tile + roster — not just first name.
+  const userName = sessionDisplayName(caller, session.user.name || "Member");
 
   // Seed metadata so the role pills render the moment a participant
   // appears in the room. Three orthogonal flags drive the badge UI:
