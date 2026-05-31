@@ -36,13 +36,13 @@ import {
   useSpeakingParticipants,
 } from "@livekit/components-react";
 import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
-import { Track, RoomEvent, LocalAudioTrack } from "livekit-client";
+import { Track, RoomEvent, LocalAudioTrack, DataPacket_Kind } from "livekit-client";
 import type { LocalTrackPublication } from "livekit-client";
 import RIMParticipantTile from "./RIMParticipantTile";
 import ParticipantsPanel from "./ParticipantsPanel";
 import VideoSettingsPanel from "./VideoSettingsPanel";
 import RIMControlBar from "./RIMControlBar";
-import RIMChat from "./RIMChat";
+import RIMChat, { CHAT_TOPIC } from "./RIMChat";
 import { SessionRoleProvider } from "./sessionRole";
 import type { ParticipantMetadata } from "./RIMParticipantTile";
 
@@ -85,6 +85,10 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // Chat DM recipient lifted here (was internal to RIMChat) so the Participants
+  // panel can start a private message. "" = Everyone.
+  const [chatRecipient, setChatRecipient] = useState<string>("");
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   // Raised hands — reactive because of updateOnlyOn above
   const raisedHands = remoteParticipants.filter(
@@ -245,6 +249,33 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
       timers.forEach(clearTimeout);
       roomCtx.off(RoomEvent.LocalTrackPublished, onLocalTrackPublished);
     };
+  }, [roomCtx]);
+
+  // Unread chat badge. The live chat listener lives in RIMChat, which only
+  // mounts while the panel is open — so when chat is closed nothing counts
+  // incoming messages. This always-on listener fills that gap: it counts
+  // CHAT_TOPIC packets received while the panel is closed and resets to 0 when
+  // the panel opens. LiveKit doesn't loop publishData back to the sender, so a
+  // user's own messages never inflate their own count; DM packets addressed to
+  // others never reach this client, so the count only reflects messages this
+  // user can actually read.
+  const chatOpenRef = useRef(chatOpen);
+  useEffect(() => { chatOpenRef.current = chatOpen; }, [chatOpen]);
+  useEffect(() => { if (chatOpen) setUnreadChatCount(0); }, [chatOpen]);
+  useEffect(() => {
+    if (!roomCtx) return;
+    const handler = (
+      _payload: Uint8Array,
+      _participant: unknown,
+      _kind?: DataPacket_Kind,
+      topic?: string,
+    ) => {
+      if (topic !== CHAT_TOPIC) return;
+      if (chatOpenRef.current) return;
+      setUnreadChatCount((n) => n + 1);
+    };
+    roomCtx.on(RoomEvent.DataReceived, handler);
+    return () => { roomCtx.off(RoomEvent.DataReceived, handler); };
   }, [roomCtx]);
 
   const tracks = useTracks(
@@ -438,7 +469,13 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
                   ✕
                 </button>
               </div>
-              <RIMChat programSlug={programSlug} sessionDate={sessionDate} guestKey={guestKey} />
+              <RIMChat
+                programSlug={programSlug}
+                sessionDate={sessionDate}
+                guestKey={guestKey}
+                recipient={chatRecipient}
+                onRecipientChange={setChatRecipient}
+              />
             </div>
           )}
         </div>
@@ -460,6 +497,7 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           onToggleSettings={() => setSettingsOpen((v) => !v)}
           participantCount={remoteParticipants.length + 1}
           raisedHandCount={raisedHandCount}
+          unreadChatCount={unreadChatCount}
           noiseFilterAvailable={noiseFilterAvailable}
           noiseFilterEnabled={krisp.isNoiseFilterEnabled}
           noiseFilterPending={krisp.isNoiseFilterPending}
@@ -481,6 +519,11 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           sessionDate={sessionDate}
           localIdentity={localParticipant?.identity ?? ""}
           isCoHost={isCoHost}
+          onMessageParticipant={(identity) => {
+            setChatRecipient(identity);
+            setParticipantsOpen(false);
+            setChatOpen(true);
+          }}
         />
         <VideoSettingsPanel
           open={settingsOpen}

@@ -57,9 +57,13 @@ interface Props {
   localIdentity: string;
   /** Co-host or higher: gates the per-row Mute and the Mute All footer. */
   isCoHost: boolean;
+  /** Start a private chat with this participant (by identity). Wired by
+   *  RIMConference to set the chat recipient + open the chat panel. When
+   *  provided, each remote participant's name becomes a clickable button. */
+  onMessageParticipant?: (identity: string) => void;
 }
 
-export default function ParticipantsPanel({ open, onClose, participants, programSlug, sessionDate, localIdentity, isCoHost }: Props) {
+export default function ParticipantsPanel({ open, onClose, participants, programSlug, sessionDate, localIdentity, isCoHost, onMessageParticipant }: Props) {
   const room = useRoomContext();
   const [muting, setMuting] = useState<Record<string, boolean>>({});
   const [mutingAll, setMutingAll] = useState(false);
@@ -253,7 +257,18 @@ export default function ParticipantsPanel({ open, onClose, participants, program
                     ? SIGNAL_EMOJI[meta.signal]
                     : ""}
                 </span>
-                <span className="rim-pp__name">{p.name || p.identity}</span>
+                {onMessageParticipant ? (
+                  <button
+                    type="button"
+                    className="rim-pp__name rim-pp__name--action"
+                    onClick={() => onMessageParticipant(p.identity)}
+                    title={`Message ${p.name || p.identity} privately`}
+                  >
+                    {p.name || p.identity}
+                  </button>
+                ) : (
+                  <span className="rim-pp__name">{p.name || p.identity}</span>
+                )}
                 {meta.host && (
                   <span className="rim-pp__role-tag rim-pp__role-tag--host">Host</span>
                 )}

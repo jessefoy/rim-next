@@ -35,9 +35,16 @@ interface Props {
   sessionDate?: string;
   guestKey?: string;
   guestName?: string;
+  /** Controlled DM recipient (LiveKit identity); "" = Everyone. Lifted to
+   *  RIMConference so the Participants panel can open a private message by
+   *  clicking a name. */
+  recipient: string;
+  onRecipientChange: (identity: string) => void;
 }
 
-const TOPIC = "rim-chat";
+/** Data-channel topic for chat packets. Exported so RIMConference can count
+ *  unread messages on the same topic while the chat panel is closed. */
+export const CHAT_TOPIC = "rim-chat";
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -49,12 +56,11 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleString();
 }
 
-export default function RIMChat({ programSlug, sessionDate, guestKey, guestName }: Props) {
+export default function RIMChat({ programSlug, sessionDate, guestKey, guestName, recipient, onRecipientChange }: Props) {
   const room = useRoomContext();
   const remoteParticipants = useRemoteParticipants();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
-  const [recipient, setRecipient] = useState<string>(""); // "" = Everyone
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -92,7 +98,7 @@ export default function RIMChat({ programSlug, sessionDate, guestKey, guestName 
   useEffect(() => {
     if (!room) return;
     const handler = (payload: Uint8Array, _participant: unknown, _kind?: DataPacket_Kind, topic?: string) => {
-      if (topic !== TOPIC) return;
+      if (topic !== CHAT_TOPIC) return;
       try {
         const decoded = new TextDecoder().decode(payload);
         const msg = JSON.parse(decoded) as ChatMessage;
@@ -150,14 +156,14 @@ export default function RIMChat({ programSlug, sessionDate, guestKey, guestName 
       try {
         await room.localParticipant.publishData(encoded, {
           reliable: true,
-          topic: TOPIC,
+          topic: CHAT_TOPIC,
           destinationIdentities: toIdentities.length > 0 ? toIdentities : undefined,
         });
       } catch {}
 
       setDraft("");
       // After sending a DM, return to broadcast — matches Zoom default
-      if (toIdentities.length > 0) setRecipient("");
+      if (toIdentities.length > 0) onRecipientChange("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to send");
     }
@@ -208,7 +214,7 @@ export default function RIMChat({ programSlug, sessionDate, guestKey, guestName 
           <select
             className="rim-chat-compose__to-select"
             value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
+            onChange={(e) => onRecipientChange(e.target.value)}
           >
             <option value="">Everyone</option>
             {remoteParticipants

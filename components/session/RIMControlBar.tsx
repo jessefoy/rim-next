@@ -228,7 +228,12 @@ export default function RIMControlBar({
         <span className="rim-cb-btn__icon" aria-hidden="true"><IconChat /></span>
         <span className="rim-cb-btn__label">Chat</span>
         {unreadChatCount && unreadChatCount > 0 ? (
-          <span className="rim-cb-btn__badge">{unreadChatCount}</span>
+          <span
+            className="rim-cb-btn__badge"
+            aria-label={`${unreadChatCount} unread message${unreadChatCount === 1 ? "" : "s"}`}
+          >
+            {unreadChatCount > 9 ? "9+" : unreadChatCount}
+          </span>
         ) : null}
       </button>
 

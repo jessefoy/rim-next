@@ -14867,6 +14867,28 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   white-space: nowrap;
 }
 .rim-pp__name { flex: 1; font-size: var(--text-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Clickable name → opens a private chat with that participant. Reads as plain
+   text until hovered, then underlines to signal it's interactive. min-width:0
+   lets the ellipsis work inside the flex row; align-self:stretch makes the tap
+   target the full row height (font-size declared explicitly so it doesn't rely
+   on the base class to override the UA button default). */
+.rim-pp__name--action {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  text-align: left;
+  cursor: pointer;
+}
+.rim-pp__name--action:hover { text-decoration: underline; color: #fff; }
 .rim-pp__mic { font-size: 14px; }
 .rim-pp__mic--muted { opacity: 0.4; }
 .rim-pp__mute-btn {
@@ -14972,6 +14994,8 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .rim-pp__mute-all:disabled { opacity: 0.5; cursor: default; }
 @media (max-width: 430px) {
   .rim-pp { width: 100%; }
+  /* 44px minimum tap target for the clickable participant name on phones. */
+  .rim-pp__name--action { min-height: 44px; }
 }
 
 /* ─── Zoom-aligned control bar ───────────────────────────────── */
