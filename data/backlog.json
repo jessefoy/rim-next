@@ -1,5 +1,45 @@
 [
   {
+    "id": "2026-05-31-001",
+    "title": "Session room: latency/sync measurement pass",
+    "description": "Items 2 + 7 from Jesse's session-room list: an occasional slight delay (mouth movement to video) and an intermittent audio/video sync problem. Deliberately NOT code-fixed yet (measure before changing architecture). Needs a real 2-3 person live session: (1) separate overall glass-to-glass lag (normal WebRTC, ~150-250ms, likely not a bug) from lip-sync desync; (2) A/B Krisp by toggling Bell mode (NC off) to see if audio tightens; (3) read chrome://webrtc-internals (or a temporary on-screen stats overlay) for jitter buffer / RTT / packet loss; (4) check CPU (software H.264 encode on older devices). Only then consider codec/bitrate/Krisp changes. See RIM_SessionRoom.md.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-05-31",
+    "notes": ""
+  },
+  {
+    "id": "2026-05-31-002",
+    "title": "Session room: pin a participant from mobile/touch",
+    "description": "The local Pin affordance (session 133) is a hover-reveal button on the tile, so touch devices can't initiate a pin (they can unpin via the always-visible banner). Parity with the Mute button's hover-only limitation. To close the gap for iPad/phone users who want to pin the teacher, add a Pin action to the Participants panel rows (alongside the Message and Mute actions). Small slice.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-31",
+    "notes": ""
+  },
+  {
+    "id": "2026-05-31-003",
+    "title": "Session room: suppress share-focus for the sharer",
+    "description": "When someone shares their whole screen, their own focus tile can render blank (the browser captures the screen recursively for the person sharing). Everyone else sees the content fine. Zoom minimizes the self-view. Optional polish: for the sharer specifically, don't auto-focus their own screen-share track (keep them in gallery/speaker, or show a small 'You are sharing' card). Revisit if it bugs hosts in practice.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-31",
+    "notes": ""
+  },
+  {
+    "id": "2026-05-31-004",
+    "title": "Nudge guests to enter a full name on the session join screen",
+    "description": "Members now show first + last name in the session room (session 133). Guests on open-access programs type their own free-form name on the /session/[slug]?key= entry screen, so they may enter only a first name or a nickname. Consider a gentle prompt/placeholder encouraging 'First and last name' on that screen, consistent with the community-not-anonymous principle. Low priority; guests are a minority of the room.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-31",
+    "notes": ""
+  },
+  {
     "id": "2026-05-27-003",
     "title": "Remove redundant session checks from /account/(authenticated)/ pages",
     "description": "After session 132's route-group layout at app/account/(authenticated)/layout.tsx enforces session + agreedToTerms + archivedAt for the entire authenticated member area, the individual per-page checks like `if (!session) redirect('/login')` inside dashboard/page.tsx and the other (authenticated)/ pages are redundant. The layout runs before the page renders, so by the time any page body executes the user is already authenticated. Leaving them in place is harmless but clutters the code and creates a false sense of where the auth gate lives. Sweep all pages under app/account/(authenticated)/ and remove the now-redundant `if (!session) redirect('/login')` blocks. Pages still need to call auth() to get the session object for their own use (the user's id, roles, etc.) — that part stays. Just drop the redirect-if-null defensive check. Low priority, mechanical cleanup. Could be paired with adding a small `requireSession()` helper if pages want a typed non-null session — but that's optional.",

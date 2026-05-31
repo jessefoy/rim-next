@@ -6,7 +6,46 @@
 
 ## Active
 
-### Session 132 + continuation (2026-05-27) — `/join` slice + threshold integrity pass
+### Session 133 (2026-05-31) — Session-room UX batch (shipped; live verification pending)
+
+Jesse brought a list of session-room ("meeting software") issues. Worked as four reviewer-gated slices + a follow-on, all pushed to `main` (Vercel deploys each). Each type-checked and code-reviewed before push.
+
+**Commits, in order:** `232973e` (Slice A — Bell-mode label clarity + device chevrons removed) → `8021388` (Slice B — DM by clicking a name + unread-chat badge) → `6c929c2` (Slice C — join muted/dark by default + local Pin) → `f7d4517` (Slice D — fullscreen screen share + pre-share primer) → `acb8650` (full names on tiles/roster/chat). Plus the closing-ritual doc sweep.
+
+**What to verify on the deployed site** (needs a real session; some needs a 2nd person / co-host):
+
+1. **Bell mode** (host/co-host) — label always reads "Bell mode"; tapping it shows a gold highlight + "On" marker; tap again returns to quiet default. No "Clean voice" flip.
+2. **Chevrons gone** — Mute/Start Video are plain buttons; device switching is in Settings (⚙), which has mic/speaker/camera dropdowns.
+3. **DM by name** — open Participants → click someone's name → roster closes, chat opens, "To:" pre-set to them; send → private. The "To:" dropdown still works.
+4. **Unread badge** — with chat closed, have someone send → count appears on Chat button; opening clears it; own sends never count.
+5. **Join muted/dark** — everyone lands with mic + camera off. ⚠️ **Key check (iOS Safari):** join, then tap Start Video / Unmute → confirm NO second permission prompt. If it re-prompts, tell Claude — fall back to LiveKit enable-then-disable (see RIM_SessionRoom.md "Join flow").
+6. **Local Pin** — hover a tile → Pin → that person stays as your main view even when others speak; "📌 Pinned … — Unpin" banner up top; pinning changes only your view. Try pinning the teacher while someone else talks.
+7. **Fullscreen screen share** (co-host) — click Share Screen → primer appears → "Choose what to share" → browser picker → the share fills everyone's view with camera tiles in a filmstrip; Stop Share returns to grid. Confirm the whole shared screen shows uncropped.
+8. **Full names** — tiles, roster, and chat show first + last. (Uses `preferredName || firstName` + lastName — so a member who goes by "Jess" shows "Jess Foy". Flagged to Jesse; change to strict firstName if he prefers.)
+
+**Open / awaiting Jesse:**
+- The whole verification pass above (especially #5 iOS-Safari re-prompt and #7 uncropped share).
+- **Does the preferredName-honoring full name read right?** If Jesse wants strict registered first+last, it's a one-line change in `lib/livekit.ts::sessionDisplayName`.
+- **Sharer's own focus tile may be blank** during a whole-screen share (recursive capture) — offered to suppress share-focus for the sharer if it bugs him (backlog `2026-05-31-003`).
+
+**Deferred / queued (backlog):**
+- **Latency/sync (items 2 + 7)** — parked per Jesse; needs a live measurement pass (LiveKit stats + Krisp A/B). Backlog `2026-05-31-001`. Do NOT change codec/bitrate blind.
+- **Mobile pin-from-tile** — hover-only today; add a Pin action to the Participants panel for touch. Backlog `2026-05-31-002`.
+- **Guest full-name nudge** on the open-access join screen. Backlog `2026-05-31-004`.
+
+**Docs created/updated this session:** new per-tool engineering doc `RIM_SessionRoom.md` (+ CLAUDE.md Design Orientation table entry); manual chapter `host-session-room` v10 (`prisma/update-manual-host-session-room.mjs` + migrate flag); FEATURES §38; RIM_Stack_Reference; RIM_System_Architecture; SESSION_ROOM_FOR_VOLUNTEERS.
+
+**Memory candidates (proposed at closing — see below; awaiting Jesse's confirm).**
+
+### Carried-over follow-ons (from sessions 125–132, still queued)
+
+- **Voice extraction (`RIM_Voice.md`)** — parked, pending Jesse's 5–10 writing samples.
+- **Sessions 125–132 verification** on the deployed site — accumulated test pass.
+- **Beat 4 — `/account/dashboard` first-visit framing**, banyan tree image on `/join`, footer `/join` link, magic-link migration cleanup, noindex headers — all queued, none urgent.
+
+---
+
+### Previously — Session 132 + continuation (2026-05-27) — `/join` slice + threshold integrity pass
 
 Nine commits on `main` across one long day. Morning shipped the visible UX of the new-member threshold (`/join` page, integrated panel, agreement consolidation, two orphans deleted). Afternoon closed the invisible integrity (post-`/join` warmth across check-email + emails, route-group layout enforcing agreement + archive, soft-redirects in both directions between `/login` and `/join`).
 

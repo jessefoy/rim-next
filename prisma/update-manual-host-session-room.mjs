@@ -7,6 +7,23 @@
  * nonverbal signals, member photos, Open Access, and what to do
  * when something misbehaves.
  *
+ * v8 additions over v7 (session 133, 2026-05-31):
+ *   - Join muted + camera off: everyone now lands with mic and camera off
+ *     and turns them on when ready (instant — permission is acquired on the
+ *     way in)
+ *   - Device switching moved fully to Settings — the inline mic/camera
+ *     chevrons were removed (they duplicated Settings)
+ *   - Bell mode label fix: the button keeps the stable label "Bell mode"
+ *     and shows an "On" marker + amber tint when active (it used to flip to
+ *     "Clean voice", which read backwards)
+ *   - Local Pin: hover a tile → Pin keeps that person as YOUR main view
+ *     (personal, not broadcast); an Unpin banner is the escape path
+ *   - Screen share now fills everyone's view (was a small tile); a short
+ *     primer frames the browser's own picker
+ *   - Private message someone by clicking their name in the Participants panel
+ *   - Unread-chat count on the Chat button
+ *   - Tiles + roster show full names (first + last)
+ *
  * v7 additions over v6 (2026-05-26):
  *   - Three pills are now Host / Teacher / **Host Volunteer** (the
  *     "Co-host" label was renamed; it read like Zoom-jargon in a
@@ -76,6 +93,7 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <h2>Getting into the room</h2>
 <p>Sign in to your RIM account. From the Host Schedule, find the session card you're hosting and click <strong>Join session</strong>. You can also join from the dashboard's <strong>Enter as host</strong> button (early window) or <strong>Join now</strong> button (regular live window).</p>
 <p>Your browser will ask permission to use your camera and microphone. Click <strong>Allow</strong>. If you don't see the prompt, look for a small camera or lock icon in your browser's address bar — clicking it lets you grant permission.</p>
+<p>You join with your <strong>microphone and camera off</strong> — the same way most meeting tools open now. Turn each on whenever you're ready using the Mute and Start Video buttons. Because you allowed access on the way in, they switch on instantly, with no second prompt.</p>
 <p>You arrive as host automatically because the system recognizes you from how you signed in. No special code or link is needed.</p>
 <p>If you haven't tested your setup recently, join the room during a quiet moment before a live session — check that your camera and audio work, then leave. Better to find a problem then than at start time.</p>
 <p><strong>Headphones are recommended.</strong> Without headphones, your speakers can broadcast other people's voices back into your microphone — which is why a participant occasionally hears their own voice come back through someone else's connection. It's not a hard requirement, but if you can use headphones, do. Encourage participants who report echo or audio strangeness to try headphones as the first step.</p>
@@ -91,9 +109,9 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 </ul>
 <p>The bottom control bar holds every action button. Reading left to right:</p>
 <ul>
-<li><strong>Mute</strong> and <strong>Start Video</strong> — toggle your own mic and camera. The small chevrons next to each open a device picker (pick a different mic, camera, or speaker).</li>
-<li><strong>Participants</strong> — opens a side panel listing everyone in the room.</li>
-<li><strong>Chat</strong> — opens a chat sidebar. Send messages to the whole room or to a specific person.</li>
+<li><strong>Mute</strong> and <strong>Start Video</strong> — toggle your own mic and camera. To switch to a different microphone, speaker, or camera, open <strong>Settings</strong> (the gear).</li>
+<li><strong>Participants</strong> — opens a side panel listing everyone in the room. Click someone's name there to start a private chat message to them.</li>
+<li><strong>Chat</strong> — opens a chat sidebar. Send messages to the whole room or to one person privately. A small number on the Chat button shows how many messages arrived while the panel was closed; it clears when you open chat.</li>
 <li><strong>Share Screen</strong> — appears for anyone with a role pill (Host, Teacher, or Host Volunteer). Regular participants can't share their screen.</li>
 <li><strong>Reactions</strong> — opens the nonverbal signal popup (raise hand, heart, gratitude, yes, no).</li>
 <li><strong>Settings</strong> — opens audio, video, and presence-photo settings.</li>
@@ -101,7 +119,7 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 </ul>
 <p>In the main area:</p>
 <ul>
-<li><strong>Tiles</strong> — one per person in the room, with their name. Yours is there too.</li>
+<li><strong>Tiles</strong> — one per person in the room, with their full name. Yours is there too.</li>
 <li><strong>Role pills</strong> — small colored labels next to a person's name on their tile (and in the Participants panel) so everyone can see who's holding what role. There are three: <strong>Host</strong> (teal — the assigned host of this specific session), <strong>Teacher</strong> (warm gold — anyone listed as a teacher of this program; on some programs this pill reads <em>Guide</em>, <em>Facilitator</em>, or <em>Instructor</em> instead, depending on what the coordinator set), and <strong>Host Volunteer</strong> (muted gray — anyone on the host team who's helping run the room but isn't the assigned host or a teacher; this is also what coordinators, guiding teachers, and admins show when they visit a session they're not formally hosting). A person who is both the assigned host and a teacher of the program shows both pills side by side. Regular participants don't show any pill.</li>
 <li><strong>Active speaker outline</strong> — a yellow border appears around the tile of whoever is currently speaking.</li>
 </ul>
@@ -141,7 +159,8 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <p><strong>Mute one person — from the participants panel.</strong> Open the Participants panel from the bottom control bar. Each row has a Mute button next to it. Same effect as hovering the tile. Use whichever feels more natural.</p>
 <p><strong>Mute All.</strong> In the participants panel footer. Mutes every non-host at once. Use it when background noise is coming from multiple places and individual muting isn't practical, or when you need everyone quiet immediately. It's a blunt instrument — use it purposefully.</p>
 <p><strong>End for All.</strong> The red End button in the bottom-right of the control bar. If your button reads "End" (you're the assigned host, an admin, a guiding teacher, or a teacher running a session that has no assigned host), clicking it opens a small menu; choose "End Meeting for All" to close the room for everyone. Reserve this for genuine emergencies — a coordinated disruption, a situation the room can't recover from — or for the cleanest way to close a session when everyone has settled and it's clearly over. Choosing "Leave Meeting" instead exits you while the room stays open for whoever is still there. If your button reads "Leave," you don't see the "End for All" menu — only Leave.</p>
-<p><strong>Pin (focus).</strong> Click any participant's tile to pin them — they fill more of the visible screen. Useful when the teacher is leading and their tile should be more prominent, or when a participant is responding and the room should see them clearly. Click the tile again to unpin.</p>
+<p><strong>Pin (focus).</strong> Hover over any tile and click <strong>Pin</strong> in the bottom-right corner to keep that person as your main view — they stay there even when someone else is speaking. It's the easy way to keep the teacher front and center. Pinning only changes <em>your</em> screen; it doesn't affect what anyone else sees. A small <em>Pinned …</em> banner appears at the top with an <strong>Unpin</strong> button for when you want to go back. (Anyone in the room can pin, not just hosts.)</p>
+<p><strong>Sharing your screen.</strong> Click <strong>Share Screen</strong>. A short note appears first, explaining what comes next; click <strong>Choose what to share</strong> and your browser opens its own picker — choose your whole screen, a single window, or a browser tab, then click Share in that dialog. (That picker is the browser's own and looks a little different in each browser.) What you share fills everyone's main view automatically, with the video tiles dropping to a filmstrip alongside. Click <strong>Stop Share</strong> when you're done.</p>
 <p>The Disruption Response document in the Host Hub's Documents tab covers when to use each of these under specific circumstances. This section is about what they are.</p>
 
 <h2>Bell mode — for bells, bowls, and gongs</h2>
@@ -149,12 +168,12 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <p>That cleanup is good for voice but works against bells. If you ring a bell, strike a singing bowl, or sound a gong, the cleanup treats the bell tone as noise and suppresses part of its character. <strong>Bell mode</strong> is the small bell-shaped button in the bottom control bar, sitting between Settings and the red End button. Tapping it turns the cleanup off for your microphone so the full tone of the bell passes through clearly.</p>
 <p>A simple rhythm:</p>
 <ol>
-<li>Tap <strong>Bell mode</strong>. The button gets a warm amber tint and the label changes to "Clean voice."</li>
+<li>Tap <strong>Bell mode</strong>. The button turns a warm amber and shows an <strong>On</strong> marker. The label stays "Bell mode" the whole time, so you can always tell what the button is — the amber and the "On" tell you it's active.</li>
 <li>Pause for a second or two. The change reaches every listener almost instantly, but the pause itself is good practice — it lets the room settle before the bell.</li>
 <li>Ring the bell. Let it decay fully.</li>
-<li>Tap the button again. The amber tint goes away and the label returns to "Bell mode."</li>
+<li>Tap the button again. The amber tint and the "On" marker go away — the cleanup is back on.</li>
 </ol>
-<p>The button is visible to anyone with a pill — Host, Teacher, or Host Volunteer. Regular participants don't see it — their audio is always cleaned. The state resets every time you join a session, so you always start in clean-voice mode (cleanup on); Bell mode is a deliberate moment, not a setting you can leave on by accident.</p>
+<p>The button is visible to anyone with a pill — Host, Teacher, or Host Volunteer. Regular participants don't see it — their audio is always cleaned. The state resets every time you join a session, so you always start with cleanup on (Bell mode off); Bell mode is a deliberate moment, not a setting you can leave on by accident.</p>
 <p>If you're on a browser where the cleanup feature isn't supported, the Bell mode button won't appear at all. Your voice is going through unprocessed, the same way it would have before the cleanup was added — which is fine, just not Krisp-cleaned. This is rare; the cleanup is supported on every modern browser on Mac, Windows, iPad, and iPhone.</p>
 <p><strong>One caveat for hosts who aren't program teachers.</strong> Bell mode turns off the room's added audio cleanup. But your <em>browser</em> also has its own background-noise filter, which runs first — before Bell mode even sees the audio. The browser filter is turned off automatically only for people listed as the <em>teacher</em> of the program (the Teacher pill). For everyone else, the browser filter is on by default and may still soften bells even when Bell mode is engaged. If you ring bells regularly during a program, ask Jesse to add you as a teacher of that program — the Teacher pill comes with bell-friendly capture, and Bell mode then works exactly as described. For one-off sessions where the regular host is ringing the bell, the same fix applies on the day.</p>
 

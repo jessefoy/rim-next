@@ -1,5 +1,40 @@
 ---
 
+## 2026-05-31 (session 133) — Session-room UX batch: clarity, chat, join defaults, pinning, fullscreen share, full names
+
+Jesse brought a list of session-room ("meeting software") issues. Worked as four reviewer-gated slices + a follow-on, all on `main`, all type-checked, each shipped behind a code-reviewer sub-agent pass.
+
+**Commits:** `232973e` (Slice A — Bell-mode label clarity + device chevrons removed) · `8021388` (Slice B — DM by clicking a name + unread-chat badge) · `6c929c2` (Slice C — join muted/dark by default + local Pin) · `f7d4517` (Slice D — fullscreen screen share + pre-share primer) · `acb8650` (full names on tiles/roster/chat).
+
+**What shipped:**
+- **Bell mode label** — stable "Bell mode" label + gold "On" marker when active (was flipping to "Clean voice" *while in* bell mode — read backwards). A clear-seeing fix.
+- **Device chevrons removed** — the inline mic/camera chevrons duplicated the Settings panel and read as dead controls; `DevicePickerMenu` deleted, off-state red via `.rim-cb-btn--off`.
+- **DM by clicking a name** — `ParticipantsPanel.onMessageParticipant` closes the roster, opens chat, pre-targets a private message; chat `recipient` lifted to `RIMConference`, `RIMChat` made controlled.
+- **Unread-chat badge** — always-on `DataReceived` listener in `RIMConference` counts `CHAT_TOPIC` packets while the panel is closed (own sends never count — LiveKit doesn't loop publishData to the sender), resets on open, capped "9+".
+- **Join muted + camera off** — `Greenroom.acquireMediaPermission()` acquires the grant via `getUserMedia` + immediate `stop()` (never publishes — "join unseen"), so later turn-on is instant; gesture chain + denial→Recovery preserved; `Status` enum renamed `auto-acquiring`/`acquiring`.
+- **Local Pin** — hover a tile → Pin keeps that person as the viewer's own main view (not broadcast); `sessionRole` context carries `pinnedIdentity` + `onTogglePin`; precedence manual pin > screen share > speaker > gallery; pin banner gives a visible Unpin.
+- **Fullscreen screen share** — a published ScreenShare auto-focuses for everyone (was a small tile), camera tiles drop to the filmstrip; new `ShareScreenPrimer` frames the browser's own (unstylable) picker; speaker-view "keep pin" guards require a Camera source so a stopped share can't leave a blank pin.
+- **Full names** — tiles/roster/chat via `lib/livekit.ts::sessionDisplayName` (`(preferredName || firstName) + lastName`), wired into the token + chat routes; global `session.user.name` stays first-name-only.
+
+**Design decisions and why:**
+- **getUserMedia-prewarm over LiveKit enable-then-disable for join-muted.** The reviewer flagged that enable-then-disable briefly publishes a frame to the room before muting. For a contemplative space, "join unseen" is a correctness criterion, so we acquire permission without ever publishing. Standard "join muted" pattern; primes the grant for instant later turn-on.
+- **Local Pin only, no host Spotlight.** Jesse chose personal pinning (anyone pins anyone, affects only their own view) — simplest, covers "keep the teacher full-screen."
+- **The browser screen picker can't be made "like Zoom."** Communicated the hard web-platform constraint (getDisplayMedia source selection is browser-controlled and unstylable). The achievable approximation is a calm primer + the fullscreen result. Jesse chose the primer.
+- **Full names honor `preferredName`** (consistent with the rest of the app), scoped to the session room only.
+- **Bell mode / chevrons are correctness, not polish** — a toggle whose label contradicts its state and two dead arrows both violate clear-seeing.
+
+**What this connects to:** the LiveKit session room end to end (§38) — `RIMConference` layout orchestration, control bar, tiles, chat, the Greenroom join flow, the token/chat routes; the identity-vs-capability permission model (session 125 — screen-share + pin slot into the same `layoutContext.pin` mechanism); `feedback-community-not-anonymous` (full names); `feedback-measure-before-agreeing` (latency 2+7 deferred to a live pass); `feedback-clear-seeing-is-correctness` + `feedback-pivot-when-fragile` (Bell label + getUserMedia pivot).
+
+**Reviewer track record:** Slice A clean; Slice B clean (folded in explicit font-size + 44px mobile tap target); Slice C clean, then a focused re-review of the getUserMedia pivot (clean, flagged iOS-Safari verification); Slice D caught one medium (speaker-view stale screen-share pin) fixed pre-push. The full-name change was small/traced enough to verify directly.
+
+**Created this session:** `RIM_SessionRoom.md` (per-tool engineering doc, closing-ritual step 4d) + Design Orientation table entry in CLAUDE.md. Manual chapter `host-session-room` bumped to v10.
+
+**Deferred:** latency/sync (items 2 + 7) parked per Jesse — needs a live measurement pass; mobile pin-from-tile; sharer's blank self-tile; guest full-name nudge. See backlog `2026-05-31-001..004` and UP_NEXT.
+
+**What comes next:** live verification on the deployed site (especially the iOS-Safari no-re-prompt check on join, and the uncropped fullscreen share), then the latency measurement pass when Jesse can get a 2–3 person room.
+
+---
+
 ## 2026-05-27 (session 132 continuation) — Threshold integrity: warmth across the post-join sequence + agreement-bypass closure
 
 Five additional commits beyond the original `/join` slice doc sweep (`c44aba1`). The morning shipped the visible UX of the threshold — `/join` page, integrated panel, two orphans deleted. The afternoon closed the invisible integrity: the threshold needed to actually be load-bearing, and several gaps existed.

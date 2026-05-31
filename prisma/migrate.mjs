@@ -3299,6 +3299,24 @@ async function main() {
     console.log("  ⏭ Manual host-session-room v9 already applied.");
   }
 
+  // Session 133 — host-session-room chapter v10. Reflects the session-room UX
+  // batch: join muted + camera off by default, device switching moved to
+  // Settings (inline chevrons removed), Bell mode label fix (stable "Bell mode"
+  // label + "On" marker, no longer flips to "Clean voice"), local Pin (hover →
+  // Pin keeps a person as YOUR main view), screen share now fills the view with
+  // a pre-share primer, private message by clicking a name in the roster,
+  // unread-chat count on the Chat button, full names on tiles.
+  const updateHostSessionRoomV10Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v10'
+  `).catch(() => []);
+
+  if (updateHostSessionRoomV10Flag.length === 0) {
+    await updateManualHostSessionRoom(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v10')`);
+  } else {
+    console.log("  ⏭ Manual host-session-room v10 already applied.");
+  }
+
   // Session 124 — backfill ProgramTeacher rows for the five programs
   // where the named teacher has a real User account in the system.
   // The legacy Program.teacherFacilitators free-text field was the only

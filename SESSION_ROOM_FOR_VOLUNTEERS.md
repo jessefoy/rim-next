@@ -1,12 +1,29 @@
 # The RIM Session Room — Plain-English Notes for Volunteers
 
-_Last updated May 2026 (refreshed 2026-05-26 — three role pills, persistent vote signals, raised-hand speaking queue, time-gated room access + per-session rooms)_
+_Last updated May 2026 (refreshed 2026-05-31 — join muted + camera off by default, fullscreen screen sharing with a pre-share primer, local Pin, full names, DM by clicking a name, unread-chat badge, Bell-mode label clarity, device switching consolidated into Settings)_
 
 This doc is for hosts, teachers, registrars, and anyone else in the Sangha who'll be running or attending sessions in the RIM session room — the video space that replaces Zoom for our online programs.
 
 Over the last few sessions of work we made a lot of changes. The short version: **the session room should now feel almost identical to Zoom**, so you can use what you already know. If you've ever clicked "Mute" in Zoom, the same click is in the same place here.
 
 This is a walkthrough of what changed, why, and what you'll actually see.
+
+---
+
+## What changed on May 31, 2026
+
+A batch of fixes to make the room clearer and more like the meeting tools people already know:
+
+- **You now join with your microphone and camera off.** Turn each on whenever you're ready — because you allowed access on the way in, they switch on instantly. Everyone lands quiet and unseen.
+- **Screen sharing fills the screen** for everyone (it used to sit in a small box), with the video tiles moving to a strip alongside — like other meeting tools. When you click **Share Screen**, a short note appears first, then your browser opens its own picker to choose a screen, window, or tab. (That picker is the browser's own — it looks a little different in each browser, and we can't change it.)
+- **Pin someone to keep them front and center.** Hover over any tile and click **Pin** (bottom-right) to keep that person as your main view, even when someone else is talking — handy for the teacher. It only changes *your* screen; an "Unpin" banner appears at the top.
+- **Full names** show on tiles, the participant list, and chat — not just first.
+- **Message someone privately by clicking their name** in the Participants panel.
+- **A number on the Chat button** tells you when messages arrived while the panel was closed.
+- **The "Bell mode" button is clearer** — it keeps the label "Bell mode" and shows an "On" marker (amber tint) when active, instead of changing the wording.
+- **The little arrows next to Mute and Start Video are gone** — to switch your microphone, speaker, or camera, open **Settings** (the gear).
+
+*(Still being worked on: an occasional slight delay between audio and video. We're measuring it in a real session before changing anything.)*
 
 ---
 

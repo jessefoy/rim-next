@@ -12,6 +12,7 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 | Hub, tool, sidebar, or anything that touches hub-scoped data | `RIM_System_Architecture.md` + `RIM_Hub_Model.md` + **`RIM_Hub_Engineering.md`** (the engineering checklist — rules every callsite must follow) |
 | Any code that sends an email or modifies an email template | **`RIM_Email_Engineering.md`** — URL helpers, fire-and-forget pattern, template gate, CTA button convention |
 | Scheduler tool (`/tools/schedule` and its routes) | **`RIM_Scheduler.md`** — the per-tool reference |
+| Session room (`/session/*`, `components/session/*`, `components/VideoRoom.tsx`, `app/api/livekit/*`) | **`RIM_SessionRoom.md`** — the per-tool reference (permission model, layout/pin/share orchestration, join flow, chat, pitfalls) |
 | Role, permission, or member data | `RIM_Role_Design.md` + `RIM_System_Architecture.md` |
 | Auth, sign-in, NextAuth callbacks, rate-limit | **`RIM_Auth.md`** — sign-in flow, code generation, error states, rate-limit thresholds, key namespacing, common pitfalls |
 | Editor, text field, block, or rich content work | `RIM_Editor_Types.md` — canonical reference. Supersedes the older `RIM_Editor_Design.md`. |
