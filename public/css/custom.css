@@ -14554,6 +14554,32 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-hand-banner__open:hover { background: rgba(251,191,36,0.25); }
 
+/* Pin banner — mirrors the hand banner shape, calm blue tint to distinguish
+   from the amber hand banner. The visible, named escape path for unpinning. */
+.rim-pin-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(0,0,0,0.75);
+  color: #cfe3ee;
+  font-size: var(--text-ui);
+  font-family: var(--font-sans);
+  border-bottom: 1px solid rgba(147,197,253,0.2);
+}
+.rim-pin-banner__open {
+  background: rgba(147,197,253,0.15);
+  border: 1px solid rgba(147,197,253,0.35);
+  color: #cfe3ee;
+  font-size: var(--text-xs);
+  font-family: var(--font-sans);
+  padding: 3px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.rim-pin-banner__open:hover { background: rgba(147,197,253,0.25); }
+
 /* ─── RIMParticipantTile wrapper ─────────────────────────────── */
 .rim-tile-wrapper {
   position: relative;
@@ -14798,6 +14824,37 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   z-index: 6;
 }
 .rim-tile-wrapper--has-actions:hover .rim-tile-muted-pill { opacity: 1; }
+
+/* Local pin button — bottom-right (away from the top-right mute button and the
+   bottom-left nameplate). Hover-reveal on any tile; available to everyone.
+   When this tile is the pinned one, Unpin stays visible without hover (so it's
+   reachable in the carousel) and takes a teal tint to read the pinned state. */
+.rim-tile-pin {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+  z-index: 6;
+}
+.rim-tile-pin:hover { background: rgba(0, 0, 0, 0.8); }
+.rim-tile-pin:focus-visible { opacity: 1; outline: 2px solid #fff; outline-offset: 1px; }
+.rim-tile-wrapper:hover .rim-tile-pin { opacity: 1; }
+.rim-tile-wrapper--pinned .rim-tile-pin {
+  opacity: 1;
+  background: rgba(19, 82, 116, 0.92);
+}
+.rim-tile-wrapper--pinned .rim-tile-pin:hover { background: rgba(19, 82, 116, 1); }
 
 /* ─── Participants panel ─────────────────────────────────────── */
 .rim-pp-backdrop {

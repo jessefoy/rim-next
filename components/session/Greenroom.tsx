@@ -7,14 +7,23 @@
  * the Continue click handler (iOS Safari requires the user-gesture chain).
  *
  * On mount it checks the Permissions API and a localStorage "joined-before"
- * flag, and either skips silently (granted state, attempt direct publish),
- * routes to Recovery (denied), or shows the priming UI.
+ * flag, and either skips silently (granted state), routes to Recovery
+ * (denied), or shows the priming UI.
  *
- * Auto-publish path (granted, or joined-before with prompt/unsupported):
- * happens inside an effect after the room reaches Connected. Any error
- * from a high-confidence "granted" attempt is treated as a real denial.
- * From the speculative "joined-before" attempt, any error falls back to
- * the manual UI — the user clicks Continue from a fresh gesture.
+ * **Join muted + camera off (Zoom-style).** Both paths below acquire the
+ * camera/mic *permission* via getUserMedia and immediately stop the tracks —
+ * they never publish to the room, so the user joins truly unseen (no stray
+ * frame reaches other participants, which matters for a contemplative space).
+ * The user lands silent and dark and turns each on when ready. Acquiring the
+ * grant now (rather than deferring to the first in-session toggle) means
+ * turning them on later is instant — no second prompt, including Safari's
+ * per-session model where a mid-session prompt would be jarring.
+ *
+ * Acquire path (granted, or joined-before with prompt/unsupported): happens
+ * inside an effect after the room reaches Connected. Any error from a
+ * high-confidence "granted" attempt is treated as a real denial. From the
+ * speculative "joined-before" attempt, any error falls back to the manual UI —
+ * the user clicks Continue from a fresh gesture.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -63,7 +72,25 @@ function writeJoinedBefore() {
   }
 }
 
-type Status = "checking" | "auto-publishing" | "manual" | "publishing";
+/**
+ * Acquire the camera + mic *permission* without publishing anything to the
+ * room, so the user joins truly unseen. getUserMedia triggers/caches the
+ * browser grant (and surfaces NotAllowedError on deny, NotReadableError if a
+ * device is in use, NotFoundError); we stop the tracks immediately. Because we
+ * never call LiveKit's setCameraEnabled here, no frame is ever published — the
+ * user lands with mic + camera off. The grant persists for the page session,
+ * so a later in-session setCameraEnabled/setMicrophoneEnabled(true) turns on
+ * instantly with no second prompt (including Safari's per-session model).
+ * Errors propagate to the caller, which routes denial to Recovery. Must be
+ * called from the Continue click handler (gesture) on the prompt path; the
+ * granted path runs in an effect where no prompt fires.
+ */
+async function acquireMediaPermission() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+  stream.getTracks().forEach((t) => t.stop());
+}
+
+type Status = "checking" | "auto-acquiring" | "manual" | "acquiring";
 
 interface Props {
   onJoined: () => void;
@@ -105,13 +132,13 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
       // tracks are already granted. The joined-before localStorage flag is
       // NOT a safe signal to skip: Safari defaults to per-session Allow, so a
       // user who clicked Allow last visit will report 'prompt' this visit.
-      // Auto-publishing from a useEffect (no user gesture) with state 'prompt'
+      // Acquiring from a useEffect (no user gesture) with state 'prompt'
       // fires the browser prompt without the priming card visible — the exact
       // problem the Greenroom was built to prevent. Always show the manual
       // UI for non-granted states so the Continue click provides the gesture.
       if (cam === "granted" && mic === "granted") {
         decisionRef.current = "granted";
-        setStatus("auto-publishing");
+        setStatus("auto-acquiring");
       } else {
         decisionRef.current = "manual";
         setStatus("manual");
@@ -122,9 +149,9 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
     };
   }, [onDenied]);
 
-  // Auto-publish effect — fires once the room is Connected and decision is set.
+  // Auto-acquire effect — fires once the room is Connected and decision is set.
   useEffect(() => {
-    if (status !== "auto-publishing") return;
+    if (status !== "auto-acquiring") return;
     if (connectionState !== ConnectionState.Connected) return;
     if (!localParticipant) return;
     if (attemptedRef.current) return;
@@ -132,10 +159,7 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
 
     (async () => {
       try {
-        await Promise.all([
-          localParticipant.setMicrophoneEnabled(true),
-          localParticipant.setCameraEnabled(true),
-        ]);
+        await acquireMediaPermission();
         writeJoinedBefore();
         onJoined();
       } catch (err) {
@@ -158,12 +182,9 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
 
   async function handleContinue() {
     if (!localParticipant) return;
-    setStatus("publishing");
+    setStatus("acquiring");
     try {
-      await Promise.all([
-        localParticipant.setMicrophoneEnabled(true),
-        localParticipant.setCameraEnabled(true),
-      ]);
+      await acquireMediaPermission();
       writeJoinedBefore();
       onJoined();
     } catch (err) {
@@ -177,8 +198,8 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
     }
   }
 
-  // Hide the card entirely during the checking / auto-publishing phases.
-  if (status === "checking" || status === "auto-publishing") {
+  // Hide the card entirely during the checking / auto-acquiring phases.
+  if (status === "checking" || status === "auto-acquiring") {
     return (
       <div className="gr-screen" aria-busy="true">
         <div className="gr-card gr-card--silent">
@@ -189,9 +210,9 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
   }
 
   const connecting = connectionState !== ConnectionState.Connected;
-  const publishing = status === "publishing";
-  const ctaDisabled = connecting || publishing;
-  const ctaLabel = publishing ? "Joining…" : connecting ? "Connecting…" : "Continue →";
+  const acquiring = status === "acquiring";
+  const ctaDisabled = connecting || acquiring;
+  const ctaLabel = acquiring ? "Joining…" : connecting ? "Connecting…" : "Continue →";
 
   return (
     <div className="gr-screen">
@@ -209,7 +230,10 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
         >
           {ctaLabel}
         </button>
-        <p className="gr-card__hint">You can mute yourself anytime once you&apos;re in.</p>
+        <p className="gr-card__hint">
+          You&apos;ll join with your microphone and camera off — turn them on
+          whenever you&apos;re ready.
+        </p>
         <p className="gr-card__hint gr-card__hint--headphones">
           Headphones recommended — they keep your audio from echoing back to others.
         </p>

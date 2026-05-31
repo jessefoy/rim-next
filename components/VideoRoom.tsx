@@ -13,10 +13,12 @@
  *   conference — RIMConference, the actual room layout.
  *
  * LiveKitRoom is mounted with audio={false} video={false} so connection
- * happens in the background while Greenroom is showing. Greenroom calls
- * setCameraEnabled/setMicrophoneEnabled synchronously from the Continue
- * click handler — iOS Safari needs the user-gesture chain to survive,
- * and only this architecture preserves it.
+ * happens in the background while Greenroom is showing, and so the user joins
+ * muted + camera off (Zoom-style) — no track is published until they choose to.
+ * Greenroom acquires the camera/mic permission via getUserMedia synchronously
+ * from the Continue click handler (iOS Safari needs the user-gesture chain to
+ * survive), then stops the tracks without publishing — priming the grant so a
+ * later in-session toggle turns on instantly.
  *
  * Audio profile drives capture + publish settings:
  *   teacher  — preserves bells, singing bowls, music. Noise suppression OFF,

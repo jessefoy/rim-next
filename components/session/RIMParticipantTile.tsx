@@ -122,6 +122,12 @@ export default function RIMParticipantTile() {
   const isLocal = !!localIdentity && localIdentity === participantIdentity;
   const showMuteAction = !!sessionRole?.isCoHost && !!localIdentity && !isLocal;
 
+  // Local pin — available to everyone, on every tile. Pinning is a personal
+  // view choice (this viewer only), not broadcast. Lets anyone keep e.g. the
+  // teacher full-screen regardless of who's speaking.
+  const canPin = !!sessionRole?.onTogglePin;
+  const isPinned = !!sessionRole?.pinnedIdentity && sessionRole.pinnedIdentity === participantIdentity;
+
   async function handleMute() {
     if (!sessionRole) return;
     setMuting(true);
@@ -145,6 +151,7 @@ export default function RIMParticipantTile() {
     showAvatar ? "rim-tile-wrapper--avatar" : "",
     isSpeaking ? "rim-tile-wrapper--speaking" : "",
     showMuteAction ? "rim-tile-wrapper--has-actions" : "",
+    isPinned ? "rim-tile-wrapper--pinned" : "",
   ].filter(Boolean).join(" ");
 
   return (
@@ -165,6 +172,18 @@ export default function RIMParticipantTile() {
             {muting ? "…" : "Mute"}
           </button>
         )
+      )}
+      {canPin && (
+        <button
+          type="button"
+          className="rim-tile-pin"
+          onClick={() => sessionRole?.onTogglePin(participantIdentity)}
+          title={isPinned ? `Unpin ${displayName}` : `Pin ${displayName} to your view`}
+          aria-label={isPinned ? `Unpin ${displayName}` : `Pin ${displayName} to your view`}
+          aria-pressed={isPinned}
+        >
+          {isPinned ? "Unpin" : "Pin"}
+        </button>
       )}
       {showAvatar && (
         <div

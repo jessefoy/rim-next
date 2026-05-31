@@ -6,7 +6,7 @@
  * children (LiveKit's layouts re-mount tile components and don't accept
  * arbitrary props).
  *
- * Consumers: RIMParticipantTile (hover-mute affordance).
+ * Consumers: RIMParticipantTile (hover-mute affordance + pin/unpin).
  */
 
 import { createContext, useContext } from "react";
@@ -31,6 +31,15 @@ export interface SessionRoleValue {
    * consumer must check truthiness before comparing.
    */
   localIdentity: string | null;
+  /**
+   * Local pin — the identity the viewer has manually pinned to their focus
+   * view, or null. Purely client-side (this viewer only); not broadcast.
+   * When set, the pin-orchestration effect in RIMConference forces focus
+   * layout on this participant and suppresses active-speaker auto-follow.
+   */
+  pinnedIdentity: string | null;
+  /** Toggle the local pin on a participant identity (pin if not pinned, else unpin). */
+  onTogglePin: (identity: string) => void;
 }
 
 const SessionRoleContext = createContext<SessionRoleValue | null>(null);

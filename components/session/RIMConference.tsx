@@ -89,6 +89,10 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
   // panel can start a private message. "" = Everyone.
   const [chatRecipient, setChatRecipient] = useState<string>("");
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  // Local manual pin (this viewer only, not broadcast). null = auto/gallery.
+  // Set by clicking Pin on a tile; overrides active-speaker auto-follow so a
+  // viewer can keep e.g. the teacher full-screen regardless of who's speaking.
+  const [pinnedIdentity, setPinnedIdentity] = useState<string | null>(null);
 
   // Raised hands — reactive because of updateOnlyOn above
   const raisedHands = remoteParticipants.filter(
@@ -342,11 +346,43 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
   // `tracks` / `speakers` array identities on every render).
   const lastPinnedIdentityRef = useRef<string | null>(null);
 
-  // Speaker / Gallery view orchestration:
-  //  - speaker: ensure a pin exists (first active speaker, else first remote).
-  //             Refresh pin to follow active speaker as they change.
+  // Pin orchestration:
+  //  - manual pin (this viewer): always wins. Pin that participant and stop
+  //    following the active speaker. Re-pins on camera on/off (placeholder ↔
+  //    real track) and releases if they leave.
+  //  - speaker: ensure a pin exists (first active speaker, else first remote),
+  //    following the active speaker as it changes.
   //  - gallery: clear any pin so the grid is the layout.
   useEffect(() => {
+    // Manual pin takes precedence over view + active-speaker follow.
+    if (pinnedIdentity) {
+      const target = tracks.find(
+        (t) => t.source === Track.Source.Camera && t.participant.identity === pinnedIdentity,
+      );
+      if (!target) {
+        // Pinned participant left the room — release the pin gracefully.
+        if (layoutContext.pin.state && layoutContext.pin.state.length > 0) {
+          layoutContext.pin.dispatch?.({ msg: "clear_pin" });
+        }
+        lastPinnedIdentityRef.current = null;
+        setPinnedIdentity(null);
+        return;
+      }
+      // Re-dispatch only when the pinned track ref differs (identity changed,
+      // or the same person's camera toggled placeholder ↔ real track). Comparing
+      // the publication sid converges in one extra render instead of looping.
+      const pinnedRef = layoutContext.pin.state?.[0];
+      const samePin =
+        !!pinnedRef &&
+        pinnedRef.participant.identity === pinnedIdentity &&
+        pinnedRef.publication?.trackSid === target.publication?.trackSid;
+      if (!samePin) {
+        lastPinnedIdentityRef.current = pinnedIdentity;
+        layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: target });
+      }
+      return;
+    }
+
     if (view === "gallery") {
       if (layoutContext.pin.state && layoutContext.pin.state.length > 0) {
         layoutContext.pin.dispatch?.({ msg: "clear_pin" });
@@ -400,11 +436,24 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
     }
     lastPinnedIdentityRef.current = nextTrack.participant.identity;
     layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: nextTrack });
-  }, [view, speakers, tracks, layoutContext.pin, localParticipant?.identity]);
+  }, [view, speakers, tracks, layoutContext.pin, localParticipant?.identity, pinnedIdentity]);
 
-  // Render speaker layout when view === speaker AND we have a pinned track.
-  // Otherwise gallery.
-  const inSpeakerView = view === "speaker" && !!layoutContext.pin.state && layoutContext.pin.state.length > 0;
+  // Render focus layout when there's a pinned track — either from a manual pin
+  // (any view) or from speaker view's active-speaker follow. Otherwise gallery.
+  const inFocusView =
+    (!!pinnedIdentity || view === "speaker") &&
+    !!layoutContext.pin.state &&
+    layoutContext.pin.state.length > 0;
+
+  // Name of the manually pinned participant, for the pin banner.
+  const pinnedName = pinnedIdentity
+    ? (localParticipant?.identity === pinnedIdentity
+        ? (localParticipant?.name || "you")
+        : (() => {
+            const p = remoteParticipants.find((rp) => rp.identity === pinnedIdentity);
+            return p?.name || p?.identity || "participant";
+          })())
+    : "";
 
   return (
     <SessionRoleProvider
@@ -415,6 +464,9 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
         programSlug,
         sessionDate,
         localIdentity: localParticipant?.identity ?? null,
+        pinnedIdentity,
+        onTogglePin: (identity: string) =>
+          setPinnedIdentity((prev) => (prev === identity ? null : identity)),
       }}
     >
     <LayoutContextProvider value={layoutContext}>
@@ -440,10 +492,23 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           </div>
         )}
 
+        {/* Pin banner — visible named escape path while a manual pin is active */}
+        {pinnedIdentity && (
+          <div className="rim-pin-banner">
+            <span>📌 Pinned {pinnedName} to your view</span>
+            <button
+              className="rim-pin-banner__open"
+              onClick={() => setPinnedIdentity(null)}
+            >
+              Unpin
+            </button>
+          </div>
+        )}
+
         {/* Video grid + optional chat sidebar */}
         <div className="rim-conference__main">
           <div className="rim-conference__video">
-            {inSpeakerView ? (
+            {inFocusView ? (
               <FocusLayoutContainer>
                 <CarouselLayout tracks={sortedTracks}>
                   <RIMParticipantTile />
