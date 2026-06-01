@@ -6,7 +6,9 @@ _Generated 2026-03-11. Last updated 2026-05-31 (Session 133 — session-room UX 
 
 ## What's been built
 
-Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the headless backend of the RIM digital presence — programs, member accounts, registrations, online courses, hubs, and volunteer tools. The public/member-facing surface is moving to Webflow per `RIM_Architecture_Directive.md` (April 2026 pivot); RIM Next continues to host the API, the database, business logic, scheduled jobs, and the small set of stateful interactive surfaces (the Tiptap editor surfaces, the LiveKit session room, the staff tools).
+Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the **single, integrated RIM platform** — public pages, member accounts, registrations, online courses, hubs, volunteer tools, the API, the database, business logic, scheduled jobs, and the stateful interactive surfaces (the Tiptap editor surfaces, the LiveKit session room, the staff tools) all live here, in one app.
+
+**The April 2026 Webflow-primary pivot was reversed (May 2026).** RIM is no longer split between a Webflow front-end and a headless backend. The legacy Webflow public site (at `rootedinmindfulness.org`) is being **retired and rebuilt natively in this app**; the Webflow bridge (`rim-connect.js`, the `/api/public/*` routes) has already been removed. The public-facing pages exist in the app today but are early/rough — they are the next major build area, not duplicates of something live elsewhere. `RIM_Architecture_Directive.md` and `RIM_Architecture_Pivot.md` are kept only as superseded historical record; do not treat them as current.
 
 **Currently active (operational):**
 - Program registration system (waitlisting, dana/Stripe payments, calendar links, automated emails)
