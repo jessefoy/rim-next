@@ -907,16 +907,6 @@ model MigrationFlag {
   @@map("_migration_flags")
 }
 
-// ─── APP SETTINGS (key-value) ─────────────────────────────────────────────────
-
-model AppSetting {
-  key       String   @id
-  value     String   @db.Text
-  updatedAt DateTime @updatedAt
-
-  @@map("app_settings")
-}
-
 model UserToolAccess {
   id          String   @id @default(cuid())
   userId      String

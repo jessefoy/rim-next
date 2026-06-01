@@ -217,6 +217,26 @@ const migrations = [
     },
   },
   {
+    // Session 134 cleanup — drop the AppSetting key-value table. It was the
+    // Support Inbox's settings store (default assignee, sync historyId, manual-
+    // sync rate-limit timestamps). The Support Inbox was removed in session 100
+    // and nothing has referenced app_settings since. Removing the dead model
+    // (schema.prisma) + the orphaned table here.
+    name: "drop_app_settings_table",
+    async run() {
+      const tables = await db.$queryRawUnsafe(`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_name = 'app_settings' AND table_schema = 'public'
+      `);
+      if (tables.length === 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "app_settings" CASCADE`);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
+  {
     // Session 91 — fold Program.specialNotes into Program.description as an
     // Aside block. The specialNotes field was a separate top-level slot
     // rendered above the description; with the Aside block shipped in
