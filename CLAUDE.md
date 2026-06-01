@@ -117,6 +117,7 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 - Design tokens in `:root`: Colors: `--rim-bg`, `--rim-text`, `--rim-mid`, `--rim-blue`, `--color-error`, `--color-success`, `--color-warning` (each with `-bg` variant). Fonts: `--font-serif`, `--font-sans`, `--font-mono`. Type scale: `--text-hero` (clamp), `--text-h1` (38px), `--text-h2` (28px), `--text-h3` (24px), `--text-h4` (20px), `--text-body` (18px), `--text-small` (15px), `--text-ui` (14px), `--text-xs` (13px), `--text-label` (12px), `--text-xxs` (11px). Line heights: `--lh-heading` (1.3), `--lh-body` (1.7). Layout: `--reading-width` (700px). **Use tokens — never invent raw px values or raw hex colors per component.**
 - No box-shadows. No borders unless functionally required. (One scoped exception: control-bar popovers in the LiveKit session room — `.rim-cb-popover` — use a soft shadow because Zoom does, and the session room is held to Zoom-fidelity per the session-117 Zoom-aligned redesign.)
 - **Mobile-first responsive:** All new UI must work at 360px minimum (primary target 390px). Breakpoints: `@media (max-width: 430px)` for phones, `@media (max-width: 768px)` for tablets. Minimum 44px touch targets on all interactive elements. Minimum 16px font on all inputs/selects (prevents iOS auto-zoom).
+- **CSS hygiene tools** (session 134): `scripts/css-prune.mjs` removes fully-dead CSS rules by prefix via postcss (dry-run by default, `--apply` to write; edit the `DEAD_PREFIXES` list; it preserves any rule that shares a selector with a live class). `scripts/css-cut.mjs "<START banner text>" "<END banner text>"` removes a contiguous banner-delimited block. Both verify brace balance before writing. Use these when a removed feature leaves an orphaned CSS prefix — `custom.css` is large and accretes dead prefixes over time.
 
 ## Typography — Two Scales (critical, do not drift from this)
 
@@ -172,7 +173,7 @@ When the user says **"remember that we need [X]"**, **"add this to the backlog"*
 3. Add a new item with all required fields (see below)
 4. Write the file back
 5. `git add data/backlog.json && git commit -m "Backlog: add [title]" && git push`
-6. Confirm — the page at `/admin/ideas` will show it after Vercel deploys (~1 min)
+6. Confirm — `data/backlog.json` is the git-tracked source of truth. There is no in-app viewer (the old `/admin/ideas` page was intentionally removed); read the backlog directly from the file or on GitHub.
 
 **Item structure:**
 ```json
