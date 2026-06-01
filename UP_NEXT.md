@@ -6,6 +6,22 @@
 
 ## Active
 
+### Session 134 (2026-06-01) — Site-wide audit + dead-code/CSS cleanup + Webflow-reversal doc fix (shipped; deploy spot-check pending)
+
+Full audit of the app to regain scope, then removed the dead weight. Four commits on `main` (`a5e1e41`, `e4d9355`, `48caa0c`, `81c810f`) + the closing-ritual doc sweep.
+
+**Shipped:**
+- **Dead app code** (~2,670 lines): 2 Sanity pages (`/glossary`, `/volunteer-positions`) + `lib/sanity.ts` + `lib/queries.ts`; 4 unreferenced components (`TiptapEditor`, `SupportSettingsClient`, `HubManageClient`, `LazyVideoRoomEmbed`); 4 orphan API routes; `AppSetting` model + DROP-TABLE migration; both style-guide pages. **Bug fix:** `/api/admin/courses` now reads linked-program names from Postgres (was querying retired Sanity with Postgres IDs → always empty).
+- **CSS audit:** `custom.css` 27,175 → 23,489 (~3,686 dead lines gone), verified safe (brace-balanced, postcss-idempotent, zero live classes removed). Hygiene scripts `scripts/css-prune.mjs` + `css-cut.mjs` kept + noted in CLAUDE.md.
+- **Webflow-reversal doc fix:** corrected `RIM_Stack_Reference.md` intro + `project-architecture-pivot.md` memory; removed 3 obsolete Webflow-workflow memory files. RIM is one integrated Next.js app; Webflow being retired.
+
+**What to verify on the deployed site:** spot-check the surfaces where removed CSS lived — **any rich-text editor** (hub doc / course / lesson / program editor), a **hub home**, a **course + lesson page**, a **program page**. If anything's visually off, `git revert e4d9355` is clean and isolated.
+
+**Deferred / queued (from this session):**
+- **Public-facing pages are the next major build area** — they exist but are rough. The Webflow legacy shim in `custom.css` (`.section`, `.w-*`, runtime `.ProseMirror`) retires *with* that rebuild, not before. Backlog `2026-06-01-001`.
+- **`@sanity`/`@portabletext` dep prune** — pages gone, but `MemberGate.tsx` + `lib/email.ts` still import portable-text. Backlog `2026-06-01-002`.
+- **Memory candidate proposed at closing (step 8b):** a "verify-before-removing" feedback file (Prisma relation includes / raw SQL / template literals / adapter tables evade naive greps) — awaiting Jesse's confirm.
+
 ### Session 133 (2026-05-31) — Session-room UX batch (shipped; live verification pending)
 
 Jesse brought a list of session-room ("meeting software") issues. Worked as four reviewer-gated slices + a follow-on, all pushed to `main` (Vercel deploys each). Each type-checked and code-reviewed before push.

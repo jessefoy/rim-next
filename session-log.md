@@ -1,5 +1,37 @@
 ---
 
+## 2026-06-01 (session 134) — Site-wide audit + dead-code & CSS cleanup + Webflow-reversal doc correction
+
+Jesse asked for a full audit of the app — every route, feature, and module — to regain scope and find what's abandoned or bloated. Produced a site map, then removed the dead weight across four verification-gated commits on `main`.
+
+**Commits:** `a5e1e41` (dead code + Sanity decommission + bug fix) · `e4d9355` (CSS audit, −3,686 lines) · `48caa0c` (Webflow-reversal doc correction) · `81c810f` (backlog + CSS-tools doc fixes).
+
+**The audit (read-only first).** Inventoried 73 page routes, 114 API routes, ~50 Prisma models, 4 crons, ~65 components, ~40 lib modules via four parallel Explore agents (public pages, component/lib orphans, API/schema usage, tools/admin/session inventory). **Every removal claim was then verified by hand** — several agent findings were wrong and corrected before acting (see "what this connects to").
+
+**Dead code removed (`a5e1e41`):**
+- **Sanity decommission:** `/glossary/[slug]` + `/volunteer-positions/[slug]` pages, `lib/sanity.ts`, `lib/queries.ts`. `/api/admin/courses` re-pointed from retired Sanity to Postgres for linked-program names — also a **latent bug fix**: it queried Sanity with Postgres Program IDs that never matched, so the course-access admin panel's "linked programs" was always empty.
+- **4 unreferenced components:** `TiptapEditor` (orphan demo, superseded by `rim-tiptap`), `SupportSettingsClient` (Support Inbox, removed s100), `HubManageClient`, `LazyVideoRoomEmbed`.
+- **4 orphan API routes:** `/api/account/courses`, `/api/courses/[slug]/enrollment`, `/api/lessons/[slug]/progress`, `/api/admin/populate-livekit-rooms`.
+- **`AppSetting` model** + idempotent `DROP TABLE app_settings` migration (Support Inbox residue, dead since s100).
+- **2 style-guide pages** (`/style-guide`, `/admin/style-guide`).
+- **Kept deliberately:** `LessonTeacher` (member-DB-backed, editor-wired, and actually displayed — see below), `SubClaim` (FK chain), `UserToolAccess` (intentional per-user grant), NextAuth adapter tables, `MigrationFlag`.
+
+**CSS audit (`e4d9355`):** `custom.css` 27,175 → 23,489 lines (~3,686 / ~13.6% removed), all dead CSS from removed features, verified safe (brace-balanced throughout, postcss-idempotent, parses clean, **zero live classes in the removed set**). Removed: Support Inbox `si-`/`sic-` (~1,800), BlockNote/Bear/FormatPill editors + old root-Tiptap (`bn-`/`bear-`/`mantine-`/`fmt-`/`rim-block-editor`/`rim-prose-editor`/`tt-`/`rte-`/`img-`) via a postcss rule-level prune of 239 fully-dead rules (~1,370), style guide `sg-` (~300), old "my library" `ml-` (76), backlog page `bl-` (221), Editor Lab `el-`. Two reusable hygiene tools added: `scripts/css-prune.mjs` (postcss dead-rule remover, dry-run default) + `scripts/css-cut.mjs` (banner-delimited block cut) — noted in CLAUDE.md CSS Rules so future sessions find them. **Deliberately left:** the Webflow legacy shim (still load-bearing — `.section` ×67, `.w-richtext` ×8, runtime `.ProseMirror`/`.is-editor-empty`) to retire wholesale at the public-page rebuild; ~64 dead remnants grouped in shared rules with live selectors.
+
+**Webflow-reversal doc correction (`48caa0c` + memory).** Jesse clarified a major architectural fact: RIM is no longer moving *to* Webflow — it's moving *away*, rebuilding the whole site natively as one integrated Next.js app; the public pages are early/rough, not Webflow-superseded duplicates. Corrected `RIM_Stack_Reference.md`'s "What's been built" intro (still said "moving to Webflow") and rewrote the false `memory/project-architecture-pivot.md` (claimed "pivot committed, rim-connect.js v3 live in production"). The two architecture docs were already banner-superseded. Removed 3 obsolete Webflow-workflow memory files (`feedback-audit-webflow-by-html`, `webflow-cache-and-mcp-limits`, `feedback-webflow-cleanliness`) + trimmed the MEMORY.md index.
+
+**`/admin/ideas` (`81c810f`).** The backlog *viewer* page was found gone (intentionally removed earlier in `e480033`); `data/backlog.json` (38 items) is alive and git-tracked. Decided git-only; fixed the stale CLAUDE.md backlog step that promised a page. Kept the two CSS hygiene scripts and made them discoverable in CLAUDE.md.
+
+**What this connects to:**
+- **Sanity retirement** (`sanity-status` memory): this removed the last two Sanity-backed *pages*; `@sanity/client` + `@portabletext/*` deps remain because `MemberGate.tsx` + `lib/email.ts` still import portable-text rendering. Pruning them is queued (backlog `2026-06-01-002`).
+- **CSS architecture** (FEATURES §10): the legacy Webflow shim is the only significant dead-ish CSS left, and it's coupled to the not-yet-rebuilt public pages — its retirement is part of the public-page rebuild, not a standalone cleanup (backlog `2026-06-01-001`).
+- **The teacher model** (ProgramTeacher / TeacherProfile, s79/124): the audit's "LessonTeacher is write-only, drop it" was **wrong** — `LessonTeacher` is read via Prisma relation `include` and displayed on the lesson page (a "Teachers" section linking to `/teachers/[slug]`) and aggregated into a course byline. The member-DB-backed lesson-teacher integration Jesse wanted already exists. The grep missed it because it searched `db.lessonTeacher.*`, not the relation include.
+- **The Webflow removal arc** (s83–102): this closes the documentation side — the *direction* (away from Webflow) is now stated correctly everywhere current.
+
+**What's next:** public-facing pages are the next major build area (they exist but are rough). Deferred: Webflow shim retirement (with the public rebuild), `@sanity`/`@portabletext` dep prune, the s133 session-room verification pass. Spot-check this session's deploys on the editor/hub/course/program surfaces (where removed CSS lived).
+
+---
+
 ## 2026-05-31 (session 133) — Session-room UX batch: clarity, chat, join defaults, pinning, fullscreen share, full names
 
 Jesse brought a list of session-room ("meeting software") issues. Worked as four reviewer-gated slices + a follow-on, all on `main`, all type-checked, each shipped behind a code-reviewer sub-agent pass.

@@ -236,12 +236,12 @@
   {
     "id": "2026-04-24-001",
     "title": "Phase 2: Authenticated CTA states on Webflow Program Detail",
-    "description": "Extend the ctaHtml pattern on /api/public/programs/[slug] to cover the four authenticated states the RIM Next public detail page already renders: (1) registered — '\u2713 You\u2019re registered. View your program details'; (2) waitlisted — 'You\u2019re on the waitlist. View details'; (3) open virtual program + logged-in — 'Access Zoom Link in Dashboard \u2192'; (4) open in-person/hybrid + logged-in — 'Simply arrive in person \u00b7 Zoom link in dashboard'. Requires an authenticated endpoint — /api/member/programs/[slug]/cta-state — that returns either a session: null response (no override) or an ctaHtmlOverride string. rim-connect.js extends to optionally fetch the authenticated endpoint alongside the public one; if it returns an override, it replaces ctaHtml before populating. No Webflow change needed \u2014 the existing single-placeholder pattern carries through. Key architectural decision: the auth bridge between Webflow (www.rootedinmindfulness.org) and RIM Next API (rim-next.vercel.app). Three options: (A) move RIM Next API behind api.rootedinmindfulness.org subdomain and set the NextAuth session cookie on .rootedinmindfulness.org so it is sent cross-subdomain; (B) token-based: member logs in via a Webflow-hosted form that calls /api/auth/signin-token, stores a short-lived JWT in localStorage, sends it as Authorization: Bearer on each member API call; (C) iframe + postMessage hand-shake. Option A is the cleanest production model and unblocks the broader member-area migration (dashboard, my-programs, registration, settings) \u2014 do this one right once and every future member feature on Webflow rides on it. Option B is a faster bootstrap if subdomain change is blocked. Include CORS + credentials:true configuration on all /api/member/* routes and an allowlist of Webflow origins. Test matrix: four guest states (current), four member states, logout transitions, deadline crossing (registrationClosed flipping mid-session).",
+    "description": "Extend the ctaHtml pattern on /api/public/programs/[slug] to cover the four authenticated states the RIM Next public detail page already renders: (1) registered — '✓ You’re registered. View your program details'; (2) waitlisted — 'You’re on the waitlist. View details'; (3) open virtual program + logged-in — 'Access Zoom Link in Dashboard →'; (4) open in-person/hybrid + logged-in — 'Simply arrive in person · Zoom link in dashboard'. Requires an authenticated endpoint — /api/member/programs/[slug]/cta-state — that returns either a session: null response (no override) or an ctaHtmlOverride string. rim-connect.js extends to optionally fetch the authenticated endpoint alongside the public one; if it returns an override, it replaces ctaHtml before populating. No Webflow change needed — the existing single-placeholder pattern carries through. Key architectural decision: the auth bridge between Webflow (www.rootedinmindfulness.org) and RIM Next API (rim-next.vercel.app). Three options: (A) move RIM Next API behind api.rootedinmindfulness.org subdomain and set the NextAuth session cookie on .rootedinmindfulness.org so it is sent cross-subdomain; (B) token-based: member logs in via a Webflow-hosted form that calls /api/auth/signin-token, stores a short-lived JWT in localStorage, sends it as Authorization: Bearer on each member API call; (C) iframe + postMessage hand-shake. Option A is the cleanest production model and unblocks the broader member-area migration (dashboard, my-programs, registration, settings) — do this one right once and every future member feature on Webflow rides on it. Option B is a faster bootstrap if subdomain change is blocked. Include CORS + credentials:true configuration on all /api/member/* routes and an allowlist of Webflow origins. Test matrix: four guest states (current), four member states, logout transitions, deadline crossing (registrationClosed flipping mid-session).",
     "category": "Member Accounts",
     "priority": "high",
     "status": "open",
     "addedAt": "2026-04-24",
-    "notes": "Builds on the single-placeholder CTA pattern established in session 92 (ctaHtml on /api/public/programs/[slug], one placeholder Block in Webflow). The auth-bridge decision is load-bearing for every Webflow member feature \u2014 draft and confirm with Jesse before implementing. Good candidate for a dedicated design session rather than ad-hoc work."
+    "notes": "Builds on the single-placeholder CTA pattern established in session 92 (ctaHtml on /api/public/programs/[slug], one placeholder Block in Webflow). The auth-bridge decision is load-bearing for every Webflow member feature — draft and confirm with Jesse before implementing. Good candidate for a dedicated design session rather than ad-hoc work."
   },
   {
     "id": "2026-04-21-001",
@@ -382,5 +382,25 @@
     "status": "open",
     "addedAt": "2026-04-19",
     "notes": "Pattern to apply per tool: 44px touch targets on buttons/links, 16px font on text inputs (.fi/.ft/.fs already fixed globally at <768px), chrome compression for short viewports, defensive max-width on cards. Use the hub-schedule CSS block (~11915 in custom.css) as a reference pattern."
+  },
+  {
+    "id": "2026-06-01-001",
+    "title": "Retire Webflow legacy shim from custom.css",
+    "description": "The ~600-line Webflow legacy shim at the bottom of custom.css (.w-*, .section, .content-container, button-2, etc.) is still load-bearing: .section is used ~67x, .w-richtext ~8x, plus runtime-applied .ProseMirror/.is-editor-empty. Retire it wholesale during the native public-page rebuild, replacing Webflow class names with prefixed design-system classes page by page. Identified during the session-134 CSS audit.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-01",
+    "notes": "Do NOT remove piecemeal now — it props up the not-yet-rebuilt public/static pages."
+  },
+  {
+    "id": "2026-06-01-002",
+    "title": "Prune @sanity/@portabletext npm deps after migrating portable-text usage",
+    "description": "Session 134 removed the last two Sanity-backed pages (/glossary, /volunteer-positions) plus lib/sanity.ts + lib/queries.ts. @sanity/client + @portabletext/* deps remain because MemberGate.tsx and lib/email.ts still import portable-text rendering. Migrate those off portable text, then drop the deps from package.json + lockfile.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-01",
+    "notes": "Removing the deps requires a lockfile sync; do it as its own small change to keep the build green."
   }
 ]

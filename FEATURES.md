@@ -829,6 +829,8 @@ Each item in `registrationFields`:
 
 **Webflow CSS files removed (session 84).** `webflow.css` and `rim.webflow.css` are no longer loaded. `normalize.css` was removed in session 83. Quincy CF fonts are now self-hosted via `@font-face` declarations at the top of `custom.css`.
 
+**CSS audit (session 134).** `custom.css` was reduced from 27,175 to 23,489 lines (~3,686 removed, ~13.6%) — all dead CSS from removed features: Support Inbox (`si-`/`sic-`), the BlockNote/Bear/FormatPill editors and the old root-Tiptap demo (`bn-`/`bear-`/`mantine-`/`fmt-`/`rim-block-editor`/`rim-prose-editor`/`tt-`/`rte-`/`img-`), the deleted style-guide pages (`sg-`), the old "my library" page (`ml-`), the backlog viewer (`bl-`), and Editor Lab (`el-`). Removal was verified static: brace-balanced throughout, postcss-idempotent, parses clean, zero live classes in the removed set. 🔧 Two reusable hygiene tools live in `scripts/`: `css-prune.mjs` (postcss rule-level dead-rule remover — drops a rule only when *every* selector is dead-rooted, so rules grouped with a live selector survive; dry-run by default) and `css-cut.mjs` (content-anchored banner-delimited block cut). See the CLAUDE.md CSS Rules note. The **legacy Webflow shim is deliberately retained** — it is still load-bearing (`.section` used ~67×, `.w-richtext` ~8×, plus runtime-applied `.ProseMirror`/`.is-editor-empty`); it will be retired wholesale during the native public-page rebuild, not piecemeal (backlog `2026-06-01-001`).
+
 ### Custom CSS file
 All styles: `public/css/custom.css` — single source of truth.
 
