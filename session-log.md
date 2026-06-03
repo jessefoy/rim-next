@@ -1,5 +1,36 @@
 ---
 
+## 2026-06-03 (session 135) — Guiding Teacher hub access + GUIDING_TEACHER made assignable
+
+Started from Jesse's question: *"Shouldn't I have access to all of the hubs according to my account?"* It unwound into an access-model correction and surfaced an invisible-role bug.
+
+**Two commits on `main`:** `4439952` (canAccessHub access door) · `1c05778` (surface GUIDING_TEACHER in the role-assignment UI).
+
+**What was wrong (clear-seeing first).** Three tiers disagreed about hub access: the layout gated on `isMember`, the 11 sub-pages on `member || isAdmin` (dead code — the layout blocked first), and the ~20 API routes on `member` only. Net effect: an ADMIN saw a card for *every* hub on the dashboard but hit "You don't have access" on click (dead-end cards), and a GUIDING_TEACHER — whom `RIM_Role_Design.md` grants "implicit coordinator on every hub" — was silently blocked from any hub they hadn't joined, making that documented reach unreachable.
+
+**The design decision (and why).** Hub access is a *pastoral* capability, not a technical one, so the lever is GUIDING_TEACHER (dharma authority), not ADMIN (technical). New `lib/hubAuth.ts::canAccessHub(member, roles)` is the single access door: a `HubMember` row OR `GUIDING_TEACHER`. ADMIN-alone deliberately does **not** pass — it configures hubs from `/admin/hubs` (outside) and participates from inside as a member (the session-128 boundary held). The principle Jesse and I landed on: the guiding teacher can walk into any room, but is *seen* when they do (presence stays attributable via existing `archivedById`/`editedAt` fields) — not one-way glass. Applied at the layout, 11 sub-pages, and 20 API route files (33 gate sites), collapsing the three disagreeing tiers onto one helper (the same move `effectiveCoordinator` made in session 115). Dashboard split into "Where you're contributing" (memberships, with unread badges) + a quieter "oversight" group (every other hub, transparent cards) for admin/GT — primary thing first, reach available but not competing.
+
+**The invisible-role bug.** Verifying the fix surfaced the real root cause of Jesse's confusion: `RolesSection.tsx` only offered 5 roles — `GUIDING_TEACHER` had **no UI surface at all** and could be granted only by editing the DB. So the role that now opens every hub was invisible and unauditable, and Jesse's account may never have actually held it. Fix (`1c05778`): a "Sangha-wide authority" group exposing GUIDING_TEACHER with a plain description of what it grants. No API/schema change (the PATCH already validated the full enum, ADMIN-gated). Jesse then assigned it to himself and confirmed Course Hub access works — closing the loop honestly.
+
+**Reviewer sub-agent** (on the access diff) found two real gaps, both fixed before commit: `/api/hub/[slug]/route.ts` used an `isMember` idiom my grep missed (now `canAccessHub`), and `categories` DELETE gated on an inline `isAdmin || isCoordinator` that omitted GT (now `effectiveCoordinator`).
+
+**What this connects to:**
+- **canAccessHub joins the hubAuth helper family** (`effectiveCoordinator` / `requireCoordinator` / `canManageTrash`) — those govern *authority within* a hub; `canAccessHub` governs *the door*. All four now honor GT; only the door distinguishes ADMIN (out) from GT (in).
+- **Session 128's ADMIN boundary** is preserved and now *explained* — the access policy in `RIM_Hub_Engineering.md` was actively wrong ("GT must be a member like ADMIN") and is corrected.
+- **The member registry / section-registry** (`RolesSection`) — GUIDING_TEACHER is now a first-class assignable role there.
+- **Dashboard hub listing** — no longer flattens; reflects the two relationships (your teams vs. the sangha you steward).
+
+**What comes next:**
+- **GT-presence badge** (deferred, now backlogged `2026-06-03-001`) — the legibility piece: when a guiding teacher enters a hub they don't formally belong to, the team should see *them*, not an anonymous coordinator. Matters most the day RIM has a second guiding teacher.
+- **A staff-manual chapter on roles + who-can-access-a-hub** doesn't exist; no current chapter was invalidated, but the gap is worth a future seed.
+- Verification on the deployed site of the dashboard grouping + entering a non-member hub as GT (Jesse confirmed Course Hub works).
+
+**Memory:** added `feedback-verify-state-not-docs.md` — don't assert a user's role/account state from documentation prose; verify the live value (DB/UI) or say you haven't. I twice told Jesse he "was" GUIDING_TEACHER based on a doc sentence; that unverified assumption was the crux of the confusion.
+
+**Note:** the production DB (Neon) was unreachable from the dev sandbox all session (even with the network sandbox disabled — `...:5432`), so role/membership verification had to happen through the UI rather than a query. Worth remembering for future diagnostic work from this machine.
+
+---
+
 ## 2026-06-01 (session 134) — Site-wide audit + dead-code & CSS cleanup + Webflow-reversal doc correction
 
 Jesse asked for a full audit of the app — every route, feature, and module — to regain scope and find what's abandoned or bloated. Produced a site map, then removed the dead weight across four verification-gated commits on `main`.

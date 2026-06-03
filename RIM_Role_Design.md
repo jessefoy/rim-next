@@ -246,6 +246,8 @@ The distinction from `ADMIN` is intentional. `ADMIN` is a technical role: a pers
 
 `GUIDING_TEACHER` acts as an **implicit coordinator on every hub** for content and moderation purposes, without needing a `HubMember` row. The system computes this in one place: `effectiveCoordinator(member, roles)` in `lib/hubAuth.ts`. Any surface that asked "is this user a coordinator?" now answers true for GT.
 
+**Update (session 135) — the access door now honors GT.** Until session 135 this reach was *aspirational*: the helpers honored GT, but the hub **access gate** (`hasAccess = isMember` in the layout, `!member` in every sub-page and API route) silently blocked a GT who wasn't a member — so the coordinator powers above were unreachable on any hub they hadn't joined. Session 135 introduced `lib/hubAuth.ts::canAccessHub(member, roles)` as the single access door (a `HubMember` row OR `GUIDING_TEACHER`) and applied it everywhere. ADMIN-alone still does **not** pass the door (ADMIN is technical authority; it configures hubs from `/admin/hubs` and participates from inside as a member) — the divergence is deliberate. In the same session GT was also made **assignable through the member registry** (`/admin/members/[id]` → "Sangha-wide authority" group); previously it was the only live role with no UI surface and could be granted only via the database console, which made it invisible and unauditable.
+
 Concretely, a Guiding Teacher can — on any hub, even one they are not a member of:
 
 - Edit hub Home content (welcome body, home content)

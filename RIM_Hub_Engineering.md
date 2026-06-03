@@ -47,7 +47,8 @@ Real example from Slice 2.5: capability gates routed correctly to peer-led-silen
 | `DEFAULT_HOSTING_HUB_SLUG` | `lib/programHub.ts` | The constant `"host-team"`. Use this everywhere you need the default — never inline the string. |
 | `getEffectiveHostingCapability(userId, hubSlug, fallback)` | `lib/hubMemberAuth.ts` | "Is this user an active hosting-capable member of this hub?" Pass `program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG`. |
 | `getHubNotificationRecipients(hubSlug, opts)` | `lib/toolAuth.ts` | Active members of a hub with `communicationsEnabled`. Use for notification recipient pools. |
-| `getHubMembership(slug, userId, roles)` | `lib/hubAuth.ts` | Returns `{ hub, member, isAdmin }`. Access gate is `!member` only — ADMIN no longer bypasses content access (see *ADMIN policy* below). |
+| `getHubMembership(slug, userId, roles)` | `lib/hubAuth.ts` | Returns `{ hub, member, isAdmin }`. Fetches the row; gate access with `canAccessHub`, never a bare `!member` (see *ADMIN policy* below). |
+| `canAccessHub(member, roles)` | `lib/hubAuth.ts` | **The access door** (session 135). True if a `HubMember` row exists OR roles includes `GUIDING_TEACHER`. ADMIN-alone does NOT pass. Single source of truth — use at every hub access gate (the layout, all sub-pages, every `/api/hub/[slug]/**` route). Replaces the scattered `!member` / `(!member && !isAdmin)` checks. |
 | `effectiveCoordinator(member, roles)` | `lib/hubAuth.ts` | "Is this user acting as coordinator on this hub?" True for the coordinator flag, ADMIN, or GUIDING_TEACHER. Use everywhere you would have written `(member?.isCoordinator ?? false) || isAdmin`. |
 | `hubScopedUrl(path, hubSlug)` | `lib/email.ts` | Append `?hub=<slug>` to a `/tools/*` URL when the slug isn't the host-team default. Use for every email link to a hub-scoped tool view. |
 | `hubHomeUrl(hubSlug)` | `lib/email.ts` | Build `/account/hub/<slug>` (the hub's own workspace URL). |
@@ -57,11 +58,16 @@ When you find yourself reaching for a fresh `${BASE_URL}/tools/schedule` or hard
 
 ---
 
-## The ADMIN policy
+## The ADMIN / GUIDING_TEACHER access policy
 
-**ADMIN no longer bypasses hub content access** (session 128 follow-up).
+**The access door is `canAccessHub(member, roles)`: a HubMember row OR the GUIDING_TEACHER role.** (Door established session 128 for ADMIN; GT added to it session 135.)
 
-A hub is a team space. The team is defined by membership. ADMIN configures hubs from `/admin/hubs` (still ADMIN-gated) but to interact with hub content — read or post conversations, view documents, claim sessions — an ADMIN must be a HubMember just like everyone else. This matches GUIDING_TEACHER's existing behavior.
+A hub is a team space, and the team is defined by membership — with one exception. The two roles relate to that door differently, and the distinction is the whole point:
+
+- **ADMIN does NOT pass the door.** ADMIN is *technical* authority: it configures hubs from `/admin/hubs` (still ADMIN-gated) but to interact with hub content — read or post conversations, view documents, claim sessions — an ADMIN must be a HubMember like everyone else.
+- **GUIDING_TEACHER DOES pass the door, without a membership row** (session 135). GT is *dharma* authority — the sangha-wide steward of every hub's content and tone (`RIM_Role_Design.md`). The role doc always granted this reach; before session 135 the access gate silently blocked it (the powers were unreachable). `canAccessHub` now honors it.
+
+The reason the two diverge: pastoral reach into a team's private space belongs to the dharma role, not the technical one. A future technical operator who isn't a teacher should not inherit it. (Jesse holds both roles; his hub access flows through GUIDING_TEACHER — the right reason — which is also why GT had to be made assignable in the member registry; see session 135.)
 
 What's still ADMIN-only:
 - `/admin/hubs/*` configuration (hub create, edit, delete)

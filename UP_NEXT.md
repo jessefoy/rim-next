@@ -6,6 +6,25 @@
 
 ## Active
 
+### Session 135 (2026-06-03) — Guiding Teacher hub access + GUIDING_TEACHER made assignable (shipped; Course Hub access confirmed by Jesse)
+
+Started from Jesse's question "shouldn't I have access to all hubs?" → an access-model correction + an invisible-role bug fix. **Two commits on `main`:** `4439952` (`canAccessHub` access door) · `1c05778` (surface GUIDING_TEACHER in the role UI). Plus this closing-ritual doc sweep.
+
+**Shipped & confirmed working:**
+- **`lib/hubAuth.ts::canAccessHub(member, roles)`** — single hub-access door: a `HubMember` row OR `GUIDING_TEACHER`. Applied at the hub layout + 11 sub-pages + 20 API route files (33 gate sites), collapsing three disagreeing membership checks. ADMIN-alone still does NOT pass (session-128 boundary); GT now passes WITHOUT a membership row (deliberate divergence — pastoral reach is dharma authority, not technical). Reviewer sub-agent found + we fixed two gaps pre-merge (`/api/hub/[slug]/route.ts` `isMember` idiom; `categories` DELETE omitting GT).
+- **Dashboard** split: "Where you're contributing" (memberships, unread badges) + quieter "Other hubs — oversight" group (admin/GT) — no more dead-end cards.
+- **`GUIDING_TEACHER` now assignable** in `components/member-sections/RolesSection.tsx` ("Sangha-wide authority" group). Was the only live role with no UI surface (DB-console-only). **Jesse assigned it to himself and confirmed Course Hub access now works** — loop closed.
+
+**What to verify on the deployed site (light — core path already confirmed):**
+- Dashboard shows your member hubs up top + the oversight group below; an ADMIN-who-isn't-GT is still blocked from non-member hubs.
+- Entering a few different non-member hubs as GT (read + post + moderate).
+
+**Queued follow-ons from this session:**
+- **GT-presence badge** — backlog `2026-06-03-001`. When a GT enters a hub they're not a member of, the team should see *them*, not an anonymous coordinator. The legibility half of "walk into any room but be seen." Matters most with a 2nd guiding teacher.
+- **Staff-manual chapter on roles + who-can-access-a-hub** — doesn't exist; nothing was invalidated this session, but the gap is worth a future seed.
+- **New memory:** `feedback-verify-state-not-docs.md` (don't assert role/account state from doc prose; verify the live value).
+- **Env note:** production Neon was unreachable from the dev sandbox all session (even network-sandbox-off) — role/membership checks had to go through the UI. Remember for future diagnostics from this machine.
+
 ### Session 134 (2026-06-01) — Site-wide audit + dead-code/CSS cleanup + Webflow-reversal doc fix (shipped; deploy spot-check pending)
 
 Full audit of the app to regain scope, then removed the dead weight. Four commits on `main` (`a5e1e41`, `e4d9355`, `48caa0c`, `81c810f`) + the closing-ritual doc sweep.

@@ -402,5 +402,15 @@
     "status": "open",
     "addedAt": "2026-06-01",
     "notes": "Removing the deps requires a lockfile sync; do it as its own small change to keep the build green."
+  },
+  {
+    "id": "2026-06-03-001",
+    "title": "Guiding Teacher presence badge in hubs",
+    "description": "When a GUIDING_TEACHER enters or acts in a hub they are NOT a formal member of (now possible via canAccessHub, session 135), the hub roster / their tile should show a 'Guiding Teacher' marker so the team sees *them* — the guiding teacher present as steward — rather than an anonymous coordinator. The legibility half of the 'can walk into any room but is seen when they do' principle. The role doc deferred this badge originally; the session-135 access change is what makes it earn its place. Matters most the day RIM has a second guiding teacher. Compute per-viewer where coordinator status is already derived (effectiveCoordinator); surface in HubWorkspaceSidebar / member roster / participant tile as appropriate.",
+    "category": "Member Accounts",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-03",
+    "notes": "Follow-on from session 135's GUIDING_TEACHER hub-access change. Restraint: a quiet marker, not a badge that competes for attention."
   }
 ]
