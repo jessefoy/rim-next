@@ -5,7 +5,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
 import HubConvClient from "@/components/HubConvClient";
 
@@ -26,8 +26,8 @@ export default async function HubConversationsPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
+  const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect("/account/dashboard");
 
   const priorLastVisitedAt = member?.lastVisitedAt?.toISOString() ?? null;
 

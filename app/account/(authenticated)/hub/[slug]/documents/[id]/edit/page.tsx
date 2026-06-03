@@ -5,7 +5,7 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import HubDocumentEditor from "@/components/HubDocumentEditor";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export default async function HubDocumentEditPage({
   if (!session) redirect("/login");
 
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!member && !isAdmin)) redirect(`/account/hub/${slug}/documents`);
+  if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect(`/account/hub/${slug}/documents`);
 
   const [doc, hubMemberRows] = await Promise.all([
     db.hubDocument.findUnique({

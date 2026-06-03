@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 
 // ── BlockNote JSON → Markdown ────────────────────────────────────────────────
 // Legacy path: documents that were never edited after the Tiptap migration
@@ -78,7 +78,7 @@ export async function GET(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!hub || (!member)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!hub || (!canAccessHub(member, session.user.roles ?? []))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const doc = await db.hubDocument.findUnique({ where: { id } });
   if (!doc || doc.hubId !== hub.id || !doc.isNative) {

@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
-import { getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import { sendHubConvNewThreadEmail } from "@/lib/email";
 
 // GET /api/hub/[slug]/conversations — list threads
@@ -17,7 +17,7 @@ export async function GET(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const url = new URL(req.url);
   const statusParam = url.searchParams.get("status") ?? "OPEN";
@@ -60,7 +60,7 @@ export async function POST(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { title, body, category, notifyUserIds } = await req.json();
   if (!title?.trim() || !body) {

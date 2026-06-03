@@ -11,7 +11,7 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import Link from "next/link";
 import HubDocConversationsClient from "@/components/HubDocConversationsClient";
@@ -27,8 +27,8 @@ export default async function HubDocumentViewPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
+  const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect("/account/dashboard");
 
   const doc = await db.hubDocument.findUnique({
     where: { id },

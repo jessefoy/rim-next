@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership, requireCoordinator, effectiveCoordinator } from "@/lib/hubAuth";
+import { canAccessHub, effectiveCoordinator, getHubMembership, requireCoordinator } from "@/lib/hubAuth";
 
 /** GET /api/hub/[slug]/members/search?q=... — search users to add (coordinator/admin) */
 export async function GET(
@@ -15,7 +15,7 @@ export async function GET(
   const roles = session.user.roles ?? [];
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, roles);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const isCoordinator = effectiveCoordinator(member, roles);
   try { requireCoordinator(isCoordinator, roles); }

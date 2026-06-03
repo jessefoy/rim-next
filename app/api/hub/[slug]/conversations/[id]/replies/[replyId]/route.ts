@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 
 /** PATCH /api/hub/[slug]/conversations/[id]/replies/[replyId] — edit own reply */
 export async function PATCH(
@@ -14,7 +14,7 @@ export async function PATCH(
 
   const { slug, id: threadId, replyId } = await params;
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!member)) {
+  if (!hub || (!canAccessHub(member, session.user.roles ?? []))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

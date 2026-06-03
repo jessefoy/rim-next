@@ -12,7 +12,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership, canManageTrash } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership, canManageTrash } from "@/lib/hubAuth";
 import HubTrashClient from "@/components/HubTrashClient";
 
 export const dynamic = "force-dynamic";
@@ -32,8 +32,8 @@ export default async function HubTrashPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
+  const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect("/account/dashboard");
 
   const roles = session.user.roles ?? [];
   const isCoord = member?.isCoordinator ?? false;

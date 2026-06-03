@@ -6,7 +6,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 
 export async function POST(
   _req: Request,
@@ -18,7 +18,7 @@ export async function POST(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!hub || (!member)) {
+  if (!hub || (!canAccessHub(member, session.user.roles ?? []))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

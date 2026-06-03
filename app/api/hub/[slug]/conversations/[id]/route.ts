@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership, requireCoordinator, canManageTrash, effectiveCoordinator } from "@/lib/hubAuth";
+import { canAccessHub, canManageTrash, effectiveCoordinator, getHubMembership, requireCoordinator } from "@/lib/hubAuth";
 
 // GET /api/hub/[slug]/conversations/[id] — thread detail + replies
 export async function GET(
@@ -15,7 +15,7 @@ export async function GET(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const thread = await db.hubConversationThread.findUnique({
     where: { id },
@@ -59,7 +59,7 @@ export async function PATCH(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const thread = await db.hubConversationThread.findUnique({ where: { id } });
   if (!thread || thread.hubId !== hub.id) {
@@ -164,7 +164,7 @@ export async function DELETE(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const thread = await db.hubConversationThread.findFirst({ where: { id, hubId: hub.id } });
   if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });

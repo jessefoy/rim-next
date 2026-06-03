@@ -15146,6 +15146,11 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .db2-hub-card:hover { border-color: #6a8fa0; }
 .db2-hub-card__name { font-size: 17px; font-weight: 400; color: #2d3f47; font-family: var(--font-serif); }
 .db2-hub-card__type { font-size: 10px; color: #7a7068; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+/* Oversight group (guiding teacher / admin reach): quieter than your own
+   teams — transparent fill recedes against the page so filled team cards
+   above stay the primary thing the eye lands on. Clear seeing = hierarchy. */
+.db2-hub-card--oversight { background: transparent; }
+.db2-hub-card--oversight .db2-hub-card__name { color: var(--rim-mid); }
 
 /* ── Today's Virtual Sessions ─────────────────────────────────── */
 .today-card { border: 1px solid var(--rim-rule); border-radius: 8px; overflow: hidden; background: #fff; }

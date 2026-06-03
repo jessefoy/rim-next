@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
-import { getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import { sendHubConvNewReplyEmail } from "@/lib/email";
 
 // POST /api/hub/[slug]/conversations/[id]/replies — add reply (any member)
@@ -22,7 +22,7 @@ export async function POST(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const thread = await db.hubConversationThread.findUnique({ where: { id } });
   if (!thread || thread.hubId !== hub.id) {

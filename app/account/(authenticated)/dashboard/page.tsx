@@ -317,25 +317,40 @@ export default async function DashboardPage() {
     .sort((a, b) => a.nextDateStr.localeCompare(b.nextDateStr))
     .slice(0, 5);
 
-  const dashboardHubs = isAdmin
-    ? await db.hub.findMany({ select: { id: true, slug: true, name: true, type: true }, orderBy: { name: "asc" } })
-    : hubMemberships.map((m) => m.hub);
+  // Your teams: the hubs you're actually a member of. Unread badges live here.
+  const myHubs = hubMemberships.map((m) => m.hub);
+  const myHubIds = new Set(myHubs.map((h) => h.id));
 
+  // Oversight reach: ADMIN (technical) + GUIDING_TEACHER (dharma) can enter
+  // every hub. Shown as a quieter, clearly-labeled group — reach without
+  // pretending these are your teams. Mirrors lib/hubAuth.ts::canAccessHub
+  // (GT passes the access door; ADMIN does too here since it can still
+  // configure any hub from /admin/hubs).
+  const canSeeAllHubs = isAdmin || (session.user.roles ?? []).includes("GUIDING_TEACHER");
+  const oversightHubs = canSeeAllHubs
+    ? (
+        await db.hub.findMany({
+          select: { id: true, slug: true, name: true, type: true },
+          orderBy: { name: "asc" },
+        })
+      ).filter((h) => !myHubIds.has(h.id))
+    : [];
+
+  // Unread counts only for your own teams (membership-scoped — oversight
+  // hubs don't track your unread because you're stewarding, not participating).
   const hubUnreadCounts: Record<string, number> = {};
-  if (!isAdmin) {
-    for (const membership of hubMemberships) {
-      const lastVisited = membership.lastVisitedAt ?? new Date(0);
-      const unreadThreads = await db.hubConversationThread.count({
-        where: {
-          ...activeHubThreadWhere(membership.hub.id),
-          OR: [
-            { createdAt: { gt: lastVisited } },
-            { replies: { some: { createdAt: { gt: lastVisited } } } },
-          ],
-        },
-      });
-      hubUnreadCounts[membership.hub.id] = unreadThreads;
-    }
+  for (const membership of hubMemberships) {
+    const lastVisited = membership.lastVisitedAt ?? new Date(0);
+    const unreadThreads = await db.hubConversationThread.count({
+      where: {
+        ...activeHubThreadWhere(membership.hub.id),
+        OR: [
+          { createdAt: { gt: lastVisited } },
+          { replies: { some: { createdAt: { gt: lastVisited } } } },
+        ],
+      },
+    });
+    hubUnreadCounts[membership.hub.id] = unreadThreads;
   }
 
   const firstName =
@@ -488,12 +503,12 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        {/* Your Hubs */}
-        {dashboardHubs.length > 0 && (
+        {/* Your teams — hubs you're a member of */}
+        {myHubs.length > 0 && (
           <div className="db-section">
             <p className="db-section__label">Where you&apos;re contributing</p>
             <div className="db2-hub-grid">
-              {dashboardHubs.map((hub) => {
+              {myHubs.map((hub) => {
                 const unread = hubUnreadCounts[hub.id] ?? 0;
                 return (
                   <Link key={hub.id} href={`/account/hub/${hub.slug}`} className="db2-hub-card">
@@ -510,6 +525,32 @@ export default async function DashboardPage() {
                   </Link>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Oversight — every other hub, for guiding-teacher / admin reach.
+            Quieter group: no unread badges, muted treatment, so your own
+            teams above stay the primary thing the eye lands on. */}
+        {oversightHubs.length > 0 && (
+          <div className="db-section">
+            <p className="db-section__label">
+              {myHubs.length > 0 ? "Other hubs — oversight" : "All hubs — oversight"}
+            </p>
+            <div className="db2-hub-grid db2-hub-grid--oversight">
+              {oversightHubs.map((hub) => (
+                <Link
+                  key={hub.id}
+                  href={`/account/hub/${hub.slug}`}
+                  className="db2-hub-card db2-hub-card--oversight"
+                >
+                  <span className="db2-hub-card__name">{hub.name}</span>
+                  <span className="db2-hub-card__type">
+                    {hub.type === "OPERATIONAL" ? "Operational" :
+                     hub.type === "GOVERNANCE"  ? "Governance"  : "Community Group"}
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
         )}

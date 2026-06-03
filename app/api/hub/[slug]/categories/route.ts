@@ -11,7 +11,7 @@
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, effectiveCoordinator, getHubMembership } from "@/lib/hubAuth";
 import { NextResponse } from "next/server";
 
 const FALLBACK = "General";
@@ -23,7 +23,7 @@ function normalize(name: string): string {
 async function loadContext(slug: string, userId: string, roles: string[]) {
   const { hub, member, isAdmin } = await getHubMembership(slug, userId, roles);
   if (!hub) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) };
-  if (!member) {
+  if (!canAccessHub(member, roles)) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
   if (member && member.status !== "ACTIVE" && !isAdmin) {
@@ -112,9 +112,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ slug:
   const { slug } = await params;
   const ctx = await loadContext(slug, session.user.id, session.user.roles ?? []);
   if (ctx.error) return ctx.error;
-  const { hub, member, isAdmin } = ctx;
+  const { hub, member } = ctx;
 
-  if (!isAdmin && !member?.isCoordinator) {
+  // Coordinator-level action — honor the canonical coordinator check
+  // (isCoordinator OR ADMIN OR GUIDING_TEACHER) rather than an inline pair
+  // that silently omitted GT. Matches POST/PATCH now admitting GT via the
+  // access door. See lib/hubAuth.ts::effectiveCoordinator.
+  if (!effectiveCoordinator(member, session.user.roles ?? [])) {
     return NextResponse.json(
       { error: "Only coordinators can delete a category." },
       { status: 403 },

@@ -5,7 +5,7 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership, canManageTrash } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership, canManageTrash } from "@/lib/hubAuth";
 import HubConvThreadClient from "@/components/HubConvThreadClient";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
@@ -57,8 +57,8 @@ export default async function HubConvThreadPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
+  const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect("/account/dashboard");
 
   const thread = await db.hubConversationThread.findUnique({
     where: { id },

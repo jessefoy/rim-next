@@ -17,11 +17,13 @@ import { db } from "@/lib/db";
  *                      RIM_Role_Design.md for the rationale.
  *
  * Helpers in this module:
- *  - getHubMembership()    — returns { hub, member, isAdmin }; callers gate
- *                            ACCESS on !member alone (ADMIN no longer bypasses
- *                            content access — session 128 follow-up).  The
- *                            returned isAdmin is still useful for the few
- *                            ADMIN-required actions (hard-remove member, etc.).
+ *  - getHubMembership()    — returns { hub, member, isAdmin }; the returned
+ *                            isAdmin is useful for the few ADMIN-required
+ *                            actions (hard-remove member, etc.).
+ *  - canAccessHub()        — the canonical access *door*: HubMember row OR
+ *                            GUIDING_TEACHER.  Use it everywhere that gates
+ *                            entry to / interaction with a hub.  ADMIN-alone
+ *                            does NOT pass (session 128 boundary).
  *  - requireCoordinator()  — bypasses for ADMIN + GUIDING_TEACHER.  Coordinator-
  *                            level authority within a hub; distinct from access.
  *  - effectiveCoordinator()— the canonical "is this user acting as coordinator
@@ -30,14 +32,18 @@ import { db } from "@/lib/db";
  *                              (member?.isCoordinator ?? false) || isAdmin
  *  - canManageTrash()      — trash-bin authority (coordinator/ADMIN/GT)
  *
- * Access policy (session 128 follow-up): ADMIN no longer bypasses hub
- * content access.  A hub is a team space and the team is defined by
- * membership.  An ADMIN who wants to interact with hub content (read or
- * post threads, view docs, etc.) must be a HubMember just like everyone
- * else — same as GUIDING_TEACHER.  Hub administration (configure hub,
- * hard-remove member, hub create/delete) stays at /admin/hubs and remains
- * ADMIN-gated.  The boundary: ADMIN configures hubs from outside; ADMIN
- * participates from inside (as a member).
+ * Access policy: the access door is `canAccessHub(member, roles)` — a
+ * HubMember row OR the GUIDING_TEACHER role.  A hub is a team space and the
+ * team is defined by membership; GUIDING_TEACHER (sangha-wide dharma
+ * authority) is the one role that reaches every hub without a membership
+ * row, because the guiding teacher stewards the content + tone of every
+ * community space (see RIM_Role_Design.md).  ADMIN-alone does NOT pass:
+ * ADMIN is *technical* authority — it configures hubs from /admin/hubs
+ * (outside) and participates from inside as a member, like everyone else.
+ * Pastoral reach into a team's private space belongs to the dharma role,
+ * not the technical one, so a future technical operator who isn't a teacher
+ * does not inherit it.  Hub administration (configure hub, hard-remove
+ * member, hub create/delete) stays at /admin/hubs and remains ADMIN-gated.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -63,6 +69,33 @@ export async function getHubMembership(slug: string, userId: string, roles: stri
   const member = hub.members.find((m) => m.userId === userId) ?? null;
   const isAdmin = roles.includes("ADMIN");
   return { hub, member, isAdmin };
+}
+
+/**
+ * The canonical "can this user enter / interact with this hub at all?" check —
+ * the access *door*, distinct from coordinator-level authority *within* a hub.
+ *
+ * Returns true if EITHER:
+ *   - a HubMember row exists (the team is defined by membership), OR
+ *   - roles includes GUIDING_TEACHER (sangha-wide dharma authority — an
+ *     implicit coordinator on every hub per RIM_Role_Design.md). The role doc
+ *     grants GT full content reach across the sangha; this is the door that
+ *     honors it.
+ *
+ * Deliberately does NOT pass ADMIN-alone. ADMIN is *technical* authority: it
+ * configures hubs from /admin/hubs (outside) and participates from inside as a
+ * member, like everyone else (the session-128 boundary). Pastoral reach into a
+ * team's private space belongs to the dharma role, not the technical one — so a
+ * future technical operator who isn't a teacher does not inherit it. (Jesse
+ * holds both roles; his access flows through GUIDING_TEACHER, the right reason.)
+ *
+ * Authority *within* a hub (coordinator-only actions — delete, member
+ * management, trash) is gated separately by effectiveCoordinator /
+ * requireCoordinator / canManageTrash, all of which already honor GT.
+ */
+export function canAccessHub(member: unknown, roles: string[]): boolean {
+  if (member) return true;
+  return roles.includes("GUIDING_TEACHER");
 }
 
 /**

@@ -13,7 +13,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { getHubContext } from "@/lib/hubContext";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
@@ -38,8 +38,8 @@ export default async function HubHomePage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
+  const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect("/account/dashboard");
 
   // Snapshot lastVisitedAt BEFORE we update it, so unread counts use the previous visit
   const priorLastVisitedAt = member?.lastVisitedAt ?? null;

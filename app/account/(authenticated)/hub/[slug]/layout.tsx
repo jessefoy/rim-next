@@ -3,7 +3,8 @@
  *
  * - Auth check: redirect to /login if not authenticated
  * - Hub existence: 404 if hub not found
- * - Membership check: 403 if user is not a hub member (admin bypass)
+ * - Access check: members + GUIDING_TEACHER pass; ADMIN-alone does not
+ *   (see lib/hubAuth.ts::canAccessHub). Shows a calm "no access" panel otherwise.
  * - Renders HubWorkspaceSidebar (unified rail for hub + tools) alongside
  *   the section content. Does NOT wrap in AccountLayout — workspaces are
  *   their own full-height chrome and the outer AccountSidebar would
@@ -15,7 +16,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import HubWorkspaceSidebar from "@/components/HubWorkspaceSidebar";
 import { getHubContext } from "@/lib/hubContext";
-import { canManageTrash, effectiveCoordinator } from "@/lib/hubAuth";
+import { canAccessHub, canManageTrash, effectiveCoordinator } from "@/lib/hubAuth";
 
 interface Props {
   children: React.ReactNode;
@@ -44,16 +45,15 @@ export default async function HubLayout({ children, params }: Props) {
 
   if (!hub) notFound();
 
-  const isMember = hub.members.some((m) => m.userId === session.user.id);
-  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  // ADMIN no longer bypasses hub access (session 128 follow-up).  A hub is
-  // a team space; the team is defined by membership.  ADMIN configures
-  // hubs from /admin/hubs without being a member, but to interact with
-  // hub content (conversations, documents, etc.) they need a HubMember
-  // row like everyone else.  Matches GUIDING_TEACHER's existing behavior.
-  // Technical-admin actions (hard-remove member, hub create/delete) are
-  // gated separately in their own routes — those still require ADMIN role.
-  const hasAccess = isMember;
+  const member = hub.members.find((m) => m.userId === session.user.id) ?? null;
+  const roles = session.user.roles ?? [];
+  const isAdmin = roles.includes("ADMIN");
+  // Access door: a HubMember row OR the GUIDING_TEACHER role (sangha-wide
+  // dharma authority — an implicit coordinator on every hub). ADMIN-alone
+  // does NOT pass: ADMIN configures hubs from /admin/hubs (outside) and
+  // participates from inside as a member, like everyone else (session 128).
+  // See lib/hubAuth.ts::canAccessHub.
+  const hasAccess = canAccessHub(member, roles);
 
   if (!hasAccess) {
     return (
@@ -69,8 +69,6 @@ export default async function HubLayout({ children, params }: Props) {
     );
   }
 
-  const member = hub.members.find((m) => m.userId === session.user.id) ?? null;
-  const roles = session.user.roles ?? [];
   const isCoordinator = effectiveCoordinator(member, roles);
   const canTrash = canManageTrash(roles, member?.isCoordinator ?? false);
 

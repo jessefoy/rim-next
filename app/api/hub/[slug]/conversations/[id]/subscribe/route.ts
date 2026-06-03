@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 
 /**
  * GET — returns the subscriber list for this thread and the eligible hub
@@ -21,7 +21,7 @@ export async function GET(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!hub || (!member)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!hub || (!canAccessHub(member, session.user.roles ?? []))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const thread = await db.hubConversationThread.findFirst({ where: { id, hubId: hub.id } });
   if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -74,7 +74,7 @@ export async function POST(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!hub || (!member)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!hub || (!canAccessHub(member, session.user.roles ?? []))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const thread = await db.hubConversationThread.findFirst({ where: { id, hubId: hub.id } });
   if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -103,7 +103,7 @@ export async function DELETE(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!hub || (!member)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!hub || (!canAccessHub(member, session.user.roles ?? []))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await db.hubThreadSubscription.deleteMany({
     where: { threadId: id, userId: session.user.id },

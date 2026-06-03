@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
+import { canAccessHub, effectiveCoordinator, getHubMembership } from "@/lib/hubAuth";
 
 /**
  * POST /api/hub/[slug]/documents/[id]/archive — toggle archive state.
@@ -23,7 +23,7 @@ export async function POST(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const doc = await db.hubDocument.findFirst({ where: { id, hubId: hub.id } });
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
