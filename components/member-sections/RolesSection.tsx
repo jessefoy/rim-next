@@ -7,14 +7,19 @@ const ROLE_GROUPS = [
     label: "System Roles",
     roles: ["ADMIN", "REGISTRAR", "TEACHER", "HOST", "HOST_MANAGER"],
   },
+  {
+    label: "Sangha-wide authority",
+    roles: ["GUIDING_TEACHER"],
+  },
 ];
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  ADMIN:        "Full access — members, registrations, and all volunteer areas",
-  REGISTRAR:    "View and manage registrations, programs, and member profiles",
-  TEACHER:      "Course Manager tool — manages courses and lessons",
-  HOST:         "Host Schedule tool — host sessions, claim substitutions",
-  HOST_MANAGER: "Host Schedule tool + manages schedule and assignments",
+  ADMIN:          "Full access — members, registrations, and all volunteer areas",
+  REGISTRAR:      "View and manage registrations, programs, and member profiles",
+  TEACHER:        "Course Manager tool — manages courses and lessons",
+  HOST:           "Host Schedule tool — host sessions, claim substitutions",
+  HOST_MANAGER:   "Host Schedule tool + manages schedule and assignments",
+  GUIDING_TEACHER:"Dharma authority — can enter and moderate every hub across the sangha. Does NOT include technical / configuration admin.",
 };
 
 interface Props {
