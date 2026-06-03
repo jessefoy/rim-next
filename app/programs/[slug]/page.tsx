@@ -51,7 +51,9 @@ export default async function ProgramDetailPage({
   const [activeCount, userProfile, existingRegistration] = await Promise.all([
     useBuiltInForm && program.registrationCapacity
       ? db.registration.count({
-          where: { programId: program.id, status: { in: ["REGISTERED", "APPROVED"] } },
+          // PENDING_PAYMENT holds a seat during checkout — count it so the shown
+          // spots-remaining matches the seats actually held.
+          where: { programId: program.id, status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] } },
         })
       : Promise.resolve(0),
     useBuiltInForm && session?.user?.id
@@ -65,7 +67,9 @@ export default async function ProgramDetailPage({
           where: {
             programId: program.id,
             userId: session.user.id,
-            status: { not: "CANCELLED" },
+            // Exclude a held (PENDING_PAYMENT) row: a registrant mid-checkout can
+            // resume via the form's reuse path rather than be told they're "already registered."
+            status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
           },
         })
       : Promise.resolve(null),
@@ -81,6 +85,14 @@ export default async function ProgramDetailPage({
   const location = resolveLocation(program.venue, program.locationText, program.locationLink);
   const startIso = program.startDatetime?.toISOString() ?? null;
   const endIso = program.endDatetime?.toISOString() ?? null;
+
+  // Whether registering requires payment up front (fixed / base+dana with an
+  // amount). Drives the honest copy on the dana-cancelled banner: a cancelled
+  // required payment means the place isn't reserved; a cancelled voluntary dana
+  // leaves the registration intact.
+  const requiresPaymentToRegister =
+    (program.danaMode === "fixed" && (program.danaFixedAmount ?? 0) > 0) ||
+    (program.danaMode === "base_plus_dana" && (program.danaBaseAmount ?? 0) > 0);
 
   // ── Time label (always a separate row) ──
   // Priority: manual timeText override → computed from startDatetime/endDatetime
@@ -174,7 +186,9 @@ export default async function ProgramDetailPage({
         )}
         {resolvedSearch?.dana === "cancelled" && (
           <div className="pg-dana-result pg-dana-result--cancelled">
-            Your registration is confirmed. You can return anytime to complete your dana offering.
+            {requiresPaymentToRegister
+              ? "Your payment wasn’t completed, so your place isn’t reserved yet. You can register again whenever you’re ready."
+              : "Your registration is confirmed. You can return anytime to complete your dana offering."}
           </div>
         )}
 

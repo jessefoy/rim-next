@@ -75,6 +75,13 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
+      // Bound the checkout window. For a required-payment registration the
+      // PENDING_PAYMENT row holds a seat until this expires; Stripe fires
+      // `checkout.session.expired` at this time, which releases the hold.
+      // 60 min (Stripe minimum is 30) — generous for deciding, short enough to
+      // free a held seat promptly. Harmless for voluntary-give (those rows are
+      // already REGISTERED and survive expiry).
+      expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
       line_items: [
         {
           price_data: {

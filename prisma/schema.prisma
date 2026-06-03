@@ -367,9 +367,10 @@ model Registration {
 }
 
 enum RegistrationStatus {
-  REGISTERED  // confirmed, under capacity
-  WAITLISTED  // capacity reached
-  APPROVED    // promoted from waitlist
+  PENDING_PAYMENT  // required-payment registration held until Stripe confirms — invisible to member/registrar views, holds a seat, auto-expires on abandonment
+  REGISTERED       // confirmed, under capacity
+  WAITLISTED       // capacity reached
+  APPROVED         // promoted from waitlist
   CANCELLED
 }
 

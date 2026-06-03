@@ -3,8 +3,12 @@ import stripe from "@/lib/stripe";
 import { db } from "@/lib/db";
 import type Stripe from "stripe";
 import { EnrollmentSource } from "@prisma/client";
-import { enrollMemberInProgramCourse } from "@/lib/enrollment";
+import {
+  enrollMemberInProgramCourse,
+  enrollMemberInOnboardingSeries,
+} from "@/lib/enrollment";
 import { sendCourseDanaReceiptEmail } from "@/lib/email";
+import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
 
 // POST /api/stripe/webhook
 // Receives Stripe webhook events and updates the database.
@@ -51,6 +55,14 @@ export async function POST(request: NextRequest) {
       // Default / legacy: registration-dana flow.
       await handleRegistrationDanaCompleted(session);
     }
+  } else if (event.type === "checkout.session.expired") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const source = (session.metadata?.source ?? "") as string;
+    // Only registration-dana has a provisional row to release. Course
+    // self-enroll creates no row until completion, so there's nothing to clean.
+    if (source !== "course_dana") {
+      await handleRegistrationDanaExpired(session);
+    }
   }
 
   // Other events can be handled here in the future (e.g. payment_intent.payment_failed)
@@ -63,7 +75,6 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
     registrationId,
     programId,
     programTitle,
-    programSlug,
     donorName,
     donorEmail,
     source,
@@ -75,24 +86,93 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
   }
 
   const amountCents = session.amount_total ?? 0;
+  const paymentIntentId =
+    typeof session.payment_intent === "string" ? session.payment_intent : null;
 
-  // Update registration donation status; fetch userId + programId for enrollment
-  const updatedReg = await db.registration.update({
+  // Load the registration's pre-state. For a provisional (required-payment) row
+  // this is where it becomes real; for a voluntary row it just records the gift.
+  const reg = await db.registration.findUnique({
+    where: { id: registrationId },
+    select: {
+      userId: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      status: true,
+      donationStatus: true,
+      programId: true,
+    },
+  });
+  if (!reg) {
+    console.error("[stripe/webhook] Registration not found:", registrationId);
+    return;
+  }
+
+  // Idempotency anchor: the Donation row keyed by payment_intent is the
+  // authoritative "this payment is already processed" marker (Stripe can
+  // deliver the same event twice). Gate the one-time side-effect — the
+  // confirmation email — on whether it already existed BEFORE this delivery.
+  let donationAlreadyExisted = false;
+  if (paymentIntentId) {
+    const existing = await db.donation.findUnique({
+      where: { stripePaymentIntentId: paymentIntentId },
+      select: { id: true },
+    });
+    donationAlreadyExisted = !!existing;
+  }
+
+  // Ensure an account exists. A brand-new guest on a required-payment program
+  // has no account until now — completing payment is what makes them a member.
+  let userId = reg.userId;
+  if (!userId) {
+    let user = await db.user.findUnique({ where: { email: reg.email } });
+    if (!user) {
+      user = await db.user.create({
+        data: {
+          email: reg.email,
+          firstName: reg.firstName,
+          lastName: reg.lastName,
+          phone: reg.phone,
+          // The registration form required the community-agreements checkbox to
+          // reach checkout, so agreement is implied at account creation.
+          agreedToTerms: true,
+          agreedAt: new Date(),
+        },
+      });
+      // New member → onboarding series.
+      const newUserId = user.id;
+      after(async () => {
+        try {
+          await enrollMemberInOnboardingSeries(newUserId);
+        } catch (err) {
+          console.error("[stripe/webhook] enrollMemberInOnboardingSeries failed", err);
+        }
+      });
+    }
+    userId = user.id;
+  }
+
+  // Complete the registration: link the account, promote a provisional row to
+  // REGISTERED (leave an already-confirmed voluntary / approved row as-is), and
+  // record the gift. Idempotent on redelivery (sets the same values).
+  await db.registration.update({
     where: { id: registrationId },
     data: {
+      userId,
+      status: reg.status === "PENDING_PAYMENT" ? "REGISTERED" : reg.status,
       donationStatus: "COMPLETED",
       donationAmount: amountCents,
       stripeSessionId: session.id,
     },
-    select: { userId: true, programId: true },
   });
 
-  // Enroll in series linked to this program. `after()` keeps the work
-  // alive past the response — bare .catch(() => {}) silently lost work
+  // Enroll in series linked to this program (idempotent upsert). `after()` keeps
+  // the work alive past the response — bare .catch(() => {}) silently lost work
   // to Vercel's serverless teardown (session 96 lesson).
-  if (updatedReg.userId && updatedReg.programId) {
-    const enrollUserId = updatedReg.userId;
-    const enrollProgramId = updatedReg.programId;
+  const enrollProgramId = reg.programId ?? programId ?? null;
+  if (userId && enrollProgramId) {
+    const enrollUserId = userId;
     after(async () => {
       try {
         await enrollMemberInProgramCourse(enrollUserId, enrollProgramId);
@@ -106,9 +186,6 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
   }
 
   // Write to the Donation ledger — upsert for idempotency (Stripe can deliver webhooks twice)
-  const paymentIntentId =
-    typeof session.payment_intent === "string" ? session.payment_intent : null;
-
   if (paymentIntentId) {
     await db.donation.upsert({
       where: { stripePaymentIntentId: paymentIntentId },
@@ -147,9 +224,42 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
     });
   }
 
+  // Confirmation email — only on the first completion. Now that the registration
+  // is REGISTERED + paid, the "you're registered" moment lands here. Gated on the
+  // donation pre-check so a redelivered webhook doesn't double-send.
+  if (!donationAlreadyExisted) {
+    after(async () => {
+      try {
+        await sendRegistrationConfirmation(registrationId);
+      } catch (err) {
+        console.error("[stripe/webhook] registration confirmation email failed", err);
+      }
+    });
+  }
+
   console.log(
-    `[stripe/webhook] Donation recorded: ${registrationId} — $${(amountCents / 100).toFixed(2)}`
+    `[stripe/webhook] Registration dana ${donationAlreadyExisted ? "redelivery" : "completed"}: ${registrationId} — $${(amountCents / 100).toFixed(2)}`
   );
+}
+
+// A required-payment checkout that expired without completing. Release the
+// provisional hold so the seat frees up and nothing lingers. The status guard
+// deletes ONLY a still-held PENDING_PAYMENT row — never a REGISTERED one — so a
+// voluntary-give session that expired (its registration is valid and intact) or
+// a payment that completed via a different/duplicate event is left untouched.
+// Provisional guest rows have no account (deferred to payment), so there's no
+// orphan to clean; a logged-in member's account is their own and stays.
+async function handleRegistrationDanaExpired(session: Stripe.Checkout.Session) {
+  const { registrationId } = session.metadata ?? {};
+  if (!registrationId) return;
+
+  const { count } = await db.registration.deleteMany({
+    where: { id: registrationId, status: "PENDING_PAYMENT" },
+  });
+
+  if (count > 0) {
+    console.log(`[stripe/webhook] Expired hold released: ${registrationId}`);
+  }
 }
 
 // ── Course self-enroll dana (session 123, slice 4) ──────────────────────────

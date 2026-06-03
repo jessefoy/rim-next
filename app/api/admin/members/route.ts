@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       _count: {
         select: {
           registrations: {
-            where: { status: { not: "CANCELLED" } },
+            where: { status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
           },
         },
       },

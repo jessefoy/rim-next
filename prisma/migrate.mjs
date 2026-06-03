@@ -2457,6 +2457,20 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
       `);
     },
   },
+  {
+    // Provisional state for required-payment registrations: the row exists as
+    // the Stripe Checkout anchor but is invisible to member/registrar views
+    // until payment confirms (or auto-expires on abandonment). IF NOT EXISTS
+    // makes this idempotent on every deploy; ADD VALUE runs outside a txn
+    // (per-statement autocommit), as with the GUIDING_TEACHER precedent above.
+    name: "add_pending_payment_registration_status",
+    async run() {
+      await db.$executeRawUnsafe(
+        `ALTER TYPE "RegistrationStatus" ADD VALUE IF NOT EXISTS 'PENDING_PAYMENT'`
+      );
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

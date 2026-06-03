@@ -64,7 +64,9 @@ export default async function MemberProgramDetailPage({
       where: {
         userId: session.user.id,
         programSlug: slug,
-        status: { not: "CANCELLED" },
+        // Exclude a held (PENDING_PAYMENT) row — it must not grant access to the
+        // member program page / gated course content until payment completes.
+        status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
       },
     }),
   ]);

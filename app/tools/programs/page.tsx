@@ -44,7 +44,9 @@ export default async function ProgramsToolPage() {
     }),
     db.registration.groupBy({
       by: ["programId"],
-      where: { donationStatus: "PENDING" },
+      // Held (PENDING_PAYMENT) rows also carry donationStatus PENDING but aren't
+      // real registrations — exclude them so the pending-dana count is accurate.
+      where: { donationStatus: "PENDING", status: { not: "PENDING_PAYMENT" } },
       _count: { _all: true },
     }),
   ]);

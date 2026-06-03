@@ -37,7 +37,8 @@ export default async function MyProgramsPage() {
   if (!session?.user?.id) redirect("/login");
 
   const registrations = await db.registration.findMany({
-    where: { userId: session.user.id },
+    // Exclude held (PENDING_PAYMENT) registrations — not a real commitment until paid.
+    where: { userId: session.user.id, status: { not: "PENDING_PAYMENT" } },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

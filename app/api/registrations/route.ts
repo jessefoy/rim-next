@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { sendRegistrationEmail } from "@/lib/email";
-import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
-import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
-import { resolveLocation } from "@/lib/locations";
-import { buildDateLabel } from "@/lib/dateLabel";
+import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
 import {
   enrollMemberInOnboardingSeries,
   enrollMemberInProgramCourse,
@@ -17,14 +14,11 @@ export async function POST(request: NextRequest) {
       programId,
       programSlug,
       programTitle,
-      dateText,
-      locationText,
       email,
       firstName,
       lastName,
       phone,
       customFields,
-      danaMode,
       agreedToTerms,
     } = body;
 
@@ -32,33 +26,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Fetch program from Postgres (never trust the client for capacity)
+    // Fetch program from Postgres — never trust the client for capacity or dana.
+    // The dana fields decide whether payment is REQUIRED (which makes this a
+    // provisional, held registration) vs optional/none (a real registration).
+    // Email content is loaded separately inside sendRegistrationConfirmation.
     const pgProgram = await db.program.findUnique({
       where: { id: programId },
       select: {
         registrationCapacity: true,
-        registrationEnabled: true,
-        registrationClosed: true,
-        registrationDeadline: true,
-        confirmationMessage: true,
-        startDatetime: true,
-        endDatetime: true,
-        venue: true,
-        locationText: true,
-        locationLink: true,
-        recurrenceFreq: true,
-        recurrenceInterval: true,
-        recurrenceDays: true,
-        recurrenceCount: true,
+        danaMode: true,
+        danaFixedAmount: true,
+        danaBaseAmount: true,
       },
     });
     const registrationCapacity = pgProgram?.registrationCapacity ?? null;
 
-    // Count confirmed (non-cancelled, non-waitlisted) registrations
+    // Dana shape, derived server-side (not from the client body):
+    //  - requiresPayment: a price must be paid before the registration is real
+    //    (fixed / base_plus_dana with an amount configured).
+    //  - invitesDana: an optional ask (voluntary) — the registration is valid
+    //    whether or not they give, but completion waits for the give/decline
+    //    choice so the "you're registered" moment lands after the choice.
+    const danaMode = pgProgram?.danaMode ?? "none";
+    const requiresPayment =
+      (danaMode === "fixed" && (pgProgram?.danaFixedAmount ?? 0) > 0) ||
+      (danaMode === "base_plus_dana" && (pgProgram?.danaBaseAmount ?? 0) > 0);
+    const invitesDana = danaMode === "voluntary";
+
+    // Count seats taken. PENDING_PAYMENT holds a seat during the active checkout
+    // window (released automatically on abandonment — see the expiry handler).
     const activeCount = await db.registration.count({
       where: {
         programId,
-        status: { in: ["REGISTERED", "APPROVED"] },
+        status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] },
       },
     });
 
@@ -66,12 +66,20 @@ export async function POST(request: NextRequest) {
     const spotsRemaining =
       registrationCapacity != null ? Math.max(0, registrationCapacity - activeCount) : null;
 
-    // Resolve user — use provided userId (logged-in) or find/create by email
+    // A provisional (held) registration requires payment AND has a seat: the row
+    // exists only as the Stripe anchor until payment confirms. A required-payment
+    // program that's FULL takes the normal waitlist path instead.
+    const isProvisional = requiresPayment && hasCapacity;
+
+    // Resolve user — use provided userId (logged-in) or find by email.
     const normalizedEmail = email.trim().toLowerCase();
     const now = new Date();
-    let resolvedUserId: string;
-    // Names and phone used in the Registration record — always taken from the account for
-    // existing users so that the registrar always sees the real values, regardless of form input.
+    // null for a brand-new guest on the provisional path: we DON'T create an
+    // account until they actually pay (the Stripe webhook creates it). Existing
+    // accounts are always linked; only new-account creation is deferred.
+    let resolvedUserId: string | null = null;
+    // Names/phone stored on the registration — taken from the account for existing
+    // users so the registrar always sees the real values, regardless of form input.
     let resolvedFirstName = firstName.trim();
     let resolvedLastName = lastName.trim();
     let resolvedPhone = phone?.trim() ?? null;
@@ -93,43 +101,17 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      // Guest path: find or create User; set agreedToTerms if checkbox was checked
-      let user = await db.user.findUnique({ where: { email: normalizedEmail } });
-      if (!user) {
-        user = await db.user.create({
-          data: {
-            email: normalizedEmail,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            phone: phone?.trim() ?? null,
-            agreedToTerms: agreedToTerms === true,
-            agreedAt: agreedToTerms === true ? now : null,
-          },
-        });
-        // Auto-enroll new member in onboarding series. `after()` keeps the
-        // work alive past the response (session 96 — bare .catch(() => {})
-        // silently lost work to Vercel's serverless teardown).
-        if (agreedToTerms === true) {
-          const newUserId = user.id;
-          after(async () => {
-            try {
-              await enrollMemberInOnboardingSeries(newUserId);
-            } catch (err) {
-              console.error(
-                "[registrations POST] enrollMemberInOnboardingSeries failed",
-                err,
-              );
-            }
-          });
-        }
-      } else {
-        // Existing account: use the account's stored values for the registration record.
+      // Guest path: find the account by email.
+      const user = await db.user.findUnique({ where: { email: normalizedEmail } });
+      if (user) {
+        // Existing account: link it and use its stored values for the record.
         // Never overwrite existing data from unauthenticated form input.
+        resolvedUserId = user.id;
         resolvedFirstName = user.firstName || firstName.trim();
         resolvedLastName = user.lastName || lastName.trim();
         resolvedPhone = user.phone || phone?.trim() || null;
 
-        // Still fill any genuinely blank fields and handle agreements / restore
+        // Fill genuinely blank fields and handle agreements / restore.
         const updates: Record<string, unknown> = {};
         if (!user.firstName && firstName?.trim()) updates.firstName = firstName.trim();
         if (!user.lastName && lastName?.trim()) updates.lastName = lastName.trim();
@@ -143,25 +125,93 @@ export async function POST(request: NextRequest) {
           updates.archivedAt = null;
         }
         if (Object.keys(updates).length > 0) {
-          user = await db.user.update({ where: { id: user.id }, data: updates });
+          await db.user.update({ where: { id: user.id }, data: updates });
+        }
+      } else if (isProvisional) {
+        // Brand-new guest on the provisional path: DON'T create an account yet.
+        // They become a member only if they complete payment — the Stripe webhook
+        // creates the account (and records agreement; the form required the
+        // checkbox to reach here). The registration row snapshots their details.
+        resolvedUserId = null;
+      } else {
+        // Brand-new guest on a free/voluntary registration — a real member now.
+        const created = await db.user.create({
+          data: {
+            email: normalizedEmail,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            phone: phone?.trim() ?? null,
+            agreedToTerms: agreedToTerms === true,
+            agreedAt: agreedToTerms === true ? now : null,
+          },
+        });
+        resolvedUserId = created.id;
+        // Auto-enroll new member in onboarding series. `after()` keeps the work
+        // alive past the response (session 96 — bare .catch(() => {}) silently
+        // lost work to Vercel's serverless teardown).
+        if (agreedToTerms === true) {
+          const newUserId = created.id;
+          after(async () => {
+            try {
+              await enrollMemberInOnboardingSeries(newUserId);
+            } catch (err) {
+              console.error(
+                "[registrations POST] enrollMemberInOnboardingSeries failed",
+                err,
+              );
+            }
+          });
         }
       }
-      resolvedUserId = user.id;
     }
 
-    // Prevent duplicate registration
-    const existing = await db.registration.findFirst({
+    // Duplicate / retry resolution. Match by account when we have one, else by
+    // the email on the held guest row (provisional guests have no account yet).
+    const personWhere: Prisma.RegistrationWhereInput = resolvedUserId
+      ? { userId: resolvedUserId }
+      : { email: normalizedEmail, userId: null };
+
+    // Already a real (confirmed / waitlisted / approved) registration → duplicate.
+    const confirmedDup = await db.registration.findFirst({
       where: {
         programId,
-        userId: resolvedUserId,
-        status: { not: "CANCELLED" },
+        ...personWhere,
+        status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
       },
+      select: { id: true },
     });
-    if (existing) {
+    if (confirmedDup) {
       return NextResponse.json(
         { error: "Already registered for this program" },
         { status: 409 }
       );
+    }
+
+    // Provisional path: reuse an existing held row (abandoned-then-retried)
+    // instead of stacking duplicates — refresh its snapshot and return its id.
+    if (isProvisional) {
+      const heldRow = await db.registration.findFirst({
+        where: { programId, ...personWhere, status: "PENDING_PAYMENT" },
+        select: { id: true },
+      });
+      if (heldRow) {
+        await db.registration.update({
+          where: { id: heldRow.id },
+          data: {
+            firstName: resolvedFirstName,
+            lastName: resolvedLastName,
+            phone: resolvedPhone,
+            customFields: customFields ?? undefined,
+          },
+        });
+        return NextResponse.json({
+          success: true,
+          status: "PENDING_PAYMENT",
+          registrationId: heldRow.id,
+          requiresPayment: true,
+          spotsRemaining: spotsRemaining !== null ? Math.max(0, spotsRemaining - 1) : null,
+        });
+      }
     }
 
     // Calculate waitlist position if needed
@@ -172,6 +222,20 @@ export async function POST(request: NextRequest) {
           where: { programId, status: "WAITLISTED" },
         })) + 1;
     }
+
+    const status: "PENDING_PAYMENT" | "REGISTERED" | "WAITLISTED" = !hasCapacity
+      ? "WAITLISTED"
+      : isProvisional
+      ? "PENDING_PAYMENT"
+      : "REGISTERED";
+
+    const donationStatus: "NOT_REQUIRED" | "PENDING" | "WAIVED" = !hasCapacity
+      ? "NOT_REQUIRED" // waitlisted — held until promoted
+      : requiresPayment
+      ? "PENDING" // owed; cleared by the Stripe webhook on payment
+      : invitesDana
+      ? "PENDING" // optional ask; cleared by give (webhook) or decline (endpoint)
+      : "WAIVED"; // no dana practice
 
     const registration = await db.registration.create({
       data: {
@@ -184,108 +248,51 @@ export async function POST(request: NextRequest) {
         lastName: resolvedLastName,
         phone: resolvedPhone,
         customFields: customFields ?? undefined,
-        status: hasCapacity ? "REGISTERED" : "WAITLISTED",
+        status,
         waitlistPosition,
-        // WAIVED if no dana practice; NOT_REQUIRED if waitlisted (promoted later); else PENDING
-        donationStatus: !hasCapacity
-          ? "NOT_REQUIRED"
-          : !danaMode || danaMode === "none"
-          ? "WAIVED"
-          : "PENDING",
+        donationStatus,
       },
     });
 
-    // Enroll member in series linked to this program. `after()` keeps the
-    // work alive past the response (session 96).
-    if (registration.status === "REGISTERED" && programId) {
-      const enrollUserId = resolvedUserId;
-      const enrollProgramId = programId;
-      after(async () => {
-        try {
-          await enrollMemberInProgramCourse(enrollUserId, enrollProgramId);
-        } catch (err) {
-          console.error(
-            "[registrations POST] enrollMemberInProgramCourse failed",
-            err,
-          );
-        }
-      });
-    }
-
-    // Build confirmation email data from Postgres program
-    let confirmationMessageHtml: string | undefined;
-    let confirmationMessageText: string | undefined;
-    let googleCalendarUrl: string | undefined;
-    let icsUrl: string | undefined;
-    let resolvedLocationText: string | null = locationText ?? null;
-    let resolvedDateText: string | null = dateText ?? null;
-    try {
-      if (pgProgram) {
-        // Render Tiptap JSON confirmation message to HTML for email
-        if (pgProgram.confirmationMessage) {
-          const html = await renderFormattedTextAsync(pgProgram.confirmationMessage);
-          if (html) {
-            confirmationMessageHtml = html;
-            // Strip HTML for plain text fallback
-            confirmationMessageText = html.replace(/<[^>]+>/g, "");
+    if (status === "REGISTERED") {
+      // A real registration (free 'none' or voluntary). Course access is a
+      // consequence of registering, independent of the optional dana — enroll now.
+      if (resolvedUserId) {
+        const enrollUserId = resolvedUserId;
+        const enrollProgramId = programId;
+        after(async () => {
+          try {
+            await enrollMemberInProgramCourse(enrollUserId, enrollProgramId);
+          } catch (err) {
+            console.error(
+              "[registrations POST] enrollMemberInProgramCourse failed",
+              err,
+            );
           }
-        }
-        // Resolve location (venue → RIM defaults, or custom text/link)
-        const loc = resolveLocation(pgProgram.venue, pgProgram.locationText, pgProgram.locationLink);
-        resolvedLocationText = loc.emailText;
-        if (!resolvedDateText) {
-          resolvedDateText = buildDateLabel({
-            startDatetime: pgProgram.startDatetime?.toISOString() ?? null,
-            endDatetime: pgProgram.endDatetime?.toISOString() ?? null,
-            recurrenceFreq: pgProgram.recurrenceFreq,
-            recurrenceInterval: pgProgram.recurrenceInterval,
-            recurrenceDays: pgProgram.recurrenceDays,
-          });
-        }
-        // Build calendar links only for confirmed (not waitlisted) registrations
-        if (pgProgram.startDatetime && registration.status !== "WAITLISTED") {
-          googleCalendarUrl = buildGoogleCalendarUrl({
-            title: programTitle,
-            startDatetime: pgProgram.startDatetime.toISOString(),
-            endDatetime: pgProgram.endDatetime?.toISOString() ?? null,
-            location: loc.emailText ?? null,
-            programSlug,
-            recurrenceFreq: pgProgram.recurrenceFreq,
-            recurrenceInterval: pgProgram.recurrenceInterval,
-            recurrenceDays: pgProgram.recurrenceDays,
-            recurrenceCount: pgProgram.recurrenceCount,
-          });
-          icsUrl = buildIcsUrl(programSlug);
-        }
+        });
       }
-    } catch (err) {
-      console.error("[registration] Failed to build confirmation data:", err);
-    }
 
-    // Send confirmation email. Awaited intentionally — registration is
-    // not considered fully complete from the user's perspective until the
-    // email is on its way. Failures are surfaced in the response so the
-    // form can retry or display an error rather than leave the user
-    // wondering whether they're confirmed.
-    await sendRegistrationEmail({
-      to:              normalizedEmail,
-      firstName:       firstName.trim(),
-      programTitle,
-      programSlug,
-      status:          registration.status as "REGISTERED" | "WAITLISTED",
-      waitlistPosition: registration.waitlistPosition,
-      dateText:        resolvedDateText,
-      locationText:    resolvedLocationText,
-      confirmationMessageHtml,
-      confirmationMessageText,
-      googleCalendarUrl,
-      icsUrl,
-    });
+      if (!invitesDana) {
+        // 'none' (or required-but-misconfigured → WAIVED): no dana choice to wait
+        // for, so the registration is complete now — send the confirmation.
+        // Awaited intentionally so a failure surfaces in the response.
+        await sendRegistrationConfirmation(registration.id);
+      }
+      // invitesDana (voluntary): the confirmation is deferred to the dana choice —
+      // the decline endpoint or the Stripe webhook — so the "you're registered"
+      // moment lands after they give or decline, not before.
+    } else if (status === "WAITLISTED") {
+      // Waitlisted is a definite state — send the waitlist email now.
+      await sendRegistrationConfirmation(registration.id);
+    }
+    // PENDING_PAYMENT: no account, no enrollment, no email here. The Stripe
+    // webhook completes the registration on payment; abandonment auto-expires.
 
     return NextResponse.json({
       success: true,
-      status: registration.status,
+      status,
       registrationId: registration.id,
+      requiresPayment,
       // After this registration, spots remaining (for client feedback)
       spotsRemaining: spotsRemaining !== null ? Math.max(0, spotsRemaining - 1) : null,
     });

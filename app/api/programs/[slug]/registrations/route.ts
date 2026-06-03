@@ -17,7 +17,9 @@ export async function GET(
   const format = searchParams.get("format");
 
   const registrations = await db.registration.findMany({
-    where: { programSlug: slug },
+    // Exclude held (PENDING_PAYMENT) rows — not real registrations until paid,
+    // so they don't belong on the roster or the CSV export.
+    where: { programSlug: slug, status: { not: "PENDING_PAYMENT" } },
     orderBy: { createdAt: "asc" },
   });
 

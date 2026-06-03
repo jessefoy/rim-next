@@ -68,7 +68,8 @@ async function getPrimaryToolContext(hubSlug: string, userId: string): Promise<{
       // "New registrations in the last 7 days" — a practical signal of work to review
       const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const count = await db.registration.count({
-        where: { createdAt: { gte: since }, status: { not: "CANCELLED" } },
+        // Exclude held (PENDING_PAYMENT) rows — not real registrations until paid.
+        where: { createdAt: { gte: since }, status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
       });
       return {
         primaryTool: toolBySlug("programs"),

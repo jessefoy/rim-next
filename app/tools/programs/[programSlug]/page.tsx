@@ -39,7 +39,8 @@ export default async function ProgramDetailToolPage({
       },
     }),
     db.registration.findMany({
-      where: { programSlug },
+      // Exclude held (PENDING_PAYMENT) rows — not real registrations until paid.
+      where: { programSlug, status: { not: "PENDING_PAYMENT" } },
       orderBy: { createdAt: "asc" },
     }),
   ]);

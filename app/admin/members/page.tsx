@@ -38,7 +38,7 @@ export default async function AdminMembersPage() {
       createdAt: true,
       _count: {
         select: {
-          registrations: { where: { status: { not: "CANCELLED" } } },
+          registrations: { where: { status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } } },
         },
       },
     },

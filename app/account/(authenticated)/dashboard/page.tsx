@@ -140,7 +140,9 @@ export default async function DashboardPage() {
       // We sort by next-occurrence in JS below — Prisma can't express "next
       // upcoming session" for a recurring program directly.
       db.registration.findMany({
-        where: { userId, status: { not: "CANCELLED" } },
+        // PENDING_PAYMENT is a held, unpaid registration — not a real commitment
+        // until the Stripe webhook completes it, so keep it off the dashboard.
+        where: { userId, status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
         select: {
           id: true,
           programTitle: true,
@@ -220,7 +222,7 @@ export default async function DashboardPage() {
       let isRegistered = false;
       if (isLive || isSetupOpen || isLaterToday) {
         const reg = await db.registration.findFirst({
-          where: { userId, programSlug: p.slug, status: { not: "CANCELLED" } },
+          where: { userId, programSlug: p.slug, status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
           select: { id: true },
         });
         isRegistered = !!reg;

@@ -57,7 +57,9 @@ export default async function RegisterPage({
   const [activeCount, userProfile, existingRegistration] = await Promise.all([
     program.registrationCapacity
       ? db.registration.count({
-          where: { programId: program._id, status: { in: ["REGISTERED", "APPROVED"] } },
+          // PENDING_PAYMENT holds a seat during checkout — count it so the shown
+          // spots-remaining matches the seats actually held.
+          where: { programId: program._id, status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] } },
         })
       : Promise.resolve(0),
     session?.user?.id
@@ -71,7 +73,10 @@ export default async function RegisterPage({
           where: {
             programId: program._id,
             userId: session.user.id,
-            status: { not: "CANCELLED" },
+            // Exclude a held (PENDING_PAYMENT) row: a registrant mid-checkout
+            // resubmits to resume (the POST reuses their held row) rather than
+            // being shown the "already registered" / pending-dana resume state.
+            status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
           },
         })
       : Promise.resolve(null),

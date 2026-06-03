@@ -194,7 +194,25 @@ export default function RegistrationForm({
       }
     };
 
-    const handleSkipDana = () => setFormState("done");
+    const handleSkipDana = async () => {
+      setErrorMessage("");
+      // Completing the registration without a gift. The decline endpoint marks
+      // dana WAIVED and sends the confirmation — so the "you're registered"
+      // moment lands here, after the choice. Non-blocking on failure: they're
+      // registered regardless, and the cleanup sweep finalizes a stale row.
+      if (registrationId) {
+        try {
+          await fetch(`/api/registrations/${registrationId}/decline-dana`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: form.email }),
+          });
+        } catch {
+          // swallow — landing on "done" matters more than the email round-trip
+        }
+      }
+      setFormState("done");
+    };
 
     return (
       <>
@@ -207,10 +225,22 @@ export default function RegistrationForm({
                 Complete your dana offering below when you&rsquo;re ready.
               </p>
             </>
+          ) : isFixed || isBasePlusDana ? (
+            <>
+              <h3>One more step</h3>
+              <p>
+                Complete your registration for {program.name} with your
+                contribution below — your place is confirmed once your payment
+                goes through.
+              </p>
+            </>
           ) : (
             <>
-              <h3>You&rsquo;re registered!</h3>
-              <p>A confirmation will be sent to {form.email}.</p>
+              <h3>One more step</h3>
+              <p>
+                Your place is reserved. Make your dana offering below, or choose
+                &ldquo;No thank you&rdquo; — either one completes your registration.
+              </p>
             </>
           )}
         </div>
@@ -365,14 +395,10 @@ export default function RegistrationForm({
     }
 
     try {
-      // Treat fixed/base_plus_dana as "none" if no amount is configured —
-      // avoids a PENDING donationStatus that can never be fulfilled via Stripe.
-      const effectiveDanaMode =
-        (program.danaMode === "fixed" && !(program.danaFixedAmount ?? 0)) ||
-        (program.danaMode === "base_plus_dana" && !(program.danaBaseAmount ?? 0))
-          ? "none"
-          : (program.danaMode ?? "none");
-
+      // The server derives the dana shape (none / voluntary / required-payment)
+      // from the program record itself — the client doesn't send it, and can't
+      // influence whether payment is required. Capacity, date, and location are
+      // likewise resolved server-side. We send only identity + answers.
       const res = await fetch("/api/registrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -380,10 +406,6 @@ export default function RegistrationForm({
           programId: program._id,
           programSlug: program.slug.current,
           programTitle: program.name,
-          registrationCapacity: program.registrationCapacity ?? null,
-          danaMode: effectiveDanaMode,
-          dateText: program.dateText ?? null,
-          locationText: program.locationText ?? null,
           userId: sessionUserId ?? undefined,
           // Logged-in members already agreed; guests agree via checkbox on this form
           agreedToTerms: sessionUserId ? true : agreedToTerms,
