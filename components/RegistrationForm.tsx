@@ -239,7 +239,8 @@ export default function RegistrationForm({
               <h3>One more step</h3>
               <p>
                 Your place is reserved. Make your dana offering below, or choose
-                &ldquo;No thank you&rdquo; — either one completes your registration.
+                &ldquo;I&rsquo;m not donating at this time&rdquo; — either one
+                completes your registration.
               </p>
             </>
           )}
@@ -334,7 +335,7 @@ export default function RegistrationForm({
               className="pg-dana__skip"
               onClick={handleSkipDana}
             >
-              No thank you
+              I&rsquo;m not donating at this time
             </button>
           )}
         </div>

@@ -58,7 +58,7 @@ const DONATION_LABELS: Record<string, string> = {
   NOT_REQUIRED: "—",
   PENDING: "Pending",
   COMPLETED: "Received",
-  WAIVED: "Waived",
+  WAIVED: "No dana",
 };
 
 function formatDate(iso: string) {
