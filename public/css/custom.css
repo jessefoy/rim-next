@@ -19020,7 +19020,21 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 }
 .catord__arrow:hover:not(:disabled) { background: #e0e0e0; color: var(--rim-text); }
 .catord__arrow:disabled { opacity: 0.3; cursor: default; }
-.catord__info { display: flex; flex-direction: column; gap: 2px; }
+.catord__info { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.catord__name-input {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--rim-text);
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+}
+.catord__name-input:focus { border-color: var(--rim-mid); outline: none; }
+.catord__name-input:disabled { opacity: 0.6; }
 .catord__name {
   font-family: var(--font-sans);
   font-size: var(--text-small);

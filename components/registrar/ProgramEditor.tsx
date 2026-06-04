@@ -352,100 +352,6 @@ function DateTimePicker({ value, onChange }: { value: string; onChange: (v: stri
   );
 }
 
-/* ── Inline category ordering with add/delete ── */
-function CategoryOrderInline({ categories: initial }: { categories: Category[] }) {
-  const [items, setItems] = useState(initial);
-  const [saving, setSaving] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [adding, setAdding] = useState(false);
-
-  async function move(index: number, direction: "up" | "down") {
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= items.length) return;
-    const next = [...items];
-    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
-    setItems(next);
-    setSaving(true);
-    try {
-      await fetch("/api/programs-pg/categories/reorder", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedIds: next.map((c) => c.id) }),
-      });
-    } catch { setItems(items); }
-    finally { setSaving(false); }
-  }
-
-  async function addCategory() {
-    if (!newName.trim() || adding) return;
-    setAdding(true);
-    try {
-      const res = await fetch("/api/programs-pg/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim() }),
-      });
-      if (res.ok) {
-        const cat = await res.json();
-        setItems([...items, { id: cat.id, slug: cat.slug, name: cat.name }]);
-        setNewName("");
-      }
-    } catch {}
-    finally { setAdding(false); }
-  }
-
-  async function deleteCategory(id: string, name: string) {
-    if (!confirm(`Delete "${name}"?`)) return;
-    setSaving(true);
-    try {
-      const res = await fetch("/api/programs-pg/categories", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      if (res.ok) {
-        setItems(items.filter(c => c.id !== id));
-      } else {
-        const data = await res.json();
-        alert(data.error || "Could not delete category.");
-      }
-    } catch {}
-    finally { setSaving(false); }
-  }
-
-  return (
-    <div style={{ marginTop: 8 }}>
-      <div className="catord__list">
-        {items.map((cat, i) => (
-          <div key={cat.id} className="catord__row">
-            <div className="catord__arrows">
-              <button type="button" className="catord__arrow" disabled={i === 0 || saving} onClick={() => move(i, "up")}>↑</button>
-              <button type="button" className="catord__arrow" disabled={i === items.length - 1 || saving} onClick={() => move(i, "down")}>↓</button>
-            </div>
-            <span className="catord__name">{cat.name}</span>
-            <button type="button" className="catord__delete" onClick={() => deleteCategory(cat.id, cat.name)} disabled={saving}>×</button>
-          </div>
-        ))}
-      </div>
-      <div className="catord__add">
-        <input
-          type="text"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCategory())}
-          placeholder="New category name"
-          className="catord__add-input"
-          disabled={adding}
-        />
-        <button type="button" onClick={addCategory} disabled={adding || !newName.trim()} className="catord__add-btn">
-          {adding ? "Adding..." : "+ Add"}
-        </button>
-      </div>
-      {saving && <span className="catord__saving">Saving...</span>}
-    </div>
-  );
-}
-
 const TABS = [
   "Content",
   "Schedule",
@@ -1712,9 +1618,11 @@ export default function ProgramEditor({
             </label>
 
             <div className="pe-field">
-              <span className="pe-field__label">Category Display Order</span>
-              <span className="pe-field__help">Arrange the order categories appear on the programs page.</span>
-              <CategoryOrderInline categories={categories} />
+              <span className="pe-field__label">Manage categories</span>
+              <span className="pe-field__help">
+                Add, rename, reorder, or set each category&rsquo;s <strong>kind</strong> (drop-in, class, retreat&hellip;) on the{" "}
+                <a href="/tools/programs/categories">Program Categories</a> page. The kind decides where a program shows up.
+              </span>
             </div>
           </div></div>
         )}
