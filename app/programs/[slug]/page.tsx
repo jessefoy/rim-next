@@ -292,14 +292,20 @@ export default async function ProgramDetailPage({
                         Members access Zoom via their <Link href="/account/dashboard" className="pg-detail-cta__inline-link">member home</Link>
                       </span>
                     )
-                  ) : session?.user ? (
-                    <span className="pg-detail-cta__text">
-                      Simply arrive in person · <Link href="/account/dashboard" className="pg-detail-cta__inline-link">Zoom link on My Home</Link>
-                    </span>
+                  ) : program.programFormat === "hybrid" ? (
+                    /* Hybrid — arrive in person OR join online */
+                    session?.user ? (
+                      <span className="pg-detail-cta__text">
+                        Simply arrive in person · <Link href="/account/dashboard" className="pg-detail-cta__inline-link">Zoom link on My Home</Link>
+                      </span>
+                    ) : (
+                      <span className="pg-detail-cta__text">
+                        Simply arrive in person · Members join online via their <Link href="/account/dashboard" className="pg-detail-cta__inline-link">member home</Link>
+                      </span>
+                    )
                   ) : (
-                    <span className="pg-detail-cta__text">
-                      Simply arrive in person · Members join online via their <Link href="/account/dashboard" className="pg-detail-cta__inline-link">member home</Link>
-                    </span>
+                    /* In-person only — no online option, so no Zoom reference */
+                    <span className="pg-detail-cta__text">Simply arrive in person.</span>
                   )
                 )}
               </span>
