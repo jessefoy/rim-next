@@ -2471,6 +2471,53 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    // LorieLee request: notify support@ each time a registration becomes
+    // official, with a direct link to the program's registrations. Seed-only
+    // (findUnique → create) per the Email Template Gate — never overwrite an
+    // edited body. The danaStatus/status variables arrive pre-labeled from
+    // lib/email.ts::sendRegistrationSupportNotification.
+    name: "seed_registration_support_notification_email",
+    async run() {
+      const slug = "registration-support-notification";
+      const existing = await db.emailTemplate.findUnique({ where: { slug } });
+      if (existing) {
+        console.log(`  ⏭ Already seeded: ${slug}`);
+        return;
+      }
+      await db.emailTemplate.create({
+        data: {
+          slug,
+          name: "New Registration — Support Notification",
+          description:
+            "Sent to support@ each time a registration becomes official (free at submit; voluntary once the member gives or declines; paid once payment clears; waitlist at submit). Not sent for abandoned or unpaid holds. Carries a direct link to the program's registrations.",
+          enabled: true,
+          subject: "New registration: {{registrantName}} — {{programTitle}}",
+          variables: [
+            "registrantName",
+            "registrantEmail",
+            "programTitle",
+            "status",
+            "danaStatus",
+            "manageUrl",
+            "manageButton",
+          ],
+          group: "02-registrations",
+          groupLabel: "Registrations",
+          body: `A new registration just came in.
+
+**{{registrantName}}** — {{status}} for **{{programTitle}}**
+Email: {{registrantEmail}}
+Dana: {{danaStatus}}
+
+{{{manageButton}}}
+
+Or open it directly: {{manageUrl}}`,
+        },
+      });
+      console.log(`  ✔ Seeded: ${slug}`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

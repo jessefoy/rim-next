@@ -1,5 +1,8 @@
 import { db } from "@/lib/db";
-import { sendRegistrationEmail } from "@/lib/email";
+import {
+  sendRegistrationEmail,
+  sendRegistrationSupportNotification,
+} from "@/lib/email";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
@@ -30,9 +33,11 @@ export async function sendRegistrationConfirmation(
     select: {
       email: true,
       firstName: true,
+      lastName: true,
       programTitle: true,
       programSlug: true,
       status: true,
+      donationStatus: true,
       waitlistPosition: true,
       program: {
         select: {
@@ -136,5 +141,20 @@ export async function sendRegistrationConfirmation(
     confirmationMessageText,
     googleCalendarUrl,
     icsUrl,
+  });
+
+  // Notify support@ that a registration just became official (LorieLee request).
+  // This rides the same choke point as the registrant's confirmation, so it
+  // fires once per real registration and never for an abandoned hold. The
+  // internal send catches its own errors and won't break the registrant email.
+  await sendRegistrationSupportNotification({
+    registrantName:
+      `${registration.firstName} ${registration.lastName}`.trim() ||
+      registration.firstName,
+    registrantEmail: registration.email,
+    programTitle: registration.programTitle,
+    programSlug: registration.programSlug,
+    status: registration.status,
+    donationStatus: registration.donationStatus,
   });
 }

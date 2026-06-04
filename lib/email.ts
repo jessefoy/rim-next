@@ -23,6 +23,11 @@ const FROM = `Rooted In Mindfulness <${process.env.EMAIL_FROM ?? "onboarding@res
 const REGISTRAR_EMAIL =
   process.env.REGISTRAR_EMAIL ?? process.env.EMAIL_FROM ?? "onboarding@resend.dev";
 
+// SUPPORT_EMAIL — the team inbox notified on every new registration (LorieLee
+// request). Defaults to the known address; override via env if it ever changes.
+const SUPPORT_EMAIL =
+  process.env.SUPPORT_EMAIL ?? "support@rootedinmindfulness.org";
+
 // ─── URL helpers for hub-scoped links ────────────────────────────────────────
 //
 // Slice 2.5 (2026-05-22) discovered every outbound email URL was hub-agnostic
@@ -304,6 +309,48 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
     confirmationMessageHtml: data.confirmationMessageHtml ?? "",
     googleCalendarUrl: data.googleCalendarUrl ?? "",
     icsUrl: data.icsUrl ?? "",
+  });
+}
+
+// ─── New-registration notification (to support) ──────────────────────────────
+
+export interface RegistrationSupportNotificationData {
+  registrantName: string;
+  registrantEmail: string;
+  programTitle: string;
+  programSlug: string;
+  status: string;         // RegistrationStatus
+  donationStatus: string; // DonationStatus
+}
+
+const DANA_STATUS_LABEL: Record<string, string> = {
+  COMPLETED: "Received",
+  PENDING: "Pending",
+  WAIVED: "No dana",
+  NOT_REQUIRED: "—",
+};
+
+/**
+ * Notify support@ that a registration just became official. Fires from inside
+ * sendRegistrationConfirmation — the single "registration is now real" choke
+ * point — so it covers free (at submit), voluntary (once they give or decline),
+ * required (once paid), and waitlist (at submit), and never fires for an
+ * abandoned/unpaid hold. LorieLee request.
+ * Managed via Email Template Manager — template: "registration-support-notification"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
+ */
+export async function sendRegistrationSupportNotification(
+  data: RegistrationSupportNotificationData
+): Promise<void> {
+  const manageUrl = `${BASE_URL}/tools/programs/${data.programSlug}`;
+  await sendTemplatedEmail("registration-support-notification", SUPPORT_EMAIL, {
+    registrantName: data.registrantName,
+    registrantEmail: data.registrantEmail,
+    programTitle: data.programTitle,
+    status: data.status === "WAITLISTED" ? "Waitlisted" : "Registered",
+    danaStatus: DANA_STATUS_LABEL[data.donationStatus] ?? data.donationStatus,
+    manageUrl,
+    manageButton: emailButtonHtml("View in Program Manager", manageUrl),
   });
 }
 
