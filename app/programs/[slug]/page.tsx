@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
+import { isOpenlyDroppable } from "@/lib/programKind";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,11 @@ export default async function ProgramDetailPage({
   if (!program || program.archivedAt) notFound();
 
   const useBuiltInForm = !!program.registrationEnabled;
+  // When registration is OFF, the offering's KIND (session 137) decides what
+  // "no registration" means: a drop-in / open community group is openly
+  // droppable ("just come"), while a class / event / retreat is a commitment
+  // whose registration simply isn't open yet — never "just show up."
+  const droppable = isOpenlyDroppable(program.category?.kind ?? null, useBuiltInForm);
   const registrationClosed = !!(
     program.registrationClosed ||
     (program.registrationDeadline && new Date(program.registrationDeadline) < new Date())
@@ -264,24 +270,31 @@ export default async function ProgramDetailPage({
               </span>
               <span className="pg-detail-row__text">
                 {useBuiltInForm ? (
-                  /* Registration programs */
-                  registrationClosed ? (
-                    <span className="pg-detail-cta__status">Registration is closed.</span>
-                  ) : existingRegistration?.status === "WAITLISTED" ? (
+                  /* Registration programs — the person's OWN standing comes first,
+                     so a registrant always sees their status even after registration
+                     closes; then the program-level state (closed → full → open). */
+                  existingRegistration?.status === "WAITLISTED" ? (
                     <span className="pg-detail-cta__text">
-                      You&rsquo;re on the waitlist. <Link href={`/account/programs/${slug}`} className="pg-detail-cta__inline-link">View details</Link>
+                      You&rsquo;re on the waitlist. <Link href={`/account/programs/${slug}`} className="pg-detail-cta__inline-link">View your details →</Link>
                     </span>
                   ) : existingRegistration ? (
                     <span className="pg-detail-cta__text">
-                      ✓ You&rsquo;re registered. <Link href={`/account/programs/${slug}`} className="pg-detail-cta__inline-link">View your program details</Link>
+                      ✓ You&rsquo;re registered for this program. <Link href={`/account/programs/${slug}`} className="pg-detail-cta__inline-link">View your details →</Link>
                     </span>
+                  ) : registrationClosed ? (
+                    <span className="pg-detail-cta__status">Registration is closed.</span>
+                  ) : spotsRemaining === 0 ? (
+                    <Link href={`/programs/${slug}/register`} className="pg-detail-cta__link">
+                      Join the waitlist →
+                    </Link>
                   ) : (
                     <Link href={`/programs/${slug}/register`} className="pg-detail-cta__link">
                       Register →
                     </Link>
                   )
-                ) : (
-                  /* Open programs — no registration */
+                ) : droppable ? (
+                  /* Openly droppable (drop-in / open community group) — how to join,
+                     format-aware. */
                   program.programFormat === "virtual" ? (
                     session?.user ? (
                       <Link href="/account/dashboard" className="pg-detail-cta__link">
@@ -307,6 +320,10 @@ export default async function ProgramDetailPage({
                     /* In-person only — no online option, so no Zoom reference */
                     <span className="pg-detail-cta__text">Simply arrive in person.</span>
                   )
+                ) : (
+                  /* A commitment (class / event / retreat / …) whose registration
+                     isn't switched on yet — not a drop-in, so never "just arrive." */
+                  <span className="pg-detail-cta__status">Registration isn&rsquo;t open yet.</span>
                 )}
               </span>
             </div>

@@ -13,6 +13,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+import { isOpenlyDroppable, kindLabel } from "@/lib/programKind";
 
 interface TeacherItem {
   id: string;
@@ -38,6 +39,7 @@ interface Category {
   id: string;
   slug: string;
   name: string;
+  kind: string | null;
 }
 
 interface RegistrationField {
@@ -904,6 +906,25 @@ export default function ProgramEditor({
   // ── Render ───────────────────────────────────────────────────────────────
   const isVirtual = programFormat === "virtual" || programFormat === "hybrid";
 
+  // ── "How this appears to visitors" ───────────────────────────────────────
+  // Mirror the public program page's registration CTA so the volunteer sees the
+  // consequence of these toggles at edit time (kind + format + registration
+  // state). Reflects the session-137 two-axis model — see RIM_Offering_Model.md.
+  const selectedCategory = categories.find((c) => c.id === categoryId);
+  const offeringKind = selectedCategory?.kind ?? null;
+  const deadlinePast = registrationDeadline
+    ? new Date(registrationDeadline) < new Date()
+    : false;
+  const regClosedEffective = registrationClosed || deadlinePast;
+  const isDroppable = isOpenlyDroppable(offeringKind, registrationEnabled);
+  const appearanceText = registrationEnabled
+    ? regClosedEffective
+      ? "Registration is closed — visitors see a “Registration is closed” notice instead of the form."
+      : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
+    : isDroppable
+      ? "Drop-in — visitors see how to join (in person and/or online). No registration needed."
+      : "Registration isn’t open yet — visitors are told that, with no sign-up button. Turn on “Registration enabled” below when you’re ready to take sign-ups.";
+
   return (
     <div className="pe-editor" onChangeCapture={markDirty} onInputCapture={markDirty}>
       {/* ── Unsaved changes confirmation dialog ── */}
@@ -1615,6 +1636,11 @@ export default function ProgramEditor({
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+              {selectedCategory?.kind && (
+                <span className="pe-field__help" style={{ marginTop: 6 }}>
+                  Kind: <strong>{kindLabel(selectedCategory.kind)}</strong> — drives how this program behaves and where it shows up.
+                </span>
+              )}
             </label>
 
             <div className="pe-field">
@@ -1634,6 +1660,27 @@ export default function ProgramEditor({
           <div className="pe-card">
           <div className="pe-card__section">
             <div className="pe-form">
+
+            {/* How this appears to visitors — reflects kind + format + registration
+                state so the volunteer sees the consequence of these toggles. */}
+            <div
+              style={{
+                marginBottom: 16,
+                padding: "12px 14px",
+                background: "#f5f1ea",
+                borderRadius: 6,
+                fontSize: "var(--text-xs)",
+                lineHeight: 1.6,
+                color: "var(--rim-text)",
+              }}
+            >
+              <strong>How this appears to visitors</strong><br />
+              {appearanceText}
+              {offeringKind && (
+                <><br /><span style={{ color: "var(--rim-mid)" }}>Kind: {kindLabel(offeringKind)} (from its category)</span></>
+              )}
+            </div>
+
             <div className="pe-visibility-option">
               <label className="pe-checkbox">
                 <input
@@ -1643,7 +1690,7 @@ export default function ProgramEditor({
                 />
                 <span className="pe-checkbox__label">Registration enabled</span>
               </label>
-              <p className="pe-field__help">When checked, the public program page shows a registration form. When unchecked, visitors can read about the program but can&rsquo;t register.</p>
+              <p className="pe-field__help">When checked, visitors get a registration form. When unchecked, the page reflects the offering&rsquo;s kind — a drop-in shows how to join; a class, event, or retreat shows &ldquo;Registration isn&rsquo;t open yet&rdquo; (see above).</p>
             </div>
 
             <div className="pe-visibility-option">

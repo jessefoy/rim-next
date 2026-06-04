@@ -170,7 +170,7 @@ export default async function EditProgramToolPage({
           basePath="/tools/programs"
           initialData={initialData}
           isEditing={true}
-          categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name }))}
+          categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name, kind: c.kind ?? null }))}
           hubs={hubs.map((h) => ({
             slug: h.slug,
             name: h.name,
