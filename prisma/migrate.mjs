@@ -1420,6 +1420,7 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
           p.recurrenceFreq,
           p.recurrenceDays,
           p.recurrenceInterval,
+          p.endDatetime,
         ) || null;
         const timeText = computeTimeText(p.startDatetime, p.endDatetime) || null;
 
@@ -2549,6 +2550,24 @@ function _toCtLocalString(input) {
   return `${get("year")}-${get("month")}-${get("day")}T${hour}:${get("minute")}`;
 }
 
+function _fmtCalendarDate(y, m, d, withYear) {
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    ...(withYear ? { year: "numeric" } : {}),
+  });
+}
+
+function _fmtDateRange(s, e) {
+  if (s.y === e.y && s.m === e.m) {
+    return `${_fmtCalendarDate(s.y, s.m, s.d, false)}–${e.d}, ${e.y}`;
+  }
+  if (s.y === e.y) {
+    return `${_fmtCalendarDate(s.y, s.m, s.d, false)} – ${_fmtCalendarDate(e.y, e.m, e.d, false)}, ${e.y}`;
+  }
+  return `${_fmtCalendarDate(s.y, s.m, s.d, true)} – ${_fmtCalendarDate(e.y, e.m, e.d, true)}`;
+}
+
 function computeTimeText(start, end) {
   const startStr = _toCtLocalString(start);
   if (!startStr) return "";
@@ -2568,6 +2587,12 @@ function computeTimeText(start, end) {
   const s = parseTime(startStr);
   if (!s) return "";
   const { str: sStr, ampm: sAmpm } = fmt(s.h, s.m);
+
+  // Multi-day span — show the start time as an arrival cue, not "4–12 PM".
+  if (endStr && endStr.split("T")[0] !== startStr.split("T")[0]) {
+    return `Begins ${sStr} ${sAmpm} CT`;
+  }
+
   if (endStr) {
     const e = parseTime(endStr);
     if (e) {
@@ -2579,7 +2604,7 @@ function computeTimeText(start, end) {
   return `${sStr} ${sAmpm} CT`;
 }
 
-function computeDateText(start, freq, days, interval) {
+function computeDateText(start, freq, days, interval, end) {
   const daysList = days ?? [];
   const intervalStr = interval == null ? "" : String(interval);
   if (freq === "WEEKLY") {
@@ -2598,16 +2623,17 @@ function computeDateText(start, freq, days, interval) {
   }
   if (freq === "MONTHLY") return "Monthly";
   const startStr = _toCtLocalString(start);
-  if (startStr) {
-    const datePart = startStr.split("T")[0];
-    if (datePart) {
-      const [y, m, d] = datePart.split("-").map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-        month: "long", day: "numeric", year: "numeric",
-      });
-    }
+  if (!startStr) return "";
+  const startDate = startStr.split("T")[0];
+  if (!startDate) return "";
+  const [sy, sm, sd] = startDate.split("-").map(Number);
+  const endStr = _toCtLocalString(end);
+  const endDate = endStr ? endStr.split("T")[0] : "";
+  if (endDate && endDate !== startDate) {
+    const [ey, em, ed] = endDate.split("-").map(Number);
+    return _fmtDateRange({ y: sy, m: sm, d: sd }, { y: ey, m: em, d: ed });
   }
-  return "";
+  return _fmtCalendarDate(sy, sm, sd, true);
 }
 
 // ── Minimal BlockNote → HTML converter (migration-only) ──────────────────────

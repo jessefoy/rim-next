@@ -208,7 +208,7 @@ export async function PUT(
       ? body.recurrenceInterval
       : existing.recurrenceInterval;
 
-  data.dateText = computeDateText(startSource, freqSource, daysSource, intervalSource) || null;
+  data.dateText = computeDateText(startSource, freqSource, daysSource, intervalSource, endSource) || null;
   data.timeText = computeTimeText(startSource, endSource) || null;
 
   // Detect hub transfer and run cleanup BEFORE program.update so the two

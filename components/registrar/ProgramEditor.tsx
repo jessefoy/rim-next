@@ -496,6 +496,33 @@ const DAY_FULL: Record<string, string> = {
 const DAY_ORDER = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 const DAY_ABBR_FROM_INDEX = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
+/** Format CT calendar parts as "September 10, 2026" (withYear) or "September 10". */
+function fmtCalendarDate(y: number, m: number, d: number, withYear: boolean): string {
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    ...(withYear ? { year: "numeric" } : {}),
+  });
+}
+
+/**
+ * Multi-day date-range label from start/end CT calendar parts:
+ *   same month → "September 10–13, 2026"; same year → "September 28 – October 1,
+ *   2026"; spans years → "December 30, 2026 – January 2, 2027".
+ */
+function fmtDateRange(
+  s: { y: number; m: number; d: number },
+  e: { y: number; m: number; d: number },
+): string {
+  if (s.y === e.y && s.m === e.m) {
+    return `${fmtCalendarDate(s.y, s.m, s.d, false)}–${e.d}, ${e.y}`;
+  }
+  if (s.y === e.y) {
+    return `${fmtCalendarDate(s.y, s.m, s.d, false)} – ${fmtCalendarDate(e.y, e.m, e.d, false)}, ${e.y}`;
+  }
+  return `${fmtCalendarDate(s.y, s.m, s.d, true)} – ${fmtCalendarDate(e.y, e.m, e.d, true)}`;
+}
+
 /** Derive the time display string from datetime-local values (YYYY-MM-DDTHH:mm). */
 function computeTimeText(start: string, end: string): string {
   if (!start) return "";
@@ -514,6 +541,12 @@ function computeTimeText(start: string, end: string): string {
   const s = parseTime(start);
   if (!s) return "";
   const { str: sStr, ampm: sAmpm } = fmt(s.h, s.m);
+
+  // Multi-day span — show the start time as an arrival cue, not "4–12 PM".
+  if (end && end.split("T")[0] !== start.split("T")[0]) {
+    return `Begins ${sStr} ${sAmpm} CT`;
+  }
+
   if (end) {
     const e = parseTime(end);
     if (e) {
@@ -525,8 +558,8 @@ function computeTimeText(start: string, end: string): string {
   return `${sStr} ${sAmpm} CT`;
 }
 
-/** Derive the schedule label from recurrence settings and start date. */
-function computeDateText(start: string, freq: string, days: string[], interval: string): string {
+/** Derive the schedule label from recurrence settings and start/end date. */
+function computeDateText(start: string, freq: string, days: string[], interval: string, end?: string): string {
   if (freq === "WEEKLY") {
     const ordered = [...days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
     const names = ordered.map((d) => DAY_FULL[d] ?? d);
@@ -544,17 +577,17 @@ function computeDateText(start: string, freq: string, days: string[], interval: 
   if (freq === "MONTHLY") {
     return "Monthly";
   }
-  // One-time — derive from start date
-  if (start) {
-    const datePart = start.split("T")[0];
-    if (datePart) {
-      const [y, m, d] = datePart.split("-").map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-        month: "long", day: "numeric", year: "numeric",
-      });
-    }
+  // One-time — derive from the start date, as a range when it spans multiple days
+  if (!start) return "";
+  const startDate = start.split("T")[0];
+  if (!startDate) return "";
+  const [sy, sm, sd] = startDate.split("-").map(Number);
+  const endDate = end ? end.split("T")[0] : "";
+  if (endDate && endDate !== startDate) {
+    const [ey, em, ed] = endDate.split("-").map(Number);
+    return fmtDateRange({ y: sy, m: sm, d: sd }, { y: ey, m: em, d: ed });
   }
-  return "";
+  return fmtCalendarDate(sy, sm, sd, true);
 }
 
 /** Derive dayOfWeek array from recurrence or start date — never manually set. */
@@ -745,9 +778,9 @@ export default function ProgramEditor({
 
   // Live preview only — server recomputes these on every save.
   useEffect(() => {
-    const computed = computeDateText(startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval);
+    const computed = computeDateText(startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval, endDatetime);
     setDateText(computed);
-  }, [startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval]);
+  }, [startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval, endDatetime]);
 
   useEffect(() => {
     const computed = computeTimeText(startDatetime, endDatetime);

@@ -7,6 +7,34 @@ const DAY_FULL: Record<string, string> = {
 };
 const DAY_ORDER = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
+/** Format CT calendar parts as "September 10, 2026" (withYear) or "September 10". */
+function fmtCalendarDate(y: number, m: number, d: number, withYear: boolean): string {
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    ...(withYear ? { year: "numeric" } : {}),
+  });
+}
+
+/**
+ * Build a multi-day date-range label from start/end CT calendar parts:
+ *   same month   → "September 10–13, 2026"
+ *   same year    → "September 28 – October 1, 2026"
+ *   spans years  → "December 30, 2026 – January 2, 2027"
+ */
+function fmtDateRange(
+  s: { y: number; m: number; d: number },
+  e: { y: number; m: number; d: number },
+): string {
+  if (s.y === e.y && s.m === e.m) {
+    return `${fmtCalendarDate(s.y, s.m, s.d, false)}–${e.d}, ${e.y}`;
+  }
+  if (s.y === e.y) {
+    return `${fmtCalendarDate(s.y, s.m, s.d, false)} – ${fmtCalendarDate(e.y, e.m, e.d, false)}, ${e.y}`;
+  }
+  return `${fmtCalendarDate(s.y, s.m, s.d, true)} – ${fmtCalendarDate(e.y, e.m, e.d, true)}`;
+}
+
 /**
  * Normalize a date input to a "YYYY-MM-DDTHH:mm" string in Central Time.
  * Accepts a Date, an ISO string, or a datetime-local string. Returns "" if
@@ -51,6 +79,13 @@ export function computeTimeText(
   const s = parseTime(startStr);
   if (!s) return "";
   const { str: sStr, ampm: sAmpm } = fmt(s.h, s.m);
+
+  // Multi-day span: start and end fall on different CT days. "4–12 PM" would
+  // read as same-day, so show the start time as an arrival cue instead.
+  if (endStr && endStr.split("T")[0] !== startStr.split("T")[0]) {
+    return `Begins ${sStr} ${sAmpm} CT`;
+  }
+
   if (endStr) {
     const e = parseTime(endStr);
     if (e) {
@@ -71,6 +106,7 @@ export function computeDateText(
   freq:     string | null | undefined,
   days:     string[] | null | undefined,
   interval: number | string | null | undefined,
+  end?:     Date | string | null | undefined,
 ): string {
   const daysList = days ?? [];
   const intervalStr = interval == null ? "" : String(interval);
@@ -92,18 +128,21 @@ export function computeDateText(
   if (freq === "MONTHLY") {
     return "Monthly";
   }
-  // One-time — derive from start date
+  // One-time — derive from the start date, as a range when it spans multiple CT days
   const startStr = toCtLocalString(start);
-  if (startStr) {
-    const datePart = startStr.split("T")[0];
-    if (datePart) {
-      const [y, m, d] = datePart.split("-").map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-        month: "long", day: "numeric", year: "numeric",
-      });
-    }
+  if (!startStr) return "";
+  const startDate = startStr.split("T")[0];
+  if (!startDate) return "";
+  const [sy, sm, sd] = startDate.split("-").map(Number);
+
+  const endStr = toCtLocalString(end);
+  const endDate = endStr ? endStr.split("T")[0] : "";
+  if (endDate && endDate !== startDate) {
+    const [ey, em, ed] = endDate.split("-").map(Number);
+    return fmtDateRange({ y: sy, m: sm, d: sd }, { y: ey, m: em, d: ed });
   }
-  return "";
+
+  return fmtCalendarDate(sy, sm, sd, true);
 }
 
 /**

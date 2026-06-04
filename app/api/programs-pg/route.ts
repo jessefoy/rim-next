@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
         body.recurrenceFreq,
         body.recurrenceDays ?? [],
         body.recurrenceInterval,
+        body.endDatetime,
       ) || null,
       timeText: computeTimeText(body.startDatetime, body.endDatetime) || null,
       programFormat: body.programFormat || "in-person",
