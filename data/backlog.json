@@ -60,6 +60,16 @@
     "notes": "Only bites categories whose programs are all archived. Cosmetic/consistency, not a correctness or data issue."
   },
   {
+    "id": "2026-06-04-007",
+    "title": "Consolidate the two registration booleans (registrationEnabled + registrationClosed)",
+    "description": "Registration state is expressed by two independent booleans on Program — registrationEnabled and registrationClosed — plus registrationDeadline. They can combine into states that don't make sense (closed-but-not-enabled), and 'closing' registration means ticking a second box rather than a natural progression, which reads as confusing in the ProgramEditor. The status-aware-messaging slice (2026-06-04) added a read-only 'How this appears to visitors' readout on the Registration tab that resolves the LEGIBILITY without touching the model — a registrar can now see the resulting public state at edit time. The deeper cleanup — collapsing the two booleans into a single control (UI-only 3-way 'Not open / Open / Closed', or a registrationStatus enum at the schema level) — was deliberately deferred per restraint: the booleans are wired into many call sites (public program page CTA, the register route, the dashboard, the editor) and the readout removes the immediate pain. If done, a UI-only consolidation (one control that reads/writes the existing booleans) is far lower-risk than a schema enum migration. Note: 'Not open yet' only applies to commitment kinds — a drop-in's 'registration off' means 'no registration needed', not 'not open' — so any single control must stay kind-aware (see lib/programKind.ts::isOpenlyDroppable).",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-04",
+    "notes": "Deferred from the status-aware-messaging slice. The 'How this appears' editor readout was the chosen fix for legibility; this is the optional model cleanup behind it. Only revisit if the two-boolean model keeps confusing volunteers."
+  },
+  {
     "id": "2026-06-03-002",
     "title": "Optional: support@ heads-up when a paid registration is abandoned",
     "description": "Session 136 added a support@ notification for every COMPLETED registration (fires from the sendRegistrationConfirmation choke point; never for an abandoned hold). LoriLee noticed there's no notification when someone STARTS a paid (required-dana) registration and abandons checkout. We left it out on purpose — an unfinished checkout isn't a registration, and the held PENDING_PAYMENT row auto-expires. But a quiet 'someone began but didn't finish paying' heads-up could let support reach out ('did you hit trouble paying?'). If wanted: fire it from handleRegistrationDanaExpired in app/api/stripe/webhook/route.ts (the expired handler that deletes the held row) and/or the cron's hold-deletion path — to a new editable template (Email Template Gate), with the registrant's name/email/program. Weigh against noise/privacy; only build if LoriLee confirms it's useful.",
