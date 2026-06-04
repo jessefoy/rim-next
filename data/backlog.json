@@ -1,5 +1,55 @@
 [
   {
+    "id": "2026-06-04-001",
+    "title": "Delete dead Program fields: hideFromDashboard + dayOfWeek",
+    "description": "Session-137 audit confirmed two Program columns are dead: hideFromDashboard (defined, in the editor form + API CRUD, but NO surface reads it — removeFromProgramList is what actually controls the dashboard Today card) and dayOfWeek (vestigial — code uses recurrenceDays everywhere; schema comment claims it 'drives Today badge + listing day group' but nothing reads it). Remove both: schema.prisma, an ALTER TABLE DROP COLUMN IF EXISTS in migrate.mjs, and the editor/API references to hideFromDashboard. Deferred from session 137 to keep the offering-kind slice focused and the revert story clean. Verify no reads with a grep before dropping.",
+    "category": "Programs & Sanity",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-04",
+    "notes": "Pure hygiene; the fields are inert. Bundle with the removeFromProgramList rename below if doing a Program-schema cleanup pass."
+  },
+  {
+    "id": "2026-06-04-002",
+    "title": "Rename Program.removeFromProgramList (it actually controls the dashboard Today card)",
+    "description": "The field name is misleading: removeFromProgramList does NOT control the public Programs listing (that's hideFromProgramPageList). It gates the dashboard Today card inclusion, with dashboardShowAt as the override. Rename to something honest (e.g. hideFromTodayCard / removeFromTodayCard) across schema, the dashboard query, the ProgramEditor Visibility tab, and the programs-pg API. Load-bearing rename — do it deliberately with a migration that renames the column (or add-new + backfill + drop-old). Deferred from session 137 (churn without functional payoff in that slice).",
+    "category": "Programs & Sanity",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-04",
+    "notes": "Documented in the schema comment meanwhile. The session-137 audit flagged the misnomer."
+  },
+  {
+    "id": "2026-06-04-003",
+    "title": "Kind picker in the ProgramEditor category-create flow",
+    "description": "Session 137 put offering KIND on ProgramCategory and added a per-row Kind dropdown to the standalone category manager (/tools/programs/categories). But the OTHER place categories are created — the ProgramEditor's Categories tab inline 'add category' — still creates a category with kind=null (the POST /api/programs-pg/categories accepts kind, it's just not wired into that UI). Null kind falls back safely (treated by registration), but a coordinator who creates a category there has to remember to go set its Kind on the manager page. Add a Kind <select> to the ProgramEditor inline category-create so kind is set at creation. Small.",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-04",
+    "notes": "Deliberate scope cut in session 137 to stay out of the 2000-line ProgramEditor. lib/programKind.ts::PROGRAM_KINDS is the option source."
+  },
+  {
+    "id": "2026-06-04-004",
+    "title": "\"Community this week\" dashboard surface for open offerings",
+    "description": "From the session-137 design conversation. 'Coming up for you' is personal (registration-driven) and correctly excludes open drop-ins/community groups a member hasn't registered for. But Jesse may want open community life (Recovery Dharma, the silent sits, open community groups) to feel PRESENT on the dashboard without being personal. That's a distinct surface — 'your community this week' / community rhythm — drawn from openly-droppable kinds, shown to everyone, separate from the personal 'Coming up for you'. Today/This-Week already carry this material; this would give it more presence on the home page. Design + build when Jesse wants it.",
+    "category": "Dashboard",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-04",
+    "notes": "Keeps 'Coming up for you' meaning *you* while making community offerings visible. Pairs with 2026-06-04-005."
+  },
+  {
+    "id": "2026-06-04-005",
+    "title": "\"Follow / add to my schedule\" signal for open offerings",
+    "description": "From the session-137 design conversation. An OPEN offering (a drop-in, an open community group with no registration) can't appear in a member's personal 'Coming up for you' today because there's no per-person signal that it's theirs — only registration provides that. If we want members to pull a favorite open drop-in or open community group into their own upcoming list without forcing registration, add a lightweight 'follow / add to my schedule' affordance (a per-member follow record) that 'Coming up for you' also reads. Lovely and on-brand (helping someone hold their practice); a real new capability, so deferred until there's pull for it. Note: registered offerings already flow into 'Coming up' — this is only for the open ones.",
+    "category": "Member Accounts",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-04",
+    "notes": "The alternative for a community group that should be a commitment is simply to turn on its registration. This follow signal is for genuinely open offerings."
+  },
+  {
     "id": "2026-06-03-002",
     "title": "Optional: support@ heads-up when a paid registration is abandoned",
     "description": "Session 136 added a support@ notification for every COMPLETED registration (fires from the sendRegistrationConfirmation choke point; never for an abandoned hold). LoriLee noticed there's no notification when someone STARTS a paid (required-dana) registration and abandons checkout. We left it out on purpose — an unfinished checkout isn't a registration, and the held PENDING_PAYMENT row auto-expires. But a quiet 'someone began but didn't finish paying' heads-up could let support reach out ('did you hit trouble paying?'). If wanted: fire it from handleRegistrationDanaExpired in app/api/stripe/webhook/route.ts (the expired handler that deletes the held row) and/or the cron's hold-deletion path — to a new editable template (Email Template Gate), with the registrant's name/email/program. Weigh against noise/privacy; only build if LoriLee confirms it's useful.",

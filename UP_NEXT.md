@@ -6,6 +6,36 @@
 
 ## Active
 
+### Session 137 (2026-06-04) — Recurrence fix (recurring programs were vanishing) + explicit offering KIND (shipped; deployed-site verification pending)
+
+From LoriLee's June-3 registrar feedback. **Two commits on `main`:** `0a893cf` (recurrence fix + dana copy) · `bfc903d` (offering KIND model + folded-in occurrence-helper consolidation) + this doc sweep.
+
+**Shipped:**
+- **Recurrence fix** — `lib/scheduleUtils.ts::isOccurrenceOnDate` no longer treats `endDatetime` as a series-end cutoff for **recurring** programs (it's the per-occurrence end *time*; the series bound is `recurrenceCount`). The session-131 guard had erased **every** recurring program from the dashboard "Coming up," `/this-week`, the Scheduler, standing host rotations, and the **session-room join gate** (non-ADMIN/GT members couldn't join recurring sessions; Jesse bypassed as ADMIN/GT, masking it). Fix scopes the cutoff to non-recurring. Verified against live prod data.
+- **Dana banner copy** — My Registrations pending-dana banner: waitlist-framed "A spot opened up…" → calm "You're registered. You're also warmly invited to offer dana — a voluntary gift, received with gratitude."
+- **Offering KIND** — new `ProgramCategory.kind` (stable code in `lib/programKind.ts`: DROP_IN/COMMUNITY_GROUP/CLASS/EVENT/RETREAT/SERVICE/PRIVATE). The category **name** stays editorial; **kind** drives behavior. Dashboard "Today" + the member program-detail gate compute from `isOpenlyDroppable(kind, registrationEnabled)`; "Coming up for you" stays registration-driven (any kind). Category manager (`/tools/programs/categories`) gained a per-row Kind picker (+ categories API `PATCH`). Migration `add_program_category_kind` split "Community Groups & Events" → Community Groups + Events, added a hidden Private Sessions category, reassigned Day of Mindfulness + Bookmarks & Breath → Events and Private Teacher Meetings → Private Sessions.
+- **Folded in:** the completed duplicate-occurrence-helper consolidation (host assignments route + dashboard now use the shared `lib/scheduleUtils`; eslint guard against re-defining `isOccurrence*`) + `.claude/` gitignored.
+
+**Key design call (Jesse + I converged independently):** the **category carries the kind** — not a parallel `programType`. Kind = *what it is*; registration = *what registering does*; behavior = both. One concept; several categories may share a kind; one category = one kind.
+
+**What to verify on the deployed site:**
+1. Deploy log: `✔ Applied: add_program_category_kind …` + the `seed_manual_program_manager_v4` re-seed (updated category manual chapter).
+2. **Category manager** (`/tools/programs/categories`) — a Kind dropdown per row; Community Groups / Events / Private Sessions present.
+3. **Dashboard** — a non-registered member sees **no** public "Join now" for a class/event/retreat; drop-ins + open community groups still show; EDS (drop-in) still joinable; recurring sessions (Good Morning etc.) **joinable again**.
+4. **`/this-week` + Scheduler** show recurring programs again.
+5. **Host rotations** backfill on the next **08:00 UTC** `apply-standing-assignments` cron (or hit `/api/cron/apply-standing-assignments` manually) — confirm future assignments reappear for recurring programs.
+6. LoriLee's "Coming up for you" shows **Essential Dharma Study + Qigong**.
+
+**Setup tasks (Jesse's, not code):**
+- Turn on registration for **The Heart of Wisdom** (paid retreat; `registrationEnabled` is currently off — the kind model treats it as a commitment meanwhile so it's safe, but registration must be on for people to actually sign up).
+- Decide whether to wire **Essential Dharma Study** to a Course (`ProgramCourse`) for its "registration unlocks study materials" intent.
+
+**LoriLee reply** drafted this session (warm, plain, three points) — post as a comment on her "Registered Program Visibility" hub document.
+
+**Queued (backlog `2026-06-04-001..005`):** delete dead `hideFromDashboard`/`dayOfWeek`; rename `removeFromProgramList`; Kind picker in the ProgramEditor category-create flow; "community this week" dashboard surface; "follow / add to my schedule" signal for open offerings.
+
+**Memory candidates (step 8b — awaiting Jesse's confirm):** proposed at session close — (1) anchor a taxonomy/enum decision to *behavior*, keep names flexible, make it reversible to lower the stakes; (2) verify a data-migration's targets against the live DB before writing it (the seed file was stale — it lacked the live "Retreats" category). Both `feedback-*` candidates; confirm or discard.
+
 ### Session 136 (2026-06-03) — Registration completes after the dana/payment choice (shipped; deployed-site verification pending)
 
 From LoriLee's registrar feedback. Registration was being committed (confirmation email, dashboard listing, course enrollment) **before** the dana step — so paid programs could be "registered" without payment. **Five commits on `main`:** `dc5ee46` (6-slice rework) · `adc5262` (decline copy) · `da0a6a2` (support@ notify) · `1a98b7d` (multi-day labels) · + this doc sweep.

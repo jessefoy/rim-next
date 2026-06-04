@@ -81,6 +81,7 @@ Drift here is the classic failure: session 136's reviewer pass found three sites
 - **Don't read `danaMode` from the client body** to decide required-vs-not — derive it from the program.
 - **Don't add a member/registrar-facing registration query without excluding `PENDING_PAYMENT`**, and don't add a capacity count without including it.
 - **The Stripe webhook endpoint must subscribe to `checkout.session.expired`** — otherwise abandoned holds clear only via the daily cron, not in real time.
+- **The My Registrations pending-dana banner is a *voluntary invitation*, not a waitlist alert.** `app/account/(authenticated)/programs/page.tsx` shows it for any `donationStatus === "PENDING"` — which on this page means a voluntary registration awaiting the give/decline choice (required-payment rows are `PENDING_PAYMENT` and excluded entirely). Keep the copy calm and accurate ("You're registered. You're also warmly invited to offer dana — a voluntary gift, received with gratitude."). The old "A spot opened up — please complete your dana offering" was waitlist-promotion language firing on the common voluntary case — confusing, since the member never waitlisted (session 137, from LoriLee).
 
 ---
 

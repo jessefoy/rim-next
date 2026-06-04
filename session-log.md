@@ -1,5 +1,39 @@
 ---
 
+## 2026-06-04 (session 137) — Recurring programs restored across the schedule + explicit offering KIND on categories
+
+A follow-on to LoriLee's registrar testing (June 3). Her screenshots flagged three things: (1) the dana banner read "A spot opened up — please complete your dana offering" on an ordinary voluntary registration — confusing waitlist-framed copy; (2) her registration captured correctly in the Registration Hub (working — no change); (3) Essential Dharma Study and Qigong didn't appear in "Coming up for you." Item 3 opened into a platform-wide bug, and then into a foundational design decision Jesse had been wanting to make before go-live.
+
+**Two commits on `main`:** `0a893cf` (recurrence fix + dana copy) · `bfc903d` (offering KIND model) — plus this closing doc sweep.
+
+### Part 1 — the recurrence bug (`0a893cf`)
+
+Root cause, verified against production data (not assumed): session 131's `endDatetime` guard in `lib/scheduleUtils.ts::isOccurrenceOnDate` — `if (p.endDatetime && dateStr > endDate) return false` — was placed **before** the recurrence handling. For a recurring program, `endDatetime` is the per-occurrence **end time** (same calendar day as the anchor), **not** a series-end date. Every recurring program (all 10 carry a same-day `endDatetime`, `recurrenceCount` null) therefore reported **zero future occurrences**. The series bound is `recurrenceCount`, handled per-frequency further down. The guard silently erased recurring programs from the dashboard "Coming up," `/this-week`, the Scheduler, **standing host rotations** (the apply cron created nothing forward), and the **session-room join gate** (`lib/sessionWindow.ts` — non-ADMIN/GT members were refused tokens for recurring sessions; Jesse bypassed as ADMIN/GT, which masked it for weeks). Proven with the real helper against real rows: Good Morning Silent Meditation returned "no upcoming sessions." **Fix:** scope the `endDatetime` cutoff to the non-recurring branch only — one function, all surfaces restored. This **reverses session-131's premise** that `endDatetime` could mark a recurring series' end (incompatible with how the field is actually stored — it's the per-occurrence end time used by time-range labels, ICS links, and `sessionWindow.closesAt`). Documented as a pitfall in `RIM_Scheduler.md`. The dana banner was also corrected: waitlist-framed copy → calm voluntary invitation ("You're registered. You're also warmly invited to offer dana — a voluntary gift, received with gratitude.").
+
+### Part 2 — explicit offering KIND on `ProgramCategory` (`bfc903d`)
+
+Jesse's go-live concern: the dashboard shouldn't be *guessing* offering type from a tangle of flags, and "community groups" need to be separable. A **four-pass integrity audit** (hubs · courses · behavioral kind-proxies · admin/editor surfaces) confirmed adding an explicit type is additive/orthogonal — it does **not** collide with the hub system (`hostingHubSlug`/coverage/`appliesToFormats`/`allowsMultipleAssignments` are about who-hosts / format / assignment-model, not offering kind), the course system (orthogonal flags; no `courseType` needed), or the `programFormat`/`danaMode`/recurrence branches (intrinsic, not proxies). The one genuine proxy was `registrationEnabled` doing double duty (registration-open *state* vs registration-*kind*).
+
+**The design — Jesse and I converged on it independently: the category carries the kind.** Rather than a parallel `programType` field, `ProgramCategory` gains a `kind` attribute. The category **name** stays editorial/editable (the public-page heading); `kind` is the stable, behavior-driving code. A program inherits its category's kind. Registration stays Axis 2. Behavior = kind + registration, via new `lib/programKind.ts::isOpenlyDroppable`. Kinds: `DROP_IN`, `COMMUNITY_GROUP`, `CLASS`, `EVENT`, `RETREAT`, `SERVICE`, `PRIVATE` (stable codes; labels live in code and rename without a DB migration).
+
+**The insight that settled it:** a "kind" answers *what it is* (Jesse's plain words), not *what registering does*. Recovery Dharma and Qigong are both Community Groups but behave differently (open vs registered) — carried by the registration flag, not by multiplying kinds. So the rich vocabulary lives in kind+category; behavior stays computed.
+
+**Placement:** "Coming up for you" = your registrations (any kind) — **never gated by kind**. "Today" / community schedule = openly-droppable kinds (`DROP_IN` always; `COMMUNITY_GROUP` when open) + your own registered/hosted sessions; `CLASS`/`EVENT`/`RETREAT` never offer a public Join to a non-registrant. The member program-detail gate switched from `registrationEnabled` to `isOpenlyDroppable` (so Essential Dharma Study — a drop-in whose registration is an enrichment — stays reachable; a commitment redirects to register). Migration `add_program_category_kind` (idempotent, flag-guarded, verified against live data before push): backfilled the 6 live categories, split "Community Groups & Events" → Community Groups + Events, added a hidden Private Sessions category, reassigned Day of Mindfulness + Bookmarks & Breath → Events and Private Teacher Meetings → Private Sessions. Kind picker added to the category manager (`/tools/programs/categories`) + categories API (POST + new PATCH).
+
+**Folded in (intermingled in the working tree, reviewed + bundled):** the completed "consolidate duplicate occurrence helpers" task — `app/api/host/assignments/route.ts` and the dashboard now use the shared `lib/scheduleUtils` (private copies removed), plus an **eslint guard** banning re-defining `isOccurrence*` outside `scheduleUtils` so the session-137 fix can't drift again. `.claude/` added to `.gitignore`.
+
+### What this connects to
+- **Scheduling** — the recurrence fix flows through the one shared helper into `/tools/schedule`, `/this-week`, the dashboard, `applyStandingAssignments` (host rotations), and `sessionWindow` (the join gate).
+- **Registration / dana** — `RIM_Registration.md` (banner copy + the visibility line) and `RIM_Offering_Model.md` (the now-implemented kind model).
+- **Hubs** — audited; no routing-layer change (the only hub-area file touched, `assignments/route.ts`, was a helper-import consolidation).
+- **Courses** — parallel system, unaffected (no `courseType`; only `courseAccess` live-cohort detection *could* key off kind in future).
+
+### What's next
+- **Setup (Jesse's):** turn on registration for The Heart of Wisdom; decide whether to wire Essential Dharma Study to a Course for study materials.
+- **Deferred:** delete dead `hideFromDashboard` / `dayOfWeek`; rename `removeFromProgramList`; kind picker in the ProgramEditor's category-create flow (new categories default null, safe); optional "community this week" dashboard surface + a "follow / add to my schedule" signal so open offerings can reach a member's personal upcoming without registration.
+- **Verify on deploy:** migration log line; category-manager kinds; dashboard placement (no public Join for unregistered class/event/retreat; recurring sessions joinable again).
+- **LoriLee reply** drafted (warm, plain, three points) — Jesse to post on her hub document.
+
 ## 2026-06-03 (session 136) — Registration completes after the dana/payment choice (not before) + multi-day labels + support notification
 
 Triggered by LoriLee's registrar feedback (screenshots): a registration was being recorded — confirmation email, dashboard listing, official log, course enrollment — **before** the person reached the Dana step, so for paid programs someone could be "registered + emailed" without paying, and for every program the "You're registered!" moment landed before the dana contemplation.

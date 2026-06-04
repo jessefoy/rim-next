@@ -237,11 +237,13 @@ export async function seedManualProgramManager(db) {
     sp(),
 
     h(2, "Managing Categories"),
-    p("Categories organize programs on the public Programs & Events page. Each program can belong to one category."),
+    p("Categories do two jobs. Their name organizes programs into sections on the public Programs & Events page — each program belongs to one category. And each category has a Kind — what the offerings in it actually are: a Drop-In, a Community Group, a Class, an Event, a Retreat, a Service offering, or Private."),
     sp(),
-    p("Assign a category in the editor's Categories tab — pick from the dropdown."),
+    p("The Kind is what the system uses to decide where a program shows up. Drop-ins and open community groups appear on the community schedule and on members' home page as something anyone can simply join. Classes, events, and retreats are things people register for — they show up in a member's \"Coming up for you\" once that member has registered, and they never invite someone to join who hasn't signed up. So setting the right Kind is what keeps the home page honest about what's a drop-in and what needs a registration."),
     sp(),
-    p("To manage all categories (add, remove, reorder), go to /tools/programs/categories. The order you set here is the order they appear on the public page. Programs without a category won't show up on the Programs & Events page."),
+    p("Assign a category to a program in the editor's Categories tab — pick from the dropdown."),
+    sp(),
+    p("To manage all categories — set each one's Kind, add, remove, or reorder — go to /tools/programs/categories. Each row has a Kind dropdown. The order you set there is the order categories appear on the public page. Programs without a category won't show up on the Programs & Events page."),
   ];
 
   if (existing) {
