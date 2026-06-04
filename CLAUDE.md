@@ -15,6 +15,7 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 | Session room (`/session/*`, `components/session/*`, `components/VideoRoom.tsx`, `app/api/livekit/*`) | **`RIM_SessionRoom.md`** — the per-tool reference (permission model, layout/pin/share orchestration, join flow, chat, pitfalls) |
 | Role, permission, or member data | `RIM_Role_Design.md` + `RIM_System_Architecture.md` |
 | Auth, sign-in, NextAuth callbacks, rate-limit | **`RIM_Auth.md`** — sign-in flow, code generation, error states, rate-limit thresholds, key namespacing, common pitfalls |
+| Program registration, dana, Stripe checkout/webhook, or anything that lists/counts registrations | **`RIM_Registration.md`** — completion-follows-the-choice model, the `PENDING_PAYMENT` held state, the `sendRegistrationConfirmation` choke point, visibility rules, pitfalls. Read with `RIM_Offering_Model.md`. |
 | Editor, text field, block, or rich content work | `RIM_Editor_Types.md` — canonical reference. Supersedes the older `RIM_Editor_Design.md`. |
 | New feature of any kind | `FEATURES.md` — check what already exists and what it connects to |
 | Program-related changes | Trace the full program ecosystem (registration, hosts, teachers, LiveKit, dana, pages, dashboard) |

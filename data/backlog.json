@@ -1,5 +1,25 @@
 [
   {
+    "id": "2026-06-03-002",
+    "title": "Optional: support@ heads-up when a paid registration is abandoned",
+    "description": "Session 136 added a support@ notification for every COMPLETED registration (fires from the sendRegistrationConfirmation choke point; never for an abandoned hold). LoriLee noticed there's no notification when someone STARTS a paid (required-dana) registration and abandons checkout. We left it out on purpose — an unfinished checkout isn't a registration, and the held PENDING_PAYMENT row auto-expires. But a quiet 'someone began but didn't finish paying' heads-up could let support reach out ('did you hit trouble paying?'). If wanted: fire it from handleRegistrationDanaExpired in app/api/stripe/webhook/route.ts (the expired handler that deletes the held row) and/or the cron's hold-deletion path — to a new editable template (Email Template Gate), with the registrant's name/email/program. Weigh against noise/privacy; only build if LoriLee confirms it's useful.",
+    "category": "Email & Notifications",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-03",
+    "notes": "Offered to LoriLee in her session-136 reply; awaiting her call. Don't build by default — it's a 'maybe noise' feature."
+  },
+  {
+    "id": "2026-06-03-003",
+    "title": "Multi-day program time label: 'Begins 4 PM CT' vs 'Begins 4:00 PM CT'",
+    "description": "Session 136 fixed multi-day program labels — a retreat spanning Sep 10–13 now reads 'September 10–13, 2026 · Begins 4 PM CT' instead of the misleading single-day 'September 10, 2026 · 4–12 PM CT'. The time renders 'Begins 4 PM CT' (no ':00') because computeTimeText's fmt() drops :00 minutes everywhere for consistency. If Jesse/LoriLee prefer the begins-time to always show minutes ('Begins 4:00 PM CT'), it's a one-line change in the multi-day branch of computeTimeText — but it must be applied in all THREE mirrored copies (lib/programUtils.ts, components/registrar/ProgramEditor.tsx, prisma/migrate.mjs inlined mirror), and the recache_program_date_time_text migration will repropagate on next deploy. Trivial; only do it if the shorter form reads as too terse in practice.",
+    "category": "Programs & Sanity",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-03",
+    "notes": "Cosmetic. The date-range half ('September 10–13, 2026') is the substance and is unaffected."
+  },
+  {
     "id": "2026-05-31-001",
     "title": "Session room: latency/sync measurement pass",
     "description": "Items 2 + 7 from Jesse's session-room list: an occasional slight delay (mouth movement to video) and an intermittent audio/video sync problem. Deliberately NOT code-fixed yet (measure before changing architecture). Needs a real 2-3 person live session: (1) separate overall glass-to-glass lag (normal WebRTC, ~150-250ms, likely not a bug) from lip-sync desync; (2) A/B Krisp by toggling Bell mode (NC off) to see if audio tightens; (3) read chrome://webrtc-internals (or a temporary on-screen stats overlay) for jitter buffer / RTT / packet loss; (4) check CPU (software H.264 encode on older devices). Only then consider codec/bitrate/Krisp changes. See RIM_SessionRoom.md.",

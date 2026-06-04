@@ -239,9 +239,11 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 
 ### 4c. Dana & Stripe Payment Integration
 
-**Philosophy:** RIM programs are offered in the spirit of dana — the traditional Buddhist practice of generosity. Dana is not a fee; it is an invitation to practice giving in a way that feels meaningful and sustainable. The system is designed to honor this: registration always confirms first, and the contribution step is a separate invitation, never a payment gate.
+**Philosophy:** RIM programs are offered in the spirit of dana — the traditional Buddhist practice of generosity. Dana is not a fee; it is an invitation to practice giving in a way that feels meaningful and sustainable.
 
 At the same time, the center has real financial needs, and some programs (retreats) have hard external costs (venue rental, food, lodging) that must be covered. The dana system accommodates both realities without conflating them.
+
+> **Reworked session 136 — completion follows the dana choice (not before it).** The earlier model committed the registration (confirmation email, dashboard listing, course enrollment) at submit, *then* showed the dana step — so a paid program could be "registered + emailed" without payment, and "You're registered!" landed before the dana contemplation. Now: **optional dana** (`voluntary`) is a true invitation beside a registration that's already complete at submit — the confirmation email just waits for the give/decline choice ("I'm not donating at this time" completes it), and abandoning the optional choice keeps the registration. **Required dana** (`fixed`/`base_plus_dana` with an amount) is a real payment gate — the registration is held (`PENDING_PAYMENT`, invisible + a held seat) and only becomes real when payment clears; an abandoned checkout is discarded and a new guest never becomes a member. Support@ is notified of every completed registration. Full engineering reference: **`RIM_Registration.md`**; the resolved model also lives in `RIM_Offering_Model.md`.
 
 **Dana modes (set per-program in Sanity, fully flexible):**
 

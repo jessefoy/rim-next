@@ -105,10 +105,26 @@ The enum stays in the schema during transition; reads are migrated to the flags 
 
 ## Pricing / dana
 
-Course dana uses the **same Stripe Checkout mechanism** as Program dana. Differences:
+### Program registration dana — completion follows the choice (resolved session 136)
+
+The governing principle: **registration completes around the dana decision, not before it.** What that means depends on whether the dana is *required* or *optional* — they are two different stories, and the held/discard model applies to the required case only.
+
+| `danaMode` | Is dana a gate? | At submit | Completes when | If abandoned |
+|---|---|---|---|---|
+| `none` | — | real `REGISTERED` + confirmation email immediately | n/a (no choice) | n/a |
+| `voluntary` | **No** — an invitation beside an already-complete registration | real `REGISTERED`, but the confirmation email is **deferred** | they give (webhook) **or** decline (`/decline-dana`) | **stays registered**; the daily cron treats a 24h-stale voluntary as an implicit decline (`WAIVED` + confirmation) |
+| `base_plus_dana` (w/ base) / `fixed` (w/ amount) | **Yes** — payment is the gate | **`PENDING_PAYMENT`** held row only: no account for a new guest, no email, no enrollment; holds a capacity seat; invisible to every member/registrar surface | payment clears (webhook creates account, → `REGISTERED`, enrolls, sends confirmation) | **discarded** — `checkout.session.expired` deletes the held row (daily backstop cron too); a new guest never became a member |
+
+Why the split: for **required** dana, registering and paying are the same act — no payment means no registration, so an abandoned checkout is treated as though it never happened. For **optional** dana, the registration is genuinely complete the moment the form is submitted — the dana is an invitation, not a barrier — so abandoning an *optional* choice must never throw away a real registration.
+
+`requiresPayment` is derived **server-side from the program** (not the client body), so a crafted request can't register free for a paid program. `PENDING_PAYMENT` (a `RegistrationStatus` value) holds a seat (counts toward capacity) but is filtered out of every member- and registrar-facing query. Full engineering reference: **`RIM_Registration.md`**.
+
+### Course dana
+
+Course dana uses the **same Stripe Checkout mechanism** as Program dana, with differences:
 
 - **Lifetime access** once paid (no session-time-based gating).
-- **Pending dana behavior** — TBD. Does an unpaid pledge block lesson access, block enrollment, or grant probationary access? Needs Jesse's call before build.
+- **Pending dana behavior** — the program model above is a precedent, but courses haven't been re-pointed at it yet. Course self-enroll still materializes the `SeriesEnrollment` only on payment success in the webhook (session 123), which is already "no access until paid." A held/expiry model like programs' is not implemented for courses; revisit if needed.
 - **Refund / transfer policy** — TBD.
 
 A bundled-Program Course's dana for the live-cohort path is the Program's registration dana. The standalone self-enroll path can have its own dana ask (typically different, since the live-cohort version includes facilitation).

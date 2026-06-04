@@ -1,5 +1,41 @@
 ---
 
+## 2026-06-03 (session 136) — Registration completes after the dana/payment choice (not before) + multi-day labels + support notification
+
+Triggered by LoriLee's registrar feedback (screenshots): a registration was being recorded — confirmation email, dashboard listing, official log, course enrollment — **before** the person reached the Dana step, so for paid programs someone could be "registered + emailed" without paying, and for every program the "You're registered!" moment landed before the dana contemplation.
+
+**Five commits on `main`:** `dc5ee46` (the 6-slice registration rework) · `adc5262` (softer dana-decline copy) · `da0a6a2` (support@ notification) · `1a98b7d` (multi-day date/time labels) · plus this closing doc sweep.
+
+### The core rework (`dc5ee46`) — completion follows the dana choice
+
+The constraint that shaped everything: the `Registration` row **must** exist before Stripe Checkout (the checkout route looks it up by id and stamps the session; the webhook keys off it). So the lever wasn't "don't create the row" — it was **decouple the row's creation from its completion side-effects** (confirmation email, course enrollment, "registered" listing) and move those to where the dana actually resolves. Built as six reviewer-gated slices:
+
+1. **Extract `lib/registrationConfirmation.ts::sendRegistrationConfirmation(id)`** — the single place the confirmation email is assembled, callable from every completion point with just an id.
+2. **New `RegistrationStatus.PENDING_PAYMENT`** (idempotent `ALTER TYPE … ADD VALUE`) — the held/provisional state.
+3. **POST `/api/registrations` forks by dana shape** (derived server-side from the program, **not** the client body — closes a hole where a crafted request could register free for a paid program): free → real `REGISTERED` + email at submit; voluntary → `REGISTERED` at submit but email **deferred** to the dana choice; required-payment → `PENDING_PAYMENT` only (no account for a new guest, no email, no enrollment), holds a capacity seat. Guest abandons-then-retries reuse their held row.
+4. **Completion points** — the Stripe webhook (`checkout.session.completed`) creates the account, flips `PENDING_PAYMENT → REGISTERED`, enrolls, sends the confirmation; a new **`POST /api/registrations/[id]/decline-dana`** endpoint handles the voluntary "No thank you" (marks `WAIVED` + sends the confirmation). Idempotent (gated on the Donation row existing pre-delivery; one-shot `WAIVED` latch for decline).
+5. **Auto-expiry** — `expires_at` (60 min) on the Checkout Session; a `checkout.session.expired` handler deletes the held row; a daily backstop cron `cleanup-pending-registrations` (delete stale holds; finalize abandoned voluntary rows).
+6. **Visibility** — `PENDING_PAYMENT` is invisible everywhere member/registrar-facing (dashboard ×2, My Registrations page + API, admin member registry, Program Manager roster/CSV/pending-dana count, course-access gate, registrar hub badge) but **counts toward capacity** (holds the seat); plus the dana-step copy no longer declares "You're registered!" before the choice, and the `?dana=cancelled` banner is mode-aware.
+
+**The design decision Jesse refined mid-session — required vs voluntary are two different stories.** I first proposed making voluntary *also* held-until-decided (discard on abandon). Jesse's instinct corrected it: **for required dana/tuition, payment is the gate** (no payment = not registered = abandon discards); **for voluntary dana, the registration is already complete at submit** — the dana is an invitation beside it, not a gate, so abandoning an *optional* choice must never throw away a real registration. The held/discard model applies to **required-payment only**; voluntary stays registered (the cron treats a 24h-abandoned voluntary as an implicit decline: `WAIVED` + confirmation). This is why the `PENDING_PAYMENT` name stayed accurate (we'd discussed renaming to `PENDING_DANA` only if voluntary joined the held state — it didn't).
+
+**Reviewer sub-agent** caught three real visibility leaks I'd missed (the classic drift failure — two were *second* registration queries in files where I'd only fixed the first): the member program-detail access gate (a held row would have granted gated course access **without payment** — the one with a real consequence), the dashboard "is registered for today's session" check, and the registrar hub badge count. All fixed pre-final.
+
+### Softer dana-decline copy (`adc5262`)
+Button "No thank you" → **"I'm not donating at this time"**; roster `Waived` → **"No dana"** (accurate for both a voluntary decline and a no-dana program, where "Declined" would misread).
+
+### Support@ notification (`da0a6a2`)
+LoriLee asked support@ to be notified of every registration. Built `sendRegistrationSupportNotification` firing **from inside `sendRegistrationConfirmation`** — the single "registration is now real" choke point — so it covers free/voluntary/required/waitlist, **never** fires for an abandoned hold, and can't drift if future completion paths are added. New `SUPPORT_EMAIL` constant (defaults to `support@rootedinmindfulness.org`, env-overridable); new editable template `registration-support-notification` seeded per the Email Template Gate; direct link to the program's registrations.
+
+### Multi-day date/time labels (`1a98b7d`)
+LoriLee: a 4-day retreat (Sep 10 4PM → Sep 13 12PM) listed as "September 10, 2026 · 4–12 PM CT" — a single half-day event. Root cause: `computeDateText` only looked at the start date and `computeTimeText` assumed same-day. Now derived from the start **and** end dates the coordinator already enters (no new "multi-day" control — the design win): Schedule Label → a range ("September 10–13, 2026", handles cross-month/cross-year), Time Label → "Begins 4 PM CT". Logic lives in three mirrored copies (lib, ProgramEditor preview, migrate.mjs); all updated + both save-routes pass the end date. Existing retreats self-correct via the every-deploy `recache_program_date_time_text` migration.
+
+**What this connects to.** Registration → dana → Stripe → webhook → enrollment → confirmation email; the `Program.dateText`/`timeText` caches (session 109) now shared by the confirmation email path; `RIM_Offering_Model.md`'s previously-TBD "pending dana behavior" is now resolved (for programs); the Email Template Gate (new template seeded). New per-tool engineering doc **`RIM_Registration.md`** created (step 4d). No hub-routing-layer changes (the support notification + confirmation are not hub-scoped).
+
+**What's next.** Deployed-site verification of the whole flow (free/voluntary-give/voluntary-decline/required-pay/required-abandon); confirm the Stripe webhook endpoint subscribes to `checkout.session.expired`; LoriLee's "testing to be continued" — more feedback may come. Optional: a "started but didn't finish paying" support heads-up (offered to LoriLee, not built).
+
+---
+
 ## 2026-06-03 (session 135) — Guiding Teacher hub access + GUIDING_TEACHER made assignable
 
 Started from Jesse's question: *"Shouldn't I have access to all of the hubs according to my account?"* It unwound into an access-model correction and surfaced an invisible-role bug.

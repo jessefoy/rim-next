@@ -32,6 +32,7 @@ import { updateManualRegistration } from "./update-manual-registration.mjs";
 import { updateManualPrograms } from "./update-manual-programs.mjs";
 import { updateManualProgramsRewrite } from "./update-manual-programs-rewrite.mjs";
 import { updateManualRegistrationRewrite } from "./update-manual-registration-rewrite.mjs";
+import { updateManualRegistrationDanaV2 } from "./update-manual-registration-dana-v2.mjs";
 import { seedManualHostFirstWeek } from "./seed-manual-host-first-week.mjs";
 import { seedManualPeerLedSilentMeditation } from "./seed-manual-peer-led-silent-meditation.mjs";
 import { updateHostHubWelcomeBody } from "./update-host-hub-welcome-body.mjs";
@@ -3153,6 +3154,21 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_registration_rewrite_v1')`);
   } else {
     console.log("  ⏭ Manual registration rewrite already applied.");
+  }
+
+  // Manual chapter: registration — dana-flow v2 (session 136). Targeted
+  // updates for "completion follows the dana choice": confirmation timing,
+  // the "I'm not donating at this time" decline, required-payment held/
+  // discarded behavior, the "No dana" roster label, the support@ notice.
+  const updateRegistrationDanaV2Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_registration_dana_v2'
+  `).catch(() => []);
+
+  if (updateRegistrationDanaV2Flag.length === 0) {
+    await updateManualRegistrationDanaV2(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_registration_dana_v2')`);
+  } else {
+    console.log("  ⏭ Manual registration dana-flow v2 already applied.");
   }
 
   // Host Hub welcome body — final coordinator-authored content (T3).

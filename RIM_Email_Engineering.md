@@ -50,6 +50,8 @@ When in doubt about whether you have consent, ask before shipping. The cost of a
 
 Hardcoded sends (don't use the template manager, intentionally): `sendHostManagerRoleAssignmentEmail`, `sendStandingAssignmentScheduledEmail`, `sendStandingAssignmentReplacedEmail`. These render markdown inline — long-form, set-and-forget content that doesn't need coordinator editing. If you add a new hardcoded send, write a one-line justification in the function's JSDoc explaining why it bypasses the manager.
 
+**Registration emails — fire from the choke point.** The registrant confirmation (`registration-confirmation`) and the support@ notification (`registration-support-notification`, session 136) both fire from `lib/registrationConfirmation.ts::sendRegistrationConfirmation(id)` — the single "a registration just became real" point. Don't bolt a registration-completion email onto one path (the POST, the decline endpoint, the webhook, the cron); add it to the choke point so it covers every completion and can't drift. Full model: `RIM_Registration.md`.
+
 ---
 
 ## URL construction rules

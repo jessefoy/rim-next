@@ -6,6 +6,33 @@
 
 ## Active
 
+### Session 136 (2026-06-03) — Registration completes after the dana/payment choice (shipped; deployed-site verification pending)
+
+From LoriLee's registrar feedback. Registration was being committed (confirmation email, dashboard listing, course enrollment) **before** the dana step — so paid programs could be "registered" without payment. **Five commits on `main`:** `dc5ee46` (6-slice rework) · `adc5262` (decline copy) · `da0a6a2` (support@ notify) · `1a98b7d` (multi-day labels) · + this doc sweep.
+
+**Shipped — the model now:**
+- **Free** (`danaMode none`) → registered + confirmation at submit.
+- **Voluntary** → registered at submit (it's optional — a real registration), but the confirmation email **waits** for give or decline; abandoning the dana step **keeps** them registered (the daily cron treats a 24h-abandoned voluntary as an implicit decline → `WAIVED` + confirmation). Decline button now reads **"I'm not donating at this time"**; roster shows **"No dana"**.
+- **Required payment** (`fixed` / `base_plus_dana` w/ amount) → new **`PENDING_PAYMENT`** held row only: no account for a new guest, no email, no enrollment, holds a seat, invisible everywhere member/registrar-facing. The Stripe webhook completes it on payment (creates account, → `REGISTERED`, enrolls, sends confirmation). Abandon → `checkout.session.expired` deletes the held row (daily backstop cron too). **Server derives required-vs-not from the program, not the client.**
+- **Support@ notification** fires from inside `sendRegistrationConfirmation` (the "registration is real" choke point) for every real registration, never for a held/abandoned one.
+
+**Key design call (Jesse refined it):** required vs voluntary are *two different stories* — required dana **gates** registration (abandon = discard); voluntary dana is an **invitation beside** a registration that's already complete (abandon = stays registered). Don't apply the held/discard model to voluntary.
+
+**What to verify on the deployed site** (needs real test registrations + a Stripe test payment):
+1. **Free** program → registered + confirmation immediately.
+2. **Voluntary** → submit shows the dana step ("One more step", not "You're registered!"); **give** → Stripe → confirmation; **decline** ("I'm not donating at this time") → confirmation + roster shows "No dana"; **abandon** (close tab) → still registered, confirmation lands within ~24h via cron.
+3. **Required-payment** → submit holds a seat but shows nothing on dashboard/roster; **pay** → now appears + confirmation; **abandon at Stripe** → nothing registered, nothing on roster, held seat releases (≤60 min via `expired`, backstop ≤ daily cron).
+4. **Support@** gets an email for each completed registration (with name/email/program/dana-status + link to the program's registrations); none for abandoned holds. Quick template check: `/admin/emails` → "New Registration — Support Notification" present + enabled.
+5. **Multi-day retreat** ("The Heart of Wisdom") now reads **"September 10–13, 2026 · Begins 4 PM CT"** on the card and confirmation email.
+
+**Stripe action for Jesse:** confirm the webhook endpoint subscribes to **`checkout.session.expired`** (already covered if it's "all events"). Without it, abandoned paid holds clear only via the daily cron instead of in real time.
+
+**Queued / open:**
+- **LoriLee's "testing to be continued"** — more registrar feedback may come. (Several items this session were *prior* feedback that predated the fixes — check timing before treating as a bug.)
+- **Optional:** a "started a paid registration but didn't finish" support heads-up (offered to LoriLee, deliberately not built — an unfinished checkout isn't a registration).
+- **Backlog `2026-06-03-003`** — multi-day time label shows "Begins 4 PM CT" (drops :00 per system style); revisit if "4:00 PM" is preferred. **Backlog `2026-06-03-002`** — optional abandoned-paid-registration heads-up to support@ (offered to LoriLee, not built).
+- **New doc:** `RIM_Registration.md` (per-tool engineering reference) created this session; added to the CLAUDE.md Design Orientation table.
+
 ### Session 135 (2026-06-03) — Guiding Teacher hub access + GUIDING_TEACHER made assignable (shipped; Course Hub access confirmed by Jesse)
 
 Started from Jesse's question "shouldn't I have access to all hubs?" → an access-model correction + an invisible-role bug fix. **Two commits on `main`:** `4439952` (`canAccessHub` access door) · `1c05778` (surface GUIDING_TEACHER in the role UI). Plus this closing-ritual doc sweep.
