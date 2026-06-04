@@ -202,6 +202,13 @@ model ProgramCategory {
   name                 String
   sortOrder            Int       @default(0)
   hideFromProgramsPage Boolean   @default(false)
+  // Structural offering KIND (session 137). Stable code from lib/programKind.ts
+  // (DROP_IN | COMMUNITY_GROUP | CLASS | EVENT | RETREAT | SERVICE | PRIVATE).
+  // The category NAME stays editorial/editable; `kind` is the behavior-driving
+  // attribute (dashboard placement, registration semantics). A program inherits
+  // its kind from its category. Nullable for safety; null falls back to
+  // registration-based behavior. See RIM_Offering_Model.md "Two axes, one switch".
+  kind                 String?
   programs             Program[]
 
   @@map("program_categories")

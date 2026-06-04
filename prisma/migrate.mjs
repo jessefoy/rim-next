@@ -2520,6 +2520,94 @@ Or open it directly: {{manageUrl}}`,
       console.log(`  ✔ Seeded: ${slug}`);
     },
   },
+  {
+    /**
+     * Session 137 — Offering KIND on ProgramCategory.
+     *
+     * Adds the `kind` column (always, idempotent), then one-shot: backfills the
+     * six live categories, renames "Community Groups & Events" → "Community
+     * Groups", creates an "Events" category and a hidden "Private Sessions"
+     * category, and reassigns the affected programs to their correct kind home.
+     *
+     * Flag-guarded so a coordinator's later kind/category edits via the category
+     * manager are never clobbered on a subsequent deploy. Slugs are kept stable
+     * as join keys — only display names + kinds change. See RIM_Offering_Model.md.
+     */
+    name: "add_program_category_kind",
+    async run() {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `);
+      // Column add is always safe to attempt; the data restructuring below is
+      // flag-guarded so it runs exactly once.
+      await db.$executeRawUnsafe(`
+        ALTER TABLE "program_categories" ADD COLUMN IF NOT EXISTS "kind" TEXT
+      `);
+
+      const flagged = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags" WHERE name = '${this.name}_v1'
+      `);
+      if (Array.isArray(flagged) && flagged.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      // 1. Backfill kind on the six existing categories (by slug).
+      const KIND_BY_SLUG = {
+        "drop-ins": "DROP_IN",
+        "silent-meditation": "DROP_IN",
+        "classes-courses-workshops": "CLASS",
+        "community-service": "SERVICE",
+        "retreats": "RETREAT",
+        "community-groups-events": "COMMUNITY_GROUP", // renamed in step 2
+      };
+      for (const [slug, kind] of Object.entries(KIND_BY_SLUG)) {
+        await db.programCategory.updateMany({ where: { slug }, data: { kind } });
+      }
+
+      // 2. Rename "Community Groups & Events" → "Community Groups" (slug kept
+      //    stable; only the display name changes).
+      await db.programCategory.updateMany({
+        where: { slug: "community-groups-events" },
+        data: { name: "Community Groups" },
+      });
+
+      // 3. Create "Events" + hidden "Private Sessions".
+      const maxOrder = await db.programCategory.aggregate({ _max: { sortOrder: true } });
+      let nextOrder = (maxOrder._max.sortOrder ?? 0) + 1;
+      const events = await db.programCategory.upsert({
+        where:  { slug: "events" },
+        update: { kind: "EVENT" },
+        create: { slug: "events", name: "Events", kind: "EVENT", sortOrder: nextOrder++ },
+      });
+      const priv = await db.programCategory.upsert({
+        where:  { slug: "private-sessions" },
+        update: { kind: "PRIVATE", hideFromProgramsPage: true },
+        create: { slug: "private-sessions", name: "Private Sessions", kind: "PRIVATE", sortOrder: nextOrder++, hideFromProgramsPage: true },
+      });
+
+      // 4. Reassign the affected programs to their correct kind home.
+      //    Stay put: qigong-at-rim, recovery-dharma, nature-meditation-km-group
+      //    (Community Groups); the-heart-of-wisdom (Retreats).
+      const toEvents = await db.program.updateMany({
+        where: { slug: { in: ["bookmarks-and-breath", "day-of-mindfulness"] } },
+        data:  { categoryId: events.id },
+      });
+      const toPrivate = await db.program.updateMany({
+        where: { slug: "private-teacher-meetings" },
+        data:  { categoryId: priv.id },
+      });
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('${this.name}_v1')
+        ON CONFLICT DO NOTHING
+      `);
+      console.log(
+        `  ✔ Applied: ${this.name} — kinds backfilled; Events + Private Sessions created; ` +
+        `${toEvents.count} → Events, ${toPrivate.count} → Private Sessions`,
+      );
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

@@ -8,6 +8,7 @@ import { buildDateLabel } from "@/lib/dateLabel";
 import { resolveLocation } from "@/lib/locations";
 import { buildGoogleCalendarUrl, buildIcsUrl, describeRecurrence } from "@/lib/calendarLinks";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
+import { isOpenlyDroppable } from "@/lib/programKind";
 
 export const dynamic = "force-dynamic";
 
@@ -74,8 +75,13 @@ export default async function MemberProgramDetailPage({
   // ── Access control ──
   if (!program || program.archivedAt) notFound();
 
-  // Registration programs require an active registration
-  if (program.registrationEnabled && !registration) {
+  // Commitment offerings (classes, events, retreats, registration-required
+  // community groups, etc.) require an active registration to reach the member
+  // view. Openly-droppable offerings (drop-ins, open community groups — incl. a
+  // drop-in whose registration is just an enrichment, like Essential Dharma
+  // Study) stay reachable without one. Keyed on kind, not registrationEnabled.
+  const droppable = isOpenlyDroppable(program.category?.kind ?? null, program.registrationEnabled);
+  if (!droppable && !registration) {
     redirect(`/programs/${slug}`);
   }
 

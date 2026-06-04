@@ -9,6 +9,7 @@ import {
   getHubCoverageConfig,
   getProgramSlugsForHub,
 } from "@/lib/programHub";
+import { ctDateStr, isOccurrenceOnDate, shiftToDate } from "@/lib/scheduleUtils";
 
 /**
  * Format a session date for use in host emails.
@@ -77,78 +78,10 @@ async function hasEffectiveHostAccess(
   return getEffectiveHostingCapability(userId, hubSlug, tentative);
 }
 
-// ── Date helpers (duplicated from schedule/page.tsx — same logic) ─────────────
-
-function ctDateStr(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    timeZone: "America/Chicago",
-    year: "numeric", month: "2-digit", day: "2-digit",
-  }).replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
-}
-
-const ICAL_DAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
-function dateToDayCode(dateStr: string): string {
-  return ICAL_DAY[new Date(dateStr + "T12:00:00").getDay()];
-}
-
-function shiftToDate(anchorISO: string, targetDate: string): Date {
-  const anchor = new Date(anchorISO);
-  const anchorCTDate = ctDateStr(anchorISO);
-  if (anchorCTDate === targetDate) return anchor;
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const daysDiff = Math.round(
-    (new Date(targetDate + "T12:00:00").getTime() - new Date(anchorCTDate + "T12:00:00").getTime())
-    / msPerDay
-  );
-  return new Date(anchor.getTime() + daysDiff * msPerDay);
-}
-
-interface PgProgram {
-  id: string;
-  name: string;
-  slug: string;
-  programFormat: string | null;
-  startDatetime: Date | null;
-  endDatetime: Date | null;
-  recurrenceFreq: string | null;
-  recurrenceInterval: number | null;
-  recurrenceDays: string[];
-  recurrenceCount: number | null;
-  livekitRoom?: string | null;
-}
-
-function isOccurrenceOnDate(p: PgProgram, dateStr: string): boolean {
-  if (!p.startDatetime) return false;
-  const anchor = ctDateStr(p.startDatetime.toISOString());
-  if (anchor > dateStr) return false;
-  if (!p.recurrenceFreq) return anchor === dateStr;
-
-  const freq = p.recurrenceFreq.toUpperCase();
-  if (freq === "WEEKLY") {
-    const days = p.recurrenceDays ?? [];
-    if (days.length > 0 && !days.includes(dateToDayCode(dateStr))) return false;
-    const n = p.recurrenceInterval ?? 1;
-    if (n > 1) {
-      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-      const weeksDiff = Math.round(
-        (new Date(dateStr + "T12:00:00").getTime() - new Date(anchor + "T12:00:00").getTime())
-        / msPerWeek
-      );
-      if (weeksDiff % n !== 0) return false;
-    }
-    if (p.recurrenceCount && p.recurrenceCount >= 2) {
-      const daysPerCycle = p.recurrenceDays?.length ?? 1;
-      const cyclesNeeded = Math.ceil((p.recurrenceCount - 1) / daysPerCycle);
-      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-      const lastMs = new Date(anchor + "T12:00:00").getTime()
-        + cyclesNeeded * (p.recurrenceInterval ?? 1) * msPerWeek;
-      if (new Date(dateStr + "T12:00:00").getTime() > lastMs) return false;
-    }
-    return true;
-  }
-
-  return anchor === dateStr;
-}
+// Occurrence + date helpers (ctDateStr, isOccurrenceOnDate, shiftToDate) come
+// from the shared lib/scheduleUtils.ts — the single source of truth. Do NOT
+// reintroduce a private copy here: this route's old copy lacked the session-137
+// endDatetime / DAILY rules and drifted from /tools/schedule + /this-week.
 
 // GET /api/host/assignments?month=YYYY-MM
 // Returns all program occurrences for the month merged with assignment records.

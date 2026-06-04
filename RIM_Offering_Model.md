@@ -45,25 +45,32 @@ drop-in session · community group · class / workshop / series · single event 
 - **Joining a group** — you're signing on to an ongoing circle. *Community groups; sometimes required, sometimes not.*
 - **Nothing** — pure drop-in.
 
-Today, **`Program.registrationEnabled` (a single boolean) carries Axis 2, flattened to on/off**, and Axis 1 is mostly inferred (from `registrationEnabled` + `programFormat` + recurrence + whether it's a Program vs a Course at all). This is enough to express the real offerings — but it means "registration" silently means different things on different programs, which is a source of confusion (it produced the "A spot opened up" banner misfiring on a plain voluntary registration — see `RIM_Registration.md`).
+**As of session 137, Axis 1 is explicit: `ProgramCategory.kind`.** A program inherits its kind from its category — the category *name* stays editorial/editable (the heading on the public page), while `kind` is the stable, behavior-driving code. Axis 2 stays `registrationEnabled` (+ `danaMode`). Behavior is computed from the two together via `lib/programKind.ts` (`PROGRAM_KINDS`, `isOpenlyDroppable`). The kinds: `DROP_IN`, `COMMUNITY_GROUP`, `CLASS`, `EVENT`, `RETREAT`, `SERVICE`, `PRIVATE`. Codes are the only sticky part — labels live in `lib/programKind.ts` and rename without a DB migration; adding a kind is a small code change. Coordinators set a category's kind in the category manager (`/tools/programs/categories`).
+
+Before this, Axis 1 was *inferred* from `registrationEnabled` + `programFormat` + recurrence, so "registration" silently meant different things on different programs — the confusion that produced the "A spot opened up" banner misfiring on a plain voluntary registration (see `RIM_Registration.md`).
 
 **Implication for copy:** because registration's *meaning* varies by offering, registration-facing copy should eventually adapt per kind ("Reserve your seat" for a retreat · "Register for study materials" for a drop-in like EDS · "Join this group" for a community group). Until a kind is made explicit, keep registration copy true across all of them (calm, accurate, never assuming a waitlist or a gate).
 
-### What "Coming up for you" (the dashboard) shows
+### Dashboard placement — two surfaces, two signals
 
-**"Coming up for you" = your personal registered commitments.** It is driven entirely by whether you hold a `Registration` row (status not `CANCELLED`/`PENDING_PAYMENT`) with a future occurrence — and because only registration-required offerings create registrations, it already shows exactly Axis-1's registered kinds and nothing else. The dashboard's three surfaces map to the taxonomy:
+The two senses of "upcoming" run on different signals, and this is the rule the dashboard implements:
+
+- **"Coming up for you" = your personal commitments** — driven by your `Registration` (status not `CANCELLED`/`PENDING_PAYMENT`) with a future occurrence. **Not gated by kind.** Any kind you register for shows here — including a *registered* community group (Qigong). Registering is the personal "this is mine" signal.
+- **"Today" / community schedule = openly-droppable offerings** — driven by **kind**, via `isOpenlyDroppable(kind, registrationEnabled)`: `DROP_IN` always; `COMMUNITY_GROUP` only when it does *not* require registration; everything else (`CLASS`/`EVENT`/`RETREAT`/`SERVICE`/`PRIVATE`) is a commitment. A registration-required class/event/retreat **never offers a public Join to a non-registrant** — it surfaces in their "Coming up for you" once they register. (Plus: the viewer's own registered or hosted/taught sessions always appear in Today; ADMIN sees all. Null kind falls back to the legacy "no registration = drop-in" heuristic so the schedule never empties out.)
 
 | Surface | Frame | Which offerings |
 |---|---|---|
-| **Today** card ("what you can drop into today") | community opportunities | all virtual/hybrid community sessions today, *regardless of registration* — i.e. drop-ins |
-| **Coming up for you** | your commitments | only offerings you registered for |
+| **Today** card | community opportunities + your commitments today | openly-droppable kinds (drop-ins + open community groups) for everyone; your registered/hosted sessions of any kind |
+| **Coming up for you** | your commitments | anything you registered for, any kind |
 | **Library** (`/account/courses`) | your self-paced study | on-demand Course enrollments |
 
-A drop-in you registered for (like EDS) correctly appears in **both** Today/`this-week` (as a community session anyone can join) **and** "Coming up for you" (because *you* registered) — that dual presence is the right behavior for "a drop-in that registration adds something to."
+A drop-in you registered for (like EDS — `DROP_IN` kind, registration on as an enrichment) appears in **both** Today/`this-week` (droppable, anyone can join) **and** "Coming up for you" (because *you* registered). The member program-detail access gate uses the same `isOpenlyDroppable` predicate (not `registrationEnabled`), so an enrichment drop-in stays reachable without registering while a commitment redirects you to register first.
 
-### Setup gap, not capability gap
+### Implemented session 137
 
-The model already stretches to cover these cases with mechanisms that exist (`registrationEnabled`, the `ProgramCourse` bundle for "registration unlocks a course of materials," recurrence for cadence). What's typically missing is **per-program setup**, not new schema. As of session 137, three programs illustrate this: The Heart of Wisdom (multi-day retreat) had `registrationEnabled = false` though it needs registration; Essential Dharma Study's "registration unlocks materials" intent has no `ProgramCourse` link wired yet; community groups like Qigong work as plain registration lists. Making Axis 1 an explicit, labeled property is a worthwhile future clarity investment — not a blocker.
+`ProgramCategory.kind` shipped session 137. Migration `add_program_category_kind` (idempotent, flag-guarded) added the column, backfilled the six live categories, renamed "Community Groups & Events" → **Community Groups** (`COMMUNITY_GROUP`), created **Events** (`EVENT`) + a hidden **Private Sessions** (`PRIVATE`), and reassigned Day of Mindfulness + Bookmarks & Breath → Events and Private Teacher Meetings → Private Sessions.
+
+Remaining items are **setup, not code**: The Heart of Wisdom still needs `registrationEnabled = true`; EDS's "registration unlocks materials" still needs a `ProgramCourse` link. The kind model handles them gracefully meanwhile — `RETREAT` is treated as a commitment even with registration off, so it never wrongly appears as a public drop-in.
 
 ---
 

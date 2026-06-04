@@ -4,82 +4,16 @@ import Link from "next/link";
 import { Flame } from "lucide-react";
 import { db } from "@/lib/db";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
-import { nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
+import { ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
+import { isOpenlyDroppable } from "@/lib/programKind";
 import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 
 export const metadata = { title: "My Home — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
-interface VirtualProgram {
-  id: string;
-  name: string;
-  slug: string;
-  startDatetime: Date | null;
-  endDatetime: Date | null;
-  recurrenceFreq: string | null;
-  recurrenceInterval: number | null;
-  recurrenceDays: string[];
-  recurrenceCount: number | null;
-  programFormat: string;
-}
-
-const ICAL_DAY = ["SU","MO","TU","WE","TH","FR","SA"];
-
-function ctDateStr(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    timeZone: "America/Chicago",
-    year: "numeric", month: "2-digit", day: "2-digit",
-  }).replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
-}
-
 function todayCT(): string {
   return ctDateStr(new Date().toISOString());
-}
-
-function dateToDayCode(dateStr: string): string {
-  return ICAL_DAY[new Date(dateStr + "T12:00:00").getDay()];
-}
-
-function isOccurrenceToday(p: VirtualProgram, today: string): boolean {
-  if (!p.startDatetime) return false;
-  const anchor = ctDateStr(p.startDatetime.toISOString());
-  if (anchor > today) return false;
-  if (!p.recurrenceFreq) return anchor === today;
-  const freq = p.recurrenceFreq.toLowerCase();
-  if (freq === "weekly") {
-    const days = p.recurrenceDays ?? [];
-    if (days.length > 0 && !days.includes(dateToDayCode(today))) return false;
-    const n = p.recurrenceInterval ?? 1;
-    if (n > 1) {
-      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-      const weeksDiff = Math.round(
-        (new Date(today + "T12:00:00").getTime() - new Date(anchor + "T12:00:00").getTime()) / msPerWeek
-      );
-      if (weeksDiff % n !== 0) return false;
-    }
-    if (p.recurrenceCount && p.recurrenceCount >= 2) {
-      const daysPerCycle = p.recurrenceDays?.length ?? 1;
-      const cyclesNeeded = Math.ceil((p.recurrenceCount - 1) / daysPerCycle);
-      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-      const lastMs = new Date(anchor + "T12:00:00").getTime()
-        + cyclesNeeded * (p.recurrenceInterval ?? 1) * msPerWeek;
-      if (new Date(today + "T12:00:00").getTime() > lastMs) return false;
-    }
-    return true;
-  }
-  return anchor === today;
-}
-
-function shiftToToday(anchorISO: string, today: string): Date {
-  const anchor = new Date(anchorISO);
-  const anchorCTDate = ctDateStr(anchorISO);
-  if (anchorCTDate === today) return anchor;
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const daysDiff = Math.round(
-    (new Date(today + "T12:00:00").getTime() - new Date(anchorCTDate + "T12:00:00").getTime()) / msPerDay
-  );
-  return new Date(anchor.getTime() + daysDiff * msPerDay);
 }
 
 function fmtTimeCT(iso: string) {
@@ -132,6 +66,10 @@ export default async function DashboardPage() {
           recurrenceFreq: true, recurrenceInterval: true,
           recurrenceDays: true, recurrenceCount: true,
           programFormat: true,
+          // Offering kind (via category) + registration drive Today placement:
+          // only openly-droppable kinds show a public Join to non-registrants.
+          registrationEnabled: true,
+          category: { select: { kind: true } },
         },
         orderBy: { sortOrder: "asc" },
       }),
@@ -171,7 +109,7 @@ export default async function DashboardPage() {
     ]);
 
   // Today's sessions
-  const todaySessionsRaw = allVirtual.filter((p) => isOccurrenceToday(p, today));
+  const todaySessionsRaw = allVirtual.filter((p) => isOccurrenceOnDate(p, today));
   const now = new Date();
 
   // Host/teacher detection: the Session Host (HostAssignment for today) and the
@@ -203,13 +141,40 @@ export default async function DashboardPage() {
   );
   const teacherProgramIds = new Set(myTeacherPrograms.map((t) => t.programId));
 
-  const todaySessions = await Promise.all(
-    todaySessionsRaw.map(async (p) => {
+  // Which of today's candidate programs the viewer is registered for (batched).
+  const todayRegSlugs = new Set(
+    (
+      await db.registration.findMany({
+        where: {
+          userId,
+          programSlug: { in: todayProgramSlugs },
+          status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
+        },
+        select: { programSlug: true },
+      })
+    ).map((r) => r.programSlug),
+  );
+
+  // What belongs in "Today": openly-droppable offerings (drop-ins / open
+  // community groups) for everyone, PLUS anything the viewer is registered for
+  // or hosting/teaching (ADMIN sees all as a safety override). A
+  // registration-required class/event/retreat never offers a public Join to a
+  // non-registrant — it surfaces in "Coming up for you" instead.
+  const visibleTodayRaw = todaySessionsRaw.filter(
+    (p) =>
+      isOpenlyDroppable(p.category?.kind ?? null, p.registrationEnabled) ||
+      todayRegSlugs.has(p.slug) ||
+      isAdmin ||
+      hostedSlugsToday.has(p.slug) ||
+      teacherProgramIds.has(p.id),
+  );
+
+  const todaySessions = visibleTodayRaw.map((p) => {
       const startIso = p.startDatetime!.toISOString();
-      const start     = shiftToToday(startIso, today);
+      const start     = shiftToDate(startIso, today);
       const liveStart = new Date(start.getTime() - 12 * 60 * 1000);
       const endIso    = p.endDatetime?.toISOString() ?? null;
-      const liveEnd   = endIso ? shiftToToday(endIso, today) : new Date(start.getTime() + 90 * 60 * 1000);
+      const liveEnd   = endIso ? shiftToDate(endIso, today) : new Date(start.getTime() + 90 * 60 * 1000);
       const isHostOrTeacher =
         isAdmin ||
         hostedSlugsToday.has(p.slug) ||
@@ -219,14 +184,7 @@ export default async function DashboardPage() {
       const isSetupOpen  = !isLive && isHostOrTeacher && now >= earlyOpenStart && now < liveStart;
       const isLaterToday = !isLive && !isSetupOpen && start > now;
 
-      let isRegistered = false;
-      if (isLive || isSetupOpen || isLaterToday) {
-        const reg = await db.registration.findFirst({
-          where: { userId, programSlug: p.slug, status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
-          select: { id: true },
-        });
-        isRegistered = !!reg;
-      }
+      const isRegistered = todayRegSlugs.has(p.slug);
 
       // Compute countdown for later sessions (regular members and host/teacher
       // before their early-open window).
@@ -253,8 +211,7 @@ export default async function DashboardPage() {
         earlyOpenEpoch: earlyOpenStart.getTime(),
         countdownText,
       };
-    })
-  );
+  });
 
   const liveSessions  = todaySessions.filter((s) => s.isLive);
   const setupSessions = todaySessions.filter((s) => s.isSetupOpen);

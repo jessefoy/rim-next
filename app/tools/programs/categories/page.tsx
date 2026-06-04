@@ -17,6 +17,7 @@ export default async function CategoriesPage() {
     sortOrder: c.sortOrder,
     programCount: c._count.programs,
     hidden: c.hideFromProgramsPage,
+    kind: c.kind ?? null,
   }));
 
   return <CategoryOrderClient categories={items} />;
