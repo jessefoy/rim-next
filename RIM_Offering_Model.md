@@ -30,6 +30,43 @@ The same Course can be **bundled with multiple Programs over time** (e.g. a 6-we
 
 ---
 
+## Two axes, one switch — and what "Coming up for you" shows
+
+**Articulated session 137 (2026-06-04), from Jesse's mental model during LoriLee's registrar testing.**
+
+How RIM thinks about an offering involves **two independent axes** that the data currently collapses into a single switch:
+
+**Axis 1 — what the offering *is* (its kind):**
+drop-in session · community group · class / workshop / series · single event · multi-day retreat · service event · on-demand course.
+
+**Axis 2 — what *registering* does for it:**
+- **A gate** — you can't take part (or take a seat, or it costs money) without registering. Retreats, paid workshops. *(`danaMode` `fixed`/`base_plus_dana` makes payment the gate — see "Pricing / dana" below.)*
+- **An enrichment** — you can show up regardless, but registering unlocks something extra (e.g. study materials). *Essential Dharma Study is meant to be this.*
+- **Joining a group** — you're signing on to an ongoing circle. *Community groups; sometimes required, sometimes not.*
+- **Nothing** — pure drop-in.
+
+Today, **`Program.registrationEnabled` (a single boolean) carries Axis 2, flattened to on/off**, and Axis 1 is mostly inferred (from `registrationEnabled` + `programFormat` + recurrence + whether it's a Program vs a Course at all). This is enough to express the real offerings — but it means "registration" silently means different things on different programs, which is a source of confusion (it produced the "A spot opened up" banner misfiring on a plain voluntary registration — see `RIM_Registration.md`).
+
+**Implication for copy:** because registration's *meaning* varies by offering, registration-facing copy should eventually adapt per kind ("Reserve your seat" for a retreat · "Register for study materials" for a drop-in like EDS · "Join this group" for a community group). Until a kind is made explicit, keep registration copy true across all of them (calm, accurate, never assuming a waitlist or a gate).
+
+### What "Coming up for you" (the dashboard) shows
+
+**"Coming up for you" = your personal registered commitments.** It is driven entirely by whether you hold a `Registration` row (status not `CANCELLED`/`PENDING_PAYMENT`) with a future occurrence — and because only registration-required offerings create registrations, it already shows exactly Axis-1's registered kinds and nothing else. The dashboard's three surfaces map to the taxonomy:
+
+| Surface | Frame | Which offerings |
+|---|---|---|
+| **Today** card ("what you can drop into today") | community opportunities | all virtual/hybrid community sessions today, *regardless of registration* — i.e. drop-ins |
+| **Coming up for you** | your commitments | only offerings you registered for |
+| **Library** (`/account/courses`) | your self-paced study | on-demand Course enrollments |
+
+A drop-in you registered for (like EDS) correctly appears in **both** Today/`this-week` (as a community session anyone can join) **and** "Coming up for you" (because *you* registered) — that dual presence is the right behavior for "a drop-in that registration adds something to."
+
+### Setup gap, not capability gap
+
+The model already stretches to cover these cases with mechanisms that exist (`registrationEnabled`, the `ProgramCourse` bundle for "registration unlocks a course of materials," recurrence for cadence). What's typically missing is **per-program setup**, not new schema. As of session 137, three programs illustrate this: The Heart of Wisdom (multi-day retreat) had `registrationEnabled = false` though it needs registration; Essential Dharma Study's "registration unlocks materials" intent has no `ProgramCourse` link wired yet; community groups like Qigong work as plain registration lists. Making Axis 1 an explicit, labeled property is a worthwhile future clarity investment — not a blocker.
+
+---
+
 ## Course access — the orthogonal-flags model
 
 **Decided 2026-05-20 (session 118), replacing the older single-enum `accessLevel`.**

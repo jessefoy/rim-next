@@ -178,11 +178,20 @@ export function isOccurrenceOnDate(p: ScheduleProgram, dateStr: string): boolean
   if (!p.startDatetime) return false;
   const anchor = ctDateStr(p.startDatetime.toISOString());
   if (anchor > dateStr) return false;
-  // A program with an endDatetime no longer occurs past that calendar date.
-  // Without this guard, ended courses and retreats surface phantom future
-  // sessions on every page that walks the calendar forward.
-  if (p.endDatetime && dateStr > ctDateStr(p.endDatetime.toISOString())) return false;
-  if (!p.recurrenceFreq) return anchor === dateStr;
+  // endDatetime is a forward cutoff ONLY for non-recurring programs, where it
+  // is the program's genuine end (a single or multi-day offering past its end
+  // date no longer occurs). For a RECURRING program, endDatetime is the end
+  // TIME of a single occurrence — same calendar day as the anchor — NOT a
+  // series-end date; the series bound is recurrenceCount, applied per-frequency
+  // below. Treating it as a forward cutoff for recurring programs collapses
+  // every one of them to its first session, which silently erased recurring
+  // offerings from the dashboard "Coming up for you", /this-week, the
+  // Scheduler, standing host rotations, and the session-room join gate.
+  // (Regression introduced session 131, found via LoriLee's testing session 137.)
+  if (!p.recurrenceFreq) {
+    if (p.endDatetime && dateStr > ctDateStr(p.endDatetime.toISOString())) return false;
+    return anchor === dateStr;
+  }
 
   const freq = p.recurrenceFreq.toUpperCase();
   if (freq === "WEEKLY") {

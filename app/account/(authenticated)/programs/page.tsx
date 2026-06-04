@@ -135,9 +135,9 @@ export default async function MyProgramsPage() {
 
                           {r.donationStatus === "PENDING" && (
                             <div className="mr-card__dana">
-                              <span>A spot opened up — please complete your dana offering.</span>
+                              <span>You&rsquo;re registered. You&rsquo;re also warmly invited to offer dana for this program — a voluntary gift, received with gratitude.</span>
                               <Link href={`/programs/${r.programSlug}/register`} className="mr-card__dana-link">
-                                Complete dana offering →
+                                Offer dana →
                               </Link>
                             </div>
                           )}
