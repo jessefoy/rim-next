@@ -25,9 +25,9 @@
     "description": "Session 137 put offering KIND on ProgramCategory and added a per-row Kind dropdown to the standalone category manager (/tools/programs/categories). But the OTHER place categories are created — the ProgramEditor's Categories tab inline 'add category' — still creates a category with kind=null (the POST /api/programs-pg/categories accepts kind, it's just not wired into that UI). Null kind falls back safely (treated by registration), but a coordinator who creates a category there has to remember to go set its Kind on the manager page. Add a Kind <select> to the ProgramEditor inline category-create so kind is set at creation. Small.",
     "category": "Admin Tools",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-04",
-    "notes": "Deliberate scope cut in session 137 to stay out of the 2000-line ProgramEditor. lib/programKind.ts::PROGRAM_KINDS is the option source."
+    "notes": "Resolved same session (137): the category manager at /tools/programs/categories was consolidated into the single complete home — rename + kind + add (with kind) + delete + reorder. The ProgramEditor's inline category-create (CategoryOrderInline) was removed in favor of a link to the manager, so there's no longer an editor category-create flow to add a kind picker to."
   },
   {
     "id": "2026-06-04-004",
@@ -48,6 +48,16 @@
     "status": "open",
     "addedAt": "2026-06-04",
     "notes": "The alternative for a community group that should be a commitment is simply to turn on its registration. This follow signal is for genuinely open offerings."
+  },
+  {
+    "id": "2026-06-04-006",
+    "title": "Category delete-guard count mismatch: page counts all programs, server counts non-archived",
+    "description": "Flagged by the reviewer during the session-137 category-manager build (pre-existing, not introduced there). The category manager page (app/tools/programs/categories/page.tsx) shows programCount via _count.programs (ALL programs, including archived), and the client blocks delete when count > 0. But the server DELETE guard in app/api/programs-pg/categories/route.ts counts only archivedAt: null. So a category whose only programs are archived shows e.g. '2 programs' and the client refuses to delete it, even though the server would allow it. Harmless (errs toward caution), but inconsistent. Fix by making the page's _count filter to { where: { archivedAt: null } } (Prisma supports filtered _count) so the displayed count matches the server's deletion rule.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-04",
+    "notes": "Only bites categories whose programs are all archived. Cosmetic/consistency, not a correctness or data issue."
   },
   {
     "id": "2026-06-03-002",

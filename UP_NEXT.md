@@ -32,7 +32,9 @@ From LoriLee's June-3 registrar feedback. **Two commits on `main`:** `0a893cf` (
 
 **LoriLee reply** drafted this session (warm, plain, three points) — post as a comment on her "Registered Program Visibility" hub document.
 
-**Queued (backlog `2026-06-04-001..005`):** delete dead `hideFromDashboard`/`dayOfWeek`; rename `removeFromProgramList`; Kind picker in the ProgramEditor category-create flow; "community this week" dashboard surface; "follow / add to my schedule" signal for open offerings.
+**Also shipped this session (follow-up commit `ce46899`):** the **category manager** (`/tools/programs/categories`) is now the single complete home — inline rename + Kind dropdown + reorder + add (with kind) + delete. The ProgramEditor's duplicate inline category-create (`CategoryOrderInline`) was removed; its Categories tab keeps the per-program picker and links to the manager. Kind labels stay global (one definition in `lib/programKind.ts`).
+
+**Queued (backlog `2026-06-04-001`, `-002`, `-004`, `-005`, `-006`):** delete dead `hideFromDashboard`/`dayOfWeek`; rename `removeFromProgramList`; "community this week" dashboard surface; "follow / add to my schedule" signal for open offerings; category delete-guard count mismatch (page counts all programs incl. archived, server counts non-archived — pre-existing, low). (`-003`, the ProgramEditor category-create kind picker, is **done** — resolved by the manager consolidation.)
 
 **Memory candidates (step 8b — awaiting Jesse's confirm):** proposed at session close — (1) anchor a taxonomy/enum decision to *behavior*, keep names flexible, make it reversible to lower the stakes; (2) verify a data-migration's targets against the live DB before writing it (the seed file was stale — it lacked the live "Retreats" category). Both `feedback-*` candidates; confirm or discard.
 
