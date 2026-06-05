@@ -2851,12 +2851,12 @@ async function main() {
 
   // Program Manager manual section — always upsert (idempotent)
   const manualFlag = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'seed_manual_program_manager_v4'
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_manual_program_manager_v5'
   `).catch(() => []);
 
   if (manualFlag.length === 0) {
     await seedManualProgramManager(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_program_manager_v4')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_program_manager_v5')`);
   } else {
     console.log("  ⏭ Program Manager manual already seeded.");
   }

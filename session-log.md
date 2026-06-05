@@ -1,5 +1,36 @@
 ---
 
+## 2026-06-04 (session 138) — Status-aware registration messaging on the public program page + editor legibility
+
+A same-day follow-on to session 137, from another LoriLee registrar report: on The Heart of Wisdom (an in-person retreat), the public program page's "what to do next" line read "Simply arrive in person · Zoom link on My Home" — a Zoom reference on an in-person-only program. Investigating it opened into a deeper messaging problem, which Jesse pushed to address holistically — both the public page and the editor.
+
+**Three commits on `main`:** `145a0cb` (Zoom-link fix) · `b53dee0` (status-aware messaging + editor readout) · `f2d2544` (backlog) — plus this closing doc sweep.
+
+### Part 1 — the Zoom-link leak (`145a0cb`)
+
+`app/programs/[slug]/page.tsx`'s CTA branched only on `virtual` vs everything-else, so in-person was lumped with hybrid and inherited the "Zoom link on My Home" clause — pointing members to a link that doesn't exist (the dashboard correctly shows no join button for in-person). Split the non-virtual branch into hybrid (keeps the online clause) and in-person ("Simply arrive in person." only). Verified the member program page + dashboard already handled in-person correctly.
+
+### Part 2 — status-aware messaging keyed off kind (`b53dee0`)
+
+Jesse's question — "does 'registration off' mean closed?" — surfaced that the page conflated three different "no Register button" situations: drop-in (just come), not-open-yet (registration coming), and closed (registration ended). The page only knew two and mislabeled "not open yet" as "drop-in" — which is why a paid retreat with registration still off read as "Simply arrive in person." The session-137 `kind` field is exactly what disambiguates: a retreat is never a drop-in.
+
+The public CTA now expresses the full matrix, keyed off `isOpenlyDroppable(category.kind, registrationEnabled)`:
+- **Registration on:** the viewer's own standing first (registered / waitlisted) — which now survives registration closing, fixing a real bug where a registrant saw "Registration is closed" after the deadline — then "Register →" / "Join the waitlist →" (when full; repurposes the previously-dead `spotsRemaining` compute) / "Registration is closed."
+- **Registration off + droppable kind** (drop-in / open community group): format-aware "how to join."
+- **Registration off + commitment kind** (class / event / retreat): "Registration isn't open yet."
+
+**The editor was the real fix, per Jesse.** A registrar had no way to see *why* the public page said what it did — the gap behind the report. The ProgramEditor gained a read-only "How this appears to visitors" readout on the Registration tab (mirrors the public logic from kind + format + registration state), an inline "Kind: X" line on the Categories tab, and corrected "Registration enabled" help text. `kind` threaded through the edit + new pages. A reviewer sub-agent verified the conditional ordering, the `spotsRemaining === 0`/null guard, and the editor-mirrors-public logic before commit.
+
+### What this connects to
+- **Offering model (session 137)** — brings the public program-detail CTA + the editor into the two-axis (kind + registration) model the dashboard and member-detail gate already used; `RIM_Offering_Model.md` updated.
+- **Registration** — status-first ordering + waitlist state; display-only, no API/flow change, so `RIM_Registration.md`'s model is unaffected.
+- **No schema change; no hub / email / editor-types change.**
+
+### What's next / deferred
+- **Verify on deploy:** The Heart of Wisdom now reads "Registration isn't open yet" (→ "Register" once registration is enabled); the editor readout + "Kind:" line; an in-person drop-in still says "Simply arrive in person."; the Program Manager manual chapter re-seeds v4→v5.
+- **Deferred:** consolidating the two registration booleans into one control (backlog `2026-06-04-007`) — the editor readout resolved the legibility without a schema change; a dedicated `RIM_ProgramEditor.md` per-tool doc (closing-ritual step 4d), held off for this focused slice.
+- **LoriLee reply** drafted (Zoom fix + the deeper retreat-vs-drop-in fix + the new editor readout) — Jesse to post on her hub document.
+
 ## 2026-06-04 (session 137) — Recurring programs restored across the schedule + explicit offering KIND on categories
 
 A follow-on to LoriLee's registrar testing (June 3). Her screenshots flagged three things: (1) the dana banner read "A spot opened up — please complete your dana offering" on an ordinary voluntary registration — confusing waitlist-framed copy; (2) her registration captured correctly in the Registration Hub (working — no change); (3) Essential Dharma Study and Qigong didn't appear in "Coming up for you." Item 3 opened into a platform-wide bug, and then into a foundational design decision Jesse had been wanting to make before go-live.

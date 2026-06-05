@@ -6,6 +6,30 @@
 
 ## Active
 
+### Session 138 (2026-06-04) — Status-aware registration messaging (public page + editor); same-day follow-on to 137 (shipped; deployed-site verification pending)
+
+From a second LoriLee registrar report (her "Removing Zoom Link on In-Person Only Programs" hub doc). **Three commits on `main`:** `145a0cb` (Zoom-link fix) · `b53dee0` (status-aware messaging + editor readout) · `f2d2544` (backlog `2026-06-04-007`) + this doc sweep.
+
+**Shipped:**
+- **Zoom-link leak fixed** — `app/programs/[slug]/page.tsx` no longer shows "Zoom link on My Home" on an in-person-only program (in-person/hybrid were lumped together; now split).
+- **Status-aware CTA** — the public program page's "what to do next" line now expresses the full registration matrix, keyed off `isOpenlyDroppable(category.kind, registrationEnabled)`: registration-on → the viewer's own standing first (registered/waitlisted, **surviving registration close** — fixes the bug where a registrant saw "Registration is closed" after the deadline), then Register → / Join the waitlist → (when full; repurposes the previously-dead `spotsRemaining`) / Registration is closed; registration-off → a droppable kind shows format-aware "how to join", a commitment kind shows **"Registration isn't open yet."** (resolves a retreat-with-registration-off reading as a drop-in).
+- **Editor legibility (the real fix, per Jesse)** — ProgramEditor gained a read-only **"How this appears to visitors"** readout on the Registration tab + an inline **"Kind: X"** line on the Categories tab + corrected "Registration enabled" help text; `kind` threaded through the edit/new pages. Manual chapter re-seeded v4→v5.
+
+**What to verify on the deployed site:**
+1. **The Heart of Wisdom** now reads **"Registration isn't open yet."** (not "Simply arrive in person"). Turn registration on → it flips to "Register →" on its own.
+2. Open it in the editor → **Registration tab** shows the "How this appears" panel; **Categories tab** shows "Kind: Retreat." *(If the panel says "Drop-in," that program's category kind isn't a commitment kind — the readout is exactly the tool to catch it; fix on `/tools/programs/categories`.)*
+3. An in-person drop-in still shows "Simply arrive in person."; virtual still shows the Zoom link.
+4. Deploy log shows the `seed_manual_program_manager_v5` re-seed.
+
+**To post:** the **LoriLee reply** drafted this session (covers the Zoom fix + the deeper retreat-vs-drop-in fix + the new editor readout) — post on her "Removing Zoom Link on In-Person Only Programs" hub document.
+
+**Deferred / queued:**
+- **Backlog `2026-06-04-007`** — consolidate the two registration booleans (`registrationEnabled` + `registrationClosed`) into one control. The editor readout resolved the legibility without a schema change; revisit only if the two-boolean model keeps confusing volunteers.
+- **`RIM_ProgramEditor.md`** per-tool doc (closing-ritual step 4d) — held off this slice; the kind/registration-display note went into `RIM_Offering_Model.md` instead. Worth creating when the ProgramEditor next gets substantial work.
+- **Kind-aware register verbs** ("Reserve your seat" / "Join this group" / "Register for materials") — still deferred (the offering-model doc's "Implication for copy"); the structural distinction is live, the per-kind wording is not.
+
+**Memory candidates (step 8b):** none new — today reinforced "think holistically / inventory first," already covered by existing memory files. (Reminder: `MEMORY.md` is over its size limit — a `/consolidate-memory` pass is worth doing.)
+
 ### Session 137 (2026-06-04) — Recurrence fix (recurring programs were vanishing) + explicit offering KIND (shipped; deployed-site verification pending)
 
 From LoriLee's June-3 registrar feedback. **Two commits on `main`:** `0a893cf` (recurrence fix + dana copy) · `bfc903d` (offering KIND model + folded-in occurrence-helper consolidation) + this doc sweep.

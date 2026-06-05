@@ -66,6 +66,17 @@ The two senses of "upcoming" run on different signals, and this is the rule the 
 
 A drop-in you registered for (like EDS — `DROP_IN` kind, registration on as an enrichment) appears in **both** Today/`this-week` (droppable, anyone can join) **and** "Coming up for you" (because *you* registered). The member program-detail access gate uses the same `isOpenlyDroppable` predicate (not `registrationEnabled`), so an enrichment drop-in stays reachable without registering while a commitment redirects you to register first.
 
+### The public program-detail CTA + editor readout (added 2026-06-04)
+
+The public program page (`/programs/[slug]`) "what to do next" CTA now keys off the same `isOpenlyDroppable(kind, registrationEnabled)` predicate as the dashboard and the member-detail gate — it was the last surface still inferring everything from `registrationEnabled` alone. It distinguishes the registration postures, with the viewer's own standing taking precedence:
+
+- **Registered / waitlisted** — the viewer's status shows first and survives registration closing (a registrant never sees a bare "Registration is closed").
+- **Open / full / closed** (registration on) — "Register →" / "Join the waitlist →" / "Registration is closed."
+- **Drop-in** (droppable kind, registration off) — format-aware "how to join" (and never a Zoom reference on an in-person-only program).
+- **Not open yet** (commitment kind, registration off) — **"Registration isn't open yet."** This is the state that resolves the old ambiguity where a retreat with registration off read as a drop-in ("Simply arrive in person"). A commitment is never "just show up."
+
+The ProgramEditor mirrors this with a read-only **"How this appears to visitors"** readout on the Registration tab (computed from kind + format + registration state) plus an inline "Kind: X" line on the Categories tab — so a registrar sees the consequence of their toggles at edit time. Per-kind register *verbs* ("Reserve your seat" / "Join this group") remain deferred (see "Implication for copy" above); the structural distinction (drop-in vs not-open-yet vs open/closed) is live.
+
 ### Implemented session 137
 
 `ProgramCategory.kind` shipped session 137. Migration `add_program_category_kind` (idempotent, flag-guarded) added the column, backfilled the six live categories, renamed "Community Groups & Events" → **Community Groups** (`COMMUNITY_GROUP`), created **Events** (`EVENT`) + a hidden **Private Sessions** (`PRIVATE`), and reassigned Day of Mindfulness + Bookmarks & Breath → Events and Private Teacher Meetings → Private Sessions.

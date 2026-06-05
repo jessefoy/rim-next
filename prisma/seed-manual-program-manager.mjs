@@ -115,10 +115,10 @@ export async function seedManualProgramManager(db) {
     sp(),
 
     h(3, "Registration"),
-    p("Controls who can sign up and what they see."),
+    p("Controls who can sign up and what they see. A ", b("How this appears to visitors"), " note at the top of this tab shows exactly what the public will see for the current settings — so you never have to guess."),
     sp(),
-    li(b("Registration enabled"), " — When checked, the public program page shows a registration form. When unchecked, visitors can read about the program but can't register."),
-    li(b("Registration closed"), " — Manually closes registration. Shows 'Registration is closed' instead of the form. Use this when you need to close early regardless of capacity or deadline."),
+    li(b("Registration enabled"), " — When checked, visitors get a registration form (it waitlists automatically once you're full). When unchecked, the page reflects the offering's Kind: a drop-in shows how to join, while a class, event, or retreat shows \"Registration isn't open yet\". Turn this on when you're ready to take sign-ups."),
+    li(b("Registration closed"), " — Manually closes registration. Shows 'Registration is closed' instead of the form. Use this when you need to close early regardless of capacity or deadline. (Anyone already registered still sees their own status, not the closed notice.)"),
     sp(),
     li(b("Capacity"), " — Maximum registrations. Leave blank for unlimited. When full, new registrations are automatically waitlisted."),
     li(b("Registration Deadline"), " — Registration closes automatically after this date. Leave blank for no deadline."),
