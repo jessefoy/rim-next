@@ -248,7 +248,7 @@ function InlineBlockEditor({
 
   async function save() {
     setSaving(true);
-    const res = await fetch(`/api/hub/${slug}/home`, {
+    const res = await fetch(`/api/hubs/${slug}/home`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [field]: value }),

@@ -6,8 +6,8 @@ Read this before working on anything in `/api/auth/*`, `auth.ts`, `lib/rateLimit
 
 Companion docs:
 - `RIM_Stack_Reference.md` — the NextAuth row + the rate-limit row at a glance.
-- `FEATURES.md §1 Authentication` — feature-level overview of the sign-in flow.
-- `FEATURES.md §14 Community Onboarding & Membership Philosophy` — the three membership paths.
+- `FEATURES.md` → **Foundations / Authentication & sign-in** — feature-level overview of the sign-in flow.
+- `FEATURES.md` → **Foundations / Member area** — membership & onboarding (the three membership paths).
 - `auth.ts` — the live NextAuth config.
 
 ---

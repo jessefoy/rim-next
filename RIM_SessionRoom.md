@@ -2,7 +2,7 @@
 
 **The per-tool reference for the LiveKit video session room.** Read this before touching anything under `components/session/`, `components/VideoRoom.tsx`, or `app/api/livekit/*`.
 
-Companion docs: `RIM_System_Architecture.md` (Video Conferencing section — the authoritative permission model), `RIM_Stack_Reference.md` (LiveKit env + deps), FEATURES.md §38 (feature record), `SESSION_ROOM_FOR_VOLUNTEERS.md` (host/volunteer-facing changelog), and the DB manual chapter `host-session-room` (seeded via `prisma/update-manual-host-session-room.mjs`).
+Companion docs: `RIM_System_Architecture.md` (Video Conferencing section — the authoritative permission model), `RIM_Stack_Reference.md` (LiveKit env + deps), FEATURES.md → "Session Room — LiveKit" (feature record), `SESSION_ROOM_FOR_VOLUNTEERS.md` (host/volunteer-facing changelog), and the DB manual chapter `host-session-room` (seeded via `prisma/update-manual-host-session-room.mjs`).
 
 ---
 

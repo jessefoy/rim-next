@@ -97,6 +97,31 @@ Items that will be removable later, after a precondition is met. Tracked here so
 
 ---
 
+## Theme H — Session-139 dead-code usage-tracing audit (2026-06-07)
+
+A full usage trace — every component, lib helper, model, enum value, page route, API route, and dependency cross-referenced to its callers — confirmed the codebase is largely clean; the big removals already happened (Themes A–F). What it surfaced, verified and decision-ready below. **These are a post-launch task: dependency removal needs an `npm` change + clean build, so don't destabilize before the go-live cutover.**
+
+| # | Item | Where | Action |
+|---|---|---|---|
+| 58 | Orphan component `MemberGate.tsx` | `components/` — zero references anywhere (verified) | Remove (frees `@portabletext/react`) |
+| 59 | Orphan component `DanaSection.tsx` | `components/` — zero references | Remove |
+| 60 | Orphan component `VideoRoomEmbed.tsx` | `components/` — zero references (`VideoRoom.tsx` is the live one) | Remove |
+| 61 | Dead deps — BlockNote era | `@mantine/core`, `@mantine/hooks` — zero imports since BlockNote removal (s97) | `npm remove` |
+| 62 | Dead deps — Sanity era | `@sanity/client`, `@portabletext/to-html` (zero imports); `@portabletext/react` (only the dead `MemberGate` used it — remove with #58) | `npm remove` |
+| 63 | Dead deps — Google era | `googleapis`, `google-auth-library` (zero real imports; the lone `googleapis` hit was the `fonts.googleapis.com` URL) | `npm remove` |
+| 64 | Verify-then-remove Tiptap ext deps | `@tiptap/extension-{character-count,color,floating-menu,text-style}` — not in `RimTiptapEditor`'s imports. **KEEP `-bubble-menu`** (live bubble menu via `@tiptap/react`). | Verify vs. editor, then remove |
+| 65 | Verify `@livekit/components-styles` | package.json — zero imports; confirm the custom session room doesn't rely on it | Verify, then remove |
+
+**Keep despite 0 direct refs (verified NOT dead — do not remove):** `@livekit/krisp-noise-filter` (runtime engine for Krisp / Bell mode), `react-dom` (framework), `@types/sanitize-html` (type support for the live `sanitize-html`).
+
+**Verified clean:** all 39 lib helpers imported; all 58 Prisma models used (the zero-query ones — `Account` / `Session` / `VerificationToken` / `MigrationFlag` — are NextAuth-adapter and migration internals, correctly accessed outside `db.X`); no confirmed dead page routes (Next routes are URL-reachable; scan "orphans" were compositional-link false positives).
+
+**Correction — `SUPPORT` role is NOT removed.** Some docs (session-100 log) imply the `SUPPORT` role was deleted with the Support Inbox; it wasn't. Per Jesse (session 139), the **Support Hub stays as a normal team hub** even though its Inbox tool was removed (s100). The `Role.SUPPORT` value, its `lib/syncHubMembership.ts` support-hub mapping, and the role label are kept — not residue.
+
+**Latent bug found + fixed (session 139):** `HostHubHomeClient` PATCHed `/api/hub/[slug]/home` (singular — 404); corrected to `/api/hubs/[slug]/home` (plural). The inline home-content editor it lives in is now redundant with `/admin/hubs/[slug]/edit` — candidate to consolidate later.
+
+---
+
 ## Not on this list
 
 For reference: items flagged during inventory that are *absences* (planned or discussed, never built) rather than residue. Each is a "still wanted?" question for a strategy conversation, not a cleanup session.
