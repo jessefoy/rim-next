@@ -6,7 +6,6 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import Link from "next/link";
-import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +27,7 @@ export default async function SeriesListPage() {
   return (
     <div className="th-list">
       <div className="th-list__header">
-        <h2 className="th-list__title">Series <ManualHelpIcon manualSlug="course-hub" /></h2>
+        <h2 className="th-list__title">Series</h2>
         <Link href="/tools/learning/new" className="th-btn th-btn--primary">
           New Series
         </Link>

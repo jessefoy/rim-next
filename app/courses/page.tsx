@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import CourseBrowse from "@/components/CourseBrowse";
-import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const metadata = { title: "Courses — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -127,7 +126,6 @@ export default async function CoursesPage() {
 
   return (
     <div style={{ position: "relative" }}>
-      <ManualHelpIcon manualSlug="course-hub" />
       <CourseBrowse
         courses={serializedCourses}
         categories={categories}

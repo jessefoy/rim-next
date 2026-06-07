@@ -9,7 +9,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
@@ -955,9 +954,6 @@ export default function ProgramEditor({
               View program page →
             </a>
           )}
-          <Link href="/admin/manual/program-manager" target="_blank" className="pe-link pe-link--view">
-            Help →
-          </Link>
         </div>
       </div>
 

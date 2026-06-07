@@ -23,20 +23,17 @@ export async function GET(
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [hub, manualCount] = await Promise.all([
-    db.hub.findUnique({
-      where: { slug },
-      include: {
-        appLinks: { where: { isEnabled: true }, orderBy: { order: "asc" } },
-        members: {
-          include: {
-            user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
-          },
+  const hub = await db.hub.findUnique({
+    where: { slug },
+    include: {
+      appLinks: { where: { isEnabled: true }, orderBy: { order: "asc" } },
+      members: {
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
         },
       },
-    }),
-    db.manualSection.count({ where: { hubSlug: slug } }),
-  ]);
+    },
+  });
 
   if (!hub) return NextResponse.json({ error: "Hub not found" }, { status: 404 });
 
@@ -80,7 +77,6 @@ export async function GET(
     navCounts: {
       conversations: ctx.conversationsUnread,
     },
-    hasManual: manualCount > 0,
     isCoordinator: effectiveCoordinator(member, roles),
     isAdmin,
   });

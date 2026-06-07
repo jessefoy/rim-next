@@ -18,7 +18,6 @@ const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
   { ssr: false, loading: () => <div style={{ minHeight: 500 }} /> },
 );
-import ManualHelpIcon from "@/components/ManualHelpIcon";
 import SlugField from "@/components/SlugField";
 
 interface Resource {
@@ -443,7 +442,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
     <div className="th-editor">
       <div className="th-editor__header">
         <h2 className="th-editor__title">{isEditing ? "Edit Lesson" : "New Lesson"}</h2>
-        <ManualHelpIcon manualSlug="course-hub" />
         {isEditing && slug && (
           <a href={`/lessons/${slug}`} target="_blank" rel="noopener noreferrer" className="th-link th-link--view">
             View lesson page →

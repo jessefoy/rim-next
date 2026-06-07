@@ -38,7 +38,6 @@ interface HubNavResponse {
   };
   tools: SidebarTool[];
   navCounts: SidebarNavCounts;
-  hasManual: boolean;
   isCoordinator: boolean;
   isAdmin: boolean;
 }
@@ -119,7 +118,6 @@ export default function WorkspaceShell({ children, variant = "wide" }: Props) {
           hub={nav.hub}
           tools={nav.tools}
           navCounts={nav.navCounts}
-          hasManual={nav.hasManual}
           isCoordinator={nav.isCoordinator}
           isAdmin={nav.isAdmin}
         />

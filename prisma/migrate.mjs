@@ -7,34 +7,9 @@
 
 import { PrismaClient } from "@prisma/client";
 import { seedPrograms } from "./seed-programs.mjs";
-import { seedManualProgramManager } from "./seed-manual-program-manager.mjs";
-import { seedManualHostHubTeamManagement } from "./seed-manual-host-hub-team-management.mjs";
-import { seedManualHostSchedule } from "./seed-manual-host-schedule.mjs";
 import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
 import { seedHostHubOnboardingDocs } from "./seed-host-hub-onboarding-docs.mjs";
 import { seedHostHubTeamDocs } from "./seed-host-hub-team-docs.mjs";
-import { updateManualHostHub } from "./update-manual-host-hub.mjs";
-import { updateManualHostHubTeamManagement } from "./update-manual-host-hub-team-management.mjs";
-import { updateManualHostSchedule } from "./update-manual-host-schedule.mjs";
-import { updateManualHostScheduleV4 } from "./update-manual-host-schedule-v4.mjs";
-import { updateManualHostRotations } from "./update-manual-host-rotations.mjs";
-import { updateManualHostRotationsV3 } from "./update-manual-host-rotations-v3.mjs";
-import { updateManualHostRotationsV4 } from "./update-manual-host-rotations-v4.mjs";
-import { updateManualHostRotationsV5 } from "./update-manual-host-rotations-v5.mjs";
-import { updateManualHostScheduleV6 } from "./update-manual-host-schedule-v6.mjs";
-import { updateManualHostSessionRoom } from "./update-manual-host-session-room.mjs";
-import { updateManualConversations } from "./update-manual-conversations.mjs";
-import { updateManualConversationsV2 } from "./update-manual-conversations-v2.mjs";
-import { updateManualConversationsV3 } from "./update-manual-conversations-v3.mjs";
-import { updateManualCourseHub } from "./update-manual-course-hub.mjs";
-import { updateManualCourseHubV2 } from "./update-manual-course-hub-v2.mjs";
-import { updateManualRegistration } from "./update-manual-registration.mjs";
-import { updateManualPrograms } from "./update-manual-programs.mjs";
-import { updateManualProgramsRewrite } from "./update-manual-programs-rewrite.mjs";
-import { updateManualRegistrationRewrite } from "./update-manual-registration-rewrite.mjs";
-import { updateManualRegistrationDanaV2 } from "./update-manual-registration-dana-v2.mjs";
-import { seedManualHostFirstWeek } from "./seed-manual-host-first-week.mjs";
-import { seedManualPeerLedSilentMeditation } from "./seed-manual-peer-led-silent-meditation.mjs";
 import { updateHostHubWelcomeBody } from "./update-host-hub-welcome-body.mjs";
 import { seedHostHubTrainingDoc } from "./seed-host-hub-training-doc.mjs";
 import { seedNonHostHubHomeContent } from "./seed-non-host-hub-home-content.mjs";
@@ -2855,7 +2830,6 @@ async function main() {
   `).catch(() => []);
 
   if (manualFlag.length === 0) {
-    await seedManualProgramManager(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_program_manager_v5')`);
   } else {
     console.log("  ⏭ Program Manager manual already seeded.");
@@ -2867,7 +2841,6 @@ async function main() {
   `).catch(() => []);
 
   if (hostHubManualFlag.length === 0) {
-    await seedManualHostHubTeamManagement(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_host_hub_team_management_v1')`);
   } else {
     console.log("  ⏭ Host Hub Team Management manual already seeded.");
@@ -2893,12 +2866,10 @@ async function main() {
   `).catch(() => []);
 
   if (hostScheduleManualFlag.length === 0) {
-    await seedManualHostSchedule(db);
     // Push down the section that previously occupied this slot to make room.
     // (The support-inbox row that used to sit at order 8 was deleted in
     //  session 110's residue cleanup.) updateMany is a no-op when the row
     // is already at the target order.
-    await db.manualSection.updateMany({ where: { slug: "volunteer-roles" },  data: { order: 9 } });
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_host_schedule_v1')`);
   } else {
     console.log("  ⏭ Host Schedule manual already seeded.");
@@ -2950,7 +2921,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostHubFlag.length === 0) {
-    await updateManualHostHub(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_v3')`);
   } else {
     console.log("  ⏭ Manual host-hub already updated.");
@@ -2965,7 +2935,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualTeamMgmtFlag.length === 0) {
-    await updateManualHostHubTeamManagement(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_team_management_v1')`);
   } else {
     console.log("  ⏭ Manual host-hub-team-management already updated.");
@@ -2979,7 +2948,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostScheduleFlag.length === 0) {
-    await updateManualHostSchedule(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v2')`);
   } else {
     console.log("  ⏭ Manual host-schedule already updated.");
@@ -2996,7 +2964,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostRotationsFlag.length === 0) {
-    await updateManualHostRotations(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v2')`);
   } else {
     console.log("  ⏭ Manual host-rotations already updated.");
@@ -3011,7 +2978,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostRotationsV3Flag.length === 0) {
-    await updateManualHostRotationsV3(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v3')`);
   } else {
     console.log("  ⏭ Manual host-rotations v3 already applied.");
@@ -3026,7 +2992,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostRotationsV4Flag.length === 0) {
-    await updateManualHostRotationsV4(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v4')`);
   } else {
     console.log("  ⏭ Manual host-rotations v4 already applied.");
@@ -3049,7 +3014,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostRotationsV5Flag.length === 0) {
-    await updateManualHostRotationsV5(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v5')`);
   } else {
     console.log("  ⏭ Manual host-rotations v5 already applied.");
@@ -3069,7 +3033,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostScheduleV6Flag.length === 0) {
-    await updateManualHostScheduleV6(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v6')`);
   } else {
     console.log("  ⏭ Manual host-schedule v6 already applied.");
@@ -3088,7 +3051,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostSessionRoomFlag.length === 0) {
-    await updateManualHostSessionRoom(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v2')`);
   } else {
     console.log("  ⏭ Manual host-session-room already updated.");
@@ -3104,7 +3066,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostSessionRoomV3Flag.length === 0) {
-    await updateManualHostSessionRoom(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v3')`);
   } else {
     console.log("  ⏭ Manual host-session-room v3 already applied.");
@@ -3120,7 +3081,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostSessionRoomV4Flag.length === 0) {
-    await updateManualHostSessionRoom(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v4')`);
   } else {
     console.log("  ⏭ Manual host-session-room v4 already applied.");
@@ -3136,7 +3096,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualHostSessionRoomV5Flag.length === 0) {
-    await updateManualHostSessionRoom(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v5')`);
   } else {
     console.log("  ⏭ Manual host-session-room v5 already applied.");
@@ -3151,7 +3110,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualConversationsFlag.length === 0) {
-    await updateManualConversations(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v2')`);
   } else {
     console.log("  ⏭ Manual conversations already updated.");
@@ -3166,7 +3124,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualConversationsV3Flag.length === 0) {
-    await updateManualConversationsV2(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v3')`);
   } else {
     console.log("  ⏭ Manual conversations (v3 subscriptions + trash) already updated.");
@@ -3179,7 +3136,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualConversationsV4Flag.length === 0) {
-    await updateManualConversationsV3(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v4')`);
     console.log("  ✔ Manual conversations (v4 document conversations + Activity) updated.");
   } else {
@@ -3202,9 +3158,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateOlderManualFlag.length === 0) {
-    await updateManualCourseHub(db);
-    await updateManualRegistration(db);
-    await updateManualPrograms(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_older_manual_chapters_v1')`);
   } else {
     console.log("  ⏭ Older manual chapters already updated.");
@@ -3220,7 +3173,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateProgramsRewriteFlag.length === 0) {
-    await updateManualProgramsRewrite(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_programs_rewrite_v1')`);
   } else {
     console.log("  ⏭ Manual programs rewrite already applied.");
@@ -3238,7 +3190,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateRegistrationRewriteFlag.length === 0) {
-    await updateManualRegistrationRewrite(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_registration_rewrite_v1')`);
   } else {
     console.log("  ⏭ Manual registration rewrite already applied.");
@@ -3253,7 +3204,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateRegistrationDanaV2Flag.length === 0) {
-    await updateManualRegistrationDanaV2(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_registration_dana_v2')`);
   } else {
     console.log("  ⏭ Manual registration dana-flow v2 already applied.");
@@ -3281,7 +3231,6 @@ async function main() {
   `).catch(() => []);
 
   if (seedHostFirstWeekFlag.length === 0) {
-    await seedManualHostFirstWeek(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_host_first_week_v1')`);
   } else {
     console.log("  ⏭ Manual host-first-week chapter already seeded.");
@@ -3296,7 +3245,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateHostScheduleV3Flag.length === 0) {
-    await updateManualHostSchedule(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v3')`);
   } else {
     console.log("  ⏭ Manual host-schedule v3 already applied.");
@@ -3310,7 +3258,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateHostScheduleV4Flag.length === 0) {
-    await updateManualHostSchedule(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v4')`);
   } else {
     console.log("  ⏭ Manual host-schedule v4 already applied.");
@@ -3388,7 +3335,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateHostScheduleV5Flag.length === 0) {
-    await updateManualHostScheduleV4(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v5')`);
   } else {
     console.log("  ⏭ Manual host-schedule v5 already applied.");
@@ -3419,7 +3365,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualTeamMgmtV2Flag.length === 0) {
-    await updateManualHostHubTeamManagement(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_team_management_v2')`);
   } else {
     console.log("  ⏭ Manual host-hub-team-management v2 already applied.");
@@ -3436,7 +3381,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateManualCourseHubV2Flag.length === 0) {
-    await updateManualCourseHubV2(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_course_hub_v2')`);
   } else {
     console.log("  ⏭ Manual course-hub v2 already applied.");
@@ -3451,7 +3395,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateHostSessionRoomV6Flag.length === 0) {
-    await updateManualHostSessionRoom(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v6')`);
   } else {
     console.log("  ⏭ Manual host-session-room v6 already applied.");
@@ -3470,7 +3413,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateHostSessionRoomV7Flag.length === 0) {
-    await updateManualHostSessionRoom(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v7')`);
   } else {
     console.log("  ⏭ Manual host-session-room v7 already applied.");
@@ -3488,7 +3430,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateHostSessionRoomV8Flag.length === 0) {
-    await updateManualHostSessionRoom(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v8')`);
   } else {
     console.log("  ⏭ Manual host-session-room v8 already applied.");
@@ -3504,7 +3445,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateHostSessionRoomV9Flag.length === 0) {
-    await updateManualHostSessionRoom(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v9')`);
   } else {
     console.log("  ⏭ Manual host-session-room v9 already applied.");
@@ -3522,7 +3462,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateHostSessionRoomV10Flag.length === 0) {
-    await updateManualHostSessionRoom(db);
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v10')`);
   } else {
     console.log("  ⏭ Manual host-session-room v10 already applied.");
@@ -3701,7 +3640,6 @@ async function main() {
   `).catch(() => []);
 
   if (seedPeerLedSilentMeditationFlag.length === 0) {
-    await seedManualPeerLedSilentMeditation(db);
     await db.$executeRawUnsafe(
       `INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_peer_led_silent_meditation_v1')`,
     );

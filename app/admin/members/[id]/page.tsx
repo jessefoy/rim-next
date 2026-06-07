@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import MemberDetail from "@/components/MemberDetail";
-import ManualHelpIcon from "@/components/ManualHelpIcon";
 import { type ViewerPermissions } from "@/lib/memberSectionRegistry";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
@@ -176,7 +175,6 @@ export default async function AdminMemberDetailPage({
   return (
     <div className="adm2-page">
       <div className="adm2-content" style={{ position: "relative" }}>
-        <ManualHelpIcon manualSlug="member-accounts" />
         <MemberDetail member={serialized} viewerPermissions={viewerPermissions} />
       </div>
     </div>

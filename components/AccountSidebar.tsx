@@ -22,7 +22,6 @@ import {
   House,
   Layers,
   Mail,
-  FileText,
   Globe,
   PanelLeftClose,
   PanelLeftOpen,
@@ -62,7 +61,6 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
   { label: "Households", href: "/admin/households", icon: House,    registrarOk: true },
   { label: "Hubs",       href: "/admin/hubs",       icon: Layers,   adminOnly: true   },
   { label: "Emails",     href: "/admin/emails",     icon: Mail,     adminOnly: true   },
-  { label: "Manual",     href: "/admin/manual",     icon: FileText, adminOnly: true   },
 ];
 
 const STORAGE_KEY = "ac-sidebar-collapsed";

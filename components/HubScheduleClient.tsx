@@ -1289,21 +1289,6 @@ export default function HubScheduleClient({
           </button>
         )}
 
-        {/* Help — opens the manual chapter in a new tab. Sits at the end of
-            the filter row so it's discoverable without competing for visual
-            weight. The system's standard ManualHelpIcon ("?") convention.
-            The `from` query carries the active hub so the manual chapter's
-            back-link returns the user to their own hub workspace. */}
-        <a
-          href={`/admin/manual/host-schedule?from=${encodeURIComponent(hubSlug ?? DEFAULT_HOSTING_HUB_SLUG)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hs-help-icon"
-          title="How the schedule works"
-          aria-label="How the schedule works (opens in a new tab)"
-        >
-          ?
-        </a>
       </div>
       <p className="hs-print-bar">
         <a

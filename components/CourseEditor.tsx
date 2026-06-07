@@ -28,7 +28,6 @@ const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
   { ssr: false, loading: () => <div style={{ minHeight: 100 }} /> },
 );
-import ManualHelpIcon from "@/components/ManualHelpIcon";
 import SlugField from "@/components/SlugField";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -519,7 +518,6 @@ export default function CourseEditor({
       {/* ── Header ── */}
       <div className="pe-editor__header">
         <h2 className="pe-editor__title">{isEditing ? "Edit Course" : "New Course"}</h2>
-        <ManualHelpIcon manualSlug="course-hub" />
         {isEditing && slug && (
           <a
             href={`/course/${slug}`}

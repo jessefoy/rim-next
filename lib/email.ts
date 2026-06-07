@@ -608,7 +608,6 @@ export async function sendRoleAssignmentEmail(data: RoleAssignmentEmailData): Pr
   await sendTemplatedEmail("registrar-role-assigned", data.to, {
     firstName:    data.firstName,
     dashboardUrl: `${BASE_URL}/volunteer`,
-    manualUrl:    `${BASE_URL}/admin/manual`,
   });
 }
 
@@ -624,7 +623,6 @@ export async function sendHostRoleAssignmentEmail(data: RoleAssignmentEmailData)
   await sendTemplatedEmail("host-role-assigned", data.to, {
     firstName:   data.firstName ?? "there",
     hostAreaUrl: `${BASE_URL}/account/hub/host-team`,
-    manualUrl:   `${BASE_URL}/admin/manual`,
   });
 }
 
@@ -646,7 +644,6 @@ export async function sendHostManagerRoleAssignmentEmail(
   const firstName = data.firstName ?? "there";
   const hostHubUrl  = `${BASE_URL}/account/hub/host-team`;
   const scheduleUrl = `${BASE_URL}/tools/schedule`;
-  const manualUrl   = `${BASE_URL}/admin/manual/host-hub-team-management`;
 
   const markdown = `Hi ${firstName},
 
@@ -662,11 +659,8 @@ The coordinator is the team's main point of contact — not Jesse. You train new
 
 **The Host Schedule** — where you manage coverage. You can view any host's assignments (not just your own), create and manage standing rotations, and reassign sessions when someone is unavailable.
 
-**The Staff Manual** — the manual has chapters on the host role and the schedule tool, and as the coordinator you'll want to read them both. More chapters specifically for coordinator work are coming soon.
-
 [Open the Host Hub](${hostHubUrl})
-[View the Host Schedule](${scheduleUrl})
-[Read the Manual](${manualUrl})`;
+[View the Host Schedule](${scheduleUrl})`;
 
   const { marked } = await import("marked");
   const juice = (await import("juice")).default;

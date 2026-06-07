@@ -39,12 +39,6 @@ interface Props {
   welcomeHtml: string;
   welcomeBody: string;
   thisMonth: ThisMonthGlance;
-  /** Slug of this hub's orientation manual chapter. For host-team this is
-   *  "host-hub" (legacy chapter name); for every other hosting hub it
-   *  matches the hub's own slug (peer-led-silent-meditation, etc).
-   *  Resolved server-side in the parent page so this component doesn't
-   *  need to know the mapping. */
-  manualSlug: string;
 }
 
 export default function HostHubHomeClient({
@@ -54,29 +48,14 @@ export default function HostHubHomeClient({
   welcomeHtml,
   welcomeBody,
   thisMonth,
-  manualSlug,
 }: Props) {
   const [editingWelcome, setEditingWelcome] = useState(false);
 
   return (
     <div className="hub-home">
-      <header className="hub-home__header" style={{ position: "relative" }}>
+      <header className="hub-home__header">
         <div className="hub-home__greeting">Welcome</div>
         <h2 className="hub-home__state">{hubName}</h2>
-        {/* Quiet "?" link to the orientation chapter for this hub. Same pattern
-            as the schedule tool's hs-help-icon — discoverable without competing
-            for visual weight. */}
-        <a
-          href={`/admin/manual/${manualSlug}?from=${encodeURIComponent(slug)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mh-icon"
-          title={`About ${hubName}`}
-          aria-label={`About ${hubName} (opens in a new tab)`}
-          style={{ position: "absolute", top: 0, right: 0 }}
-        >
-          ?
-        </a>
       </header>
 
       <section className="hub-home__section">

@@ -28,20 +28,17 @@ export default async function HubLayout({ children, params }: Props) {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const [hub, manualCount] = await Promise.all([
-    db.hub.findUnique({
-      where: { slug },
-      include: {
-        members: {
-          include: {
-            user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
-          },
+  const hub = await db.hub.findUnique({
+    where: { slug },
+    include: {
+      members: {
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
         },
-        appLinks: { where: { isEnabled: true }, orderBy: { order: "asc" } },
       },
-    }),
-    db.manualSection.count({ where: { hubSlug: slug } }),
-  ]);
+      appLinks: { where: { isEnabled: true }, orderBy: { order: "asc" } },
+    },
+  });
 
   if (!hub) notFound();
 
@@ -108,7 +105,6 @@ export default async function HubLayout({ children, params }: Props) {
         navCounts={{
           conversations: ctx.conversationsUnread,
         }}
-        hasManual={manualCount > 0}
         isCoordinator={isCoordinator}
         isAdmin={isAdmin}
         canManageTrash={canTrash}

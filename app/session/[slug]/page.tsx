@@ -354,18 +354,6 @@ export default function SessionPage() {
           >
             {isFullscreen ? "⤡" : "⛶"}
           </button>
-          {isHostTeam && (
-            <a
-              href="/admin/manual/host-session-room?from=host-team"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="vs-header__icon"
-              title="How the session room works"
-              aria-label="How the session room works (opens in a new tab)"
-            >
-              ?
-            </a>
-          )}
         </div>
       </div>
       <div className="vs-room">
