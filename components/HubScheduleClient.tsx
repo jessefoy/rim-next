@@ -1290,18 +1290,6 @@ export default function HubScheduleClient({
         )}
 
       </div>
-      <p className="hs-print-bar">
-        <a
-          href={
-            hubSlug && hubSlug !== DEFAULT_HOSTING_HUB_SLUG
-              ? `/tools/schedule/print?hub=${encodeURIComponent(hubSlug)}`
-              : "/tools/schedule/print"
-          }
-          className="hs-print-link"
-        >
-          Print my schedule
-        </a>
-      </p>
 
       {/* Body */}
       {loading ? (
