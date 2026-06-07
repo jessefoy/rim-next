@@ -25,8 +25,6 @@ const courseDetailInclude = Prisma.validator<Prisma.CourseInclude>()({
           titleDisplayed: true,
           audioUrl: true,
           videoUrl: true,
-          questionsRequired: true,
-          _count: { select: { questions: true } },
           teachers: {
             select: {
               user: {
@@ -551,9 +549,6 @@ async function renderEnrolledView({
               const isComplete = completedIds.has(cl.lessonId);
               const globalIdx = allLessonItems.findIndex((a) => a.lessonId === cl.lessonId);
 
-              const hasRequiredQuestions =
-                cl.lesson.questionsRequired && cl.lesson._count.questions > 0;
-
               return (
                 <div key={cl.lessonId}>
                   {sectionLabel && (
@@ -567,13 +562,6 @@ async function renderEnrolledView({
                       {isComplete ? <CheckIcon /> : globalIdx + 1}
                     </span>
                     <span className="crs-toc__title">{cl.lesson.titleDisplayed}</span>
-                    <span className="crs-toc__badges">
-                      {hasRequiredQuestions && (
-                        <span className="ls-q-indicator" title={`Includes ${cl.lesson._count.questions} reflection question${cl.lesson._count.questions !== 1 ? "s" : ""} — required to complete`}>
-                          {cl.lesson._count.questions}Q
-                        </span>
-                      )}
-                    </span>
                     <span className={`crs-toc__icon-wrap crs-toc__icon-wrap--${mediaType}`} aria-label={mediaType}>
                       {hasAudio ? <AudioIcon /> : hasVideo ? <VideoIcon /> : <TextIcon />}
                     </span>

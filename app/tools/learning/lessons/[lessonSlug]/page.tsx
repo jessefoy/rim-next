@@ -30,35 +30,20 @@ export default async function EditLessonPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const [lesson, initialQuestions] = await Promise.all([
-    db.lesson.findUnique({
-      where: { slug: lessonSlug },
-      include: {
-        teachers: {
-          include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
-          orderBy: { order: "asc" },
-        },
-        courses: {
-          include: {
-            course: { select: { title: true } },
-          },
+  const lesson = await db.lesson.findUnique({
+    where: { slug: lessonSlug },
+    include: {
+      teachers: {
+        include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
+        orderBy: { order: "asc" },
+      },
+      courses: {
+        include: {
+          course: { select: { title: true } },
         },
       },
-    }),
-    db.reflectionQuestion.findMany({
-      where: { lesson: { slug: lessonSlug } },
-      orderBy: { sortOrder: "asc" },
-      select: {
-        id: true,
-        body: true,
-        sortOrder: true,
-        options: {
-          orderBy: { sortOrder: "asc" },
-          select: { id: true, text: true, isCorrect: true, sortOrder: true },
-        },
-      },
-    }),
-  ]);
+    },
+  });
   if (!lesson) notFound();
 
   const legacyBodyHtml = lesson.body && !Array.isArray(lesson.body)
@@ -85,8 +70,6 @@ export default async function EditLessonPage({
     })),
     durationMinutes: lesson.durationMinutes ?? null,
     reflectionPrompt: lesson.reflectionPrompt ?? null,
-    questionsRequired: lesson.questionsRequired,
-    initialQuestions: initialQuestions.map((q) => ({ ...q, body: q.body ?? null })),
   };
 
   return (

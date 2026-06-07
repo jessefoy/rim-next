@@ -90,7 +90,6 @@ model User {
   lessonProgress      LessonProgress[]
   seriesEnrollments   SeriesEnrollment[]
   lessonNotes         LessonNote[]
-  reflectionResponses ReflectionResponse[]
   isTeacher           Boolean        @default(false)
   teacherProfile      TeacherProfile?
   lessonTeachers      LessonTeacher[]
@@ -532,13 +531,11 @@ model Lesson {
   // Learning system
   durationMinutes   Int?     // estimated reading/listening time shown on lesson cards
   reflectionPrompt  String?  // optional invitation shown at the bottom of the lesson
-  questionsRequired Boolean  @default(false) // if true, all questions must be correct before Complete button activates
 
   courses   CourseLesson[]
   teachers  LessonTeacher[]
   progress  LessonProgress[]
   notes     LessonNote[]
-  questions ReflectionQuestion[]
 
   @@index([slug])
   @@map("lessons")
@@ -661,54 +658,6 @@ model LessonNote {
 
   @@unique([userId, lessonId])
   @@map("lesson_notes")
-}
-
-
-// Multiple-choice reflection questions attached to a lesson.
-// Teachers write questions + options; one option is marked correct.
-model ReflectionQuestion {
-  id       String @id @default(cuid())
-  lessonId String
-  body     Json?  // BlockNote JSON (RimProseEditor)
-  sortOrder Int    @default(0)
-
-  lesson  Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  options ReflectionOption[]
-
-  @@index([lessonId])
-  @@map("reflection_questions")
-}
-
-// Answer options for a ReflectionQuestion.
-model ReflectionOption {
-  id         String  @id @default(cuid())
-  questionId String
-  text       String  @db.Text
-  isCorrect  Boolean @default(false)
-  sortOrder  Int     @default(0)
-
-  question  ReflectionQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  responses ReflectionResponse[]
-
-  @@index([questionId])
-  @@map("reflection_options")
-}
-
-// A member's selected answer for a specific question.
-// Upserted on every submit; retakes overwrite the previous answer.
-model ReflectionResponse {
-  id         String   @id @default(cuid())
-  userId     String
-  questionId String
-  optionId   String
-  answeredAt DateTime @default(now()) @updatedAt
-
-  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  option   ReflectionOption   @relation(fields: [optionId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, questionId])
-  @@index([userId])
-  @@map("reflection_responses")
 }
 
 // ─── DONATION MANAGEMENT (Phase 2) ───────────────────────────────────────────

@@ -3,14 +3,11 @@
 /**
  * LessonFooterClient — client-side wrapper for the enrolled-member lesson footer.
  *
- * Holds allCorrect state so ReflectionQuestionsClient can unlock MarkCompleteButton
- * when questionsRequired = true.
+ * Renders the reflection prompt, personal notes, and the Mark Complete button.
  *
  * CSS prefix: ls-
  */
 
-import { useState } from "react";
-import ReflectionQuestionsClient, { QuestionWithResponse } from "@/components/ReflectionQuestionsClient";
 import LessonNoteEditor from "@/components/LessonNoteEditor";
 import MarkCompleteButton from "@/components/MarkCompleteButton";
 
@@ -21,9 +18,6 @@ interface Props {
   initialNoteBody: object | null;
   initialCompleted: boolean;
   courseCompletionNote?: string | null;
-  questionsRequired: boolean;
-  initialQuestions: QuestionWithResponse[];
-  initialAllCorrect: boolean;
 }
 
 export default function LessonFooterClient({
@@ -33,15 +27,7 @@ export default function LessonFooterClient({
   initialNoteBody,
   initialCompleted,
   courseCompletionNote,
-  questionsRequired,
-  initialQuestions,
-  initialAllCorrect,
 }: Props) {
-  const [allCorrect, setAllCorrect] = useState(initialAllCorrect);
-
-  // If questionsRequired and not all correct, Complete button is locked
-  const completeLocked = questionsRequired && !allCorrect;
-
   return (
     <div className="ls-lesson-footer">
       {/* 1. Reflection prompt */}
@@ -55,25 +41,12 @@ export default function LessonFooterClient({
         initialBody={initialNoteBody}
       />
 
-      {/* 3. Reflection questions — sits immediately above Complete button since it gates it */}
-      {initialQuestions.length > 0 && (
-        <ReflectionQuestionsClient
-          lessonSlug={lessonSlug}
-          questionsRequired={questionsRequired}
-          initialQuestions={initialQuestions}
-          initialAllCorrect={initialAllCorrect}
-          onAllCorrect={() => setAllCorrect(true)}
-          onRetake={() => setAllCorrect(false)}
-        />
-      )}
-
-      {/* 4. Mark complete — locked if questionsRequired and not all correct */}
+      {/* 3. Mark complete */}
       <MarkCompleteButton
         lessonSlug={lessonSlug}
         courseSlug={courseSlug}
         initialCompleted={initialCompleted}
         courseCompletionNote={courseCompletionNote}
-        locked={completeLocked}
       />
     </div>
   );

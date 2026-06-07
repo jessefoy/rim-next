@@ -11,8 +11,6 @@ import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import dynamic from "next/dynamic";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
-// Reflection-question editor — short body text. Uses the same dynamic
-// RimTiptapEditor as the lesson body, but with variant=minimal.
 
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -24,20 +22,6 @@ interface Resource {
   name: string;
   url: string;
   resourceType: string;
-}
-
-interface QuestionOption {
-  id?: string;
-  text: string;
-  isCorrect: boolean;
-  sortOrder: number;
-}
-
-interface ReflectionQuestion {
-  id?: string;
-  body: any; // HTML string going forward; legacy rows may still be BlockNote JSON
-  sortOrder: number;
-  options: QuestionOption[];
 }
 
 interface TeacherItem {
@@ -62,8 +46,6 @@ interface LessonData {
   teachers?: { id: string; name: string }[];
   durationMinutes?: number | null;
   reflectionPrompt?: string | null;
-  questionsRequired?: boolean;
-  initialQuestions?: ReflectionQuestion[];
 }
 
 interface Props {
@@ -126,8 +108,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
     initialData?.durationMinutes != null ? String(initialData.durationMinutes) : ""
   );
   const [reflectionPrompt, setReflectionPrompt] = useState(initialData?.reflectionPrompt ?? "");
-  const [questionsRequired, setQuestionsRequired] = useState(initialData?.questionsRequired ?? false);
-  const [questions, setQuestions] = useState<ReflectionQuestion[]>(initialData?.initialQuestions ?? []);
 
   // Resources
   const [resources, setResources] = useState<Resource[]>(initialData?.resources ?? []);
@@ -259,86 +239,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
     setSelectedTeachers((prev) => prev.filter((t) => t.id !== id));
   }
 
-  // ── Reflection Questions helpers ──
-  function addQuestion() {
-    setQuestions((prev) => [
-      ...prev,
-      {
-        body: null,
-        sortOrder: prev.length,
-        options: [
-          { text: "", isCorrect: true, sortOrder: 0 },
-          { text: "", isCorrect: false, sortOrder: 1 },
-        ],
-      },
-    ]);
-  }
-
-  function removeQuestion(idx: number) {
-    setQuestions((prev) => prev.filter((_, i) => i !== idx).map((q, i) => ({ ...q, sortOrder: i })));
-  }
-
-  function updateQuestionBody(idx: number, body: string) {
-    setQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, body } : q)));
-  }
-
-  function questionBodyForEditor(value: unknown): string {
-    if (isHtmlString(value)) return value;
-    return renderBlockNoteHtml(value) || "";
-  }
-
-  function moveQuestion(idx: number, dir: -1 | 1) {
-    const next = idx + dir;
-    if (next < 0 || next >= questions.length) return;
-    setQuestions((prev) => {
-      const arr = [...prev];
-      [arr[idx], arr[next]] = [arr[next], arr[idx]];
-      return arr.map((q, i) => ({ ...q, sortOrder: i }));
-    });
-  }
-
-  function addOption(qIdx: number) {
-    setQuestions((prev) =>
-      prev.map((q, i) =>
-        i === qIdx
-          ? { ...q, options: [...q.options, { text: "", isCorrect: false, sortOrder: q.options.length }] }
-          : q
-      )
-    );
-  }
-
-  function removeOption(qIdx: number, oIdx: number) {
-    setQuestions((prev) =>
-      prev.map((q, i) => {
-        if (i !== qIdx) return q;
-        const opts = q.options.filter((_, j) => j !== oIdx).map((o, j) => ({ ...o, sortOrder: j }));
-        // If the removed option was correct, mark first option correct
-        const hasCorrect = opts.some((o) => o.isCorrect);
-        return { ...q, options: hasCorrect ? opts : opts.map((o, j) => j === 0 ? { ...o, isCorrect: true } : o) };
-      })
-    );
-  }
-
-  function updateOptionText(qIdx: number, oIdx: number, text: string) {
-    setQuestions((prev) =>
-      prev.map((q, i) =>
-        i === qIdx
-          ? { ...q, options: q.options.map((o, j) => (j === oIdx ? { ...o, text } : o)) }
-          : q
-      )
-    );
-  }
-
-  function setCorrectOption(qIdx: number, oIdx: number) {
-    setQuestions((prev) =>
-      prev.map((q, i) =>
-        i === qIdx
-          ? { ...q, options: q.options.map((o, j) => ({ ...o, isCorrect: j === oIdx })) }
-          : q
-      )
-    );
-  }
-
   function addResource() {
     setResources((prev) => [...prev, { name: "", url: "", resourceType: "Link" }]);
   }
@@ -377,7 +277,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
         teacherIds: selectedTeachers.map((t) => t.id),
         durationMinutes: durationMinutes !== "" ? (parseInt(durationMinutes) || null) : null,
         reflectionPrompt: reflectionPrompt.trim() || null,
-        questionsRequired,
       };
 
       const lessonUrl = isEditing ? `/api/lessons/${initialData?.slug}` : "/api/lessons";
@@ -397,33 +296,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
 
       const savedLesson = await res.json();
       const lessonSlug = isEditing ? initialData!.slug : savedLesson.slug;
-
-      // Save questions in parallel (only if editing or just created)
-      if (lessonSlug) {
-        const validQuestions = questions.filter((q) => q.body != null);
-        const questionsRes = await fetch(`/api/lessons/${lessonSlug}/questions`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            questions: validQuestions.map((q, qi) => ({
-              body: q.body,
-              sortOrder: qi,
-              options: q.options
-                .filter((o) => o.text.trim())
-                .map((o, oi) => ({
-                  text: o.text.trim(),
-                  isCorrect: o.isCorrect,
-                  sortOrder: oi,
-                })),
-            })),
-          }),
-        });
-        if (!questionsRes.ok) {
-          const d = await questionsRes.json();
-          setError(d.error || "Failed to save questions");
-          return;
-        }
-      }
 
       if (isEditing) {
         setSuccess(true);
@@ -525,86 +397,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
             />
           </label>
         </div>
-      </div>
-
-      {/* ── Section: Reflection Questions ── */}
-      <div className="th-section">
-        <h3 className="th-section__title">Reflection Questions</h3>
-        <p className="th-section__help">
-          Multiple-choice questions members answer at their own pace. One option per question must be marked correct.
-          Member responses are private.
-        </p>
-
-        <div className="th-form" style={{ marginBottom: 16 }}>
-          <label className="th-checkbox">
-            <input
-              type="checkbox"
-              checked={questionsRequired}
-              onChange={(e) => setQuestionsRequired(e.target.checked)}
-            />
-            <span>
-              <strong>Required mode</strong> — Complete button is locked until all questions are answered correctly.
-              (When unchecked: questions are gentle/optional; member can complete the lesson at any time.)
-            </span>
-          </label>
-        </div>
-
-        {questions.map((q, qi) => (
-          <div key={qi} className="th-question-block">
-            <div className="th-question-block__header">
-              <span className="th-question-block__num">Q{qi + 1}</span>
-              <div className="th-question-block__reorder">
-                <button type="button" className="th-btn--icon" onClick={() => moveQuestion(qi, -1)} disabled={qi === 0} aria-label="Move up">↑</button>
-                <button type="button" className="th-btn--icon" onClick={() => moveQuestion(qi, 1)} disabled={qi === questions.length - 1} aria-label="Move down">↓</button>
-              </div>
-              <button type="button" className="th-btn th-btn--danger th-btn--small" onClick={() => removeQuestion(qi)}>
-                Remove
-              </button>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <RimTiptapEditor
-                key={qi}
-                value={questionBodyForEditor(q.body)}
-                onChange={(body) => updateQuestionBody(qi, body)}
-                placeholder="Question text…"
-                variant="minimal"
-              />
-            </div>
-            <div className="th-question-block__options">
-              <p className="th-field__label" style={{ marginBottom: 8 }}>Options — select the correct answer</p>
-              {q.options.map((opt, oi) => (
-                <div key={oi} className="th-option-row">
-                  <input
-                    type="radio"
-                    name={`correct-${qi}`}
-                    checked={opt.isCorrect}
-                    onChange={() => setCorrectOption(qi, oi)}
-                    title="Mark as correct"
-                  />
-                  <input
-                    type="text"
-                    value={opt.text}
-                    onChange={(e) => updateOptionText(qi, oi, e.target.value)}
-                    className="th-input th-option-input"
-                    placeholder={`Option ${oi + 1}`}
-                  />
-                  {q.options.length > 2 && (
-                    <button type="button" className="th-btn--icon th-btn--icon-danger" onClick={() => removeOption(qi, oi)} aria-label="Remove option">×</button>
-                  )}
-                </div>
-              ))}
-              {q.options.length < 6 && (
-                <button type="button" className="th-btn th-btn--ghost th-btn--small" onClick={() => addOption(qi)} style={{ marginTop: 4 }}>
-                  + Add option
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-
-        <button type="button" className="th-btn th-btn--small" onClick={addQuestion} style={{ marginTop: 8 }}>
-          + Add Question
-        </button>
       </div>
 
       {/* ── Section: Media ── */}

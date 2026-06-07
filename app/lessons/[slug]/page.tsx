@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { renderContentBodyAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
+import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import AudioPlayer from "@/components/AudioPlayer";
 import LessonFooterClient from "@/components/LessonFooterClient";
 import { hasCourseAccess } from "@/lib/courseAccess";
@@ -171,8 +171,8 @@ export default async function LessonPage({
 
   const bodyHtml = await renderContentBodyAsync(lesson.body);
 
-  // ── Progress, enrollment, notes & questions ────────────────────────────────
-  const [progressRecord, enrollment, lessonNote, rawQuestions] = await Promise.all([
+  // ── Progress, enrollment & notes ───────────────────────────────────────────
+  const [progressRecord, enrollment, lessonNote] = await Promise.all([
     db.lessonProgress.findUnique({
       where: { userId_lessonId: { userId, lessonId: lesson.id } },
       select: { completedAt: true },
@@ -189,69 +189,9 @@ export default async function LessonPage({
           select: { body: true },
         })
       : Promise.resolve(null),
-    // Fetch questions for enrolled members OR staff (staff can preview without enrolling)
-    (courseContext || isStaff)
-      ? db.reflectionQuestion.findMany({
-          where: { lessonId: lesson.id },
-          orderBy: { sortOrder: "asc" },
-          select: {
-            id: true,
-            body: true,
-            sortOrder: true,
-            options: {
-              orderBy: { sortOrder: "asc" },
-              // omit isCorrect — members should not see the answer in page source
-              select: { id: true, text: true, sortOrder: true },
-            },
-          },
-        })
-      : Promise.resolve([]),
   ]);
   const isComplete = !!progressRecord;
   const isEnrolled = !!enrollment;
-
-  // Fetch existing responses and compute allCorrect for enrolled members
-  let initialAllCorrect = false;
-  let questionsWithResponses: {
-    id: string; body: unknown; bodyHtml: string; sortOrder: number;
-    options: { id: string; text: string; sortOrder: number }[];
-    responseOptionId: string | null;
-  }[] = [];
-
-  if ((isEnrolled || isStaff) && rawQuestions.length > 0) {
-    const questionIds = rawQuestions.map((q) => q.id);
-    const [responses, correctOptions] = await Promise.all([
-      db.reflectionResponse.findMany({
-        where: { userId, questionId: { in: questionIds } },
-        select: { questionId: true, optionId: true },
-      }),
-      // Fetch correct option IDs to compute allCorrect server-side
-      db.reflectionOption.findMany({
-        where: { questionId: { in: questionIds }, isCorrect: true },
-        select: { id: true, questionId: true },
-      }),
-    ]);
-
-    const responseMap = new Map(responses.map((r) => [r.questionId, r.optionId]));
-    const correctMap = new Map(correctOptions.map((o) => [o.questionId, o.id]));
-
-    questionsWithResponses = await Promise.all(
-      rawQuestions.map(async (q) => ({
-        ...q,
-        bodyHtml: await renderFormattedTextAsync(q.body),
-        responseOptionId: responseMap.get(q.id) ?? null,
-      }))
-    );
-
-    // All correct = every question has a response that matches its correct option
-    initialAllCorrect =
-      rawQuestions.length > 0 &&
-      rawQuestions.every((q) => {
-        const responded = responseMap.get(q.id);
-        const correct = correctMap.get(q.id);
-        return responded != null && correct != null && responded === correct;
-      });
-  }
 
   // Helper: build lesson URL preserving course context
   const lessonUrl = (s: string) =>
@@ -381,9 +321,6 @@ export default async function LessonPage({
             initialNoteBody={(lessonNote?.body ?? null) as object | null}
             initialCompleted={isComplete}
             courseCompletionNote={courseContext?.course.completionNote ?? null}
-            questionsRequired={lesson.questionsRequired}
-            initialQuestions={questionsWithResponses}
-            initialAllCorrect={initialAllCorrect}
           />
         )}
 

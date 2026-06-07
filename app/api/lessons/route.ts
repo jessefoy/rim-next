@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   const {
     titleInternal, titleDisplayed, slug, accessLevel,
     body: lessonBody, heroImageUrl, heroImageAlt, audioUrl, videoUrl,
-    headerQuote, quoteSource, resources, durationMinutes, reflectionPrompt, questionsRequired,
+    headerQuote, quoteSource, resources, durationMinutes, reflectionPrompt,
   } = body;
 
   if (!titleInternal || !titleDisplayed || !slug) {
@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
       resources: resources ?? null,
       durationMinutes: durationMinutes != null ? Number(durationMinutes) : null,
       reflectionPrompt: reflectionPrompt || null,
-      questionsRequired: Boolean(questionsRequired),
     },
   });
 

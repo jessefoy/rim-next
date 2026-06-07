@@ -72,7 +72,6 @@ export async function PATCH(
   if (body.videoUrl !== undefined) updateData.videoUrl = body.videoUrl || null;
   if (body.durationMinutes !== undefined) updateData.durationMinutes = body.durationMinutes != null ? Number(body.durationMinutes) : null;
   if (body.reflectionPrompt !== undefined) updateData.reflectionPrompt = body.reflectionPrompt || null;
-  if (body.questionsRequired !== undefined) updateData.questionsRequired = Boolean(body.questionsRequired);
 
   // Clean up removed blob images from body
   if (body.body !== undefined) {
