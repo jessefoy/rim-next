@@ -14,7 +14,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Pin, Pencil, MoreHorizontal, SmilePlus, Bell, BellOff } from "lucide-react";
+import { ArrowLeft, Pin, Pencil, MoreHorizontal, SmilePlus, Bell, BellOff, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -197,6 +197,9 @@ export default function HubConvThreadClient({
 
   // Reaction picker popover per-reply
   const [reactionOpenFor, setReactionOpenFor] = useState<string | null>(null);
+  // Which reply's "who reacted" list is expanded — a tap-to-reveal that works
+  // on mobile where the hover tooltip doesn't. One open at a time.
+  const [whoOpenFor, setWhoOpenFor] = useState<string | null>(null);
 
   const isClosed = thread.status !== "OPEN";
   const canEditOp = thread.authorId === currentUserId || isCoordinator;
@@ -667,6 +670,14 @@ export default function HubConvThreadClient({
                                 </button>
                               );
                             })}
+                            <button
+                              className="hub-conv-reaction-who"
+                              onClick={() => setWhoOpenFor(whoOpenFor === r.id ? null : r.id)}
+                              aria-expanded={whoOpenFor === r.id}
+                              aria-label={whoOpenFor === r.id ? "Hide who reacted" : "Show who reacted"}
+                            >
+                              <Users size={13} />
+                            </button>
                           </div>
                         )}
                         <div className="hub-conv-post__react-wrap">
@@ -693,6 +704,16 @@ export default function HubConvThreadClient({
                             </div>
                           )}
                         </div>
+                        {whoOpenFor === r.id && reactions.length > 0 && (
+                          <div className="hub-conv-reactors">
+                            {reactions.map(([emoji, users]) => (
+                              <div key={emoji} className="hub-conv-reactors__row">
+                                <span className="hub-conv-reactors__emoji" aria-hidden="true">{emoji}</span>
+                                <span className="hub-conv-reactors__names">{reactorNames(users)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </>
                   )}

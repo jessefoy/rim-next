@@ -12576,6 +12576,44 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-conv-post:hover .hub-conv-post__react-btn,
 .hub-conv-post:focus-within .hub-conv-post__react-btn { opacity: 1; }
 .hub-conv-post__reactions + .hub-conv-post__react-wrap .hub-conv-post__react-btn { opacity: 1; }
+
+/* "Who reacted" — compact tap-to-reveal (mobile-friendly; the hover title is
+   desktop-only). The toggle matches the reaction chips; the revealed list
+   drops to its own full-width line below them (session 141). */
+.hub-conv-reaction-who {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 9px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.hub-conv-reaction-who:hover,
+.hub-conv-reaction-who[aria-expanded="true"] {
+  color: var(--rim-text);
+  border-color: var(--rim-mid);
+}
+.hub-conv-reactors {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 2px;
+}
+.hub-conv-reactors__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+}
+.hub-conv-reactors__emoji { flex-shrink: 0; }
+.hub-conv-reactors__names { color: var(--rim-text); }
 .hub-conv-post__react-btn:hover {
   color: var(--rim-text);
   border-color: var(--rim-mid);
