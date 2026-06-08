@@ -6,6 +6,29 @@
 
 ## Active
 
+### Session 139 (2026-06-07) — FEATURES.md rebuild + dead-code audit + pre-launch slimming (3 features removed) — on branch `claude/cleanup-s139`, build-verified, **AWAITING MERGE**
+
+A big slimming-for-launch session. **All work is on branch `claude/cleanup-s139`** (8 commits beyond `e7f25e9`), pushed, `tsc` + `next build` green. **NOT yet merged to `main`** — Jesse to confirm the Vercel preview build is green (`gh` unavailable in-sandbox), then fast-forward `main` → production deploy + delete the branch.
+
+**Shipped on the branch (verified):**
+- **FEATURES.md rebuilt** from a live-codebase inventory: 5,007 → ~250 lines, domain-organized current-state catalog delegating depth to the dedicated docs + `schema.prisma`. Removed-feature tombstone table; planned items point to CLEANUP/backlog. Old version in git history. The 6 cross-refs citing "FEATURES §N" updated to named sections.
+- **Dead-code usage-tracing audit** (`CLEANUP.md` Theme H) — every component/lib/model/route/dep traced to callers.
+- **Bug fixed:** host-coordinator hub-home inline save PATCHed a non-existent singular `/api/hub/[slug]/home` (404, silent) → corrected to plural `/api/hubs/[slug]/home`.
+- **Removed 3 unused features:** staff manual (5 pages / 2 APIs / 3 components / model / 35 seed scripts / all `migrate.mjs` wiring), Schedule PDF export, Reflection Questions (kept the separate `reflectionPrompt`). **DB tables left dormant — no DDL ran.**
+- **Safe cleanup done:** 3 orphan components (MemberGate/DanaSection/VideoRoomEmbed) + 8 dead deps (`npm remove`) + 142 dead `man-` CSS rules pruned.
+- **Surface:** 69→63 routes · 112→106 API · 58→54 models. Docs aligned (FEATURES/CLAUDE/CLEANUP).
+- **Kept (decision recorded):** all public content pages — `/donate` (live GiveButter widgets + Dana content), `/diversity`, `/kalyana-mitta/*`, `/volunteerism/*`. Finished content, not stubs — a future *look* redesign ≠ a delete.
+
+**OPEN — next concrete steps:**
+1. **MERGE (launch-blocking):** confirm Vercel preview green → `git checkout main && git merge --ff-only claude/cleanup-s139 && git push` → prod deploy; then delete the branch.
+2. **`session-log.md` not yet written** for this session — this UP_NEXT entry is the capture; run the rest of the closing ritual at merge time.
+3. **POST-LAUNCH cleanup — deliberately deferred, DO NOT FORGET (`CLEANUP.md` Themes H + I):**
+   - **DROP the dormant tables** `manual_sections`, `reflection_questions` / `_options` / `_responses` + the `Lesson.questionsRequired` column (one idempotent migration). Deferred only because DDL is deploy-critical with zero pre-launch benefit.
+   - Prune the now-empty manual migration blocks in `migrate.mjs` (cosmetic).
+   - Remove the `manualUrl` var + "Read the Staff Manual" link from the live `registrar-role-assigned` + `host-role-assigned` email templates (renders an empty link now).
+   - Verify-then-remove deps: `@tiptap/extension-{character-count,color,floating-menu,text-style}` + `@livekit/components-styles` (**KEEP** `-bubble-menu` + `@livekit/krisp-noise-filter` — live features).
+   - The session 136/137/138 deployed-site verification backlog still stands.
+
 ### Session 138 (2026-06-04) — Status-aware registration messaging (public page + editor); same-day follow-on to 137 (shipped; deployed-site verification pending)
 
 From a second LoriLee registrar report (her "Removing Zoom Link on In-Person Only Programs" hub doc). **Three commits on `main`:** `145a0cb` (Zoom-link fix) · `b53dee0` (status-aware messaging + editor readout) · `f2d2544` (backlog `2026-06-04-007`) + this doc sweep.
