@@ -17,7 +17,7 @@ const APPLY = process.argv.includes("--apply");
 // colliding with the live rim- / rim-content / rim-el- classes.
 const DEAD_PREFIXES = [
   "si-", "sic-", "bn-", "bear-", "mantine-", "fmt-", "rte-", "sg-",
-  "el-", "tt-", "img-", "rim-block-editor", "rim-prose-editor",
+  "el-", "tt-", "img-", "rim-block-editor", "rim-prose-editor", "man-",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

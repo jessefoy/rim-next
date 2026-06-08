@@ -8075,575 +8075,54 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
    Sidebar + reading-column layout. Readable, warm, document-like.
 ───────────────────────────────────────────────────────────────────────────── */
 
-.man-layout {
-  display: flex;
-  align-items: flex-start;
-  min-height: 100vh;
-  background: var(--rim-bg);
-}
-
 /* ── Sidebar ── */
-.man-sidebar {
-  width: 230px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-  padding: 40px 20px 40px 28px;
-  border-right: 1px solid var(--rim-rule);
-  background: var(--rim-bg);
-}
-
-.man-sidebar__heading {
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--rim-text-muted);
-  margin: 0 0 16px;
-}
-.man-sidebar__editor-link {
-  display: block;
-  font-family: var(--font-sans);
-  font-size: var(--text-label);
-  color: var(--rim-mid);
-  text-decoration: none;
-  margin: -8px 0 16px;
-  opacity: 0.7;
-}
-.man-sidebar__editor-link:hover { opacity: 1; }
-.man-sidebar__public-note {
-  font-family: var(--font-sans);
-  font-size: var(--text-xxs);
-  color: var(--rim-text-muted);
-  margin: -10px 0 12px;
-  font-style: italic;
-}
-.man-public-banner {
-  background: #f5f2ee;
-  border: 1px solid #e8e4de;
-  border-radius: 6px;
-  padding: 12px 16px;
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  color: var(--rim-text-muted);
-  margin-bottom: 32px;
-}
-
-.man-sidebar__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.man-sidebar__link {
-  display: block;
-  font-family: var(--font-sans);
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--rim-text);
-  text-decoration: none;
-  padding: 4px 0;
-}
-.man-sidebar__link--soon { color: var(--rim-text-muted); font-weight: 500; cursor: default; }
-
-.man-sidebar__sub {
-  list-style: none;
-  margin: 4px 0 8px 10px;
-  padding: 0;
-  border-left: 2px solid var(--rim-rule);
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
 
 /* Reset rim.webflow.css li defaults (margin-left: -20px, margin-bottom: 15px,
    font-size: 18px, line-height: 32px) that would otherwise wreck sidebar layout */
-.man-sidebar__list > li,
-.man-sidebar__sub > li {
-  margin: 0;
-  padding: 0;
-  font-size: inherit;
-  font-family: inherit;
-  line-height: inherit;
-}
-
-.man-sidebar__sublink {
-  display: block;
-  font-family: var(--font-sans);
-  font-size: var(--text-label);
-  color: var(--rim-text-muted);
-  text-decoration: none;
-  padding: 3px 0 3px 10px;
-  line-height: 1.4;
-}
-.man-sidebar__sublink:hover { color: var(--rim-blue); }
-
-.man-sidebar__soon-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.man-soon-badge {
-  font-family: var(--font-sans);
-  font-size: 10px;
-  color: var(--rim-text-muted);
-  background: var(--rim-bg-accent);
-  border-radius: 4px;
-  padding: 1px 6px;
-  white-space: nowrap;
-}
 
 /* ── Main content ── */
-.man-content {
-  flex: 1;
-  min-width: 0;
-  max-width: 740px;
-  padding: 56px 64px 100px;
-}
 
 /* ── Inline code ── */
-.man-content code {
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  background: var(--rim-bg-accent);
-  color: var(--rim-mid);
-  padding: 1px 5px;
-  border-radius: 3px;
-}
 
 /* ── Chapter header ── */
-.man-chapter {
-  margin-bottom: 48px;
-  padding-bottom: 24px;
-  border-bottom: 2px solid var(--rim-rule);
-  scroll-margin-top: 24px;
-}
 
 /* Chapter break — visual separator when a second chapter follows */
-.man-chapter--break {
-  margin-top: 80px;
-  padding-top: 48px;
-  border-top: 2px solid var(--rim-blue);
-}
-
-.man-chapter__title {
-  font-family: var(--font-serif);
-  font-size: 34px;
-  font-weight: 400;
-  color: var(--rim-blue);
-  margin: 0 0 10px;
-  line-height: 1.2;
-}
-
-.man-chapter__subtitle {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text-muted);
-  margin: 0;
-  line-height: 1.65;
-}
 
 /* ── Section ── */
-.man-section {
-  margin-bottom: 56px;
-  scroll-margin-top: 32px;
-}
-
-.man-section__title {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  font-weight: 400;
-  color: var(--rim-text);
-  margin: 0 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--rim-rule);
-}
 
 /* Sub-heading within a section */
-.man-section__h3 {
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  font-weight: 700;
-  color: var(--rim-text);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin: 28px 0 10px;
-}
-
-.man-section p {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text);
-  line-height: 1.75;
-  margin: 0 0 14px;
-}
 
 /* ── Numbered steps ── */
-.man-steps {
-  margin: 4px 0 16px;
-  padding-left: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.man-steps li {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text);
-  line-height: 1.65;
-}
 
 /* ── Bullet list ── */
-.man-list {
-  margin: 4px 0 16px;
-  padding-left: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.man-list li {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text);
-  line-height: 1.65;
-}
 
 /* ── Status grid ── */
-.man-status-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin: 8px 0 16px;
-}
-
-.man-status-card {
-  background: var(--rim-bg-accent);
-  border-radius: 6px;
-  padding: 16px 18px;
-}
-
-.man-status-card p {
-  font-size: 13.5px !important;
-  color: var(--rim-text-muted) !important;
-  margin: 8px 0 0 !important;
-  line-height: 1.6 !important;
-}
-
-.man-status-badge {
-  display: inline-block;
-  font-family: var(--font-sans);
-  font-size: var(--text-xxs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 4px;
-}
-
-.man-status-badge--registered { background: #d1fae5; color: #065f46; }
-.man-status-badge--approved   { background: #dbeafe; color: #1e40af; }
-.man-status-badge--waitlisted { background: #fef3c7; color: #92400e; }
-.man-status-badge--cancelled  { background: #f3f4f6; color: #6b7280; }
 
 /* ── Email trigger/description table ── */
-.man-email-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin: 8px 0 20px;
-  border: 1px solid var(--rim-rule);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.man-email-item {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  border-bottom: 1px solid var(--rim-rule);
-}
-.man-email-item:last-child { border-bottom: none; }
-
-.man-email-item__trigger {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--rim-text);
-  padding: 14px 16px;
-  background: var(--rim-bg-accent);
-  line-height: 1.4;
-  border-right: 1px solid var(--rim-rule);
-  align-self: start;
-}
-
-.man-email-item__desc {
-  font-family: var(--font-sans);
-  font-size: 13.5px;
-  color: var(--rim-text);
-  padding: 14px 18px;
-  line-height: 1.65;
-}
 
 /* ── Field guide (Sanity field-by-field documentation) ── */
-.man-field-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin: 8px 0 20px;
-  border: 1px solid var(--rim-rule);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.man-field {
-  display: grid;
-  grid-template-columns: 210px 1fr;
-  border-bottom: 1px solid var(--rim-rule);
-}
-.man-field:last-child { border-bottom: none; }
-
-.man-field__name {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--rim-text);
-  padding: 14px 16px;
-  background: var(--rim-bg-accent);
-  line-height: 1.4;
-  border-right: 1px solid var(--rim-rule);
-  align-self: start;
-}
-
-.man-field__desc {
-  font-family: var(--font-sans);
-  font-size: 13.5px;
-  color: var(--rim-text);
-  padding: 14px 18px;
-  line-height: 1.65;
-}
-
-.man-field__desc p {
-  font-size: 13.5px !important;
-  line-height: 1.65 !important;
-  margin: 0 0 8px !important;
-}
-.man-field__desc p:last-child { margin-bottom: 0 !important; }
-
-.man-field__desc .man-list {
-  margin-top: 8px;
-  margin-bottom: 0;
-}
-.man-field__desc .man-list li { margin: 0; font-size: 13.5px; }
 
 /* ── Tasks ── */
-.man-task {
-  margin-bottom: 28px;
-  padding: 22px 24px;
-  background: var(--rim-bg-accent);
-  border-radius: 6px;
-  border-left: 3px solid var(--rim-mid);
-}
-
-.man-task__title {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  font-weight: 700;
-  color: var(--rim-text);
-  margin: 0 0 12px;
-}
-
-.man-task p {
-  font-size: var(--text-ui) !important;
-  color: var(--rim-text) !important;
-  margin: 8px 0 0 !important;
-  line-height: 1.7 !important;
-}
-
-.man-task .man-steps { margin-bottom: 0; }
-.man-task .man-list  { margin-bottom: 0; }
-
-.man-task__note {
-  font-size: var(--text-xs) !important;
-  color: var(--rim-text-muted) !important;
-  font-style: italic;
-  margin-top: 12px !important;
-  border-top: 1px solid var(--rim-rule);
-  padding-top: 10px;
-}
 
 /* ── Note callout ── */
-.man-note {
-  background: color-mix(in srgb, var(--rim-mid) 8%, var(--rim-bg));
-  border-left: 3px solid var(--rim-mid);
-  border-radius: 0 6px 6px 0;
-  padding: 14px 18px;
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--rim-text);
-  line-height: 1.65;
-  margin: 16px 0;
-}
 
 /* man-note variant: warning (amber) */
-.man-note--warn {
-  background: color-mix(in srgb, #b45309 8%, var(--rim-bg));
-  border-left-color: #b45309;
-}
 
 /* man-note variant: developer / technical context (cool slate) */
-.man-note--dev {
-  background: color-mix(in srgb, #334155 11%, var(--rim-bg));
-  border-left-color: #475569;
-  color: var(--rim-text);
-}
-.man-note--dev__label {
-  display: block;
-  font-size: var(--text-xxs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #475569;
-  margin-bottom: 6px;
-}
 
 /* ── Role/permission table ── */
-.man-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  margin: 16px 0;
-}
-.man-table th,
-.man-table td {
-  padding: 9px 14px;
-  text-align: left;
-  border-bottom: 1px solid var(--rim-rule);
-  line-height: 1.5;
-}
-.man-table th {
-  font-weight: 700;
-  color: var(--rim-text-muted);
-  font-size: var(--text-label);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  background: var(--rim-bg-accent);
-}
-.man-table td:first-child { color: var(--rim-text); font-weight: 500; }
-.man-table td:not(:first-child) { color: var(--rim-text-muted); }
 
 /* Permission check table — centre the ✓ columns */
-.man-table--perms td:not(:first-child),
-.man-table--perms th:not(:first-child) { text-align: center; }
 
 /* ── Code / SQL block ── */
-.man-code {
-  background: var(--rim-bg-accent);
-  border: 1px solid var(--rim-rule);
-  border-radius: 6px;
-  padding: 14px 18px;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  line-height: 1.6;
-  color: var(--rim-text);
-  overflow-x: auto;
-  margin: 16px 0;
-  white-space: pre;
-}
 
 /* ── Future editions ── */
-.man-future {
-  margin-top: 64px;
-  padding-top: 40px;
-  border-top: 2px solid var(--rim-rule);
-}
-
-.man-future__title {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  font-weight: 400;
-  color: var(--rim-text-muted);
-  margin: 0 0 12px;
-}
-
-.man-future__intro {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text-muted);
-  margin: 0 0 20px;
-  line-height: 1.7;
-}
-
-.man-future__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.man-future__list li {
-  font-family: var(--font-sans);
-  font-size: 14.5px;
-  color: var(--rim-text-muted);
-  line-height: 1.65;
-  padding-left: 18px;
-  position: relative;
-}
-
-.man-future__list li::before {
-  content: "—";
-  position: absolute;
-  left: 0;
-  color: var(--rim-rule);
-}
 
 /* ── Section divider (Google Meet sub-section within Programs chapter) ── */
-.man-section--divider {
-  border-top: 1px solid var(--rim-rule);
-  margin-top: 72px;
-  padding-top: 64px;
-}
 
 /* ── Sidebar sub-list divider ── */
-.man-sidebar__sub-divider {
-  border-top: 1px solid var(--rim-rule);
-  margin: 8px 0 6px;
-  list-style: none;
-}
 
 /* ── Responsive ── */
-@media (max-width: 900px) {
-  .man-layout { flex-direction: column; }
-  .man-sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--rim-rule);
-    padding: 24px 20px;
-  }
-  .man-sidebar__sub { display: none; }
-  .man-content { padding: 32px 24px 64px; }
-  .man-status-grid { grid-template-columns: 1fr; }
-  .man-email-item { grid-template-columns: 1fr; }
-  .man-email-item__trigger { border-right: none; border-bottom: 1px solid var(--rim-rule); }
-  .man-field { grid-template-columns: 1fr; }
-  .man-field__name { border-right: none; border-bottom: 1px solid var(--rim-rule); }
-  .man-chapter--break { margin-top: 48px; padding-top: 32px; }
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    HOST AREA (hs-)
@@ -20313,67 +19792,12 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .man2-edit__input:focus { outline: none; border-color: var(--rim-mid); }
 
 /* ── Manual Index (man-idx-) ─────────────────────────────────────────────── */
-.man-idx { max-width: 700px; margin: 0 auto; padding: 48px 24px 80px; }
-.man-idx__header { margin-bottom: 40px; }
-.man-idx__title { font-family: var(--font-serif); font-size: 36px; color: var(--rim-text); margin-bottom: 8px; }
-.man-idx__subtitle { font-family: var(--font-sans); font-size: 16px; color: var(--rim-text-muted); margin-bottom: 16px; }
-.man-idx__editor-link { font-family: var(--font-sans); font-size: var(--text-xs); color: var(--rim-blue); text-decoration: none; }
-.man-idx__editor-link:hover { text-decoration: underline; }
-.man-idx__list { display: flex; flex-direction: column; gap: 2px; }
-.man-idx__entry { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 8px; text-decoration: none; background: white; border: 1px solid #e8e4de; transition: background 0.1s; }
-.man-idx__entry:hover { background: #f8f5f2; }
-.man-idx__entry-main { flex: 1; display: flex; flex-direction: column; gap: 3px; }
-.man-idx__entry-title { font-family: var(--font-sans); font-size: 16px; font-weight: 600; color: var(--rim-text); }
-.man-idx__entry-desc { font-family: var(--font-sans); font-size: var(--text-ui); color: var(--rim-text-muted); }
-.man-idx__hub-badge { font-family: var(--font-sans); font-size: var(--text-xxs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-mid); background: #eef2f5; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
 
 /* Grouped manual index — chapters bucketed by audience */
-.man-idx__group { margin-bottom: 36px; }
-.man-idx__group-label { font-family: var(--font-serif); font-size: 22px; color: var(--rim-text); margin: 0 0 4px 0; font-weight: 500; }
-.man-idx__group-desc { font-family: var(--font-sans); font-size: var(--text-ui); color: var(--rim-text-muted); margin: 0 0 14px 0; }
 
 /* ── Manual Section Page (man-sec-page-) ──────────────────────────────────── */
-.man-sec-page { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
-.man-sec-page__back { margin-bottom: 24px; }
-.man-sec-page__back-link { font-family: var(--font-sans); font-size: var(--text-xs); color: var(--rim-text-muted); text-decoration: none; }
-.man-sec-page__back-link:hover { color: var(--rim-blue); text-decoration: underline; }
-.man-sec-page__header { margin-bottom: 32px; }
-.man-sec-page__title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
-.man-sec-page__title { font-family: var(--font-serif); font-size: 36px; color: var(--rim-text); margin: 0; }
-.man-sec-page__edit-link { font-family: var(--font-sans); font-size: var(--text-xs); color: var(--rim-blue); text-decoration: none; white-space: nowrap; margin-top: 8px; }
-.man-sec-page__edit-link:hover { text-decoration: underline; }
-.man-sec-page__meta { display: flex; align-items: center; gap: 12px; }
-.man-sec-page__hub-badge { font-family: var(--font-sans); font-size: var(--text-xxs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-mid); background: #eef2f5; padding: 3px 8px; border-radius: 4px; text-decoration: none; transition: background 0.1s; }
-.man-sec-page__hub-badge:hover { background: #dde6ec; }
-.man-sec-page__updated { font-family: var(--font-sans); font-size: var(--text-xs); color: var(--rim-text-muted); }
-.man-sec-page__body { line-height: 1.7; }
-.man-sec-page__empty { font-family: var(--font-sans); font-size: var(--text-ui); color: var(--rim-text-muted); font-style: italic; }
-.man-sec-page__rule { border: none; border-top: 1px solid #e8e4de; margin: 40px 0 24px; }
-.man-sec-page__related { margin-top: 8px; }
-.man-sec-page__related-label { font-family: var(--font-sans); font-size: var(--text-label); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-text-muted); margin-bottom: 12px; }
-.man-sec-page__related-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.man-sec-page__related-link { font-family: var(--font-sans); font-size: var(--text-ui); color: var(--rim-blue); text-decoration: none; padding: 4px 12px; border: 1px solid #d4cfc9; border-radius: 20px; }
-.man-sec-page__related-link:hover { background: #f5f2ee; }
-.man-sec-page__footer { margin-top: 16px; }
 /* ── Content Output: manual (man-body) ───────────────────────────────────── */
-/* Structured reference docs. Tables with styled headers, clear heading hierarchy. */
-.man-body { font-family: var(--font-sans); font-size: var(--text-small); color: var(--rim-text); line-height: 1.7; }
-.man-body p { margin: 0 0 1em; }
-.man-body p:last-child { margin-bottom: 0; }
-.man-body h2 { font-family: var(--font-sans); font-size: 22px; font-weight: 700; color: var(--rim-text); line-height: 1.3; margin: 40px 0 14px; }
-.man-body h3 { font-family: var(--font-sans); font-size: var(--text-body); font-weight: 700; color: var(--rim-text); line-height: 1.3; margin: 32px 0 10px; }
-.man-body h4 { font-family: var(--font-sans); font-size: var(--text-small); font-weight: 700; color: var(--rim-text); line-height: 1.4; margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 0.04em; }
-.man-body ul, .man-body ol { margin: 0 0 1em; } /* no margin-left — rim-content handles bullet indent */
-.man-body li { margin-bottom: 0.3em; }
-.man-body blockquote { border-left: 3px solid var(--rim-mid); padding: 8px 0 8px 16px; margin: 1em 0; color: var(--rim-text); font-style: italic; }
-.man-body table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: var(--text-ui); }
-.man-body table th { background: #f0ece7; font-weight: 600; text-align: left; padding: 8px 12px; border: 1px solid #ddd8d2; font-size: var(--text-xs); }
-.man-body table td { padding: 8px 12px; border: 1px solid #ddd8d2; vertical-align: top; }
-.man-body code { font-size: var(--text-xs); background: #f5f2ee; padding: 2px 5px; border-radius: 3px; }
-.man-body hr { border: none; border-top: 1px solid #e8e4de; margin: 32px 0; }
-.man-body a { color: var(--rim-blue); text-decoration: none; }
-.man-body a:hover { text-decoration: underline; }
-.man-body strong { font-weight: 700; }
+/* Structured reference docs. Tables with styled headers, clear heading hierarchy. */ /* no margin-left — rim-content handles bullet indent */
 
 /* ── Content Output: hub-document (hdoc-body) ────────────────────────────── */
 /* Notion-like: clean, spacious, block-based, typeset working documents. */
