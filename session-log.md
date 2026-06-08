@@ -1,5 +1,37 @@
 ---
 
+## 2026-06-07 (session 139) — FEATURES.md rebuild + dead-code audit + pre-launch slimming (manual, PDF export, reflection questions removed)
+
+A slimming-for-launch session that began as "optimize FEATURES.md" and grew into a verified dead-code audit plus the removal of three unused features. **Eight commits on branch `claude/cleanup-s139`, fast-forward-merged to `main`.** `tsc` + `next build` green throughout; the DB tables for the removed features were left **dormant (no DDL)** to keep the pre-launch deploy bulletproof.
+
+### FEATURES.md rebuilt from ground truth (`0d83b53`)
+
+FEATURES.md had drifted to 5,007 lines / 624KB — broken TOC, duplicate section numbers, full inline text for already-removed features, an embedded duplicate session log, "Planned" items that were actually built, and heavy overlap with the 11 dedicated docs that have since peeled away its responsibilities. Jesse wanted a "safe full rebuild." The method: archive the old file, inventory the *live codebase* (every route, API route, model, cron, tool, lib, component) so the new doc reflects reality not claims, adjudicate every old section (carried / pointed-to-a-dedicated-doc / tombstoned / dropped-with-reason), and dual-cross-check (every old section has a disposition; every live surface appears). Result: a ~250-line domain-organized current-state catalog that delegates depth to the dedicated docs + `schema.prisma`. Six cross-refs citing "FEATURES §N" updated to named sections. **Lesson reinforced:** a leanness pass is only safe *after* reading what you're deleting — my first pass was structural-only yet presented as complete; Jesse's "did you evaluate against all the code?" forced the real evaluation, which found genuine gaps (a missed self-service-edit route, lesson media, over-compressed no-backstop areas).
+
+### Dead-code usage-tracing audit (`CLEANUP.md` Theme H)
+
+Jesse asked to verify the code is exhaustively clean. A full grep-based usage trace (every component / lib / model / enum value / route / API route / dependency → its callers) found 3 orphan components, 8 dead deps, all 39 lib + 58 models live, and no dead page routes (Next routes are URL-reachable; scan "orphans" were compositional-link false positives). The `SUPPORT` role is NOT dead — the Support Hub is kept as a normal team hub. The audit also surfaced **a real latent bug**: the host-coordinator hub-home inline save PATCHed a non-existent singular `/api/hub/[slug]/home` (404, silent) — the real route is plural `/api/hubs/[slug]/home`. Fixed.
+
+### Three features removed (`1b2afe9`, `1f6dcef`, `ee41ad4`)
+
+- **Staff manual** — unused, woven across ~50 sites: 5 pages, 2 API routes, 3 components, `lib/manualGroups`, the `ManualSection` model, 35 prisma seed scripts, and all manual imports/calls in `migrate.mjs`. App-ref stripping delegated to a sub-agent (tsc-gated, diff-reviewed); the data layer done by hand. **A regex bug in my migrate.mjs surgery (`[A-Za-z]*` excluded digits) left the versioned `updateManual*V3/V4/V5` calls in place while removing their imports — a runtime ReferenceError `node --check` couldn't catch; the grep-after review caught it.** Tables left dormant.
+- **Schedule PDF export** — print page + PDF route + `ScheduleDocument` + the export bar; `@react-pdf/renderer` then removed.
+- **Reflection Questions** — component + 3 API routes + 3 models + lesson-editor/display integration. Sub-agent caught two surfaces a model-name grep would miss (the course-TOC `_count: { questions }` relation; `MarkCompleteButton`'s locked gate). Kept the separate `reflectionPrompt` text field.
+
+### Kept — the public content pages (decision recorded)
+
+The "static pages" were initially framed (by me) as rough stubs. Checking each before deleting showed they're **finished content**: `/donate` (three live GiveButter widgets + Dana philosophy + giving contemplations), `/diversity` (a real values statement), `/kalyana-mitta/*` (community-group content). I recommended against deleting them — that's re-writing content, not slimming cruft — and Jesse agreed. A future *presentation* redesign (native CSS over the Webflow shim) is a redesign, not a delete.
+
+### Safe cleanup now; DDL deferred (`6416ae0`, `be09fc4`, `791e07b`)
+
+Jesse worried he'd forget the post-launch cleanup. The verified-dead removals are safe pre-launch *because* `next build` gates them before merge (a broken build can't reach prod): removed the 3 orphan components + 8 dead deps (`npm remove`) + 142 dead `man-` CSS rules. The one genuinely deploy-risky item — `DROP TABLE` on the dormant manual/reflection tables — was deferred (DDL, zero pre-launch benefit) and locked into `UP_NEXT.md` + `CLEANUP.md` Themes H/I so it can't be forgotten.
+
+### Connects to / next
+
+**Surface:** 69→63 routes · 112→106 API · 58→54 models. **Docs aligned:** FEATURES.md, CLAUDE.md (dropped the Staff-Manual closing-ritual step + the `man-` prefix), CLEANUP.md (Themes H + I), UP_NEXT.md. Touched the manual / PDF / reflection subsystems (removed), the role-assignment email templates (still reference a now-empty `manualUrl` — deferred), `migrate.mjs` (manual blocks now empty no-ops), and the lesson system (`reflectionPrompt` kept). **Next:** the deferred post-launch cleanup (drop dormant tables, prune empty migrate.mjs blocks, fix the 2 email templates, verify-then-remove the remaining suspect deps) + the standing session 136/137/138 deployed-site verification backlog.
+
+---
+
 ## 2026-06-04 (session 138) — Status-aware registration messaging on the public program page + editor legibility
 
 A same-day follow-on to session 137, from another LoriLee registrar report: on The Heart of Wisdom (an in-person retreat), the public program page's "what to do next" line read "Simply arrive in person · Zoom link on My Home" — a Zoom reference on an in-person-only program. Investigating it opened into a deeper messaging problem, which Jesse pushed to address holistically — both the public page and the editor.
