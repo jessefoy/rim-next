@@ -28,15 +28,24 @@ Continued the Maria/host-coordinator Scheduler thread (+ a `MEMORY.md` consolida
 
 **Memory candidate (step 8b):** one new — *restraint over reactive new-surfaces* (don't answer a list of feedback pains with a new view per pain; make existing surfaces trustworthy; the grid build-and-revert is the cautionary tale). `feedback-pivot-when-fragile` reinforced. `MEMORY.md` size issue resolved by this session's consolidation.
 
-**Maria reply (draft — for Jesse to post):**
-> Hi Maria — thank you for testing so carefully and writing it all up; it genuinely shaped what we fixed. What's changed, and why:
-> - **The rotation emails** now say "upcoming sessions," not "this month" — that's what gave you the "30 sessions this month" jolt.
-> - **"Enter room"** now behaves as you'd expect: the button only appears when a session is actually open (about a half hour before through after it ends), instead of showing on every row and then saying "not on this date." (An underlying bug that blocked entry to recurring sessions is also fixed.)
-> - **Viewing someone else's schedule** no longer says "you're not hosting anything here" — it's worded for whoever you're looking at.
-> - **The rotation editing** is more reliable: removing or changing a host actually takes, and a blanket change no longer overwrites dates you picked by hand. And the big one — **after you Save & apply, the editor now shows the result right there** (the next sessions and who's on each), so you can see it landed without leaving to hunt.
-> - One thing we deliberately *didn't* do: add more pages. Your point about the scheduler feeling disjointed landed — so rather than pile on another view, we made the schedule and rotation editor you already use clearer and more trustworthy.
+**Maria reply (final — for Jesse to post):**
+> Hi Maria,
 >
-> Please keep the feedback coming — this level of detail is exactly what makes the tool better.
+> Thank you for testing the scheduler so thoroughly and writing up exactly what you ran into. Your notes were detailed enough that we could trace each item to its cause rather than guess, and they drove a focused round of work on the tool. Here is what was happening and what has changed:
+>
+> **The rotation emails.** They were saying "this month" when a rotation actually runs across the whole year — which is what made it look like you had signed up for 30 sessions in a single month. The wording now reads "upcoming sessions," so it reflects what is really being scheduled.
+>
+> **"Enter room."** Two separate things were going on. The button was appearing on every session row, including ones that weren't open yet — so clicking it on a future date left you at a dead end with nothing to do but go back. It now appears only when a session is genuinely open (from about a half hour before it begins through a little after it ends). Separately, we found and fixed an underlying problem that had been preventing entry into recurring sessions specifically, so those are reachable now as well.
+>
+> **Viewing another person's schedule.** When you were looking at Silvia's schedule, the "you're not hosting anything here" wording assumed it was your own. It is now written for whoever you are actually viewing.
+>
+> **Editing rotations.** This is where most of the work went. We traced the trouble you had changing and removing hosts to a few real problems underneath: a blanket "Replace all" was overwriting dates someone had chosen by hand, and removing a host from a rotation wasn't always clearing their upcoming sessions, so the change looked like it hadn't taken. Both are fixed, and edits are now scoped to the specific program and team you are working in, so a change in one place cannot quietly affect another. The kind of unexpected removal you saw should not happen again.
+>
+> **Seeing that an edit took.** You described having to leave the editor, go to the schedule, jump to July, and scroll to confirm an end-date change had worked. That round-trip is gone: after you Save & apply, the editor now shows the result right there — the next several sessions and who is hosting each — so you can confirm the change landed without going anywhere.
+>
+> One deliberate choice worth naming: in response to your point about the tool feeling disjointed, we looked closely at building a single all-in-one scheduling view, and chose not to add another page. We would rather make the schedule and the rotation editor you already use clearer and more dependable than add more surface to learn. If that "see everything in one place" need is still there once you have worked with these changes, we would rather design it carefully with you than bolt it on.
+>
+> Thank you again — this kind of careful, specific feedback is what makes the tool genuinely better, and it is appreciated.
 
 ---
 
