@@ -29,11 +29,6 @@ const RotationsClient = dynamic(
   { ssr: false, loading: () => <p className="hs-loading">Loading rotations…</p> },
 );
 
-const CoverageGrid = dynamic(
-  () => import("@/components/CoverageGrid"),
-  { ssr: false, loading: () => <p className="hs-loading">Loading coverage…</p> },
-);
-
 /** One signed-up volunteer on a multi-claim session (greeter hub). */
 interface Claimant {
   assignmentId: string;
@@ -42,7 +37,7 @@ interface Claimant {
   badge: "paused" | "inactive" | null;
 }
 
-export interface Session {
+interface Session {
   id: string;
   programId: string | null;
   programSlug: string;
@@ -734,19 +729,12 @@ export default function HubScheduleClient({
   const searchParams = useSearchParams();
 
   // "schedule" = agenda view (default), "rotations" = standing-assignment manager
-  // View state. Managers default to the Coverage picture (the coordinator's
-  // home); plain hosts get the agenda. ?view= deep-links override (the program
-  // staffing page links to rotations; email ?action= links belong in the
-  // agenda). Greeter (multi-claim) hubs have no Coverage view — fall back to
-  // schedule.
-  const [view, setView] = useState<"schedule" | "coverage" | "rotations">(() => {
-    const v = isManager ? searchParams?.get("view") : null;
-    if (v === "rotations") return "rotations";
-    if (v === "coverage") return "coverage";
-    if (v === "schedule") return "schedule";
-    if (searchParams?.get("action")) return "schedule"; // email deep-links open in the agenda
-    return (isManager && !allowsMultipleAssignments) ? "coverage" : "schedule";
-  });
+  // Default "schedule"; honor a ?view=rotations deep-link (from the program
+  // staffing page's "Edit rotation" link) so coordinators land on the editing
+  // surface, not the agenda. Guarded by isManager — only managers see the tab.
+  const [view, setView] = useState<"schedule" | "rotations">(
+    () => (isManager && searchParams?.get("view") === "rotations") ? "rotations" : "schedule",
+  );
 
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [year, setYear] = useState(initialYear);
@@ -1210,16 +1198,6 @@ export default function HubScheduleClient({
           weren't also global HOST_MANAGERs — Jesse caught this post-2.6. */}
       {isManager && (
         <div className="hs-viewtabs" role="tablist" aria-label="Schedule views">
-          {!allowsMultipleAssignments && (
-            <button
-              role="tab"
-              aria-selected={view === "coverage"}
-              className={`hs-viewtab${view === "coverage" ? " hs-viewtab--active" : ""}`}
-              onClick={() => setView("coverage")}
-            >
-              Coverage
-            </button>
-          )}
           <button
             role="tab"
             aria-selected={view === "schedule"}
@@ -1237,22 +1215,6 @@ export default function HubScheduleClient({
             Rotations
           </button>
         </div>
-      )}
-
-      {/* Coverage view — the coordinator picture (manager default). Reshapes
-          the same `sessions` into a programs × weeks grid (desktop) / gap-first
-          list (phone), with fill-in-place via assignMember. Slice 2. */}
-      {view === "coverage" && (
-        <CoverageGrid
-          sessions={sessions}
-          teamMembers={teamMembers}
-          currentUserId={currentUserId}
-          coverageNoun={coverageCopy.noun}
-          monthLabel={`${MONTHS[month]} ${year}`}
-          onPrevMonth={prevMonth}
-          onNextMonth={nextMonth}
-          onAssign={assignMember}
-        />
       )}
 
       {/* Rotations view */}
