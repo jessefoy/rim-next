@@ -1,5 +1,25 @@
 [
   {
+    "id": "2026-06-07-001",
+    "title": "Coordinator synoptic view — slices 2 & 3 (desktop grid + by-program lens)",
+    "description": "Continuation of the coordinator's synoptic view begun in session 140 (slice 1 = the gap-first list + assign-in-place on the Schedule tab, shipped). Slice 2: a desktop 2-D grid — programs (rows) x the real upcoming dates (columns), each cell the actual covering person, gaps the most visible thing, edit a cell in place. Same model as the mobile gap-list, given two dimensions when there's screen room; the mobile view stays the gap-first 1-D list (pivot the axis, don't shrink the grid). Slice 3: the by-program lens — the rotation rule at the top of a program's section with its produced sessions below, inline rotation editing, and a LIVE conflict preview (cells that would change highlight 'Maria -> Nancy' before commit, replacing the blind 'Replace all' leap). Later: AV/greeter coverage as sub-lanes per session, and a teacher-vs-host distinction shown on the surface (the Qigong knot). North star from the coordinator feedback: kill the page-hopping, show the whole picture, edit where you look. Build mobile-first throughout. Full design + ASCII sketches in the session-140 transcript and RIM_Scheduler.md.",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-07",
+    "notes": "Backend is largely done — these slices are presentation + in-place editing over existing APIs (apply engine, hub-scoping, occurrence logic, single-date assign all exist + were hardened in session 140). No schema. Design-first per slice, then build; each slice shippable on its own."
+  },
+  {
+    "id": "2026-06-07-002",
+    "title": "Dim/exclude paused or inactive members in the assign-in-place picker",
+    "description": "Slice-1 'Assign someone...' picker (session 140, HubScheduleClient AssignControl) lists ALL hub members from getToolHubContext, including PAUSED/INACTIVE ones. Picking a paused member is safe — the POST /api/host/assignments capability check returns 422 and the row stays a gap with a clear toast — but it's a small dead-end. Polish: dim or exclude non-ACTIVE / hosting-revoked members in the dropdown. Requires threading each member's hub status (status + hostingCapability) into the teamMembers prop the page builds (currently {id, displayName, isCoordinator} only). Mirrors the existing member-picker, which also shows everyone — so consider fixing both pickers together. Low priority; the server guard already prevents a bad write.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-07",
+    "notes": "Flagged by the slice-1 reviewer sub-agent as a LOW. Safe today (422 + toast); purely a UX nicety."
+  },
+  {
     "id": "2026-06-04-001",
     "title": "Delete dead Program fields: hideFromDashboard + dayOfWeek",
     "description": "Session-137 audit confirmed two Program columns are dead: hideFromDashboard (defined, in the editor form + API CRUD, but NO surface reads it — removeFromProgramList is what actually controls the dashboard Today card) and dayOfWeek (vestigial — code uses recurrenceDays everywhere; schema comment claims it 'drives Today badge + listing day group' but nothing reads it). Remove both: schema.prisma, an ALTER TABLE DROP COLUMN IF EXISTS in migrate.mjs, and the editor/API references to hideFromDashboard. Deferred from session 137 to keep the offering-kind slice focused and the revert story clean. Verify no reads with a grep before dropping.",

@@ -1,5 +1,43 @@
 ---
 
+## 2026-06-07 (session 140) — Scheduler trust-restoration + coordinator gap-first view (Phase 2 slice 1)
+
+Triggered by frustrated host-coordinator feedback on the Scheduler: *"un-host-coordinator friendly … relying on the pill buttons and constant scrolling, clicking back and forth between pages just to see where we are … no clear connections … disjointed discrete little pages you have to connect in your own head … great for a single host, a nightmare for the coordinator,"* plus six specific bug/inconsistency reports. Split into two phases — **restore trust (bugs) first, then the coordinator's view** — both shipped to `main` and deployed this session (commits `9f68c00`, `b22dd9b`).
+
+### Investigation first (read the rotation engine as one system)
+
+Traced `lib/applyStandingAssignments.ts` + all six standing-assignment routes + reassign + `RotationsClient`/`RotationConflictModal` end-to-end before proposing anything. Honest finding on the scariest report (#6 — "changing the Qigong host removed Maria from dates I didn't touch, even on the Tuesday drop-in"): **every apply/preview path is program-scoped; no code path crosses programs**, so the cross-program symptom isn't reproducible from code. Qigong is online-only (single-hub), so the latent cross-*hub* modal bug wasn't its cause either. Most likely real cause: **"Replace all" stomping Maria's manually self-assigned dates** (only sub-cover was protected), shown illegibly. Fixed that + instrumented the rest rather than chase a ghost.
+
+### Phase 1 — trust fixes (`9f68c00`)
+
+- **Orphan cleanup on pattern-editor removal (#4 root cause).** Removing a host/occurrence from a rotation deleted the *rule* but left its future `HostAssignment` rows orphaned (`standingAssignmentId` is SetNull) — so "remove Nancy" silently didn't take. The bundle-save POST now deletes those future assignments too (FK-safe SubClaim→SubRequest→HostAssignment→StandingAssignment, future-only) and emails the displaced host.
+- **"Replace all" protects manual self-claims (likely #6 cause).** `applyStandingAssignments` no longer replaces `source: "manual"` conflicts under replace-all; override per-date via "Decide one by one." Server + modal agree via a shared `isShieldedFromReplaceAll` helper.
+- **Conflict modal hub-scoping (latent).** The modal applied *un-hub-scoped* (never sent `hubSlug`); it now threads it through preview/apply, and the apply engine keys candidates per hub (`programSlug::dateStr::hubSlug` + `Conflict.hubSlug`). This is what *preserves* AV/greeter/host-team isolation on multi-hub programs.
+- **Legibility (#5/#6).** Modal shows "N can be replaced · M protected" before commit; save / set-end-date confirmations name the concrete result ("sessions through Jul 7 kept · 3 later removed"). Removable `[rotation-apply]` server log records exact per-date from→to deltas on every replace.
+- **Copy:** standing-rotation email subject "…this month" → "…upcoming sessions" (#1); "mine" empty state is context-aware when viewing another member (#3).
+
+### Phase 2 — coordinator's synoptic view: designed + slice 1 shipped (`b22dd9b`)
+
+Co-designed the answer to her headline: **one surface that is both the picture and the editing desk, organized by time** — programs × dates, gaps the most visible thing, edit in place. Agreed to **build mobile-first** (the hardest surface), **gap-first**.
+
+**Slice 1 (shipped):** on the existing Schedule tab, a coordinator now sees a plain-language **"N sessions still need coverage · Show them"** banner and can **"Assign someone…"** to a gap in place — a native `<select>` of teammates, no modal / no page-hop, optimistic update + confirmation toast. Backend: `POST /api/host/assignments` now lets **hub coordinators** (not just HOST_MANAGER/ADMIN) assign others (matches the rotation routes' trust model — it had been locking out the very coordinators who staff the team), hoists the target-capability check, and assigns to an existing *unclaimed* seed instead of returning a confusing 409.
+
+### Design decisions + why
+- **Trust before view** — a synoptic view on a buggy edit engine just lets the coordinator *see* corruption faster. Correctness + legibility first.
+- **Protect manual claims from "Replace all"** — don't silently stomp a deliberate human choice; make overriding explicit (clear seeing / "make random tapping survivable").
+- **Mobile-first, gap-first** — a wide programs×dates grid can't fold to 390px, so build the gap-first list (the phone reality) first; the desktop grid is the "more room" version of the same model.
+- **Coordinators can assign** — consistent with how the Rotations tab already trusts hub coordinators.
+
+### Connects to
+The Scheduler engine + every standing-assignment route + the Schedule/Rotations client + the conflict modal; the host-confirmation email (existing send, already hub-scoped); the `apply-standing-assignments` cron (unaffected — "leave" mode has no replace path, so manual-protection + the diagnostic log never fire there). Two reviewer-sub-agent passes (both SAFE TO COMMIT). Hub four-layer audit (CLAUDE.md §4c) clean: the assign path routes by `targetHubSlug`; notifications + URLs were already hub-scoped.
+
+### What's next
+- **Coordinator view slices 2–3:** the desktop 2-D grid, then the by-program lens with inline rotation editing + live conflict preview (later: AV/greeter + teacher/host lanes).
+- **Awaiting Jesse:** the Qigong **Rotations-tab** check (Maria in the grid = rotation, or empty grid + Maria on each session = manual) — confirms which Phase-1 fix carries #6 and whether Maria-as-host-of-everything is intended (teacher vs host); the **#2 "enter room"** repro (program + the date/time clicked); deployed-site verification of today's two ships and the standing 136–139 backlog.
+- **Docs needing no change (stated per ritual):** `RIM_Editor_Types.md` (no editor work), `RIM_Email_Engineering.md` (used existing sends, no new template), `RIM_Hub_Engineering.md` (the assign-gate follows the existing four-layer model — audit was clean, no new rule).
+
+---
+
 ## 2026-06-07 (session 139) — FEATURES.md rebuild + dead-code audit + pre-launch slimming (manual, PDF export, reflection questions removed)
 
 A slimming-for-launch session that began as "optimize FEATURES.md" and grew into a verified dead-code audit plus the removal of three unused features. **Eight commits on branch `claude/cleanup-s139`, fast-forward-merged to `main`.** `tsc` + `next build` green throughout; the DB tables for the removed features were left **dormant (no DDL)** to keep the pre-launch deploy bulletproof.

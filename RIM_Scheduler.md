@@ -202,9 +202,36 @@ The picker is scoped to one hub at a time — multi-hub members appear in whiche
 
 ---
 
-## PDF export
+## PDF export — removed (session 139)
 
-`/api/host/schedule/pdf` uses `@react-pdf/renderer` (no headless Chromium). Renders a per-user schedule for a date range. Currently hub-agnostic — exports all of the requesting user's HostAssignments regardless of hub. Likely fine since "my schedule" is a personal export, but worth hub-scoping if/when peer-led members request it.
+The per-user schedule PDF export (`/api/host/schedule/pdf` + `ScheduleDocument` + the `@react-pdf/renderer` dep) was removed in session 139 as unused. If a PDF export is wanted again, rebuild on a serverless-safe renderer (the old one needed no headless Chromium).
+
+---
+
+## Rotation-edit safety + the coordinator view (session 140)
+
+From host-coordinator feedback. Two durable rule-changes to the edit/apply path, plus the start of a coordinator-facing view.
+
+### "Replace all" never overrides a manual self-claim
+`applyStandingAssignments` treats `source: "manual"` conflicts as **protected** under `replace-all`, exactly like sub-cover — a blanket "Replace all" must not silently stomp a date someone deliberately picked for themselves (the likely cause of the "Maria removed unexpectedly" report). To override a manual claim the coordinator switches to **Decide one by one** (`perDate`) and toggles it. Server (`applyStandingAssignments`) and client (`RotationConflictModal`) share one predicate — `isShieldedFromReplaceAll(c) = c.protected || c.source === "manual"` — so the modal's summary count and its per-row decision can't drift apart.
+
+### Pattern-editor removal cleans up orphans
+The bundle-save `POST /api/host/standing-assignments` deletes `StandingAssignment` rules dropped from the new pattern. It now **also deletes those rules' future `HostAssignment` rows** (FK-safe SubClaim→SubRequest→HostAssignment→StandingAssignment order, future-only) and emails each displaced host via `sendStandingAssignmentReplacedEmail`. Before this, `standingAssignmentId`'s SetNull-on-delete left the removed host orphaned on the calendar — so "remove Nancy" silently didn't take (bug #4). The response carries a `removed` count (surfaced in the save confirmation), and the post-save re-preview conflict count is now hub-scoped.
+
+### The conflict modal is hub-scoped
+`RotationConflictModal` previously had **no `hubSlug`** and applied un-hub-scoped. It now threads `hubSlug` into the preview + apply request bodies (both routes already accepted it), and `applyStandingAssignments` keys `candidatesByKey` by `programSlug::dateStr::hubSlug` with `hubSlug` carried on the `Conflict` type. This is what keeps a replace on a multi-hub program from crossing host-team / AV / greeter / peer-led. (Qigong is single-hub, so this wasn't *its* bug — but it's a real latent one on hybrid programs.)
+
+### Diagnostic logging
+`applyStandingAssignments` logs `[rotation-apply]` with the exact per-date `from→to` deltas **only when a replace happens** (never in the cron's "leave" mode, so no daily-run spam). Removable once rotation-edit reports settle; it's the reconstruction trail for unclear "my edit changed the wrong thing" reports.
+
+### Coordinator view — Phase 2 (mobile-first, gap-first)
+The coordinator's headline complaint was page-hopping + "disjointed pages you connect in your own head." The answer is **one surface that's both the picture and the editing desk, organized by time** — programs × dates, gaps the most visible thing, edit in place. Build order is **mobile-first** (a wide grid can't fold to 390px) and **gap-first**.
+
+- **Slice 1 (shipped, session 140):** on the existing Schedule tab — a coordinator status banner ("N sessions still need coverage · Show them") and **assign-in-place** on needs-coverage rows via `AssignControl` (a native `<select>`, the mobile-right control). `assignMember` POSTs the chosen `userId` to `/api/host/assignments` and optimistically updates the row (swapping the synthetic `unassigned::` id for the real one).
+  - **`POST /api/host/assignments` gate widened:** assigning *others* now allows a **hub coordinator** of the target hub, not just HOST_MANAGER/ADMIN — same trust model as the rotation routes; it had been locking out the coordinators who staff the team. The target hosting-capability check was hoisted above the row lookup (guards every assign path), and a new branch assigns a chosen person to an existing **unclaimed seed** row instead of returning a confusing "a session already exists" 409.
+- **Slice 2 (next):** the desktop 2-D grid (programs × dates) — the "more room" rendering of the same model.
+- **Slice 3:** the by-program lens with inline rotation editing + live conflict preview.
+- **Later:** AV/greeter coverage as sub-lanes; a teacher-vs-host distinction shown on the surface.
 
 ---
 

@@ -6,7 +6,29 @@
 
 ## Active
 
-### Session 139 (2026-06-07) — FEATURES.md rebuild + dead-code audit + pre-launch slimming (3 features removed) — on branch `claude/cleanup-s139`, build-verified, **AWAITING MERGE**
+### Session 140 (2026-06-07) — Scheduler trust-restoration + coordinator gap-first view (Phase 2 slice 1) — shipped to `main` & deployed; deployed-site verification pending
+
+From frustrated host-coordinator feedback on the Scheduler. Two phases, both on `main`:
+
+**Phase 1 — trust fixes (`9f68c00`):**
+- Pattern-editor removal now cleans up the removed host's future sessions (was orphaning them — "remove Nancy" didn't take) + emails them. (#4)
+- "Replace all" protects manually self-assigned dates (only sub-cover was protected before) — the likely cause of "Maria removed unexpectedly." Override per-date. (#6)
+- Conflict modal now hub-scoped (threads `hubSlug`); apply engine keys candidates per hub — preserves AV/greeter/host-team isolation (latent bug).
+- Legibility: modal "N can be replaced · M protected"; save / set-end-date confirmations name what changed; removable `[rotation-apply]` server log captures per-date deltas.
+- Copy: rotation email "this month"→"upcoming sessions" (#1); "mine" empty state context-aware when viewing another member (#3).
+
+**Phase 2 — coordinator view, slice 1 (`b22dd9b`):** gap-first **"N sessions still need coverage · Show them"** banner + **"Assign someone…"** in place on needs-coverage rows (native picker, optimistic update, toast). Backend: hub coordinators can now assign others (not just HOST_MANAGER/ADMIN); assign-to-unclaimed-seed handled; capability check hoisted.
+
+**The Phase 2 design (agreed — this is the roadmap):** ONE surface that's both the picture and the editing desk, organized by **time** — programs × dates, gaps the most visible thing, edit in place. **Mobile-first, gap-first.** Slice 1 (done) = the gap list + assign-in-place on the Schedule tab. **Slice 2 = the desktop 2-D grid; Slice 3 = the by-program lens with inline rotation editing + live conflict preview** (later: AV/greeter + teacher/host lanes). North star: kill the page-hopping, show the whole picture, edit where you look. (Full vision + ASCII sketches + the mobile by-date/by-program lenses are in the session-140 transcript.)
+
+**OPEN — next concrete steps:**
+1. **Coordinator view slice 2 (desktop grid)** — the next build.
+2. **Awaiting Jesse (diagnostic, not blocking):** open **Rotations → Qigong** — Maria filled in the grid cells (a standing rotation) OR an empty grid while Maria's on each session in the Schedule tab (manual self-claims)? Confirms which Phase-1 fix carries #6, and whether Maria-as-host-of-every-session is intended (the teacher-vs-host distinction). Plus the **#2 "enter room"** repro (which program + the exact date/time clicked).
+3. **Deployed-site verification of today's two ships:** a real rotation edit with "Replace all" → manual dates stay protected + the "N can be replaced · M protected" line + a concrete confirmation; remove a host via the pattern editor → their upcoming sessions actually disappear + they're emailed; as a coordinator on a phone → the banner shows, "Assign someone…" fills a gap, the assignee gets the email.
+
+**Memory candidates (step 8b):** none — the scan found existing memory files held (investigate-before-fixing, measure-before-agreeing, mobile-first, plain-English design proposals are all covered; nothing was corrected or surprising). `MEMORY.md` is still over its size limit (flagged sessions 138 + 140) — a `/consolidate-memory` pass remains worth doing.
+
+### Session 139 (2026-06-07) — FEATURES.md rebuild + dead-code audit + pre-launch slimming (3 features removed) — merged to `main` & deployed; session-log written. Only the deferred post-launch cleanup below remains.
 
 A big slimming-for-launch session. **All work is on branch `claude/cleanup-s139`** (8 commits beyond `e7f25e9`), pushed, `tsc` + `next build` green. **NOT yet merged to `main`** — Jesse to confirm the Vercel preview build is green (`gh` unavailable in-sandbox), then fast-forward `main` → production deploy + delete the branch.
 
@@ -19,10 +41,7 @@ A big slimming-for-launch session. **All work is on branch `claude/cleanup-s139`
 - **Surface:** 69→63 routes · 112→106 API · 58→54 models. Docs aligned (FEATURES/CLAUDE/CLEANUP).
 - **Kept (decision recorded):** all public content pages — `/donate` (live GiveButter widgets + Dana content), `/diversity`, `/kalyana-mitta/*`, `/volunteerism/*`. Finished content, not stubs — a future *look* redesign ≠ a delete.
 
-**OPEN — next concrete steps:**
-1. **MERGE (launch-blocking):** confirm Vercel preview green → `git checkout main && git merge --ff-only claude/cleanup-s139 && git push` → prod deploy; then delete the branch.
-2. **`session-log.md` not yet written** for this session — this UP_NEXT entry is the capture; run the rest of the closing ritual at merge time.
-3. **POST-LAUNCH cleanup — deliberately deferred, DO NOT FORGET (`CLEANUP.md` Themes H + I):**
+**OPEN — deferred post-launch cleanup (still stands, DO NOT FORGET — `CLEANUP.md` Themes H + I):**
    - **DROP the dormant tables** `manual_sections`, `reflection_questions` / `_options` / `_responses` + the `Lesson.questionsRequired` column (one idempotent migration). Deferred only because DDL is deploy-critical with zero pre-launch benefit.
    - Prune the now-empty manual migration blocks in `migrate.mjs` (cosmetic).
    - Remove the `manualUrl` var + "Read the Staff Manual" link from the live `registrar-role-assigned` + `host-role-assigned` email templates (renders an empty link now).

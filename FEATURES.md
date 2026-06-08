@@ -150,12 +150,13 @@ Hubs are team-centric workspaces. Each provides a **Home**, **Conversations**, *
 
 The **Scheduler** (`/tools/schedule`) is the staffing tool: a calendar + card list where hosts claim sessions, request subs, and coordinators run standing rotations — all scoped per hub via `?hub=`. HOST / HOST_MANAGER / ADMIN / active member of the active hub; the Rotations tab is coordinator-gated.
 
-- **Routes:** `/tools/schedule`, `/tools/schedule/print` (PDF date-range form), `/tools/schedule/program/[slug]` (cross-hub staffing view).
+- **Routes:** `/tools/schedule`, `/tools/schedule/program/[slug]` (cross-hub staffing view).
 - **Assignments** — `HostAssignment` (per `programSlug` + `sessionDate` + `hubSlug`). API `/api/host/assignments`, `/api/host/assignments/[id]`, `/clear`, `/reassign`.
 - **Sub-requests** — `SubRequest` / `SubClaim` (`SubStatus`). API `/api/host/sub-requests`, `/[id]`, `/[id]/claim`. (Multi-claim hubs have no sub-request semantic — release-my-claim only.)
 - **Standing rotations** — `StandingAssignment` (`StandingOccurrence` 1st–5th, patterns) applied forward by `lib/applyStandingAssignments.ts` + the `apply-standing-assignments` cron. API `/api/host/standing-assignments` + `/[id]`, `/apply`, `/preview`, `/end-bundle`, `/release-host`, `/api/host/programs/[slug]/clear-rotations`.
 - **Auxiliary-hub coverage** — `ProgramCoverageHub` lets one program be staffed by many hubs, each a different role; single-slot (host-team / peer-led / audio-visual) vs multi-claim open sign-up (greeter). `Hub.allowsMultipleAssignments` + `Hub.appliesToFormats`.
 - **Hub-configurable copy** — `coverageNoun` / `coverageVerb` / `coverageAction` on `Hub` (so "host" reads "AV" / "Greeter" / "Facilitator" per hub).
+- **Coordinator gap-first + assign-in-place** (session 140) — a "N sessions still need coverage" banner + a per-gap "Assign someone…" picker let a coordinator (incl. hub coordinators) fill an uncovered session in place. First slice of a mobile-first coordinator view. The same session hardened the rotation editor: "Replace all" now protects manual self-claims, pattern-editor removals clean up orphaned assignments, and the conflict modal is hub-scoped.
 - **See:** `RIM_Scheduler.md`.
 
 ---
