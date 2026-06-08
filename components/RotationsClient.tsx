@@ -214,6 +214,25 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
+/**
+ * Project the next `count` occurrences of a rotation's day with the host each
+ * would get under the current form. Shared by the live preview and the
+ * post-save confirmation so the two can't drift.
+ */
+function projectUpcoming(
+  form: FormState,
+  teamMembers: { id: string; displayName: string }[],
+  count = 6,
+): { dateStr: string; label: string; hostName: string | null }[] {
+  return upcomingDates(form.dayOfWeek, count).map((dateStr) => {
+    const occN = occurrenceInMonth(dateStr);
+    const userId = resolvePreviewHost(occN, form);
+    const hostName = userId ? (teamMembers.find((m) => m.id === userId)?.displayName ?? null) : null;
+    const label = new Date(`${dateStr}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return { dateStr, label, hostName };
+  });
+}
+
 export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, hubSlug, onScheduleStale }: Props) {
   const router = useRouter();
   const [rotations, setRotations] = useState<Rotation[]>([]);
@@ -237,6 +256,13 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
 
   // Editing state — only one bundle (programSlug, dayOfWeek) edits at a time
   const [editing, setEditing] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
+  // After a successful Save & Apply, the projected next sessions for the saved
+  // bundle — shown in place so the coordinator confirms the change landed
+  // without leaving to hunt for it (session 141, Maria's #5). Cleared on
+  // re-edit or dismiss.
+  const [justSaved, setJustSaved] = useState<
+    { programSlug: string; dayOfWeek: DayOfWeek; rows: { dateStr: string; label: string; hostName: string | null }[]; summary?: string }
+  | null>(null);
   const [form, setForm]       = useState<FormState | null>(null);
   const [saving, setSaving]   = useState(false);
 
@@ -534,6 +560,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
     }
     setEditing({ programSlug, dayOfWeek });
     setEndingBundle(null);
+    setJustSaved(null);
     setError(null);
   };
 
@@ -597,6 +624,10 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const removed       = data.removed       ?? 0;
       const conflictCount = data.conflictCount ?? 0;
       const bundle = { programSlug: form.programSlug, dayOfWeek: form.dayOfWeek };
+      // Capture the projected next sessions from the form BEFORE cancelForm()
+      // clears it — this is the in-place confirmation so the coordinator sees
+      // the change landed without navigating away (session 141, Maria's #5).
+      const confirmRows = projectUpcoming(form, teamMembers);
 
       await loadRotations();
       cancelForm();
@@ -621,9 +652,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         if (filled > 0)  parts.push(`${filled} session${filled === 1 ? "" : "s"} filled across ${horizonText}`);
         if (removed > 0) parts.push(`${removed} upcoming session${removed === 1 ? "" : "s"} removed`);
         showToast(`Rotation saved · ${parts.join(" · ")}`);
+        setJustSaved({ ...bundle, rows: confirmRows, summary: parts.join(" · ") });
         fullRefresh();
       } else {
         showToast("Rotation saved · all matching sessions already covered");
+        setJustSaved({ ...bundle, rows: confirmRows, summary: "All matching sessions were already covered." });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong saving. Please try again.");
@@ -862,6 +895,36 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                         onCancel={cancelForm}
                         showDayPicker={false}
                       />
+                    )}
+
+                    {/* Post-save confirmation — the projected next sessions,
+                        shown in place so the change is visibly confirmed
+                        without leaving to hunt (session 141, Maria's #5). */}
+                    {justSaved && justSaved.programSlug === program.slug && justSaved.dayOfWeek === d && !isEditingThis && (
+                      <div className="hs-rot__saved" role="status">
+                        <div className="hs-rot__saved-head">
+                          <span className="hs-rot__saved-title">✓ {DAY_LABEL[d]}&rsquo;s rotation saved</span>
+                          <button
+                            className="hs-rot__saved-dismiss"
+                            onClick={() => setJustSaved(null)}
+                            aria-label="Dismiss confirmation"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        {justSaved.summary && <p className="hs-rot__saved-summary">{justSaved.summary}</p>}
+                        <p className="hs-rot__saved-caption">Next sessions:</p>
+                        <div className="hs-rot__saved-rows">
+                          {justSaved.rows.map((r) => (
+                            <div key={r.dateStr} className="hs-rot__saved-row">
+                              <span className="hs-rot__saved-date">{r.label}</span>
+                              <span className={`hs-rot__saved-host${!r.hostName ? " hs-rot__saved-host--empty" : ""}`}>
+                                {r.hostName ?? "—"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 );
@@ -1238,16 +1301,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
       {(() => {
         const hasAnyHost = Object.values(form.hosts).some((v) => v);
         if (!hasAnyHost) return null;
-        const dates = upcomingDates(form.dayOfWeek, 6);
-        const rows = dates.map((dateStr) => {
-          const occN = occurrenceInMonth(dateStr);
-          const userId = resolvePreviewHost(occN, form);
-          const hostName = userId ? (teamMembers.find((m) => m.id === userId)?.displayName ?? null) : null;
-          const label = new Date(`${dateStr}T12:00:00`).toLocaleDateString("en-US", {
-            month: "short", day: "numeric",
-          });
-          return { dateStr, label, occN, hostName };
-        });
+        const rows = projectUpcoming(form, teamMembers);
         return (
           <div className="hs-rot__preview">
             <span className="hs-rot__preview-label">Preview</span>
