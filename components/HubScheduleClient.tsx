@@ -377,6 +377,61 @@ interface RowProps {
   isHostManager: boolean;
   /** Role-aware copy for the active hub (session 130 follow-up). */
   coverageCopy: { noun: string; verb: string; action: string };
+  /** Coordinator/manager (incl. hub coordinators) — shows the assign-in-place
+   *  affordance on needs-coverage rows (session 140). */
+  isManager: boolean;
+  teamMembers: { id: string; displayName: string; isCoordinator: boolean }[];
+  onAssign: (s: Session, userId: string) => Promise<void>;
+}
+
+/**
+ * Coordinator affordance on a needs-coverage row: assign a chosen teammate
+ * to this gap in place (session 140, Phase 2 slice 1 of the coordinator view).
+ * A native <select> is the mobile-right control — the OS picker, nothing
+ * custom to fight touch. Collapsed behind a quiet link by default so gap rows
+ * stay scannable; the coordinator's primary job is *seeing* the gaps.
+ */
+function AssignControl({
+  session, teamMembers, onAssign,
+}: {
+  session: Session;
+  teamMembers: { id: string; displayName: string; isCoordinator: boolean }[];
+  onAssign: (s: Session, userId: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  if (!open) {
+    return (
+      <button className="hs-row__assign-link" onClick={() => setOpen(true)}>
+        Assign someone…
+      </button>
+    );
+  }
+  return (
+    <select
+      className="hs-row__assign-select"
+      defaultValue=""
+      disabled={busy}
+      onChange={async (e) => {
+        const uid = e.target.value;
+        if (!uid) { setOpen(false); return; }
+        setBusy(true);
+        await onAssign(session, uid);
+        // On success the row re-renders as "covered" and this control
+        // unmounts; on failure it stays a gap, so collapse back to the link.
+        setBusy(false);
+        setOpen(false);
+      }}
+    >
+      <option value="">{busy ? "Assigning…" : "Choose a person…"}</option>
+      {teamMembers.map((m) => (
+        <option key={m.id} value={m.id}>
+          {m.displayName}{m.isCoordinator ? " ★" : ""}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 function HsRow({
@@ -385,6 +440,7 @@ function HsRow({
   onSignUp, onCancelSignUp,
   isHostManager,
   coverageCopy,
+  isManager, teamMembers, onAssign,
 }: RowProps) {
   const dateShort = fmtDateShort(session.sessionDate);
   const timeStr = fmtTime(session.sessionDate);
@@ -410,9 +466,14 @@ function HsRow({
       statusEl = <span className="hs-row__status hs-row__status--needs">{isPast ? `No ${nounLower} (missed)` : `${nounCap} needed`}</span>;
       if (!isPast) {
         actionEl = (
-          <button className="lr-btn lr-btn--host" onClick={() => onTake(session)}>
-            Yes, I can {coverageCopy.action}
-          </button>
+          <div className="hs-row__action-stack">
+            <button className="lr-btn lr-btn--host" onClick={() => onTake(session)}>
+              Yes, I can {coverageCopy.action}
+            </button>
+            {isManager && (
+              <AssignControl session={session} teamMembers={teamMembers} onAssign={onAssign} />
+            )}
+          </div>
         );
       }
       break;
@@ -867,6 +928,39 @@ export default function HubScheduleClient({
     ));
   }
 
+  // ── Coordinator: assign a chosen teammate to a gap, in place ──
+  // Phase 2 slice 1 of the coordinator view. No modal, no page change. The
+  // manager/coordinator path on POST /assignments creates the row (or claims
+  // an existing empty seed) for the chosen user, validates their hosting
+  // capability in this hub, and emails them the confirmation.
+  async function assignMember(s: Session, userId: string) {
+    if (!userId) return;
+    try {
+      const res = await fetch(`${apiBase}/assignments`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programSlug: s.programSlug,
+          userId,
+          sessionDate: s.sessionDate,
+          hubSlug,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error ?? "Couldn't assign. Please try again.");
+      }
+      const data = await res.json();
+      setSessions(prev => prev.map(row => row.id === s.id
+        ? { ...row, id: data.id, status: "claimed", hostUserId: data.hostUserId, hostName: data.hostName, subRequestId: null, subMessage: null }
+        : row
+      ));
+      const who = teamMembers.find(m => m.id === userId)?.displayName ?? data.hostName ?? "host";
+      showToast(`Assigned ${who} · ${s.programName} · ${fmtDateShort(s.sessionDate)}`);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Couldn't assign. Please try again.");
+    }
+  }
+
   // ── Multi-claim sign-up (greeter hub) ──
   // No modal. No sub-request. Open sign-up: POST creates a new
   // HostAssignment scoped to the active hub; reload the month to pick
@@ -1055,6 +1149,9 @@ export default function HubScheduleClient({
     currentUserId,
     isHostManager,
     coverageCopy,
+    isManager,
+    teamMembers,
+    onAssign: assignMember,
   };
 
   return (
@@ -1200,6 +1297,27 @@ export default function HubScheduleClient({
           <button className="hs-monthnav__today" onClick={goToCurrentMonth}>This month</button>
         )}
       </div>
+
+      {/* Coordinator coverage status — names the gaps up front so the
+          coordinator sees where things stand the moment they land
+          (session 140, Phase 2 slice 1). Single-slot hubs only; multi-claim
+          (greeter) coverage is open sign-up, a different model. */}
+      {isManager && !allowsMultipleAssignments && counts.needs > 0 && (
+        <div className="hs-coord-status" role="status">
+          <span className="hs-coord-status__text">
+            {counts.needs} {counts.needs === 1 ? "session" : "sessions"} still{" "}
+            {counts.needs === 1 ? "needs" : "need"} coverage
+          </span>
+          {filter !== "needs" && (
+            <button
+              className="hs-coord-status__action"
+              onClick={() => setFilter("needs")}
+            >
+              Show {counts.needs === 1 ? "it" : "them"}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Filter pills */}
       <div className="hs-filters" role="tablist" aria-label="Filter sessions">

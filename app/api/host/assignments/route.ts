@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { isHubCoordinator } from "@/lib/hubAuth";
 import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
 import {
   DEFAULT_HOSTING_HUB_SLUG,
@@ -331,8 +332,15 @@ export async function POST(request: Request) {
   }
 
   // Self-claim: any active hub-team member can create+claim for themselves.
-  // Manager operations (create unclaimed, assign to others): manager-only.
-  if (action !== "claim" && !isManager(roles)) {
+  // Assigning *others* (no self-claim action) is a coordinator operation —
+  // allow hub coordinators of the target hub too, not just HOST_MANAGER/ADMIN
+  // (session 140). Same trust model as the rotation routes; previously this
+  // locked out the very hub coordinators who staff the team from filling a gap.
+  if (
+    action !== "claim" &&
+    !isManager(roles) &&
+    !(await isHubCoordinator(session.user.id, targetHubSlug))
+  ) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -391,12 +399,34 @@ export async function POST(request: Request) {
     });
   }
 
-  // Single-slot path. Look up any existing row in this hub for the
-  // session; either claim its unclaimed seed or reject as already filled.
+  // If assigning a specific person (coordinator/manager path), verify they
+  // can host in the target hub BEFORE touching any row — applies whether we
+  // claim an existing unclaimed seed or create a fresh assignment. Hub
+  // authority applies: a member who is paused/inactive or has had hosting
+  // revoked on this hub can't be assigned, even with the HOST role.
+  if (assignedUserId && assignedUserId !== session.user.id) {
+    const targetUser = await db.user.findUnique({
+      where: { id: assignedUserId },
+      select: { roles: true },
+    });
+    if (!targetUser) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
+    if (!(await hasEffectiveHostAccess(assignedUserId, targetUser.roles, targetHubSlug))) {
+      return Response.json(
+        { error: "This member can't host right now — they are paused, inactive, or have had hosting revoked on this hub." },
+        { status: 422 }
+      );
+    }
+  }
+
+  // Single-slot path. Look up any existing row in this hub for the session;
+  // claim/assign its unclaimed seed, or reject as already filled.
   const existing = await db.hostAssignment.findFirst({
     where: { programSlug, sessionDate: parsedDate, hubSlug: targetHubSlug },
   });
   if (existing) {
+    // Self-claim an unclaimed seed.
     if (action === "claim" && !existing.userId) {
       const updated = await db.hostAssignment.update({
         where: { id: existing.id },
@@ -414,30 +444,32 @@ export async function POST(request: Request) {
           : null,
       });
     }
+    // Coordinator/manager assigns a specific person to an unclaimed seed.
+    // (Capability already verified above.) Without this branch, assigning
+    // someone to an existing-but-empty slot returned a confusing 409
+    // "session already exists" — the kind of dead-end that erodes trust
+    // (session 140).
+    if (action !== "claim" && !existing.userId && assignedUserId) {
+      const updated = await db.hostAssignment.update({
+        where: { id: existing.id },
+        data: { userId: assignedUserId, assignedBy: session.user.id },
+        include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
+      });
+      after(() => notifyAssignedHost(assignedUserId, updated.programSlug, updated.sessionDate, updated.hubSlug));
+      return Response.json({
+        id: updated.id, programSlug: updated.programSlug,
+        sessionDate: updated.sessionDate?.toISOString() ?? null,
+        hubSlug: updated.hubSlug,
+        status: "claimed", hostUserId: updated.userId,
+        hostName: updated.user
+          ? (updated.user.preferredName || [updated.user.firstName, updated.user.lastName].filter(Boolean).join(" ") || null)
+          : null,
+      });
+    }
     return Response.json(
       { error: "A session already exists for this program on that date." },
       { status: 409 }
     );
-  }
-
-  // If assigning a specific user (manager only), verify they can host in
-  // the target hub. Hub authority applies: a member whose capability is
-  // revoked or who is paused/inactive in the target hub cannot be assigned,
-  // even if the HOST role is present.
-  if (assignedUserId && assignedUserId !== session.user.id) {
-    const targetUser = await db.user.findUnique({
-      where: { id: assignedUserId },
-      select: { roles: true },
-    });
-    if (!targetUser) {
-      return Response.json({ error: "User not found" }, { status: 404 });
-    }
-    if (!(await hasEffectiveHostAccess(assignedUserId, targetUser.roles, targetHubSlug))) {
-      return Response.json(
-        { error: "This member can't host right now — they are paused, inactive, or have had hosting revoked on this hub." },
-        { status: 422 }
-      );
-    }
   }
 
   const assignment = await db.hostAssignment.create({

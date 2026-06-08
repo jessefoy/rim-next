@@ -15130,6 +15130,68 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hs-row__manager:hover { color: var(--rim-text); border-color: var(--rim-mid); }
 
+/* Coordinator: assign-in-place on a needs-coverage row (session 140,
+   Phase 2 slice 1). Stacks under the self-take button, right-aligned to
+   match .hs-row__do. */
+.hs-row__action-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.hs-row__assign-link {
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-blue);
+  cursor: pointer;
+  padding: 6px 4px;
+  min-height: 44px; /* touch target (CLAUDE.md) */
+}
+.hs-row__assign-link:hover { text-decoration: underline; }
+.hs-row__assign-select {
+  font-family: var(--font-sans);
+  font-size: 16px; /* >=16px prevents iOS focus-zoom */
+  color: var(--rim-text);
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 44px;
+  max-width: 200px;
+  cursor: pointer;
+}
+
+/* Coordinator coverage status — names the gaps on landing (session 140). */
+.hs-coord-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--color-warning-bg);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.hs-coord-status__text {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+}
+.hs-coord-status__action {
+  background: none;
+  border: 1px solid var(--rim-rule);
+  border-radius: 50px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text);
+  cursor: pointer;
+  padding: 6px 14px;
+  min-height: 44px; /* touch target (CLAUDE.md) */
+}
+.hs-coord-status__action:hover { border-color: var(--rim-mid); }
+
 /* Empty state (per filter) */
 .hs-allset {
   background: #fff;
