@@ -17,6 +17,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import { EARLY_OPEN_MIN, LATE_GRACE_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -454,9 +455,11 @@ function HsRow({
   // now is inside the LiveKit join window for THIS occurrence. The session page
   // passes no date and the server only ever opens *today's* session, so a link
   // on a future/non-live row can only dead-end with "No session right now"
-  // (Maria's session-140 #2 report). Window mirrors lib/sessionWindow.ts: opens
-  // 22 min before start, closes 30 min after end (or start + 90 min when the
-  // program has no endDatetime). Evaluated at render — matches the NEW badge.
+  // (Maria's session-140 #2 report). Timing comes from the shared
+  // lib/sessionWindowConstants (same numbers the server gate uses): opens
+  // EARLY_OPEN_MIN before start, closes LATE_GRACE_MIN after end (or
+  // FALLBACK_DURATION_MIN past start when the program has no endDatetime).
+  // Evaluated at render — matches the NEW badge.
   const isRoomLiveNow = (() => {
     if (isPast) return false;
     if (session.programFormat !== "virtual" && session.programFormat !== "hybrid") return false;
@@ -464,9 +467,9 @@ function HsRow({
     const start = new Date(session.sessionDate).getTime();
     if (Number.isNaN(start)) return false;
     const endRaw = session.sessionEnd ? new Date(session.sessionEnd).getTime() : NaN;
-    const end = Number.isNaN(endRaw) ? start + 90 * 60_000 : endRaw;
-    const opensAt = start - 22 * 60_000;
-    const closesAt = end + 30 * 60_000;
+    const end = Number.isNaN(endRaw) ? start + FALLBACK_DURATION_MIN * 60_000 : endRaw;
+    const opensAt = start - EARLY_OPEN_MIN * 60_000;
+    const closesAt = end + LATE_GRACE_MIN * 60_000;
     const now = Date.now();
     return now >= opensAt && now <= closesAt;
   })();

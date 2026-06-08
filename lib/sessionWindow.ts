@@ -2,10 +2,12 @@
  * Session-window helper for LiveKit room access.
  *
  * Computes whether a program has an active session right now — i.e. whether
- * the room should be reachable. The window opens 22 minutes before the
- * program's start time (matching the dashboard's host early-open epoch from
- * session 121) and closes 30 minutes after the program's end time. If
- * endDatetime is null, falls back to a 90-minute default duration.
+ * the room should be reachable. The window opens EARLY_OPEN_MIN (30) minutes
+ * before the program's start time — the host prep + emergency-entry window —
+ * and closes LATE_GRACE_MIN (30) minutes after the program's end time. If
+ * endDatetime is null, falls back to FALLBACK_DURATION_MIN (90) minutes. All
+ * three live in ./sessionWindowConstants (shared with the dashboard entry
+ * tiers and the Scheduler "Enter room" link, so the timing can't drift).
  *
  * Used by /api/livekit/token and /api/livekit/guest-token to refuse token
  * issuance outside the window. ADMIN and GUIDING_TEACHER bypass at the
@@ -23,10 +25,12 @@ import {
   shiftToDate,
   type ScheduleProgram,
 } from "./scheduleUtils";
+import {
+  EARLY_OPEN_MIN,
+  LATE_GRACE_MIN,
+  FALLBACK_DURATION_MIN,
+} from "./sessionWindowConstants";
 
-const EARLY_OPEN_MIN = 22;
-const LATE_GRACE_MIN = 30;
-const FALLBACK_DURATION_MIN = 90;
 const TZ = "America/Chicago";
 
 /**

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
 import { ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
 import { isOpenlyDroppable } from "@/lib/programKind";
+import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 
@@ -113,8 +114,9 @@ export default async function DashboardPage() {
   const now = new Date();
 
   // Host/teacher detection: the Session Host (HostAssignment for today) and the
-  // ProgramTeacher both get a 10-minute early-open window before the regular
-  // 12-minute join opens to everyone. ADMIN gets the same affordance as a
+  // ProgramTeacher get an early-open window (EARLY_OPEN_MIN = 30 min before
+  // start) for prep + emergencies, before the regular member join opens
+  // (MEMBER_JOIN_MIN = 10 min before). ADMIN gets the same affordance as a
   // safety override. One batched query per surface (host + teacher), then we
   // match per session in JS using the CT date string for HostAssignment.
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
@@ -172,14 +174,14 @@ export default async function DashboardPage() {
   const todaySessions = visibleTodayRaw.map((p) => {
       const startIso = p.startDatetime!.toISOString();
       const start     = shiftToDate(startIso, today);
-      const liveStart = new Date(start.getTime() - 12 * 60 * 1000);
+      const liveStart = new Date(start.getTime() - MEMBER_JOIN_MIN * 60 * 1000);
       const endIso    = p.endDatetime?.toISOString() ?? null;
-      const liveEnd   = endIso ? shiftToDate(endIso, today) : new Date(start.getTime() + 90 * 60 * 1000);
+      const liveEnd   = endIso ? shiftToDate(endIso, today) : new Date(start.getTime() + FALLBACK_DURATION_MIN * 60 * 1000);
       const isHostOrTeacher =
         isAdmin ||
         hostedSlugsToday.has(p.slug) ||
         teacherProgramIds.has(p.id);
-      const earlyOpenStart = new Date(liveStart.getTime() - 10 * 60 * 1000);
+      const earlyOpenStart = new Date(start.getTime() - EARLY_OPEN_MIN * 60 * 1000);
       const isLive       = now >= liveStart && now <= liveEnd;
       const isSetupOpen  = !isLive && isHostOrTeacher && now >= earlyOpenStart && now < liveStart;
       const isLaterToday = !isLive && !isSetupOpen && start > now;
