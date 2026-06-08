@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 export interface SerializedMember {
@@ -83,6 +83,44 @@ export default function MembersTable({ members }: Props) {
   const [showArchived, setShowArchived] = useState(false);
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  // Add-member modal. Creates a staged account, then lands on the new member's
+  // profile to assign role + schedule. No email fires (see lib/email.ts gate).
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ firstName: "", lastName: "", email: "", phone: "" });
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const openAdd = () => {
+    setAddForm({ firstName: "", lastName: "", email: "", phone: "" });
+    setAddError(null);
+    setShowAdd(true);
+  };
+
+  const handleAddSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (adding) return;
+    setAdding(true);
+    setAddError(null);
+    try {
+      const res = await fetch("/api/admin/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAddError(data?.error ?? "Couldn't create the member. Please try again.");
+        setAdding(false);
+        return;
+      }
+      // Land on the new member's profile to assign their role + schedule.
+      router.push(`/admin/members/${data.id}`);
+    } catch {
+      setAddError("Couldn't create the member. Please try again.");
+      setAdding(false);
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -168,6 +206,9 @@ export default function MembersTable({ members }: Props) {
           <option value="INACTIVE">Inactive</option>
         </select>
         <div className="adm-toolbar__right">
+          <button type="button" className="adm-add-btn" onClick={openAdd}>
+            + Add member
+          </button>
           <span className="adm-search__count">
             {sorted.length} {sorted.length === 1 ? "member" : "members"}
           </span>
@@ -253,6 +294,84 @@ export default function MembersTable({ members }: Props) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showAdd && (
+        <div className="adm-modal-backdrop" onClick={() => !adding && setShowAdd(false)}>
+          <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="adm-modal__title">Add a member</h2>
+            <p className="adm-modal__hint">
+              Creates the account now. No email is sent — they cross the usual
+              sign-up threshold (agreements + sign-in) when they first log in,
+              and their name updates to whatever they enter. You&rsquo;ll land on
+              their profile next to assign a role.
+            </p>
+            <form className="adm-form" onSubmit={handleAddSubmit}>
+              <div className="adm-form__row">
+                <div className="adm-form__field">
+                  <label className="adm-form__label" htmlFor="add-firstName">First name</label>
+                  <input
+                    id="add-firstName"
+                    className="adm-form__input"
+                    value={addForm.firstName}
+                    onChange={(e) => setAddForm((f) => ({ ...f, firstName: e.target.value }))}
+                    autoComplete="off"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <div className="adm-form__field">
+                  <label className="adm-form__label" htmlFor="add-lastName">Last name</label>
+                  <input
+                    id="add-lastName"
+                    className="adm-form__input"
+                    value={addForm.lastName}
+                    onChange={(e) => setAddForm((f) => ({ ...f, lastName: e.target.value }))}
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="adm-form__field">
+                <label className="adm-form__label" htmlFor="add-email">Email</label>
+                <input
+                  id="add-email"
+                  type="email"
+                  className="adm-form__input"
+                  value={addForm.email}
+                  onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+              <div className="adm-form__field">
+                <label className="adm-form__label" htmlFor="add-phone">Phone (optional)</label>
+                <input
+                  id="add-phone"
+                  type="tel"
+                  className="adm-form__input"
+                  value={addForm.phone}
+                  onChange={(e) => setAddForm((f) => ({ ...f, phone: e.target.value }))}
+                  autoComplete="off"
+                />
+              </div>
+              {addError && <p className="adm-modal__error">{addError}</p>}
+              <div className="adm-modal__actions">
+                <button
+                  type="button"
+                  className="adm-btn--cancel"
+                  onClick={() => setShowAdd(false)}
+                  disabled={adding}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="adm-add-btn" disabled={adding}>
+                  {adding ? "Creating…" : "Create member"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

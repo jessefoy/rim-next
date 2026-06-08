@@ -111,7 +111,15 @@ export async function getHubNotificationRecipients(
           status: "ACTIVE",
           communicationsEnabled: true,
           ...(options?.coordinatorsOnly ? { isCoordinator: true } : {}),
-          user: { archivedAt: null },
+          // emailVerified must be set: excludes pre-threshold / staged members.
+          // An admin can add a host to a hub before they've ever logged in —
+          // they must receive ZERO hub-pool notifications until they onboard.
+          // This is the durable gate for EVERY pool email (new-program-needs-host,
+          // sub-request-*, and any future getHubNotificationRecipients consumer);
+          // direct 1:1 member emails are gated separately in lib/email.ts. A real,
+          // active member always has emailVerified set, so this never excludes
+          // anyone who has actually signed in.
+          user: { archivedAt: null, emailVerified: { not: null } },
           ...(options?.excludeUserId ? { NOT: { userId: options.excludeUserId } } : {}),
         },
         include: {

@@ -222,6 +222,69 @@ export interface TemplatedEmailOptions {
   attachments?: { filename: string; content: string | Buffer }[];
 }
 
+// ─── Pre-threshold notification gate ─────────────────────────────────────────
+//
+// An admin can stage a person in the system before that person has ever logged
+// in — e.g. pre-populating the host team before launch: create the account,
+// assign the HOST role, put them on the schedule. A staged account exists with
+// `emailVerified = null` until they complete their first sign-in.
+//
+// While they're still a placeholder, member-directed TEAM notifications
+// (role-assigned, hub-welcome, host/standing-assignment) must not reach them —
+// they'd be confused by "you're scheduled to host" for a system they've never
+// seen. The rule: suppress those emails when the recipient has an account that
+// hasn't completed sign-in. The moment they log in (emailVerified is set),
+// every email flows normally.
+//
+// NOT applied to sign-in codes or the join-welcome letter — those MUST reach a
+// mid-signup person whose emailVerified is still null. Only the role/hub/host
+// builders are gated: the templated ones via PRE_THRESHOLD_GATED_SLUGS inside
+// sendTemplatedEmail, the hardcoded (resend-direct) ones via an inline call.
+async function recipientHasOnboarded(to: string): Promise<boolean> {
+  try {
+    // `to` is expected to be a bare email (every gated callsite passes one). A
+    // display-name-wrapped address ("Name <e@x>") would miss the lookup and
+    // fail open (send) — acceptable, and not a shape any current caller uses.
+    const u = await db.user.findUnique({
+      where: { email: to.trim().toLowerCase() },
+      select: { emailVerified: true },
+    });
+    if (!u) return true;             // not a member record (external addr) — never suppress
+    return u.emailVerified !== null; // known account that hasn't signed in → suppress
+  } catch (e) {
+    // Fail open: a DB hiccup must not silently swallow a real notification.
+    console.error("[email] recipientHasOnboarded lookup failed; sending anyway:", e);
+    return true;
+  }
+}
+
+// Templated, member-directed team notifications gated by the rule above. Kept as
+// a set so the check lives in one place inside sendTemplatedEmail rather than
+// scattered across every builder. Auth + welcome + registration/dana slugs are
+// deliberately absent — those legitimately reach mid-signup or non-member people.
+//
+// Two-layer model (keep them in sync):
+//   • POOL emails (recipients from getHubNotificationRecipients —
+//     new-program-needs-host, sub-request-*) are gated at the source: that
+//     helper already excludes emailVerified:null members, so they DON'T need to
+//     be listed here, and any future pool email is covered automatically.
+//   • DIRECT / subscription / author-picked emails to a specific member are
+//     listed here because they bypass that pool. A future member-directed hub
+//     email of that kind must be added to this set.
+const PRE_THRESHOLD_GATED_SLUGS = new Set<string>([
+  "registrar-role-assigned",
+  "host-role-assigned",
+  "host-assignment-confirmation",
+  "host-assignment-removed",
+  "hub-welcome",
+  // Conversation/document notifications go to thread subscribers / author-picked
+  // recipients (not the hub pool), so they need explicit gating here.
+  "hub-conv-new-thread",
+  "hub-conv-new-reply",
+  "hub-document-created",
+  "hub-document-updated",
+]);
+
 export async function sendTemplatedEmail(
   slug: string,
   to: string,
@@ -241,6 +304,13 @@ export async function sendTemplatedEmail(
       if (options.throwOnFailure) {
         throw new Error(`Email template "${slug}" is missing or disabled`);
       }
+      return;
+    }
+
+    // Pre-threshold gate: don't send a member-directed team notification to a
+    // staged account that hasn't logged in yet. See recipientHasOnboarded.
+    if (PRE_THRESHOLD_GATED_SLUGS.has(slug) && !(await recipientHasOnboarded(to))) {
+      console.log(`[email] suppressed "${slug}" to pre-threshold account ${to}`);
       return;
     }
 
@@ -641,6 +711,10 @@ export async function sendHostRoleAssignmentEmail(data: RoleAssignmentEmailData)
 export async function sendHostManagerRoleAssignmentEmail(
   data: RoleAssignmentEmailData
 ): Promise<void> {
+  if (!(await recipientHasOnboarded(data.to))) {
+    console.log(`[email] suppressed host-manager role email to pre-threshold account ${data.to}`);
+    return;
+  }
   const firstName = data.firstName ?? "there";
   const hostHubUrl  = `${BASE_URL}/account/hub/host-team`;
   const scheduleUrl = `${BASE_URL}/tools/schedule`;
@@ -892,6 +966,10 @@ export async function sendStandingAssignmentScheduledEmail(
   data: StandingAssignmentScheduledEmailData
 ): Promise<void> {
   if (data.sessions.length === 0) return;
+  if (!(await recipientHasOnboarded(data.to))) {
+    console.log(`[email] suppressed standing-assignment-scheduled to pre-threshold account ${data.to}`);
+    return;
+  }
   const count = data.sessions.length;
   const listHtml = data.sessions
     .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
@@ -933,6 +1011,10 @@ export async function sendStandingAssignmentReplacedEmail(
   data: StandingAssignmentScheduledEmailData
 ): Promise<void> {
   if (data.sessions.length === 0) return;
+  if (!(await recipientHasOnboarded(data.to))) {
+    console.log(`[email] suppressed standing-assignment-replaced to pre-threshold account ${data.to}`);
+    return;
+  }
   const count = data.sessions.length;
   const listHtml = data.sessions
     .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
@@ -993,6 +1075,10 @@ export interface StandingAssignmentReleasedEmailData {
 export async function sendStandingAssignmentReleasedEmail(
   data: StandingAssignmentReleasedEmailData
 ): Promise<void> {
+  if (!(await recipientHasOnboarded(data.to))) {
+    console.log(`[email] suppressed standing-assignment-released to pre-threshold account ${data.to}`);
+    return;
+  }
   const count = data.sessions.length;
   const programName = data.programName;
   const subject =
@@ -1046,6 +1132,10 @@ export async function sendStandingAssignmentEndedEmail(
   data: StandingAssignmentScheduledEmailData
 ): Promise<void> {
   if (data.sessions.length === 0) return;
+  if (!(await recipientHasOnboarded(data.to))) {
+    console.log(`[email] suppressed standing-assignment-ended to pre-threshold account ${data.to}`);
+    return;
+  }
   const count = data.sessions.length;
   const listHtml = data.sessions
     .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
