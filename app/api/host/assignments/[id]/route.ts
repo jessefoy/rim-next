@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
-import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
+import { sendHostAssignmentConfirmationEmail, sendHostAssignmentRemovedEmail } from "@/lib/email";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import { isHubCoordinator } from "@/lib/hubAuth";
 
 function fmtDate(d: Date | null): string | null {
   return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
@@ -18,7 +19,9 @@ function isManagerRole(roles: string[]) {
 // PATCH /api/host/assignments/[id]
 // Body: { action: "claim" | "unclaim" }
 // claim:   HOST/HOST_MANAGER/ADMIN can claim an unclaimed session
-// unclaim: owner (or manager) can unclaim — sets userId=null, cancels open sub requests
+// unclaim: owner, a manager, OR a coordinator of the assignment's hub can
+//          unclaim — sets userId=null, cancels open sub requests, and notifies
+//          the removed host when someone else takes them off.
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -28,9 +31,6 @@ export async function PATCH(
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   const roles = session.user.roles ?? [];
-  if (!hasHubAccess(roles)) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const { id } = await params;
   const body = await request.json().catch(() => null);
@@ -45,7 +45,15 @@ export async function PATCH(
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
+  // Authorize per action AFTER loading the assignment, so the gate can be scoped
+  // to the assignment's own hub. (A pre-loaded system-role-only gate here used
+  // to shadow the coordinator check below — it 403'd a non-HOST-role hub
+  // coordinator on unclaim while DELETE/reassign let them through.)
   if (action === "claim") {
+    // Claiming an open session: hub-team system role OR coordinator of this hub.
+    if (!hasHubAccess(roles) && !(await isHubCoordinator(session.user.id, assignment.hubSlug))) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
     if (assignment.userId) {
       return Response.json(
         { error: "This session is already claimed." },
@@ -84,11 +92,19 @@ export async function PATCH(
     return Response.json({ ok: true, status: "claimed" });
   }
 
-  // unclaim
+  // unclaim — owner removes themselves, OR a manager/hub-coordinator removes
+  // anyone in their hub. Coordinator parity with the assign path (session 140):
+  // a coordinator who can put someone on a session can take them off it. Scoped
+  // to THIS assignment's hub so a coordinator only manages their own team.
   const isOwn = assignment.userId === session.user.id;
-  if (!isManagerRole(roles) && !isOwn) {
+  const canManage =
+    isManagerRole(roles) ||
+    (await isHubCoordinator(session.user.id, assignment.hubSlug));
+  if (!canManage && !isOwn) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const removedUserId = assignment.userId;
 
   // Cancel open sub requests
   await db.subRequest.updateMany({
@@ -101,12 +117,44 @@ export async function PATCH(
     data: { userId: null },
   });
 
+  // Courtesy notification: when a coordinator/manager removes SOMEONE ELSE, tell
+  // that host — they were emailed when assigned, so a silent removal would leave
+  // a stale "you're hosting" note. Self-unclaim is silent (they did it). The
+  // template send is pre-threshold-gated, so staged accounts get nothing.
+  if (removedUserId && removedUserId !== session.user.id) {
+    after(async () => {
+      try {
+        const [program, removed, remover] = await Promise.all([
+          db.program.findUnique({ where: { slug: assignment.programSlug }, select: { name: true } }),
+          db.user.findUnique({ where: { id: removedUserId }, select: { email: true, firstName: true } }),
+          db.user.findUnique({ where: { id: session.user.id }, select: { firstName: true, lastName: true, preferredName: true } }),
+        ]);
+        if (removed?.email) {
+          const byName =
+            remover?.preferredName ||
+            [remover?.firstName, remover?.lastName].filter(Boolean).join(" ") ||
+            "A coordinator";
+          await sendHostAssignmentRemovedEmail({
+            to: removed.email,
+            firstName: removed.firstName,
+            programName: program?.name || assignment.programSlug,
+            dateText: fmtDate(assignment.sessionDate),
+            byName,
+            hubSlug: assignment.hubSlug || DEFAULT_HOSTING_HUB_SLUG,
+          });
+        }
+      } catch (e) {
+        console.error("[host-assignment unclaim] removal email error:", e);
+      }
+    });
+  }
+
   return Response.json({ ok: true, status: "unclaimed" });
 }
 
 // DELETE /api/host/assignments/[id]
-// HOST_MANAGER/ADMIN can delete any assignment.
-// HOST can delete their own assignment.
+// A manager, or a coordinator of the assignment's hub, can delete any
+// assignment in that hub. A HOST can delete their own assignment.
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -124,10 +172,12 @@ export async function DELETE(
   }
 
   const roles = session.user.roles ?? [];
-  const manager = isManagerRole(roles);
+  const canManage =
+    isManagerRole(roles) ||
+    (await isHubCoordinator(session.user.id, assignment.hubSlug));
   const isOwn = assignment.userId !== null && assignment.userId === session.user.id;
 
-  if (!manager && !isOwn) {
+  if (!canManage && !isOwn) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

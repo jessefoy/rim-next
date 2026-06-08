@@ -249,7 +249,7 @@ function Toast({ msg }: { msg: string | null }) {
 
 // ── Modal ───────────────────────────────────────────────────
 
-type ModalKind = "take" | "cover" | "ask-cover" | "cancel-request" | "reassign" | null;
+type ModalKind = "take" | "cover" | "ask-cover" | "cancel-request" | "reassign" | "unassign" | null;
 
 interface ModalProps {
   kind: ModalKind;
@@ -334,6 +334,16 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
         <strong>{dateStr}</strong>.</>
       );
     primaryLabel = "Yes, reassign to me";
+  } else if (kind === "unassign") {
+    title = "Remove this host?";
+    body = (
+      <>This takes <strong>{session.hostName ?? "the current host"}</strong> off{" "}
+      <strong>{session.programName}</strong> on <strong>{dateStr}</strong>. The
+      session reopens as needing coverage, and they&apos;ll be notified. Any open
+      cover request will be closed.</>
+    );
+    primaryLabel = "Yes, remove";
+    cancelLabel = "Keep them on";
   }
 
   return (
@@ -375,6 +385,8 @@ interface RowProps {
   onAskCover: (s: Session) => void;
   onCancelRequest: (s: Session) => void;
   onReassign: (s: Session) => void;
+  /** Coordinator/manager: take the current host off a covered session. */
+  onUnassign: (s: Session) => void;
   /** Multi-claim hubs only: sign me up for this session. */
   onSignUp?: (s: Session) => void;
   /** Multi-claim hubs only: cancel my signup on this session. */
@@ -441,7 +453,7 @@ function AssignControl({
 
 function HsRow({
   session, kind, isPast, currentUserId,
-  onTake, onCover, onAskCover, onCancelRequest, onReassign,
+  onTake, onCover, onAskCover, onCancelRequest, onReassign, onUnassign,
   onSignUp, onCancelSignUp,
   isHostManager,
   coverageCopy,
@@ -474,10 +486,11 @@ function HsRow({
     return now >= opensAt && now <= closesAt;
   })();
 
-  // Reassign is only useful when no other action is offered (covered rows).
-  // On needs-host / needs-sub / mine, the existing action accomplishes the
-  // same thing for a manager.
-  const showManagerReassign = isHostManager && kind === "covered" && !isPast;
+  // Reassign + Remove are coverage-management actions on covered rows. Gated by
+  // isManager (managers AND coordinators of the active hub), not isHostManager —
+  // a coordinator who can assign a host can also reassign/remove one (the gap
+  // Nancy hit: she could put Maria on a session but had no way to take her off).
+  const showCoverageManage = isManager && kind === "covered" && !isPast;
 
   let statusEl: React.ReactNode = null;
   let actionEl: React.ReactNode = null;
@@ -671,10 +684,15 @@ function HsRow({
         <div className="hs-row__who">{statusEl}</div>
         <div className="hs-row__do">
           {actionEl}
-          {showManagerReassign && (
-            <button className="hs-row__manager" onClick={() => onReassign(session)}>
-              Reassign to me
-            </button>
+          {showCoverageManage && (
+            <>
+              <button className="hs-row__quiet" onClick={() => onUnassign(session)}>
+                Remove
+              </button>
+              <button className="hs-row__manager" onClick={() => onReassign(session)}>
+                Reassign to me
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -961,6 +979,25 @@ export default function HubScheduleClient({
     ));
   }
 
+  // ── Coordinator/manager: remove the current host (slot reopens) ──
+  // PATCH unclaim sets userId=null and notifies the removed host server-side.
+  // The row stays (it's the session seed) and re-renders as needing coverage,
+  // where the "Assign someone…" picker can put someone else on if desired.
+  async function unassign(s: Session) {
+    const res = await fetch(`${apiBase}/assignments/${s.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "unclaim" }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error ?? "Couldn't remove the host.");
+    }
+    setSessions(prev => prev.map(row => row.id === s.id
+      ? { ...row, status: "unclaimed", hostUserId: null, hostName: null, subRequestId: null, subMessage: null }
+      : row
+    ));
+  }
+
   // ── Coordinator: assign a chosen teammate to a gap, in place ──
   // Phase 2 slice 1 of the coordinator view. No modal, no page change. The
   // manager/coordinator path on POST /assignments creates the row (or claims
@@ -1038,6 +1075,7 @@ export default function HubScheduleClient({
   function openAskCover(s: Session) { setModal({ kind: "ask-cover", session: s }); }
   function openCancelRequest(s: Session) { setModal({ kind: "cancel-request", session: s }); }
   function openReassign(s: Session) { setModal({ kind: "reassign", session: s }); }
+  function openUnassign(s: Session) { setModal({ kind: "unassign", session: s }); }
 
   function closeModal() {
     if (modalSubmitting) return;
@@ -1064,6 +1102,10 @@ export default function HubScheduleClient({
       } else if (modal.kind === "reassign") {
         await reassign(modal.session);
         showToast("Reassigned to you.");
+      } else if (modal.kind === "unassign") {
+        const removedName = modal.session.hostName ?? "Host";
+        await unassign(modal.session);
+        showToast(`Removed ${removedName} · now needs coverage`);
       }
       setModal({ kind: null, session: null });
       clearDeepLinkParams();
@@ -1177,6 +1219,7 @@ export default function HubScheduleClient({
     onAskCover: openAskCover,
     onCancelRequest: openCancelRequest,
     onReassign: openReassign,
+    onUnassign: openUnassign,
     onSignUp: signUp,
     onCancelSignUp: cancelSignUp,
     currentUserId,

@@ -6,6 +6,7 @@ import {
   sendHostAssignmentRemovedEmail,
 } from "@/lib/email";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import { isHubCoordinator } from "@/lib/hubAuth";
 
 function fmtDate(d: Date | null): string | null {
   return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
@@ -16,8 +17,10 @@ function isManager(roles: string[]) {
 }
 
 // POST /api/host/assignments/reassign
-// HOST_MANAGER or ADMIN only. Swaps the current assignee (if any) for the
-// requester on the given session.
+// A manager (HOST_MANAGER/ADMIN), or a coordinator of the session's hub, can
+// reassign — swaps the current assignee (if any) for the requester (the
+// coordinator/manager takes the session over themselves). Coordinator parity
+// with the assign + unclaim paths: scoped to the session's own hub.
 //
 // Body: { programSlug, sessionDate, currentAssignmentId? }
 //   - If currentAssignmentId is provided, the old HostAssignment is deleted
@@ -26,19 +29,13 @@ function isManager(roles: string[]) {
 //   - A fresh HostAssignment is created with userId = current user.
 //
 // Regular HOST uses the sub-request system for coverage transfers — this
-// endpoint is reserved for managerial overrides.
+// endpoint is reserved for coordinator/manager overrides.
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   const roles = session.user.roles ?? [];
-  if (!isManager(roles)) {
-    return Response.json(
-      { error: "Only Host Managers and Admins can reassign sessions." },
-      { status: 403 },
-    );
-  }
 
   const body = await request.json().catch(() => null);
   if (!body?.programSlug) {
@@ -60,8 +57,11 @@ export async function POST(request: Request) {
   // assignment to inherit from.
   let preservedHubSlug: string | null = null;
 
+  // Load the existing assignment first (if any) so the permission check can be
+  // scoped to the SESSION's hub.
+  let existing: Awaited<ReturnType<typeof db.hostAssignment.findUnique>> = null;
   if (currentAssignmentId) {
-    const existing = await db.hostAssignment.findUnique({
+    existing = await db.hostAssignment.findUnique({
       where: { id: currentAssignmentId },
     });
     if (!existing) {
@@ -69,27 +69,47 @@ export async function POST(request: Request) {
     }
     previousUserId = existing.userId ?? null;
     preservedHubSlug = existing.hubSlug;
+  }
 
-    if (previousUserId === session.user.id) {
-      return Response.json(
-        { error: "You're already hosting this session." },
-        { status: 409 },
-      );
-    }
+  // Resolve the hub this reassign targets: the existing assignment's hub, else
+  // the program's primary hosting hub. Gate on manager OR coordinator-of-hub.
+  const sessionHubSlug =
+    preservedHubSlug ??
+    (await db.program.findUnique({
+      where: { slug: programSlug },
+      select: { hostingHubSlug: true },
+    }))?.hostingHubSlug ??
+    DEFAULT_HOSTING_HUB_SLUG;
 
+  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, sessionHubSlug))) {
+    return Response.json(
+      { error: "Only coordinators, Host Managers, and Admins can reassign sessions." },
+      { status: 403 },
+    );
+  }
+
+  if (previousUserId === session.user.id) {
+    return Response.json(
+      { error: "You're already hosting this session." },
+      { status: 409 },
+    );
+  }
+
+  if (existing) {
     // Atomic cascade-delete. SubRequest.assignmentId FK is Restrict — a
     // bare hostAssignment.delete would FK-violate on any historic non-OPEN
     // SubRequest. SubClaim cascades on SubRequest delete; explicit for
     // clarity. Session 130 follow-up — same FK-pattern fix applied to
     // clear-rotations, release-host, and assignments/[id] DELETE.
+    const existingId = existing.id;
     await db.$transaction(async (tx) => {
       await tx.subClaim.deleteMany({
-        where: { request: { assignmentId: existing.id } },
+        where: { request: { assignmentId: existingId } },
       });
       await tx.subRequest.deleteMany({
-        where: { assignmentId: existing.id },
+        where: { assignmentId: existingId },
       });
-      await tx.hostAssignment.delete({ where: { id: existing.id } });
+      await tx.hostAssignment.delete({ where: { id: existingId } });
     });
   }
 
