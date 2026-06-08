@@ -132,6 +132,10 @@ export async function POST(request: Request) {
   type ByUser = Map<string, ReleasedSession[]>;
   const byUser: ByUser = new Map();
   let releasedCount = 0;
+  // Count of pre-generated sessions deleted beyond a new end date — surfaced
+  // so the coordinator's confirmation can say how many later sessions were
+  // removed (session 140, #5 legibility).
+  let removedOutOfRange = 0;
 
   if (releaseFuture) {
     const futureRows = await db.hostAssignment.findMany({
@@ -186,6 +190,7 @@ export async function POST(request: Request) {
         select: { id: true },
       });
       const outOfRangeIds = outOfRange.map((a) => a.id);
+      removedOutOfRange = outOfRangeIds.length;
       if (outOfRangeIds.length > 0) {
         await tx.subClaim.deleteMany({
           where: { request: { assignmentId: { in: outOfRangeIds } } },
@@ -257,6 +262,7 @@ export async function POST(request: Request) {
   return Response.json({
     ended:    rotations.length,
     released: releasedCount,
+    removed:  removedOutOfRange,
     mode:     endsOnParam ? "set-end-date" : releaseFuture ? "release" : "end",
   });
 }

@@ -1032,7 +1032,14 @@ export default function HubScheduleClient({
       return `No sessions in ${MONTHS[month]}.`;
     }
     if (filter === "needs") return "Everything is covered. Thank you, team.";
-    if (filter === "mine") return "You're not hosting anything here.";
+    if (filter === "mine") {
+      // Context-aware: the member picker lets a coordinator view anyone's
+      // schedule, so a self-referential "You're not hosting" reads wrong
+      // when you're looking at someone else (session 140, #3).
+      if (selectedMemberId === currentUserId) return "You're not hosting anything here.";
+      const who = teamMembers.find((m) => m.id === selectedMemberId)?.displayName ?? "This person";
+      return `${who} isn't hosting anything here.`;
+    }
     if (filter === "my-requests") return "You haven't asked the team to cover any sessions.";
     return null;
   })();

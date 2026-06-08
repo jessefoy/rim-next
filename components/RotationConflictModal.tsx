@@ -48,6 +48,10 @@ interface Props {
   /** v3: scope by (programSlug, dayOfWeek) bundle. */
   programSlug: string;
   dayOfWeek?:  string;
+  /** Hub that owns this rotation (session 140). Without it the preview/apply
+   *  default to host-team and an edit in an AV/greeter/peer-led hub would
+   *  reach across hubs. Every other Scheduler route already scopes by hub. */
+  hubSlug?:    string;
   /** v2 back-compat: scope by single rotation id. */
   standingId?: string;
   year:        number;
@@ -65,7 +69,15 @@ const SOURCE_LABEL: Record<Conflict["source"], string> = {
   "sub-cover":      "sub-cover (protected)",
 };
 
-export default function RotationConflictModal({ standingId, programSlug, dayOfWeek, year, month, onClose, onApplied }: Props) {
+/**
+ * A conflict is shielded from "Replace all" when it's sub-cover (already
+ * protected) or a manual self-claim someone deliberately picked — override
+ * those via "Decide one by one". Single source of truth so the summary count
+ * and the per-row decision can't drift apart (session 140).
+ */
+const isShieldedFromReplaceAll = (c: Conflict) => c.protected || c.source === "manual";
+
+export default function RotationConflictModal({ standingId, programSlug, dayOfWeek, hubSlug, year, month, onClose, onApplied }: Props) {
   const [preview, setPreview]     = useState<Preview | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
@@ -81,7 +93,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
         const res = await fetch("/api/host/standing-assignments/preview", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ standingId, programSlug, dayOfWeek, year, month }),
+          body:    JSON.stringify({ standingId, programSlug, dayOfWeek, hubSlug, year, month }),
         });
         if (!res.ok) throw new Error("preview failed");
         const data: Preview = await res.json();
@@ -98,7 +110,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
         setLoading(false);
       }
     })();
-  }, [standingId, programSlug, year, month]);
+  }, [standingId, programSlug, dayOfWeek, hubSlug, year, month]);
 
   // ── Apply ──────────────────────────────────────────────────────────────
   const handleApply = async () => {
@@ -114,7 +126,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
       const res = await fetch("/api/host/standing-assignments/apply", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ standingId, programSlug, dayOfWeek, year, month, resolution }),
+        body:    JSON.stringify({ standingId, programSlug, dayOfWeek, hubSlug, year, month, resolution }),
       });
       if (!res.ok) throw new Error("apply failed");
       const data = await res.json();
@@ -212,6 +224,22 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
                 <div className="hs-cmodal__conflicts">
                   <h3 className="hs-cmodal__section-h">Conflicts</h3>
 
+                  {/* Plain-language read of what "Replace all" would do, so
+                      the outcome is legible before the coordinator commits
+                      (session 140). */}
+                  {(() => {
+                    const protectedCount = preview.conflicts.filter(isShieldedFromReplaceAll).length;
+                    const replaceable = preview.conflicts.length - protectedCount;
+                    return (
+                      <p className="hs-cmodal__summary-meta">
+                        {replaceable} can be replaced
+                        {protectedCount > 0
+                          ? ` · ${protectedCount} protected (sub-cover or self-assigned) and kept unless you override them one by one`
+                          : ""}.
+                      </p>
+                    );
+                  })()}
+
                   <div className="hs-cmodal__modes" role="radiogroup" aria-label="Conflict resolution">
                     <label className={`hs-cmodal__mode${mode === "leave" ? " hs-cmodal__mode--active" : ""}`}>
                       <input
@@ -236,7 +264,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
                       />
                       <span className="hs-cmodal__mode-label">
                         <strong>Replace all</strong>
-                        <span className="hs-cmodal__mode-hint">Override every conflict. Sub-cover dates are always protected.</span>
+                        <span className="hs-cmodal__mode-hint">Override every conflict. Sub-cover and manually self-assigned dates are protected — switch to one-by-one to override those.</span>
                       </span>
                     </label>
                     <label className={`hs-cmodal__mode${mode === "perDate" ? " hs-cmodal__mode--active" : ""}`}>
@@ -256,7 +284,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
 
                   <ul className="hs-cmodal__list hs-cmodal__list--conflicts">
                     {preview.conflicts.map((c) => {
-                      const decision = mode === "replace-all" && !c.protected
+                      const decision = mode === "replace-all" && !isShieldedFromReplaceAll(c)
                         ? "replace"
                         : mode === "perDate"
                           ? perDate[c.dateStr] ?? "keep"

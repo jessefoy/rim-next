@@ -902,7 +902,7 @@ export async function sendStandingAssignmentScheduledEmail(
   const subject =
     count === 1
       ? `You're scheduled — ${data.sessions[0].programName}`
-      : `You're scheduled for ${count} sessions this month`;
+      : `You're scheduled for ${count} upcoming sessions`;
   // Deep-link to the month of the FIRST scheduled session when provided.
   const schedulePath = data.firstSessionMonth
     ? `/tools/schedule?month=${data.firstSessionMonth}`

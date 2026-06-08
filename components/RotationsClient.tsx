@@ -321,10 +321,20 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         const body = await res.json().catch(() => null);
         throw new Error(body?.error || "set end date failed");
       }
+      const data = await res.json().catch(() => ({ removed: 0 }));
+      const removed = data.removed ?? 0;
       await loadRotations();
       setEndingBundle(null);
       setEndOnInput("");
-      showToast(`End date set · rotation stops after ${new Date(endOnInput + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`);
+      // State exactly what the end date did — sessions kept vs. later ones
+      // removed — so the coordinator can confirm it without hunting through
+      // the calendar (session 140, #5).
+      const endLabel = new Date(endOnInput + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+      showToast(
+        removed > 0
+          ? `End date set · sessions through ${endLabel} kept · ${removed} later session${removed === 1 ? "" : "s"} removed`
+          : `End date set · sessions through ${endLabel} kept · nothing later to remove`,
+      );
       fullRefresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not set end date. Please try again.");
@@ -584,6 +594,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       }
       const data = await saveRes.json();
       const filled        = data.filled        ?? 0;
+      const removed       = data.removed       ?? 0;
       const conflictCount = data.conflictCount ?? 0;
       const bundle = { programSlug: form.programSlug, dayOfWeek: form.dayOfWeek };
 
@@ -594,15 +605,22 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         // Conflicts remain — open modal for coordinator decision. Opens
         // already filled by the leave-apply that just ran.
         setPendingApply(bundle);
-        if (filled > 0) fullRefresh();  // refresh anyway since opens were filled
-      } else if (filled > 0) {
+        if (filled > 0 || removed > 0) fullRefresh();  // refresh — opens filled and/or removals happened
+      } else if (filled > 0 || removed > 0) {
         const monthsSpanned = data.monthsSpanned ?? 1;
         const horizonText = monthsSpanned === 1
           ? "this month"
           : monthsSpanned === 2
             ? "this month and next"
             : `the next ${monthsSpanned} months`;
-        showToast(`Rotation saved · ${filled} session${filled === 1 ? "" : "s"} filled across ${horizonText}`);
+        // Name both halves of the change so the coordinator sees exactly what
+        // happened without navigating away (session 140, #5). `removed` is
+        // the count of upcoming sessions cleared when a host/occurrence was
+        // taken out of the pattern.
+        const parts: string[] = [];
+        if (filled > 0)  parts.push(`${filled} session${filled === 1 ? "" : "s"} filled across ${horizonText}`);
+        if (removed > 0) parts.push(`${removed} upcoming session${removed === 1 ? "" : "s"} removed`);
+        showToast(`Rotation saved · ${parts.join(" · ")}`);
         fullRefresh();
       } else {
         showToast("Rotation saved · all matching sessions already covered");
@@ -931,6 +949,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         <RotationConflictModal
           programSlug={pendingApply.programSlug}
           dayOfWeek={pendingApply.dayOfWeek}
+          hubSlug={hubSlug}
           year={year}
           month={month}
           onClose={() => setPendingApply(null)}

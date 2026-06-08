@@ -129,6 +129,9 @@ export interface Candidate {
 export interface Conflict {
   dateStr:        string;             // "YYYY-MM-DD"
   programSlug:    string;
+  /** Hub that owns the conflicting assignment (session 140). Lets the apply
+   *  loop key candidates per hub so a multi-hub program doesn't cross-match. */
+  hubSlug:        string;
   programName:    string;
   dateLabel:      string;
   /** The user we'd assign if conflict is resolved as 'replace' */
@@ -490,6 +493,7 @@ export async function previewStandingAssignments(
     conflicts.push({
       dateStr:        cand.dateStr,
       programSlug:    cand.programSlug,
+      hubSlug:        cand.hubSlug,
       programName:    cand.programName,
       dateLabel:      cand.dateLabel,
       proposedHost:   { userId: cand.userId, displayName: cand.firstName || cand.userEmail },
@@ -531,7 +535,10 @@ export async function applyStandingAssignments(
   // Collect candidate user info from the preview's candidates (for emails)
   const candidatesByKey = new Map<string, Candidate>();
   for (const c of preview.candidates) {
-    candidatesByKey.set(`${c.programSlug}::${c.dateStr}`, c);
+    // Key by hub too (session 140) so a multi-hub program (e.g. host-team +
+    // AV + greeter covering the same hybrid session) doesn't collapse to a
+    // single candidate and let a replace write the wrong hub's host.
+    candidatesByKey.set(`${c.programSlug}::${c.dateStr}::${c.hubSlug}`, c);
   }
 
   // Build the actual write list. Open candidates split into two streams:
@@ -542,7 +549,7 @@ export async function applyStandingAssignments(
   const toReplace: Array<{ conflict: Conflict; cand: Candidate }> = [];
 
   for (const conf of preview.conflicts) {
-    const cand = candidatesByKey.get(`${conf.programSlug}::${conf.dateStr}`);
+    const cand = candidatesByKey.get(`${conf.programSlug}::${conf.dateStr}::${conf.hubSlug}`);
     if (!cand) continue; // shouldn't happen
 
     // Sub-cover is sacred regardless of resolution mode
@@ -555,7 +562,13 @@ export async function applyStandingAssignments(
       // mode (cron, default), we still skip — cron is conservative.
       shouldReplace = false;
     } else if (resolution === "replace-all") {
-      shouldReplace = true;
+      // Replace-all overrides standing conflicts but NOT manually self-
+      // assigned sessions — a blanket "replace all" shouldn't silently stomp
+      // a date someone deliberately picked for themselves (session 140; the
+      // likely cause of the "Maria removed unexpectedly" report). Sub-cover
+      // is already protected above. To override a manual claim, the
+      // coordinator switches to "Decide one by one" and toggles it.
+      shouldReplace = conf.source !== "manual";
     } else if (typeof resolution === "object" && resolution.perDate) {
       shouldReplace = resolution.perDate[conf.dateStr] === "replace";
     }
@@ -626,6 +639,25 @@ export async function applyStandingAssignments(
       });
     }
   });
+
+  // Removable diagnostic (session 140): when a coordinator replaces hosts,
+  // log the exact per-date deltas so an unclear "my edit changed the wrong
+  // host" report (the Qigong head-scratcher) can be reconstructed from the
+  // server logs. Only fires on replacements — routine cron fills ("leave"
+  // mode) never reach this, so it doesn't spam the daily run.
+  if (toReplace.length > 0) {
+    console.log("[rotation-apply]", JSON.stringify({
+      program: programSlugFilter, hub: hubSlugFilter, day: dayOfWeekFilter,
+      standingId: standingFilterId, year, month,
+      resolution: typeof resolution === "string" ? resolution : "perDate",
+      filled: toCreate.length + toUpdate.length,
+      replaced: toReplace.length,
+      replaces: toReplace.map((r) => ({
+        program: r.cand.programSlug, hub: r.cand.hubSlug, date: r.cand.dateStr,
+        from: r.conflict.currentHost.userId, to: r.cand.userId, source: r.conflict.source,
+      })),
+    }));
+  }
 
   // ── Build result reports ───────────────────────────────────────────────
   // "filled" = slots that now have a host (creates + placeholder-updates)

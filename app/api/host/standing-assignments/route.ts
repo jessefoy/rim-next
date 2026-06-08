@@ -40,7 +40,10 @@ import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { isHubCoordinator } from "@/lib/hubAuth";
 import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getProgramSlugsForHub, getHubCoverageCopy } from "@/lib/programHub";
 import { applyStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
-import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
+import {
+  sendStandingAssignmentScheduledEmail,
+  sendStandingAssignmentReplacedEmail,
+} from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
 
 const TZ = "America/Chicago";
@@ -263,6 +266,15 @@ export async function POST(request: Request) {
   // in the new set, then upsert each target record. The bundle is now
   // scoped by hubSlug too (session 129) — an AV rotation and a host-team
   // rotation can coexist for the same program/day independently.
+  // CT-anchored today for the future-assignment cutoff during cleanup below.
+  const todayCtForCleanup = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
+  todayCtForCleanup.setHours(0, 0, 0, 0);
+
+  // Captured inside the transaction; consumed after it to notify displaced
+  // hosts. Map<userId, sessionDate[]>.
+  const displacedByUser = new Map<string, Array<Date | null>>();
+  let clearedCount = 0;
+
   const saved = await db.$transaction(async (tx) => {
     const existing = await tx.standingAssignment.findMany({
       where: {
@@ -273,12 +285,40 @@ export async function POST(request: Request) {
       select: { id: true, occurrence: true },
     });
 
-    // DELETE records not in the new set
+    // Rules being removed = existing occurrences not present in the new set.
     const targetOccs = new Set(targets.keys());
-    for (const ex of existing) {
-      if (!targetOccs.has(ex.occurrence)) {
-        await tx.standingAssignment.delete({ where: { id: ex.id } });
+    const removedRuleIds = existing
+      .filter((ex) => !targetOccs.has(ex.occurrence))
+      .map((ex) => ex.id);
+
+    // Clean up the FUTURE HostAssignments those removed rules created.
+    // Without this, removing a host/occurrence from the pattern left their
+    // upcoming sessions on the calendar as orphans (standingAssignmentId is
+    // SetNull on rule delete) — so "remove Nancy" silently didn't take
+    // (session 140, coordinator bug #4). FK-safe order matches the other
+    // destructive Scheduler routes: SubClaim → SubRequest → HostAssignment
+    // → StandingAssignment.
+    if (removedRuleIds.length > 0) {
+      const futureRows = await tx.hostAssignment.findMany({
+        where: {
+          standingAssignmentId: { in: removedRuleIds },
+          sessionDate: { gte: todayCtForCleanup },
+        },
+        select: { id: true, userId: true, sessionDate: true },
+      });
+      for (const r of futureRows) {
+        if (!r.userId || !r.sessionDate) continue;
+        if (!displacedByUser.has(r.userId)) displacedByUser.set(r.userId, []);
+        displacedByUser.get(r.userId)!.push(r.sessionDate);
       }
+      const futureIds = futureRows.map((r) => r.id);
+      if (futureIds.length > 0) {
+        await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: futureIds } } } });
+        await tx.subRequest.deleteMany({ where: { assignmentId: { in: futureIds } } });
+        await tx.hostAssignment.deleteMany({ where: { id: { in: futureIds } } });
+        clearedCount = futureIds.length;
+      }
+      await tx.standingAssignment.deleteMany({ where: { id: { in: removedRuleIds } } });
     }
 
     // UPSERT each target record on the (programSlug, dayOfWeek,
@@ -380,6 +420,38 @@ export async function POST(request: Request) {
         coverageCopy,
       });
     }
+
+    // Notify hosts removed by this pattern edit (session 140, Fix C). Their
+    // upcoming sessions were cleared above; tell them which dates, with the
+    // same "you're no longer scheduled" wording the conflict-replace path
+    // uses, so a pattern-editor removal isn't silent.
+    if (displacedByUser.size > 0) {
+      const removedProgram = await db.program.findUnique({
+        where: { slug: body.programSlug },
+        select: { name: true },
+      });
+      const removedProgramName = removedProgram?.name ?? body.programSlug;
+      const displacedUsers = await db.user.findMany({
+        where: { id: { in: [...displacedByUser.keys()] } },
+        select: { id: true, email: true, firstName: true, preferredName: true },
+      });
+      for (const u of displacedUsers) {
+        const dates = displacedByUser.get(u.id) ?? [];
+        if (dates.length === 0) continue;
+        await sendStandingAssignmentReplacedEmail({
+          to: u.email,
+          firstName: u.preferredName || u.firstName || null,
+          sessions: dates.map((d) => ({
+            programName: removedProgramName,
+            dateLabel: d
+              ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ })
+              : "(no date)",
+          })),
+          hubSlug: targetHubSlug,
+          coverageCopy,
+        });
+      }
+    }
   });
 
   // Re-run preview AFTER apply to surface remaining conflicts. The leave-
@@ -387,7 +459,7 @@ export async function POST(request: Request) {
   const { previewStandingAssignments } = await import("@/lib/applyStandingAssignments");
   let conflictCount = 0;
   for (const { year: y, month: m } of months) {
-    const p = await previewStandingAssignments(body.programSlug, y, m, null, body.dayOfWeek);
+    const p = await previewStandingAssignments(body.programSlug, y, m, null, body.dayOfWeek, targetHubSlug);
     conflictCount += p.conflicts.length;
   }
 
@@ -396,6 +468,7 @@ export async function POST(request: Request) {
     dayOfWeek:     body.dayOfWeek,
     saved,
     filled:        totalFilled,
+    removed:       clearedCount,
     conflictCount,
     monthsSpanned: months.length,
   });
