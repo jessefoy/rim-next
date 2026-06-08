@@ -4,8 +4,8 @@
  * One program. Every hub that covers it (primary `hostingHubSlug` plus every
  * `ProgramCoverageHub` row). For each day the program runs, surface the
  * rotation pattern in each hub side-by-side. Read-only — each hub column
- * deep-links to its own Rotations tab at `/tools/schedule?hub=<slug>` for
- * actual editing.
+ * deep-links to its own editing surface: single-slot hubs to the Rotations
+ * tab (`?hub=<slug>&view=rotations`), multi-claim hubs to the schedule.
  *
  * Session 130 follow-up: a coordinator planning a week wants to see one
  * program's whole staffing picture (host, AV, greeter) at once, not switch
@@ -285,10 +285,14 @@ export default async function ProgramStaffingPage({
                     {isMultiClaim && <span className="ps-hub__mode">Open sign-up</span>}
                   </div>
                   <Link
-                    href={`/tools/schedule?hub=${encodeURIComponent(hubSlug)}`}
+                    href={
+                      isMultiClaim
+                        ? `/tools/schedule?hub=${encodeURIComponent(hubSlug)}`
+                        : `/tools/schedule?hub=${encodeURIComponent(hubSlug)}&view=rotations`
+                    }
                     className="ps-hub__edit-link"
                   >
-                    Edit in {hubName} →
+                    {isMultiClaim ? `Open ${hubName} schedule →` : `Edit rotation in ${hubName} →`}
                   </Link>
                 </header>
 

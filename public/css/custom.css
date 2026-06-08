@@ -14818,6 +14818,18 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   background: rgba(255, 255, 255, 0.22);
   color: #fff;
 }
+/* Coverage-gap signal: the "Needs help" pill goes amber when sessions are
+   uncovered (manager, single-slot) — replaces the old standalone banner
+   (session 141). Same amber as "Host needed" (--color-warning). */
+.hs-filter--alert {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+.hs-filter--alert .hs-filter__count {
+  background: var(--color-warning);
+  color: #fff;
+}
 
 /* Member-picker pill: pill body + caret button merged into one rounded shape */
 .hs-filter-group {
@@ -15163,34 +15175,8 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   cursor: pointer;
 }
 
-/* Coordinator coverage status — names the gaps on landing (session 140). */
-.hs-coord-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  background: var(--color-warning-bg);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 14px;
-}
-.hs-coord-status__text {
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--rim-text);
-}
-.hs-coord-status__action {
-  background: none;
-  border: 1px solid var(--rim-rule);
-  border-radius: 50px;
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  color: var(--rim-text);
-  cursor: pointer;
-  padding: 6px 14px;
-  min-height: 44px; /* touch target (CLAUDE.md) */
-}
-.hs-coord-status__action:hover { border-color: var(--rim-mid); }
+/* .hs-coord-status (coverage banner) removed session 141 — the gap signal
+   now lives on the .hs-filter--alert "Needs help" pill (see above). */
 
 /* Empty state (per filter) */
 .hs-allset {

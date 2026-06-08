@@ -729,7 +729,12 @@ export default function HubScheduleClient({
   const searchParams = useSearchParams();
 
   // "schedule" = agenda view (default), "rotations" = standing-assignment manager
-  const [view, setView] = useState<"schedule" | "rotations">("schedule");
+  // Default "schedule"; honor a ?view=rotations deep-link (from the program
+  // staffing page's "Edit rotation" link) so coordinators land on the editing
+  // surface, not the agenda. Guarded by isManager — only managers see the tab.
+  const [view, setView] = useState<"schedule" | "rotations">(
+    () => (isManager && searchParams?.get("view") === "rotations") ? "rotations" : "schedule",
+  );
 
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [year, setYear] = useState(initialYear);
@@ -1326,26 +1331,9 @@ export default function HubScheduleClient({
         )}
       </div>
 
-      {/* Coordinator coverage status — names the gaps up front so the
-          coordinator sees where things stand the moment they land
-          (session 140, Phase 2 slice 1). Single-slot hubs only; multi-claim
-          (greeter) coverage is open sign-up, a different model. */}
-      {isManager && !allowsMultipleAssignments && counts.needs > 0 && (
-        <div className="hs-coord-status" role="status">
-          <span className="hs-coord-status__text">
-            {counts.needs} {counts.needs === 1 ? "session" : "sessions"} still{" "}
-            {counts.needs === 1 ? "needs" : "need"} coverage
-          </span>
-          {filter !== "needs" && (
-            <button
-              className="hs-coord-status__action"
-              onClick={() => setFilter("needs")}
-            >
-              Show {counts.needs === 1 ? "it" : "them"}
-            </button>
-          )}
-        </div>
-      )}
+      {/* The coverage-gap signal lives on the "Needs help" pill below — it
+          goes amber when sessions are uncovered (session 141). One affordance
+          instead of a separate banner that duplicated the pill's count. */}
 
       {/* Filter pills */}
       <div className="hs-filters" role="tablist" aria-label="Filter sessions">
@@ -1360,7 +1348,11 @@ export default function HubScheduleClient({
         <button
           role="tab"
           aria-selected={filter === "needs"}
-          className={`hs-filter${filter === "needs" ? " hs-filter--active" : ""}`}
+          className={`hs-filter${filter === "needs" ? " hs-filter--active" : ""}${
+            isManager && !allowsMultipleAssignments && counts.needs > 0 && filter !== "needs"
+              ? " hs-filter--alert"
+              : ""
+          }`}
           onClick={() => setFilter("needs")}
         >
           Needs help <span className="hs-filter__count">{counts.needs}</span>
