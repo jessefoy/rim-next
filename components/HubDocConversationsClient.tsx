@@ -97,6 +97,7 @@ export default function HubDocConversationsClient({
   const [body, setBody] = useState<string>("");
   const [notifyIds, setNotifyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const submittingRef = useRef(false); // synchronous double-submit guard for submitThread
   const [error, setError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -111,7 +112,8 @@ export default function HubDocConversationsClient({
   const coordinatorCount = coordinatorIds.filter((c) => c !== currentUserId).length;
 
   async function submitThread() {
-    if (!title.trim() || !hasContent(body)) return;
+    if (!title.trim() || !hasContent(body) || submittingRef.current) return;
+    submittingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -134,6 +136,7 @@ export default function HubDocConversationsClient({
       setError("Couldn't post the conversation. Try again.");
     } finally {
       setSaving(false);
+      submittingRef.current = false;
     }
   }
 

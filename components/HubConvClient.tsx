@@ -162,6 +162,7 @@ export default function HubConvClient({
   const [composeCategory, setComposeCategory] = useState(categories[0] ?? "General");
   const [composeNotifyIds, setComposeNotifyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const postingRef = useRef(false); // synchronous double-submit guard for postThread
 
   // Filter coordinators out of the picker — they're auto-subscribed at thread
   // creation, so picking them is redundant. We tell the author this with help
@@ -301,42 +302,47 @@ export default function HubConvClient({
   }
 
   async function postThread() {
-    if (!title.trim() || !hasContent(body)) return;
+    if (!title.trim() || !hasContent(body) || postingRef.current) return;
+    postingRef.current = true;
     setSaving(true);
-    const res = await fetch(`/api/hub/${hubSlug}/conversations`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        title:         title.trim(),
-        body,
-        category:      composeCategory,
-        notifyUserIds: composeNotifyIds,
-      }),
-    });
-    if (res.ok) {
-      const t = await res.json();
-      const thread: Thread = {
-        id:         t.id,
-        title:      t.title,
-        body:       t.body,
-        category:   t.category ?? composeCategory,
-        status:     t.status,
-        isPinned:   false,
-        authorId:   t.authorId,
-        author: {
-          firstName:     null,
-          lastName:      null,
-          preferredName: currentUserName,
-        },
-        replyCount: 0,
-        createdAt:  t.createdAt,
-        updatedAt:  t.updatedAt,
-      };
-      setThreads((prev) => [thread, ...prev]);
-      setTitle(""); setBody(""); setShowCompose(false);
-      setComposeNotifyIds([]);
+    try {
+      const res = await fetch(`/api/hub/${hubSlug}/conversations`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          title:         title.trim(),
+          body,
+          category:      composeCategory,
+          notifyUserIds: composeNotifyIds,
+        }),
+      });
+      if (res.ok) {
+        const t = await res.json();
+        const thread: Thread = {
+          id:         t.id,
+          title:      t.title,
+          body:       t.body,
+          category:   t.category ?? composeCategory,
+          status:     t.status,
+          isPinned:   false,
+          authorId:   t.authorId,
+          author: {
+            firstName:     null,
+            lastName:      null,
+            preferredName: currentUserName,
+          },
+          replyCount: 0,
+          createdAt:  t.createdAt,
+          updatedAt:  t.updatedAt,
+        };
+        setThreads((prev) => [thread, ...prev]);
+        setTitle(""); setBody(""); setShowCompose(false);
+        setComposeNotifyIds([]);
+      }
+    } finally {
+      setSaving(false);
+      postingRef.current = false;
     }
-    setSaving(false);
   }
 
   async function setStatus(id: string, status: string) {

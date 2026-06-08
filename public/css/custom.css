@@ -12468,6 +12468,34 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-conv-post__body h3 { font-size: 16px; line-height: 1.4; }
 /* Post edit form: layout-only. The post card already provides the frame —
    adding our own border here creates a box-within-a-box. */
+.hub-conv-post__delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
+}
+.hub-conv-post:hover .hub-conv-post__delete,
+.hub-conv-post:focus-within .hub-conv-post__delete { opacity: 1; }
+.hub-conv-post__delete:hover {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+}
+.hub-conv-replybox__error {
+  margin: 0 0 8px;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--color-error);
+}
 .hub-conv-post__edit-form {
   display: flex;
   flex-direction: column;

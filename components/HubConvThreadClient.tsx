@@ -138,6 +138,12 @@ export default function HubConvThreadClient({
 }: Props) {
   const [thread, setThread] = useState<Thread>(initialThread);
   const [replyBody, setReplyBody] = useState<string>("");
+  // Bumped after a successful post to remount the reply editor empty (Tiptap
+  // keeps its initial content otherwise). Plus a synchronous in-flight guard
+  // and an inline error — together they kill the double-post (session 141).
+  const [replyEditorKey, setReplyEditorKey] = useState(0);
+  const [replyError, setReplyError] = useState<string | null>(null);
+  const sendingReplyRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
   const [currentUserSubscribed, setCurrentUserSubscribed] = useState(initialCurrentUserSubscribed);
@@ -196,17 +202,23 @@ export default function HubConvThreadClient({
   const canEditOp = thread.authorId === currentUserId || isCoordinator;
 
   async function postReply() {
-    if (!hasContent(replyBody)) return;
+    // Synchronous guard: the disabled attribute updates on the next render, so
+    // a fast second click (or a click after a post that "looked" unsent) can
+    // slip through before then. The ref stops that immediately.
+    if (!hasContent(replyBody) || sendingReplyRef.current) return;
+    sendingReplyRef.current = true;
     setSaving(true);
-    const res = await fetch(
-      `/api/hub/${hubSlug}/conversations/${thread.id}/replies`,
-      {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ body: replyBody, notifyUserIds: replyNotifyIds }),
-      }
-    );
-    if (res.ok) {
+    setReplyError(null);
+    try {
+      const res = await fetch(
+        `/api/hub/${hubSlug}/conversations/${thread.id}/replies`,
+        {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ body: replyBody, notifyUserIds: replyNotifyIds }),
+        }
+      );
+      if (!res.ok) throw new Error("post failed");
       const reply = await res.json();
       const newReply: Reply = {
         id:        reply.id,
@@ -242,8 +254,29 @@ export default function HubConvThreadClient({
       setReplyBody("");
       setReplyNotifyIds([]);
       setNotifyExpanded(false);
+      // Remount the editor so it actually clears — Tiptap keeps its initial
+      // content otherwise, which made a successful post look unsent and
+      // invited a duplicate submit.
+      setReplyEditorKey((k) => k + 1);
+    } catch {
+      setReplyError("Your reply didn't post. Please try again.");
+    } finally {
+      setSaving(false);
+      sendingReplyRef.current = false;
     }
-    setSaving(false);
+  }
+
+  async function deleteReply(replyId: string) {
+    if (!window.confirm("Delete this reply? This can't be undone.")) return;
+    const res = await fetch(
+      `/api/hub/${hubSlug}/conversations/${thread.id}/replies/${replyId}`,
+      { method: "DELETE" },
+    );
+    if (res.ok) {
+      setThread((prev) => ({ ...prev, replies: prev.replies.filter((r) => r.id !== replyId) }));
+    } else {
+      setReplyError("Couldn't delete that reply. Please try again.");
+    }
   }
 
   function startEditOp() {
@@ -556,6 +589,15 @@ export default function HubConvThreadClient({
                         <span>Edit</span>
                       </button>
                     )}
+                    {(isAuthor || isCoordinator) && !isEditing && (
+                      <button
+                        className="hub-conv-post__delete"
+                        onClick={() => deleteReply(r.id)}
+                        aria-label="Delete reply"
+                      >
+                        <span>Delete</span>
+                      </button>
+                    )}
                   </div>
 
                   {isEditing ? (
@@ -653,6 +695,7 @@ export default function HubConvThreadClient({
           </div>
           <div className="hub-conv-replybox__main">
             <RimTiptapEditor
+              key={replyEditorKey}
               value={replyBody}
               onChange={setReplyBody}
               placeholder="Write a reply…"
@@ -674,6 +717,7 @@ export default function HubConvThreadClient({
                 + Notify someone new…
               </button>
             )}
+            {replyError && <p className="hub-conv-replybox__error">{replyError}</p>}
             <div className="hub-conv-replybox__actions">
               <button
                 className="btn"

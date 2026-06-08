@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, effectiveCoordinator, getHubMembership } from "@/lib/hubAuth";
 
 /** PATCH /api/hub/[slug]/conversations/[id]/replies/[replyId] — edit own reply */
 export async function PATCH(
@@ -39,4 +39,38 @@ export async function PATCH(
   });
 
   return Response.json(updated);
+}
+
+/** DELETE /api/hub/[slug]/conversations/[id]/replies/[replyId] — remove a reply.
+ *  Allowed for the reply's own author, or a coordinator / GUIDING_TEACHER /
+ *  ADMIN for moderation (mirrors the thread moderation model). Hard delete —
+ *  replies have no soft-delete lifecycle the way threads/documents do. */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ slug: string; id: string; replyId: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { slug, id: threadId, replyId } = await params;
+  const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || !canAccessHub(member, session.user.roles ?? [])) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const reply = await db.hubConversationReply.findUnique({ where: { id: replyId } });
+  if (!reply || reply.threadId !== threadId) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const isOwn = reply.authorId === session.user.id;
+  const isModerator = effectiveCoordinator(member, session.user.roles ?? []);
+  if (!isOwn && !isModerator) {
+    return Response.json({ error: "You can only delete your own replies" }, { status: 403 });
+  }
+
+  await db.hubConversationReply.delete({ where: { id: replyId } });
+  return Response.json({ ok: true });
 }
