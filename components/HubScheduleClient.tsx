@@ -249,7 +249,7 @@ function Toast({ msg }: { msg: string | null }) {
 
 // ── Modal ───────────────────────────────────────────────────
 
-type ModalKind = "take" | "cover" | "ask-cover" | "cancel-request" | "reassign" | "unassign" | null;
+type ModalKind = "take" | "cover" | "ask-cover" | "cancel-request" | "clear-request" | "reassign" | "unassign" | null;
 
 interface ModalProps {
   kind: ModalKind;
@@ -321,6 +321,15 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
     );
     primaryLabel = "Yes, cancel the request";
     cancelLabel = "Keep the request";
+  } else if (kind === "clear-request") {
+    title = "Clear this cover request?";
+    body = (
+      <>This closes the cover request for <strong>{session.programName}</strong> on{" "}
+      <strong>{dateStr}</strong>. <strong>{session.hostName ?? "The host"}</strong>{" "}
+      stays on as host.</>
+    );
+    primaryLabel = "Yes, clear the request";
+    cancelLabel = "Keep the request";
   } else if (kind === "reassign") {
     title = "Reassign to yourself";
     body = session.hostUserId
@@ -384,6 +393,8 @@ interface RowProps {
   onCover: (s: Session) => void;
   onAskCover: (s: Session) => void;
   onCancelRequest: (s: Session) => void;
+  /** Coordinator/manager: clear someone else's open cover request (host stays). */
+  onClearRequest: (s: Session) => void;
   onReassign: (s: Session) => void;
   /** Coordinator/manager: take the current host off a covered session. */
   onUnassign: (s: Session) => void;
@@ -453,7 +464,7 @@ function AssignControl({
 
 function HsRow({
   session, kind, isPast, currentUserId,
-  onTake, onCover, onAskCover, onCancelRequest, onReassign, onUnassign,
+  onTake, onCover, onAskCover, onCancelRequest, onClearRequest, onReassign, onUnassign,
   onSignUp, onCancelSignUp,
   isHostManager,
   coverageCopy,
@@ -528,9 +539,19 @@ function HsRow({
       );
       if (!isPast) {
         actionEl = (
-          <button className="lr-btn lr-btn--host" onClick={() => onCover(session)}>
-            Yes, I can cover
-          </button>
+          <div className="hs-row__action-stack">
+            <button className="lr-btn lr-btn--host" onClick={() => onCover(session)}>
+              Yes, I can cover
+            </button>
+            {/* Coordinator/manager: clear the cover request without removing the
+                host (the host stays on). Gated by isManager — the requesting
+                host themselves sees "Cancel my request" on their own row. */}
+            {isManager && (
+              <button className="hs-row__quiet" onClick={() => onClearRequest(session)}>
+                Clear request
+              </button>
+            )}
+          </div>
         );
       }
       break;
@@ -1074,6 +1095,7 @@ export default function HubScheduleClient({
   function openCover(s: Session) { setModal({ kind: "cover", session: s }); }
   function openAskCover(s: Session) { setModal({ kind: "ask-cover", session: s }); }
   function openCancelRequest(s: Session) { setModal({ kind: "cancel-request", session: s }); }
+  function openClearRequest(s: Session) { setModal({ kind: "clear-request", session: s }); }
   function openReassign(s: Session) { setModal({ kind: "reassign", session: s }); }
   function openUnassign(s: Session) { setModal({ kind: "unassign", session: s }); }
 
@@ -1099,6 +1121,10 @@ export default function HubScheduleClient({
       } else if (modal.kind === "cancel-request") {
         await cancelRequest(modal.session);
         showToast("Request cancelled. You're back to hosting this session.");
+      } else if (modal.kind === "clear-request") {
+        const host = modal.session.hostName ?? "the host";
+        await cancelRequest(modal.session);
+        showToast(`Cover request cleared · ${host} stays on`);
       } else if (modal.kind === "reassign") {
         await reassign(modal.session);
         showToast("Reassigned to you.");
@@ -1218,6 +1244,7 @@ export default function HubScheduleClient({
     onCover: openCover,
     onAskCover: openAskCover,
     onCancelRequest: openCancelRequest,
+    onClearRequest: openClearRequest,
     onReassign: openReassign,
     onUnassign: openUnassign,
     onSignUp: signUp,
