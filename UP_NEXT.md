@@ -6,6 +6,40 @@
 
 ## Active
 
+### Session 141 (2026-06-08) — Scheduler trust + clarity finish; Coverage grid tried & reverted; rotation editor confirms in place — all shipped to `main` & deployed; deployed-site verification pending
+
+Continued the Maria/host-coordinator Scheduler thread (+ a `MEMORY.md` consolidation at the open: 28.1 → 4.7 KB). **Six commits on `main`, all deployed. No new deps / env / services.**
+
+**Shipped (in order):**
+- **Enter-room #2 fixed** (`4916757`) — "Enter room →" shows only when a session is actually enterable (the link carried no date; the server only opens *today's*, so it dead-ended on every other row). Threads `sessionEnd` through the page loader + assignments GET. (The real recurring-join bug was already fixed s137; this was the residual UX dead-end.)
+- **Entry timing unified, host 30 / member 10** (`8f7963f`) — new `lib/sessionWindowConstants.ts` (client-safe) shared by the gate, the dashboard tiers, and the Scheduler link. Host/teacher early-entry 22→30; member "Join now" 12→10; close still +30.
+- **Two quick wins** (`260b437`) — removed the redundant "N still need coverage" banner (the "Needs help" pill now goes amber on gaps); staffing "Edit in [hub] →" deep-links to the Rotations editor (`?view=rotations`).
+- **Coverage grid built then reverted** (`4732fd4`→`2d7a763`) — the programs×weeks grid broke on mobile (flat gap dump) and on multi-day programs (fragments into weekday rows; retreats shatter). Reverted; the agenda handles every shape and is already gap-aware. Restraint over a fragile surface.
+- **Rotation editor confirms in place** (`9657d04`) — Maria's #5: after Save & Apply, an inline "✓ [Day]'s rotation saved" panel shows the change + projected next sessions, so the result is visible without hunting.
+
+**OPEN — next steps:**
+1. **Deployed-site verification** of all six ships. Highest-value: (a) a **non-ADMIN/non-GT member** entering a **live recurring** session (Qigong) — confirms the s137 join fix for real; (b) the rotation-edit **in-place confirmation** after Save & Apply; (c) host-30 / member-10 thresholds (set a start time, check each role); (d) "Enter room" hidden on non-live rows; (e) the amber "Needs help" pill on gaps.
+2. **Post the Maria reply** (drafted at the bottom of this entry).
+3. **Qigong data question for Jesse** (not code): Maria is Qigong's *teacher* and also on the 5th-Wed host rotation — intended, or should the teacher not be rostered as host?
+
+**Deferred / queued:**
+- **Coverage grid could return** as a desktop-only "weekly programs" lens IF multi-day + mobile are solved (backlog `2026-06-07-001`). Not now.
+- Sessions 136–140 deployed-site verification backlog still stands.
+
+**Memory candidate (step 8b):** one new — *restraint over reactive new-surfaces* (don't answer a list of feedback pains with a new view per pain; make existing surfaces trustworthy; the grid build-and-revert is the cautionary tale). `feedback-pivot-when-fragile` reinforced. `MEMORY.md` size issue resolved by this session's consolidation.
+
+**Maria reply (draft — for Jesse to post):**
+> Hi Maria — thank you for testing so carefully and writing it all up; it genuinely shaped what we fixed. What's changed, and why:
+> - **The rotation emails** now say "upcoming sessions," not "this month" — that's what gave you the "30 sessions this month" jolt.
+> - **"Enter room"** now behaves as you'd expect: the button only appears when a session is actually open (about a half hour before through after it ends), instead of showing on every row and then saying "not on this date." (An underlying bug that blocked entry to recurring sessions is also fixed.)
+> - **Viewing someone else's schedule** no longer says "you're not hosting anything here" — it's worded for whoever you're looking at.
+> - **The rotation editing** is more reliable: removing or changing a host actually takes, and a blanket change no longer overwrites dates you picked by hand. And the big one — **after you Save & apply, the editor now shows the result right there** (the next sessions and who's on each), so you can see it landed without leaving to hunt.
+> - One thing we deliberately *didn't* do: add more pages. Your point about the scheduler feeling disjointed landed — so rather than pile on another view, we made the schedule and rotation editor you already use clearer and more trustworthy.
+>
+> Please keep the feedback coming — this level of detail is exactly what makes the tool better.
+
+---
+
 ### Session 140 (2026-06-07) — Scheduler trust-restoration + coordinator gap-first view (Phase 2 slice 1) — shipped to `main` & deployed; deployed-site verification pending
 
 From frustrated host-coordinator feedback on the Scheduler. Two phases, both on `main`:

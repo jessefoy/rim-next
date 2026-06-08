@@ -108,7 +108,7 @@ One `useEffect` drives `layoutContext.pin` (LiveKit's focus pin). **Precedence, 
 
 ## Time gate
 
-`/api/livekit/token` and `/guest-token` refuse tokens outside the window: opens `start − 22min`, closes `end + 30min` (or `start + 90min` when no end). ADMIN/GT bypass; guests don't. `assertSessionDateInWindow` is wired defense-in-depth into mute-participant, mute-all, end-session, step-in. Per-session room names (`slug-YYYY-MM-DD`) mean recurring programs get a fresh room each occurrence.
+`/api/livekit/token` and `/guest-token` refuse tokens outside the window: opens `start − 30min` (session 141 — was 22; from `lib/sessionWindowConstants.ts`), closes `end + 30min` (or `start + 90min` when no end). ADMIN/GT bypass; guests don't. `assertSessionDateInWindow` is wired defense-in-depth into mute-participant, mute-all, end-session, step-in. Per-session room names (`slug-YYYY-MM-DD`) mean recurring programs get a fresh room each occurrence.
 
 ---
 

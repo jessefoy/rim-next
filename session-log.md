@@ -1,5 +1,31 @@
 ---
 
+## 2026-06-08 (session 141) — Scheduler trust + clarity finish; coordinator Coverage grid tried & reverted; rotation editor confirms in place
+
+Opened with a memory consolidation (`MEMORY.md` 28.1 → 4.7 KB — removed the bloated Session-Log + stale CSS sections that duplicated the repo, added two un-indexed files, retired `webflow-removal` into `project-architecture-pivot`). Then continued the Maria/host-coordinator Scheduler thread from her full feedback. **Six commits on `main`, all deployed. No new deps / env / services.**
+
+**The arc, in order:**
+
+1. **Enter-room (#2) — fixed (`4916757`).** The Scheduler's "Enter room →" link carried no date and the server only ever opens *today's* session, so clicking it on any non-live row dead-ended ("the room isn't on this date") — Maria's "so untested." Confirmed in code that the real recurring-session join bug was already fixed s137; the residual was a UX dead-end (the link showed on every upcoming virtual/hybrid row). Fix: gate the link to "live now" via a client-side window check, threading each occurrence's `sessionEnd` through the page loader + the `/api/host/assignments` GET so it survives month-nav. (Teacher does NOT bypass the gate — only ADMIN/GT — which is why Jesse never saw it.)
+
+2. **Entry timing unified — host 30 / member 10 (`8f7963f`).** Extracted the window constants into `lib/sessionWindowConstants.ts` (no server-only imports → client-safe), shared by the gate (`lib/sessionWindow.ts`), the dashboard tiers, and the Scheduler link so they can't drift. Hosts/teachers get a 30-min prep/early-entry window (was 22); the member dashboard "Join now" opens at 10 min (was 12); close stays end + 30. Host-vs-member is a dashboard-UI distinction; the gate is the permissive outer boundary.
+
+3. **Two quick wins (`260b437`).** Removed the redundant "N sessions still need coverage" banner — the "Needs help N" pill now goes amber on gaps. The cross-hub staffing "Edit in [hub] →" now deep-links single-slot hubs straight to the Rotations editor (`?view=rotations`).
+
+4. **Coverage grid — built then reverted (`4732fd4` → `2d7a763`).** Built the Phase-2 coordinator view (slice 2): programs × weeks grid (desktop) + gap-first list (mobile), manager default landing, fill-in-place. Jesse's testing surfaced two structural strikes: the mobile list became a flat 24-row gap dump (worse than the agenda), and — decisively — the grid assumes one-weekday-weekly, so multi-day programs break it (a weekly multi-day program fragments into N repeated rows; a consecutive retreat shatters into N single-cell weekday rows). **Reverted.** The time-ordered agenda handles every program shape and is already gap-aware (amber pill + slice-1 assign-in-place).
+
+5. **Rotation editor confirms in place (`9657d04`).** Maria's #5 — after Save & Apply you couldn't tell it took without leaving to hunt. Now a successful save shows an inline "✓ [Day]'s rotation saved" panel on that row with the change summary + projected next sessions (date → host). Reuses the live-preview projection (extracted into a shared `projectUpcoming`); save logic unchanged — a read-only confirmation captured from the form before it closes.
+
+**Design decisions + why:**
+- **The grid revert is the headline call** — "pivot when the pattern is fragile" + restraint. Two structural strikes on a view whose only net-new value (the desktop at-a-glance) didn't justify making it robust across RIM's real program variety. Jesse named the deeper instinct: *"maybe we're being reactive to her feedback… I get uncomfortable with too many things."* The answer to a list of pains isn't a new surface per pain — it's making the surfaces that exist trustworthy.
+- **Teacher vs host is already modeled** (ProgramEditor sets the teacher via `ProgramTeacher`; the Scheduler sets the host via assignment/rotation) — confirmed in code; I had wrongly carried it as an open question, and Jesse rightly pushed back.
+
+**What this connects to:** the Scheduler (`/tools/schedule`, `HubScheduleClient`, `RotationsClient`), the session-room time gate (`lib/sessionWindow.ts` + the new constants file), the dashboard "Today" early-open tiers, the cross-hub program-staffing view, and the LiveKit join flow. **No hub-routing-layer changes** (the `assignments` GET change is a display field), **no email-template changes**, the Tiptap editor system untouched.
+
+**What's next:** deployed-site verification of all six ships (esp. a non-ADMIN member entering a live recurring Qigong session; the rotation-edit confirmation; the 30/10 thresholds). The grid could return someday as a desktop-only weekly lens if multi-day + mobile are solved (backlog `2026-06-07-001`). A plain-English reply to Maria was drafted for Jesse to post (in `UP_NEXT.md`).
+
+---
+
 ## 2026-06-07 (session 140) — Scheduler trust-restoration + coordinator gap-first view (Phase 2 slice 1)
 
 Triggered by frustrated host-coordinator feedback on the Scheduler: *"un-host-coordinator friendly … relying on the pill buttons and constant scrolling, clicking back and forth between pages just to see where we are … no clear connections … disjointed discrete little pages you have to connect in your own head … great for a single host, a nightmare for the coordinator,"* plus six specific bug/inconsistency reports. Split into two phases — **restore trust (bugs) first, then the coordinator's view** — both shipped to `main` and deployed this session (commits `9f68c00`, `b22dd9b`).

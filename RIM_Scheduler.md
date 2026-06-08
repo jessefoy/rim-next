@@ -235,6 +235,27 @@ The coordinator's headline complaint was page-hopping + "disjointed pages you co
 
 ---
 
+## Coordinator view + trust/clarity finish (session 141)
+
+Session 140's plan was "build the coordinator's synoptic view, slices 2–3." **Slice 2 was built and reverted**; the direction changed to *make the surfaces that already exist trustworthy* rather than add new ones. What shipped and stuck:
+
+### Enter-room link is gated to "live now"
+The Schedule tab's "Enter room →" rendered on every upcoming virtual/hybrid row, but it carries **no date** and the token route only opens *today's* session — so clicking it on a non-live row dead-ended ("the room isn't on this date"). It now renders only when the occurrence is inside its entry window, computed client-side from a new `sessionEnd` field threaded through both `app/tools/schedule/page.tsx` and the `/api/host/assignments` GET (so it survives a month-nav re-fetch). The recurring-session join refusal underneath was already fixed s137; this closed the residual UX dead-end (Maria's #2). Teacher does **not** bypass the gate (only ADMIN/GT) — which is why it was invisible to Jesse.
+
+### Entry-window timing lives in one shared constant
+`lib/sessionWindowConstants.ts` (dependency-free → client-safe) is the single source for `EARLY_OPEN_MIN` (30), `MEMBER_JOIN_MIN` (10), `LATE_GRACE_MIN` (30), `FALLBACK_DURATION_MIN` (90). The gate (`lib/sessionWindow.ts`), the dashboard tiers, and the "Enter room" link all import it, so the numbers can't drift. Host/teacher early-entry moved 22→**30**; member "Join now" 12→**10**. Host-vs-member is a dashboard-UI distinction; the gate is the permissive outer boundary (any host can enter early in an emergency via the Scheduler link).
+
+### Gap signal folded into the pill; staffing edit-link is direct
+The "N sessions still need coverage" banner duplicated the "Needs help N" pill — removed; the pill goes **amber** (`.hs-filter--alert`, `--color-warning`) when a manager has uncovered single-slot sessions. The cross-hub staffing page's "Edit in [hub] →" deep-links single-slot hubs straight to the Rotations editor (`?view=rotations`, honored via a guarded `view` initializer in `HubScheduleClient`); multi-claim hubs go to the schedule.
+
+### The Coverage grid was built and reverted — the agenda is the coordinator home
+Slice 2 (programs × weeks grid on desktop + gap-first list on mobile, manager default landing, fill-in-place) was built (`4732fd4`) and **reverted** (`2d7a763`). Two structural strikes: the mobile list degraded to a flat one-row-per-gap dump (worse than the agenda), and the grid assumes **one weekday, repeating weekly** — so multi-day programs break it (a weekly multi-day program fragments into N repeated rows; a consecutive retreat shatters into N single-cell weekday rows). The time-ordered **agenda** handles every program shape uniformly and is already gap-aware (the amber pill + slice-1 assign-in-place), so it remains the coordinator's home. **If the grid ever returns**, scope it to weekly-rhythm programs, handle events/retreats separately, and give it a real mobile layout — backlog `2026-06-07-001`. Lesson: don't answer a list of feedback pains with a new surface per pain (restraint; "pivot when fragile").
+
+### The rotation editor confirms the result in place (Maria's #5)
+After **Save & apply**, `RotationsClient` shows an inline **"✓ [Day]'s rotation saved"** panel on that bundle's row, with the change summary + projected next sessions (date → host) — so a coordinator sees the change landed without navigating + scrolling to verify. Reuses the live-preview projection, extracted into a shared `projectUpcoming(form, teamMembers)` so preview and confirmation can't drift. The save/apply logic is unchanged; the confirmation is a read-only capture taken from the form before `cancelForm()` clears it, set on the two no-conflict success paths (the conflict modal already shows its own resolution). Cleared on re-edit or dismiss. CSS `.hs-rot__saved*` (success tint).
+
+---
+
 ## Common pitfalls
 
 **The schedule URL without `?hub=` defaults to host-team.** Always include the hub when generating links — internally (sidebar app-link auto-append), externally (email URLs via `hubScopedUrl`).
@@ -401,7 +422,7 @@ The pre-audit versions of both routes were either hardcoded to `host-team` or gl
 | Item | Status | Why |
 |---|---|---|
 | PDF export hub-scoping | Deferred | "My schedule" is personal; revisit if AV/greeter members ask |
-| Time-gate adjustments per-program | Deferred (parked) | The 22/30-min window is currently uniform across all programs; if dharma retreats want a longer pre-open, add per-program override |
+| Time-gate adjustments per-program | Deferred (parked) | The entry window is uniform across programs (host/early-open **30 min** before, member "Join now" **10 min** before, close **30 min** after — `lib/sessionWindowConstants.ts`, session 141); if dharma retreats want a longer pre-open, add a per-program override |
 | Sub-request flow on AV (in-person) | Edge case to verify | Sub-requests still work in single-slot AV; verify on live deploy that the in-person hub's coordinator notifications behave correctly |
 | Manual chapter for AV + greeter hubs | Open follow-on | Write a hub-specific manual chapter explaining the AV / greeter flow, the difference between single-slot and multi-claim, sub-request semantics. Can be done via `/admin/manual/<slug>/edit` once the hubs are configured. |
 | Hub-aware new-program notifications | Open | When a coordinator creates a hybrid program AND ticks AV/greeter auxiliary coverage, only the primary hub gets the "new program needs a host" email. The auxiliary teams don't yet. Worth a separate slice when the need is real. |
