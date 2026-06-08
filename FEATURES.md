@@ -134,7 +134,7 @@ Hubs are team-centric workspaces. Each provides a **Home**, **Conversations**, *
 
 - **Workspace routes:** `/account/hub/[slug]` + `/activity`, `/conversations`, `/conversations/[id]`, `/documents`, `/documents/[id]`, `/documents/[id]/edit`, `/documents/new`, `/members`, `/trash`. API under `/api/hub/[slug]/*` and `/api/hubs/[slug]/*`.
 - **Documents** — rich-text + PDF upload (Vercel Blob), per-document Basecamp-style notifications (`HubDocumentNotification`), document conversations (`HubConversationThread.documentId`), author/ADMIN/GT lock + presence.
-- **Conversations** — threads with a subscription model (`HubThreadSubscription`: subscribers get every reply), Follow/Unfollow, editable categories, emoji reactions.
+- **Conversations** — threads with a subscription model (`HubThreadSubscription`: subscribers get every reply), Follow/Unfollow, editable categories, emoji reactions, and per-reply edit/delete (author edits own; author or coordinator/GT/ADMIN deletes — session 141).
 - **Three-stage lifecycle** — Active → Archived → Trash (`archivedAt` / `deletedAt` on documents and threads). Trash gated by `canManageTrash`.
 - **Activity stream** — `/activity`, a computed union of document + conversation events.
 - **Membership as authority** — `HubMember` is authoritative for hosting capability, communications, and pause status when a row exists (`lib/hubMemberAuth.ts`); coordinator-owned fields; no-delete-on-role-revoke. See `RIM_System_Architecture.md` ("Hub Membership as Authority").

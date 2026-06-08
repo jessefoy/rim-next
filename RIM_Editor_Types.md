@@ -300,6 +300,10 @@ When building a new surface that needs authored content, the process is:
 
 ---
 
+## Pitfalls
+
+**Tiptap does not reset when its `value` prop changes — remount it to clear.** `RimTiptapEditor` passes `content: value` to `useEditor` only at init and never re-syncs. In a compose-and-clear flow where the editor *stays mounted* after submit (a reply box, an always-visible comment field), setting the controlling state back to `""` clears the React state but leaves the editor visibly showing the old text — which reads as "my post didn't send" and invites a duplicate submit. **Fix:** bump a `key` on the editor after a successful submit so it remounts empty — `setReplyEditorKey(k => k + 1)` → `<RimTiptapEditor key={replyEditorKey} … />`. Compose forms that *unmount* on success (a modal/collapsible that closes) don't need this — the unmount clears them. Pair the clear with a **synchronous in-flight guard** (a `useRef`, not just the button's `disabled`, which updates a render too late to stop a fast second click) and `try/catch/finally` so the submit button never sticks on a network error. Surfaced session 141 (hub reply double-post).
+
 ## Placement Registry
 
 Every current placement — where each editor type is instantiated and how its output is wrapped. This is the authoritative reference for "this surface uses X editor, output wraps in Y class." When adding a new placement, add an entry here first.
