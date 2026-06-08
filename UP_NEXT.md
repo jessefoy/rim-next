@@ -43,6 +43,8 @@ Continued the Maria/host-coordinator Scheduler thread (+ a `MEMORY.md` consolida
 >
 > **Seeing that an edit took.** You described having to leave the editor, go to the schedule, jump to July, and scroll to confirm an end-date change had worked. That round-trip is gone: after you Save & apply, the editor now shows the result right there — the next several sessions and who is hosting each — so you can confirm the change landed without going anywhere.
 >
+> It is also worth saying plainly: the system is live but not yet fully set up. Most of the host team isn't in it yet and many rotations haven't been built, which is why so many sessions currently show as needing coverage — and that is what makes the schedule look busier and more demanding than it will be in everyday use. As the rest of the hosts are added and their rotations are in place, the large majority of sessions will simply show who is hosting, open slots will be the exception rather than the rule, and both the schedule and the month view should feel noticeably calmer. A good part of the "a lot going on" feeling is the half-populated state, not the tool itself.
+>
 > One deliberate choice worth naming: in response to your point about the tool feeling disjointed, we looked closely at building a single all-in-one scheduling view, and chose not to add another page. We would rather make the schedule and the rotation editor you already use clearer and more dependable than add more surface to learn. If that "see everything in one place" need is still there once you have worked with these changes, we would rather design it carefully with you than bolt it on.
 >
 > Thank you again — this kind of careful, specific feedback is what makes the tool genuinely better, and it is appreciated.
