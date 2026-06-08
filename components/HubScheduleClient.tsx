@@ -42,6 +42,10 @@ interface Session {
   programSlug: string;
   programName: string;
   sessionDate: string | null;
+  /** Occurrence end (ISO), or null when the program has no endDatetime. With
+   *  sessionDate (start) this lets HsRow show "Enter room" only while the
+   *  session is actually enterable (mirrors lib/sessionWindow.ts). */
+  sessionEnd?: string | null;
   status: "unclaimed" | "claimed" | "sub_needed";
   hostUserId: string | null;
   hostName: string | null;
@@ -446,6 +450,27 @@ function HsRow({
   const timeStr = fmtTime(session.sessionDate);
   const fmt = fmtFormat(session.programFormat);
 
+  // Only surface "Enter room →" while the session is actually enterable — i.e.
+  // now is inside the LiveKit join window for THIS occurrence. The session page
+  // passes no date and the server only ever opens *today's* session, so a link
+  // on a future/non-live row can only dead-end with "No session right now"
+  // (Maria's session-140 #2 report). Window mirrors lib/sessionWindow.ts: opens
+  // 22 min before start, closes 30 min after end (or start + 90 min when the
+  // program has no endDatetime). Evaluated at render — matches the NEW badge.
+  const isRoomLiveNow = (() => {
+    if (isPast) return false;
+    if (session.programFormat !== "virtual" && session.programFormat !== "hybrid") return false;
+    if (!session.sessionDate) return false;
+    const start = new Date(session.sessionDate).getTime();
+    if (Number.isNaN(start)) return false;
+    const endRaw = session.sessionEnd ? new Date(session.sessionEnd).getTime() : NaN;
+    const end = Number.isNaN(endRaw) ? start + 90 * 60_000 : endRaw;
+    const opensAt = start - 22 * 60_000;
+    const closesAt = end + 30 * 60_000;
+    const now = Date.now();
+    return now >= opensAt && now <= closesAt;
+  })();
+
   // Reassign is only useful when no other action is offered (covered rows).
   // On needs-host / needs-sub / mine, the existing action accomplishes the
   // same thing for a manager.
@@ -628,7 +653,7 @@ function HsRow({
           )}
         </div>
         {fmt && <div className="hs-row__format">{fmt}</div>}
-        {!isPast && (session.programFormat === "virtual" || session.programFormat === "hybrid") && (
+        {isRoomLiveNow && (
           <a
             href={`/session/${session.programSlug}`}
             className="hs-row__join"

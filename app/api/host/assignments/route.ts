@@ -223,6 +223,12 @@ export async function GET(request: Request) {
       const shiftedDate = p.startDatetime
         ? shiftToDate(p.startDatetime.toISOString(), dateStr)
         : null;
+      // Occurrence end (mirrors lib/sessionWindow.ts) so the client can show
+      // "Enter room" only while the session is enterable. Kept in sync with
+      // the same field on the /tools/schedule server loader.
+      const shiftedEnd = p.endDatetime
+        ? shiftToDate(p.endDatetime.toISOString(), dateStr)
+        : null;
       const key = `${p.slug}::${dateStr}`;
       const bucket = assignmentsByKey.get(key);
 
@@ -231,6 +237,7 @@ export async function GET(request: Request) {
           id: `unassigned::${p.slug}::${dateStr}`,
           programSlug: p.slug, programName: p.name,
           sessionDate: shiftedDate?.toISOString() ?? null,
+          sessionEnd: shiftedEnd?.toISOString() ?? null,
           status: "unclaimed", hostUserId: null, hostName: null,
           claimants: [],
           subRequestId: null, subMessage: null,
@@ -254,6 +261,7 @@ export async function GET(request: Request) {
           id: `multi::${p.slug}::${dateStr}`,
           programSlug: p.slug, programName: p.name,
           sessionDate: shiftedDate?.toISOString() ?? null,
+          sessionEnd: shiftedEnd?.toISOString() ?? null,
           status: "claimed", hostUserId: null, hostName: null,
           claimants,
           subRequestId: null, subMessage: null,
@@ -273,6 +281,7 @@ export async function GET(request: Request) {
         id: a.id,
         programSlug: p.slug, programName: p.name,
         sessionDate: shiftedDate?.toISOString() ?? null,
+        sessionEnd: shiftedEnd?.toISOString() ?? null,
         status, hostUserId: a.userId ?? null,
         hostName: nameOf(a.user),
         claimants: [],

@@ -230,6 +230,10 @@ export default async function ScheduleToolPage({
     programSlug: string;
     programName: string;
     sessionDate: string | null;
+    /** Occurrence end (program endDatetime shifted to this date), or null.
+     *  Lets the client show "Enter room" only while the session is actually
+     *  enterable, without a server round-trip. Mirrors lib/sessionWindow.ts. */
+    sessionEnd: string | null;
     status: SessionStatus;
     hostUserId: string | null;
     hostName: string | null;
@@ -269,6 +273,11 @@ export default async function ScheduleToolPage({
       const shiftedDate = p.startDatetime
         ? shiftToDate(p.startDatetime.toISOString(), dateStr)
         : null;
+      // Same shift for the occurrence end so the client can tell whether the
+      // room is enterable right now (mirrors lib/sessionWindow.ts).
+      const shiftedEnd = p.endDatetime
+        ? shiftToDate(p.endDatetime.toISOString(), dateStr)
+        : null;
       const key = `${p.slug}::${dateStr}`;
       const bucket = assignmentsByKey.get(key);
 
@@ -281,6 +290,7 @@ export default async function ScheduleToolPage({
           programSlug: p.slug,
           programName: p.name,
           sessionDate: shiftedDate?.toISOString() ?? null,
+          sessionEnd: shiftedEnd?.toISOString() ?? null,
           status: "unclaimed",
           hostUserId: null,
           hostName: null,
@@ -315,6 +325,7 @@ export default async function ScheduleToolPage({
           programSlug: p.slug,
           programName: p.name,
           sessionDate: shiftedDate?.toISOString() ?? null,
+          sessionEnd: shiftedEnd?.toISOString() ?? null,
           status: "claimed",
           hostUserId: null,
           hostName: null,
@@ -344,6 +355,7 @@ export default async function ScheduleToolPage({
         programSlug: p.slug,
         programName: p.name,
         sessionDate: shiftedDate?.toISOString() ?? null,
+        sessionEnd: shiftedEnd?.toISOString() ?? null,
         status,
         hostUserId: a.userId ?? null,
         hostName: nameOf(a.user),
