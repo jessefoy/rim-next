@@ -12,7 +12,7 @@
  *   - Generous spacing between posts
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft, Pin, Pencil, MoreHorizontal, SmilePlus, Bell, BellOff } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -200,6 +200,28 @@ export default function HubConvThreadClient({
 
   const isClosed = thread.status !== "OPEN";
   const canEditOp = thread.authorId === currentUserId || isCoordinator;
+
+  // Resolve reaction author IDs to names so reactions aren't anonymous — a
+  // bare count hides who is acknowledging whom (session 141; "a community
+  // isn't anonymous"). hubMembers covers the team, currentUser covers "you",
+  // and anyone no longer in the hub falls back to "Someone".
+  const reactorNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const mem of hubMembers) m.set(mem.id, displayName(mem));
+    m.set(currentUserId, displayName(currentUser));
+    return m;
+  }, [hubMembers, currentUserId, currentUser]);
+
+  function reactorNames(userIds: string[]): string {
+    const names = userIds.map((id) =>
+      id === currentUserId ? "You" : (reactorNameById.get(id) ?? "Someone"),
+    );
+    names.sort((a, b) => (a === "You" ? -1 : b === "You" ? 1 : 0)); // "You" first
+    if (names.length === 0) return "";
+    if (names.length === 1) return names[0];
+    if (names.length <= 4) return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+    return `${names.slice(0, 3).join(", ")} and ${names.length - 3} others`;
+  }
 
   async function postReply() {
     // Synchronous guard: the disabled attribute updates on the next render, so
@@ -630,17 +652,15 @@ export default function HubConvThreadClient({
                           <div className="hub-conv-post__reactions">
                             {reactions.map(([emoji, users]) => {
                               const youReacted = users.includes(currentUserId);
+                              const who = reactorNames(users);
                               return (
                                 <button
                                   key={emoji}
                                   className={`hub-conv-reaction${youReacted ? " hub-conv-reaction--mine" : ""}`}
                                   onClick={() => react(r.id, emoji)}
                                   aria-pressed={youReacted}
-                                  aria-label={
-                                    youReacted
-                                      ? `Remove your ${emoji} reaction`
-                                      : `Add ${emoji} reaction`
-                                  }
+                                  title={who}
+                                  aria-label={`${emoji} reaction from ${who} — ${youReacted ? "tap to remove yours" : "tap to add yours"}`}
                                 >
                                   <span>{emoji}</span>
                                   <span className="hub-conv-reaction__count">{users.length}</span>
