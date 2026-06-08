@@ -38,7 +38,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { isHubCoordinator } from "@/lib/hubAuth";
-import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getProgramSlugsForHub, getHubCoverageCopy } from "@/lib/programHub";
+import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getProgramSlugsForHub, getHubCoverageCopy, programNeedsHost } from "@/lib/programHub";
 import { applyStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
 import {
   sendStandingAssignmentScheduledEmail,
@@ -233,6 +233,14 @@ export async function POST(request: Request) {
   const targetHubSlug = body.hubSlug || programHubSlug;
   if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
     return Response.json({ error: "Forbidden — coordinator or manager required" }, { status: 403 });
+  }
+  // "No host needed" programs can't carry a rotation (the UI hides them from
+  // the Rotations grid; this refuses creation via a crafted request too).
+  if (!(await programNeedsHost(body.programSlug))) {
+    return Response.json(
+      { error: 'This program is marked "No host needed" and can\'t have a rotation.' },
+      { status: 422 },
+    );
   }
   if (!VALID_DAYS.includes(body.dayOfWeek)) {
     return Response.json({ error: `Invalid dayOfWeek: ${body.dayOfWeek}` }, { status: 400 });

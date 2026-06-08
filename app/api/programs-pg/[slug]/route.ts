@@ -133,6 +133,9 @@ export async function PUT(
     }
     data.hostingHubSlug = requestedSlug;
   }
+  // "No host needed" toggle. Default true; false = self-led (excluded from the
+  // Scheduler + rotations + host notifications). Coerce to a real boolean.
+  if (body.hostingRequired !== undefined) data.hostingRequired = body.hostingRequired !== false;
   if (body.categoryId !== undefined) data.categoryId = body.categoryId || null;
   // dateText / timeText are server-computed below from the source fields,
   // so we ignore whatever the client sends here.
@@ -231,8 +234,17 @@ export async function PUT(
       : oldHubSlug;
   const hubChanged = data.hostingHubSlug !== undefined && oldHubSlug !== newHubSlug;
 
+  // Flip to "No host needed" (true→false): the program no longer carries
+  // coverage, so its FUTURE assignments + rotations must be cleared too —
+  // otherwise grandfathered rows surface as ghosts (a host's "open early as
+  // host" on the dashboard, the cross-hub staffing view). Self-led clears
+  // EVERY hub's future coverage; a plain hub transfer only clears the old
+  // hub's. Past rows stay as history. Only fires on the true→false edge.
+  const becameSelfLed =
+    data.hostingRequired === false && existing.hostingRequired === true;
+
   let updated;
-  if (hubChanged) {
+  if (hubChanged || becameSelfLed) {
     const futureCutoff = new Date(); // strictly future — past stays as history
     // Atomic: cleanup + program.update in one transaction. If anything
     // throws, both roll back together and the route returns 500.
@@ -242,9 +254,20 @@ export async function PUT(
     // SubRequest row must go before its HostAssignment. SubClaim cascades
     // on SubRequest delete but we delete explicitly for consistency with
     // /api/host/assignments/clear/route.ts.
+    const assnWhere = becameSelfLed
+      // Self-led: clear future-dated rows AND any legacy null-sessionDate
+      // ("standing") rows — the dashboard treats null as "today," so leaving
+      // them would re-surface a ghost "open early as host." Past-dated rows
+      // (concrete history) stay.
+      ? { programSlug: slug, OR: [{ sessionDate: null }, { sessionDate: { gte: futureCutoff } }] }
+      : { programSlug: slug, hubSlug: oldHubSlug, sessionDate: { gte: futureCutoff } };
+    const standingWhere = becameSelfLed
+      ? { programSlug: slug }
+      : { programSlug: slug, hubSlug: oldHubSlug };
+
     updated = await db.$transaction(async (tx) => {
       const futureAssns = await tx.hostAssignment.findMany({
-        where: { programSlug: slug, hubSlug: oldHubSlug, sessionDate: { gte: futureCutoff } },
+        where: assnWhere,
         select: { id: true },
       });
       const futureAssnIds = futureAssns.map((a) => a.id);
@@ -261,18 +284,16 @@ export async function PUT(
         });
       }
 
-      await tx.standingAssignment.deleteMany({
-        where: { programSlug: slug, hubSlug: oldHubSlug },
-      });
+      await tx.standingAssignment.deleteMany({ where: standingWhere });
 
       return tx.program.update({ where: { slug }, data });
     });
 
-    console.log("[program-transfer]", {
+    console.log(becameSelfLed ? "[program-self-led]" : "[program-transfer]", {
       programSlug: slug,
-      from: oldHubSlug,
-      to: newHubSlug,
-      message: "orphan rules + future HostAssignments purged on old hub",
+      ...(becameSelfLed
+        ? { clearedAllHubs: true, message: "future HostAssignments + rotations cleared (No host needed)" }
+        : { from: oldHubSlug, to: newHubSlug, message: "orphan rules + future HostAssignments purged on old hub" }),
     });
   } else {
     updated = await db.program.update({ where: { slug }, data });

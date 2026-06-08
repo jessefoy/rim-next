@@ -247,10 +247,13 @@ export async function generateCandidates(
 
   if (standingAssignments.length === 0) return { candidates: [], pastIgnored: 0 };
 
-  // 2. Load programs
+  // 2. Load programs. `hostingRequired: true` excludes "No host needed"
+  //    programs: any leftover StandingAssignment rows on a self-led program
+  //    produce no candidates (program absent from programMap → skipped below),
+  //    so neither the cron nor a manual apply ever generates coverage for it.
   const slugs = [...new Set(standingAssignments.map((sa) => sa.programSlug))];
   const programs = await db.program.findMany({
-    where: { slug: { in: slugs }, archivedAt: null },
+    where: { slug: { in: slugs }, archivedAt: null, hostingRequired: true },
     select: {
       id: true, name: true, slug: true, programFormat: true,
       startDatetime: true, endDatetime: true,

@@ -102,6 +102,10 @@ export interface ProgramData {
   /** Which hub hosts this program. Null = "host-team" (the implicit default).
    *  Coordinator can transfer hosting to another hub via the Hosting & Access tab. */
   hostingHubSlug: string | null;
+  /** "No host needed" — when false, the program is self-led / community-led
+   *  (Recovery Dharma, drop-in groups) and is excluded from the Scheduler,
+   *  rotation generation, and the new-program-needs-host email. Default true. */
+  hostingRequired?: boolean;
   /** Auxiliary hubs providing supporting-role coverage for this program
    *  (session 129 — AV + Greeter). Empty array is the default; each slug
    *  here gets a row in program_coverage_hubs on save. Primary hub
@@ -640,6 +644,16 @@ export default function ProgramEditor({
   const [hostingHubSlug, setHostingHubSlug] = useState<string>(initialHostingHubSlug);
   const hostingHubChanged = hostingHubSlug !== initialHostingHubSlug;
 
+  // "No host needed" — self-led / community-led programs (Recovery Dharma,
+  // drop-in groups). When true, this program is excluded from the Scheduler,
+  // rotations, and host notifications. Stored as `hostingRequired` (the
+  // inverse); the checkbox below is phrased positively as "No host needed".
+  const [hostingRequired, setHostingRequired] = useState<boolean>(
+    initialData?.hostingRequired ?? true,
+  );
+  const noHostNeeded = !hostingRequired;
+  const hostingRequiredChanged = hostingRequired !== (initialData?.hostingRequired ?? true);
+
   // Auxiliary-hub coverage. A program's primary hub (hostingHubSlug above)
   // runs the live session; auxiliary hubs schedule supporting roles —
   // AV volunteer, greeters — for the in-person component. Each checked
@@ -854,6 +868,9 @@ export default function ProgramEditor({
         // Empty string serialises as null (the implicit "host-team" default).
         // Server-side `getProgramHubSlug` falls through to host-team when null.
         hostingHubSlug: hostingHubSlug || null,
+        // "No host needed" toggle (stored as the inverse). When false the
+        // program is self-led and excluded from the Scheduler + rotations.
+        hostingRequired,
         // Auxiliary hubs providing role coverage. Empty array means no
         // additional coverage. Server replaces the full set on each save.
         coverageHubSlugs,
@@ -1310,6 +1327,59 @@ export default function ProgramEditor({
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Hosting & Access" && (
           <div className="pe-card"><div className="pe-form">
+
+            {/* ── No host needed (self-led / community-led) ──────────── */}
+            <div className="pe-field">
+              <span className="pe-field__label">Host coverage</span>
+              <span className="pe-field__help">
+                Most programs need a host on the schedule. Self-led or
+                community-led offerings (Recovery Dharma, drop-in community
+                groups) don&rsquo;t — check this to keep the program off the
+                Scheduler entirely. It stays fully visible on the public
+                schedule, the member dashboard, and its program page, and its
+                session room still works; it just won&rsquo;t show as
+                &ldquo;Needs Coverage&rdquo; and won&rsquo;t generate host
+                rotations or notifications.
+              </span>
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={noHostNeeded}
+                  onChange={(e) => { setHostingRequired(!e.target.checked); markDirty(); }}
+                />
+                <span>No host needed</span>
+              </label>
+              {noHostNeeded && (
+                <p
+                  style={{
+                    marginTop: 8,
+                    fontSize: "var(--text-xs)",
+                    color: "var(--rim-text-muted)",
+                  }}
+                >
+                  This program is self-led — the hosting settings below
+                  don&rsquo;t apply.
+                </p>
+              )}
+              {isEditing && noHostNeeded && hostingRequiredChanged && futureHostAssignmentCount > 0 && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "10px 12px",
+                    borderRadius: 6,
+                    background: "var(--color-warning-bg, #fdf6e3)",
+                    color: "var(--color-warning, #8a6d3b)",
+                    fontSize: "var(--text-xs)",
+                    lineHeight: 1.55,
+                  }}
+                >
+                  <strong>Heads up:</strong> {futureHostAssignmentCount} upcoming
+                  {futureHostAssignmentCount === 1 ? " host assignment" : " host assignments"}
+                  {" "}and any standing rotations for this program will be removed
+                  when you save. Past sessions stay on the record.
+                </div>
+              )}
+            </div>
 
             {/* Intro: two separate sections with different semantics.
                 Spelled out at the top of the tab so coordinators have a

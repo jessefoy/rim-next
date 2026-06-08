@@ -157,6 +157,7 @@ export default async function EditProgramToolPage({
     guestAccessKey: program.guestAccessKey ?? "",
     programNotes: program.programNotes ?? null,
     hostingHubSlug: program.hostingHubSlug ?? null,
+    hostingRequired: program.hostingRequired ?? true,
     coverageHubSlugs: coverageRows.map((r) => r.hubSlug),
   };
 

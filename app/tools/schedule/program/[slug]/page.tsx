@@ -105,9 +105,13 @@ export default async function ProgramStaffingPage({
       startDatetime: true,
       endDatetime: true,
       archivedAt: true,
+      hostingRequired: true,
     },
   });
-  if (!program || program.archivedAt) notFound();
+  // Self-led ("No host needed") programs have no staffing to show — they're
+  // excluded from every Scheduler view, so this one 404s rather than render
+  // an empty grid for a hand-typed URL.
+  if (!program || program.archivedAt || !program.hostingRequired) notFound();
 
   const primaryHubSlug = program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
   const auxHubSlugs = await getProgramCoverageHubs(program.slug);

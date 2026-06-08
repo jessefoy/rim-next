@@ -84,6 +84,10 @@ export async function POST(request: NextRequest) {
       // etc.) by setting this field via the editor's Hosting & Access tab.
       // Slug validated above; non-existent slugs were already rejected with 422.
       hostingHubSlug: requestedHostingHubSlug,
+      // "No host needed" — default true (needs coverage). False = self-led /
+      // community-led; excluded from the Scheduler + rotation generation + the
+      // notification below.
+      hostingRequired: body.hostingRequired ?? true,
       categoryId: body.categoryId || null,
       // dateText / timeText are server-computed from the source fields so they
       // never drift. Any value the client sends is ignored.
@@ -177,10 +181,15 @@ export async function POST(request: NextRequest) {
 
   // Notify the host team when a new virtual/hybrid program lands.
   // In-person programs don't need host coverage on the LiveKit side, so we
-  // only fire for virtual/hybrid. Recipients exclude the registrar who
-  // created it (no point notifying yourself). `after()` keeps the work
-  // alive past the response so Vercel doesn't kill the in-flight emails.
-  if (program.programFormat === "virtual" || program.programFormat === "hybrid") {
+  // only fire for virtual/hybrid. "No host needed" programs are skipped
+  // entirely — they're self-led, so there's no one to notify. Recipients
+  // exclude the registrar who created it (no point notifying yourself).
+  // `after()` keeps the work alive past the response so Vercel doesn't kill
+  // the in-flight emails.
+  if (
+    program.hostingRequired &&
+    (program.programFormat === "virtual" || program.programFormat === "hybrid")
+  ) {
     after(async () => {
       try {
         const notifyHubSlug =

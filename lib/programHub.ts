@@ -152,7 +152,11 @@ export async function getProgramSlugsForHub(hubSlug: string): Promise<string[]> 
 
   const [primaryRows, coverageRows] = await Promise.all([
     db.program.findMany({
-      where: { ...primaryFilter, archivedAt: null },
+      // `hostingRequired: true` excludes "No host needed" programs from every
+      // Scheduler view — this helper feeds the Scheduler page, the assignments
+      // GET, and the Rotations grid, so a self-led / community-led offering
+      // (Recovery Dharma, drop-in groups) never surfaces as "Needs Coverage."
+      where: { ...primaryFilter, archivedAt: null, hostingRequired: true },
       select: { slug: true },
     }),
     db.programCoverageHub.findMany({
@@ -163,8 +167,36 @@ export async function getProgramSlugsForHub(hubSlug: string): Promise<string[]> 
 
   const slugs = new Set<string>();
   for (const p of primaryRows) slugs.add(p.slug);
-  for (const c of coverageRows) slugs.add(c.programSlug);
+
+  // Auxiliary coverage rows reference a program by slug but carry no
+  // hostingRequired flag of their own — filter them against the Program table
+  // so a "No host needed" program is excluded from auxiliary (AV/greeter) views
+  // too. A self-led program needs no scheduled coverage of any kind.
+  const coverageSlugs = coverageRows.map((c) => c.programSlug);
+  if (coverageSlugs.length > 0) {
+    const liveCoverage = await db.program.findMany({
+      where: { slug: { in: coverageSlugs }, archivedAt: null, hostingRequired: true },
+      select: { slug: true },
+    });
+    for (const p of liveCoverage) slugs.add(p.slug);
+  }
+
   return [...slugs];
+}
+
+/**
+ * True when a program needs scheduled host coverage (the default). False means
+ * the program is flagged "No host needed" (self-led / community-led) — used by
+ * the Scheduler mutation guards (assignment claim, rotation save) to refuse
+ * creating coverage state for a self-led program even via a crafted request.
+ * Unknown / missing program → true (fail safe: assume it needs a host).
+ */
+export async function programNeedsHost(programSlug: string): Promise<boolean> {
+  const p = await db.program.findUnique({
+    where: { slug: programSlug },
+    select: { hostingRequired: true },
+  });
+  return p?.hostingRequired ?? true;
 }
 
 /** Resolved coverage config for one hub in one place — fetched once per page. */

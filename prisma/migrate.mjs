@@ -4355,6 +4355,33 @@ Brookfield, Wisconsin`;
     console.log("  ⏭ join-welcome template seed already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // "No host needed" — Program.hostingRequired (self-led / community-led)
+  //
+  // Additive boolean column, default true so every existing program keeps
+  // needing host coverage exactly as before. When set false via the editor,
+  // the program is excluded from the Scheduler, rotation generation, and the
+  // new-program-needs-host email (used for Recovery Dharma, drop-in community
+  // groups, etc. that run themselves). Raw SQL references the @@map table name
+  // "programs".
+  // ───────────────────────────────────────────────────────────────────────
+  const hostingRequiredFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'program_hosting_required_v1'
+  `).catch(() => []);
+
+  if (hostingRequiredFlag.length === 0) {
+    console.log("→ Program.hostingRequired column (No host needed)…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "hostingRequired" BOOLEAN NOT NULL DEFAULT true`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('program_hosting_required_v1')`,
+    );
+    console.log("  ✔ programs.hostingRequired ready (default true).");
+  } else {
+    console.log("  ⏭ program_hosting_required_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

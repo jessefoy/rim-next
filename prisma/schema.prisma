@@ -229,6 +229,7 @@ model Program {
   teacherFacilitators String[]         // plain text names
   teacherLabel        String?          // pill label for ProgramTeachers in the session room. Null = "Teacher" (default). Coordinator can set per program — "Guide" for peer-led silent sits, "Facilitator" for Recovery Dharma, "Instructor" for Qigong, custom for anything else.
   hostingHubSlug      String?          // which hub hosts this program. Null = "host-team" (the default). Set to e.g. "peer-led-silent-meditation" to transfer hosting authority to a different hub. Slug-based join (not FK) for stability — mirrors HostAssignment.programSlug. See RIM_System_Architecture.md "Hub-as-authority for programs (session 128)".
+  hostingRequired     Boolean @default(true)  // false = "No host needed" — self-led / community-led offerings (Recovery Dharma, drop-in community groups). When false the program is excluded from EVERY Scheduler view, from standing-rotation generation, and from the new-program-needs-host notification — so it never shows as "Needs Coverage." Orthogonal to hostingHubSlug (which team) — this answers whether ANY team staffs it. Does NOT affect the public weekly schedule, member dashboard, program page, or the session room.
 
   // ── Schedule & Location ────────────────────────────────
   categoryId          String?

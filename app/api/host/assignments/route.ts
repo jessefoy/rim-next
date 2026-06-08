@@ -9,6 +9,7 @@ import {
   getProgramHubSlug,
   getHubCoverageConfig,
   getProgramSlugsForHub,
+  programNeedsHost,
 } from "@/lib/programHub";
 import { ctDateStr, isOccurrenceOnDate, shiftToDate } from "@/lib/scheduleUtils";
 
@@ -338,6 +339,16 @@ export async function POST(request: Request) {
   const roles = session.user.roles ?? [];
   if (!(await hasEffectiveHostAccess(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // "No host needed" programs can't be staffed. Checked AFTER the capability
+  // gate so it never reveals the flag to a non-host. The UI already hides these
+  // from the Scheduler; this refuses coverage creation via a crafted request.
+  if (!(await programNeedsHost(programSlug))) {
+    return Response.json(
+      { error: 'This program is marked "No host needed" and can\'t be scheduled.' },
+      { status: 422 },
+    );
   }
 
   // Self-claim: any active hub-team member can create+claim for themselves.
