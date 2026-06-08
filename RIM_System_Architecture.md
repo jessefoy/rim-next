@@ -336,6 +336,8 @@ The system of record for member data is called the **Member Registry**. This is 
 
 Hub documents and conversation threads share a three-stage lifecycle: **Active → Archived → Trash**.
 
+Individual conversation **replies** are simpler: they have no archive/trash stage. A reply is edited by its author (`PATCH`) or hard-deleted by its author or a coordinator/GT/ADMIN (`DELETE /api/hub/[slug]/conversations/[id]/replies/[replyId]`, session 141). The three-stage lifecycle is for the thread/document containers, not each reply.
+
 - **Archive** is the only soft action available on an Active item. Reversible. Author or coordinator. Both documents and threads use `archivedAt DateTime?` as the canonical archive marker (session 115 — threads were unified with documents, mirroring `HubDocument`'s shape). Archived items move to an "Archived" filter view (member-visible, read-only).
 - **Delete** is only available on Archived items. Soft-deletes the item to the per-hub Trash, vanishes from member views entirely. Author or coordinator. Enforced both in the UI (Delete button hidden when item is not archived) and in the API (DELETE returns 400 if not archived).
 - **Restore** and **Permanent Delete** live on the Trash page (`/account/hub/[slug]/trash`). Trash-managers only.
