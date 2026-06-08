@@ -122,6 +122,22 @@ A full usage trace — every component, lib helper, model, enum value, page rout
 
 ---
 
+## Theme I — Session-139 feature removals (dormant residue + dep prune)
+
+Three unused features removed this session (staff manual, Schedule PDF export, Reflection Questions). The code is gone and build-verified (`tsc` + `next build`); these are the dormant tails to clean **post-launch**.
+
+| # | Item | Where | Action |
+|---|---|---|---|
+| 66 | Dead `@react-pdf/renderer` dep | `package.json` — Schedule PDF export removed; zero code refs | `npm remove` |
+| 67 | Dead `man-` CSS prefix | `public/css/custom.css` — manual feature removed | `scripts/css-prune.mjs` |
+| 68 | `manualUrl` in 2 role-assignment email templates | `prisma/migrate.mjs` seeds for `registrar-role-assigned` + `host-role-assigned` still list a `manualUrl` var + a "Read the Staff Manual" link; the live DB templates do too. Renders an empty link now. | Edit the 2 seed bodies + update the live templates via `/admin/emails` |
+| 69 | Dormant DB tables/columns (no DDL ran) | `manual_sections`; `reflection_questions` / `_options` / `_responses`; `Lesson.questionsRequired` column — left in Neon, unread | Drop post-launch (one idempotent migration) |
+| 70 | Empty manual migration blocks | `prisma/migrate.mjs` — flag-guarded blocks whose manual seed calls were stripped are now harmless no-ops | Prune post-launch (cosmetic) |
+
+**Decision recorded — public content pages KEPT.** `/donate` (live GiveButter widgets + Dana content), `/diversity`, `/kalyana-mitta/*`, and `/volunteerism/*` were considered for removal and **kept** (session 139): they're finished content, not rough stubs. A future *presentation* redesign (native CSS over the Webflow shim) is a redesign, not a delete. Do not re-propose deleting them as "static stubs."
+
+---
+
 ## Not on this list
 
 For reference: items flagged during inventory that are *absences* (planned or discussed, never built) rather than residue. Each is a "still wanted?" question for a strategy conversation, not a cleanup session.

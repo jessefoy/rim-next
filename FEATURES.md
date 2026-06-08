@@ -45,7 +45,7 @@ RIM Next is a **single, integrated Next.js 16 (App Router) application**. Public
 
 **Live at** `rim-next.vercel.app`. The legacy Webflow public site at `rootedinmindfulness.org` is being **retired and rebuilt natively in this app** — the April-2026 Webflow-primary pivot was reversed (May 2026). The public-facing pages here exist but are early/rough; they are the next major build area.
 
-**Verified surface (session 139):** 69 page routes · 112 API routes · 5 crons · 58 Prisma models/enums · 3 tools.
+**Verified surface (session 139):** 63 page routes · 106 API routes · 5 crons · 54 Prisma models/enums · 3 tools.
 
 ---
 
@@ -79,7 +79,7 @@ Postgres-backed fixed-window limiter (`RateLimitWindow`, `lib/rateLimit.ts`) on 
 - **Teachers directory** — `/teachers`, `/teachers/[slug]`. Public teacher profiles (`isTeacher` + `TeacherProfile`).
 - **Public course pages** — `/courses` (index), `/course/[slug]` (public landing, mirrors program-detail shape), `/lessons/[slug]` (lesson reader, access-gated).
 - **Join / membership threshold** — `/join`. The new-member door (see Auth).
-- **Content / static pages** — `/diversity`, `/donate`, `/kalyana-mitta/*` (3: community-groups-events, guidelines, application), `/volunteerism/volunteer` + thanks page, `/manual` (manual reader).
+- **Content / static pages** — `/diversity`, `/donate`, `/kalyana-mitta/*` (3: community-groups-events, guidelines, application), `/volunteerism/volunteer` + thanks page.
 - **Nav & footer** — `components/Nav.tsx` (sticky, CSS-only dropdowns, `isMemberArea`/`isAdmin` aware), footer in the root layout.
 
 ---
@@ -122,7 +122,7 @@ The **offering model** (Programs vs Courses, the orthogonal access flags, the ki
 
 `Course` + `Lesson` + `CourseLesson` + `CourseCategory`, with `CourseAccess` (manual grants), `SeriesEnrollment` (enrollment), and `ProgramCourse` (a program can unlock a course). Course access uses orthogonal flags (`allowSelfEnroll`, `selfEnrollDanaRequired`, `requiredRoles`, …) resolved by `lib/courseAccess.ts::getCourseAccessState`; dana parity with programs (four modes). Session 123 brought the course editor to program-editor parity.
 - **Public:** `/course/[slug]` (landing), `/courses`, `/lessons/[slug]` · **API:** `/api/courses/[slug]/checkout`, `/api/courses/[slug]/enroll`, `/api/courses/categories`.
-- **Lessons** carry rich media — `heroImageUrl`, `audioUrl` (in-page `AudioPlayer`), `videoUrl` (YouTube/Vimeo), downloadable `resources`, `durationMinutes` — plus progress (`LessonProgress`), notes (`LessonNote`), reflection questions (`ReflectionQuestion` / `ReflectionOption` / `ReflectionResponse`), and per-lesson teachers (`LessonTeacher`). API under `/api/lessons/[slug]/*`.
+- **Lessons** carry rich media — `heroImageUrl`, `audioUrl` (in-page `AudioPlayer`), `videoUrl` (YouTube/Vimeo), downloadable `resources`, `durationMinutes` — plus progress (`LessonProgress`), notes (`LessonNote`), and per-lesson teachers (`LessonTeacher`). API under `/api/lessons/[slug]/*`.
 - **Course Manager tool** — `/tools/learning` (+ `/[courseSlug]`, `/new`, `/lessons`, `/lessons/[lessonSlug]`, `/lessons/new`). TEACHER / ADMIN. 8-tab editor (Content / Lessons / Landing / Categories / Access / Schedule / Dana / Visibility).
 - **See:** `RIM_Offering_Model.md`.
 
@@ -130,9 +130,9 @@ The **offering model** (Programs vs Courses, the orthogonal access flags, the ki
 
 ## Hubs — team workspaces
 
-Hubs are team-centric workspaces. Each provides a **Home**, **Conversations**, **Documents**, **Members**, **Activity**, **Trash**, and **Manual** view. `HubType` ∈ OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP; all managed at `/admin/hubs` (the source of truth for the full set — ~16 hubs). Tool-linked hubs: **host-team**, **courses**, **registrar**, **support**. Scheduler-using hubs also include **peer-led-silent-meditation**, **audio-visual**, **greeter**.
+Hubs are team-centric workspaces. Each provides a **Home**, **Conversations**, **Documents**, **Members**, **Activity**, and **Trash** views. `HubType` ∈ OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP; all managed at `/admin/hubs` (the source of truth for the full set — ~16 hubs). Tool-linked hubs: **host-team**, **courses**, **registrar**, **support**. Scheduler-using hubs also include **peer-led-silent-meditation**, **audio-visual**, **greeter**.
 
-- **Workspace routes:** `/account/hub/[slug]` + `/activity`, `/conversations`, `/conversations/[id]`, `/documents`, `/documents/[id]`, `/documents/[id]/edit`, `/documents/new`, `/members`, `/manual`, `/trash`. API under `/api/hub/[slug]/*` and `/api/hubs/[slug]/*`.
+- **Workspace routes:** `/account/hub/[slug]` + `/activity`, `/conversations`, `/conversations/[id]`, `/documents`, `/documents/[id]`, `/documents/[id]/edit`, `/documents/new`, `/members`, `/trash`. API under `/api/hub/[slug]/*` and `/api/hubs/[slug]/*`.
 - **Documents** — rich-text + PDF upload (Vercel Blob), per-document Basecamp-style notifications (`HubDocumentNotification`), document conversations (`HubConversationThread.documentId`), author/ADMIN/GT lock + presence.
 - **Conversations** — threads with a subscription model (`HubThreadSubscription`: subscribers get every reply), Follow/Unfollow, editable categories, emoji reactions.
 - **Three-stage lifecycle** — Active → Archived → Trash (`archivedAt` / `deletedAt` on documents and threads). Trash gated by `canManageTrash`.
@@ -156,7 +156,6 @@ The **Scheduler** (`/tools/schedule`) is the staffing tool: a calendar + card li
 - **Standing rotations** — `StandingAssignment` (`StandingOccurrence` 1st–5th, patterns) applied forward by `lib/applyStandingAssignments.ts` + the `apply-standing-assignments` cron. API `/api/host/standing-assignments` + `/[id]`, `/apply`, `/preview`, `/end-bundle`, `/release-host`, `/api/host/programs/[slug]/clear-rotations`.
 - **Auxiliary-hub coverage** — `ProgramCoverageHub` lets one program be staffed by many hubs, each a different role; single-slot (host-team / peer-led / audio-visual) vs multi-claim open sign-up (greeter). `Hub.allowsMultipleAssignments` + `Hub.appliesToFormats`.
 - **Hub-configurable copy** — `coverageNoun` / `coverageVerb` / `coverageAction` on `Hub` (so "host" reads "AV" / "Greeter" / "Facilitator" per hub).
-- **PDF export** — `/api/host/schedule/pdf` (`@react-pdf/renderer`).
 - **See:** `RIM_Scheduler.md`.
 
 ---
@@ -179,7 +178,6 @@ Each virtual/hybrid program has a full-page video room at `/session/[slug]` (Liv
 - **Households** — `/admin/households`, `/admin/households/[id]`. Group members into family households with a shared address, an optional display name, and named relationships (`RelationshipType`: spouse / partner / parent / child / sibling / other). Surfaced on a member's profile via `HouseholdSection`; backed by `Household` / `HouseholdMember`. API `/api/admin/households/*`.
 - **Teachers** — `TeacherProfile` (public profile + `isTeacher`), `ProgramTeacher` (links a teacher account to a program; drives the session-room Teacher pill + bell-friendly audio).
 - **Email Template Manager** — `/admin/emails`, `/admin/emails/[slug]`. Database-backed (`EmailTemplate`); the source of truth for templated sends. See `RIM_Email_Engineering.md`.
-- **Staff Manual admin** — `/admin/manual`, `/admin/manual/[slug]`, `/admin/manual/[slug]/edit` (see Staff Manual below).
 - **LiveKit test** — `/admin/livekit-test`. A diagnostic page for verifying LiveKit env/connectivity.
 
 ---
@@ -201,17 +199,10 @@ Transactional email via **Resend**. Most sends go through the database-backed te
 
 ---
 
-## Staff Manual (in-app)
-
-Database-driven manual (`ManualSection` records) with an audience-grouped index, hub-scoped projection, and contextual `?` help icons throughout the app.
-- **Routes:** `/manual` (reader), `/admin/manual` + `/[slug]` + `/[slug]/edit` (management), `/account/hub/[slug]/manual` (hub-scoped chapters). Chapters seeded/updated via `prisma/*.mjs` migrations.
-
----
-
 ## Platform infrastructure
 
 - **Crons (5, in `vercel.json`):** `send-reminders` (0 14 * * *), `cleanup-incomplete-accounts` (0 5), `apply-standing-assignments` (0 8), `cleanup-rate-limits` (15 10), `cleanup-pending-registrations` (30 5). All validate `CRON_SECRET`.
-- **Data model** — `prisma/schema.prisma` (58 models/enums) is canonical. Migrations + idempotent seeds run through `prisma/migrate.mjs` (flag-guarded via `MigrationFlag`).
+- **Data model** — `prisma/schema.prisma` (54 models/enums) is canonical. Migrations + idempotent seeds run through `prisma/migrate.mjs` (flag-guarded via `MigrationFlag`).
 - **File uploads** — Vercel Blob via `/api/upload` (images in editors, PDFs in hub documents).
 - **CSS** — all custom styles in `public/css/custom.css`, per-page prefixes + design tokens. Rules + the two hygiene scripts (`css-prune.mjs`, `css-cut.mjs`) are in `CLAUDE.md`. Never edit `normalize.css` / `webflow.css` / `rim.webflow.css`.
 - **Redirects (8, in `vercel.json`)** — legacy paths fold into current ones (`/account/registrar*` → `/tools/programs*`, `/account/hub/teacher*` → `/account/hub/courses*`, `/account/dashboard-my-registrations` → `/account/programs`, `/account/dashboard-my-library` → `/account/courses`, …).
@@ -238,6 +229,9 @@ Kept as a tombstone so future work doesn't re-discover or re-propose them. Full 
 | UserHubAccess model | s100 | `HubMember` is authoritative | `CLEANUP.md` #40 |
 | `/account/host` "Host Area" | — | Superseded by hubs + the Scheduler tool | session-log |
 | BlockNote editor (RimBlockEditor / RimProseEditor) | s97 | Replaced by `RimTiptapEditor` | session-log s97 |
+| Staff Manual (in-app) | s139 | Unused; was woven across ~50 sites + 35 seed scripts. `manual_sections` table left dormant | session-log s139; `CLEANUP.md` |
+| Schedule PDF export | s139 | Unused; `@react-pdf/renderer` now removable | session-log s139; `CLEANUP.md` |
+| Reflection Questions (lesson Q&A) | s139 | Unused; kept the separate `reflectionPrompt`. `reflection_*` tables + `questionsRequired` column left dormant | session-log s139 |
 
 ---
 
