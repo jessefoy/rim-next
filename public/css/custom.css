@@ -13115,6 +13115,23 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: var(--rim-text-muted);
   margin: 0;
 }
+.vs-message__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.vs-message__link {
+  background: none;
+  border: none;
+  color: var(--rim-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  cursor: pointer;
+  padding: 8px 12px;
+  min-height: 44px;
+}
+.vs-message__link:hover { color: var(--rim-text); }
 /* Guest entry form */
 .vs-guest-entry {
   max-width: 380px;

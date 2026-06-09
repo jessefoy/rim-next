@@ -65,7 +65,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { LiveKitRoom } from "@livekit/components-react";
-import { RoomOptions, VideoPresets } from "livekit-client";
+import { RoomOptions, VideoPresets, DisconnectReason } from "livekit-client";
 import RIMConference from "./session/RIMConference";
 import Greenroom from "./session/Greenroom";
 import Recovery from "./session/Recovery";
@@ -73,6 +73,27 @@ import Recovery from "./session/Recovery";
 export type AudioProfile = "teacher" | "speaker" | "listener";
 
 type Phase = "greenroom" | "recovery" | "conference";
+
+/** Why the room closed, classified for the page so it can show the right
+ *  screen without importing livekit-client itself. (Audit CONN-2/CONN-3.) */
+export type LeaveKind = "ended" | "lost" | "duplicate";
+
+function classifyDisconnect(reason?: DisconnectReason): LeaveKind {
+  // Same member joined from another tab/device — not an end.
+  if (reason === DisconnectReason.DUPLICATE_IDENTITY) return "duplicate";
+  switch (reason) {
+    // Deliberate / authoritative ends → the calm "Session ended" screen.
+    case DisconnectReason.CLIENT_INITIATED:
+    case DisconnectReason.ROOM_DELETED:
+    case DisconnectReason.SERVER_SHUTDOWN:
+    case DisconnectReason.PARTICIPANT_REMOVED:
+      return "ended";
+    // Everything else (network drop past LiveKit's retry ladder, signal
+    // close, join failure, unknown) — the room may still be live → offer Rejoin.
+    default:
+      return "lost";
+  }
+}
 
 function buildRoomOptions(profile: AudioProfile): RoomOptions {
   const isTeacher = profile === "teacher";
@@ -136,10 +157,14 @@ interface Props {
   guestKey?: string;
   avatarUrl?: string | null;
   view?: "speaker" | "gallery";
-  onLeave?: () => void;
+  onLeave?: (kind?: LeaveKind) => void;
+  /** Fired when LiveKit fails to connect (the connect promise rejects).
+   *  Without this the user is stranded on the Greenroom "Connecting…" with
+   *  no retry — LiveKitRoom swallows the rejection. (Audit CONN-1.) */
+  onConnectError?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndAllAuthority = false, isCoHost = false, isProgramTeacher = false, teacherLabel = null, audioProfile = "listener", programSlug, sessionDate, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
+export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndAllAuthority = false, isCoHost = false, isProgramTeacher = false, teacherLabel = null, audioProfile = "listener", programSlug, sessionDate, guestKey, avatarUrl, view = "gallery", onLeave, onConnectError }: Props) {
   const roomOptions = buildRoomOptions(audioProfile);
   const [phase, setPhase] = useState<Phase>("greenroom");
 
@@ -170,7 +195,8 @@ export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndA
         audio={false}
         video={false}
         options={roomOptions}
-        onDisconnected={() => onLeave?.()}
+        onDisconnected={(reason) => onLeave?.(classifyDisconnect(reason))}
+        onError={() => onConnectError?.()}
         data-lk-theme="default"
         style={{ height: "100%" }}
       >

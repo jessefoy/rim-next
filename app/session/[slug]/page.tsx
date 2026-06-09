@@ -14,6 +14,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import ViewToggle, { type SessionView } from "@/components/session/ViewToggle";
+import type { LeaveKind } from "@/components/VideoRoom";
 
 const VideoRoom = dynamic(() => import("@/components/VideoRoom"), { ssr: false });
 
@@ -29,7 +30,7 @@ function readView(): SessionView {
   }
 }
 
-type State = "loading" | "guest-name" | "ready" | "connected" | "error" | "left";
+type State = "loading" | "guest-name" | "ready" | "connected" | "error" | "left" | "connection-lost" | "duplicate";
 
 export default function SessionPage() {
   const params = useParams();
@@ -90,57 +91,61 @@ export default function SessionPage() {
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  // Member flow: fetch token immediately
+  // Member flow: fetch a token. Extracted into a callback so the
+  // connection-lost screen can re-run it on "Rejoin". (Audit CONN-1.)
+  const loadToken = useCallback(async () => {
+    setError(null);
+    setState("loading");
+    try {
+      const res = await fetch("/api/livekit/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programSlug: slug }),
+      });
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json();
+        // Prefer the human-readable `message` from the time-gate (e.g.
+        // "This session isn't open yet — it begins at 7:00 PM") over the
+        // machine-readable `error` slug.
+        throw new Error(data.message || data.error || "Failed to connect");
+      }
+      const data = await res.json();
+      setToken(data.token);
+      setWsUrl(data.wsUrl);
+      setSessionDate(data.sessionDate ?? undefined);
+      setIsSessionHost(data.isSessionHost ?? false);
+      setHasEndAllAuthority(data.hasEndAllAuthority ?? false);
+      setIsCoHost(data.isCoHost ?? false);
+      setIsHostTeam(data.isHostTeam ?? false);
+      setIsProgramTeacher(data.isProgramTeacher ?? false);
+      setAudioProfile(data.audioProfile ?? "listener");
+      setAvatarUrl(data.avatarUrl ?? null);
+      setTeacherLabel(data.teacherLabel ?? null);
+      // Strip the trailing -YYYY-MM-DD date from the per-session room name
+      // when deriving the program label.
+      const labelSource = (data.roomName as string).replace(/-\d{4}-\d{2}-\d{2}$/, "");
+      setProgramName(labelSource.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
+      setState("ready");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+      setState("error");
+    }
+  }, [slug, router]);
+
+  // Member flow: fetch token immediately on mount.
   useEffect(() => {
     if (isGuest) return; // guests go through the name form first
+    loadToken();
+  }, [isGuest, loadToken]);
 
-    async function init() {
-      try {
-        const res = await fetch("/api/livekit/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ programSlug: slug }),
-        });
-        if (res.status === 401) {
-          router.push("/login");
-          return;
-        }
-        if (!res.ok) {
-          const data = await res.json();
-          // Prefer the human-readable `message` from the time-gate (e.g.
-          // "This session isn't open yet — it begins at 7:00 PM") over the
-          // machine-readable `error` slug.
-          throw new Error(data.message || data.error || "Failed to connect");
-        }
-        const data = await res.json();
-        setToken(data.token);
-        setWsUrl(data.wsUrl);
-        setSessionDate(data.sessionDate ?? undefined);
-        setIsSessionHost(data.isSessionHost ?? false);
-        setHasEndAllAuthority(data.hasEndAllAuthority ?? false);
-        setIsCoHost(data.isCoHost ?? false);
-        setIsHostTeam(data.isHostTeam ?? false);
-        setIsProgramTeacher(data.isProgramTeacher ?? false);
-        setAudioProfile(data.audioProfile ?? "listener");
-        setAvatarUrl(data.avatarUrl ?? null);
-        setTeacherLabel(data.teacherLabel ?? null);
-        // Strip the trailing -YYYY-MM-DD date from the per-session room name
-        // when deriving the program label.
-        const labelSource = (data.roomName as string).replace(/-\d{4}-\d{2}-\d{2}$/, "");
-        setProgramName(labelSource.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
-        setState("ready");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
-        setState("error");
-      }
-    }
-    init();
-  }, [slug, router, isGuest]);
-
-  // Guest flow: join after entering name
-  async function handleGuestJoin(e: React.FormEvent) {
-    e.preventDefault();
-    if (!guestName.trim()) return;
+  // Guest flow: join after entering name. Extracted (no event) so "Rejoin"
+  // on the connection-lost screen can re-run it. (Audit CONN-1/CONN-2.)
+  const joinAsGuest = useCallback(async () => {
+    if (!guestName.trim()) { setState("guest-name"); return; }
     setJoiningAsGuest(true);
     setError(null);
 
@@ -171,7 +176,25 @@ export default function SessionPage() {
       setState("error");
     }
     setJoiningAsGuest(false);
+  }, [guestName, slug, guestKey]);
+
+  function handleGuestJoin(e: React.FormEvent) {
+    e.preventDefault();
+    joinAsGuest();
   }
+
+  // Rejoin from a failed connect (CONN-1) or a dropped connection (CONN-2).
+  const retry = useCallback(() => {
+    if (isGuest) joinAsGuest();
+    else loadToken();
+  }, [isGuest, joinAsGuest, loadToken]);
+
+  const handleConnectError = useCallback(() => {
+    // LiveKit failed to connect (regional blip, flaky/captive-portal WiFi).
+    // Show a recoverable screen instead of stranding the user on the
+    // Greenroom "Connecting…" forever. (Audit CONN-1.)
+    setState("connection-lost");
+  }, []);
 
   // When a Step-In flow is awaiting the prior LiveKitRoom disconnect,
   // this ref holds the resolver. handleLeave checks it before treating
@@ -180,7 +203,7 @@ export default function SessionPage() {
   // sequence and the page should stay put while the new token mounts.
   const stepInDisconnectResolverRef = useRef<(() => void) | null>(null);
 
-  function handleLeave() {
+  function handleLeave(kind?: LeaveKind) {
     // If a Step-In flow is awaiting disconnect, satisfy its Promise
     // and stay on the page — the handler will mount a new LiveKitRoom
     // with the new token in a moment. Otherwise this is a real leave.
@@ -190,6 +213,12 @@ export default function SessionPage() {
       pendingResolver();
       return;
     }
+    // Tell the truth about WHY the room closed (Audit CONN-2/CONN-3):
+    //   duplicate → they joined from another tab/device (not "ended")
+    //   lost      → an unexpected drop; the room may still be live → Rejoin
+    //   otherwise → a real end (host ended, server ended, or they left)
+    if (kind === "duplicate") { setState("duplicate"); return; }
+    if (kind === "lost") { setState("connection-lost"); return; }
     setState("left");
   }
 
@@ -329,6 +358,54 @@ export default function SessionPage() {
     );
   }
 
+  // Connection lost — a failed connect (CONN-1) or an unexpected drop past
+  // LiveKit's retry ladder (CONN-2). The room may still be live; offer Rejoin.
+  if (state === "connection-lost") {
+    return (
+      <div className="vs-page">
+        <div className="vs-message">
+          <p className="vs-message__title">Connection lost</p>
+          <p className="vs-message__text">
+            We couldn’t reach the session just now. It may still be going — this is
+            usually temporary. Try rejoining.
+          </p>
+          <div className="vs-message__actions">
+            <button className="btn" onClick={retry}>Rejoin</button>
+            {!isGuest && (
+              <button className="vs-message__link" onClick={() => router.push("/account/dashboard")}>
+                Back to Dashboard
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Disconnected because the same member joined from another tab or device
+  // (CONN-3) — not an end, so don't say "Session ended."
+  if (state === "duplicate") {
+    return (
+      <div className="vs-page">
+        <div className="vs-message">
+          <p className="vs-message__title">You joined from another place</p>
+          <p className="vs-message__text">
+            This session is now open in another tab or on another device, so this
+            window was disconnected. You can rejoin here, or just use the other one.
+          </p>
+          <div className="vs-message__actions">
+            <button className="btn" onClick={retry}>Rejoin here</button>
+            {!isGuest && (
+              <button className="vs-message__link" onClick={() => router.push("/account/dashboard")}>
+                Back to Dashboard
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Ready / Connected
   return (
     <div className="vs-page" ref={pageRef}>
@@ -373,6 +450,7 @@ export default function SessionPage() {
             avatarUrl={avatarUrl}
             view={view}
             onLeave={handleLeave}
+            onConnectError={handleConnectError}
           />
         )}
       </div>
