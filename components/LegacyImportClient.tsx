@@ -26,6 +26,9 @@ export default function LegacyImportClient() {
   const [result, setResult] = useState<Result | null>(null);
   const [previewed, setPreviewed] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [clearConfirm, setClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [clearMsg, setClearMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -62,6 +65,28 @@ export default function LegacyImportClient() {
       setResult({ error: "Request failed. Please try again." });
     } finally {
       setBusy(false);
+    }
+  };
+
+  const clearPool = async () => {
+    if (clearing) return;
+    setClearing(true);
+    setClearMsg(null);
+    try {
+      const res = await fetch("/api/admin/import-legacy", { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setClearMsg({ ok: true, text: `Cleared ${data.deleted ?? 0} unclaimed legacy account(s).` });
+        setResult(null);
+        setPreviewed(false);
+      } else {
+        setClearMsg({ ok: false, text: data?.error ?? "Couldn't clear the pool. Please try again." });
+      }
+    } catch {
+      setClearMsg({ ok: false, text: "Request failed. Please try again." });
+    } finally {
+      setClearing(false);
+      setClearConfirm(false);
     }
   };
 
@@ -162,6 +187,41 @@ export default function LegacyImportClient() {
           )}
         </div>
       )}
+
+      <div style={{ marginTop: 28 }}>
+        <p className="adm2-section__hint" style={{ marginBottom: 10 }}>
+          Need to redo the import (e.g. after a test run)? This permanently
+          deletes the entire unclaimed legacy pool. Members who have already
+          logged in are not affected.
+        </p>
+        {clearMsg && (
+          <p
+            className={clearMsg.ok ? "adm2-save__success" : "adm2-save__error"}
+            style={{ marginBottom: 10 }}
+          >
+            {clearMsg.text}
+          </p>
+        )}
+        {clearConfirm ? (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" className="adm2-btn--danger" onClick={clearPool} disabled={clearing}>
+              {clearing ? "Clearing…" : "Yes, delete the legacy pool"}
+            </button>
+            <button
+              type="button"
+              className="adm2-btn--neutral"
+              onClick={() => setClearConfirm(false)}
+              disabled={clearing}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="adm2-btn--neutral" onClick={() => setClearConfirm(true)}>
+            Clear legacy pool…
+          </button>
+        )}
+      </div>
     </section>
   );
 }

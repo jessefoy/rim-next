@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import { parseMemberstackCsv, importLegacyRecords } from "@/lib/legacyImport";
 
 // Headroom for the bulk import (the createMany path is fast; this is a ceiling).
@@ -59,4 +60,20 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+/**
+ * DELETE — clear the entire unclaimed legacy pool (every isLegacyUnclaimed=true
+ * account). Promoted members (isLegacyUnclaimed=false) are never touched, so a
+ * member who has already logged in and crossed the agreement gate is safe. Used
+ * to reset after a test import before importing the real file.
+ */
+export async function DELETE() {
+  const session = await auth();
+  const isAdmin = session?.user?.roles?.some((r) => r === "ADMIN");
+  if (!isAdmin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+  const res = await db.user.deleteMany({ where: { isLegacyUnclaimed: true } });
+  return NextResponse.json({ ok: true, deleted: res.count });
 }
