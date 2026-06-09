@@ -30,13 +30,14 @@ import {
   useCreateLayoutContext,
   useStartAudio,
   useRoomContext,
+  useConnectionState,
   FocusLayout,
   FocusLayoutContainer,
   CarouselLayout,
   useSpeakingParticipants,
 } from "@livekit/components-react";
 import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
-import { Track, RoomEvent, LocalAudioTrack, DataPacket_Kind } from "livekit-client";
+import { Track, RoomEvent, LocalAudioTrack, DataPacket_Kind, ConnectionState } from "livekit-client";
 import type { LocalTrackPublication } from "livekit-client";
 import RIMParticipantTile from "./RIMParticipantTile";
 import ParticipantsPanel from "./ParticipantsPanel";
@@ -72,6 +73,12 @@ function getMetadata(raw: string | undefined): ParticipantMetadata {
 
 export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoHost, isProgramTeacher, teacherLabel, programSlug, sessionDate, guestKey, view = "gallery", initialAvatarUrl }: Props) {
   const { localParticipant } = useLocalParticipant();
+  // Connection state — drives the "Reconnecting…" banner during a transient
+  // drop so the participant knows a recovery is underway (rather than staring
+  // at frozen tiles). LiveKit auto-recovers most blips; a failed recovery
+  // surfaces separately via onDisconnected → the page's "Connection lost"
+  // screen. (Audit CONN-4.)
+  const connectionState = useConnectionState();
   // updateOnlyOn ensures the component re-renders when metadata changes (for raised hand tracking)
   const remoteParticipants = useRemoteParticipants({
     updateOnlyOn: [
@@ -527,6 +534,14 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
     >
     <LayoutContextProvider value={layoutContext}>
       <div className={`rim-conference rim-conference--${view}`}>
+
+        {/* Reconnecting banner — transient connection recovery (Audit CONN-4) */}
+        {(connectionState === ConnectionState.Reconnecting ||
+          connectionState === ConnectionState.SignalReconnecting) && (
+          <div className="rim-reconnect-banner" role="status">
+            <span>Reconnecting…</span>
+          </div>
+        )}
 
         {/* Raised-hand banner — at-a-glance, visible without opening the panel */}
         {raisedHandCount > 0 && (

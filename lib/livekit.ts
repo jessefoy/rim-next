@@ -77,9 +77,14 @@ export function sessionDisplayName(
 }
 
 /**
- * Generate a room name for a program session.
- * Recurring programs reuse the same room each week.
- * One-time programs include the date.
+ * Per-session room name: `${slug}-${YYYY-MM-DD}`. Every program (drop-ins
+ * included) gets a fresh room per occurrence, so chat scopes per session.
+ *
+ * NOTE: the date suffix is sliced from the ISO `sessionDate`, which is a UTC
+ * instant — so for an evening CT session the suffix is the *next* calendar day
+ * (an 8 PM CT sit on the 9th → `slug-…-10`). Cosmetic only (logs / the LiveKit
+ * console): every caller derives the name from the same canonical sessionDate,
+ * so no session is ever split. (Audit TG-3.)
  */
 export function roomNameForProgram(slug: string, sessionDate?: string): string {
   if (sessionDate) {

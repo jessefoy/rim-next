@@ -13498,6 +13498,18 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: #aaa;
 }
 .rim-chat-msg__from { font-weight: 600; color: #ccc; }
+.rim-chat-msg__guest {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(82, 82, 91, 0.5);
+  color: #d4d4d8;
+}
 .rim-chat-msg__time { font-size: var(--text-xxs); color: #777; flex-shrink: 0; }
 .rim-chat-msg__body {
   font-size: var(--text-ui);
@@ -13630,6 +13642,21 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-pin-banner__open:hover { background: rgba(147,197,253,0.25); }
 
+/* Reconnecting banner — same shape as the hand/pin banners, amber to read as
+   a transient status. Shown while LiveKit recovers a dropped connection. */
+.rim-reconnect-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(0,0,0,0.75);
+  color: #fcd34d;
+  font-size: var(--text-ui);
+  font-family: var(--font-sans);
+  border-bottom: 1px solid rgba(252,211,77,0.2);
+}
+
 /* ─── RIMParticipantTile wrapper ─────────────────────────────── */
 .rim-tile-wrapper {
   position: relative;
@@ -13760,6 +13787,9 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-tile-nameplate__role-pill--cohost {
   background: rgba(110, 116, 130, 0.85);  /* muted slate — secondary, less dominant */
+}
+.rim-tile-nameplate__role-pill--guest {
+  background: rgba(82, 82, 91, 0.85);  /* neutral zinc — a "not a member" marker, not an authority pill */
 }
 
 /* Signal badge — top-left of tile, smaller per Zoom proportions */
@@ -14057,6 +14087,10 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .rim-pp__role-tag--cohost {
   background: rgba(110, 116, 130, 0.4);
   color: #cbd5e1;
+}
+.rim-pp__role-tag--guest {
+  background: rgba(82, 82, 91, 0.4);
+  color: #d4d4d8;
 }
 .rim-pp__search {
   padding: 10px 14px 6px;

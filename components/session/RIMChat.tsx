@@ -201,6 +201,9 @@ export default function RIMChat({ programSlug, sessionDate, guestKey, guestName,
             >
               <div className="rim-chat-msg__meta">
                 <span className="rim-chat-msg__from">{meta}</span>
+                {!isMine && m.fromIdentity.startsWith("guest-") && (
+                  <span className="rim-chat-msg__guest">Guest</span>
+                )}
                 <span className="rim-chat-msg__time">{relativeTime(m.sentAt)}</span>
               </div>
               <div className="rim-chat-msg__body">{m.body}</div>

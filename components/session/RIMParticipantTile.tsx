@@ -230,6 +230,9 @@ export default function RIMParticipantTile() {
         {meta.cohost && !meta.host && !meta.teacher && (
           <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--cohost">Host Volunteer</span>
         )}
+        {participantIdentity.startsWith("guest-") && (
+          <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--guest">Guest</span>
+        )}
       </div>
       {/* Nonverbal signal badge */}
       {meta.signal && (
