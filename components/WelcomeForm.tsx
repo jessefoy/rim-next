@@ -12,12 +12,14 @@ interface WelcomeFormProps {
   defaultFirstName?: string;
   defaultLastName?: string;
   defaultPhone?: string;
+  isLegacy?: boolean;
 }
 
 export default function WelcomeForm({
   defaultFirstName = "",
   defaultLastName = "",
   defaultPhone = "",
+  isLegacy = false,
 }: WelcomeFormProps) {
   const router = useRouter();
   const [firstName, setFirstName] = useState(defaultFirstName);
@@ -143,7 +145,13 @@ export default function WelcomeForm({
         className="wl-submit"
         disabled={!agreed || status === "saving"}
       >
-        {status === "saving" ? "Joining…" : "Join the community →"}
+        {status === "saving"
+          ? isLegacy
+            ? "Welcoming you back…"
+            : "Joining…"
+          : isLegacy
+            ? "Step back in →"
+            : "Join the community →"}
       </button>
 
       <div className="wl-decline">
