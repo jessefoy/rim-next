@@ -50,7 +50,13 @@ export async function POST(req: NextRequest) {
   const svc = new RoomServiceClient(httpUrl, process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!);
   const roomName = roomNameForProgram(programSlug, effectiveSessionDate);
 
-  const participants = await svc.listParticipants(roomName);
+  let participants;
+  try {
+    participants = await svc.listParticipants(roomName);
+  } catch (e) {
+    console.error("[livekit] mute-all listParticipants failed:", e);
+    return NextResponse.json({ muted: 0 });
+  }
   let muted = 0;
 
   for (const participant of participants) {
@@ -58,8 +64,14 @@ export async function POST(req: NextRequest) {
     for (const track of participant.tracks) {
       // Track type 0 = AUDIO in LiveKit proto
       if (track.type === 0 && !track.muted) {
-        await svc.mutePublishedTrack(roomName, participant.identity, track.sid, true);
-        muted++;
+        // Guard per-track: a participant who left mid-iteration would
+        // otherwise throw and abort muting everyone after them. (Audit MUTE-1.)
+        try {
+          await svc.mutePublishedTrack(roomName, participant.identity, track.sid, true);
+          muted++;
+        } catch (e) {
+          console.error("[livekit] mute-all: mute failed for", participant.identity, e);
+        }
       }
     }
   }

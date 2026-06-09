@@ -33,6 +33,7 @@ export default function EndMenu({ open, onClose, hasEndAllAuthority, programSlug
   const room = useRoomContext();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [ending, setEnding] = useState(false);
+  const [endError, setEndError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -54,17 +55,29 @@ export default function EndMenu({ open, onClose, hasEndAllAuthority, programSlug
 
   async function endForAll() {
     setEnding(true);
+    setEndError(null);
     try {
-      await fetch("/api/livekit/end-session", {
+      const res = await fetch("/api/livekit/end-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ programSlug, sessionDate }),
       });
-    } catch {}
-    // The server delete-room triggers all participants to disconnect, which
-    // fires LiveKitRoom.onDisconnected on each client.
-    setEnding(false);
-    onClose();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "end failed");
+      }
+    } catch {
+      // Surface the failure instead of silently closing. Without this the host
+      // taps "End Meeting for All", the menu closes, and the room stays live
+      // with no signal that nothing happened — e.g. a stale teacher token that
+      // now 403s after a host claimed the room. (Audit / coverage critic.)
+      setEndError("We couldn't end the session. Please try again.");
+      setEnding(false);
+      return;
+    }
+    // Success: the server deleted the room, so every participant — including
+    // this client — receives onDisconnected and is carried to the "Session
+    // ended" screen, which unmounts this menu. Keep "Ending…" until then.
   }
 
   if (!open) return null;
@@ -90,6 +103,7 @@ export default function EndMenu({ open, onClose, hasEndAllAuthority, programSlug
       >
         Leave Meeting
       </button>
+      {endError && <p className="rim-cb-popover__error" role="alert">{endError}</p>}
     </div>
   );
 }

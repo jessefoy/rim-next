@@ -50,13 +50,23 @@ export async function POST(req: NextRequest) {
   const svc = new RoomServiceClient(httpUrl, process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!);
   const roomName = roomNameForProgram(programSlug, effectiveSessionDate);
 
-  const participant = await svc.getParticipant(roomName, participantIdentity);
+  // Guard the LiveKit SDK calls: getParticipant throws (not_found) when the
+  // target just left or refreshed — a common race when a co-host taps Mute a
+  // beat after a participant drops. The desired end-state (they aren't
+  // publishing) already holds, so treat any SDK failure as a benign no-op
+  // rather than an unhandled 500. (Audit MUTE-1.)
   let muted = 0;
-  for (const track of participant.tracks) {
-    if (track.type === 0 && !track.muted) {
-      await svc.mutePublishedTrack(roomName, participantIdentity, track.sid, true);
-      muted++;
+  try {
+    const participant = await svc.getParticipant(roomName, participantIdentity);
+    for (const track of participant.tracks) {
+      if (track.type === 0 && !track.muted) {
+        await svc.mutePublishedTrack(roomName, participantIdentity, track.sid, true);
+        muted++;
+      }
     }
+  } catch (e) {
+    console.error("[livekit] mute-participant failed:", e);
+    return NextResponse.json({ ok: true, muted: 0 });
   }
 
   return NextResponse.json({ ok: true, muted });

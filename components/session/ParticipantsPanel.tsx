@@ -68,6 +68,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
   const [muting, setMuting] = useState<Record<string, boolean>>({});
   const [mutingAll, setMutingAll] = useState(false);
   const [muteAllResult, setMuteAllResult] = useState<number | null>(null);
+  const [muteNotice, setMuteNotice] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   // Tick to force re-render when remote participants' mic state changes,
   // since RemoteParticipant prop identity doesn't change on toggle.
@@ -88,15 +89,27 @@ export default function ParticipantsPanel({ open, onClose, participants, program
     };
   }, [room]);
 
+  function flashMuteNotice() {
+    // Brief, calm feedback when a mute didn't take — almost always a co-host
+    // whose hosting capability was paused mid-session (the server 403s). The
+    // common "participant just left" race returns ok and stays correctly
+    // silent (the mute's end-state already holds). (Audit CHAT-3.)
+    setMuteNotice("Couldn't mute — you may no longer have host controls.");
+    setTimeout(() => setMuteNotice(null), 4000);
+  }
+
   async function muteParticipant(identity: string) {
     setMuting((prev) => ({ ...prev, [identity]: true }));
     try {
-      await fetch("/api/livekit/mute-participant", {
+      const res = await fetch("/api/livekit/mute-participant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ programSlug, sessionDate, participantIdentity: identity }),
       });
-    } catch {}
+      if (!res.ok) flashMuteNotice();
+    } catch {
+      flashMuteNotice();
+    }
     setMuting((prev) => ({ ...prev, [identity]: false }));
   }
 
@@ -113,8 +126,12 @@ export default function ParticipantsPanel({ open, onClose, participants, program
         const data = await res.json();
         setMuteAllResult(typeof data.muted === "number" ? data.muted : 0);
         setTimeout(() => setMuteAllResult(null), 3000);
+      } else {
+        flashMuteNotice();
       }
-    } catch {}
+    } catch {
+      flashMuteNotice();
+    }
     setMutingAll(false);
   }
 
@@ -305,6 +322,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
 
         {isCoHost && participants.length > 0 && (
           <div className="rim-pp__footer">
+            {muteNotice && <p className="rim-pp__notice" role="alert">{muteNotice}</p>}
             <button
               type="button"
               className="rim-pp__mute-all"

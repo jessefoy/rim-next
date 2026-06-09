@@ -14099,6 +14099,14 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-pp__mute-all:hover { background: rgba(255,255,255,0.2); }
 .rim-pp__mute-all:disabled { opacity: 0.5; cursor: default; }
+.rim-pp__notice {
+  /* Amber on the dark panel (raw hex — the warning token fails contrast on
+     near-black; same dark-surface exception as the control-bar popovers). */
+  color: #fcd34d;
+  font-size: var(--text-xs);
+  margin: 0 0 8px;
+  text-align: center;
+}
 @media (max-width: 430px) {
   .rim-pp { width: 100%; }
   /* 44px minimum tap target for the clickable participant name on phones. */
@@ -14265,6 +14273,16 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-cb-popover__item:hover { background: rgba(255,255,255,0.08); }
 .rim-cb-popover__item:disabled { opacity: 0.5; cursor: default; }
+.rim-cb-popover__error {
+  /* Lightened red (not var(--color-error)) — the popover is dark and the raw
+     error token fails contrast on it. Matches the destructive item below; the
+     dark session-room surfaces are the documented raw-hex exception. */
+  color: #ff8585;
+  font-size: var(--text-xs);
+  margin: 0;
+  padding: 6px 12px 2px;
+  max-width: 220px;
+}
 .rim-cb-popover__item--destructive {
   color: #ff8585;
   font-weight: 600;
