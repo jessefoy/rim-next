@@ -77,6 +77,16 @@ export async function POST(req: NextRequest) {
     if (!guestIdentity || !guestName) {
       return NextResponse.json({ error: "guestIdentity and guestName required" }, { status: 400 });
     }
+    // A guest may only ever speak as their own server-issued identity, which
+    // always carries the `guest-` prefix (see the guest-token route). Without
+    // this check a guest could pass a member's userId — a cuid, harvestable
+    // from the broadcast roster — as guestIdentity and persist a message
+    // "from" that member. Member identities never start with `guest-`.
+    // (Audit CHAT-1. The stronger fix — bind to the verified LiveKit token —
+    // is a follow-up; this closes the member-impersonation vector.)
+    if (!guestIdentity.startsWith("guest-")) {
+      return NextResponse.json({ error: "Invalid guest identity" }, { status: 403 });
+    }
     fromIdentity = guestIdentity;
     fromName = guestName.trim().slice(0, 60);
   }
@@ -144,6 +154,14 @@ export async function GET(req: NextRequest) {
   } else {
     if (!program.isOpenAccess || !guestKey || guestKey !== program.guestAccessKey || !guestIdentity) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // Scope guest reads to their own guest-prefixed identity. Without this a
+    // guest could pass a member's userId as guestIdentity and read every DM
+    // addressed to or sent by that member (the filter below matches on
+    // callerIdentity). Member identities are cuids and never match `guest-`.
+    // (Audit CHAT-1.)
+    if (!guestIdentity.startsWith("guest-")) {
+      return NextResponse.json({ error: "Invalid guest identity" }, { status: 403 });
     }
     callerIdentity = guestIdentity;
   }

@@ -40,6 +40,15 @@ export async function POST(req: NextRequest) {
   // (for /admin/livekit-test — the page itself is admin-gated). Admin gets
   // full Session Host permissions in test rooms.
   if (testRoom) {
+    // Admin-only side door for /admin/livekit-test. Without this gate, any
+    // authenticated member could POST a caller-supplied room name — and room
+    // names are public slug + today's CT date — to join a live session room
+    // with mic + camera, bypassing the time gate and presence checks entirely.
+    // The page is admin-gated, but the route must enforce it independently:
+    // a direct POST never touches the page. (Audit TOKEN-1.)
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     const userName = session.user.name || "Member";
     const token = await createRoomToken(
       session.user.id,
@@ -114,6 +123,13 @@ export async function POST(req: NextRequest) {
     // aligns with HostAssignment rows for today and the roomName suffix
     // is correct.
     if (sessionDate) {
+      // Validate the caller-supplied bypass date before trusting it end-to-end
+      // — it flows into roomNameForProgram and a Prisma `new Date()` assignment
+      // lookup, where an unparseable string would surface as a 500. (Audit
+      // TOKEN-3.)
+      if (Number.isNaN(new Date(sessionDate).getTime())) {
+        return NextResponse.json({ error: "Invalid sessionDate" }, { status: 400 });
+      }
       effectiveSessionDate = sessionDate;
     } else if (program.startDatetime) {
       const todayCT = ctDateStr(new Date().toISOString());
