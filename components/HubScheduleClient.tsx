@@ -249,7 +249,7 @@ function Toast({ msg }: { msg: string | null }) {
 
 // ── Modal ───────────────────────────────────────────────────
 
-type ModalKind = "take" | "cover" | "ask-cover" | "cancel-request" | "clear-request" | "reassign" | "unassign" | null;
+type ModalKind = "take" | "cover" | "ask-cover" | "ask-cover-for" | "cancel-request" | "clear-request" | "reassign" | "unassign" | null;
 
 interface ModalProps {
   kind: ModalKind;
@@ -263,7 +263,7 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
   const [coverNote, setCoverNote] = useState<string>("");
 
   useEffect(() => {
-    if (kind === "ask-cover") setCoverNote("");
+    if (kind === "ask-cover" || kind === "ask-cover-for") setCoverNote("");
   }, [kind, session?.id]);
 
   if (!kind || !session) return null;
@@ -299,6 +299,30 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
       <>Let your teammates know you can't make <strong>{dateStr}</strong> for{" "}
       <strong>{session.programName}</strong>. They'll receive an email and
       someone may step in.</>
+    );
+    primaryLabel = "Send to the team";
+    extraInput = (
+      <div className="hs-modal__field">
+        <label className="hs-modal__field-label">Add a note (optional)</label>
+        <RimTiptapEditor
+          value={coverNote}
+          onChange={setCoverNote}
+          placeholder="Anything the replacement should know…"
+          variant="message"
+        />
+      </div>
+    );
+  } else if (kind === "ask-cover-for") {
+    // Coordinator opens a cover request on a host's behalf (covered row).
+    // Copy names the host so it never reads as "your session" — the
+    // backlog's specific concern about this affordance reading oddly.
+    title = "Ask the team to cover";
+    body = (
+      <>Ask the team to cover for <strong>{session.hostName ?? "the host"}</strong>{" "}
+      on <strong>{dateStr}</strong> for <strong>{session.programName}</strong>.
+      The team will receive an email and someone may step in.{" "}
+      <strong>{session.hostName ?? "The host"}</strong> stays assigned until
+      someone does.</>
     );
     primaryLabel = "Send to the team";
     extraInput = (
@@ -364,7 +388,7 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
         <div className="hs-modal__actions">
           <button
             className="lr-btn lr-btn--host hs-modal__primary"
-            onClick={() => onConfirm(kind === "ask-cover" ? coverNote : undefined)}
+            onClick={() => onConfirm(kind === "ask-cover" || kind === "ask-cover-for" ? coverNote : undefined)}
             disabled={submitting}
           >
             {submitting ? "Working…" : primaryLabel}
@@ -392,6 +416,8 @@ interface RowProps {
   onTake: (s: Session) => void;
   onCover: (s: Session) => void;
   onAskCover: (s: Session) => void;
+  /** Coordinator/manager: ask the team to cover on a host's behalf (covered row). */
+  onAskCoverFor: (s: Session) => void;
   onCancelRequest: (s: Session) => void;
   /** Coordinator/manager: clear someone else's open cover request (host stays). */
   onClearRequest: (s: Session) => void;
@@ -469,7 +495,7 @@ function AssignControl({
 
 function HsRow({
   session, kind, isPast, currentUserId,
-  onTake, onCover, onAskCover, onCancelRequest, onClearRequest, onReassign, onUnassign,
+  onTake, onCover, onAskCover, onAskCoverFor, onCancelRequest, onClearRequest, onReassign, onUnassign,
   onSignUp, onCancelSignUp, onRemoveSignup,
   isHostManager,
   coverageCopy,
@@ -726,6 +752,11 @@ function HsRow({
           {actionEl}
           {showCoverageManage && (
             <>
+              {/* Ordered least-to-most drastic: ask the team to cover (host
+                  stays on) → remove (slot reopens) → take it over myself. */}
+              <button className="hs-row__quiet" onClick={() => onAskCoverFor(session)}>
+                Ask the team to cover
+              </button>
               <button className="hs-row__quiet" onClick={() => onUnassign(session)}>
                 Remove
               </button>
@@ -1131,6 +1162,7 @@ export default function HubScheduleClient({
   function openTake(s: Session) { setModal({ kind: "take", session: s }); }
   function openCover(s: Session) { setModal({ kind: "cover", session: s }); }
   function openAskCover(s: Session) { setModal({ kind: "ask-cover", session: s }); }
+  function openAskCoverFor(s: Session) { setModal({ kind: "ask-cover-for", session: s }); }
   function openCancelRequest(s: Session) { setModal({ kind: "cancel-request", session: s }); }
   function openClearRequest(s: Session) { setModal({ kind: "clear-request", session: s }); }
   function openReassign(s: Session) { setModal({ kind: "reassign", session: s }); }
@@ -1155,6 +1187,10 @@ export default function HubScheduleClient({
       } else if (modal.kind === "ask-cover") {
         await askForCover(modal.session, extra);
         showToast("Done. The team will help find a replacement.");
+      } else if (modal.kind === "ask-cover-for") {
+        const host = modal.session.hostName ?? "the host";
+        await askForCover(modal.session, extra);
+        showToast(`Cover requested for ${host} · the team has been notified`);
       } else if (modal.kind === "cancel-request") {
         await cancelRequest(modal.session);
         showToast("Request cancelled. You're back to hosting this session.");
@@ -1280,6 +1316,7 @@ export default function HubScheduleClient({
     onTake: openTake,
     onCover: openCover,
     onAskCover: openAskCover,
+    onAskCoverFor: openAskCoverFor,
     onCancelRequest: openCancelRequest,
     onClearRequest: openClearRequest,
     onReassign: openReassign,

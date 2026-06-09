@@ -9,6 +9,7 @@ import { isOpenlyDroppable } from "@/lib/programKind";
 import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
+import HostWelcomePanel from "@/components/HostWelcomePanel";
 
 export const metadata = { title: "My Home — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -314,6 +315,36 @@ export default async function DashboardPage() {
     hubUnreadCounts[membership.hub.id] = unreadThreads;
   }
 
+  // First-login host recognition (session 143, backlog 2026-06-08-003): a host
+  // can be pre-staged — role assigned, schedule built — before they ever log in.
+  // When they finally do, everything's attached but nothing points to it. Show a
+  // one-time panel the first time. Gate on the dismissal flag AND on hub
+  // membership (a pre-staged host is always a HubMember of their hub) so the
+  // hosting lookups never run for the large population of pure participants who
+  // belong to no hub and can't be hosts.
+  const me = await db.user.findUnique({
+    where: { id: userId },
+    select: { hostWelcomeSeenAt: true },
+  });
+  let hostWelcomeHref: string | null = null;
+  if (me && me.hostWelcomeSeenAt === null && hubMemberships.length > 0) {
+    // Any future single-host/greeter assignment OR any active standing rotation,
+    // across any hub. findFirst — existence is all we need; hubSlug points the
+    // CTA at the right Scheduler view.
+    const [anyAssignment, anyRotation] = await Promise.all([
+      db.hostAssignment.findFirst({
+        where: { userId, OR: [{ sessionDate: null }, { sessionDate: { gte: now } }] },
+        select: { hubSlug: true },
+      }),
+      db.standingAssignment.findFirst({
+        where: { userId, OR: [{ endsOn: null }, { endsOn: { gte: now } }] },
+        select: { hubSlug: true },
+      }),
+    ]);
+    const hub = anyAssignment?.hubSlug ?? anyRotation?.hubSlug ?? null;
+    if (hub) hostWelcomeHref = `/tools/schedule?hub=${encodeURIComponent(hub)}`;
+  }
+
   const firstName =
     session.user?.name?.split(" ")[0] ??
     session.user?.email?.split("@")[0] ??
@@ -351,6 +382,9 @@ export default async function DashboardPage() {
             <Link href="/account/courses">Visit your Library →</Link>
           </p>
         </div>
+
+        {/* First-login host recognition — one-time, dismissible (session 143) */}
+        {hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} />}
 
         {/* Today's Sessions */}
         {showTodayCard && (

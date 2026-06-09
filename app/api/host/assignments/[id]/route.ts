@@ -181,6 +181,8 @@ export async function DELETE(
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const removedUserId = assignment.userId;
+
   // Atomic cascade-delete. SubRequest.assignmentId FK is Restrict — a
   // bare hostAssignment.delete would FK-violate the moment any historic
   // SubRequest (CLAIMED, CANCELLED) referenced this row. SubClaim cascades
@@ -196,5 +198,41 @@ export async function DELETE(
     });
     await tx.hostAssignment.delete({ where: { id } });
   });
+
+  // Courtesy notification, mirroring the PATCH-unclaim path above: when a
+  // coordinator/manager removes SOMEONE ELSE, tell that person — they were
+  // emailed when they signed up, so a silent removal leaves a stale note.
+  // Self-removal (greeter "Cancel my signup") is silent — `removedUserId
+  // === self` — which is exactly the distinguisher between the two callers
+  // that share this DELETE route. The template is pre-threshold-gated, so
+  // staged accounts get nothing.
+  if (removedUserId && removedUserId !== session.user.id) {
+    after(async () => {
+      try {
+        const [program, removed, remover] = await Promise.all([
+          db.program.findUnique({ where: { slug: assignment.programSlug }, select: { name: true } }),
+          db.user.findUnique({ where: { id: removedUserId }, select: { email: true, firstName: true } }),
+          db.user.findUnique({ where: { id: session.user.id }, select: { firstName: true, lastName: true, preferredName: true } }),
+        ]);
+        if (removed?.email) {
+          const byName =
+            remover?.preferredName ||
+            [remover?.firstName, remover?.lastName].filter(Boolean).join(" ") ||
+            "A coordinator";
+          await sendHostAssignmentRemovedEmail({
+            to: removed.email,
+            firstName: removed.firstName,
+            programName: program?.name || assignment.programSlug,
+            dateText: fmtDate(assignment.sessionDate),
+            byName,
+            hubSlug: assignment.hubSlug || DEFAULT_HOSTING_HUB_SLUG,
+          });
+        }
+      } catch (e) {
+        console.error("[host-assignment delete] removal email error:", e);
+      }
+    });
+  }
+
   return Response.json({ ok: true });
 }

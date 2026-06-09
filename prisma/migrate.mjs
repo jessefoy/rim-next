@@ -4382,6 +4382,62 @@ Brookfield, Wisconsin`;
     console.log("  ⏭ program_hosting_required_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Session 143 — User.hostWelcomeSeenAt (first-login host recognition panel)
+  //
+  // Additive nullable timestamp. Null = the one-time "you're set up to host"
+  // dashboard panel hasn't been acknowledged yet; set on dismiss/follow so the
+  // recognition shows only until the member has seen it. Defaults to null for
+  // every existing row (existing hosts see the panel once on their next visit,
+  // by design — confirmed with Jesse, session 143). Raw SQL references the
+  // @@map table name "users"; TIMESTAMP(3) matches Prisma's DateTime mapping.
+  // ───────────────────────────────────────────────────────────────────────
+  const hostWelcomeFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'user_host_welcome_seen_v1'
+  `).catch(() => []);
+
+  if (hostWelcomeFlag.length === 0) {
+    console.log("→ User.hostWelcomeSeenAt column (host welcome panel)…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "hostWelcomeSeenAt" TIMESTAMP(3)`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('user_host_welcome_seen_v1')`,
+    );
+    console.log("  ✔ users.hostWelcomeSeenAt ready.");
+  } else {
+    console.log("  ⏭ user_host_welcome_seen_v1 already applied.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Session 143 — userId indexes on host_assignments + standing_assignments
+  //
+  // Both tables filter by userId on the hot dashboard path (the host-welcome
+  // "any hosting for this member?" lookup + the existing today-host query) but
+  // were indexed only by (programSlug,…) / the unique tuple, so a userId filter
+  // fell back to a seq scan. Additive, idempotent; Prisma-convention index
+  // names so the schema and DB don't drift. Raw SQL uses @@map table names.
+  // ───────────────────────────────────────────────────────────────────────
+  const hostUserIdxFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'host_assignment_user_indexes_v1'
+  `).catch(() => []);
+
+  if (hostUserIdxFlag.length === 0) {
+    console.log("→ userId indexes on host/standing assignments…");
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "host_assignments_userId_idx" ON "host_assignments"("userId")`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "standing_assignments_userId_idx" ON "standing_assignments"("userId")`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('host_assignment_user_indexes_v1')`,
+    );
+    console.log("  ✔ userId indexes ready.");
+  } else {
+    console.log("  ⏭ host_assignment_user_indexes_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

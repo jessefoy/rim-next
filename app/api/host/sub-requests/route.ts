@@ -9,6 +9,7 @@ import {
 import { extractTextAsync } from "@/lib/renderRichContentServer";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { isHubCoordinator } from "@/lib/hubAuth";
 import { DEFAULT_HOSTING_HUB_SLUG, getProgramHubSlug } from "@/lib/programHub";
 
 /**
@@ -130,8 +131,17 @@ export async function POST(request: Request) {
   if (!(await hasEffectiveHostAccess(session.user.id, roles, assignmentHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
+  // Owner, a manager, OR a coordinator of the assignment's hub can open a cover
+  // request. Coordinator parity with assign / remove / reassign / clear (session
+  // 142 completed the coordinator-as-manager-for-their-own-hub model — this was
+  // the one remaining manager-or-own-only coverage action). Scoped to THIS
+  // assignment's hub, so a coordinator only acts on their own team; a plain host
+  // still acts only on their own assignment. (Greeter/multi-claim hubs are
+  // already rejected above — open sign-up has no sub-request flow.)
   const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-  if (!isManager && assignment.userId !== session.user.id) {
+  const canManage =
+    isManager || (await isHubCoordinator(session.user.id, assignmentHubSlug));
+  if (!canManage && assignment.userId !== session.user.id) {
     return Response.json({ error: "You can only request subs for your own assignments" }, { status: 403 });
   }
 

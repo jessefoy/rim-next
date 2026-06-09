@@ -79,6 +79,10 @@ model User {
   addressZip      String?
   memberStatus    MemberStatus @default(ACTIVE)
   firstVisitDate  DateTime?
+  // One-time "you're set up to host" dashboard panel (session 143). Null = not
+  // yet acknowledged; set when the member dismisses or follows the panel, so a
+  // pre-staged host who's just onboarded sees the recognition once, not forever.
+  hostWelcomeSeenAt DateTime?
   adminNotes      Json?             // BlockNote JSON (RimProseEditor)
   bio             Json?             // BlockNote JSON — personal description, separate from any role
   tags            String[]     @default([])
@@ -750,6 +754,7 @@ model HostAssignment {
 
   @@index([programSlug, sessionDate, hubSlug])
   @@index([hubSlug, sessionDate])
+  @@index([userId])
   @@map("host_assignments")
 }
 
@@ -846,6 +851,7 @@ model StandingAssignment {
   // per occurrence. The hubSlug element of the key lets parallel hubs hold
   // independent rotations on the same program/day/occurrence.
   @@unique([programSlug, dayOfWeek, occurrence, hubSlug])
+  @@index([userId])
   @@map("standing_assignments")
 }
 
