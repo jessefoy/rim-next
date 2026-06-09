@@ -1,5 +1,55 @@
 [
   {
+    "id": "2026-06-09-001",
+    "title": "Fix the DST gate-drift on recurring evening session rooms (TG-1)",
+    "description": "Audit finding TG-1 (session 144). lib/sessionWindow.ts::getActiveSessionWindow computes the session start via shiftToDate(), which adds whole 24h increments and so shifts the open/close window by a full hour when today's DST season differs from the season the program's startDatetime was stored in. The gate window then disagrees with the public program-page time (which formats the fixed instant through America/Chicago, season-correct). Impact is bounded: the primary Join path (dashboard countdown -> gate) uses shiftToDate too, so it is self-consistent and never locks anyone out; only a member/guest who reads the public-page time and navigates DIRECTLY (bookmark / guest link) hits the off-by-an-hour window. Jesse chose (session 144) to DEFER the code change and instead data-check / normalize affected recurring evening programs' stored start times pre-launch, rather than change time math shared across the dashboard / scheduler / This-Week days before go-live. Post-launch fix: make getActiveSessionWindow (and the dashboard's inline isLive compute) format true CT via America/Chicago like the public page, so gate-time == displayed-time.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-09",
+    "notes": "Deferred per Jesse (session 144) — data-check first, not shared-time-math surgery pre-launch. Full analysis in the audit output tasks/wqgwkr4vj.output (finding TG-1) + RIM_SessionRoom.md deferred gaps. PRE-LAUNCH ACTION: check whether any live recurring evening program has a cross-season stored startDatetime; normalize if so."
+  },
+  {
+    "id": "2026-06-09-002",
+    "title": "Fix recurrenceCount cutoff off-by-one in scheduleUtils (TG-2)",
+    "description": "Audit finding TG-2 (session 144). lib/scheduleUtils.ts isOccurrenceOnDate's recurrenceCount cutoff math (cyclesNeeded = ceil((count-1)/daysPerCycle), lastMs anchored to the program's CT anchor date) is wrong in BOTH directions: a single-day weekly series whose anchor CT weekday differs from its recurrenceDay truncates the final intended occurrence by one (the last class can be wrongly excluded -> the join gate refuses tokens for it); a multi-day aligned series over-counts by including the cutoff-week anchor weekday. Dormant for now: recurrenceCount is null by default and every live ongoing sit (Good Morning/Evening/Recovery Dharma) runs open-ended, so the branch never executes. It would only bite a fixed-length course series authored with a count whose anchor weekday is misaligned. Deferred to post-launch. When fixed, derive the cutoff from actual occurrence enumeration rather than the stride approximation; the ProgramEditor could also warn when the start-date weekday doesn't match the ticked recurrence days.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-09",
+    "notes": "Deferred (session 144) — dormant; same shared-time-math caution as TG-1. The audit verifier found the finding's stated CAUSE (evening-anchor shifting the CT date) was wrong; the real trigger is an authoring weekday mismatch. Detail in tasks/wqgwkr4vj.output (TG-2)."
+  },
+  {
+    "id": "2026-06-09-003",
+    "title": "Session-room mobile + a11y finish — control-bar wrap + popover focus-trap",
+    "description": "Session 144 shipped the safe session-room mobile/a11y wins (mute + header + view-toggle 44px touch targets, chat select 16px iOS-no-zoom, Escape-to-close on the End menu). Two harder pieces were deferred because they need real-hardware testing to get right: (1) the bottom control bar is flex-wrap with ~9 buttons, so at 360-390px it wraps to two rows and the red End button lands in an unpredictable position — restructure so End stays reliably reachable (anchor it, or a deliberate two-row layout) without breaking desktop; (2) the End / Reactions / Share popovers close on outside-mousedown only — add a full focus-trap + return-focus-to-anchor (Escape-to-close on the End menu is done; extend to the others and add focus management). Verify on a real iPhone in portrait AND landscape with a long program name.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-09",
+    "notes": "Part of the session-144 manual-device checklist (the control-bar wrap is item 6). See RIM_SessionRoom.md deferred gaps + tasks/wqgwkr4vj.output coverage critic (mobile + accessibility gaps)."
+  },
+  {
+    "id": "2026-06-09-004",
+    "title": "Bind guest chat identity to the verified LiveKit token (CHAT-1 follow-up)",
+    "description": "Session 144 (CHAT-1) closed the MEMBER-impersonation vector on the open-access chat route by rejecting any guestIdentity lacking the 'guest-' prefix (member ids are cuids, so a guest can no longer claim a member's identity to read their DMs or forge messages from them). A smaller residual remains: a guest could still claim ANOTHER guest's identity (also guest-prefixed) if they guess/replay that guest's 'guest-<ts>-<4 random>' id — low harm (guest DMs in a public sit, high-entropy id), explicitly deferred. The robust fix: derive the guest's caller identity from the VERIFIED LiveKit token the client holds (parse/verify the JWT server-side in /api/livekit/chat) instead of trusting a body/query param — a protocol change (client sends its token; server verifies + extracts identity). Post-launch hardening.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-09",
+    "notes": "Deferred (session 144). The prefix check is the audit verifier's endorsed minimum; token-binding is the stronger fix. Detail in tasks/wqgwkr4vj.output (CHAT-1)."
+  },
+  {
+    "id": "2026-06-09-005",
+    "title": "Session-room post-launch ops — empty-room cleanup verify + BrightnessProcessor mobile-cost measurement",
+    "description": "Two operational/measurement items from the session-144 audit coverage critic, deferred (not blind code changes): (1) EMPTY-ROOM CLEANUP — the token route lists 'LiveKit's empty-room idle cleanup' as a teardown fallback, but the codebase never configures emptyTimeout / maxParticipants (rooms auto-create on first join with LiveKit Cloud defaults). Verify the default actually reclaims empty rooms within a sane window; if not, set an explicit emptyTimeout (note: that means creating the room explicitly via RoomServiceClient before join — a behavior change, so measure first). End-for-All-now-fails-loudly + the door time-gate already backstop the forgotten-End case. (2) BRIGHTNESSPROCESSOR — components/session/BrightnessProcessor.ts runs a per-frame rAF canvas re-encode (captureStream(30)) whenever brightness/contrast is active, competing with the H.264 hardware encoder + battery on exactly the low-end phones the bitrate tuning targets. Measure whether it's reachable on mobile and what it costs BEFORE changing/disabling it (don't disable blind).",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-09",
+    "notes": "Operational verify/measure, not features. Recording posture was decided this session (off, documented, no indicator). Detail in tasks/wqgwkr4vj.output coverage critic."
+  },
+  {
     "id": "2026-06-08-001",
     "title": "Let hub coordinators create a sub-request on another host's behalf",
     "description": "Session 142 made hub coordinators full coverage-managers for their own hub (assign / remove / reassign / clear-cover-request, all gated isManager || isHubCoordinator(resource.hubSlug)). The ONE remaining manager-or-own-only coverage action is CREATING a sub-request on another host's behalf: POST /api/host/sub-requests gates `isManager || assignment.userId === self` (app/api/host/sub-requests/route.ts ~line 133). Left as-is deliberately because (a) there's no UI for it — 'Ask the team to cover' only appears on the coordinator's OWN sessions (the 'mine' row), and (b) Remove/Reassign are the clearer coordinator actions for 'X can't make it.' If wanted: widen the gate to isHubCoordinator(assignment.hubSlug) AND add a coordinator affordance on a covered row ('Ask the team to cover for [host]') that POSTs the sub-request. Weigh against confusion — posting a cover request for a host who didn't ask could read oddly; Remove/Reassign may simply be the right tools.",

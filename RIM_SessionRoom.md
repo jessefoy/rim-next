@@ -84,9 +84,19 @@ One `useEffect` drives `layoutContext.pin` (LiveKit's focus pin). **Precedence, 
 
 - **Why getUserMedia-prewarm, not LiveKit enable-then-disable:** the latter briefly publishes to the SFU before muting — another participant could catch a frame. For a contemplative space, "join unseen" is a correctness criterion, so we acquire-without-publishing.
 - **Gesture chain:** `getUserMedia` must run from the user gesture on iOS Safari. It's the first `await` in the Continue click handler. The granted-state path runs in a post-Connected effect with no prompt (already granted → no gesture needed).
-- **Denial:** `getUserMedia` throws `NotAllowedError`/`NotReadableError`/`NotFoundError` → `onDenied()` → Recovery. Same names the old path checked.
+- **Denial / no camera (JOIN-1, session 144):** `getUserMedia({audio,video})` throwing `NotAllowedError` (deny) or `NotReadableError` (busy) → `onDenied()` → Recovery. `NotFoundError` (no webcam — e.g. a desktop) now **retries `{audio:true}`** so audio-only members join instead of dead-ending in Recovery; only if that retry also throws does it route to Recovery. Both the Continue handler and the auto-acquire effect share this via `acquireMediaPermission`.
 - **The `Status` enum** is `"checking" | "auto-acquiring" | "manual" | "acquiring"` (renamed from "publishing" — nothing publishes).
 - **Verify on real iOS Safari:** after join, tapping Start Video / Unmute must NOT re-prompt (per-session grant should hold). If it ever does, fall back to LiveKit enable-then-disable.
+
+---
+
+## Connection lifecycle & failure screens (session 144)
+
+`LiveKitRoom` is mounted with `onError` (CONN-1) and a reason-aware `onDisconnected` (CONN-2/3):
+
+- **Connect failure** (`onError`) — when the connect promise rejects (a LiveKit blip, flaky/captive-portal WiFi), the page shows a recoverable **"Connection lost — Rejoin"** screen (`state="connection-lost"`) that re-fetches the token and remounts. Without this the user was stranded on the Greenroom "Connecting…" forever — `LiveKitRoom` swallows the rejection (no `Disconnected` event fires on a *failed initial* connect).
+- **Disconnect classification** — `VideoRoom.classifyDisconnect(reason)` maps `DisconnectReason` → `"ended" | "lost" | "duplicate"` and hands the page that string (so `livekit-client` stays out of the page bundle). `CLIENT_INITIATED` / `ROOM_DELETED` / `SERVER_SHUTDOWN` / `PARTICIPANT_REMOVED` → "Session ended"; `DUPLICATE_IDENTITY` → **"You joined from another place"** (a second tab/device evicting the first — CONN-3); everything else (network drop past the retry ladder, signal close, unknown) → "Connection lost — Rejoin" (CONN-2). **Step-In's deliberate disconnect is unaffected** — its resolver early-return in `handleLeave` runs *before* the kind branching.
+- **Reconnecting banner** (CONN-4) — `RIMConference` shows a calm "Reconnecting…" banner via `useConnectionState()` while LiveKit auto-recovers a transient drop; a recovery that fully fails surfaces as the "Connection lost" screen above.
 
 ---
 
@@ -108,7 +118,7 @@ One `useEffect` drives `layoutContext.pin` (LiveKit's focus pin). **Precedence, 
 
 ## Time gate
 
-`/api/livekit/token` and `/guest-token` refuse tokens outside the window: opens `start − 30min` (session 141 — was 22; from `lib/sessionWindowConstants.ts`), closes `end + 30min` (or `start + 90min` when no end). ADMIN/GT bypass; guests don't. `assertSessionDateInWindow` is wired defense-in-depth into mute-participant, mute-all, end-session, step-in. Per-session room names (`slug-YYYY-MM-DD`) mean recurring programs get a fresh room each occurrence.
+`/api/livekit/token` and `/guest-token` refuse tokens outside the window: opens `start − 30min` (session 141 — was 22; from `lib/sessionWindowConstants.ts`), closes `end + 30min` (or `start + 90min` when no end). ADMIN/GT bypass; guests don't. `assertSessionDateInWindow` is wired defense-in-depth into mute-participant, mute-all, end-session, step-in, **and the chat POST** (CHAT-2, session 144). Per-session room names (`slug-YYYY-MM-DD`) mean recurring programs get a fresh room each occurrence — the suffix is the **UTC** date, not CT (cosmetic; every caller derives it from the same canonical `sessionDate`, so no split — TG-3). **Session 144 also:** the `testRoom` token branch is ADMIN-gated (was open to any authenticated member — TOKEN-1), and the open-access `chat` + `guest-token` routes are rate-limited via `lib/rateLimit.ts` (chat 30/60s per identity; guest-token 10/60s per IP).
 
 ---
 
@@ -121,6 +131,10 @@ One `useEffect` drives `layoutContext.pin` (LiveKit's focus pin). **Precedence, 
 - **Background work in routes** uses `after()` from `next/server` (Vercel kills `void (async)()` after the response).
 - **Don't edit `public/css/livekit-prefabs.css`** — vendored build.
 - **The browser screen-picker (getDisplayMedia) cannot be restyled or replaced** — web security. Frame it with the primer; don't try to clone Zoom's picker.
+- **Host controls must surface failure** (session 144) — EndMenu + the mute handlers check `res.ok`. The server returns a benign `{ok:true, muted:0}` when a mute target already left, so a notice flashes only on a *real* failure (a paused co-host's 403). Don't revert these to the silent `try{…}catch{}` pattern.
+- **Step-In is serialized by a `pg_advisory_xact_lock`**, NOT a DB unique index (session 144) — `host_assignments` is shared with the multi-claim greeter hub, so a unique constraint would forbid legitimate greeter rows. Keep the lock **`xact`-scoped** (Neon PgBouncer pooling leaks a session lock) and keep token issuance + notifications *outside* the transaction.
+- **Guest identity is trusted only with the `guest-` prefix** (CHAT-1, session 144) — the chat route rejects any `guestIdentity` without it (member ids are cuids); the "Guest" badge + DM scoping both key off this immutable, server-issued prefix. Guest-to-guest binding (verify the token) is the deferred next step.
+- **Connect-cancel on unmount** (reviewer note) — navigating away *while still connecting* can fire `onConnectError` on an unmounting component; React no-ops the `setState`. Harmless — don't "fix" it with a ref-guard that breaks the real CONN-1 path.
 
 ---
 
@@ -131,6 +145,7 @@ One `useEffect` drives `layoutContext.pin` (LiveKit's focus pin). **Precedence, 
 - **Sharer's own focus tile** can be blank during a whole-screen share (recursive capture). Could suppress share-focus for the sharer specifically.
 - **Host "Spotlight"** (pin for everyone) — not built; local Pin only.
 - **PDF schedule export hub-scoping**, **assignments-GET pause map** — see Scheduler doc; not session-room.
+- **(session 144 deferrals, documented):** TG-1 DST gate-drift → a **data-check**, not surgery on shared time math (the dashboard→gate path is self-consistent; only direct-navigate-from-the-public-page is affected); TG-2 recurrence-count cutoff edge (dormant — live sits are open-ended); the control-bar 2-row wrap + End placement at 360–390px and a full popover focus-trap/return-focus (need real hardware); BrightnessProcessor mobile cost (measure first); empty-room cleanup (verify LiveKit's default); recording is **off** (no indicator — a documented decision); guest-to-guest chat identity binding (the prefix check covers the member-impersonation vector).
 
 ---
 
