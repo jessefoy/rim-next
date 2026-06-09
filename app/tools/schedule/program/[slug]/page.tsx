@@ -108,15 +108,18 @@ export default async function ProgramStaffingPage({
       hostingRequired: true,
     },
   });
-  // Self-led ("No host needed") programs have no staffing to show — they're
-  // excluded from every Scheduler view, so this one 404s rather than render
-  // an empty grid for a hand-typed URL.
-  if (!program || program.archivedAt || !program.hostingRequired) notFound();
+  if (!program || program.archivedAt) notFound();
 
   const primaryHubSlug = program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
   const auxHubSlugs = await getProgramCoverageHubs(program.slug);
-  // Order: primary first, then auxiliary in slug order for stability.
-  const allHubSlugs = [primaryHubSlug, ...auxHubSlugs.filter((s) => s !== primaryHubSlug).sort()];
+  // "No host needed" governs the PRIMARY host only: omit the primary section for
+  // a self-led program (it isn't host-staffed) and show just its auxiliary
+  // (AV/greeter) coverage. A purely self-led program with no auxiliary coverage
+  // has nothing to staff → 404. Normal programs: primary first, then auxiliary.
+  const allHubSlugs = program.hostingRequired
+    ? [primaryHubSlug, ...auxHubSlugs.filter((s) => s !== primaryHubSlug).sort()]
+    : auxHubSlugs.filter((s) => s !== primaryHubSlug).sort();
+  if (allHubSlugs.length === 0) notFound();
 
   // Fetch every hub's config + StandingAssignment rows + upcoming HostAssignment
   // counts in one batched load. The StandingAssignment include pulls every

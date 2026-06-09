@@ -15239,6 +15239,20 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: var(--rim-blue);
   font-weight: 700;
 }
+/* Coordinator/manager: quiet inline "Remove" beside a greeter claimant. */
+.hs-row__multi-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  color: var(--rim-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.hs-row__multi-remove:hover { color: var(--color-error); }
 
 .hs-row__do {
   display: flex;

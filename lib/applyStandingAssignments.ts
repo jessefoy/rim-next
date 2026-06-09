@@ -247,23 +247,32 @@ export async function generateCandidates(
 
   if (standingAssignments.length === 0) return { candidates: [], pastIgnored: 0 };
 
-  // 2. Load programs. `hostingRequired: true` excludes "No host needed"
-  //    programs: any leftover StandingAssignment rows on a self-led program
-  //    produce no candidates (program absent from programMap → skipped below),
-  //    so neither the cron nor a manual apply ever generates coverage for it.
+  // 2. Load programs. We DON'T filter out "No host needed" programs here —
+  //    that flag governs the PRIMARY host only, so a self-led program may still
+  //    carry auxiliary (AV/greeter) rotations that must apply. Instead we record
+  //    each self-led program's primary hub and skip just its primary-hub
+  //    rotations in the candidate loop below.
   const slugs = [...new Set(standingAssignments.map((sa) => sa.programSlug))];
   const programs = await db.program.findMany({
-    where: { slug: { in: slugs }, archivedAt: null, hostingRequired: true },
+    where: { slug: { in: slugs }, archivedAt: null },
     select: {
       id: true, name: true, slug: true, programFormat: true,
       startDatetime: true, endDatetime: true,
       recurrenceFreq: true, recurrenceInterval: true,
       recurrenceDays: true, recurrenceCount: true,
+      hostingRequired: true, hostingHubSlug: true,
     },
   });
   const programMap = new Map<string, ScheduleProgram>(
     programs.map((p) => [p.slug, p as ScheduleProgram])
   );
+  // slug → its primary hub, ONLY for self-led programs. Used to skip
+  // primary-hub rotations on a "No host needed" program while still letting
+  // its auxiliary-hub (AV/greeter) rotations generate candidates.
+  const selfLedPrimaryHub = new Map<string, string>();
+  for (const p of programs) {
+    if (!p.hostingRequired) selfLedPrimaryHub.set(p.slug, p.hostingHubSlug ?? "host-team");
+  }
 
   // 3. Walk every day of the month, building candidates
   const daysInMonth   = new Date(year, month, 0).getDate();
@@ -298,6 +307,11 @@ export async function generateCandidates(
     for (const sa of standingAssignments) {
       const program = programMap.get(sa.programSlug);
       if (!program) continue;
+
+      // "No host needed" skips PRIMARY-hub rotations only — auxiliary
+      // (AV/greeter) rotations on a self-led program still apply.
+      const selfLedHub = selfLedPrimaryHub.get(sa.programSlug);
+      if (selfLedHub && sa.hubSlug === selfLedHub) continue;
 
       // Respect startsOn / endsOn
       if (dateStr < ctDateStr(sa.startsOn.toISOString())) continue;

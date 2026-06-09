@@ -341,10 +341,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // "No host needed" programs can't be staffed. Checked AFTER the capability
-  // gate so it never reveals the flag to a non-host. The UI already hides these
-  // from the Scheduler; this refuses coverage creation via a crafted request.
-  if (!(await programNeedsHost(programSlug))) {
+  // "No host needed" blocks staffing on the program's PRIMARY host only —
+  // auxiliary AV/greeter coverage stays independently staffable (matches
+  // getProgramSlugsForHub + generateCandidates, which scope the flag to the
+  // primary hub). Checked AFTER the capability gate so it never reveals the flag
+  // to a non-host; refuses a crafted primary-hub claim on a self-led program.
+  if (targetHubSlug === programHubSlug && !(await programNeedsHost(programSlug))) {
     return Response.json(
       { error: 'This program is marked "No host needed" and can\'t be scheduled.' },
       { status: 422 },

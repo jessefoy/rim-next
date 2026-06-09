@@ -234,9 +234,10 @@ export async function POST(request: Request) {
   if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
     return Response.json({ error: "Forbidden — coordinator or manager required" }, { status: 403 });
   }
-  // "No host needed" programs can't carry a rotation (the UI hides them from
-  // the Rotations grid; this refuses creation via a crafted request too).
-  if (!(await programNeedsHost(body.programSlug))) {
+  // "No host needed" blocks a rotation on the program's PRIMARY host only —
+  // an auxiliary AV/greeter rotation on a self-led program is still allowed
+  // (matches the view + the apply engine, which scope the flag to the primary).
+  if (targetHubSlug === programHubSlug && !(await programNeedsHost(body.programSlug))) {
     return Response.json(
       { error: 'This program is marked "No host needed" and can\'t have a rotation.' },
       { status: 422 },

@@ -402,6 +402,8 @@ interface RowProps {
   onSignUp?: (s: Session) => void;
   /** Multi-claim hubs only: cancel my signup on this session. */
   onCancelSignUp?: (s: Session, assignmentId: string) => void;
+  /** Multi-claim hubs only: coordinator/manager removes another person's signup. */
+  onRemoveSignup?: (s: Session, assignmentId: string, userName: string | null) => void;
   isHostManager: boolean;
   /** Role-aware copy for the active hub (session 130 follow-up). */
   coverageCopy: { noun: string; verb: string; action: string };
@@ -410,6 +412,9 @@ interface RowProps {
   isManager: boolean;
   teamMembers: { id: string; displayName: string; isCoordinator: boolean }[];
   onAssign: (s: Session, userId: string) => Promise<void>;
+  /** Multi-claim hub (greeter): open sign-up model. Suppresses single-slot
+   *  affordances that don't apply (the assign-others picker on empty rows). */
+  allowsMultipleAssignments?: boolean;
 }
 
 /**
@@ -465,10 +470,10 @@ function AssignControl({
 function HsRow({
   session, kind, isPast, currentUserId,
   onTake, onCover, onAskCover, onCancelRequest, onClearRequest, onReassign, onUnassign,
-  onSignUp, onCancelSignUp,
+  onSignUp, onCancelSignUp, onRemoveSignup,
   isHostManager,
   coverageCopy,
-  isManager, teamMembers, onAssign,
+  isManager, teamMembers, onAssign, allowsMultipleAssignments,
 }: RowProps) {
   const dateShort = fmtDateShort(session.sessionDate);
   const timeStr = fmtTime(session.sessionDate);
@@ -522,7 +527,10 @@ function HsRow({
             <button className="lr-btn lr-btn--host" onClick={() => onTake(session)}>
               Yes, I can {coverageCopy.action}
             </button>
-            {isManager && (
+            {/* Assign-a-specific-person is a single-slot operation. Multi-claim
+                hubs (greeter) use open sign-up — the server rejects assign-others
+                there — so the picker is hidden on those empty rows. */}
+            {isManager && !allowsMultipleAssignments && (
               <AssignControl session={session} teamMembers={teamMembers} onAssign={onAssign} />
             )}
           </div>
@@ -635,6 +643,17 @@ function HsRow({
                       <span className="hs-row__paused-badge">
                         {c.badge === "inactive" ? "inactive" : "paused"}
                       </span>
+                    )}
+                    {/* Coordinator/manager: remove another person's signup
+                        (the signed-in user uses "Cancel my signup" below). */}
+                    {isManager && !isMe && !isPast && c.userId && (
+                      <button
+                        className="hs-row__multi-remove"
+                        onClick={() => onRemoveSignup?.(session, c.assignmentId, c.userName)}
+                        aria-label={`Remove ${c.userName ?? "this person"}'s signup`}
+                      >
+                        Remove
+                      </button>
                     )}
                   </li>
                 );
@@ -1089,6 +1108,24 @@ export default function HubScheduleClient({
     await loadMonth(year, month);
   }
 
+  // ── Coordinator/manager: remove ANOTHER person's greeter signup ──
+  // Multi-claim hubs only. DELETE is coordinator-gated server-side (scoped to
+  // the assignment's hub). Open sign-up is low-ceremony, so this is a direct
+  // action with a toast — same shape as "Cancel my signup," no modal. Reload to
+  // refresh the claimant list.
+  async function removeSignup(_s: Session, assignmentId: string, userName: string | null) {
+    const res = await fetch(`${apiBase}/assignments/${assignmentId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setToast(d.error ?? "Couldn't remove the signup. Try again.");
+      return;
+    }
+    setToast(userName ? `Removed ${userName}'s signup.` : "Signup removed.");
+    await loadMonth(year, month);
+  }
+
   // ── Modal openers ──
 
   function openTake(s: Session) { setModal({ kind: "take", session: s }); }
@@ -1249,12 +1286,14 @@ export default function HubScheduleClient({
     onUnassign: openUnassign,
     onSignUp: signUp,
     onCancelSignUp: cancelSignUp,
+    onRemoveSignup: removeSignup,
     currentUserId,
     isHostManager,
     coverageCopy,
     isManager,
     teamMembers,
     onAssign: assignMember,
+    allowsMultipleAssignments,
   };
 
   return (

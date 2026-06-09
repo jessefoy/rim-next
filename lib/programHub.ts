@@ -152,10 +152,12 @@ export async function getProgramSlugsForHub(hubSlug: string): Promise<string[]> 
 
   const [primaryRows, coverageRows] = await Promise.all([
     db.program.findMany({
-      // `hostingRequired: true` excludes "No host needed" programs from every
-      // Scheduler view — this helper feeds the Scheduler page, the assignments
-      // GET, and the Rotations grid, so a self-led / community-led offering
-      // (Recovery Dharma, drop-in groups) never surfaces as "Needs Coverage."
+      // `hostingRequired: true` excludes "No host needed" programs from their
+      // PRIMARY hosting hub's view (host-team / peer-led) — a self-led offering
+      // (Recovery Dharma, drop-in groups) never surfaces as "Needs Coverage"
+      // there. It does NOT touch auxiliary coverage (below): "No host needed"
+      // governs the primary host only; AV/greeter coverage is an independent
+      // per-hub decision.
       where: { ...primaryFilter, archivedAt: null, hostingRequired: true },
       select: { slug: true },
     }),
@@ -168,14 +170,14 @@ export async function getProgramSlugsForHub(hubSlug: string): Promise<string[]> 
   const slugs = new Set<string>();
   for (const p of primaryRows) slugs.add(p.slug);
 
-  // Auxiliary coverage rows reference a program by slug but carry no
-  // hostingRequired flag of their own — filter them against the Program table
-  // so a "No host needed" program is excluded from auxiliary (AV/greeter) views
-  // too. A self-led program needs no scheduled coverage of any kind.
+  // Auxiliary coverage (AV / greeter): filter archived only, NOT hostingRequired.
+  // "No host needed" scopes to the primary host — it must not strip explicitly-
+  // configured supporting-role coverage. A self-led in-person group that a
+  // coordinator put on greeter coverage still appears in the greeter scheduler.
   const coverageSlugs = coverageRows.map((c) => c.programSlug);
   if (coverageSlugs.length > 0) {
     const liveCoverage = await db.program.findMany({
-      where: { slug: { in: coverageSlugs }, archivedAt: null, hostingRequired: true },
+      where: { slug: { in: coverageSlugs }, archivedAt: null },
       select: { slug: true },
     });
     for (const p of liveCoverage) slugs.add(p.slug);
