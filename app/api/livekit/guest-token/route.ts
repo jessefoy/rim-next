@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createRoomToken, roomNameForProgram } from "@/lib/livekit";
+import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { getActiveSessionWindow, describeInactiveWindow } from "@/lib/sessionWindow";
 
 export async function POST(req: NextRequest) {
@@ -25,6 +26,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "programSlug, guestKey, and guestName are required" },
       { status: 400 },
+    );
+  }
+
+  // Rate-limit guest-token minting per IP so a leaked guest link can't be used
+  // to spin up unlimited identities (which would otherwise sidestep the
+  // per-identity chat limit). Fail-open on DB error. (Pre-launch hardening.)
+  const rl = await checkRateLimit(`guest-token:${getRequestIp(req)}`, 10, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many join attempts. Please wait a moment and try again." },
+      { status: 429 },
     );
   }
 

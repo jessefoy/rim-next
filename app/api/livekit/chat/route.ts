@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { roomNameForProgram, sessionDisplayName } from "@/lib/livekit";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { assertSessionDateInWindow } from "@/lib/sessionWindow";
 
 /**
  * POST /api/livekit/chat
@@ -91,17 +93,44 @@ export async function POST(req: NextRequest) {
     fromName = guestName.trim().slice(0, 60);
   }
 
+  // Rate-limit per sender identity so one participant — or a leaked guest link
+  // reusing a single identity — can't flood the room. Fail-open on DB error
+  // (the limiter's design). (Pre-launch hardening.)
+  const rl = await checkRateLimit(`chat-msg:${fromIdentity}`, 30, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "You're sending messages too quickly. Please slow down." },
+      { status: 429 },
+    );
+  }
+
+  // Window + canonical date (Audit CHAT-2): refuse out-of-window writes and pin
+  // the message to the session's canonical date, so a member can't script a
+  // write to an arbitrary room/sessionDate. Guests have no window bypass.
+  const assertion = await assertSessionDateInWindow(
+    programSlug,
+    sessionDate,
+    session?.user?.roles ?? [],
+  );
+  if (!assertion.ok) {
+    return NextResponse.json(
+      { error: assertion.error, message: assertion.message },
+      { status: assertion.status },
+    );
+  }
+  const effectiveSessionDate = assertion.window.sessionDate;
+
   const recipients = Array.isArray(toIdentities)
     ? toIdentities.filter((s) => typeof s === "string" && s.length > 0).slice(0, 16)
     : [];
 
-  const roomName = roomNameForProgram(programSlug, sessionDate);
+  const roomName = roomNameForProgram(programSlug, effectiveSessionDate);
 
   const saved = await db.sessionChatMessage.create({
     data: {
       roomName,
       programSlug,
-      sessionDate: sessionDate ? new Date(sessionDate) : null,
+      sessionDate: effectiveSessionDate ? new Date(effectiveSessionDate) : null,
       fromUserId,
       fromIdentity,
       fromName,
