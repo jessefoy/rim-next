@@ -86,8 +86,24 @@ function writeJoinedBefore() {
  * granted path runs in an effect where no prompt fires.
  */
 async function acquireMediaPermission() {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-  stream.getTracks().forEach((t) => t.stop());
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    stream.getTracks().forEach((t) => t.stop());
+  } catch (err) {
+    // No camera on this device (a desktop/laptop without a webcam) throws
+    // NotFoundError on the combined request. Audio-only is a legitimate way to
+    // attend a sit, so retry with just the microphone rather than dead-ending
+    // the user in Recovery — whose "set Camera to Allow" steps can't be
+    // followed when there is no camera. A permission DENIAL (NotAllowedError)
+    // or a busy device (NotReadableError) is NOT retried: those carry the user
+    // to Recovery, which has the right guidance for each. (Audit JOIN-1.)
+    if (err instanceof Error && err.name === "NotFoundError") {
+      const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioOnly.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    throw err;
+  }
 }
 
 type Status = "checking" | "auto-acquiring" | "manual" | "acquiring";
