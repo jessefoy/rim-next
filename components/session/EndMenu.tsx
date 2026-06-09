@@ -44,8 +44,17 @@ export default function EndMenu({ open, onClose, hasEndAllAuthority, programSlug
       if (anchorRef.current?.contains(target)) return;
       onClose();
     }
+    // Escape closes the menu — the destructive "End for all" sits one tab into
+    // this popover, so keyboard users need a way out without a mouse. (a11y.)
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open, onClose, anchorRef]);
 
   function leave() {

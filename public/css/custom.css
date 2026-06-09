@@ -13072,6 +13072,15 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .vs-view-toggle__btn--active:hover { background: #1a6b95; color: #fff; }
 
+/* Touch targets: bump the header controls to 44px on touch devices (they
+   stay 32px for the mouse on desktop). The header crowds at phone widths, so
+   the fullscreen/help icons and the Speaker/Gallery toggle need a full tap
+   target. (Audit — mobile/a11y coverage.) */
+@media (max-width: 768px) {
+  .vs-header__icon { min-width: 44px; height: 44px; }
+  .vs-view-toggle { height: 44px; }
+}
+
 /* Hide LiveKit's tile pin button when we're in gallery view — clicking it
    would set a phantom pin that gallery doesn't honor. Pin is a Speaker-view
    affordance only. */
@@ -13540,7 +13549,9 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: #eee;
   border-radius: 4px;
   padding: 4px 6px;
-  font-size: var(--text-ui);
+  /* 16px (not var(--text-ui)=14px) so iOS Safari doesn't auto-zoom the
+     viewport on focus — matches the sibling chat textarea. (Audit CHAT-4.) */
+  font-size: 16px;
   font-family: var(--font-sans);
 }
 .rim-chat-compose__input {
@@ -14143,8 +14154,17 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 @media (max-width: 430px) {
   .rim-pp { width: 100%; }
-  /* 44px minimum tap target for the clickable participant name on phones. */
+  /* 44px minimum tap targets on phones — the clickable name AND the mute
+     controls beside it (a near-miss on Mute otherwise lands on the name's
+     DM action). (Audit CHAT-2.) */
   .rim-pp__name--action { min-height: 44px; }
+  .rim-pp__mute-btn,
+  .rim-pp__mute-all {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 /* ─── Zoom-aligned control bar ───────────────────────────────── */
