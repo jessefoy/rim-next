@@ -610,6 +610,38 @@ export async function sendJoinWelcomeEmail(
   });
 }
 
+// ─── Legacy welcome-back email ──────────────────────────────────────────────
+
+export interface LegacyWelcomeBackEmailData {
+  to: string;
+  firstName: string;
+}
+
+/**
+ * Sent once when a migrated legacy member (from the old Webflow/Memberstack
+ * site) crosses the agreement gate on first login to the new platform — their
+ * "promotion" out of the quiet import pool. The returning-member counterpart of
+ * sendJoinWelcomeEmail: it acknowledges the rebuilt home rather than welcoming a
+ * newcomer. Fired via after() from the two agreement-completion endpoints
+ * (complete-profile, join), only when the account was isLegacyUnclaimed before
+ * the flip.
+ *
+ * Managed via Email Template Manager — template: "welcome-back".
+ * Email Template Gate: matching seed entry in prisma/migrate.mjs ships with
+ * the same commit.
+ */
+export async function sendLegacyWelcomeBackEmail(
+  data: LegacyWelcomeBackEmailData
+): Promise<void> {
+  const { to, firstName } = data;
+  await sendTemplatedEmail("welcome-back", to, {
+    firstName,
+    dashboardButton: emailButtonHtml("Visit your dashboard", `${BASE_URL}/account/dashboard`),
+    dashboardUrl: `${BASE_URL}/account/dashboard`,
+    supportEmail: "support@rootedinmindfulness.org",
+  });
+}
+
 // ─── Program reminder email (to registrant) ──────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

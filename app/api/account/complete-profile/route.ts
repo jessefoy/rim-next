@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse, after } from "next/server";
 import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
+import { sendLegacyWelcomeBackEmail } from "@/lib/email";
 
 // POST — save name/phone and mark community agreements accepted
 export async function POST(request: Request) {
@@ -19,6 +20,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "First and last name are required." }, { status: 400 });
   }
 
+  // Read the pre-update state so we know whether this is a returning legacy
+  // member being promoted out of the quiet pool (drives the welcome-back letter).
+  const before = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { email: true, isLegacyUnclaimed: true },
+  });
+
   await db.user.update({
     where: { id: session.user.id },
     data: {
@@ -27,6 +35,9 @@ export async function POST(request: Request) {
       phone: phone || null,
       agreedToTerms: true,
       agreedAt: new Date(),
+      // Promotion: a legacy import (or any pre-staged account) becomes a real
+      // member the moment it crosses the agreement gate. No-op for everyone else.
+      isLegacyUnclaimed: false,
     },
   });
 
@@ -42,6 +53,19 @@ export async function POST(request: Request) {
       );
     }
   });
+
+  // Returning legacy member → the one-time "welcome back" letter (the returning
+  // counterpart of join-welcome, which only fires on the /join door).
+  if (before?.isLegacyUnclaimed) {
+    const to = before.email;
+    after(async () => {
+      try {
+        await sendLegacyWelcomeBackEmail({ to, firstName });
+      } catch (err) {
+        console.error("[account/complete-profile] sendLegacyWelcomeBackEmail failed", err);
+      }
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

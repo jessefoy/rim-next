@@ -5151,6 +5151,23 @@ h4 { font-size: var(--text-h4); }
   vertical-align: middle;
 }
 
+/* Legacy (Memberstack import, not yet claimed) badge — calm blue, distinct
+   from the gray Archived badge. Marks a pre-staged account that hasn't logged
+   in yet, so its state is legible at a glance in the default registry view. */
+.adm-badge--legacy {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--rim-blue-bg);
+  color: var(--rim-blue);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 /* Show archived toggle button */
 .adm-toggle-btn {
   font-size: var(--text-xs);

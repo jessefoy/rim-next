@@ -104,6 +104,11 @@ model User {
   legacyLastAttendance    DateTime?
   legacyActivityCount     Int?
   legacyMemberSince       DateTime?
+  // Quiet-pool marker for the one-time Memberstack migration. True = imported
+  // but not yet claimed: silent (emailVerified null gates every team email),
+  // exempt from the cleanup cron, and hidden from the default member registry.
+  // Cleared the moment they cross the agreement gate on first login (promotion).
+  isLegacyUnclaimed       Boolean   @default(false)
 
   // Relations
   accounts        Account[]

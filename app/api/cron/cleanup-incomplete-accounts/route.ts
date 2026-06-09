@@ -26,6 +26,9 @@ import { NextResponse } from "next/server";
 // false, looking exactly like an abandoned signup). Those accounts MUST
 // survive until the person onboards. So we never delete an account that holds
 // a role OR belongs to a hub — only genuinely-untouched abandoned signups.
+// The Memberstack migration adds a third exemption: imported legacy accounts
+// (isLegacyUnclaimed = true) sit in the quiet pool with no role/hub by design
+// and must survive until their owner logs in and is promoted.
 // (Relation filters like `hubMemberships: { none }` aren't supported in
 // deleteMany, so we resolve ids with findMany first, then delete by id.)
 //
@@ -45,6 +48,7 @@ export async function GET(request: Request) {
       createdAt: { lt: cutoff },
       roles: { isEmpty: true },          // never GC someone an admin gave a role
       hubMemberships: { none: {} },      // …or added to a hub (staged volunteers)
+      isLegacyUnclaimed: false,          // …or imported from Memberstack (quiet pool)
       OR: [
         // Path 1 — never agreed
         { agreedToTerms: false },

@@ -15,6 +15,7 @@ export interface SerializedMember {
   tags: string[];
   archivedAt: string | null;
   createdAt: string;
+  isLegacyUnclaimed: boolean;
   _count: { registrations: number };
 }
 
@@ -45,6 +46,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 interface Props {
   members: SerializedMember[];
+  showLegacyPool: boolean;
+  legacyCount: number;
 }
 
 function sortMembers(members: SerializedMember[], field: SortField, dir: SortDir) {
@@ -75,7 +78,7 @@ function sortMembers(members: SerializedMember[], field: SortField, dir: SortDir
   });
 }
 
-export default function MembersTable({ members }: Props) {
+export default function MembersTable({ members, showLegacyPool, legacyCount }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
@@ -220,6 +223,25 @@ export default function MembersTable({ members }: Props) {
               {showArchived ? "Show Active" : `Archived (${archivedCount})`}
             </button>
           )}
+          {showLegacyPool ? (
+            <button
+              type="button"
+              className="adm-toggle-btn"
+              onClick={() => router.push("/admin/members")}
+            >
+              ← Back to members
+            </button>
+          ) : (
+            legacyCount > 0 && (
+              <button
+                type="button"
+                className="adm-toggle-btn"
+                onClick={() => router.push("/admin/members?pool=legacy")}
+              >
+                Legacy pool ({legacyCount})
+              </button>
+            )
+          )}
         </div>
       </div>
 
@@ -275,6 +297,7 @@ export default function MembersTable({ members }: Props) {
                       <span className="adm-table__preferred"> ({m.preferredName})</span>
                     )}
                     {m.archivedAt && <span className="adm-badge--archived">Archived</span>}
+                    {m.isLegacyUnclaimed && <span className="adm-badge--legacy">Legacy</span>}
                   </td>
                   <td>{m.lastName ?? "—"}</td>
                   <td className="adm-table__email">{m.email}</td>

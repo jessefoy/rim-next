@@ -1,7 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { signIn } from "@/auth";
-import { sendJoinWelcomeEmail } from "@/lib/email";
+import { sendJoinWelcomeEmail, sendLegacyWelcomeBackEmail } from "@/lib/email";
 import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import {
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
   // gently — no error, no shame; they're already in.
   const existing = await db.user.findUnique({
     where: { email: emailRaw },
-    select: { id: true, agreedToTerms: true },
+    select: { id: true, agreedToTerms: true, isLegacyUnclaimed: true },
   });
   if (existing?.agreedToTerms) {
     return NextResponse.json(
@@ -122,6 +122,11 @@ export async function POST(request: Request) {
     );
   }
 
+  // A returning legacy member can land on the /join door instead of /login; if
+  // so, this pre-upsert flag routes them to the welcome-back letter below
+  // (rather than the new-member join-welcome), and the upsert promotes them.
+  const wasLegacy = existing?.isLegacyUnclaimed === true;
+
   const now = new Date();
   const user = await db.user.upsert({
     where: { email: emailRaw },
@@ -132,6 +137,7 @@ export async function POST(request: Request) {
       phone: phone || null,
       agreedToTerms: true,
       agreedAt: now,
+      isLegacyUnclaimed: false,
     },
     update: {
       firstName,
@@ -139,6 +145,8 @@ export async function POST(request: Request) {
       phone: phone || null,
       agreedToTerms: true,
       agreedAt: now,
+      // Promotion: if this email was a legacy import, crossing /join claims it.
+      isLegacyUnclaimed: false,
     },
     select: { id: true },
   });
@@ -175,11 +183,17 @@ export async function POST(request: Request) {
   // Welcome letter + onboarding series — fire-and-forget via after() per the
   // session 96 / 131 pattern (Vercel tears the function down once the
   // response is committed; after() keeps the work alive).
+  // Returning legacy member (came via /join) → welcome-back; a genuinely new
+  // member → join-welcome. wasLegacy is read from the pre-upsert record.
   after(async () => {
     try {
-      await sendJoinWelcomeEmail({ to: emailRaw, firstName });
+      if (wasLegacy) {
+        await sendLegacyWelcomeBackEmail({ to: emailRaw, firstName });
+      } else {
+        await sendJoinWelcomeEmail({ to: emailRaw, firstName });
+      }
     } catch (err) {
-      console.error("[account/join] sendJoinWelcomeEmail failed", err);
+      console.error("[account/join] welcome email failed", err);
     }
   });
 

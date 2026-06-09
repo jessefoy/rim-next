@@ -4438,6 +4438,108 @@ Brookfield, Wisconsin`;
     console.log("  ⏭ host_assignment_user_indexes_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Member migration — User.isLegacyUnclaimed (quiet-pool marker)
+  //
+  // Additive boolean, default false so every existing real member is untouched
+  // and correctly excluded from the legacy pool. Set true ONLY by the one-time
+  // Memberstack import script (prisma/import-memberstack-members.mjs) for
+  // accounts that haven't claimed themselves yet; cleared back to false the
+  // moment they cross the agreement gate on first login (promotion). Drives the
+  // cleanup-cron exemption (a bare import with no role/hub is never swept) and
+  // the /admin/members default-hide filter (so ~1,000 imports don't flood the
+  // registry). No index: the registry is admin-only, the table is ~hundreds–low
+  // thousands of rows, and a boolean index has poor selectivity — the
+  // server-side WHERE solves the only real concern (client payload size). Raw
+  // SQL references the @@map table name "users".
+  // ───────────────────────────────────────────────────────────────────────
+  const legacyUnclaimedFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'user_is_legacy_unclaimed_v1'
+  `).catch(() => []);
+
+  if (legacyUnclaimedFlag.length === 0) {
+    console.log("→ User.isLegacyUnclaimed column (legacy migration quiet pool)…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "isLegacyUnclaimed" BOOLEAN NOT NULL DEFAULT false`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('user_is_legacy_unclaimed_v1')`,
+    );
+    console.log("  ✔ users.isLegacyUnclaimed ready (default false).");
+  } else {
+    console.log("  ⏭ user_is_legacy_unclaimed_v1 already applied.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Member migration — welcome-back email template (Email Template Gate)
+  //
+  // Sent once, via after(), when a migrated legacy member crosses the agreement
+  // gate on first login (promotion). The returning-member counterpart of
+  // join-welcome: shorter, acknowledges the rebuilt home, explains the
+  // passwordless code (useful for people used to the old password), reassures
+  // on dana. NOT pre-threshold-gated — by the time it fires the member has just
+  // verified + consented, so it must reach them. findUnique → create preserves
+  // any admin edits made via /admin/emails on re-run.
+  // ───────────────────────────────────────────────────────────────────────
+  const welcomeBackFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_welcome_back_email_template_v1'
+  `).catch(() => []);
+
+  if (welcomeBackFlag.length === 0) {
+    console.log("→ Seeding welcome-back email template…");
+
+    const WELCOME_BACK_BODY = `## Welcome back, {{firstName}}.
+
+It's good to see you again. We've rebuilt our online home from the ground up, and your place in the community carried over — you're already a member here, nothing to sign up for again.
+
+A few things have moved, but nothing important has changed. Your dashboard is where you'll find the day's sessions, the programs and courses you can join, and everything else, in one calm place.
+
+**Signing in.** There are no passwords here. Whenever you'd like to come in, we send a short code to your email — nothing to remember, nothing to forget.
+
+**Still community-funded.** RIM continues to run entirely on dana — your generosity, offered freely. Nothing about that has changed.
+
+If anything looks unfamiliar, or you'd just like to say hello, write to us at [{{supportEmail}}](mailto:{{supportEmail}}). A real person will write back.
+
+{{{dashboardButton}}}
+
+With care,
+Rooted In Mindfulness
+Brookfield, Wisconsin`;
+
+    const existingWelcomeBack = await db.emailTemplate.findUnique({
+      where: { slug: "welcome-back" },
+    });
+    if (!existingWelcomeBack) {
+      await db.emailTemplate.create({
+        data: {
+          slug: "welcome-back",
+          name: "Welcome Back — Returning Member Letter",
+          description:
+            "Sent once when a migrated legacy member (from the old Webflow/Memberstack site) crosses the agreement gate on first login to the new platform. The returning-member counterpart of join-welcome.",
+          enabled: true,
+          subject: "Welcome back to Rooted In Mindfulness, {{firstName}}",
+          variables: ["firstName", "dashboardButton", "dashboardUrl", "supportEmail"],
+          group: "01-auth",
+          groupLabel: "Sign-in & Authentication",
+          helpText:
+            "Sent once, immediately, when a returning member from the old site logs in for the first time and accepts the Community Care Agreement (their 'promotion' into the new platform). Distinct from join-welcome (new members) and the sign-in code email.\n\n" +
+            "Available variables: {{firstName}}, {{dashboardButton}} (canonical RIM-blue button — use triple braces {{{dashboardButton}}} to render the HTML), {{dashboardUrl}} (plain URL fallback), {{supportEmail}}.\n\n" +
+            "Safe to edit: subject, greeting, body copy, the closing signature. Free to rewrite this entirely in your own voice — it's the first email of the returning-member arc.",
+          body: WELCOME_BACK_BODY,
+        },
+      });
+      console.log("  ✔ welcome-back template created.");
+    } else {
+      console.log("  ⏭ welcome-back template already exists; preserving admin edits.");
+    }
+
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('seed_welcome_back_email_template_v1')`,
+    );
+  } else {
+    console.log("  ⏭ welcome-back template seed already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

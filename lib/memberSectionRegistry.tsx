@@ -8,6 +8,7 @@ import TeacherSection from "@/components/member-sections/TeacherSection";
 import CourseAccessSection from "@/components/CourseAccessSection";
 import RegistrationHistorySection from "@/components/member-sections/RegistrationHistorySection";
 import DangerZoneSection from "@/components/member-sections/DangerZoneSection";
+import AccountAccessSection from "@/components/member-sections/AccountAccessSection";
 
 export type SerializedMember = {
   id: string;
@@ -175,6 +176,18 @@ export const MEMBER_SECTIONS: MemberSection[] = [
     allowedRoles: ["ADMIN", "REGISTRAR"],
     render: ({ member }) => (
       <RegistrationHistorySection registrations={member.registrations} />
+    ),
+  },
+  {
+    id: "account-access",
+    allowedRoles: ["ADMIN", "REGISTRAR"],
+    zoneStart: true,
+    render: ({ member }) => (
+      <AccountAccessSection
+        memberId={member.id}
+        email={member.email}
+        archived={member.archivedAt !== null}
+      />
     ),
   },
   {
