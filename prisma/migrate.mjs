@@ -4540,6 +4540,53 @@ Brookfield, Wisconsin`;
     console.log("  ⏭ welcome-back template seed already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // One-time — normalize broken member name casing (legacy + current).
+  //
+  // Mirrors lib/nameCase.ts::toProperName. Only re-cases names that are
+  // entirely UPPER or entirely lower (the clearly-accidental ones); intentional
+  // mixed-case names (McDonald, DeShawn, van der Berg) are left as typed.
+  // Hyphens + apostrophes title-cased. Logs every before→after as an audit
+  // trail; flag-guarded so it runs once. Known imperfections left for hand-fix:
+  // all-caps Mc/Mac (MCDONALD → Mcdonald) + 2-letter initials (TJ → Tj).
+  // ───────────────────────────────────────────────────────────────────────
+  const nameCaseFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'normalize_user_names_v1'
+  `).catch(() => []);
+
+  if (nameCaseFlag.length === 0) {
+    console.log("→ Normalizing member name casing…");
+    const toProperName = (raw) => {
+      const s = (raw ?? "").replace(/\s+/g, " ").trim();
+      if (!s) return s;
+      const letters = s.replace(/[^\p{L}]/gu, "");
+      if (!letters) return s;
+      const isAllUpper = letters === letters.toUpperCase() && letters !== letters.toLowerCase();
+      const isAllLower = letters === letters.toLowerCase() && letters !== letters.toUpperCase();
+      if (!isAllUpper && !isAllLower) return s;
+      return s.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (_m, sep, ch) => sep + ch.toUpperCase());
+    };
+    const allUsers = await db.user.findMany({
+      select: { id: true, firstName: true, lastName: true },
+    });
+    let nameChanged = 0;
+    for (const u of allUsers) {
+      const fn = u.firstName == null ? u.firstName : toProperName(u.firstName);
+      const ln = u.lastName == null ? u.lastName : toProperName(u.lastName);
+      if (fn !== u.firstName || ln !== u.lastName) {
+        await db.user.update({ where: { id: u.id }, data: { firstName: fn, lastName: ln } });
+        console.log(`  [name] "${u.firstName ?? ""} ${u.lastName ?? ""}" → "${fn ?? ""} ${ln ?? ""}"`);
+        nameChanged++;
+      }
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('normalize_user_names_v1')`,
+    );
+    console.log(`  ✔ normalized ${nameChanged} member name(s).`);
+  } else {
+    console.log("  ⏭ normalize_user_names_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

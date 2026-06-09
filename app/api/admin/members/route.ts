@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { toProperName } from "@/lib/nameCase";
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -80,8 +81,8 @@ export async function POST(req: Request) {
   }
 
   const raw = (body ?? {}) as Record<string, unknown>;
-  const firstName = typeof raw.firstName === "string" ? raw.firstName.trim() : "";
-  const lastName = typeof raw.lastName === "string" ? raw.lastName.trim() : "";
+  const firstName = toProperName(typeof raw.firstName === "string" ? raw.firstName : "");
+  const lastName = toProperName(typeof raw.lastName === "string" ? raw.lastName : "");
   const phone = typeof raw.phone === "string" ? raw.phone.trim() : "";
   const email = typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
 

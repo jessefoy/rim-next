@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { NextResponse, after } from "next/server";
 import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
 import { sendLegacyWelcomeBackEmail } from "@/lib/email";
+import { toProperName } from "@/lib/nameCase";
 
 // POST — save name/phone and mark community agreements accepted
 export async function POST(request: Request) {
@@ -12,8 +13,8 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const firstName = (body.firstName ?? "").trim();
-  const lastName = (body.lastName ?? "").trim();
+  const firstName = toProperName(String(body.firstName ?? ""));
+  const lastName = toProperName(String(body.lastName ?? ""));
   const phone = (body.phone ?? "").trim();
 
   if (!firstName || !lastName) {

@@ -6,6 +6,7 @@ import {
   enrollMemberInOnboardingSeries,
   enrollMemberInProgramCourse,
 } from "@/lib/enrollment";
+import { toProperName } from "@/lib/nameCase";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,12 +16,14 @@ export async function POST(request: NextRequest) {
       programSlug,
       programTitle,
       email,
-      firstName,
-      lastName,
       phone,
       customFields,
       agreedToTerms,
     } = body;
+    // Normalize the entered name once; downstream writes read these (their
+    // existing .trim() calls are harmless no-ops on an already-clean value).
+    const firstName = toProperName(typeof body.firstName === "string" ? body.firstName : "");
+    const lastName = toProperName(typeof body.lastName === "string" ? body.lastName : "");
 
     if (!programId || !email?.trim() || !firstName?.trim() || !lastName?.trim()) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

@@ -2,6 +2,7 @@ import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { signIn } from "@/auth";
 import { sendJoinWelcomeEmail, sendLegacyWelcomeBackEmail } from "@/lib/email";
+import { toProperName } from "@/lib/nameCase";
 import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import {
@@ -45,8 +46,8 @@ export async function POST(request: Request) {
   }
 
   const raw = (body ?? {}) as Record<string, unknown>;
-  const firstName = typeof raw.firstName === "string" ? raw.firstName.trim() : "";
-  const lastName = typeof raw.lastName === "string" ? raw.lastName.trim() : "";
+  const firstName = toProperName(typeof raw.firstName === "string" ? raw.firstName : "");
+  const lastName = toProperName(typeof raw.lastName === "string" ? raw.lastName : "");
   const phone = typeof raw.phone === "string" ? raw.phone.trim() : "";
   const emailRaw = typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
   const agreed = raw.agreedToTerms === true;
