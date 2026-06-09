@@ -297,14 +297,17 @@ export default function MembersTable({ members, showLegacyPool, legacyCount }: P
                       <span className="adm-table__preferred"> ({m.preferredName})</span>
                     )}
                     {m.archivedAt && <span className="adm-badge--archived">Archived</span>}
-                    {m.isLegacyUnclaimed && <span className="adm-badge--legacy">Legacy</span>}
                   </td>
                   <td>{m.lastName ?? "—"}</td>
                   <td className="adm-table__email">{m.email}</td>
                   <td className="adm-table__col--roles">
-                    <span className={`adm-status adm-status--${m.memberStatus.toLowerCase()}`}>
-                      {STATUS_LABELS[m.memberStatus] ?? m.memberStatus}
-                    </span>
+                    {m.isLegacyUnclaimed ? (
+                      <span className="adm-status adm-status--unclaimed">Unclaimed</span>
+                    ) : (
+                      <span className={`adm-status adm-status--${m.memberStatus.toLowerCase()}`}>
+                        {STATUS_LABELS[m.memberStatus] ?? m.memberStatus}
+                      </span>
+                    )}
                     {m.roles.map((r) => (
                       <span key={r} className={`adm-badge ${ROLE_COLORS[r] ?? "adm-badge--other"}`}>
                         {ROLE_LABELS[r] ?? r}
