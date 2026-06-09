@@ -490,6 +490,27 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           })())
     : "";
 
+  // Filmstrip (carousel) tracks in focus view: the camera list MINUS the track
+  // already filling the main FocusLayout pane. Without this, a focused *camera*
+  // track (speaker-view active-speaker follow, or a manual pin of a camera-on
+  // participant) renders twice — full-size in the focus pane and again in the
+  // filmstrip. (Screen-share focus is already safe: sortedTracks is camera-only,
+  // so the share is never a carousel tile.) Match the pinned ref by identity +
+  // publication.trackSid — the same comparison the pin-orchestration effect uses
+  // — which also covers a camera-off pin: the pinned placeholder and its carousel
+  // twin both carry an undefined trackSid, so identity alone disambiguates.
+  // Mirrors stock VideoConference's `tracks.filter(t => !isEqualTrackRef(t, focusTrack))`.
+  const focusTrackRef = layoutContext.pin.state?.[0];
+  const carouselTracks = focusTrackRef
+    ? sortedTracks.filter(
+        (t) =>
+          !(
+            t.participant.identity === focusTrackRef.participant.identity &&
+            t.publication?.trackSid === focusTrackRef.publication?.trackSid
+          ),
+      )
+    : sortedTracks;
+
   return (
     <SessionRoleProvider
       value={{
@@ -545,7 +566,7 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           <div className="rim-conference__video">
             {inFocusView ? (
               <FocusLayoutContainer>
-                <CarouselLayout tracks={sortedTracks}>
+                <CarouselLayout tracks={carouselTracks}>
                   <RIMParticipantTile />
                 </CarouselLayout>
                 <FocusLayout trackRef={layoutContext.pin.state![0]} />
