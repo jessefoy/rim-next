@@ -6,6 +6,23 @@
 
 ## Active
 
+### Session 143 (2026-06-09) — Coverage-authority follow-ons (s142 backlog 001/002/003) + coordinator-is-hub-manager memory — shipped to `main` & deployed; deployed-site verification pending
+
+Built the three deferred session-142 backlog items in one slice + the reviewer's `userId`-index fix. **One commit fast-forwarded to `main`. No new deps / env / services.** New `User.hostWelcomeSeenAt` column + `userId` indexes on `host_assignments`/`standing_assignments`; migrations `user_host_welcome_seen_v1`, `host_assignment_user_indexes_v1`. Full narrative in `session-log.md` (2026-06-09 session 143).
+
+**Shipped:**
+- **Coordinator sub-on-behalf (001)** — `POST /api/host/sub-requests` gate widened to `isManager || isHubCoordinator(assignmentHubSlug)`; an "Ask the team to cover" button on covered rows opens a new host-named `ask-cover-for` modal. Completes the coordinator coverage role model (assign/remove/reassign/clear/request-sub).
+- **Greeter removal notify (002)** — `DELETE /api/host/assignments/[id]` now emails the removed person when `removedUserId !== self` (coordinator-remove notifies; self-cancel stays silent). Reuses the pre-threshold-gated `host-assignment-removed` template. Server-only.
+- **First-login host panel (003)** — one-time dismissible `HostWelcomePanel` on the dashboard for a just-onboarded pre-staged host; gated on `hostWelcomeSeenAt === null` + hub membership; `POST /api/account/host-welcome-seen` dismiss endpoint. Per Jesse (option A) existing hosts also see it once.
+- **`userId` indexes** on `host_assignments` + `standing_assignments` (reviewer finding; also speeds the existing today-host query).
+- **Memory:** `coordinator-is-hub-manager.md` written + indexed (the pending s142 candidate, confirmed by Jesse).
+
+**OPEN — next steps:**
+1. **Deployed-site verification** (003 only comes alive once `migrate.mjs` runs on the Vercel deploy — it creates the column + indexes). Highest-value: (a) as a **hub coordinator** on a covered row → "Ask the team to cover" → host-named modal → the team gets the cover request and the row flips to "[host] needs help"; (b) a **greeter coordinator removes a signup** → that person gets the removal email, but a **self-cancel** sends nothing; (c) a **staged-then-onboarded host** lands on the dashboard → sees the welcome panel once → Dismiss (or follow the link) → it doesn't return on reload.
+2. **s142's five-ship verification still stands** (the staging round-trip especially) — carried forward below.
+
+**Behavior audit (step 8b):** no new memory candidates — the session ran to plan; the index gap was a code finding, not a behavior lesson. The one pending candidate (coordinator-is-hub-manager) was written + confirmed.
+
 ### Session 142 (2026-06-08) — Pre-launch host staging · "No host needed" · coordinator coverage authority · multi-hub Scheduler consistency — all 5 shipped to `main` & deployed; deployed-site verification pending
 
 **Five commits on `main`, all deployed. No new deps / env / services.** One new `Program.hostingRequired` column + migration `program_hosting_required_v1`. Full narrative in `session-log.md` (2026-06-08 session 142).

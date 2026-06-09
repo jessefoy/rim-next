@@ -75,7 +75,7 @@ Primary-hub coverage: programs with `hostingHubSlug = hub` (host-team picks up n
 
 ---
 
-## Coordinator coverage authority — the role model (session 142)
+## Coordinator coverage authority — the role model (sessions 142–143)
 
 A **hub coordinator** (a `HubMember` with `isCoordinator=true` on the hub — NOT necessarily holding the global HOST_MANAGER role) is a manager *for their own hub's coverage*. The rule across every coverage mutation: **`isManager(roles) || isHubCoordinator(userId, resource.hubSlug)`**, scoped to the *resource's* hub (the assignment's or rotation's `hubSlug`, server-loaded — never a body value). A coordinator of hub A cannot touch hub B's coverage.
 
@@ -86,13 +86,14 @@ A **hub coordinator** (a `HubMember` with `isCoordinator=true` on the hub — NO
 | Remove / unassign a host (`PATCH …/[id]` unclaim, `DELETE …/[id]`) | own only | ✓ | ✓ |
 | Reassign to self (`POST …/reassign`) | — | ✓ | ✓ |
 | Clear a cover request (`PATCH /sub-requests/[id]`) | own only | ✓ | ✓ |
+| Request a sub on a host's behalf (`POST /sub-requests`, s143) | own only | ✓ | ✓ |
 | Reset rotations / reset everything / clear-rotations | — | ✓ | ✓ |
 
 **Implementation notes / pitfalls:**
 - The PATCH `…/[id]` handler authorizes **per action, after loading the assignment** — there is intentionally no early system-role-only gate (an earlier `hasHubAccess`-style top gate *shadowed* the coordinator check and 403'd the very coordinator the change targeted; ship-3 review caught it).
-- **Removing a host notifies them** (`sendHostAssignmentRemovedEmail`) only when the remover ≠ the removed user; self-unclaim is silent.
+- **Removing a host notifies them** (`sendHostAssignmentRemovedEmail`) only when the remover ≠ the removed user; self-removal is silent. This holds on **both** removal paths: single-slot `PATCH …/[id]` unclaim and the greeter `DELETE …/[id]` (session 143 — the DELETE serves both self-cancel and coordinator-remove, and `removedUserId !== session.user.id` is the distinguisher). The `host-assignment-removed` template is pre-threshold-gated, so staged accounts get nothing.
 - UI affordances on covered/needs-sub rows are gated by `isManager` (which the page computes as `isHostManager || coordinator-of-the-active-hub`), **not** `isHostManager`.
-- **Still manager-or-own only (not yet coordinator):** creating a sub-request on *another* host's behalf (`POST /sub-requests`). Deliberate — no UI, and Remove/Reassign are clearer. Backlog `2026-06-08-001`.
+- **Request-a-sub-on-behalf — now coordinator (session 143, was backlog `2026-06-08-001`).** `POST /sub-requests` gates `isManager || isHubCoordinator(assignmentHubSlug)` (greeter/multi-claim hubs are rejected earlier in the handler, so the widening can't reach them). UI: an **"Ask the team to cover"** button in the covered-row coordinator cluster (ordered ahead of Remove + Reassign) opens a distinct `ask-cover-for` modal whose copy names the host — so it never reads as "your session" — and reuses the existing sub-request POST + the covered→needs-sub optimistic transition. This **completed the role model**: every coverage mutation is now coordinator-capable for the resource's own hub.
 
 ## "No host needed" — `Program.hostingRequired` (session 142)
 
@@ -140,7 +141,7 @@ Action button labels read as invitation, not transaction:
 
 No sub-request flow in multi-claim hubs — the open sign-up model doesn't have a "need a sub" semantic; the only exit is self-cancel. `/api/host/sub-requests` POST refuses on multi-claim hubs with a 400.
 
-**Coordinator remove (session 142).** A coordinator/manager can remove *another* person's signup: a per-claimant "Remove" renders in the multi list (`isManager && !isMe && !isPast`) → `removeSignup()` → `DELETE /assignments/[claimant.assignmentId]` (the real HostAssignment id, not the synthetic `multi::` card id) → reload. The DELETE route is hub-coordinator-gated. Direct action with a toast, no modal — same low-ceremony shape as "Cancel my signup," and **silent** (no removal email; open sign-up is low-stakes, unlike single-slot host removal which notifies). The signed-in user's own row uses "Cancel my signup," not "Remove." Backlog `2026-06-08-002` tracks whether to notify.
+**Coordinator remove (session 142).** A coordinator/manager can remove *another* person's signup: a per-claimant "Remove" renders in the multi list (`isManager && !isMe && !isPast`) → `removeSignup()` → `DELETE /assignments/[claimant.assignmentId]` (the real HostAssignment id, not the synthetic `multi::` card id) → reload. The DELETE route is hub-coordinator-gated. Direct action with a toast, no modal — same low-ceremony shape as "Cancel my signup." The signed-in user's own row uses "Cancel my signup," not "Remove." **The removed person is now notified (session 143, was backlog `2026-06-08-002`):** the DELETE handler fires `sendHostAssignmentRemovedEmail` when `removedUserId !== session.user.id` — exactly what separates a coordinator-remove (notify) from a self-cancel (silent), since both callers share this one DELETE route. Pre-threshold-gated, so staged accounts get nothing.
 
 CSS lives in `public/css/custom.css` under `.hs-row__multi*` (incl. `.hs-row__multi-remove`). The card itself is the standard `.hs-row` chrome; only the right-hand block (status + action) differs.
 
