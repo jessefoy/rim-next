@@ -1,5 +1,35 @@
 ---
 
+## 2026-06-08 (session 142) — Pre-launch host staging · "No host needed" · coordinator coverage authority · multi-hub Scheduler consistency
+
+A five-ship session, all on `main` and deployed. **No new dependencies, env vars, or services.** One new `Program` column (`hostingRequired`) + idempotent migration `program_hosting_required_v1`. Started from Jesse wanting to pre-populate the host team before launch; each answer surfaced the next role-model / multi-hub-integrity question, and each got chased to ground.
+
+**The five ships, in order:**
+
+1. **Silent host pre-staging (`5d640bd`).** Populate the host team + schedule before the app opens, with people who aren't members yet — zero notifications until they personally log in, and the normal new-member onboarding when they do. Built: (a) a **"+ Add member"** modal + `POST /api/admin/members` creating a staged account (`agreedToTerms:false`, `emailVerified:null`, no email) — the member module had no create-person flow before; (b) a **pre-threshold email gate** — `recipientHasOnboarded()` + `PRE_THRESHOLD_GATED_SLUGS` in `lib/email.ts` suppress member-directed team emails to anyone who hasn't completed sign-in, and `getHubNotificationRecipients` now excludes `emailVerified:null` members (the durable gate for every hub-pool email); (c) the **cleanup cron** no longer deletes accounts that hold a role or belong to a hub. On `/join` the account is reused by email, the name updates to what they type, and everything wired to the id (HubMember, HostAssignment, StandingAssignment) persists.
+
+2. **"No host needed" (`8678c26`, scoped to primary in `fed2c47`).** New `Program.hostingRequired Boolean @default(true)` (the "No host needed" checkbox on the Hosting & Access tab). Self-led / community-led offerings (Recovery Dharma, drop-in groups) are excluded from the Scheduler, rotation generation, and the new-program-needs-host email — never "Needs Coverage." Stays fully visible on the public schedule, dashboard, and program page; session room unaffected.
+
+3. **Coordinators can remove/reassign hosts (`f51b472`).** Nancy (a hub coordinator without the global HOST_MANAGER role) could *assign* a host (s140) but couldn't *remove* one. Widened unclaim/delete/reassign to `isHubCoordinator(assignment.hubSlug)` (hub-scoped), added "Remove" + "Reassign to me" on covered rows (gated `isManager`), and unclaim now notifies the removed host.
+
+4. **Coordinators can clear cover requests (`9d815b8`).** Canceling an open sub-request was manager-or-own only; now `isHubCoordinator(assignment.hubSlug)` too, with a "Clear request" affordance on needs-sub rows. Completes the model: coordinator = manager-for-their-own-hub on coverage.
+
+5. **Scheduler multi-hub consistency (`fed2c47`).** Jesse flagged the Scheduler as one surface shared by four hubs (host-team / peer-led single-slot; AV single-slot aux; greeter multi-claim aux) and asked whether the day's changes propagate vs. pollute. Audit + fixes: (a) **"No host needed" was over-reaching** — it removed a program from AV/greeter coverage too. Scoped it to the **primary host only** (auxiliary branch of `getProgramSlugsForHub` + `generateCandidates` + the two POST guards now keyed on `targetHubSlug === primary`). (b) **Greeter coordinators** got a per-claimant "Remove." (c) **Hid the dead assign-others picker** on multi-claim empty rows (pre-existing s140 wrinkle). Verified single-slot affordances can't leak onto greeter rows.
+
+**Design decisions + why:**
+- **Pre-threshold gate keyed to reality, not a "quiet mode" toggle.** "They won't know until they log in" *is* `emailVerified === null` — the rule literally encodes the requirement, and it's safe (a real active member always has emailVerified set). Two layers: the recipient-pool gate (durable for all hub-pool emails) + the per-builder/slug gate (1:1 emails). Auth + join-welcome deliberately NOT gated (must reach mid-signup people).
+- **"No host needed" is the third axis** beside kind (*what it is*) and registration (*what registering does*): *whether any team staffs it*. Scoped to the primary host so it composes with independent auxiliary coverage — the multi-hub-correct behavior.
+- **Coordinator = manager-for-their-own-hub on coverage** (Jesse: "they have the responsibility for caring for this"). Every coverage mutation now allows `isHubCoordinator(resource.hubSlug)`, scoped server-side. Plain hosts still act only on their own; no privilege escalation.
+- **The Scheduler is a shared multi-hub surface** — every change checked both directions (reaches AV/greeter/peer-led where it should; doesn't bleed into the multi-claim model where it shouldn't). Now a standing rule in `RIM_Scheduler.md`.
+
+**Reviewer track record (4 adversarial passes, each caught a real would-ship bug):** the hub-pool email leak class (ship 1); the PATCH system-role gate shadowing the new coordinator check (ship 3); the show-but-can't-staff guard inconsistency where "No host needed" surfaced a program in AV/greeter but the POST guards still refused it (ship 5).
+
+**What this connects to:** the Member Registry (`/admin/members` + new POST), the Scheduler (`/tools/schedule`, `HubScheduleClient`, assignment + sub-request + standing routes, `lib/applyStandingAssignments.ts`, `lib/programHub.ts`), the email system (`lib/email.ts` gate + `getHubNotificationRecipients`), the cleanup cron, the ProgramEditor (Hosting & Access tab), the four scheduler hubs, and the onboarding flow. No editor / Tiptap / content changes.
+
+**What's next:** deployed-site verification of all five — especially the staging round-trip (Add member → assign HOST → no emails → sign up via /join → onboarding fires + schedule already attached). Jesse can now pre-stage the host team. Three new backlog items (coordinator create-sub-on-behalf, greeter removal notification, first-login host recognition).
+
+---
+
 ## 2026-06-08 (session 141) — Scheduler trust + clarity finish; coordinator Coverage grid tried & reverted; rotation editor confirms in place
 
 Opened with a memory consolidation (`MEMORY.md` 28.1 → 4.7 KB — removed the bloated Session-Log + stale CSS sections that duplicated the repo, added two un-indexed files, retired `webflow-removal` into `project-architecture-pivot`). Then continued the Maria/host-coordinator Scheduler thread from her full feedback. **Six commits on `main`, all deployed. No new deps / env / services.**

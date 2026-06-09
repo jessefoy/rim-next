@@ -6,6 +6,25 @@
 
 ## Active
 
+### Session 142 (2026-06-08) — Pre-launch host staging · "No host needed" · coordinator coverage authority · multi-hub Scheduler consistency — all 5 shipped to `main` & deployed; deployed-site verification pending
+
+**Five commits on `main`, all deployed. No new deps / env / services.** One new `Program.hostingRequired` column + migration `program_hosting_required_v1`. Full narrative in `session-log.md` (2026-06-08 session 142).
+
+**Shipped (in order):**
+- **Silent host pre-staging** (`5d640bd`) — "+ Add member" in the Member Registry (`POST /api/admin/members`, staged account: agreedToTerms:false / emailVerified:null / no email) + a **pre-threshold email gate** (`recipientHasOnboarded` + `PRE_THRESHOLD_GATED_SLUGS` in `lib/email.ts`; `getHubNotificationRecipients` excludes emailVerified:null) + cleanup cron no longer deletes role/hub-holders. On `/join` the account is reused by email, name updates, schedule/hub stays attached.
+- **"No host needed"** (`8678c26`) — `Program.hostingRequired` toggle on the Hosting & Access tab; self-led programs excluded from the Scheduler + rotations + needs-host email; still visible on public/dashboard/program page; room unaffected.
+- **Coordinators remove/reassign hosts** (`f51b472`) — unclaim/delete/reassign widened to `isHubCoordinator(assignment.hubSlug)`; "Remove" + "Reassign to me" on covered rows; removed host is notified.
+- **Coordinators clear cover requests** (`9d815b8`) — sub-request cancel widened to hub coordinators; "Clear request" on needs-sub rows.
+- **Scheduler multi-hub consistency** (`fed2c47`) — scoped "No host needed" to the **primary host only** (auxiliary AV/greeter coverage stays); greeter coordinators can remove a signup; hid the dead assign-others picker on multi-claim rows.
+
+**OPEN — next steps:**
+1. **Deployed-site verification** of all five. Highest-value: (a) the **staging round-trip** — `/admin/members` → "+ Add member" (test email) → assign HOST on the profile → confirm NO emails arrive → build a rotation including them (no email) → sign in as that email via *Become a member* → confirm onboarding fires, name updates, and their schedule/hub is already attached; (b) mark a virtual program "No host needed" → it drops off `/tools/schedule` but stays on `/this-week` + dashboard; (c) as a **hub coordinator** (not HOST_MANAGER), on a covered row: "Remove" (host removed + notified, slot reopens) and "Reassign to me"; on a needs-sub row: "Clear request"; (d) greeter coordinator removes someone's signup.
+2. **Jesse can now pre-stage the host team** (the original ask) — has names + emails.
+
+**New backlog items (session 142):** `2026-06-08-001` coordinator create-sub-request-on-behalf; `2026-06-08-002` greeter removal notification (currently silent); `2026-06-08-003` first-login "you're set up as a host" recognition moment.
+
+**Memory candidates (step 8b — awaiting Jesse's confirm):** (1) **multi-hub Scheduler awareness** — the Scheduler is one surface shared by host-team/peer-led/AV/greeter that use it differently; any change must be checked in both directions (propagates where it should, doesn't pollute the multi-claim model); (2) **coordinator = manager-for-their-own-hub** — hub coordinators carry responsibility for their team's coverage and should have the full coverage-management authority (assign/remove/reassign/clear), hub-scoped.
+
 ### Session 141 (2026-06-08) — Scheduler trust + clarity finish; Coverage grid tried & reverted; rotation editor confirms in place — all shipped to `main` & deployed; deployed-site verification pending
 
 Continued the Maria/host-coordinator Scheduler thread (+ a `MEMORY.md` consolidation at the open: 28.1 → 4.7 KB). **Six commits on `main`, all deployed. No new deps / env / services.**

@@ -1,5 +1,35 @@
 [
   {
+    "id": "2026-06-08-001",
+    "title": "Let hub coordinators create a sub-request on another host's behalf",
+    "description": "Session 142 made hub coordinators full coverage-managers for their own hub (assign / remove / reassign / clear-cover-request, all gated isManager || isHubCoordinator(resource.hubSlug)). The ONE remaining manager-or-own-only coverage action is CREATING a sub-request on another host's behalf: POST /api/host/sub-requests gates `isManager || assignment.userId === self` (app/api/host/sub-requests/route.ts ~line 133). Left as-is deliberately because (a) there's no UI for it — 'Ask the team to cover' only appears on the coordinator's OWN sessions (the 'mine' row), and (b) Remove/Reassign are the clearer coordinator actions for 'X can't make it.' If wanted: widen the gate to isHubCoordinator(assignment.hubSlug) AND add a coordinator affordance on a covered row ('Ask the team to cover for [host]') that POSTs the sub-request. Weigh against confusion — posting a cover request for a host who didn't ask could read oddly; Remove/Reassign may simply be the right tools.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-08",
+    "notes": "Flagged by the ship-3/ship-4 reviewer + the session-142 pattern audit. The other coverage mutations are all coordinator-aware now; this is the last one, left as a deliberate gap. Only build if a coordinator asks for it."
+  },
+  {
+    "id": "2026-06-08-002",
+    "title": "Decide whether removing a greeter signup should notify the removed person",
+    "description": "Session 142 gave greeter (multi-claim) coordinators a per-claimant 'Remove' in the multi-claim render (HubScheduleClient removeSignup → DELETE /api/host/assignments/[id], hub-coordinator-gated). It is SILENT — no email to the removed person — matching the low-ceremony 'Cancel my signup' shape, and unlike single-slot host removal (PATCH unclaim) which DOES notify via sendHostAssignmentRemovedEmail. The asymmetry is intentional for now (open sign-up is low-stakes; the DELETE route is shared with self-cancel, which must stay silent). If greeter coordinators want the removed person notified, add a notify path that distinguishes coordinator-removal from self-cancel (e.g. a query flag or a dedicated endpoint) and reuses sendHostAssignmentRemovedEmail with the greeter hub's coverage copy. Low priority.",
+    "category": "Email & Notifications",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-08",
+    "notes": "DELETE is used for BOTH self-cancel (silent, correct) and coordinator-remove, so a naive 'email on DELETE' would wrongly email on self-cancel. Needs the two paths distinguished first."
+  },
+  {
+    "id": "2026-06-08-003",
+    "title": "First-login 'you're set up as a host' recognition moment",
+    "description": "Session 142 added silent host pre-staging: an admin creates a staged host + assigns role + builds their schedule before they ever log in. When they DO sign up (via /join), everything is already attached to their account — but the brand-new-member dashboard does NOT proactively tell them 'you're already part of the Host Team, here's your schedule.' Unless they're hosting that very day (the dashboard early-open row), they'd have to open the Host Hub / Scheduler themselves to discover it. Jesse decided (session 142) to leave this for now — it won't be used often and can be communicated outside the system (the staged hosts are existing RIM members/volunteers). If wanted later: a first-login welcome panel for someone who lands with hosting already assigned ('Welcome — you're on the Host Team. Here's your hosting schedule →'). Dovetails with the deferred 'Beat 4 — dashboard first-visit framing' warmth item. Forms-as-thresholds: arriving and feeling already-woven-in vs. having to go hunting.",
+    "category": "Dashboard",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-08",
+    "notes": "Explicitly deferred by Jesse in session 142 ('we can communicate this outside the system'). Build only if the cohort of pre-staged-then-onboarding hosts grows or if the recognition moment is wanted."
+  },
+  {
     "id": "2026-06-07-001",
     "title": "Coordinator synoptic view — Coverage grid tried & reverted; revisit only as a desktop-only weekly lens",
     "description": "Session 140 began a coordinator synoptic view (slice 1 = gap-first assign-in-place on the Schedule tab, shipped). Session 141 BUILT the slice-2 desktop grid (programs × weeks) + a mobile gap-first list, then REVERTED it (commits 4732fd4 → 2d7a763): structurally fragile — the mobile list became a flat one-row-per-gap dump (worse than the agenda), and the grid assumes one-weekday-weekly so multi-day programs break it (a weekly multi-day program fragments into N repeated rows; a consecutive retreat shatters into N single-cell weekday rows). DECISION: the time-ordered agenda is the coordinator's home — it handles every program shape and is already gap-aware (the amber 'Needs help' pill + slice-1 assign-in-place). Slice 3's intent — make the rotation editor trustworthy — shipped instead: after Save & Apply the editor now confirms the result in place (the next sessions + who's on each). What remains here is OPTIONAL: the desktop at-a-glance grid could return IF scoped to weekly-rhythm programs with events/retreats handled in a separate section AND given a real mobile layout (not a flat dump).",

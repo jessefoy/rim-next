@@ -54,6 +54,26 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 
 ---
 
+## The pre-threshold gate (session 142) — don't email people who haven't logged in yet
+
+> An admin can stage a person in the system before that person has ever logged in — pre-populating the host team before launch: create the account (`POST /api/admin/members`), assign the HOST role, put them on the schedule. Such a staged account exists with `emailVerified = null` until they complete their first sign-in. **Member-directed team notifications must not reach them until they onboard.** "They won't know until they log in" *is* `emailVerified === null`.
+
+This is enforced in **two layers**, because RIM has two recipient shapes:
+
+1. **Pool emails** — recipients come from `getHubNotificationRecipients(hubSlug)` (`lib/toolAuth.ts`): new-program-needs-host, sub-request-posted/claimed, and any future hub-pool email. The helper's member `where` includes `user: { emailVerified: { not: null } }`, so staged members are excluded **at the source**. Any future consumer of this helper is covered automatically — you don't have to remember anything.
+
+2. **Direct / subscription / document emails** — sent to a specific person (role-assigned, hub-welcome, host-assignment-confirmation/removed, hub-conv-new-thread/reply, hub-document-created/updated) and the hardcoded resend-direct host/standing builders. These bypass the pool, so they're gated individually:
+   - **Templated ones:** `sendTemplatedEmail` checks `PRE_THRESHOLD_GATED_SLUGS` (a `Set` near the top of `lib/email.ts`) and no-ops via `recipientHasOnboarded(to)` for a staged recipient. **A new member-directed hub email sent to a specific person must be added to this set.**
+   - **Hardcoded ones** (`sendHostManagerRoleAssignmentEmail`, `sendStandingAssignment{Scheduled,Replaced,Released,Ended}`): each calls `recipientHasOnboarded(data.to)` inline at the top and returns early if false.
+
+**`recipientHasOnboarded(to)`**: looks up the User by (lowercased) email; returns `true` if no row exists (external/non-member address — never suppress) or `emailVerified` is set; returns `false` only for a known account that hasn't signed in. **Fails open** on DB error (a hiccup must not silently swallow a real notification). Assumes `to` is a bare email (every gated callsite passes one).
+
+**NEVER gate** the sign-in code emails (`sign-in-code-*`) or the join-welcome letter (`join-welcome`) — those *must* reach a mid-signup person whose `emailVerified` is still null. They're deliberately absent from the slug set and have no inline gate. Gating `sendTemplatedEmail` globally (instead of by slug) would break sign-in — don't.
+
+The cleanup-cron staged-account guard is the other half of staging (so staged accounts survive the 48h sweep): `cleanup-incomplete-accounts` only deletes accounts with no role AND no hub membership. See `RIM_Auth.md`.
+
+---
+
 ## URL construction rules
 
 **`BASE_URL` is trimmed and slash-stripped once at module load.** Don't trim it again at the call site. Don't bypass it by hardcoding `https://rim-next.vercel.app` — env-var-driven base URL is how we'll cut over to `rootedinmindfulness.org` without touching code.

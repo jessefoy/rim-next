@@ -178,7 +178,7 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 | `lib/email.ts::sendSignInCodeEmail` | Sends the templated sign-in code email |
 | `lib/email.ts::sendJoinWelcomeEmail` | Sends the warm welcome letter (Door B only) |
 | `app/api/cron/cleanup-rate-limits/route.ts` | Daily expired-row sweep |
-| `app/api/cron/cleanup-incomplete-accounts/route.ts` | Daily sweep of abandoned User records: two paths since session 132 (false-agreedToTerms OR true-agreedToTerms-but-unverified) |
+| `app/api/cron/cleanup-incomplete-accounts/route.ts` | Daily sweep of abandoned User records: two paths since session 132 (false-agreedToTerms OR true-agreedToTerms-but-unverified). **Session 142 staged-account guard:** only deletes accounts with NO role AND NO hub membership (`roles: isEmpty` + `hubMemberships: none`), so an admin can pre-stage a host ("+ Add member", `emailVerified:null`/`agreedToTerms:false`) and they survive until they onboard. Uses findMany→deleteMany-by-id because relation filters aren't allowed in deleteMany. |
 | `app/login/page.tsx` | Sign-in form (Door A); accepts `?email=` for soft-redirect from Door B's already-member case |
 | `app/join/page.tsx` | Threshold page (Door B): hero + integrated panel with agreements + form |
 | `components/JoinForm.tsx` | Door B client form |

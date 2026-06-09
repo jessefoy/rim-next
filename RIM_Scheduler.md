@@ -75,6 +75,42 @@ Primary-hub coverage: programs with `hostingHubSlug = hub` (host-team picks up n
 
 ---
 
+## Coordinator coverage authority — the role model (session 142)
+
+A **hub coordinator** (a `HubMember` with `isCoordinator=true` on the hub — NOT necessarily holding the global HOST_MANAGER role) is a manager *for their own hub's coverage*. The rule across every coverage mutation: **`isManager(roles) || isHubCoordinator(userId, resource.hubSlug)`**, scoped to the *resource's* hub (the assignment's or rotation's `hubSlug`, server-loaded — never a body value). A coordinator of hub A cannot touch hub B's coverage.
+
+| Coverage action | Host volunteer | Hub coordinator (own hub) | HOST_MANAGER / ADMIN |
+|---|---|---|---|
+| Claim an open session · cover a sub · ask for cover on own · cancel own request | ✓ (self) | ✓ | ✓ |
+| Assign a host (`POST /assignments`, s140) | — | ✓ | ✓ |
+| Remove / unassign a host (`PATCH …/[id]` unclaim, `DELETE …/[id]`) | own only | ✓ | ✓ |
+| Reassign to self (`POST …/reassign`) | — | ✓ | ✓ |
+| Clear a cover request (`PATCH /sub-requests/[id]`) | own only | ✓ | ✓ |
+| Reset rotations / reset everything / clear-rotations | — | ✓ | ✓ |
+
+**Implementation notes / pitfalls:**
+- The PATCH `…/[id]` handler authorizes **per action, after loading the assignment** — there is intentionally no early system-role-only gate (an earlier `hasHubAccess`-style top gate *shadowed* the coordinator check and 403'd the very coordinator the change targeted; ship-3 review caught it).
+- **Removing a host notifies them** (`sendHostAssignmentRemovedEmail`) only when the remover ≠ the removed user; self-unclaim is silent.
+- UI affordances on covered/needs-sub rows are gated by `isManager` (which the page computes as `isHostManager || coordinator-of-the-active-hub`), **not** `isHostManager`.
+- **Still manager-or-own only (not yet coordinator):** creating a sub-request on *another* host's behalf (`POST /sub-requests`). Deliberate — no UI, and Remove/Reassign are clearer. Backlog `2026-06-08-001`.
+
+## "No host needed" — `Program.hostingRequired` (session 142)
+
+`Program.hostingRequired` (default true; the checkbox on the editor's Hosting & Access tab). False = self-led / community-led (Recovery Dharma, drop-in groups). **It governs the PRIMARY host only** — auxiliary AV/greeter coverage is independent and unaffected. Enforced consistently across:
+- **View:** `getProgramSlugsForHub` filters `hostingRequired:true` on the **primary** branch only; the auxiliary (coverage) branch filters `archivedAt` only. So a self-led program with explicit greeter coverage still appears in the greeter scheduler.
+- **Apply engine:** `generateCandidates` skips a self-led program's **primary-hub** rotations (`selfLedPrimaryHub.get(slug) === sa.hubSlug`) but lets its auxiliary-hub rotations apply.
+- **Mutation guards:** the assignment + rotation POSTs refuse only when `targetHubSlug === programHubSlug` (the primary) — so a self-led program is still staffable in its auxiliary hubs. (These three layers must agree — the show-but-can't-staff mismatch was ship-5 review's finding.)
+- **Per-program staffing page** (`/tools/schedule/program/[slug]`): shows a self-led program's auxiliary sections; 404s only if it has no coverage at all.
+- Helper: `lib/programHub.ts::programNeedsHost(slug)` (reads `hostingRequired`; fail-safe true).
+
+## ⚠️ The Scheduler is one surface shared by FOUR hubs — always check both directions
+
+host-team + peer-led (single-slot, virtual/hybrid) · audio-visual (single-slot aux, in-person/hybrid) · greeter (**multi-claim** aux, in-person/hybrid). **Any change to the Scheduler must be audited in both directions:**
+1. **Does it need to propagate** to AV / greeter / peer-led? (Single-slot hubs share the host-team row shapes — "covered" / "needs-host" / "needs-sub" — so single-slot affordances reach AV + peer-led automatically. Confirm the route gate is hub-scoped, not host-team-hardcoded.)
+2. **Does it pollute** the multi-claim (greeter) model? A greeter session always renders through `kind === "multi"` (it carries a `claimants` array; see `rowKind`), so the single-slot affordances (Remove / Reassign / Clear-request, which gate on `kind === "covered"` / `"needs-sub"`) **cannot** appear on greeter rows. Verify any new single-slot affordance stays in those branches. Greeter has its own affordances (sign-up / cancel-my-signup / per-claimant Remove for coordinators) and **no sub-request flow**. The assign-others picker is hidden on multi-claim rows (`!allowsMultipleAssignments`) because open sign-up rejects assign-others server-side.
+
+---
+
 ## The grandfather policy on hub changes
 
 When a coordinator transfers a program to a different hub via the ProgramEditor "Hosting & Access" tab, existing future HostAssignments stay valid in the old hub for the dates they were created for. New self-claims and sub-requests route to the new hub.
@@ -104,7 +140,9 @@ Action button labels read as invitation, not transaction:
 
 No sub-request flow in multi-claim hubs — the open sign-up model doesn't have a "need a sub" semantic; the only exit is self-cancel. `/api/host/sub-requests` POST refuses on multi-claim hubs with a 400.
 
-CSS lives in `public/css/custom.css` under `.hs-row__multi*`. The card itself is the standard `.hs-row` chrome; only the right-hand block (status + action) differs.
+**Coordinator remove (session 142).** A coordinator/manager can remove *another* person's signup: a per-claimant "Remove" renders in the multi list (`isManager && !isMe && !isPast`) → `removeSignup()` → `DELETE /assignments/[claimant.assignmentId]` (the real HostAssignment id, not the synthetic `multi::` card id) → reload. The DELETE route is hub-coordinator-gated. Direct action with a toast, no modal — same low-ceremony shape as "Cancel my signup," and **silent** (no removal email; open sign-up is low-stakes, unlike single-slot host removal which notifies). The signed-in user's own row uses "Cancel my signup," not "Remove." Backlog `2026-06-08-002` tracks whether to notify.
+
+CSS lives in `public/css/custom.css` under `.hs-row__multi*` (incl. `.hs-row__multi-remove`). The card itself is the standard `.hs-row` chrome; only the right-hand block (status + action) differs.
 
 ---
 
