@@ -735,8 +735,14 @@ model HostAssignment {
   // primary hosting hub. After session 129, a single (programSlug,
   // sessionDate) may have multiple HostAssignment rows scoped to
   // different hubs: one host-team claim, one AV claim, N greeter claims.
-  // Uniqueness within a hub is enforced app-layer; the database-level
-  // unique (programSlug, sessionDate) was dropped to allow this.
+  // Single-slot hubs (host-team, peer-led, AV) keep ONE row per
+  // (programSlug, sessionDate, hubSlug); the multi-claim greeter hub keeps
+  // many. Because `allowsMultipleAssignments` lives on Hub (not on this
+  // table), a DB unique constraint can't express the single-slot rule without
+  // forbidding the legitimate greeter rows — so the single-slot invariant is
+  // held in app code, serialized by a per-session Postgres advisory lock in
+  // the Step-In path (see /api/livekit/step-in). The historical unique
+  // (programSlug, sessionDate) was dropped in session 129.
   hubSlug     String    @default("host-team")
   userId      String?   // null = unclaimed session
   user        User?     @relation("HostAssignments", fields: [userId], references: [id], onDelete: SetNull)

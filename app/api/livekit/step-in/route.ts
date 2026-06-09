@@ -95,39 +95,50 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Step-In writes a HostAssignment for the *primary* hosting hub. After
-  // session 129 the database unique on (programSlug, sessionDate) was
-  // dropped in favor of app-layer enforcement; the lookup is now scoped
-  // to (programSlug, sessionDate, hubSlug) and uses findFirst + update/
-  // create instead of upsert.
+  // Step-In writes the single host slot for the program's primary hosting hub.
+  // The historical DB unique on (programSlug, sessionDate) was dropped in
+  // session 129 so the multi-claim greeter hub can hold many rows per session
+  // — which means a DB constraint can't enforce the single-slot "one host"
+  // rule here. Without protection, two host-team volunteers tapping Step-In
+  // in the same instant would both findFirst(none) → create, minting two hosts
+  // for one session (Audit STEPIN-1). A transaction-scoped Postgres advisory
+  // lock keyed on this exact session serializes concurrent Step-Ins, so the
+  // find-then-update/create is atomic for a given (program, date, hub): the
+  // second caller waits, then sees the first's row and updates it instead of
+  // creating a duplicate. The lock releases on commit and never touches other
+  // sessions or the greeter rows.
   const sessionDateObj = new Date(effectiveSessionDate);
-  const existingAssignment = await db.hostAssignment.findFirst({
-    where: {
-      programSlug,
-      sessionDate: sessionDateObj,
-      hubSlug: resolvedHostingHubSlug,
-    },
-    select: { id: true },
-  });
-  if (existingAssignment) {
-    await db.hostAssignment.update({
-      where: { id: existingAssignment.id },
-      data: {
-        userId: session.user.id,
-        notes: `Emergency step-in by ${session.user.name || session.user.id}`,
-      },
-    });
-  } else {
-    await db.hostAssignment.create({
-      data: {
+  const lockKey = `stepin:${programSlug}:${effectiveSessionDate}:${resolvedHostingHubSlug}`;
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+    const existingAssignment = await tx.hostAssignment.findFirst({
+      where: {
         programSlug,
-        hubSlug: resolvedHostingHubSlug,
-        userId: session.user.id,
         sessionDate: sessionDateObj,
-        notes: `Emergency step-in by ${session.user.name || session.user.id}`,
+        hubSlug: resolvedHostingHubSlug,
       },
+      select: { id: true },
     });
-  }
+    if (existingAssignment) {
+      await tx.hostAssignment.update({
+        where: { id: existingAssignment.id },
+        data: {
+          userId: session.user.id,
+          notes: `Emergency step-in by ${session.user.name || session.user.id}`,
+        },
+      });
+    } else {
+      await tx.hostAssignment.create({
+        data: {
+          programSlug,
+          hubSlug: resolvedHostingHubSlug,
+          userId: session.user.id,
+          sessionDate: sessionDateObj,
+          notes: `Emergency step-in by ${session.user.name || session.user.id}`,
+        },
+      });
+    }
+  });
 
   // Generate a new token: stepping in upserts the HostAssignment, so this
   // user is now the Session Host (full grant: roomAdmin + screen share).
