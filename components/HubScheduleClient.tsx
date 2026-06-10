@@ -213,6 +213,19 @@ function rowKind(s: Session, currentUserId: string): RowKind {
   return "covered";
 }
 
+/**
+ * Does this session "belong to" a user? True if they're its single-slot host
+ * OR (in a multi-claim hub like greeter) one of its claimants. The per-member
+ * view ("Mine" / pick a teammate) and its count must use this — keying off
+ * hostUserId alone misses every greeter sign-up, because multi-claim rows carry
+ * claimants[] and leave hostUserId null (session 146 follow-up: "click a member
+ * and it shows nothing they're greeting").
+ */
+function sessionBelongsTo(s: Session, userId: string): boolean {
+  if (s.hostUserId === userId) return true;
+  return (s.claimants ?? []).some((c) => c.userId === userId);
+}
+
 interface Bucket {
   weekStartMs: number;
   label: string;
@@ -1239,8 +1252,8 @@ export default function HubScheduleClient({
       const past = isPast(s);
       if (isCurrentMonth && past) continue;
       all++;
-      const isSelectedMembers = s.hostUserId === selectedMemberId;
-      const isMine = s.hostUserId === currentUserId;
+      const isSelectedMembers = sessionBelongsTo(s, selectedMemberId);
+      const isMine = sessionBelongsTo(s, currentUserId);
       if (isSelectedMembers) mine++;
       if (isMine && s.subRequestId) myReq++;
       if (!isMine && (s.status !== "claimed" || s.subRequestId)) needs++;
@@ -1258,7 +1271,7 @@ export default function HubScheduleClient({
       );
     }
     if (filter === "mine") {
-      return sessions.filter(s => s.hostUserId === selectedMemberId);
+      return sessions.filter(s => sessionBelongsTo(s, selectedMemberId));
     }
     if (filter === "my-requests") {
       return sessions.filter(s =>
