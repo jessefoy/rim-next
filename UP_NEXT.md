@@ -6,6 +6,29 @@
 
 ## Active
 
+### Session 146 (2026-06-10) — Scheduler membership invariant ("covers ⇒ member") + per-hub gating + every-hub coverage notifications — all shipped to `main` & deployed; deployed-site verification pending
+
+From Jesse's worry that the shared Scheduler across hubs was entangled (symptom: in greeter, **Nancy showed as covering sessions but was missing from the member pill**). Evaluated the shared-component approach first — **verdict: keep it** (the audit found no cross-hub leaks; the bug was a data-integrity gap, not entanglement) — then shipped five fixes that all traced to one root insight: the `HostAssignment` *ledger* and the `HubMember` *roster* were two sources of truth with nothing keeping them in sync. **Five commits on `main`, all deployed. No new deps / env / services.** Two flag-guarded migrations (`backfill_host_team_membership_v1`, `heal_membership_orphan_assignments_v1`); no schema change. Full narrative in `session-log.md` (2026-06-10 session 146).
+
+**Shipped:**
+- `1c22a3c` — the membership invariant + **per-hub Scheduler gating** (`lib/hubAuth.ts::canAccessHubScheduler`: member of the hub OR HOST_MANAGER/ADMIN/GT) + create/cron/removal enforcement + Step-In auto-enroll + the host-team backfill + the live orphan heal.
+- `890c50c` — member-view pill filter is claimant-aware (`sessionBelongsTo`) so a greeter's signups show.
+- `8234161` — empty "Mine" state uses the hub's coverage verb.
+- `d3e4457` — multi-claim header speaks the coverage noun ("We have N greeters").
+- `2a87e1a` — every scheduler hub gets the new-coverage email (aux hubs on create + edit-add; reuses `new-program-needs-host`, no new slug).
+
+**Process:** CLAUDE.md closing ritual gained **step 4e** (email-template audit — verify new/changed `sendTemplatedEmail` slugs are seeded so they appear in `/admin/emails`), per Jesse's ask.
+
+**OPEN — deployed-site verification (none blocking):**
+1. Confirm both migrations in the Vercel deploy log — especially the **heal's orphan list** (Nancy among them). **If anyone the heal removed should actually be on that team, add their hub membership** (the hub's Members page) and they re-sign-up. The heal removes only *future* coverage, and logs every row.
+2. Greeter: click a member in the pill → their signups show; a session row header reads "We have N greeters."
+3. A **host-team-only coordinator can no longer edit the greeter board** (intended — needs greeter membership or HOST_MANAGER/ADMIN/GT). Confirm no one who legitimately needs cross-team reach is blocked.
+4. Tag a program for greeter coverage (editor → Hosting & Access) → the greeter team gets "may need Greeter coverage"; re-saving the editor sends nothing.
+
+**Deferred:** backlog `2026-06-10-001` — validate `appliesToFormats` overlap on the coverage-hub write routes (reviewer nit; the editor already prevents mismatches in normal use).
+
+**Memory candidate (step 8b — awaiting Jesse's confirm):** feedback **"two sources of truth"** — when one concept is read from two tables (a ledger vs a roster, "who's covering" vs "who's on the team"), nothing keeps them in sync; it presents as a UI/entanglement bug but is a data-integrity gap — enforce the invariant at every write + clean up on delete, never patch the display alone. (The session's other lessons are already covered by `feedback-measure-before-agreeing` / `feedback-shared-surface-audit` and the new CLAUDE.md step 4e.)
+
 ### Session 145 (2026-06-09) — Member migration (Memberstack → RIM) end-to-end + pre-launch fixes — all shipped to `main` & deployed; deployed-site verification pending
 
 **Eight commits on `main`, all deployed. No new deps / env / services.** One new `User.isLegacyUnclaimed` column + 4 migrations (`user_is_legacy_unclaimed_v1`, `seed_welcome_back_email_template_v1`, `normalize_user_names_v1`, `update_coverage_email_copy_v1`). Full narrative in `session-log.md` (2026-06-09 session 145).

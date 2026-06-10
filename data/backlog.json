@@ -1,5 +1,15 @@
 [
   {
+    "id": "2026-06-10-001",
+    "title": "Validate appliesToFormats overlap when tagging a program for auxiliary coverage",
+    "description": "Session 146 reviewer nit. The coverage-hub write routes (POST /api/programs-pg and PUT /api/programs-pg/[slug]) validate requested coverageHubSlugs for hub EXISTENCE only — not whether the hub's appliesToFormats overlaps the program's programFormat. The ProgramEditor only OFFERS format-compatible hubs (per RIM_Hub_Engineering.md's appliesToFormats rule), so normal use never produces a mismatch, but a stale or tampered payload could tag e.g. an in-person-only greeter hub onto a virtual-only program — which then gets a ProgramCoverageHub row and (session 146) fires the new-coverage notification, even though the page-level format filter would keep it from actually surfacing in that hub's scheduler. Harden: in both routes, after the existence check, reject any requested hub whose appliesToFormats doesn't overlap the program's programFormat (422). Pre-existing gap, not introduced by the session-146 notification change; low risk.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-10",
+    "notes": "Flagged by the session-146 aux-coverage-notification reviewer (nit 2). The editor prevents mismatches in normal use; this is an API-side guard against stale/tampered payloads, the kind RIM_Hub_Engineering.md favors. Bundle with any programs-pg validation pass."
+  },
+  {
     "id": "2026-06-09-001",
     "title": "Fix the DST gate-drift on recurring evening session rooms (TG-1)",
     "description": "Audit finding TG-1 (session 144). lib/sessionWindow.ts::getActiveSessionWindow computes the session start via shiftToDate(), which adds whole 24h increments and so shifts the open/close window by a full hour when today's DST season differs from the season the program's startDatetime was stored in. The gate window then disagrees with the public program-page time (which formats the fixed instant through America/Chicago, season-correct). Impact is bounded: the primary Join path (dashboard countdown -> gate) uses shiftToDate too, so it is self-consistent and never locks anyone out; only a member/guest who reads the public-page time and navigates DIRECTLY (bookmark / guest link) hits the off-by-an-hour window. Jesse chose (session 144) to DEFER the code change and instead data-check / normalize affected recurring evening programs' stored start times pre-launch, rather than change time math shared across the dashboard / scheduler / This-Week days before go-live. Post-launch fix: make getActiveSessionWindow (and the dashboard's inline isLive compute) format true CT via America/Chicago like the public page, so gate-time == displayed-time.",
