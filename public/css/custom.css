@@ -77,6 +77,7 @@
   /* Colors */
   --rim-bg:          #f5f5f5;  /* cool light grey — original RIM site */
   --rim-bg-accent:   #eeeeee;  /* slightly darker grey — callouts, cards */
+  --rim-cream:       #fffbf4;  /* warm off-white — the floating nav pill (Esther-Perel-style header) */
   --rim-dark:        #0d2235;  /* deep navy */
   --rim-blue:        #135274;  /* darker teal-blue */
   --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
@@ -131,6 +132,11 @@
 
   /* Layout */
   --reading-width: 700px;
+
+  /* Floating nav — total height of the nav strip (top gap + pill height).
+     The home header area pulls up by this so the cream pill hovers over it.
+     Keep in sync with .nav padding-top + .nav__inner height. */
+  --nav-strip-h: 92px;
 }
 
 
@@ -485,6 +491,10 @@ h4 { font-size: var(--text-h4); }
   align-items: center;
   background-color: var(--rim-dark);
   overflow: hidden;
+  /* The floating nav hovers over this area — pull the hero up behind the nav
+     strip so its backdrop (the video, for now) fills the pill's float gaps.
+     The final backdrop (darker-warm-tone vs. keep-hero) is the next decision. */
+  margin-top: calc(-1 * var(--nav-strip-h));
 }
 .hp-hero__video {
   position: absolute;
@@ -7927,17 +7937,22 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   position: sticky;
   top: 0;
   z-index: 100;
-  background: #fff;
+  background: transparent;     /* floats — the header area shows behind the pill */
+  padding: 20px 24px 0;        /* the float gap: 20px above, 24px each side */
 }
 
+/* The bar itself IS the floating cream pill (Esther-Perel-style header).
+   It hovers on the header area; the corners + margin read as "lifted." */
 .nav__inner {
   display: flex;
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
-  height: 100px;
+  padding: 0 28px;
+  height: 72px;
   gap: 8px;
+  background: var(--rim-cream);
+  border-radius: 18px;
 }
 
 /* Brand */
@@ -8135,6 +8150,9 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   .nav__donate   { display: none; }
   .nav__hamburger { display: flex; }
   .nav__brand-name { font-size: var(--text-small); }
+  /* Tighter float on phones (top gap unchanged so the pull-up still matches). */
+  .nav            { padding-left: 12px; padding-right: 12px; }
+  .nav__inner     { padding: 0 16px; border-radius: 14px; }
 }
 @media (min-width: 768px) {
   .nav__mobile { display: none !important; }

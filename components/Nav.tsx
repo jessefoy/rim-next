@@ -114,19 +114,6 @@ export default function Nav() {
                   </div>
                 </div>
               </div>
-              <Link
-                href="/courses"
-                className={`nav__link${isActive("/courses")}`}
-              >
-                Courses
-              </Link>
-              <Link
-                href="/teachers"
-                className={`nav__link${isActive("/teachers")}`}
-              >
-                Teachers
-              </Link>
-
               {/* Get Involved dropdown */}
               <div className="nav__dropdown">
                 <button className="nav__dropdown-toggle">
@@ -158,7 +145,7 @@ export default function Nav() {
                 <button className="nav__dropdown-toggle">
                   {isLoggedIn && session.user?.name
                     ? `Hi, ${session.user.name.split(" ")[0]}`
-                    : "Member Area"}
+                    : "Members"}
                   <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
                 </button>
                 <div className="nav__dropdown-panel">
@@ -263,18 +250,6 @@ export default function Nav() {
                 className={`nav__mobile-link${isActive("/this-week")}`}
               >
                 This Week&apos;s Schedule
-              </Link>
-              <Link
-                href="/courses"
-                className={`nav__mobile-link${isActive("/courses")}`}
-              >
-                Courses
-              </Link>
-              <Link
-                href="/teachers"
-                className={`nav__mobile-link${isActive("/teachers")}`}
-              >
-                Teachers
               </Link>
               <Link
                 href="/volunteerism/volunteer"
