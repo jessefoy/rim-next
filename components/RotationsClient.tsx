@@ -443,6 +443,13 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   const [clearing, setClearing]         = useState(false);
 
   const handleClear = async (mode: "soft" | "nuclear") => {
+    // Destructive action — never silently fall back to host-team if the hub
+    // context is missing (session 146 fallback hardening). Refuse instead, so
+    // a "reset" can't nuke the wrong team's data.
+    if (!hubSlug) {
+      setError("Missing hub context — please refresh and try again.");
+      return;
+    }
     setClearing(true);
     setError(null);
     try {
@@ -451,8 +458,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       // hasn't been hub-mounted yet, but for the Rotations UI it
       // should always be the active hub. Required field on the route.
       const payload = mode === "soft"
-        ? { scope: "future", endRotations: false, hubSlug: hubSlug ?? "host-team" }
-        : { scope: "all",    endRotations: true,  hubSlug: hubSlug ?? "host-team" };
+        ? { scope: "future", endRotations: false, hubSlug }
+        : { scope: "all",    endRotations: true,  hubSlug };
       const res = await fetch("/api/host/assignments/clear", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -469,7 +476,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       // coordinator can verify scope. Maria's beta test reported a "full
       // reset didn't change anything" symptom; an unambiguous toast makes
       // any "wrong hub view" case self-diagnosing on the next test.
-      const teamLabel = hubSlug ?? "host-team";
+      const teamLabel = hubSlug;
       const summary = mode === "soft"
         ? `Cleared upcoming schedule in ${teamLabel} · ${aCount} host assignment${aCount === 1 ? "" : "s"} removed`
         : `Reset ${teamLabel} · ${aCount} assignment${aCount === 1 ? "" : "s"} and ${rCount} rotation rule${rCount === 1 ? "" : "s"} removed`;

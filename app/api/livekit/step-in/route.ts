@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { createRoomToken, roomNameForProgram } from "@/lib/livekit";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { ensureActiveHubMembership, getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { DEFAULT_HOSTING_HUB_SLUG, resolveTeacherPillLabel } from "@/lib/programHub";
 import { assertSessionDateInWindow } from "@/lib/sessionWindow";
 
@@ -139,6 +139,14 @@ export async function POST(req: NextRequest) {
       });
     }
   });
+
+  // Covers ⇒ member (session 146): stepping in just wrote a HostAssignment, so
+  // the stepper must be on this hub's roster too — otherwise they'd show as the
+  // host but be absent from the member picker (the orphan symptom this slice
+  // closes). Mirrors the self-claim auto-enroll; no-op for existing members. An
+  // oversight role-holder (or ADMIN) stepping into a hub they aren't a member
+  // of gets added here, so Step-In can't mint a "covers but not a member" row.
+  await ensureActiveHubMembership(session.user.id, resolvedHostingHubSlug);
 
   // Generate a new token: stepping in upserts the HostAssignment, so this
   // user is now the Session Host (full grant: roomAdmin + screen share).

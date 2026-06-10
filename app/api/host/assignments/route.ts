@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { isHubCoordinator } from "@/lib/hubAuth";
+import { ensureActiveHubMembership, getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { canAccessHubScheduler, isHubCoordinator } from "@/lib/hubAuth";
 import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
 import {
   DEFAULT_HOSTING_HUB_SLUG,
@@ -102,7 +102,11 @@ export async function GET(request: Request) {
   // backward-compat with the legacy callers. Session 129.
   const requestedHubSlug = searchParams.get("hub") || DEFAULT_HOSTING_HUB_SLUG;
 
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, requestedHubSlug))) {
+  // Per-hub gate (session 146): you can only view a hub's Scheduler if you're
+  // a member of that hub OR hold an oversight role (HOST_MANAGER / ADMIN / GT).
+  // Tighter than the prior capability check, which let any HOST role-holder
+  // read every hub's board regardless of membership.
+  if (!(await canAccessHubScheduler(session.user.id, roles, requestedHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -330,6 +334,15 @@ export async function POST(request: Request) {
   // program's primary hosting hub.
   const programHubSlug = await getProgramHubSlug(programSlug);
   const targetHubSlug = bodyHubSlug || programHubSlug;
+  // The body-less fallback to the program's primary hub is backward-compat for
+  // legacy callers only (RIM_Hub_Engineering.md). New client code must pass
+  // hubSlug; warn loudly so a missing-hubSlug write to the wrong hub is
+  // discoverable instead of silent (session 146 fallback hardening).
+  if (!bodyHubSlug) {
+    console.warn(
+      `[assignments] POST without hubSlug — falling back to program primary "${programHubSlug}" for ${programSlug}. New callers must send hubSlug.`,
+    );
+  }
 
   // Capability gate routes by the resolved hub. A peer-leader can
   // self-claim a peer-led silent sit; a host-team volunteer can self-claim
@@ -337,6 +350,14 @@ export async function POST(request: Request) {
   // Manager operations (create-unclaimed, assign-to-others) still require
   // the system-role manager check.
   const roles = session.user.roles ?? [];
+  // Per-hub access gate THEN capability (session 146). Access = member of this
+  // hub or an oversight role; capability = ACTIVE + hostingCapability (role
+  // fallback only for oversight). A plain HOST can no longer claim in a hub
+  // they don't belong to — that was a source of "covers but not a member"
+  // orphan assignments.
+  if (!(await canAccessHubScheduler(session.user.id, roles, targetHubSlug))) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
   if (!(await hasEffectiveHostAccess(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -364,6 +385,15 @@ export async function POST(request: Request) {
     !(await isHubCoordinator(session.user.id, targetHubSlug))
   ) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Auto-enroll safety net (session 146): a successful self-claim by an
+  // oversight role who isn't yet a roster member of this hub adds them, so the
+  // assignment ledger and the team roster never disagree ("covers ⇒ member").
+  // No-op for existing members. Non-oversight users already have a row — the
+  // per-hub access gate above requires it for them.
+  if (action === "claim") {
+    await ensureActiveHubMembership(session.user.id, targetHubSlug);
   }
 
   const assignedUserId = action === "claim" ? session.user.id : (userId ?? null);
@@ -429,14 +459,19 @@ export async function POST(request: Request) {
   if (assignedUserId && assignedUserId !== session.user.id) {
     const targetUser = await db.user.findUnique({
       where: { id: assignedUserId },
-      select: { roles: true },
+      select: { id: true },
     });
     if (!targetUser) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
-    if (!(await hasEffectiveHostAccess(assignedUserId, targetUser.roles, targetHubSlug))) {
+    // Assigning someone requires them to be an active, hosting-capable MEMBER
+    // of this hub — no role fallback (session 146). The picker only offers
+    // roster members, so this is the server-side guard that keeps a coordinator
+    // (or a crafted request) from placing a non-member onto a session and
+    // creating a "covers but not on the team" orphan.
+    if (!(await getEffectiveHostingCapability(assignedUserId, targetHubSlug, false))) {
       return Response.json(
-        { error: "This member can't host right now — they are paused, inactive, or have had hosting revoked on this hub." },
+        { error: "This member can't be assigned here — they're not on this team, or they're paused, inactive, or have had hosting revoked on this hub." },
         { status: 422 }
       );
     }

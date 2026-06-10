@@ -67,6 +67,27 @@ export default async function ScheduleToolPage({
   // Fetch hub context (members, coordinator) for the active hub
   const hubContext = await getToolHubContext(activeHubSlug);
 
+  // Per-hub access gate (session 146): the Scheduler is gated per-hub, not just
+  // per-tool. You see a hub's coverage board only if you're a member of that
+  // hub OR hold an oversight role (HOST_MANAGER / ADMIN — both folded into
+  // isHostManager — or GUIDING_TEACHER). This keeps a host-team member from
+  // wandering into the greeter board and signing themselves up there, and is
+  // the access half of the "covers ⇒ member" invariant.
+  const isHubMember = (hubContext?.members ?? []).some(
+    (m) => m.userId === session.user.id,
+  );
+  const canViewHubSchedule =
+    isHubMember || isHostManager || roles.includes("GUIDING_TEACHER");
+  if (!canViewHubSchedule) {
+    const hubName = hubContext?.name ?? activeHubSlug;
+    return (
+      <div className="tools-unauthorized">
+        <p>This is the {hubName} team&rsquo;s scheduler. You&rsquo;re not on that team, so its coverage board isn&rsquo;t shown here.</p>
+        <p><a href="/account/dashboard">&larr; Back to your dashboard</a></p>
+      </div>
+    );
+  }
+
   const coordinators = (hubContext?.members ?? [])
     .filter((m) => m.isCoordinator)
     .map((m) => m.user.preferredName || [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") || null)

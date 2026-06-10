@@ -380,6 +380,37 @@ export async function generateCandidates(
     }
   }
 
+  // Membership invariant, defense-in-depth (session 146): drop any candidate
+  // whose (userId, hubSlug) isn't a current HubMember of that hub. Rules for
+  // non-members are removed at member-removal and by the heal migration, but
+  // this guard means even a stray rotation rule can't have the daily cron
+  // resurrect an orphan assignment for someone who has left a team.
+  if (candidates.length > 0) {
+    const neededSlugs = [...new Set(candidates.map((c) => c.hubSlug))];
+    const hubs = await db.hub.findMany({
+      where: { slug: { in: neededSlugs } },
+      select: { id: true, slug: true },
+    });
+    const slugByHubId = new Map(hubs.map((h) => [h.id, h.slug]));
+    const userIds = [...new Set(candidates.map((c) => c.userId))];
+    const members = await db.hubMember.findMany({
+      where: { hubId: { in: hubs.map((h) => h.id) }, userId: { in: userIds } },
+      select: { hubId: true, userId: true },
+    });
+    const memberKeys = new Set(
+      members.map((m) => `${m.userId}::${slugByHubId.get(m.hubId) ?? ""}`),
+    );
+    const kept = candidates.filter((c) => memberKeys.has(`${c.userId}::${c.hubSlug}`));
+    if (kept.length < candidates.length) {
+      const dropped = candidates.filter((c) => !memberKeys.has(`${c.userId}::${c.hubSlug}`));
+      console.warn(
+        `[standing-apply] dropped ${dropped.length} candidate(s) whose host is no longer a hub member:`,
+        dropped.map((c) => `${c.userId}@${c.hubSlug} ${c.programSlug} ${c.dateStr}`).join("; "),
+      );
+      return { candidates: kept, pastIgnored };
+    }
+  }
+
   return { candidates, pastIgnored };
 }
 

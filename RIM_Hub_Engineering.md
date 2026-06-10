@@ -264,6 +264,16 @@ Layer 4 (copy) of the four routing layers isn't only the Scheduler's card text. 
 
 ---
 
+## The assignment ledger must not outlive hub membership — "covers ⇒ member" (session 146)
+
+`HostAssignment` / `StandingAssignment` are an assignment *ledger*; `HubMember` is the team *roster*. They're decoupled in the schema (no FK between them, and the no-delete-on-role-revoke policy protects the roster, not the ledger), so nothing inherently stops the ledger from naming someone who isn't on the roster. The Scheduler then shows that person as covering a session but omits them from the member picker — the "Nancy" symptom (assigned but un-findable).
+
+**Rule:** any code that writes an assignment for a hub must ensure the assigned user is (or becomes) a member of that hub; any code that hard-removes a member must clean up that member's future assignments + rotation rules in that hub (FK-safe SubClaim→SubRequest→HostAssignment, in a `$transaction`). The invariant is enforced at five points — see `RIM_Scheduler.md` ("The membership invariant"). Helpers: `canAccessHubScheduler` (`lib/hubAuth.ts` — the per-hub Scheduler access door, distinct from `canAccessHub`) and `ensureActiveHubMembership` (`lib/hubMemberAuth.ts` — auto-enroll on self-service writes).
+
+This was **not** a cross-hub leak (the four routing layers above were clean) — it's a separate integrity axis. When you add a surface that writes coverage, ask: *can this create a row whose user isn't on the hub's roster?* If yes, close it at the write, not in the display.
+
+---
+
 ## Engineering rules in one paragraph
 
 When you touch a hub: derive the hub from the resource (usually a program), pass it through every layer (capability, recipients, UI filter, URLs), use the canonical helpers (`getProgramHubSlug`, `getHubNotificationRecipients`, `hubScopedUrl`, etc.), never hardcode `"host-team"`, never bypass hub membership for ADMIN on content access, use `after()` for fire-and-forget emails from route handlers, await emails from non-route functions whose callers already await, and at closing audit all four layers across every callsite you touched.

@@ -121,6 +121,24 @@ host-team + peer-led (single-slot, virtual/hybrid) · audio-visual (single-slot 
 
 ---
 
+## The membership invariant — "covers ⇒ member" (session 146)
+
+**Every `HostAssignment` / `StandingAssignment` in a hub must belong to a current `HubMember` of that hub.** The Scheduler draws two lists from two tables — the assignment *ledger* (`HostAssignment` — "who's covering this session") and the team *roster* (`HubMember` — the member picker, "who's on the team"). When those disagree about a real person, a coordinator sees "Nancy is covering" but can't find Nancy in the picker: the show-but-can't-act failure (`feedback-clear-seeing-is-correctness.md`). The invariant keeps the two reconcilable by construction.
+
+This is **NOT** a cross-hub entanglement bug and is **not** a reason to split the shared Scheduler — it's a referential-integrity gap that would exist in a per-hub-component world too (each component would still read `HostAssignment` for display and `HubMember` for its picker). The four routing layers were clean; this is a separate integrity axis. Enforced at five points + a one-time heal:
+
+1. **Access gate (the door).** `lib/hubAuth.ts::canAccessHubScheduler(userId, roles, hubSlug)` — you can open a hub's Scheduler (`/tools/schedule?hub=X`, its month-nav GET, the create POST) only if you're a `HubMember` of X (any status — pause governs hosting, not visibility) **or** hold an oversight role (HOST_MANAGER / ADMIN / GUIDING_TEACHER). This per-hub gate replaced tool-level-only access: a host-team member can no longer switch `?hub=greeter` and sign themselves up there. Distinct from `getEffectiveHostingCapability` (which decides whether they may *claim*).
+2. **Create-time.** Self-claim auto-enrolls the claimer if they lack a row (`lib/hubMemberAuth.ts::ensureActiveHubMembership` — silent, no-op for existing members, only on `action === "claim"`); assign-others requires the assignee already be an active hosting-capable member (`getEffectiveHostingCapability(assignee, hub, /* fallback */ false)` — **no role fallback for the person being placed**).
+3. **Step-In.** `/api/livekit/step-in` also calls `ensureActiveHubMembership` after writing the HostAssignment — stepping in puts you on the roster too.
+4. **Cron-time.** `generateCandidates` drops any candidate whose `(userId, hubSlug)` isn't a current member (defense-in-depth: a stray rotation rule can't have the daily cron resurrect an orphan).
+5. **Removal-time.** The member hard-DELETE (`/api/hub/[slug]/members/[userId]`) cleans up that user's future HostAssignments (FK-safe SubClaim→SubRequest→HostAssignment) + StandingAssignment rules in that hub, in one transaction. Past stays as history. **This was the most likely original cause** — a member removed while their assignments remained.
+
+**One-time heal:** migration `heal_membership_orphan_assignments_v1` (runs *after* `backfill_host_team_membership_v1`, which gives every HOST/HOST_MANAGER a host-team row so role-only hosts aren't misread as orphans) deletes future orphan assignments + orphan rules, logging each (name · hub · program · date). Future rows only; past coverage is historical record.
+
+**When adding any code that writes a `HostAssignment` or `StandingAssignment`:** the assigned user must be — or become — a member of the row's hub. Use `ensureActiveHubMembership` for self-service writes; require membership with no role fallback for assign-others.
+
+---
+
 ## The grandfather policy on hub changes
 
 When a coordinator transfers a program to a different hub via the ProgramEditor "Hosting & Access" tab, existing future HostAssignments stay valid in the old hub for the dates they were created for. New self-claims and sub-requests route to the new hub.

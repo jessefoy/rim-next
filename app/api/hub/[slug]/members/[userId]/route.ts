@@ -212,9 +212,34 @@ export async function DELETE(
   });
   if (!target) return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
-  await db.hubMember.delete({
-    where: { hubId_userId: { hubId: hub.id, userId } },
+  // Remove the member AND clean up their coverage footprint in THIS hub in a
+  // single transaction, so the assignment ledger can't outlive their roster
+  // membership ("covers ⇒ member", session 146 — this was the most likely
+  // cause of "shown as covering but absent from the picker"). Future only —
+  // past sessions stay as historical record. FK-safe order: SubClaim →
+  // SubRequest → HostAssignment (SubRequest.assignmentId is Restrict). Their
+  // StandingAssignment rules go too, so the daily apply cron stops re-creating
+  // assignments for someone no longer on the team. Silent, matching the
+  // coordinator pause/release path; hard-remove is an ADMIN cleanup action.
+  const now = new Date();
+  const { removedAssignments, removedRules } = await db.$transaction(async (tx) => {
+    const futureAssns = await tx.hostAssignment.findMany({
+      where: { userId, hubSlug: slug, sessionDate: { gte: now } },
+      select: { id: true },
+    });
+    const futureIds = futureAssns.map((a) => a.id);
+    if (futureIds.length > 0) {
+      await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: futureIds } } } });
+      await tx.subRequest.deleteMany({ where: { assignmentId: { in: futureIds } } });
+      await tx.hostAssignment.deleteMany({ where: { id: { in: futureIds } } });
+    }
+    const rules = await tx.standingAssignment.deleteMany({ where: { userId, hubSlug: slug } });
+    await tx.hubMember.delete({ where: { hubId_userId: { hubId: hub.id, userId } } });
+    return { removedAssignments: futureIds.length, removedRules: rules.count };
   });
+  console.log(
+    `[hub-member-remove] ${slug}: removed member ${userId} + ${removedAssignments} future assignment(s) + ${removedRules} rotation rule(s).`,
+  );
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, removedAssignments, removedRules });
 }

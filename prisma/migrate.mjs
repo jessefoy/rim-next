@@ -4251,6 +4251,158 @@ async function main() {
   }
 
   // ────────────────────────────────────────────────────────────────────────
+  // Backfill: every HOST / HOST_MANAGER → a host-team HubMember row (session
+  // 146). syncHubMembership creates these on role-grant going forward; this
+  // covers any legacy role-only hosts who never got a row. REQUIRED before the
+  // membership-orphan heal below — without it, a role-only host's legitimate
+  // host-team assignments would be misread as orphans and deleted. Mirrors
+  // syncHubMembership's create shape (only sync-owned fields set; schema
+  // defaults govern status / hostingCapability / communicationsEnabled).
+  // Idempotent: skips users who already have a row; flag-guarded regardless.
+  // ────────────────────────────────────────────────────────────────────────
+  const backfillHostMembershipFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'backfill_host_team_membership_v1'
+  `).catch(() => []);
+
+  if (backfillHostMembershipFlag.length === 0) {
+    console.log("→ Backfilling host-team HubMember rows for HOST / HOST_MANAGER (session 146)…");
+    const hostTeam = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true } });
+    if (!hostTeam) {
+      console.log("  ⏭ host-team hub not found — skipping backfill.");
+    } else {
+      const hostUsers = await db.user.findMany({
+        where: { roles: { hasSome: ["HOST", "HOST_MANAGER"] } },
+        select: { id: true, roles: true },
+      });
+      const existing = await db.hubMember.findMany({
+        where: { hubId: hostTeam.id, userId: { in: hostUsers.map((u) => u.id) } },
+        select: { userId: true },
+      });
+      const haveRow = new Set(existing.map((m) => m.userId));
+      let created = 0;
+      for (const u of hostUsers) {
+        if (haveRow.has(u.id)) continue;
+        const isCoord = u.roles.includes("HOST_MANAGER");
+        await db.hubMember.create({
+          data: {
+            hubId: hostTeam.id,
+            userId: u.id,
+            position: isCoord ? "Host Coordinator" : "Host",
+            isCoordinator: isCoord,
+          },
+        });
+        created++;
+      }
+      console.log(
+        `  ✔ Backfill complete. Created ${created} host-team membership row(s) (${hostUsers.length - created} already present).`,
+      );
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('backfill_host_team_membership_v1')`,
+    );
+  } else {
+    console.log("  ⏭ host-team membership backfill already applied.");
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // One-time heal: remove "covers but not a member" orphans (session 146).
+  // An assignment/rotation is an orphan when its (userId, hubSlug) has NO
+  // HubMember row for that hub — the person shows as covering a session but
+  // isn't on that team's roster (the "Nancy" symptom). Likely causes: a member
+  // hard-removed while assignments remained; a global-role holder assigned in a
+  // hub they never joined; legacy import. Going forward it can't recur:
+  // member-removal now cleans up (covers-⇒-member at the DELETE), the create
+  // path requires membership, and the apply cron filters non-members.
+  //
+  // Heals FUTURE rows only — past assignments stay as historical record. Logs
+  // every orphan it removes (name · hub · program · date) so the deploy log is
+  // the audit trail (prod isn't reachable from the dev sandbox). MUST run after
+  // backfill_host_team_membership_v1 so role-only hosts aren't misread as
+  // orphans. FK-safe deletes: SubClaim → SubRequest → HostAssignment.
+  // ────────────────────────────────────────────────────────────────────────
+  const healMembershipFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'heal_membership_orphan_assignments_v1'
+  `).catch(() => []);
+
+  if (healMembershipFlag.length === 0) {
+    console.log("→ Healing membership-orphan HostAssignment + StandingAssignment rows (session 146)…");
+
+    // Membership set: "hubSlug::userId" for every HubMember row.
+    const allHubs = await db.hub.findMany({ select: { id: true, slug: true } });
+    const slugByHubId = new Map(allHubs.map((h) => [h.id, h.slug]));
+    const allMembers = await db.hubMember.findMany({ select: { hubId: true, userId: true } });
+    const memberKeys = new Set(
+      allMembers.map((m) => `${slugByHubId.get(m.hubId) ?? ""}::${m.userId}`),
+    );
+    const isOrphan = (hubSlug, userId) => !!userId && !memberKeys.has(`${hubSlug}::${userId}`);
+
+    const futureCutoff = new Date();
+
+    // 1. Orphan FUTURE HostAssignment rows (rule-derived or manual).
+    const futureAssns = await db.hostAssignment.findMany({
+      where: { sessionDate: { gte: futureCutoff }, userId: { not: null } },
+      select: {
+        id: true, userId: true, hubSlug: true, programSlug: true, sessionDate: true,
+        user: { select: { firstName: true, lastName: true, preferredName: true } },
+      },
+    });
+    const orphanAssns = futureAssns.filter((a) => isOrphan(a.hubSlug, a.userId));
+
+    let assnsDeleted = 0;
+    if (orphanAssns.length === 0) {
+      console.log("  ✔ No membership-orphan future HostAssignment rows found.");
+    } else {
+      console.log(`  Found ${orphanAssns.length} membership-orphan future HostAssignment row(s):`);
+      for (const a of orphanAssns) {
+        const name =
+          a.user?.preferredName ||
+          [a.user?.firstName, a.user?.lastName].filter(Boolean).join(" ") ||
+          a.userId;
+        const date = a.sessionDate ? a.sessionDate.toISOString().slice(0, 10) : "(no date)";
+        console.log(`    - ${name} · hub=${a.hubSlug} · ${a.programSlug} · ${date}`);
+      }
+      const ids = orphanAssns.map((a) => a.id);
+      assnsDeleted = await db.$transaction(async (tx) => {
+        await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: ids } } } });
+        await tx.subRequest.deleteMany({ where: { assignmentId: { in: ids } } });
+        const d = await tx.hostAssignment.deleteMany({ where: { id: { in: ids } } });
+        return d.count;
+      });
+      console.log(`  ✔ Deleted ${assnsDeleted} membership-orphan HostAssignment row(s).`);
+    }
+
+    // 2. Orphan StandingAssignment rules (so the cron stops re-applying them).
+    const allRules = await db.standingAssignment.findMany({
+      select: { id: true, userId: true, hubSlug: true, programSlug: true, dayOfWeek: true },
+    });
+    const orphanRules = allRules.filter((r) => isOrphan(r.hubSlug, r.userId));
+
+    let rulesDeleted = 0;
+    if (orphanRules.length === 0) {
+      console.log("  ✔ No membership-orphan StandingAssignment rules found.");
+    } else {
+      console.log(`  Found ${orphanRules.length} membership-orphan StandingAssignment rule(s):`);
+      for (const r of orphanRules) {
+        console.log(`    - user=${r.userId} · hub=${r.hubSlug} · ${r.programSlug} · ${r.dayOfWeek ?? "(no day)"}`);
+      }
+      const del = await db.standingAssignment.deleteMany({
+        where: { id: { in: orphanRules.map((r) => r.id) } },
+      });
+      rulesDeleted = del.count;
+      console.log(`  ✔ Deleted ${rulesDeleted} membership-orphan StandingAssignment rule(s).`);
+    }
+
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('heal_membership_orphan_assignments_v1')`,
+    );
+    console.log(
+      `  ✔ Membership-orphan heal complete. Totals: ${assnsDeleted} assignment(s), ${rulesDeleted} rule(s) deleted.`,
+    );
+  } else {
+    console.log("  ⏭ Membership-orphan heal already applied.");
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
   // Rate-limit table (defense-in-depth for NextAuth signin + callback).
   // Idempotent: CREATE TABLE IF NOT EXISTS; flag prevents log noise on
   // re-runs.

@@ -153,6 +153,43 @@ export async function isHubCoordinator(userId: string, hubSlug: string): Promise
 }
 
 /**
+ * Can this user open a given hub's Scheduler view?
+ *
+ * The Scheduler is gated per-hub, not just per-tool (session 146): a hub's
+ * coverage board is that team's space, so a host-team member can't wander into
+ * the greeter board and sign themselves up there. Returns true if ANY of:
+ *   - roles includes ADMIN / HOST_MANAGER / GUIDING_TEACHER (oversight — these
+ *     roles steward scheduling across hubs), OR
+ *   - a HubMember row exists for (userId, hubSlug), regardless of status. A
+ *     PAUSED / INACTIVE member can still SEE their team's schedule; pause
+ *     governs hosting capability, not visibility.
+ *
+ * This is the access door for /tools/schedule?hub=<slug>, its month-nav GET,
+ * and the create POST. It is distinct from getEffectiveHostingCapability,
+ * which decides whether a viewer may actually CLAIM a slot (ACTIVE +
+ * hostingCapability). Together they enforce the "covers ⇒ member" invariant
+ * at the door rather than reconciling orphans after the fact.
+ */
+export async function canAccessHubScheduler(
+  userId: string,
+  roles: string[],
+  hubSlug: string,
+): Promise<boolean> {
+  if (
+    roles.includes("ADMIN") ||
+    roles.includes("HOST_MANAGER") ||
+    roles.includes("GUIDING_TEACHER")
+  ) {
+    return true;
+  }
+  const member = await db.hubMember.findFirst({
+    where: { userId, hub: { slug: hubSlug } },
+    select: { id: true },
+  });
+  return !!member;
+}
+
+/**
  * Trash-management authority for hub documents + conversations.
  *
  * A user can see the per-hub Trash, restore items, or permanently delete them
