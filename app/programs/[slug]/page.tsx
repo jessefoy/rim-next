@@ -169,11 +169,6 @@ export default async function ProgramDetailPage({
         style={{ backgroundImage: `url(${program.programImage || "/images/Bodhi-Leaves.jpg"})` }}
       >
         <div className="pg-hero__inner">
-          {program.category && (
-            <Link href="/community-programs" className="pg-hero__category">
-              {program.category.name}
-            </Link>
-          )}
           <h1 className="pg-hero__title">{program.name}</h1>
           {program.tagline && (
             <p className="pg-hero__tagline">{program.tagline}</p>
