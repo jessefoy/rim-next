@@ -1317,9 +1317,13 @@ export default function HubScheduleClient({
       // Context-aware: the member picker lets a coordinator view anyone's
       // schedule, so a self-referential "You're not hosting" reads wrong
       // when you're looking at someone else (session 140, #3).
-      if (selectedMemberId === currentUserId) return "You're not hosting anything here.";
+      // Role-aware: the verb reads "hosting" / "greeting" / "covering AV" /
+      // "facilitating" per the hub's coverageCopy. Dropping "anything" keeps it
+      // grammatical for the multi-word verbs ("covering AV here", not
+      // "covering AV anything here").
+      if (selectedMemberId === currentUserId) return `You're not ${coverageCopy.verb} here.`;
       const who = teamMembers.find((m) => m.id === selectedMemberId)?.displayName ?? "This person";
-      return `${who} isn't hosting anything here.`;
+      return `${who} isn't ${coverageCopy.verb} here.`;
     }
     if (filter === "my-requests") return "You haven't asked the team to cover any sessions.";
     return null;
