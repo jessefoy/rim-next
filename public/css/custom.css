@@ -7953,6 +7953,10 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   gap: 8px;
   background: var(--rim-cream);
   border-radius: 18px;
+  /* Scoped exception to the no-shadow rule (2nd, after .rim-cb-popover):
+     a soft, subtle lift for the floating header — the reference has it.
+     Two layers: a faint contact shadow + a wide soft ambient one. */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), 0 12px 30px rgba(0, 0, 0, 0.10);
 }
 
 /* Brand */
