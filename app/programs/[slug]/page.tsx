@@ -260,9 +260,6 @@ export default async function ProgramDetailPage({
 
             {/* ── CTA row — context-aware action ── */}
             <div className="pg-detail-row pg-detail-row--cta">
-              <span className="pg-detail-row__icon" aria-hidden="true">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-              </span>
               <span className="pg-detail-row__text">
                 {useBuiltInForm ? (
                   /* Registration programs — the person's OWN standing comes first,
