@@ -4,12 +4,13 @@
  * DELETE /api/programs-pg/[slug] — Delete program (ADMIN only, safety check)
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
 import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
+import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 
 export async function GET(
   _req: NextRequest,
@@ -337,10 +338,37 @@ export async function PUT(
         );
       }
     }
+    // Diff BEFORE the full-replace so we notify only hubs that are NEWLY
+    // covering this program — not on every save (session 146 follow-on:
+    // every hub gets the same new-coverage heads-up the host team gets).
+    const existingRows = await db.programCoverageHub.findMany({
+      where: { programSlug: slug },
+      select: { hubSlug: true },
+    });
+    const existingSet = new Set(existingRows.map((r) => r.hubSlug));
+
     await db.programCoverageHub.deleteMany({ where: { programSlug: slug } });
     if (requestedSlugs.length > 0) {
       await db.programCoverageHub.createMany({
         data: requestedSlugs.map((hubSlug) => ({ programSlug: slug, hubSlug })),
+      });
+    }
+
+    const addedSlugs = requestedSlugs.filter((s) => !existingSet.has(s));
+    if (addedSlugs.length > 0) {
+      after(async () => {
+        try {
+          for (const hubSlug of addedSlugs) {
+            await notifyHubOfNewProgramCoverage({
+              hubSlug,
+              programName: updated.name,
+              programFormat: updated.programFormat,
+              excludeUserId: session.user.id,
+            });
+          }
+        } catch (e) {
+          console.error("[programs-pg] coverage-add notification error:", e);
+        }
       });
     }
   }

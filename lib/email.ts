@@ -4,6 +4,7 @@ import { isBlockNoteJSON } from "@/lib/renderRichContent";
 import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { db } from "@/lib/db";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
+import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -888,6 +889,45 @@ export async function sendNewProgramNeedsHostEmail(data: NewProgramNeedsHostEmai
     scheduleUrl,
     scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
   });
+}
+
+/**
+ * Notify a hub's team that a program now needs their coverage — the same
+ * heads-up the primary host hub gets when a program is created, generalized so
+ * EVERY scheduler hub behaves alike: an auxiliary hub (AV / greeter / …) hears
+ * about a program tagged for it, on create or when added on edit. Hub-neutral —
+ * sendNewProgramNeedsHostEmail resolves the hub's own coverage noun ("needs a
+ * greeter" / "needs an AV") and scopes the link; getHubNotificationRecipients
+ * applies the ACTIVE + communications + pre-threshold (emailVerified) filters,
+ * so staged/legacy members get nothing. Caller wraps in after() — this assumes
+ * deferred work.
+ */
+export async function notifyHubOfNewProgramCoverage(opts: {
+  hubSlug: string;
+  programName: string;
+  programFormat: string | null; // raw Program.programFormat
+  excludeUserId?: string;
+}): Promise<void> {
+  const recipients = await getHubNotificationRecipients(
+    opts.hubSlug,
+    opts.excludeUserId ? { excludeUserId: opts.excludeUserId } : undefined,
+  );
+  if (recipients.length === 0) return;
+  const programFormat =
+    opts.programFormat === "virtual" ? "Virtual"
+    : opts.programFormat === "in-person" ? "In-person"
+    : "In-person and virtual";
+  await Promise.all(
+    recipients.map((u) =>
+      sendNewProgramNeedsHostEmail({
+        to: u.email,
+        firstName: u.firstName,
+        programName: opts.programName,
+        programFormat,
+        hubSlug: opts.hubSlug,
+      }),
+    ),
+  );
 }
 
 // ─── Host assignment confirmation ──────────────────────────────────────────

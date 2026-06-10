@@ -10,8 +10,7 @@ import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
 import { computeTimeText, computeDateText } from "@/lib/programUtils";
 import { sanitizeTeacherLabel } from "@/lib/programUtils";
-import { sendNewProgramNeedsHostEmail } from "@/lib/email";
-import { getHubNotificationRecipients } from "@/lib/toolAuth";
+import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 
 export async function GET() {
@@ -154,6 +153,7 @@ export async function POST(request: NextRequest) {
   // coverage hubs immediately. Validated against the hub table; unknown
   // slugs return 422 and the program creation is rolled back at the
   // application level by letting the error bubble.
+  let createdCoverageSlugs: string[] = [];
   if (Array.isArray(body.coverageHubSlugs) && body.coverageHubSlugs.length > 0) {
     const requestedSlugs: string[] = body.coverageHubSlugs.filter(
       (s: unknown): s is string => typeof s === "string" && s.trim().length > 0,
@@ -176,48 +176,43 @@ export async function POST(request: NextRequest) {
       await db.programCoverageHub.createMany({
         data: requestedSlugs.map((hubSlug) => ({ programSlug: slug, hubSlug })),
       });
+      createdCoverageSlugs = requestedSlugs;
     }
   }
 
-  // Notify the host team when a new virtual/hybrid program lands.
-  // In-person programs don't need host coverage on the LiveKit side, so we
-  // only fire for virtual/hybrid. "No host needed" programs are skipped
-  // entirely — they're self-led, so there's no one to notify. Recipients
-  // exclude the registrar who created it (no point notifying yourself).
-  // `after()` keeps the work alive past the response so Vercel doesn't kill
-  // the in-flight emails.
-  if (
-    program.hostingRequired &&
-    (program.programFormat === "virtual" || program.programFormat === "hybrid")
-  ) {
-    after(async () => {
-      try {
-        const notifyHubSlug =
-          program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
-        const recipients = await getHubNotificationRecipients(notifyHubSlug, {
+  // Notify every team that now covers this program — the same heads-up across
+  // all hubs (the shared-base principle). The PRIMARY host hub fires only for
+  // virtual/hybrid + hostingRequired (LiveKit-relevant; "No host needed"
+  // self-led programs have no one to notify). Each AUXILIARY coverage hub
+  // (AV / greeter / …) is notified because it was explicitly tagged —
+  // independent of the primary's format / hostingRequired gate. Same email,
+  // each hub's own coverage noun; recipients exclude the creator + staged /
+  // legacy members. after() keeps the sends alive past the response.
+  after(async () => {
+    try {
+      // Auxiliary hubs were explicitly tagged → always notify. The primary
+      // host hub fires only for virtual/hybrid + hostingRequired (LiveKit-
+      // relevant; self-led has no one to notify). The Set dedupes if a hub is
+      // somehow both primary and auxiliary, so no one gets two emails.
+      const notifyHubs = new Set<string>(createdCoverageSlugs);
+      if (
+        program.hostingRequired &&
+        (program.programFormat === "virtual" || program.programFormat === "hybrid")
+      ) {
+        notifyHubs.add(program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG);
+      }
+      for (const hubSlug of notifyHubs) {
+        await notifyHubOfNewProgramCoverage({
+          hubSlug,
+          programName: program.name,
+          programFormat: program.programFormat,
           excludeUserId: session.user.id,
         });
-        const formatLabel =
-          program.programFormat === "virtual"
-            ? "Virtual"
-            : "In-person and virtual";
-
-        await Promise.all(
-          recipients.map((u) =>
-            sendNewProgramNeedsHostEmail({
-              to: u.email,
-              firstName: u.firstName,
-              programName: program.name,
-              programFormat: formatLabel,
-              hubSlug: program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG,
-            }),
-          ),
-        );
-      } catch (e) {
-        console.error("[programs-pg] new-program notification error:", e);
       }
-    });
-  }
+    } catch (e) {
+      console.error("[programs-pg] new-program notification error:", e);
+    }
+  });
 
   return NextResponse.json(program, { status: 201 });
 }
