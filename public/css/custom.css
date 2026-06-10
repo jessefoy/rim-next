@@ -75,8 +75,8 @@
 
 :root {
   /* Colors */
-  --rim-bg:          #f5f5f5;  /* cool light grey — original RIM site */
-  --rim-bg-accent:   #eeeeee;  /* slightly darker grey — callouts, cards */
+  --rim-bg:          #f4efe8;  /* warm oat — primary page background */
+  --rim-bg-accent:   #ece4d9;  /* warm tan — secondary background, for gentle separation + depth (placeholder) */
   --rim-dark:        #0d2235;  /* deep navy */
   --rim-blue:        #135274;  /* darker teal-blue */
   --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
