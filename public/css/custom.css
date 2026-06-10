@@ -77,7 +77,6 @@
   /* Colors */
   --rim-bg:          #f5f5f5;  /* cool light grey — original RIM site */
   --rim-bg-accent:   #eeeeee;  /* slightly darker grey — callouts, cards */
-  --rim-cream:       #fffbf4;  /* warm off-white — the floating nav pill (Esther-Perel-style header) */
   --rim-dark:        #0d2235;  /* deep navy */
   --rim-blue:        #135274;  /* darker teal-blue */
   --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
@@ -164,6 +163,7 @@ html {
   overflow-x: clip;
 }
 body {
+  margin: 0;
   overflow-x: clip;
   max-width: 100%;
 }
@@ -2011,7 +2011,7 @@ h4 { font-size: var(--text-h4); }
      clears the pill; bottom is the quote's landing zone (the quote overlaps
      up into it and straddles the seam below). */
   margin-top: calc(-1 * var(--nav-strip-h));
-  padding: calc(72px + var(--nav-strip-h)) 24px 156px;
+  padding: calc(84px + var(--nav-strip-h)) 24px 168px;
   text-align: center;
   position: relative;
 }
@@ -2032,28 +2032,9 @@ h4 { font-size: var(--text-h4); }
   z-index: 1;
 }
 
-.pg-hero__category {
-  display: inline-block;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--rim-text);
-  text-decoration: none;
-  background: #f4eeeb;
-  border: none;
-  padding: 10px 15px 9px;
-  border-radius: 24px;
-  margin-bottom: 18px;
-  transition: background-color 0.15s;
-}
-
-.pg-hero__category:hover {
-  background: #ece3de;
-}
-
 .pg-hero__title {
   font-family: var(--font-serif);
-  font-size: 52px;
+  font-size: 46px;
   font-weight: 500;
   line-height: 1.15;
   letter-spacing: -0.5px;
@@ -2063,10 +2044,10 @@ h4 { font-size: var(--text-h4); }
 
 .pg-hero__tagline {
   font-family: var(--font-sans);
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 1.35;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.85);
   margin: 0;
 }
 
