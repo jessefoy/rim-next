@@ -165,6 +165,24 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 
 ---
 
+## Member migration & the legacy quiet pool (session 145)
+
+~1,500 existing members were migrated from the old Webflow/Memberstack site. The model reuses the auth flow rather than adding a parallel one:
+- **Quiet pool.** Each import is an inert account marked `User.isLegacyUnclaimed = true` (`agreedToTerms:false`, `emailVerified:null`) — structurally the session-142 staged account at scale. It's silent (the pre-threshold email gate), exempt from the `cleanup-incomplete-accounts` cron (a guard `isLegacyUnclaimed:false` was added to the sweep), and hidden from the default `/admin/members` (server-side `where` = OR of `isLegacyUnclaimed:false` / has-role / has-hub; `?pool=legacy` reveals it with a muted "Unclaimed" status).
+- **Promotion = the existing agreement gate.** A returning member signs in at `/login` like anyone; the `(authenticated)` layout sends a not-yet-agreed user to `/account/welcome` → `complete-profile`, which sets `agreedToTerms:true` **and flips `isLegacyUnclaimed:false`**. The `/join` upsert flips it too. So a legacy member promotes into the active list by crossing the same Community Care Agreement everyone does — fresh consent, no separate flow — preserving any pre-staged role/hub/schedule.
+- **Welcome-back.** `/account/welcome` shows "Welcome back" copy when `isLegacyUnclaimed`; the `welcome-back` email fires on promotion (the returning counterpart of `join-welcome`).
+- **The import ran on Vercel, not locally.** Neon is unreachable from the dev sandbox even sandbox-off, so the one-time import used a temporary ADMIN browser tool (`/admin/import-legacy`) that executed server-side; removed after. Pattern for any one-time prod DB op: a `migrate.mjs` flag-guarded block, or a temporary ADMIN browser tool — the offline script's `--dry-run` validates logic with no DB.
+
+## "Send sign-in code" — the admin way-in helper (session 145)
+
+`POST /api/admin/members/[id]/send-signin` (ADMIN/REGISTRAR) triggers a fresh 6-digit code to a member's email, reusing `signIn("resend")`. It's the pastoral "I've got you" for a stuck member — and the reason **passwords stayed off the table**: a *recoverable* password is a security no-go, the 90-day session means re-login is rare, and the code has nothing to forget. The helper shares the `lib/authRateLimits` budget (keyed on the target's email + the admin's IP, so it can't widen a member's per-window code budget) and refuses an archived member.
+
+## Name normalization on entry (session 145)
+
+`lib/nameCase.ts::toProperName` proper-cases a name at the casual entry points — `/join`, `/api/registrations`, `complete-profile`, admin "+ Add member" — and a one-time migration (`normalize_user_names_v1`) cleaned existing rows. Conservative by design (a name is identity): it only re-cases names that are entirely UPPER or entirely lower; intentional mixed-case (McDonald, DeShawn, van der Berg) is returned untouched; hyphens/apostrophes title-cased. **Not** applied to the admin member-EDIT PATCH or a member's own profile edit — those stay type-exactly, the hand-fix path for the few the rule under-corrects (all-caps Mc/Mac, 2-letter initials).
+
+---
+
 ## Key files
 
 | File | Role |

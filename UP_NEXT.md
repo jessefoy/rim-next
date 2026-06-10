@@ -6,6 +6,26 @@
 
 ## Active
 
+### Session 145 (2026-06-09) — Member migration (Memberstack → RIM) end-to-end + pre-launch fixes — all shipped to `main` & deployed; deployed-site verification pending
+
+**Eight commits on `main`, all deployed. No new deps / env / services.** One new `User.isLegacyUnclaimed` column + 4 migrations (`user_is_legacy_unclaimed_v1`, `seed_welcome_back_email_template_v1`, `normalize_user_names_v1`, `update_coverage_email_copy_v1`). Full narrative in `session-log.md` (2026-06-09 session 145).
+
+**Shipped:**
+- **Member migration** — silent import → quiet `isLegacyUnclaimed` pool → promote-on-login (fresh agreement, both `/login` and `/join` doors); the registry hides the pool by default (`?pool=legacy` reveals it); welcome-back email; admin **"Send sign-in code"** helper. The browser import tool imported ~1,516 members, then was **removed** (restorable: `git revert 3c543da`).
+- **Legacy pool** shows a muted **"Unclaimed"** status, not "Active".
+- **Welcome-back** page copy on `/account/welcome` for returning members ("you're on a new site… revisit the commitments").
+- **Name normalization** — `lib/nameCase.ts::toProperName` (conservative: only all-caps/all-lower; mixed-case protected); one-time cleanup + on-entry (join / registration / welcome / add-member). NOT on admin member-edit or profile self-edit (the type-exactly hand-fix path).
+- **Auth-page CSS** — `/login`, `/login/check-email`, `/login/error` full-width spill fixed (Webflow-shim gap — those pages' classes lived only in the un-loaded `rim.webflow.css`).
+- **Hub terminology** — `getHubCoverageCopy()` wired through the dashboard welcome panel ("you're on the {Noun} team"), the hub home/sidebar count (AV/greeter/peer-led now show their own noun + hub-scoped), and 4 re-seeded emails (hub-neutral; new-program gains `{{coverageNoun}}`).
+
+**OPEN — next steps (deployed-site verification, none blocking):**
+1. Confirm the deploy log shows `normalize_user_names_v1` (the before→after name audit) + `update_coverage_email_copy_v1` (4 ✔ lines). Review the 4 re-seeded templates + the welcome-back letter at `/admin/emails` — those are Jesse's to tune.
+2. **Hand-fix the name oddballs** the conservative rule under-corrects: all-caps Mc/Mac (→ "Mcdonald"), 2-letter initials ("TJ"→"Tj"), the `RIM-AV` account. Use the member **EDIT** screen (type-exactly — it doesn't re-normalize).
+3. **AV welcome-panel** is one-time (`hostWelcomeSeenAt`); to *see* the AV/greeter version, reset that flag on an account (Neon console) or use a fresh AV-staged test login.
+4. **Other public pages** (`/donate`, kalyána-mittá, volunteer) share the auth-pages Webflow-shim gap → likely full-width. Part of the public-page rebuild; `/donate` is launch-relevant — extend the shim or rebuild.
+
+**Deferred / queued:** legacy-pool **triage view** (surface the `legacy*` activity columns — last login / activity count / true "member since" — + a "never logged in" filter; ~495 of 1,516 never logged in) → backlog `2026-06-09-005`. Member ID intentionally not imported (points only at the retired system).
+
 ### Session 144 (2026-06-09) — Pre-launch session-room integrity audit + hardening — merged to `main` & deployed; real-device verification pending
 
 Jesse asked for a thorough integrity check of the LiveKit session room (the Zoom alternative) before go-live. Ran a multi-agent integrity audit (8 dimensions · adversarial per-finding verification · coverage critic → 30 agents, 21 findings), then fixed everything real. **9 commits, 17 files, reviewer-gated + `next build`-green — fast-forwarded to `main`, pushed (`origin/main` in sync → Vercel auto-deployed to `rim-next.vercel.app`); branch `claude/session-room-hardening` deleted.** No new deps/env/services; **no DB migration** (STEPIN-1 is a runtime advisory lock; the one schema touch is a comment).

@@ -258,6 +258,12 @@ The Slice 1 / 2.5 / 2.6 model assumed **one program ↔ one hub** via `Program.h
 
 ---
 
+## Coverage copy is a routing layer that reaches the dashboard + emails, not just the Scheduler (session 145)
+
+Layer 4 (copy) of the four routing layers isn't only the Scheduler's card text. **Any** surface that names a scheduler hub's coverage role — the dashboard welcome panel, the hub home/sidebar count (`lib/hubContext.ts`), the shared host/sub emails — must resolve `getHubCoverageCopy(hubSlug)` (→ noun/verb/action) or stay hub-neutral, so AV / greeter / peer-led never read "host". Session 145 swept the surfaces that still hardcoded it (and fixed a latent bug where the host-team home count summed *every* hub's gaps). The audit rule: when you touch a host/coverage surface, grep for hardcoded `"host"`/`"hosting"` and ask "does a non-host hub render this?" — the leak hides in the dashboard and email bodies, not just `/tools/schedule`. (Greeter is multi-claim and has no unclaimed-slot count; that's intended, not a gap.)
+
+---
+
 ## Engineering rules in one paragraph
 
 When you touch a hub: derive the hub from the resource (usually a program), pass it through every layer (capability, recipients, UI filter, URLs), use the canonical helpers (`getProgramHubSlug`, `getHubNotificationRecipients`, `hubScopedUrl`, etc.), never hardcode `"host-team"`, never bypass hub membership for ADMIN on content access, use `after()` for fire-and-forget emails from route handlers, await emails from non-route functions whose callers already await, and at closing audit all four layers across every callsite you touched.

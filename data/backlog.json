@@ -602,5 +602,15 @@
     "status": "open",
     "addedAt": "2026-06-03",
     "notes": "Follow-on from session 135's GUIDING_TEACHER hub-access change. Restraint: a quiet marker, not a badge that competes for attention."
+  },
+  {
+    "id": "2026-06-09-005",
+    "title": "Legacy-pool triage view — surface activity, filter the never-active",
+    "description": "The ~1,516 Memberstack members imported in session 145 sit in the quiet pool (isLegacyUnclaimed=true), hidden from the default registry and reachable via /admin/members?pool=legacy. Their Memberstack activity is stored on the existing legacy* columns (legacyLastLogin, legacyLastAttendance, legacyActivityCount, legacyMemberSince) but is NOT surfaced anywhere yet — the pool view shows everyone as 'Joined Jun 9, 2026' (the import date) with no way to tell who's active. When Jesse is ready to winnow the pool, build the triage lens on the ?pool=legacy view: show the true 'member since' (legacyMemberSince) instead of the import date, add columns/sort for last login + activity count, and a 'never logged in' filter (~495 of 1,516 have no legacyLastLogin). Lets the re-engage-vs-archive decision be made with data in hand rather than guessing. Not urgent — the pool is harmless sitting there; this is the 'filter later' half of the migration plan.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-09",
+    "notes": "Session 145 migration follow-on. The data is already stored (legacy* columns) — this is purely surfacing it + a filter on the pool view. ~33% of imports never logged in. Member ID was intentionally NOT imported (it points only at the retired Memberstack)."
   }
 ]

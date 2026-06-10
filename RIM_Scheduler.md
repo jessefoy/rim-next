@@ -104,6 +104,15 @@ A **hub coordinator** (a `HubMember` with `isCoordinator=true` on the hub — NO
 - **Per-program staffing page** (`/tools/schedule/program/[slug]`): shows a self-led program's auxiliary sections; 404s only if it has no coverage at all.
 - Helper: `lib/programHub.ts::programNeedsHost(slug)` (reads `hostingRequired`; fail-safe true).
 
+## Hub-relative copy reaches beyond the Scheduler (session 145)
+
+The per-hub coverage copy (`getHubCoverageCopy` → noun/verb/action, session 130) governs more than the Scheduler card list. Session 145 finished wiring it through every scheduler-hub surface that still said "host":
+- the **dashboard** first-login welcome panel ("you're on the {Noun} team") — the dashboard resolves the staged hub's noun and passes it to `HostWelcomePanel`;
+- the **hub home/sidebar** coverage count (`lib/hubContext.ts`) — generalized from a host-team-only `case` to host-team / audio-visual / peer-led, each counting its OWN *hub-scoped* unclaimed slots in its own noun ("open AV slot"). Greeter (multi-claim) has no unclaimed-slot concept → no count. (Also fixed a latent bug: the old host-team count wasn't hub-scoped.)
+- the **shared host/sub emails** (see `RIM_Email_Engineering.md`).
+- Deliberately left "host": the dashboard early-open "Enter as host" names the live session-**room** role, not hub coverage.
+- **Rule:** when you add a scheduler-hub surface that names the coverage role, resolve `getHubCoverageCopy(hubSlug)` — don't hardcode "host". The leak hides in the dashboard + email bodies, not just `/tools/schedule`.
+
 ## ⚠️ The Scheduler is one surface shared by FOUR hubs — always check both directions
 
 host-team + peer-led (single-slot, virtual/hybrid) · audio-visual (single-slot aux, in-person/hybrid) · greeter (**multi-claim** aux, in-person/hybrid). **Any change to the Scheduler must be audited in both directions:**

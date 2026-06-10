@@ -190,6 +190,16 @@ Pre-format dates at the call site, not in the template. `dateText: "Thu, May 22 
 
 ---
 
+## Hub-relative coverage copy in shared emails (sessions 130, 145)
+
+An email that can reach a scheduler-hub member must speak that hub's coverage role — never hardcode "host". Two patterns:
+- **Pass `coverageCopy`** — the standing-rotation builders take a `HubCoverageCopy` (`{noun, verb, action}`) param; the caller, which knows the `hubSlug`, fetches `getHubCoverageCopy(hubSlug)` and passes it.
+- **Hub-NEUTRAL bodies** — for the per-session assignment/sub templates (`host-assignment-confirmation`, `host-assignment-removed`, `sub-request-claimed`) the cleanest fix was to drop the role word entirely ("confirmed for", "your session", "to someone else") rather than substitute a noun — the coverage `action` ("host this") reads awkwardly in most frames. `new-program-needs-host` is the exception: it gains `{{coverageNoun}}` ("may need AV coverage") because naming the role there is genuinely useful, and its builder passes `coverageNoun`.
+- **Re-seeding a shared template IS allowed** as an intentional update (the gate forbids *accidental* overwrites, not deliberate ones with consent — CLAUDE.md). Session 145 used `update_coverage_email_copy_v1`: a flag-guarded `updateMany` per slug (not `findUnique → create`), with a per-template log line and a clear comment naming the consent. Cross-check every `{{token}}` in the new body against what the builder actually passes — a body token the builder omits renders blank.
+- **Rule:** before adding a host/coverage email, ask "can this reach a non-host hub?" If yes, pass `coverageCopy` or keep the body hub-neutral. Never ship a shared template that says "host". The `welcome-back` letter (session 145) is the returning-legacy-member counterpart of `join-welcome`, fired on promotion; not pre-threshold-gated (the member has just consented).
+
+---
+
 ## Engineering rules in one paragraph
 
 When you send an email: write the slug into both the code and a `prisma/migrate.mjs` seed entry; use `findUnique → create` (never `upsert`); never overwrite an existing template body; build URLs via `hubScopedUrl` / `hubHomeUrl` / `BASE_URL` (never inline `https://`); derive `hubSlug` from the resource (program), not the actor; pass a `{{*Button}}` variable for every CTA URL using `emailButtonHtml(label, url)`; wrap fire-and-forget sends in `after()` from `next/server` (or await them if the caller is a route handler that already awaits); `console.error` on failure (never silent `.catch`); add a one-line JSDoc justification on any hardcoded-HTML email that bypasses the template manager.
