@@ -644,15 +644,20 @@ function HsRow({
       const count = claimants.length;
       const mine = claimants.find((c) => c.userId === currentUserId);
 
+      // Role-aware header via the hub's coverageNoun ("greeter" / "AV" /
+      // "facilitator"), pluralized. "We have N greeters" reads as the team
+      // it is, not a generic "N people signed up" (session 146 follow-up).
+      // Keeps the self-recognition ("that's you" / "you're one of them").
+      const nounPlural = `${nounLower}s`;
       let headerText: string;
       if (count === 0) {
-        headerText = isPast ? "No one signed up" : "No one yet — be the first?";
+        headerText = isPast ? `No ${nounPlural}` : `No ${nounPlural} yet — be the first?`;
       } else if (count === 1) {
-        headerText = mine ? "You're signed up" : "1 person signed up";
+        headerText = mine ? `We have 1 ${nounLower} — that's you` : `We have 1 ${nounLower}`;
       } else {
         headerText = mine
-          ? `${count} signed up · you're one of them`
-          : `${count} signed up`;
+          ? `We have ${count} ${nounPlural} — you're one of them`
+          : `We have ${count} ${nounPlural}`;
       }
 
       statusEl = (

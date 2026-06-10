@@ -153,13 +153,13 @@ Operational consequence: if a host-team member has claimed Good Morning Silent M
 
 When `Hub.allowsMultipleAssignments` is true, the Schedule page renders one card per session that contains every signed-up volunteer rather than one card per claim. The row uses a **plain-language state header sentence** plus a **stacked list of names** with a **self-recognition mark** ("YOU" badge in `--rim-blue`) on the signed-in user's row. This is correctness-level UI, not polish — see `feedback-clear-seeing-is-correctness.md` for why the comma-separated CSV version was rejected.
 
-State header sentences:
-- `count === 0` (not past): "No one yet — be the first?"
-- `count === 0` (past): "No one signed up"
-- `count === 1 && mine`: "You're signed up"
-- `count === 1 && !mine`: "1 person signed up"
-- `count > 1 && mine`: "<count> signed up · you're one of them"
-- `count > 1 && !mine`: "<count> signed up"
+State header sentences — role-aware via the hub's `coverageNoun` (lower-cased except "AV"), pluralized with a trailing `s` (session 146 follow-up: "We have N greeters" reads as the team it is, not a generic count):
+- `count === 0` (not past): "No {noun}s yet — be the first?"
+- `count === 0` (past): "No {noun}s"
+- `count === 1 && mine`: "We have 1 {noun} — that's you"
+- `count === 1 && !mine`: "We have 1 {noun}"
+- `count > 1 && mine`: "We have {count} {noun}s — you're one of them"
+- `count > 1 && !mine`: "We have {count} {noun}s"
 
 Action button labels read as invitation, not transaction:
 - Not signed up, no one else: "I'll be the first"
