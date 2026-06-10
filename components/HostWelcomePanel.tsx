@@ -13,7 +13,13 @@ import Link from "next/link";
  * Shown only while User.hostWelcomeSeenAt is null. Both following the link and
  * dismissing mark it seen (best-effort POST), so it never nags.
  */
-export default function HostWelcomePanel({ scheduleHref }: { scheduleHref: string }) {
+export default function HostWelcomePanel({
+  scheduleHref,
+  coverageNoun,
+}: {
+  scheduleHref: string;
+  coverageNoun: string;
+}) {
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
 
@@ -29,9 +35,9 @@ export default function HostWelcomePanel({ scheduleHref }: { scheduleHref: strin
 
   return (
     <div className="db-host-welcome" role="status">
-      <p className="db-host-welcome__title">Welcome — you&apos;re set up to host.</p>
+      <p className="db-host-welcome__title">Welcome — you&apos;re on the {coverageNoun} team.</p>
       <p className="db-host-welcome__text">
-        Your hosting schedule is already in place. Have a look whenever you&apos;re
+        Your schedule is already in place. Have a look whenever you&apos;re
         ready — there&apos;s nothing you need to do right now.
       </p>
       <div className="db-host-welcome__actions">
@@ -40,7 +46,7 @@ export default function HostWelcomePanel({ scheduleHref }: { scheduleHref: strin
           className="db-host-welcome__cta"
           onClick={() => { void markSeen(); }}
         >
-          View your hosting schedule →
+          View your schedule →
         </Link>
         <button
           type="button"

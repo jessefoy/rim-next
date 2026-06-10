@@ -3,7 +3,7 @@ import { portableTextToMarkdown } from "@/lib/portableTextEmail";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { db } from "@/lib/db";
-import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -879,12 +879,14 @@ export interface NewProgramNeedsHostEmailData {
  */
 export async function sendNewProgramNeedsHostEmail(data: NewProgramNeedsHostEmailData): Promise<void> {
   const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
+  const copy = await getHubCoverageCopy(data.hubSlug);
   await sendTemplatedEmail("new-program-needs-host", data.to, {
     firstName:      data.firstName,
     programName:    data.programName,
     programFormat:  data.programFormat,
+    coverageNoun:   copy.noun,
     scheduleUrl,
-    scheduleButton: emailButtonHtml("Sign up to host", scheduleUrl),
+    scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
   });
 }
 

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
 import { ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
 import { isOpenlyDroppable } from "@/lib/programKind";
+import { getHubCoverageCopy } from "@/lib/programHub";
 import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
@@ -327,6 +328,7 @@ export default async function DashboardPage() {
     select: { hostWelcomeSeenAt: true },
   });
   let hostWelcomeHref: string | null = null;
+  let hostWelcomeNoun = "Host";
   if (me && me.hostWelcomeSeenAt === null && hubMemberships.length > 0) {
     // Any future single-host/greeter assignment OR any active standing rotation,
     // across any hub. findFirst — existence is all we need; hubSlug points the
@@ -342,7 +344,10 @@ export default async function DashboardPage() {
       }),
     ]);
     const hub = anyAssignment?.hubSlug ?? anyRotation?.hubSlug ?? null;
-    if (hub) hostWelcomeHref = `/tools/schedule?hub=${encodeURIComponent(hub)}`;
+    if (hub) {
+      hostWelcomeHref = `/tools/schedule?hub=${encodeURIComponent(hub)}`;
+      hostWelcomeNoun = (await getHubCoverageCopy(hub)).noun;
+    }
   }
 
   const firstName =
@@ -384,7 +389,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* First-login host recognition — one-time, dismissible (session 143) */}
-        {hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} />}
+        {hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} coverageNoun={hostWelcomeNoun} />}
 
         {/* Today's Sessions */}
         {showTodayCard && (

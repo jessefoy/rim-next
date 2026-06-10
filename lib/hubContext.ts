@@ -10,6 +10,7 @@
 import { db } from "./db";
 import { TOOL_REGISTRY, type ToolDefinition } from "./toolRegistry";
 import { activeHubThreadWhere } from "./hubQueries";
+import { getHubCoverageCopy } from "./programHub";
 
 export interface HubContext {
   /** The tool surfaced as the primary work card + "Work" sidebar item. Null for non-tool hubs. */
@@ -78,22 +79,15 @@ async function getPrimaryToolContext(hubSlug: string, userId: string): Promise<{
       };
     }
 
-    case "host-team": {
-      // Unclaimed host assignments in the next 14 days
-      const now = new Date();
-      const in14 = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-      const count = await db.hostAssignment.count({
-        where: {
-          userId: null,
-          sessionDate: { gte: now, lte: in14 },
-        },
-      });
-      return {
-        primaryTool: toolBySlug("schedule"),
-        primaryCount: count,
-        primaryLabel: plural(count, "session needs a host", "sessions need hosts"),
-      };
-    }
+    // Single-slot scheduler hubs — unclaimed coverage in the next 14 days, in
+    // the hub's OWN coverage noun ("open AV slot", "open Greeter slot"). Counts
+    // are hub-scoped, so each hub's home shows only its own gaps. Multi-claim
+    // hubs (greeter) have no "unclaimed seed" concept, so they fall through to
+    // the neutral default rather than showing a misleading count.
+    case "host-team":
+    case "audio-visual":
+    case "peer-led-silent-meditation":
+      return schedulerHubContext(hubSlug);
 
     case "courses": {
       // Inactive courses = drafts waiting to be published
@@ -108,6 +102,27 @@ async function getPrimaryToolContext(hubSlug: string, userId: string): Promise<{
     default:
       return { primaryTool: null, primaryCount: 0, primaryLabel: "" };
   }
+}
+
+/** Coverage gaps for one single-slot scheduler hub, in that hub's own noun. */
+async function schedulerHubContext(hubSlug: string): Promise<{
+  primaryTool: ToolDefinition | null;
+  primaryCount: number;
+  primaryLabel: string;
+}> {
+  const now = new Date();
+  const in14 = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  const [count, copy] = await Promise.all([
+    db.hostAssignment.count({
+      where: { userId: null, hubSlug, sessionDate: { gte: now, lte: in14 } },
+    }),
+    getHubCoverageCopy(hubSlug),
+  ]);
+  return {
+    primaryTool: toolBySlug("schedule"),
+    primaryCount: count,
+    primaryLabel: plural(count, `open ${copy.noun} slot`, `open ${copy.noun} slots`),
+  };
 }
 
 /* ─────────────────────────  Section counts  ───────────────────────── */

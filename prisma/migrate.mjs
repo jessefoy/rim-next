@@ -4587,6 +4587,112 @@ Brookfield, Wisconsin`;
     console.log("  ⏭ normalize_user_names_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Hub terminology — make the shared coverage emails hub-neutral so AV /
+  // greeter / future scheduler hubs don't read "host" when an assignment or
+  // sub email reaches them. Confirmation / removed / sub-claimed go generic
+  // ("confirmed for", "to someone else", "your session", button CTA);
+  // new-program-needs-host gains {{coverageNoun}} so it reads "may need AV
+  // coverage". Intentional template update (Jesse's consent, session 145) —
+  // overwrites these four bodies via updateMany (no-op if a row is absent).
+  // ───────────────────────────────────────────────────────────────────────
+  const coverageEmailFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_coverage_email_copy_v1'
+  `).catch(() => []);
+
+  if (coverageEmailFlag.length === 0) {
+    console.log("→ Hub-neutralizing shared coverage email copy…");
+
+    const cc1 = await db.emailTemplate.updateMany({
+      where: { slug: "host-assignment-confirmation" },
+      data: {
+        subject: "You're confirmed for {{programName}}{{#if dateText}} — {{dateText}}{{/if}}",
+        variables: ["firstName", "programName", "dateText", "requesterNote", "scheduleUrl", "scheduleButton"],
+        body: `Hi {{firstName}},
+
+You're confirmed for **{{programName}}**{{#if dateText}} on {{dateText}}{{/if}}. Thank you.
+
+{{#if requesterNote}}
+> {{requesterNote}}
+{{/if}}
+
+{{{scheduleButton}}}
+
+If anything changes and you need coverage, you can request a sub from the schedule.
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+      },
+    });
+    console.log(`  ✔ host-assignment-confirmation (${cc1.count})`);
+
+    const cc2 = await db.emailTemplate.updateMany({
+      where: { slug: "host-assignment-removed" },
+      data: {
+        subject: "You're no longer scheduled for {{programName}}{{#if dateText}} on {{dateText}}{{/if}}",
+        variables: ["firstName", "programName", "dateText", "byName", "scheduleUrl", "scheduleButton"],
+        body: `Hi {{firstName}},
+
+**{{byName}}** has reassigned **{{programName}}**{{#if dateText}} on {{dateText}}{{/if}} to someone else — you're no longer scheduled for this session.
+
+If you have questions about this change, please reach out to your coordinator.
+
+{{{scheduleButton}}}
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+      },
+    });
+    console.log(`  ✔ host-assignment-removed (${cc2.count})`);
+
+    const cc3 = await db.emailTemplate.updateMany({
+      where: { slug: "sub-request-claimed" },
+      data: {
+        variables: ["firstName", "claimerName", "programName", "sessionDate", "message", "hubUrl", "scheduleButton"],
+        body: `Hi {{firstName}},
+
+Good news — **{{claimerName}}** has agreed to cover your session for **{{programName}}**{{sessionDate}}.
+
+{{#if message}}
+> {{message}}
+{{/if}}
+
+You're off the hook for this one. Thank you for letting the team know early.
+
+{{{scheduleButton}}}
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+      },
+    });
+    console.log(`  ✔ sub-request-claimed (${cc3.count})`);
+
+    const cc4 = await db.emailTemplate.updateMany({
+      where: { slug: "new-program-needs-host" },
+      data: {
+        variables: ["firstName", "programName", "programFormat", "coverageNoun", "scheduleUrl", "scheduleButton"],
+        body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+A new program has just been added: **{{programName}}** ({{programFormat}}). It may need **{{coverageNoun}}** coverage on its upcoming sessions.
+
+If you'd like to take one, you can sign up on the schedule.
+
+{{{scheduleButton}}}
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+      },
+    });
+    console.log(`  ✔ new-program-needs-host (${cc4.count})`);
+
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('update_coverage_email_copy_v1')`,
+    );
+    console.log("  ✔ coverage email copy hub-neutralized.");
+  } else {
+    console.log("  ⏭ update_coverage_email_copy_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
