@@ -2027,6 +2027,22 @@ h4 { font-size: var(--text-h4); }
   z-index: 1;
 }
 
+/* Category eyebrow — quiet uppercase orientation above the title.
+   Text only (the old filled pill read as clutter); links to the catalog. */
+.pg-hero__eyebrow {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: none;
+  margin: 0 0 16px;
+  transition: color 0.15s;
+}
+.pg-hero__eyebrow:hover { color: #fff; }
+
 .pg-hero__title {
   font-family: var(--font-serif);
   font-size: 46px;
