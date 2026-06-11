@@ -622,5 +622,35 @@
     "status": "open",
     "addedAt": "2026-06-09",
     "notes": "Session 145 migration follow-on. The data is already stored (legacy* columns) — this is purely surfacing it + a filter on the pool view. ~33% of imports never logged in. Member ID was intentionally NOT imported (it points only at the retired Memberstack)."
+  },
+  {
+    "id": "2026-06-11-001",
+    "title": "Find the specific screen-share crash (render exception)",
+    "description": "Session 147 added RoomErrorBoundary, which now CONTAINS the crash that white-screened every remote participant when a host shared their screen (the receiver render path throws; the app had no error boundary so it fell to Next's white 'Application Error' page). The categorical fix is shipped; the SPECIFIC throwing line is still unconfirmed. Repro: two windows, DevTools console open on the *viewer* (not the sharer), share a screen -> the viewer either survives or shows the contained 'Rejoin' screen, and the console logs a '[rim-room-crash]' entry with the component stack. Capture that stack, then fix the underlying render bug (suspects in the focus-view / FocusLayout / CarouselLayout path in RIMConference). The boundary makes this safe to run during a real session.",
+    "category": "Infrastructure",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-06-11",
+    "notes": "The boundary is the launch-safe fix; this is the root-cause follow-on. Needs the console output from a live two-window repro — can't be found from static reading alone. Maria's 'Zoom note-taking popup' during the crash was her local Zoom browser extension, not our code."
+  },
+  {
+    "id": "2026-06-11-002",
+    "title": "Decide: should a co-host be able to remove/ban the assigned Host?",
+    "description": "Session 147 shipped Remove participant (co-host gated, with remove-can-rejoin vs remove-for-the-session/SessionBan). Currently ANY co-host can remove or ban anyone except themselves — including the assigned Session Host or another co-host. This matches how Mute works (same peer surface), but a ban's blast radius is larger: a banned non-ADMIN host is locked out of their own session for its duration. Decide whether to (a) leave as-is (emergencies don't check org charts), (b) reserve remove-for-the-session for the assigned host / HOST_MANAGER / ADMIN while leaving plain remove for all co-hosts, or (c) refuse banning identities that resolve to co-host tier. Small change once decided; the gate lives in /api/livekit/remove-participant + the confirm UI in ParticipantsPanel.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-11",
+    "notes": "Jesse's design call, surfaced by the session-147 reviewer. Built as 'any co-host' for now. Self-removal is already blocked. ADMIN/GT are exempt from ban enforcement at the token routes regardless."
+  },
+  {
+    "id": "2026-06-11-003",
+    "title": "Echo Layer 1 — in-room output-routing-mismatch nudge",
+    "description": "Free, code-only echo mitigation scoped in session 147 but not built (Jesse declined for now — the confirmed echo source was his own endpoint, and sessions already invite people to mute). When a participant's microphone belongs to a headset/AirPods but their audio is playing through different-device speakers (the split-device case browser AEC can't cancel), show a calm one-line banner — 'sound is playing through your speakers, which can echo for others — [Send sound to headset]' — that calls room.switchActiveDevice('audiooutput', ...) on tap, remembered per-device. Works in Chrome/Edge (setSinkId); stays silent on Safari (no output selection) and for pro interfaces like a Universal Audio Volt where routing is decided on the hardware, not in the browser. Build only if member-side echo materializes after endpoint fixes (headphones). Separately, the paid escalation is LiveKit Krisp BVC (~$55-90/mo Ship plan) — shelved on cost.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-11",
+    "notes": "Echo is an endpoint problem, not a code bug (AEC already on for all profiles). Full rationale + the priced options ladder in RIM_SessionRoom.md 'Audio & echo'. Jesse testing AirPods output-only first."
   }
 ]

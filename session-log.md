@@ -1,5 +1,46 @@
 ---
 
+## 2026-06-11 (session 147) — Echo diagnosis (strategic, no code) + session-room batch: crash safety net, context-aware Step-In, ask-to-unmute, remove participant, chat+participants split
+
+Two arcs. **Arc 1:** a deep diagnosis of the **LiveKit self-echo** problem ("people still hear themselves echoed through me") — no code, a strategic conclusion. **Arc 2:** a **five-feature session-room batch** from a hosting-coordinators meeting (Jesse, Maria, Nancy) — one commit `cb9ab8a` on `main`, deployed. **No new dependencies, env vars, or services.** One new `SessionBan` model + idempotent migration `session_bans_v1`. Reviewer-gated (general-purpose sub-agent, 10 findings), `tsc`-green, CSS brace-balanced (5058/5058).
+
+### Arc 1 — Echo (diagnosis + strategic decision, no code)
+
+Remote participants hear their own voice echoed back through Jesse's endpoint while he teaches. Investigation (code + git history + web research) established the honest mechanism and **ruled out a code defect**:
+- **Echo cancellation is already ON** for all three audio profiles (`VideoRoom.buildRoomOptions`), and has been since April (`261a6fe`). Exactly one `RoomAudioRenderer`, no local-audio loopback. So the remaining echo is acoustic/endpoint, not a missing constraint.
+- **The source is an endpoint, never the listener.** A person hears their double only because some *other* endpoint's open mic is re-broadcasting the room. Browser AEC can't cancel loud speakers, split-device (mic on one device, sound out another), or cross-device audio. Confirmed: Jesse's rig is a **wireless wearable mic through a Universal Audio Volt interface with sound playing out computer speakers** — the textbook split-device case AEC can't win. Turning speaker volume down reduced the echo (the diagnostic that confirms it).
+
+**Options, researched + priced** (the "are we stuck / should we have chosen differently" question):
+- **$0 — endpoint fix (chosen):** route output to a headphone so the mic never hears the room. Jesse will test **AirPods Pro output-only** (mic stays on the Volt, transparency mode for presence); a clear-tube IFB earpiece off the Volt is the invisible option.
+- **$0 — macOS Voice Isolation** (Control Center mic mode) and **$0–8/mo — Krisp desktop app** (the same tech LiveKit resells, retail per-machine, free 60 min/day): both run on the *source's* machine and strip other voices from its outbound mic, but sit upstream of Bell mode (would eat the bell → a toggle each time; a headphone avoids that friction).
+- **$50+/mo — LiveKit Krisp BVC** (in-room background-voice-cancellation, "Zoom-parity armor"): works in the browser now, small code change (`@livekit/krisp-noise-filter` 0.3.4→0.4.3 + `useBVC`), BUT needs LiveKit's **Ship plan ($50/mo) + $0.0012/min metered** → ~$55–90/mo. **Rejected on cost.**
+- **Native app:** technically real (inherits FaceTime-grade system AEC, no permission nags) but rejected — app-store friction (the thing we left Zoom to escape) + permanent double-maintenance. Reaffirms the session-120 rejection.
+
+**Strategic conclusion (the decision):** the platform choice **stands.** The real fork was always *native app vs browser*; we chose browser for cost + integration + no-install joining, all still true. The echo is an endpoint audio-routing habit, not a systemic browser failure or a wrong-platform mistake. **"Layer 1" (in-room detection nudging a mismatched endpoint to fix its output routing) was scoped but NOT built** — Jesse declined for now (the confirmed source is his own endpoint; sessions already invite people to mute). Free, code-only, available later if member-side echo ever materializes; BVC stays shelved as the documented escalation. Recorded in `RIM_SessionRoom.md` (Audio & echo).
+
+### Arc 2 — Session-room batch (5 features, commit `cb9ab8a`)
+
+Connections-mapped + approved before building.
+
+1. **Crash safety net (the launch blocker).** Root cause: **there was no React error boundary anywhere in the app.** When Jesse shared his screen, every *remote* participant's RIMConference threw while rendering the incoming share, and with no boundary each fell to Next's white "Application Error" screen — looked like the meeting died; really N browsers crashed independently on the same receive event (Jesse the *sender* stayed in, confirming the crash is on the *receiver* path). New `RoomErrorBoundary` wraps `VideoRoom`: a render crash now degrades to a contained "Something interrupted the room — Rejoin" screen and logs `[rim-room-crash]` + component stack. The specific throwing line still needs the console from a two-window repro (the boundary makes that capture safe). Maria's "Zoom note-taking popup" = her local Zoom browser extension, not our code.
+2. **Context-aware Step-In + confirm.** Nancy (acting host, not the *assigned* host) saw "Step in as Host" and clicked it cold. `RIMConference` now derives host-presence from participant metadata and reports up; the header button reads "No host yet — Step in" / "Take over as host" / (unknown) "Step in as host", and a plain-language confirm panel opens before the API call.
+3. **Ask-to-unmute.** Co-hosts get "Ask to unmute" on muted roster rows → a data-channel packet (`UNMUTE_REQUEST_TOPIC`, addressed to that identity) → the recipient sees a calm "{Name} is inviting you to unmute — [Unmute] [Stay muted]" prompt; their own tap performs the unmute (browsers never let you force a mic on — the correct boundary). Sender gets "Asked ✓" feedback.
+4. **Remove participant + session bans.** New `POST /api/livekit/remove-participant` (co-host gated, mirrors mute) with a 3-option confirm: remove-can-rejoin / remove-for-the-session / cancel. "For the session" writes a `SessionBan` row; `/token`, `/guest-token`, AND `/step-in` all refuse banned identities (members by id — ADMIN/GT exempt; guests by case-insensitive display name). Removed users get an honest "You've been removed" screen (new `removed` LeaveKind — `PARTICIPANT_REMOVED` no longer maps to the false "Session ended — thank you for practicing together").
+5. **Chat + Participants split.** Both panels share the right column on desktop (Zoom-style stack, each flex 1 1 50%); phones (≤768px) keep the overlay behavior via `display:contents`.
+
+**Reviewer pass — fixed before commit:** (1) **step-in ban bypass** — a banned host-team member could re-enter *as the Session Host* through Step-In; now ban-checked before the HostAssignment upsert. (2) **guest Rejoin stale-token remount** — `joinAsGuest` never passed through "loading", so a crash-boundary Rejoin remounted the old token and livekit-client's already-connected early-return silently discarded the fresh one; now sets "loading" first. (3) **member-ban name collateral** — `name` stored only for guest identities (a member ban no longer blocks a same-named guest). (4) **stale host-presence reset** on leave/load. (5) **430px touch target** on Remove. Plus the honest removed-screen.
+
+### What this connects to
+The whole session room (`/session/[slug]`, `VideoRoom`, `RIMConference`, `ParticipantsPanel`, all `/api/livekit/*`) · the permission model (`resolveSessionRole`, `isCoHost` gate reused by remove-participant) · Step-In (now ban-aware + auto-enrolls per session 146) · the Scheduler/HostAssignment ledger (Step-In still writes it) · the time-gate (`assertSessionDateInWindow`, reused by remove) · the data channel (ask-to-unmute joins chat/reactions on it; the unread-badge listener correctly ignores the new topic). No hub-coverage routing, editor, registration, or auth changes. **No email templates touched.**
+
+### What's next
+- **The screen-share repro** — Jesse: two windows, console open on the *viewer*, share → paste the `[rim-room-crash]` entry so we can fix the specific throwing line (the boundary already contains it). Backlog `2026-06-11-001`.
+- **Co-host can ban the assigned host** — open design question for Jesse (mute has the same peer surface but a ban's blast radius is larger). Backlog `2026-06-11-002`.
+- **Echo:** Jesse tests AirPods/headphone; Layer 1 detection + BVC remain shelved. Backlog `2026-06-11-003`.
+- Guest-rename ban evasion is a documented limitation (re-remove); member bans are airtight.
+
+---
+
 ## 2026-06-10 (session 146) — Scheduler membership invariant + per-hub gating + every-hub coverage notifications
 
 Started from Jesse's worry that the **shared Scheduler across hubs** (host-team / AV / greeter / peer-led) was getting entangled — concrete symptom: in the greeter hub, **Nancy showed as a volunteer covering sessions but didn't appear in the member "pill" picker.** It became an evaluation of the shared-component approach, then five fixes that all traced to one root insight. **Five commits on `main`, all deployed. No new dependencies, env vars, or services.** Two flag-guarded migrations (`backfill_host_team_membership_v1`, `heal_membership_orphan_assignments_v1`); no schema change. Reviewer-gated + `tsc`-green per slice.

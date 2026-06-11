@@ -19,14 +19,15 @@ A custom full-page WebRTC video room built on **LiveKit Cloud (Build tier)**. No
 | File | Role |
 |---|---|
 | `app/session/[slug]/page.tsx` | Page: fetches token, holds `view` (speaker/gallery) + `sessionDate`, renders `VideoRoom` + `ViewToggle` |
-| `components/VideoRoom.tsx` | `LiveKitRoom` wrapper — `audio={false} video={false}` (join muted/dark); per-profile `RoomOptions` (codec/bitrate/capture); phase machine greenroom → recovery → conference |
+| `components/VideoRoom.tsx` | `LiveKitRoom` wrapper — `audio={false} video={false}` (join muted/dark); per-profile `RoomOptions` (codec/bitrate/capture); phase machine greenroom → recovery → conference; `classifyDisconnect` (adds `removed`); relays `onHostPresence` |
+| `components/session/RoomErrorBoundary.tsx` | Crash safety net (session 147) — class error boundary wrapping `VideoRoom`. Catches any render throw, shows a contained "Something interrupted the room — Rejoin" screen (`onRecover` = the page's `retry`), logs `[rim-room-crash]` + component stack |
 | `components/session/Greenroom.tsx` | Pre-prompt primer; **acquires camera/mic permission via getUserMedia + stop (never publishes)** so the user joins unseen; routes denial to Recovery |
 | `components/session/Recovery.tsx` | Permission-denied recovery screen, platform-matched instructions (`lib/detectPlatform.ts`) |
 | `components/session/RIMConference.tsx` | The layout. Grid/focus orchestration, pin precedence, screen-share auto-focus, raised-hand reorder, Krisp wiring, unread-chat counter, metadata seeding |
 | `components/session/RIMControlBar.tsx` | Bottom control bar: mic/cam, Participants, Chat, Share (+ primer), Reactions, Settings, Bell mode, End |
 | `components/session/ShareScreenPrimer.tsx` | Calm primer popover before the browser's screen picker |
 | `components/session/RIMParticipantTile.tsx` | Custom tile: nameplate, role pills, signal badge, avatar/initials, hover Mute (co-host), hover Pin (everyone) |
-| `components/session/ParticipantsPanel.tsx` | Roster: Me row, raised-hand queue, per-row mute (co-host), Mute All, **click-name → DM** |
+| `components/session/ParticipantsPanel.tsx` | Roster: Me row, raised-hand queue, per-row mute (co-host), **ask-to-unmute** on muted rows, **Remove** (+ 3-option confirm), Mute All, **click-name → DM**. Exports `UNMUTE_REQUEST_TOPIC` |
 | `components/session/RIMChat.tsx` | Persistent chat + DMs over LiveKit data channel; exports `CHAT_TOPIC` |
 | `components/session/ReactionsMenu.tsx` | Nonverbal signals popover (hand/heart/namaste/yes/no) |
 | `components/session/EndMenu.tsx` | End/Leave popover (End-for-All gated on `hasEndAllAuthority`) |
@@ -37,7 +38,7 @@ A custom full-page WebRTC video room built on **LiveKit Cloud (Build tier)**. No
 | `lib/livekit.ts` | Server SDK: `createRoomToken`, `roomNameForProgram`, `endRoom`, **`sessionDisplayName`** |
 | `lib/livekitAuth.ts` | `resolveSessionRole` — the identity/capability resolver |
 | `lib/sessionWindow.ts` | Time-gate: `getActiveSessionWindow`, `describeInactiveWindow`, `assertSessionDateInWindow` |
-| `app/api/livekit/token` · `guest-token` · `chat` · `mute-participant` · `mute-all` · `end-session` · `step-in` | Server routes |
+| `app/api/livekit/token` · `guest-token` · `chat` · `mute-participant` · `mute-all` · `end-session` · `step-in` · `remove-participant` | Server routes (`token`/`guest-token`/`step-in` enforce `SessionBan`) |
 
 CSS prefix: `.rim-cb-*` (control bar), `.rim-tile-*` (tiles), `.rim-pp-*` (participants panel), `.rim-chat*`, `.rim-conference*`, `.rim-hand-banner` / `.rim-pin-banner`, `.gr-*` (greenroom), all in `public/css/custom.css`. LiveKit prefab styles loaded lazily from `public/css/livekit-prefabs.css` (do not edit — it's a vendored build; e.g. it already sets `object-fit: contain` for `[data-lk-source=screen_share]`).
 
@@ -49,7 +50,7 @@ The authoritative description lives in `RIM_System_Architecture.md`. In short, `
 
 - **`isSessionHost`** — identity. A `HostAssignment` for this exact session. **No role bypass.** Drives the teal **Host** pill (`meta.host`).
 - **`isProgramTeacher`** — a `ProgramTeacher` row **or** an active assignment in a hub whose `assignmentGrantsTeacher` is true. Drives the **Teacher** pill (`meta.teacher`) + the bell-friendly `teacher` audio profile.
-- **`isCoHost`** — capability. Any active host-team `HubMember` (`hostingCapability`), `HOST_MANAGER`, ADMIN, GUIDING_TEACHER. Gates mute, Mute All, Share Screen, Bell mode, manage participants. When neither Host nor Teacher applies, drives the **Host Volunteer** pill (`meta.cohost`).
+- **`isCoHost`** — capability. Any active host-team `HubMember` (`hostingCapability`), `HOST_MANAGER`, ADMIN, GUIDING_TEACHER. Gates mute, Mute All, Share Screen, Bell mode, **ask-to-unmute**, **remove participant**, manage participants. When neither Host nor Teacher applies, drives the **Host Volunteer** pill (`meta.cohost`).
 - **`hasEndAllAuthority`** — capability. Assigned host OR ADMIN OR GUIDING_TEACHER OR Teacher-when-no-host. Gates End-for-All (button label + `end-session` route).
 - **`isHostTeam`** — gates Step-In visibility (`isHostTeam && !isSessionHost`).
 
@@ -122,6 +123,42 @@ One `useEffect` drives `layoutContext.pin` (LiveKit's focus pin). **Precedence, 
 
 ---
 
+## Crash safety net (session 147)
+
+`RoomErrorBoundary` wraps `VideoRoom` in `app/session/[slug]/page.tsx`. **Before it existed, the app had no React error boundary anywhere** — so any uncaught render throw inside the room (LiveKit layout components included) fell through to Next.js's last-resort white "Application Error" screen. That is exactly what every *remote* participant saw when a screen share started: the share's *receiver* render path threw, and with no boundary each viewer's whole app white-screened at once (the sharer, who runs a different code path, stayed in — which is the signature of a receiver-side crash, not a room-wide failure).
+
+- The boundary degrades a crash to a contained **"Something interrupted the room — Rejoin"** screen (`.vs-message--crash`, absolutely positioned over the `.vs-room` area so the header stays usable). **Rejoin** calls `onRecover` = the page's `retry()` (fresh token + full remount).
+- `componentDidCatch` logs `console.error("[rim-room-crash]", error, componentStack)`. The **specific** screen-share throwing line is still unconfirmed — capture it with a two-window repro (console open on the *viewer*); the boundary makes that safe to run live. Backlog `2026-06-11-001`.
+- This is the categorical fix (contained failure regardless of the bug); fixing the specific trigger is the follow-on.
+
+## Host controls — mute, ask-to-unmute, remove (session 147)
+
+All gated by `isCoHost`, re-checked server-side via `resolveSessionRole` (pills are never the gate).
+
+- **Ask-to-unmute** — on a muted roster row the action slot becomes "Ask to unmute". It publishes a data-channel packet on `UNMUTE_REQUEST_TOPIC` (`"rim-unmute-request"`, exported from `ParticipantsPanel`) addressed to that identity (`destinationIdentities`). `RIMConference` runs an always-on `DataReceived` listener for that topic (ignored if the mic is already on) → a centered **"{Name} is inviting you to unmute — [Unmute] [Stay muted]"** prompt. The recipient's own tap calls `setMicrophoneEnabled(true)` — **we can never force a mic on (browser consent); the invitation + their tap IS the feature.** Same trust tier as Reactions. The unread-chat badge listener filters by `CHAT_TOPIC`, so the new topic can't inflate it.
+- **Remove participant** — `POST /api/livekit/remove-participant` (mirrors `mute-participant`: auth → `assertSessionDateInWindow` → `resolveSessionRole` `isCoHost` → `RoomServiceClient.removeParticipant`, benign no-op on a left target). A row "Remove" opens a 3-option confirm: **remove-can-rejoin** / **remove-for-the-session** / cancel (random taps survivable — nothing destructive on one tap).
+- **Session bans** — remove-for-the-session writes a `SessionBan` row (`session_bans` table) **before** the kick (so a kick/leave race can't beat a rejoin). Enforced at all three token-mint paths: `/token` (members by `identity` = userId; **ADMIN/GT exempt**, mirroring the time-gate bypass), `/guest-token` (guests by **case-insensitive display name** — guest identities are minted fresh per join, so the name is the only stable handle), and `/step-in` (checked **before** the HostAssignment upsert — without it a banned host-team member could re-enter *as the Session Host*; reviewer finding). `name` is stored on a ban row **only for guest identities** — storing it on member rows would collaterally block a legitimate same-named guest. Bans expire naturally with the per-day room name (no cleanup).
+- **Removed screen** — `classifyDisconnect` maps `DisconnectReason.PARTICIPANT_REMOVED` → a new `removed` `LeaveKind` → an honest "You've been removed from this session" page. It must NOT fall into the `ended` branch (that says "Session ended — thank you for practicing together", a falsehood for someone just removed).
+- **Open question (Jesse's call):** any co-host can remove/ban the assigned Host or another co-host — only self-removal is blocked. Same peer surface as Mute, but a ban's blast radius is larger (a banned non-ADMIN host is locked out of their own session). Backlog `2026-06-11-002`.
+
+## Context-aware Step-In (session 147)
+
+The Step-In button (page header, `isHostTeam && !isSessionHost`) previously always read "Step in as Host" and a coordinator who was acting host but not the *assigned* host clicked it cold. Now `RIMConference` derives **host-presence** (`meta.host` on the local participant or any remote) and reports it up via `onHostPresence` → `VideoRoom` → page state. The label: **"No host yet — Step in"** (no host present) / **"Take over as host"** (a host is present) / "Step in as host" (unknown — room not mounted). A plain-language **confirm panel** opens before `handleStepIn` runs. The page resets `hostPresent` to `null` on leave/reload so a prior connection's signal can't drive the next one's label. `onHostPresence` is metadata-derived → a UI cue only; never gate a real action on it.
+
+## Chat + Participants layout (session 147)
+
+The two panels share a right-side column (`.rim-conference__side`) inside `RIMConference`'s main flex row. **Desktop (≥769px):** `ParticipantsPanel` docks `position:static` above chat, each `flex 1 1 50%`, Zoom-style — both visible at once; a single open panel fills the column. **Phones (≤768px):** the wrapper is `display:contents`, so each panel keeps its original behavior (participants = fixed overlay + backdrop, chat = sidebar) — a 390px phone can't host video plus two panels. `ParticipantsPanel` was moved out of the overlay-siblings block into this column (it still renders its own backdrop, hidden on desktop via CSS).
+
+## Audio & echo — the standing decision (session 147)
+
+Self-echo ("people hear themselves echoed through me") was diagnosed end-to-end and is **not a code defect**:
+
+- **Echo cancellation is ON** for all three audio profiles (`VideoRoom.buildRoomOptions`), and has been since April (`261a6fe` flipped the host profile `false→true`). There is exactly one `RoomAudioRenderer` and no local-audio loopback. Don't "fix" echo by toggling capture flags — it's already correct.
+- **Echo is an *endpoint* problem, and the source is never the listener.** A person hears their own double only because some *other* endpoint's open mic is re-broadcasting the room. Browser AEC cannot cancel loud speakers, split-device setups (mic on one device, sound out another), or cross-device audio. The confirmed real-world source: a teacher's **wireless mic → Universal Audio Volt interface → computer speakers** (split-device). The fix is **endpoint-side** — route output to a headphone so the mic never hears the room (headphones/output-routing, AirPods output-only, a clear-tube IFB earpiece off the interface).
+- **Krisp BVC** (background voice cancellation) is the only in-room "Zoom-parity" lever — it strips *other* voices from a source's outbound mic, even on speakers. It works in the browser now (`@livekit/krisp-noise-filter` 0.4.x + `useBVC`, installed via `useKrispNoiseFilter`'s `filterOptions`), is a small code change, and runs on the *source's* machine only (you don't need every member to have it). **But it requires LiveKit's Ship plan ($50/mo) + $0.0012/min metered (~$55–90/mo) — shelved on cost** (RIM left Zoom for cost + integration; a recurring fee defeats half the point). Endpoint Krisp desktop / macOS Voice Isolation are the free per-machine equivalents, but both sit *upstream* of Bell mode (they'd eat the bell — a toggle each ring; a headphone avoids that).
+- **"Layer 1"** — an in-room nudge that detects a mismatched output route (mic belongs to a headset/AirPods but sound is going to laptop speakers) and offers a one-tap "send sound to headset" — was scoped but **not built**: Jesse declined (the confirmed source is his own endpoint; sessions already invite people to mute). It's free, code-only, available later if member-side echo materializes.
+- **The platform choice stands.** The real fork was always *native app vs browser*; browser was chosen for cost + integration + no-install joining, all still true. Native-app rebuild (FaceTime-grade system AEC) was rejected at session 120 and reaffirmed here (app-store + install friction + permanent double-maintenance).
+
 ## Common pitfalls
 
 - **Custom tiles must use `trackRef.participant`**, not `useMaybeParticipantContext()` — GridLayout provides only `TrackRefContext`.
@@ -135,11 +172,19 @@ One `useEffect` drives `layoutContext.pin` (LiveKit's focus pin). **Precedence, 
 - **Step-In is serialized by a `pg_advisory_xact_lock`**, NOT a DB unique index (session 144) — `host_assignments` is shared with the multi-claim greeter hub, so a unique constraint would forbid legitimate greeter rows. Keep the lock **`xact`-scoped** (Neon PgBouncer pooling leaks a session lock) and keep token issuance + notifications *outside* the transaction.
 - **Guest identity is trusted only with the `guest-` prefix** (CHAT-1, session 144) — the chat route rejects any `guestIdentity` without it (member ids are cuids); the "Guest" badge + DM scoping both key off this immutable, server-issued prefix. Guest-to-guest binding (verify the token) is the deferred next step.
 - **Connect-cancel on unmount** (reviewer note) — navigating away *while still connecting* can fire `onConnectError` on an unmounting component; React no-ops the `setState`. Harmless — don't "fix" it with a ref-guard that breaks the real CONN-1 path.
+- **A Rejoin path MUST pass through `state="loading"`** before remounting (session 147) — the guest `joinAsGuest` originally didn't, so a crash-boundary/connection-lost Rejoin remounted `LiveKitRoom` with the *old* token still in state; livekit-client's already-connected early-return then silently discarded the fresh token. `loadToken` and `joinAsGuest` both set `"loading"` (which unmounts the room) before fetching. Keep it.
+- **The app has exactly one error boundary** (`RoomErrorBoundary`, session 147) and it's scoped to the room. A render throw *outside* it still white-screens. If you add another high-stakes client surface, give it its own boundary — don't assume one exists.
+- **`SessionBan` enforcement lives at every token-mint path** — `/token`, `/guest-token`, AND `/step-in`. If you add a fourth way to mint a room token, it must check the ban too (the step-in path was the reviewer's catch). ADMIN/GT are exempt by design.
+- **Guest bans are name-based and evadable** — a removed guest who rejoins under a different display name slips the ban (guest identities are minted fresh per join). Accepted limitation; the host re-removes. Member bans (by id) are airtight. Binding a guest to a verified token is the deferred hardening (also noted in CHAT-1).
+- **Echo is not a capture-flag bug** — AEC is already on for all profiles; don't re-litigate it in `buildRoomOptions`. See "Audio & echo" above; the fix is endpoint-side or (paid) BVC, not a constraint toggle.
 
 ---
 
 ## Deferred / known gaps
 
+- **Screen-share specific throwing line** (session 147) — the `RoomErrorBoundary` now *contains* the crash, but the exact render exception is unconfirmed. Capture it with a two-window repro (console on the viewer) → fix the line. Backlog `2026-06-11-001`.
+- **Echo — BVC escalation** (session 147) — if endpoint fixes (headphones / output routing) don't resolve member-side echo, the in-room lever is LiveKit Krisp **BVC** (~$55–90/mo on the Ship plan; `@livekit/krisp-noise-filter` 0.4.x + `useBVC`). Shelved on cost. **"Layer 1"** (free, in-room output-routing-mismatch nudge) was scoped but not built — available later. See "Audio & echo".
+- **Co-host can remove/ban the assigned Host** (session 147) — only self-removal is blocked. Decide whether to reserve remove-for-the-session for the assigned host / a manager. Backlog `2026-06-11-002`.
 - **Latency / sync tuning** (lip-sync, occasional desync) — needs a live measurement pass (LiveKit stats + Krisp A/B). Don't change codec/bitrate blind.
 - **Mobile pin-from-tile** — the Pin button is hover-reveal (desktop), parity with the Mute button. Touch can unpin (banner) but not initiate a pin. A Pin action in the Participants panel would close the gap.
 - **Sharer's own focus tile** can be blank during a whole-screen share (recursive capture). Could suppress share-focus for the sharer specifically.
