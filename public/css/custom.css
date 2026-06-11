@@ -75,8 +75,8 @@
 
 :root {
   /* Colors */
-  --rim-bg:          #f4efe8;  /* warm oat — primary page background */
-  --rim-bg-accent:   #ece4d9;  /* warm tan — secondary background, for gentle separation + depth (placeholder) */
+  --rim-bg:          #fffbf4;  /* warm cream — primary page background (lighter) */
+  --rim-bg-accent:   #f4efe8;  /* warm oat — secondary background, for gentle separation (darker) */
   --rim-dark:        #0d2235;  /* deep navy */
   --rim-blue:        #31576d;  /* main blue — hero, footer, buttons, links */
   --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
