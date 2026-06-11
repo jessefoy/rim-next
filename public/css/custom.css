@@ -2074,8 +2074,8 @@ h4 { font-size: var(--text-h4); }
 
 .pg-quote__text {
   font-family: var(--font-serif);
-  font-size: 21px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 400;
   font-style: normal;
   line-height: 160%;
   color: var(--rim-text);
