@@ -132,11 +132,6 @@
   /* Layout */
   --reading-width: 700px;
 
-  /* Floating nav — total height of the nav strip (top gap + pill height).
-     The home/program header areas pull up by this so the pill hovers over them.
-     Keep in sync with .nav padding-top + .nav__inner height. */
-  --nav-strip-h: 87px;
-
   /* Card lift — the single reusable shadow for discrete white cards on the
      warm ground. Deliberately a whisper (matches the reference); the
      white-on-warm contrast + rounded corners do most of the separating. */
@@ -496,10 +491,6 @@ h4 { font-size: var(--text-h4); }
   align-items: center;
   background-color: var(--rim-dark);
   overflow: hidden;
-  /* The floating nav hovers over this area — pull the hero up behind the nav
-     strip so its backdrop (the video, for now) fills the pill's float gaps.
-     The final backdrop (darker-warm-tone vs. keep-hero) is the next decision. */
-  margin-top: calc(-1 * var(--nav-strip-h));
 }
 .hp-hero__video {
   position: absolute;
@@ -2011,12 +2002,9 @@ h4 { font-size: var(--text-h4); }
   background-size: cover;
   background-position: center 40%;
   background-repeat: no-repeat;
-  /* Full-bleed to the very top — the floating nav hovers on the hero (same
-     pull-up as .hp-hero). Top padding restores the nav strip so the title
-     clears the pill; bottom is the quote's landing zone (the quote overlaps
-     up into it and straddles the seam below). */
-  margin-top: calc(-1 * var(--nav-strip-h));
-  padding: calc(94px + var(--nav-strip-h)) 24px 178px;
+  /* Bottom padding is the quote's landing zone — the quote overlaps up into
+     it and straddles the seam below. */
+  padding: 94px 24px 178px;
   text-align: center;
   position: relative;
 }
@@ -2650,7 +2638,7 @@ h4 { font-size: var(--text-h4); }
 @media screen and (max-width: 767px) {
   /* Reduce hero padding and card overlap on mobile —
      less room for the effect, smaller overlap still reads well */
-  .pg-hero          { padding: calc(60px + var(--nav-strip-h)) 24px 110px; }
+  .pg-hero          { padding: 60px 24px 110px; }
   .pg-hero__title   { font-size: 36px; }
   .pg-quote         { padding: 28px 24px 24px; margin-top: -50px; }
   .pg-quote__text   { font-size: var(--text-body); }
@@ -7941,26 +7929,17 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   position: sticky;
   top: 0;
   z-index: 100;
-  background: transparent;     /* floats — the header area shows behind the pill */
-  padding: 15px 24px 0;        /* the float gap: 15px above, 24px each side */
+  background: #fff;
 }
 
-/* The bar itself IS the floating pill (Esther-Perel-style header).
-   It hovers on the header area; the corners + margin read as "lifted." */
 .nav__inner {
   display: flex;
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 28px;
-  height: 72px;
+  padding: 0 24px;
+  height: 100px;
   gap: 8px;
-  background: #fff;
-  border-radius: 18px;
-  /* Scoped exception to the no-shadow rule (2nd, after .rim-cb-popover):
-     a soft, subtle lift for the floating header — the reference has it.
-     Two layers: a faint contact shadow + a wide soft ambient one. */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), 0 12px 30px rgba(0, 0, 0, 0.10);
 }
 
 /* Brand */
@@ -8158,9 +8137,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   .nav__donate   { display: none; }
   .nav__hamburger { display: flex; }
   .nav__brand-name { font-size: var(--text-small); }
-  /* Tighter float on phones (top gap unchanged so the pull-up still matches). */
-  .nav            { padding-left: 12px; padding-right: 12px; }
-  .nav__inner     { padding: 0 16px; border-radius: 14px; }
 }
 @media (min-width: 768px) {
   .nav__mobile { display: none !important; }
