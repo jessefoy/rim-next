@@ -75,8 +75,10 @@
 
 :root {
   /* Colors */
-  --rim-bg:          #fffbf4;  /* warm cream — primary page background (lighter) */
-  --rim-bg-accent:   #f4efe8;  /* warm oat — secondary background, for gentle separation (darker) */
+  /* Warm-neutral scale (light → dark): Bridal Heath / Dawn Pink / Pearl Bush */
+  --rim-bg-bright:   #fffbf4;  /* Bridal Heath — lightest; brighter-than-ground warm surfaces */
+  --rim-bg:          #f4efe8;  /* Dawn Pink — primary page background */
+  --rim-bg-accent:   #e7e0d7;  /* Pearl Bush — secondary, for gentle separation + depth */
   --rim-dark:        #0d2235;  /* deep navy */
   --rim-blue:        #31576d;  /* main blue — hero, footer, buttons, links */
   --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
