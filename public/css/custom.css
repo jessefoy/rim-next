@@ -78,7 +78,7 @@
   --rim-bg:          #f4efe8;  /* warm oat — primary page background */
   --rim-bg-accent:   #ece4d9;  /* warm tan — secondary background, for gentle separation + depth (placeholder) */
   --rim-dark:        #0d2235;  /* deep navy */
-  --rim-blue:        #31576d;  /* main teal-blue — hero, footer, buttons, links */
+  --rim-blue:        #31576d;  /* main blue — hero, footer, buttons, links */
   --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
   --rim-text:        #333333;  /* primary text */
   --rim-text-quote:  #555555;  /* pull-quotes, secondary text */
@@ -2045,6 +2045,7 @@ h4 { font-size: var(--text-h4); }
   letter-spacing: -0.5px;
   color: #fff;
   margin: 0 0 14px;
+  text-wrap: balance;  /* even lines whatever the title length */
 }
 
 .pg-hero__tagline {
@@ -2054,6 +2055,7 @@ h4 { font-size: var(--text-h4); }
   line-height: 1.4;
   color: rgba(255, 255, 255, 0.85);
   margin: 0;
+  text-wrap: balance;  /* even lines whatever the subtitle length */
 }
 
 /* ── Pull quote card ──
