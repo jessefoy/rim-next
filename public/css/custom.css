@@ -2141,6 +2141,19 @@ h4 { font-size: var(--text-h4); }
   margin: 0 0 16px;
 }
 
+/* ── Chapter eyebrows — quiet uppercase section openers on the page ground.
+   The page's chapter language: About / Details / Facilitators. Same geometry
+   as the hero eyebrow, inked for the warm ground. ── */
+.pg-eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin: 44px 0 14px;
+}
+
 .pg-detail-row {
   display: flex;
   align-items: center;
@@ -2219,6 +2232,38 @@ h4 { font-size: var(--text-h4); }
   margin-top: 20px;
   margin-bottom: 15px;
 }
+
+/* ── Closing invitation band — the page's intentional close.
+   Full-bleed Pearl Bush between the Dawn Pink content field and the blue
+   footer (cream → pearl → blue), echoing the reference's CTA-echo close.
+   One warm serif line + the page's single action. ── */
+.pg-close {
+  background: var(--rim-bg-accent);
+  padding: 64px 24px 72px;
+  text-align: center;
+}
+.pg-close__heading {
+  font-family: var(--font-serif);
+  font-size: var(--text-h2);
+  font-weight: 400;
+  color: var(--rim-text);
+  margin: 0;
+}
+.pg-close__line {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--rim-text-quote);
+  margin: 14px 0 0;
+}
+.pg-close__action { margin-top: 28px; }
+.pg-close__link {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--rim-mid);
+  text-decoration: underline;
+}
+.pg-close__link:hover { color: var(--rim-blue); }
 
 .pg-facilitator {
   font-family: var(--font-sans);
@@ -2660,6 +2705,7 @@ h4 { font-size: var(--text-h4); }
   .pg-hero__title   { font-size: 36px; }
   .pg-quote         { padding: 28px 24px 24px; margin-top: -50px; }
   .pg-quote__text   { font-size: var(--text-body); }
+  .pg-close         { padding: 48px 20px 56px; }
   .pg-cta-card      { padding: 24px 20px; }
   .pg-section-heading { font-size: var(--text-h3); }
   .pg-registration__inner { padding: 28px 20px; }
