@@ -95,6 +95,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Session ban — Step-In is a token-mint path like /token, so it must honor
+  // "Remove for the rest of this session" too. Without this, a banned
+  // host-team member could re-enter — as the Session Host, seizing the
+  // assignment (reviewer finding, session-room batch). Checked BEFORE the
+  // HostAssignment upsert so a refused stepper can't steal the host slot.
+  // ADMIN/GT exempt, mirroring the token route's safety-override posture.
+  if (!isAdmin && !roles.includes("GUIDING_TEACHER")) {
+    const banRoomName = roomNameForProgram(programSlug, effectiveSessionDate);
+    const ban = await db.sessionBan.findFirst({
+      where: { roomName: banRoomName, identity: session.user.id },
+      select: { id: true },
+    });
+    if (ban) {
+      return NextResponse.json(
+        {
+          error: "removed-from-session",
+          message: "You were removed from this session by its host.",
+        },
+        { status: 403 },
+      );
+    }
+  }
+
   // Step-In writes the single host slot for the program's primary hosting hub.
   // The historical DB unique on (programSlug, sessionDate) was dropped in
   // session 129 so the multi-claim greeter hub can hold many rows per session

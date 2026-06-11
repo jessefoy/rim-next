@@ -14,6 +14,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import ViewToggle, { type SessionView } from "@/components/session/ViewToggle";
+import RoomErrorBoundary from "@/components/session/RoomErrorBoundary";
 import type { LeaveKind } from "@/components/VideoRoom";
 
 const VideoRoom = dynamic(() => import("@/components/VideoRoom"), { ssr: false });
@@ -30,7 +31,7 @@ function readView(): SessionView {
   }
 }
 
-type State = "loading" | "guest-name" | "ready" | "connected" | "error" | "left" | "connection-lost" | "duplicate";
+type State = "loading" | "guest-name" | "ready" | "connected" | "error" | "left" | "connection-lost" | "duplicate" | "removed";
 
 export default function SessionPage() {
   const params = useParams();
@@ -58,6 +59,14 @@ export default function SessionPage() {
   const [isProgramTeacher, setIsProgramTeacher] = useState(false);
   const [audioProfile, setAudioProfile] = useState<"teacher" | "speaker" | "listener">("listener");
   const [steppingIn, setSteppingIn] = useState(false);
+  // Whether a designated host is present in the room (Host metadata flag on
+  // any participant). null = unknown (room not mounted yet). Drives the
+  // context-aware Step-In label so the button explains itself: it exists
+  // for the no-host moment, not as an instruction to every host-team member.
+  const [hostPresent, setHostPresent] = useState<boolean | null>(null);
+  // Step-In is deliberate: a confirm panel opens first (a coordinator
+  // clicked it cold during a live session thinking it applied to her).
+  const [stepInConfirmOpen, setStepInConfirmOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [teacherLabel, setTeacherLabel] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -96,6 +105,9 @@ export default function SessionPage() {
   const loadToken = useCallback(async () => {
     setError(null);
     setState("loading");
+    // Stale-presence guard: the previous connection's host-presence signal
+    // must not drive the Step-In label on the next one.
+    setHostPresent(null);
     try {
       const res = await fetch("/api/livekit/token", {
         method: "POST",
@@ -148,6 +160,12 @@ export default function SessionPage() {
     if (!guestName.trim()) { setState("guest-name"); return; }
     setJoiningAsGuest(true);
     setError(null);
+    // Must pass through "loading" so a Rejoin (crash boundary / connection
+    // lost) unmounts the old LiveKitRoom before the fresh token mounts —
+    // otherwise livekit-client's already-connected early-return silently
+    // discards the new token (reviewer finding, session-room batch).
+    setState("loading");
+    setHostPresent(null);
 
     try {
       const res = await fetch("/api/livekit/guest-token", {
@@ -219,10 +237,16 @@ export default function SessionPage() {
     //   otherwise → a real end (host ended, server ended, or they left)
     if (kind === "duplicate") { setState("duplicate"); return; }
     if (kind === "lost") { setState("connection-lost"); return; }
+    if (kind === "removed") { setState("removed"); return; }
     setState("left");
   }
 
+  const handleHostPresence = useCallback((present: boolean) => {
+    setHostPresent(present);
+  }, []);
+
   async function handleStepIn() {
+    setStepInConfirmOpen(false);
     setSteppingIn(true);
     try {
       const res = await fetch("/api/livekit/step-in", {
@@ -382,6 +406,29 @@ export default function SessionPage() {
     );
   }
 
+  // Removed by the host (the Remove control). Honest and calm — no false
+  // "thank you for practicing together," and no advertised rejoin path
+  // (a non-banned removal CAN rejoin, but the moment calls for pause, not
+  // a button that re-escalates).
+  if (state === "removed") {
+    return (
+      <div className="vs-page">
+        <div className="vs-message">
+          <p className="vs-message__title">You&apos;ve been removed from this session</p>
+          <p className="vs-message__text">
+            The session&apos;s host removed you. If you think this was a mistake,
+            please reach out to the host or the RIM team.
+          </p>
+          {!isGuest && (
+            <button className="btn" onClick={() => router.push("/account/dashboard")}>
+              Return to Dashboard
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Disconnected because the same member joined from another tab or device
   // (CONN-3) — not an end, so don't say "Session ended."
   if (state === "duplicate") {
@@ -410,12 +457,52 @@ export default function SessionPage() {
   return (
     <div className="vs-page" ref={pageRef}>
       <div className="vs-header">
-        {/* Left: Step-in (host-team non-hosts only) */}
+        {/* Left: Step-in (host-team non-hosts only). The label speaks to the
+            actual situation — the affordance exists for the no-host moment,
+            and a confirm step keeps a cold tap survivable (a designated
+            coordinator once clicked it mid-session thinking it was for her). */}
         <div className="vs-header__left">
           {isHostTeam && !isSessionHost && (
-            <button className="vs-header__stepin" onClick={handleStepIn} disabled={steppingIn}>
-              {steppingIn ? "Connecting…" : "Step in as Host"}
-            </button>
+            <div className="vs-stepin-anchor">
+              <button
+                className="vs-header__stepin"
+                onClick={() => setStepInConfirmOpen((v) => !v)}
+                disabled={steppingIn}
+                aria-haspopup="dialog"
+                aria-expanded={stepInConfirmOpen}
+              >
+                {steppingIn
+                  ? "Connecting…"
+                  : hostPresent === false
+                  ? "No host yet — Step in"
+                  : hostPresent === true
+                  ? "Take over as host"
+                  : "Step in as Host"}
+              </button>
+              {stepInConfirmOpen && !steppingIn && (
+                <div className="vs-stepin-confirm" role="dialog" aria-label="Step in as host">
+                  <p className="vs-stepin-confirm__title">
+                    {hostPresent === true ? "Take over as host?" : "Step in as host?"}
+                  </p>
+                  <p className="vs-stepin-confirm__text">
+                    {hostPresent === true
+                      ? "Someone is already hosting this session. Only continue if you've agreed to take over from them."
+                      : "You'll become this session's host, with host controls. This is for when no designated host is here."}
+                  </p>
+                  <div className="vs-stepin-confirm__actions">
+                    <button className="vs-stepin-confirm__yes" onClick={handleStepIn}>
+                      Yes, step in
+                    </button>
+                    <button
+                      className="vs-stepin-confirm__no"
+                      onClick={() => setStepInConfirmOpen(false)}
+                    >
+                      Not now
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
         {/* Center: program name */}
@@ -435,23 +522,26 @@ export default function SessionPage() {
       </div>
       <div className="vs-room">
         {token && wsUrl && (
-          <VideoRoom
-            token={token}
-            wsUrl={wsUrl}
-            isSessionHost={isSessionHost}
-            hasEndAllAuthority={hasEndAllAuthority}
-            isCoHost={isCoHost}
-            isProgramTeacher={isProgramTeacher}
-            teacherLabel={teacherLabel}
-            audioProfile={audioProfile}
-            programSlug={slug}
-            sessionDate={sessionDate}
-            guestKey={guestKey ?? undefined}
-            avatarUrl={avatarUrl}
-            view={view}
-            onLeave={handleLeave}
-            onConnectError={handleConnectError}
-          />
+          <RoomErrorBoundary onRecover={retry}>
+            <VideoRoom
+              token={token}
+              wsUrl={wsUrl}
+              isSessionHost={isSessionHost}
+              hasEndAllAuthority={hasEndAllAuthority}
+              isCoHost={isCoHost}
+              isProgramTeacher={isProgramTeacher}
+              teacherLabel={teacherLabel}
+              audioProfile={audioProfile}
+              programSlug={slug}
+              sessionDate={sessionDate}
+              guestKey={guestKey ?? undefined}
+              avatarUrl={avatarUrl}
+              view={view}
+              onLeave={handleLeave}
+              onConnectError={handleConnectError}
+              onHostPresence={handleHostPresence}
+            />
+          </RoomErrorBoundary>
         )}
       </div>
     </div>

@@ -194,6 +194,27 @@ export async function POST(req: NextRequest) {
   // explicit End-for-All, LiveKit's empty-room idle cleanup, and this
   // time gate refusing to issue tokens after the close window.
   const roomName = roomNameForProgram(program.slug, effectiveSessionDate);
+
+  // Session ban — "Remove for the rest of this session" (host control).
+  // Keyed per-roomName, so the ban expires naturally with the per-day room.
+  // ADMIN/GT exempt (mirrors the time-gate bypass: the safety surface stays
+  // open to the people responsible for the platform).
+  if (!isAdminOrGT) {
+    const ban = await db.sessionBan.findFirst({
+      where: { roomName, identity: session.user.id },
+      select: { id: true },
+    });
+    if (ban) {
+      return NextResponse.json(
+        {
+          error: "removed-from-session",
+          message: "You were removed from this session by its host.",
+        },
+        { status: 403 },
+      );
+    }
+  }
+
   // Full name (first + last) for the tile + roster — not just first name.
   const userName = sessionDisplayName(caller, session.user.name || "Member");
 

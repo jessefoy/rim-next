@@ -85,6 +85,26 @@ export async function POST(req: NextRequest) {
   const guestId = `guest-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const displayName = guestName.trim();
 
+  // Session ban — guests mint a fresh identity per join, so the display name
+  // is the only stable handle. Case-insensitive match per-roomName. A renamed
+  // guest slips this (documented limitation); the host can remove again.
+  const ban = await db.sessionBan.findFirst({
+    where: {
+      roomName,
+      name: { equals: displayName, mode: "insensitive" },
+    },
+    select: { id: true },
+  });
+  if (ban) {
+    return NextResponse.json(
+      {
+        error: "removed-from-session",
+        message: "You were removed from this session by its host.",
+      },
+      { status: 403 },
+    );
+  }
+
   // Guests are always Participant-tier: mic + camera only, no screen share, no admin.
   const token = await createRoomToken(
     guestId,

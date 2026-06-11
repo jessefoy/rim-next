@@ -1261,3 +1261,25 @@ model RateLimitWindow {
   @@index([expiresAt])
   @@map("rate_limit_windows")
 }
+
+// ─── SESSION BANS ─────────────────────────────────────────────────────────────
+//
+// "Remove for the rest of this session" in the session room. One row per
+// removal-with-ban; the token route refuses members by identity (userId) and
+// the guest-token route refuses guests by display name (guest identities are
+// minted fresh per join, so the name is the only stable handle — a determined
+// guest can rename, which is an accepted limitation; the host can remove
+// again). Rows are per-roomName (slug + date), so a ban naturally expires
+// with the session — no cleanup needed beyond room-name uniqueness per day.
+
+model SessionBan {
+  id         String   @id @default(cuid())
+  roomName   String
+  identity   String
+  name       String?
+  bannedById String
+  createdAt  DateTime @default(now())
+
+  @@index([roomName])
+  @@map("session_bans")
+}

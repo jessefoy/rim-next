@@ -13041,6 +13041,61 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .vs-header__stepin:hover { opacity: 0.85; }
 .vs-header__stepin:disabled { opacity: 0.5; cursor: default; }
+/* Step-In confirm — a deliberate pause before taking host controls.
+   Anchored under the header button; dark card matching the session chrome. */
+.vs-stepin-anchor { position: relative; display: inline-block; }
+.vs-stepin-confirm {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 60;
+  width: min(320px, calc(100vw - 16px));
+  background: #1f1f1f;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 14px;
+}
+.vs-stepin-confirm__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  color: #eee;
+  margin: 0 0 6px;
+}
+.vs-stepin-confirm__text {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: #aaa;
+  margin: 0 0 12px;
+}
+.vs-stepin-confirm__actions { display: flex; gap: 8px; }
+.vs-stepin-confirm__yes {
+  background: #2A7B6F;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.vs-stepin-confirm__yes:hover { opacity: 0.85; }
+.vs-stepin-confirm__no {
+  background: transparent;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 8px 14px;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  cursor: pointer;
+}
+.vs-stepin-confirm__no:hover { color: #eee; border-color: #666; }
 .vs-header__icon {
   display: inline-flex;
   align-items: center;
@@ -13168,6 +13223,14 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   min-height: 44px;
 }
 .vs-message__link:hover { color: var(--rim-text); }
+/* Crash-boundary fallback — fills the room area (RoomErrorBoundary).
+   .vs-room is position:relative, so inset:0 covers exactly the video area
+   while the header above stays visible and functional. */
+.vs-message--crash {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+}
 /* Guest entry form */
 .vs-guest-entry {
   max-width: 380px;
@@ -14078,15 +14141,69 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-pp__mute-btn:hover { background: rgba(255,255,255,0.2); }
 .rim-pp__mute-btn:disabled { opacity: 0.4; cursor: default; }
-.rim-pp__muted-pill {
-  padding: 3px 9px;
+/* Ask-to-unmute — sits in the muted row's action slot (the 🔇 icon already
+   communicates state); same base look as the Mute button. */
+.rim-pp__ask-btn { white-space: nowrap; }
+.rim-pp__ask-btn:disabled { opacity: 0.7; }
+/* Remove — quiet red-tinted entry point; the real decision happens in the
+   confirm block below the row (nothing destructive on one tap). */
+.rim-pp__remove-btn {
   background: transparent;
-  color: #888;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(220, 70, 70, 0.45);
+  color: #d98989;
   border-radius: 4px;
-  font-size: 11px;
+  padding: 3px 8px;
+  font-size: var(--text-xxs);
   font-family: var(--font-sans);
+  cursor: pointer;
+  flex-shrink: 0;
 }
+.rim-pp__remove-btn:hover { background: rgba(220, 70, 70, 0.15); color: #f0a3a3; }
+.rim-pp__remove-confirm {
+  margin: 2px 12px 10px;
+  padding: 12px;
+  background: #242424;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rim-pp__remove-confirm-text {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: #ddd;
+}
+.rim-pp__remove-confirm-btn {
+  background: #5a2626;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.rim-pp__remove-confirm-btn:hover { background: #6e2e2e; }
+.rim-pp__remove-confirm-btn--ban { background: #7a1f1f; }
+.rim-pp__remove-confirm-btn--ban:hover { background: #8e2525; }
+.rim-pp__remove-confirm-btn:disabled { opacity: 0.6; cursor: default; }
+.rim-pp__remove-confirm-cancel {
+  background: transparent;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.rim-pp__remove-confirm-cancel:hover { color: #eee; border-color: #666; }
 .rim-pp__row--self {
   position: sticky;
   top: 0;
@@ -14171,6 +14288,98 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-pp__mute-all:hover { background: rgba(255,255,255,0.2); }
 .rim-pp__mute-all:disabled { opacity: 0.5; cursor: default; }
+
+/* ─── Side column: Chat + Participants share the right rail ────────────
+   Desktop (≥769px): the Participants panel docks (static) above the chat,
+   Zoom-style — both visible at once, each scrolling its own half. A single
+   open panel fills the column. Phones (≤768px): the wrapper becomes
+   display:contents and both keep their original behavior (participants =
+   fixed overlay, chat = sidebar) — video + two panels can't fit. */
+@media (min-width: 769px) {
+  .rim-conference__side {
+    width: 300px;
+    flex-shrink: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #1a1a1a;
+    border-left: 1px solid rgba(255,255,255,0.1);
+  }
+  .rim-conference__side .rim-pp-backdrop { display: none; }
+  .rim-conference__side .rim-pp {
+    position: static;
+    width: auto;
+    flex: 1 1 50%;
+    min-height: 0;
+    border-left: none;
+    z-index: auto;
+  }
+  .rim-conference__side .rim-conference__chat {
+    width: auto;
+    border-left: none;
+    flex: 1 1 50%;
+    min-height: 0;
+  }
+  .rim-conference__side .rim-pp + .rim-conference__chat {
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+}
+@media (max-width: 768px) {
+  .rim-conference__side { display: contents; }
+}
+
+/* ─── Ask-to-unmute prompt (recipient side) ────────────────────────────
+   Centered above the control bar. One dominant action — the recipient's
+   own tap performs the unmute. */
+.rim-unmute-prompt {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 92px;
+  z-index: 70;
+  width: min(340px, calc(100vw - 24px));
+  background: #1f1f1f;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.rim-unmute-prompt__text {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: #eee;
+}
+.rim-unmute-prompt__actions { display: flex; gap: 10px; }
+.rim-unmute-prompt__yes {
+  background: #2A7B6F;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+.rim-unmute-prompt__yes:hover { opacity: 0.85; }
+.rim-unmute-prompt__no {
+  background: transparent;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 10px 14px;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.rim-unmute-prompt__no:hover { color: #eee; border-color: #666; }
 .rim-pp__notice {
   /* Amber on the dark panel (raw hex — the warning token fails contrast on
      near-black; same dark-surface exception as the control-bar popovers). */
@@ -14186,6 +14395,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
      DM action). (Audit CHAT-2.) */
   .rim-pp__name--action { min-height: 44px; }
   .rim-pp__mute-btn,
+  .rim-pp__remove-btn,
   .rim-pp__mute-all {
     min-height: 44px;
     display: inline-flex;

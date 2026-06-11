@@ -4435,6 +4435,39 @@ async function main() {
   }
 
   // ────────────────────────────────────────────────────────────────────────
+  // Session bans table — "Remove for the rest of this session" in the
+  // session room (host control). Per-roomName rows; bans expire naturally
+  // with the per-day room name. Idempotent: CREATE TABLE IF NOT EXISTS.
+  // ────────────────────────────────────────────────────────────────────────
+  const sessionBansFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'session_bans_v1'
+  `).catch(() => []);
+
+  if (sessionBansFlag.length === 0) {
+    console.log("→ Session bans table…");
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "session_bans" (
+        "id"         TEXT PRIMARY KEY,
+        "roomName"   TEXT NOT NULL,
+        "identity"   TEXT NOT NULL,
+        "name"       TEXT,
+        "bannedById" TEXT NOT NULL,
+        "createdAt"  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await db.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "session_bans_roomName_idx"
+        ON "session_bans" ("roomName")
+    `);
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('session_bans_v1')`,
+    );
+    console.log("  ✔ session_bans table ready.");
+  } else {
+    console.log("  ⏭ session_bans table already applied.");
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
   // Seed the "join-welcome" email template (sent alongside the sign-in code
   // when a new member completes the /join threshold). Defensive
   // findUnique → create per CLAUDE.md Email Template Gate — preserves any

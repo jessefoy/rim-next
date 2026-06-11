@@ -27,6 +27,15 @@ const SIGNAL_EMOJI: Record<NonNullable<Signal>, string> = {
   no: "✗",
 };
 
+/**
+ * Data-channel topic for "ask to unmute" — a co-host taps the button on a
+ * muted row; the target gets a calm one-tap prompt (rendered by
+ * RIMConference). We can never force a mic on (browser consent), so the
+ * invitation + the recipient's own tap IS the feature. Client-to-client like
+ * Reactions: same trust tier as metadata — a UI courtesy, not a control.
+ */
+export const UNMUTE_REQUEST_TOPIC = "rim-unmute-request";
+
 const SEARCH_THRESHOLD = 10;
 
 function getMetadata(p: { metadata?: string }): ParticipantMetadata {
@@ -69,6 +78,11 @@ export default function ParticipantsPanel({ open, onClose, participants, program
   const [mutingAll, setMutingAll] = useState(false);
   const [muteAllResult, setMuteAllResult] = useState<number | null>(null);
   const [muteNotice, setMuteNotice] = useState<string | null>(null);
+  // Brief per-identity "Asked ✓" feedback after an ask-to-unmute send.
+  const [asked, setAsked] = useState<Record<string, boolean>>({});
+  // Remove flow: which row's confirm block is open / in flight.
+  const [removeConfirm, setRemoveConfirm] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   // Tick to force re-render when remote participants' mic state changes,
   // since RemoteParticipant prop identity doesn't change on toggle.
@@ -89,12 +103,12 @@ export default function ParticipantsPanel({ open, onClose, participants, program
     };
   }, [room]);
 
-  function flashMuteNotice() {
-    // Brief, calm feedback when a mute didn't take — almost always a co-host
-    // whose hosting capability was paused mid-session (the server 403s). The
-    // common "participant just left" race returns ok and stays correctly
-    // silent (the mute's end-state already holds). (Audit CHAT-3.)
-    setMuteNotice("Couldn't mute — you may no longer have host controls.");
+  function flashMuteNotice(message?: string) {
+    // Brief, calm feedback when a host action didn't take — almost always a
+    // co-host whose hosting capability was paused mid-session (the server
+    // 403s). The common "participant just left" race returns ok and stays
+    // correctly silent (the action's end-state already holds). (Audit CHAT-3.)
+    setMuteNotice(message ?? "Couldn't mute — you may no longer have host controls.");
     setTimeout(() => setMuteNotice(null), 4000);
   }
 
@@ -111,6 +125,50 @@ export default function ParticipantsPanel({ open, onClose, participants, program
       flashMuteNotice();
     }
     setMuting((prev) => ({ ...prev, [identity]: false }));
+  }
+
+  async function askToUnmute(identity: string) {
+    if (!room) return;
+    try {
+      const payload = new TextEncoder().encode(
+        JSON.stringify({ fromName: room.localParticipant?.name || "The host" }),
+      );
+      await room.localParticipant.publishData(payload, {
+        reliable: true,
+        topic: UNMUTE_REQUEST_TOPIC,
+        destinationIdentities: [identity],
+      });
+      setAsked((prev) => ({ ...prev, [identity]: true }));
+      setTimeout(() => {
+        setAsked((prev) => ({ ...prev, [identity]: false }));
+      }, 4000);
+    } catch {
+      flashMuteNotice("Couldn't send the unmute invitation.");
+    }
+  }
+
+  async function removeParticipant(identity: string, name: string, banForSession: boolean) {
+    setRemoving(identity);
+    try {
+      const res = await fetch("/api/livekit/remove-participant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programSlug,
+          sessionDate,
+          participantIdentity: identity,
+          participantName: name,
+          banForSession,
+        }),
+      });
+      if (!res.ok) {
+        flashMuteNotice("Couldn't remove — you may no longer have host controls.");
+      }
+    } catch {
+      flashMuteNotice("Couldn't remove — you may no longer have host controls.");
+    }
+    setRemoving(null);
+    setRemoveConfirm(null);
   }
 
   async function muteAll() {
@@ -268,8 +326,10 @@ export default function ParticipantsPanel({ open, onClose, participants, program
             const meta = getMetadata(p);
             const isMicEnabled = p.isMicrophoneEnabled;
             const queuePos = queueMap.get(p.identity);
+            const displayName = p.name || p.identity;
             return (
-              <div key={p.identity} className="rim-pp__row">
+              <div key={p.identity} className="rim-pp__entry">
+              <div className="rim-pp__row">
                 <span className="rim-pp__signal">
                   {meta.signal === "hand" && queuePos != null
                     ? `${queuePos} ✋`
@@ -313,14 +373,68 @@ export default function ParticipantsPanel({ open, onClose, participants, program
                       className="rim-pp__mute-btn"
                       onClick={() => muteParticipant(p.identity)}
                       disabled={muting[p.identity]}
-                      title={`Mute ${p.name || p.identity}`}
+                      title={`Mute ${displayName}`}
                     >
                       {muting[p.identity] ? "…" : "Mute"}
                     </button>
                   ) : (
-                    <span className="rim-pp__muted-pill">Muted</span>
+                    // The 🔇 icon already says "muted" — this slot becomes
+                    // the invitation affordance (we can't force a mic on;
+                    // the recipient gets a one-tap prompt).
+                    <button
+                      className="rim-pp__mute-btn rim-pp__ask-btn"
+                      onClick={() => askToUnmute(p.identity)}
+                      disabled={!!asked[p.identity]}
+                      title={`Invite ${displayName} to unmute`}
+                    >
+                      {asked[p.identity] ? "Asked ✓" : "Ask to unmute"}
+                    </button>
                   )
                 )}
+                {isCoHost && (
+                  <button
+                    className="rim-pp__remove-btn"
+                    onClick={() =>
+                      setRemoveConfirm((prev) => (prev === p.identity ? null : p.identity))
+                    }
+                    aria-expanded={removeConfirm === p.identity}
+                    title={`Remove ${displayName} from this session`}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              {/* Remove confirm — plain language, a clear escape, and the two
+                  modes Jesse specified. Random taps are survivable: nothing
+                  happens without one of the explicit Remove choices. */}
+              {isCoHost && removeConfirm === p.identity && (
+                <div className="rim-pp__remove-confirm" role="dialog" aria-label={`Remove ${displayName}`}>
+                  <p className="rim-pp__remove-confirm-text">
+                    Remove {displayName} from this session?
+                  </p>
+                  <button
+                    className="rim-pp__remove-confirm-btn"
+                    onClick={() => removeParticipant(p.identity, displayName, false)}
+                    disabled={removing === p.identity}
+                  >
+                    {removing === p.identity ? "Removing…" : "Remove — they can rejoin"}
+                  </button>
+                  <button
+                    className="rim-pp__remove-confirm-btn rim-pp__remove-confirm-btn--ban"
+                    onClick={() => removeParticipant(p.identity, displayName, true)}
+                    disabled={removing === p.identity}
+                  >
+                    {removing === p.identity ? "Removing…" : "Remove for the rest of this session"}
+                  </button>
+                  <button
+                    className="rim-pp__remove-confirm-cancel"
+                    onClick={() => setRemoveConfirm(null)}
+                    disabled={removing === p.identity}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
               </div>
             );
           })}

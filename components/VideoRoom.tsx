@@ -76,17 +76,20 @@ type Phase = "greenroom" | "recovery" | "conference";
 
 /** Why the room closed, classified for the page so it can show the right
  *  screen without importing livekit-client itself. (Audit CONN-2/CONN-3.) */
-export type LeaveKind = "ended" | "lost" | "duplicate";
+export type LeaveKind = "ended" | "lost" | "duplicate" | "removed";
 
 function classifyDisconnect(reason?: DisconnectReason): LeaveKind {
   // Same member joined from another tab/device — not an end.
   if (reason === DisconnectReason.DUPLICATE_IDENTITY) return "duplicate";
+  // A host removed this participant (the Remove control). Telling them
+  // "Session ended — thank you for practicing together" would be false;
+  // the page shows an honest, calm removal screen instead.
+  if (reason === DisconnectReason.PARTICIPANT_REMOVED) return "removed";
   switch (reason) {
     // Deliberate / authoritative ends → the calm "Session ended" screen.
     case DisconnectReason.CLIENT_INITIATED:
     case DisconnectReason.ROOM_DELETED:
     case DisconnectReason.SERVER_SHUTDOWN:
-    case DisconnectReason.PARTICIPANT_REMOVED:
       return "ended";
     // Everything else (network drop past LiveKit's retry ladder, signal
     // close, join failure, unknown) — the room may still be live → offer Rejoin.
@@ -162,9 +165,12 @@ interface Props {
    *  Without this the user is stranded on the Greenroom "Connecting…" with
    *  no retry — LiveKitRoom swallows the rejection. (Audit CONN-1.) */
   onConnectError?: () => void;
+  /** Whether a designated host (Host metadata flag) is in the room — drives
+   *  the page header's context-aware Step-In label. UI cue only. */
+  onHostPresence?: (present: boolean) => void;
 }
 
-export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndAllAuthority = false, isCoHost = false, isProgramTeacher = false, teacherLabel = null, audioProfile = "listener", programSlug, sessionDate, guestKey, avatarUrl, view = "gallery", onLeave, onConnectError }: Props) {
+export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndAllAuthority = false, isCoHost = false, isProgramTeacher = false, teacherLabel = null, audioProfile = "listener", programSlug, sessionDate, guestKey, avatarUrl, view = "gallery", onLeave, onConnectError, onHostPresence }: Props) {
   const roomOptions = buildRoomOptions(audioProfile);
   const [phase, setPhase] = useState<Phase>("greenroom");
 
@@ -216,6 +222,7 @@ export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndA
             guestKey={guestKey}
             view={view}
             initialAvatarUrl={avatarUrl ?? null}
+            onHostPresence={onHostPresence}
           />
         )}
       </LiveKitRoom>

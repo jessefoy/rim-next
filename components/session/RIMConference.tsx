@@ -40,7 +40,7 @@ import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
 import { Track, RoomEvent, LocalAudioTrack, DataPacket_Kind, ConnectionState } from "livekit-client";
 import type { LocalTrackPublication } from "livekit-client";
 import RIMParticipantTile from "./RIMParticipantTile";
-import ParticipantsPanel from "./ParticipantsPanel";
+import ParticipantsPanel, { UNMUTE_REQUEST_TOPIC } from "./ParticipantsPanel";
 import VideoSettingsPanel from "./VideoSettingsPanel";
 import RIMControlBar from "./RIMControlBar";
 import RIMChat, { CHAT_TOPIC } from "./RIMChat";
@@ -65,13 +65,18 @@ interface Props {
   guestKey?: string;
   view?: "speaker" | "gallery";
   initialAvatarUrl: string | null;
+  /** Reports whether any participant (local included) carries the Host
+   *  metadata flag — i.e. a designated host is present in the room. Drives
+   *  the page header's context-aware Step-In label. UI-only signal:
+   *  metadata is forgeable, so never gate a real action on this. */
+  onHostPresence?: (present: boolean) => void;
 }
 
 function getMetadata(raw: string | undefined): ParticipantMetadata {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoHost, isProgramTeacher, teacherLabel, programSlug, sessionDate, guestKey, view = "gallery", initialAvatarUrl }: Props) {
+export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoHost, isProgramTeacher, teacherLabel, programSlug, sessionDate, guestKey, view = "gallery", initialAvatarUrl, onHostPresence }: Props) {
   const { localParticipant } = useLocalParticipant();
   // Connection state — drives the "Reconnecting…" banner during a transient
   // drop so the participant knows a recovery is underway (rather than staring
@@ -100,6 +105,11 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
   // Set by clicking Pin on a tile; overrides active-speaker auto-follow so a
   // viewer can keep e.g. the teacher full-screen regardless of who's speaking.
   const [pinnedIdentity, setPinnedIdentity] = useState<string | null>(null);
+  // Ask-to-unmute prompt — the name of the co-host inviting this user to
+  // unmute, or null. Set by the data-channel listener below; cleared by
+  // either of the prompt's two buttons. We can't force a mic on (browser
+  // consent) — the user's own tap on "Unmute" is the unmute.
+  const [unmuteAskFrom, setUnmuteAskFrom] = useState<string | null>(null);
 
   // Raised hands — reactive because of updateOnlyOn above
   const raisedHands = remoteParticipants.filter(
@@ -289,6 +299,36 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
     return () => { roomCtx.off(RoomEvent.DataReceived, handler); };
   }, [roomCtx]);
 
+  // Ask-to-unmute listener — a co-host tapped "Ask to unmute" on this user's
+  // roster row (sent via data channel, addressed to this identity only).
+  // Ignored when the mic is already on (a stale or racing invite). Same
+  // trust tier as Reactions: any client could emit this topic, but the
+  // prompt only ever *invites* — the user's own tap performs the unmute.
+  useEffect(() => {
+    if (!roomCtx) return;
+    const handler = (
+      payload: Uint8Array,
+      _participant: unknown,
+      _kind?: DataPacket_Kind,
+      topic?: string,
+    ) => {
+      if (topic !== UNMUTE_REQUEST_TOPIC) return;
+      if (roomCtx.localParticipant?.isMicrophoneEnabled) return;
+      let fromName = "The host";
+      try {
+        const parsed = JSON.parse(new TextDecoder().decode(payload));
+        if (typeof parsed.fromName === "string" && parsed.fromName.trim()) {
+          fromName = parsed.fromName.trim();
+        }
+      } catch {
+        // Unparseable payload — keep the generic name.
+      }
+      setUnmuteAskFrom(fromName);
+    };
+    roomCtx.on(RoomEvent.DataReceived, handler);
+    return () => { roomCtx.off(RoomEvent.DataReceived, handler); };
+  }, [roomCtx]);
+
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -302,6 +342,21 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
   // covers remote metadata changes via its updateOnlyOn config above; this
   // adds the symmetric reactivity for the local participant.
   const { metadata: localMetadataRaw } = useParticipantInfo({ participant: localParticipant });
+
+  // Host presence — true when any participant (local included) carries the
+  // Host metadata flag. Reported up to the page so the Step-In affordance
+  // can speak to the actual situation ("No host yet" vs "Take over").
+  // Reactive via the same sources as the hand-raise sort: remoteParticipants
+  // re-renders on ParticipantMetadataChanged / connect / disconnect, and
+  // localMetadataRaw covers the local seeding effect landing.
+  const hostPresent =
+    getMetadata(localMetadataRaw ?? localParticipant?.metadata).host === true ||
+    remoteParticipants.some((p) => getMetadata(p.metadata).host === true);
+  const onHostPresenceRef = useRef(onHostPresence);
+  useEffect(() => { onHostPresenceRef.current = onHostPresence; });
+  useEffect(() => {
+    onHostPresenceRef.current?.(hostPresent);
+  }, [hostPresent]);
 
   // Zoom-style speaking queue: hand-raised tiles sort to the top-left of
   // the grid in the order they were raised (ascending raisedHandAt). Tiles
@@ -593,25 +648,48 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
             )}
           </div>
 
-          {chatOpen && (
-            <div className="rim-conference__chat">
-              <div className="rim-chat-header">
-                <span className="rim-chat-header__title">Chat</span>
-                <button
-                  className="rim-chat-header__close"
-                  onClick={() => setChatOpen(false)}
-                  aria-label="Close chat"
-                >
-                  ✕
-                </button>
-              </div>
-              <RIMChat
+          {/* Right side column — Chat and Participants share it. On desktop
+              both can be open at once, stacked Zoom-style (participants above
+              chat); on phones (≤768px) the wrapper is display:contents and
+              each keeps its original overlay/sidebar behavior — a phone
+              can't host video plus two panels. */}
+          {(chatOpen || participantsOpen) && (
+            <div className="rim-conference__side">
+              <ParticipantsPanel
+                open={participantsOpen}
+                onClose={() => setParticipantsOpen(false)}
+                participants={remoteParticipants}
                 programSlug={programSlug}
                 sessionDate={sessionDate}
-                guestKey={guestKey}
-                recipient={chatRecipient}
-                onRecipientChange={setChatRecipient}
+                localIdentity={localParticipant?.identity ?? ""}
+                isCoHost={isCoHost}
+                onMessageParticipant={(identity) => {
+                  setChatRecipient(identity);
+                  setParticipantsOpen(false);
+                  setChatOpen(true);
+                }}
               />
+              {chatOpen && (
+                <div className="rim-conference__chat">
+                  <div className="rim-chat-header">
+                    <span className="rim-chat-header__title">Chat</span>
+                    <button
+                      className="rim-chat-header__close"
+                      onClick={() => setChatOpen(false)}
+                      aria-label="Close chat"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <RIMChat
+                    programSlug={programSlug}
+                    sessionDate={sessionDate}
+                    guestKey={guestKey}
+                    recipient={chatRecipient}
+                    onRecipientChange={setChatRecipient}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -640,6 +718,39 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           onToggleNoiseFilter={() => krisp.setNoiseFilterEnabled(!krisp.isNoiseFilterEnabled)}
         />
 
+        {/* Ask-to-unmute prompt — a co-host invited this user to unmute.
+            One dominant action; their own tap performs the unmute (we can
+            never switch a mic on for someone). */}
+        {unmuteAskFrom && (
+          <div className="rim-unmute-prompt" role="dialog" aria-label="Invitation to unmute">
+            <p className="rim-unmute-prompt__text">
+              {unmuteAskFrom} is inviting you to unmute.
+            </p>
+            <div className="rim-unmute-prompt__actions">
+              <button
+                className="rim-unmute-prompt__yes"
+                onClick={async () => {
+                  try {
+                    await roomCtx?.localParticipant.setMicrophoneEnabled(true);
+                  } catch {
+                    // Mic acquisition failed — leave them muted; the control
+                    // bar button remains the retry path.
+                  }
+                  setUnmuteAskFrom(null);
+                }}
+              >
+                Unmute
+              </button>
+              <button
+                className="rim-unmute-prompt__no"
+                onClick={() => setUnmuteAskFrom(null)}
+              >
+                Stay muted
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Audio playback prompt — Safari blocks audio until user interaction */}
         <AudioPlaybackPrompt />
 
@@ -647,20 +758,6 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
         <RoomAudioRenderer />
 
         {/* Overlays */}
-        <ParticipantsPanel
-          open={participantsOpen}
-          onClose={() => setParticipantsOpen(false)}
-          participants={remoteParticipants}
-          programSlug={programSlug}
-          sessionDate={sessionDate}
-          localIdentity={localParticipant?.identity ?? ""}
-          isCoHost={isCoHost}
-          onMessageParticipant={(identity) => {
-            setChatRecipient(identity);
-            setParticipantsOpen(false);
-            setChatOpen(true);
-          }}
-        />
         <VideoSettingsPanel
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}
