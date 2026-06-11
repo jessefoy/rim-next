@@ -2100,8 +2100,8 @@ h4 { font-size: var(--text-h4); }
    Visually set apart from the description for supplementary context. */
 
 .pg-notes {
-  background: #f4eeeb;
-  border-radius: 10px;
+  background: var(--rim-bg-accent);
+  border-radius: 16px;
   padding: 30px 30px 25px;
   margin: 5px 0 15px;
 }
