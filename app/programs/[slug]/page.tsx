@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
-import { isOpenlyDroppable, kindLabel } from "@/lib/programKind";
+import { isOpenlyDroppable } from "@/lib/programKind";
 
 export const dynamic = "force-dynamic";
 
@@ -156,13 +156,6 @@ export default async function ProgramDetailPage({
     : program.teacherFacilitators.map((name) => ({ name, slug: null }));
   const hasFacilitators = teacherNames.length > 0;
   const hasDescription = !!program.description;
-  // Chapter-heading noun — kind-aware ("About this drop-in"); generic fallback
-  // for SERVICE/PRIVATE/unset, where the kind label reads awkwardly.
-  const kindCode = program.category?.kind;
-  const aboutNoun =
-    !kindCode || kindCode === "PRIVATE" || kindCode === "SERVICE"
-      ? "program"
-      : kindLabel(kindCode).toLowerCase();
   const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
   const hasProgramNotes = !!program.programNotes;
   const programNotesHtml = hasProgramNotes ? await renderContentBodyAsync(program.programNotes) : "";
@@ -217,10 +210,7 @@ export default async function ProgramDetailPage({
 
         {/* ── Program description ── */}
         {hasDescription && (
-          <>
-            <h2 className="pg-eyebrow">About this {aboutNoun}</h2>
-            <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
-          </>
+          <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
         )}
 
         {/* ── Program notes (tan card) ──
@@ -233,9 +223,8 @@ export default async function ProgramDetailPage({
 
         {/* ── Details section ── */}
         {hasDetails && (
-          <>
-          <h2 className="pg-eyebrow">Details</h2>
           <section className="pg-details-section">
+            <h3 className="pg-section-heading">Details:</h3>
             {scheduleLabel && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
@@ -336,13 +325,12 @@ export default async function ProgramDetailPage({
               </span>
             </div>
           </section>
-          </>
         )}
 
         {/* ── Facilitators section ── */}
         {hasFacilitators && (
           <section className="pg-facilitators-section">
-            <h2 className="pg-eyebrow">Facilitators</h2>
+            <h3 className="pg-section-heading">Facilitators:</h3>
             <div className="pg-facilitators">
               {teacherNames.map((t, i) => (
                 t.slug ? (
@@ -357,57 +345,6 @@ export default async function ProgramDetailPage({
 
 
       </div>
-
-      {/* ── Closing invitation — the page's intentional close.
-          Full-bleed Pearl Bush band between the content and the blue footer;
-          mirrors the Details CTA matrix: own standing first, then the
-          program-level state. ── */}
-      <section className="pg-close">
-        <h2 className="pg-close__heading">
-          {existingRegistration ? "We’ll see you there." : "Come practice with us."}
-        </h2>
-        {existingRegistration ? (
-          <>
-            <p className="pg-close__line">
-              {existingRegistration.status === "WAITLISTED"
-                ? "You’re on the waitlist for this program."
-                : "You’re registered for this program."}
-            </p>
-            <div className="pg-close__action">
-              <Link href={`/account/programs/${slug}`} className="pg-close__link">View your details →</Link>
-            </div>
-          </>
-        ) : useBuiltInForm ? (
-          registrationClosed ? (
-            <>
-              <p className="pg-close__line">Registration is closed for this offering.</p>
-              <div className="pg-close__action">
-                <Link href="/community-programs" className="pg-close__link">Explore all programs →</Link>
-              </div>
-            </>
-          ) : (
-            <div className="pg-close__action">
-              <Link href={`/programs/${slug}/register`} className="pg-detail-cta__link">
-                {spotsRemaining === 0 ? "Join the waitlist →" : "Register →"}
-              </Link>
-            </div>
-          )
-        ) : droppable ? (
-          <>
-            <p className="pg-close__line">No registration needed — everyone is welcome.</p>
-            <div className="pg-close__action">
-              <Link href="/this-week" className="pg-detail-cta__link">See this week&rsquo;s schedule →</Link>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="pg-close__line">Registration isn&rsquo;t open yet.</p>
-            <div className="pg-close__action">
-              <Link href="/community-programs" className="pg-close__link">Explore all programs →</Link>
-            </div>
-          </>
-        )}
-      </section>
     </div>
   );
 }
