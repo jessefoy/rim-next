@@ -164,6 +164,7 @@ export default function RIMControlBar({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key.toLowerCase() !== "m") return;
+      if (e.repeat) return; // holding M shouldn't machine-gun the toggle
       // Leave OS / browser chords alone (⌘M minimize, etc.).
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       // Never steal the key while the user is typing in a field.
@@ -183,6 +184,92 @@ export default function RIMControlBar({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
+
+  // Hold-Spacebar push-to-talk — CO-HOST ONLY. Spacebar is overloaded (it
+  // scrolls the page and activates a focused button), so we keep it off the
+  // general member population: an accidental unmute would break a silent sit.
+  // Hosts know the convention and actively manage audio, so they get it.
+  //
+  // Semantics: hold Space to talk WHILE MUTED, release to re-mute. If you're
+  // already unmuted (via the M toggle), Space does nothing — it never
+  // surprise-mutes you mid-sentence. The same typing guard as `M` applies, so
+  // a space in the chat box types a space.
+  const isCoHostRef = useRef(isCoHost);
+  isCoHostRef.current = isCoHost;
+  // True only while a Space-hold is actively holding the mic open, so keyup
+  // (and the blur backstop) know to close it again — and so we never re-mute
+  // someone who was already unmuted before the hold began.
+  const pttActiveRef = useRef(false);
+  useEffect(() => {
+    function inField(target: EventTarget | null): boolean {
+      const el = target as HTMLElement | null;
+      return (
+        !!el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT" ||
+          el.isContentEditable)
+      );
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.code !== "Space") return;
+      if (!isCoHostRef.current) return;
+      if (e.repeat) return; // holding fires repeated keydowns — engage once
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (inField(e.target)) return;
+      const lp = room?.localParticipant;
+      if (!lp) return;
+      // Already unmuted → leave it alone (never surprise-mute mid-sentence).
+      // Edge: if you tap M to mute and grab Space within the mute's brief
+      // in-flight window, this flag still reads true and PTT no-ops *that once*
+      // — it fails CLOSED (mic stays muted), never open. The normal mute →
+      // listen → PTT sequence is well clear of that window. (Reviewer-noted,
+      // accepted: failing closed is the right side for a silent room.)
+      if (lp.isMicrophoneEnabled) return;
+      // Claim Space: suppress page scroll AND focused-button activation.
+      e.preventDefault();
+      pttActiveRef.current = true;
+      Promise.resolve(lp.setMicrophoneEnabled(true)).catch(() => {
+        pttActiveRef.current = false;
+      });
+    }
+    // release() gates ONLY on pttActiveRef — deliberately NOT on inField.
+    // pttActiveRef can only be true if a keydown already engaged PTT (which
+    // can't happen from inside a field), so a stray keyup in the chat box is
+    // a no-op. Do NOT add an inField guard here: holding Space, clicking into
+    // chat, then releasing would otherwise strand the mic open.
+    function release(e?: KeyboardEvent) {
+      if (!pttActiveRef.current) return;
+      e?.preventDefault();
+      pttActiveRef.current = false;
+      room?.localParticipant.setMicrophoneEnabled(false).catch(() => {});
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.code !== "Space") return;
+      release(e);
+    }
+    // Backstops: if the window loses focus mid-hold, keyup may never fire —
+    // close the mic so push-to-talk can't get stuck open (which would
+    // reintroduce exactly the echo this whole effort was about). `blur` covers
+    // tab/window switches; `visibilitychange` covers a focus-steal that hides
+    // the page without blurring the window (OS overlay, screen-share picker).
+    function onBlur() {
+      release();
+    }
+    function onVisibility() {
+      if (document.hidden) release();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keyup", onKeyUp);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keyup", onKeyUp);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [room]);
 
   async function toggleCamera() {
     if (!room) return;
@@ -225,7 +312,11 @@ export default function RIMControlBar({
         disabled={pendingMic}
         aria-pressed={micEnabled}
         aria-label={micEnabled ? "Mute" : "Unmute"}
-        title={micEnabled ? "Mute (M)" : "Unmute (M)"}
+        title={
+          micEnabled
+            ? "Mute (M)"
+            : `Unmute (M)${isCoHost ? " · or hold Space to talk" : ""}`
+        }
       >
         <span className="rim-cb-btn__icon" aria-hidden="true">
           {micEnabled ? <IconMicOn /> : <IconMicOff />}
