@@ -148,6 +148,42 @@ export default function RIMControlBar({
     setPendingMic(false);
   }
 
+  // Press `M` to toggle mute — a foot-pedal for your mic. Available to
+  // everyone (the savvy member who wants it, and the mute-while-others-talk
+  // echo habit for hosts). The toggle is the SAFE hotkey: an accidental
+  // mute is harmless, the mute state is always visible in this bar, and we
+  // never fire while the user is typing. (Hold-to-talk on Spacebar is NOT
+  // bound here — Spacebar is overloaded (scroll / activate focused button),
+  // so an accidental unmute could break a silent sit; push-to-talk is a
+  // co-host-only follow-on, deliberately not opened to all.)
+  //
+  // A ref keeps the document listener pointed at the latest toggleMic
+  // (current `micEnabled`) without re-subscribing on every mute flip.
+  const toggleMicRef = useRef(toggleMic);
+  toggleMicRef.current = toggleMic;
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key.toLowerCase() !== "m") return;
+      // Leave OS / browser chords alone (⌘M minimize, etc.).
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Never steal the key while the user is typing in a field.
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT" ||
+          t.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      toggleMicRef.current();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   async function toggleCamera() {
     if (!room) return;
     setPendingCam(true);
@@ -189,6 +225,7 @@ export default function RIMControlBar({
         disabled={pendingMic}
         aria-pressed={micEnabled}
         aria-label={micEnabled ? "Mute" : "Unmute"}
+        title={micEnabled ? "Mute (M)" : "Unmute (M)"}
       >
         <span className="rim-cb-btn__icon" aria-hidden="true">
           {micEnabled ? <IconMicOn /> : <IconMicOff />}
