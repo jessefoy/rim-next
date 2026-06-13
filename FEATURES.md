@@ -70,17 +70,17 @@ Postgres-backed fixed-window limiter (`RateLimitWindow`, `lib/rateLimit.ts`) on 
 
 ## Public site
 
-> The next major build area — these exist but are early/rough.
+> The next major build area — the rebuild began in earnest **session 148** (warm three-shade palette + program-detail redesign + the flush-nav decision). The design system — palette, the card-lift / recede-panel surface language, and the tombstones (the reverted floating nav + chapter band) — lives in **`RIM_Public_Pages.md`**; read it before any public-page UI/CSS work. Other pages are still early/rough.
 
 - **Community programs listing** — `/community-programs`. The public catalog of offerings, grouped by category.
-- **Program detail** — `/programs/[slug]`. Hero, schedule, dana, and a **status-aware "what to do next" CTA** that keys off the offering kind + registration state (session 138): the viewer's own standing first (registered / waitlisted, surviving registration close), then Register → / Join the waitlist → / "Registration isn't open yet" / format-aware "how to join" for drop-ins.
+- **Program detail** — `/programs/[slug]`. **Redesigned session 148** onto the warm palette + card language (see `RIM_Public_Pages.md`): a blue (`#31576d`) hero with a quiet category **eyebrow** + balanced title/subtitle, a **quote card** straddling the hero/ground seam, open description prose, a white-card **Details** block whose **Register** is now a pill button (the other CTA-matrix states stay quiet text), and a **Notes** recede panel. The **status-aware "what to do next" CTA** keys off the offering kind + registration state (session 138): the viewer's own standing first (registered / waitlisted, surviving registration close), then Register → / Join the waitlist → / "Registration isn't open yet" / format-aware "how to join" for drop-ins.
 - **Program registration** — `/programs/[slug]/register`. The registration form + dana step.
 - **This Week schedule** — `/this-week`. Dynamic weekly schedule (Mon–Sun, `?week=next`), shared occurrence logic with the Scheduler.
 - **Teachers directory** — `/teachers`, `/teachers/[slug]`. Public teacher profiles (`isTeacher` + `TeacherProfile`).
 - **Public course pages** — `/courses` (index), `/course/[slug]` (public landing, mirrors program-detail shape), `/lessons/[slug]` (lesson reader, access-gated).
 - **Join / membership threshold** — `/join`. The new-member door (see Auth).
 - **Content / static pages** — `/diversity`, `/donate`, `/kalyana-mitta/*` (3: community-groups-events, guidelines, application), `/volunteerism/volunteer` + thanks page.
-- **Nav & footer** — `components/Nav.tsx` (sticky, CSS-only dropdowns, `isMemberArea`/`isAdmin` aware), footer in the root layout.
+- **Nav & footer** — `components/Nav.tsx` (sticky **flush** full-width white bar, CSS-only dropdowns, `isMemberArea`/`isAdmin` aware), footer in the root layout. Public nav slimmed (session 148) to **Programs ▾ · Get Involved ▾ · Members ▾ · Donate** (Courses + Teachers dropped from the bar; "Member Area" → "Members"). A floating-pill nav was tried and reverted — see the tombstone in `RIM_Public_Pages.md`.
 
 ---
 

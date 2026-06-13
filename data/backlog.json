@@ -652,5 +652,35 @@
     "status": "open",
     "addedAt": "2026-06-11",
     "notes": "Echo is an endpoint problem, not a code bug (AEC already on for all profiles). Full rationale + the priced options ladder in RIM_SessionRoom.md 'Audio & echo'. Jesse testing AirPods output-only first."
+  },
+  {
+    "id": "2026-06-13-001",
+    "title": "Sweep hardcoded old teal to the new blue in member/hub/admin UI",
+    "description": "Session 148 flipped --rim-blue from #135274 to #31576d, which carried every token usage (~267) and the public hardcoded stragglers (footer, hero overlays). But the member-area, hub, and admin internal UI still hold HARDCODED old teal the token can't reach: ~10 full-opacity #135274 (hub buttons etc.) plus ~30 rgba(19,82,116,a) subtle tints (tile/hover/calendar backgrounds). They now mismatch the new blue. Sweep these to var(--rim-blue) / rgba(49,87,109,a) as appropriate. Low-risk find-and-replace, but verify each (some tints are intentionally subtle). Grep: 135274 and '19, 82, 116' / '18, 82, 116' in custom.css.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-13",
+    "notes": "Not visible on public pages; internal-tooling polish. See RIM_Public_Pages.md (The blue)."
+  },
+  {
+    "id": "2026-06-13-002",
+    "title": "Home page: alternating sections flatten on the warm ground; repoint to the Pearl Bush secondary",
+    "description": "Session 148 made the page ground Dawn Pink (#f4efe8) via --rim-bg. The home page alternates .rim-section--grey (uses var(--rim-bg)) with .rim-section--white (#fff) - which now render cream-on-cream / barely distinct, so the section rhythm flattened. Repoint .rim-section--grey (or add a section-alt class) to --rim-bg-accent (Pearl Bush #e7e0d7) so alternation is visible again, OR define the site-wide section-rhythm rule (Dawn Pink ground, white/Bridal Heath bands, Pearl Bush recede, blue statement). Part of the home-page pass.",
+    "category": "CSS & Design",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-13",
+    "notes": "Surfaced when the ground warmed (session 148). The home page is the next major public surface after the program page."
+  },
+  {
+    "id": "2026-06-13-003",
+    "title": "Bring the course landing page into the new public design system",
+    "description": "/course/[slug] mirrors the program-detail shape but still speaks the old language (colon headings 'About this course:' / 'Facilitators:', no white-card Details, no warm-palette treatment). After session 148's program-detail redesign the two public detail pages drifted apart; bring the course page onto the same system so they read as siblings. IMPORTANT: match the SHIPPED program-page language (warm palette, card-lift Details, hero eyebrow, recede panels) - do NOT re-add the chapter eyebrows / closing band that were reverted on the program page (session 148 tombstone in RIM_Public_Pages.md). Note pg-section-heading is shared by both pages.",
+    "category": "Courses & Library",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-13",
+    "notes": "See RIM_Public_Pages.md. Sibling public-detail page."
   }
 ]

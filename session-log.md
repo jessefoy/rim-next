@@ -1,5 +1,43 @@
 ---
 
+## 2026-06-13 (session 148) — Public-site design pass: warm palette + program-detail redesign + the flush-nav decision (UI-only; interleaved with session 147 on `main`)
+
+A long, iterative design session on RIM's **public pages** — the rebuild Jesse has been circling. Entirely **CSS (`public/css/custom.css`) + `app/programs/[slug]/page.tsx` + `components/Nav.tsx`**; **no new dependencies, env vars, services, or schema change.** Many small commits pushed **direct to `main`** as a rapid push-to-see loop (Jesse co-edited the files and committed himself between turns — e.g. the initial warm-ground value `a1e85b2` "warm the neutral ground" is his commit). Work **interleaved with session 147's session-room commits** on `main` (147's log notes the same). Reference throughout: the **Esther Perel** site — taken *in spirit* (warm palette, card language, calm), not literally. Full design-system record + the two tombstones live in the new **`RIM_Public_Pages.md`**.
+
+### Shipped (live)
+
+- **Warm three-shade palette.** A named warm-neutral scale in `:root`: **Bridal Heath `#fffbf4`** (`--rim-bg-bright`, lightest, reserved) / **Dawn Pink `#f4efe8`** (`--rim-bg`, the page ground) / **Pearl Bush `#e7e0d7`** (`--rim-bg-accent`, recede/separation). The ground is Dawn Pink, **not** the lighter Bridal Heath, so white cards read as discrete objects — a near-white ground collapsed the contrast. (`5c43c91` cream/oat → `f05bc1b` the final three-shade scale.)
+- **Main blue `#135274` → `#31576d`** (`adc0436`) — a softer slate-blue, the single token for hero / footer / buttons / links / teal-sections (`--rim-blue`). Catches the public hardcoded stragglers (footer bg, footer button, `.pg-/.pl-/.tw-hero::before` overlays); member/hub/admin internal-UI teal stays hardcoded (backlog).
+- **`body { margin: 0 }`** (`64aa9fb`) — a real global fix: the browser's default 8px body margin was showing as a thin grey frame around every full-bleed section (hero, footer) on every page, since normalize.css isn't loaded and nothing reset it. (Jesse's eye caught it.)
+- **`--card-shadow`** — one reusable, deliberately faint warm card-lift, shared by the quote + Details cards. The **second sanctioned exception** to the no-shadow rule (after `.rim-cb-popover`).
+- **Slim flush nav** (`50c0dc4`) — `components/Nav.tsx` trimmed to **Programs ▾ · Get Involved ▾ · Members ▾ · Donate** (Courses + Teachers dropped from the bar; "Member Area" → "Members").
+- **Program-detail redesign** (`/programs/[slug]`): hero pulled tight + balanced (title 46px + `text-wrap: balance`, subtitle 20px/400 + balance, category returned as a quiet **uppercase eyebrow** `.pg-hero__eyebrow` linking to the catalog — `9193c93`); the **quote card** straddles the hero/ground seam (22px/400 contemplative serif, `--card-shadow`); **Details** became a **white card** with **Register as a pill button** (`6e470dc` — the actionable `.pg-detail-cta__link` styled as a button; informational `__text`/`__status` states stay quiet text — the split was already in the markup); **Notes** became a **recede panel** (Pearl Bush, `3e870c0`).
+
+### Tried & reverted (tombstones — do not re-propose; full rationale in `RIM_Public_Pages.md`)
+
+- **The Esther-Perel floating nav pill** (`50c0dc4` … → revert `723af6b`). RIM's heroes already have a featured floating object — the quote card — so the pill became a *second* white rounded object stacked above it on the same dark hero. Two competing objects: the busyness was the "off" Jesse felt. Reverted to the flush bar (kept everything else). The float works on her site only because her hero has no card under it.
+- **Chapter eyebrows + a Pearl Bush closing-invitation band** on the program page (`77edca8` → revert `06a041b`). "Didn't feel well designed aesthetically." The lesson: **a sparse version of a rich pattern reads as cheap, not minimal** — her eyebrows + color bands work inside a rich composition (illustrations, scale, color confidence); transplanted into a sparse reading column they read as form-label + newsletter-furniture.
+
+### Design decisions & why
+
+- **Cards lift, prose stays open, panels recede** — the surface language. **Boxing the description was explicitly rejected** (it cramps the most contemplative thing on the page and dilutes what a box *means*). The contrast between lifted and un-lifted *is* the design.
+- **Subtler shadow than instinct** — Jesse calibrated `--card-shadow` to "a whisper" against the reference; the white-on-warm + rounded corners do the separating.
+- **Content-agnostic line shape** — `text-wrap: balance` on title + subtitle (rather than tuning one program's wrap), since every program has different-length copy.
+
+### What this connects to
+
+- **Every page** — the palette tokens (`--rim-bg`, `--rim-bg-accent`, `--rim-blue`) and the `body` margin reset are global; the nav is global. Member/hub/admin surfaces shifted to the warm family too (with the noted teal stragglers).
+- **The public-page rebuild** (FEATURES "Public site"; backlog `2026-06-01-001`) — this session is its real start; the design system now has a home in `RIM_Public_Pages.md`.
+- **The home page** — its alternating `.rim-section--grey` sections now flatten on the warm ground (they use the primary token); they need the Pearl Bush secondary for rhythm (backlog `2026-06-13-002`).
+- **The course landing page** — sibling public-detail page, still on the old colon-heading language; should adopt this system (backlog `2026-06-13-003`).
+- **The offering KIND model** (`lib/programKind.ts`) — the category eyebrow reads the category; the (reverted) kind-aware "About this {kind}" heading read `kindLabel`.
+
+### What comes next
+
+Verify the program page across a few programs (a drop-in, a registered one, one with Notes); the home page (sections + warm ground + the nav seam now the float's gone); the member-area teal sweep; whether the public-detail pages want *any* more rhythm (and if so, with real composition, not scaffolding). **Process change adopted:** new *compositional* elements → a `claude/*` preview branch before production; spacing/color/token tweaks stay direct-to-`main`.
+
+---
+
 ## 2026-06-11 (session 147) — Echo diagnosis (strategic, no code) + session-room batch (crash safety net, context-aware Step-In, ask-to-unmute, remove participant, chat+participants split) + mute hotkeys (M toggle / Space push-to-talk)
 
 Three arcs. **Arc 1:** a deep diagnosis of the **LiveKit self-echo** problem ("people still hear themselves echoed through me") — no code, a strategic conclusion. **Arc 2:** a **five-feature session-room batch** from a hosting-coordinators meeting (Jesse, Maria, Nancy) — one commit `cb9ab8a` on `main`, deployed. **No new dependencies, env vars, or services.** One new `SessionBan` model + idempotent migration `session_bans_v1`. Reviewer-gated (general-purpose sub-agent, 10 findings), `tsc`-green, CSS brace-balanced (5058/5058). **Arc 3** (a same-thread follow-on after the echo conversation continued past the first closing): **mute hotkeys** — two more commits, `ca885ff` (M toggle) + `84e151c` (hold-Space push-to-talk), reviewer-gated, `tsc`-green. (History note: concurrent UI work from other sessions — palette / program-detail eyebrow / nav — interleaved into `main` between these commits; `cb9ab8a` + `144d404` verified still in HEAD's ancestry, content byte-identical, all deployed.)

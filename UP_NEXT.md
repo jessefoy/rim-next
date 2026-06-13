@@ -6,6 +6,24 @@
 
 ## Active
 
+### Session 148 (2026-06-13) — Public-site design pass: warm palette + program-detail redesign + flush-nav decision — all on `main` & deployed; verification pending
+
+A long iterative design session on the **public pages** (the rebuild). **UI-only** — CSS + `app/programs/[slug]/page.tsx` + `components/Nav.tsx`; **no new deps/env/services, no schema change.** Pushed direct to `main` (push-to-see loop; Jesse co-edited + committed himself between turns — the warm-ground value is his commit `a1e85b2`). Interleaved with session 147's session-room commits. Full design-system record + the two tombstones in the new **`RIM_Public_Pages.md`**; narrative in `session-log.md`.
+
+**Shipped (live):** warm three-shade palette (**Bridal Heath `#fffbf4`** / **Dawn Pink `#f4efe8`** ground / **Pearl Bush `#e7e0d7`**); main blue `#135274`→`#31576d`; `body{margin:0}` global frame fix; `--card-shadow` card-lift token; slim flush nav (Programs / Get Involved / Members + Donate); program-detail redesign (balanced hero + category eyebrow, quote card on the seam, Details as a white card with Register-as-pill-button, Notes as a recede panel).
+
+**Tried & reverted (don't re-propose — see `RIM_Public_Pages.md`):** the Esther-Perel **floating nav pill** (competed with the quote card → reverted to the flush bar) and **chapter eyebrows + a closing band** (sparse scaffolding of a rich pattern read cheap).
+
+**OPEN — next steps (none blocking):**
+1. **Deployed-site verification** — the program page across a few programs: a drop-in (Awakening The Heart) for "no registration needed"; a registered one (EDS, where Jesse's logged in) for the "you're registered" CTA; one with Notes (Qigong) to see the Pearl Bush recede panel in flow. Confirm the flush nav + warm ground feel right across pages.
+2. **Home page** — its alternating `.rim-section--grey` sections flatten on the warm ground (they use the primary token); repoint to the Pearl Bush secondary so the rhythm returns (backlog `2026-06-13-002`). The home hero/nav seam is also worth a look now the float's gone.
+3. **Member-area teal sweep** — hardcoded `#135274` + `rgba(19,82,116)` tints in hub/hs/admin UI the token flip didn't reach (backlog `2026-06-13-001`).
+4. **Course landing page** — bring `/course/[slug]` into the new palette/card system, matching the *shipped* program-page language (NOT the reverted eyebrows/band) (backlog `2026-06-13-003`).
+
+**Process adopted:** new *compositional* design elements (bands, section patterns, new heading languages) → a `claude/*` preview branch for a look before production; spacing/color/token tweaks stay direct-to-`main`. (The chapters/band revert is why.)
+
+**Memory candidates (step 8b — awaiting Jesse's confirm):** (1) **Jesse co-edits the repo between turns** — verify the working tree before committing; his commits interleave with mine. (2) **New compositional design elements → preview branch first** (the process rule above). (3) **A sparse version of a rich pattern reads as cheap, not minimal** — design lesson from the chapters/band revert. (4) **Esther Perel is the reference *in spirit*, not literally** — the float doesn't fit RIM (the quote card competes).
+
 ### Session 147 (2026-06-11) — Echo diagnosis (strategic, no code) + session-room batch (5 features) + mute hotkeys — shipped to `main` & deployed; verification + 2 decisions pending
 
 Three arcs (echo · session-room batch · mute hotkeys). **Arc 1 — echo (no code):** diagnosed the self-echo problem ("people hear themselves echoed through me") end-to-end and concluded it's an **endpoint** problem, not a code bug — echo cancellation is already on for all profiles; the source is a mic-on-one-device / sound-on-another split (Jesse's wireless mic → Universal Audio Volt → computer speakers). **Decision:** fix endpoint-side (Jesse testing **AirPods output-only**). Krisp BVC (~$55–90/mo Ship plan) shelved on cost; native app rejected (reaffirms s120); "Layer 1" in-room nudge scoped but not built (Jesse declined). Platform choice stands. **Arc 2 — session-room batch:** one commit `cb9ab8a` on `main`, deployed. **No new deps/env/services.** New `SessionBan` model + migration `session_bans_v1`; new route `/api/livekit/remove-participant`. Reviewer-gated (10 findings, 5 fixed pre-commit), `tsc`-green. Full narrative in `session-log.md` (2026-06-11 session 147).
