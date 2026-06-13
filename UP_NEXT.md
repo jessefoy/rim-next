@@ -6,9 +6,9 @@
 
 ## Active
 
-### Session 147 (2026-06-11) — Echo diagnosis (strategic, no code) + session-room batch (5 features) — shipped to `main` & deployed; verification + 2 decisions pending
+### Session 147 (2026-06-11) — Echo diagnosis (strategic, no code) + session-room batch (5 features) + mute hotkeys — shipped to `main` & deployed; verification + 2 decisions pending
 
-Two arcs. **Arc 1 — echo (no code):** diagnosed the self-echo problem ("people hear themselves echoed through me") end-to-end and concluded it's an **endpoint** problem, not a code bug — echo cancellation is already on for all profiles; the source is a mic-on-one-device / sound-on-another split (Jesse's wireless mic → Universal Audio Volt → computer speakers). **Decision:** fix endpoint-side (Jesse testing **AirPods output-only**). Krisp BVC (~$55–90/mo Ship plan) shelved on cost; native app rejected (reaffirms s120); "Layer 1" in-room nudge scoped but not built (Jesse declined). Platform choice stands. **Arc 2 — session-room batch:** one commit `cb9ab8a` on `main`, deployed. **No new deps/env/services.** New `SessionBan` model + migration `session_bans_v1`; new route `/api/livekit/remove-participant`. Reviewer-gated (10 findings, 5 fixed pre-commit), `tsc`-green. Full narrative in `session-log.md` (2026-06-11 session 147).
+Three arcs (echo · session-room batch · mute hotkeys). **Arc 1 — echo (no code):** diagnosed the self-echo problem ("people hear themselves echoed through me") end-to-end and concluded it's an **endpoint** problem, not a code bug — echo cancellation is already on for all profiles; the source is a mic-on-one-device / sound-on-another split (Jesse's wireless mic → Universal Audio Volt → computer speakers). **Decision:** fix endpoint-side (Jesse testing **AirPods output-only**). Krisp BVC (~$55–90/mo Ship plan) shelved on cost; native app rejected (reaffirms s120); "Layer 1" in-room nudge scoped but not built (Jesse declined). Platform choice stands. **Arc 2 — session-room batch:** one commit `cb9ab8a` on `main`, deployed. **No new deps/env/services.** New `SessionBan` model + migration `session_bans_v1`; new route `/api/livekit/remove-participant`. Reviewer-gated (10 findings, 5 fixed pre-commit), `tsc`-green. Full narrative in `session-log.md` (2026-06-11 session 147).
 
 **Shipped (5 features in `cb9ab8a`):**
 - **Crash safety net** — `RoomErrorBoundary` wraps `VideoRoom`; the app had NO error boundary, so a render crash (the screen-share *receiver* crash) white-screened every remote participant. Now contained → "Something interrupted the room — Rejoin" + `[rim-room-crash]` log.
@@ -16,12 +16,13 @@ Two arcs. **Arc 1 — echo (no code):** diagnosed the self-echo problem ("people
 - **Ask-to-unmute** — co-host invites a muted member via data channel; recipient one-taps to unmute (can't force a mic on).
 - **Remove participant + session bans** — `/api/livekit/remove-participant`, 3-option confirm (rejoin-able / for-the-session / cancel); bans enforced at `/token` + `/guest-token` + `/step-in`; honest "You've been removed" screen.
 - **Chat + Participants split** — share the right column on desktop, overlay on phones.
+- **Mute hotkeys** (follow-on commits `ca885ff` + `84e151c`) — `M` toggles mute for *everyone*; hold-`Space` push-to-talk for *co-hosts/teachers only*. The $0 resolution of the echo arc (mute while others talk; the teacher can't use headphones — open speakers + live bell + presence). Safety: engages-only-when-muted, typing-guarded, window-blur + visibilitychange backstops; reviewer-verified no stuck-open-mic race.
 
 **OPEN — verification + decisions (none blocking deploy):**
 1. **Screen-share two-window repro** (Jesse) — console open on the *viewer*, share → paste the `[rim-room-crash]` entry so we fix the specific throwing line. Backlog `2026-06-11-001`.
 2. **Decision (Jesse):** should a co-host be able to remove/ban the assigned Host? Built as "any co-host" for now; mute has the same peer surface but a ban's blast radius is larger. Backlog `2026-06-11-002`.
 3. **Echo:** Jesse tests AirPods/headphone output-only. Layer 1 + BVC shelved (backlog `2026-06-11-003`).
-4. **Deployed-site checks:** confirm `session_bans` table in the deploy log; a co-host Remove (both modes) + the removed person's screen; ask-to-unmute round-trip; chat + participants side-by-side on desktop; Step-In label/confirm.
+4. **Deployed-site checks:** confirm `session_bans` table in the deploy log; a co-host Remove (both modes) + the removed person's screen; ask-to-unmute round-trip; chat + participants side-by-side on desktop; Step-In label/confirm; **`M` toggles your mic (and types normally in chat); a co-host holding `Space` talks then auto-re-mutes on release.**
 
 **Memory candidates (step 8b — awaiting Jesse's confirm):** listed at session close — (1) **don't accept platform-limitation excuses** (when Jesse reports a problem other tools don't have, find the real cause + real options, don't stop at "the browser can't"); (2) **the echo diagnosis + Jesse's audio rig** (split-device source; the priced options ladder); (3) **cost+integration bounds solutions** (RIM left Zoom for both; recurring per-minute fees are a hard sell). Confirm or discard.
 
