@@ -19,10 +19,12 @@ import {
   useMaybeTrackRefContext,
   useParticipantInfo,
   useIsSpeaking,
+  useRoomContext,
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { useState } from "react";
 import { useSessionRole } from "./sessionRole";
+import { UNMUTE_REQUEST_TOPIC } from "./ParticipantsPanel";
 
 export type Signal = "hand" | "heart" | "namaste" | "yes" | "no" | null;
 
@@ -92,7 +94,10 @@ export default function RIMParticipantTile() {
   const { metadata: metadataRaw } = useParticipantInfo({ participant });
   const isSpeaking = useIsSpeaking(participant);
   const sessionRole = useSessionRole();
+  const room = useRoomContext();
   const [muting, setMuting] = useState(false);
+  // Brief "Asked ✓" feedback after sending an unmute invitation.
+  const [asked, setAsked] = useState(false);
 
   if (!trackRef || !participant) {
     return (
@@ -145,6 +150,27 @@ export default function RIMParticipantTile() {
     setMuting(false);
   }
 
+  // Ask-to-unmute — the muted-tile counterpart to handleMute. We can never
+  // force a mic on (browser consent), so this publishes the same data-channel
+  // invitation the Participants panel uses, addressed to this participant;
+  // RIMConference renders their one-tap prompt. Client-to-client, same trust
+  // tier as Reactions.
+  async function askToUnmute() {
+    if (!room) return;
+    try {
+      const payload = new TextEncoder().encode(
+        JSON.stringify({ fromName: room.localParticipant?.name || "The host" }),
+      );
+      await room.localParticipant.publishData(payload, {
+        reliable: true,
+        topic: UNMUTE_REQUEST_TOPIC,
+        destinationIdentities: [participantIdentity],
+      });
+      setAsked(true);
+      setTimeout(() => setAsked(false), 4000);
+    } catch {}
+  }
+
   const wrapperClass = [
     "rim-tile-wrapper",
     isVideoOff ? "rim-tile-wrapper--no-video" : "",
@@ -159,7 +185,18 @@ export default function RIMParticipantTile() {
       <ParticipantTile />
       {showMuteAction && (
         isMicMuted ? (
-          <span className="rim-tile-muted-pill" aria-hidden="true">Muted</span>
+          // Muted → the same hover slot offers the unmute invitation (we
+          // can't force a mic on; their own tap performs the unmute).
+          <button
+            type="button"
+            className="rim-tile-ask"
+            onClick={askToUnmute}
+            disabled={asked}
+            title={`Invite ${displayName} to unmute`}
+            aria-label={`Invite ${displayName} to unmute`}
+          >
+            {asked ? "Asked ✓" : "Ask to unmute"}
+          </button>
         ) : (
           <button
             type="button"

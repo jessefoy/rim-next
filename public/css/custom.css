@@ -13982,23 +13982,33 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .rim-tile-mute:disabled { opacity: 0.6; cursor: default; }
 .rim-tile-wrapper--has-actions:hover .rim-tile-mute { opacity: 1; }
 
-.rim-tile-muted-pill {
+/* Ask-to-unmute — the muted-tile counterpart to .rim-tile-mute, in the same
+   top-right hover slot. Neutral (not red): it's an invitation, not a forced
+   mute. Hover-reveal like Mute/Pin (so it's a desktop affordance; the
+   Participants panel carries the same action for touch). */
+.rim-tile-ask {
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 4px 10px;
-  background: rgba(0, 0, 0, 0.55);
-  color: rgba(255, 255, 255, 0.75);
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  border: none;
   border-radius: 4px;
   font-family: var(--font-sans);
   font-size: var(--text-xs);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.02em;
+  cursor: pointer;
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transition: opacity 0.12s ease, background 0.12s ease;
   z-index: 6;
+  white-space: nowrap;
 }
-.rim-tile-wrapper--has-actions:hover .rim-tile-muted-pill { opacity: 1; }
+.rim-tile-ask:hover { background: rgba(0, 0, 0, 0.9); }
+.rim-tile-ask:focus-visible { opacity: 1; outline: 2px solid #fff; outline-offset: 1px; }
+.rim-tile-ask:disabled { cursor: default; }
+.rim-tile-wrapper--has-actions:hover .rim-tile-ask { opacity: 1; }
 
 /* Local pin button — bottom-right (away from the top-right mute button and the
    bottom-left nameplate). Hover-reveal on any tile; available to everyone.
@@ -14121,8 +14131,6 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   cursor: pointer;
 }
 .rim-pp__name--action:hover { text-decoration: underline; color: #fff; }
-.rim-pp__mic { font-size: 14px; }
-.rim-pp__mic--muted { opacity: 0.4; }
 .rim-pp__mute-btn {
   padding: 3px 9px;
   background: rgba(255,255,255,0.1);
@@ -14261,27 +14269,16 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-color: rgba(255,255,255,0.35);
 }
 .rim-pp__search-input::placeholder { color: #777; }
+/* Footer now only surfaces the transient per-row failure notice (Mute All
+   moved to the control bar). */
 .rim-pp__footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   padding: 10px 14px;
   border-top: 1px solid rgba(255,255,255,0.08);
   background: #1a1a1a;
   flex-shrink: 0;
 }
-.rim-pp__mute-all {
-  background: rgba(255,255,255,0.1);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 5px;
-  padding: 6px 14px;
-  font-size: var(--text-ui);
-  font-family: var(--font-sans);
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.rim-pp__mute-all:hover { background: rgba(255,255,255,0.2); }
-.rim-pp__mute-all:disabled { opacity: 0.5; cursor: default; }
 
 /* ─── Side column: Chat + Participants share the right rail ────────────
    Desktop (≥769px): the Participants panel docks (static) above the chat,
@@ -14389,8 +14386,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
      DM action). (Audit CHAT-2.) */
   .rim-pp__name--action { min-height: 44px; }
   .rim-pp__mute-btn,
-  .rim-pp__remove-btn,
-  .rim-pp__mute-all {
+  .rim-pp__remove-btn {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
@@ -14401,16 +14397,65 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 /* ─── Zoom-aligned control bar ───────────────────────────────── */
 /* Bottom-center bar. Icon stacked over a small label, like Zoom. */
 .rim-cb {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: center;
   gap: 6px;
   padding: 8px 12px;
   background: #1c1c1c;
   border-top: 1px solid rgba(255,255,255,0.06);
-  flex-wrap: wrap;
+  position: relative; /* anchors the transient Mute All notice */
 }
-.rim-cb-spacer { flex: 1; }
+/* Centered main cluster — grid col 2, between two equal 1fr tracks, so it
+   centers in the bar regardless of the End button's width (Zoom-style).
+   Wraps internally if the buttons run long. */
+.rim-cb__main {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* End / Leave — grid col 3, pushed to the far right. */
+.rim-cb__end-zone {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+}
+/* Transient "couldn't mute all" notice, centered above the bar. Dark-surface
+   red (the error token fails contrast on near-black — same exception as the
+   control-bar popovers + the participants-panel notice). */
+.rim-cb__notice {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 90%;
+  background: rgba(36, 36, 36, 0.97);
+  color: #f0a3a3;
+  border: 1px solid rgba(220, 70, 70, 0.4);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  text-align: center;
+  z-index: 10;
+}
+/* Tablet & phone: the 1fr gutters would squeeze the cluster on a narrow bar,
+   so collapse the grid to a centered wrapping flex (the proven pre-centering
+   behavior). display:contents hoists the cluster's buttons into the wrap so
+   they + End flow and center together. */
+@media (max-width: 768px) {
+  .rim-cb {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .rim-cb__main { display: contents; }
+  .rim-cb__end-zone { flex: 0 0 auto; }
+}
 .rim-cb-anchor { position: relative; display: inline-flex; }
 
 /* Single button — icon over label, ~64×52 */

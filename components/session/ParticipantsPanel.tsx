@@ -5,12 +5,15 @@
  *
  * Sticky local "Me" row at the top with a Host tag when applicable, then
  * remote participants below (raised hands float to top). Host tag is also
- * shown on remote rows whose token grants roomAdmin. Co-hosts see a Mute
- * button per row + Mute All in the footer. A search box appears when
+ * shown on remote rows whose token grants roomAdmin. Co-hosts get a per-row
+ * Mute / Ask-to-unmute / Remove (the row stays a clean name + role pill —
+ * no mic glyph; mute state is read from the action label and the tile
+ * nameplate). Mute All lives on the control bar. A search box appears when
  * participant count exceeds 10.
  *
  * Re-renders on TrackMuted / TrackUnmuted / TrackPublished / TrackUnpublished.
- * Uses `participant.isMicrophoneEnabled` (the canonical flag) for mic state.
+ * Uses `participant.isMicrophoneEnabled` (the canonical flag) to choose the
+ * per-row Mute vs Ask-to-unmute action.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -75,8 +78,6 @@ interface Props {
 export default function ParticipantsPanel({ open, onClose, participants, programSlug, sessionDate, localIdentity, isCoHost, onMessageParticipant }: Props) {
   const room = useRoomContext();
   const [muting, setMuting] = useState<Record<string, boolean>>({});
-  const [mutingAll, setMutingAll] = useState(false);
-  const [muteAllResult, setMuteAllResult] = useState<number | null>(null);
   const [muteNotice, setMuteNotice] = useState<string | null>(null);
   // Brief per-identity "Asked ✓" feedback after an ask-to-unmute send.
   const [asked, setAsked] = useState<Record<string, boolean>>({});
@@ -169,28 +170,6 @@ export default function ParticipantsPanel({ open, onClose, participants, program
     }
     setRemoving(null);
     setRemoveConfirm(null);
-  }
-
-  async function muteAll() {
-    setMutingAll(true);
-    setMuteAllResult(null);
-    try {
-      const res = await fetch("/api/livekit/mute-all", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programSlug, sessionDate }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMuteAllResult(typeof data.muted === "number" ? data.muted : 0);
-        setTimeout(() => setMuteAllResult(null), 3000);
-      } else {
-        flashMuteNotice();
-      }
-    } catch {
-      flashMuteNotice();
-    }
-    setMutingAll(false);
   }
 
   const localMeta = useLocalMetadata();
@@ -292,13 +271,13 @@ export default function ParticipantsPanel({ open, onClose, participants, program
               position when their hand is raised — so they can see where
               they are in line. */}
           <div className="rim-pp__row rim-pp__row--self">
-            <span className="rim-pp__signal">
-              {localMeta.signal === "hand"
-                ? `${queueMap.get(localId ?? "") ?? ""} ✋`.trim()
-                : localMeta.signal
-                ? SIGNAL_EMOJI[localMeta.signal]
-                : ""}
-            </span>
+            {localMeta.signal && (
+              <span className="rim-pp__signal">
+                {localMeta.signal === "hand"
+                  ? `${queueMap.get(localId ?? "") ?? ""} ✋`.trim()
+                  : SIGNAL_EMOJI[localMeta.signal]}
+              </span>
+            )}
             <span className="rim-pp__name">
               {localName} <span className="rim-pp__self-tag">(you)</span>
             </span>
@@ -330,13 +309,13 @@ export default function ParticipantsPanel({ open, onClose, participants, program
             return (
               <div key={p.identity} className="rim-pp__entry">
               <div className="rim-pp__row">
-                <span className="rim-pp__signal">
-                  {meta.signal === "hand" && queuePos != null
-                    ? `${queuePos} ✋`
-                    : meta.signal
-                    ? SIGNAL_EMOJI[meta.signal]
-                    : ""}
-                </span>
+                {meta.signal && (
+                  <span className="rim-pp__signal">
+                    {meta.signal === "hand" && queuePos != null
+                      ? `${queuePos} ✋`
+                      : SIGNAL_EMOJI[meta.signal]}
+                  </span>
+                )}
                 {onMessageParticipant ? (
                   <button
                     type="button"
@@ -361,12 +340,6 @@ export default function ParticipantsPanel({ open, onClose, participants, program
                 {p.identity.startsWith("guest-") && (
                   <span className="rim-pp__role-tag rim-pp__role-tag--guest">Guest</span>
                 )}
-                <span
-                  className={`rim-pp__mic${isMicEnabled ? "" : " rim-pp__mic--muted"}`}
-                  title={isMicEnabled ? "Mic on" : "Muted"}
-                >
-                  {isMicEnabled ? "🎤" : "🔇"}
-                </span>
                 {isCoHost && (
                   isMicEnabled ? (
                     <button
@@ -440,21 +413,12 @@ export default function ParticipantsPanel({ open, onClose, participants, program
           })}
         </div>
 
-        {isCoHost && participants.length > 0 && (
+        {/* Mute All moved to the control bar (session: roster cleanup). The
+            footer now only surfaces a transient failure notice from the
+            per-row Mute / Ask / Remove actions. */}
+        {muteNotice && (
           <div className="rim-pp__footer">
-            {muteNotice && <p className="rim-pp__notice" role="alert">{muteNotice}</p>}
-            <button
-              type="button"
-              className="rim-pp__mute-all"
-              onClick={muteAll}
-              disabled={mutingAll}
-            >
-              {mutingAll
-                ? "Muting…"
-                : muteAllResult !== null
-                ? `Muted ${muteAllResult}`
-                : "Mute All"}
-            </button>
+            <p className="rim-pp__notice" role="alert">{muteNotice}</p>
           </div>
         )}
       </aside>

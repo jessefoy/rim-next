@@ -3,8 +3,12 @@
 /**
  * RIMControlBar — Zoom-aligned bottom control bar.
  *
- * Layout LTR: Mute · Start Video | Participants · Chat | Share · Reactions
- *             · Settings · Bell mode (Co-host) · spacer · End (red)
+ * Layout: a centered main cluster (Zoom-style) — Mute · Start Video |
+ *         Participants · Chat | Share · Reactions · Settings · Bell mode ·
+ *         Mute All (the last three Co-host only) — with the red End/Leave
+ *         pinned to the far right in its own zone. The cluster is truly
+ *         centered (left gutter / center / End-zone are balanced grid tracks);
+ *         on phones it collapses to a centered wrap.
  *
  * Mic and Video are single toggle buttons. Device selection (mic / speaker /
  * camera) lives in the Settings panel (VideoSettingsPanel), reached via the
@@ -134,6 +138,12 @@ export default function RIMControlBar({
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
   const [shareIntroOpen, setShareIntroOpen] = useState(false);
+  // Mute All (co-host) — moved here from the Participants footer so it sits
+  // with the other host controls. The button label reports the count briefly;
+  // a failure surfaces as a transient notice above the bar.
+  const [mutingAll, setMutingAll] = useState(false);
+  const [muteAllResult, setMuteAllResult] = useState<number | null>(null);
+  const [muteAllFailed, setMuteAllFailed] = useState(false);
 
   const reactionsAnchor = useRef<HTMLButtonElement | null>(null);
   const endAnchor = useRef<HTMLButtonElement | null>(null);
@@ -302,8 +312,43 @@ export default function RIMControlBar({
     setPendingShare(false);
   }
 
+  // Mute everyone — one tap, non-destructive (people can unmute themselves
+  // again). The label flashes "Muted N" on success; a real failure (e.g. a
+  // co-host whose hosting capability was paused → 403) flashes a brief notice.
+  // The route returns a benign ok with muted:0 when there's no one to mute, so
+  // the notice only appears on an actual failure (mirrors the per-row handlers
+  // — host controls must surface failure, never swallow it).
+  async function muteAll() {
+    setMutingAll(true);
+    setMuteAllResult(null);
+    setMuteAllFailed(false);
+    try {
+      const res = await fetch("/api/livekit/mute-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programSlug, sessionDate }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMuteAllResult(typeof data.muted === "number" ? data.muted : 0);
+        setTimeout(() => setMuteAllResult(null), 3000);
+      } else {
+        setMuteAllFailed(true);
+        setTimeout(() => setMuteAllFailed(false), 4000);
+      }
+    } catch {
+      setMuteAllFailed(true);
+      setTimeout(() => setMuteAllFailed(false), 4000);
+    }
+    setMutingAll(false);
+  }
+
   return (
     <div className="rim-cb" role="toolbar" aria-label="Session controls">
+      {/* Centered main cluster (Zoom-style). End sits in its own right-hand
+          zone below, so this group is truly centered in the bar rather than
+          left-justified. On phones the layout collapses to a centered wrap. */}
+      <div className="rim-cb__main">
       {/* ── Mic ─────────────────────────────────────────────────── */}
       <button
         type="button"
@@ -484,30 +529,61 @@ export default function RIMControlBar({
         </button>
       )}
 
-      <div className="rim-cb-spacer" aria-hidden="true" />
-
-      {/* ── End / Leave ─────────────────────────────────────────── */}
-      <div className="rim-cb-anchor">
+      {/* ── Mute All — Co-host only. Grouped here with the other host
+          controls (Share / Bell). One tap; non-destructive — everyone can
+          unmute themselves again. ── */}
+      {isCoHost && (
         <button
-          ref={endAnchor}
           type="button"
-          className="rim-cb-btn rim-cb-btn--end"
-          onClick={() => setEndOpen((v) => !v)}
-          aria-haspopup="menu"
-          aria-expanded={endOpen}
-          aria-label="End"
+          className="rim-cb-btn"
+          onClick={muteAll}
+          disabled={mutingAll}
+          aria-label="Mute all participants"
+          title="Mute everyone (they can unmute themselves)"
         >
-          <span className="rim-cb-btn__label">{hasEndAllAuthority ? "End" : "Leave"}</span>
+          <span className="rim-cb-btn__icon" aria-hidden="true"><IconMicOff /></span>
+          <span className="rim-cb-btn__label">
+            {mutingAll
+              ? "Muting…"
+              : muteAllResult !== null
+              ? `Muted ${muteAllResult}`
+              : "Mute All"}
+          </span>
         </button>
-        <EndMenu
-          open={endOpen}
-          onClose={() => setEndOpen(false)}
-          hasEndAllAuthority={hasEndAllAuthority}
-          programSlug={programSlug}
-          sessionDate={sessionDate}
-          anchorRef={endAnchor}
-        />
+      )}
       </div>
+
+      {/* ── End / Leave — pinned right; the main cluster above centers ─── */}
+      <div className="rim-cb__end-zone">
+        <div className="rim-cb-anchor">
+          <button
+            ref={endAnchor}
+            type="button"
+            className="rim-cb-btn rim-cb-btn--end"
+            onClick={() => setEndOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={endOpen}
+            aria-label="End"
+          >
+            <span className="rim-cb-btn__label">{hasEndAllAuthority ? "End" : "Leave"}</span>
+          </button>
+          <EndMenu
+            open={endOpen}
+            onClose={() => setEndOpen(false)}
+            hasEndAllAuthority={hasEndAllAuthority}
+            programSlug={programSlug}
+            sessionDate={sessionDate}
+            anchorRef={endAnchor}
+          />
+        </div>
+      </div>
+
+      {/* Transient failure notice for Mute All (floats above the bar) */}
+      {muteAllFailed && (
+        <span className="rim-cb__notice" role="alert">
+          Couldn&apos;t mute all — you may no longer have host controls.
+        </span>
+      )}
     </div>
   );
 }
