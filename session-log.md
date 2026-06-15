@@ -1,5 +1,37 @@
 ---
 
+## 2026-06-15 (session 149) — Session-room roster cleanup: ask-to-unmute on the tile, Mute All to the control bar, centered bar, decluttered participant list (UI-only, on `main`)
+
+A focused session-room cleanup from Jesse's hands-on use of the LiveKit room. **One commit `5f8c13c` on `main`, deployed. UI-only — no new dependencies, env vars, services, or schema change; no API change** (Mute All reuses the existing `/api/livekit/mute-all`). Four files: `components/session/{RIMParticipantTile,ParticipantsPanel,RIMControlBar}.tsx` + `public/css/custom.css`. `tsc`-green, CSS brace-balanced (5062/5062), reviewer-gated (general-purpose sub-agent — no showstoppers, no should-fixes).
+
+### Shipped (five asks + one)
+
+1. **Ask-to-unmute on the tile** (`RIMParticipantTile`) — a muted remote participant's top-right hover slot now shows an **"Ask to unmute"** button (`.rim-tile-ask`, neutral, not red) exactly where **Mute** sits when they're unmuted. It publishes the same `UNMUTE_REQUEST_TOPIC` data packet the panel uses (imported from `ParticipantsPanel`; runtime-safe — the panel's back-import is `import type`, erased). Co-host only. The static "Muted" pill it replaces was removed.
+2. **Name legibility + the phantom gap** (`ParticipantsPanel`) — the signal slot (`.rim-pp__signal`, a hard `min-width:32px`) was rendered on *every* row, so a 32px empty box sat between the row edge and every name. Now it renders **only** when there's a raised hand / reaction; otherwise the name starts at the row edge and reclaims the width.
+3. **Mute All → control bar** (`RIMControlBar`) — moved off the list footer onto the bottom bar, **grouped with the co-host controls** beside Bell mode. Reuses `POST /api/livekit/mute-all`; label flashes "Muted N"; a real failure surfaces a transient `.rim-cb__notice` (the benign `muted:0` empty-room case stays silent — host controls must surface failure, not swallow it).
+4. **Mic glyph removed** from list rows — the 🎤/🔇 is gone; mute state reads from the Mute vs "Ask to unmute" button label, and the tile nameplate still shows a mic-off glyph for everyone.
+5. **Control bar centered** (Zoom-style) — `.rim-cb` became a `1fr · auto · 1fr` grid: the main cluster (`.rim-cb__main`, grid col 2) is truly centered, **End pinned far right** in `.rim-cb__end-zone` (col 3). The old left-justified look was a leftover `.rim-cb-spacer { flex:1 }` eating the slack and defeating the already-present `justify-content:center`. On ≤768px the grid collapses to a centered flex-wrap via `.rim-cb__main { display:contents }` (the proven pre-centering behavior).
+
+### Design decisions & why
+
+- **Keep the per-row Mute/Ask/Remove in the list, add ask-to-unmute to the tile (additive, not a move).** Tiles are hover-reveal — **no hover on touch** — so the participant panel is the *only* per-person action surface on a phone (44px targets). The tile affordance is a desktop convenience; the list stays the mobile path. (Jesse agreed with this in the map.)
+- **True centering via grid, not balanced spacers.** A flex spacer/gutter approach leaves the cluster off-center by half the End button's width (End's intrinsic width loads the right side). `1fr auto 1fr` sizes the gutters purely by free space, so col 2 is genuinely centered regardless of End. End stays in its own zone (preserves the deliberate destructive-action separation).
+- **Mute All grouped with co-host controls** (Jesse's pick), not next to Participants — the host-only cluster (Share / Bell / Mute All) stays together and the bar's left side reads identically for every participant.
+- **The list is a roster, not a control panel** — removing the mic glyph + the empty signal gap leaves name + role pill (+ the co-host action buttons) as the "proper information." Clear seeing: the noise was obscuring the name.
+
+### What this connects to
+
+- **Session 147 ask-to-unmute flow** — the *receive* side (the "{Name} is inviting you to unmute" prompt in `RIMConference`) is unchanged; this added a second *send* surface on the tile. Same data-channel topic, same "we can never force a mic on" trust model.
+- **Session 147 chat + participants shared right column** — the panel's narrower width since 147 is *why* the name squeezed; this cleanup is the right response to that layout.
+- **The mute hotkeys (147) + Mute All** now both live on the bar as the host's mute toolkit.
+- **Mobile-first** (CLAUDE.md) — the hover/touch split is the governing constraint; the ≤768px grid collapse keeps the bar usable on phones.
+
+### What comes next
+
+Live verification (needs a real session + a co-host + 2 devices): tile ask-to-unmute round-trip; full names with no gap; Mute All on the bar (count + a failure notice); no mic glyph; the centered cluster on desktop **and** a phone (centered wrap, End reachable, nothing clipped).
+
+---
+
 ## 2026-06-13 (session 148) — Public-site design pass: warm palette + program-detail redesign + the flush-nav decision (UI-only; interleaved with session 147 on `main`)
 
 A long, iterative design session on RIM's **public pages** — the rebuild Jesse has been circling. Entirely **CSS (`public/css/custom.css`) + `app/programs/[slug]/page.tsx` + `components/Nav.tsx`**; **no new dependencies, env vars, services, or schema change.** Many small commits pushed **direct to `main`** as a rapid push-to-see loop (Jesse co-edited the files and committed himself between turns — e.g. the initial warm-ground value `a1e85b2` "warm the neutral ground" is his commit). Work **interleaved with session 147's session-room commits** on `main` (147's log notes the same). Reference throughout: the **Esther Perel** site — taken *in spirit* (warm palette, card language, calm), not literally. Full design-system record + the two tombstones live in the new **`RIM_Public_Pages.md`**.

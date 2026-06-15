@@ -1,12 +1,23 @@
 # The RIM Session Room — Plain-English Notes for Volunteers
 
-_Last updated May 2026 (refreshed 2026-05-31 — join muted + camera off by default, fullscreen screen sharing with a pre-share primer, local Pin, full names, DM by clicking a name, unread-chat badge, Bell-mode label clarity, device switching consolidated into Settings)_
+_Last updated June 2026 (refreshed 2026-06-15 — ask-to-unmute now also on a person's video tile, Mute All moved onto the bottom control bar, the control bar is centered, and the participant list is tidied to just names + roles. Earlier 2026-05-31 refresh: join muted + camera off by default, fullscreen screen sharing with a pre-share primer, local Pin, full names, DM by clicking a name, unread-chat badge, Bell-mode label clarity, device switching consolidated into Settings)_
 
 This doc is for hosts, teachers, registrars, and anyone else in the Sangha who'll be running or attending sessions in the RIM session room — the video space that replaces Zoom for our online programs.
 
 Over the last few sessions of work we made a lot of changes. The short version: **the session room should now feel almost identical to Zoom**, so you can use what you already know. If you've ever clicked "Mute" in Zoom, the same click is in the same place here.
 
 This is a walkthrough of what changed, why, and what you'll actually see.
+
+---
+
+## What changed on June 15, 2026
+
+A small round of tidying so the room is cleaner and the host controls sit where you'd expect:
+
+- **Invite someone to unmute right from their video tile.** When a person is muted, hover over their tile and you'll see **"Ask to unmute"** in the top-right corner — the same spot the **Mute** button appears when they're unmuted. (You still can't switch someone's mic on for them — this sends them a gentle one-tap prompt to unmute themselves. The same option is also still in the Participants list, which is what you'll use on a phone, where hovering isn't possible.)
+- **"Mute All" is now on the bottom control bar**, next to Bell mode, instead of tucked at the bottom of the Participants list — so it's one obvious tap when you need it. Everyone can unmute themselves again afterward.
+- **The control bar is centered**, like Zoom — the buttons sit in the middle, with the red **End/Leave** button kept off to the far right on its own.
+- **The Participants list is tidier** — each person is just their name and role now. The little microphone icon and an empty gap before each name are gone, so longer names show in full. (You can still tell who's muted: their tile shows a muted-mic mark, and a muted person's row offers "Ask to unmute" instead of "Mute".)
 
 ---
 

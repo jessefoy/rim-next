@@ -6,6 +6,25 @@
 
 ## Active
 
+### Session 149 (2026-06-15) — Session-room roster cleanup: ask-to-unmute on the tile, Mute All to the control bar, centered bar, decluttered list — shipped to `main` & deployed; live verification pending
+
+A focused LiveKit session-room cleanup from Jesse's hands-on use. **One commit `5f8c13c` on `main`, deployed. UI-only — no new deps/env/services, no schema, no API change** (Mute All reuses `/api/livekit/mute-all`). Four files (`components/session/{RIMParticipantTile,ParticipantsPanel,RIMControlBar}.tsx` + `custom.css`). `tsc`-green, CSS brace-balanced (5062/5062), reviewer-gated (no showstoppers). Full record in `session-log.md` (2026-06-15) + `RIM_SessionRoom.md` ("Control bar layout, Mute All, roster cleanup").
+
+**Shipped (live):**
+- **Ask-to-unmute on the tile** — a muted participant's top-right hover slot shows "Ask to unmute" (`.rim-tile-ask`, co-host) where Mute sits when unmuted; same `UNMUTE_REQUEST_TOPIC` packet. Kept on the roster row too (tiles have no hover on touch → the panel is the mobile path).
+- **Name legibility** — the always-rendered empty `.rim-pp__signal` slot (a 32px phantom gap before every name) now renders only for a raised hand/reaction; the mic glyph is gone. Rows are a clean name + role pill.
+- **Mute All → control bar** — moved off the list footer, grouped with the co-host controls beside Bell mode; label flashes "Muted N", a real failure shows `.rim-cb__notice`.
+- **Control bar centered** (Zoom-style) — `.rim-cb` is a `1fr auto 1fr` grid; `.rim-cb__main` truly centered, End pinned right in `.rim-cb__end-zone`; ≤768px collapses to a centered flex-wrap.
+
+**OPEN — live verification (needs a real session + a co-host + 2 devices; none blocking):**
+1. Hover a **muted** person's tile → "Ask to unmute" appears next to where Mute would be → click → they get the unmute prompt.
+2. Participant list shows **full names, no leading gap**; a raised hand still shows "1 ✋".
+3. **Mute All** on the bottom bar (co-host) near Bell mode → mutes everyone, label flashes "Muted N"; a paused co-host sees the failure notice.
+4. No mic glyph on list rows.
+5. The control cluster is **centered**, End far right — check desktop **and** a phone (centered wrap, End reachable, nothing clipped).
+
+**Memory candidate (step 8b — awaiting Jesse's confirm):** when moving an action onto a **hover-only surface** (a video tile), keep a **touch-reachable** path for it (the roster), because tiles have no hover on phones — the participant panel is the only per-person action surface on touch. (A reusable UI-affordance rule beyond the session room.) Confirm or discard.
+
 ### Session 148 (2026-06-13) — Public-site design pass: warm palette + program-detail redesign + flush-nav decision — all on `main` & deployed; verification pending
 
 A long iterative design session on the **public pages** (the rebuild). **UI-only** — CSS + `app/programs/[slug]/page.tsx` + `components/Nav.tsx`; **no new deps/env/services, no schema change.** Pushed direct to `main` (push-to-see loop; Jesse co-edited + committed himself between turns — the warm-ground value is his commit `a1e85b2`). Interleaved with session 147's session-room commits. Full design-system record + the two tombstones in the new **`RIM_Public_Pages.md`**; narrative in `session-log.md`.
