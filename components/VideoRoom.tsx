@@ -50,13 +50,13 @@
  * sustain and produced the layer-switch freezes ("choppy/freezing"
  * complaints).
  *
- * Krisp noise cancellation is wired in RIMConference (via the
- * useKrispNoiseFilter hook from @livekit/components-react/krisp) and is
- * enabled by default for every participant. Co-hosts can toggle it OFF
- * via the "Bell mode" button in the control bar to preserve the full
- * tone of bells, gongs, and singing bowls. The state resets to ON at
- * every session join — Bell mode is a deliberate per-bell action, not
- * a preference.
+ * Noise cancellation is RNNoise, wired in RIMConference (via the local
+ * useNoiseFilter hook + RnnoiseAudioProcessor) and enabled by default for
+ * every participant — the in-browser replacement for Cloud-only Krisp after
+ * RIM self-hosted LiveKit (session 150). Co-hosts can toggle it OFF via the
+ * "Bell mode" button in the control bar to preserve the full tone of bells,
+ * gongs, and singing bowls. The state resets to ON at every session join —
+ * Bell mode is a deliberate per-bell action, not a preference.
  *
  * DTX is OFF for all profiles. The bandwidth savings during silence are
  * negligible and DTX can cause perceptible artifacts at the start/end of

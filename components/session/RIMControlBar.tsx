@@ -17,13 +17,13 @@
  *
  * The Reactions and End buttons open upward popovers (ReactionsMenu, EndMenu).
  *
- * Bell mode (Co-host only) toggles Krisp noise cancellation OFF so the full
+ * Bell mode (Co-host only) toggles RNNoise noise cancellation OFF so the full
  * tone of bells, gongs, and singing bowls passes through unfiltered. NC is
  * on by default at every join; Bell mode is a deliberate per-bell action,
  * not a persisted preference. The button label is stable ("Bell mode") and
  * the on-state is shown with a gold highlight + "On" marker — the label no
  * longer flips to "Clean voice", which read backwards. The state lives in
- * RIMConference's useKrispNoiseFilter hook and is passed in as the
+ * RIMConference's useNoiseFilter hook and is passed in as the
  * noiseFilterEnabled / noiseFilterPending / onToggleNoiseFilter prop trio.
  */
 
@@ -65,14 +65,13 @@ interface Props {
   participantCount: number;
   raisedHandCount: number;
   unreadChatCount?: number;
-  /** True once the Krisp WASM processor has loaded successfully. Browsers
-   *  where Krisp is unsupported (older Safari, some Firefox configs) report
-   *  this as false; we hide the Bell mode toggle entirely in that case so
-   *  it doesn't appear to lie about NC state. */
+  /** True when the browser supports the RNNoise filter (AudioWorklet) and its
+   *  WASM loaded. Browsers where it's unsupported report this as false; we hide
+   *  the Bell mode toggle entirely in that case so it doesn't lie about NC state. */
   noiseFilterAvailable: boolean;
-  /** Whether Krisp NC is currently active on the local mic track. */
+  /** Whether RNNoise NC is currently active on the local mic track. */
   noiseFilterEnabled: boolean;
-  /** True while Krisp is loading/swapping; disables the Bell mode toggle. */
+  /** True while RNNoise is attaching/swapping; disables the Bell mode toggle. */
   noiseFilterPending: boolean;
   /** Flip NC on ↔ off. Bell mode = NC off. */
   onToggleNoiseFilter: () => void;
@@ -494,14 +493,14 @@ export default function RIMControlBar({
         <span className="rim-cb-btn__label">Settings</span>
       </button>
 
-      {/* ── Bell mode — Co-host only, only when Krisp is available ──
+      {/* ── Bell mode — Co-host only, only when RNNoise is available ──
           Bell mode ON  (NC off) — bells, gongs, singing bowls pass through
                                    unfiltered. Gold highlight + "On" marker.
           Bell mode OFF (NC on, default) — voice cleaned, ambient suppressed.
           The label stays "Bell mode" in both states (it used to flip to
           "Clean voice", which read backwards); the on-state is shown by the
           highlight and the "On" marker, not by changing the word. Resets to
-          OFF at every join. Hidden when Krisp isn't supported in the browser,
+          OFF at every join. Hidden when RNNoise isn't supported in the browser,
           so the button can't lie about its state. */}
       {isCoHost && noiseFilterAvailable && (
         <button

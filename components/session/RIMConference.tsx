@@ -9,13 +9,14 @@
  * nonverbal signal toolbar lives inside the Reactions menu in the control
  * bar (no longer a separate top toolbar).
  *
- * Krisp noise cancellation is enabled by default on every join via the
- * useKrispNoiseFilter hook from @livekit/components-react/krisp. Co-hosts
- * (teachers, host managers, the session host) see a "Bell mode" toggle in
- * the control bar that turns NC off so the full tone of bells, gongs, and
- * singing bowls passes through unfiltered. The state resets to NC-on at
- * every session join — Bell mode is a deliberate per-bell action, not a
- * preference that persists.
+ * Noise suppression is RNNoise (in-browser, self-hosted) via the local
+ * useNoiseFilter hook — the replacement for Cloud-only Krisp after RIM moved
+ * off LiveKit Cloud (session 150). It's enabled by default on every join;
+ * co-hosts (teachers, host managers, the session host) see a "Bell mode"
+ * toggle in the control bar that turns NC off so the full tone of bells,
+ * gongs, and singing bowls passes through unfiltered. The state resets to
+ * NC-on at every session join — Bell mode is a deliberate per-bell action,
+ * not a preference that persists.
  */
 
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -36,15 +37,14 @@ import {
   CarouselLayout,
   useSpeakingParticipants,
 } from "@livekit/components-react";
-import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
-import { Track, RoomEvent, LocalAudioTrack, DataPacket_Kind, ConnectionState } from "livekit-client";
-import type { LocalTrackPublication } from "livekit-client";
+import { Track, RoomEvent, DataPacket_Kind, ConnectionState } from "livekit-client";
 import RIMParticipantTile from "./RIMParticipantTile";
 import ParticipantsPanel, { UNMUTE_REQUEST_TOPIC } from "./ParticipantsPanel";
 import VideoSettingsPanel from "./VideoSettingsPanel";
 import RIMControlBar from "./RIMControlBar";
 import RIMChat, { CHAT_TOPIC } from "./RIMChat";
 import { SessionRoleProvider } from "./sessionRole";
+import { useNoiseFilter } from "./useNoiseFilter";
 import type { ParticipantMetadata } from "./RIMParticipantTile";
 
 interface Props {
@@ -166,111 +166,13 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
     localParticipant.setMetadata(JSON.stringify(next));
   }, [localParticipant, avatarUrl, isSessionHost, isProgramTeacher, teacherLabel, isCoHost]);
 
-  // Krisp NC — enable by default on every join. Co-host UI exposes a
-  // "Bell mode" toggle in the control bar that flips this off; the state
-  // is component-local so it resets to ON whenever the conference mounts.
-  //
-  // `krisp.processor` is undefined until the WASM filter loads successfully.
-  // On unsupported browsers (older Safari, some Firefox configs) the hook
-  // logs a warn and never creates the processor — we use that as the
-  // "Krisp actually available" signal to gate the Bell mode toggle, so
-  // teachers on unsupported browsers don't see a button that would lie
-  // about NC state.
-  //
-  // **Mic-track race.** In principle, calling `setNoiseFilterEnabled(true)`
-  // before the mic publishes is safe — the hook's own attach effect re-runs
-  // when the mic publication arrives. In practice we hit a case where the
-  // processor was loaded but never attached, and the symptom was invisible
-  // (no UI signal, no thrown error — the hook's Promise swallows). The
-  // verification effect below subscribes to LocalTrackPublished, waits
-  // 500ms after the mic publishes, reads `track.getProcessor()` directly,
-  // and retries the enable if nothing is attached. Belt-and-suspenders for
-  // the hook's happy-path assumption.
-  //
-  // Diagnostic logs (`[rim-krisp]` prefix) document the full lifecycle.
-  // These are intentionally unconditional — they need to fire in production
-  // (Vercel) for Jesse to verify Krisp on the deployed site via DevTools.
-  // Remove once Krisp's runtime state is confirmed solid in real sessions.
-  const krisp = useKrispNoiseFilter();
-  const noiseFilterAvailable = krisp.processor !== undefined;
-  const krispDefaultRef = useRef(false);
-  const krispRef = useRef(krisp);
-  useEffect(() => { krispRef.current = krisp; });
+  // Noise suppression — RNNoise, on by default every join (the conference
+  // remounts each join, so this resets to on). Co-host "Bell mode" toggles it
+  // off so bells/bowls pass raw. The processor attaches to the mic when it
+  // publishes; see useNoiseFilter / RnnoiseAudioProcessor.
+  const nc = useNoiseFilter();
 
-  // Initial enable — fires once on mount with explicit error handling.
-  useEffect(() => {
-    if (krispDefaultRef.current) return;
-    krispDefaultRef.current = true;
-    console.log("[rim-krisp] requesting initial enable");
-    Promise.resolve(krisp.setNoiseFilterEnabled(true))
-      .then(() => {
-        console.log("[rim-krisp] initial enable returned");
-      })
-      .catch((err) => {
-        console.error("[rim-krisp] initial enable failed:", err);
-      });
-  }, [krisp]);
-
-  // State diagnostic — logs whenever the hook's reported state transitions
-  // (WASM loaded, enable flipped, pending true/false). Filter the console
-  // by `[rim-krisp]` to see the full timeline.
-  useEffect(() => {
-    console.log("[rim-krisp] state:", {
-      processorReady: !!krisp.processor,
-      enabled: krisp.isNoiseFilterEnabled,
-      pending: krisp.isNoiseFilterPending,
-    });
-  }, [krisp.processor, krisp.isNoiseFilterEnabled, krisp.isNoiseFilterPending]);
-
-  // Mic-track attach verification — when the local mic actually publishes,
-  // give the hook ~500ms to attach its processor, then read
-  // `track.getProcessor()` directly to verify. Catches the race where the
-  // initial setNoiseFilterEnabled landed before the mic existed and the
-  // hook's internal effect didn't re-fire correctly. One retry on miss.
-  // krispRef keeps the closure pointed at the current hook return without
-  // re-subscribing the room event listener on every render.
   const roomCtx = useRoomContext();
-  useEffect(() => {
-    if (!roomCtx) return;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    function onLocalTrackPublished(pub: LocalTrackPublication) {
-      if (pub.source !== Track.Source.Microphone) return;
-      console.log("[rim-krisp] local mic published, scheduling 500ms attach verify");
-      const t = setTimeout(() => {
-        const track = pub.track;
-        const k = krispRef.current;
-        if (!(track instanceof LocalAudioTrack)) {
-          console.warn("[rim-krisp] verify: mic track is not LocalAudioTrack");
-          return;
-        }
-        const proc = track.getProcessor();
-        const attached = proc?.name === "livekit-noise-filter";
-        console.log("[rim-krisp] verify (500ms after publish):", {
-          processorName: proc?.name ?? "(none)",
-          attached,
-          krispProcessorReady: !!k.processor,
-          krispEnabled: k.isNoiseFilterEnabled,
-          krispPending: k.isNoiseFilterPending,
-        });
-        // Gate retry on "not currently enabled or pending" — a republish
-        // (mute → unmute → publish) re-fires this effect and we don't want
-        // to spam setNoiseFilterEnabled when the hook is already actively
-        // managing the attach.
-        if (!attached && k.processor && !k.isNoiseFilterEnabled && !k.isNoiseFilterPending) {
-          console.warn("[rim-krisp] verify: WASM loaded but NOT attached to mic — retrying enable");
-          Promise.resolve(k.setNoiseFilterEnabled(true))
-            .then(() => console.log("[rim-krisp] retry enable returned"))
-            .catch((err) => console.error("[rim-krisp] retry enable failed:", err));
-        }
-      }, 500);
-      timers.push(t);
-    }
-    roomCtx.on(RoomEvent.LocalTrackPublished, onLocalTrackPublished);
-    return () => {
-      timers.forEach(clearTimeout);
-      roomCtx.off(RoomEvent.LocalTrackPublished, onLocalTrackPublished);
-    };
-  }, [roomCtx]);
 
   // Unread chat badge. The live chat listener lives in RIMChat, which only
   // mounts while the panel is open — so when chat is closed nothing counts
@@ -712,10 +614,10 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           participantCount={remoteParticipants.length + 1}
           raisedHandCount={raisedHandCount}
           unreadChatCount={unreadChatCount}
-          noiseFilterAvailable={noiseFilterAvailable}
-          noiseFilterEnabled={krisp.isNoiseFilterEnabled}
-          noiseFilterPending={krisp.isNoiseFilterPending}
-          onToggleNoiseFilter={() => krisp.setNoiseFilterEnabled(!krisp.isNoiseFilterEnabled)}
+          noiseFilterAvailable={nc.available}
+          noiseFilterEnabled={nc.enabled}
+          noiseFilterPending={nc.pending}
+          onToggleNoiseFilter={nc.toggle}
         />
 
         {/* Ask-to-unmute prompt — a co-host invited this user to unmute.
