@@ -465,15 +465,31 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
   // twin both carry an undefined trackSid, so identity alone disambiguates.
   // Mirrors stock VideoConference's `tracks.filter(t => !isEqualTrackRef(t, focusTrack))`.
   const focusTrackRef = layoutContext.pin.state?.[0];
-  const carouselTracks = focusTrackRef
-    ? sortedTracks.filter(
-        (t) =>
-          !(
-            t.participant.identity === focusTrackRef.participant.identity &&
-            t.publication?.trackSid === focusTrackRef.publication?.trackSid
-          ),
-      )
-    : sortedTracks;
+  // MUST be memoized. CarouselLayout (the filmstrip, mounted only in focus
+  // view) runs a useSize → setState-during-render measurement; feeding it an
+  // array with a fresh identity every render makes that measurement oscillate
+  // and throws React #185 ("Maximum update depth exceeded"). That is what
+  // white-screened every *receiver* the instant a screen share began (a share
+  // forces focus view) — the boundary caught it but the room also tore down,
+  // so people were just dropped. Gallery never hit it because GridLayout gets
+  // the already-memoized sortedTracks. Keyed on stable primitives (the focused
+  // track's identity + trackSid) so it recomputes only on a real change.
+  const focusIdentity = focusTrackRef?.participant.identity;
+  const focusTrackSid = focusTrackRef?.publication?.trackSid;
+  const hasFocus = !!focusTrackRef;
+  const carouselTracks = useMemo(
+    () =>
+      hasFocus
+        ? sortedTracks.filter(
+            (t) =>
+              !(
+                t.participant.identity === focusIdentity &&
+                t.publication?.trackSid === focusTrackSid
+              ),
+          )
+        : sortedTracks,
+    [sortedTracks, hasFocus, focusIdentity, focusTrackSid],
+  );
 
   return (
     <SessionRoleProvider
