@@ -1,5 +1,25 @@
 [
   {
+    "id": "2026-06-16-001",
+    "title": "Replace inactive Krisp NC with a free in-browser AI noise filter (DeepFilterNet/RNNoise)",
+    "description": "Session 150 migrated LiveKit off Cloud to a self-hosted DigitalOcean server. Krisp 'Enhanced Noise Cancellation' (useKrispNoiseFilter in components/session/RIMConference.tsx) is LiveKit-Cloud-licensed-only, so it is now INACTIVE — sessions run on the browser's built-in noiseSuppression alone (still on for non-teachers; the hook degrades gracefully and hides the Bell-mode button). Replace it with a free, open-source, in-browser AI noise filter implemented as a custom LiveKit audio track processor (sibling to components/session/BrightnessProcessor.ts). DeepFilterNet preferred (newer/stronger), RNNoise the proven fallback (Jitsi uses it). Integration packages: @sapphi-red/web-noise-suppressor or @shiguredo/noise-suppression (both wire into LiveKit setProcessor). When the AI filter is active, disable the browser's basic noiseSuppression on that path (don't stack — over-scrubs sibilants). Keep/repurpose 'Bell mode' to toggle the new filter off for bells/bowls. ai-coustics is the paid top-tier option (own license key, usage-billed) only if browser+AI isn't enough; skip server-side DTLN (agent-pipeline shape, server CPU).",
+    "category": "Infrastructure",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-06-16",
+    "notes": "Top item for the 'optimize LiveKit' next session. Full options/cost table + the cost reframe (self-hosting bundles bandwidth -> keep the 720p quality Jesse likes) in UP_NEXT.md session-150 brief. Echo cancellation + browser NS are unaffected (browser-native, $0)."
+  },
+  {
+    "id": "2026-06-16-002",
+    "title": "Harden the self-hosted LiveKit server (DO Cloud Firewall + OS updates + reboot)",
+    "description": "Session 150 stood up the self-hosted LiveKit droplet (RIM-LiveKit, 104.248.229.126) with the firewall OFF (all ports open) to avoid setup friction. Harden it: (1) attach a DigitalOcean Cloud Firewall allowing ONLY 22/tcp (SSH), 80/tcp + 443/tcp (HTTPS + TURN/TLS), 7881/tcp (WebRTC/TCP), 3478/udp (TURN/UDP), 50000-60000/udp (WebRTC/UDP) — use a DO Cloud Firewall, NOT ufw, because Docker publishes ports straight through iptables and bypasses ufw. (2) Apply the pending OS updates and the reboot the server is requesting (also validates LiveKit auto-restarts on boot: docker compose restart:unless-stopped + the Docker daemon is systemd-enabled). (3) Optionally rotate LIVEKIT_API_SECRET (it was pasted into the setup chat) — regenerate in ~/livekit.rootedinmindfulness.org/livekit.yaml, update the three Vercel env vars, redeploy.",
+    "category": "Infrastructure",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-06-16",
+    "notes": "Do before relying on the server for a real production session. Server config + ops notes in RIM_SessionRoom.md (session-150 update) + RIM_Stack_Reference.md. DO billing is per-second, so reboot/resize is cheap."
+  },
+  {
     "id": "2026-06-10-001",
     "title": "Validate appliesToFormats overlap when tagging a program for auxiliary coverage",
     "description": "Session 146 reviewer nit. The coverage-hub write routes (POST /api/programs-pg and PUT /api/programs-pg/[slug]) validate requested coverageHubSlugs for hub EXISTENCE only — not whether the hub's appliesToFormats overlaps the program's programFormat. The ProgramEditor only OFFERS format-compatible hubs (per RIM_Hub_Engineering.md's appliesToFormats rule), so normal use never produces a mismatch, but a stale or tampered payload could tag e.g. an in-person-only greeter hub onto a virtual-only program — which then gets a ProgramCoverageHub row and (session 146) fires the new-coverage notification, even though the page-level format filter would keep it from actually surfacing in that hub's scheduler. Harden: in both routes, after the existence check, reject any requested hub whose appliesToFormats doesn't overlap the program's programFormat (422). Pre-existing gap, not introduced by the session-146 notification change; low risk.",

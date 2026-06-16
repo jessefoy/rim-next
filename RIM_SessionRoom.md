@@ -8,7 +8,7 @@ Companion docs: `RIM_System_Architecture.md` (Video Conferencing section — the
 
 ## What it is
 
-A custom full-page WebRTC video room built on **LiveKit Cloud (Build tier)**. Not LiveKit's stock `VideoConference` — a bespoke layout (`RIMConference`) with a Zoom-aligned control bar, custom tiles, persistent chat, nonverbal signals, role pills, and host controls. Members and guests join in the browser with no external accounts or app installs.
+A custom full-page WebRTC video room built on **self-hosted LiveKit** (DigitalOcean droplet `104.248.229.126`, as of session 150 — migrated off LiveKit Cloud to escape per-GB bandwidth pricing; server `wss://livekit.rootedinmindfulness.org`, Docker Compose: livekit-server + Caddy/TLS + Redis + TURN; config on the droplet at `~/livekit.rootedinmindfulness.org/`; pointed into the app via Vercel env `NEXT_PUBLIC_LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET`). **Krisp Enhanced Noise Cancellation is Cloud-only → now inactive** — sessions run on the browser's built-in noise suppression until a free in-browser AI filter (DeepFilterNet/RNNoise) replaces it; `useKrispNoiseFilter` degrades gracefully (Bell-mode button hidden when no processor loads). Not LiveKit's stock `VideoConference` — a bespoke layout (`RIMConference`) with a Zoom-aligned control bar, custom tiles, persistent chat, nonverbal signals, role pills, and host controls. Members and guests join in the browser with no external accounts or app installs.
 
 **Entry:** `/session/[slug]` (and `/session/[slug]?key=…` for open-access guests). Reached from the dashboard "Join" / "Enter as host" buttons and the Scheduler.
 

@@ -6,6 +6,55 @@
 
 ## Active
 
+### Session 150 (2026-06-16) — LiveKit migrated from Cloud → self-hosted on DigitalOcean (live & verified); next session = optimize quality + cost
+
+**No repo code changed** — the entire change is infrastructure + three Vercel env vars. RIM now runs on a **self-hosted LiveKit server** instead of LiveKit Cloud, to escape Cloud's $0.12/GB bandwidth pricing (which made all-camera 30-person circles ~$260–620/mo). Full narrative in `session-log.md` (2026-06-16); service lines updated in `RIM_Stack_Reference.md` / `RIM_SessionRoom.md` / FEATURES / `RIM_System_Architecture.md`.
+
+**Live now (verified):** server `wss://livekit.rootedinmindfulness.org` — DigitalOcean droplet `RIM-LiveKit` (Ubuntu 24.04, IP `104.248.229.126`, ~$58/mo flat incl. backups), Docker Compose (livekit-server + Caddy/TLS + Redis + TURN), config at `~/livekit.rootedinmindfulness.org/`. Vercel env: `NEXT_PUBLIC_LIVEKIT_URL` / `LIVEKIT_API_KEY` (`APIk48Zv2jGTFGr`) / `LIVEKIT_API_SECRET` (Jesse's password manager + the server's `livekit.yaml`). HTTPS 200 + valid LE certs both domains; RoomService API + token-validate confirmed; admin test room connects. SSH: `ssh root@104.248.229.126`; manage with `cd ~/livekit.rootedinmindfulness.org && docker compose {ps,logs,restart,pull}`.
+
+**⚠️ Current-state change:** **Krisp Enhanced NC is Cloud-only → now INACTIVE.** Sessions run on **browser noise suppression only** (still on for non-teachers). `useKrispNoiseFilter` degrades gracefully (Bell-mode button hidden). Restoring strong NC is the top next-session item.
+
+---
+
+#### NEXT SESSION GOAL — "optimize LiveKit: quality + cost"
+
+Jesse: *"I want to optimize the quality and cost… I actually liked the video quality."* Brief assembled so we start informed.
+
+**THE COST REFRAME (read first):** On Cloud, video quality drove the bill ($0.12/GB) — so the old plan was to tune *down* to 360p to save money. **That rationale is gone.** Self-hosting **bundles bandwidth** (DO droplet includes a few TB; ~$0.01/GB only past that). So **video quality is essentially free within the included transfer → keep the quality Jesse likes.** Optimization is now: (a) keep/validate that quality within server CPU (4 vCPU) + included bandwidth, (b) **replace the now-dead Krisp NC** with a free in-browser AI filter, (c) confirm monthly transfer stays under the droplet allowance (resize before degrading quality).
+
+**A. Current video baseline (the config Jesse likes — `components/VideoRoom.tsx::buildRoomOptions`):**
+- Capture **720p** (1280×720), **H.264**, **30 fps**
+- Simulcast layers **180p (~160 kbps) · 360p (~450 kbps) · 720p** (top capped by ceiling)
+- Bitrate ceiling: **teacher 2.0 Mbps · co-host/speaker 1.5 · listener 1.5**
+- Audio: teacher 128 / speaker 96 / listener 64 kbps; **DTX off**
+- **adaptiveStream on, dynacast on** (auto-downscale small tiles / pause unwatched layers)
+- → He likes this. **Don't reflexively drop to 360p.** Reconsider only if 4 vCPU CPU or bandwidth says so — resize the droplet before degrading quality.
+
+**B. Echo + noise reduction — options & costs (self-hosted context):**
+
+| Layer | Status now | Self-hosted? | Cost |
+|---|---|---|---|
+| Echo cancellation (browser WebRTC, all profiles) | **Active** | Yes (browser-native) | $0 |
+| Browser noise suppression (non-teachers) | **Active** | Yes (browser-native) | $0 |
+| **Krisp Enhanced NC** (`useKrispNoiseFilter`) | **INACTIVE** (Cloud-only) | **No** | — (was bundled on Cloud) |
+| **DeepFilterNet** in-browser AI NC | not built | **Yes** (custom audio track processor, sibling to `BrightnessProcessor`) | **$0** — newer/stronger; **recommended replacement** |
+| **RNNoise** in-browser AI NC | not built | Yes (proven — Jitsi uses it) | $0 — fallback |
+| **ai-coustics** | not built | Yes (own license key) | **paid**, usage-billed, top-tier — only if browser+AI isn't enough |
+| DTLN / server-side agent NC | not built | Yes but heavy (agent pipeline, server CPU) | $0 but **skip** — wrong shape for human meetings |
+
+→ **Plan:** wire a free in-browser AI filter (DeepFilterNet → RNNoise fallback) as an audio track processor; when it's on, turn the browser's basic NS *off* on that path (don't stack — over-scrubs sibilants). Keep/repurpose "Bell mode" to toggle the new filter off for bells/bowls. (Integration packages: `@sapphi-red/web-noise-suppressor`, `@shiguredo/noise-suppression` — both wire into LiveKit's `setProcessor`.)
+
+**C. Server hardening (do before relying on it for a real production session):**
+1. **DO Cloud Firewall** allowing ONLY: 22/tcp · 80/tcp · 443/tcp · 7881/tcp · 3478/udp · 50000–60000/udp. (Firewall is currently OFF. Use a DO Cloud Firewall, **not `ufw`** — Docker publishes ports straight through iptables and bypasses ufw.)
+2. Apply pending OS updates + the **reboot** the server is requesting (also proves auto-restart: compose `restart: unless-stopped` + Docker daemon enabled).
+3. Optionally **rotate `LIVEKIT_API_SECRET`** (it was pasted in the setup chat) — regenerate in `livekit.yaml`, update the three Vercel vars, redeploy.
+
+**D. Real-session test** (the admin test page is a bare harness — the only faithful test): in a live session confirm avatars show (camera off) and **End-for-All** actually ends the room.
+
+**Code touch-points next session:** `components/VideoRoom.tsx` (`buildRoomOptions`), `components/session/RIMConference.tsx` (swap `useKrispNoiseFilter` → new processor), a new `components/session/` audio processor (model on `BrightnessProcessor.ts`), `RIMControlBar.tsx` (Bell-mode → new filter toggle). Per CLAUDE.md: read `RIM_SessionRoom.md` + produce a connections map before building.
+
+**Memory candidates (step 7b — awaiting Jesse's confirm):** (1) *project* — LiveKit is now **self-hosted on DigitalOcean** (the durable infra fact, for fast recall next session); (2) *feedback* — **verify external service pricing/specs from live sources before quoting** (this session I gave confident numbers from memory that were wrong 3× — LiveKit bandwidth cost, Cloud all-camera total, Hetzner-US price — each corrected by the live page; the cost was trust + time). Confirm or discard.
+
 ### Session 149 (2026-06-15) — Session-room roster cleanup: ask-to-unmute on the tile, Mute All to the control bar, centered bar, decluttered list — shipped to `main` & deployed; live verification pending
 
 A focused LiveKit session-room cleanup from Jesse's hands-on use. **One commit `5f8c13c` on `main`, deployed. UI-only — no new deps/env/services, no schema, no API change** (Mute All reuses `/api/livekit/mute-all`). Four files (`components/session/{RIMParticipantTile,ParticipantsPanel,RIMControlBar}.tsx` + `custom.css`). `tsc`-green, CSS brace-balanced (5062/5062), reviewer-gated (no showstoppers). Full record in `session-log.md` (2026-06-15) + `RIM_SessionRoom.md` ("Control bar layout, Mute All, roster cleanup").

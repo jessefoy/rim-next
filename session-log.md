@@ -1,5 +1,37 @@
 ---
 
+## 2026-06-16 (session 150) — LiveKit migrated from Cloud → self-hosted on DigitalOcean: the cost decision + full server stand-up (no repo code change)
+
+A long strategic + operational session. **No repo code changed** — the entire change is **infrastructure + three Vercel env vars.** Re-analyzed LiveKit Cloud costs, decided to **leave Cloud and self-host**, then stood up a working, TLS-secured, self-hosted LiveKit server on DigitalOcean and pointed RIM at it.
+
+### Why we left Cloud
+LiveKit Cloud meters **downstream data at $0.12/GB** (~$120/TB) over a 250 GB allowance. RIM's real pattern (~30 people, cameras on, ~6 sessions/wk) is ~2–4 TB/mo → **~$260–620/mo on Cloud** for all-camera circles — unsustainable for the center. (My original "really affordable" framing was under-modeled; owned to Jesse.) Self-hosting **bundles bandwidth** and keeps 100% of the built room (same open-source server + client SDK — only the server URL + keys change).
+
+### Why DigitalOcean (not Hetzner)
+Evaluated Hetzner (cheapest) but its cheap CX line + 20 TB traffic is **EU-only**; **Hetzner US CPX41 is ~$141/mo** (~4× EU — Jesse caught it on the create screen), making Hetzner-US *pricier* than DO. Hetzner-EU only wins on price if transatlantic latency is acceptable. Jesse chose **DigitalOcean US** (~$58/mo, low latency, friendliest) "considering how much we've been through" — certainty over squeezing the last $35/mo. Whole-thread principle: **don't decide on paper — measure/test cheaply.**
+
+### What was stood up (verified live)
+- **DO droplet** `RIM-LiveKit` (Ubuntu 24.04, US region, 4 vCPU/8 GB Basic, usage-based weekly backups, IPv6 off, free monitoring on). Public IP `104.248.229.126`.
+- **DNS** (GoDaddy): `livekit` + `livekit-turn` A records → the droplet.
+- **Docker** (official installer) → **LiveKit `generate`** ("LiveKit Server only" · Let's Encrypt · bundled Redis · Skip startup script) → `docker compose up -d` (livekit-server + Caddy/TLS + Redis). Config at `~/livekit.rootedinmindfulness.org/` on the droplet (`livekit.yaml` holds key/secret).
+- **RIM repointed** via Vercel env (edited the existing three + redeployed): `NEXT_PUBLIC_LIVEKIT_URL=wss://livekit.rootedinmindfulness.org`, `LIVEKIT_API_KEY=APIk48Zv2jGTFGr`, `LIVEKIT_API_SECRET` (Jesse's password manager + the server's `livekit.yaml`).
+- **Verified:** HTTPS `200 OK` + valid Let's Encrypt certs on both domains; RoomService API answers `OK` (project SDK); token-validate `success` (and `401` without a token); the `/admin/livekit-test` room connects on the new server.
+
+### Two test-room quirks — both harness artifacts, NOT migration bugs
+- **"We couldn't end the session"** in the admin test page: `end-session`'s `assertSessionDateInWindow` guard correctly refuses because the test page uses a make-believe program (`programSlug="test-room"`, no schedule/window). The server's room-ending API is proven working; real sessions pass the guard. App code unchanged by the migration.
+- **No presence photo (camera off)**: the `testRoom` token branch seeds no avatar metadata and the test page passes no photo. Real sessions seed it.
+
+### Important current-state change
+**Krisp Enhanced NC is LiveKit-Cloud-only** → **now inactive** since we left Cloud. `useKrispNoiseFilter` degrades gracefully (processor undefined → Bell mode hidden), so sessions still run on the **browser's** noise suppression (on for non-teachers). The premium NC layer is gone until replaced.
+
+### What this connects to
+The whole session room (`components/session/*`, `VideoRoom.tsx`, `app/api/livekit/*`, `lib/livekit*.ts`) — the token route + `RoomServiceClient` now talk to the self-hosted server, no code touched. Stack Reference / SessionRoom / FEATURES / System Architecture all updated to "self-hosted."
+
+### What comes next — next session "optimize LiveKit (quality + cost)"
+Full brief in `UP_NEXT.md`. Headline reframe: **self-hosting bundles bandwidth, so video quality is essentially free within the droplet's transfer → the planned 360p tuning is no longer needed for cost; keep the quality Jesse likes.** Real work: (1) replace dead Krisp with a **free in-browser AI noise filter** (DeepFilterNet → RNNoise fallback; a custom audio track processor, sibling to `BrightnessProcessor`); (2) **harden** (DO Cloud Firewall to the 6 ports, OS updates + the requested reboot); (3) **real-session test** (avatars + End-for-All); (4) optionally rotate the API secret (pasted in chat).
+
+---
+
 ## 2026-06-15 (session 149) — Session-room roster cleanup: ask-to-unmute on the tile, Mute All to the control bar, centered bar, decluttered participant list (UI-only, on `main`)
 
 A focused session-room cleanup from Jesse's hands-on use of the LiveKit room. **One commit `5f8c13c` on `main`, deployed. UI-only — no new dependencies, env vars, services, or schema change; no API change** (Mute All reuses the existing `/api/livekit/mute-all`). Four files: `components/session/{RIMParticipantTile,ParticipantsPanel,RIMControlBar}.tsx` + `public/css/custom.css`. `tsc`-green, CSS brace-balanced (5062/5062), reviewer-gated (general-purpose sub-agent — no showstoppers, no should-fixes).
