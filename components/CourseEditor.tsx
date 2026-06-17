@@ -102,8 +102,7 @@ interface Props {
 }
 
 const ROLE_OPTIONS: { value: string; label: string }[] = [
-  { value: "HOST",         label: "Host" },
-  { value: "HOST_MANAGER", label: "Host Manager" },
+  { value: "HOST_MANAGER", label: "Scheduling manager" },
   { value: "TEACHER",      label: "Teacher" },
   { value: "REGISTRAR",    label: "Registrar" },
   { value: "ADMIN",        label: "Admin" },

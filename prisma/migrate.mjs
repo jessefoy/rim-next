@@ -4878,6 +4878,65 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ update_coverage_email_copy_v1 already applied.");
   }
 
+  // ── Retire the plain HOST role (session 153) ──────────────────────────────
+  // host-team membership is now the source of truth for being a host (set via
+  // the Member Registry "Hub memberships" tool). The plain HOST role left the
+  // UI; strip it from existing users so its capability *fallback* can't outlive
+  // a host-team removal (remove-from-Teams must actually remove). Ensure each
+  // holder keeps host-team membership FIRST, so no one loses hosting in the
+  // switch. HOST_MANAGER (cross-hub scheduling power) is intentionally untouched.
+  const retireHostFlag = await db.$queryRawUnsafe(
+    `SELECT name FROM "_migration_flags" WHERE name = 'retire_host_role_v1'`,
+  );
+  if (retireHostFlag.length === 0) {
+    await db.$executeRawUnsafe(
+      `CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())`,
+    );
+    const hostHub = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true } });
+    if (!hostHub) {
+      // Never strip without a landing spot — retry on a future deploy (flag unset).
+      console.warn("  ⚠ retire_host_role_v1 skipped: host-team hub not found; will retry next deploy.");
+    } else {
+      const hostRoleUsers = await db.user.findMany({
+        where: { roles: { has: "HOST" } },
+        select: { id: true, roles: true },
+      });
+      for (const u of hostRoleUsers) {
+        // Ensure host-team membership BEFORE stripping the role, so capability
+        // (which reads membership first) never lapses in the switch.
+        await db.hubMember.upsert({
+          where: { hubId_userId: { hubId: hostHub.id, userId: u.id } },
+          create: { hubId: hostHub.id, userId: u.id, position: "Host", isCoordinator: false },
+          update: {},
+        });
+        await db.user.update({
+          where: { id: u.id },
+          data: { roles: { set: u.roles.filter((r) => r !== "HOST") } },
+        });
+      }
+      // Strip HOST from any course's requiredRoles gate too — a course gated on
+      // HOST would otherwise become invisible / un-enrollable once nobody holds it.
+      const hostGatedCourses = await db.course.findMany({
+        where: { requiredRoles: { has: "HOST" } },
+        select: { id: true, requiredRoles: true },
+      });
+      for (const c of hostGatedCourses) {
+        await db.course.update({
+          where: { id: c.id },
+          data: { requiredRoles: { set: c.requiredRoles.filter((r) => r !== "HOST") } },
+        });
+      }
+      await db.$executeRawUnsafe(
+        `INSERT INTO "_migration_flags" (name) VALUES ('retire_host_role_v1')`,
+      );
+      console.log(
+        `  ✔ retire_host_role_v1: stripped HOST from ${hostRoleUsers.length} user(s) + ${hostGatedCourses.length} course gate(s); host-team membership ensured.`,
+      );
+    }
+  } else {
+    console.log("  ⏭ retire_host_role_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

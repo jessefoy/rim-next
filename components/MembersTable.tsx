@@ -19,7 +19,7 @@ export interface SerializedMember {
   _count: { registrations: number };
 }
 
-type RoleFilter = "ALL" | "ADMIN" | "REGISTRAR" | "HOST" | "NOROLES";
+type RoleFilter = "ALL" | "ADMIN" | "REGISTRAR" | "NOROLES";
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE" | "VISITOR" | "STUDENT" | "VOLUNTEER";
 type SortField = "firstName" | "lastName" | "email" | "createdAt" | "registrations";
 type SortDir = "asc" | "desc";
@@ -193,7 +193,6 @@ export default function MembersTable({ members, showLegacyPool, legacyCount }: P
           <option value="ALL">All roles</option>
           <option value="ADMIN">Admins</option>
           <option value="REGISTRAR">Registrars</option>
-          <option value="HOST">Hosts</option>
           <option value="NOROLES">No roles</option>
         </select>
         <select

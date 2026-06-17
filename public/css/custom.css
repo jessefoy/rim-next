@@ -21340,7 +21340,8 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .adm2-hublist__main {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
@@ -21348,7 +21349,6 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
   min-width: 0;
 }
 
@@ -21368,28 +21368,47 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   padding: 2px 8px;
 }
 
-.adm2-hublist__coord {
+/* Segmented control: Off / Member / Coordinator */
+.adm2-seg {
   display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  color: var(--rim-text-muted);
-  cursor: pointer;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
 }
-.adm2-hublist__coord input { width: 16px; height: 16px; cursor: pointer; }
-
-.adm2-hublist__remove {
+.adm2-seg__btn {
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   color: var(--rim-text-muted);
   background: none;
   border: none;
-  padding: 8px 6px;
+  border-left: 1px solid var(--rim-rule);
+  padding: 8px 14px;
   min-height: 44px;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
-.adm2-hublist__remove:hover { color: #c0392b; }
+.adm2-seg__btn:first-child { border-left: none; }
+.adm2-seg__btn:hover:not(:disabled):not(.adm2-seg__btn--active) { background: var(--rim-bg-accent); }
+.adm2-seg__btn--active {
+  background: var(--rim-blue);
+  color: #fff;
+  font-weight: 500;
+}
+.adm2-seg__btn:disabled { opacity: 0.55; cursor: default; }
+
+/* Locked: membership derived from a role (managed in Roles & access) */
+.adm2-hublist__locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
 
 .adm2-hublist__confirm {
   display: flex;
@@ -21414,25 +21433,6 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .adm2-hublist__confirm-actions {
   display: flex;
   gap: 8px;
-}
-
-.adm2-hublist__add {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.adm2-hublist__select {
-  font-family: var(--font-sans);
-  font-size: 16px; /* 16px min on selects — prevents iOS auto-zoom */
-  color: var(--rim-text);
-  background: var(--rim-bg-bright);
-  border: 1px solid var(--rim-rule);
-  border-radius: 6px;
-  padding: 10px 12px;
-  min-height: 44px;
-  min-width: 220px;
 }
 
 /* ── Danger zone ── */

@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { removeHubMembershipWithCleanup } from "@/lib/removeHubMembership";
+import { roleDerivedHubs } from "@/lib/syncHubMembership";
 
 /**
  * Hub memberships for a member, managed from the Member Registry profile.
@@ -17,6 +18,10 @@ import { removeHubMembershipWithCleanup } from "@/lib/removeHubMembership";
  *   GET    → { hubs: [all ACTIVE hubs], memberships: [this member's rows] }
  *   POST   → { hubSlug, isCoordinator? }   upsert (add, or flip coordinator)
  *   DELETE → { hubSlug }                   hard-remove + FK-safe coverage cleanup
+ *
+ * Role-derived hubs (courses ← TEACHER, registrar ← REGISTRAR) are LOCKED here:
+ * GET marks them `derivedFromRole`, and POST/DELETE refuse to write them (409) —
+ * those memberships are governed by the role in "Roles & access," not this tool.
  *
  * Adds are silent by design (pre-staging) — no hub-welcome email. The
  * pre-threshold gate would suppress it for staged/legacy accounts anyway.
@@ -36,10 +41,12 @@ export async function GET(
   }
 
   const { id } = await params;
-  const user = await db.user.findUnique({ where: { id }, select: { id: true } });
+  const user = await db.user.findUnique({ where: { id }, select: { id: true, roles: true } });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const [hubs, memberships] = await Promise.all([
+  const derived = roleDerivedHubs(user.roles);
+
+  const [hubs, memberRows] = await Promise.all([
     db.hub.findMany({
       where: { status: "ACTIVE" },
       orderBy: { name: "asc" },
@@ -47,9 +54,20 @@ export async function GET(
     }),
     db.hubMember.findMany({
       where: { userId: id },
-      select: { hubId: true, isCoordinator: true, status: true },
+      select: { hubId: true, isCoordinator: true, status: true, hub: { select: { slug: true } } },
     }),
   ]);
+
+  const memberships = memberRows.map((m) => {
+    const d = derived.get(m.hub.slug);
+    return {
+      hubId: m.hubId,
+      isCoordinator: m.isCoordinator,
+      status: m.status,
+      derivedFromRole: !!d,
+      derivedRole: d?.role ?? null,
+    };
+  });
 
   return NextResponse.json({ hubs, memberships });
 }
@@ -66,7 +84,7 @@ export async function POST(
   const { id } = await params;
   const user = await db.user.findUnique({
     where: { id },
-    select: { id: true, archivedAt: true },
+    select: { id: true, archivedAt: true, roles: true },
   });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
   if (user.archivedAt) {
@@ -76,6 +94,14 @@ export async function POST(
   const body = await req.json().catch(() => ({}));
   const { hubSlug, isCoordinator } = body as { hubSlug?: string; isCoordinator?: boolean };
   if (!hubSlug) return NextResponse.json({ error: "hubSlug required" }, { status: 400 });
+
+  // Role-derived hubs are governed by the role, not this tool.
+  if (roleDerivedHubs(user.roles).has(hubSlug)) {
+    return NextResponse.json(
+      { error: "This team comes from a role — manage it in Roles & access." },
+      { status: 409 },
+    );
+  }
 
   const hub = await db.hub.findUnique({
     where: { slug: hubSlug },
@@ -118,6 +144,16 @@ export async function DELETE(
   const body = await req.json().catch(() => ({}));
   const { hubSlug } = body as { hubSlug?: string };
   if (!hubSlug) return NextResponse.json({ error: "hubSlug required" }, { status: 400 });
+
+  const user = await db.user.findUnique({ where: { id }, select: { roles: true } });
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  // Role-derived hubs are governed by the role — remove the role, not the membership.
+  if (roleDerivedHubs(user.roles).has(hubSlug)) {
+    return NextResponse.json(
+      { error: "This team comes from a role — remove the role in Roles & access." },
+      { status: 409 },
+    );
+  }
 
   const hub = await db.hub.findUnique({ where: { slug: hubSlug }, select: { id: true } });
   if (!hub) return NextResponse.json({ error: "Hub not found" }, { status: 404 });

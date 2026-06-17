@@ -11,16 +11,43 @@ import { sendHubWelcomeEmail, hubHomeUrl } from "@/lib/email";
  * To add a new mapping as new hubs and roles are introduced:
  *   SOME_ROLE: [{ slug: "hub-slug", position: "Position Label", isCoordinator: false }],
  */
+// Roles that still imply a hub membership. HOST / HOST_MANAGER / SUPPORT were
+// removed (session 153): host-team membership is now set directly in the Member
+// Registry "Hub memberships" tool (the plain HOST role is retired and stripped
+// by migration), HOST_MANAGER is a pure cross-hub *scheduling* power decoupled
+// from host-team membership, and SUPPORT is residual (the Support Inbox was
+// removed). TEACHER / REGISTRAR remain genuine tool/records powers whose hub
+// membership is role-derived (shown locked in the Teams tool).
 const ROLE_HUB_MAPPINGS: Record<
   string,
   { slug: string; position: string; isCoordinator: boolean }[]
 > = {
-  HOST:         [{ slug: "host-team", position: "Host",             isCoordinator: false }],
-  HOST_MANAGER: [{ slug: "host-team", position: "Host Coordinator", isCoordinator: true  }],
-  TEACHER:      [{ slug: "courses",   position: "Teacher",          isCoordinator: false }],
-  REGISTRAR:    [{ slug: "registrar", position: "Registrar",        isCoordinator: true  }],
-  SUPPORT:      [{ slug: "support",  position: "Support Team",     isCoordinator: false }],
+  TEACHER:   [{ slug: "courses",   position: "Teacher",   isCoordinator: false }],
+  REGISTRAR: [{ slug: "registrar", position: "Registrar", isCoordinator: true  }],
 };
+
+/**
+ * The hubs a user's CURRENT roles imply membership in, keyed by hub slug.
+ *
+ * Used by the Member Registry "Hub memberships" tool to render role-derived
+ * memberships as locked ("via <role>") and to refuse direct edits to them —
+ * those memberships are governed by the role, not the team tool. Higher
+ * privilege wins on ties, mirroring syncHubMembership.
+ */
+export function roleDerivedHubs(
+  roles: string[],
+): Map<string, { role: string; isCoordinator: boolean }> {
+  const out = new Map<string, { role: string; isCoordinator: boolean }>();
+  for (const role of roles) {
+    for (const mapping of ROLE_HUB_MAPPINGS[role] ?? []) {
+      const existing = out.get(mapping.slug);
+      if (!existing || (!existing.isCoordinator && mapping.isCoordinator)) {
+        out.set(mapping.slug, { role, isCoordinator: mapping.isCoordinator });
+      }
+    }
+  }
+  return out;
+}
 
 /**
  * Syncs HubMember records for a user based on their full updated roles array.

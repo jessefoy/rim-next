@@ -4,8 +4,8 @@ import { useState } from "react";
 
 const ROLE_GROUPS = [
   {
-    label: "System Roles",
-    roles: ["ADMIN", "REGISTRAR", "TEACHER", "HOST", "HOST_MANAGER"],
+    label: "Access & tools",
+    roles: ["ADMIN", "REGISTRAR", "TEACHER", "HOST_MANAGER"],
   },
   {
     label: "Sangha-wide authority",
@@ -13,12 +13,20 @@ const ROLE_GROUPS = [
   },
 ];
 
+// Display labels — the raw enum value (e.g. HOST_MANAGER) isn't shown directly.
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: "Admin",
+  REGISTRAR: "Registrar",
+  TEACHER: "Teacher",
+  HOST_MANAGER: "Scheduling manager",
+  GUIDING_TEACHER: "Guiding teacher",
+};
+
 const ROLE_DESCRIPTIONS: Record<string, string> = {
   ADMIN:          "Full access — members, registrations, and all volunteer areas",
-  REGISTRAR:      "View and manage registrations, programs, and member profiles",
-  TEACHER:        "Course Manager tool — manages courses and lessons",
-  HOST:           "Host Schedule tool — host sessions, claim substitutions",
-  HOST_MANAGER:   "Host Schedule tool + manages schedule and assignments",
+  REGISTRAR:      "Member registry + Program Manager tool (also joins the Registrar team)",
+  TEACHER:        "Course Manager tool (also joins the Courses team)",
+  HOST_MANAGER:   "Manage rotations and coverage across every team’s schedule",
   GUIDING_TEACHER:"Dharma authority — can enter and moderate every hub across the sangha. Does NOT include technical / configuration admin.",
 };
 
@@ -61,9 +69,10 @@ export default function RolesSection({ memberId, initialRoles }: Props) {
 
   return (
     <section className="adm2-section">
-      <h2 className="adm2-section__title">Roles &amp; Permissions</h2>
+      <h2 className="adm2-section__title">Roles &amp; access</h2>
       <p className="adm2-section__hint">
-        When a role is assigned, the member&rsquo;s home will show a link to that volunteer area.
+        These grant system-wide access and tools. Which teams a person is on — and who coordinates
+        them — is set in Hub memberships below.
       </p>
       {ROLE_GROUPS.map((group) => (
         <div key={group.label} className="adm2-roles-group">
@@ -80,7 +89,7 @@ export default function RolesSection({ memberId, initialRoles }: Props) {
                   onChange={() => toggleRole(role)}
                 />
                 <div className="adm2-role-item__text">
-                  <span className="adm2-role-item__name">{role}</span>
+                  <span className="adm2-role-item__name">{ROLE_LABELS[role] ?? role}</span>
                   <span className="adm2-role-item__desc">{ROLE_DESCRIPTIONS[role]}</span>
                 </div>
               </label>
