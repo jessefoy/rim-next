@@ -287,9 +287,6 @@ export default function ParticipantsPanel({ open, onClose, participants, program
             {localMeta.teacher && (
               <span className="rim-pp__role-tag rim-pp__role-tag--teacher">{localMeta.teacherLabel || "Teacher"}</span>
             )}
-            {localMeta.cohost && !localMeta.host && !localMeta.teacher && (
-              <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Host Volunteer</span>
-            )}
             {localId.startsWith("guest-") && (
               <span className="rim-pp__role-tag rim-pp__role-tag--guest">Guest</span>
             )}
@@ -333,9 +330,6 @@ export default function ParticipantsPanel({ open, onClose, participants, program
                 )}
                 {meta.teacher && (
                   <span className="rim-pp__role-tag rim-pp__role-tag--teacher">{meta.teacherLabel || "Teacher"}</span>
-                )}
-                {meta.cohost && !meta.host && !meta.teacher && (
-                  <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Host Volunteer</span>
                 )}
                 {p.identity.startsWith("guest-") && (
                   <span className="rim-pp__role-tag rim-pp__role-tag--guest">Guest</span>

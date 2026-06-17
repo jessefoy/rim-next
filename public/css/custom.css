@@ -13927,9 +13927,6 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .rim-tile-nameplate__role-pill--teacher {
   background: rgba(180, 124, 60, 0.85);  /* warm gold — dharma identity, distinct from host */
 }
-.rim-tile-nameplate__role-pill--cohost {
-  background: rgba(110, 116, 130, 0.85);  /* muted slate — secondary, less dominant */
-}
 .rim-tile-nameplate__role-pill--guest {
   background: rgba(82, 82, 91, 0.85);  /* neutral zinc — a "not a member" marker, not an authority pill */
 }
@@ -14287,10 +14284,6 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .rim-pp__role-tag--teacher {
   background: rgba(180, 124, 60, 0.4);
   color: #fcd34d;
-}
-.rim-pp__role-tag--cohost {
-  background: rgba(110, 116, 130, 0.4);
-  color: #cbd5e1;
 }
 .rim-pp__role-tag--guest {
   background: rgba(82, 82, 91, 0.4);

@@ -240,12 +240,11 @@ export default function RIMParticipantTile() {
       )}
       {/* Zoom-style name bar — plain white text bottom-left, with a
           small red mic-off glyph only when the participant is muted.
-          Role pills follow the name in priority order: Host, Teacher,
-          Host Volunteer. The `cohost` metadata field is set server-side
-          only when neither host nor teacher applies, so at most two
-          pills render. (Field name kept as `cohost` for stability; the
-          displayed label is "Host Volunteer" — the sangha-tone name
-          for "co-host" decided 2026-05-26.) */}
+          Role pills follow the name: Host (assigned to THIS session) and
+          Teacher. There is no capability pill — a host-team member who
+          isn't the assigned host shows only their name (their mute/share
+          controls still work; the room shows who's hosting now, not who
+          merely could). The `cohost` metadata is still seeded but unused. */}
       <div className="rim-tile-nameplate">
         {isMicMuted && (
           <span className="rim-tile-nameplate__mic-off" aria-hidden="true">
@@ -263,9 +262,6 @@ export default function RIMParticipantTile() {
         )}
         {meta.teacher && (
           <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--teacher">{meta.teacherLabel || "Teacher"}</span>
-        )}
-        {meta.cohost && !meta.host && !meta.teacher && (
-          <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--cohost">Host Volunteer</span>
         )}
         {participantIdentity.startsWith("guest-") && (
           <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--guest">Guest</span>
