@@ -307,129 +307,94 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
 
   const speakers = useSpeakingParticipants();
 
-  // Track the last identity we asked to pin, so the effect can short-circuit
-  // before doing any work during the render-storm after a dispatch (the pin
-  // state update would otherwise re-trigger this effect via fresh
-  // `tracks` / `speakers` array identities on every render).
-  const lastPinnedIdentityRef = useRef<string | null>(null);
+  // The pin is dispatched from this effect. LiveKit's set_pin reducer returns a
+  // FRESH array on every dispatch, so a guard that reads `layoutContext.pin.state`
+  // back to ask "is this already pinned?" is fragile — when it fails to
+  // recognize convergence it re-dispatches every render, the pin state churns,
+  // and the focus stage (FocusLayout) re-subscribes forever (React #185,
+  // "Maximum update depth"). So we gate on OUR OWN record of the last target we
+  // asked for — a signature string — never on reading the state back: we
+  // dispatch at most once per target and the state goes stable. "" = nothing yet.
+  const lastPinSigRef = useRef<string>("");
 
-  // Pin orchestration:
-  //  - manual pin (this viewer): always wins. Pin that participant and stop
-  //    following the active speaker. Re-pins on camera on/off (placeholder ↔
-  //    real track) and releases if they leave.
-  //  - speaker: ensure a pin exists (first active speaker, else first remote),
-  //    following the active speaker as it changes.
-  //  - gallery: clear any pin so the grid is the layout.
+  // Pin orchestration (precedence): manual pin (this viewer) > active screen
+  // share > speaker-view active-speaker follow > gallery (no pin). Each branch
+  // computes a desired signature; we dispatch only when it changes.
   useEffect(() => {
-    // Manual pin takes precedence over view + active-speaker follow.
+    const setPin = (sig: string, ref: (typeof tracks)[number]) => {
+      if (sig === lastPinSigRef.current) return;
+      lastPinSigRef.current = sig;
+      layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: ref });
+    };
+    const clearPin = () => {
+      if (lastPinSigRef.current === "clear") return;
+      lastPinSigRef.current = "clear";
+      layoutContext.pin.dispatch?.({ msg: "clear_pin" });
+    };
+
+    // 1. Manual pin (this viewer) — always wins; release if they left. Including
+    //    the publication sid means a camera on/off (placeholder ↔ real track)
+    //    re-pins automatically.
     if (pinnedIdentity) {
       const target = tracks.find(
         (t) => t.source === Track.Source.Camera && t.participant.identity === pinnedIdentity,
       );
       if (!target) {
-        // Pinned participant left the room — release the pin gracefully.
-        if (layoutContext.pin.state && layoutContext.pin.state.length > 0) {
-          layoutContext.pin.dispatch?.({ msg: "clear_pin" });
-        }
-        lastPinnedIdentityRef.current = null;
+        clearPin();
         setPinnedIdentity(null);
         return;
       }
-      // Re-dispatch only when the pinned track ref differs (identity changed,
-      // or the same person's camera toggled placeholder ↔ real track). Comparing
-      // the publication sid converges in one extra render instead of looping.
-      const pinnedRef = layoutContext.pin.state?.[0];
-      const samePin =
-        !!pinnedRef &&
-        pinnedRef.participant.identity === pinnedIdentity &&
-        pinnedRef.publication?.trackSid === target.publication?.trackSid;
-      if (!samePin) {
-        lastPinnedIdentityRef.current = pinnedIdentity;
-        layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: target });
-      }
+      setPin(`pin:${pinnedIdentity}:${target.publication?.trackSid ?? "ph"}`, target);
       return;
     }
 
-    // Active screen share auto-focuses (Zoom-style), overriding gallery/speaker
-    // — but not a manual pin (handled above). Everyone with no manual pin sees
-    // the share fill the main view; camera tiles drop to the filmstrip.
+    // 2. Active screen share — auto-focus (Zoom-style), over gallery/speaker.
     const shareTrack = tracks.find(
       (t) => t.source === Track.Source.ScreenShare && !!t.publication,
     );
     if (shareTrack) {
-      const pinnedRef = layoutContext.pin.state?.[0];
-      const sameShare =
-        !!pinnedRef &&
-        pinnedRef.source === Track.Source.ScreenShare &&
-        pinnedRef.publication?.trackSid === shareTrack.publication?.trackSid;
-      if (!sameShare) {
-        lastPinnedIdentityRef.current = shareTrack.participant.identity;
-        layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: shareTrack });
-      }
+      setPin(`share:${shareTrack.publication?.trackSid ?? "ph"}`, shareTrack);
       return;
     }
 
+    // 3. Gallery — no pin.
     if (view === "gallery") {
-      if (layoutContext.pin.state && layoutContext.pin.state.length > 0) {
-        layoutContext.pin.dispatch?.({ msg: "clear_pin" });
-        lastPinnedIdentityRef.current = null;
-      }
+      clearPin();
       return;
     }
-    // Speaker view — pick the target identity first; only filter tracks if we
-    // actually need to dispatch a change. This keeps the per-render cost cheap.
+
+    // 4. Speaker view — follow the active speaker; if none, keep the current
+    //    speaker pin while that person is still present; else first remote camera.
+    const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
+    if (cameraTracks.length === 0) {
+      clearPin();
+      return;
+    }
     const activeSpeakerIdentity = speakers
       .map((sp) => sp.identity)
-      .find((id) =>
-        tracks.some(
-          (t) => t.source === Track.Source.Camera && t.participant.identity === id,
-        ),
-      );
+      .find((id) => cameraTracks.some((t) => t.participant.identity === id));
 
-    const currentPinnedRef = layoutContext.pin.state?.[0];
-    const currentlyPinnedIdentity = currentPinnedRef?.participant.identity;
-    // Only "keep" the current pin if it's actually a camera track. When a
-    // screen share stops in speaker view, the pin still holds the (now-dead)
-    // ScreenShare ref for the sharer's identity; without this guard the
-    // identity-only checks below would keep it and focus a blank tile. Treating
-    // a non-camera pin as "not keepable" forces a re-pin to a camera track.
-    const currentPinIsCamera = currentPinnedRef?.source === Track.Source.Camera;
-
-    // If an active speaker already matches the current camera pin, nothing to do.
-    if (currentPinIsCamera && activeSpeakerIdentity && activeSpeakerIdentity === currentlyPinnedIdentity) {
-      lastPinnedIdentityRef.current = activeSpeakerIdentity;
-      return;
+    let nextTrack: (typeof tracks)[number] | null = null;
+    if (activeSpeakerIdentity) {
+      nextTrack = cameraTracks.find((t) => t.participant.identity === activeSpeakerIdentity) ?? null;
     }
-
-    // If the current camera pin is still present and no one else is speaking, keep it.
-    if (
-      currentPinIsCamera &&
-      currentlyPinnedIdentity &&
-      tracks.some(
-        (t) => t.source === Track.Source.Camera && t.participant.identity === currentlyPinnedIdentity,
-      ) &&
-      !activeSpeakerIdentity
-    ) {
-      lastPinnedIdentityRef.current = currentlyPinnedIdentity;
-      return;
+    if (!nextTrack) {
+      // No active speaker — keep the current speaker pin if its camera is still here.
+      const sig = lastPinSigRef.current;
+      if (sig.startsWith("speaker:")) {
+        const keptIdentity = sig.slice("speaker:".length).split(":")[0];
+        if (cameraTracks.some((t) => t.participant.identity === keptIdentity)) return;
+      }
+      nextTrack =
+        cameraTracks.find((t) => t.participant.identity !== localParticipant?.identity) ??
+        cameraTracks[0] ??
+        null;
     }
-
-    // Need to (re)pin. Pick the active speaker; else a remote camera; else first.
-    const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
-    if (cameraTracks.length === 0) return;
-    const nextTrack =
-      (activeSpeakerIdentity &&
-        cameraTracks.find((t) => t.participant.identity === activeSpeakerIdentity)) ||
-      cameraTracks.find((t) => t.participant.identity !== localParticipant?.identity) ||
-      cameraTracks[0];
     if (!nextTrack) return;
-
-    // Guard against re-dispatch loops while the pin state catches up to us.
-    if (lastPinnedIdentityRef.current === nextTrack.participant.identity && currentlyPinnedIdentity === nextTrack.participant.identity) {
-      return;
-    }
-    lastPinnedIdentityRef.current = nextTrack.participant.identity;
-    layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: nextTrack });
+    setPin(
+      `speaker:${nextTrack.participant.identity}:${nextTrack.publication?.trackSid ?? "ph"}`,
+      nextTrack,
+    );
   }, [view, speakers, tracks, layoutContext.pin, localParticipant?.identity, pinnedIdentity]);
 
   // Render focus layout when there's a pinned track — from a manual pin (any
