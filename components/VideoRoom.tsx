@@ -130,6 +130,11 @@ function buildRoomOptions(profile: AudioProfile): RoomOptions {
         maxFramerate: 30,
       },
       audioPreset: { maxBitrate: audioMaxBitrate },
+      // Screen share: crisp text/slides. LiveKit's default is 1080p @ 2.5 Mbps
+      // /15fps, soft for detailed content; bump the bitrate (keeping the low
+      // framerate — detail over motion) so a shared slide reads sharp. Applies
+      // to whoever shares (Session Host); receivers get this on subscribe.
+      screenShareEncoding: { maxBitrate: 4_000_000, maxFramerate: 15 },
       dtx: false,
     },
     adaptiveStream: true,
