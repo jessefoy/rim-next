@@ -450,6 +450,23 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
     [sortedTracks, hasFocus, focusIdentity, focusTrackSid],
   );
 
+  // The focus stage must render the LIVE track ref — it carries the freshly
+  // subscribed remote media. focusTrackRef (from pin.state) is the snapshot we
+  // dispatched, which for a remote screen share predates subscription, so
+  // rendering it leaves *receivers* a blank stage (the sharer's own local track
+  // has media immediately — which is why only they saw it). Re-resolve from the
+  // live `tracks` (matched by identity + source: one camera / one share each).
+  // Safe re: the prior #185 — FocusLayout's track-observer effects key on the
+  // string getTrackReferenceId, so a new ref object with the same id doesn't
+  // re-subscribe.
+  const focusStageRef = focusTrackRef
+    ? (tracks.find(
+        (t) =>
+          t.participant.identity === focusTrackRef.participant.identity &&
+          t.source === focusTrackRef.source,
+      ) ?? focusTrackRef)
+    : focusTrackRef;
+
   return (
     <SessionRoleProvider
       value={{
@@ -523,7 +540,7 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
               // a light, non-measuring wrapper and is kept as-is.
               <div className="rim-focus">
                 <div className="rim-focus__stage">
-                  <FocusLayout trackRef={layoutContext.pin.state![0]} />
+                  <FocusLayout trackRef={focusStageRef!} />
                 </div>
                 {carouselTracks.length > 0 && (
                   <div className="rim-focus__strip">
