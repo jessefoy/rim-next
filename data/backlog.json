@@ -1,5 +1,25 @@
 [
   {
+    "id": "2026-06-17-001",
+    "title": "True key-only SSH on the LiveKit droplet (disable password auth once the key works)",
+    "description": "Session 152 hardened the LiveKit droplet's SSH by IP-restricting port 22 to Jesse's IP in the DO Cloud Firewall, but root PASSWORD auth is still enabled (reachable only from that IP). Key-only wasn't done because Jesse's SSH actually authenticates by password -- his Secure-Enclave (Secretive) key is NOT in the droplet's /root/.ssh/authorized_keys, and `ssh -o PreferredAuthentications=publickey` returns Permission denied. To go truly key-only without lockout: (1) get his Secretive public key into /root/.ssh/authorized_keys (or generate a dedicated key); (2) confirm a passwordless login in a fresh terminal -- his shell may also need an `IdentityAgent ~/.ssh/agent/s.*.agent.*` line in ~/.ssh/config so it offers the Enclave key; (3) write /etc/ssh/sshd_config.d/00-hardening.conf with PasswordAuthentication no + PermitRootLogin prohibit-password (named 00- so it wins over 50-cloud-init.conf, which forces password auth yes by sshd first-match); (4) `sshd -t` then `systemctl reload ssh`, keeping the working session open and testing a new login before trusting it. Recovery if anything is off: the DO web Console (out-of-band, no SSH). Once key-only holds, port 22 could reopen to all.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-17",
+    "notes": "Deferred from session 152 to avoid lockout (key login doesn't work yet). Interim posture (22 IP-restricted + password) already closes the brute-force surface. ~10-min focused pass. sshd drop-in precedence + steps in RIM_SessionRoom.md -> Server operations & hardening."
+  },
+  {
+    "id": "2026-06-17-002",
+    "title": "Rotate LIVEKIT_API_SECRET on the self-hosted server",
+    "description": "The LIVEKIT_API_SECRET was pasted into the session-150 setup chat, so rotating it is good hygiene. Regenerate the key/secret in ~/livekit.rootedinmindfulness.org/livekit.yaml on the droplet (or via livekit-server generate-keys), `docker compose restart livekit`, then update the three Vercel env vars (NEXT_PUBLIC_LIVEKIT_URL unchanged; LIVEKIT_API_KEY + LIVEKIT_API_SECRET) and redeploy. Do it when NO session is live -- in-flight tokens signed with the old secret stop validating the moment the server reloads. Low urgency: the secret only grants LiveKit room/token authority on this server, which is now firewalled.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-17",
+    "notes": "Was item (3) of the now-closed 2026-06-16-002 hardening task. Coordinate the server reload + Vercel redeploy so they're close together; do during a quiet window."
+  },
+  {
     "id": "2026-06-16-001",
     "title": "Replace inactive Krisp NC with a free in-browser AI noise filter (DeepFilterNet/RNNoise)",
     "description": "Session 150 migrated LiveKit off Cloud to a self-hosted DigitalOcean server. Krisp 'Enhanced Noise Cancellation' (useKrispNoiseFilter in components/session/RIMConference.tsx) is LiveKit-Cloud-licensed-only, so it is now INACTIVE — sessions run on the browser's built-in noiseSuppression alone (still on for non-teachers; the hook degrades gracefully and hides the Bell-mode button). Replace it with a free, open-source, in-browser AI noise filter implemented as a custom LiveKit audio track processor (sibling to components/session/BrightnessProcessor.ts). DeepFilterNet preferred (newer/stronger), RNNoise the proven fallback (Jitsi uses it). Integration packages: @sapphi-red/web-noise-suppressor or @shiguredo/noise-suppression (both wire into LiveKit setProcessor). When the AI filter is active, disable the browser's basic noiseSuppression on that path (don't stack — over-scrubs sibilants). Keep/repurpose 'Bell mode' to toggle the new filter off for bells/bowls. ai-coustics is the paid top-tier option (own license key, usage-billed) only if browser+AI isn't enough; skip server-side DTLN (agent-pipeline shape, server CPU).",
@@ -15,9 +35,9 @@
     "description": "Session 150 stood up the self-hosted LiveKit droplet (RIM-LiveKit, 104.248.229.126) with the firewall OFF (all ports open) to avoid setup friction. Harden it: (1) attach a DigitalOcean Cloud Firewall allowing ONLY 22/tcp (SSH), 80/tcp + 443/tcp (HTTPS + TURN/TLS), 7881/tcp (WebRTC/TCP), 3478/udp (TURN/UDP), 50000-60000/udp (WebRTC/UDP) — use a DO Cloud Firewall, NOT ufw, because Docker publishes ports straight through iptables and bypasses ufw. (2) Apply the pending OS updates and the reboot the server is requesting (also validates LiveKit auto-restarts on boot: docker compose restart:unless-stopped + the Docker daemon is systemd-enabled). (3) Optionally rotate LIVEKIT_API_SECRET (it was pasted into the setup chat) — regenerate in ~/livekit.rootedinmindfulness.org/livekit.yaml, update the three Vercel env vars, redeploy.",
     "category": "Infrastructure",
     "priority": "high",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-16",
-    "notes": "Do before relying on the server for a real production session. Server config + ops notes in RIM_SessionRoom.md (session-150 update) + RIM_Stack_Reference.md. DO billing is per-second, so reboot/resize is cheap."
+    "notes": "DONE session 152 (2026-06-17) -- firewall + OS updates + reboot shipped & verified. DO Cloud Firewall `rim-livekit` attached: inbound TCP 22 from Jesse's IP only, 443/5349/7881; UDP 3478/50000-60000; 7880/80 closed; outbound default. Port set derived from the live livekit.yaml/ss, correcting the s150 doc (added 5349, dropped 80, closed internal 7880). apt full-upgrade (52 pkgs, kernel -> 6.8.0-124) + reboot; stack auto-returned (Docker enabled + restart:unless-stopped). Item (3) secret rotation + a true key-only SSH split into new items 2026-06-17-002 / 2026-06-17-001 (Jesse's SSH key isn't in authorized_keys, so 22 was IP-restricted instead of disabling password). Ops record in RIM_SessionRoom.md -> Server operations & hardening."
   },
   {
     "id": "2026-06-10-001",

@@ -6,6 +6,26 @@
 
 ## Active
 
+### Session 152 (2026-06-17) — Server hardening: DO Cloud Firewall + OS updates/reboot + SSH IP-restriction — done & verified; member-page hub-assignment still the teed-up next code build
+
+The deferred s150 ops task (backlog `2026-06-16-002`, now closed). **No repo code changed** — DigitalOcean console + server SSH only. Full record in `session-log.md` (session 152); the server-ops reference (firewall ruleset, SSH model, management commands) is in `RIM_SessionRoom.md` → "Server operations & hardening."
+
+**Shipped + verified:**
+- **DO Cloud Firewall `rim-livekit`** attached to the droplet (`RIM-LiveKit`, `104.248.229.126`). Inbound whitelist: **TCP 22 from Jesse's IP only (98.144.129.15)**, 443, 5349, 7881; **UDP 3478, 50000–60000**; outbound default. 7880 (internal), 80 (unused), 2019/6379/53 (localhost) all closed. Verified after attach: 7880 times out, SSH works, HTTPS 200, 5349/7881 open. (Built by Claude driving the DO console via the Chrome extension — Jesse asked me to.)
+- **OS updates + reboot** — 52 packages incl. kernel 6.8.0-71 → **6.8.0-124**; rebooted; stack auto-returned (Docker enabled + `restart: unless-stopped`). Verified from Jesse's Mac: post-reboot HTTPS 200, ports correct.
+- **SSH 22 IP-restricted** — the agreed substitute for key-only, because Jesse's SSH authenticates by **password** (his Secretive/Secure-Enclave key isn't in the droplet's authorized_keys). Password auth still on but reachable only from his IP; DO web Console is the out-of-band recovery.
+
+**Doc corrections (read the live config, not the s150 doc):** the running `livekit.yaml`/`ss` showed **5349 (TURN/TLS) is live** (the doc omitted it) and **80 is unused** (TLS-ALPN on 443) — so the ruleset added 5349, dropped 80, and closes the internal 7880.
+
+**OPEN — follow-ups (none blocking):**
+1. **Real-session media test** (gold standard) — a live join to confirm audio/video flows end-to-end through the firewall (UDP media + TURN). Port probes pass; a live join is the proof.
+2. **True key-only SSH** (backlog `2026-06-17-001`) — wire Jesse's Secretive key into SSH (`authorized_keys` + `IdentityAgent` in `~/.ssh/config`), confirm passwordless login, then a `00-hardening.conf` disabling password auth (must sort before `50-cloud-init.conf`). ~10 min.
+3. **Rotate `LIVEKIT_API_SECRET`** (backlog `2026-06-17-002`) — pasted in the s150 setup chat; rotate when no session is live.
+
+**NEXT CODE BUILD (unchanged from s151) — assign hubs from the member page** (mapped + confirmed, ready): a new `/admin/members/[id]` section + ADMIN-gated `/api/admin/members/[id]/hubs` (GET all hubs+memberships / POST add / DELETE remove), reusing `HubMember` + the s146 FK-safe cleanup-on-remove. Connects to the Scheduler **"covers ⇒ member"** invariant. **Architecture note when built:** the Member Registry will *write* hub membership (previously hubs owned their rosters — a deliberate convenience shift; update `RIM_System_Architecture.md` then). **3 decisions to confirm at the start** (recs in caps): roles — ADMIN-ONLY or +REGISTRAR; coordinator — MEMBER-ONLY or include a coordinator toggle; notify on add — SILENT or send hub-welcome.
+
+**Memory candidates (step 7b — awaiting Jesse's confirm):** (1) *user/feedback* — for infra/terminal/server-ops work, Jesse prefers Claude to DRIVE (browser via the Chrome extension; run external checks itself) rather than be handed long command blocks to paste ("I'm not sure what I am doing"); when SSH needs his auth, give ONE short command, not a multi-step block. (2) *reference* — RIM LiveKit server access: droplet `RIM-LiveKit` `104.248.229.126`, SSH root via **password + a Secure-Enclave (Secretive) key that isn't yet in authorized_keys**; a sandboxed Claude shell CAN'T SSH (needs Jesse interactive / the DO web Console out-of-band); now gated by DO Cloud Firewall `rim-livekit`.
+
 ### Session 151 (2026-06-16) — LiveKit optimization: RNNoise NC + screen-share fully fixed (custom synchronous focus layout) + sharper share + roster cleanup — all on `main` & deployed; member-page hub-assignment is the teed-up next build
 
 The "optimize quality + cost" follow-on to s150's self-hosting. **9 commits on `main`, deployed. One new dep** (`@sapphi-red/web-noise-suppressor`; dropped `@livekit/krisp-noise-filter`). No env/services/schema/migration/email changes. Full narrative in `session-log.md` (session 151); session-room detail in `RIM_SessionRoom.md`.

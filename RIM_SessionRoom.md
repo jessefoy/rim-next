@@ -207,6 +207,33 @@ The **bell is unaffected** — you're unmuted via `M` when you ring it.
 
 ---
 
+## Server operations & hardening (self-hosted LiveKit · sessions 150, 152)
+
+The room runs on a self-hosted LiveKit server on a DigitalOcean droplet (**`RIM-LiveKit`**, `104.248.229.126`, Ubuntu 24.04). Compose stack (`~/livekit.rootedinmindfulness.org/`): `livekit-server` + Caddy/TLS (`caddyl4`) + Redis, all `network_mode: host` + `restart: unless-stopped`; Docker is systemd-enabled → the stack auto-restarts on reboot (proven session 152). Manage with `cd ~/livekit.rootedinmindfulness.org && docker compose {ps,logs,restart,pull}`.
+
+**Access.** SSH is `root@104.248.229.126`. Jesse logs in by **password** — his Secure-Enclave / Secretive key is NOT in the droplet's `authorized_keys`. A sandboxed Claude shell can't SSH (no usable key; Secretive needs Touch ID), so server steps go through Jesse, with the DO web **Console** (droplet → Access → Launch Console) as out-of-band recovery (works regardless of the firewall). Outbound HTTPS/port probes can be run from Jesse's Mac (it holds the whitelisted IP).
+
+**Firewall (DO Cloud Firewall `rim-livekit`, session 152).** A DigitalOcean *Cloud* Firewall (NOT `ufw` — Docker publishes ports straight through iptables and bypasses ufw) attached to the droplet. Inbound whitelist; everything else dropped:
+
+| Proto | Port | Purpose | Source |
+|---|---|---|---|
+| TCP | 22 | SSH | **Jesse's IP only** (98.144.129.15) |
+| TCP | 443 | HTTPS / WSS signal + Caddy | all |
+| TCP | 5349 | TURN over TLS | all |
+| TCP | 7881 | WebRTC ICE/TCP fallback | all |
+| UDP | 3478 | TURN / STUN | all |
+| UDP | 50000–60000 | WebRTC media (`rtc.port_range_*`) | all |
+
+Outbound = DO defaults (all). **Closed by omission:** 7880 (LiveKit HTTP/WS — internal, Caddy proxies over localhost), 2019 (Caddy admin — localhost), 6379 (Redis — localhost), 80 (unused — Caddy gets certs via TLS-ALPN on 443). The port set was derived from the live `livekit.yaml` (`rtc`/`turn`) + `ss -tulnH`, **not** the session-150 doc — which wrongly listed 80 and omitted 5349. **If the LiveKit config's `rtc.port_range_*` or `turn` ports ever change, update this firewall to match** or media silently breaks while signaling still looks fine.
+
+**SSH posture.** Port 22 is IP-restricted (above); root **password auth is still ON** but reachable only from Jesse's IP. True key-only auth (disable password) is **deferred** until his Secretive key is wired into SSH — `sshd -T` shows `passwordauthentication yes` forced by `/etc/ssh/sshd_config.d/50-cloud-init.conf` (wins over `60-cloudimg-settings.conf` by sshd first-match), so a future override must sort first as `00-hardening.conf` (`PasswordAuthentication no` + `PermitRootLogin prohibit-password`), validated with `sshd -t` and applied with `systemctl reload ssh` while the working session stays open. Backlog `2026-06-17-001`.
+
+**OS updates.** Session 152 applied 52 packages incl. kernel 6.8.0-71 → 6.8.0-124 and rebooted; the stack auto-returned. Use `NEEDRESTART_MODE=a apt-get -y full-upgrade` to avoid the interactive needrestart prompt hanging it.
+
+**Deferred ops:** real-session media test through the firewall; true key-only SSH (`2026-06-17-001`); rotate `LIVEKIT_API_SECRET` — pasted in the s150 setup chat — when no session is live (`2026-06-17-002`).
+
+---
+
 ## Deferred / known gaps
 
 - **Screen-share specific throwing line** (session 147) — the `RoomErrorBoundary` now *contains* the crash, but the exact render exception is unconfirmed. Capture it with a two-window repro (console on the viewer) → fix the line. Backlog `2026-06-11-001`.

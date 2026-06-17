@@ -1,5 +1,33 @@
 ---
 
+## 2026-06-17 (session 152) — Server hardening: DO Cloud Firewall + OS updates/reboot + SSH IP-restriction (no repo code change)
+
+Executed the deferred server-hardening ops task from session 150 (backlog `2026-06-16-002`, now closed) on the self-hosted LiveKit droplet (`RIM-LiveKit`, `104.248.229.126`). **No repo code changed** — all DigitalOcean console + server SSH. The droplet had been running since stand-up with the firewall OFF (all ports open) and a pending OS update/reboot.
+
+### What was done (all verified)
+- **DO Cloud Firewall `rim-livekit`** — created in the DO console (driven by me via the Claude-in-Chrome extension) and attached to the droplet. Inbound whitelist (6 rules): **TCP 22 from Jesse's IP only (98.144.129.15)**; **TCP 443** (HTTPS/WSS signal + Caddy); **TCP 5349** (TURN/TLS); **TCP 7881** (WebRTC/TCP); **UDP 3478** (TURN/STUN); **UDP 50000–60000** (WebRTC media). Outbound left at DO defaults. Verified after attach (from Jesse's Mac, his IP is whitelisted): 7880 now times out (was open), SSH still works, HTTPS 200, 5349/7881 reachable.
+- **OS updates + reboot** — `apt-get full-upgrade` applied 52 packages incl. a new kernel (6.8.0-71 → **6.8.0-124**); `reboot`. The stack auto-returned (post-reboot HTTPS 200, ports correct, checked via curl/nc from Jesse's Mac) because Docker is systemd-enabled and all three compose services are `restart: unless-stopped`.
+
+### Two corrections to the session-150 documented port list (read the live config, didn't trust the doc)
+Probed `livekit.yaml` (`rtc`/`turn`) + `ss -tulnH` before building the ruleset: the running config exposes **TCP 5349** (TURN/TLS — MISSING from the s150 doc's list; omitting it breaks TURN-over-TLS for UDP-blocked clients), uses **no port 80** (Caddy gets certs via TLS-ALPN on 443 — the doc said open 80; unnecessary), and binds **TCP 7880** internally only (Caddy proxies over localhost) so the firewall deliberately leaves it closed — a hardening gain (it was internet-reachable before).
+
+### SSH posture — IP-restriction now, key-only deferred
+Discovered Jesse's SSH actually authenticates by **password** — his Secure-Enclave / Secretive key is NOT in the droplet's `authorized_keys` (a `PreferredAuthentications=publickey` test returned `Permission denied`). He first chose key-only auth, but since key login doesn't work, disabling password would have locked him out — so we **deferred true key-only** and instead **scoped port 22 to his IP** in the firewall (closes the root+password brute-force surface from the rest of the internet). Password auth stays on, reachable only from his IP; the DO web **Console** is the out-of-band recovery path. `sshd -T` confirmed `50-cloud-init.conf` forces `PasswordAuthentication yes` and wins over `60-cloudimg-settings.conf` (sshd first-match), so a future key-only override must sort first (`00-hardening.conf`).
+
+### What this connects to
+Pure infrastructure around the self-hosted LiveKit server (session 150). No app code, schema, env, hub, role, registration, or email change. The server-ops record + the firewall ruleset + the SSH model now live in `RIM_SessionRoom.md` → "Server operations & hardening." Backlog `2026-06-16-002` closed; the two remaining follow-ups split into `2026-06-17-001` / `2026-06-17-002`.
+
+### What comes next
+- **Real-session media test** (the gold standard) — a live session-room join to confirm audio/video flow end-to-end through the new firewall (UDP 50000–60000 + 3478/5349). Port probes pass; a live join is the proof.
+- **True key-only SSH** (deferred, backlog `2026-06-17-001`) — wire Jesse's Secretive key into SSH, confirm a passwordless login, then disable password auth.
+- **Rotate `LIVEKIT_API_SECRET`** (optional, backlog `2026-06-17-002`) — pasted in the s150 setup chat; rotate when no session is live.
+- The teed-up code build remains **assign hubs from the member page** (mapped + confirmed in s151).
+
+### Process note
+The DO firewall was built by me driving Jesse's browser via the Claude-in-Chrome extension (he asked me to — he was uncomfortable in the terminal). SSH steps stayed with Jesse (his Secure-Enclave key needs his Touch ID/password; a sandboxed Claude shell can't authenticate), with me preparing every command and reading results. External verification (HTTPS/port probes) I ran from his Mac (sandbox off), since those need no login. A flaky DO React dropdown twice closed the modal on an off-target option click — the reliable pattern was scroll-the-dropdown-list then click the *visible* option by coordinate, verifying each step (the SSH rule especially, since a wrong source IP would lock him out).
+
+---
+
 ## 2026-06-16 (session 151) — LiveKit optimization: RNNoise NC (replacing dead Krisp), screen-share crash → custom synchronous focus layout, sharper share, roster cleanup
 
 The "optimize LiveKit quality + cost" follow-on to session 150's self-hosting migration. **9 commits on `main`, deployed. One new dependency** (`@sapphi-red/web-noise-suppressor`; dropped `@livekit/krisp-noise-filter`). No new env vars/services, no schema change, no migration, no email templates touched. Per-tool detail in `RIM_SessionRoom.md`.
