@@ -307,106 +307,65 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
 
   const speakers = useSpeakingParticipants();
 
-  // The pin is dispatched from this effect. LiveKit's set_pin reducer returns a
-  // FRESH array on every dispatch, so a guard that reads `layoutContext.pin.state`
-  // back to ask "is this already pinned?" is fragile — when it fails to
-  // recognize convergence it re-dispatches every render, the pin state churns,
-  // and the focus stage (FocusLayout) re-subscribes forever (React #185,
-  // "Maximum update depth"). So we gate on OUR OWN record of the last target we
-  // asked for — a signature string — never on reading the state back: we
-  // dispatch at most once per target and the state goes stable. "" = nothing yet.
-  const lastPinSigRef = useRef<string>("");
-
-  // Pin orchestration (precedence): manual pin (this viewer) > active screen
-  // share > speaker-view active-speaker follow > gallery (no pin). Each branch
-  // computes a desired signature; we dispatch only when it changes.
-  useEffect(() => {
-    const setPin = (sig: string, ref: (typeof tracks)[number]) => {
-      if (sig === lastPinSigRef.current) return;
-      lastPinSigRef.current = sig;
-      layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: ref });
-    };
-    const clearPin = () => {
-      if (lastPinSigRef.current === "clear") return;
-      lastPinSigRef.current = "clear";
-      layoutContext.pin.dispatch?.({ msg: "clear_pin" });
-    };
-
-    // 1. Manual pin (this viewer) — always wins; release if they left. Including
-    //    the publication sid means a camera on/off (placeholder ↔ real track)
-    //    re-pins automatically.
-    if (pinnedIdentity) {
-      const target = tracks.find(
+  // Focus target — computed SYNCHRONOUSLY from the live `tracks` each render, NOT
+  // via LiveKit's deferred pin reducer. Precedence: manual pin (this viewer) >
+  // active screen share > speaker-view active speaker > gallery (none). Deriving
+  // focus straight off `tracks` is what makes a mid-session screen share engage
+  // immediately — the old effect→dispatch→pin.state round-trip had a gap that
+  // left receivers stuck in gallery until they refreshed — and keeps the rendered
+  // ref LIVE so it carries freshly-subscribed remote media. No dispatch, no
+  // reducer, so none of the prior #185 render-loop surface applies.
+  const lastSpeakerFocusRef = useRef<string | null>(null);
+  let focusTarget: (typeof tracks)[number] | null = null;
+  if (pinnedIdentity) {
+    // Manual pin (this viewer). If their camera is gone, focusTarget is null and
+    // the effect below releases the stale pinnedIdentity (can't setState here).
+    focusTarget =
+      tracks.find(
         (t) => t.source === Track.Source.Camera && t.participant.identity === pinnedIdentity,
-      );
-      if (!target) {
-        clearPin();
-        setPinnedIdentity(null);
-        return;
+      ) ?? null;
+  } else {
+    const share = tracks.find((t) => t.source === Track.Source.ScreenShare && !!t.publication);
+    if (share) {
+      focusTarget = share;
+    } else if (view === "speaker") {
+      const cams = tracks.filter((t) => t.source === Track.Source.Camera);
+      const activeId = speakers
+        .map((sp) => sp.identity)
+        .find((id) => cams.some((t) => t.participant.identity === id));
+      if (activeId) {
+        focusTarget = cams.find((t) => t.participant.identity === activeId) ?? null;
+      } else {
+        // No active speaker — keep the last focused speaker while present; else
+        // first remote camera; else first camera.
+        const keptId = lastSpeakerFocusRef.current;
+        focusTarget =
+          (keptId ? cams.find((t) => t.participant.identity === keptId) : undefined) ??
+          cams.find((t) => t.participant.identity !== localParticipant?.identity) ??
+          cams[0] ??
+          null;
       }
-      setPin(`pin:${pinnedIdentity}:${target.publication?.trackSid ?? "ph"}`, target);
-      return;
+      // Remember who we're focusing so silence keeps them (caching a derived
+      // value in a ref across renders — read above, written here).
+      if (focusTarget) lastSpeakerFocusRef.current = focusTarget.participant.identity;
     }
+  }
 
-    // 2. Active screen share — auto-focus (Zoom-style), over gallery/speaker.
-    const shareTrack = tracks.find(
-      (t) => t.source === Track.Source.ScreenShare && !!t.publication,
-    );
-    if (shareTrack) {
-      setPin(`share:${shareTrack.publication?.trackSid ?? "ph"}`, shareTrack);
-      return;
+  // Release a manual pin whose participant has left (can't setState during render).
+  useEffect(() => {
+    if (
+      pinnedIdentity &&
+      !tracks.some(
+        (t) => t.source === Track.Source.Camera && t.participant.identity === pinnedIdentity,
+      )
+    ) {
+      setPinnedIdentity(null);
     }
+  }, [pinnedIdentity, tracks]);
 
-    // 3. Gallery — no pin.
-    if (view === "gallery") {
-      clearPin();
-      return;
-    }
-
-    // 4. Speaker view — follow the active speaker; if none, keep the current
-    //    speaker pin while that person is still present; else first remote camera.
-    const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
-    if (cameraTracks.length === 0) {
-      clearPin();
-      return;
-    }
-    const activeSpeakerIdentity = speakers
-      .map((sp) => sp.identity)
-      .find((id) => cameraTracks.some((t) => t.participant.identity === id));
-
-    let nextTrack: (typeof tracks)[number] | null = null;
-    if (activeSpeakerIdentity) {
-      nextTrack = cameraTracks.find((t) => t.participant.identity === activeSpeakerIdentity) ?? null;
-    }
-    if (!nextTrack) {
-      // No active speaker — keep the current speaker pin if its camera is still here.
-      const sig = lastPinSigRef.current;
-      if (sig.startsWith("speaker:")) {
-        const keptIdentity = sig.slice("speaker:".length).split(":")[0];
-        if (cameraTracks.some((t) => t.participant.identity === keptIdentity)) return;
-      }
-      nextTrack =
-        cameraTracks.find((t) => t.participant.identity !== localParticipant?.identity) ??
-        cameraTracks[0] ??
-        null;
-    }
-    if (!nextTrack) return;
-    setPin(
-      `speaker:${nextTrack.participant.identity}:${nextTrack.publication?.trackSid ?? "ph"}`,
-      nextTrack,
-    );
-  }, [view, speakers, tracks, layoutContext.pin, localParticipant?.identity, pinnedIdentity]);
-
-  // Render focus layout when there's a pinned track — from a manual pin (any
-  // view), an active screen share (any view, Zoom-style), or speaker view's
-  // active-speaker follow. Otherwise gallery.
-  const hasScreenShare = tracks.some(
-    (t) => t.source === Track.Source.ScreenShare && !!t.publication,
-  );
-  const inFocusView =
-    (!!pinnedIdentity || hasScreenShare || view === "speaker") &&
-    !!layoutContext.pin.state &&
-    layoutContext.pin.state.length > 0;
+  // Focus view whenever there's a focus target (computed synchronously above),
+  // so it engages the same render a screen share appears — no deferred round-trip.
+  const inFocusView = !!focusTarget;
 
   // Name of the manually pinned participant, for the pin banner.
   const pinnedName = pinnedIdentity
@@ -418,24 +377,14 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           })())
     : "";
 
-  // Filmstrip (carousel) tracks in focus view: the camera list MINUS the track
-  // already filling the main FocusLayout pane. Without this, a focused *camera*
-  // track (speaker-view active-speaker follow, or a manual pin of a camera-on
-  // participant) renders twice — full-size in the focus pane and again in the
-  // filmstrip. (Screen-share focus is already safe: sortedTracks is camera-only,
-  // so the share is never a carousel tile.) Match the pinned ref by identity +
-  // publication.trackSid — the same comparison the pin-orchestration effect uses
-  // — which also covers a camera-off pin: the pinned placeholder and its carousel
-  // twin both carry an undefined trackSid, so identity alone disambiguates.
-  // Mirrors stock VideoConference's `tracks.filter(t => !isEqualTrackRef(t, focusTrack))`.
-  const focusTrackRef = layoutContext.pin.state?.[0];
-  // Memoized so the filmstrip's track list keeps a stable identity across
-  // renders (the focus view renders it via TrackLoop). Keyed on stable
-  // primitives — the memoized sortedTracks plus the focused track's identity +
-  // trackSid — so it recomputes only on a real change, not on every render.
-  const focusIdentity = focusTrackRef?.participant.identity;
-  const focusTrackSid = focusTrackRef?.publication?.trackSid;
-  const hasFocus = !!focusTrackRef;
+  // Filmstrip = camera tiles MINUS the focused camera (a focused camera would
+  // otherwise render full-size in the stage AND again in the strip; a
+  // screen-share focus excludes nothing, since sortedTracks is camera-only).
+  // Memoized so the strip's array identity stays stable across renders (it
+  // renders via TrackLoop), keyed on the focused camera's identity + trackSid.
+  const focusIdentity = focusTarget?.participant.identity;
+  const focusTrackSid = focusTarget?.publication?.trackSid;
+  const hasFocus = !!focusTarget;
   const carouselTracks = useMemo(
     () =>
       hasFocus
@@ -449,23 +398,6 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
         : sortedTracks,
     [sortedTracks, hasFocus, focusIdentity, focusTrackSid],
   );
-
-  // The focus stage must render the LIVE track ref — it carries the freshly
-  // subscribed remote media. focusTrackRef (from pin.state) is the snapshot we
-  // dispatched, which for a remote screen share predates subscription, so
-  // rendering it leaves *receivers* a blank stage (the sharer's own local track
-  // has media immediately — which is why only they saw it). Re-resolve from the
-  // live `tracks` (matched by identity + source: one camera / one share each).
-  // Safe re: the prior #185 — FocusLayout's track-observer effects key on the
-  // string getTrackReferenceId, so a new ref object with the same id doesn't
-  // re-subscribe.
-  const focusStageRef = focusTrackRef
-    ? (tracks.find(
-        (t) =>
-          t.participant.identity === focusTrackRef.participant.identity &&
-          t.source === focusTrackRef.source,
-      ) ?? focusTrackRef)
-    : focusTrackRef;
 
   return (
     <SessionRoleProvider
@@ -540,7 +472,7 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
               // a light, non-measuring wrapper and is kept as-is.
               <div className="rim-focus">
                 <div className="rim-focus__stage">
-                  <FocusLayout trackRef={focusStageRef!} />
+                  <FocusLayout trackRef={focusTarget!} />
                 </div>
                 {carouselTracks.length > 0 && (
                   <div className="rim-focus__strip">
