@@ -1,5 +1,15 @@
 [
   {
+    "id": "2026-06-17-003",
+    "title": "Member-profile HOST-retirement residue: dead role-assignment path + ROLE_COLORS.HOST + a hub/team registry filter",
+    "description": "Session 153 retired the plain HOST role and consolidated the member profile into Teams + Roles & access. Reviewer-flagged residue, all harmless: (1) app/api/admin/members/[id]/route.ts still has the `addingHost` detection (~lines 99-102) and a sendHostRoleAssignmentEmail block (~208-219) that can no longer fire (no UI path adds the HOST role anymore) -- dead, removable. (2) components/MembersTable.tsx keeps ROLE_COLORS.HOST / ROLE_LABELS.HOST entries (the 'Hosts' filter option was removed; the badge map was left as a harmless fallback) -- removable. (3) UX gap from removing the 'Hosts' role filter: admins can no longer filter the registry by host involvement, because hosts are now hub members, not role-holders. Consider a 'filter by hub/team' control on /admin/members (the registry filters by role today; add a hub-membership filter). Items 1-2 are pure cleanup; item 3 is a small new feature -- do only if the lost filter is missed.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-17",
+    "notes": "From the session-153 reviewer (NITs). 1-2 are dead-code hygiene (bundle with any member-route cleanup). 3 fills the gap left by dropping the HOST role filter; the agenda/registry already lists everyone, so it's a convenience, not a need."
+  },
+  {
     "id": "2026-06-17-001",
     "title": "True key-only SSH on the LiveKit droplet (disable password auth once the key works)",
     "description": "Session 152 hardened the LiveKit droplet's SSH by IP-restricting port 22 to Jesse's IP in the DO Cloud Firewall, but root PASSWORD auth is still enabled (reachable only from that IP). Key-only wasn't done because Jesse's SSH actually authenticates by password -- his Secure-Enclave (Secretive) key is NOT in the droplet's /root/.ssh/authorized_keys, and `ssh -o PreferredAuthentications=publickey` returns Permission denied. To go truly key-only without lockout: (1) get his Secretive public key into /root/.ssh/authorized_keys (or generate a dedicated key); (2) confirm a passwordless login in a fresh terminal -- his shell may also need an `IdentityAgent ~/.ssh/agent/s.*.agent.*` line in ~/.ssh/config so it offers the Enclave key; (3) write /etc/ssh/sshd_config.d/00-hardening.conf with PasswordAuthentication no + PermitRootLogin prohibit-password (named 00- so it wins over 50-cloud-init.conf, which forces password auth yes by sshd first-match); (4) `sshd -t` then `systemctl reload ssh`, keeping the working session open and testing a new login before trusting it. Recovery if anything is off: the DO web Console (out-of-band, no SSH). Once key-only holds, port 22 could reopen to all.",

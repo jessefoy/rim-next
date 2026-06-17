@@ -53,8 +53,18 @@ Real example from Slice 2.5: capability gates routed correctly to peer-led-silen
 | `hubScopedUrl(path, hubSlug)` | `lib/email.ts` | Append `?hub=<slug>` to a `/tools/*` URL when the slug isn't the host-team default. Use for every email link to a hub-scoped tool view. |
 | `hubHomeUrl(hubSlug)` | `lib/email.ts` | Build `/account/hub/<slug>` (the hub's own workspace URL). |
 | `emailButtonHtml(label, url)` | `lib/email.ts` | Canonical CTA button HTML for emails. See `RIM_Email_Engineering.md`. |
+| `removeHubMembershipWithCleanup(hubId, hubSlug, userId)` | `lib/removeHubMembership.ts` | Hard-removes a `HubMember` AND its future coverage footprint (FK-safe: SubClaim → SubRequest → HostAssignment → StandingAssignment) in one transaction. The "covers ⇒ member" cleanup, shared by the in-hub hard-remove and the Member-Registry Teams tool — never inline this cascade again. |
+| `roleDerivedHubs(roles)` | `lib/syncHubMembership.ts` | The hubs a user's roles imply (Courses ← TEACHER, Registrar ← REGISTRAR). Drives the locked "via role" rows + the 409 guard in the Member-Registry Teams tool. |
 
 When you find yourself reaching for a fresh `${BASE_URL}/tools/schedule` or hardcoding `"host-team"`, stop. There's a helper.
+
+---
+
+## Member data, hub membership, and person-pickers (session 153)
+
+- **The Member Registry now WRITES hub membership.** `/api/admin/members/[id]/hubs` (ADMIN + REGISTRAR) is the canonical place to add/remove a person to/from any hub — the profile's "Hub memberships" (Teams) section. Previously hubs owned their rosters; this is a deliberate shift. Removal MUST go through `removeHubMembershipWithCleanup` so the assignment ledger can't outlive the roster ("covers ⇒ member", s146).
+- **Roles vs membership.** Being on a team is a `HubMember` row, not a role. The plain `HOST` role is retired — host-team membership is the source of truth for hosting (capability / scheduler / tool access all already read membership). Only `TEACHER`/`REGISTRAR` still *imply* a hub (`ROLE_HUB_MAPPINGS` → `roleDerivedHubs()`); those rows are role-governed, shown locked in the Teams tool, and the routes 409 direct writes to them. `HOST_MANAGER` is a cross-hub scheduling power, NOT a host-team membership.
+- **Every person-picker must exclude the legacy-unclaimed pool.** Any UI that searches/lists `User` rows to pick a person (hub member search, household add-member, instructor picker, future autocompletes) MUST filter `isLegacyUnclaimed: false` (and usually `archivedAt: null`). Imported-but-never-claimed ghosts must never be pickable; they become pickable when they claim their account on first login. Admins still pre-stage a legacy person **by id** from the Member Registry — that path is by-id, not search, so it's exempt.
 
 ---
 

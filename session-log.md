@@ -1,5 +1,41 @@
 ---
 
+## 2026-06-17 (session 153) — Member-profile consolidation: assign hubs from the registry + retire the HOST role
+
+Built the teed-up "assign hubs from the member page," then — after Jesse found the first result cumbersome ("two places to add to a hub") — consolidated the whole member-profile membership model and **retired the plain HOST role.** Two commits on `main`, both deployed; `tsc`-green, reviewer-gated each slice. No new deps / env / services. One migration `retire_host_role_v1` (no schema change).
+
+### Slice A — Hub memberships on the member profile + hide the legacy pool from pickers (commit `1842fed`)
+- New ADMIN+REGISTRAR section on `/admin/members/[id]` to assign a person to any hub, reusing `HubMember` + the s146 FK-safe cleanup. New route `/api/admin/members/[id]/hubs` (GET/POST/DELETE). The deliberate use case is **pre-staging** — incl. a legacy-pool person reached via `?pool=legacy` (by id, so it bypasses search).
+- Closed the legacy-pool leak in **all three person-pickers** (the reviewer caught it wasn't unique to the hub search): hub member search, the household add-member picker (`/api/admin/members` GET — verified picker-only, so filtered directly), and the instructor picker (`/api/members/search`). Filter is `isLegacyUnclaimed: false`; household also excludes archived.
+- Extracted the FK-safe coverage cleanup into `lib/removeHubMembership.ts`, shared by the in-hub hard-remove and the new route (one source of truth for the cascade).
+
+### Slice B — Teams + Roles & access consolidation; retire HOST (commit `9abe9cb`)
+The member profile now reads as two clear controls instead of three overlapping ones:
+- **Hub memberships (Teams):** every active hub as an **Off / Member / Coordinator** row — one uniform place for all team membership. Role-derived hubs (Courses ← Teacher, Registrar ← Registrar) render **locked "via … role"**; POST/DELETE refuse them (409). New `roleDerivedHubs()` helper in `lib/syncHubMembership.ts` drives the lock + the guards.
+- **Roles & access:** only genuine system powers — Admin, Guiding teacher, Registrar, Teacher, and **HOST_MANAGER relabeled "Scheduling manager."** HOST and SUPPORT removed from the UI.
+- **Retired the plain HOST role.** host-team *membership* is now the source of truth for being a host (verified: capability via `getEffectiveHostingCapability`, scheduler access via `canAccessHubScheduler`, tool access via `hasToolAccess` pathway-3 all read membership). `ROLE_HUB_MAPPINGS` dropped HOST/HOST_MANAGER/SUPPORT (keeps TEACHER/REGISTRAR — genuine tool/records powers, so their hubs stay role-derived). Migration `retire_host_role_v1` ensures each host's host-team membership, then strips HOST from users **and** from any course `requiredRoles` gate (the reviewer caught the course-gate regression). Idempotent, flag-guarded, membership-ensured-before-strip, skips if host-team is missing.
+- Removed the now-dead "Hosts" registry filter + the HOST course-gate option.
+
+### Design decisions + why
+- **The Member Registry now WRITES hub membership** (previously hubs owned their rosters) — a deliberate shift Jesse chose so an admin can staff any team from one place.
+- **HOST_MANAGER kept as a cross-hub "Scheduling manager" power**, decoupled from host-team membership: verification showed it carries genuine cross-hub `isManager` authority a per-hub Coordinator toggle doesn't replicate. A per-hub host-team coordinator is now set via Teams → Coordinator (`isCoordinator`).
+- **GT stays out of the Member Registry by design.** Jesse first said ADMIN+REGISTRAR+GT, but GT isn't ADMIN (separate roles; Jesse holds both). Since Jesse already has registry access via ADMIN, adding GT would only ever hand a *future* GT the member PII the role design says it shouldn't have. So the new route is ADMIN+REGISTRAR; GT keeps assigning hub members from inside each hub (unchanged).
+- **Locked role-derived rows** resolve the reviewer's sync-resurrection concern at the source: you can't remove a role-driven membership from the Teams tool — you remove the role.
+- **Process:** built v1 → Jesse named the cumbersomeness → I proposed a consolidation (with a mockup) → he chose the "full fix" → I verified the host-staffing gates were membership-based *before* retiring the role, and the reviewer caught the one place that wasn't safe (course `requiredRoles`).
+
+### What this connects to
+- **Scheduler / "covers ⇒ member" (s146):** Teams writes/removes `HubMember`; removal runs the shared FK-safe cleanup so the assignment ledger can't outlive the roster. Capability + scheduler access already read membership (s92/s146) — which is what made retiring HOST safe.
+- **Legacy pool / pre-staging (s142/s145):** the by-id assignment path is the pre-staging tool; pickers now hide the pool until a member claims their account.
+- **Roles model + course access:** HOST retired; HOST_MANAGER → Scheduling manager; SUPPORT residual (dropped from UI, role data untouched); course `requiredRoles` no longer offers HOST.
+- New per-tool doc **`RIM_MemberRegistry.md`** (added to the CLAUDE.md Design Orientation table).
+
+### What comes next
+- **Deployed-site verification** (checklist in `UP_NEXT.md`) — most important: confirm a current host can still **enter a live session + claim a slot** (proves the membership-is-source-of-truth switch held), and read the deploy log for the `retire_host_role_v1` count.
+- Optional cleanup (backlog `2026-06-17-003`): the dead `addingHost`/`sendHostRoleAssignmentEmail` path in `/api/admin/members/[id]` + the residual `ROLE_COLORS.HOST`; and a "filter registry by hub/team" now the HOST role filter is gone.
+- s152 ops still open: real-session media test, key-only SSH (`2026-06-17-001`), secret rotation (`2026-06-17-002`).
+
+---
+
 ## 2026-06-17 (session 152) — Server hardening: DO Cloud Firewall + OS updates/reboot + SSH IP-restriction (no repo code change)
 
 Executed the deferred server-hardening ops task from session 150 (backlog `2026-06-16-002`, now closed) on the self-hosted LiveKit droplet (`RIM-LiveKit`, `104.248.229.126`). **No repo code changed** — all DigitalOcean console + server SSH. The droplet had been running since stand-up with the firewall OFF (all ports open) and a pending OS update/reboot.

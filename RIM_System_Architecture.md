@@ -122,18 +122,23 @@ const visible = (hasRole || hasGrant) && passesCondition;
 
 Assigned by ADMIN via the Neon console for now; a UI for this will be added when the first non-role section grant is needed in practice.
 
-### Current sections (session 68)
+### Current sections (session 68; extended through session 153)
 
 | Section ID | Allowed Roles | Condition |
 |---|---|---|
 | `core-record` | ADMIN, REGISTRAR | — |
 | `household` | ADMIN, REGISTRAR | — |
 | `admin-notes` | ADMIN | — |
+| `bio` | ADMIN | — |
 | `roles` | ADMIN | — |
 | `teacher` | ADMIN | — |
+| `hub-memberships` | ADMIN, REGISTRAR | — |
 | `course-access` | ADMIN, REGISTRAR | — |
 | `registrations` | ADMIN, REGISTRAR | — |
+| `account-access` | ADMIN, REGISTRAR | — |
 | `danger-zone` | ADMIN | member has no registrations |
+
+**`hub-memberships` (session 153) — the Member Registry now *writes* hub membership.** Previously hubs owned their rosters; this section is the deliberate shift to staffing any team from the profile (Off / Member / Coordinator per active hub). Role-derived hubs (Courses ← TEACHER, Registrar ← REGISTRAR, via `lib/syncHubMembership.ts::roleDerivedHubs()`) render locked and the route 409s direct writes — the role governs them. The plain **HOST** role was retired in the same session: host-team membership (not a role) is the source of truth for being a host. Full model in `RIM_MemberRegistry.md`.
 
 ### Save model
 

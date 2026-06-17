@@ -6,6 +6,27 @@
 
 ## Active
 
+### Session 153 (2026-06-17) — Member-profile consolidation: assign hubs from the registry + retire the HOST role — both on `main` & deployed; deployed-site verification pending
+
+Built the teed-up "assign hubs from the member page," then consolidated it after Jesse found it cumbersome ("two places to add to a hub"). **Two commits on `main`, deployed.** No new deps/env/services. One migration `retire_host_role_v1` (no schema change — strips the plain HOST role from users + course `requiredRoles` after ensuring host-team membership). Full record in `session-log.md` (session 153) + the new `RIM_MemberRegistry.md`.
+
+**Shipped + live:**
+- **Member profile = two clear controls.** *Hub memberships* (Teams): every active hub as Off/Member/Coordinator — the one place to set team membership; role-derived hubs (Courses ← Teacher, Registrar ← Registrar) locked "via … role" (POST/DELETE 409). *Roles & access*: Admin / Guiding teacher / Registrar / Teacher / **Scheduling manager** (HOST_MANAGER relabeled). HOST + SUPPORT off the UI.
+- **Plain HOST role retired** — host-team *membership* is the source of truth for being a host (capability + scheduler + tool access already read membership; verified before retiring). `roleDerivedHubs()` drives the locks; `lib/removeHubMembership.ts` shares the FK-safe cleanup; new route `/api/admin/members/[id]/hubs` (ADMIN+REGISTRAR; GT stays out by design — it isn't ADMIN).
+- **Legacy pool hidden from all three person-pickers** (hub search, household add, instructor picker); admins still pre-stage legacy people by id from the profile.
+
+**OPEN — deployed-site verification (none blocking):**
+1. **The key check:** a current host can still **enter a live session + claim a slot** (proves the membership-is-source-of-truth switch held). Read the deploy log for `retire_host_role_v1: stripped HOST from N user(s) + M course gate(s)`.
+2. Member profile shows Roles & access + Hub memberships; a teacher's Courses row is locked "via teacher role"; host-team is an editable row.
+3. Set someone host-team → Coordinator → they get host-team coordinator authority without a role.
+4. Pre-stage a legacy person (`?pool=legacy` → their profile) onto a hub → sticks.
+
+**NEXT / queued:**
+- Optional cleanup (backlog `2026-06-17-003`): dead `addingHost`/`sendHostRoleAssignmentEmail` path + residual `ROLE_COLORS.HOST`; a "filter registry by hub/team" now the HOST filter is gone.
+- s152 ops still open: real-session media test, key-only SSH (`2026-06-17-001`), secret rotation (`2026-06-17-002`).
+
+**Memory candidates (step 7b — awaiting Jesse's confirm):** (1) *feedback* — when a new control overlaps an existing mechanism (roles auto-creating hub memberships + a new hub panel = "two places to add to a hub"), proactively unify into one source-of-truth surface rather than ship the second path; Jesse spots the duplication immediately. (2) *feedback/user* — offered safe-slice vs full-fix (retiring HOST), Jesse chose the full clean fix; he prefers the correct end-state over minimal-risk patches *when the core is verified safe* (read the gates first).
+
 ### Session 152 (2026-06-17) — Server hardening: DO Cloud Firewall + OS updates/reboot + SSH IP-restriction — done & verified; member-page hub-assignment still the teed-up next code build
 
 The deferred s150 ops task (backlog `2026-06-16-002`, now closed). **No repo code changed** — DigitalOcean console + server SSH only. Full record in `session-log.md` (session 152); the server-ops reference (firewall ruleset, SSH model, management commands) is in `RIM_SessionRoom.md` → "Server operations & hardening."

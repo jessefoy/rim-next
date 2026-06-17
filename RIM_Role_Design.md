@@ -21,6 +21,8 @@ Each role section follows the same structure:
 
 ## Virtual Host (Host Team)
 
+> **Update (session 153) — the plain `HOST` role is retired; host-team *membership* is the source of truth.** Being a host is now defined by an active host-team `HubMember` row (hosting capability + scheduler + tool access all read membership — sessions 92/146), set from the Member Registry's "Hub memberships" tool or from inside the hub. The `HOST` role was stripped from users by the `retire_host_role_v1` migration and removed from the assignable UI. **`HOST_MANAGER` survives as a cross-hub "Scheduling manager" power** (manage rotations/coverage across every team) — distinct from a *per-hub* host-team coordinator, which is the Teams "Coordinator" toggle (`HubMember.isCoordinator`). The Member Registry stays **ADMIN + REGISTRAR only** — a guiding teacher assigns hub members from inside each hub, not from the registry (GT is dharma authority, not the technical registry steward; see the Guiding Teacher section). Full model: `RIM_MemberRegistry.md`.
+
 ### What this role actually does
 
 A virtual host facilitates RIM's online sessions through the RIM session room. Their job has two equally important dimensions:
