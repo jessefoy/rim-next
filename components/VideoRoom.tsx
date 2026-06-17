@@ -130,11 +130,13 @@ function buildRoomOptions(profile: AudioProfile): RoomOptions {
         maxFramerate: 30,
       },
       audioPreset: { maxBitrate: audioMaxBitrate },
-      // Screen share: crisp text/slides. LiveKit's default is 1080p @ 2.5 Mbps
-      // /15fps, soft for detailed content; bump the bitrate (keeping the low
-      // framerate — detail over motion) so a shared slide reads sharp. Applies
-      // to whoever shares (Session Host); receivers get this on subscribe.
-      screenShareEncoding: { maxBitrate: 4_000_000, maxFramerate: 15 },
+      // Screen share: crisp text/slides. The share is captured at up to 1440p
+      // with a "detail" content hint (see RIMControlBar.startScreenShare); give
+      // it the bitrate to match (at 1440p a lower bitrate just compresses
+      // harder) so small code/text stays sharp. 15fps — detail over motion.
+      // Single layer, so receivers need ~8 Mbps down during a share; revisit
+      // with screenShareSimulcastLayers if anyone on a weak link reports freezes.
+      screenShareEncoding: { maxBitrate: 8_000_000, maxFramerate: 15 },
       dtx: false,
     },
     adaptiveStream: true,

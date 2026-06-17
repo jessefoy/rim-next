@@ -30,6 +30,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useRoomContext, useLocalParticipant } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
+import { detectPlatform } from "@/lib/detectPlatform";
 import ReactionsMenu from "./ReactionsMenu";
 import EndMenu from "./EndMenu";
 import ShareScreenPrimer from "./ShareScreenPrimer";
@@ -297,7 +298,16 @@ export default function RIMControlBar({
     setShareIntroOpen(false);
     setPendingShare(true);
     try {
-      await room.localParticipant.setScreenShareEnabled(true);
+      // Crisp screen share for slides/code: tell the encoder to prioritize
+      // detail, and raise LiveKit's default 1080p capture cap to 1440p so a
+      // high-res screen (small text) isn't pre-downscaled before encoding.
+      // Safari 17 mis-captures at LOW res when any resolution is specified
+      // (and isn't capped by default), so omit it there.
+      const isSafari = detectPlatform().browser === "safari";
+      await room.localParticipant.setScreenShareEnabled(true, {
+        contentHint: "detail",
+        ...(isSafari ? {} : { resolution: { width: 2560, height: 1440, frameRate: 15 } }),
+      });
     } catch {}
     setPendingShare(false);
   }
