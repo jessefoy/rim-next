@@ -33,8 +33,7 @@ import {
   useRoomContext,
   useConnectionState,
   FocusLayout,
-  FocusLayoutContainer,
-  CarouselLayout,
+  TrackLoop,
   useSpeakingParticipants,
 } from "@livekit/components-react";
 import { Track, RoomEvent, DataPacket_Kind, ConnectionState } from "livekit-client";
@@ -465,15 +464,10 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
   // twin both carry an undefined trackSid, so identity alone disambiguates.
   // Mirrors stock VideoConference's `tracks.filter(t => !isEqualTrackRef(t, focusTrack))`.
   const focusTrackRef = layoutContext.pin.state?.[0];
-  // MUST be memoized. CarouselLayout (the filmstrip, mounted only in focus
-  // view) runs a useSize → setState-during-render measurement; feeding it an
-  // array with a fresh identity every render makes that measurement oscillate
-  // and throws React #185 ("Maximum update depth exceeded"). That is what
-  // white-screened every *receiver* the instant a screen share began (a share
-  // forces focus view) — the boundary caught it but the room also tore down,
-  // so people were just dropped. Gallery never hit it because GridLayout gets
-  // the already-memoized sortedTracks. Keyed on stable primitives (the focused
-  // track's identity + trackSid) so it recomputes only on a real change.
+  // Memoized so the filmstrip's track list keeps a stable identity across
+  // renders (the focus view renders it via TrackLoop). Keyed on stable
+  // primitives — the memoized sortedTracks plus the focused track's identity +
+  // trackSid — so it recomputes only on a real change, not on every render.
   const focusIdentity = focusTrackRef?.participant.identity;
   const focusTrackSid = focusTrackRef?.publication?.trackSid;
   const hasFocus = !!focusTrackRef;
@@ -553,12 +547,27 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
         <div className="rim-conference__main">
           <div className="rim-conference__video">
             {inFocusView ? (
-              <FocusLayoutContainer>
-                <CarouselLayout tracks={carouselTracks}>
-                  <RIMParticipantTile />
-                </CarouselLayout>
-                <FocusLayout trackRef={layoutContext.pin.state![0]} />
-              </FocusLayoutContainer>
+              // Custom focus layout — a "stage" (screen share / pinned / active
+              // speaker) over a fixed-height filmstrip. We deliberately do NOT
+              // use LiveKit's FocusLayoutContainer + CarouselLayout: the carousel
+              // sizes its tiles from a measured area that itself depends on the
+              // tiles — a size↔count feedback loop that throws React #185
+              // ("Maximum update depth") the instant focus view mounts, which is
+              // what dropped every receiver on a screen share. A plain CSS strip
+              // has no measurement, so it cannot loop. FocusLayout (the stage) is
+              // a light, non-measuring wrapper and is kept as-is.
+              <div className="rim-focus">
+                <div className="rim-focus__stage">
+                  <FocusLayout trackRef={layoutContext.pin.state![0]} />
+                </div>
+                {carouselTracks.length > 0 && (
+                  <div className="rim-focus__strip">
+                    <TrackLoop tracks={carouselTracks}>
+                      <RIMParticipantTile />
+                    </TrackLoop>
+                  </div>
+                )}
+              </div>
             ) : (
               <GridLayout tracks={sortedTracks}>
                 <RIMParticipantTile />
