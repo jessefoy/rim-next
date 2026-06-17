@@ -37,6 +37,12 @@ export async function GET(
     where: {
       archivedAt: null,
       memberStatus: "ACTIVE",
+      // Hide the legacy migration pool: imported-but-never-logged-in accounts
+      // shouldn't surface in a coordinator's add-member search. They become
+      // findable once they claim their account on first login (which flips
+      // isLegacyUnclaimed → false). Admins pre-stage them by id from the
+      // Member Registry instead (/api/admin/members/[id]/hubs).
+      isLegacyUnclaimed: false,
       id: { notIn: existingUserIds },
       OR: [
         { firstName:     { contains: q, mode: "insensitive" } },

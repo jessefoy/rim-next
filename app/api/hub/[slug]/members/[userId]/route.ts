@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { canAccessHub, effectiveCoordinator, getHubMembership, requireCoordinator } from "@/lib/hubAuth";
+import { removeHubMembershipWithCleanup } from "@/lib/removeHubMembership";
 
 type HubMemberStatus = "ACTIVE" | "PAUSED" | "INACTIVE";
 
@@ -221,22 +222,11 @@ export async function DELETE(
   // StandingAssignment rules go too, so the daily apply cron stops re-creating
   // assignments for someone no longer on the team. Silent, matching the
   // coordinator pause/release path; hard-remove is an ADMIN cleanup action.
-  const now = new Date();
-  const { removedAssignments, removedRules } = await db.$transaction(async (tx) => {
-    const futureAssns = await tx.hostAssignment.findMany({
-      where: { userId, hubSlug: slug, sessionDate: { gte: now } },
-      select: { id: true },
-    });
-    const futureIds = futureAssns.map((a) => a.id);
-    if (futureIds.length > 0) {
-      await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: futureIds } } } });
-      await tx.subRequest.deleteMany({ where: { assignmentId: { in: futureIds } } });
-      await tx.hostAssignment.deleteMany({ where: { id: { in: futureIds } } });
-    }
-    const rules = await tx.standingAssignment.deleteMany({ where: { userId, hubSlug: slug } });
-    await tx.hubMember.delete({ where: { hubId_userId: { hubId: hub.id, userId } } });
-    return { removedAssignments: futureIds.length, removedRules: rules.count };
-  });
+  const { removedAssignments, removedRules } = await removeHubMembershipWithCleanup(
+    hub.id,
+    slug,
+    userId,
+  );
   console.log(
     `[hub-member-remove] ${slug}: removed member ${userId} + ${removedAssignments} future assignment(s) + ${removedRules} rotation rule(s).`,
   );

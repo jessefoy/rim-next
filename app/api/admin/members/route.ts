@@ -15,6 +15,13 @@ export async function GET(req: Request) {
   const limit = parseInt(searchParams.get("limit") ?? "200", 10);
 
   const users = await db.user.findMany({
+    // This GET backs the household add-member person-picker only (the Member
+    // Registry listing is server-rendered from props, and the +Add modal POSTs).
+    // Hide the legacy migration pool (imported-but-never-claimed ghosts) and
+    // archived accounts — neither belongs in a person-picker. A legacy member
+    // becomes pickable once they claim their account on first login
+    // (isLegacyUnclaimed → false).
+    where: { isLegacyUnclaimed: false, archivedAt: null },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {

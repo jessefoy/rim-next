@@ -21323,6 +21323,118 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   min-height: 36px;
 }
 
+/* ── Hub memberships (member profile) ── */
+
+.adm2-hublist {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+}
+
+.adm2-hublist__row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rim-rule);
+}
+.adm2-hublist__row:first-child { border-top: 1px solid var(--rim-rule); }
+
+.adm2-hublist__main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.adm2-hublist__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.adm2-hublist__name {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+}
+
+.adm2-hublist__status {
+  font-size: var(--text-xxs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--rim-text-muted);
+  background: var(--rim-bg-accent);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+.adm2-hublist__coord {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  cursor: pointer;
+}
+.adm2-hublist__coord input { width: 16px; height: 16px; cursor: pointer; }
+
+.adm2-hublist__remove {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  background: none;
+  border: none;
+  padding: 8px 6px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.adm2-hublist__remove:hover { color: #c0392b; }
+
+.adm2-hublist__confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+}
+
+.adm2-hublist__warn {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text);
+  flex: 1;
+  min-width: 200px;
+}
+
+.adm2-hublist__confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.adm2-hublist__add {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.adm2-hublist__select {
+  font-family: var(--font-sans);
+  font-size: 16px; /* 16px min on selects — prevents iOS auto-zoom */
+  color: var(--rim-text);
+  background: var(--rim-bg-bright);
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 44px;
+  min-width: 220px;
+}
+
 /* ── Danger zone ── */
 
 .adm2-danger-zone {

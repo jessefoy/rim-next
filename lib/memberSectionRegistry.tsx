@@ -9,6 +9,7 @@ import CourseAccessSection from "@/components/CourseAccessSection";
 import RegistrationHistorySection from "@/components/member-sections/RegistrationHistorySection";
 import DangerZoneSection from "@/components/member-sections/DangerZoneSection";
 import AccountAccessSection from "@/components/member-sections/AccountAccessSection";
+import HubMembershipSection from "@/components/member-sections/HubMembershipSection";
 
 export type SerializedMember = {
   id: string;
@@ -150,6 +151,14 @@ export const MEMBER_SECTIONS: MemberSection[] = [
         initialIsTeacher={member.isTeacher}
         initialProfile={member.teacherProfile}
       />
+    ),
+  },
+  {
+    id: "hub-memberships",
+    allowedRoles: ["ADMIN", "REGISTRAR"],
+    zoneStart: true,
+    render: ({ member }) => (
+      <HubMembershipSection memberId={member.id} />
     ),
   },
   {

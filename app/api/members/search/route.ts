@@ -26,6 +26,10 @@ export async function GET(request: NextRequest) {
       archivedAt: null,
       agreedToTerms: true,
       isTeacher: true,
+      // Belt-and-suspenders: never surface unclaimed legacy-pool ghosts in the
+      // instructor picker. (agreedToTerms already excludes a normal import, but
+      // make the intent explicit so a hand-staged teacher row can't leak.)
+      isLegacyUnclaimed: false,
       ...(q
         ? {
             OR: [
