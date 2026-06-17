@@ -6,6 +6,24 @@
 
 ## Active
 
+### Session 151 (2026-06-16) — LiveKit optimization: RNNoise NC + screen-share fully fixed (custom synchronous focus layout) + sharper share + roster cleanup — all on `main` & deployed; member-page hub-assignment is the teed-up next build
+
+The "optimize quality + cost" follow-on to s150's self-hosting. **9 commits on `main`, deployed. One new dep** (`@sapphi-red/web-noise-suppressor`; dropped `@livekit/krisp-noise-filter`). No env/services/schema/migration/email changes. Full narrative in `session-log.md` (session 151); session-room detail in `RIM_SessionRoom.md`.
+
+**Shipped + verified:**
+- **RNNoise NC** (`5353076`) — in-browser replacement for the dead Cloud Krisp. Jesse verified live: *"better than before, no echo, good sound."* Decision (RNNoise > DeepFilterNet) + why in `RIM_SessionRoom.md`. Bell mode preserved (bypasses the processor); echo unchanged (separate concern).
+- **Screen share fully fixed** — from "crashes + drops every receiver" to live, stable, sharp, across a 7-round arc. **Final architecture: focus is computed SYNCHRONOUSLY from live tracks** (`d78c5f9`), replacing LiveKit's measuring `CarouselLayout` + the deferred pin-reducer round-trip. **Do NOT reintroduce the pin reducer for focus.** Quality: 1440p capture + `contentHint:"detail"` + 8 Mbps (`dd74f38`).
+- **Roster cleanup** (`32ed585`) — first-name + last-initial names; **"Host Volunteer" pill removed** (only session-true Host/Teacher pills render).
+
+**OPEN — verification (none blocking):** Jesse re-tests: (a) roster — names "Nancy L.", no Host Volunteer pill, Host/Teacher stay, no truncation (if still cramped → a per-row ⋯ menu); (b) screen-share sharpness at 1440p/8Mbps (if soft, that's the ceiling; if a weak-link member freezes during a share → add adaptive screen-share layers).
+
+**NEXT BUILD — assign hubs from the member page (mapped + confirmed, ready):**
+A new section on `/admin/members/[id]` to view + assign the person's hub memberships, all hubs. Shape: new `components/member-sections/HubMembershipSection.tsx` + a `lib/memberSectionRegistry.tsx` entry + new ADMIN-gated route `/api/admin/members/[id]/hubs` (GET all hubs+memberships / POST add / DELETE remove), reusing `HubMember` + the s146 FK-safe cleanup-on-remove (`app/api/hub/[slug]/members/[userId]/route.ts:226–236`). Connects to the Scheduler **"covers ⇒ member"** invariant. **Architecture note when built:** the Member Registry will *write* hub membership (previously hubs owned their rosters — a deliberate convenience shift Jesse chose; update `RIM_System_Architecture.md` then). **3 decisions to confirm at the start** (recs in caps): roles — ADMIN-ONLY or +REGISTRAR; coordinator — MEMBER-ONLY or include a coordinator toggle; notify on add — SILENT or send hub-welcome.
+
+**Also pending:** **Server hardening** (Jesse's ops task from s150): DO Cloud Firewall (free; NOT ufw — Docker bypasses it), apply OS updates + reboot, optionally rotate `LIVEKIT_API_SECRET`. Deferred follow-ups: vestigial `cohost` metadata cleanup; lint-clean the keep-last-speaker render-time ref (→ useState, `react-hooks/refs`).
+
+**Memory candidate (step 7b — awaiting Jesse's confirm):** *feedback* — for a hard third-party-library bug I can't reproduce locally, READ THE LIBRARY'S ACTUAL MECHANISM/SOURCE (and lean on user diagnostic clues like "works on refresh") rather than shipping incremental guesses; prefer a robust fix that OWNS the logic (compute synchronously, in our control) over patching the library's fragile internals. (The screen-share arc: 2 wrong/incomplete fixes before reading LiveKit's CarouselLayout/reducer source + the CSS led to the synchronous-focus refactor that held.)
+
 ### Session 150 (2026-06-16) — LiveKit migrated from Cloud → self-hosted on DigitalOcean (live & verified); next session = optimize quality + cost
 
 **No repo code changed** — the entire change is infrastructure + three Vercel env vars. RIM now runs on a **self-hosted LiveKit server** instead of LiveKit Cloud, to escape Cloud's $0.12/GB bandwidth pricing (which made all-camera 30-person circles ~$260–620/mo). Full narrative in `session-log.md` (2026-06-16); service lines updated in `RIM_Stack_Reference.md` / `RIM_SessionRoom.md` / FEATURES / `RIM_System_Architecture.md`.

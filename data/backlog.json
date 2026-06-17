@@ -5,9 +5,9 @@
     "description": "Session 150 migrated LiveKit off Cloud to a self-hosted DigitalOcean server. Krisp 'Enhanced Noise Cancellation' (useKrispNoiseFilter in components/session/RIMConference.tsx) is LiveKit-Cloud-licensed-only, so it is now INACTIVE — sessions run on the browser's built-in noiseSuppression alone (still on for non-teachers; the hook degrades gracefully and hides the Bell-mode button). Replace it with a free, open-source, in-browser AI noise filter implemented as a custom LiveKit audio track processor (sibling to components/session/BrightnessProcessor.ts). DeepFilterNet preferred (newer/stronger), RNNoise the proven fallback (Jitsi uses it). Integration packages: @sapphi-red/web-noise-suppressor or @shiguredo/noise-suppression (both wire into LiveKit setProcessor). When the AI filter is active, disable the browser's basic noiseSuppression on that path (don't stack — over-scrubs sibilants). Keep/repurpose 'Bell mode' to toggle the new filter off for bells/bowls. ai-coustics is the paid top-tier option (own license key, usage-billed) only if browser+AI isn't enough; skip server-side DTLN (agent-pipeline shape, server CPU).",
     "category": "Infrastructure",
     "priority": "high",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-16",
-    "notes": "Top item for the 'optimize LiveKit' next session. Full options/cost table + the cost reframe (self-hosting bundles bandwidth -> keep the 720p quality Jesse likes) in UP_NEXT.md session-150 brief. Echo cancellation + browser NS are unaffected (browser-native, $0)."
+    "notes": "DONE session 151 — shipped RNNoise (@sapphi-red/web-noise-suppressor) as a custom LiveKit audio TrackProcessor (RnnoiseAudioProcessor + useNoiseFilter); Jesse verified live ('better than before, no echo, good sound'). Chose RNNoise over DeepFilterNet (lighter, runs on all devices, proven; DeepFilterNet's browser path is experimental + CPU-heavy). Bell mode preserved (bypass); echo/AEC unchanged. See session-log 151 + RIM_SessionRoom.md."
   },
   {
     "id": "2026-06-16-002",
@@ -649,9 +649,9 @@
     "description": "Session 147 added RoomErrorBoundary, which now CONTAINS the crash that white-screened every remote participant when a host shared their screen (the receiver render path throws; the app had no error boundary so it fell to Next's white 'Application Error' page). The categorical fix is shipped; the SPECIFIC throwing line is still unconfirmed. Repro: two windows, DevTools console open on the *viewer* (not the sharer), share a screen -> the viewer either survives or shows the contained 'Rejoin' screen, and the console logs a '[rim-room-crash]' entry with the component stack. Capture that stack, then fix the underlying render bug (suspects in the focus-view / FocusLayout / CarouselLayout path in RIMConference). The boundary makes this safe to run during a real session.",
     "category": "Infrastructure",
     "priority": "high",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-11",
-    "notes": "The boundary is the launch-safe fix; this is the root-cause follow-on. Needs the console output from a live two-window repro — can't be found from static reading alone. Maria's 'Zoom note-taking popup' during the crash was her local Zoom browser extension, not our code."
+    "notes": "DONE session 151. Root cause: React #185 ('Maximum update depth') — a useSize measure-loop in LiveKit's CarouselLayout (no definite-height container; only mounts in focus view, so a screen share triggers it). Fixed by removing LiveKit's measuring CarouselLayout + the pin reducer and rendering a custom synchronous focus layout in RIMConference. See session-log 151 + RIM_SessionRoom.md."
   },
   {
     "id": "2026-06-11-002",
@@ -702,5 +702,35 @@
     "status": "open",
     "addedAt": "2026-06-13",
     "notes": "See RIM_Public_Pages.md. Sibling public-detail page."
+  },
+  {
+    "id": "2026-06-16-003",
+    "title": "Adaptive screen-share layers for weak connections",
+    "description": "Session 151 set the screen share to a single high-quality layer (1440p capture + contentHint detail + screenShareEncoding 8 Mbps in components/VideoRoom.tsx::buildRoomOptions) for crisp text/slides. Single-layer means every receiver must sustain ~8 Mbps down during a share, with no adaptiveStream downscale option. If a member on a weak connection reports freezing/stuttering DURING a screen share specifically, add screenShareSimulcastLayers (a high + a low layer) so LiveKit's adaptiveStream serves weak links a lower layer. Only do this if a real freeze is reported — it adds publisher CPU/upload and complexity.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-16",
+    "notes": "Deferred from session 151. Note left in the buildRoomOptions screenShareEncoding comment. RIM's audience is mostly broadband and screen share is occasional, so this is reactive — wait for a real report."
+  },
+  {
+    "id": "2026-06-16-004",
+    "title": "Remove the vestigial cohost metadata seeding (Host Volunteer fully gone)",
+    "description": "Session 151 removed the 'Host Volunteer' pill from tiles + the roster (it showed capability as if it were session identity). The cohost capability still gates controls via resolveSessionRole, but the cohost METADATA flag now drives nothing — it's still seeded by app/api/livekit/token/route.ts (seedMeta.cohost) and broadcast by the metadata-seeding effect in components/session/RIMConference.tsx (wantCohost / needsCohostUpdate). Clean it up: stop seeding cohost (token route + the RIMConference effect), and optionally drop the cohost field from ParticipantMetadata. Pure cleanup, no behavior change.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-16",
+    "notes": "Left vestigial in session 151 to keep the roster-cleanup slice focused + low-risk (didn't reopen the delicate token/seeding paths after the long screen-share debugging arc). Invisible to users."
+  },
+  {
+    "id": "2026-06-16-005",
+    "title": "Lint-clean the keep-last-speaker render-time ref in RIMConference",
+    "description": "The session-151 synchronous-focus refactor in components/session/RIMConference.tsx keeps the last active speaker (so speaker view holds them when the room goes silent) via lastSpeakerFocusRef, read + written DURING render. eslint-plugin-react-hooks flags this as react-hooks/refs errors (cannot access/update refs during render). It does NOT block the Vercel build (Next 16 doesn't lint on build; main already ships with same-plugin errors) and is runtime-correct, but it's a lint blemish. Convert to useState updated in a useEffect, or derive the kept speaker without a render-phase ref. Hygiene only.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-16",
+    "notes": "Flagged by the session-151 reviewer (Should-fix, non-blocking). Speaker-view-only nicety; the screen-share path (the actual fix) doesn't use it."
   }
 ]

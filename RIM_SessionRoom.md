@@ -8,7 +8,7 @@ Companion docs: `RIM_System_Architecture.md` (Video Conferencing section — the
 
 ## What it is
 
-A custom full-page WebRTC video room built on **self-hosted LiveKit** (DigitalOcean droplet `104.248.229.126`, as of session 150 — migrated off LiveKit Cloud to escape per-GB bandwidth pricing; server `wss://livekit.rootedinmindfulness.org`, Docker Compose: livekit-server + Caddy/TLS + Redis + TURN; config on the droplet at `~/livekit.rootedinmindfulness.org/`; pointed into the app via Vercel env `NEXT_PUBLIC_LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET`). **Krisp Enhanced Noise Cancellation is Cloud-only → now inactive** — sessions run on the browser's built-in noise suppression until a free in-browser AI filter (DeepFilterNet/RNNoise) replaces it; `useKrispNoiseFilter` degrades gracefully (Bell-mode button hidden when no processor loads). Not LiveKit's stock `VideoConference` — a bespoke layout (`RIMConference`) with a Zoom-aligned control bar, custom tiles, persistent chat, nonverbal signals, role pills, and host controls. Members and guests join in the browser with no external accounts or app installs.
+A custom full-page WebRTC video room built on **self-hosted LiveKit** (DigitalOcean droplet `104.248.229.126`, as of session 150 — migrated off LiveKit Cloud to escape per-GB bandwidth pricing; server `wss://livekit.rootedinmindfulness.org`, Docker Compose: livekit-server + Caddy/TLS + Redis + TURN; config on the droplet at `~/livekit.rootedinmindfulness.org/`; pointed into the app via Vercel env `NEXT_PUBLIC_LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET`). **Noise cancellation is RNNoise** (session 151) — an in-browser AI denoiser (`@sapphi-red/web-noise-suppressor`) that replaced Cloud-only Krisp when RIM left LiveKit Cloud; see "Names, audio, Bell mode." The **focus view (screen share / pin / speaker) is a fully custom layout** (session 151) — NOT LiveKit's `FocusLayoutContainer`/`CarouselLayout`, which loop on a screen share; see "Layout orchestration." Not LiveKit's stock `VideoConference` — a bespoke layout (`RIMConference`) with a Zoom-aligned control bar, custom tiles, persistent chat, nonverbal signals, role pills, and host controls. Members and guests join in the browser with no external accounts or app installs.
 
 **Entry:** `/session/[slug]` (and `/session/[slug]?key=…` for open-access guests). Reached from the dashboard "Join" / "Enter as host" buttons and the Scheduler.
 
@@ -23,7 +23,9 @@ A custom full-page WebRTC video room built on **self-hosted LiveKit** (DigitalOc
 | `components/session/RoomErrorBoundary.tsx` | Crash safety net (session 147) — class error boundary wrapping `VideoRoom`. Catches any render throw, shows a contained "Something interrupted the room — Rejoin" screen (`onRecover` = the page's `retry`), logs `[rim-room-crash]` + component stack |
 | `components/session/Greenroom.tsx` | Pre-prompt primer; **acquires camera/mic permission via getUserMedia + stop (never publishes)** so the user joins unseen; routes denial to Recovery |
 | `components/session/Recovery.tsx` | Permission-denied recovery screen, platform-matched instructions (`lib/detectPlatform.ts`) |
-| `components/session/RIMConference.tsx` | The layout. Grid/focus orchestration, pin precedence, screen-share auto-focus, raised-hand reorder, Krisp wiring, unread-chat counter, metadata seeding |
+| `components/session/RIMConference.tsx` | The layout. Grid (gallery) + custom focus view; **SYNCHRONOUS focus-target computation** (session 151 — no LiveKit pin reducer); raised-hand reorder; RNNoise wiring (via `useNoiseFilter`); unread-chat counter; metadata seeding |
+| `components/session/RnnoiseAudioProcessor.ts` | RNNoise audio `TrackProcessor` (session 151) — own 48 kHz AudioContext, mic→RNNoise→destination graph; Bell mode reroutes source→destination (bypass). Worklet + WASM served from `public/noise/`; browser-only (classes extend `AudioWorkletNode` at module scope; safe via `VideoRoom`'s `ssr:false`) |
+| `components/session/useNoiseFilter.ts` | Hook (session 151): attaches RnnoiseAudioProcessor on mic-publish; returns `{available,enabled,pending,toggle}` (the Bell-mode trio, replacing `useKrispNoiseFilter`) |
 | `components/session/RIMControlBar.tsx` | Bottom control bar: mic/cam, Participants, Chat, Share (+ primer), Reactions, Settings, Bell mode, **Mute All** (co-host, session 149), End. The cluster is **grid-centered** (`1fr auto 1fr`) with End pinned right (`.rim-cb__end-zone`); collapses to a centered flex-wrap ≤768px. **Mute hotkeys** (session 147): `M` toggle (all), hold-`Space` push-to-talk (co-hosts) |
 | `components/session/ShareScreenPrimer.tsx` | Calm primer popover before the browser's screen picker |
 | `components/session/RIMParticipantTile.tsx` | Custom tile: nameplate, role pills, signal badge, avatar/initials, hover Mute / **Ask-to-unmute** (co-host — Ask shows on a muted participant, session 149), hover Pin (everyone) |
@@ -60,22 +62,22 @@ Three orthogonal metadata flags (`host`/`teacher`/`cohost`) are seeded at token 
 
 ---
 
-## Layout orchestration (RIMConference)
+## Layout orchestration (RIMConference) — SYNCHRONOUS focus (session 151)
 
-One `useEffect` drives `layoutContext.pin` (LiveKit's focus pin). **Precedence, highest first:**
+The focus target is computed **synchronously in render** from the live `tracks` array — NOT via LiveKit's `layoutContext.pin` reducer (removed in session 151; the `LayoutContextProvider` is kept but inert, for child components). `focusTarget` precedence, highest first:
 
-1. **Manual pin** (`pinnedIdentity`, this viewer only) — pin that participant's camera/placeholder track. Always wins.
-2. **Active screen share** — auto-focus the published `ScreenShare` track (Zoom default). Overrides gallery/speaker.
-3. **Speaker view** (`view === "speaker"`) — follow the active speaker.
-4. **Gallery** — clear the pin; grid layout.
+1. **Manual pin** (`pinnedIdentity`, this viewer only) — that participant's camera/placeholder track. Always wins. (Released via a small `useEffect` when they leave — can't `setState` in render.)
+2. **Active screen share** — the published `ScreenShare` track (Zoom default). Over gallery/speaker.
+3. **Speaker view** (`view === "speaker"`) — the active speaker's camera; if silent, keep the last speaker (`lastSpeakerFocusRef`); else first remote camera.
+4. **Gallery** — `focusTarget = null`.
 
-`inFocusView = (pinnedIdentity || hasScreenShare || view==="speaker") && pin.state.length > 0`.
+`inFocusView = !!focusTarget`. The stage renders `<FocusLayout trackRef={focusTarget} />` (the LIVE ref — carries freshly-subscribed remote media); the filmstrip is a fixed-height `<TrackLoop tracks={carouselTracks}>` (camera tiles minus the focused one). CSS: `.rim-focus` / `__stage` / `__strip`.
 
-**Convergence rule (critical):** LiveKit's `set_pin` reducer returns a fresh array every dispatch, so any dispatch re-renders. Guard every dispatch with a "same pin?" check before dispatching, or the effect loops. Manual-pin and screen-share branches compare `publication?.trackSid` (handles placeholder ↔ real-track transitions when a camera/share toggles); converges in one extra render. Speaker-view "keep current pin" guards additionally require `currentPinnedRef.source === Camera` — otherwise a stopped screen-share leaves a dead pin in speaker view.
+**Why synchronous (the session-151 rewrite — do NOT revert to the pin reducer):** the old `useEffect → pin.dispatch → pin.state → re-render` machinery caused a cascade of screen-share failures — a React #185 measure-loop in LiveKit's `CarouselLayout`, an RxJS re-subscribe loop from reading the fresh-array `set_pin` state back, a blank receiver stage from pinning a pre-subscription snapshot ref, and a "works on refresh but not live" engagement gap. Computing focus straight off `tracks` each render fixes all of them: a mid-session share engages the same render it appears, and the stage always renders a live ref. (Full arc in `session-log.md` session 151.)
 
 `sortedTracks` is **camera-only** (screen-share is never a grid/filmstrip tile — it's the focus). Hand-raised tiles sort to the top-left in `raisedHandAt` order, tiebroken by identity for cross-client determinism.
 
-`SessionRoleContext` carries `pinnedIdentity` + `onTogglePin` so tiles (re-mounted by LiveKit layouts) can pin/unpin without prop-drilling. The pin is **local/personal** — never broadcast. (No host "spotlight for everyone" yet — deferred.)
+`SessionRoleContext` carries `pinnedIdentity` + `onTogglePin` so tiles can pin/unpin without prop-drilling. The pin is **local/personal** — never broadcast. (No host "spotlight for everyone" yet — deferred.)
 
 ---
 
@@ -111,9 +113,9 @@ One `useEffect` drives `layoutContext.pin` (LiveKit's focus pin). **Precedence, 
 
 ## Names, audio, Bell mode
 
-- **Display name:** `lib/livekit.ts::sessionDisplayName(user, fallback)` → `(preferredName || firstName) + lastName`. Used for the LiveKit participant `name` (token route) and chat `fromName` (chat route) so the room shows **full names**. The global `session.user.name` stays first-name-only (`auth.ts`) — do NOT change that; full names are a session-room-only choice. Guests enter their own free-form name.
-- **Audio profile** (`teacher`/`speaker`/`listener`) → capture defaults + per-profile bitrate in `VideoRoom.buildRoomOptions`. `teacher` (ProgramTeacher) disables noise suppression + AGC for bells.
-- **Krisp NC** default-on every join via `useKrispNoiseFilter`. **Bell mode** (co-host) flips it off so bells pass through. The button keeps the stable label **"Bell mode"** with a gold highlight + "On" marker when active (it must NOT flip the label to "Clean voice" — that read backwards; fixed session 133). Resets to NC-on each join. Hidden where Krisp is unsupported.
+- **Display name:** `lib/livekit.ts::sessionDisplayName(user, fallback)` → `(preferredName || firstName) + last INITIAL` ("Nancy L.", session 151 — was the full surname; shortened for the narrow tile/roster, still a real name). Used for the LiveKit participant `name` (token route) and chat `fromName` (chat route). The global `session.user.name` stays first-name-only (`auth.ts`) — do NOT change that. Guests enter their own free-form name.
+- **Audio profile** (`teacher`/`speaker`/`listener`) → capture defaults + per-profile bitrate in `VideoRoom.buildRoomOptions`. `teacher` (ProgramTeacher) disables browser noise suppression + AGC for bells. **Screen share** publishes at `contentHint:"detail"`, up to 1440p capture (`RIMControlBar.startScreenShare`; skipped on Safari 17), `screenShareEncoding` 8 Mbps @ 15fps — crisp text/slides (session 151). Single layer → ~8 Mbps down for receivers during a share (adaptive layers deferred for weak links).
+- **RNNoise NC** (session 151, replacing Cloud-only Krisp) default-on every join via the local `useNoiseFilter` hook + `RnnoiseAudioProcessor`. **Bell mode** (co-host) bypasses the processor (source→destination) so bells pass through. The button keeps the stable label **"Bell mode"** with a gold highlight + "On" marker when active (it must NOT flip to "Clean voice" — read backwards; session 133). Resets to NC-on each join. Hidden where RNNoise (AudioWorklet) is unsupported. **Echo/AEC is a separate, capture-level concern — RNNoise does not touch it** (browser AEC stays on for all profiles; the s147 endpoint-echo decision stands).
 
 ---
 
@@ -184,8 +186,10 @@ The **bell is unaffected** — you're unmuted via `M` when you ring it.
 ## Common pitfalls
 
 - **Custom tiles must use `trackRef.participant`**, not `useMaybeParticipantContext()` — GridLayout provides only `TrackRefContext`.
-- **Pin dispatch loops:** never dispatch `set_pin` unconditionally inside the orchestration effect — guard with a same-pin check (identity + `publication.trackSid`). See the convergence rule above.
-- **Speaker-view stale pin:** "keep current pin" guards must check `source === Camera`, or a stopped screen-share leaves a blank pinned tile.
+- **Focus is SYNCHRONOUS — do NOT reintroduce LiveKit's pin reducer** (session 151). The old `useEffect → layoutContext.pin.dispatch → read pin.state back` pattern caused four distinct screen-share failures (a `CarouselLayout` #185 measure-loop, an RxJS re-subscribe loop, a blank receiver stage, a "works-on-refresh-not-live" gap). `focusTarget` is now computed in render from live `tracks`; keep it that way. See "Layout orchestration."
+- **The focus stage renders the LIVE track ref** (`focusTarget` from `tracks`), never a stored snapshot — a snapshot of a *remote* screen share predates subscription and shows a blank stage on receivers (the sharer's local track has media instantly, masking it).
+- **Don't use LiveKit's `CarouselLayout`/`FocusLayoutContainer`** — they size tiles from a `useSize` measurement with no definite-height container, which feedback-loops to React #185 (only in focus view, so a screen share triggers it). The custom `.rim-focus` stage + `TrackLoop` strip has no measurement.
+- **Screen-share crispness is capture-side** (session 151) — LiveKit caps capture at 1080p by default and won't favor detail; `RIMControlBar.startScreenShare` passes `contentHint:"detail"` + 1440p resolution (skip on Safari 17 — it mis-captures low-res when a resolution is set), and `buildRoomOptions.screenShareEncoding` carries the bitrate (8 Mbps).
 - **`session.user.name` is first-name only** — for any session-room display use `sessionDisplayName` against DB name fields, not the session name.
 - **Background work in routes** uses `after()` from `next/server` (Vercel kills `void (async)()` after the response).
 - **Don't edit `public/css/livekit-prefabs.css`** — vendored build.

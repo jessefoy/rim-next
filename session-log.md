@@ -1,5 +1,36 @@
 ---
 
+## 2026-06-16 (session 151) — LiveKit optimization: RNNoise NC (replacing dead Krisp), screen-share crash → custom synchronous focus layout, sharper share, roster cleanup
+
+The "optimize LiveKit quality + cost" follow-on to session 150's self-hosting migration. **9 commits on `main`, deployed. One new dependency** (`@sapphi-red/web-noise-suppressor`; dropped `@livekit/krisp-noise-filter`). No new env vars/services, no schema change, no migration, no email templates touched. Per-tool detail in `RIM_SessionRoom.md`.
+
+### 1. RNNoise noise cancellation — in-browser replacement for Cloud-only Krisp (`5353076`)
+Krisp NC went inactive when RIM left LiveKit Cloud (s150). Replaced with **RNNoise**, an in-browser AI denoiser. **Decision: RNNoise over DeepFilterNet** — verified from live sources (not memory, per the s150 lesson): RNNoise is light (0.06M params, runs on every device incl. old iPads), proven for WebRTC, drop-in; DeepFilterNet3 is Krisp-class but its in-browser path is experimental + CPU-heavy (worst on the weak/iOS devices RIM has) + a single-contributor integration. For a quiet-room, mixed-device, solo-dev context, RNNoise is the fit. **Jesse verified live: "better than before, no echo, good sound."** New `components/session/RnnoiseAudioProcessor.ts` (LiveKit audio `TrackProcessor`, own 48kHz context, Bell-mode bypass via internal reroute) + `components/session/useNoiseFilter.ts` (attaches on mic-publish, exposes the same `{available,enabled,pending,toggle}` Bell mode already consumed). Worklet + WASM copied to `public/noise/`. Browser-only (the package's classes extend `AudioWorkletNode` at module scope) — safe because the `VideoRoom` subtree mounts `ssr:false`. **Echo/AEC untouched** (separate, capture-level concern). Reviewer-gated; hardened the cancelled-attach race (`stopProcessor`) + the iPad `resume()` swallow.
+
+### 2. Screen-share crash → a custom, SYNCHRONOUS focus layout (the big arc, 6 commits)
+A screen share **white-screened + dropped every receiver** (sharer stayed in). Diagnosed in layers from Jesse's console pastes + diagnostic clues:
+- **Fatal crash = React #185 ("Maximum update depth")** in LiveKit's `CarouselLayout` (the focus-view filmstrip): it sizes tiles from a `useSize` measurement that feeds back on itself (the prefab CSS gives `.lk-focus-layout`/`.lk-carousel` no definite height). Only focus view mounts it; a screen share forces focus view → loop → room teardown. Gallery's `GridLayout` doesn't measure, so it never crashed. **Fix (`cc9fdf7`): replaced `FocusLayoutContainer` + `CarouselLayout` with a custom CSS layout** — a stage (`FocusLayout`, non-measuring) over a fixed-height `TrackLoop` filmstrip. (An earlier input-memo guess, `b06c192`, was wrong.)
+- **Residual non-fatal #185** (RxJS subscription loop): the pin-orchestration `useEffect` read `layoutContext.pin.state` back to decide whether to re-dispatch, but LiveKit's `set_pin` reducer returns a fresh array each dispatch, so the read-back misjudged convergence → dispatched every render → `FocusLayout` re-subscribed forever. Sig-gate fix `9e0d8ad`, then superseded.
+- **Blank stage for receivers** (`c9557a1`): the pinned ref was a snapshot taken before the remote track subscribed (the sharer's local track has media instantly → only they saw it).
+- **"Works on refresh but not live"** (Jesse's key clue): focus engaged through a deferred effect→dispatch→pin.state→re-render round-trip that didn't reliably flip a receiver into focus view on a live transition. **FINAL FIX (`d78c5f9`): removed the LiveKit pin-reducer machinery entirely — focus is computed SYNCHRONOUSLY each render from live `tracks`** (precedence: manual pin > screen share > speaker active-speaker > gallery). `inFocusView`, the stage ref, and the filmstrip all derive from it; a share engages the same render it appears and the stage always renders a live, media-carrying ref. `LayoutContextProvider` kept but inert. Reviewer-verified against LiveKit source. **This is the robust model — do NOT reintroduce the pin reducer for focus.**
+
+### 3. Sharper screen share (`ebb3a94` → `dd74f38`)
+Small code/text was soft. LiveKit caps screen-share **capture at 1080p** by default (downscales Retina screens before encoding) and the encoder wasn't told to favor detail. Fix at the sharer's capture: `setScreenShareEnabled(true, { contentHint: "detail", resolution: 1440p })` (1440p skipped on Safari 17 — its quirk mis-captures at low res when a resolution is set), + `screenShareEncoding` 2.5→4→**8 Mbps** (1440p needs the bits). Single layer → receivers need ~8 Mbps down during a share (adaptive screen-share layers deferred for weak links).
+
+### 4. Participant roster cleanup (`32ed585`)
+- `sessionDisplayName` → **first name + last initial** ("Nancy L.") — legible on the narrow tile/roster; flows to chat too.
+- **Removed the "Host Volunteer" pill** from tiles + roster. It showed *capability* (any host-team member) as if it were *session identity* — read as "staff" for someone just attending. Now only session-true pills render: **Host** (assigned to this session) + **Teacher**. Co-host controls (mute/share/Bell) unchanged, just unlabeled. The now-vestigial `cohost` metadata seed left in place (invisible) for a later cleanup.
+
+### What this connects to
+The session-room **focus/layout/pin orchestration** was rewritten (the most-iterated part of the room); the **identity/capability pill model** (the 2026-05-26 split) lost its one capability-as-identity pill; **display names** changed across tiles/roster/chat; `VideoRoom.buildRoomOptions` gained screen-share settings; the NC layer moved from Cloud-Krisp to in-browser RNNoise. No hub/role/registration/email changes.
+
+### What comes next
+- **Assign hubs from the member page** (mapped + confirmed, not built) — new `/admin/members/[id]` section + ADMIN-gated `/api/admin/members/[id]/hubs` (GET/POST/DELETE), reusing `HubMember` + the s146 cleanup-on-remove. Connects to the Scheduler "covers ⇒ member" invariant. **Architecture note when built: the Member Registry will *write* hub membership** (previously hubs owned their rosters — a deliberate convenience shift). 3 decisions pending (roles / coordinator toggle / notify).
+- **Server hardening** (Jesse's ops task, pending from s150): DO Cloud Firewall (free; NOT ufw), OS update + reboot, optional secret rotation.
+- Deferred: adaptive screen-share layers for weak links; vestigial `cohost` metadata cleanup; lint-clean the keep-last-speaker render-time ref (→ useState); a per-row ⋯ roster menu IF rows still read cramped.
+
+---
+
 ## 2026-06-16 (session 150) — LiveKit migrated from Cloud → self-hosted on DigitalOcean: the cost decision + full server stand-up (no repo code change)
 
 A long strategic + operational session. **No repo code changed** — the entire change is **infrastructure + three Vercel env vars.** Re-analyzed LiveKit Cloud costs, decided to **leave Cloud and self-host**, then stood up a working, TLS-secured, self-hosted LiveKit server on DigitalOcean and pointed RIM at it.
