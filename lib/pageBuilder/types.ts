@@ -57,7 +57,9 @@ export interface ControlDef {
   label: string;
   type: ControlType;
   options?: ControlOption[];
+  placeholder?: string;
   help?: string;
+  itemControls?: ControlDef[]; // for type "items" — the per-item field controls
 }
 
 export interface BlockVariant {
