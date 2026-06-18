@@ -140,6 +140,36 @@ const migrations = [
     },
   },
   {
+    name: "create_pages_table",
+    async run() {
+      const tables = await db.$queryRawUnsafe(`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_name = 'pages'
+      `);
+      if (tables.length === 0) {
+        await db.$executeRawUnsafe(`
+          CREATE TABLE "pages" (
+            "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+            "slug" TEXT NOT NULL,
+            "title" TEXT NOT NULL,
+            "status" TEXT NOT NULL DEFAULT 'DRAFT',
+            "content" JSONB NOT NULL DEFAULT '{"version":1,"sections":[]}',
+            "seoTitle" TEXT,
+            "seoDescription" TEXT,
+            "updatedById" TEXT,
+            "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+            "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+            CONSTRAINT "pages_pkey" PRIMARY KEY ("id"),
+            CONSTRAINT "pages_slug_key" UNIQUE ("slug")
+          )
+        `);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
+  {
     name: "add_hide_from_weekly_schedule",
     async run() {
       const cols = await db.$queryRawUnsafe(`
