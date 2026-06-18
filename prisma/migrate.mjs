@@ -2668,6 +2668,20 @@ function computeTimeText(start, end) {
   return `${sStr} ${sAmpm} CT`;
 }
 
+function _monthlyPatternPhrase(dateStr) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return "";
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dow = new Date(y, m - 1, d).getDay();
+  let occ = 0;
+  for (let i = 1; i <= d; i++) if (new Date(y, m - 1, i).getDay() === dow) occ++;
+  const daysInMonth = new Date(y, m, 0).getDate();
+  let total = 0;
+  for (let i = 1; i <= daysInMonth; i++) if (new Date(y, m - 1, i).getDay() === dow) total++;
+  const ord = occ === total ? "last" : (["", "1st", "2nd", "3rd", "4th", "5th"][occ] || "");
+  return ord ? `${ord} ${names[dow]}` : "";
+}
+
 function computeDateText(start, freq, days, interval, end) {
   const daysList = days ?? [];
   const intervalStr = interval == null ? "" : String(interval);
@@ -2685,7 +2699,15 @@ function computeDateText(start, freq, days, interval, end) {
     const n = Number(intervalStr);
     return !intervalStr || n <= 1 ? "Daily" : `Every ${n} days`;
   }
-  if (freq === "MONTHLY") return "Monthly";
+  if (freq === "MONTHLY") {
+    const sStr = _toCtLocalString(start);
+    const sDate = sStr ? sStr.split("T")[0] : "";
+    const phrase = sDate ? _monthlyPatternPhrase(sDate) : "";
+    const n = Number(intervalStr);
+    if (!phrase) return !intervalStr || n <= 1 ? "Monthly" : `Every ${n} months`;
+    const cap = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+    return !intervalStr || n <= 1 ? `${cap} of the month` : `Every ${n} months on the ${phrase}`;
+  }
   const startStr = _toCtLocalString(start);
   if (!startStr) return "";
   const startDate = startStr.split("T")[0];

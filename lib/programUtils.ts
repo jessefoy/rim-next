@@ -1,5 +1,6 @@
 import { buildDateLabel, formatTimeRange } from "@/lib/dateLabel";
 import { toCentralDatetime } from "@/lib/timezone";
+import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
 
 const DAY_FULL: Record<string, string> = {
   SU: "Sundays", MO: "Mondays", TU: "Tuesdays", WE: "Wednesdays",
@@ -126,7 +127,13 @@ export function computeDateText(
     return !intervalStr || n <= 1 ? "Daily" : `Every ${n} days`;
   }
   if (freq === "MONTHLY") {
-    return "Monthly";
+    const sStr = toCtLocalString(start);
+    const sDate = sStr ? sStr.split("T")[0] : "";
+    const phrase = sDate ? monthlyPatternPhrase(sDate) : "";
+    const n = Number(intervalStr);
+    if (!phrase) return !intervalStr || n <= 1 ? "Monthly" : `Every ${n} months`;
+    const cap = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+    return !intervalStr || n <= 1 ? `${cap} of the month` : `Every ${n} months on the ${phrase}`;
   }
   // One-time — derive from the start date, as a range when it spans multiple CT days
   const startStr = toCtLocalString(start);

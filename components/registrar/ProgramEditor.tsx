@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
 import { isOpenlyDroppable, kindLabel } from "@/lib/programKind";
+import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
 
 interface TeacherItem {
   id: string;
@@ -486,7 +487,12 @@ function computeDateText(start: string, freq: string, days: string[], interval: 
     return !interval || n <= 1 ? "Daily" : `Every ${n} days`;
   }
   if (freq === "MONTHLY") {
-    return "Monthly";
+    const sDate = start ? start.split("T")[0] : "";
+    const phrase = sDate ? monthlyPatternPhrase(sDate) : "";
+    const n = Number(interval);
+    if (!phrase) return !interval || n <= 1 ? "Monthly" : `Every ${n} months`;
+    const cap = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+    return !interval || n <= 1 ? `${cap} of the month` : `Every ${n} months on the ${phrase}`;
   }
   // One-time — derive from the start date, as a range when it spans multiple days
   if (!start) return "";

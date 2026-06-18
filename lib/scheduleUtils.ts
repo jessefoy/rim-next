@@ -124,6 +124,31 @@ export function getTotalDayOfWeekOccurrencesInMonth(dateStr: string): number {
   return count;
 }
 
+const WEEKDAY_NAME: Record<string, string> = {
+  SU: "Sunday", MO: "Monday", TU: "Tuesday", WE: "Wednesday",
+  TH: "Thursday", FR: "Friday", SA: "Saturday",
+};
+const MONTH_ORDINAL = ["", "1st", "2nd", "3rd", "4th", "5th"];
+
+/**
+ * Human phrase for a monthly recurrence anchored on a date: "last Sunday",
+ * "2nd Wednesday". The weekday + position-in-month are derived from the date
+ * itself; when it's the LAST occurrence of its weekday that month the phrase is
+ * "last <weekday>" (stays "last" even in 5-occurrence months), otherwise the Nth.
+ * Returns "" for a non-YYYY-MM-DD input. Shared by the MONTHLY occurrence branch
+ * and every schedule-label builder (programUtils, dateLabel, the ProgramEditor
+ * preview, and the migrate.mjs recache copy — keep those in lockstep).
+ */
+export function monthlyPatternPhrase(dateStr: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return "";
+  const weekday = WEEKDAY_NAME[dateToDayCode(dateStr)];
+  if (!weekday) return "";
+  const occ = getDayOfWeekOccurrenceInMonth(dateStr);
+  const isLast = occ === getTotalDayOfWeekOccurrencesInMonth(dateStr);
+  const ord = isLast ? "last" : (MONTH_ORDINAL[occ] ?? "");
+  return ord ? `${ord} ${weekday}` : "";
+}
+
 /**
  * Returns the total number of times this program runs in the given calendar
  * month. Used by standing-assignment logic to resolve the LAST occurrence
@@ -226,6 +251,29 @@ export function isOccurrenceOnDate(p: ScheduleProgram, dateStr: string): boolean
         / msPerDay
       );
       if (daysDiff % n !== 0) return false;
+    }
+    return true;
+  }
+
+  if (freq === "MONTHLY") {
+    // Monthly = the same weekday-and-position-in-month as the anchor — e.g.
+    // "the last Sunday" or "the 2nd Wednesday" — derived from the start date.
+    // No separate day field; recurrenceDays is unused for MONTHLY.
+    if (dateToDayCode(dateStr) !== dateToDayCode(anchor)) return false;
+    const anchorOcc = getDayOfWeekOccurrenceInMonth(anchor);
+    const anchorIsLast = anchorOcc === getTotalDayOfWeekOccurrencesInMonth(anchor);
+    const dateOcc = getDayOfWeekOccurrenceInMonth(dateStr);
+    const dateIsLast = dateOcc === getTotalDayOfWeekOccurrencesInMonth(dateStr);
+    // "last" stays last even in 5-occurrence months; otherwise match the Nth.
+    if (anchorIsLast ? !dateIsLast : dateOcc !== anchorOcc) return false;
+    const [ay, am] = anchor.split("-").map(Number);
+    const [dy, dm] = dateStr.split("-").map(Number);
+    const monthsDiff = (dy - ay) * 12 + (dm - am);
+    if (monthsDiff < 0) return false;
+    const n = p.recurrenceInterval ?? 1;
+    if (n > 1 && monthsDiff % n !== 0) return false;
+    if (p.recurrenceCount && p.recurrenceCount >= 2 && monthsDiff > (p.recurrenceCount - 1) * n) {
+      return false;
     }
     return true;
   }

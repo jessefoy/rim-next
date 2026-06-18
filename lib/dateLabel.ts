@@ -12,6 +12,8 @@
  * Returns null if startDatetime is not set.
  */
 
+import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
+
 const TZ = "America/Chicago";
 
 /** Map from iCal BYDAY code to full English day name */
@@ -73,9 +75,12 @@ export function buildDateLabel(p: DateLabelParams): string | null {
   const end   = p.endDatetime ? new Date(p.endDatetime) : null;
   const timeRange = formatTimeRange(start, end);
   const n = p.recurrenceInterval ?? 1;
+  // recurrenceFreq is stored UPPERCASE ("WEEKLY"/"DAILY"/"MONTHLY"); normalize so
+  // these branches actually fire (compared lowercase, they silently never did).
+  const freq = (p.recurrenceFreq ?? "").toUpperCase();
 
   // ── Weekly ──────────────────────────────────────────────────────────────────
-  if (p.recurrenceFreq === "weekly") {
+  if (freq === "WEEKLY") {
     const days = p.recurrenceDays?.length ? p.recurrenceDays : null;
 
     let prefix: string;
@@ -94,7 +99,7 @@ export function buildDateLabel(p: DateLabelParams): string | null {
   }
 
   // ── Daily ───────────────────────────────────────────────────────────────────
-  if (p.recurrenceFreq === "daily") {
+  if (freq === "DAILY") {
     const prefix =
       n === 1 ? "Daily" :
       n === 2 ? "Every other day" :
@@ -103,7 +108,14 @@ export function buildDateLabel(p: DateLabelParams): string | null {
   }
 
   // ── Monthly ─────────────────────────────────────────────────────────────────
-  if (p.recurrenceFreq === "monthly") {
+  if (freq === "MONTHLY") {
+    const sDate = new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(start);
+    const phrase = monthlyPatternPhrase(sDate);
+    if (phrase) {
+      const cap = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+      const base = n === 1 ? `${cap} of the month` : `Every ${n} months on the ${phrase}`;
+      return `${base} · ${timeRange}`;
+    }
     const prefix = n === 1 ? "Monthly" : `Every ${n} months`;
     return `${prefix} · ${timeRange}`;
   }
