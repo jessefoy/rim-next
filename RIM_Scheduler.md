@@ -322,6 +322,14 @@ After **Save & apply**, `RotationsClient` shows an inline **"✓ [Day]'s rotatio
 
 ---
 
+## Recurrence — monthly is weekday-of-month (session 153)
+
+A program with `recurrenceFreq = "MONTHLY"` repeats on the **same weekday-and-position-in-month as its start date** — "the last Sunday", "the 2nd Wednesday" — derived from `startDatetime` (no day-of-month field, no extra editor input; the weekday picker stays weekly-only). `lib/scheduleUtils.ts::isOccurrenceOnDate` matches the anchor's weekday + ordinal, where **"last" stays last** even in 5-occurrence months (anchorIsLast ⇒ match the last occurrence; else match the Nth). Interval = "every N months"; `recurrenceCount` bounds the series. Every occurrence-driven surface (This Week, dashboard, the Scheduler, host assignments, standing rotations, the session-room join gate) inherits this through `isOccurrenceOnDate` — there is exactly one place to change. Previously there was no MONTHLY branch, so monthly programs silently occurred only on their anchor date (and the session-room room never opened on later months — fixed here too).
+
+**Pitfall — keep the four schedule-label copies in lockstep.** The monthly label ("Last Sunday of the month") comes from `monthlyPatternPhrase()` in `lib/scheduleUtils.ts`, consumed by `lib/programUtils.ts::computeDateText`, `lib/dateLabel.ts::buildDateLabel`, the **ProgramEditor inline preview**, and an **inline copy in `prisma/migrate.mjs`** (the `recache_program_date_time_text` block, which recomputes every program's `dateText` on every deploy). Change the wording in one → change all four, or the recache silently overwrites the API-saved label on the next deploy. `recurrenceFreq` is stored UPPERCASE — compare uppercase (`buildDateLabel` once compared lowercase and its recurrence branches were dead).
+
+**`.ics` export** still recurs monthly by date-of-month, not weekday-of-month — backlog `2026-06-17-004` (needs a CT `TZID`/`VTIMEZONE` treatment because the export emits UTC start times).
+
 ## Common pitfalls
 
 **The schedule URL without `?hub=` defaults to host-team.** Always include the hub when generating links — internally (sidebar app-link auto-append), externally (email URLs via `hubScopedUrl`).

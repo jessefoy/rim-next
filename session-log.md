@@ -36,6 +36,36 @@ The member profile now reads as two clear controls instead of three overlapping 
 
 ---
 
+## 2026-06-17 (session 153, follow-on) — Monthly recurrence made first-class (weekday-of-month, derived from the start date)
+
+A separate slice on top of the consolidation above, prompted by LoriLee: once-a-month programs (the Nature Meditation walks) showed a single fixed date that read as stale once it passed. **One commit `981e281` on `main`, deployed.** No new deps / env / services; **no schema change.**
+
+### What was wrong (the audit corrected my first read)
+A 14-agent audit (7 readers + 6 adversarial verifiers + synthesis) overturned my quick-grep diagnosis: the card's stale date wasn't a label bug — it's a **cached `dateText` string** on a program configured one-time. The real, latent gap: **`isOccurrenceOnDate` had WEEKLY and DAILY branches but no MONTHLY** — so any program set to "Monthly" fell through to "occurs only on its anchor date" and silently never recurred across nine surfaces (This Week, dashboard Today + Coming-up, Scheduler, claimable sessions, hub session list, standing rotations, the session-room join gate). The editor offered Monthly; the engine never honored it. (The audit also corrected me that the `.ics` export already emits `FREQ=MONTHLY`.)
+
+### What shipped
+- **The one load-bearing fix:** a MONTHLY branch in `lib/scheduleUtils.ts::isOccurrenceOnDate` — match the anchor's **weekday + position-in-month** (Nth or last), honoring interval + count, reusing the existing `getDayOfWeekOccurrenceInMonth`/`getTotalDayOfWeekOccurrencesInMonth` helpers (the same ones the rotation system uses for "last Sunday"). All nine surfaces inherit it. **"last" stays last** even in 5-week months; a "2nd Wednesday" anchor holds the 2nd Wednesday.
+- **Label:** new `monthlyPatternPhrase()` in scheduleUtils; `computeDateText` (programUtils), `buildDateLabel` (dateLabel), the ProgramEditor preview, and the migrate.mjs recache copy all now read **"Last Sunday of the month"** — kept byte-identical across the four copies so the every-deploy recache can't clobber the API-saved value.
+- **Case fix:** `buildDateLabel` compared `recurrenceFreq` lowercase while it's stored UPPERCASE — its weekly/daily/monthly branches were silently dead. Normalized; un-breaks auto-labels for all frequencies.
+- **No schema change, no new editor input:** the weekday + position come from the existing **Start Date** (the weekday picker stays weekly-only, correctly). Jesse's call — the start date already encodes "last Sunday."
+
+### Design decisions + why
+- **Monthly = same weekday-and-position as the start date** (weekday-of-month, not calendar-date-number, and not a new schema field). The model already carries everything via `startDatetime`; "last Sunday" is derived, no migration.
+- **`.ics` export deferred** (backlog `2026-06-17-004`): matching "last Sunday" in the download needs a CT `TZID`/`VTIMEZONE` treatment because the `.ics` emits start times in UTC — a naive `BYDAY/BYSETPOS` would misalign for evening programs. Not half-fixed. (Same item also fixes a pre-existing lowercase bug dropping `BYDAY` from weekly `.ics`.)
+- **Verified, not assumed:** standalone date-math simulation (last Sundays roll Jun 28 / Jul 26 / Aug 30…; 2nd-Wednesday holds; interval + count bound), `tsc`, `migrate node --check`, adversarial reviewer (no showstoppers).
+
+### What this connects to
+- The whole occurrence surface set (one branch fixes all nine) + the recache migration (relabels existing monthly programs on deploy).
+- **Bonus fix:** the session-room **join gate** for monthly programs — the room previously opened only on the very first session; it now opens on every monthly occurrence.
+- The `.ics` export (now the one place still on date-of-month — backlog 004).
+
+### What comes next
+- **Deployed verification:** set a program to Monthly (start date on the intended weekday) → confirm it shows on the right future dates on This Week / Scheduler + the card reads "Last Sunday of the month"; run `SELECT slug, "startDatetime", "recurrenceFreq" FROM "programs" WHERE "recurrenceFreq" ILIKE 'monthly'` to see what the change touches.
+- **Data fixes (UI, LoriLee/Jesse):** set the Nature Meditation walks to Monthly with the right start date; correct Recovery Dharma's end time (the "9:30–7 AM" was a bad end-time on the row).
+- A plain-English update for LoriLee was drafted in-chat.
+
+---
+
 ## 2026-06-17 (session 152) — Server hardening: DO Cloud Firewall + OS updates/reboot + SSH IP-restriction (no repo code change)
 
 Executed the deferred server-hardening ops task from session 150 (backlog `2026-06-16-002`, now closed) on the self-hosted LiveKit droplet (`RIM-LiveKit`, `104.248.229.126`). **No repo code changed** — all DigitalOcean console + server SSH. The droplet had been running since stand-up with the firewall OFF (all ports open) and a pending OS update/reboot.

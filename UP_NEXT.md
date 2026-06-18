@@ -6,6 +6,19 @@
 
 ## Active
 
+### Session 153 (follow-on, 2026-06-17) — Monthly recurrence is now first-class — on `main` & deployed; deployed verification + two data fixes pending
+
+After the consolidation closing, shipped a separate slice (LoriLee's report: once-a-month programs showed a stale fixed date). **One commit `981e281` on `main`, deployed.** No deps/env/services/schema change. Diagnosis came from a 14-agent audit that corrected my first read. Full record in `session-log.md` (session 153 follow-on).
+
+**Shipped + live:** a MONTHLY branch in `lib/scheduleUtils.ts::isOccurrenceOnDate` — match the start date's weekday + position-in-month ("last Sunday", "2nd Wednesday"; honoring interval + count; reuses the existing weekday-occurrence helpers; "last" stays last). All nine occurrence surfaces inherit it; the session-room **join gate for monthly programs is fixed** as a bonus (it previously opened only on the first session). Labels read "Last Sunday of the month," kept identical across the four copies (programUtils, dateLabel, ProgramEditor preview, migrate.mjs recache) so the recache can't clobber it; `buildDateLabel` case-normalized (its branches were silently dead). No schema change — the pattern derives from the existing Start Date. Verified: date-math simulation + `tsc` + reviewer (no showstoppers).
+
+**OPEN — deployed verification + data fixes (none blocking):**
+1. Set a program to Monthly (start date on the intended weekday) → confirm it appears on the right future dates on This Week / Scheduler + the card reads "Last Sunday of the month."
+2. Prod check: `SELECT slug, "startDatetime", "recurrenceFreq" FROM "programs" WHERE "recurrenceFreq" ILIKE 'monthly'` — see which programs the change relabels/repeats.
+3. **Data (UI):** set the Nature Meditation walks to Monthly + the right start date; correct Recovery Dharma's end time ("9:30–7 AM" is a bad end-time on the row).
+
+**Follow-up:** the `.ics` "add to calendar" for monthly still places it by date-of-month — backlog `2026-06-17-004` (needs CT `TZID`; also fixes a pre-existing weekly `BYDAY` drop). A plain-English update for LoriLee was drafted in-chat.
+
 ### Session 153 (2026-06-17) — Member-profile consolidation: assign hubs from the registry + retire the HOST role — both on `main` & deployed; deployed-site verification pending
 
 Built the teed-up "assign hubs from the member page," then consolidated it after Jesse found it cumbersome ("two places to add to a hub"). **Two commits on `main`, deployed.** No new deps/env/services. One migration `retire_host_role_v1` (no schema change — strips the plain HOST role from users + course `requiredRoles` after ensuring host-team membership). Full record in `session-log.md` (session 153) + the new `RIM_MemberRegistry.md`.
