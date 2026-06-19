@@ -85,7 +85,7 @@ This is the difference between executing tasks and co-creating a system. Jesse s
 
 ## Workflow
 - **Never run a local dev server.** Push to GitHub; Vercel auto-deploys in ~1–2 min.
-- `npm run build` = `prisma generate && next build` — run locally to catch TypeScript errors before pushing.
+- `npm run build` = `prisma generate && node prisma/migrate.mjs && next build`. This does **not** complete locally — the `migrate.mjs` step runs migrations against the prod DB, which is unreachable from local machines (it fails fast before `next build`, by design, so you can't migrate prod from your laptop). **To catch TypeScript errors before pushing, run `npx tsc --noEmit`** — that's the real local pre-push gate. The full build completes only on Vercel, where the DB is reachable.
 - Keep changes minimal and focused. No over-engineering or speculative improvements.
 - Prefer editing existing files over creating new ones.
 - Full stack reference: `RIM_Stack_Reference.md` in project root.
