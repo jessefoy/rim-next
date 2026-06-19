@@ -1283,26 +1283,3 @@ model SessionBan {
   @@index([roomName])
   @@map("session_bans")
 }
-
-// ─── PAGE BUILDER ─────────────────────────────────────────────────────────────
-//
-// Block-composed pages (home + future editorial pages). `content` is a
-// PageContent JSON document — { version, sections: [...] } — authored in the
-// page builder at /admin/pages and rendered by <PageRenderer>. Structured
-// pages (program/course/teacher) stay code templates; this is for freeform
-// editorial pages. See lib/pageBuilder/types.ts.
-
-model Page {
-  id             String   @id @default(cuid())
-  slug           String   @unique
-  title          String
-  status         String   @default("DRAFT") // "DRAFT" | "PUBLISHED"
-  content        Json     // PageContent — see lib/pageBuilder/types.ts
-  seoTitle       String?
-  seoDescription String?
-  updatedById    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@map("pages")
-}
