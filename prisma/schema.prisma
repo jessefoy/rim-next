@@ -922,6 +922,27 @@ enum HubDocumentFileType {
   PDF
 }
 
+// How a HubDocument is authored/stored (OnlyOffice integration).
+//   NATIVE     — RIM Tiptap editor, content in `body`
+//   ONLYOFFICE — office file (docx/xlsx/pptx) edited in OnlyOffice, in `storageKey`
+//   LINK       — external URL in `url` (e.g. a Google Drive link)
+//   UPLOAD     — uploaded file (e.g. a PDF) in `url`
+enum HubDocKind {
+  NATIVE
+  ONLYOFFICE
+  LINK
+  UPLOAD
+}
+
+// Per-document visibility (OnlyOffice integration). Layers on top of hub
+// placement: HUB = all members of the doc's hub(s); COORDINATORS = only those
+// hubs' coordinators; COMMUNITY = any active member, hub-independent.
+enum HubDocVisibility {
+  HUB
+  COORDINATORS
+  COMMUNITY
+}
+
 model Hub {
   id                     String        @id @default(cuid())
   slug                   String        @unique
@@ -984,6 +1005,7 @@ model Hub {
 
   members       HubMember[]
   documents     HubDocument[]
+  documentPlacements HubDocumentPlacement[]
   threads       HubConversationThread[]
   appLinks      HubAppLink[]
 
@@ -1040,14 +1062,18 @@ model HubMember {
 
 model HubDocument {
   id          String              @id @default(cuid())
-  hubId       String
+  hubId       String?             // nullable — hubless project/community docs (shares carry hub access)
   addedById   String
   label       String
   url         String?             // nullable — native docs have no external URL
   description String?
   fileType    HubDocumentFileType @default(LINK)
   category    String?
-  body        Json?               // BlockNote JSON — set when isNative = true
+  body        Json?               // native editor content (Tiptap HTML; legacy BlockNote JSON) — set when docKind = NATIVE
+  docKind     HubDocKind          @default(NATIVE) // canonical type discriminator (backfilled from isNative/fileType/url)
+  storageKey  String?             // OnlyOffice office-file key in blob storage — set when docKind = ONLYOFFICE
+  version     Int                 @default(0)      // bumped on each OnlyOffice save; drives the OnlyOffice document key
+  visibility  HubDocVisibility    @default(HUB)    // who can reach this doc (layers on hub placement)
   isNative    Boolean             @default(false)
   isLocked    Boolean             @default(false) // Author can lock to prevent edits
   editingById String?             // Currently editing — presence tracking
@@ -1062,18 +1088,38 @@ model HubDocument {
   deletedAt    DateTime?
   deletedById  String?
 
-  hub           Hub      @relation(fields: [hubId], references: [id])
+  hub           Hub?     @relation(fields: [hubId], references: [id])
   addedBy       User     @relation("HubDocumentAuthor", fields: [addedById], references: [id], onDelete: Cascade)
   editingBy     User?    @relation("HubDocumentEditor", fields: [editingById], references: [id])
   archivedBy    User?    @relation("HubDocumentArchiver", fields: [archivedById], references: [id])
   deletedBy     User?    @relation("HubDocumentTrasher",  fields: [deletedById],  references: [id])
   notifications HubDocumentNotification[]
   conversations HubConversationThread[]
+  placements    HubDocumentPlacement[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([hubId, deletedAt])
   @@map("hub_documents")
+}
+
+// Cross-hub sharing (OnlyOffice integration). One canonical HubDocument can be
+// *placed in* several hubs — it surfaces in each hub's list (badged) but is
+// never duplicated. Origin hub is HubDocument.hubId (nullable for hubless
+// project/community docs); additional shares are rows here. The create path
+// must reject hubId === document.hubId so the origin hub isn't double-listed.
+model HubDocumentPlacement {
+  id         String   @id @default(cuid())
+  documentId String
+  hubId      String
+  createdAt  DateTime @default(now())
+
+  document HubDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  hub      Hub         @relation(fields: [hubId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, hubId])
+  @@index([hubId])
+  @@map("hub_document_placements")
 }
 
 // One row per notification sent. No unique constraint on (documentId, userId) —

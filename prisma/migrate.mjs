@@ -4959,6 +4959,79 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ retire_host_role_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // OnlyOffice document model — office files (docx/xlsx/pptx) edited in a
+  // self-hosted OnlyOffice Document Server, surfaced through the existing
+  // HubDocument record. Additive + idempotent:
+  //   • enums HubDocKind / HubDocVisibility
+  //   • hub_documents gains docKind, storageKey, version, visibility
+  //   • hubId made nullable (hubless project/community docs)
+  //   • new hub_document_placements join (cross-hub sharing — one canonical
+  //     doc surfaced in many hubs, never duplicated)
+  //   • docKind backfilled for existing rows (PDF→UPLOAD, other links→LINK;
+  //     native rows keep the NATIVE default)
+  // Raw SQL references @@map table names (hub_documents,
+  // hub_document_placements, hubs). DO-block guards make enum + FK creation
+  // re-runnable.
+  // ───────────────────────────────────────────────────────────────────────
+  const onlyofficeDocsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'onlyoffice_documents_v1'
+  `).catch(() => []);
+
+  if (onlyofficeDocsFlag.length === 0) {
+    console.log("→ OnlyOffice document model (enums, columns, placements, nullable hubId)…");
+    await db.$executeRawUnsafe(
+      `DO $$ BEGIN CREATE TYPE "HubDocKind" AS ENUM ('NATIVE','ONLYOFFICE','LINK','UPLOAD'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+    );
+    await db.$executeRawUnsafe(
+      `DO $$ BEGIN CREATE TYPE "HubDocVisibility" AS ENUM ('HUB','COORDINATORS','COMMUNITY'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_documents" ADD COLUMN IF NOT EXISTS "docKind" "HubDocKind" NOT NULL DEFAULT 'NATIVE'`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_documents" ADD COLUMN IF NOT EXISTS "storageKey" TEXT`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_documents" ADD COLUMN IF NOT EXISTS "version" INTEGER NOT NULL DEFAULT 0`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_documents" ADD COLUMN IF NOT EXISTS "visibility" "HubDocVisibility" NOT NULL DEFAULT 'HUB'`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_documents" ALTER COLUMN "hubId" DROP NOT NULL`,
+    );
+    // Backfill docKind for existing rows (native rows keep the NATIVE default).
+    await db.$executeRawUnsafe(
+      `UPDATE "hub_documents" SET "docKind" = 'UPLOAD' WHERE "isNative" = false AND "fileType" = 'PDF'`,
+    );
+    await db.$executeRawUnsafe(
+      `UPDATE "hub_documents" SET "docKind" = 'LINK' WHERE "isNative" = false AND "fileType" <> 'PDF'`,
+    );
+    // Cross-hub sharing join.
+    await db.$executeRawUnsafe(
+      `CREATE TABLE IF NOT EXISTS "hub_document_placements" ("id" TEXT NOT NULL, "documentId" TEXT NOT NULL, "hubId" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "hub_document_placements_pkey" PRIMARY KEY ("id"))`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "hub_document_placements_documentId_hubId_key" ON "hub_document_placements"("documentId","hubId")`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "hub_document_placements_hubId_idx" ON "hub_document_placements"("hubId")`,
+    );
+    await db.$executeRawUnsafe(
+      `DO $$ BEGIN ALTER TABLE "hub_document_placements" ADD CONSTRAINT "hub_document_placements_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "hub_documents"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+    );
+    await db.$executeRawUnsafe(
+      `DO $$ BEGIN ALTER TABLE "hub_document_placements" ADD CONSTRAINT "hub_document_placements_hubId_fkey" FOREIGN KEY ("hubId") REFERENCES "hubs"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('onlyoffice_documents_v1')`,
+    );
+    console.log("  ✔ OnlyOffice document model ready (placements table, nullable hubId, docKind backfilled).");
+  } else {
+    console.log("  ⏭ onlyoffice_documents_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
