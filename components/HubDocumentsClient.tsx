@@ -36,6 +36,7 @@ interface HubDoc {
   url: string | null;
   description: string | null;
   fileType: "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK" | "PDF";
+  docKind: "NATIVE" | "ONLYOFFICE" | "LINK" | "UPLOAD";
   category: string | null;
   isNative: boolean;
   isLocked: boolean;
@@ -675,7 +676,11 @@ export default function HubDocumentsClient({
                       )}
                       {doc.isLocked && <span className="hub-doc-item__edit" title="Locked by author">🔒</span>}
                       <div className="hub-doc-item__text">
-                        {doc.isNative ? (
+                        {doc.docKind === "ONLYOFFICE" ? (
+                          <a href={`/account/documents/${doc.id}/office`} className="hub-doc-item__native-link">
+                            {doc.label}
+                          </a>
+                        ) : doc.isNative ? (
                           <a href={`/account/hub/${hubSlug}/documents/${doc.id}`} className="hub-doc-item__native-link">
                             {doc.label}
                           </a>
