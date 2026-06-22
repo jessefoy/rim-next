@@ -36,12 +36,23 @@ export default async function HubDocumentsPage({
     });
   }
 
-  const [documents, hubMembers] = await Promise.all([
+  const [documents, hubMembers, viewerMemberships] = await Promise.all([
     db.hubDocument.findMany({
-      // Trashed documents are never surfaced here — they live at /trash for managers.
-      // Archived documents ARE included; client splits into Active vs Archived tabs.
-      where:   { hubId: hub.id, deletedAt: null },
-      include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
+      // Trashed docs never surface here — they live at /trash for managers.
+      // Archived docs ARE included; the client splits Active vs Archived.
+      // Surface BOTH this hub's own docs AND docs shared *into* it (placements).
+      where: {
+        deletedAt: null,
+        OR: [
+          { hubId: hub.id },
+          { placements: { some: { hubId: hub.id } } },
+        ],
+      },
+      include: {
+        addedBy:    { select: { firstName: true, lastName: true, preferredName: true } },
+        hub:        { select: { id: true, slug: true, name: true } },
+        placements: { include: { hub: { select: { id: true, slug: true, name: true } } } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     // Eligible notification recipients: active members with communicationsEnabled, excluding self
@@ -54,6 +65,11 @@ export default async function HubDocumentsPage({
       },
       include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
       orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+    }),
+    // The viewer's own active hubs — the set they can share a doc INTO.
+    db.hubMember.findMany({
+      where:   { userId: session.user.id, status: "ACTIVE" },
+      include: { hub: { select: { id: true, name: true, status: true } } },
     }),
   ]);
 
@@ -79,6 +95,10 @@ export default async function HubDocumentsPage({
     archivedAt: d.archivedAt?.toISOString() ?? null,
     createdAt:  d.createdAt.toISOString(),
     updatedAt:  d.updatedAt.toISOString(),
+    visibility: d.visibility,
+    isOrigin:   d.hubId === hub.id,
+    originHub:  d.hub ? { id: d.hub.id, slug: d.hub.slug, name: d.hub.name } : null,
+    sharedHubs: d.placements.map((p) => ({ id: p.hub.id, slug: p.hub.slug, name: p.hub.name })),
   }));
 
   const serializedMembers = hubMembers.map((m) => ({
@@ -87,6 +107,12 @@ export default async function HubDocumentsPage({
     lastName:     m.user.lastName,
     preferredName: m.user.preferredName,
   }));
+
+  // Hubs the viewer can share a doc into (their active hubs, alphabetical).
+  const viewerHubs = viewerMemberships
+    .filter((m) => m.hub.status === "ACTIVE")
+    .map((m) => ({ id: m.hub.id, name: m.hub.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <HubDocumentsClient
@@ -97,6 +123,7 @@ export default async function HubDocumentsPage({
       officeEnabled={onlyOfficeConfigured()}
       currentUserId={session.user.id}
       hubMembers={serializedMembers}
+      viewerHubs={viewerHubs}
     />
   );
 }

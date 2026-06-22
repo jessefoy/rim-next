@@ -27,6 +27,7 @@ import { useState, useRef } from "react";
 import { upload } from "@vercel/blob/client";
 import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
 import HubDocCategoryManager from "@/components/HubDocCategoryManager";
+import HubDocShareModal from "@/components/HubDocShareModal";
 
 interface DocAddedBy {
   firstName: string | null;
@@ -49,6 +50,12 @@ interface HubDoc {
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  visibility: "HUB" | "COORDINATORS" | "COMMUNITY";
+  /** True when this doc's home hub is the hub being viewed (vs. shared in). */
+  isOrigin: boolean;
+  originHub: { id: string; slug: string; name: string } | null;
+  /** Hubs this doc is shared INTO (placements). */
+  sharedHubs: { id: string; slug: string; name: string }[];
 }
 
 type HubMemberOption = NotifyMember;
@@ -62,6 +69,8 @@ interface Props {
   officeEnabled: boolean;
   currentUserId: string;
   hubMembers: HubMemberOption[];
+  /** Hubs the viewer can share a doc into (their own active hubs). */
+  viewerHubs: { id: string; name: string }[];
 }
 
 type AddMode = "link" | "file";
@@ -112,6 +121,7 @@ export default function HubDocumentsClient({
   officeEnabled,
   currentUserId,
   hubMembers,
+  viewerHubs,
 }: Props) {
   const [docs, setDocs]               = useState<HubDoc[]>(initialDocuments);
   const [categories, setCategories]   = useState<string[]>(initialCategories);
@@ -122,6 +132,8 @@ export default function HubDocumentsClient({
   const [view, setView]               = useState<"active" | "archived">("active");
   const [query, setQuery]             = useState("");
   const [showCatManager, setShowCatManager] = useState(false);
+  const [shareDoc, setShareDoc]       = useState<HubDoc | null>(null);
+  const [removingFromHubId, setRemovingFromHubId] = useState<string | null>(null);
 
   // Add form state
   const [addMode, setAddMode]           = useState<AddMode>("link");
@@ -362,6 +374,30 @@ export default function HubDocumentsClient({
     setNotifyDocId(null);
   }
 
+  // ── Sharing (placements + visibility) ────────────────────────────────────
+  // Sync local state after the share modal changes a doc's visibility/placements.
+  function applyShareUpdate(
+    docId: string,
+    patch: { visibility?: HubDoc["visibility"]; sharedHubs?: HubDoc["sharedHubs"] },
+  ) {
+    setDocs((prev) => prev.map((d) => (d.id === docId ? { ...d, ...patch } : d)));
+    setShareDoc((cur) => (cur && cur.id === docId ? { ...cur, ...patch } : cur));
+  }
+
+  // Remove a doc that was shared INTO this hub — deletes just this hub's
+  // placement; the document and its origin are untouched.
+  async function removeFromHub(doc: HubDoc) {
+    const here = doc.sharedHubs.find((h) => h.slug === hubSlug);
+    if (!here || removingFromHubId) return;
+    if (!window.confirm(
+      `Remove “${doc.label}” from this hub? It stays in ${doc.originHub?.name ?? "its home hub"} and any other hubs it's shared with.`
+    )) return;
+    setRemovingFromHubId(doc.id);
+    const res = await fetch(`/api/documents/${doc.id}/placements?hubId=${encodeURIComponent(here.id)}`, { method: "DELETE" });
+    if (res.ok) setDocs((prev) => prev.filter((d) => d.id !== doc.id));
+    setRemovingFromHubId(null);
+  }
+
   // ── Category select helper ───────────────────────────────────────────────
   function CategorySelect({
     value, onChange, newCat, onNewCatChange,
@@ -474,6 +510,16 @@ export default function HubDocumentsClient({
             setDocs((prev) => prev.map((d) => (d.category === from ? { ...d, category: to } : d)))
           }
           onClose={() => setShowCatManager(false)}
+        />
+      )}
+
+      {/* Share modal — visibility + cross-hub placements (origin docs only) */}
+      {shareDoc && (
+        <HubDocShareModal
+          doc={shareDoc}
+          viewerHubs={viewerHubs}
+          onUpdated={applyShareUpdate}
+          onClose={() => setShareDoc(null)}
         />
       )}
 
@@ -775,13 +821,30 @@ export default function HubDocumentsClient({
                             {doc.label} ↗
                           </a>
                         )}
+                        {(!doc.isOrigin && doc.originHub) && (
+                          <span className="hub-doc-share-badge" title={`Shared from ${doc.originHub.name}`}>
+                            Shared from {doc.originHub.name}
+                          </span>
+                        )}
+                        {(doc.isOrigin && doc.sharedHubs.length > 0) && (
+                          <span className="hub-doc-share-badge"
+                            title={`Shared with ${doc.sharedHubs.map((h) => h.name).join(", ")}`}>
+                            Shared
+                          </span>
+                        )}
+                        {doc.visibility === "COMMUNITY" && (
+                          <span className="hub-doc-share-badge hub-doc-share-badge--community">Community</span>
+                        )}
                         {doc.description && <div className="hub-doc-item__desc">{doc.description}</div>}
                       </div>
                       <div className="hub-doc-item__meta" title={`Added ${fmtDate(doc.createdAt)}`}>
                         Updated {relativeDate(doc.updatedAt)} · {displayName(doc.addedBy)}
                       </div>
                       <div className="hub-doc-item__actions">
-                        {canEdit(doc) && !doc.archivedAt && (
+                        {/* Lifecycle (notify / share / edit / archive / delete) lives
+                            with the ORIGIN hub. A hub a doc is shared INTO sees only
+                            "Remove from hub". */}
+                        {doc.isOrigin && canEdit(doc) && !doc.archivedAt && (
                           <button
                             className="hub-action-btn"
                             onClick={() => openNotifyPanel(doc.id)}
@@ -789,7 +852,12 @@ export default function HubDocumentsClient({
                             Notify
                           </button>
                         )}
-                        {canEdit(doc) && !doc.isNative && !doc.isLocked && !doc.archivedAt && (
+                        {doc.isOrigin && canEdit(doc) && !doc.archivedAt && (
+                          <button className="hub-action-btn" onClick={() => setShareDoc(doc)}>
+                            Share
+                          </button>
+                        )}
+                        {doc.isOrigin && canEdit(doc) && !doc.isNative && !doc.isLocked && !doc.archivedAt && (
                           <button
                             className="hub-action-btn hub-doc-item__edit"
                             onClick={(e) => { e.stopPropagation(); openEdit(doc); }}
@@ -797,7 +865,7 @@ export default function HubDocumentsClient({
                             Edit
                           </button>
                         )}
-                        {canEdit(doc) && doc.isNative && !doc.archivedAt && (
+                        {doc.isOrigin && canEdit(doc) && doc.isNative && !doc.archivedAt && (
                           <a
                             href={`/account/hub/${hubSlug}/documents/${doc.id}/edit`}
                             className="hub-action-btn hub-doc-item__edit"
@@ -805,7 +873,7 @@ export default function HubDocumentsClient({
                             {doc.isLocked && doc.addedById !== currentUserId ? "View" : "Edit"}
                           </a>
                         )}
-                        {canEdit(doc) && (
+                        {doc.isOrigin && canEdit(doc) && (
                           <button
                             className="hub-action-btn"
                             onClick={() => toggleArchive(doc.id, !!doc.archivedAt)}
@@ -816,13 +884,22 @@ export default function HubDocumentsClient({
                         )}
                         {/* Delete only appears on archived items — by design.
                             Three-stage flow: Active → Archived → Trash (manager review). */}
-                        {canEdit(doc) && doc.archivedAt && (
+                        {doc.isOrigin && canEdit(doc) && doc.archivedAt && (
                           <button
                             className="hub-action-btn hub-action-btn--del"
                             onClick={() => deleteDoc(doc.id)}
                             disabled={deletingId === doc.id}
                           >
                             {deletingId === doc.id ? "…" : "Delete"}
+                          </button>
+                        )}
+                        {!doc.isOrigin && isCoordinator && (
+                          <button
+                            className="hub-action-btn hub-action-btn--del"
+                            onClick={() => removeFromHub(doc)}
+                            disabled={removingFromHubId === doc.id}
+                          >
+                            {removingFromHubId === doc.id ? "…" : "Remove from hub"}
                           </button>
                         )}
                       </div>

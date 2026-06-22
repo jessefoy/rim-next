@@ -11859,6 +11859,29 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-doc-cat-mgr__input { flex: 1; min-width: 0; }
 .hub-doc-cat-mgr__add { display: flex; align-items: center; gap: 8px; }
 
+/* Share badges in the doc row (shared-from / shared / community). */
+.hub-doc-share-badge {
+  display: inline-block; margin: 4px 6px 0 0; padding: 1px 8px;
+  border-radius: 10px; font-size: var(--text-xxs); font-weight: 600;
+  background: var(--rim-bg-accent); color: var(--rim-text-muted); white-space: nowrap;
+}
+.hub-doc-share-badge--community { background: var(--rim-blue); color: #fff; }
+
+/* Share modal — visibility + cross-hub placements. Reuses the notify-modal shell. */
+.hub-doc-share { max-width: 440px; }
+.hub-doc-share__error { font-size: var(--text-xs); color: var(--color-error); margin: 0 0 12px; }
+.hub-doc-share__section { margin-bottom: 20px; }
+.hub-doc-share__section:last-child { margin-bottom: 0; }
+.hub-doc-share__label { font-size: var(--text-xs); font-weight: 700; color: var(--rim-text); margin-bottom: 8px; }
+.hub-doc-share__desc { font-size: var(--text-xs); color: var(--rim-text-muted); margin: 6px 0 0; line-height: 1.5; }
+.hub-doc-share__empty { font-size: var(--text-small); color: var(--rim-text-muted); margin: 0 0 10px; }
+.hub-doc-share__hubs { list-style: none; margin: 0 0 12px; padding: 0; }
+.hub-doc-share__hub-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--rim-rule); }
+.hub-doc-share__hub-row:last-child { border-bottom: none; }
+.hub-doc-share__hub-name { flex: 1; min-width: 0; font-size: var(--text-ui); color: var(--rim-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-doc-share__add { display: flex; align-items: center; gap: 8px; }
+.hub-doc-share__add .fs { flex: 1; min-width: 0; }
+
 /* ── Conversations (hub-conv-) ─────────────────────────────────────────────
    Thoughtful, breathing-space design for volunteer discussions.
    Shared by list view (HubConvClient) and thread detail (HubConvThreadClient).

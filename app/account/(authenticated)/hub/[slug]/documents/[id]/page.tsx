@@ -12,6 +12,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
+import { canAccessDocument } from "@/lib/documentAuth";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import Link from "next/link";
 import HubDocConversationsClient from "@/components/HubDocConversationsClient";
@@ -32,9 +33,27 @@ export default async function HubDocumentViewPage({
 
   const doc = await db.hubDocument.findUnique({
     where: { id },
-    include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
+    include: {
+      addedBy:    { select: { firstName: true, lastName: true, preferredName: true } },
+      placements: { select: { hubId: true } },
+    },
   });
-  if (!doc || doc.hubId !== hub.id) notFound();
+  if (!doc) notFound();
+
+  // The doc must live in THIS hub — its origin, or shared into it — AND the
+  // viewer must be able to reach it (visibility-aware). This is the
+  // canAccessHub → canAccessDocument shift for shared/community docs (§7).
+  const viewerMemberships = await db.hubMember.findMany({
+    where:  { userId: session.user.id },
+    select: { hubId: true, isCoordinator: true },
+  });
+  const inThisHub = doc.hubId === hub.id || doc.placements.some((p) => p.hubId === hub.id);
+  const canSee = canAccessDocument(doc, {
+    userId: session.user.id,
+    roles: session.user.roles ?? [],
+    memberships: viewerMemberships,
+  });
+  if (!inThisHub || !canSee) notFound();
 
   const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
 
@@ -101,7 +120,7 @@ export default async function HubDocumentViewPage({
         <Link href={`/account/hub/${slug}/documents`} className="doc-page__back">
           ← Documents
         </Link>
-        {isCoordinator && !isOffice && (
+        {isCoordinator && !isOffice && doc.hubId === hub.id && (
           <Link href={`/account/hub/${slug}/documents/${id}/edit`} className="doc-page__edit-link">
             Edit
           </Link>
