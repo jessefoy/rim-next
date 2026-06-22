@@ -78,6 +78,7 @@ export default async function HubDocumentsPage({
     },
     archivedAt: d.archivedAt?.toISOString() ?? null,
     createdAt:  d.createdAt.toISOString(),
+    updatedAt:  d.updatedAt.toISOString(),
   }));
 
   const serializedMembers = hubMembers.map((m) => ({

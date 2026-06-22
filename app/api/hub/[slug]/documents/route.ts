@@ -65,11 +65,17 @@ export async function POST(
 
     let officeCategory: string | null = category ?? null;
     if (newCategory?.trim()) {
-      officeCategory = newCategory.trim();
-      await db.hub.update({
-        where: { id: hub.id },
-        data:  { documentCategories: { push: officeCategory as string } },
-      });
+      // Reuse an existing category's casing if one already matches (case-
+      // insensitively) so inline creation can't mint "Forms" next to "forms".
+      const requested = newCategory.trim().replace(/\s+/g, " ");
+      const match = (hub.documentCategories ?? []).find((c) => c.toLowerCase() === requested.toLowerCase());
+      officeCategory = match ?? requested;
+      if (!match) {
+        await db.hub.update({
+          where: { id: hub.id },
+          data:  { documentCategories: { push: requested } },
+        });
+      }
     }
 
     const officeDoc = await db.hubDocument.create({
@@ -104,14 +110,19 @@ export async function POST(
     return NextResponse.json({ error: "Label and URL required" }, { status: 400 });
   }
 
-  // Handle "add new category" inline flow
+  // Handle "add new category" inline flow. Reuse an existing category's casing
+  // if one already matches case-insensitively, so we never mint a near-duplicate.
   let resolvedCategory: string | null = category ?? null;
   if (newCategory?.trim()) {
-    resolvedCategory = newCategory.trim();
-    await db.hub.update({
-      where: { id: hub.id },
-      data:  { documentCategories: { push: resolvedCategory as string } },
-    });
+    const requested = newCategory.trim().replace(/\s+/g, " ");
+    const match = (hub.documentCategories ?? []).find((c) => c.toLowerCase() === requested.toLowerCase());
+    resolvedCategory = match ?? requested;
+    if (!match) {
+      await db.hub.update({
+        where: { id: hub.id },
+        data:  { documentCategories: { push: requested } },
+      });
+    }
   }
 
   const doc = await db.hubDocument.create({

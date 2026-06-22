@@ -4,8 +4,11 @@
  * HubDocumentsClient — Documents tab for generic hubs.
  * CSS prefix: hub-doc-
  *
- * Layout: documents grouped by category (from hub.documentCategories order).
- * Uncategorized documents rendered last.
+ * Layout: documents grouped by category (hub.documentCategories order),
+ * recency-sorted within each group; uncategorized last. A search box filters
+ * across label/description/category/author and collapses the grouping into one
+ * flat, recency-sorted result list while a query is active. Rows lead with an
+ * "Updated <when>" freshness signal (provenance — "Added …" — demoted to hover).
  *
  * All hub members can create documents and edit/delete their own.
  * Coordinators can edit/delete any document.
@@ -23,6 +26,7 @@
 import { useState, useRef } from "react";
 import { upload } from "@vercel/blob/client";
 import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
+import HubDocCategoryManager from "@/components/HubDocCategoryManager";
 
 interface DocAddedBy {
   firstName: string | null;
@@ -44,6 +48,7 @@ interface HubDoc {
   addedBy: DocAddedBy;
   archivedAt: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 type HubMemberOption = NotifyMember;
@@ -73,6 +78,25 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Plain-language freshness — "today" / "3 days ago" / an absolute date when old.
+// The freshness signal we lead the row with; provenance ("Added …") is demoted.
+function relativeDate(iso: string): string {
+  const then = new Date(iso);
+  const now = new Date();
+  const days = Math.floor((now.getTime() - then.getTime()) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+  if (days < 14) return "last week";
+  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+  return then.toLocaleDateString(
+    "en-US",
+    then.getFullYear() === now.getFullYear()
+      ? { month: "short", day: "numeric" }
+      : { month: "short", day: "numeric", year: "numeric" },
+  );
+}
+
 function displayName(u: HubMemberOption | DocAddedBy) {
   return (u as HubMemberOption).preferredName ||
     [u.firstName, u.lastName].filter(Boolean).join(" ") || "Unknown";
@@ -96,6 +120,8 @@ export default function HubDocumentsClient({
   const [deletingId, setDeletingId]   = useState<string | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [view, setView]               = useState<"active" | "archived">("active");
+  const [query, setQuery]             = useState("");
+  const [showCatManager, setShowCatManager] = useState(false);
 
   // Add form state
   const [addMode, setAddMode]           = useState<AddMode>("link");
@@ -356,33 +382,57 @@ export default function HubDocumentsClient({
       );
     }
     return (
-      <select className="fs" value={value} onChange={(e) => onChange(e.target.value)}>
-        {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-        <option value="">None (uncategorized)</option>
-        <option value="__new__">+ Add new category…</option>
-      </select>
+      <div className="hub-doc-cat-pick">
+        <select className="fs" value={value} onChange={(e) => onChange(e.target.value)}>
+          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          <option value="">None (uncategorized)</option>
+        </select>
+        <button type="button" className="hub-doc-cat-add-link" onClick={() => onChange("__new__")}>
+          + New category
+        </button>
+      </div>
     );
   }
 
-  // ── Filter by view + categorize ──────────────────────────────────────────
+  // ── Filter by view, search, then categorize + sort ───────────────────────
   const visibleDocs = docs.filter((d) =>
     view === "archived" ? d.archivedAt !== null : d.archivedAt === null
   );
   const archivedCount = docs.filter((d) => d.archivedAt !== null).length;
 
-  const byCategory = new Map<string | null, HubDoc[]>();
-  for (const doc of visibleDocs) {
-    const key = doc.category;
-    if (!byCategory.has(key)) byCategory.set(key, []);
-    byCategory.get(key)!.push(doc);
+  // Search spans label + description + category + author, scoped to the current
+  // (Active/Archived) view. An active query collapses the category grouping into
+  // one flat, recency-sorted result list — grouping fights search.
+  const q = query.trim().toLowerCase();
+  const searching = q.length > 0;
+  const matchedDocs = visibleDocs.filter((d) =>
+    !searching ||
+    [d.label, d.description ?? "", d.category ?? "", displayName(d.addedBy)]
+      .join(" ").toLowerCase().includes(q)
+  );
+
+  // Recency-first everywhere — ISO timestamps sort lexicographically by time.
+  const byUpdatedDesc = (a: HubDoc, b: HubDoc) => b.updatedAt.localeCompare(a.updatedAt);
+
+  type DocSection = { label: string; docs: HubDoc[]; isResults?: boolean };
+  let sections: DocSection[] = [];
+  if (searching) {
+    const flat = [...matchedDocs].sort(byUpdatedDesc);
+    if (flat.length > 0) sections = [{ label: "Results", docs: flat, isResults: true }];
+  } else {
+    const byCategory = new Map<string | null, HubDoc[]>();
+    for (const doc of matchedDocs) {
+      const key = doc.category;
+      if (!byCategory.has(key)) byCategory.set(key, []);
+      byCategory.get(key)!.push(doc);
+    }
+    for (const cat of categories) {
+      const catDocs = (byCategory.get(cat) ?? []).sort(byUpdatedDesc);
+      if (catDocs.length > 0) sections.push({ label: cat, docs: catDocs });
+    }
+    const uncategorized = (byCategory.get(null) ?? []).sort(byUpdatedDesc);
+    if (uncategorized.length > 0) sections.push({ label: "Uncategorized", docs: uncategorized });
   }
-  const sections: Array<{ label: string; docs: HubDoc[] }> = [];
-  for (const cat of categories) {
-    const catDocs = byCategory.get(cat) ?? [];
-    if (catDocs.length > 0) sections.push({ label: cat, docs: catDocs });
-  }
-  const uncategorized = byCategory.get(null) ?? [];
-  if (uncategorized.length > 0) sections.push({ label: "Uncategorized", docs: uncategorized });
 
   const addSaveDisabled =
     saving || uploading || !addLabel.trim() ||
@@ -406,8 +456,40 @@ export default function HubDocumentsClient({
               + Office doc
             </button>
           )}
+          {isCoordinator && (
+            <button className="btn btn--sm btn--ghost" onClick={() => setShowCatManager(true)}>
+              Manage categories
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Category manager — coordinator curation of the hub vocabulary */}
+      {showCatManager && (
+        <HubDocCategoryManager
+          hubSlug={hubSlug}
+          categories={categories}
+          onChange={setCategories}
+          onRecategorize={(from, to) =>
+            setDocs((prev) => prev.map((d) => (d.category === from ? { ...d, category: to } : d)))
+          }
+          onClose={() => setShowCatManager(false)}
+        />
+      )}
+
+      {/* Search — calm single input; collapses grouping to flat results when active */}
+      {docs.length > 0 && (
+        <div className="hub-doc-search">
+          <input
+            className="hub-doc-search__input"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search documents…"
+            aria-label="Search documents"
+          />
+        </div>
+      )}
 
       {/* New office document (OnlyOffice) */}
       {showOffice && (
@@ -597,15 +679,19 @@ export default function HubDocumentsClient({
         </div>
       )}
 
-      {/* Categorized document list */}
+      {/* Document list — category sections, or flat results when searching */}
       {sections.length === 0 ? (
-        <p className="hub-empty">No documents yet.</p>
+        <p className="hub-empty">
+          {searching ? `No documents match “${query.trim()}”.` : "No documents yet."}
+        </p>
       ) : (
-        sections.map(({ label, docs: catDocs }) => (
+        sections.map(({ label, docs: catDocs, isResults }) => (
           <div key={label} className="hub-doc-category">
-            <div className="hub-doc-category__header">
-              <div className="hub-doc-category__title">{label}</div>
-            </div>
+            {!isResults && (
+              <div className="hub-doc-category__header">
+                <div className="hub-doc-category__title">{label}</div>
+              </div>
+            )}
             <div className="hub-doc-list">
               {catDocs.map((doc) => (
                 <div key={doc.id}>
@@ -691,8 +777,8 @@ export default function HubDocumentsClient({
                         )}
                         {doc.description && <div className="hub-doc-item__desc">{doc.description}</div>}
                       </div>
-                      <div className="hub-doc-item__meta">
-                        {fmtDate(doc.createdAt)} · {displayName(doc.addedBy)}
+                      <div className="hub-doc-item__meta" title={`Added ${fmtDate(doc.createdAt)}`}>
+                        Updated {relativeDate(doc.updatedAt)} · {displayName(doc.addedBy)}
                       </div>
                       <div className="hub-doc-item__actions">
                         {canEdit(doc) && !doc.archivedAt && (

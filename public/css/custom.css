@@ -11809,6 +11809,55 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-doc-item__arrow { font-size: 16px; color: var(--rim-mid); flex-shrink: 0; }
 .hub-doc-add-form { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 24px; margin-bottom: 20px; }
 .add-doc-form__title { font-family: var(--font-serif); font-size: var(--text-body); font-weight: 400; color: #2d3f47; margin: 0 0 20px; }
+/* Search — a calm single filter input above the list. */
+.hub-doc-search { margin: 0 0 18px; }
+.hub-doc-search__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  transition: border-color 0.15s;
+}
+.hub-doc-search__input::placeholder { color: var(--rim-text-muted); }
+.hub-doc-search__input:focus { outline: none; border-color: var(--rim-blue); }
+
+/* Category pick — pick-from-existing is the default; "+ New category" is a quiet secondary affordance. */
+.hub-doc-cat-pick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hub-doc-cat-pick .fs { flex: 1; min-width: 160px; }
+.hub-doc-cat-add-link,
+.hdoc-editor__category-add {
+  background: none; border: none; padding: 4px 2px;
+  font-family: var(--font-sans); font-size: var(--text-xs);
+  color: var(--rim-blue); cursor: pointer; white-space: nowrap;
+}
+.hub-doc-cat-add-link:hover,
+.hdoc-editor__category-add:hover { text-decoration: underline; }
+.hdoc-editor__category-pick { display: flex; align-items: center; gap: 8px; }
+
+/* Category manager (coordinator curation) — reuses the notify-modal shell. */
+.hub-doc-cat-mgr { max-width: 460px; }
+.hub-doc-cat-mgr__hint { font-size: var(--text-xs); color: var(--rim-text-muted); margin: 0 0 14px; line-height: 1.5; }
+.hub-doc-cat-mgr__error { font-size: var(--text-xs); color: var(--color-error); margin: 0 0 12px; }
+.hub-doc-cat-mgr__empty { font-size: var(--text-small); color: var(--rim-text-muted); margin: 0 0 14px; }
+.hub-doc-cat-mgr__list { list-style: none; margin: 0 0 16px; padding: 0; }
+.hub-doc-cat-mgr__row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--rim-rule); }
+.hub-doc-cat-mgr__row:last-child { border-bottom: none; }
+.hub-doc-cat-mgr__name { flex: 1; min-width: 0; font-size: var(--text-ui); color: var(--rim-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-doc-cat-mgr__reorder { display: flex; gap: 2px; }
+.hub-doc-cat-mgr__arrow {
+  background: none; border: 1px solid var(--rim-rule); border-radius: 6px;
+  width: 30px; height: 30px; font-size: 14px; line-height: 1;
+  color: var(--rim-text-muted); cursor: pointer;
+}
+.hub-doc-cat-mgr__arrow:hover:not(:disabled) { color: var(--rim-text); border-color: var(--rim-mid); }
+.hub-doc-cat-mgr__arrow:disabled { opacity: 0.35; cursor: default; }
+.hub-doc-cat-mgr__input { flex: 1; min-width: 0; }
+.hub-doc-cat-mgr__add { display: flex; align-items: center; gap: 8px; }
 
 /* ── Conversations (hub-conv-) ─────────────────────────────────────────────
    Thoughtful, breathing-space design for volunteer discussions.
@@ -15110,8 +15159,16 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   /* Documents */
   .hub-doc-item { flex-wrap: wrap; gap: 8px; padding: 14px; }
   .hub-doc-item__title { white-space: normal; }
-  .hub-doc-item__meta { display: none; }
+  /* Freshness stays visible on phones — drops to its own line below the title. */
+  .hub-doc-item__meta { flex-basis: 100%; white-space: normal; }
   .hub-doc-item__text { min-width: 0; flex-basis: calc(100% - 52px); }
+  .hub-doc-search__input { font-size: 16px; }
+
+  /* Category manager — name on its own line, controls below; larger tap targets. */
+  .hub-doc-cat-mgr__row { flex-wrap: wrap; }
+  .hub-doc-cat-mgr__name { flex-basis: 100%; }
+  .hub-doc-cat-mgr__arrow { width: 44px; height: 44px; }
+  .hub-doc-cat-mgr__input { font-size: 16px; }
 
   /* Members */
   .hub-mem-item { padding: 12px 14px; gap: 10px; min-height: 44px; }

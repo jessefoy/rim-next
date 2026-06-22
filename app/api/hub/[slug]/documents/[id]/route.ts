@@ -85,14 +85,19 @@ export async function PATCH(
 
   const { label, url, description, fileType, category, newCategory, body, notifyUserIds } = await req.json();
 
-  // Handle inline new category creation
+  // Handle inline new category creation. Reuse an existing category's casing if
+  // one already matches case-insensitively, so we never mint a near-duplicate.
   let resolvedCategory = category !== undefined ? (category || null) : doc.category;
   if (newCategory?.trim()) {
-    resolvedCategory = newCategory.trim();
-    await db.hub.update({
-      where: { id: hub.id },
-      data:  { documentCategories: { push: resolvedCategory as string } },
-    });
+    const requested = newCategory.trim().replace(/\s+/g, " ");
+    const match = (hub.documentCategories ?? []).find((c) => c.toLowerCase() === requested.toLowerCase());
+    resolvedCategory = match ?? requested;
+    if (!match) {
+      await db.hub.update({
+        where: { id: hub.id },
+        data:  { documentCategories: { push: requested } },
+      });
+    }
   }
 
   const oldBody = doc.body;

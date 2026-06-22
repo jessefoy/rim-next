@@ -224,17 +224,25 @@ export default function HubDocumentEditor({
               </button>
             </div>
           ) : (
-            <select
-              className="hdoc-editor__category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="">No category</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-              <option value="__new__">+ Add new category…</option>
-            </select>
+            <div className="hdoc-editor__category-pick">
+              <select
+                className="hdoc-editor__category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="">No category</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="hdoc-editor__category-add"
+                onClick={() => setCategory("__new__")}
+              >
+                + New
+              </button>
+            </div>
           )}
           {/* Lock toggle — only author + admin */}
           {!isNew && (isAuthor || isAdmin) && (
