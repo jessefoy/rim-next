@@ -57,6 +57,12 @@ export default async function HubDocumentViewPage({
 
   const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
 
+  // Comments live with the document's ORIGIN hub. When this doc is only shared
+  // INTO the current hub (origin is elsewhere, or it's hubless), the conversation
+  // API rejects reads/writes scoped to this hub — so don't show a comments
+  // affordance here that would dead-end. (RIM_Documents.md §7, origin-owns-lifecycle.)
+  const isOriginHub = doc.hubId === hub.id;
+
   // Office docs (OnlyOffice) carry no native `body` — their content lives in the
   // full-screen editor. This page becomes the doc's home: metadata + the
   // conversation thread + an "Open in editor" CTA, instead of native body.
@@ -138,11 +144,13 @@ export default async function HubDocumentViewPage({
               year: "numeric",
             })}
           </p>
-          <a href="#doc-conversations" className="doc-page__conv-anchor">
-            {threads.length > 0
-              ? `${threads.length} comment${threads.length === 1 ? "" : "s"} ↓`
-              : "Comments ↓"}
-          </a>
+          {isOriginHub && (
+            <a href="#doc-conversations" className="doc-page__conv-anchor">
+              {threads.length > 0
+                ? `${threads.length} comment${threads.length === 1 ? "" : "s"} ↓`
+                : "Comments ↓"}
+            </a>
+          )}
         </div>
         <hr />
 
@@ -176,14 +184,16 @@ export default async function HubDocumentViewPage({
         </div>
       )}
 
-      <HubDocConversationsClient
-        hubSlug={slug}
-        docId={id}
-        initialThreads={threads}
-        hubMembers={hubMembers}
-        coordinatorIds={coordinatorIds}
-        currentUserId={session.user.id}
-      />
+      {isOriginHub && (
+        <HubDocConversationsClient
+          hubSlug={slug}
+          docId={id}
+          initialThreads={threads}
+          hubMembers={hubMembers}
+          coordinatorIds={coordinatorIds}
+          currentUserId={session.user.id}
+        />
+      )}
     </div>
   );
 }
