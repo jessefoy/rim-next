@@ -207,6 +207,22 @@ Previously, hosting permission (LiveKit admin grants, sub-request claims, HostAs
 
 ---
 
+## Document access — cross-hub sharing (session 156)
+
+Hub documents generalize "one resource ↔ one hub." A `HubDocument` has an origin
+hub (`hubId`, nullable for hubless project/community docs) and can be *placed in*
+other hubs (`HubDocumentPlacement`) — one canonical record, surfaced in many hubs,
+never copied. Access layers a per-doc **visibility** (HUB / COORDINATORS /
+COMMUNITY) on top of that placement set; the single gate is the pure
+`lib/documentAuth.ts::canAccessDocument` (author + GUIDING_TEACHER always;
+ADMIN-alone does not auto-pass — the session-128 boundary). It's the access model
+the hub doc-view page, the OnlyOffice editor, and the master directory
+(`/account/documents`) all ride. **Origin owns the lifecycle** — edit/archive/
+delete happen at the home hub; a hub a doc is shared into can only remove its own
+placement. The hub doc-view page moved `canAccessHub` → `canAccessDocument` so
+shared/community docs resolve. Full model + the filing surfaces in
+**`RIM_Documents.md`**.
+
 ## What's Next
 
 **Tools extraction — complete (session 73, refined session 76):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox` (subsequently removed session 100), Host Schedule → `/tools/schedule`. Each tool has its own nav chrome, role gate, and back link to its associated hub. Session 76 removed the Registrar Hub stakeholder Programs tab and all course-specific Course Hub tabs — all hubs now have identical core sections: Home, Conversations, Documents, Members. This establishes the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications).

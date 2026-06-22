@@ -1,5 +1,48 @@
 ---
 
+## 2026-06-22 (session 156) — Documents filing system (OnlyOffice Slice 4): freshness + search, category governance, cross-hub sharing/visibility, the master directory — all 4 steps + the design doc shipped
+
+Built the document **filing system** on top of the s155 OnlyOffice foundation — the "modernize file management" work Jesse asked for. **Five commits on `main`, all deployed.** No schema change, no new deps / env / services, no email templates touched. `tsc`-green each step; an independent code-reviewer sub-agent gated each step (no blockers; two SHOULD-FIX + several NICE-TO-HAVE taken). The design lives in the new **`RIM_Documents.md`**.
+
+### The design first (RIM_Documents.md)
+Jesse asked to "write RIM_Documents.md first." Four decisions, confirmed before building:
+1. **Categories — tended, not gated.** Anyone creating a doc can still add a category (blocking causes *misfiling*, worse than a long list); coordinators get the curation surface that never existed. Curation-after beats gating-before.
+2. **Freshness — lead with "Updated."** Provenance ("Added") demoted to hover.
+3. **Version history — visible recency now**, restorable timeline deferred (we keep only the current blob; OnlyOffice has native history).
+4. **Directory — hub-first sections** (+ Community + Projects), recency-within, global search. The hub is a real semantic boundary at RIM (it's *which team* + how access is computed), so grouping by it aids clear seeing rather than imposing hierarchy. Explicit non-goals: no folder nesting, no multi-tag taxonomy, no per-doc ACL editor, no full-text content search.
+
+### Step 1 — freshness + search (per-hub Documents tab)
+Rows lead with "Updated 3 days ago · Author" (relative, plain language; "Added" on hover; un-hid the row meta the old CSS hid on phones). A calm search box filters label/description/category/author and collapses the category grouping into one flat recency-sorted list while active; recency-first sort within every group. `updatedAt` serialized through the loader (the live create/edit paths already carried it). Pure surfacing, no new routes.
+
+### Step 2 — category governance
+New coordinator-gated route `/api/hub/[slug]/document-categories` (add / rename / merge-on-collision / reorder / remove; cascades to `HubDocument.category`; removal → uncategorized, not deleted) — mirrors the conversation-categories route. New `HubDocCategoryManager` modal behind a coordinator-only "Manage categories" button. Pick-from-existing is now the visual default; "+ New category" is a quiet secondary affordance (`HubDocumentsClient` + `HubDocumentEditor`). Root-cause fix (reviewer): inline category creation reuses an existing category's casing case-insensitively, so it can't mint "Forms" next to "forms."
+
+### Step 3 — cross-hub sharing + visibility
+New `/api/documents/[id]/placements` (POST/DELETE) + `/visibility` (PATCH), both `canEditDocument`-gated. The model: **origin owns the lifecycle** (archive/delete/edit at the home hub; a shared-into hub's only action is "Remove from hub" = delete its own placement); **you can only share into hubs you belong to**; create-path rejects `hubId === origin` + already-placed + non-ACTIVE target. New `HubDocShareModal` off a "Share" row action: visibility (HUB/COORDINATORS/COMMUNITY) + add/remove placements. The Documents list now surfaces docs **shared into** the hub (loader gained the placement OR-clause), badged "Shared from [hub]" / "Shared" / "Community". **Access-door shift:** the hub doc-view page moved `canAccessHub` → `canAccessDocument` (inThisHub + visibility-aware) so shared/community docs no longer 404; native Edit stays origin-only. Reviewer confirmed origin-owns-lifecycle is enforced in the DB queries (archive/delete/PATCH look the doc up by `hubId: hub.id`, so a placed-in coordinator 404s), not just the UI.
+
+### Step 4 — the master directory `/account/documents`
+A new account surface: every doc the viewer can reach, sectioned by their own active hubs → Community (reached community-wide) → Projects (hubless), recency-first within each, with a global search that flattens + dedups. Rides the pure `canAccessDocument` (a candidate-superset query trimmed by the filter, so a Coordinators-only doc never leaks to a plain member). New hub-agnostic reader `/account/documents/[id]` (`canUserAccessDocument`-gated) as the destination for Community/Projects docs (office → editor, native → read-only body, link/file → the file). "Documents" added to the account sidebar. `relativeDate` extracted to `lib/relativeDate.ts` (shared with the per-hub tab).
+
+### Hub audit (CLAUDE.md 4c)
+Audited the four routing layers: **(1) capability gating** now uses `canAccessDocument` on the doc-view page + directory; **(3) the list/UI query** surfaces placed-in docs and the directory candidate query + filter use the same active-hub membership set; **(2) no notification pools** changed; **(4) no email** touched. The cross-hub reach is the feature, not a leak — the reviewer verified the candidate query is a true superset, `canAccessDocument` closes the COORDINATORS gap, and origin-owns-lifecycle holds at the DB layer.
+
+### What this connects to
+- **OnlyOffice (RIM_OnlyOffice.md)** — office docs were the driver; §4's "move the doc-view page to canAccessDocument when Slice 4 lands" is done; §6 current-state updated.
+- **`lib/documentAuth.ts`** — its pure gates (built s154/s155) are the engine every new surface rides; unchanged this session, only consumed.
+- **Hubs** — first surfaces that read docs *across* hub membership; the access-door shift.
+- **The conversation-categories route** — the document-categories route mirrors its auth + cascade pattern.
+
+### What comes next
+- **Verify on deploy** (Jesse): the "Manage categories" button + sidebar Documents link appear; a shared doc surfaces in a second hub badged; a Coordinators-only doc stays hidden from a plain member.
+- **Ungate office docs** (backlog `2026-06-22-002`), **Slice 5** native→docx (`-003`), **office-editor polish** (`-004`), **directory/filing polish** (`-006`: archived-in-directory, comments-on-reader, sort toggle/Recent strip), **rotate the secret** (`-005`).
+- **AGENTS.md** (Jesse's untracked Codex-instructions mirror of CLAUDE.md) is now missing the RIM_Documents.md Design Orientation row — sync when committing it.
+
+### Process notes
+- Each step: build → `tsc` → reviewer sub-agent → fix → commit on a `claude/*` branch → fast-forward `main` → push → delete branch. Bundled steps 1+2 into one push, then 3 and 4 separately, as Jesse paced them.
+- One tooling oddity: the Write tool once emitted a literal NUL byte inside a string literal (`join("\0")` where I wrote `join(" ")`); caught by a post-write NUL sweep across changed files and fixed by rewriting the file. The NUL sweep is now part of the per-step verification.
+
+---
+
 ## 2026-06-22 (session 155) — OnlyOffice: the save loop *actually* fixed (payload-nesting), React-crash fix, comments-not-topics — both opening bugs closed; feature works on prod (gated)
 
 Resumed at the two open bugs from s154 and closed both — and the real save bug was deeper than the s154 note guessed. **Six commits on `main`, all deployed** (live, gated to coordinators). No new deps / env / services; **no schema change / migration**; no email templates touched. `tsc`-green each step; reviewer-gated the non-trivial changes. Editor opens, edits persist, comments work. Integration sections of `RIM_OnlyOffice.md` now fully written (the payload gotcha + the React-mount pattern).

@@ -315,10 +315,12 @@ The hub **doc-view page** (`/account/hub/[slug]/documents/[id]`) is an office
 doc's home: it branches on `docKind === "ONLYOFFICE"` → metadata + an **"Open in
 editor" CTA** + the Comments panel, instead of native body / markdown export /
 the native `/edit` link. The hub list-link points here (not straight to the
-editor). This page is `canAccessHub`-gated; office docs are currently hub-origin
-(hubId set, default `HUB` visibility) so that matches `canAccessDocument` for the
-beta. When Slice 4 makes docs multi-hub/hubless, this page must move to
-`canAccessDocument`.
+editor). This page is **`canAccessDocument`-gated as of Slice 4 (s156)** — it loads the
+doc's placements + the viewer's memberships and requires the doc to live in this
+hub (origin or a placement) AND the viewer to pass `canAccessDocument`, so a
+shared/community doc resolves instead of 404ing. (Before s156 it was
+`canAccessHub` + `doc.hubId === hub.id`, which matched only because office docs
+were single-hub.) The native Edit link stays origin-only.
 
 ## 5. Comments (not topics)
 
@@ -336,13 +338,13 @@ comments, enabled via the config `permissions.comment`.)
 **Live on production, gated to coordinators** (`officeEnabled && isCoordinator`
 in `HubDocumentsClient`). Working end-to-end: create → edit → **save** → comment.
 
+**Slice 4 — ✅ shipped session 156** (the document filing system: freshness +
+search, category governance, cross-hub sharing/visibility, the master directory
+`/account/documents`). Canonical reference: **`RIM_Documents.md`**. The placement
+create-path rejects `hubId === document.hubId`; the doc-view page moved to
+`canAccessDocument` (see §4).
+
 Open, in rough order:
-- **Slice 4** — sharing/visibility UI (share-with-hubs picker + visibility
-  dropdown + shared badges) + the master directory `/account/documents`
-  (per-hub sections gated by `canAccessDocument` + Community/Projects). This is
-  also where the "modernize the document filing system" redesign lands — write
-  `RIM_Documents.md` first. *Guard the placement create-path: reject
-  `hubId === document.hubId` so the origin isn't double-listed.*
 - **Ungate** — drop `&& isCoordinator` so all hub members get office docs.
 - **Slice 5** — migrate existing plain native docs → `.docx` (server-side).
 - **Polish** — mobile editing, the still-slowish first open (download/convert

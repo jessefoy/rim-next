@@ -779,9 +779,9 @@
     "description": "Build the sharing/visibility UI the data model already supports: a share-with-hubs picker (HubDocumentPlacement), a per-doc visibility dropdown (HUB/COORDINATORS/COMMUNITY), and shared badges. Plus a master directory /account/documents (per-hub sections gated by canAccessDocument + a Community/Projects section). This is also where the document-filing-system modernization lands (Jesse, s155): write RIM_Documents.md first. Current model is one free-text category per doc, flat, no search/sort/freshness. RIM-restraint lens: search is the highest-leverage add; surface last-modified + version history; tame categories (pick-from-existing, not free-text); avoid folders-in-folders and tag taxonomies. Guard the placement create-path: reject hubId === document.hubId so the origin is not double-listed.",
     "category": "Admin Tools",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-22",
-    "notes": "Next session picks up here. The doc-view page must move from canAccessHub to canAccessDocument once docs are multi-hub/hubless."
+    "notes": "DONE session 156 (2026-06-22) — shipped in 4 steps + the RIM_Documents.md design doc, all on main, no schema change/new deps, reviewer-gated each step: (1) freshness + search on the per-hub Documents tab; (2) category governance (coordinator Manage-categories surface + pick-from-existing default + inline case-dedup); (3) cross-hub sharing + visibility (/api/documents/[id]/placements + /visibility, HubDocShareModal, list surfaces shared-in docs + badges, doc-view page moved canAccessHub->canAccessDocument); (4) master directory /account/documents + hub-agnostic reader + sidebar link. Remaining split out: ungate (-002), Slice 5 (-003), office-editor polish (-004), secret rotation (-005), directory/filing polish (-006). See session-log 156 + RIM_Documents.md."
   },
   {
     "id": "2026-06-22-002",
@@ -822,5 +822,15 @@
     "status": "open",
     "addedAt": "2026-06-22",
     "notes": ""
+  },
+  {
+    "id": "2026-06-22-006",
+    "title": "Documents directory + filing polish (post-Slice-4)",
+    "description": "Deferred polish from the s156 Slice-4 build of the documents filing system. (1) ARCHIVED in the directory — /account/documents shows ACTIVE docs only; add an archived view/filter like the per-hub tab has. (2) COMMENTS on the hub-agnostic reader — /account/documents/[id] is read/launch only; per-hub comments live on the hub doc-view page, so a Community/Projects doc has no comment surface. Decide whether the reader should carry a doc-scoped comment thread (needs HubConversationThread.title-nullable or a hubless comment model). (3) DIRECTORY sort/recency — a Name/Updated sort toggle + an optional global 'Recent' strip (the handful you touched most recently across all hubs), intentionally deferred to avoid over-building the new surface. (4) GT scope note — the directory sections a viewer's OWN active hubs; a Guiding Teacher who isn't a member of a hub won't see that hub's docs as a section (covered in practice because GT/Jesse is a member of ~all hubs). If a true all-hubs lens is wanted for GT, add it explicitly.",
+    "category": "Member Accounts",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-22",
+    "notes": "All four are deliberate scoping calls in the s156 Slice-4 build, captured so they're not rediscovered. The directory is intentionally a finder (active docs, recency-first, search) — these are enhancements, not gaps. See session-log 156 + RIM_Documents.md (Build order / non-goals)."
   }
 ]

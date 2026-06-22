@@ -6,7 +6,28 @@
 
 ## Active
 
-### Session 155 (2026-06-22) — ⏯ RESUME HERE: OnlyOffice works end-to-end (gated); next is Slice 4 (sharing UI + master directory + file-management redesign)
+### Session 156 (2026-06-22) — ⏯ RESUME HERE: Documents filing system (OnlyOffice Slice 4) shipped — all 4 steps + `RIM_Documents.md` on `main`; next is deploy-verify + ungate / Slice 5 / polish
+
+**Slice 4 is done and deployed** — 5 commits on `main`, no schema / deps / env / email change, reviewer-gated each step. The document filing system Jesse asked for, built in four steps on the s155 OnlyOffice foundation. Full narrative in `session-log.md` (session 156); the design + model in **`RIM_Documents.md`**.
+
+**Shipped + live:**
+- **Step 1 — freshness + search** (per-hub Documents tab): rows lead "Updated <when> · Author" (relative; "Added" on hover; visible on mobile); a search box (label/description/category/author) that flattens the category grouping into one recency-sorted list while active; recency-first within each group.
+- **Step 2 — category governance**: coordinator-gated `/api/hub/[slug]/document-categories` (add/rename/merge/reorder/remove, cascades to `HubDocument.category`, removal → uncategorized) + `HubDocCategoryManager` behind "Manage categories"; pick-from-existing is the visual default; inline creation case-dedups ("Forms" ≠ "forms").
+- **Step 3 — cross-hub sharing + visibility**: `/api/documents/[id]/placements` + `/visibility` (canEditDocument-gated); `HubDocShareModal` (HUB/COORDINATORS/COMMUNITY + share into hubs you belong to); list surfaces shared-in docs badged "Shared from [hub]" / "Community"; **origin owns the lifecycle** (shared-in hub only gets "Remove from hub"); doc-view page moved `canAccessHub` → `canAccessDocument`.
+- **Step 4 — master directory `/account/documents`**: sections = your active hubs → Community → Projects, recency-first, global search; rides `canAccessDocument`; new hub-agnostic reader `/account/documents/[id]`; "Documents" in the account sidebar; `relativeDate` → `lib/relativeDate.ts`.
+
+**OPEN — deploy-verification (none blocking):**
+1. The **"Manage categories"** button (coordinators) + the sidebar **Documents** link appear; the directory shows your hubs + Community + Projects with working search.
+2. A doc **shared** from one hub surfaces in a second hub badged "Shared from [hub]"; the second hub's coordinator can "Remove from hub" without affecting the origin.
+3. A **Coordinators-only** doc stays hidden from a plain member of a hub it's in.
+
+**NEXT (queued):** ungate office docs (backlog `2026-06-22-002`), Slice 5 native→docx (`-003`), office-editor polish (`-004`), directory/filing polish (`-006`: archived-in-directory, comments-on-reader, sort toggle/Recent strip), rotate `ONLYOFFICE_JWT_SECRET` (`-005`).
+
+**Housekeeping:** `AGENTS.md` (Jesse's untracked Codex-instructions mirror of CLAUDE.md) is now missing the `RIM_Documents.md` Design Orientation row — sync when committing it.
+
+**Memory candidate (step 7b — awaiting Jesse's confirm):** *feedback/user* — Jesse wants **plain-English, benefit-first feature write-ups he can forward to his volunteer team** (power users, not necessarily tech-savvy): describe what they can do/see, not implementation; frame office-doc creation as coordinator-beta and the rest as available to all. Extends the existing "Plain-English Explanations" memory from explaining-to-Jesse to producing-sendable-team-comms. Confirm or discard.
+
+### Session 155 (2026-06-22) — OnlyOffice works end-to-end (gated); Slice 4 (the filing system) was the "NEXT SESSION" plan below, and shipped in session 156
 
 **Both s154 bugs are fixed; the feature is live on prod, gated to coordinators, working end-to-end** — create → edit → **save** → comment. Six commits on `main`, all deployed. No schema/migration/deps/env/email changes. Full narrative in `session-log.md` (session 155); the integration model + every gotcha now in **`RIM_OnlyOffice.md` §2–6 + Pitfalls**.
 

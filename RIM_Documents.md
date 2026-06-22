@@ -10,9 +10,10 @@ save callback, the doc-server infra). OnlyOffice owns the editing canvas; this
 doc owns everything around it — where a document lives, how you find it again,
 and who can reach it.
 
-> Status: design reference, written session 155 ahead of the Slice 4 build. The
-> filing redesign needs **no schema change** — every field it relies on already
-> exists (see §2). It is a surfacing + governance + one-new-view job.
+> Status: the canonical filing-system reference. Written session 155; **Slice 4
+> shipped session 156** — all four steps in the Build order below are live on
+> `main` (no schema change; every field already existed — see §2). Remaining:
+> ungate office-doc creation, Slice 5 (native → `.docx`), and the deferred polish.
 
 ---
 
@@ -281,26 +282,29 @@ a cross-hub trash can.
 
 ---
 
-## Build order (Slice 4)
+## Build order (Slice 4 — ✅ shipped session 156)
 
-A suggested sequence — each step ships value on its own:
+All four steps are live on `main`; this is the order they landed:
 
-1. **Freshness + search on the per-hub tab** (`HubDocumentsClient`). Surface
-   `updatedAt`, add the search box, sort recently-updated. Pure surfacing, no new
-   routes. Cheapest, highest-leverage.
-2. **Category governance.** Make pick-from-existing the visual default; add the
-   coordinator-gated curation surface (rename / merge / reorder / remove) on the
-   hub.
-3. **Sharing + visibility UI.** The share-with-hubs picker (`HubDocumentPlacement`,
-   with the `hubId === origin` guard) + the visibility dropdown + the "Shared"
-   badge. Move the doc-view page to `canAccessDocument` here.
-4. **The master directory** `/account/documents` — hub sections + Community +
-   Projects, flat-by-recency, global search, shared badges. Clear the higher bar
-   in §6 before shipping.
+1. ✅ **Freshness + search on the per-hub tab** (`HubDocumentsClient`) — `updatedAt`
+   surfaced, search box, recency sort. Pure surfacing, no new routes.
+2. ✅ **Category governance** — pick-from-existing default + the coordinator-gated
+   curation surface `/api/hub/[slug]/document-categories` (rename / merge /
+   reorder / remove) + `HubDocCategoryManager`. Inline creation case-dedups so
+   "Forms" and "forms" can't both exist.
+3. ✅ **Sharing + visibility** — `/api/documents/[id]/placements` + `/visibility`
+   (`canEditDocument`-gated, origin-owns-lifecycle), `HubDocShareModal`, the
+   "Shared from [hub]" / "Community" badges, and the doc-view page's
+   `canAccessHub` → `canAccessDocument` shift.
+4. ✅ **The master directory** `/account/documents` — hub sections + Community +
+   Projects, flat-by-recency, global search; the hub-agnostic reader
+   `/account/documents/[id]`; the account-sidebar **Documents** link.
 
-Then, beyond Slice 4: ungate office docs to all members, migrate native docs →
-`.docx` (Slice 5), and the deferred polish (restorable version history, the
-Name/Updated sort toggle, a global "Recent" strip).
+Beyond Slice 4 (deferred): ungate office-doc creation to all members; migrate
+native docs → `.docx` (Slice 5); polish — restorable version history, a
+Name/Updated sort toggle + a global "Recent" strip, **archived docs in the
+directory**, and **comments on the hub-agnostic reader** (read/launch-only
+today). Backlog `2026-06-22-002` / `-003` / `-004` / `-006`.
 
 ---
 
