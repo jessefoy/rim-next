@@ -292,14 +292,14 @@ API routes added: `/api/hub/[slug]/documents/[id]/{notify,archive,restore,perman
 |---|---|
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob upload/read token — used by `/api/upload` for image and audio files; OnlyOffice saved office files also `put` here via the callback |
 
-### OnlyOffice (Office Documents) — session 154, branch `claude/onlyoffice-docs` (pending deploy)
-Self-hosted OnlyOffice Docs Community, co-hosted on the LiveKit droplet at **`https://docs.rootedinmindfulness.org`** (server live). Office documents (docx/xlsx/pptx) in hubs are edited there; RIM mints each JWT-signed editing session. Infra runbook + rollback: `RIM_OnlyOffice.md`.
+### OnlyOffice (Office Documents) — live on production (session 155), gated to coordinators
+Self-hosted OnlyOffice Docs Community, co-hosted on the LiveKit droplet at **`https://docs.rootedinmindfulness.org`**. Office documents (docx/xlsx/pptx) in hubs are edited there; RIM mints each JWT-signed editing session and the save loop round-trips through RIM's callback. Set in Vercel **Production** (Preview unset — RIM previews can't do NextAuth login anyway). Infra runbook + the full integration model (save loop, the **callback payload-nesting gotcha**, the React-mount pattern): `RIM_OnlyOffice.md`.
 | Variable | Purpose |
 |---|---|
-| `ONLYOFFICE_URL` | Document-server origin (`https://docs.rootedinmindfulness.org`). The browser loads `api.js` from here; RIM checks the save callback's edited-file origin against it (SSRF guard). |
-| `ONLYOFFICE_JWT_SECRET` | Shared HS256 secret (matches the container's `JWT_SECRET` in `/root/onlyoffice/.env`). RIM signs each editor config + verifies the save callback. |
+| `ONLYOFFICE_URL` | Document-server origin (`https://docs.rootedinmindfulness.org`). The browser loads `api.js` from here; the save callback **pins the edited-file URL's host to this origin** before fetching (`resolveEditedFileUrl`) — the host OnlyOffice reports is internal-only behind the L4+shim proxy. |
+| `ONLYOFFICE_JWT_SECRET` | Shared HS256 secret (matches the container's `JWT_SECRET` in `/root/onlyoffice/.env`). RIM signs each editor config + verifies the save callback. **Pending rotation** — it was pasted in the s154 chat. |
 
-Both must be added to Vercel before the branch deploys — until then `onlyOfficeConfigured()` is false and the editor-config route returns 503; the native doc system is unaffected.
+If either is unset, `onlyOfficeConfigured()` is false and the editor-config route returns 503; the native doc system is unaffected.
 
 ### Newsletter & Cron
 | Variable | Purpose |

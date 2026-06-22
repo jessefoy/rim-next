@@ -197,3 +197,166 @@ JWT. Also set `ONLYOFFICE_URL=https://docs.rootedinmindfulness.org`.
 - **Updating OnlyOffice:** `cd /root/onlyoffice && docker compose pull && docker compose up -d` — never touches the LiveKit stack.
 - **Firewall:** no new port — OnlyOffice is reached only via the existing :443
   through Caddy; `127.0.0.1:8081` is localhost-only.
+
+---
+
+## 2. App integration — the save loop
+
+`lib/onlyoffice.ts` is the hub: HS256 JWT sign/verify (via `node:crypto`, no dep),
+the editor-config builder, the office-type mapping, blank-file seeding, and the
+download/edited-file URL helpers. Three routes:
+
+```
+GET  /api/documents/[id]/editor-config   → JWT-signed config for DocsAPI.DocEditor (canAccessDocument-gated)
+GET  /api/onlyoffice/download/[id]?token  → streams the file to the doc server (download-token-gated, NOT session)
+POST /api/onlyoffice/callback             → the doc server posts edits back (JWT-only, NOT session)
+```
+
+**Traffic, end to end:** browser fetches editor-config from RIM → loads `api.js`
+from the doc server → `DocsAPI.DocEditor(config)`. The **doc server** (on the
+droplet) then fetches `document.url` (RIM's download route) and, on save, POSTs
+to `callbackUrl` (RIM's callback). Both RIM URLs are built **deploy-relative**
+from the editor-config request (`requestBaseUrl(req)`, not a fixed env) so the
+loop stays on whatever host the editor was opened from.
+
+`document.key = ${id}-${version}` — it MUST change whenever the file changes or
+OnlyOffice serves a stale cached copy. The callback bumps `version` on save, so
+the next open gets a fresh key.
+
+### ⚠️ Gotcha #1 — the callback JWT nests the body under `payload` (the s155 save bug)
+OnlyOffice signs its callback into the **`Authorization` header** (because the
+container runs `JWT_HEADER=Authorization`). That header token, once verified,
+has the shape `{ payload: { key, status, url, … }, iat, exp }` — the callback
+fields are **under `payload`**, not at the top level. Reading `verified.status`
+directly returns `undefined`, so `if (status === 2 || status === 6)` never
+matches and **nothing ever saves** (the editor works, edits just vanish on
+reopen). The fix, in `app/api/onlyoffice/callback/route.ts`:
+
+```ts
+const cb = verified.payload ?? verified;   // header-nested OR body-embedded token
+const { key, status, url } = cb;
+```
+
+This was the real root of "edits don't persist," masquerading for a full session
+as an SSRF-guard problem. **If a future change touches the callback, log the
+verified token's keys before trusting any field.**
+
+### ⚠️ Gotcha #2 — the edited-file URL host is internal; pin it before fetching
+On save, `url` (the edited file the doc server wants RIM to download) comes back
+with an **internal host** — a docker name / loopback / private IP — because the
+doc server sits behind the Caddy-L4 + shim proxy and reports itself that way.
+Vercel can't reach that host. `resolveEditedFileUrl(url)` rewrites the host to
+the configured public `ONLYOFFICE_URL` origin (preserving path + signed query;
+clearing `user:pass`) before `fetch`. This both makes it reachable **and** is a
+*stronger* SSRF boundary than the old origin-equality check (`isDocumentServerUrl`,
+removed) — we only ever fetch the host we trust, never the one we're handed.
+
+### Save semantics
+- **status 2 (MustSave, ~10s after the last editor closes):** claim the next
+  `version` atomically, write `hub-docs/<id>/v<n>.<ext>` to Blob, update
+  `storageKey`, then delete the previous version's blob.
+- **status 6 (ForceSave, mid-session):** persist in place under the *same*
+  version's blob (no bump) — bumping mid-session would strand the open editor's
+  key.
+- Always return `{"error":0}` on a *handled* request (even on a swallowed save
+  failure) so OnlyOffice doesn't loop; failures are logged for Vercel.
+
+---
+
+## 3. The editor surface — `components/OnlyOfficeEditor.tsx`
+
+Fetches editor-config, loads `api.js`, hands the config to `DocsAPI.DocEditor`.
+Full-screen at `/account/documents/[id]/office` (server-gated by
+`canUserAccessDocument`, re-checked when the client fetches editor-config).
+
+### ⚠️ Gotcha #3 — DocEditor REPLACES its target node (the React crash)
+`DocsAPI.DocEditor(id, config)` swaps the element with that id for an `<iframe>`.
+If React owns that element and later mutates a sibling around it (toggling an
+overlay, unmounting), React's commit-phase `insertBefore`/`removeChild`
+references a node that's gone → **`NotFoundError: The object can not be found
+here`**, white-screening the page. The correct pattern (now in the component):
+
+- Render an **empty React-owned host** `<div ref={hostRef} className="oo-editor-mount" />`
+  with **no JSX children**.
+- In the effect, `document.createElement` the mount node, give it the id,
+  `hostRef.current.replaceChildren(mount)`, and point `DocEditor` at it. React
+  never reconciles the OnlyOffice node.
+- Loading / stalled overlays are **trailing siblings** (after the host) so React
+  only ever appends/removes nodes it owns.
+- Cleanup: `destroyEditor()` then `hostRef.current.replaceChildren()`.
+
+### ⚠️ Gotcha #4 — the loading overlay masks the doc server's real error
+"Opening editor…" only clears on `onDocumentReady`, so a doc-server failure
+(JWT, download, conversion) hides behind it forever. The component now surfaces
+it: `onError` shows a banner with the error code, and a **25s readiness timeout**
+reveals the editor surface + a banner so OnlyOffice's own message (e.g. "The
+document security token is not correctly formed") is visible underneath. When
+diagnosing a hang, that banner — not an endless overlay — is what you should see
+on the current build; a bare endless overlay means a stale build/domain.
+
+### Red herring to remember
+A "stuck on Opening editor…" hang has TWO very different causes that look
+identical: a JWT-secret mismatch (Vercel ≠ droplet) **and** the editor simply
+failing to finish loading (download/convert). If the editor opens with **no
+"security token" message**, the secret is fine — don't chase rotation. The s155
+hang was *not* JWT (a 4-agent workflow ranked it #1; it was wrong); it was the
+React crash masking the still-broken save. Instrument before theorizing.
+
+---
+
+## 4. Access, placement, and the doc page
+
+`lib/documentAuth.ts::canAccessDocument` / `canEditDocument` are pure (author +
+GUIDING_TEACHER always; COMMUNITY = every active member; HUB / COORDINATORS
+scoped to the doc's placed hubs; ADMIN-alone does **not** auto-pass). The
+editor-config route and the full-screen `/office` page both gate on it.
+
+The hub **doc-view page** (`/account/hub/[slug]/documents/[id]`) is an office
+doc's home: it branches on `docKind === "ONLYOFFICE"` → metadata + an **"Open in
+editor" CTA** + the Comments panel, instead of native body / markdown export /
+the native `/edit` link. The hub list-link points here (not straight to the
+editor). This page is `canAccessHub`-gated; office docs are currently hub-origin
+(hubId set, default `HUB` visibility) so that matches `canAccessDocument` for the
+beta. When Slice 4 makes docs multi-hub/hubless, this page must move to
+`canAccessDocument`.
+
+## 5. Comments (not topics)
+
+The doc page's discussion panel reuses `HubConversationThread` (shared with hub
+conversations), whose `title` is **required**. A document is its own subject, so
+the panel (`HubDocConversationsClient`) **drops the title input** — you just "Add
+a comment" — and derives a short heading from the comment's first line so the
+~13 shared thread/list/detail surfaces keep working with **no schema change**.
+The proper fix (true `title`-nullable) is ~13 consumer surfaces — backlogged.
+(In-document, anchored comments are a separate thing: OnlyOffice's own in-editor
+comments, enabled via the config `permissions.comment`.)
+
+## 6. Current state & what's left
+
+**Live on production, gated to coordinators** (`officeEnabled && isCoordinator`
+in `HubDocumentsClient`). Working end-to-end: create → edit → **save** → comment.
+
+Open, in rough order:
+- **Slice 4** — sharing/visibility UI (share-with-hubs picker + visibility
+  dropdown + shared badges) + the master directory `/account/documents`
+  (per-hub sections gated by `canAccessDocument` + Community/Projects). This is
+  also where the "modernize the document filing system" redesign lands — write
+  `RIM_Documents.md` first. *Guard the placement create-path: reject
+  `hubId === document.hubId` so the origin isn't double-listed.*
+- **Ungate** — drop `&& isCoordinator` so all hub members get office docs.
+- **Slice 5** — migrate existing plain native docs → `.docx` (server-side).
+- **Polish** — mobile editing, the still-slowish first open (download/convert
+  warm-up), surfacing version history, the proper `title`-nullable comment fix.
+- **Rotate `ONLYOFFICE_JWT_SECRET`** — it was pasted in the s154 chat
+  (regenerate `/root/onlyoffice/.env` → `docker compose up -d --force-recreate
+  onlyoffice-docs` → update Vercel Production → redeploy; the module-level const
+  needs a cold start). Hygiene, not blocking.
+
+## Pitfalls quick-reference
+1. Callback fields are under `verified.payload` (header token) — read `?? verified`.
+2. Edited-file URL host is internal — `resolveEditedFileUrl` pins it to `ONLYOFFICE_URL`.
+3. DocEditor replaces its node — give it a non-React-owned mount; overlays trailing.
+4. The loading overlay masks doc-server errors — surface `onError` + a timeout.
+5. "Opening editor…" hang ≠ JWT by default — only if a "security token" message shows.
+6. `document.key` must change when the file changes (the version bump does this).
+7. The callback is JWT-only, session-less — the one deliberate exception.

@@ -772,5 +772,55 @@
     "status": "open",
     "addedAt": "2026-06-16",
     "notes": "Flagged by the session-151 reviewer (Should-fix, non-blocking). Speaker-view-only nicety; the screen-share path (the actual fix) doesn't use it."
+  },
+  {
+    "id": "2026-06-22-001",
+    "title": "OnlyOffice Slice 4 — document sharing/visibility UI + master directory (+ file-management redesign)",
+    "description": "Build the sharing/visibility UI the data model already supports: a share-with-hubs picker (HubDocumentPlacement), a per-doc visibility dropdown (HUB/COORDINATORS/COMMUNITY), and shared badges. Plus a master directory /account/documents (per-hub sections gated by canAccessDocument + a Community/Projects section). This is also where the document-filing-system modernization lands (Jesse, s155): write RIM_Documents.md first. Current model is one free-text category per doc, flat, no search/sort/freshness. RIM-restraint lens: search is the highest-leverage add; surface last-modified + version history; tame categories (pick-from-existing, not free-text); avoid folders-in-folders and tag taxonomies. Guard the placement create-path: reject hubId === document.hubId so the origin is not double-listed.",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-22",
+    "notes": "Next session picks up here. The doc-view page must move from canAccessHub to canAccessDocument once docs are multi-hub/hubless."
+  },
+  {
+    "id": "2026-06-22-002",
+    "title": "Ungate OnlyOffice office docs to all hub members",
+    "description": "Office docs are gated to coordinators (officeEnabled && isCoordinator in HubDocumentsClient). Drop the && isCoordinator clause so all hub members can create/edit office docs, once the beta is confirmed stable. Independent of Slice 4.",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-22",
+    "notes": ""
+  },
+  {
+    "id": "2026-06-22-003",
+    "title": "OnlyOffice Slice 5 — migrate plain native hub docs to .docx",
+    "description": "Existing NATIVE hub docs are plain (no Dharma blocks). Optionally migrate them to docKind=ONLYOFFICE .docx server-side (reversible) so all editable docs share one editor. Optional / future — native docs work fine as-is.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-22",
+    "notes": ""
+  },
+  {
+    "id": "2026-06-22-004",
+    "title": "OnlyOffice polish — mobile editing, open-speed, version history, title-nullable comments",
+    "description": "Remaining Slice 6 polish: (1) mobile editing (OnlyOffice Community mobile-edit limits — weigh the nonprofit Enterprise discount); (2) first-open speed — the editor opens but is slowish on a cold doc-server (download/convert warm-up); (3) surface the office doc version history (versions are tracked, not shown); (4) the PROPER comment fix — make HubConversationThread.title nullable (~13 consumer surfaces) so doc comments are truly title-less instead of deriving a heading from the first line.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-22",
+    "notes": "s155 shipped the lightweight comment fix (derive title from first line, no schema change); this is the full version."
+  },
+  {
+    "id": "2026-06-22-005",
+    "title": "Rotate ONLYOFFICE_JWT_SECRET (hygiene)",
+    "description": "The shared HS256 secret was pasted in the s154 chat. Rotate: regenerate /root/onlyoffice/.env on the droplet, then docker compose up -d --force-recreate onlyoffice-docs, then set the same value in Vercel Production, then redeploy (lib/onlyoffice.ts reads it into a module-level const at cold start). Not blocking — the JWT is the real boundary and the editor works; do it for hygiene. SSH is awkward for Jesse; the DigitalOcean web Console is the path.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-22",
+    "notes": ""
   }
 ]

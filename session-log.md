@@ -1,5 +1,37 @@
 ---
 
+## 2026-06-22 (session 155) — OnlyOffice: the save loop *actually* fixed (payload-nesting), React-crash fix, comments-not-topics — both opening bugs closed; feature works on prod (gated)
+
+Resumed at the two open bugs from s154 and closed both — and the real save bug was deeper than the s154 note guessed. **Six commits on `main`, all deployed** (live, gated to coordinators). No new deps / env / services; **no schema change / migration**; no email templates touched. `tsc`-green each step; reviewer-gated the non-trivial changes. Editor opens, edits persist, comments work. Integration sections of `RIM_OnlyOffice.md` now fully written (the payload gotcha + the React-mount pattern).
+
+### The save loop — the real root cause (not the SSRF guard)
+The s154 note fingered the callback's `isDocumentServerUrl` SSRF guard. Real issue, but **downstream and never reached.** A diagnostic log planted in the callback showed `status=undefined` on a callback whose JWT *verified* — so the secret was fine; we were reading the fields from the wrong level. **OnlyOffice signs its callback into the `Authorization` header (`JWT_HEADER=Authorization`), and that token nests the body under `payload`.** We read `verified.status`/`verified.url` at the top level → undefined → `if (status === 2 || status === 6)` never matched → nothing ever saved. Fix: `const cb = verified.payload ?? verified` (handles header-nested + body-embedded; graceful fallback).
+- The morning's **host-rewrite** is still necessary (shipped): behind the Caddy-L4 + shim proxy, OnlyOffice reports the edited-file URL with an internal host Vercel can't reach; `resolveEditedFileUrl` pins it to the public `docs.` origin (also a *stronger* SSRF boundary — we fetch the host we trust, never the one we're handed). It just wasn't sufficient alone.
+- **Lesson:** instrument the actual received values before theorizing. The `status=undefined` log settled a multi-hypothesis hunt; the JWT-mismatch theory (my prior note **and** a 4-agent diagnosis workflow's top-ranked cause) was a **red herring** — the editor opening with no security-token error already disproved it.
+
+### The React white-screen crash (self-inflicted, then fixed)
+To surface the editor's hidden error (masked behind the "Opening editor…" overlay), I added an onError banner + a 25s readiness timeout. That introduced `NotFoundError: The object can not be found here`: `DocsAPI.DocEditor` **replaces** its target element with an `<iframe>`, so when React toggled the overlay sibling it referenced a node OnlyOffice had swapped out. **Fix (the correct React+OnlyOffice pattern):** render an empty React-owned host div, create OnlyOffice's mount node *ourselves* inside it (React never reconciles it), overlays as trailing siblings; cleanup empties the host. Reviewer-verified crash-safe across toggle / error-swap / unmount. (I shipped the crashing change *without* a reviewer — the lesson is to review even "trivial" changes to third-party-DOM components.)
+
+### Bug #2 — comment/doc routing (done)
+Office docs jumped straight to the full-screen editor, skipping the doc page where the conversation lives. The hub list-link now lands on the doc page; that page branches on `docKind === "ONLYOFFICE"` → metadata + "Open in editor" CTA + the comment thread (instead of native body / markdown export / native edit link). Office docs are hub-origin (hubId set, default HUB visibility), so the page's hub-scoped gate works for the gated beta.
+
+### Quick wins (Jesse's design feedback)
+- **Comments, not Topics.** The doc-page panel forced a "topic title" (it reused the hub `HubConversationThread`, where `title` is required). The document *is* the subject → the panel now just says "Add a comment"; we derive a short heading from the comment's first line so the ~13 shared thread/list/detail surfaces keep working **with no schema change** (the true `title`-nullable fix is ~13 surfaces — backlogged). Relabeled "Comments" across the doc page.
+- **Edit-form URL field** hidden for office docs (they keep their file in Blob, not a URL — leftover from the link form).
+- Removed the temporary callback diagnostic log now that saves are confirmed.
+
+### What this connects to
+- **The save callback** — the one deliberate non-session-gated route; the payload-nesting fix lives there; `resolveEditedFileUrl` replaced `isDocumentServerUrl`.
+- **HubConversationThread** — doc comments share it; "derive title from first line" keeps `title` non-null so no cross-surface ripple (the proper nullable fix is backlogged).
+- **The doc-view page** (`canAccessHub`-gated) now renders office docs (CTA + comments) as well as native docs.
+- **OnlyOfficeEditor** — now the canonical React+OnlyOffice embedding pattern (host-div ownership) + error surfacing.
+- **LiveKit droplet / OnlyOffice server** — healthy; the proxy topology (internal-host reporting) is why the host-rewrite is needed.
+
+### What comes next
+Both opening bugs closed; the feature works end-to-end (create → edit → save → comment) but is **gated to coordinators** and **single-hub**. Remaining (UP_NEXT has the ordered list): **Slice 4** (sharing UI + master directory `/account/documents` — also where the "modernize the filing system" redesign lands; write `RIM_Documents.md` first), **ungate**, **Slice 5** (migrate native docs), polish (mobile, the still-slowish first open, version-history surfacing). Loose end: **rotate `ONLYOFFICE_JWT_SECRET`** (pasted in the s154 chat).
+
+---
+
 ## 2026-06-22 (session 154 continued) — OnlyOffice shipped to prod *gated*; JWT mismatch fixed; save-loop + comments-routing bugs open
 
 Continued the build: completed Slice 3b (create flow + blank `.docx/.xlsx/.pptx` templates via committed static assets), the list-link, and a **coordinator gate**, then **merged everything to `main` and deployed to production** — gated so only coordinators/admins see the "+ Office doc" button (`officeEnabled && isCoordinator`). Went to prod because Vercel **previews can't do RIM's NextAuth login** (database sessions + a fixed `NEXTAUTH_URL`). Set Production env vars; fixed a **JWT-secret mismatch** (Vercel value ≠ the droplet's) that had hung the editor on "Opening editor…". **Working on prod now: create an office doc → the editor opens with real RIM identity** (JWT handshake + token-gated download confirmed). **Two open bugs (full detail in `UP_NEXT.md`):** (1) **edits don't persist** — prime suspect the callback's SSRF guard (`isDocumentServerUrl`) rejecting OnlyOffice's proxied edited-file URL; (2) **office docs jump straight to the editor**, skipping the doc page where the conversation/comments thread lives. Also pending: **rotate the JWT secret** (it was pasted in chat). Slices 4/5/6 + ungate still ahead. Deploy-relative URLs (`requestBaseUrl`) were added so the loop works per-deployment.

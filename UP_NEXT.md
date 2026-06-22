@@ -6,43 +6,23 @@
 
 ## Active
 
-### Session 154 (2026-06-21→22) — ⏯ RESUME HERE: OnlyOffice DEPLOYED to prod (gated to coordinators); two bugs to fix first
+### Session 155 (2026-06-22) — ⏯ RESUME HERE: OnlyOffice works end-to-end (gated); next is Slice 4 (sharing UI + master directory + file-management redesign)
 
-**Supersedes the "feature spine on a branch" note below — it's now merged to `main` + LIVE on production, gated.** The whole feature (Slices 0–3b + create UI + list-link + a coordinator gate) is on `main`, deployed. Vercel **Production** env: `ONLYOFFICE_URL=https://docs.rootedinmindfulness.org` + `ONLYOFFICE_JWT_SECRET` (matches the droplet, after a mismatch fix). The "+ Office doc" button shows only to coordinators/admins (`officeEnabled && isCoordinator` in `HubDocumentsClient`); members see nothing.
+**Both s154 bugs are fixed; the feature is live on prod, gated to coordinators, working end-to-end** — create → edit → **save** → comment. Six commits on `main`, all deployed. No schema/migration/deps/env/email changes. Full narrative in `session-log.md` (session 155); the integration model + every gotcha now in **`RIM_OnlyOffice.md` §2–6 + Pitfalls**.
 
-**WORKS on prod:** create an office doc → the OnlyOffice editor opens full-screen with real RIM identity (JWT handshake + token-gated download both confirmed). The earlier "Opening editor…" hang was a JWT-secret mismatch (Vercel ≠ droplet), now fixed.
+**What got fixed (don't re-derive — it's all in `RIM_OnlyOffice.md`):**
+- **The save loop (the real bug).** Not the SSRF guard — the callback's JWT arrives in the `Authorization` header, which **nests the body under `payload`**, so `verified.status` was `undefined` and nothing saved. Fix: `const cb = verified.payload ?? verified`. The host-rewrite (`resolveEditedFileUrl`, which replaced `isDocumentServerUrl`) is also shipped + necessary (the doc server reports an internal edited-file host behind the proxy).
+- **A React white-screen crash** I introduced while surfacing errors — `DocsAPI.DocEditor` replaces its node, so React's overlay toggling threw `NotFoundError`. Fixed with the host-div ownership pattern (create the mount ourselves, overlays trailing).
+- **Error surfacing** (the loading overlay was masking the doc server's real error), **bug #2** (office docs route to the doc page, not straight to the editor), **Comments-not-Topics** (doc comments drop the forced title — derive a heading from the first line), **edit-form URL cleanup** for office docs.
 
-**🐛 FIX FIRST (tomorrow's opening work):**
-1. **Edits don't persist (the save loop).** Editor opens, but type → close → reopen = blank. **Prime suspect: the SSRF guard in `app/api/onlyoffice/callback/route.ts` (`isDocumentServerUrl(url)`) is rejecting OnlyOffice's edited-file URL** — behind the Caddy-L4 + shim proxy, OnlyOffice likely reports an internal/different host, so the callback returns `{error:0}` WITHOUT saving. **DO FIRST — get evidence:** Vercel function logs for `[onlyoffice/callback]` after a fresh edit. A `rejected edited-file url` line = confirmed SSRF → fix: relax `isDocumentServerUrl` to also allow private/internal hosts (keep *a* check — the JWT is the real security, and the secret was exposed in chat, so don't fully drop it). A `save failed` line = the fetch/blob step. Add a `console.log` of the received `status` + `url` to the callback to make it unambiguous.
-2. **Comments/conversation routing (my design miss).** Office docs link STRAIGHT to the full-screen editor (`/account/documents/[id]/office`), skipping the doc page where the conversation thread (comments) lives. **FIX: office docs should open a doc *page* first** — conversation thread + an "Open in editor" button — NOT the bare editor. Point the office-doc list-link at the hub view page `/account/hub/[slug]/documents/[id]` (already renders `HubDocConversationsClient`) and make that page handle `docKind=ONLYOFFICE` (metadata + conversation + "Open editor" CTA instead of native `body`). (Hubless docs need a doc-centric page later — Slice 4.)
+**⏭ NEXT SESSION — Slice 4 (the big one); go through all remaining items together:**
+1. **Write `RIM_Documents.md` first** — the document-filing-system modernization Jesse asked for (s155). Current model: one free-text category per doc, flat, no search/sort/freshness. RIM-restraint lens (NOT a corporate DMS): **search** is the highest-leverage add; surface **last-modified + version history**; **tame categories** (pick-from-existing, not free-text); avoid folders-in-folders / tag taxonomies. Then design the directory + sharing.
+2. **Build Slice 4** — sharing/visibility UI (share-with-hubs picker via `HubDocumentPlacement` + visibility dropdown + shared badges) + master directory `/account/documents` (per-hub sections gated by `canAccessDocument` + Community/Projects). *Guard the placement create-path: reject `hubId === document.hubId`.* When docs become multi-hub/hubless, **move the doc-view page from `canAccessHub` → `canAccessDocument`**.
+3. Then: **ungate** (drop `&& isCoordinator`), **Slice 5** (migrate native docs → .docx), **polish** (mobile, the still-slowish first open, version history, the proper `title`-nullable comment fix), **rotate `ONLYOFFICE_JWT_SECRET`** (hygiene; DO web Console since SSH is awkward).
 
-**THEN, in order:** rotate `ONLYOFFICE_JWT_SECRET` (it was pasted in the s154 chat — regenerate `/root/onlyoffice/.env`, `docker compose up -d --force-recreate onlyoffice-docs`, update Vercel Prod+Preview, redeploy) → **Slice 4** (sharing/visibility UI: share-with-hubs + visibility dropdown + badges; master directory `/account/documents` = per-hub sections gated by `canAccessDocument` + Community/Projects) → **Slice 5** (migrate plain native docs → .docx, server-side) → **Slice 6** (RIM-access→OnlyOffice-mode polish, mobile, the comment-title fix, **surface OnlyOffice editor errors** — the loading overlay currently hides them — and the edit-form url-field cleanup for office docs) → **UNGATE** (drop the `&& isCoordinator` clause so all hub members get office docs).
+**Backlog:** `2026-06-22-001` (Slice 4 + filing redesign) … `-005` (secret rotation). **Server:** `ssh root@104.248.229.126`; logs `cd /root/onlyoffice && docker compose logs --since 3m onlyoffice-docs` (Jesse-interactive or DO web Console — the sandbox can't SSH).
 
-**Key files:** `lib/onlyoffice.ts` (JWT/config/seed + the SSRF `isDocumentServerUrl`), `app/api/onlyoffice/callback/route.ts` (bug #1 lives here), `components/HubDocumentsClient.tsx` (the list-link — bug #2 here), `components/OnlyOfficeEditor.tsx`, `app/account/(authenticated)/documents/[id]/office/page.tsx`, `app/api/documents/[id]/editor-config/route.ts`. Infra runbook + rollback: `RIM_OnlyOffice.md`. Server: `ssh root@104.248.229.126`; OnlyOffice logs `cd /root/onlyoffice && docker compose logs --since 3m onlyoffice-docs`.
-
-### Session 154 (2026-06-21) — OnlyOffice office documents: feature spine built on a branch; needs Vercel env + deploy to test
-
-Decided + built the spine of office-document editing for hub documents via **self-hosted OnlyOffice**. **Four commits on branch `claude/onlyoffice-docs` — NOT merged, NOT deployed** (prod app + DB untouched). The OnlyOffice **server is live** on the LiveKit droplet. Full narrative in `session-log.md` (session 154); per-tool reference + infra runbook in **`RIM_OnlyOffice.md`**.
-
-**Done (branch + live infra):**
-- **Slice 0 (live):** OnlyOffice Docs Community at `docs.rootedinmindfulness.org` — isolated stack + header shim on the LiveKit droplet, Caddy L4 route + LE cert. Verified docs 200 / livekit 200.
-- **Slice 1:** `HubDocument` generalized (docKind / storageKey / version / visibility, nullable hubId, `HubDocumentPlacement` join, enums) + idempotent `onlyoffice_documents_v1` migration + `lib/documentAuth.ts` (central `canAccessDocument` / `canEditDocument`).
-- **Slice 2:** the save loop — `lib/onlyoffice.ts` (HS256 JWT, config builder) + `editor-config` / `callback` / `download` routes. Reviewed + hardened.
-- **Slice 3a:** the editor surface — `OnlyOfficeEditor` component + full-screen `/account/documents/[id]/office` + `oo-` CSS.
-
-**NEXT SESSION — opening moves, in order:**
-1. **Jesse:** add to Vercel env — `ONLYOFFICE_URL=https://docs.rootedinmindfulness.org` and `ONLYOFFICE_JWT_SECRET` (value: `cat /root/onlyoffice/.env` on the droplet — straight into Vercel, never chat).
-2. **Deploy the branch to a preview** — the build runs `migrate.mjs` (applies `onlyoffice_documents_v1` — additive, idempotent) and brings the routes + editor surface live against the live `docs.` server.
-3. **Seed one OnlyOffice doc + open it** at `/account/documents/<id>/office` → confirm the loop round-trips (edit → close → version bumps + new blob in storage).
-4. Then build the rest:
-   - **Slice 3b** — create flow + blank `.docx/.xlsx/.pptx` templates. **Open decision:** how to generate valid blanks — a library (docx / exceljs / pptxgenjs), committed binary templates, or hand-rolled OOXML (`.pptx` is the hard one; can't test locally, so decide with testability in mind).
-   - **Slice 4** — sharing/visibility UI (share-with-hubs picker + visibility dropdown + shared badges) + the master directory `/account/documents` (per-hub sections gated by `canAccessDocument` + a Community/Projects section). *Guard the placement create-path: reject `hubId === document.hubId` so the origin isn't double-listed (reviewer note).*
-   - **Slice 5** — migrate existing plain native hub docs → `.docx` (server-side, reversible).
-   - **Slice 6** — RIM-access→OnlyOffice-mode polish, named co-edit, mobile (Community mobile editing is limited — weigh the nonprofit Enterprise discount), the **comment-title fix** (`HubConversationThread.title` → nullable + ~15 consumer surfaces; doc-attached threads drop the required title), OnlyOffice welcome-page hardening.
-
-**In-session task list mirrors the slices: #1–#3 complete, #4 in progress (3a done), #5–#7 pending.**
-
-**Don't re-derive:** the whole architecture + decisions are in `RIM_OnlyOffice.md` and the session-log. Docs are now RIM's first hub-optional / multi-hub resource (placement model); doc access is doc-level via `canAccessDocument`; the OnlyOffice callback is the one deliberate non-session-gated route (JWT-only).
+### Session 154 (2026-06-21–22) — OnlyOffice: spine built (Slices 0–3b) + shipped to prod gated. Superseded by the s155 entry above; full detail in `session-log.md` + `RIM_OnlyOffice.md`.
 
 ### Session 153 (follow-on, 2026-06-17) — Monthly recurrence is now first-class — on `main` & deployed; deployed verification + two data fixes pending
 
