@@ -23930,3 +23930,21 @@ input.w-button { -webkit-appearance: button; }
   border: 0;
   cursor: pointer;
 }
+/* New office-doc create control (oo-create-) */
+.oo-create-input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+}
+.oo-create-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.oo-create-hint {
+  margin-top: 10px;
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+}

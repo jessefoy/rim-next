@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import { sendHubDocumentCreatedEmail } from "@/lib/email";
+import { seedBlankOfficeFile } from "@/lib/onlyoffice";
 
 const BASE_URL = (process.env.NEXTAUTH_URL ?? "").trim().replace(/\/$/, "");
 
@@ -48,11 +49,57 @@ export async function POST(
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { label, url, description, fileType, category, newCategory, body, isNative, notifyUserIds } = await req.json();
+  const { label, url, description, fileType, category, newCategory, body, isNative, docKind, notifyUserIds } = await req.json();
 
   if (!label?.trim()) {
     return NextResponse.json({ error: "Label required" }, { status: 400 });
   }
+
+  // ── OnlyOffice office document (docx/xlsx/pptx): create the record, then seed
+  // a blank file into storage. No url/body — the file lives in Blob. ──────────
+  if (docKind === "ONLYOFFICE") {
+    const officeType = fileType ?? "DOC";
+    if (!["DOC", "SHEET", "SLIDE"].includes(officeType)) {
+      return NextResponse.json({ error: "Invalid office document type" }, { status: 400 });
+    }
+
+    let officeCategory: string | null = category ?? null;
+    if (newCategory?.trim()) {
+      officeCategory = newCategory.trim();
+      await db.hub.update({
+        where: { id: hub.id },
+        data:  { documentCategories: { push: officeCategory as string } },
+      });
+    }
+
+    const officeDoc = await db.hubDocument.create({
+      data: {
+        hubId:       hub.id,
+        addedById:   session.user.id,
+        label:       label.trim(),
+        description: description?.trim() || null,
+        fileType:    officeType,
+        category:    officeCategory,
+        docKind:     "ONLYOFFICE",
+        isNative:    false,
+      },
+    });
+
+    try {
+      const storageKey = await seedBlankOfficeFile(officeDoc.id, officeType);
+      const withFile = await db.hubDocument.update({
+        where:   { id: officeDoc.id },
+        data:    { storageKey },
+        include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
+      });
+      return NextResponse.json(withFile, { status: 201 });
+    } catch (err) {
+      console.error("[documents POST] office seed failed", err);
+      await db.hubDocument.delete({ where: { id: officeDoc.id } }).catch(() => {});
+      return NextResponse.json({ error: "Could not create the document" }, { status: 500 });
+    }
+  }
+
   if (!isNative && !url?.trim()) {
     return NextResponse.json({ error: "Label and URL required" }, { status: 400 });
   }

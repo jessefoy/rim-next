@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { put } from "@vercel/blob";
 
 /**
  * ─── ONLYOFFICE INTEGRATION ───────────────────────────────────────────────
@@ -120,6 +121,40 @@ export function documentTypeForFileType(fileType: string): OnlyOfficeDocType {
   if (CELL.has(ext)) return "cell";
   if (SLIDE.has(ext)) return "slide";
   return "word";
+}
+
+// ── Blank-file seeding (new office docs) ────────────────────────────────────
+const EXT_FOR_OFFICE_FILETYPE: Record<string, string> = {
+  DOC: "docx",
+  SHEET: "xlsx",
+  SLIDE: "pptx",
+  FORM: "docx",
+};
+
+/** Office-file extension for a `HubDocument.fileType` enum value. */
+export function officeExtForFileType(fileType: string): string {
+  return EXT_FOR_OFFICE_FILETYPE[fileType] ?? "docx";
+}
+
+/**
+ * Seed a new OnlyOffice document with a blank office file: fetch the committed
+ * blank template (`public/onlyoffice-templates/blank.<ext>`), store it in Blob
+ * at the doc's v0 path, and return the blob URL for the doc's `storageKey`.
+ */
+export async function seedBlankOfficeFile(
+  documentId: string,
+  fileType: string,
+): Promise<string> {
+  const ext = officeExtForFileType(fileType);
+  const res = await fetch(`${BASE_URL}/onlyoffice-templates/blank.${ext}`);
+  if (!res.ok) throw new Error(`blank template fetch failed (${res.status}) for .${ext}`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  const { url } = await put(`hub-docs/${documentId}/v0.${ext}`, buffer, {
+    access: "public",
+    addRandomSuffix: false,
+    token: process.env.BLOB_READ_WRITE_TOKEN,
+  });
+  return url;
 }
 
 // ── Download token (OnlyOffice fetches the file *through* RIM) ───────────────

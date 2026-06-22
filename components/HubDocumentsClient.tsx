@@ -214,6 +214,31 @@ export default function HubDocumentsClient({
     setSaving(false);
   }
 
+  // ── New OnlyOffice office doc: create the blank, then open the editor ──────
+  const [showOffice, setShowOffice]         = useState(false);
+  const [officeLabel, setOfficeLabel]       = useState("");
+  const [creatingOffice, setCreatingOffice] = useState(false);
+
+  async function createOfficeDoc(fileType: "DOC" | "SHEET" | "SLIDE") {
+    if (!officeLabel.trim() || creatingOffice) return;
+    setCreatingOffice(true);
+    try {
+      const res = await fetch(`/api/hub/${hubSlug}/documents`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ label: officeLabel.trim(), docKind: "ONLYOFFICE", fileType }),
+      });
+      if (res.ok) {
+        const doc = await res.json();
+        window.location.href = `/account/documents/${doc.id}/office`;
+        return;
+      }
+    } catch {
+      /* re-enable below */
+    }
+    setCreatingOffice(false);
+  }
+
   // ── Save edit ────────────────────────────────────────────────────────────
   async function updateDoc(id: string) {
     setSaving(true);
@@ -372,8 +397,34 @@ export default function HubDocumentsClient({
           <button className="btn btn--sm btn--ghost" onClick={() => { setShowAdd((v) => !v); resetAddForm(); }}>
             + Add Resource
           </button>
+          <button className="btn btn--sm btn--ghost" onClick={() => setShowOffice((v) => !v)}>
+            + Office doc
+          </button>
         </div>
       </div>
+
+      {/* New office document (OnlyOffice) */}
+      {showOffice && (
+        <div className="hub-doc-add-form">
+          <div className="add-doc-form__title">New office document</div>
+          <input
+            className="oo-create-input"
+            placeholder="Name your document…"
+            value={officeLabel}
+            onChange={(e) => setOfficeLabel(e.target.value)}
+            autoFocus
+          />
+          <div className="oo-create-types">
+            <button type="button" className="btn btn--sm" disabled={!officeLabel.trim() || creatingOffice}
+              onClick={() => createOfficeDoc("DOC")}>Document</button>
+            <button type="button" className="btn btn--sm" disabled={!officeLabel.trim() || creatingOffice}
+              onClick={() => createOfficeDoc("SHEET")}>Spreadsheet</button>
+            <button type="button" className="btn btn--sm" disabled={!officeLabel.trim() || creatingOffice}
+              onClick={() => createOfficeDoc("SLIDE")}>Presentation</button>
+          </div>
+          <p className="oo-create-hint">Opens full-screen — co-editing, comments, version history, real pages.</p>
+        </div>
+      )}
 
       {/* Active / Archived filter — only shown when archived items exist */}
       {archivedCount > 0 && (
