@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { canAccessDocument, canEditDocument } from "@/lib/documentAuth";
-import { buildEditorConfig, onlyOfficeConfigured } from "@/lib/onlyoffice";
+import { buildEditorConfig, onlyOfficeConfigured, requestBaseUrl } from "@/lib/onlyoffice";
 import { NextResponse } from "next/server";
 
 // Office-file extension for the HubDocumentFileType enum.
@@ -20,7 +20,7 @@ const EXT_FOR_FILETYPE: Record<string, string> = {
  * the doc's placements + visibility, not a single hub slug.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
@@ -89,14 +89,17 @@ export async function GET(
 
   const ext = EXT_FOR_FILETYPE[doc.fileType] ?? "docx";
 
-  const built = buildEditorConfig({
-    documentId: doc.id,
-    version: doc.version,
-    fileType: ext,
-    title: `${doc.label}.${ext}`,
-    canEdit,
-    user: { id: session.user.id, name: displayName },
-  });
+  const built = buildEditorConfig(
+    {
+      documentId: doc.id,
+      version: doc.version,
+      fileType: ext,
+      title: `${doc.label}.${ext}`,
+      canEdit,
+      user: { id: session.user.id, name: displayName },
+    },
+    requestBaseUrl(req),
+  );
 
   return NextResponse.json(built);
 }

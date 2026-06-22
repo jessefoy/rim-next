@@ -50,6 +50,18 @@ export function isDocumentServerUrl(candidate: string): boolean {
   }
 }
 
+/**
+ * Deploy-relative base URL from the incoming request (preview-safe). Vercel
+ * previews serve on their own domain; building the callback / download / template
+ * URLs from the request — not a fixed NEXTAUTH_URL — keeps the save loop on the
+ * same deployment the editor was opened from.
+ */
+export function requestBaseUrl(req: Request): string {
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "";
+  return host ? `${proto}://${host}` : BASE_URL;
+}
+
 function requireSecret(): string {
   if (!ONLYOFFICE_JWT_SECRET) {
     throw new Error("ONLYOFFICE_JWT_SECRET environment variable is not set");
@@ -144,9 +156,10 @@ export function officeExtForFileType(fileType: string): string {
 export async function seedBlankOfficeFile(
   documentId: string,
   fileType: string,
+  baseUrl: string = BASE_URL,
 ): Promise<string> {
   const ext = officeExtForFileType(fileType);
-  const res = await fetch(`${BASE_URL}/onlyoffice-templates/blank.${ext}`);
+  const res = await fetch(`${baseUrl || BASE_URL}/onlyoffice-templates/blank.${ext}`);
   if (!res.ok) throw new Error(`blank template fetch failed (${res.status}) for .${ext}`);
   const buffer = Buffer.from(await res.arrayBuffer());
   const { url } = await put(`hub-docs/${documentId}/v0.${ext}`, buffer, {
@@ -189,15 +202,16 @@ export interface EditorConfigInput {
  * server, not the browser) — the download is token-gated, the callback
  * JWT-verified. The token signs the config so the document server trusts it.
  */
-export function buildEditorConfig(input: EditorConfigInput) {
+export function buildEditorConfig(input: EditorConfigInput, baseUrl: string = BASE_URL) {
+  const base = baseUrl || BASE_URL;
   // Short-lived: OnlyOffice fetches the file immediately on editor load, so the
   // embedded download capability shouldn't outlive that by much.
   const downloadToken = signOnlyOfficeToken(
     { documentId: input.documentId, scope: DOWNLOAD_SCOPE },
     300,
   );
-  const documentUrl = `${BASE_URL}/api/onlyoffice/download/${input.documentId}?token=${encodeURIComponent(downloadToken)}`;
-  const callbackUrl = `${BASE_URL}/api/onlyoffice/callback`;
+  const documentUrl = `${base}/api/onlyoffice/download/${input.documentId}?token=${encodeURIComponent(downloadToken)}`;
+  const callbackUrl = `${base}/api/onlyoffice/callback`;
 
   const config: Record<string, unknown> = {
     documentType: documentTypeForFileType(input.fileType),

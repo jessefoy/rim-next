@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import { sendHubDocumentCreatedEmail } from "@/lib/email";
-import { seedBlankOfficeFile } from "@/lib/onlyoffice";
+import { seedBlankOfficeFile, requestBaseUrl } from "@/lib/onlyoffice";
 
 const BASE_URL = (process.env.NEXTAUTH_URL ?? "").trim().replace(/\/$/, "");
 
@@ -86,7 +86,7 @@ export async function POST(
     });
 
     try {
-      const storageKey = await seedBlankOfficeFile(officeDoc.id, officeType);
+      const storageKey = await seedBlankOfficeFile(officeDoc.id, officeType, requestBaseUrl(req));
       const withFile = await db.hubDocument.update({
         where:   { id: officeDoc.id },
         data:    { storageKey },
