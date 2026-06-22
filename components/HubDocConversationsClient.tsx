@@ -1,17 +1,19 @@
 "use client";
 
 /**
- * HubDocConversationsClient — Conversations panel on a document view page.
+ * HubDocConversationsClient — Comments panel on a document view page.
  * CSS prefix: doc-conv-
  *
- * Stripped-down version of HubConvClient: no categories, no pinning, no
- * status filter. Just a thread list + compose. Clicking a thread navigates
- * to the shared thread detail page which shows "← Back to [Document]".
+ * The document is the subject, so there's no separate topic title — you just
+ * add a comment. We derive a short heading from the comment's first line so the
+ * shared thread/list/detail surfaces (which key off `title`) keep working
+ * without a schema change. Clicking a comment opens the shared thread detail
+ * page which shows "← Back to [Document]"; replies live there.
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
-import { MessageSquare, Plus, X } from "lucide-react";
+import { MessageSquare, Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -83,6 +85,21 @@ function hasContent(value: any): boolean {
   return false;
 }
 
+/** A short heading derived from the comment's first line (the document is the
+ *  subject — there's no separate topic). Falls back to "Comment". */
+function deriveTitle(value: any): string {
+  let text = "";
+  if (typeof value === "string") {
+    text = value.replace(/<[^>]+>/g, " ");
+  } else if (Array.isArray(value)) {
+    const inline = (c: any[] = []) => c.map((x: any) => x.text ?? "").join(" ");
+    text = value.map((b: any) => inline(b.content)).join(" ");
+  }
+  text = text.replace(/\s+/g, " ").trim();
+  if (!text) return "Comment";
+  return text.length > 80 ? `${text.slice(0, 80).trimEnd()}…` : text;
+}
+
 export default function HubDocConversationsClient({
   hubSlug,
   docId,
@@ -93,17 +110,11 @@ export default function HubDocConversationsClient({
 }: Props) {
   const [threads, setThreads] = useState<Thread[]>(initialThreads);
   const [showCompose, setShowCompose] = useState(false);
-  const [title, setTitle] = useState("");
   const [body, setBody] = useState<string>("");
   const [notifyIds, setNotifyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const submittingRef = useRef(false); // synchronous double-submit guard for submitThread
   const [error, setError] = useState<string | null>(null);
-  const titleRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (showCompose) titleRef.current?.focus();
-  }, [showCompose]);
 
   const coordinatorSet = new Set(coordinatorIds);
   const nonCoordinatorMembers = hubMembers.filter(
@@ -112,7 +123,7 @@ export default function HubDocConversationsClient({
   const coordinatorCount = coordinatorIds.filter((c) => c !== currentUserId).length;
 
   async function submitThread() {
-    if (!title.trim() || !hasContent(body) || submittingRef.current) return;
+    if (!hasContent(body) || submittingRef.current) return;
     submittingRef.current = true;
     setSaving(true);
     setError(null);
@@ -120,7 +131,8 @@ export default function HubDocConversationsClient({
       const res = await fetch(`/api/hub/${hubSlug}/documents/${docId}/conversations`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ title: title.trim(), body, notifyUserIds: notifyIds }),
+        // No separate topic — derive a short heading from the comment's first line.
+        body:    JSON.stringify({ title: deriveTitle(body), body, notifyUserIds: notifyIds }),
       });
       if (!res.ok) throw new Error("Failed to post");
       const thread = await res.json();
@@ -128,12 +140,11 @@ export default function HubDocConversationsClient({
         { ...thread, replyCount: 0 },
         ...prev,
       ]);
-      setTitle("");
       setBody("");
       setNotifyIds([]);
       setShowCompose(false);
     } catch {
-      setError("Couldn't post the conversation. Try again.");
+      setError("Couldn't post the comment. Try again.");
     } finally {
       setSaving(false);
       submittingRef.current = false;
@@ -145,7 +156,7 @@ export default function HubDocConversationsClient({
       <div className="doc-conv__header">
         <h2 className="doc-conv__heading">
           <MessageSquare size={16} strokeWidth={1.75} />
-          Conversations
+          Comments
           {threads.length > 0 && (
             <span className="doc-conv__count">{threads.length}</span>
           )}
@@ -156,37 +167,18 @@ export default function HubDocConversationsClient({
             onClick={() => setShowCompose(true)}
           >
             <Plus size={14} strokeWidth={2} />
-            New topic
+            Add a comment
           </button>
         )}
       </div>
 
       {showCompose && (
         <div className="doc-conv__compose">
-          <div className="doc-conv__compose-head">
-            <input
-              ref={titleRef}
-              className="doc-conv__title-input"
-              type="text"
-              placeholder="What do you want to discuss?"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={160}
-            />
-            <button
-              className="doc-conv__compose-close"
-              aria-label="Cancel"
-              onClick={() => { setShowCompose(false); setTitle(""); setBody(""); setNotifyIds([]); }}
-            >
-              <X size={16} strokeWidth={1.75} />
-            </button>
-          </div>
-
           <RimTiptapEditor
             variant="message"
             value={body}
             onChange={setBody}
-            placeholder="Add a message…"
+            placeholder="Add a comment…"
           />
 
           <div className="doc-conv__compose-footer">
@@ -204,7 +196,7 @@ export default function HubDocConversationsClient({
               {error && <span className="doc-conv__error">{error}</span>}
               <button
                 className="btn--ghost"
-                onClick={() => { setShowCompose(false); setTitle(""); setBody(""); setNotifyIds([]); }}
+                onClick={() => { setShowCompose(false); setBody(""); setNotifyIds([]); }}
                 disabled={saving}
               >
                 Cancel
@@ -212,9 +204,9 @@ export default function HubDocConversationsClient({
               <button
                 className="btn--primary"
                 onClick={submitThread}
-                disabled={saving || !title.trim() || !hasContent(body)}
+                disabled={saving || !hasContent(body)}
               >
-                {saving ? "Posting…" : "Post"}
+                {saving ? "Posting…" : "Post comment"}
               </button>
             </div>
           </div>
@@ -222,7 +214,7 @@ export default function HubDocConversationsClient({
       )}
 
       {threads.length === 0 && !showCompose ? (
-        <p className="doc-conv__empty">No conversations yet. Start one to discuss this document.</p>
+        <p className="doc-conv__empty">No comments yet. Add the first one.</p>
       ) : (
         <ul className="doc-conv__list">
           {threads.map((t) => {

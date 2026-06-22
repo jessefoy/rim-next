@@ -54,24 +54,9 @@ export async function POST(req: NextRequest) {
   const cb = verified.payload ?? verified;
   const { key, status, url } = cb;
 
-  // Diagnostic: one line per callback so the save loop is observable in Vercel
-  // logs — the status + the edited-file host OnlyOffice reports vs. the host we
-  // rewrite it to, plus the verified token's top-level keys (to confirm the
-  // payload nesting). The query string is dropped: it's OnlyOffice's signed,
-  // short-lived cache capability. (Temporary instrumentation; remove once the
-  // loop is confirmed — see RIM_OnlyOffice.md.)
+  // The edited-file URL is pinned to the document server's public origin before
+  // we fetch it (the host OnlyOffice reports is internal-only behind the proxy).
   const resolvedUrl = url ? resolveEditedFileUrl(url) : null;
-  const logUrl = (u: string | null | undefined) => {
-    try {
-      const x = new URL(u as string);
-      return x.origin + x.pathname;
-    } catch {
-      return u ?? "—";
-    }
-  };
-  console.log(
-    `[onlyoffice/callback] status=${status ?? "—"} key=${key ?? "—"} url=${logUrl(url)} → fetch=${logUrl(resolvedUrl)} tokenKeys=[${Object.keys(verified).join(",")}]`,
-  );
 
   // 2 = MustSave (10s after the last editor closed), 6 = ForceSave (mid-session).
   if (status === 2 || status === 6) {

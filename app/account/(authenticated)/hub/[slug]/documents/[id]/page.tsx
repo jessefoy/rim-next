@@ -121,8 +121,8 @@ export default async function HubDocumentViewPage({
           </p>
           <a href="#doc-conversations" className="doc-page__conv-anchor">
             {threads.length > 0
-              ? `${threads.length} conversation${threads.length === 1 ? "" : "s"} ↓`
-              : "Conversations ↓"}
+              ? `${threads.length} comment${threads.length === 1 ? "" : "s"} ↓`
+              : "Comments ↓"}
           </a>
         </div>
         <hr />
