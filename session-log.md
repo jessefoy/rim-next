@@ -1,5 +1,11 @@
 ---
 
+## 2026-06-22 (session 154 continued) — OnlyOffice shipped to prod *gated*; JWT mismatch fixed; save-loop + comments-routing bugs open
+
+Continued the build: completed Slice 3b (create flow + blank `.docx/.xlsx/.pptx` templates via committed static assets), the list-link, and a **coordinator gate**, then **merged everything to `main` and deployed to production** — gated so only coordinators/admins see the "+ Office doc" button (`officeEnabled && isCoordinator`). Went to prod because Vercel **previews can't do RIM's NextAuth login** (database sessions + a fixed `NEXTAUTH_URL`). Set Production env vars; fixed a **JWT-secret mismatch** (Vercel value ≠ the droplet's) that had hung the editor on "Opening editor…". **Working on prod now: create an office doc → the editor opens with real RIM identity** (JWT handshake + token-gated download confirmed). **Two open bugs (full detail in `UP_NEXT.md`):** (1) **edits don't persist** — prime suspect the callback's SSRF guard (`isDocumentServerUrl`) rejecting OnlyOffice's proxied edited-file URL; (2) **office docs jump straight to the editor**, skipping the doc page where the conversation/comments thread lives. Also pending: **rotate the JWT secret** (it was pasted in chat). Slices 4/5/6 + ungate still ahead. Deploy-relative URLs (`requestBaseUrl`) were added so the loop works per-deployment.
+
+---
+
 ## 2026-06-21 (session 154) — OnlyOffice office-documents: architecture + the feature spine (Slices 0–3a) on a branch
 
 A long co-design + build session: decided to add real office-document editing (Word/Excel/PowerPoint — live co-editing, comments, version history, real pages) to hub documents by **self-hosting OnlyOffice Docs**, then built the spine. **Four commits on branch `claude/onlyoffice-docs` — NOT merged, NOT deployed**; the OnlyOffice **server is live** on the LiveKit droplet. `tsc`-green throughout; both code slices adversarially reviewed. New per-tool doc: **`RIM_OnlyOffice.md`**.
