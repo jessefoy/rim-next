@@ -448,6 +448,18 @@ export default function HubDocumentsClient({
       const catDocs = (byCategory.get(cat) ?? []).sort(byUpdatedDesc);
       if (catDocs.length > 0) sections.push({ label: cat, docs: catDocs });
     }
+    // Foreign categories: a doc shared INTO this hub can carry a category from
+    // its origin hub's vocabulary that isn't in this hub's list. Render those
+    // buckets too (alphabetical) so a shared-in doc never silently vanishes from
+    // the grouped view — search already surfaced it; browse must too.
+    const known = new Set(categories);
+    const foreign = [...byCategory.keys()]
+      .filter((k): k is string => k !== null && !known.has(k))
+      .sort((a, b) => a.localeCompare(b));
+    for (const cat of foreign) {
+      const catDocs = (byCategory.get(cat) ?? []).sort(byUpdatedDesc);
+      if (catDocs.length > 0) sections.push({ label: cat, docs: catDocs });
+    }
     const uncategorized = (byCategory.get(null) ?? []).sort(byUpdatedDesc);
     if (uncategorized.length > 0) sections.push({ label: "Uncategorized", docs: uncategorized });
   }
