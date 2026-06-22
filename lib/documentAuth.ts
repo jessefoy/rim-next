@@ -113,3 +113,32 @@ export async function canUserAccessDocument(
 
   return canAccessDocument(doc, { userId, roles, memberships });
 }
+
+/**
+ * The set of document ids within a hub the viewer can OPEN — for list/activity
+ * surfaces that render many of a hub's docs and must hide the ones the viewer
+ * can't reach (the COORDINATORS-visibility case). Loads the hub's doc access
+ * shapes + the viewer's memberships once, filters in memory — never per-doc.
+ *
+ * Hub-scoped on purpose: every doc surfaced in a hub's own lists/activity has
+ * that hub among its placement set, so a doc whose origin is this hub is the
+ * unit these surfaces show.
+ */
+export async function accessibleHubDocumentIds(
+  hubId: string,
+  userId: string,
+  roles: string[],
+): Promise<Set<string>> {
+  const [docs, memberships] = await Promise.all([
+    db.hubDocument.findMany({
+      where:  { hubId, deletedAt: null },
+      select: { id: true, addedById: true, hubId: true, visibility: true, placements: { select: { hubId: true } } },
+    }),
+    db.hubMember.findMany({
+      where:  { userId },
+      select: { hubId: true, isCoordinator: true },
+    }),
+  ]);
+  const viewer = { userId, roles, memberships };
+  return new Set(docs.filter((d) => canAccessDocument(d, viewer)).map((d) => d.id));
+}

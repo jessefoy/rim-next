@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { canAccessDocument } from "@/lib/documentAuth";
 import HubDocumentsClient from "@/components/HubDocumentsClient";
 import { onlyOfficeConfigured } from "@/lib/onlyoffice";
 
@@ -76,7 +77,18 @@ export default async function HubDocumentsPage({
   const isCoordinator =
     member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
 
-  const serialized = documents.map((d) => ({
+  // Doc-level access (NOT just canAccessHub): hide COORDINATORS-visibility docs
+  // from non-coordinators. The viewer's memberships are already loaded above for
+  // the share-into list. (RIM_Hub_Engineering.md §"Documents are the first
+  // hub-optional, multi-hub resource".)
+  const docViewer = {
+    userId:      session.user.id,
+    roles:       session.user.roles ?? [],
+    memberships: viewerMemberships.map((m) => ({ hubId: m.hubId, isCoordinator: m.isCoordinator })),
+  };
+  const accessibleDocuments = documents.filter((d) => canAccessDocument(d, docViewer));
+
+  const serialized = accessibleDocuments.map((d) => ({
     id:          d.id,
     label:       d.label,
     url:         d.url,

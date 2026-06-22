@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { canAccessHub, canManageTrash, effectiveCoordinator, getHubMembership } from "@/lib/hubAuth";
+import { canAccessDocument } from "@/lib/documentAuth";
 import { cleanupRemovedBlobs } from "@/lib/blobCleanup";
 import { sendHubDocumentUpdatedEmail } from "@/lib/email";
 
@@ -23,9 +24,21 @@ export async function GET(
 
   const doc = await db.hubDocument.findUnique({
     where: { id },
-    include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
+    include: {
+      addedBy:    { select: { firstName: true, lastName: true, preferredName: true } },
+      placements: { select: { hubId: true } },
+    },
   });
   if (!doc || doc.hubId !== hub.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Doc-level access (not just canAccessHub): a COORDINATORS-visibility doc must
+  // 404 for a non-coordinator member, even though they can reach the hub.
+  const canSee = canAccessDocument(doc, {
+    userId:      session.user.id,
+    roles:       session.user.roles ?? [],
+    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+  });
+  if (!canSee) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Trashed docs are visible only to trash-managers (admin / guiding teacher /
   // hub coordinator). Everyone else gets a 404 — same as if it never existed.

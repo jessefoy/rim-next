@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { accessibleHubDocumentIds } from "@/lib/documentAuth";
 
 /**
  * GET /api/hub/[slug]/activity
@@ -64,6 +65,10 @@ export async function GET(
     myThreadIds = subs.map((s) => s.threadId);
   }
 
+  // Doc-level access: hide added/updated + comment activity for docs this viewer
+  // can't reach (COORDINATORS visibility). One id-set for all doc-derived items.
+  const accessibleDocIds = await accessibleHubDocumentIds(hub.id, userId, session.user.roles ?? []);
+
   const items: ActivityItem[] = [];
 
   // ── Documents ──────────────────────────────────────────────────────────────
@@ -84,6 +89,7 @@ export async function GET(
     });
 
     for (const doc of docs) {
+      if (!accessibleDocIds.has(doc.id)) continue;
       const isNew = Math.abs(doc.updatedAt.getTime() - doc.createdAt.getTime()) < 5000;
       items.push({
         type:       isNew ? "document_added" : "document_updated",
@@ -173,6 +179,7 @@ export async function GET(
     });
 
     for (const t of docThreads) {
+      if (!accessibleDocIds.has(t.documentId!)) continue;
       items.push({
         type:        "doc_thread",
         id:          `doc-thread-${t.id}`,
@@ -207,6 +214,7 @@ export async function GET(
     });
 
     for (const r of docReplies) {
+      if (!accessibleDocIds.has(r.thread.documentId!)) continue;
       items.push({
         type:        "doc_reply",
         id:          `doc-reply-${r.id}`,

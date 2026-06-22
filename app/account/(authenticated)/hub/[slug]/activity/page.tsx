@@ -10,6 +10,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { accessibleHubDocumentIds } from "@/lib/documentAuth";
 import HubActivityClient from "@/components/HubActivityClient";
 
 export const dynamic = "force-dynamic";
@@ -92,9 +93,14 @@ export default async function HubActivityPage({
     }),
   ]);
 
+  // Doc-level access: hide added/updated + comment activity for docs this viewer
+  // can't reach (COORDINATORS visibility). One id-set for all doc-derived items.
+  const accessibleDocIds = await accessibleHubDocumentIds(hub.id, session.user.id, session.user.roles ?? []);
+
   const items: ActivityItem[] = [];
 
   for (const doc of docs) {
+    if (!accessibleDocIds.has(doc.id)) continue;
     const isNew = Math.abs(doc.updatedAt.getTime() - doc.createdAt.getTime()) < 5000;
     items.push({
       type:       isNew ? "document_added" : "document_updated",
@@ -126,6 +132,7 @@ export default async function HubActivityPage({
   }
 
   for (const t of docThreads) {
+    if (!accessibleDocIds.has(t.documentId!)) continue;
     items.push({
       type: "doc_thread", id: `doc-thread-${t.id}`,
       threadId: t.id, threadTitle: t.title,
@@ -136,6 +143,7 @@ export default async function HubActivityPage({
   }
 
   for (const r of docReplies) {
+    if (!accessibleDocIds.has(r.thread.documentId!)) continue;
     items.push({
       type: "doc_reply", id: `doc-reply-${r.id}`,
       threadId: r.thread.id, threadTitle: r.thread.title,

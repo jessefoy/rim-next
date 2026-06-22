@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { canAccessDocument } from "@/lib/documentAuth";
 import { sendHubDocumentCreatedEmail } from "@/lib/email";
 import { seedBlankOfficeFile, requestBaseUrl } from "@/lib/onlyoffice";
 
@@ -25,11 +26,22 @@ export async function GET(
   const documents = await db.hubDocument.findMany({
     // Trash never surfaces here — see /api/hub/[slug]/trash for managers.
     where:   { hubId: hub.id, deletedAt: null },
-    include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
+    include: {
+      addedBy:    { select: { firstName: true, lastName: true, preferredName: true } },
+      placements: { select: { hubId: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ documents, documentCategories: hub.documentCategories });
+  // Doc-level access: hide COORDINATORS-visibility docs from non-coordinators.
+  const docViewer = {
+    userId:      session.user.id,
+    roles:       session.user.roles ?? [],
+    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+  };
+  const accessible = documents.filter((d) => canAccessDocument(d, docViewer));
+
+  return NextResponse.json({ documents: accessible, documentCategories: hub.documentCategories });
 }
 
 // POST /api/hub/[slug]/documents — any hub member can create
