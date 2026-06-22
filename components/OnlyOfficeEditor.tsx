@@ -18,19 +18,34 @@ interface EditorConfigResponse {
   documentServerUrl: string;
 }
 
+// If the editor never fires onDocumentReady within this window, reveal the
+// editor surface anyway so OnlyOffice's own error (e.g. "The document security
+// token is not correctly formed") stops hiding behind our loading overlay. A
+// cold document server can take ~15s on first open, so keep this comfortably
+// above that — the banner is non-blocking and auto-clears if the doc loads late.
+const READY_TIMEOUT_MS = 25000;
+
 /**
  * Mounts the OnlyOffice editor for a document. Fetches the JWT-signed config
  * from RIM (which re-checks access), loads the document server's api.js, then
  * hands the config to DocsAPI.DocEditor. `events` are attached client-side —
  * they're functions, never part of the signed token.
+ *
+ * Three failure surfaces, deliberately distinct:
+ *  - `error`  — RIM-side: editor-config fetch or api.js load failed. Full card.
+ *  - `stalled` — document-server-side: OnlyOffice fired onError, or never became
+ *    ready within READY_TIMEOUT_MS. We reveal the editor surface + a banner so
+ *    the server's real message is visible (the loading overlay used to mask it).
  */
 export default function OnlyOfficeEditor({ documentId }: { documentId: string }) {
   const editorRef = useRef<DocEditorInstance | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [stalled, setStalled] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let readyTimer: ReturnType<typeof setTimeout> | null = null;
 
     function loadScript(src: string): Promise<void> {
       return new Promise((resolve, reject) => {
@@ -70,13 +85,37 @@ export default function OnlyOfficeEditor({ documentId }: { documentId: string })
           height: "100%",
           events: {
             onDocumentReady: () => {
-              if (!cancelled) setLoading(false);
+              if (cancelled) return;
+              if (readyTimer) {
+                clearTimeout(readyTimer);
+                readyTimer = null;
+              }
+              setStalled(null);
+              setLoading(false);
             },
             onRequestClose: () => window.history.back(),
-            onError: (e: unknown) => console.error("[onlyoffice] editor error", e),
+            onError: (e: unknown) => {
+              console.error("[onlyoffice] editor error", e);
+              if (cancelled) return;
+              const code = (e as { data?: unknown })?.data;
+              setLoading(false);
+              setStalled(
+                `The document server returned an error${code != null ? ` (code ${String(code)})` : ""}. ` +
+                  "If the message on the page mentions a security token, the server's key is out of sync with the app.",
+              );
+            },
           },
         };
         editorRef.current = new window.DocsAPI.DocEditor("onlyoffice-editor", config);
+
+        readyTimer = setTimeout(() => {
+          if (cancelled) return;
+          setLoading(false);
+          setStalled((prev) =>
+            prev ??
+            "The editor didn't finish loading. If the page shows a security-token message, the document server's key needs re-syncing with the app.",
+          );
+        }, READY_TIMEOUT_MS);
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to open the document");
@@ -89,6 +128,7 @@ export default function OnlyOfficeEditor({ documentId }: { documentId: string })
 
     return () => {
       cancelled = true;
+      if (readyTimer) clearTimeout(readyTimer);
       try {
         editorRef.current?.destroyEditor();
       } catch {
@@ -111,6 +151,14 @@ export default function OnlyOfficeEditor({ documentId }: { documentId: string })
       ) : (
         <>
           {loading && <div className="oo-editor-loading">Opening editor…</div>}
+          {stalled && (
+            <div className="oo-editor-stalled" role="alert">
+              <p>{stalled}</p>
+              <button type="button" className="oo-editor-back" onClick={() => window.history.back()}>
+                ← Go back
+              </button>
+            </div>
+          )}
           <div id="onlyoffice-editor" className="oo-editor-mount" />
         </>
       )}

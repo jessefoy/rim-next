@@ -23953,6 +23953,26 @@ input.w-button { -webkit-appearance: button; }
   border: 0;
   cursor: pointer;
 }
+/* Non-blocking banner when the editor stalls — pinned to the top so the
+   document server's own message (if any) stays visible in the surface below. */
+.oo-editor-stalled {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 20px;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+.oo-editor-stalled p { margin: 0; max-width: 560px; }
 /* New office-doc create control (oo-create-) */
 .oo-create-input {
   width: 100%;
