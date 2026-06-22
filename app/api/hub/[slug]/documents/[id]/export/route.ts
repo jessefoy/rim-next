@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { canAccessDocument } from "@/lib/documentAuth";
 
 // ── BlockNote JSON → Markdown ────────────────────────────────────────────────
 // Legacy path: documents that were never edited after the Tiptap migration
@@ -80,10 +81,22 @@ export async function GET(
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!hub || (!canAccessHub(member, session.user.roles ?? []))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const doc = await db.hubDocument.findUnique({ where: { id } });
+  const doc = await db.hubDocument.findUnique({
+    where: { id },
+    include: { placements: { select: { hubId: true } } },
+  });
   if (!doc || doc.hubId !== hub.id || !doc.isNative) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  // Doc-level access: a COORDINATORS-visibility doc must 404 for a non-coordinator
+  // member, even of the origin hub — the export returns the full body.
+  const canSee = canAccessDocument(doc, {
+    userId:      session.user.id,
+    roles:       session.user.roles ?? [],
+    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+  });
+  if (!canSee) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const baseName = doc.label.replace(/[^a-z0-9]/gi, "-").toLowerCase();
 

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { canAccessDocument } from "@/lib/documentAuth";
 import { sendHubConvNewThreadEmail } from "@/lib/email";
 
 // GET /api/hub/[slug]/documents/[id]/conversations — list threads for a document
@@ -19,8 +20,20 @@ export async function GET(
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const doc = await db.hubDocument.findUnique({ where: { id: docId }, select: { hubId: true, label: true } });
+  const doc = await db.hubDocument.findUnique({
+    where:  { id: docId },
+    select: { hubId: true, label: true, addedById: true, visibility: true, placements: { select: { hubId: true } } },
+  });
   if (!doc || doc.hubId !== hub.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // Doc-level access: a COORDINATORS-visibility doc's comments must 404 for a
+  // non-coordinator, even of the origin hub (reads the threads, and posts to them).
+  if (!canAccessDocument(doc, {
+    userId:      session.user.id,
+    roles:       session.user.roles ?? [],
+    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+  })) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   const threads = await db.hubConversationThread.findMany({
     where: { hubId: hub.id, documentId: docId, deletedAt: null },
@@ -48,8 +61,20 @@ export async function POST(
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const doc = await db.hubDocument.findUnique({ where: { id: docId }, select: { hubId: true, label: true } });
+  const doc = await db.hubDocument.findUnique({
+    where:  { id: docId },
+    select: { hubId: true, label: true, addedById: true, visibility: true, placements: { select: { hubId: true } } },
+  });
   if (!doc || doc.hubId !== hub.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // Doc-level access: a COORDINATORS-visibility doc's comments must 404 for a
+  // non-coordinator, even of the origin hub (reads the threads, and posts to them).
+  if (!canAccessDocument(doc, {
+    userId:      session.user.id,
+    roles:       session.user.roles ?? [],
+    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+  })) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   const { title, body, notifyUserIds } = await req.json();
   if (!title?.trim() || !body) {
