@@ -28,16 +28,25 @@ const READY_TIMEOUT_MS = 25000;
 /**
  * Mounts the OnlyOffice editor for a document. Fetches the JWT-signed config
  * from RIM (which re-checks access), loads the document server's api.js, then
- * hands the config to DocsAPI.DocEditor. `events` are attached client-side —
- * they're functions, never part of the signed token.
+ * hands the config to DocsAPI.DocEditor.
+ *
+ * DOM ownership: DocsAPI.DocEditor REPLACES its target element with an <iframe>.
+ * If React owns that element, a later React DOM mutation (toggling an overlay,
+ * unmounting) throws "NotFoundError: The object can not be found here" because
+ * the node React expects is gone. So we create the target element OURSELVES
+ * inside a React-owned-but-never-reconciled host div (`hostRef`, which carries
+ * no JSX children), and React never touches the OnlyOffice node again. The
+ * loading / stalled overlays are siblings AFTER the host, so React only ever
+ * appends/removes trailing nodes — never inserts before the replaced node.
  *
  * Three failure surfaces, deliberately distinct:
- *  - `error`  — RIM-side: editor-config fetch or api.js load failed. Full card.
+ *  - `error`   — RIM-side: editor-config fetch or api.js load failed. Full card.
  *  - `stalled` — document-server-side: OnlyOffice fired onError, or never became
- *    ready within READY_TIMEOUT_MS. We reveal the editor surface + a banner so
- *    the server's real message is visible (the loading overlay used to mask it).
+ *    ready within READY_TIMEOUT_MS. We reveal a banner so the server's real
+ *    message (which renders inside the iframe) is no longer masked.
  */
 export default function OnlyOfficeEditor({ documentId }: { documentId: string }) {
+  const hostRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<DocEditorInstance | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +86,13 @@ export default function OnlyOfficeEditor({ documentId }: { documentId: string })
         if (cancelled) return;
 
         await loadScript(data.apiJsUrl);
-        if (cancelled || !window.DocsAPI) return;
+        if (cancelled || !window.DocsAPI || !hostRef.current) return;
+
+        // Create OnlyOffice's mount target ourselves so React never owns the node
+        // OnlyOffice replaces with its iframe.
+        const mount = document.createElement("div");
+        mount.id = "onlyoffice-editor";
+        hostRef.current.replaceChildren(mount);
 
         const config = {
           ...data.config,
@@ -135,6 +150,8 @@ export default function OnlyOfficeEditor({ documentId }: { documentId: string })
         /* editor may not have initialized */
       }
       editorRef.current = null;
+      // Remove OnlyOffice's iframe ourselves — React never owned it, so it won't.
+      if (hostRef.current) hostRef.current.replaceChildren();
     };
   }, [documentId]);
 
@@ -150,6 +167,7 @@ export default function OnlyOfficeEditor({ documentId }: { documentId: string })
         </div>
       ) : (
         <>
+          <div ref={hostRef} className="oo-editor-mount" />
           {loading && <div className="oo-editor-loading">Opening editor…</div>}
           {stalled && (
             <div className="oo-editor-stalled" role="alert">
@@ -159,7 +177,6 @@ export default function OnlyOfficeEditor({ documentId }: { documentId: string })
               </button>
             </div>
           )}
-          <div id="onlyoffice-editor" className="oo-editor-mount" />
         </>
       )}
     </div>
