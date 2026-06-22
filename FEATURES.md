@@ -202,6 +202,8 @@ Each virtual/hybrid program has a full-page video room at `/session/[slug]` (sel
 All rich-text authoring uses **`RimTiptapEditor`** (`components/rim-tiptap/`) — Tiptap 3, one component, three variants (`minimal` / `message` / `document`), storing **plain HTML strings**. Custom blocks: Callout (note/decision), PullQuote, VerseQuote, PracticeSuggestion, Reflection. A selection bubble menu handles inline marks; the top toolbar handles insertion. Output renders into `.rim-content` wrappers. Legacy BlockNote was fully removed in session 97; renderers still format-detect to display any unmigrated rows.
 - **See:** `RIM_Editor_Types.md` (canonical reference — block library + placement registry).
 
+**Office documents (OnlyOffice)** — *in progress (session 154): the feature spine is built on branch `claude/onlyoffice-docs`, the server is live, not yet deployed.* For documents that need real word-processor power (pages, live co-editing, comments, version history) — handouts, worksheets, spreadsheets, presentations — hubs can use **self-hosted OnlyOffice Docs** at `docs.rootedinmindfulness.org`. RIM mints each editing session (real RIM identity, no Google/external account), files live in Vercel Blob, and the same `HubDocument` record carries them (`docKind = ONLYOFFICE`) alongside native/link/PDF docs. Office docs can be shared **across hubs** or be **hubless** (community projects), with per-doc visibility (Hub / Coordinators / Community). The native RIM editor stays for everything else (conversations, teaching pages). **See:** `RIM_OnlyOffice.md`.
+
 ---
 
 ## Notifications & Email

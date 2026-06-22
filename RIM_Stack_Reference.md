@@ -290,7 +290,16 @@ API routes added: `/api/hub/[slug]/documents/[id]/{notify,archive,restore,perman
 ### File Storage (Vercel Blob)
 | Variable | Purpose |
 |---|---|
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob upload/read token — used by `/api/upload` for image and audio files |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob upload/read token — used by `/api/upload` for image and audio files; OnlyOffice saved office files also `put` here via the callback |
+
+### OnlyOffice (Office Documents) — session 154, branch `claude/onlyoffice-docs` (pending deploy)
+Self-hosted OnlyOffice Docs Community, co-hosted on the LiveKit droplet at **`https://docs.rootedinmindfulness.org`** (server live). Office documents (docx/xlsx/pptx) in hubs are edited there; RIM mints each JWT-signed editing session. Infra runbook + rollback: `RIM_OnlyOffice.md`.
+| Variable | Purpose |
+|---|---|
+| `ONLYOFFICE_URL` | Document-server origin (`https://docs.rootedinmindfulness.org`). The browser loads `api.js` from here; RIM checks the save callback's edited-file origin against it (SSRF guard). |
+| `ONLYOFFICE_JWT_SECRET` | Shared HS256 secret (matches the container's `JWT_SECRET` in `/root/onlyoffice/.env`). RIM signs each editor config + verifies the save callback. |
+
+Both must be added to Vercel before the branch deploys — until then `onlyOfficeConfigured()` is false and the editor-config route returns 503; the native doc system is unaffected.
 
 ### Newsletter & Cron
 | Variable | Purpose |

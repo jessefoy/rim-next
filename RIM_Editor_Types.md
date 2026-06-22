@@ -320,6 +320,7 @@ Uses `RimTiptapEditor` with `variant="document"`. Top toolbar present (insertion
 - **Output destination:** interactive web
 - **Output wrapper:** `rim-content hdoc-body`
 - **Route:** `/account/hub/[slug]/documents/[id]`
+- **Note (session 154):** this RIM-editor placement is for `HubDocument.docKind = NATIVE` only. A `HubDocument` with `docKind = ONLYOFFICE` is an office file (docx/xlsx/pptx) edited in **OnlyOffice**, *not* the RIM editor — a separate full-screen surface (`components/OnlyOfficeEditor.tsx`, `/account/documents/[id]/office`). The two coexist on the same record; OnlyOffice docs are not one of the RIM editor's four types. See `RIM_OnlyOffice.md`.
 
 #### `manual`
 - **Component:** `components/ManualSectionEditor.tsx`

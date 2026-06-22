@@ -6,6 +6,30 @@
 
 ## Active
 
+### Session 154 (2026-06-21) — OnlyOffice office documents: feature spine built on a branch; needs Vercel env + deploy to test
+
+Decided + built the spine of office-document editing for hub documents via **self-hosted OnlyOffice**. **Four commits on branch `claude/onlyoffice-docs` — NOT merged, NOT deployed** (prod app + DB untouched). The OnlyOffice **server is live** on the LiveKit droplet. Full narrative in `session-log.md` (session 154); per-tool reference + infra runbook in **`RIM_OnlyOffice.md`**.
+
+**Done (branch + live infra):**
+- **Slice 0 (live):** OnlyOffice Docs Community at `docs.rootedinmindfulness.org` — isolated stack + header shim on the LiveKit droplet, Caddy L4 route + LE cert. Verified docs 200 / livekit 200.
+- **Slice 1:** `HubDocument` generalized (docKind / storageKey / version / visibility, nullable hubId, `HubDocumentPlacement` join, enums) + idempotent `onlyoffice_documents_v1` migration + `lib/documentAuth.ts` (central `canAccessDocument` / `canEditDocument`).
+- **Slice 2:** the save loop — `lib/onlyoffice.ts` (HS256 JWT, config builder) + `editor-config` / `callback` / `download` routes. Reviewed + hardened.
+- **Slice 3a:** the editor surface — `OnlyOfficeEditor` component + full-screen `/account/documents/[id]/office` + `oo-` CSS.
+
+**NEXT SESSION — opening moves, in order:**
+1. **Jesse:** add to Vercel env — `ONLYOFFICE_URL=https://docs.rootedinmindfulness.org` and `ONLYOFFICE_JWT_SECRET` (value: `cat /root/onlyoffice/.env` on the droplet — straight into Vercel, never chat).
+2. **Deploy the branch to a preview** — the build runs `migrate.mjs` (applies `onlyoffice_documents_v1` — additive, idempotent) and brings the routes + editor surface live against the live `docs.` server.
+3. **Seed one OnlyOffice doc + open it** at `/account/documents/<id>/office` → confirm the loop round-trips (edit → close → version bumps + new blob in storage).
+4. Then build the rest:
+   - **Slice 3b** — create flow + blank `.docx/.xlsx/.pptx` templates. **Open decision:** how to generate valid blanks — a library (docx / exceljs / pptxgenjs), committed binary templates, or hand-rolled OOXML (`.pptx` is the hard one; can't test locally, so decide with testability in mind).
+   - **Slice 4** — sharing/visibility UI (share-with-hubs picker + visibility dropdown + shared badges) + the master directory `/account/documents` (per-hub sections gated by `canAccessDocument` + a Community/Projects section). *Guard the placement create-path: reject `hubId === document.hubId` so the origin isn't double-listed (reviewer note).*
+   - **Slice 5** — migrate existing plain native hub docs → `.docx` (server-side, reversible).
+   - **Slice 6** — RIM-access→OnlyOffice-mode polish, named co-edit, mobile (Community mobile editing is limited — weigh the nonprofit Enterprise discount), the **comment-title fix** (`HubConversationThread.title` → nullable + ~15 consumer surfaces; doc-attached threads drop the required title), OnlyOffice welcome-page hardening.
+
+**In-session task list mirrors the slices: #1–#3 complete, #4 in progress (3a done), #5–#7 pending.**
+
+**Don't re-derive:** the whole architecture + decisions are in `RIM_OnlyOffice.md` and the session-log. Docs are now RIM's first hub-optional / multi-hub resource (placement model); doc access is doc-level via `canAccessDocument`; the OnlyOffice callback is the one deliberate non-session-gated route (JWT-only).
+
 ### Session 153 (follow-on, 2026-06-17) — Monthly recurrence is now first-class — on `main` & deployed; deployed verification + two data fixes pending
 
 After the consolidation closing, shipped a separate slice (LoriLee's report: once-a-month programs showed a stale fixed date). **One commit `981e281` on `main`, deployed.** No deps/env/services/schema change. Diagnosis came from a 14-agent audit that corrected my first read. Full record in `session-log.md` (session 153 follow-on).

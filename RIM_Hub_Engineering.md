@@ -284,6 +284,18 @@ This was **not** a cross-hub leak (the four routing layers above were clean) —
 
 ---
 
+## Documents are the first hub-optional, multi-hub resource (session 154)
+
+Office documents (OnlyOffice integration, branch `claude/onlyoffice-docs`) break the "every resource belongs to exactly one hub" assumption. A `HubDocument` can live in one hub, several (`HubDocumentPlacement` join), or none (`hubId` is now nullable — hubless community-project docs). So **document access is doc-level, not hub-slug-level**: gate reads with `lib/documentAuth.ts::canAccessDocument` and edits with `canEditDocument` (placements + the per-doc `visibility` enum HUB/COORDINATORS/COMMUNITY), never a single `hubId` check. Author + GUIDING_TEACHER always pass; ADMIN does not (the s128 content boundary holds).
+
+Two new-pattern callouts:
+- **The OnlyOffice save callback (`POST /api/onlyoffice/callback`) is intentionally NOT session-gated** — the document server calls it server-to-server with no RIM session, so it's authenticated by the shared-secret JWT instead. The one sanctioned exception to "every `/api/**` mutation gates a session"; documented, not a leak.
+- **The cross-hub placement create-path must reject `hubId === document.hubId`** (the origin), or a doc gets double-listed in its own hub (`documentHubIds()` dedupes for *access*, but a directory/list query would show it twice).
+
+Full model + the infra runbook: `RIM_OnlyOffice.md`.
+
+---
+
 ## Engineering rules in one paragraph
 
 When you touch a hub: derive the hub from the resource (usually a program), pass it through every layer (capability, recipients, UI filter, URLs), use the canonical helpers (`getProgramHubSlug`, `getHubNotificationRecipients`, `hubScopedUrl`, etc.), never hardcode `"host-team"`, never bypass hub membership for ADMIN on content access, use `after()` for fire-and-forget emails from route handlers, await emails from non-route functions whose callers already await, and at closing audit all four layers across every callsite you touched.

@@ -1,5 +1,44 @@
 ---
 
+## 2026-06-21 (session 154) — OnlyOffice office-documents: architecture + the feature spine (Slices 0–3a) on a branch
+
+A long co-design + build session: decided to add real office-document editing (Word/Excel/PowerPoint — live co-editing, comments, version history, real pages) to hub documents by **self-hosting OnlyOffice Docs**, then built the spine. **Four commits on branch `claude/onlyoffice-docs` — NOT merged, NOT deployed**; the OnlyOffice **server is live** on the LiveKit droplet. `tsc`-green throughout; both code slices adversarially reviewed. New per-tool doc: **`RIM_OnlyOffice.md`**.
+
+### Why OnlyOffice, and why self-hosted (the architecture decision)
+Jesse wanted Google-Docs-grade editing (the native Tiptap hub-doc editor is web-flow, single-author, no pages) without members needing Google accounts.
+- **You can't use "Google Docs' code"** — closed-source (canvas-rendered). Editing a Google Doc needs a Google account or anonymous editing (which breaks RIM's "community isn't anonymous").
+- **Self-hosted OnlyOffice Docs (Community, free, AGPLv3)** is the fit: RIM embeds it and **mints every editing session** → accountless *and* named (real RIM identity in the doc), which Google can't do. v9.4 (May 2026) dropped the old 20-connection cap, so the free edition is production-viable. $0 software; co-hosted on the existing 8 GB LiveKit droplet (verified idle headroom).
+- **Scope is the office-document slice only.** A full editor-usage inventory confirmed the RIM Tiptap editor is load-bearing across hub conversations/replies (incl. the threads under docs), program descriptions, and lesson bodies (the Dharma blocks live in exactly those 3 doc-variant surfaces). "Migrate everything / degrade the RIM editor" would have broken conversations + teaching pages — the honest answer is the clean split, OnlyOffice for office files.
+
+### Product decisions (co-designed)
+- **Full-screen dedicated editor**, not embedded-in-chrome — hub stays the calm home.
+- **Comments stay related, not merged** — the hub thread under a doc stays; OnlyOffice inline comments live in the doc; no bridge.
+- **v1 types:** documents, spreadsheets, presentations.
+- **Per-doc visibility as a small enum** (HUB / COORDINATORS / COMMUNITY), *not* free-form per-person ACLs — calmer, avoids access-confusion. Jesse's "community-wide toggle" = the COMMUNITY level.
+- **Cross-hub + hubless docs at the document level** (not "project hubs," deferred): one canonical doc placed in one hub, several, or none (a community-project doc); surfaces in each hub badged, never copied — via a placement join; `hubId` became nullable.
+- **Migrate existing native hub docs → .docx** (they're plain, no Dharma blocks) — deferred to Slice 5. The **comment-title bug** (a doc's first comment shouldn't require a title) folded into Slice 6.
+
+### What was built
+- **Slice 1 (`0b73bc3`) — schema + access core.** `HubDocument` gains `docKind`/`storageKey`/`version`/`visibility`, nullable `hubId`; new `HubDocumentPlacement` join; enums `HubDocKind`/`HubDocVisibility`. Idempotent migrate.mjs `onlyoffice_documents_v1` (backfills docKind). `lib/documentAuth.ts` — central, pure, leak-free `canAccessDocument`/`canEditDocument` (author + GT always; COMMUNITY = everyone; HUB/COORDINATORS scoped to placed hubs; ADMIN does *not* auto-pass, per the s128 boundary). Nullable hubId had **zero** ripple.
+- **Slice 0 (`7217906`, infra — LIVE).** Isolated stack at `/root/onlyoffice/` (OnlyOffice + a header shim), reached at **`docs.rootedinmindfulness.org`** via the LiveKit Caddy. *Caught by inspecting first:* the LiveKit Caddy is `caddyl4` in pure **Layer-4** mode (raw TCP, can't add headers) and everything uses **host networking** (OnlyOffice's bundled Redis would collide on 6379). So OnlyOffice runs bridge-networked with a tiny `caddy:2` **shim** injecting `X-Forwarded-Proto: https` (OnlyOffice requires it — verified against its docs), and the live Caddy got one SNI route → the shim. Applied backup→validate→graceful-reload; verified docs 200 + livekit 200. Runbook + rollback in `RIM_OnlyOffice.md`.
+- **Slice 2 (`8a8ca98`) — the save loop.** `lib/onlyoffice.ts` (HS256 JWT via node:crypto, no dep; signed editor-config; `document.key = id-version`; SSRF + download-token guards). `GET /api/documents/[id]/editor-config` (doc-centric, `canAccessDocument`). `POST /api/onlyoffice/callback` (**session-less — JWT-only**, the one deliberate exception; status 2 bumps version atomically + dels old blob, status 6 saves in place). `GET /api/onlyoffice/download/[id]` (token-gated stream). Review: no auth-bypass; fixed version race, blob accumulation, SSRF defense-in-depth, ForceSave key-stranding, token TTL.
+- **Slice 3a (`2ce04fd`) — the editor surface.** `components/OnlyOfficeEditor.tsx` (loads api.js, mounts DocsAPI.DocEditor, loading/error states, cleanup); full-screen `/account/documents/[id]/office` (server-gated); `oo-` CSS.
+
+### What this connects to
+- **HubDocument system** — generalized *in place*; native (NATIVE), links (LINK), PDFs (UPLOAD), and now OnlyOffice (ONLYOFFICE) coexist on one record with the same lifecycle/notify/conversations. The native doc system is behaviorally unchanged.
+- **Hubs / access** — docs are now RIM's **first hub-optional, multi-hub resource** (a deliberate departure from "everything belongs to one hub"). Access is doc-level via the central `canAccessDocument` (placements + visibility), not a single hubId. The callback is the documented non-session-gated exception.
+- **LiveKit droplet** — OnlyOffice co-hosted as an isolated, resource-capped stack; LiveKit untouched; the same Caddy now serves a third subdomain.
+- **Native RIM editor** — untouched, still load-bearing for conversations + teaching content; OnlyOffice is the office-file sibling.
+- **Auth** — RIM identity flows into every editing session (no external accounts), consistent with the passwordless model.
+
+### What comes next (UP_NEXT has the ordered list — needs Jesse's env vars + a deploy to test)
+1. Jesse adds `ONLYOFFICE_URL` + `ONLYOFFICE_JWT_SECRET` to Vercel; deploy the branch to a preview (runs the migration); open a doc; confirm the save loop round-trips.
+2. Slice 3b (create + blank templates — generation method is the open decision), Slice 4 (sharing UI + master directory), Slice 5 (migrate native docs), Slice 6 (mode polish, mobile, comment-title fix, welcome-page hardening).
+
+**Branch, not merged:** the feature is incomplete + untested (no Vercel env yet), so it stays on `claude/onlyoffice-docs`; merge when testable + complete.
+
+---
+
 ## 2026-06-17 (session 153) — Member-profile consolidation: assign hubs from the registry + retire the HOST role
 
 Built the teed-up "assign hubs from the member page," then — after Jesse found the first result cumbersome ("two places to add to a hub") — consolidated the whole member-profile membership model and **retired the plain HOST role.** Two commits on `main`, both deployed; `tsc`-green, reviewer-gated each slice. No new deps / env / services. One migration `retire_host_role_v1` (no schema change).
