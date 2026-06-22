@@ -616,7 +616,7 @@ export default function HubDocumentsClient({
                         <label className="fl">Label</label>
                         <input className="fi" type="text" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
                       </div>
-                      {!doc.isNative && doc.fileType !== "PDF" && (
+                      {!doc.isNative && doc.fileType !== "PDF" && doc.docKind !== "ONLYOFFICE" && (
                         <div className="fg">
                           <label className="fl">URL</label>
                           <div className="hub-doc-url-row">
