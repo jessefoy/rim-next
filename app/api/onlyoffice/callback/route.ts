@@ -11,10 +11,12 @@ const EXT_FOR_FILETYPE: Record<string, string> = {
 };
 
 interface OnlyOfficeCallback {
-  key: string;
-  status: number;
+  key?: string;
+  status?: number;
   url?: string;
   token?: string;
+  /** OnlyOffice's Authorization-header callback nests the body fields here. */
+  payload?: OnlyOfficeCallback;
 }
 
 /**
@@ -43,14 +45,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 1 });
   }
 
-  const { key, status, url } = verified;
+  // OnlyOffice signs the callback into the Authorization header, whose token
+  // nests the body fields under `payload`; a body-embedded `token` carries them
+  // at the top level. Read both — reading only the top level gave
+  // status=undefined, so the save block below never ran and edits never
+  // persisted (the real root of bug #1; the host-rewrite below is needed too,
+  // but was never reached).
+  const cb = verified.payload ?? verified;
+  const { key, status, url } = cb;
 
   // Diagnostic: one line per callback so the save loop is observable in Vercel
-  // logs — status, key, and the edited-file host OnlyOffice reports vs. the host
-  // we rewrite it to. The query string is dropped: it's OnlyOffice's signed,
-  // short-lived cache capability, and origin+path is all we need to confirm the
-  // host. (Temporary instrumentation; remove once the loop is confirmed — see
-  // RIM_OnlyOffice.md.)
+  // logs — the status + the edited-file host OnlyOffice reports vs. the host we
+  // rewrite it to, plus the verified token's top-level keys (to confirm the
+  // payload nesting). The query string is dropped: it's OnlyOffice's signed,
+  // short-lived cache capability. (Temporary instrumentation; remove once the
+  // loop is confirmed — see RIM_OnlyOffice.md.)
   const resolvedUrl = url ? resolveEditedFileUrl(url) : null;
   const logUrl = (u: string | null | undefined) => {
     try {
@@ -61,7 +70,7 @@ export async function POST(req: NextRequest) {
     }
   };
   console.log(
-    `[onlyoffice/callback] status=${status} key=${key ?? "—"} url=${logUrl(url)} → fetch=${logUrl(resolvedUrl)}`,
+    `[onlyoffice/callback] status=${status ?? "—"} key=${key ?? "—"} url=${logUrl(url)} → fetch=${logUrl(resolvedUrl)} tokenKeys=[${Object.keys(verified).join(",")}]`,
   );
 
   // 2 = MustSave (10s after the last editor closed), 6 = ForceSave (mid-session).
