@@ -677,7 +677,7 @@ export default function HubDocumentsClient({
                       {doc.isLocked && <span className="hub-doc-item__edit" title="Locked by author">🔒</span>}
                       <div className="hub-doc-item__text">
                         {doc.docKind === "ONLYOFFICE" ? (
-                          <a href={`/account/documents/${doc.id}/office`} className="hub-doc-item__native-link">
+                          <a href={`/account/hub/${hubSlug}/documents/${doc.id}`} className="hub-doc-item__native-link">
                             {doc.label}
                           </a>
                         ) : doc.isNative ? (

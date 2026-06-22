@@ -22268,6 +22268,29 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   margin: 0 0 40px;
 }
 
+/* Office document (OnlyOffice) — the doc page is its home; content opens full-screen */
+.doc-page__office {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 4px 0;
+}
+.doc-page__office-kind {
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rim-text-muted);
+}
+.doc-page__office-open { min-height: 44px; padding: 12px 22px; }
+.doc-page__office-hint {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  margin: 0;
+}
+
 /* Document body typography — Inter, generous spacing */
 .doc-body {
   font-family: var(--font-doc);

@@ -35,18 +35,34 @@ export function onlyOfficeApiJsUrl(): string {
 }
 
 /**
- * True if `candidate` is served by the configured document server. The save
- * callback's edited-file URL must originate there — an SSRF guard before RIM
- * fetches it server-side.
+ * Resolve the edited-file URL OnlyOffice sends in its save callback into one RIM
+ * can actually fetch — by forcing the host to the configured document server's
+ * public origin while preserving the cache path + signed query.
+ *
+ * Why rewrite rather than trust-or-reject: behind the Caddy-L4 + header-shim
+ * proxy (RIM_OnlyOffice.md §1), the document server reports an *internal* host
+ * (a container name / loopback / private IP) it can only be reached at from on
+ * the droplet — never from Vercel. The old origin-equality SSRF guard both
+ * rejected that URL and, even relaxed, would have left RIM fetching an
+ * unreachable host. Pinning the host to ONLYOFFICE_URL fixes both at once.
+ *
+ * This is also the SSRF boundary, and a stronger one than an equality check: we
+ * never fetch a host we were *handed* — only the one we trust. `username` /
+ * `password` are cleared so a `https://docs…@evil/…` form can't smuggle a host.
+ * Returns null only if the URL is unparseable (caller skips the save).
  */
-export function isDocumentServerUrl(candidate: string): boolean {
+export function resolveEditedFileUrl(candidate: string): string | null {
   try {
-    return (
-      Boolean(ONLYOFFICE_URL) &&
-      new URL(candidate).origin === new URL(ONLYOFFICE_URL).origin
-    );
+    const u = new URL(candidate);
+    if (!ONLYOFFICE_URL) return u.toString(); // unconfigured (dev) — trust as-is
+    const ds = new URL(ONLYOFFICE_URL);
+    u.protocol = ds.protocol;
+    u.username = "";
+    u.password = "";
+    u.host = ds.host; // host includes port
+    return u.toString();
   } catch {
-    return false;
+    return null;
   }
 }
 

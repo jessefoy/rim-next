@@ -37,7 +37,16 @@ export default async function HubDocumentViewPage({
   if (!doc || doc.hubId !== hub.id) notFound();
 
   const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
-  const bodyHtml = doc.body ? await renderContentBodyAsync(doc.body) : "";
+
+  // Office docs (OnlyOffice) carry no native `body` — their content lives in the
+  // full-screen editor. This page becomes the doc's home: metadata + the
+  // conversation thread + an "Open in editor" CTA, instead of native body.
+  const isOffice = doc.docKind === "ONLYOFFICE";
+  const officeKindLabel =
+    doc.fileType === "SHEET" ? "Spreadsheet"
+    : doc.fileType === "SLIDE" ? "Presentation"
+    : "Document";
+  const bodyHtml = !isOffice && doc.body ? await renderContentBodyAsync(doc.body) : "";
 
   const addedByName =
     doc.addedBy.preferredName ||
@@ -92,7 +101,7 @@ export default async function HubDocumentViewPage({
         <Link href={`/account/hub/${slug}/documents`} className="doc-page__back">
           ← Documents
         </Link>
-        {isCoordinator && (
+        {isCoordinator && !isOffice && (
           <Link href={`/account/hub/${slug}/documents/${id}/edit`} className="doc-page__edit-link">
             Edit
           </Link>
@@ -118,7 +127,17 @@ export default async function HubDocumentViewPage({
         </div>
         <hr />
 
-        {bodyHtml ? (
+        {isOffice ? (
+          <div className="doc-page__office">
+            <span className="doc-page__office-kind">{officeKindLabel}</span>
+            <a href={`/account/documents/${id}/office`} className="btn doc-page__office-open">
+              Open in editor →
+            </a>
+            <p className="doc-page__office-hint">
+              Co-editing, comments, version history, and real pages — opens full-screen.
+            </p>
+          </div>
+        ) : bodyHtml ? (
           <div
             className="doc-body rim-content rim-content--document"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
@@ -130,11 +149,13 @@ export default async function HubDocumentViewPage({
         )}
       </div>
 
-      <div className="doc-page__footer">
-        <a href={`/api/hub/${slug}/documents/${id}/export`} download>
-          ↓ Download as Markdown
-        </a>
-      </div>
+      {!isOffice && (
+        <div className="doc-page__footer">
+          <a href={`/api/hub/${slug}/documents/${id}/export`} download>
+            ↓ Download as Markdown
+          </a>
+        </div>
+      )}
 
       <HubDocConversationsClient
         hubSlug={slug}

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { isDocumentServerUrl, verifyOnlyOfficeToken } from "@/lib/onlyoffice";
+import { resolveEditedFileUrl, verifyOnlyOfficeToken } from "@/lib/onlyoffice";
 import { del, put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -45,13 +45,34 @@ export async function POST(req: NextRequest) {
 
   const { key, status, url } = verified;
 
+  // Diagnostic: one line per callback so the save loop is observable in Vercel
+  // logs — status, key, and the edited-file host OnlyOffice reports vs. the host
+  // we rewrite it to. The query string is dropped: it's OnlyOffice's signed,
+  // short-lived cache capability, and origin+path is all we need to confirm the
+  // host. (Temporary instrumentation; remove once the loop is confirmed — see
+  // RIM_OnlyOffice.md.)
+  const resolvedUrl = url ? resolveEditedFileUrl(url) : null;
+  const logUrl = (u: string | null | undefined) => {
+    try {
+      const x = new URL(u as string);
+      return x.origin + x.pathname;
+    } catch {
+      return u ?? "—";
+    }
+  };
+  console.log(
+    `[onlyoffice/callback] status=${status} key=${key ?? "—"} url=${logUrl(url)} → fetch=${logUrl(resolvedUrl)}`,
+  );
+
   // 2 = MustSave (10s after the last editor closed), 6 = ForceSave (mid-session).
   if (status === 2 || status === 6) {
     if (!url || !key) return NextResponse.json({ error: 0 });
 
-    // SSRF guard: the edited-file URL must come from the document server itself.
-    if (!isDocumentServerUrl(url)) {
-      console.error("[onlyoffice/callback] rejected edited-file url (not the document server)");
+    // The edited-file URL is pinned to the document server's public origin (the
+    // host OnlyOffice reports is internal-only behind the proxy). null = the URL
+    // was unparseable — skip the save rather than fetch something unexpected.
+    if (!resolvedUrl) {
+      console.error("[onlyoffice/callback] unparseable edited-file url; skipping save");
       return NextResponse.json({ error: 0 });
     }
 
@@ -70,7 +91,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 0 });
       }
 
-      const res = await fetch(url);
+      const res = await fetch(resolvedUrl);
       if (!res.ok) throw new Error(`download edited file failed: ${res.status}`);
       const buffer = Buffer.from(await res.arrayBuffer());
       const ext = EXT_FOR_FILETYPE[doc.fileType] ?? "docx";
