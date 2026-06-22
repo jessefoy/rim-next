@@ -52,6 +52,8 @@ interface Props {
   initialDocuments: HubDoc[];
   documentCategories: string[];
   isCoordinator: boolean;
+  /** Office-doc create is gated to coordinators while OnlyOffice is in beta + configured. */
+  officeEnabled: boolean;
   currentUserId: string;
   hubMembers: HubMemberOption[];
 }
@@ -82,6 +84,7 @@ export default function HubDocumentsClient({
   initialDocuments,
   documentCategories: initialCategories,
   isCoordinator,
+  officeEnabled,
   currentUserId,
   hubMembers,
 }: Props) {
@@ -397,9 +400,11 @@ export default function HubDocumentsClient({
           <button className="btn btn--sm btn--ghost" onClick={() => { setShowAdd((v) => !v); resetAddForm(); }}>
             + Add Resource
           </button>
-          <button className="btn btn--sm btn--ghost" onClick={() => setShowOffice((v) => !v)}>
-            + Office doc
-          </button>
+          {officeEnabled && isCoordinator && (
+            <button className="btn btn--sm btn--ghost" onClick={() => setShowOffice((v) => !v)}>
+              + Office doc
+            </button>
+          )}
         </div>
       </div>
 

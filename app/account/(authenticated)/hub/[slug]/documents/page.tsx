@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import HubDocumentsClient from "@/components/HubDocumentsClient";
+import { onlyOfficeConfigured } from "@/lib/onlyoffice";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,7 @@ export default async function HubDocumentsPage({
       initialDocuments={serialized}
       documentCategories={hub.documentCategories as string[]}
       isCoordinator={isCoordinator}
+      officeEnabled={onlyOfficeConfigured()}
       currentUserId={session.user.id}
       hubMembers={serializedMembers}
     />
