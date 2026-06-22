@@ -6,9 +6,11 @@
 
 ## Active
 
-### Session 156 (2026-06-22) — ⏯ RESUME HERE: Documents filing system (OnlyOffice Slice 4) shipped — all 4 steps + `RIM_Documents.md` on `main`; next is deploy-verify + ungate / Slice 5 / polish
+### Session 156 (2026-06-22) — ⏯ RESUME HERE: Documents filing system (OnlyOffice Slice 4) shipped — all 4 steps + `RIM_Documents.md` on `main`; next is deploy-verify + Slice 5 / polish
 
 **Slice 4 is done and deployed** — 5 commits on `main`, no schema / deps / env / email change, reviewer-gated each step. The document filing system Jesse asked for, built in four steps on the s155 OnlyOffice foundation. Full narrative in `session-log.md` (session 156); the design + model in **`RIM_Documents.md`**.
+
+**s156 follow-up (post-closing) — opened up access** (after LoriLee couldn't see the buttons): **office-doc creation** ungated to all hub members (commit `80f6ab8`, closes backlog `2026-06-22-002`), and the **Manage-categories** surface (the button + `/api/hub/[slug]/document-categories`, now `canAccessHub`-gated) opened from coordinator-only to **all hub members** per Jesse (everyone should be able to make/tend a category; destructive ops are recoverable). Verified along the way: LoriLee was **not** actually flagged a coordinator of Support Inbox (her screenshot showed actions only on her own docs) — set her coordinator flag in Hub → Members if she should edit others' docs there.
 
 **Shipped + live:**
 - **Step 1 — freshness + search** (per-hub Documents tab): rows lead "Updated <when> · Author" (relative; "Added" on hover; visible on mobile); a search box (label/description/category/author) that flattens the category grouping into one recency-sorted list while active; recency-first within each group.

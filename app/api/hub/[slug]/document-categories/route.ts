@@ -1,11 +1,12 @@
 /**
- * /api/hub/[slug]/document-categories — coordinator curation of the document
+ * /api/hub/[slug]/document-categories — member curation of the document
  * category vocabulary (Hub.documentCategories).
  *
- * The "tended, not gated" half of the filing model (RIM_Documents.md §5): any
- * member can still mint a category inline while creating a doc (the doc
- * POST/PATCH routes), but the cleanup that keeps the list from sprawling —
- * rename, merge, reorder, remove — is coordinator-only and lives here.
+ * Any hub member can both mint a category inline while filing a doc (the doc
+ * POST/PATCH routes) AND tend the list here — rename, merge, reorder, remove.
+ * Opened from coordinator-only to all members per Jesse (s156 follow-up): RIM's
+ * trusted-team ethos favors access, and the destructive ops are recoverable
+ * (remove just uncategorizes — docs are happy uncategorized — rename/merge re-file).
  *
  * - POST   { name }                               — add a category
  * - PATCH  { action: "rename", oldName, newName } — rename; cascades to
@@ -16,29 +17,25 @@
  * - DELETE ?name=Foo                              — remove; docs filed under it
  *             become uncategorized (category = null). Documents need no category.
  *
- * All coordinator-gated (effectiveCoordinator: hub coordinator / ADMIN / GT).
- * Mirrors the conversation-categories route, minus the "≥1 required / General
- * fallback" rule — documents are happy uncategorized.
+ * Gated to any active hub member (canAccessHub). Mirrors the conversation-
+ * categories route, minus the "≥1 required / General fallback" rule.
  */
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { canAccessHub, effectiveCoordinator, getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import { NextResponse } from "next/server";
 
 function normalize(name: string): string {
   return name.trim().replace(/\s+/g, " ");
 }
 
-/** Load the hub and require coordinator authority, or return an error response. */
-async function loadCoordinatorContext(slug: string, userId: string, roles: string[]) {
+/** Load the hub and require active hub membership, or return an error response. */
+async function loadMemberContext(slug: string, userId: string, roles: string[]) {
   const { hub, member } = await getHubMembership(slug, userId, roles);
   if (!hub) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) };
   if (!canAccessHub(member, roles)) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-  if (!effectiveCoordinator(member, roles)) {
-    return { error: NextResponse.json({ error: "Only coordinators can manage categories." }, { status: 403 }) };
   }
   return { hub };
 }
@@ -48,7 +45,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { slug } = await params;
-  const ctx = await loadCoordinatorContext(slug, session.user.id, session.user.roles ?? []);
+  const ctx = await loadMemberContext(slug, session.user.id, session.user.roles ?? []);
   if (ctx.error) return ctx.error;
   const { hub } = ctx;
 
@@ -74,7 +71,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ slug: 
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { slug } = await params;
-  const ctx = await loadCoordinatorContext(slug, session.user.id, session.user.roles ?? []);
+  const ctx = await loadMemberContext(slug, session.user.id, session.user.roles ?? []);
   if (ctx.error) return ctx.error;
   const { hub } = ctx;
 
@@ -134,7 +131,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ slug:
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { slug } = await params;
-  const ctx = await loadCoordinatorContext(slug, session.user.id, session.user.roles ?? []);
+  const ctx = await loadMemberContext(slug, session.user.id, session.user.roles ?? []);
   if (ctx.error) return ctx.error;
   const { hub } = ctx;
 

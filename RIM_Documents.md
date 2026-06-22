@@ -128,8 +128,11 @@ deferred polish**, not Slice 4 core.
 
 ## 5. Categories — a tended vocabulary, not a gated one
 
-**The decision (session 155): pick-from-existing is the default; the creator can
-still add one for a genuine gap; coordinators curate.**
+**The decision (session 155, opened up s156): pick-from-existing is the default;
+the creator can still add one for a genuine gap; the curation surface (rename /
+merge / reorder / remove) lives on the Documents tab.** It launched
+coordinator-only; per Jesse (s156 follow-up) it's now open to **any hub member** —
+RIM's trusted-team ethos favors access, and the destructive ops are recoverable.
 
 ### Why not lock members out of adding
 The sprawl we have today is **not** caused by creators adding categories — it's
@@ -148,12 +151,13 @@ list. **Curation-after beats gating-before.**
    the nudge we change.)
 2. **Any doc creator can still add a category** when none fits. It flows into the
    hub's list as it does now.
-3. **Coordinators curate** — rename, merge, reorder, remove — from a
-   **coordinator-gated surface on the hub.** This is the piece that never
-   existed. *Build note:* the only current hub-config page
-   (`/admin/hubs/[slug]/edit`) is **ADMIN-only**, so this curation surface is
-   built fresh and coordinator-gated, living on/beside the Documents tab — not
-   bolted onto the admin page.
+3. **Any hub member curates** — rename, merge, reorder, remove — from a
+   **"Manage categories" surface on the Documents tab**
+   (`/api/hub/[slug]/document-categories`, `canAccessHub`-gated). This is the
+   piece that never existed. It shipped coordinator-only and was opened to all
+   members in the s156 follow-up (Jesse: everyone should be able to make and tend
+   a category). Removing a category just uncategorizes its docs; rename/merge
+   re-file — all recoverable.
 
 ### Categories are hub-local
 `documentCategories` belongs to each hub. The directory does **not** try to unify
@@ -288,10 +292,11 @@ All four steps are live on `main`; this is the order they landed:
 
 1. ✅ **Freshness + search on the per-hub tab** (`HubDocumentsClient`) — `updatedAt`
    surfaced, search box, recency sort. Pure surfacing, no new routes.
-2. ✅ **Category governance** — pick-from-existing default + the coordinator-gated
-   curation surface `/api/hub/[slug]/document-categories` (rename / merge /
-   reorder / remove) + `HubDocCategoryManager`. Inline creation case-dedups so
-   "Forms" and "forms" can't both exist.
+2. ✅ **Category governance** — pick-from-existing default + the curation surface
+   `/api/hub/[slug]/document-categories` (rename / merge / reorder / remove) +
+   `HubDocCategoryManager`. Inline creation case-dedups so "Forms" and "forms"
+   can't both exist. (Shipped coordinator-only; **opened to all hub members in
+   the s156 follow-up** per Jesse.)
 3. ✅ **Sharing + visibility** — `/api/documents/[id]/placements` + `/visibility`
    (`canEditDocument`-gated, origin-owns-lifecycle), `HubDocShareModal`, the
    "Shared from [hub]" / "Community" badges, and the doc-view page's

@@ -335,8 +335,9 @@ comments, enabled via the config `permissions.comment`.)
 
 ## 6. Current state & what's left
 
-**Live on production, gated to coordinators** (`officeEnabled && isCoordinator`
-in `HubDocumentsClient`). Working end-to-end: create → edit → **save** → comment.
+**Live on production, available to all hub members** (just `officeEnabled` in
+`HubDocumentsClient` — the coordinator beta gate was dropped s156). Working
+end-to-end: create → edit → **save** → comment.
 
 **Slice 4 — ✅ shipped session 156** (the document filing system: freshness +
 search, category governance, cross-hub sharing/visibility, the master directory
@@ -345,7 +346,6 @@ create-path rejects `hubId === document.hubId`; the doc-view page moved to
 `canAccessDocument` (see §4).
 
 Open, in rough order:
-- **Ungate** — drop `&& isCoordinator` so all hub members get office docs.
 - **Slice 5** — migrate existing plain native docs → `.docx` (server-side).
 - **Polish** — mobile editing, the still-slowish first open (download/convert
   warm-up), surfacing version history, the proper `title`-nullable comment fix.

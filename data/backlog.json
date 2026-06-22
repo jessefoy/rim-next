@@ -789,9 +789,9 @@
     "description": "Office docs are gated to coordinators (officeEnabled && isCoordinator in HubDocumentsClient). Drop the && isCoordinator clause so all hub members can create/edit office docs, once the beta is confirmed stable. Independent of Slice 4.",
     "category": "Admin Tools",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-22",
-    "notes": ""
+    "notes": "DONE session 156 follow-up (2026-06-22, commit 80f6ab8) — dropped `&& isCoordinator` on the + Office doc button; the create route already allowed any member. Triggered by LoriLee not seeing the button. The same follow-up also opened the Manage-categories surface (the button + /api/hub/[slug]/document-categories, now canAccessHub-gated) to all hub members per Jesse — everyone should be able to make and tend a category; the destructive ops (remove/merge) are recoverable."
   },
   {
     "id": "2026-06-22-003",

@@ -486,11 +486,9 @@ export default function HubDocumentsClient({
               + Office doc
             </button>
           )}
-          {isCoordinator && (
-            <button className="btn btn--sm btn--ghost" onClick={() => setShowCatManager(true)}>
-              Manage categories
-            </button>
-          )}
+          <button className="btn btn--sm btn--ghost" onClick={() => setShowCatManager(true)}>
+            Manage categories
+          </button>
         </div>
       </div>
 

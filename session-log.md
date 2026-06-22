@@ -37,6 +37,11 @@ Audited the four routing layers: **(1) capability gating** now uses `canAccessDo
 - **Ungate office docs** (backlog `2026-06-22-002`), **Slice 5** native→docx (`-003`), **office-editor polish** (`-004`), **directory/filing polish** (`-006`: archived-in-directory, comments-on-reader, sort toggle/Recent strip), **rotate the secret** (`-005`).
 - **AGENTS.md** (Jesse's untracked Codex-instructions mirror of CLAUDE.md) is now missing the RIM_Documents.md Design Orientation row — sync when committing it.
 
+### Follow-up (post-closing) — opened up access
+LoriLee reported she couldn't see "+ Office doc" or "Manage categories." Diagnosis (verified from her screenshot + the gating code): both were coordinator-gated, and she's **not** actually flagged a coordinator of Support Inbox (she saw per-doc actions only on her *own* docs, none on others'). Per Jesse — these should work for any hub member:
+- **Office-doc creation ungated** (commit `80f6ab8`): dropped `&& isCoordinator` on the "+ Office doc" button; the create route already allowed any member, so it was just the UI catching up. Closes backlog `2026-06-22-002` (the s154 OnlyOffice beta gate).
+- **Manage-categories opened to all members**: the button (drop `isCoordinator`) + the `/api/hub/[slug]/document-categories` route (`effectiveCoordinator` → `canAccessHub`; `loadCoordinatorContext` → `loadMemberContext`). This reverses the s156 "coordinators curate" decision per Jesse (everyone should be able to make/tend a category); the destructive ops are recoverable (remove → uncategorize, rename/merge → re-file). Docs updated: `RIM_Documents.md` §5 + build order, `FEATURES.md`, `RIM_OnlyOffice.md` §6.
+
 ### Process notes
 - Each step: build → `tsc` → reviewer sub-agent → fix → commit on a `claude/*` branch → fast-forward `main` → push → delete branch. Bundled steps 1+2 into one push, then 3 and 4 separately, as Jesse paced them.
 - One tooling oddity: the Write tool once emitted a literal NUL byte inside a string literal (`join("\0")` where I wrote `join(" ")`); caught by a post-write NUL sweep across changed files and fixed by rewriting the file. The NUL sweep is now part of the per-step verification.
