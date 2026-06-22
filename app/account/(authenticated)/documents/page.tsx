@@ -89,14 +89,15 @@ export default async function DocumentsDirectoryPage() {
         ? `/account/hub/${sectionHub.slug}/documents/${d.id}`
         : `/account/documents/${d.id}`;
     return {
-      id:         d.id,
-      label:      d.label,
-      docKind:    d.docKind,
-      fileType:   d.fileType,
-      category:   d.category,
-      updatedAt:  d.updatedAt.toISOString(),
-      author:     authorName(d.addedBy),
-      visibility: d.visibility,
+      id:          d.id,
+      label:       d.label,
+      description: d.description,
+      docKind:     d.docKind,
+      fileType:    d.fileType,
+      category:    d.category,
+      updatedAt:   d.updatedAt.toISOString(),
+      author:      authorName(d.addedBy),
+      visibility:  d.visibility,
       // "Shared from X" when surfaced in a hub that isn't the doc's origin.
       originName: sectionHub && d.hub && d.hub.id !== sectionHub.id ? d.hub.name : null,
       href,

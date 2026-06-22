@@ -16,6 +16,7 @@ import { relativeDate } from "@/lib/relativeDate";
 interface DirDoc {
   id: string;
   label: string;
+  description: string | null;
   docKind: "NATIVE" | "ONLYOFFICE" | "LINK" | "UPLOAD";
   fileType: string;
   category: string | null;
@@ -50,7 +51,7 @@ export default function DocumentsDirectoryClient({ sections }: Props) {
     for (const s of sections) {
       for (const d of s.docs) {
         if (seen.has(d.id)) continue;
-        if ([d.label, d.category ?? "", d.author, d.originName ?? ""].join(" ").toLowerCase().includes(q)) {
+        if ([d.label, d.description ?? "", d.category ?? "", d.author, d.originName ?? ""].join(" ").toLowerCase().includes(q)) {
           seen.add(d.id);
           flat.push(d);
         }
