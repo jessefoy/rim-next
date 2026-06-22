@@ -86,6 +86,37 @@ export function canEditDocument(doc: DocumentAccessShape, viewer: DocumentViewer
 }
 
 /**
+ * Can this viewer manage the document's SHARING LIFECYCLE — change its
+ * visibility, or share it OUT into more hubs? Origin owns the lifecycle
+ * (RIM_Documents.md §7): the author, a coordinator of the ORIGIN hub, or
+ * GUIDING_TEACHER. A coordinator of a hub the doc was merely *shared into* does
+ * NOT qualify — their only management action is removing their own hub's
+ * placement (`canRemovePlacement`). Hubless docs (no origin) are author/GT-only.
+ *
+ * This is deliberately stricter than `canEditDocument` (which lets any
+ * placed-in-hub coordinator edit content): editing the body is a hub-team act;
+ * re-scoping who can reach the doc is the origin's call.
+ */
+export function canManageDocumentSharing(doc: DocumentAccessShape, viewer: DocumentViewer): boolean {
+  if (doc.addedById === viewer.userId) return true;
+  if (viewer.roles.includes("GUIDING_TEACHER")) return true;
+  if (doc.hubId === null) return false; // hubless project doc: author / GT only
+  return viewer.memberships.some((m) => m.hubId === doc.hubId && m.isCoordinator);
+}
+
+/**
+ * Can this viewer remove the document's placement in `hubId`? The origin side
+ * (`canManageDocumentSharing`) can remove any placement; additionally, a
+ * coordinator of the specific hub being removed can drop *that hub's* placement
+ * — a team declining a doc shared to it. This is the one cross-hub sharing
+ * action a shared-into hub's coordinator may take.
+ */
+export function canRemovePlacement(doc: DocumentAccessShape, viewer: DocumentViewer, hubId: string): boolean {
+  if (canManageDocumentSharing(doc, viewer)) return true;
+  return viewer.memberships.some((m) => m.hubId === hubId && m.isCoordinator);
+}
+
+/**
  * Async single-doc gate: loads the doc's access shape + the viewer's
  * memberships, then delegates to `canAccessDocument`. Returns null if the doc
  * doesn't exist (caller maps to 404).

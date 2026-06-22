@@ -15,7 +15,7 @@
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { canEditDocument } from "@/lib/documentAuth";
+import { canManageDocumentSharing } from "@/lib/documentAuth";
 import { NextResponse } from "next/server";
 
 const VALID = ["HUB", "COORDINATORS", "COMMUNITY"] as const;
@@ -41,8 +41,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     where: { userId: session.user.id },
     select: { hubId: true, isCoordinator: true },
   });
-  if (!canEditDocument(doc, { userId: session.user.id, roles: session.user.roles ?? [], memberships })) {
-    return NextResponse.json({ error: "Only the author or a coordinator can change sharing." }, { status: 403 });
+  if (!canManageDocumentSharing(doc, { userId: session.user.id, roles: session.user.roles ?? [], memberships })) {
+    return NextResponse.json({ error: "Only the author or a coordinator of the home hub can change sharing." }, { status: 403 });
   }
 
   await db.hubDocument.update({ where: { id }, data: { visibility } });

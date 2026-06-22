@@ -21,7 +21,7 @@
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { canEditDocument } from "@/lib/documentAuth";
+import { canManageDocumentSharing, canRemovePlacement } from "@/lib/documentAuth";
 import { NextResponse } from "next/server";
 
 async function loadDocAndViewer(id: string, userId: string, roles: string[]) {
@@ -49,8 +49,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { doc, memberships } = await loadDocAndViewer(id, session.user.id, session.user.roles ?? []);
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (!canEditDocument(doc, { userId: session.user.id, roles: session.user.roles ?? [], memberships })) {
-    return NextResponse.json({ error: "Only the author or a coordinator can share this." }, { status: 403 });
+  if (!canManageDocumentSharing(doc, { userId: session.user.id, roles: session.user.roles ?? [], memberships })) {
+    return NextResponse.json({ error: "Only the author or a coordinator of the home hub can share this." }, { status: 403 });
   }
 
   // The origin hub is never a placement; never double-list it.
@@ -85,8 +85,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { doc, memberships } = await loadDocAndViewer(id, session.user.id, session.user.roles ?? []);
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (!canEditDocument(doc, { userId: session.user.id, roles: session.user.roles ?? [], memberships })) {
-    return NextResponse.json({ error: "Only the author or a coordinator can un-share this." }, { status: 403 });
+  if (!canRemovePlacement(doc, { userId: session.user.id, roles: session.user.roles ?? [], memberships }, hubId)) {
+    return NextResponse.json({ error: "Only the home hub or the hub it's shared into can un-share this." }, { status: 403 });
   }
 
   // Idempotent — deleting a placement that isn't there is fine.
