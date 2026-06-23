@@ -619,6 +619,7 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           onBackgroundBlur={() => bg.setBlur()}
           onBackgroundImage={bg.setImage}
           onBlurRadiusChange={bg.setBlurRadius}
+          onSwitchCamera={bg.switchCamera}
         />
       </div>
     </LayoutContextProvider>

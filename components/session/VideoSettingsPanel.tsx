@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import type { LocalParticipant } from "livekit-client";
+import { RoomEvent } from "livekit-client";
 import { useRoomContext } from "@livekit/components-react";
 import type { ParticipantMetadata } from "./RIMParticipantTile";
 import type { BackgroundMode } from "./useBackgroundEffects";
@@ -38,6 +39,10 @@ interface Props {
   onBackgroundBlur: () => void;
   onBackgroundImage: (path: string) => void;
   onBlurRadiusChange: (radius: number) => void;
+  /** Camera switch routed through useBackgroundEffects so the blur/scene
+   *  processor is detached before the device swap and re-attached after —
+   *  LiveKit's in-switch processor.restart() blanks the tile on Safari. */
+  onSwitchCamera: (deviceId: string) => Promise<boolean>;
 }
 
 type Kind = "audioinput" | "videoinput" | "audiooutput";
@@ -71,13 +76,17 @@ function getMetadata(p: LocalParticipant): ParticipantMetadata {
   try { return JSON.parse(p.metadata || "{}"); } catch { return {}; }
 }
 
-export default function VideoSettingsPanel({ open, onClose, localParticipant, avatarUrl, onAvatarChange, backgroundAvailable, backgroundMode, blurRadius, backgroundImagePath, backgroundPending, backgroundCpuPaused, onBackgroundNone, onBackgroundBlur, onBackgroundImage, onBlurRadiusChange }: Props) {
+export default function VideoSettingsPanel({ open, onClose, localParticipant, avatarUrl, onAvatarChange, backgroundAvailable, backgroundMode, blurRadius, backgroundImagePath, backgroundPending, backgroundCpuPaused, onBackgroundNone, onBackgroundBlur, onBackgroundImage, onBlurRadiusChange, onSwitchCamera }: Props) {
   const room = useRoomContext();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [active, setActive] = useState(readPrefs);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+  // Audio-output selection (setSinkId) is unsupported on Safari/iOS — the
+  // dropdown would be a dead control there, so we show an honest note instead.
+  const [outputSupported, setOutputSupported] = useState(true);
 
   useEffect(() => {
     if (!open) return;
@@ -97,13 +106,63 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
     };
   }, [open]);
 
+  // Reflect the ACTUAL active devices (not just saved prefs) when the panel
+  // opens, and keep them synced if they change elsewhere — otherwise the
+  // dropdowns can show "Default"/a stale pick that doesn't match what's live.
+  useEffect(() => {
+    if (!open || !room) return;
+    const prefs = readPrefs();
+    // LiveKit seeds getActiveDevice() with the literal "default" before any
+    // track is live; that won't match an enumerated <option>, so treat it as
+    // "no explicit pick" and fall back to the saved pref (keeps the "Default"
+    // option rendering instead of a blank/mismatched select).
+    const real = (kind: Kind): string | undefined => {
+      const id = room.getActiveDevice(kind);
+      return id && id !== "default" ? id : undefined;
+    };
+    setActive({
+      audioinput: real("audioinput") ?? prefs.audioinput,
+      videoinput: real("videoinput") ?? prefs.videoinput,
+      audiooutput: real("audiooutput") ?? prefs.audiooutput,
+    });
+    function onActive(kind: MediaDeviceKind, deviceId: string) {
+      setActive((prev) => ({ ...prev, [kind]: deviceId === "default" ? undefined : deviceId }));
+    }
+    room.on(RoomEvent.ActiveDeviceChanged, onActive);
+    return () => { room.off(RoomEvent.ActiveDeviceChanged, onActive); };
+  }, [open, room]);
+
+  // setSinkId (output-device selection) support — false on Safari/iOS.
+  useEffect(() => {
+    setOutputSupported(
+      typeof HTMLMediaElement !== "undefined" && "setSinkId" in HTMLMediaElement.prototype,
+    );
+  }, []);
+
   async function pickDevice(kind: Kind, deviceId: string) {
     if (!room || !deviceId) return;
+    setDeviceError(null);
     try {
-      await room.switchActiveDevice(kind, deviceId);
+      if (kind === "videoinput") {
+        // Routed through the background-effects hook: it detaches the blur/scene
+        // processor before the swap and re-attaches after (avoids the Safari
+        // blank-tile from LiveKit's in-switch processor.restart()).
+        const ok = await onSwitchCamera(deviceId);
+        if (!ok) {
+          setDeviceError("Couldn't switch camera. Please try again.");
+          return;
+        }
+      } else {
+        await room.switchActiveDevice(kind, deviceId);
+      }
       setActive((prev) => ({ ...prev, [kind]: deviceId }));
       writePref(kind, deviceId);
-    } catch {}
+    } catch {
+      // onSwitchCamera handles its own errors and the speaker select only renders
+      // where output switching is supported, so this realistically catches a mic
+      // switch failure — keep the message generic.
+      setDeviceError("Couldn't switch device. Please try again.");
+    }
   }
 
   const audioInputs = devices.filter((d) => d.kind === "audioinput");
@@ -189,20 +248,28 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
             </div>
             <div className="rim-settings__field">
               <label className="rim-settings__field-label" htmlFor="rim-settings-spk">Speaker</label>
-              <select
-                id="rim-settings-spk"
-                className="rim-settings__select"
-                value={active.audiooutput ?? ""}
-                onChange={(e) => pickDevice("audiooutput", e.target.value)}
-                disabled={audioOutputs.length === 0}
-              >
-                {audioOutputs.length === 0 && <option value="">System default (no selection available)</option>}
-                {audioOutputs.length > 0 && !active.audiooutput && <option value="">Default</option>}
-                {audioOutputs.map((d) => (
-                  <option key={d.deviceId} value={d.deviceId}>{d.label || "Speaker"}</option>
-                ))}
-              </select>
+              {outputSupported ? (
+                <select
+                  id="rim-settings-spk"
+                  className="rim-settings__select"
+                  value={active.audiooutput ?? ""}
+                  onChange={(e) => pickDevice("audiooutput", e.target.value)}
+                  disabled={audioOutputs.length === 0}
+                >
+                  {audioOutputs.length === 0 && <option value="">System default</option>}
+                  {audioOutputs.length > 0 && !active.audiooutput && <option value="">Default</option>}
+                  {audioOutputs.map((d) => (
+                    <option key={d.deviceId} value={d.deviceId}>{d.label || "Speaker"}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="rim-settings__hint">
+                  Your browser sends audio to your system&apos;s default speaker — choose it in your
+                  device or sound settings.
+                </p>
+              )}
             </div>
+            {deviceError && <p className="rim-settings__error">{deviceError}</p>}
           </section>
 
           {/* Video */}
