@@ -51,9 +51,6 @@ export interface BackgroundEffectsState {
   setBlur: (radius?: number) => void;
   setImage: (path: string) => void;
   setBlurRadius: (radius: number) => void;
-  /** Switch the camera device safely — detaches the processor first so
-   *  LiveKit's in-switch processor.restart() can't blank the tile (Safari). */
-  switchCamera: (deviceId: string) => Promise<boolean>;
 }
 
 type BgProcessor = ReturnType<typeof BackgroundProcessor>;
@@ -230,30 +227,6 @@ export function useBackgroundEffects(): BackgroundEffectsState {
     }
   }, [cameraTrack, reconcile]);
 
-  const switchCamera = useCallback(async (deviceId: string): Promise<boolean> => {
-    if (!room) return false;
-    // Detach the processor BEFORE swapping cameras. LiveKit's restartTrack runs
-    // processor.restart() mid-switch; on Safari, acquiring the new camera stops
-    // the stream the processor is mid-pipeline on, the restart throws, and the
-    // tile is left blank. Detaching first sidesteps that; reconcile() re-applies
-    // the effect to the fresh track once the switch lands.
-    const hadProcessor = !!processorRef.current;
-    if (hadProcessor) {
-      const track = cameraTrack();
-      if (track) await track.stopProcessor().catch(() => {});
-      processorRef.current = null;
-    }
-    try {
-      await room.switchActiveDevice("videoinput", deviceId);
-      return true;
-    } catch (err) {
-      console.error("[rim-bg] camera switch failed:", err);
-      return false;
-    } finally {
-      if (hadProcessor) reconcile();
-    }
-  }, [room, cameraTrack, reconcile]);
-
   // Attach on camera publish; auto-drop on CPU pressure.
   useEffect(() => {
     if (!room) return;
@@ -300,5 +273,5 @@ export function useBackgroundEffects(): BackgroundEffectsState {
     };
   }, [room, reconcile, cameraTrack]);
 
-  return { available, mode, blurRadius, imagePath, pending, cpuPaused, setNone, setBlur, setImage, setBlurRadius, switchCamera };
+  return { available, mode, blurRadius, imagePath, pending, cpuPaused, setNone, setBlur, setImage, setBlurRadius };
 }
