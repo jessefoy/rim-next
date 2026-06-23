@@ -25,9 +25,9 @@
  *              auto-gain OFF, echo cancellation ON. 128 kbps audio.
  *   speaker  — host who isn't teaching. Clean speech profile, all three on.
  *              96 kbps audio.
- *   listener — everyone else. Clean speech profile. 64 kbps audio.
+ *   listener — everyone else. Clean speech profile. 96 kbps audio.
  *
- * Audio default in LiveKit is ~20 kbps (speech preset); bumping to 64–128 kbps
+ * Audio default in LiveKit is ~20 kbps (speech preset); bumping to 96–128 kbps
  * yields a clearly perceptible quality improvement at trivial bandwidth cost.
  *
  * Video codec is H.264 — matches what Zoom uses, with universal hardware
@@ -100,8 +100,10 @@ function classifyDisconnect(reason?: DisconnectReason): LeaveKind {
 
 function buildRoomOptions(profile: AudioProfile): RoomOptions {
   const isTeacher = profile === "teacher";
-  const audioMaxBitrate =
-    profile === "teacher" ? 128_000 : profile === "speaker" ? 96_000 : 64_000;
+  // Teacher keeps the top tier for bells/music; everyone else shares the clean
+  // 96 kbps speech tier (listener raised from 64 — audio is a tiny fraction of
+  // the video budget, so there's no reason to under-provision listeners).
+  const audioMaxBitrate = profile === "teacher" ? 128_000 : 96_000;
   // Listener now matches speaker at 1.5 Mbps (was 1.0). See the comment
   // block above for the rationale — kept the ternary shape for clarity
   // even though speaker and listener happen to share a value.

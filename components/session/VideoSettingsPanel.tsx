@@ -54,6 +54,15 @@ function writePref(kind: Kind, deviceId: string) {
   } catch {}
 }
 
+function clearPref(kind: Kind) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+    delete raw[kind];
+    localStorage.setItem(LS_KEY, JSON.stringify(raw));
+  } catch {}
+}
+
 function getMetadata(p: LocalParticipant): ParticipantMetadata {
   try { return JSON.parse(p.metadata || "{}"); } catch { return {}; }
 }
@@ -85,8 +94,20 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
   }, [open]);
 
   async function pickDevice(kind: Kind, deviceId: string) {
-    if (!room || !deviceId) return;
+    if (!room) return;
     try {
+      if (deviceId === "") {
+        // "Default" chosen — clear the saved preference and fall back to the
+        // system default device (the first the browser enumerates). Without
+        // this, once a specific device was saved there was no way back to
+        // Default: the exact trap that stranded a host on a non-working camera.
+        clearPref(kind);
+        const list = kind === "videoinput" ? videoInputs : kind === "audioinput" ? audioInputs : audioOutputs;
+        const fallback = list[0]?.deviceId;
+        if (fallback) await room.switchActiveDevice(kind, fallback);
+        setActive((prev) => ({ ...prev, [kind]: undefined }));
+        return;
+      }
       await room.switchActiveDevice(kind, deviceId);
       setActive((prev) => ({ ...prev, [kind]: deviceId }));
       writePref(kind, deviceId);
@@ -168,7 +189,7 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
                 onChange={(e) => pickDevice("audioinput", e.target.value)}
               >
                 {audioInputs.length === 0 && <option value="">No microphones detected</option>}
-                {audioInputs.length > 0 && !active.audioinput && <option value="">Default</option>}
+                {audioInputs.length > 0 && <option value="">Default</option>}
                 {audioInputs.map((d) => (
                   <option key={d.deviceId} value={d.deviceId}>{d.label || "Microphone"}</option>
                 ))}
@@ -184,7 +205,7 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
                 disabled={audioOutputs.length === 0}
               >
                 {audioOutputs.length === 0 && <option value="">System default (no selection available)</option>}
-                {audioOutputs.length > 0 && !active.audiooutput && <option value="">Default</option>}
+                {audioOutputs.length > 0 && <option value="">Default</option>}
                 {audioOutputs.map((d) => (
                   <option key={d.deviceId} value={d.deviceId}>{d.label || "Speaker"}</option>
                 ))}
@@ -205,7 +226,7 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
                 onChange={(e) => pickDevice("videoinput", e.target.value)}
               >
                 {videoInputs.length === 0 && <option value="">No cameras detected</option>}
-                {videoInputs.length > 0 && !active.videoinput && <option value="">Default</option>}
+                {videoInputs.length > 0 && <option value="">Default</option>}
                 {videoInputs.map((d) => (
                   <option key={d.deviceId} value={d.deviceId}>{d.label || "Camera"}</option>
                 ))}

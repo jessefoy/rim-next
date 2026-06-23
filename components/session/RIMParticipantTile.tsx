@@ -133,6 +133,13 @@ export default function RIMParticipantTile() {
   const canPin = !!sessionRole?.onTogglePin;
   const isPinned = !!sessionRole?.pinnedIdentity && sessionRole.pinnedIdentity === participantIdentity;
 
+  // Host Spotlight (co-host only) — sets a room-wide focus on this participant
+  // (Zoom parity). Available on every tile incl. the local one (a host can
+  // spotlight themselves). Bound once localIdentity is known (same guard as Mute).
+  const canSpotlight = !!sessionRole?.isCoHost && !!localIdentity;
+  const isSpotlighted =
+    !!sessionRole?.spotlightedIdentity && sessionRole.spotlightedIdentity === participantIdentity;
+
   async function handleMute() {
     if (!sessionRole) return;
     setMuting(true);
@@ -220,6 +227,18 @@ export default function RIMParticipantTile() {
           aria-pressed={isPinned}
         >
           {isPinned ? "Unpin" : "Pin"}
+        </button>
+      )}
+      {canSpotlight && (
+        <button
+          type="button"
+          className={`rim-tile-spotlight${isSpotlighted ? " rim-tile-spotlight--on" : ""}`}
+          onClick={() => sessionRole?.onToggleSpotlight(participantIdentity)}
+          title={isSpotlighted ? `Stop spotlighting ${displayName}` : `Spotlight ${displayName} for everyone`}
+          aria-label={isSpotlighted ? `Stop spotlighting ${displayName}` : `Spotlight ${displayName} for everyone`}
+          aria-pressed={isSpotlighted}
+        >
+          {isSpotlighted ? "Unspotlight" : "Spotlight"}
         </button>
       )}
       {showAvatar && (

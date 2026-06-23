@@ -40,6 +40,13 @@ export interface SessionRoleValue {
   pinnedIdentity: string | null;
   /** Toggle the local pin on a participant identity (pin if not pinned, else unpin). */
   onTogglePin: (identity: string) => void;
+  /** Room-wide host "Spotlight" (Zoom parity) — the identity spotlighted for
+   *  everyone, or null. Distributed via room metadata; folded into focus
+   *  precedence below a personal pin and an active screen share. */
+  spotlightedIdentity: string | null;
+  /** Co-host: set/clear the room-wide spotlight on a participant (toggle).
+   *  Server-gated via /api/livekit/spotlight. */
+  onToggleSpotlight: (identity: string) => void;
 }
 
 const SessionRoleContext = createContext<SessionRoleValue | null>(null);

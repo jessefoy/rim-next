@@ -13890,6 +13890,32 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-pin-banner__open:hover { background: rgba(147,197,253,0.25); }
 
+/* Spotlight banner — room-wide host spotlight (Zoom parity). Gold tint to
+   distinguish from the blue pin banner; everyone sees it, co-hosts get Stop. */
+.rim-spotlight-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(0,0,0,0.75);
+  color: #f0d9a8;
+  font-size: var(--text-ui);
+  font-family: var(--font-sans);
+  border-bottom: 1px solid rgba(200,130,26,0.3);
+}
+.rim-spotlight-banner__open {
+  background: rgba(200,130,26,0.18);
+  border: 1px solid rgba(200,130,26,0.45);
+  color: #f0d9a8;
+  font-size: var(--text-xs);
+  font-family: var(--font-sans);
+  padding: 3px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.rim-spotlight-banner__open:hover { background: rgba(200,130,26,0.3); }
+
 /* Reconnecting banner — same shape as the hand/pin banners, amber to read as
    a transient status. Shown while LiveKit recovers a dropped connection. */
 .rim-reconnect-banner {
@@ -14190,6 +14216,36 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   background: rgba(19, 82, 116, 0.92);
 }
 .rim-tile-wrapper--pinned .rim-tile-pin:hover { background: rgba(19, 82, 116, 1); }
+
+/* Spotlight button (co-host) — sits just above the Pin button in the bottom-
+   right. Hover-reveal; stays visible + gold when this tile is the room-wide
+   spotlighted one. */
+.rim-tile-spotlight {
+  position: absolute;
+  bottom: 44px;
+  right: 8px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+  z-index: 6;
+}
+.rim-tile-spotlight:hover { background: rgba(0, 0, 0, 0.8); }
+.rim-tile-spotlight:focus-visible { opacity: 1; outline: 2px solid #fff; outline-offset: 1px; }
+.rim-tile-wrapper:hover .rim-tile-spotlight { opacity: 1; }
+.rim-tile-spotlight--on {
+  opacity: 1;
+  background: rgba(200, 130, 26, 0.92);
+}
+.rim-tile-spotlight--on:hover { background: rgba(200, 130, 26, 1); }
 
 /* ─── Participants panel ─────────────────────────────────────── */
 .rim-pp-backdrop {

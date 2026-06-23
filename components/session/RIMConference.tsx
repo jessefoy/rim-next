@@ -19,7 +19,7 @@
  * not a preference that persists.
  */
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   GridLayout,
   RoomAudioRenderer,
@@ -32,6 +32,7 @@ import {
   useStartAudio,
   useRoomContext,
   useConnectionState,
+  useRoomInfo,
   FocusLayout,
   TrackLoop,
   useSpeakingParticipants,
@@ -104,6 +105,47 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
   // Set by clicking Pin on a tile; overrides active-speaker auto-follow so a
   // viewer can keep e.g. the teacher full-screen regardless of who's speaking.
   const [pinnedIdentity, setPinnedIdentity] = useState<string | null>(null);
+  // Host "Spotlight" — room-wide focus override (Zoom parity), distributed via
+  // LiveKit room metadata so every client (incl. late-joiners) reflects it.
+  // Read-only here; co-hosts set it through the server route below.
+  const roomInfo = useRoomInfo();
+  const spotlightedIdentity = useMemo(() => {
+    try {
+      const m = JSON.parse(roomInfo.metadata || "{}");
+      return typeof m.spotlight === "string" && m.spotlight.length > 0 ? m.spotlight : null;
+    } catch {
+      return null;
+    }
+  }, [roomInfo.metadata]);
+  const toggleSpotlight = useCallback(
+    (identity: string) => {
+      const next = spotlightedIdentity === identity ? null : identity;
+      fetch("/api/livekit/spotlight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programSlug, sessionDate, identity: next }),
+      }).catch(() => {});
+    },
+    [spotlightedIdentity, programSlug, sessionDate],
+  );
+
+  // Auto-clear a spotlight whose target has left (Zoom parity). Co-hosts only
+  // (the route gates it too), and only while fully connected so a transient
+  // reconnect (a momentarily empty participant list) can't spuriously clear it.
+  // Idempotent: a multi-co-host race just POSTs null twice.
+  useEffect(() => {
+    if (!isCoHost || !spotlightedIdentity) return;
+    if (connectionState !== ConnectionState.Connected) return;
+    const present =
+      localParticipant?.identity === spotlightedIdentity ||
+      remoteParticipants.some((p) => p.identity === spotlightedIdentity);
+    if (present) return;
+    fetch("/api/livekit/spotlight", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ programSlug, sessionDate, identity: null }),
+    }).catch(() => {});
+  }, [isCoHost, spotlightedIdentity, connectionState, localParticipant, remoteParticipants, programSlug, sessionDate]);
   // Ask-to-unmute prompt — the name of the co-host inviting this user to
   // unmute, or null. Set by the data-channel listener below; cleared by
   // either of the prompt's two buttons. We can't force a mic on (browser
@@ -328,6 +370,15 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
     const share = tracks.find((t) => t.source === Track.Source.ScreenShare && !!t.publication);
     if (share) {
       focusTarget = share;
+    } else if (spotlightedIdentity) {
+      // Host spotlight — forces everyone's stage onto the spotlighted person
+      // (Zoom parity). A personal pin (above) and an active screen share still
+      // win. If the spotlighted camera isn't present (camera off / left), fall
+      // through to gallery rather than forcing an empty stage.
+      focusTarget =
+        tracks.find(
+          (t) => t.source === Track.Source.Camera && t.participant.identity === spotlightedIdentity,
+        ) ?? null;
     } else if (view === "speaker") {
       const cams = tracks.filter((t) => t.source === Track.Source.Camera);
       const activeId = speakers
@@ -377,6 +428,23 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           })())
     : "";
 
+  // Name of the spotlighted participant, for the spotlight banner.
+  const spotlightName = spotlightedIdentity
+    ? (localParticipant?.identity === spotlightedIdentity
+        ? (localParticipant?.name || "you")
+        : (() => {
+            const p = remoteParticipants.find((rp) => rp.identity === spotlightedIdentity);
+            return p?.name || p?.identity || "participant";
+          })())
+    : "";
+  // Whether the spotlighted participant is actually present — gates the banner so
+  // it doesn't go stale (the auto-clear effect above also removes the orphaned
+  // room-metadata shortly after they leave).
+  const spotlightPresent =
+    !!spotlightedIdentity &&
+    (localParticipant?.identity === spotlightedIdentity ||
+      remoteParticipants.some((p) => p.identity === spotlightedIdentity));
+
   // Filmstrip = camera tiles MINUS the focused camera (a focused camera would
   // otherwise render full-size in the stage AND again in the strip; a
   // screen-share focus excludes nothing, since sortedTracks is camera-only).
@@ -411,6 +479,8 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
         pinnedIdentity,
         onTogglePin: (identity: string) =>
           setPinnedIdentity((prev) => (prev === identity ? null : identity)),
+        spotlightedIdentity,
+        onToggleSpotlight: toggleSpotlight,
       }}
     >
     <LayoutContextProvider value={layoutContext}>
@@ -454,6 +524,23 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
             >
               Unpin
             </button>
+          </div>
+        )}
+
+        {/* Spotlight banner — room-wide host spotlight; everyone sees who's
+            spotlighted. Hidden when this viewer has their own pin (their stage
+            shows the pinned person, so the note would mislead). Co-hosts get Stop. */}
+        {spotlightedIdentity && spotlightPresent && !pinnedIdentity && (
+          <div className="rim-spotlight-banner">
+            <span>🔦 Spotlighting {spotlightName} for everyone</span>
+            {isCoHost && (
+              <button
+                className="rim-spotlight-banner__open"
+                onClick={() => toggleSpotlight(spotlightedIdentity)}
+              >
+                Stop
+              </button>
+            )}
           </div>
         )}
 
