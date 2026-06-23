@@ -44,7 +44,6 @@ import RIMControlBar from "./RIMControlBar";
 import RIMChat, { CHAT_TOPIC } from "./RIMChat";
 import { SessionRoleProvider } from "./sessionRole";
 import { useNoiseFilter } from "./useNoiseFilter";
-import { useBackgroundEffects } from "./useBackgroundEffects";
 import type { ParticipantMetadata } from "./RIMParticipantTile";
 
 interface Props {
@@ -171,9 +170,6 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
   // off so bells/bowls pass raw. The processor attaches to the mic when it
   // publishes; see useNoiseFilter / RnnoiseAudioProcessor.
   const nc = useNoiseFilter();
-  // Background effects (blur / scene / none) on the local camera — off by
-  // default, opt-in via Settings → Background, for everyone. See useBackgroundEffects.
-  const bg = useBackgroundEffects();
 
   const roomCtx = useRoomContext();
 
@@ -609,16 +605,6 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           localParticipant={localParticipant}
           avatarUrl={avatarUrl}
           onAvatarChange={setAvatarUrl}
-          backgroundAvailable={bg.available}
-          backgroundMode={bg.mode}
-          blurRadius={bg.blurRadius}
-          backgroundImagePath={bg.imagePath}
-          backgroundPending={bg.pending}
-          backgroundCpuPaused={bg.cpuPaused}
-          onBackgroundNone={bg.setNone}
-          onBackgroundBlur={() => bg.setBlur()}
-          onBackgroundImage={bg.setImage}
-          onBlurRadiusChange={bg.setBlurRadius}
         />
       </div>
     </LayoutContextProvider>

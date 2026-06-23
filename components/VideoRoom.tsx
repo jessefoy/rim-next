@@ -25,7 +25,7 @@
  *              auto-gain OFF, echo cancellation ON. 128 kbps audio.
  *   speaker  — host who isn't teaching. Clean speech profile, all three on.
  *              96 kbps audio.
- *   listener — everyone else. Clean speech profile. 96 kbps audio.
+ *   listener — everyone else. Clean speech profile. 64 kbps audio.
  *
  * Audio default in LiveKit is ~20 kbps (speech preset); bumping to 64–128 kbps
  * yields a clearly perceptible quality improvement at trivial bandwidth cost.
@@ -100,14 +100,11 @@ function classifyDisconnect(reason?: DisconnectReason): LeaveKind {
 
 function buildRoomOptions(profile: AudioProfile): RoomOptions {
   const isTeacher = profile === "teacher";
-  // Teacher keeps the top audio tier for bells/music; everyone else shares the
-  // clean 96 kbps speech tier. Listener was raised from 64 kbps — audio is a
-  // tiny fraction of the video budget, so there's no reason to under-provision
-  // listeners, and parity means anyone who gets pinned still sounds good.
-  const audioMaxBitrate = profile === "teacher" ? 128_000 : 96_000;
-  // Listener matches speaker at 1.5 Mbps (was 1.0). See the comment block above
-  // for the rationale — kept the ternary shape for clarity even though speaker
-  // and listener happen to share a value.
+  const audioMaxBitrate =
+    profile === "teacher" ? 128_000 : profile === "speaker" ? 96_000 : 64_000;
+  // Listener now matches speaker at 1.5 Mbps (was 1.0). See the comment
+  // block above for the rationale — kept the ternary shape for clarity
+  // even though speaker and listener happen to share a value.
   const videoMaxBitrate =
     profile === "teacher" ? 2_000_000 : profile === "speaker" ? 1_500_000 : 1_500_000;
   return {
@@ -142,9 +139,6 @@ function buildRoomOptions(profile: AudioProfile): RoomOptions {
       screenShareEncoding: { maxBitrate: 8_000_000, maxFramerate: 15 },
       dtx: false,
     },
-    // degradationPreference is left at LiveKit's default (maintain-framerate:
-    // under CPU/bandwidth pressure it sheds resolution before frame rate, which
-    // is right for faces). Documented so the omission reads as deliberate.
     adaptiveStream: true,
     dynacast: true,
   };
