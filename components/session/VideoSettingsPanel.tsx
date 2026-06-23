@@ -18,6 +18,8 @@ import { upload } from "@vercel/blob/client";
 import type { LocalParticipant } from "livekit-client";
 import { useRoomContext } from "@livekit/components-react";
 import type { ParticipantMetadata } from "./RIMParticipantTile";
+import type { BackgroundMode } from "./useBackgroundEffects";
+import { BACKGROUND_SCENES, BLUR_RADIUS_MIN, BLUR_RADIUS_MAX } from "@/lib/backgroundProcessorConfig";
 
 interface Props {
   open: boolean;
@@ -25,6 +27,17 @@ interface Props {
   localParticipant: LocalParticipant;
   avatarUrl: string | null;
   onAvatarChange: (url: string | null) => void;
+  /** Background effects (Settings → Background) — wired from useBackgroundEffects in RIMConference. */
+  backgroundAvailable: boolean;
+  backgroundMode: BackgroundMode;
+  blurRadius: number;
+  backgroundImagePath: string | null;
+  backgroundPending: boolean;
+  backgroundCpuPaused: boolean;
+  onBackgroundNone: () => void;
+  onBackgroundBlur: () => void;
+  onBackgroundImage: (path: string) => void;
+  onBlurRadiusChange: (radius: number) => void;
 }
 
 type Kind = "audioinput" | "videoinput" | "audiooutput";
@@ -58,7 +71,7 @@ function getMetadata(p: LocalParticipant): ParticipantMetadata {
   try { return JSON.parse(p.metadata || "{}"); } catch { return {}; }
 }
 
-export default function VideoSettingsPanel({ open, onClose, localParticipant, avatarUrl, onAvatarChange }: Props) {
+export default function VideoSettingsPanel({ open, onClose, localParticipant, avatarUrl, onAvatarChange, backgroundAvailable, backgroundMode, blurRadius, backgroundImagePath, backgroundPending, backgroundCpuPaused, onBackgroundNone, onBackgroundBlur, onBackgroundImage, onBlurRadiusChange }: Props) {
   const room = useRoomContext();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -211,6 +224,74 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
                 ))}
               </select>
             </div>
+          </section>
+
+          {/* Background — blur / scene / none. Off by default (calm-first),
+              available to everyone, hidden where the browser can't run it. */}
+          <section className="rim-settings__section">
+            <div className="rim-settings__label">Background</div>
+            {backgroundAvailable ? (
+              <>
+                <div className="rim-settings__hint">
+                  Blur your background for privacy, or choose a calm scene. Off by default.
+                </div>
+                <div className="rim-settings__bg-options">
+                  <button
+                    type="button"
+                    className={`rim-settings__bg-opt${backgroundMode === "none" ? " rim-settings__bg-opt--active" : ""}`}
+                    onClick={onBackgroundNone}
+                    disabled={backgroundPending}
+                  >
+                    None
+                  </button>
+                  <button
+                    type="button"
+                    className={`rim-settings__bg-opt${backgroundMode === "blur" ? " rim-settings__bg-opt--active" : ""}`}
+                    onClick={onBackgroundBlur}
+                    disabled={backgroundPending}
+                  >
+                    Blur
+                  </button>
+                  {BACKGROUND_SCENES.map((scene) => (
+                    <button
+                      key={scene.id}
+                      type="button"
+                      className={`rim-settings__bg-thumb${backgroundMode === "image" && backgroundImagePath === scene.path ? " rim-settings__bg-thumb--active" : ""}`}
+                      style={{ backgroundImage: `url(${scene.path})` }}
+                      onClick={() => onBackgroundImage(scene.path)}
+                      disabled={backgroundPending}
+                      title={scene.label}
+                      aria-label={`Background: ${scene.label}`}
+                    />
+                  ))}
+                </div>
+                {backgroundMode === "blur" && (
+                  <div className="rim-settings__slider-row">
+                    <span className="rim-settings__slider-label">Strength</span>
+                    <input
+                      type="range"
+                      className="rim-settings__slider"
+                      min={BLUR_RADIUS_MIN}
+                      max={BLUR_RADIUS_MAX}
+                      value={blurRadius}
+                      onChange={(e) => onBlurRadiusChange(Number(e.target.value))}
+                      disabled={backgroundPending}
+                    />
+                    <span className="rim-settings__slider-val">{blurRadius}</span>
+                  </div>
+                )}
+                {backgroundCpuPaused && (
+                  <p className="rim-settings__bg-note">
+                    Paused to keep your video smooth on this device. Tap an option to try again.
+                  </p>
+                )}
+                {backgroundPending && <p className="rim-settings__bg-note">Applying…</p>}
+              </>
+            ) : (
+              <div className="rim-settings__hint">
+                Background effects aren&apos;t supported in this browser.
+              </div>
+            )}
           </section>
 
           <section className="rim-settings__section">

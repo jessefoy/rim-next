@@ -15080,6 +15080,58 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   margin: 8px 0 0;
   font-family: var(--font-sans);
 }
+/* Background effects (Settings → Background) */
+.rim-settings__bg-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.rim-settings__bg-opt {
+  padding: 8px 14px;
+  min-height: 44px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #eee;
+  border-radius: 6px;
+  font-size: var(--text-xs);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.rim-settings__bg-opt:hover { background: rgba(255,255,255,0.14); }
+.rim-settings__bg-opt--active {
+  background: #135274;
+  border-color: #1d6fa0;
+  color: #fff;
+}
+.rim-settings__bg-opt:disabled { opacity: 0.4; cursor: default; }
+.rim-settings__bg-thumb {
+  width: 56px;
+  height: 44px;
+  border-radius: 6px;
+  border: 2px solid rgba(255,255,255,0.15);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.12s;
+}
+.rim-settings__bg-thumb:hover { border-color: rgba(255,255,255,0.4); }
+.rim-settings__bg-thumb--active { border-color: #1d6fa0; }
+.rim-settings__bg-thumb:disabled { opacity: 0.4; cursor: default; }
+.rim-settings__bg-opt:focus-visible,
+.rim-settings__bg-thumb:focus-visible {
+  outline: 2px solid #1d6fa0;
+  outline-offset: 2px;
+}
+.rim-settings__bg-note {
+  font-size: var(--text-xs);
+  color: #999;
+  font-family: var(--font-sans);
+  margin: 10px 0 0;
+}
 @media (max-width: 430px) {
   .rim-settings { width: 100%; }
 }
