@@ -69,6 +69,7 @@ export default async function DashboardPage() {
           recurrenceFreq: true, recurrenceInterval: true,
           recurrenceDays: true, recurrenceCount: true,
           programFormat: true,
+          useZoom: true,
           // Offering kind (via category) + registration drive Today placement:
           // only openly-droppable kinds show a public Join to non-registrants.
           registrationEnabled: true,
@@ -406,7 +407,7 @@ export default async function DashboardPage() {
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
                     {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
-                      <a href={`/session/${s.slug}`} className="join-btn">
+                      <a href={s.useZoom ? `/session/${s.slug}/enter` : `/session/${s.slug}`} className="join-btn">
                         Join now
                       </a>
                     )}
@@ -422,7 +423,7 @@ export default async function DashboardPage() {
                   <div className="today-row__right">
                     <span className="today-row__countdown">Live opens at {s.liveStartTimeCT}</span>
                     {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
-                      <a href={`/session/${s.slug}`} className="join-btn join-btn--setup">
+                      <a href={s.useZoom ? `/session/${s.slug}/enter` : `/session/${s.slug}`} className="join-btn join-btn--setup">
                         Enter as host
                       </a>
                     )}
