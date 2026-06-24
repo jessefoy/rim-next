@@ -1,8 +1,9 @@
 "use client";
 
 /**
- * Admin diagnostic control for the Zoom provisioning round-trip.
- * Calls the admin-gated /api/admin/zoom/selftest route and renders each step.
+ * Admin diagnostic control for a Zoom self-test endpoint. Reused for both the
+ * primitives round-trip and the DB-backed orchestration test — pass the endpoint
+ * + copy via props. Calls the admin-gated route and renders each step.
  */
 
 import { useState } from "react";
@@ -10,7 +11,15 @@ import { useState } from "react";
 type Step = { name: string; ok: boolean; detail: string };
 type Result = { ok: boolean; steps: Step[] };
 
-export default function ZoomSelfTest() {
+export default function ZoomSelfTest({
+  endpoint,
+  title,
+  blurb,
+}: {
+  endpoint: string;
+  title: string;
+  blurb: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +29,7 @@ export default function ZoomSelfTest() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch("/api/admin/zoom/selftest", { method: "POST" });
+      const res = await fetch(endpoint, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Self-test failed");
       setResult(data as Result);
@@ -50,14 +59,13 @@ export default function ZoomSelfTest() {
           marginBottom: 6,
         }}
       >
-        Provisioning round-trip
+        {title}
       </div>
       <p style={{ fontSize: "var(--text-small)", color: "var(--rim-mid)", marginBottom: 12 }}>
-        Creates a throwaway meeting, mints a fresh host link, adds a named registrant, then deletes
-        it. Nothing real is touched.
+        {blurb}
       </p>
       <button onClick={run} disabled={loading} className="btn">
-        {loading ? "Running…" : "Run round-trip test"}
+        {loading ? "Running…" : "Run test"}
       </button>
       {error && (
         <p style={{ fontSize: "var(--text-ui)", color: "var(--color-error)", marginTop: 12 }}>
@@ -101,9 +109,7 @@ export default function ZoomSelfTest() {
               color: result.ok ? "var(--color-success)" : "var(--color-warning)",
             }}
           >
-            {result.ok
-              ? "✓ Provisioning works end-to-end."
-              : "Some steps failed — see details above."}
+            {result.ok ? "✓ Works end-to-end." : "Some steps failed — see details above."}
           </p>
         </div>
       )}

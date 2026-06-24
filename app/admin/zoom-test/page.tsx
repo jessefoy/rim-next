@@ -240,7 +240,20 @@ export default async function ZoomTestPage() {
         </p>
       )}
 
-      {tokenOk && <ZoomSelfTest />}
+      {tokenOk && (
+        <>
+          <ZoomSelfTest
+            endpoint="/api/admin/zoom/selftest"
+            title="Provisioning round-trip"
+            blurb="Creates a throwaway meeting, mints a fresh host link, adds a named registrant, then deletes it. Nothing real is touched."
+          />
+          <ZoomSelfTest
+            endpoint="/api/admin/zoom/selftest-orchestration"
+            title="Orchestration (DB-backed)"
+            blurb="Provisions a meeting for a test occurrence, calls again to confirm it reuses the same meeting (no duplicate), then tears it down."
+          />
+        </>
+      )}
     </div>
   );
 }

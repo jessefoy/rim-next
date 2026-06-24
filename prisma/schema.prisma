@@ -305,6 +305,28 @@ model Program {
   @@map("programs")
 }
 
+// One Zoom meeting per session occurrence (Zoom migration — "RIM orchestrates,
+// Zoom is the room"). RIM provisions a meeting just-in-time for an occurrence and
+// stores the row so repeat "join" clicks reuse the same meeting (idempotent on
+// programSlug+sessionDate, the same way HostAssignment keys an occurrence).
+// `seatUserId` is the Zoom pool seat hosting it; sessionDate/endTime drive the
+// free-seat (no-overlap) pick so two concurrent sessions never land on one seat.
+model SessionMeeting {
+  id            String   @id @default(cuid())
+  programSlug   String   // stable program identifier (matches HostAssignment.programSlug)
+  sessionDate   DateTime // canonical occurrence start instant — the occurrence key
+  endTime       DateTime // occurrence end — for the no-overlap seat pick
+  seatUserId    String   // Zoom pool-seat user id hosting this occurrence
+  zoomMeetingId String   // numeric Zoom meeting id, stored as text
+  recordToCloud Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([programSlug, sessionDate])
+  @@index([seatUserId, sessionDate])
+  @@map("session_meetings")
+}
+
 // Auxiliary-hub coverage for a program (session 129 — AV + Greeter hubs).
 //
 // `Program.hostingHubSlug` is the *primary* hub for a program — who runs the

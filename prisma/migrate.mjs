@@ -2583,6 +2583,43 @@ Or open it directly: {{manageUrl}}`,
       );
     },
   },
+  {
+    // Per-occurrence Zoom meeting storage (Zoom migration — "RIM orchestrates,
+    // Zoom is the room"). Additive: a new table, nothing existing touched.
+    name: "create_session_meetings_table",
+    async run() {
+      const tables = await db.$queryRawUnsafe(`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_name = 'session_meetings'
+      `);
+      if (tables.length === 0) {
+        await db.$executeRawUnsafe(`
+          CREATE TABLE "session_meetings" (
+            "id"            TEXT PRIMARY KEY,
+            "programSlug"   TEXT NOT NULL,
+            "sessionDate"   TIMESTAMPTZ NOT NULL,
+            "endTime"       TIMESTAMPTZ NOT NULL,
+            "seatUserId"    TEXT NOT NULL,
+            "zoomMeetingId" TEXT NOT NULL,
+            "recordToCloud" BOOLEAN NOT NULL DEFAULT false,
+            "createdAt"     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            "updatedAt"     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          )
+        `);
+        await db.$executeRawUnsafe(`
+          CREATE UNIQUE INDEX "session_meetings_programSlug_sessionDate_key"
+          ON "session_meetings" ("programSlug", "sessionDate")
+        `);
+        await db.$executeRawUnsafe(`
+          CREATE INDEX "session_meetings_seatUserId_sessionDate_idx"
+          ON "session_meetings" ("seatUserId", "sessionDate")
+        `);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────
