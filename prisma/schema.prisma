@@ -253,6 +253,7 @@ model Program {
   meetHostAccount     String?
   calendarEventId     String?
   livekitRoom         String?   // LiveKit room name — replaces zoomLink/meetHostAccount
+  useZoom             Boolean   @default(false) // pilot flag (Zoom migration): when true, this program's session routes to Zoom instead of the LiveKit room. Default false = LiveKit, so nothing changes until a program opts in.
   isOpenAccess        Boolean   @default(false) // allow non-members to join via guest link
   guestAccessKey      String?   // random key for guest join URL; reset invalidates old links
   startDatetime       DateTime?

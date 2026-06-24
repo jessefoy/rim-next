@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
 import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
+import { teardownProgramMeetings } from "@/lib/sessionMeeting";
 
 export async function GET(
   _req: NextRequest,
@@ -147,6 +148,8 @@ export async function PUT(
       data.livekitRoom = body.slug ?? slug;
     }
   }
+  // Zoom pilot flag (coerce to a real boolean).
+  if (body.useZoom !== undefined) data.useZoom = body.useZoom !== false;
   if (body.venue !== undefined) data.venue = body.venue;
   if (body.locationText !== undefined) data.locationText = body.locationText || null;
   if (body.locationLink !== undefined) data.locationLink = body.locationLink || null;
@@ -300,6 +303,23 @@ export async function PUT(
     updated = await db.program.update({ where: { slug }, data });
   }
 
+  // Zoom teardown: if this program stopped using Zoom, or left virtual/hybrid,
+  // remove its FUTURE Zoom meetings (fire-and-forget; past stays as record).
+  const stoppedZoom = existing.useZoom && data.useZoom === false;
+  const leftVirtual =
+    data.programFormat === "in-person" &&
+    (existing.programFormat === "virtual" || existing.programFormat === "hybrid");
+  if (stoppedZoom || leftVirtual) {
+    after(async () => {
+      try {
+        const n = await teardownProgramMeetings(slug, { futureOnly: true });
+        if (n > 0) console.log(`[programs-pg] tore down ${n} future Zoom meeting(s) for ${slug}`);
+      } catch (e) {
+        console.error("[programs-pg] Zoom teardown error:", e);
+      }
+    });
+  }
+
   // Handle teacher assignments if provided
   if (body.teacherIds !== undefined) {
     const teacherIds: string[] = body.teacherIds ?? [];
@@ -415,6 +435,17 @@ export async function DELETE(
   }
 
   await db.program.delete({ where: { slug } });
+
+  // Tear down any Zoom meetings this program provisioned (Zoom + rows), since
+  // SessionMeeting is keyed by slug (no FK) and would otherwise orphan.
+  after(async () => {
+    try {
+      const n = await teardownProgramMeetings(slug, { futureOnly: false });
+      if (n > 0) console.log(`[programs-pg] deleted ${slug}; tore down ${n} Zoom meeting(s)`);
+    } catch (e) {
+      console.error("[programs-pg] Zoom teardown on delete error:", e);
+    }
+  });
 
   return NextResponse.json({ success: true });
 }

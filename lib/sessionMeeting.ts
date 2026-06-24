@@ -128,3 +128,30 @@ export async function deleteSessionMeeting(
   await db.sessionMeeting.delete({ where: { id: row.id } });
   return true;
 }
+
+/**
+ * Tear down a program's provisioned meetings (Zoom + rows). Used when a program
+ * stops using Zoom, leaves virtual/hybrid format, or is deleted. `futureOnly`
+ * keeps past occurrences as a record (used on settings changes); pass false to
+ * remove everything (used on program delete). Returns the count removed.
+ */
+export async function teardownProgramMeetings(
+  programSlug: string,
+  opts: { futureOnly: boolean },
+): Promise<number> {
+  const where = opts.futureOnly
+    ? { programSlug, sessionDate: { gte: new Date() } }
+    : { programSlug };
+  const rows = await db.sessionMeeting.findMany({ where });
+  for (const row of rows) {
+    await deleteMeeting(row.zoomMeetingId).catch((e) =>
+      console.error("[sessionMeeting] zoom delete failed", row.zoomMeetingId, e),
+    );
+  }
+  if (rows.length > 0) {
+    await db.sessionMeeting.deleteMany({
+      where: { id: { in: rows.map((r) => r.id) } },
+    });
+  }
+  return rows.length;
+}

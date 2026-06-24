@@ -2620,6 +2620,26 @@ Or open it directly: {{manageUrl}}`,
       }
     },
   },
+  {
+    // Per-program Zoom pilot flag — routes a program's session to Zoom instead of
+    // the LiveKit room. Default false: everything stays on LiveKit until a program
+    // opts in. Additive column, nothing existing touched.
+    name: "add_use_zoom_to_programs",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'programs' AND column_name = 'useZoom'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`
+          ALTER TABLE "programs" ADD COLUMN "useZoom" BOOLEAN NOT NULL DEFAULT false
+        `);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

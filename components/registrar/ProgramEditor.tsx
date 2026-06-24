@@ -107,6 +107,7 @@ export interface ProgramData {
    *  (Recovery Dharma, drop-in groups) and is excluded from the Scheduler,
    *  rotation generation, and the new-program-needs-host email. Default true. */
   hostingRequired?: boolean;
+  useZoom?: boolean;
   /** Auxiliary hubs providing supporting-role coverage for this program
    *  (session 129 — AV + Greeter). Empty array is the default; each slug
    *  here gets a row in program_coverage_hubs on save. Primary hub
@@ -659,6 +660,7 @@ export default function ProgramEditor({
   );
   const noHostNeeded = !hostingRequired;
   const hostingRequiredChanged = hostingRequired !== (initialData?.hostingRequired ?? true);
+  const [useZoom, setUseZoom] = useState<boolean>(initialData?.useZoom ?? false);
 
   // Auxiliary-hub coverage. A program's primary hub (hostingHubSlug above)
   // runs the live session; auxiliary hubs schedule supporting roles —
@@ -877,6 +879,7 @@ export default function ProgramEditor({
         // "No host needed" toggle (stored as the inverse). When false the
         // program is self-led and excluded from the Scheduler + rotations.
         hostingRequired,
+        useZoom,
         // Auxiliary hubs providing role coverage. Empty array means no
         // additional coverage. Server replaces the full set on each save.
         coverageHubSlugs,
@@ -1385,6 +1388,25 @@ export default function ProgramEditor({
                   when you save. Past sessions stay on the record.
                 </div>
               )}
+            </div>
+
+            <div className="pe-field">
+              <span className="pe-field__label">Video platform</span>
+              <span className="pe-field__help">
+                Pilot: when checked, this program&rsquo;s live session opens in{" "}
+                <strong>Zoom</strong> (the native app) instead of the in-browser
+                room. Members join under their real name with no Zoom account; the
+                host gets a one-click start link. Leave unchecked to keep the
+                current in-browser room. Only affects virtual / hybrid programs.
+              </span>
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={useZoom}
+                  onChange={(e) => { setUseZoom(e.target.checked); markDirty(); }}
+                />
+                <span>Use Zoom for this program</span>
+              </label>
             </div>
 
             {/* Intro: two separate sections with different semantics.
