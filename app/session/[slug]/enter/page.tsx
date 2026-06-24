@@ -3,12 +3,14 @@
  *
  * Gates the caller (auth + time window + session ban), provisions/reuses the
  * occurrence's Zoom meeting, registers the caller under their REAL NAME (no Zoom
- * account), and then:
- *   - member → forwards straight into Zoom (the "Opening Zoom…" launcher);
- *   - host (assigned host or ADMIN/GT) → a "Join as host" screen: they join under
- *     their own name via the same named link, then tap Participants → Claim Host
- *     and enter the code. So the host shows as THEMSELVES and holds host controls
- *     — no pool-seat identity, no Zoom login.
+ * account), and then routes by role:
+ *   - regular member → forwards straight into Zoom (the "Opening Zoom…" launcher),
+ *     no code, no host controls.
+ *   - host-capable (designated host, host-team alternate, teacher, ADMIN/GT) → a
+ *     role-aware "you're entering" screen that names today's host and shows the
+ *     Claim-Host code, so the right person can take host controls (and anyone on
+ *     the team can step in if the designated host doesn't show). Everyone joins
+ *     under their own name; whoever takes the host role types the code in Zoom.
  *
  * Non-Zoom programs fall through to the existing LiveKit room, untouched.
  * Registration stays UI-gated (dashboard only surfaces Join to eligible members).
@@ -21,13 +23,15 @@ import { getActiveSessionWindow } from "@/lib/sessionWindow";
 import { resolveSessionRole } from "@/lib/livekitAuth";
 import { getOrCreateSessionMeeting } from "@/lib/sessionMeeting";
 import { addMeetingRegistrant, ensureSeatHostKey } from "@/lib/zoom";
-import { roomNameForProgram } from "@/lib/livekit";
+import { roomNameForProgram, sessionDisplayName } from "@/lib/livekit";
 import { FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
 
 export const dynamic = "force-dynamic";
 
 const HOST_KEY = process.env.ZOOM_HOST_KEY;
+
+type ViewerRole = "designated" | "teacher" | "alternate";
 
 export default async function ZoomEnterPage({
   params,
@@ -49,6 +53,7 @@ export default async function ZoomEnterPage({
       name: true,
       useZoom: true,
       programFormat: true,
+      hostingHubSlug: true,
       startDatetime: true,
       endDatetime: true,
       recurrenceFreq: true,
@@ -97,14 +102,13 @@ export default async function ZoomEnterPage({
     });
 
     // Register the caller under their real name → their personal join link.
+    // Match RIM's session-room convention: first name + last INITIAL ("Jesse F.").
+    // Only controls the name for people NOT signed into a Zoom account (most
+    // members); anyone signed into their own Zoom shows that account's name.
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { firstName: true, lastName: true, preferredName: true, email: true },
     });
-    // Match RIM's session-room convention: first name + last INITIAL ("Jesse F.").
-    // This only controls the name for people who join WITHOUT being signed into a
-    // Zoom account (the registrant path — most members); anyone signed into their
-    // own Zoom shows that account's name, which Zoom won't let us override.
     const lastInitial = user?.lastName?.trim()
       ? `${user.lastName.trim()[0].toUpperCase()}.`
       : "";
@@ -114,37 +118,118 @@ export default async function ZoomEnterPage({
       lastName: lastInitial,
     });
 
+    // Who can take host controls: the designated host, anyone on the host team
+    // (alternate), the teacher, or ADMIN/GT. Everyone else is a plain member.
     const role = await resolveSessionRole(userId, slug, sessionDateIso, roles);
-    const isHost = role.isSessionHost || role.hasEndAllAuthority;
+    const canHost =
+      role.isSessionHost || role.isHostTeam || role.isProgramTeacher || role.hasEndAllAuthority;
 
-    // Member → straight into Zoom under their own name.
-    if (!isHost) {
+    if (!canHost) {
       return <ZoomLaunch url={reg.join_url} programName={program.name} />;
     }
 
-    // Host → set the seat's host key (so Claim Host works), then show the
-    // join-as-yourself screen with the code.
+    // Resolve who the designated host is (to name them for alternates/teacher).
+    const designatedHostName = await getDesignatedHostName(
+      slug,
+      program.hostingHubSlug ?? "host-team",
+      sessionDate,
+      userId,
+    );
+
+    const viewerRole: ViewerRole = role.isSessionHost
+      ? "designated"
+      : role.isProgramTeacher
+        ? "teacher"
+        : "alternate";
+
+    // Make Claim Host work: set the meeting's owning seat's host key.
     let hostKey: string | null = null;
     if (HOST_KEY) {
       await ensureSeatHostKey(meeting.seatUserId, HOST_KEY);
       hostKey = HOST_KEY;
     }
-    return <HostLanding programName={program.name} joinUrl={reg.join_url} hostKey={hostKey} />;
+
+    return (
+      <HostLanding
+        programName={program.name}
+        joinUrl={reg.join_url}
+        hostKey={hostKey}
+        viewerRole={viewerRole}
+        designatedHostName={designatedHostName}
+      />
+    );
   } catch (e) {
     console.error("[session/enter] Zoom provisioning/mint failed", { slug, userId }, e);
     redirect("/account/dashboard?session=error");
   }
 }
 
+/**
+ * The display name of the session's designated host (first name + last initial),
+ * or null if there's no assigned host or the viewer IS the host. Mirrors
+ * resolveSessionRole's occurrence matching: an exact-date assignment wins over a
+ * legacy standing (null-date) one.
+ */
+async function getDesignatedHostName(
+  programSlug: string,
+  hubSlug: string,
+  sessionDate: Date,
+  viewerId: string,
+): Promise<string | null> {
+  const rows = await db.hostAssignment.findMany({
+    where: {
+      programSlug,
+      hubSlug,
+      userId: { not: null },
+      OR: [{ sessionDate }, { sessionDate: null }],
+    },
+    select: {
+      userId: true,
+      sessionDate: true,
+      user: { select: { firstName: true, lastName: true, preferredName: true } },
+    },
+  });
+  const chosen =
+    rows.find((r) => r.sessionDate !== null) ?? rows.find((r) => r.sessionDate === null) ?? null;
+  if (!chosen?.user || chosen.userId === viewerId) return null;
+  return sessionDisplayName(chosen.user, "") || null;
+}
+
 function HostLanding({
   programName,
   joinUrl,
   hostKey,
+  viewerRole,
+  designatedHostName,
 }: {
   programName: string;
   joinUrl: string;
   hostKey: string | null;
+  viewerRole: ViewerRole;
+  designatedHostName: string | null;
 }) {
+  const eyebrow =
+    viewerRole === "designated"
+      ? "You're hosting today"
+      : viewerRole === "teacher"
+        ? "You're teaching today"
+        : "You're on the host team";
+
+  // Who's hosting (for teacher/alternate).
+  const hostLine =
+    viewerRole === "designated"
+      ? null
+      : designatedHostName
+        ? `${designatedHostName} is today's host.`
+        : "No one has claimed today's host role yet.";
+
+  const claimIntro =
+    viewerRole === "designated"
+      ? "To take host controls, tap Participants → Claim Host in Zoom and enter:"
+      : "If you need to step in as host, tap Participants → Claim Host and enter:";
+
+  const joinLabel = viewerRole === "designated" ? "Join as host →" : "Join →";
+
   return (
     <div
       style={{
@@ -177,18 +262,24 @@ function HostLanding({
             marginBottom: 8,
           }}
         >
-          You&rsquo;re hosting
+          {eyebrow}
         </p>
         <h1
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: "var(--text-h2)",
             fontWeight: 400,
-            margin: "0 0 20px",
+            margin: "0 0 8px",
           }}
         >
           {programName}
         </h1>
+        {hostLine && (
+          <p style={{ fontSize: "var(--text-ui)", color: "var(--rim-mid)", margin: "0 0 20px" }}>
+            {hostLine}
+          </p>
+        )}
+        {!hostLine && <div style={{ height: 12 }} />}
 
         <a
           href={joinUrl}
@@ -203,7 +294,7 @@ function HostLanding({
             textDecoration: "none",
           }}
         >
-          Join as host →
+          {joinLabel}
         </a>
 
         {hostKey ? (
@@ -218,8 +309,7 @@ function HostLanding({
               color: "var(--rim-text)",
             }}
           >
-            You&rsquo;ll join under your own name. To take host controls, tap{" "}
-            <strong>Participants → Claim Host</strong> in Zoom and enter:
+            You&rsquo;ll join under your own name. {claimIntro}
             <div
               style={{
                 marginTop: 10,
@@ -236,7 +326,7 @@ function HostLanding({
         ) : (
           <p style={{ marginTop: 20, fontSize: "var(--text-small)", color: "var(--rim-mid)" }}>
             You&rsquo;ll join under your own name. (Host code isn&rsquo;t configured —
-            set <code>ZOOM_HOST_KEY</code> to enable one-tap Claim&nbsp;Host.)
+            set <code>ZOOM_HOST_KEY</code> to enable Claim&nbsp;Host.)
           </p>
         )}
       </div>
