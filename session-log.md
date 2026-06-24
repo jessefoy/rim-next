@@ -1,5 +1,50 @@
 ---
 
+## 2026-06-24 (session 157) — Session-room: background-effects/blur built → fully REVERTED, device-switch fixes, host Spotlight — net shipped (Spotlight + device "Default" + listener audio); blur deferred until a preview test path exists
+
+A long, instructive LiveKit session-room arc, driven by community + Jesse's requests (background blur / "appearance settings like Zoom," then video quality, then device-switch bugs). **Net on `main` (`0491d43`, deployed):** host **Spotlight**, a device-dropdown **"Default" always-selectable + reset**, and **listener audio 64 → 96 kbps**. **Reverted the same session:** the **background-effects (blur + virtual background)** build + a first device-switch fix — they regressed the teacher's camera.
+
+### Arc 1 — Background effects (blur + virtual background): built, shipped, then REVERTED
+Built `@livekit/track-processors` `BackgroundProcessor` as Off / Blur (adjustable) / Virtual-background (bundled SVG scenes), opt-in in the Settings panel, off by default, feature-detected, with CPU-constrained auto-disable (`a82e7f8` — new `useBackgroundEffects` hook + `lib/backgroundProcessorConfig.ts` + a VideoSettingsPanel section + RIMConference wiring). Then a device-switch integrity fix (`b305c4e`: a processor-aware `switchCamera`, device-state reflection, a speaker `setSinkId`-support note).
+**Both reverted** (`49eb151` + the `b305c4e` revert) after Jesse tested: selecting his camera went **black**. Root cause: the blur processor attaches to the camera track, and LiveKit's `restartTrack` runs `processor.restart()` **before** `sender.replaceTrack()` — on a device switch (esp. Safari) that throws and leaves the tile blank. Compounded by **blur persisting in localStorage**, so it was silently always-on after one try → every camera re-select tripped it. The detach-before-switch "fix" was reasoned-correct but unverifiable (Jesse can't test previews — see "the real blocker").
+
+### Arc 2 — The device-black diagnosis (wrong twice before the truth)
+- First wrongly theorized **Blackmagic capture cards can't feed browsers** (true for DeckLink/UltraStudio/Intensity — `getUserMedia` can't pull from them; need OBS Virtual Camera). **But Jesse's device is an ATEM Mini — a normal UVC webcam that works in browsers, and worked before my build.** So it was *my regression*, not a hardware limit. **Lesson → ask what hardware the user has BEFORE diagnosing a device issue.**
+- After the revert his camera was *still* black: the ATEM had gone **non-responsive** (a device glitch a **computer restart fixed**), AND my build had **saved his camera pref to the ATEM in `localStorage`**, which **survived the code revert** — and the old dropdown only offered "Default" when nothing was saved, so he was stuck. **Lesson → a code revert does NOT undo persisted client-side state.**
+
+### Arc 3 — "Zoomed in" tiles → keep (it's Zoom) → the "match Zoom" directive
+Jesse's self-view looked cropped in the tile but correct when enlarged. Confirmed: camera tiles use **`object-fit: cover`** (crop-to-fill) in the vendored `livekit-prefabs.css` — standard Zoom gallery behavior, **not** from my (reverted) build. Jesse's call: **keep it, and make the room as Zoom-like as possible because that's what members are used to.** Adopted as the session-room design tiebreaker (extends the session-117 "Zoom-aligned" foundation).
+
+### Arc 4 — What actually shipped (`0491d43`, reviewed, tsc-green, deployed)
+1. **Host Spotlight (Zoom parity)** — closes backlog `2026-05-19-001`. New co-host-gated `POST /api/livekit/spotlight` sets LiveKit **room metadata** `{ spotlight: identity|null }` (`updateRoomMetadata`), so every client incl. late-joiners reflects it (`useRoomInfo`). Folded into the synchronous focus precedence: **personal pin > screen share > spotlight > speaker > gallery** (a viewer's own pin still wins). Co-host Spotlight/Unspotlight button per tile + room-wide banner with Stop; **auto-clears when the target leaves** (connected-guarded, idempotent); banner gated on presence.
+2. **Device dropdown "Default" always selectable + reset** — the trap that stranded Jesse: once a device was saved, "Default" vanished. Now always present; selecting it clears the saved pref and falls back to the system-default device (resets a stuck camera in-app, no console).
+3. **Listener audio 64 → 96 kbps** — parity with speaker; audio is a tiny fraction of the video budget.
+
+### The real blocker (the meta-lesson)
+The blur regression reached **all members in production** because **Jesse can't log in to Vercel preview deploys** — no way to verify before shipping to `main`. Fixing the **preview-login issue** (likely a sign-in callback / `NEXTAUTH_URL` mismatch on preview domains) is the highest-value next step: it's the test path whose absence caused today's pain. Until it exists, ship nothing that touches camera capture (e.g. a blur rebuild).
+
+### Reviewer catch worth noting
+The Spotlight reviewer caught a **blocker**: the new `/api/livekit/spotlight/route.ts` was **untracked** — a `git commit -am` would have shipped Spotlight client-only (every toggle a 404). Staged explicitly. **Lesson → stage new files explicitly; verify `git status` before committing.**
+
+### Closing-ritual checklist
+- **Editor types (4a):** no editor work — n/a.
+- **Hub audit (4c):** no hub routing layers changed. The new spotlight route gates on `isCoHost` via `resolveSessionRole` exactly like its siblings (mute-participant/mute-all/end-session); room-metadata is owned solely by this route (grep-confirmed no other room-metadata writer).
+- **Email audit (4e):** no `sendTemplatedEmail` calls added or changed — no templates touched.
+- **Stack/Architecture:** new route `/api/livekit/spotlight`; Spotlight added as a co-host capability in `RIM_System_Architecture.md` Video Conferencing; no deps/env/schema/migration changes (the blur attempt added no committed deps — reverted).
+
+### What this connects to
+- **Session room** (`RIM_SessionRoom.md`): focus orchestration (spotlight in the synchronous precedence), `sessionRole` context (gained spotlight), device selection (VideoSettingsPanel), audio profiles (listener bump). The blur attempt + revert + the processor/device-switch pitfall are documented there.
+- **The s147 echo decision** — unchanged: still the teacher's open-speaker endpoint; hardware-AEC speakerphone is the parallel move (Jesse handling his end).
+- **Preview deploys / auth** — the preview-login gap is now the gating dependency for safe session-room iteration.
+
+### What comes next
+1. **Fix the preview-login issue** → a real test path (prerequisite for everything below).
+2. Then optionally **rebuild background blur** correctly (detach-before-switch verified on a real ATEM/Safari; self-host the MediaPipe segmentation assets from `/public/segmentation`; don't silently persist blur).
+3. **Spotlight mobile-start** (tile button is hover-only → add a Participants-panel action; backlog `2026-05-31-002` is adjacent).
+4. **Video measurement pass** — "choppy at first" (BWE ramp + simulcast startup) + "Zoom looked sharper" (720p capture vs 1080p): measure real dashboard numbers before any bitrate/layer change (the freeze-prone zone).
+
+---
+
 ## 2026-06-22 (session 156) — Documents filing system (OnlyOffice Slice 4): freshness + search, category governance, cross-hub sharing/visibility, the master directory — all 4 steps + the design doc shipped
 
 Built the document **filing system** on top of the s155 OnlyOffice foundation — the "modernize file management" work Jesse asked for. **Five commits on `main`, all deployed.** No schema change, no new deps / env / services, no email templates touched. `tsc`-green each step; an independent code-reviewer sub-agent gated each step (no blockers; two SHOULD-FIX + several NICE-TO-HAVE taken). The design lives in the new **`RIM_Documents.md`**.

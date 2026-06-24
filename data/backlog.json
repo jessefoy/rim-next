@@ -1,5 +1,35 @@
 [
   {
+    "id": "2026-06-24-001",
+    "title": "Fix preview-deploy login so changes can be verified before prod (THE test-path gap)",
+    "description": "Jesse cannot log in to Vercel PREVIEW deployments (claude/* branch URLs), so session-room changes can't be tested before they hit main/prod. This is the root cause of the session-157 incident: a background-blur build that blacked the teacher's camera reached ALL members because there was no way to verify on a throwaway URL first. Almost certainly an auth-config mismatch on preview domains: NextAuth v5 / the 6-digit sign-in code flow depends on the callback URL / NEXTAUTH_URL (or AUTH_URL) matching the deployment origin, and Resend-emailed sign-in codes + cookies are origin-specific — on a preview-*.vercel.app host these don't match the prod origin, so sign-in fails. Investigate: how NEXTAUTH_URL/AUTH_URL is set (hardcoded to prod vs Vercel's VERCEL_URL/VERCEL_BRANCH_URL), the auth.ts trustHost setting, and cookie domain. Likely fix: derive the auth base URL from the Vercel per-deploy URL (or set trustHost + use the request origin) so previews authenticate. Goal: Jesse can sign in on a preview deploy and exercise the session room before merge.",
+    "category": "Infrastructure",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-06-24",
+    "notes": "Highest-leverage item from session 157 — the safety net whose absence let a camera regression reach production. Until it exists, ship nothing touching camera capture (e.g. a blur rebuild). Start in auth.ts + the Vercel env vars (NEXTAUTH_URL/AUTH_URL/trustHost)."
+  },
+  {
+    "id": "2026-06-24-002",
+    "title": "Host Spotlight: let mobile co-hosts START a spotlight (Participants-panel action)",
+    "description": "Session 157 shipped host Spotlight, but it can only be STARTED from the per-tile hover button (desktop). On a phone/tablet a co-host can Stop a spotlight (the always-visible banner Stop) but not start one, because tiles have no hover on touch. Add a Spotlight/Unspotlight action to the ParticipantsPanel per-row co-host actions (alongside Mute/Ask-to-unmute/Remove), calling the existing sessionRole.onToggleSpotlight — same pattern as the tile button. Mirrors the pre-existing 'pin-from-mobile' gap (2026-05-31-002); could be done together. Per CLAUDE.md mobile-first (44px targets, works at 360px).",
+    "category": "LiveKit / Session Room",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-24",
+    "notes": "Small. The Spotlight mechanism (route + room metadata + context) all exists; this is just a second trigger surface for touch. Adjacent to 2026-05-31-002 (pin-from-tile on mobile)."
+  },
+  {
+    "id": "2026-06-24-003",
+    "title": "Rebuild background effects (blur + virtual background) — correctly, after a test path exists",
+    "description": "Session 157 built @livekit/track-processors BackgroundProcessor (Off / Blur(adjustable) / virtual-background via bundled scenes), opt-in in the Settings panel, off by default, feature-detected, with CPU-constrained auto-disable — then REVERTED it the same session because the camera-attached processor blacked the teacher's ATEM on a device switch. The reverted code is in git history (commits a82e7f8 + b305c4e; reverts 49eb151 + the b305c4e revert). To rebuild correctly: (1) DETACH the processor before room.switchActiveDevice('videoinput',…) and re-attach after — LiveKit's restartTrack runs processor.restart() before sender.replaceTrack(), which throws on Safari mid-switch and leaves the tile blank (the reverted useBackgroundEffects.switchCamera did this; verify on a real ATEM + Safari). (2) Do NOT silently persist blur in localStorage (it became always-on and surprised the user; default off per join or make persisted state obvious). (3) SELF-HOST the MediaPipe segmentation model + WASM from /public/segmentation (the WASM is already in node_modules/@mediapipe/tasks-vision/wasm, version-matched) instead of the CDN default. (4) Verify on a PREVIEW deploy (blocked on 2026-06-24-001) before prod. Virtual-background scenes: ship at least one raster (JPG/PNG) image, not only SVG (createImageBitmap on SVG is flaky on Safari).",
+    "category": "LiveKit / Session Room",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-24",
+    "notes": "Blocked on 2026-06-24-001 (preview test path). Full rebuild notes in RIM_SessionRoom.md 'Background effects … ATTEMPTED + REVERTED'. The feature is wanted (Jesse liked the blur 'semi-okay'); the miss was shipping it blind to prod, not the concept."
+  },
+  {
     "id": "2026-06-17-004",
     "title": "Calendar .ics: weekday-aware RRULE for monthly + fix weekly BYDAY case bug (needs CT TZID)",
     "description": "Session 153 made in-app MONTHLY recurrence weekday-of-month aware ('last Sunday', '2nd Wednesday'), but lib/calendarLinks.ts buildRRule still emits FREQ=MONTHLY with no BYDAY/BYSETPOS -- so a downloaded .ics for a monthly program recurs on the day-of-month (e.g. the 31st), diverging from the in-app semantics. Also pre-existing, same root cause as the s153 dateLabel case fix: buildRRule (line 32) and describeRecurrence (lines 52-54) compare recurrenceFreq against LOWERCASE ('weekly'/'daily') while the stored value is UPPERCASE, so BYDAY is silently dropped from EVERY weekly program's .ics (a multi-day weekly like 'MO,WE' only recurs on the DTSTART day) and the recurrence labels never fire. To fix correctly: (1) normalize freq to uppercase in buildRRule + describeRecurrence; (2) for MONTHLY emit BYDAY=<weekday>;BYSETPOS=<n or -1> derived from the start date (reuse the monthlyPatternPhrase/ordinal logic in lib/scheduleUtils.ts); (3) CRUCIAL -- the .ics currently emits DTSTART in UTC (toCalDT of the ISO instant), so for an evening CT program the UTC day differs from the CT day and a CT-derived BYDAY/BYSETPOS would misalign with DTSTART. Doing this correctly means emitting DTSTART with TZID=America/Chicago + a VTIMEZONE block so the RRULE is interpreted in CT. That timezone treatment is why this is its own slice, not folded into the s153 in-app fix. Files: lib/calendarLinks.ts (+ app/api/programs/[slug]/ical/route.ts caller). Google 'add to calendar' URL is single-event by design (no RRULE) -- unaffected.",
@@ -419,9 +449,10 @@
     "description": "Zoom feature we don't have. Our local Speaker view auto-pins the active speaker locally; Spotlight pins one participant for everyone in the room, persists until the host releases it, and surfaces above the active-speaker logic. LiveKit doesn't have a built-in spotlight primitive, but we can implement it by sending a 'spotlight' data-channel message from the host and having every client treat the named identity as the auto-pin target until cleared. UI: a 'Spotlight for everyone' option in the per-tile host hover menu or in the participants panel's per-row host actions. Track current spotlight in room metadata so latecomers see it on join.",
     "category": "LiveKit / Session Room",
     "priority": "low",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-05-19",
-    "notes": "Only build if a real session needs it. Most dharma talks don't — the active-speaker pin works fine. Could be useful for panel discussions or guided meditations where the teacher should stay focused regardless of who speaks."
+    "closedAt": "2026-06-24",
+    "notes": "DONE session 157 (2026-06-24, commit 0491d43). Implemented via ROOM METADATA (not the data-channel approach this entry guessed): co-host-gated POST /api/livekit/spotlight sets room.metadata { spotlight: identity|null } via updateRoomMetadata; clients read it through useRoomInfo (late-joiners included). Folded into the synchronous focus precedence (personal pin > screen share > spotlight > speaker > gallery — a viewer's own pin still wins). Per-tile co-host Spotlight/Unspotlight button + room-wide banner with Stop; auto-clears when the target leaves (connected-guarded, idempotent). v1 gap: startable only from the desktop tile hover — mobile-start is backlog 2026-06-24-002. See RIM_SessionRoom.md 'Host Spotlight'."
   },
   {
     "id": "2026-05-19-002",

@@ -234,6 +234,32 @@ Outbound = DO defaults (all). **Closed by omission:** 7880 (LiveKit HTTP/WS — 
 
 ---
 
+## Host Spotlight (session 157)
+
+Zoom-parity "spotlight for everyone": a co-host puts one participant on every viewer's stage.
+
+- **Distribution = room metadata.** `POST /api/livekit/spotlight` (co-host gated, mirrors mute-participant: auth → `assertSessionDateInWindow` → `resolveSessionRole` `isCoHost`) sets `room.metadata` to `{ spotlight: identity | null }` via `RoomServiceClient.updateRoomMetadata`. Room metadata is owned solely by this route (no other writer — grep-confirmed). Clients read it through `useRoomInfo()` (re-renders on `RoomMetadataChanged`; late-joiners get current metadata on connect) → `spotlightedIdentity` (a `useMemo` over `roomInfo.metadata`).
+- **Focus precedence (RIMConference, synchronous):** personal **pin** (this viewer) > active **screen share** > **spotlight** > **speaker-view** active speaker > gallery. A viewer's own pin still wins locally; a screen share still wins (content). Engages from BOTH gallery and speaker view. If the spotlighted camera isn't present (camera off / left), focus falls through to gallery — no empty/stuck stage.
+- **UI:** a co-host-only Spotlight/Unspotlight button per tile (`.rim-tile-spotlight`, hover-reveal, gold when active, stacked above the Pin button) + a room-wide banner (`.rim-spotlight-banner`, gold) everyone sees with a **Stop** control for co-hosts. `sessionRole` context carries `spotlightedIdentity` + `onToggleSpotlight`.
+- **Auto-clear on leave (Zoom parity):** an effect has co-hosts POST `identity: null` when the spotlighted id is no longer present — **guarded on `ConnectionState.Connected`** so a transient reconnect (momentarily empty participant list) can't spuriously clear it; idempotent. The banner is also gated on the target being present so it never goes stale.
+- **v1 gap:** spotlight can only be **started** from the tile hover (desktop). Mobile co-hosts can **Stop** (the banner) but not start — add a Participants-panel action. Backlog `2026-06-24-002`.
+
+## Background effects (blur / virtual background) — ATTEMPTED + REVERTED (session 157)
+
+Built `@livekit/track-processors` `BackgroundProcessor` (Off / Blur / virtual-background), opt-in in Settings, off by default, feature-detected, CPU-auto-disable — then **reverted the same session** because it **blacked the teacher's camera on a device switch**. Keep this for the rebuild:
+
+- **The pitfall:** a video TrackProcessor on the camera + a device switch = blank tile. LiveKit's `LocalVideoTrack.restartTrack` runs `this.processor.restart()` **before** `sender.replaceTrack()`; on Safari (acquiring the new camera stops the old stream the processor is mid-pipeline on) the restart throws, `replaceTrack` never runs, the tile is left blank. **A blur rebuild MUST detach the processor before `switchActiveDevice('videoinput', …)` and re-attach after** (the reverted `useBackgroundEffects.switchCamera` did this — verify it on real hardware next time).
+- **Don't silently persist blur.** Persisting the mode in localStorage made it always-on after one try, so every camera re-select tripped the bug — and surprised the user. Default off per join (or make persisted state obvious).
+- **Self-host the assets.** `BackgroundProcessor` loads the MediaPipe segmentation model + WASM from a CDN by default; serve them from `/public/segmentation` (the MediaPipe WASM is already in `node_modules/@mediapipe/tasks-vision/wasm`, version-matched) — mirrors how RNNoise is served, keeps us off third-party CDNs at session time.
+- **Camera-device facts (diagnosis aid):** an **ATEM Mini is a normal UVC webcam** and works in browsers. **DeckLink / UltraStudio / Intensity capture cards do NOT** — `getUserMedia` can't pull frames from them (browser limitation); route through **OBS Virtual Camera**. Always ask which device before diagnosing a black camera.
+- Deferred until a **preview test path** exists (Jesse can't log into Vercel preview deploys — the gap that let the regression reach prod). Backlog `2026-06-24-003`.
+
+## Device selection + tile framing (session 157)
+
+- **"Default" is always selectable** in the mic/camera/speaker dropdowns (`VideoSettingsPanel`). It previously vanished once a specific device was saved, stranding a host on a non-working camera; now selecting it clears the saved pref (`clearPref`) and falls back to the first enumerated device. A code revert does NOT clear this localStorage pref — reset via the dropdown (or `localStorage.removeItem('rim-livekit-prefs')`).
+- **Tiles crop-to-fill (`object-fit: cover`)** — vendored LiveKit behavior; a wide camera looks "zoomed in" in a non-16:9 tile, full frame when enlarged. **Kept deliberately — it's what Zoom does.** Standing directive: **make the room as Zoom-like as possible** (members' muscle memory); when a behavior matches Zoom and isn't contradicted by `RIM_Web_Design_Philosophy.md`, keep it. Extends the session-117 Zoom-aligned foundation.
+- **Listener audio 64 → 96 kbps** (`VideoRoom.buildRoomOptions`) — parity with speaker.
+
 ## Deferred / known gaps
 
 - **Screen-share specific throwing line** (session 147) — the `RoomErrorBoundary` now *contains* the crash, but the exact render exception is unconfirmed. Capture it with a two-window repro (console on the viewer) → fix the line. Backlog `2026-06-11-001`.
@@ -242,7 +268,9 @@ Outbound = DO defaults (all). **Closed by omission:** 7880 (LiveKit HTTP/WS — 
 - **Latency / sync tuning** (lip-sync, occasional desync) — needs a live measurement pass (LiveKit stats + Krisp A/B). Don't change codec/bitrate blind.
 - **Mobile pin-from-tile** — the Pin button is hover-reveal (desktop), parity with the Mute button. Touch can unpin (banner) but not initiate a pin. A Pin action in the Participants panel would close the gap.
 - **Sharer's own focus tile** can be blank during a whole-screen share (recursive capture). Could suppress share-focus for the sharer specifically.
-- **Host "Spotlight"** (pin for everyone) — not built; local Pin only.
+- **Host "Spotlight"** — BUILT session 157 (see "Host Spotlight" above). Remaining gap: **mobile-start** (only startable from the desktop tile hover; add a Participants-panel action). Backlog `2026-06-24-002`.
+- **Preview test path (preview-login)** — Jesse can't log into Vercel preview deploys, so session-room changes can't be verified before prod (this let the s157 blur regression reach all members). Fix the sign-in callback / `NEXTAUTH_URL` mismatch on preview domains. Prerequisite for any camera-capture change. Backlog `2026-06-24-001`.
+- **Background blur rebuild** — see "Background effects … ATTEMPTED + REVERTED" above; deferred until the preview test path exists. Backlog `2026-06-24-003`.
 - **PDF schedule export hub-scoping**, **assignments-GET pause map** — see Scheduler doc; not session-room.
 - **(session 144 deferrals, documented):** TG-1 DST gate-drift → a **data-check**, not surgery on shared time math (the dashboard→gate path is self-consistent; only direct-navigate-from-the-public-page is affected); TG-2 recurrence-count cutoff edge (dormant — live sits are open-ended); the control-bar 2-row wrap + End placement at 360–390px and a full popover focus-trap/return-focus (need real hardware); BrightnessProcessor mobile cost (measure first); empty-room cleanup (verify LiveKit's default); recording is **off** (no indicator — a documented decision); guest-to-guest chat identity binding (the prefix check covers the member-impersonation vector).
 

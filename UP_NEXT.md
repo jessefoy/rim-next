@@ -6,7 +6,26 @@
 
 ## Active
 
-### Session 156 (2026-06-22) — ⏯ RESUME HERE: Documents filing system (OnlyOffice Slice 4) shipped — all 4 steps + `RIM_Documents.md` on `main`; next is deploy-verify + Slice 5 / polish
+### Session 157 (2026-06-24) — ⏯ RESUME HERE: Session-room — Spotlight + device "Default" fix + listener audio shipped; blur built→REVERTED; the gating need is a preview test path
+
+**Shipped + live (`0491d43`):** host **Spotlight** (Zoom parity), device-dropdown **"Default" always-selectable + reset**, **listener audio 64→96 kbps**. Reviewed + tsc-green. Full narrative in `session-log.md` (session 157); session-room detail in `RIM_SessionRoom.md`.
+
+**Built then REVERTED this session (don't re-ship blind):** **background effects (blur + virtual background)** + a device-switch fix — they blacked the teacher's camera (the blur processor + LiveKit's `restartTrack` runs `processor.restart()` *before* `replaceTrack()` → throws on Safari device-switch → blank tile; compounded by blur persisting in localStorage). `main` is back to known-good. The three net-shipped items above are separate + safe (additive, none touch camera capture).
+
+**⚠️ THE GATING NEED — a preview test path.** The blur regression reached all members because **Jesse can't log in to Vercel preview deploys**. Fix the **preview-login issue** first (likely sign-in callback / `NEXTAUTH_URL` not matching preview domains) — it's the prerequisite for safely iterating on the room. Until then, ship nothing that touches camera capture.
+
+**OPEN — live verification (Jesse, on prod):**
+1. Co-host hovers a tile → **Spotlight** → everyone's stage switches to that person within ~1s; a late-joiner sees it; **Stop**/Unspotlight clears it; it auto-clears if the spotlighted person leaves. A viewer's own **pin still overrides** it for them.
+2. Device dropdown: **"Default"** is selectable again and resets a stuck camera in-app.
+3. Listener audio sounds clearer.
+
+**Known v1 gap:** Spotlight can only be **started** from the tile hover (desktop). Mobile co-hosts can **Stop** (banner) but not start — add a Participants-panel action (backlog `2026-06-24-002`).
+
+**NEXT (in order):** (1) **preview-login test path** (backlog `2026-06-24-001`); (2) *then* rebuild blur correctly (detach-before-switch verified on a real ATEM/Safari + self-hosted segmentation assets + no silent persistence — backlog `2026-06-24-003`); (3) Spotlight mobile-start; (4) video measurement (choppy-start + sharpness — measure before touching bitrate); (5) echo is Jesse's endpoint (hardware AEC).
+
+**Memory candidates (step 7b — awaiting Jesse's confirm):** listed in chat at close (ask-device-before-diagnosing; revert-to-known-good when a build breaks a live feature; don't ship blind to prod without a test path; "match Zoom" as the session-room tiebreaker; a code revert doesn't undo persisted client state).
+
+### Session 156 (2026-06-22) — Documents filing system (OnlyOffice Slice 4) shipped — all 4 steps + `RIM_Documents.md` on `main`; next is deploy-verify + Slice 5 / polish
 
 **Slice 4 is done and deployed** — 5 commits on `main`, no schema / deps / env / email change, reviewer-gated each step. The document filing system Jesse asked for, built in four steps on the s155 OnlyOffice foundation. Full narrative in `session-log.md` (session 156); the design + model in **`RIM_Documents.md`**.
 
