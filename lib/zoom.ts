@@ -6,10 +6,9 @@
  * "RIM Sessions" S2S app. No SDK — plain `fetch` against Zoom's REST API, so no
  * new dependency. Credentials come from Vercel env (never committed).
  *
- * Slice 1a (this file's first cut): the token + a generic API helper + user
- * lookup — enough for the /admin/zoom-test connection check. Meeting
- * provisioning (create / get-fresh-start_url / add-registrant / delete) lands in
- * the next slice, once the connection + seat licenses are verified live.
+ * Contents: S2S access token (cached) + a generic REST helper, user lookup,
+ * meeting provisioning (create / get-fresh-host-link / add-registrant / delete),
+ * and the pool-seat host-key setter for own-name hosting.
  */
 
 const ACCOUNT_ID = process.env.ZOOM_ACCOUNT_ID!;
@@ -215,4 +214,23 @@ export async function addMeetingRegistrant(
 /** Delete a meeting (teardown on format change / program delete / occurrence cancel). */
 export async function deleteMeeting(meetingId: number | string): Promise<void> {
   await zoomApi(`/meetings/${encodeURIComponent(String(meetingId))}`, { method: "DELETE" });
+}
+
+// Per-process cache so we don't re-PATCH a seat's host key on every host entry.
+const hostKeyEnsured = new Set<string>();
+
+/**
+ * Ensure a pool seat's 6-digit host key is set to `hostKey`, so a host who
+ * joined under their own name can "Claim Host" with it. Idempotent + cached per
+ * process. PATCH sets only host_key (partial update). The owning seat's host key
+ * is what Zoom's Claim-Host prompt checks for that seat's meetings.
+ */
+export async function ensureSeatHostKey(userId: string, hostKey: string): Promise<void> {
+  const cacheKey = `${userId}:${hostKey}`;
+  if (hostKeyEnsured.has(cacheKey)) return;
+  await zoomApi(`/users/${encodeURIComponent(userId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ host_key: hostKey }),
+  });
+  hostKeyEnsured.add(cacheKey);
 }
