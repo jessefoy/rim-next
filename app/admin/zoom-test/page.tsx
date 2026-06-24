@@ -19,6 +19,7 @@ import {
   ZOOM_USER_TYPE,
   type ZoomUser,
 } from "@/lib/zoom";
+import ZoomSelfTest from "@/components/admin/ZoomSelfTest";
 
 export const metadata = { title: "Zoom Test — Admin" };
 export const dynamic = "force-dynamic";
@@ -238,6 +239,8 @@ export default async function ZoomTestPage() {
           ✓ All green — credentials work and both seats are Licensed and active.
         </p>
       )}
+
+      {tokenOk && <ZoomSelfTest />}
     </div>
   );
 }

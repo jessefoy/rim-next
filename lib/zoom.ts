@@ -114,3 +114,105 @@ export interface ZoomUser {
 export async function getZoomUser(idOrEmail: string): Promise<ZoomUser> {
   return zoomApi<ZoomUser>(`/users/${encodeURIComponent(idOrEmail)}`);
 }
+
+// ── Meeting provisioning (Slice 1b) ──────────────────────────────────────────
+// One Zoom meeting per session occurrence, created just-in-time on a free pool
+// seat. RIM keeps the orchestration; these are the thin Zoom primitives.
+
+export interface CreateMeetingOptions {
+  /** The pool seat that will own/host the meeting (Zoom userId or email). */
+  seatUserId: string;
+  topic: string;
+  /** ISO 8601 start time. */
+  startTime: string;
+  durationMinutes: number;
+  /** Defaults to America/Chicago (RIM's timezone). */
+  timezone?: string;
+  /** When true, auto-records audio-only to the cloud (per-session record flag). */
+  recordToCloud?: boolean;
+}
+
+export interface ZoomMeeting {
+  /** Numeric meeting id. */
+  id: number;
+  host_id: string;
+  topic: string;
+  /** Host-launch link (carries a ZAK, expires ~2h from CREATION) — fetch fresh just-in-time. */
+  start_url: string;
+  /** Generic join link (we prefer per-registrant links for named entry). */
+  join_url: string;
+  start_time?: string;
+  duration?: number;
+}
+
+/**
+ * Create a scheduled meeting on a pool seat. RIM defaults: camera off + muted on
+ * entry (the greenroom feel), join-before-host on (people gather before a host
+ * claims), registration auto-approved (so the registrant API returns a named
+ * join link immediately), telephony + VoIP audio (enables dial-in), and
+ * audio-only cloud recording when requested.
+ */
+export async function createMeeting(opts: CreateMeetingOptions): Promise<ZoomMeeting> {
+  return zoomApi<ZoomMeeting>(
+    `/users/${encodeURIComponent(opts.seatUserId)}/meetings`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        topic: opts.topic,
+        type: 2, // scheduled
+        start_time: opts.startTime,
+        duration: opts.durationMinutes,
+        timezone: opts.timezone ?? "America/Chicago",
+        settings: {
+          host_video: false,
+          participant_video: false,
+          join_before_host: true,
+          mute_upon_entry: true,
+          waiting_room: false,
+          approval_type: 0, // automatically approve registrants (returns join_url now)
+          registrants_email_notification: false, // RIM delivers links, not Zoom
+          audio: "both", // VoIP + dial-in
+          auto_recording: opts.recordToCloud ? "cloud" : "none",
+        },
+      }),
+    },
+  );
+}
+
+/**
+ * Fetch a meeting. Zoom regenerates `start_url` (with a fresh ~2h ZAK) on every
+ * GET, so this is how we mint the just-in-time no-login host link at click time.
+ */
+export async function getMeeting(meetingId: number | string): Promise<ZoomMeeting> {
+  return zoomApi<ZoomMeeting>(`/meetings/${encodeURIComponent(String(meetingId))}`);
+}
+
+export interface RegistrantResult {
+  registrant_id: string;
+  id: number;
+  /** The per-person join link that carries the registrant's name into the room. */
+  join_url: string;
+}
+
+/**
+ * Add a registrant so a member joins under their real name with no Zoom account.
+ * Returns that registrant's unique `join_url`.
+ */
+export async function addMeetingRegistrant(
+  meetingId: number | string,
+  registrant: { email: string; firstName: string; lastName?: string },
+): Promise<RegistrantResult> {
+  return zoomApi<RegistrantResult>(`/meetings/${encodeURIComponent(String(meetingId))}/registrants`, {
+    method: "POST",
+    body: JSON.stringify({
+      email: registrant.email,
+      first_name: registrant.firstName,
+      last_name: registrant.lastName ?? "",
+    }),
+  });
+}
+
+/** Delete a meeting (teardown on format change / program delete / occurrence cancel). */
+export async function deleteMeeting(meetingId: number | string): Promise<void> {
+  await zoomApi(`/meetings/${encodeURIComponent(String(meetingId))}`, { method: "DELETE" });
+}
