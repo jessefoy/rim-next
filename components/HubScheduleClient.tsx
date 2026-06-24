@@ -755,7 +755,7 @@ function HsRow({
         {fmt && <div className="hs-row__format">{fmt}</div>}
         {isRoomLiveNow && (
           <a
-            href={`/session/${session.programSlug}`}
+            href={`/session/${session.programSlug}/enter`}
             className="hs-row__join"
             target="_blank"
             rel="noreferrer"
