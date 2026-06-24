@@ -2640,6 +2640,25 @@ Or open it directly: {{manageUrl}}`,
       }
     },
   },
+  {
+    // Per-program "auto-record sessions to the cloud" flag (Zoom). Audio-only is
+    // governed by the seats' Zoom recording settings. Additive column.
+    name: "add_record_by_default_to_programs",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'programs' AND column_name = 'recordByDefault'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`
+          ALTER TABLE "programs" ADD COLUMN "recordByDefault" BOOLEAN NOT NULL DEFAULT false
+        `);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

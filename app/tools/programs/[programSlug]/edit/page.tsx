@@ -159,6 +159,7 @@ export default async function EditProgramToolPage({
     hostingHubSlug: program.hostingHubSlug ?? null,
     hostingRequired: program.hostingRequired ?? true,
     useZoom: program.useZoom ?? false,
+    recordByDefault: program.recordByDefault ?? false,
     coverageHubSlugs: coverageRows.map((r) => r.hubSlug),
   };
 

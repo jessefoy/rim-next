@@ -150,6 +150,7 @@ export async function PUT(
   }
   // Zoom pilot flag (coerce to a real boolean).
   if (body.useZoom !== undefined) data.useZoom = body.useZoom !== false;
+  if (body.recordByDefault !== undefined) data.recordByDefault = body.recordByDefault !== false;
   if (body.venue !== undefined) data.venue = body.venue;
   if (body.locationText !== undefined) data.locationText = body.locationText || null;
   if (body.locationLink !== undefined) data.locationLink = body.locationLink || null;

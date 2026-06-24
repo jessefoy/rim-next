@@ -52,6 +52,7 @@ export default async function ZoomEnterPage({
       slug: true,
       name: true,
       useZoom: true,
+      recordByDefault: true,
       programFormat: true,
       hostingHubSlug: true,
       startDatetime: true,
@@ -99,6 +100,7 @@ export default async function ZoomEnterPage({
       sessionDate,
       endTime,
       topic: program.name,
+      recordToCloud: program.recordByDefault,
     });
 
     // Register the caller under their real name → their personal join link.

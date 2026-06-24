@@ -108,6 +108,7 @@ export interface ProgramData {
    *  rotation generation, and the new-program-needs-host email. Default true. */
   hostingRequired?: boolean;
   useZoom?: boolean;
+  recordByDefault?: boolean;
   /** Auxiliary hubs providing supporting-role coverage for this program
    *  (session 129 — AV + Greeter). Empty array is the default; each slug
    *  here gets a row in program_coverage_hubs on save. Primary hub
@@ -661,6 +662,7 @@ export default function ProgramEditor({
   const noHostNeeded = !hostingRequired;
   const hostingRequiredChanged = hostingRequired !== (initialData?.hostingRequired ?? true);
   const [useZoom, setUseZoom] = useState<boolean>(initialData?.useZoom ?? false);
+  const [recordByDefault, setRecordByDefault] = useState<boolean>(initialData?.recordByDefault ?? false);
 
   // Auxiliary-hub coverage. A program's primary hub (hostingHubSlug above)
   // runs the live session; auxiliary hubs schedule supporting roles —
@@ -880,6 +882,7 @@ export default function ProgramEditor({
         // program is self-led and excluded from the Scheduler + rotations.
         hostingRequired,
         useZoom,
+        recordByDefault,
         // Auxiliary hubs providing role coverage. Empty array means no
         // additional coverage. Server replaces the full set on each save.
         coverageHubSlugs,
@@ -1406,6 +1409,24 @@ export default function ProgramEditor({
                   onChange={(e) => { setUseZoom(e.target.checked); markDirty(); }}
                 />
                 <span>Use Zoom for this program</span>
+              </label>
+            </div>
+
+            <div className="pe-field">
+              <span className="pe-field__label">Recording</span>
+              <span className="pe-field__help">
+                Auto-record this program&rsquo;s Zoom sessions to the cloud for
+                internal use. Participants see Zoom&rsquo;s recording indicator.
+                Audio-only depends on the Zoom account&rsquo;s recording settings;
+                only applies to Zoom sessions.
+              </span>
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={recordByDefault}
+                  onChange={(e) => { setRecordByDefault(e.target.checked); markDirty(); }}
+                />
+                <span>Record sessions (audio-only)</span>
               </label>
             </div>
 
