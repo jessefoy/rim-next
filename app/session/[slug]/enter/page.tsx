@@ -101,10 +101,17 @@ export default async function ZoomEnterPage({
       where: { id: userId },
       select: { firstName: true, lastName: true, preferredName: true, email: true },
     });
+    // Match RIM's session-room convention: first name + last INITIAL ("Jesse F.").
+    // This only controls the name for people who join WITHOUT being signed into a
+    // Zoom account (the registrant path — most members); anyone signed into their
+    // own Zoom shows that account's name, which Zoom won't let us override.
+    const lastInitial = user?.lastName?.trim()
+      ? `${user.lastName.trim()[0].toUpperCase()}.`
+      : "";
     const reg = await addMeetingRegistrant(meeting.zoomMeetingId, {
       email: user?.email ?? session.user.email ?? `${userId}@rim.invalid`,
       firstName: (user?.preferredName || user?.firstName || "RIM").trim(),
-      lastName: (user?.lastName || "Member").trim(),
+      lastName: lastInitial,
     });
 
     const role = await resolveSessionRole(userId, slug, sessionDateIso, roles);
