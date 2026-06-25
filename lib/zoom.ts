@@ -168,8 +168,7 @@ export async function createMeeting(opts: CreateMeetingOptions): Promise<ZoomMee
           join_before_host: true,
           mute_upon_entry: true,
           waiting_room: false,
-          approval_type: 0, // automatically approve registrants (returns join_url now)
-          registrants_email_notification: false, // RIM delivers links, not Zoom
+          approval_type: 2, // no registration — everyone joins via the standard link, by name
           audio: "both", // VoIP + dial-in
           auto_recording: opts.recordToCloud ? "cloud" : "none",
         },

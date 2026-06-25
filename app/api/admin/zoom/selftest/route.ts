@@ -2,20 +2,14 @@
  * Zoom provisioning self-test — ADMIN only, POST.
  *
  * Exercises the full provisioning round-trip against real Zoom on a throwaway
- * meeting, then deletes it: create → re-fetch fresh host start_url → add a named
- * registrant → delete. Proves the Slice-1b primitives + meeting settings work
- * before any of it is wired into the Program Editor. The meeting is always
- * cleaned up (finally), and no values with tokens are returned to the client.
+ * meeting, then deletes it: create → re-fetch (host link + standard join link) →
+ * delete. Proves the provisioning primitives + meeting settings work. The meeting
+ * is always cleaned up (finally), and no tokenized values are returned to the client.
  */
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import {
-  createMeeting,
-  getMeeting,
-  addMeetingRegistrant,
-  deleteMeeting,
-} from "@/lib/zoom";
+import { createMeeting, getMeeting, deleteMeeting } from "@/lib/zoom";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +29,6 @@ export async function POST() {
   if (!seat) {
     return NextResponse.json({ error: "ZOOM_SEAT_A_EMAIL not set" }, { status: 500 });
   }
-  const testerEmail = session.user.email ?? "selftest@rootedinmindfulness.org";
-
   const steps: Step[] = [];
   let meetingId: number | null = null;
 
@@ -72,16 +64,11 @@ export async function POST() {
           : "no start_url returned",
     });
 
-    // 3. Add a named registrant → the per-person, no-account member join link.
-    const reg = await addMeetingRegistrant(meetingId, {
-      email: testerEmail,
-      firstName: "RIM",
-      lastName: "Self-test",
-    });
+    // 3. Confirm the standard join link (what everyone uses to join, by name).
     steps.push({
-      name: "Add named registrant",
-      ok: Boolean(reg.join_url),
-      detail: reg.join_url ? "registrant join link returned" : "no join_url returned",
+      name: "Standard join link",
+      ok: Boolean(fresh.join_url),
+      detail: fresh.join_url ? "join link present" : "no join_url returned",
     });
   } catch (e) {
     steps.push({
