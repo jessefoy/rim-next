@@ -30,6 +30,56 @@
     "notes": "Blocked on 2026-06-24-001 (preview test path). Full rebuild notes in RIM_SessionRoom.md 'Background effects … ATTEMPTED + REVERTED'. The feature is wanted (Jesse liked the blur 'semi-okay'); the miss was shipping it blind to prod, not the concept."
   },
   {
+    "id": "2026-06-24-004",
+    "title": "Zoom migration: pilot one real session, then cut over all virtual/hybrid programs to useZoom + retire LiveKit",
+    "description": "Session 158 built the 'RIM orchestrates, Zoom is the room' integration end-to-end and verified the join path, but LiveKit is still the default + fallback. The path to done: (1) PILOT — set Program.useZoom on ONE real program and run a real multi-person session: confirm members join named via the standard link, the designated host claims host with the ZOOM_HOST_KEY code and shows under their own name, an alternate can step in, audio is clean, and (if recordByDefault) the cloud recording is created. (2) CUT OVER — flip the remaining virtual/hybrid programs to useZoom (editor Hosting & Access toggle, or a one-time data update). (3) RETIRE LIVEKIT — Jesse stops the livekit-server container on the DO droplet (KEEP the droplet: it co-hosts OnlyOffice — do not destroy it), then archive components/session/*, components/VideoRoom.tsx, and app/api/livekit/* (and the LiveKit env vars once nothing references them). Pair the cutover with 2026-06-24-005 (the /session guard) so bookmarks/direct-nav to the old room redirect to /enter. Full runbook in RIM_Zoom.md 'Pilot & cutover'.",
+    "category": "Infrastructure",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-06-24",
+    "notes": "The completion of the Zoom migration. Do NOT retire LiveKit before the pilot — it is the can't-fail room with no fallback once gone. Reference: RIM_Zoom.md. The decision reverses the session-120 'browser LiveKit is committed' stand."
+  },
+  {
+    "id": "2026-06-24-005",
+    "title": "Add a /session/[slug] guard that redirects useZoom programs to /session/[slug]/enter",
+    "description": "Today the dashboard / program-page / Scheduler 'Join' buttons branch on Program.useZoom (useZoom → /session/[slug]/enter, else the LiveKit room at /session/[slug]). But a member who bookmarked the old LiveKit room URL, or who navigates to /session/[slug] directly, would still land in the LiveKit room even for a useZoom program — a split-brain where some people are in Zoom and some in the empty LiveKit room. Add a guard at the top of app/session/[slug]/page.tsx (the LiveKit room): if the program has useZoom, redirect to /session/[slug]/enter. Conversely /enter already redirects non-useZoom programs back to the LiveKit room, so the two are symmetric. Small, but it is the safety net that makes the cutover (2026-06-24-004) airtight. Verify the redirect preserves the open-access ?key= path if a useZoom program is ever open-access (currently open-access is a LiveKit-room concept — decide whether Zoom programs support guest keys or are members-only).",
+    "category": "Infrastructure",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-06-24",
+    "notes": "Part of the cutover (2026-06-24-004) but a discrete, low-risk code change. Closes the direct-nav/bookmark gap noted in RIM_Zoom.md 'Pilot & cutover'."
+  },
+  {
+    "id": "2026-06-24-006",
+    "title": "Set the two Zoom pool seats to AUDIO-ONLY cloud recording in the Zoom console",
+    "description": "Program.recordByDefault makes RIM create the meeting with auto_recording: 'cloud', but whether that cloud recording is audio-only vs full video is NOT a per-meeting API field — it is governed by the OWNING SEAT's account recording settings. For each pool seat (zoom.host@ and zoom.host2@), in the Zoom web console: Settings → Recording → Cloud recording ON → check 'Record an audio only file' and UNCHECK the active-speaker / gallery / shared-screen video views, so recordings are audio-only (RIM's dharma sessions want audio, and audio-only files are far smaller / cheaper to store). Without this, any program with recordByDefault on will capture full video. This is a Zoom-console config task (no code). Jesse can do it, or grant Claude access to admin.zoom.us to drive it. Verify by recording a short test on each seat and confirming the output is an .m4a audio file, not .mp4 video.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-24",
+    "notes": "Config, not code. Do before turning on recordByDefault for any real program. RIM_Zoom.md 'Recording' documents the why (audio-only is a seat setting, not a meeting field)."
+  },
+  {
+    "id": "2026-06-24-007",
+    "title": "Zoom: per-occurrence recording override (record a single session, not just the program default)",
+    "description": "Recording is currently a per-PROGRAM default (Program.recordByDefault → every occurrence of that program records). Add a per-OCCURRENCE override so a host/coordinator can record (or not record) one specific session regardless of the program default — e.g. record a special guest talk on an otherwise-unrecorded weekly sit, or skip recording a sensitive session. The SessionMeeting row already exists per occurrence and carries recordToCloud, so the mechanism is there: surface a toggle (host-capable only) on the /session/[slug]/enter HostLanding, or a small admin/scheduler control, that sets SessionMeeting.recordToCloud for that occurrence before the meeting is created (and re-creates / PATCHes the meeting if it already exists). Respect consent — Zoom shows its native recording indicator, but RIM should make the choice deliberate. Lower priority than the cutover.",
+    "category": "Programs & Sanity",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-24",
+    "notes": "The SessionMeeting per-occurrence mechanism already supports this (recordToCloud is per-row); this is the UI + the create/update wiring. Noted as a follow-on in RIM_Zoom.md 'Recording'."
+  },
+  {
+    "id": "2026-06-24-008",
+    "title": "Zoom: serialize the free-seat pick with an advisory lock (close the TOCTOU gap) before heavy concurrency",
+    "description": "lib/sessionMeeting.ts getOrCreateSessionMeeting picks a free pool seat by checking which seats have an overlapping meeting, then creates on a free one. Between the check and the create there is a documented time-of-check-to-time-of-use gap: two near-simultaneous first-entries for two different programs could both pick the same 'free' seat, and the second meeting would fail to start (Pro = 1 concurrent meeting per seat). The @@unique([programSlug, sessionDate]) on SessionMeeting prevents double-booking the SAME occurrence, but not two DIFFERENT occurrences racing for the last seat. Fine at pilot scale (entries are seconds apart and there are only ~2 concurrent sessions), but before heavy concurrent use wrap the seat-pick + create in a transaction-scoped Postgres advisory lock (the same pattern as the session-room Step-In lock, STEPIN-1) so the pick is serialized. Until then, log when no seat is free (NoSeatAvailableError) so a collision is visible rather than silent.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-24",
+    "notes": "Hardening, not a pilot blocker. RIM_Zoom.md 'Pitfalls' documents the gap. Reuse the advisory-lock pattern from the Step-In concurrency fix (session 144)."
+  },
+  {
     "id": "2026-06-17-004",
     "title": "Calendar .ics: weekday-aware RRULE for monthly + fix weekly BYDAY case bug (needs CT TZID)",
     "description": "Session 153 made in-app MONTHLY recurrence weekday-of-month aware ('last Sunday', '2nd Wednesday'), but lib/calendarLinks.ts buildRRule still emits FREQ=MONTHLY with no BYDAY/BYSETPOS -- so a downloaded .ics for a monthly program recurs on the day-of-month (e.g. the 31st), diverging from the in-app semantics. Also pre-existing, same root cause as the s153 dateLabel case fix: buildRRule (line 32) and describeRecurrence (lines 52-54) compare recurrenceFreq against LOWERCASE ('weekly'/'daily') while the stored value is UPPERCASE, so BYDAY is silently dropped from EVERY weekly program's .ics (a multi-day weekly like 'MO,WE' only recurs on the DTSTART day) and the recurrence labels never fire. To fix correctly: (1) normalize freq to uppercase in buildRRule + describeRecurrence; (2) for MONTHLY emit BYDAY=<weekday>;BYSETPOS=<n or -1> derived from the start date (reuse the monthlyPatternPhrase/ordinal logic in lib/scheduleUtils.ts); (3) CRUCIAL -- the .ics currently emits DTSTART in UTC (toCalDT of the ISO instant), so for an evening CT program the UTC day differs from the CT day and a CT-derived BYDAY/BYSETPOS would misalign with DTSTART. Doing this correctly means emitting DTSTART with TZID=America/Chicago + a VTIMEZONE block so the RRULE is interpreted in CT. That timezone treatment is why this is its own slice, not folded into the s153 in-app fix. Files: lib/calendarLinks.ts (+ app/api/programs/[slug]/ical/route.ts caller). Google 'add to calendar' URL is single-event by design (no RRULE) -- unaffected.",

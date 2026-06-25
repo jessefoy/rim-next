@@ -165,7 +165,9 @@ The **Scheduler** (`/tools/schedule`) is the staffing tool: a calendar + card li
 
 ---
 
-## Session Room — LiveKit
+## Session Room — LiveKit → Zoom (migration in progress, session 158)
+
+> **⚠️ Sessions are migrating to Zoom (session 158, 2026-06-24) — "RIM orchestrates, Zoom is the room."** RIM keeps everything it does well (program → auto-provision → assignment → dashboard "Join" → host identity); **Zoom becomes the actual room** (native app: familiar to the community, reliable, best echo cancellation, phone dial-in). Built end-to-end + **pilot-ready behind a per-program `useZoom` flag** — flip it on a program and its "Join" buttons route to `/session/[slug]/enter` (provision a Zoom meeting on a pool seat → member joins by name; designated host / alternate / teacher get a one-tap Claim-Host code). Nothing changed for programs without the flag. The full LiveKit room below stays the **default + fallback** until a real multi-person pilot, then RIM flips the rest and retires LiveKit. See the new **`RIM_Zoom.md`** (the integration reference) — account model, S2S provisioning, the per-occurrence meeting + self-heal, own-name hosting, the no-registration/rate-limit pitfall, pilot & cutover. Host-facing guide: `ZOOM_HOST_GUIDE.md`.
 
 Each virtual/hybrid program has a full-page video room at `/session/[slug]` (self-hosted LiveKit on DigitalOcean as of session 150 — migrated off LiveKit Cloud for cost; server `wss://livekit.rootedinmindfulness.org`. **Noise cancellation is RNNoise** — in-browser (session 151), replacing Cloud-only Krisp; Bell mode preserved. Originally LiveKit Cloud, replaced Google Meet in session 86; Zoom-aligned redesign session 117). Members join from their dashboard with only their RIM login — no Google/Zoom accounts, no downloads.
 

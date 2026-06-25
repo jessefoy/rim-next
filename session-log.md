@@ -1,5 +1,48 @@
 ---
 
+## 2026-06-24 (session 158) — Zoom migration: "RIM orchestrates, Zoom is the room" — built end-to-end, pilot-ready behind a per-program flag; LiveKit not yet retired
+
+A strategic-decision-then-build session: evaluate whether to keep the self-hosted LiveKit room or move sessions to **Zoom**, then (decision made) build the whole integration. **~14 commits on `main`, all deployed.** New service (Zoom, via a Server-to-Server OAuth app), 6 new env vars, 1 new model + 2 new Program columns, 4 idempotent additive migrations. No email templates touched. Reviewer-gated throughout. New per-tool reference **`RIM_Zoom.md`**.
+
+### The decision (a reversal of session 120)
+Jesse asked for a final call: keep LiveKit or move to Zoom (community familiarity + reliability). I produced a decision spec (3 Zoom models scored against his criteria) after verifying Zoom nonprofit pricing + the API mechanics from live sources. The unlocking insight: **only the media layer (LiveKit-in-browser) was the pain; RIM's orchestration layer was "almost the dream."** Decision (Jesse confirmed wholeheartedly): **RIM keeps orchestration; Zoom becomes the room.** This **reverses the session-120 "browser LiveKit is the committed architecture"** stand — superseded in `RIM_SessionRoom.md` + the `livekit-self-hosted` memory. Full spec in this entry's design record (the conversation).
+
+### Account model
+One RIM Zoom org account (owner `jesse@`, nonprofit discount) + **two licensed Pro pool seats** (`zoom.host@` / `zoom.host2@` → 2 concurrent meetings) + a **Server-to-Server OAuth app** ("RIM Sessions"). I drove the app creation + scopes in the Zoom Marketplace via the Chrome extension; Jesse added the env vars + bought the seats. Verified live via a new `/admin/zoom-test` diagnostic (connection + both seats Licensed/active + a create→fresh-link→registrant→delete round-trip + a DB-orchestration round-trip).
+
+### What got built (the slices)
+- **Slice 0/1 — foundation:** `lib/zoom.ts` (cached S2S token + REST helper + meeting primitives) + the `/admin/zoom-test` diagnostic. Verified all-green live.
+- **Slice 2 — orchestration:** `SessionMeeting` model + `lib/sessionMeeting.ts::getOrCreateSessionMeeting` (one meeting per occurrence, idempotent, free-seat no-overlap pick, race-safe orphan cleanup) + `teardownProgramMeetings`.
+- **Slice 3 — integration behind `Program.useZoom`:** the `/session/[slug]/enter` entry (gate → provision → redirect/render), editor "Use Zoom" toggle + teardown on useZoom-off/format-change/delete; **Join buttons** (dashboard + program page + Scheduler) branch on `useZoom`. LiveKit untouched for non-Zoom programs.
+- **Slice 4 — own-name hosting + role-aware entry:** `/enter` became a page; host joins under their **own name** and claims host with a 6-digit code (`ZOOM_HOST_KEY`, set on the owning seat). Role-aware screen: designated host / alternate (step-in) / teacher / member (no code). Host identity still from `HostAssignment`/`resolveSessionRole` — the Hosting Hub is unchanged.
+- **Recording toggle:** `Program.recordByDefault` → `auto_recording: cloud` (audio-only governed by the seats' Zoom recording settings).
+- **Host guide:** `ZOOM_HOST_GUIDE.md` — plain-English, forwardable to volunteer hosts.
+
+### The debugging arc (the join "blink")
+After a clean first test, re-entry "blinked" (bounced to the dashboard). I guessed twice (stale-meeting self-heal; window/ban), then — the right move — **surfaced the real error to admins** on the entry screen. Root cause: **Zoom rate-limits Add-Registrant to ~3/day per email**; RIM re-registered each person by name on every entry → 429. Fix: **dropped per-person registration** — everyone uses the standard join link, joins by name (typed once, Zoom remembers; or signed-in name). Follow-on: meetings now created **without registration** (`approval_type 2`) so the standard link skips the registration *form*; plus an **auto-heal** that recreates any stale gone/registration-on meeting on entry. Verified working by Jesse.
+
+### What this connects to
+- **Session room / LiveKit** (`RIM_SessionRoom.md`): the room being migrated away from; LiveKit stays the default + fallback until the pilot. The s120 "committed LiveKit" decision is superseded.
+- **Programs / Program Editor / `programs-pg`**: new `useZoom` + `recordByDefault` flags, whitelisted in PUT/POST, teardown hooks; the editor's Hosting & Access tab. Touched the heavily-wired program lifecycle along the integration-map seams (no occurrence-engine or label changes).
+- **Scheduler / Hosting Hub** (`RIM_Scheduler.md`): unchanged for host identity (HostAssignment is the source for both LiveKit and Zoom); only the "Enter room" link target changed.
+- **Dashboard / member program page**: Join CTAs branch on `useZoom`.
+- **OnlyOffice / the DO droplet**: decommissioning LiveKit must NOT kill the droplet (it co-hosts OnlyOffice).
+- **Preview-login gap (s157)**: still relevant — a preview test path would have helped here too.
+
+### What comes next
+1. **Pilot** one real multi-person Zoom session (set `useZoom` on one program).
+2. **Cut over**: flip the rest to `useZoom` + add a `/session/[slug]` guard (LiveKit room → redirect `useZoom` programs to `/enter`).
+3. **Retire LiveKit**: stop the container on the droplet (Jesse's SSH; keep the droplet) + archive the LiveKit code.
+4. Set the seats' **audio-only** cloud-recording in the Zoom console.
+5. Follow-ons: per-occurrence recording override; seat-pick advisory lock before heavy concurrency; ProgramEditor input-lag perf (spawned as a background task this session).
+
+### Closing-ritual checklist
+- **Editor types (4a):** no editor block/placement work — n/a.
+- **Hub audit (4c):** no hub auth/routing layers changed; `resolveSessionRole` reused as-is; the Scheduler change was a link target only.
+- **Email audit (4e):** no `sendTemplatedEmail` added or changed — **no templates touched.**
+- **Per-tool doc (4d):** new `RIM_Zoom.md` created + added to the CLAUDE.md Design Orientation table.
+- **Architectural decision (7):** the LiveKit-committed stance is superseded by the Zoom migration — recorded in `RIM_SessionRoom.md` + `RIM_Zoom.md` + the `livekit-self-hosted` memory.
+
 ## 2026-06-24 (session 157) — Session-room: background-effects/blur built → fully REVERTED, device-switch fixes, host Spotlight — net shipped (Spotlight + device "Default" + listener audio); blur deferred until a preview test path exists
 
 A long, instructive LiveKit session-room arc, driven by community + Jesse's requests (background blur / "appearance settings like Zoom," then video quality, then device-switch bugs). **Net on `main` (`0491d43`, deployed):** host **Spotlight**, a device-dropdown **"Default" always-selectable + reset**, and **listener audio 64 → 96 kbps**. **Reverted the same session:** the **background-effects (blur + virtual background)** build + a first device-switch fix — they regressed the teacher's camera.

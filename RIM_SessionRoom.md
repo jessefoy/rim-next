@@ -2,7 +2,18 @@
 
 **The per-tool reference for the LiveKit video session room.** Read this before touching anything under `components/session/`, `components/VideoRoom.tsx`, or `app/api/livekit/*`.
 
-Companion docs: `RIM_System_Architecture.md` (Video Conferencing section — the authoritative permission model), `RIM_Stack_Reference.md` (LiveKit env + deps), FEATURES.md → "Session Room — LiveKit" (feature record), `SESSION_ROOM_FOR_VOLUNTEERS.md` (host/volunteer-facing changelog), and the DB manual chapter `host-session-room` (seeded via `prisma/update-manual-host-session-room.mjs`).
+> **⚠️ Migration in progress (session 158, 2026-06-24): sessions are moving from this
+> custom LiveKit room to Zoom** — "RIM orchestrates, Zoom is the room." This reverses the
+> session-120 "browser LiveKit is the committed architecture" stand (members kept hitting
+> browser-media limits; a dharma community values Zoom's familiarity + reliability). RIM
+> keeps the orchestration (program → auto-provision → assignment → dashboard join → host
+> identity via `HostAssignment`/`resolveSessionRole`); Zoom becomes the room. **The new
+> path is built + pilot-ready behind a per-program `useZoom` flag — see `RIM_Zoom.md`.**
+> LiveKit (this doc) is still the **default and the fallback** until a real multi-person
+> pilot; everything below stays accurate for non-`useZoom` programs and is the thing being
+> migrated away from. Do not retire LiveKit before the pilot (it's the can't-fail room).
+
+Companion docs: **`RIM_Zoom.md`** (the Zoom integration this is migrating to), `RIM_System_Architecture.md` (Video Conferencing section — the authoritative permission model), `RIM_Stack_Reference.md` (LiveKit env + deps), FEATURES.md → "Session Room — LiveKit" (feature record), `SESSION_ROOM_FOR_VOLUNTEERS.md` (host/volunteer-facing changelog), and the DB manual chapter `host-session-room` (seeded via `prisma/update-manual-host-session-room.mjs`).
 
 ---
 

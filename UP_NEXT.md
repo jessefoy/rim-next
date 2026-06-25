@@ -6,7 +6,28 @@
 
 ## Active
 
-### Session 157 (2026-06-24) — ⏯ RESUME HERE: Session-room — Spotlight + device "Default" fix + listener audio shipped; blur built→REVERTED; the gating need is a preview test path
+### Session 158 (2026-06-24) — ⏯ RESUME HERE: Zoom migration built end-to-end + pilot-ready (behind `useZoom`); next is a real pilot → cut over → retire LiveKit
+
+**The big one: sessions are moving from the in-browser LiveKit room to Zoom** — "RIM orchestrates, Zoom is the room." Built across ~14 commits on `main` (deployed), behind a per-program `useZoom` flag so **nothing changed for existing programs.** Full narrative in `session-log.md` (session 158); the integration reference is the new **`RIM_Zoom.md`** (read it first). The decision **reverses** the session-120 "browser LiveKit is committed" stand.
+
+**Shipped + live + verified (Jesse tested the join path end-to-end):**
+- Zoom org account (owner `jesse@`, nonprofit) + 2 licensed Pro pool seats (`zoom.host@` / `zoom.host2@`) + S2S app "RIM Sessions". Env in Vercel: `ZOOM_ACCOUNT_ID`, `ZOOM_OAUTH_CLIENT_ID/SECRET`, `ZOOM_SEAT_A/B_EMAIL`, `ZOOM_HOST_KEY`.
+- `lib/zoom.ts` + `lib/sessionMeeting.ts` (one meeting per occurrence, idempotent, free-seat pick, self-heal on a gone/registration-on meeting).
+- `/session/[slug]/enter` — role-aware entry (member → straight into Zoom; designated host / alternate / teacher → join + Claim-Host code; member never sees the code). Join buttons (dashboard + program page + Scheduler) branch on `useZoom`.
+- Own-name hosting via Claim-Host code; editor toggles **Use Zoom** + **Record (audio-only)**; `/admin/zoom-test` diagnostic; `ZOOM_HOST_GUIDE.md` for hosts.
+- The join "blink" was a Zoom Add-Registrant rate limit (~3/day/email) — **fixed by dropping per-person registration** (standard join link, type-your-name) + no-registration meetings + auto-heal of stale meetings.
+
+**OPEN — the path to done (in order):**
+1. **Pilot** one real multi-person Zoom session — set **Use Zoom** on one program, run it for real, confirm members join named + host claims host + audio/recording hold.
+2. **Set audio-only** on the two seats in the Zoom console (Settings → Recording → "Record an audio only file" + uncheck the video views) — else recording captures video (large).
+3. **Cut over**: flip the rest of the virtual/hybrid programs to `useZoom` + add a `/session/[slug]` guard that redirects `useZoom` programs to `/enter` (closes the direct-nav/bookmark gap — not built yet).
+4. **Retire LiveKit**: Jesse stops the `livekit-server` container on the droplet (**keep the droplet — it co-hosts OnlyOffice**); I archive `components/session/*`, `VideoRoom.tsx`, `app/api/livekit/*`.
+
+**Decisions/trade-offs to remember:** names are **typed (or signed-in), not pre-filled** (the rate limit killed pre-fill — see `RIM_Zoom.md` Pitfalls); host shows their **own name** via the Claim-Host code (one tap); 2 seats = 2 concurrent (a 3rd overlap has no seat). Follow-ons: per-occurrence recording override; seat-pick advisory lock before heavy concurrency; **ProgramEditor input-lag** perf fix (dropdowns need 2–3 clicks — a pre-existing render-perf issue, captured as a background task chip this session, NOT a Zoom bug).
+
+**Memory candidates (step 7b — awaiting Jesse's confirm):** listed at close — (1) *project* the LiveKit→Zoom migration (update the stale `livekit-self-hosted` memory); (2) *feedback* surface/measure the real error before guess-fixing (I guessed the "blink" twice before showing the actual 429); (3) *feedback* take reviewer should-fixes on external-API limits seriously (the re-registration flag was the root cause). Confirm or discard.
+
+### Session 157 (2026-06-24) — Session-room — Spotlight + device "Default" fix + listener audio shipped; blur built→REVERTED; the gating need is a preview test path
 
 **Shipped + live (`0491d43`):** host **Spotlight** (Zoom parity), device-dropdown **"Default" always-selectable + reset**, **listener audio 64→96 kbps**. Reviewed + tsc-green. Full narrative in `session-log.md` (session 157); session-room detail in `RIM_SessionRoom.md`.
 
