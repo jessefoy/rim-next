@@ -113,15 +113,28 @@ export default async function ZoomEnterPage({
     // once so re-entry within the window always lands in a live meeting.
     const { meeting, joinUrl } = await (async () => {
       let m = await provision();
+      let fetched: Awaited<ReturnType<typeof getMeeting>> | null = null;
       try {
-        return { meeting: m, joinUrl: (await getMeeting(m.zoomMeetingId)).join_url };
+        fetched = await getMeeting(m.zoomMeetingId);
       } catch (firstErr) {
         if (!meetingIsGone(firstErr)) throw firstErr;
-        console.warn(`[session/enter] stale Zoom meeting ${m.zoomMeetingId} for ${slug}; recreating`);
-        await db.sessionMeeting.delete({ where: { id: m.id } }).catch(() => {});
-        m = await provision();
-        return { meeting: m, joinUrl: (await getMeeting(m.zoomMeetingId)).join_url };
       }
+      // Reuse only if the meeting exists AND has no registration form
+      // (approval_type 2). Otherwise — gone (404), or an old registration-style
+      // meeting from before the no-registration fix — recreate fresh so the link
+      // goes straight in (no form). The fresh meeting is always approval_type 2,
+      // so this heals once and won't loop.
+      const registrationOn =
+        fetched?.settings?.approval_type === 0 || fetched?.settings?.approval_type === 1;
+      if (fetched && !registrationOn) {
+        return { meeting: m, joinUrl: fetched.join_url };
+      }
+      console.warn(
+        `[session/enter] recreating meeting for ${slug} (${fetched ? "registration-on" : "gone"})`,
+      );
+      await db.sessionMeeting.delete({ where: { id: m.id } }).catch(() => {});
+      m = await provision();
+      return { meeting: m, joinUrl: (await getMeeting(m.zoomMeetingId)).join_url };
     })();
 
     // Who can take host controls: the designated host, anyone on the host team

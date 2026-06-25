@@ -142,6 +142,8 @@ export interface ZoomMeeting {
   join_url: string;
   start_time?: string;
   duration?: number;
+  /** Meeting settings (partial) — approval_type 2 = no registration form. */
+  settings?: { approval_type?: number };
 }
 
 /**
