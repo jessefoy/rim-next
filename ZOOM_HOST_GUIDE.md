@@ -33,8 +33,9 @@ handy — it's how you'll pick up your host tools in a moment.
 
 **4. Join — Zoom opens.**
 Click **Join as host**. Zoom opens (in the Zoom app, if you have it installed —
-most people do), and you're in the meeting **under your own name**. No Zoom
-account or login needed.
+most people do). The first time, Zoom asks you to **type your name** — enter it
+the way you'd like it shown, and you're in. No Zoom account or login needed, and
+Zoom remembers your name on that device for next time.
 
 **5. Claim your host controls.**
 To get the host tools (mute people, manage the room, recording, ending the
@@ -56,8 +57,10 @@ host.
 
 ## A few good things to know
 
-- **No Zoom account needed.** RIM brings you in by name.
-- **Your name** appears as your first name and last initial (like "Maria L.").
+- **No Zoom account needed.** You type your name once, and Zoom remembers it.
+- **Your name** is whatever you type when Zoom opens — first name and last initial
+  is perfect (like "Maria L."). If you happen to be signed in to a Zoom account, it
+  shows that account's name instead, which RIM can't change for you.
 - **Members never see the code.** They just click **Join** and go straight in —
   the code is only ever shown to hosts.
 - **Only one host at a time.** If two of you are helping, one person claims host
