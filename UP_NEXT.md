@@ -6,7 +6,28 @@
 
 ## Active
 
-### Session 158 (2026-06-24) — ⏯ RESUME HERE: Zoom migration built end-to-end + pilot-ready (behind `useZoom`); next is a real pilot → cut over → retire LiveKit
+### Session 159 (2026-06-25) — ✅ Zoom cutover DONE + LiveKit retired + ProgramEditor perf + docs — merged to `main`, deployed
+
+**The Zoom migration is complete.** The session-158 pilot succeeded, so this session cut everything over to Zoom and **retired the in-browser LiveKit room.** ~5 commits on branch `claude/zoom-cutover`, fast-forwarded to `main` (deployed); `tsc`-green, reviewer-gated (an adversarial pre-merge pass caught a real showstopper — see below). Authority is **`RIM_Zoom.md`** ("Cutover (done)"); `RIM_SessionRoom.md` is now marked **RETIRED** (kept for history + the still-live droplet server-ops).
+
+**Shipped + live (on `main`):**
+- **Routing cutover** — every virtual/hybrid program routes through `/session/[slug]/enter` (Zoom). Dashboard + member-program Join links are unconditional; the legacy `/session/[slug]` URL is now a thin redirect to `/enter` (preserving an open-access `?key=`). **Guest open-access entry** added to `/enter`: a valid `?key=` forwards a non-member straight into Zoom (no account); a guest can never reach the Claim-Host code (short-circuits to `ZoomLaunch` before role resolution).
+- **LiveKit retired** — deleted `components/VideoRoom.tsx` + all `components/session/*` except `ZoomLaunch.tsx`, all 9 `app/api/livekit/*`, `/admin/livekit-test`, `public/noise/*`, and the **6 LiveKit/noise npm deps** (+144 transitive). Extracted the 2 SDK-free helpers → `lib/sessionIdentity.ts`; renamed `lib/livekitAuth.ts` → `lib/sessionAuth.ts` (the shared host-identity authority, now feeding the Zoom `canHost` gate). **`Program.useZoom` dropped** (schema + idempotent `migrate.mjs` DROP COLUMN; the reviewer caught that the old ADD entry was still present and would re-create the column every deploy — removed it). `livekitRoom` column **KEPT** (now a vestigial-named "has a session" signal — rename is backlog `2026-06-25-001`).
+- **ProgramEditor perf (surgical)** — hoisted the `DateTimePicker` option arrays out of the render body + memoized the visitor-preview compute, for the 2–3-clicks-on-dropdowns lag. **Could NOT be verified locally** (no dev server) or on preview (the s157 preview-login gap, backlog `2026-06-24-001`). Structural fix (split tabs into memoized children) is backlog `2026-06-25-002` if it persists.
+- **Docs** — CLAUDE.md + AGENTS.md orientation tables (session-room row retired, Zoom row updated; AGENTS.md gained the Zoom row it lacked), RIM_Zoom.md, RIM_SessionRoom.md (retired banner), RIM_System_Architecture.md, RIM_Stack_Reference.md, FEATURES.md; the `livekit-self-hosted` + `project-zoom-migration` memories updated to "cut over."
+
+**OPEN — verify on prod (Jesse; none blocking):**
+1. Deploy log shows `drop_use_zoom_from_programs` (build green with the 6 deps gone).
+2. Member dashboard Join on a virtual program → Zoom via `/enter`; a bookmarked `/session/[slug]` → redirects to `/enter`; an open-access guest `?key=` link → into Zoom with no login; an in-person program's `/enter` (hand-typed) → bounces to its page.
+3. ProgramEditor dropdowns feel snappier (the perf fix — your eyes are the only test).
+
+**OPEN — Jesse's ops (non-blocking; the app is fully on Zoom regardless):**
+1. **Stop the `livekit-server` container** on the DO droplet (**keep the droplet — it hosts OnlyOffice**); remove the now-unused `NEXT_PUBLIC_LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` Vercel env vars.
+2. **Set the two pool seats' Zoom recording** to "Record an audio only file" **and** "Record a separate audio file of each participant" (per-speaker → a clean teacher track when named) — backlog `2026-06-24-006`.
+
+**Memory candidates (step 7b — awaiting Jesse's confirm at closing):** (1) *feedback* — when dropping a DB column in this repo's `migrate.mjs`, also grep for + remove the original ADD-column entry, or the idempotent re-runs fight (DROP at top + ADD below → column re-created every deploy; the reviewer caught it). (2) *feedback* — a truncated/partial Read doesn't satisfy the Edit precondition; a small fresh Read of the region does.
+
+### Session 158 (2026-06-24) — Zoom migration built end-to-end + pilot-ready (behind `useZoom`); cut over in session 159
 
 **The big one: sessions are moving from the in-browser LiveKit room to Zoom** — "RIM orchestrates, Zoom is the room." Built across ~14 commits on `main` (deployed), behind a per-program `useZoom` flag so **nothing changed for existing programs.** Full narrative in `session-log.md` (session 158); the integration reference is the new **`RIM_Zoom.md`** (read it first). The decision **reverses** the session-120 "browser LiveKit is committed" stand.
 

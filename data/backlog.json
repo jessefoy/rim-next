@@ -1,5 +1,35 @@
 [
   {
+    "id": "2026-06-25-001",
+    "title": "Rename Program.livekitRoom — it's now a vestigial-named 'has a session room' signal",
+    "description": "The Zoom cutover (session 159) retired the LiveKit room but KEPT the Program.livekitRoom column because it's load-bearing as a 'this virtual/hybrid program has a session' signal, read by the Scheduler (app/tools/schedule/page.tsx), the host-assignments API (app/api/host/assignments/route.ts), the member program page Join gate (app/account/(authenticated)/programs/[slug]/page.tsx), and HubScheduleClient. The name now lies (there is no LiveKit). Rename to something honest (e.g. hasSessionRoom) OR derive 'has a session' from programFormat in (virtual, hybrid) and drop the column entirely — the dashboard already gates Join on programFormat, not livekitRoom, so the member program page could switch its `isVirtual && program.livekitRoom` gate to just `isVirtual` to match. Load-bearing rename: do it deliberately across schema + a migrate.mjs column rename (or add-new/backfill/drop-old) + all read sites.",
+    "category": "Programs & Sanity",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-25",
+    "notes": "Vestigial naming left by the LiveKit retirement. Bundle with the Program-schema cleanup pass (2026-06-04-001/002)."
+  },
+  {
+    "id": "2026-06-25-002",
+    "title": "ProgramEditor structural perf — split tab panels into memoized children",
+    "description": "Session 159 did a surgical perf pass on ProgramEditor (hoisted the DateTimePicker option arrays out of the render body; memoized the visitor-preview compute) to address reported input lag where dropdowns needed 2-3 clicks to register. The structural cause remains: ProgramEditor is a ~1800-line single component holding ~48 useState hooks, so every keystroke re-renders the whole active tab. If lag persists on prod, the real fix is to split each tab panel (Content / Schedule / Hosting & Access / Categories / Registration / Dana / Visibility) into its own memoized child receiving only the state + setters it needs, and stabilize the inline onChange callbacks (useCallback). Verify on a PREVIEW deploy (blocked on 2026-06-24-001 preview-login) — the surgical pass could NOT be verified locally (no dev server).",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-25",
+    "notes": "Surgical pass shipped session 159. This is the deeper fix if the 2-3-click symptom survives. Blocked on a verification path (2026-06-24-001) — don't iterate blind. Higher-risk refactor of a load-bearing editor; reviewer-gate it."
+  },
+  {
+    "id": "2026-06-25-003",
+    "title": "CSS prune the dead session-room prefixes left by the LiveKit retirement",
+    "description": "The session-159 LiveKit retirement removed the in-browser room components but left their CSS in public/css/custom.css — orphaned prefixes including vs- (the old /session/[slug] page + guest entry), rim-cb- (control bar), rim-tile- / rim-pp- (participant tiles + panel), and any reaction/greenroom/share-screen rules. Use scripts/css-prune.mjs (add the dead prefixes to DEAD_PREFIXES, dry-run, then --apply) — it preserves any rule sharing a selector with a live class and verifies brace balance. The Zoom entry/host screens use inline styles + tokens (no prefix), so nothing live depends on these.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-25",
+    "notes": "Mechanical cleanup with the existing hygiene tool (CLAUDE.md CSS hygiene tools). Non-blocking — dead CSS is harmless bloat."
+  },
+  {
     "id": "2026-06-24-001",
     "title": "Fix preview-deploy login so changes can be verified before prod (THE test-path gap)",
     "description": "Jesse cannot log in to Vercel PREVIEW deployments (claude/* branch URLs), so session-room changes can't be tested before they hit main/prod. This is the root cause of the session-157 incident: a background-blur build that blacked the teacher's camera reached ALL members because there was no way to verify on a throwaway URL first. Almost certainly an auth-config mismatch on preview domains: NextAuth v5 / the 6-digit sign-in code flow depends on the callback URL / NEXTAUTH_URL (or AUTH_URL) matching the deployment origin, and Resend-emailed sign-in codes + cookies are origin-specific — on a preview-*.vercel.app host these don't match the prod origin, so sign-in fails. Investigate: how NEXTAUTH_URL/AUTH_URL is set (hardcoded to prod vs Vercel's VERCEL_URL/VERCEL_BRANCH_URL), the auth.ts trustHost setting, and cookie domain. Likely fix: derive the auth base URL from the Vercel per-deploy URL (or set trustHost + use the request origin) so previews authenticate. Goal: Jesse can sign in on a preview deploy and exercise the session room before merge.",
@@ -35,9 +65,9 @@
     "description": "Session 158 built the 'RIM orchestrates, Zoom is the room' integration end-to-end and verified the join path, but LiveKit is still the default + fallback. The path to done: (1) PILOT — set Program.useZoom on ONE real program and run a real multi-person session: confirm members join named via the standard link, the designated host claims host with the ZOOM_HOST_KEY code and shows under their own name, an alternate can step in, audio is clean, and (if recordByDefault) the cloud recording is created. (2) CUT OVER — flip the remaining virtual/hybrid programs to useZoom (editor Hosting & Access toggle, or a one-time data update). (3) RETIRE LIVEKIT — Jesse stops the livekit-server container on the DO droplet (KEEP the droplet: it co-hosts OnlyOffice — do not destroy it), then archive components/session/*, components/VideoRoom.tsx, and app/api/livekit/* (and the LiveKit env vars once nothing references them). Pair the cutover with 2026-06-24-005 (the /session guard) so bookmarks/direct-nav to the old room redirect to /enter. Full runbook in RIM_Zoom.md 'Pilot & cutover'.",
     "category": "Infrastructure",
     "priority": "high",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-24",
-    "notes": "The completion of the Zoom migration. Do NOT retire LiveKit before the pilot — it is the can't-fail room with no fallback once gone. Reference: RIM_Zoom.md. The decision reverses the session-120 'browser LiveKit is committed' stand."
+    "notes": "DONE session 159 (2026-06-25) — pilot succeeded; cut over + retired the LiveKit room code (branch claude/zoom-cutover). useZoom dropped (Zoom unconditional for virtual/hybrid); /session/[slug] redirects to /enter; LiveKit components/routes/deps/livekit-test/noise assets removed; lib/livekitAuth->sessionAuth, helpers->sessionIdentity. REMAINING (Jesse's ops, non-blocking): stop the livekit-server container on the droplet (keep the droplet — OnlyOffice) + remove the NEXT_PUBLIC_LIVEKIT_URL/LIVEKIT_API_KEY/LIVEKIT_API_SECRET Vercel env vars. Reference: RIM_Zoom.md 'Cutover (done)'."
   },
   {
     "id": "2026-06-24-005",
@@ -45,9 +75,9 @@
     "description": "Today the dashboard / program-page / Scheduler 'Join' buttons branch on Program.useZoom (useZoom → /session/[slug]/enter, else the LiveKit room at /session/[slug]). But a member who bookmarked the old LiveKit room URL, or who navigates to /session/[slug] directly, would still land in the LiveKit room even for a useZoom program — a split-brain where some people are in Zoom and some in the empty LiveKit room. Add a guard at the top of app/session/[slug]/page.tsx (the LiveKit room): if the program has useZoom, redirect to /session/[slug]/enter. Conversely /enter already redirects non-useZoom programs back to the LiveKit room, so the two are symmetric. Small, but it is the safety net that makes the cutover (2026-06-24-004) airtight. Verify the redirect preserves the open-access ?key= path if a useZoom program is ever open-access (currently open-access is a LiveKit-room concept — decide whether Zoom programs support guest keys or are members-only).",
     "category": "Infrastructure",
     "priority": "high",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-24",
-    "notes": "Part of the cutover (2026-06-24-004) but a discrete, low-risk code change. Closes the direct-nav/bookmark gap noted in RIM_Zoom.md 'Pilot & cutover'."
+    "notes": "DONE session 159 — app/session/[slug]/page.tsx is now a pure redirect to /session/[slug]/enter, preserving an open-access ?key=. Guest open-access entry was added to /enter (valid key -> forwarded into Zoom, no account), resolving the 'do Zoom programs support guest keys' question (yes). Closed the direct-nav/bookmark gap."
   },
   {
     "id": "2026-06-24-006",
@@ -57,7 +87,7 @@
     "priority": "medium",
     "status": "open",
     "addedAt": "2026-06-24",
-    "notes": "Config, not code. Do before turning on recordByDefault for any real program. RIM_Zoom.md 'Recording' documents the why (audio-only is a seat setting, not a meeting field)."
+    "notes": "Config, not code. Do before turning on recordByDefault for any real program. Session 159 decision (Jesse): enable BOTH 'Record an audio only file' (the mixed file) AND 'Record a separate audio file of each participant' — the per-speaker option yields a clean teacher track when the teacher is named (audio is cheap; watch Zoom's cloud-storage allowance over time). RIM_Zoom.md 'Recording' + 'Cutover (done)' document the why."
   },
   {
     "id": "2026-06-24-007",

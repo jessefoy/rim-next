@@ -26,7 +26,7 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 | Registration / dana / Stripe | `RIM_Registration.md` |
 | Hubs — model + per-callsite engineering rules | `RIM_Hub_Model.md`, `RIM_Hub_Engineering.md` |
 | Scheduler tool | `RIM_Scheduler.md` |
-| Session room (LiveKit) | `RIM_SessionRoom.md` |
+| Session room — Zoom (LiveKit room retired s159) | `RIM_Zoom.md` · `RIM_SessionRoom.md` (historical) |
 | Email engineering (template gate, helpers) | `RIM_Email_Engineering.md` |
 | Editor surfaces, blocks, placements | `RIM_Editor_Types.md` |
 | Data model (canonical) | `prisma/schema.prisma` |
@@ -36,7 +36,7 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 
 ## Platform at a glance
 
-RIM Next is a **single, integrated Next.js 16 (App Router) application**. Public pages, member accounts, registrations, online courses, hubs, volunteer tools, the API, the database, business logic, scheduled jobs, the Tiptap editor surfaces, and the LiveKit session room all live in this one app.
+RIM Next is a **single, integrated Next.js 16 (App Router) application**. Public pages, member accounts, registrations, online courses, hubs, volunteer tools, the API, the database, business logic, scheduled jobs, the Tiptap editor surfaces, and the Zoom session entry all live in this one app.
 
 **Three-layer architecture** (see `RIM_System_Architecture.md`):
 - **Member Registry** (`/admin/members`) — the canonical record of every person. ADMIN + REGISTRAR only.
@@ -165,9 +165,9 @@ The **Scheduler** (`/tools/schedule`) is the staffing tool: a calendar + card li
 
 ---
 
-## Session Room — LiveKit → Zoom (migration in progress, session 158)
+## Session Room — Zoom (LiveKit retired, session 159)
 
-> **⚠️ Sessions are migrating to Zoom (session 158, 2026-06-24) — "RIM orchestrates, Zoom is the room."** RIM keeps everything it does well (program → auto-provision → assignment → dashboard "Join" → host identity); **Zoom becomes the actual room** (native app: familiar to the community, reliable, best echo cancellation, phone dial-in). Built end-to-end + **pilot-ready behind a per-program `useZoom` flag** — flip it on a program and its "Join" buttons route to `/session/[slug]/enter` (provision a Zoom meeting on a pool seat → member joins by name; designated host / alternate / teacher get a one-tap Claim-Host code). Nothing changed for programs without the flag. The full LiveKit room below stays the **default + fallback** until a real multi-person pilot, then RIM flips the rest and retires LiveKit. See the new **`RIM_Zoom.md`** (the integration reference) — account model, S2S provisioning, the per-occurrence meeting + self-heal, own-name hosting, the no-registration/rate-limit pitfall, pilot & cutover. Host-facing guide: `ZOOM_HOST_GUIDE.md`.
+> **✅ Sessions run on Zoom (cutover complete, session 159) — "RIM orchestrates, Zoom is the room."** RIM keeps everything it does well (program → auto-provision → assignment → dashboard "Join" → host identity); **Zoom is the actual room** (native app: familiar, reliable, best echo cancellation, phone dial-in). Every virtual/hybrid program's "Join" routes to `/session/[slug]/enter` → a Zoom meeting is provisioned on a pool seat → member (or open-access guest) joins by name; designated host / alternate / teacher get a one-tap Claim-Host code. The legacy `/session/[slug]` URL redirects to `/enter`. The in-browser LiveKit room was **retired** (code removed; `useZoom` flag dropped). **`RIM_Zoom.md`** is the integration reference — account model, S2S provisioning, per-occurrence meeting + self-heal, own-name hosting, the no-registration/rate-limit pitfall, cutover. Host-facing guide: `ZOOM_HOST_GUIDE.md`. **The LiveKit feature detail below is historical** (the retired room).
 
 Each virtual/hybrid program has a full-page video room at `/session/[slug]` (self-hosted LiveKit on DigitalOcean as of session 150 — migrated off LiveKit Cloud for cost; server `wss://livekit.rootedinmindfulness.org`. **Noise cancellation is RNNoise** — in-browser (session 151), replacing Cloud-only Krisp; Bell mode preserved. Originally LiveKit Cloud, replaced Google Meet in session 86; Zoom-aligned redesign session 117). Members join from their dashboard with only their RIM login — no Google/Zoom accounts, no downloads.
 
@@ -195,7 +195,7 @@ Each virtual/hybrid program has a full-page video room at `/session/[slug]` (sel
 - **Households** — `/admin/households`, `/admin/households/[id]`. Group members into family households with a shared address, an optional display name, and named relationships (`RelationshipType`: spouse / partner / parent / child / sibling / other). Surfaced on a member's profile via `HouseholdSection`; backed by `Household` / `HouseholdMember`. API `/api/admin/households/*`.
 - **Teachers** — `TeacherProfile` (public profile + `isTeacher`), `ProgramTeacher` (links a teacher account to a program; drives the session-room Teacher pill + bell-friendly audio).
 - **Email Template Manager** — `/admin/emails`, `/admin/emails/[slug]`. Database-backed (`EmailTemplate`); the source of truth for templated sends. See `RIM_Email_Engineering.md`.
-- **LiveKit test** — `/admin/livekit-test`. A diagnostic page for verifying LiveKit env/connectivity.
+- **Zoom self-test** — `/admin/zoom-test`. ADMIN diagnostic for the Zoom connection + provisioning round-trip. (The old `/admin/livekit-test` was removed with the LiveKit room, session 159.)
 
 ---
 

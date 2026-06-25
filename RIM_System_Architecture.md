@@ -273,7 +273,7 @@ The complete architecture for how hubs and tools relate is documented in **`RIM_
 
 ---
 
-## Video Conferencing — LiveKit → Zoom (migration in progress, session 158)
+## Video Conferencing — Zoom (LiveKit retired, session 159)
 
 > **⚠️ Decision reversed (session 158, 2026-06-24).** The "the choice is committed; quality
 > concerns are addressed by tuning passes, not platform changes" stance below held through
@@ -283,12 +283,15 @@ The complete architecture for how hubs and tools relate is documented in **`RIM_
 > can't afford a failed session values Zoom's familiarity + reliability. The insight: *only
 > the media layer was the problem; RIM's orchestration layer — program → auto-provision →
 > assignment → dashboard join → host identity — is the part worth keeping.* So RIM keeps the
-> orchestration and Zoom becomes the room. The new path is **built + pilot-ready behind a
-> per-program `useZoom` flag**; LiveKit remains the **default + fallback** until a real
-> multi-person pilot. The permission model below (`resolveSessionRole`) is unchanged and is
-> reused as the host-identity authority for both LiveKit and Zoom. **See `RIM_Zoom.md`.**
+> orchestration and Zoom becomes the room. **Cutover complete (session 159):** the pilot
+> succeeded, the `useZoom` flag was dropped (Zoom is unconditional for virtual/hybrid), and
+> the in-browser LiveKit room was removed. The permission model below (`resolveSessionRole`,
+> now `lib/sessionAuth.ts`) is unchanged and remains the host-identity authority, feeding the
+> Zoom entry's `canHost` gate. **See `RIM_Zoom.md`.**
 
-Virtual and hybrid programs use **self-hosted LiveKit on DigitalOcean** (as of session 150, 2026-06-16 — migrated off LiveKit Cloud to escape per-GB bandwidth pricing; server `wss://livekit.rootedinmindfulness.org`, ~$58/mo flat) for video conferencing, fully replacing Google Meet. *(Through session 149 this ran on LiveKit Cloud; the move to self-hosting was a cost decision — Cloud's $0.12/GB downstream made all-camera 30-person circles ~$260–620/mo. Same open-source server + client SDK, so no room code changed — only the server URL + keys.)* Daily.co was evaluated as an alternative in session 122 and rejected (~$110/mo at RIM scale vs $0–50 on LiveKit, plus the rewrite cost of unwinding the custom-room architecture). *(Historical: through session 157 the choice was "committed; tune don't switch" — superseded by the Zoom migration above.)*
+*(The remainder of this section is **historical** — it describes the retired LiveKit room; the live room is Zoom, above.)*
+
+Virtual and hybrid programs used **self-hosted LiveKit on DigitalOcean** (as of session 150, 2026-06-16 — migrated off LiveKit Cloud to escape per-GB bandwidth pricing; server `wss://livekit.rootedinmindfulness.org`, ~$58/mo flat) for video conferencing, fully replacing Google Meet. *(Through session 149 this ran on LiveKit Cloud; the move to self-hosting was a cost decision — Cloud's $0.12/GB downstream made all-camera 30-person circles ~$260–620/mo. Same open-source server + client SDK, so no room code changed — only the server URL + keys.)* Daily.co was evaluated as an alternative in session 122 and rejected (~$110/mo at RIM scale vs $0–50 on LiveKit, plus the rewrite cost of unwinding the custom-room architecture). *(Historical: through session 157 the choice was "committed; tune don't switch" — superseded by the Zoom migration above.)*
 
 **How it works:** Each program with `programFormat = "virtual"` or `"hybrid"` has a `livekitRoom` field (set to the program slug). When a member clicks "Join" on the dashboard, they're taken to `/session/{slug}` — a dedicated full-page video room with a custom layout (RIMConference). The token API (`/api/livekit/token`) calls `lib/livekitAuth.ts::resolveSessionRole` to determine the viewer's permission tier and issues a token whose grants match. See "Permission tiers" below.
 

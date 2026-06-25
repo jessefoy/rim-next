@@ -1,17 +1,17 @@
-# RIM Session Room — Engineering Reference
+# RIM Session Room — Engineering Reference (RETIRED)
 
-**The per-tool reference for the LiveKit video session room.** Read this before touching anything under `components/session/`, `components/VideoRoom.tsx`, or `app/api/livekit/*`.
+> **⚠️ RETIRED (session 159, 2026-06-25).** The in-browser LiveKit video room this
+> document describes was **removed** when sessions cut over to Zoom — `components/session/*`
+> (except `ZoomLaunch.tsx`), `components/VideoRoom.tsx`, and `app/api/livekit/*` no longer
+> exist; the `useZoom` flag is gone (Zoom is unconditional). The live room is now Zoom —
+> see **`RIM_Zoom.md`**. This doc is kept for (a) historical reference on how the room
+> worked, and (b) the **DigitalOcean droplet server-ops** below, which are still live: the
+> droplet hosts OnlyOffice (`RIM_OnlyOffice.md`). Host-identity logic survived as
+> `lib/sessionAuth.ts` (renamed from `livekitAuth.ts`); the time-window gate
+> (`lib/sessionWindow.ts`) and `SessionBan` are reused by the Zoom entry.
 
-> **⚠️ Migration in progress (session 158, 2026-06-24): sessions are moving from this
-> custom LiveKit room to Zoom** — "RIM orchestrates, Zoom is the room." This reverses the
-> session-120 "browser LiveKit is the committed architecture" stand (members kept hitting
-> browser-media limits; a dharma community values Zoom's familiarity + reliability). RIM
-> keeps the orchestration (program → auto-provision → assignment → dashboard join → host
-> identity via `HostAssignment`/`resolveSessionRole`); Zoom becomes the room. **The new
-> path is built + pilot-ready behind a per-program `useZoom` flag — see `RIM_Zoom.md`.**
-> LiveKit (this doc) is still the **default and the fallback** until a real multi-person
-> pilot; everything below stays accurate for non-`useZoom` programs and is the thing being
-> migrated away from. Do not retire LiveKit before the pilot (it's the can't-fail room).
+**The (historical) per-tool reference for the LiveKit video session room.** Everything
+below describes the room as it existed through session 158.
 
 Companion docs: **`RIM_Zoom.md`** (the Zoom integration this is migrating to), `RIM_System_Architecture.md` (Video Conferencing section — the authoritative permission model), `RIM_Stack_Reference.md` (LiveKit env + deps), FEATURES.md → "Session Room — LiveKit" (feature record), `SESSION_ROOM_FOR_VOLUNTEERS.md` (host/volunteer-facing changelog), and the DB manual chapter `host-session-room` (seeded via `prisma/update-manual-host-session-room.mjs`).
 

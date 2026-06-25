@@ -10,10 +10,12 @@ Companion docs: `RIM_SessionRoom.md` (the LiveKit room being migrated away from)
 authority for host identity), `RIM_Stack_Reference.md` (env + deps),
 `RIM_Scheduler.md` (HostAssignment — who the host is).
 
-> **Status (session 158, 2026-06-24): built + pilot-ready, behind a per-program
-> flag.** The whole join path works (verified live by Jesse). LiveKit is still the
-> default and is **not** retired — that waits on a real multi-person pilot. See
-> "Pilot & cutover" at the bottom.
+> **Status (session 159, 2026-06-25): CUT OVER — Zoom is the room for every
+> virtual/hybrid session.** The pilot succeeded; the in-browser LiveKit room was
+> retired (code removed) and the per-program `useZoom` flag dropped. `/session/[slug]`
+> now redirects to `/session/[slug]/enter` (the single entry). The DigitalOcean
+> droplet stays (it hosts OnlyOffice); only the `livekit-server` container is stopped.
+> See "Cutover (done)" at the bottom.
 
 ---
 
@@ -83,21 +85,28 @@ now), `user:read:user:admin`, `user:update:user:admin` (host-key set).
 | `app/api/admin/zoom/selftest*` | The two self-test routes |
 | `prisma/schema.prisma` | `SessionMeeting` model; `Program.useZoom` + `Program.recordByDefault` |
 
-`Program.useZoom` (default false) is the **pilot routing flag** (set in the editor's
-Hosting & Access tab). `Program.recordByDefault` is the **audio-only cloud-record**
-toggle. CSS: the entry/host screens use inline styles + tokens (no new prefix).
+`Program.recordByDefault` is the **cloud-record** toggle (set in the editor's
+Hosting & Access tab; audio-only / per-speaker tracks depend on the pool seats' Zoom
+recording settings). The session-159 cutover dropped `Program.useZoom` — every
+virtual/hybrid program routes to Zoom now. The session-role authority is
+`lib/sessionAuth.ts` (renamed from `livekitAuth.ts`); `lib/sessionIdentity.ts` holds
+`sessionDisplayName` + `roomNameForProgram` (the `SessionBan` scope key). CSS: the
+entry/host screens use inline styles + tokens (no new prefix).
 
 ## The entry flow (`/session/[slug]/enter`)
 
-1. The dashboard / program page / Scheduler "Join" links branch on `useZoom`:
-   `useZoom` → `/session/[slug]/enter`; otherwise the LiveKit room (untouched).
-2. `/enter` gates: auth → `useZoom` (else redirect to the LiveKit room) → time
-   window (`getActiveSessionWindow`, ADMIN/GT bypass) → `SessionBan`.
+1. The dashboard / program page / Scheduler "Join" links all point at
+   `/session/[slug]/enter`. The legacy `/session/[slug]` URL redirects there too
+   (preserving an open-access `?key=`), so old bookmarks/guest links still resolve.
+2. `/enter` gates: auth (or a valid open-access guest `?key=`) → in-person programs
+   bounce to their page → time window (`getActiveSessionWindow`, ADMIN/GT bypass) →
+   `SessionBan` (members by id; guests have none).
 3. Provision/reuse the occurrence's meeting + fetch its standard join link
    (`getMeeting`), with **self-heal** (see below).
 4. Resolve role (`resolveSessionRole`). `canHost = isSessionHost || isHostTeam ||
    isProgramTeacher || hasEndAllAuthority`.
-5. **Member** (not host-capable) → `ZoomLaunch` (straight into Zoom).
+5. **Guest** (valid open-access `?key=`, no account) or **member** (not
+   host-capable) → `ZoomLaunch` (straight into Zoom).
    **Host-capable** → `HostLanding`, a role-aware screen (4 tiers):
    - **Designated host** ("you're hosting" + claim code),
    - **Alternate** (host-team, not assigned today: "[name] is today's host" +
@@ -158,16 +167,23 @@ mechanism supports it).
   `window.location.replace` (`ZoomLaunch`), not server `redirect()`, for the
   external Zoom URL. Gating `redirect()`s are all same-origin + before the try.
 
-## Pilot & cutover (NOT done yet)
+## Cutover (done — session 159)
 
-Built but **LiveKit is still the default + the fallback.** Order:
-1. **Pilot** one real multi-person session on Zoom (set `useZoom` on one program).
-2. **Flip** the rest to `useZoom` + add a `/session/[slug]` guard so the LiveKit
-   room redirects `useZoom` programs to `/enter` (closes the direct-nav/bookmark
-   gap; not built yet).
-3. **Decommission** LiveKit: stop the `livekit-server` container on the DO droplet
-   (Jesse's SSH — **keep the droplet, it co-hosts OnlyOffice**); archive
-   `components/session/*`, `components/VideoRoom.tsx`, `app/api/livekit/*`.
+The pilot succeeded, so the migration is complete:
+1. **Pilot** ✅ — one real multi-person Zoom session ran well.
+2. **Flipped** ✅ — `useZoom` was dropped entirely; every virtual/hybrid program
+   routes to `/session/[slug]/enter`, and the legacy `/session/[slug]` URL now
+   redirects there (preserving guest `?key=`), closing the direct-nav/bookmark gap.
+3. **Decommissioned** ✅ (code) — the in-browser LiveKit room is removed:
+   `components/VideoRoom.tsx`, all of `components/session/*` except `ZoomLaunch.tsx`,
+   all `app/api/livekit/*`, `lib/livekit.ts`, `/admin/livekit-test`, the RNNoise
+   assets, and the 6 LiveKit/noise npm deps. The two SDK-free helpers moved to
+   `lib/sessionIdentity.ts`; `lib/livekitAuth.ts` → `lib/sessionAuth.ts`.
 
-Don't retire LiveKit before the pilot — it's the can't-fail room with no fallback
-once gone.
+**Remaining (ops, Jesse's — none block the app):**
+- Stop the `livekit-server` container on the DO droplet (**keep the droplet — it
+  hosts OnlyOffice**) and remove the now-unused `NEXT_PUBLIC_LIVEKIT_URL` /
+  `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` Vercel env vars.
+- **Recording:** on the two pool seats, set Zoom cloud recording to "Record an audio
+  only file" **and** "Record a separate audio file of each participant" — the
+  per-speaker option yields a clean teacher track when the teacher is named.
