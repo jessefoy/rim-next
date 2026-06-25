@@ -174,9 +174,70 @@ export default async function ZoomEnterPage({
       />
     );
   } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
     console.error("[session/enter] Zoom provisioning/mint failed", { slug, userId }, e);
+    // Admins/GT see the real error on screen so we can debug the pilot; everyone
+    // else gets a calm bounce to the dashboard.
+    if (isAdminOrGT) {
+      return <EnterError message={message} slug={slug} />;
+    }
     redirect("/account/dashboard?session=error");
   }
+}
+
+/** Admin-only error panel — surfaces the actual failure so we can fix it precisely. */
+function EnterError({ message, slug }: { message: string; slug: string }) {
+  return (
+    <div
+      style={{
+        minHeight: "70vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      <div style={{ maxWidth: 560, width: "100%", textAlign: "center" }}>
+        <h1
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "var(--text-h3)",
+            fontWeight: 400,
+            marginBottom: 8,
+          }}
+        >
+          Couldn&rsquo;t open this session
+        </h1>
+        <p style={{ fontSize: "var(--text-ui)", color: "var(--rim-mid)", marginBottom: 16 }}>
+          Connecting to Zoom failed. (This detail is shown to admins only, to help debug.)
+        </p>
+        <pre
+          style={{
+            textAlign: "left",
+            fontSize: "var(--text-xs)",
+            fontFamily: "var(--font-mono)",
+            color: "var(--color-error)",
+            background: "var(--rim-bg)",
+            borderRadius: 8,
+            padding: "12px 14px",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+          }}
+        >
+          {message}
+        </pre>
+        <div style={{ marginTop: 16, display: "flex", gap: 12, justifyContent: "center" }}>
+          <a href={`/session/${slug}/enter`} style={{ color: "var(--rim-blue)", fontWeight: 600 }}>
+            Try again
+          </a>
+          <a href="/account/dashboard" style={{ color: "var(--rim-mid)" }}>
+            Back to dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /**
