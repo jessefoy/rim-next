@@ -1,5 +1,5 @@
 /**
- * Session-window helper for LiveKit room access.
+ * Session-window helper — gates entry to a live session (the Zoom entry).
  *
  * Computes whether a program has an active session right now — i.e. whether
  * the room should be reachable. The window opens EARLY_OPEN_MIN (30) minutes
@@ -9,13 +9,13 @@
  * three live in ./sessionWindowConstants (shared with the dashboard entry
  * tiers and the Scheduler "Enter room" link, so the timing can't drift).
  *
- * Used by /api/livekit/token and /api/livekit/guest-token to refuse token
- * issuance outside the window. ADMIN and GUIDING_TEACHER bypass at the
- * route level (safety override; mirrors hasEndAllAuthority).
+ * Used by the session entry (app/session/[slug]/enter) to refuse entry outside
+ * the window. ADMIN and GUIDING_TEACHER bypass (safety override; mirrors
+ * hasEndAllAuthority).
  *
- * Returns the active sessionDate so the token + chat code can build a
- * per-date room name. Per-date room names mean each session of a
- * recurring program starts with a clean chat history.
+ * Returns the active sessionDate so the entry can build a per-occurrence key
+ * (the SessionBan scope — historically the per-date LiveKit room name; see
+ * lib/sessionIdentity.ts::roomNameForProgram).
  */
 import { db } from "./db";
 import {
@@ -166,7 +166,7 @@ export function getActiveSessionWindow(
 
 /**
  * Build a human-readable explanation for an inactive window. Plain English
- * for the /session/[slug] page error state.
+ * (e.g. "This session isn't open yet — it begins at 7:00 PM").
  */
 export function describeInactiveWindow(w: InactiveSessionWindow): string {
   if (w.reason === "before-window" && w.nextStartsAt) {

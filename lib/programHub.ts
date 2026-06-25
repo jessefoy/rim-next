@@ -63,8 +63,8 @@ export async function getProgramHubSlug(programSlug: string): Promise<string> {
  * returns a resolved record, falling back to host-team-with-defaults when the
  * column is null.
  *
- * Used by `/api/livekit/token`, `/api/livekit/step-in`, and `resolveSessionRole`
- * for the pill label hierarchy and the hub-grants-teacher capability path.
+ * Used by `resolveSessionRole` (the session-role resolver) for the host/teacher
+ * label hierarchy and the hub-grants-teacher capability path.
  */
 export async function getProgramHostingHub(
   programSlug: string,

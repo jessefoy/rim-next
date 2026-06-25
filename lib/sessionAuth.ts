@@ -1,5 +1,15 @@
 /**
- * Session-room permission tiers (Zoom-style, evolved 2026-05-25 → 2026-05-26).
+ * Session-role resolver — the shared host-identity authority for a session.
+ *
+ * NOTE (session 159): the in-browser LiveKit room is retired; sessions run on
+ * Zoom. This resolver now feeds the Zoom entry (app/session/[slug]/enter): its
+ * flags combine into `canHost`, which decides who is shown the Claim-Host
+ * landing (host controls in Zoom) vs. sent straight into the meeting. The pill /
+ * capability detail below is historical LiveKit context — retained because the
+ * flags are still computed identically and may inform future Zoom-side features.
+ * (Renamed lib/livekitAuth.ts → lib/sessionAuth.ts in the cutover.)
+ *
+ * Permission tiers (Zoom-style, evolved 2026-05-25 → 2026-05-26).
  *
  * The resolver splits **identity** from **capability** — the two used to be
  * conflated under a single `isSessionHost` flag with an ADMIN bypass, which
@@ -65,10 +75,10 @@ export interface SessionRole {
   /** Identity: HostAssignment for this exact session. No role-based bypass.
    *  Drives the "Host" pill on the participant's tile. */
   isSessionHost: boolean;
-  /** Capability: can perform End-for-All and the actions reserved to it
-   *  (the End button label, the End-for-All menu item, the server gate on
-   *  /api/livekit/end-session). Distinct from `isSessionHost` so the pill
-   *  doesn't lie about identity when a role-based safety override applies. */
+  /** Capability: End-for-All / host authority. With the move to Zoom this now
+   *  feeds the entry's host-capable check (who is shown the Claim-Host landing
+   *  vs. sent straight into the meeting). Distinct from `isSessionHost` so
+   *  identity isn't overstated when a role-based safety override applies. */
   hasEndAllAuthority: boolean;
   /** Co-host capability: mute others, share screen, Bell mode, manage. */
   isCoHost: boolean;
@@ -182,10 +192,9 @@ export async function resolveSessionRole(
   // is a host," so the teacher fallback should not fire even if no one has
   // explicitly claimed *today's* instance yet.
   //
-  // Stale-token note: this flag is reactive at token-issue only. A teacher
-  // who joined while alone keeps their End button label even if a host
-  // claims later — but the server-side re-check at /api/livekit/end-session
-  // will reject the call, so the worst case is a 403 on a stale button tap.
+  // Teacher-fallback: a teacher leading alone (no assigned host for the
+  // occurrence) is treated as host-capable, so they get the Claim-Host landing
+  // without needing a Step-In first.
   let teacherIsFallbackHost = false;
   if (isProgramTeacher && !isSessionHost) {
     const anyHostAssigned = await db.hostAssignment.findFirst({
@@ -199,8 +208,7 @@ export async function resolveSessionRole(
   }
 
   // ── End-for-All authority: identity OR role-based safety override OR
-  // teacher-fallback. The button label and the server gate on
-  // /api/livekit/end-session both key on this flag.
+  // teacher-fallback. Feeds the Zoom entry's host-capable gate (canHost).
   const hasEndAllAuthority =
     isSessionHost || isAdmin || isGuidingTeacher || teacherIsFallbackHost;
 

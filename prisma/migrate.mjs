@@ -18,6 +18,24 @@ const db = new PrismaClient();
 
 const migrations = [
   {
+    name: "drop_use_zoom_from_programs",
+    async run() {
+      // Session 159 cutover: Zoom became the room for every virtual/hybrid
+      // session and the in-browser LiveKit room was retired, so the per-program
+      // useZoom pilot flag no longer means anything. Drop the column.
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'programs' AND column_name = 'useZoom'
+      `);
+      if (cols.length > 0) {
+        await db.$executeRawUnsafe(`ALTER TABLE "programs" DROP COLUMN "useZoom"`);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
+  {
     name: "add_tool_slug_to_hub_app_links",
     async run() {
       const cols = await db.$queryRawUnsafe(`
@@ -2613,26 +2631,6 @@ Or open it directly: {{manageUrl}}`,
         await db.$executeRawUnsafe(`
           CREATE INDEX "session_meetings_seatUserId_sessionDate_idx"
           ON "session_meetings" ("seatUserId", "sessionDate")
-        `);
-        console.log(`  ✔ Applied: ${this.name}`);
-      } else {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-      }
-    },
-  },
-  {
-    // Per-program Zoom pilot flag — routes a program's session to Zoom instead of
-    // the LiveKit room. Default false: everything stays on LiveKit until a program
-    // opts in. Additive column, nothing existing touched.
-    name: "add_use_zoom_to_programs",
-    async run() {
-      const cols = await db.$queryRawUnsafe(`
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'programs' AND column_name = 'useZoom'
-      `);
-      if (cols.length === 0) {
-        await db.$executeRawUnsafe(`
-          ALTER TABLE "programs" ADD COLUMN "useZoom" BOOLEAN NOT NULL DEFAULT false
         `);
         console.log(`  ✔ Applied: ${this.name}`);
       } else {

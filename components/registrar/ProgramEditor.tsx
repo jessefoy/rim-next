@@ -107,7 +107,6 @@ export interface ProgramData {
    *  (Recovery Dharma, drop-in groups) and is excluded from the Scheduler,
    *  rotation generation, and the new-program-needs-host email. Default true. */
   hostingRequired?: boolean;
-  useZoom?: boolean;
   recordByDefault?: boolean;
   /** Auxiliary hubs providing supporting-role coverage for this program
    *  (session 129 — AV + Greeter). Empty array is the default; each slug
@@ -661,7 +660,6 @@ export default function ProgramEditor({
   );
   const noHostNeeded = !hostingRequired;
   const hostingRequiredChanged = hostingRequired !== (initialData?.hostingRequired ?? true);
-  const [useZoom, setUseZoom] = useState<boolean>(initialData?.useZoom ?? false);
   const [recordByDefault, setRecordByDefault] = useState<boolean>(initialData?.recordByDefault ?? false);
 
   // Auxiliary-hub coverage. A program's primary hub (hostingHubSlug above)
@@ -881,7 +879,6 @@ export default function ProgramEditor({
         // "No host needed" toggle (stored as the inverse). When false the
         // program is self-led and excluded from the Scheduler + rotations.
         hostingRequired,
-        useZoom,
         recordByDefault,
         // Auxiliary hubs providing role coverage. Empty array means no
         // additional coverage. Server replaces the full set on each save.
@@ -1394,31 +1391,12 @@ export default function ProgramEditor({
             </div>
 
             <div className="pe-field">
-              <span className="pe-field__label">Video platform</span>
-              <span className="pe-field__help">
-                Pilot: when checked, this program&rsquo;s live session opens in{" "}
-                <strong>Zoom</strong> (the native app) instead of the in-browser
-                room. Members join under their real name with no Zoom account; the
-                host gets a one-click start link. Leave unchecked to keep the
-                current in-browser room. Only affects virtual / hybrid programs.
-              </span>
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={useZoom}
-                  onChange={(e) => { setUseZoom(e.target.checked); markDirty(); }}
-                />
-                <span>Use Zoom for this program</span>
-              </label>
-            </div>
-
-            <div className="pe-field">
               <span className="pe-field__label">Recording</span>
               <span className="pe-field__help">
-                Auto-record this program&rsquo;s Zoom sessions to the cloud for
-                internal use. Participants see Zoom&rsquo;s recording indicator.
-                Audio-only depends on the Zoom account&rsquo;s recording settings;
-                only applies to Zoom sessions.
+                Auto-record this program&rsquo;s sessions to the cloud for internal
+                use. Participants see Zoom&rsquo;s recording indicator. Audio-only
+                (and per-speaker tracks) depend on the Zoom account&rsquo;s
+                recording settings. Only applies to virtual / hybrid programs.
               </span>
               <label className="pe-checkbox">
                 <input

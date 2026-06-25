@@ -148,8 +148,6 @@ export async function PUT(
       data.livekitRoom = body.slug ?? slug;
     }
   }
-  // Zoom pilot flag (coerce to a real boolean).
-  if (body.useZoom !== undefined) data.useZoom = body.useZoom !== false;
   if (body.recordByDefault !== undefined) data.recordByDefault = body.recordByDefault !== false;
   if (body.venue !== undefined) data.venue = body.venue;
   if (body.locationText !== undefined) data.locationText = body.locationText || null;
@@ -304,13 +302,12 @@ export async function PUT(
     updated = await db.program.update({ where: { slug }, data });
   }
 
-  // Zoom teardown: if this program stopped using Zoom, or left virtual/hybrid,
-  // remove its FUTURE Zoom meetings (fire-and-forget; past stays as record).
-  const stoppedZoom = existing.useZoom && data.useZoom === false;
+  // Zoom teardown: if this program left virtual/hybrid, remove its FUTURE Zoom
+  // meetings (fire-and-forget; past stays as record).
   const leftVirtual =
     data.programFormat === "in-person" &&
     (existing.programFormat === "virtual" || existing.programFormat === "hybrid");
-  if (stoppedZoom || leftVirtual) {
+  if (leftVirtual) {
     after(async () => {
       try {
         const n = await teardownProgramMeetings(slug, { futureOnly: true });

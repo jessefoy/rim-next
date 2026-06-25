@@ -69,7 +69,6 @@ export default async function DashboardPage() {
           recurrenceFreq: true, recurrenceInterval: true,
           recurrenceDays: true, recurrenceCount: true,
           programFormat: true,
-          useZoom: true,
           // Offering kind (via category) + registration drive Today placement:
           // only openly-droppable kinds show a public Join to non-registrants.
           registrationEnabled: true,

@@ -252,9 +252,8 @@ model Program {
   zoomLink            String?
   meetHostAccount     String?
   calendarEventId     String?
-  livekitRoom         String?   // LiveKit room name — replaces zoomLink/meetHostAccount
-  useZoom             Boolean   @default(false) // pilot flag (Zoom migration): when true, this program's session routes to Zoom instead of the LiveKit room. Default false = LiveKit, so nothing changes until a program opts in.
-  recordByDefault     Boolean   @default(false) // Zoom: auto-record this program's sessions to the cloud. Audio-only depends on the pool seats' cloud-recording settings in Zoom (set once in the Zoom console).
+  livekitRoom         String?   // session-room marker: set to the slug for virtual/hybrid programs. Vestigial name from the retired in-browser LiveKit room (session 159) — now just signals "this program has a session." Rename pending (backlog).
+  recordByDefault     Boolean   @default(false) // Zoom: auto-record this program's sessions to the cloud. Audio-only / per-speaker tracks depend on the pool seats' cloud-recording settings in Zoom (set once in the Zoom console).
   isOpenAccess        Boolean   @default(false) // allow non-members to join via guest link
   guestAccessKey      String?   // random key for guest join URL; reset invalidates old links
   startDatetime       DateTime?

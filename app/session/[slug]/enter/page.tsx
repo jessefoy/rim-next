@@ -21,10 +21,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getActiveSessionWindow } from "@/lib/sessionWindow";
-import { resolveSessionRole } from "@/lib/livekitAuth";
+import { resolveSessionRole } from "@/lib/sessionAuth";
 import { getOrCreateSessionMeeting } from "@/lib/sessionMeeting";
 import { getMeeting, ensureSeatHostKey } from "@/lib/zoom";
-import { roomNameForProgram, sessionDisplayName } from "@/lib/livekit";
+import { roomNameForProgram, sessionDisplayName } from "@/lib/sessionIdentity";
 import { FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
 
@@ -68,6 +68,10 @@ export default async function ZoomEnterPage({
     },
   });
   if (!program) redirect("/account/dashboard");
+
+  // Only virtual/hybrid programs have an online room — a hand-crafted /enter URL
+  // for an in-person program shouldn't burn a Zoom pool seat. Send them to the page.
+  if (program.programFormat === "in-person") redirect(`/programs/${slug}`);
 
   // A guest holding a valid open-access key enters without a RIM account — they're
   // forwarded straight to the Zoom join link. Everyone else must sign in.
