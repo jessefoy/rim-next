@@ -7,7 +7,7 @@
  * CSS prefix: pe-
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
@@ -307,6 +307,10 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: string) => void; 
    Value and onChange use the same datetime-local string format (YYYY-MM-DDTHH:mm)
    so the rest of the form and save payload don't change at all.
    Minutes snap to 15-minute increments. ── */
+// Hoisted to module scope so these option lists aren't reallocated on every
+// render (the editor re-renders on each keystroke) — keeps the selects snappy.
+const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+const MINUTES = ["00", "15", "30", "45"];
 function DateTimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const parse = (v: string) => {
     if (!v) return { date: "", hour: "7", minute: "00", ampm: "PM" };
@@ -330,9 +334,6 @@ function DateTimePicker({ value, onChange }: { value: string; onChange: (v: stri
     const h24 = ap === "AM" ? (h12 === 12 ? 0 : h12) : (h12 === 12 ? 12 : h12 + 12);
     onChange(`${d}T${String(h24).padStart(2, "0")}:${mn}`);
   };
-
-  const HOURS = ["1","2","3","4","5","6","7","8","9","10","11","12"];
-  const MINUTES = ["00","15","30","45"];
 
   return (
     <div className="pe-datetime">
@@ -937,18 +938,22 @@ export default function ProgramEditor({
   // state). Reflects the session-137 two-axis model — see RIM_Offering_Model.md.
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const offeringKind = selectedCategory?.kind ?? null;
-  const deadlinePast = registrationDeadline
-    ? new Date(registrationDeadline) < new Date()
-    : false;
-  const regClosedEffective = registrationClosed || deadlinePast;
-  const isDroppable = isOpenlyDroppable(offeringKind, registrationEnabled);
-  const appearanceText = registrationEnabled
-    ? regClosedEffective
-      ? "Registration is closed — visitors see a “Registration is closed” notice instead of the form."
-      : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
-    : isDroppable
-      ? "Drop-in — visitors see how to join (in person and/or online). No registration needed."
-      : "Registration isn’t open yet — visitors are told that, with no sign-up button. Turn on “Registration enabled” below when you’re ready to take sign-ups.";
+  // Memoized so it recomputes only when its inputs change, not on every
+  // keystroke elsewhere in the editor.
+  const appearanceText = useMemo(() => {
+    const deadlinePast = registrationDeadline
+      ? new Date(registrationDeadline) < new Date()
+      : false;
+    const regClosedEffective = registrationClosed || deadlinePast;
+    const isDroppable = isOpenlyDroppable(offeringKind, registrationEnabled);
+    return registrationEnabled
+      ? regClosedEffective
+        ? "Registration is closed — visitors see a “Registration is closed” notice instead of the form."
+        : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
+      : isDroppable
+        ? "Drop-in — visitors see how to join (in person and/or online). No registration needed."
+        : "Registration isn’t open yet — visitors are told that, with no sign-up button. Turn on “Registration enabled” below when you’re ready to take sign-ups.";
+  }, [offeringKind, registrationDeadline, registrationClosed, registrationEnabled]);
 
   return (
     <div className="pe-editor" onChangeCapture={markDirty} onInputCapture={markDirty}>
