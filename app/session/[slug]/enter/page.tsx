@@ -95,30 +95,43 @@ export default async function ZoomEnterPage({
   // Everything that touches Zoom is wrapped so a busy-seat, misconfig, or Zoom
   // hiccup lands the caller calmly back on the dashboard instead of a raw 500.
   try {
-    const meeting = await getOrCreateSessionMeeting({
-      programSlug: slug,
-      sessionDate,
-      endTime,
-      topic: program.name,
-      recordToCloud: program.recordByDefault,
-    });
-
-    // Register the caller under their real name → their personal join link.
-    // Match RIM's session-room convention: first name + last INITIAL ("Jesse F.").
-    // Only controls the name for people NOT signed into a Zoom account (most
-    // members); anyone signed into their own Zoom shows that account's name.
+    // Caller's display name for the registrant — first name + last INITIAL
+    // ("Jesse F."). Only controls the name for people NOT signed into a Zoom
+    // account (most members); anyone signed into their own Zoom shows that name.
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { firstName: true, lastName: true, preferredName: true, email: true },
     });
-    const lastInitial = user?.lastName?.trim()
-      ? `${user.lastName.trim()[0].toUpperCase()}.`
-      : "";
-    const reg = await addMeetingRegistrant(meeting.zoomMeetingId, {
+    const registrant = {
       email: user?.email ?? session.user.email ?? `${userId}@rim.invalid`,
       firstName: (user?.preferredName || user?.firstName || "RIM").trim(),
-      lastName: lastInitial,
-    });
+      lastName: user?.lastName?.trim() ? `${user.lastName.trim()[0].toUpperCase()}.` : "",
+    };
+    const provision = () =>
+      getOrCreateSessionMeeting({
+        programSlug: slug,
+        sessionDate,
+        endTime,
+        topic: program.name,
+        recordToCloud: program.recordByDefault,
+      });
+
+    // Provision/reuse the meeting + get this person's join link. If the stored
+    // meeting was ended or deleted (e.g. a host closed it, then re-enters within
+    // the window), the Zoom call fails with a "meeting gone" error — so drop the
+    // stale row and recreate ONCE, so re-entry always lands in a live meeting.
+    const { meeting, reg } = await (async () => {
+      let m = await provision();
+      try {
+        return { meeting: m, reg: await addMeetingRegistrant(m.zoomMeetingId, registrant) };
+      } catch (firstErr) {
+        if (!meetingIsGone(firstErr)) throw firstErr;
+        console.warn(`[session/enter] stale Zoom meeting ${m.zoomMeetingId} for ${slug}; recreating`);
+        await db.sessionMeeting.delete({ where: { id: m.id } }).catch(() => {});
+        m = await provision();
+        return { meeting: m, reg: await addMeetingRegistrant(m.zoomMeetingId, registrant) };
+      }
+    })();
 
     // Who can take host controls: the designated host, anyone on the host team
     // (alternate), the teacher, or ADMIN/GT. Everyone else is a plain member.
@@ -164,6 +177,17 @@ export default async function ZoomEnterPage({
     console.error("[session/enter] Zoom provisioning/mint failed", { slug, userId }, e);
     redirect("/account/dashboard?session=error");
   }
+}
+
+/**
+ * True when a Zoom error means the meeting no longer exists (ended/deleted) — a
+ * 404 or Zoom code 3001 ("Meeting does not exist") — so we recreate rather than
+ * fail. Transient errors (5xx / rate limit) deliberately don't match, so we
+ * don't spuriously recreate a live meeting.
+ */
+function meetingIsGone(e: unknown): boolean {
+  const m = e instanceof Error ? e.message : String(e);
+  return /\(404\)|"code":\s*3001|does not exist|not found/i.test(m);
 }
 
 /**
