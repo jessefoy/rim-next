@@ -1,5 +1,52 @@
 ---
 
+## 2026-06-25 (session 159) — Zoom cutover + LiveKit retired; ProgramEditor perf; volunteer host docs; Zoom scheduling integrity (Layers 1+2)
+
+A long execution session completing the Zoom migration the s158 pilot validated, plus three follow-on threads. **~7 commits on `main`, all deployed.** No new dependencies (**6 removed**); `Program.useZoom` removed from code + schema (physical DB column drop deferred — see below); no new env; **no email templates touched.** Reviewer-gated on the two substantive arcs.
+
+### 1. Zoom cutover + LiveKit retirement
+The s158 pilot succeeded, so this cut every virtual/hybrid program over to Zoom and removed the in-browser LiveKit room. Built on a `claude/zoom-cutover` branch (5 commits), fast-forwarded to `main`.
+- **Routing:** all Join links → `/session/[slug]/enter`; the legacy `/session/[slug]` is now a thin redirect there (preserving an open-access `?key=`); **guest open-access entry** added to `/enter` (valid key → forwarded into Zoom, no account, never reaches the host code); an in-person program's `/enter` bounces to its page.
+- **Retirement:** deleted `components/VideoRoom.tsx` + all `components/session/*` except `ZoomLaunch.tsx`, all 9 `app/api/livekit/*`, `/admin/livekit-test`, `public/noise/*`, and **6 LiveKit/noise deps** (+144 transitive). Extracted the two SDK-free helpers (`sessionDisplayName`, `roomNameForProgram`) → `lib/sessionIdentity.ts`; renamed `lib/livekitAuth.ts` → `lib/sessionAuth.ts` (the pure host-identity resolver, now feeding the Zoom `canHost` gate). Stale `/api/livekit/*` comments in sessionAuth/programHub/sessionWindow corrected.
+- **Two migration-safety catches** (both worth remembering): the adversarial reviewer found the original `add_use_zoom_to_programs` migration was still present and would **re-create the dropped column on every deploy** (removed it); then I caught that dropping the column *in the cutover deploy* would 500 the member dashboard for the ~90s build window (`migrate.mjs` runs during the build against the shared prod DB, while the old code still `SELECT`s `useZoom`). So it's **two-phase**: this deploy removed the reads + the schema field; the physical `DROP COLUMN` is deferred to a safe follow-up (backlog `2026-06-25-004`). Prisma ignores the lingering column.
+- `livekitRoom` was **kept** (now a vestigial-named "this program has a session" signal read by the Scheduler/host-assignments/programs page; rename → backlog `2026-06-25-001`).
+
+### 2. ProgramEditor perf (surgical)
+The reported input lag (dropdowns needing 2–3 clicks). Hoisted the `DateTimePicker` option arrays out of the render body (they were reallocated every render) and memoized the "how this appears to visitors" compute. **Could not be verified locally** (no dev server; preview-login gap) — the structural fix (split tabs into memoized children) is deferred (backlog `2026-06-25-002`) and needs a verification path first.
+
+### 3. Volunteer host docs (plain-speak, for the anxious non-reader)
+- Refined `ZOOM_HOST_GUIDE.md` — corrected the LiveKit-era claim that a host's name auto-shows as "first + last initial"; in Zoom the host **types** their name.
+- Retired `SESSION_ROOM_FOR_VOLUNTEERS.md` (180-line LiveKit-room walkthrough → a tombstone pointing to the Zoom guide).
+- Gave Jesse **two new docs in chat** (he's placing them — not committed to the repo): *"Once You're Hosting"* (the in-Zoom tools: co-host, mute, spotlight, recording, end-for-all) and *"What It Means to Host at RIM"* (the relational heart of the role).
+- **Flagged, not yet done:** the in-app manual chapter `host-session-room` (seeded via `migrate.mjs`, v8) is LiveKit-stale — a separate reseed + deploy task; these markdown docs are the right source for it.
+
+### 4. Zoom scheduling integrity (Layers 1 + 2)
+From Jesse hitting a conflict after editing a program's time for testing — a stale meeting collided with another program on the same seat.
+- **Diagnosis:** Zoom meetings are created just-in-time per occurrence; the only conflict check is at join time against meetings that already exist; nothing re-validated on edit, and a time change orphaned the old meeting on its seat.
+- **Layer 1:** the `programs-pg` PUT now tears down a program's future meetings when its start/end/recurrence changes (not just on format change) — reusing `teardownProgramMeetings`, with a new `notBefore = now + EARLY_OPEN_MIN` guard so it never deletes a meeting whose entry window is open (a host may be staging). The reviewer's S1.
+- **Layer 2:** new `lib/sessionConflicts.ts` — a recurrence-aware predictive check over the next 8 weeks that flags any moment where more virtual/hybrid occurrences overlap than there are Zoom seats (`zoomSeatCount()`). The overlap window `[start, end]` mirrors the runtime seat-pick exactly, so a warning predicts what the seat-pick would actually do. Returned **non-blocking** as `seatConflicts` in the PUT/POST responses; ProgramEditor shows a dismissible amber banner after a conflicting save.
+- **Deferred:** the standalone coordinator integrity *view*; the create-path warning (POST redirects, surfaces on first edit); the seat-pick advisory lock (backlog `2026-06-24-008`).
+
+### Design decisions and why
+- **Two-phase column drop** — RIM's migrate-during-build model makes a same-deploy `DROP COLUMN` of a still-read column briefly fatal to the live old deployment. Reads/schema first, physical drop later.
+- **Conflict warning is non-blocking** — *clear seeing*, not a trap: the coordinator decides (reschedule, add a seat, or proceed). Capacity is the real seat count, so the warning also makes "we've outgrown 2 seats" visible.
+- **Predictor matches the runtime seat-pick window exactly** — no false alarms; a warning means the seat-pick really would fail.
+- **The guest link is persistent and works** — the ephemeral thing is the per-occurrence Zoom meeting; the RIM `?key=` link is the stable wrapper. Open question: does RIM use external guests (keep + clarify) or not (hide)?
+- **Volunteer docs embody the platform philosophy** — plain speech, one action at a time, a calm net for someone who isn't reading carefully.
+
+### What this connects to
+- **Programs / ProgramEditor / `programs-pg`** — the save routes gained the teardown + conflict check; the editor gained the warning banner (and lost the Use-Zoom toggle).
+- **The Zoom seat pool** (`lib/sessionMeeting.ts`) — the integrity layers mirror its capacity + overlap; `RIM_Zoom.md` is the authority.
+- **Scheduler occurrence logic** (`scheduleUtils`) + the **session window** (`sessionWindow`) — reused by the conflict predictor.
+- **OnlyOffice / the DO droplet** — survives the retirement (only the LiveKit container stops).
+- **The s157 preview-login gap** — still the gating need: the perf pass and any room/editor change can't be verified before prod until it's fixed.
+
+### What comes next
+- **Jesse's ops:** stop the `livekit-server` container (keep the droplet), remove the 3 `LIVEKIT_*` env vars, set the seats' recording (audio-only + per-participant), and (separately) reseed the in-app host manual for Zoom.
+- The **guest-link** keep/hide decision; the optional **integrity view**; and the deferred backlog items (column drop, `livekitRoom` rename, structural perf, advisory lock).
+
+---
+
 ## 2026-06-24 (session 158) — Zoom migration: "RIM orchestrates, Zoom is the room" — built end-to-end, pilot-ready behind a per-program flag; LiveKit not yet retired
 
 A strategic-decision-then-build session: evaluate whether to keep the self-hosted LiveKit room or move sessions to **Zoom**, then (decision made) build the whole integration. **~14 commits on `main`, all deployed.** New service (Zoom, via a Server-to-Server OAuth app), 6 new env vars, 1 new model + 2 new Program columns, 4 idempotent additive migrations. No email templates touched. Reviewer-gated throughout. New per-tool reference **`RIM_Zoom.md`**.

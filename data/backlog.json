@@ -1,5 +1,35 @@
 [
   {
+    "id": "2026-06-25-005",
+    "title": "Zoom scheduling-integrity follow-ons: standalone coordinator view + create-path warning + reconciliation cron",
+    "description": "Session 159 shipped the seat-conflict integrity Layers 1 (tear down stale meetings on a schedule edit) and 2 (a non-blocking save-time warning via lib/sessionConflicts.ts). Three follow-ons remain, in priority order: (1) STANDALONE VIEW — a coordinator/admin 'scheduling integrity' page listing the next several weeks of virtual/hybrid sessions with any over-capacity slots flagged at a glance (generalize conflictsForProgram into an allScheduleConflicts sweep). The save-time warning is reactive; the view is the proactive at-a-glance. (2) CREATE-PATH WARNING — POST /api/programs-pg returns seatConflicts but the ProgramEditor create branch redirects before showing it, so a brand-new conflicting program only warns on its first edit-save; persist + surface across the redirect. (3) RECONCILIATION CRON — a daily job that deletes SessionMeeting rows whose occurrence no longer exists (post-edit orphans) and old past meetings, optionally logging upcoming over-capacity slots — the self-healing backstop beneath Layers 1-2.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-25",
+    "notes": "The engine (lib/sessionConflicts.ts) + capacity source (zoomSeatCount) already exist; the view is mostly a new read route + page. RIM_Zoom.md 'Scheduling integrity' lists these as deferred. Pairs with the seat-pick advisory lock (2026-06-24-008) for full runtime+predictive integrity."
+  },
+  {
+    "id": "2026-06-25-006",
+    "title": "Reseed the in-app host-session-room manual chapter for Zoom (it's LiveKit-stale)",
+    "description": "RIM has an in-app manual chapter 'host-session-room' (seeded through prisma/migrate.mjs, currently v8, + the helper prisma/update-manual-host-session-room.mjs) that hosts read INSIDE the app. It still describes the retired in-browser LiveKit room (control bar, pills, reactions) — wrong now that sessions run on Zoom. Rewrite it for Zoom from the session-159 markdown host docs as the source: ZOOM_HOST_GUIDE.md (signing in + claiming host), 'Once You're Hosting' (in-Zoom tools: co-host, mute, spotlight, recording, end-for-all), 'What It Means to Host at RIM' (the relational role). Add a new flag-guarded migrate.mjs version (v9) following the existing host-session-room v2-v8 pattern, then deploy. Until done, the in-app manual misleads hosts (the forwardable markdown docs are correct; only the in-app copy is stale).",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-06-25",
+    "notes": "The markdown source docs exist (ZOOM_HOST_GUIDE.md + the SESSION_ROOM_FOR_VOLUNTEERS tombstone in the repo; two more handed to Jesse in chat). This is the in-app surface (where hosts actually look) catching up to the cutover."
+  },
+  {
+    "id": "2026-06-25-007",
+    "title": "Decide: keep the guest open-access share link (clarify copy) or hide it",
+    "description": "Session 159 confirmed the guest open-access link works end-to-end under Zoom: /session/[slug]?key=<guestAccessKey> is a stable, persistent RIM link that forwards a no-account guest into the current occurrence's Zoom meeting during the entry window (creating it if they're first); outside the window it bounces to /programs/[slug] (correct — nothing to join). The open question is whether RIM actually uses external/guest attendees for open-access programs: (a) KEEP — sharpen the ProgramEditor share-link copy to explain it's a stable link that's live during each session, and consider a friendlier early-click bounce ('this session opens at 7:00'); or (b) HIDE — remove the share-link UI (the isOpenAccess && guestAccessKey block in ProgramEditor) to reduce clutter, leaving the capability in code. Jesse's call.",
+    "category": "Programs & Sanity",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-25",
+    "notes": "Not a bug — the feature is functional + persistent (RIM_Zoom.md 'Guest (open-access) entry'). Purely a keep-vs-hide product decision based on whether external guests are a real use case."
+  },
+  {
     "id": "2026-06-25-004",
     "title": "Drop the now-unread Program.useZoom DB column (safe follow-up deploy)",
     "description": "The session-159 cutover removed every read of Program.useZoom and dropped it from schema.prisma, but deliberately did NOT drop the physical DB column in the same deploy. Reason: this repo runs migrate.mjs DURING the Vercel build, against the shared prod DB — so a DROP COLUMN takes effect the moment the build's migrate step runs, while the OLD deployment (which still SELECTs useZoom in the dashboard / programs-pg / editor queries) is still serving traffic for the ~1-2 min until the new build goes live. Dropping it in the cutover deploy would 500 the member dashboard during that window. Now that the cutover is live (no deployed code reads useZoom), the column is safe to drop: add a drop_use_zoom_from_programs entry to migrate.mjs (idempotent: information_schema check -> ALTER TABLE programs DROP COLUMN useZoom) and deploy. Prisma already ignores the extra DB column, so there's no rush — pure hygiene.",

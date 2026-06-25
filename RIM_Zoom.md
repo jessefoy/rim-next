@@ -144,6 +144,49 @@ views. Zoom shows its native recording indicator/consent. Per-program default
 today; per-occurrence override is a noted follow-on (the `SessionMeeting`
 mechanism supports it).
 
+## Scheduling integrity (seat conflicts)
+
+The seat pool is finite (`zoomSeatCount()` = the configured seats, 2 today) and
+meetings are created just-in-time per occurrence — so the only *runtime* conflict
+check is the seat-pick in `getOrCreateSessionMeeting`, at join time, against
+meetings that already exist. Two layers (session 159) add integrity around edits
+and scheduling:
+
+- **Layer 1 — edits self-clean (`programs-pg` PUT).** When a virtual/hybrid
+  program's start/end/recurrence changes, its FUTURE meetings are torn down
+  (`teardownProgramMeetings`, fire-and-forget) and recreated correctly on the next
+  join — so a time change can't orphan the old meeting on its seat. The teardown
+  passes `notBefore: now + EARLY_OPEN_MIN`, so it never deletes a meeting whose
+  entry window is already open (a host may be staging in it).
+- **Layer 2 — predictive warning (`lib/sessionConflicts.ts`).** On save, a
+  recurrence-aware check enumerates virtual/hybrid occurrences over the next ~8
+  weeks and flags any moment where more overlap than there are seats. The overlap
+  window `[start, end]` is computed identically to the seat-pick's stored
+  `[sessionDate, endTime]` (same `shiftToDate` + `FALLBACK_DURATION_MIN`), so a
+  warning predicts exactly what the seat-pick would do at runtime. Returned
+  **non-blocking** as `seatConflicts` in the PUT/POST response; the ProgramEditor
+  shows a dismissible banner — the coordinator decides (move a time, add a seat, or
+  proceed). Capacity is the real seat count, so "we've outgrown 2 seats" is visible
+  rather than surfacing as `NoSeatAvailableError` at a session start.
+
+**Deferred:** a standalone coordinator integrity *view*; the create-path warning
+(POST redirects, so it surfaces on the new program's first edit); the seat-pick
+advisory lock for the TOCTOU gap (see Pitfalls, backlog `2026-06-24-008`); a
+reconciliation cron to sweep orphaned/past meeting rows.
+
+## Guest (open-access) entry
+
+`Program.isOpenAccess` + `guestAccessKey` give a stable, shareable RIM link —
+`/session/[slug]?key=<key>` — that forwards a no-account guest into the *current*
+occurrence's Zoom meeting (creating it if they're first), during the entry window
+only. The link is **persistent** (it changes only if the key is reset); what's
+ephemeral is the underlying per-occurrence Zoom meeting, which the link
+transparently wraps — the same relationship the member dashboard "Join" has. So
+guest access *is* possible with the per-occurrence model. Outside the window a
+guest is bounced to `/programs/[slug]`. Open question (session 159): whether RIM
+actually uses external guests (keep + clarify the editor copy) or not (hide the
+share-link UI).
+
 ## Pitfalls (hard-won)
 
 - **Add-Registrant is rate-limited ~3/day per email.** Pre-registering each person
