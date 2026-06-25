@@ -662,6 +662,8 @@ export default function ProgramEditor({
   const noHostNeeded = !hostingRequired;
   const hostingRequiredChanged = hostingRequired !== (initialData?.hostingRequired ?? true);
   const [recordByDefault, setRecordByDefault] = useState<boolean>(initialData?.recordByDefault ?? false);
+  // Layer 2: Zoom seat conflicts returned by the save route (non-blocking warning).
+  const [seatConflicts, setSeatConflicts] = useState<{ message: string; capacity: number }[]>([]);
 
   // Auxiliary-hub coverage. A program's primary hub (hostingHubSlug above)
   // runs the live session; auxiliary hubs schedule supporting roles —
@@ -904,6 +906,7 @@ export default function ProgramEditor({
       if (isEditing) {
         // Update guestAccessKey from response if it was generated
         const updated = await res.json();
+        setSeatConflicts(updated.seatConflicts ?? []);
         if (updated.guestAccessKey && !guestAccessKey) {
           setGuestAccessKey(updated.guestAccessKey);
         }
@@ -990,6 +993,41 @@ export default function ProgramEditor({
 
       {error && <div className="pe-msg pe-msg--error">{error}</div>}
       {success && <div className="pe-msg pe-msg--success">Saved successfully</div>}
+      {seatConflicts.length > 0 && (
+        <div
+          className="pe-msg"
+          role="status"
+          style={{
+            background: "var(--color-warning-bg)",
+            color: "var(--color-warning)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            alignItems: "flex-start",
+          }}
+        >
+          <strong style={{ fontSize: "var(--text-ui)" }}>
+            ⚠️ Heads up — this overlaps other online sessions on Zoom
+          </strong>
+          {seatConflicts.map((c, i) => (
+            <span key={i} style={{ fontSize: "var(--text-xs)", lineHeight: "var(--lh-body)" }}>
+              {c.message}
+            </span>
+          ))}
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--rim-mid)" }}>
+            Your change was saved. If both sessions must run live at once, move one
+            time or add a Zoom seat — otherwise the later host could find no seat free.
+          </span>
+          <button
+            type="button"
+            className="pe-btn"
+            onClick={() => setSeatConflicts([])}
+            style={{ fontSize: "var(--text-xs)", padding: "4px 10px" }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* ── Tab bar ── */}
       <div className="pe-tabs">

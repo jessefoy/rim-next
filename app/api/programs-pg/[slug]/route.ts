@@ -12,6 +12,8 @@ import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
 import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 import { teardownProgramMeetings } from "@/lib/sessionMeeting";
+import { conflictsForProgram } from "@/lib/sessionConflicts";
+import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
 
 export async function GET(
   _req: NextRequest,
@@ -302,16 +304,52 @@ export async function PUT(
     updated = await db.program.update({ where: { slug }, data });
   }
 
-  // Zoom teardown: if this program left virtual/hybrid, remove its FUTURE Zoom
-  // meetings (fire-and-forget; past stays as record).
+  // ── Zoom meeting integrity on save (Layer 1) ────────────────────────────
+  // Tear down this program's FUTURE Zoom meetings (fire-and-forget; past stays
+  // as record) in two cases — they're recreated correctly on the next join:
+  //   (a) leftVirtual   — the program went in-person, so it has no online room.
+  //   (b) scheduleMoved — start/end/recurrence changed while still virtual or
+  //       hybrid, so any already-provisioned meeting now sits at the OLD time.
+  //       Left in place it lingers on its seat (a stale "busy" slot that can
+  //       collide with another program) and on Zoom.
   const leftVirtual =
     data.programFormat === "in-person" &&
     (existing.programFormat === "virtual" || existing.programFormat === "hybrid");
-  if (leftVirtual) {
+
+  const fmtNow = (data.programFormat ?? existing.programFormat) as string;
+  const stillVirtual = fmtNow === "virtual" || fmtNow === "hybrid";
+  const ms = (d: Date | string | null | undefined) =>
+    d == null ? null : (d instanceof Date ? d : new Date(d)).getTime();
+  const sameDays = (a: string[], b: string[]) =>
+    a.length === b.length && [...a].sort().join() === [...b].sort().join();
+  const scheduleMoved =
+    stillVirtual &&
+    ((data.startDatetime !== undefined &&
+      ms(data.startDatetime as Date | null) !== ms(existing.startDatetime)) ||
+      (data.endDatetime !== undefined &&
+        ms(data.endDatetime as Date | null) !== ms(existing.endDatetime)) ||
+      (data.recurrenceFreq !== undefined &&
+        (data.recurrenceFreq ?? null) !== (existing.recurrenceFreq ?? null)) ||
+      (data.recurrenceInterval !== undefined &&
+        (data.recurrenceInterval ?? null) !== (existing.recurrenceInterval ?? null)) ||
+      (data.recurrenceCount !== undefined &&
+        (data.recurrenceCount ?? null) !== (existing.recurrenceCount ?? null)) ||
+      (data.recurrenceDays !== undefined &&
+        !sameDays(data.recurrenceDays as string[], existing.recurrenceDays)));
+
+  if (leftVirtual || scheduleMoved) {
     after(async () => {
       try {
-        const n = await teardownProgramMeetings(slug, { futureOnly: true });
-        if (n > 0) console.log(`[programs-pg] tore down ${n} future Zoom meeting(s) for ${slug}`);
+        const n = await teardownProgramMeetings(slug, {
+          futureOnly: true,
+          // Don't delete a meeting whose entry window is already open — a host
+          // could be staging in it. Those age out on the next save / via cleanup.
+          notBefore: new Date(Date.now() + EARLY_OPEN_MIN * 60_000),
+        });
+        if (n > 0)
+          console.log(
+            `[programs-pg] tore down ${n} future Zoom meeting(s) for ${slug} (${leftVirtual ? "left virtual/hybrid" : "schedule changed"})`,
+          );
       } catch (e) {
         console.error("[programs-pg] Zoom teardown error:", e);
       }
@@ -391,7 +429,16 @@ export async function PUT(
     }
   }
 
-  return NextResponse.json(updated);
+  // Layer 2: surface any Zoom seat conflict this schedule creates with other
+  // virtual/hybrid programs (non-blocking — the coordinator decides what to do).
+  const seatConflicts = stillVirtual
+    ? await conflictsForProgram(slug).catch((e) => {
+        console.error("[programs-pg] seat-conflict check failed", e);
+        return [];
+      })
+    : [];
+
+  return NextResponse.json({ ...updated, seatConflicts });
 }
 
 export async function DELETE(

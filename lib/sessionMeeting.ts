@@ -23,6 +23,11 @@ const SEAT_USER_IDS = [
   process.env.ZOOM_SEAT_B_EMAIL,
 ].filter(Boolean) as string[];
 
+/** Number of configured Zoom pool seats — the max concurrent sessions RIM can host. */
+export function zoomSeatCount(): number {
+  return SEAT_USER_IDS.length;
+}
+
 /** Thrown when every pool seat is already hosting during the requested window. */
 export class NoSeatAvailableError extends Error {
   constructor(seatCount: number) {
@@ -137,10 +142,14 @@ export async function deleteSessionMeeting(
  */
 export async function teardownProgramMeetings(
   programSlug: string,
-  opts: { futureOnly: boolean },
+  opts: { futureOnly: boolean; notBefore?: Date },
 ): Promise<number> {
+  // `notBefore` lets a caller protect occurrences whose entry window is already
+  // open (a host may be staging in the room) — see the schedule-edit teardown,
+  // which passes now + EARLY_OPEN_MIN so it never deletes a meeting out from
+  // under a host who's already in it.
   const where = opts.futureOnly
-    ? { programSlug, sessionDate: { gte: new Date() } }
+    ? { programSlug, sessionDate: { gte: opts.notBefore ?? new Date() } }
     : { programSlug };
   const rows = await db.sessionMeeting.findMany({ where });
   for (const row of rows) {

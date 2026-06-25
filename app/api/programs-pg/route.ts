@@ -12,6 +12,7 @@ import { computeTimeText, computeDateText } from "@/lib/programUtils";
 import { sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import { conflictsForProgram } from "@/lib/sessionConflicts";
 
 export async function GET() {
   const session = await auth();
@@ -215,5 +216,16 @@ export async function POST(request: NextRequest) {
     }
   });
 
-  return NextResponse.json(program, { status: 201 });
+  // Layer 2: surface any Zoom seat conflict this new schedule creates with other
+  // virtual/hybrid programs (non-blocking).
+  const isVirtual =
+    program.programFormat === "virtual" || program.programFormat === "hybrid";
+  const seatConflicts = isVirtual
+    ? await conflictsForProgram(program.slug).catch((e) => {
+        console.error("[programs-pg] seat-conflict check failed", e);
+        return [];
+      })
+    : [];
+
+  return NextResponse.json({ ...program, seatConflicts }, { status: 201 });
 }
