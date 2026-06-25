@@ -22,7 +22,7 @@ import { db } from "@/lib/db";
 import { getActiveSessionWindow } from "@/lib/sessionWindow";
 import { resolveSessionRole } from "@/lib/livekitAuth";
 import { getOrCreateSessionMeeting } from "@/lib/sessionMeeting";
-import { addMeetingRegistrant, ensureSeatHostKey } from "@/lib/zoom";
+import { getMeeting, ensureSeatHostKey } from "@/lib/zoom";
 import { roomNameForProgram, sessionDisplayName } from "@/lib/livekit";
 import { FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
@@ -95,18 +95,6 @@ export default async function ZoomEnterPage({
   // Everything that touches Zoom is wrapped so a busy-seat, misconfig, or Zoom
   // hiccup lands the caller calmly back on the dashboard instead of a raw 500.
   try {
-    // Caller's display name for the registrant — first name + last INITIAL
-    // ("Jesse F."). Only controls the name for people NOT signed into a Zoom
-    // account (most members); anyone signed into their own Zoom shows that name.
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { firstName: true, lastName: true, preferredName: true, email: true },
-    });
-    const registrant = {
-      email: user?.email ?? session.user.email ?? `${userId}@rim.invalid`,
-      firstName: (user?.preferredName || user?.firstName || "RIM").trim(),
-      lastName: user?.lastName?.trim() ? `${user.lastName.trim()[0].toUpperCase()}.` : "",
-    };
     const provision = () =>
       getOrCreateSessionMeeting({
         programSlug: slug,
@@ -116,20 +104,23 @@ export default async function ZoomEnterPage({
         recordToCloud: program.recordByDefault,
       });
 
-    // Provision/reuse the meeting + get this person's join link. If the stored
-    // meeting was ended or deleted (e.g. a host closed it, then re-enters within
-    // the window), the Zoom call fails with a "meeting gone" error — so drop the
-    // stale row and recreate ONCE, so re-entry always lands in a live meeting.
-    const { meeting, reg } = await (async () => {
+    // Provision/reuse the meeting and get its standard join link. We deliberately
+    // do NOT pre-register each person by name — Zoom rate-limits "add registrant"
+    // (~3/day per email), which broke repeat joins. Everyone uses the standard
+    // join link and joins under their own name (typed once, then remembered by
+    // Zoom, or their signed-in Zoom name). getMeeting also verifies the meeting
+    // still exists; if a host ended/deleted it, we drop the stale row and recreate
+    // once so re-entry within the window always lands in a live meeting.
+    const { meeting, joinUrl } = await (async () => {
       let m = await provision();
       try {
-        return { meeting: m, reg: await addMeetingRegistrant(m.zoomMeetingId, registrant) };
+        return { meeting: m, joinUrl: (await getMeeting(m.zoomMeetingId)).join_url };
       } catch (firstErr) {
         if (!meetingIsGone(firstErr)) throw firstErr;
         console.warn(`[session/enter] stale Zoom meeting ${m.zoomMeetingId} for ${slug}; recreating`);
         await db.sessionMeeting.delete({ where: { id: m.id } }).catch(() => {});
         m = await provision();
-        return { meeting: m, reg: await addMeetingRegistrant(m.zoomMeetingId, registrant) };
+        return { meeting: m, joinUrl: (await getMeeting(m.zoomMeetingId)).join_url };
       }
     })();
 
@@ -140,7 +131,7 @@ export default async function ZoomEnterPage({
       role.isSessionHost || role.isHostTeam || role.isProgramTeacher || role.hasEndAllAuthority;
 
     if (!canHost) {
-      return <ZoomLaunch url={reg.join_url} programName={program.name} />;
+      return <ZoomLaunch url={joinUrl} programName={program.name} />;
     }
 
     // Resolve who the designated host is (to name them for alternates/teacher).
@@ -167,7 +158,7 @@ export default async function ZoomEnterPage({
     return (
       <HostLanding
         programName={program.name}
-        joinUrl={reg.join_url}
+        joinUrl={joinUrl}
         hostKey={hostKey}
         viewerRole={viewerRole}
         designatedHostName={designatedHostName}
