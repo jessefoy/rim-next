@@ -1,9 +1,10 @@
 /**
- * /session/[slug]/enter — Zoom entry for pilot (useZoom) programs.
+ * /session/[slug]/enter — the single entry point for every virtual/hybrid session.
  *
  * Gates the caller (auth + time window + session ban), provisions/reuses the
- * occurrence's Zoom meeting, registers the caller under their REAL NAME (no Zoom
- * account), and then routes by role:
+ * occurrence's Zoom meeting, then routes by who they are:
+ *   - guest with a valid open-access ?key= → forwarded straight into Zoom (no RIM
+ *     account); a missing/invalid key falls through to sign-in.
  *   - regular member → forwards straight into Zoom (the "Opening Zoom…" launcher),
  *     no code, no host controls.
  *   - host-capable (designated host, host-team alternate, teacher, ADMIN/GT) → a
@@ -12,8 +13,8 @@
  *     the team can step in if the designated host doesn't show). Everyone joins
  *     under their own name; whoever takes the host role types the code in Zoom.
  *
- * Non-Zoom programs fall through to the existing LiveKit room, untouched.
- * Registration stays UI-gated (dashboard only surfaces Join to eligible members).
+ * Registration stays UI-gated (the dashboard only surfaces Join to eligible
+ * members; guests come via the shared open-access link).
  */
 
 import { redirect } from "next/navigation";
@@ -35,15 +36,17 @@ type ViewerRole = "designated" | "teacher" | "alternate";
 
 export default async function ZoomEnterPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ key?: string }>;
 }) {
   const { slug } = await params;
+  const { key: guestKey } = await searchParams;
 
   const session = await auth();
-  if (!session?.user) redirect("/login");
-  const userId = session.user.id;
-  const roles = session.user.roles ?? [];
+  const userId = session?.user?.id ?? null;
+  const roles = session?.user?.roles ?? [];
 
   const program = await db.program.findUnique({
     where: { slug },
@@ -51,10 +54,11 @@ export default async function ZoomEnterPage({
       id: true,
       slug: true,
       name: true,
-      useZoom: true,
       recordByDefault: true,
       programFormat: true,
       hostingHubSlug: true,
+      isOpenAccess: true,
+      guestAccessKey: true,
       startDatetime: true,
       endDatetime: true,
       recurrenceFreq: true,
@@ -64,8 +68,16 @@ export default async function ZoomEnterPage({
     },
   });
   if (!program) redirect("/account/dashboard");
-  // Not a Zoom program → the existing LiveKit room handles it, untouched.
-  if (!program.useZoom) redirect(`/session/${slug}`);
+
+  // A guest holding a valid open-access key enters without a RIM account — they're
+  // forwarded straight to the Zoom join link. Everyone else must sign in.
+  const isValidGuest =
+    !userId &&
+    !!guestKey &&
+    program.isOpenAccess &&
+    !!program.guestAccessKey &&
+    guestKey === program.guestAccessKey;
+  if (!userId && !isValidGuest) redirect("/login");
 
   // ── Time-window gate (ADMIN/GT bypass, mirroring the LiveKit token route).
   const isAdminOrGT = roles.includes("ADMIN") || roles.includes("GUIDING_TEACHER");
@@ -79,12 +91,14 @@ export default async function ZoomEnterPage({
     sessionDateIso = win.nextSessionDate ?? new Date().toISOString();
     endTime = new Date(new Date(sessionDateIso).getTime() + FALLBACK_DURATION_MIN * 60_000);
   } else {
-    redirect("/account/dashboard?session=closed");
+    // Outside the entry window: members back to their dashboard, guests (no
+    // dashboard to land on) to the public program page.
+    redirect(userId ? "/account/dashboard?session=closed" : `/programs/${slug}`);
   }
   const sessionDate = new Date(sessionDateIso);
 
-  // ── Session ban (members by id; ADMIN/GT exempt).
-  if (!isAdminOrGT) {
+  // ── Session ban (members by id; ADMIN/GT exempt; guests have no id to match).
+  if (userId && !isAdminOrGT) {
     const roomName = roomNameForProgram(slug, sessionDateIso);
     const ban = await db.sessionBan.findFirst({
       where: { roomName, identity: userId },
@@ -136,6 +150,12 @@ export default async function ZoomEnterPage({
       m = await provision();
       return { meeting: m, joinUrl: (await getMeeting(m.zoomMeetingId)).join_url };
     })();
+
+    // Guests (no account) and plain members go straight into Zoom. Returning here
+    // also narrows userId to non-null for the host path below.
+    if (!userId) {
+      return <ZoomLaunch url={joinUrl} programName={program.name} />;
+    }
 
     // Who can take host controls: the designated host, anyone on the host team
     // (alternate), the teacher, or ADMIN/GT. Everyone else is a plain member.

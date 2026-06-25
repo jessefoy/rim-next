@@ -407,7 +407,7 @@ export default async function DashboardPage() {
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
                     {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
-                      <a href={s.useZoom ? `/session/${s.slug}/enter` : `/session/${s.slug}`} className="join-btn">
+                      <a href={`/session/${s.slug}/enter`} className="join-btn">
                         Join now
                       </a>
                     )}
@@ -423,7 +423,7 @@ export default async function DashboardPage() {
                   <div className="today-row__right">
                     <span className="today-row__countdown">Live opens at {s.liveStartTimeCT}</span>
                     {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
-                      <a href={s.useZoom ? `/session/${s.slug}/enter` : `/session/${s.slug}`} className="join-btn join-btn--setup">
+                      <a href={`/session/${s.slug}/enter`} className="join-btn join-btn--setup">
                         Enter as host
                       </a>
                     )}

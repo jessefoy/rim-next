@@ -226,7 +226,7 @@ export default async function MemberProgramDetailPage({
         {/* ── Join section ── */}
         <div className="mpd-join">
           {isVirtual && program.livekitRoom && (
-            <a href={program.useZoom ? `/session/${slug}/enter` : `/session/${slug}`} className="mpd-join__btn">
+            <a href={`/session/${slug}/enter`} className="mpd-join__btn">
               Join Session →
             </a>
           )}
@@ -237,7 +237,7 @@ export default async function MemberProgramDetailPage({
             <p className="mpd-join__note">
               Simply arrive in person{location.text ? ` at ${location.text}` : ""}.
               {program.programFormat === "hybrid" && program.livekitRoom && (
-                <> Or <a href={program.useZoom ? `/session/${slug}/enter` : `/session/${slug}`} className="mpd-join__inline-link">join online</a>.</>
+                <> Or <a href={`/session/${slug}/enter`} className="mpd-join__inline-link">join online</a>.</>
               )}
             </p>
           )}
