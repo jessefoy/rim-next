@@ -87,8 +87,9 @@ now), `user:read:user:admin`, `user:update:user:admin` (host-key set).
 
 `Program.recordByDefault` is the **cloud-record** toggle (set in the editor's
 Hosting & Access tab; audio-only / per-speaker tracks depend on the pool seats' Zoom
-recording settings). The session-159 cutover dropped `Program.useZoom` — every
-virtual/hybrid program routes to Zoom now. The session-role authority is
+recording settings). The session-159 cutover removed `Program.useZoom` from
+all code + schema — every virtual/hybrid program routes to Zoom now (the physical
+DB column drop is a safe follow-up, backlog `2026-06-25-004`). The session-role authority is
 `lib/sessionAuth.ts` (renamed from `livekitAuth.ts`); `lib/sessionIdentity.ts` holds
 `sessionDisplayName` + `roomNameForProgram` (the `SessionBan` scope key). CSS: the
 entry/host screens use inline styles + tokens (no new prefix).
@@ -171,9 +172,10 @@ mechanism supports it).
 
 The pilot succeeded, so the migration is complete:
 1. **Pilot** ✅ — one real multi-person Zoom session ran well.
-2. **Flipped** ✅ — `useZoom` was dropped entirely; every virtual/hybrid program
-   routes to `/session/[slug]/enter`, and the legacy `/session/[slug]` URL now
-   redirects there (preserving guest `?key=`), closing the direct-nav/bookmark gap.
+2. **Flipped** ✅ — `useZoom` was removed from all code + schema (the physical DB
+   column drop is a safe follow-up, backlog `2026-06-25-004`); every virtual/hybrid
+   program routes to `/session/[slug]/enter`, and the legacy `/session/[slug]` URL
+   now redirects there (preserving guest `?key=`), closing the direct-nav/bookmark gap.
 3. **Decommissioned** ✅ (code) — the in-browser LiveKit room is removed:
    `components/VideoRoom.tsx`, all of `components/session/*` except `ZoomLaunch.tsx`,
    all `app/api/livekit/*`, `lib/livekit.ts`, `/admin/livekit-test`, the RNNoise

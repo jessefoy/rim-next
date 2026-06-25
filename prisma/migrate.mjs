@@ -17,24 +17,12 @@ import { seedNonHostHubHomeContent } from "./seed-non-host-hub-home-content.mjs"
 const db = new PrismaClient();
 
 const migrations = [
-  {
-    name: "drop_use_zoom_from_programs",
-    async run() {
-      // Session 159 cutover: Zoom became the room for every virtual/hybrid
-      // session and the in-browser LiveKit room was retired, so the per-program
-      // useZoom pilot flag no longer means anything. Drop the column.
-      const cols = await db.$queryRawUnsafe(`
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'programs' AND column_name = 'useZoom'
-      `);
-      if (cols.length > 0) {
-        await db.$executeRawUnsafe(`ALTER TABLE "programs" DROP COLUMN "useZoom"`);
-        console.log(`  ✔ Applied: ${this.name}`);
-      } else {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-      }
-    },
-  },
+  // NOTE: the Program.useZoom column drop is deliberately NOT here. Session 159
+  // removed every read of useZoom + dropped it from schema.prisma, but the
+  // physical DROP COLUMN is deferred to a follow-up deploy (backlog 2026-06-25-004):
+  // migrate.mjs runs during the build against the shared prod DB, so dropping it
+  // in the cutover deploy would briefly break the still-live old code that selects
+  // it. Prisma ignores the extra column, so leaving it costs nothing.
   {
     name: "add_tool_slug_to_hub_app_links",
     async run() {

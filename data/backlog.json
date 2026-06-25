@@ -1,5 +1,15 @@
 [
   {
+    "id": "2026-06-25-004",
+    "title": "Drop the now-unread Program.useZoom DB column (safe follow-up deploy)",
+    "description": "The session-159 cutover removed every read of Program.useZoom and dropped it from schema.prisma, but deliberately did NOT drop the physical DB column in the same deploy. Reason: this repo runs migrate.mjs DURING the Vercel build, against the shared prod DB — so a DROP COLUMN takes effect the moment the build's migrate step runs, while the OLD deployment (which still SELECTs useZoom in the dashboard / programs-pg / editor queries) is still serving traffic for the ~1-2 min until the new build goes live. Dropping it in the cutover deploy would 500 the member dashboard during that window. Now that the cutover is live (no deployed code reads useZoom), the column is safe to drop: add a drop_use_zoom_from_programs entry to migrate.mjs (idempotent: information_schema check -> ALTER TABLE programs DROP COLUMN useZoom) and deploy. Prisma already ignores the extra DB column, so there's no rush — pure hygiene.",
+    "category": "Programs & Sanity",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-06-25",
+    "notes": "The schema + all code no longer reference useZoom (session 159); only the physical column lingers, harmlessly. This is the safe phase-2 of a two-phase column drop. Bundle with 2026-06-25-001 (livekitRoom rename) and the other Program-schema cleanups."
+  },
+  {
     "id": "2026-06-25-001",
     "title": "Rename Program.livekitRoom — it's now a vestigial-named 'has a session room' signal",
     "description": "The Zoom cutover (session 159) retired the LiveKit room but KEPT the Program.livekitRoom column because it's load-bearing as a 'this virtual/hybrid program has a session' signal, read by the Scheduler (app/tools/schedule/page.tsx), the host-assignments API (app/api/host/assignments/route.ts), the member program page Join gate (app/account/(authenticated)/programs/[slug]/page.tsx), and HubScheduleClient. The name now lies (there is no LiveKit). Rename to something honest (e.g. hasSessionRoom) OR derive 'has a session' from programFormat in (virtual, hybrid) and drop the column entirely — the dashboard already gates Join on programFormat, not livekitRoom, so the member program page could switch its `isVirtual && program.livekitRoom` gate to just `isVirtual` to match. Load-bearing rename: do it deliberately across schema + a migrate.mjs column rename (or add-new/backfill/drop-old) + all read sites.",
