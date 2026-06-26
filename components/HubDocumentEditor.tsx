@@ -257,21 +257,15 @@ export default function HubDocumentEditor({
         </div>
       </div>
 
-      <div className="doc-page__card">
-        <input
-          className="doc-page__title-input"
-          type="text"
-          placeholder="Document title"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-        />
-        <hr />
-
+      <div className="doc-page__card doc-page__card--editor">
         <RimTiptapEditor
           value={body}
           onChange={setBody}
           placeholder="Begin writing…"
-          variant="document"
+          variant="doc"
+          title={label}
+          onTitleChange={setLabel}
+          titlePlaceholder="Document title"
         />
       </div>
 

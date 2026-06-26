@@ -22414,6 +22414,10 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   min-height: 60vh;
 }
 
+/* Editor card: the sticky toolbar is the first child, so the page wants less
+   top room than the reading view — the toolbar + title sit near the top. */
+.doc-page__card--editor { padding-top: 28px; }
+
 .doc-page__card h1 {
   font-family: var(--font-doc);
   font-size: 32px;
@@ -24064,6 +24068,58 @@ input.w-button { -webkit-appearance: button; }
     width: 36px;
     height: 36px;
   }
+}
+
+/* ── Doc variant — contained document surface (hub documents) ──────────────
+   The whole document lives in ONE surface: a sticky toolbar pinned below the
+   site nav, the title inside the frame, then the body. No floating bubble, no
+   nested editor box — the .doc-page__card IS the page. (Simple-Editor style.) */
+
+/* No border/box of its own — the document card is the page surface. The
+   double `.rt-wrap.rt-wrap--doc` raises specificity above the generic
+   `.rt-wrap:has(.rt-toolbar)` border rule above. */
+.rt-wrap.rt-wrap--doc:has(.rt-toolbar) {
+  border: 0;
+  border-radius: 0;
+}
+.rt-wrap--doc .ProseMirror,
+.rt-wrap.rt-wrap--doc:has(.rt-toolbar) .ProseMirror {
+  min-height: 60vh;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Title — lives inside the frame, styled as the document title (matches the
+   former .doc-page__title-input: font-doc, 32px). Saved as a separate field. */
+.rt-title {
+  display: block;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: var(--font-doc);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--rim-text);
+  padding: 0;
+  margin: 22px 0 18px;
+}
+.rt-title::placeholder { color: #d5d5d5; }
+
+/* Sticky toolbar — pinned just below the global nav (.nav is sticky, 100px).
+   Inherits the base .rt-toolbar look (bg, padding, border-bottom); we only add
+   stickiness and drop the top corner radius (no wrapper frame to round into). */
+.rt-toolbar--doc {
+  position: sticky;
+  top: 100px;
+  z-index: 20;
+  border-radius: 0;
+}
+
+@media (max-width: 430px) {
+  .rt-title { font-size: 26px; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

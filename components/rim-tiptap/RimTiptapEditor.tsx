@@ -43,7 +43,7 @@ import {
   List, ListOrdered, Quote, Heading2, Heading3, Heading4, Highlighter,
   Image as ImageIcon, Table as TableIcon,
   CheckSquare, Footprints, BookOpen, MessageCircleQuestion, Lightbulb, CheckCircle2,
-  Minus,
+  Minus, Undo2, Redo2,
 } from "lucide-react";
 import { Callout } from "./extensions/Callout";
 import { PullQuote } from "./extensions/PullQuote";
@@ -51,7 +51,11 @@ import { VerseQuote } from "./extensions/VerseQuote";
 import { PracticeSuggestion } from "./extensions/PracticeSuggestion";
 import { Reflection } from "./extensions/Reflection";
 
-export type RimTiptapVariant = "minimal" | "message" | "document";
+// "doc" is the hub-document surface: a contained, Simple-Editor-style page with a
+// sticky toolbar (no floating bubble) and the title rendered inside the frame.
+// It shares the "document" extension set (so existing callout/dharma content is
+// preserved on edit) but surfaces only standard blocks in its toolbar.
+export type RimTiptapVariant = "minimal" | "message" | "document" | "doc";
 
 interface Props {
   value: string;
@@ -62,6 +66,12 @@ interface Props {
   className?: string;
   /** If true, the editor is read-only (still renders as Tiptap). */
   readOnly?: boolean;
+  /** Title slot — rendered inside the editor frame above the body. Used by the
+   *  "doc" variant so the document name lives inside the contained surface.
+   *  The value is owned by the parent and saved as a separate field. */
+  title?: string;
+  onTitleChange?: (value: string) => void;
+  titlePlaceholder?: string;
 }
 
 export default function RimTiptapEditor({
@@ -71,6 +81,9 @@ export default function RimTiptapEditor({
   variant = "message",
   className,
   readOnly = false,
+  title,
+  onTitleChange,
+  titlePlaceholder = "Untitled document",
 }: Props) {
   const editor = useEditor({
     extensions: buildExtensions(variant, placeholder),
@@ -84,15 +97,28 @@ export default function RimTiptapEditor({
 
   return (
     <div className={`rt-wrap rt-wrap--${variant}${className ? ` ${className}` : ""}`}>
-      {variant !== "minimal" && !readOnly && (
+      {!readOnly && variant === "doc" && <DocToolbar editor={editor} />}
+      {!readOnly && (variant === "message" || variant === "document") && (
         <Toolbar editor={editor} variant={variant} />
       )}
 
-      {/* Selection bubble menu — appears next to selected text in every
-          variant. This is the primary formatting interaction: the toolbar
-          comes to the cursor instead of the user scrolling to it. The top
-          toolbar is the discovery surface; the bubble is the working tool. */}
-      {!readOnly && (
+      {/* Title slot — the "doc" variant renders the document name inside the
+          frame, above the body, so the whole document reads as one contained
+          surface. The value is owned by the parent (saved as a separate field). */}
+      {variant === "doc" && onTitleChange && (
+        <input
+          className="rt-title"
+          type="text"
+          value={title ?? ""}
+          placeholder={titlePlaceholder}
+          onChange={(e) => onTitleChange(e.target.value)}
+          aria-label="Document title"
+        />
+      )}
+
+      {/* Selection bubble menu — appears next to selected text. Every variant
+          except "doc", which uses a sticky toolbar instead of a floating pill. */}
+      {!readOnly && variant !== "doc" && (
         <BubbleMenu
           editor={editor}
           options={{ placement: "top", offset: 8 }}
@@ -120,17 +146,20 @@ export default function RimTiptapEditor({
 /* ─── Extension config per variant ──────────────────────────────────────── */
 
 function buildExtensions(variant: RimTiptapVariant, placeholder: string) {
+  // "document" and "doc" both get the full rich block set. They differ only in
+  // chrome (doc = sticky toolbar, no bubble, standard blocks surfaced).
+  const rich = variant === "document" || variant === "doc";
   const base = [
     StarterKit.configure({
       // We always include heading; we'll restrict levels in `message` via toolbar
-      heading: variant === "document" ? { levels: [2, 3, 4] } : false,
+      heading: rich ? { levels: [2, 3, 4] } : false,
       // Remove default codeBlock for minimal; keep otherwise
       codeBlock: variant === "minimal" ? false : {},
       // Remove default blockquote for minimal
       blockquote: variant === "minimal" ? false : {},
       bulletList: variant === "minimal" ? false : {},
       orderedList: variant === "minimal" ? false : {},
-      horizontalRule: variant === "document" ? {} : false,
+      horizontalRule: rich ? {} : false,
     }),
     Placeholder.configure({ placeholder }),
     Link.configure({
@@ -318,6 +347,112 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
         </>
       )}
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={onFile}
+      />
+    </div>
+  );
+}
+
+/* ─── Doc-variant toolbar (sticky, Simple-Editor style) ─────────────────────
+   The hub-document editor uses a visible, always-on sticky toolbar instead of
+   the floating bubble — formatting is in plain sight, which suits writers who
+   aren't power users. Standard blocks only; the dharma/callout blocks stay
+   registered (so existing documents keep their content on edit) but are not
+   surfaced here. */
+function DocToolbar({ editor }: { editor: Editor }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [headingOpen, setHeadingOpen] = useState(false);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!headingOpen) return;
+    function onDocMouseDown(e: MouseEvent) {
+      if (!toolbarRef.current?.contains(e.target as Node)) setHeadingOpen(false);
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setHeadingOpen(false); }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [headingOpen]);
+
+  function pickImage() { fileInputRef.current?.click(); }
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const url = await uploadImage(file);
+      editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+    } catch (err) {
+      console.error("Image upload failed:", err);
+      window.alert("Could not upload that image.");
+    }
+  }
+  function setLink() {
+    const previous = editor.getAttributes("link").href;
+    const url = window.prompt("URL", previous ?? "https://");
+    if (url === null) return;
+    if (url === "") { editor.chain().focus().extendMarkRange("link").unsetLink().run(); return; }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  }
+
+  const headingLabel =
+    editor.isActive("heading", { level: 2 }) ? "Heading 2" :
+    editor.isActive("heading", { level: 3 }) ? "Heading 3" :
+    editor.isActive("heading", { level: 4 }) ? "Heading 4" :
+    "Normal text";
+
+  return (
+    <div className="rt-toolbar rt-toolbar--doc" role="toolbar" aria-label="Editor toolbar" ref={toolbarRef}>
+      <TDropdown
+        renderTrigger={(toggle, open) => (
+          <button
+            type="button"
+            className={`rt-toolbar__btn rt-toolbar__btn--label${open ? " rt-toolbar__btn--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); toggle(); }}
+            title="Text style"
+            aria-haspopup="menu"
+            aria-expanded={open}
+          >
+            <span className="rt-toolbar__label">{headingLabel}</span>
+            <span className="rt-toolbar__caret" aria-hidden="true">▾</span>
+          </button>
+        )}
+        open={headingOpen}
+        onOpenChange={setHeadingOpen}
+        items={[
+          { label: "Normal text", onClick: () => editor.chain().focus().setParagraph().run() },
+          { label: "Heading 2",   onClick: () => editor.chain().focus().setHeading({ level: 2 }).run() },
+          { label: "Heading 3",   onClick: () => editor.chain().focus().setHeading({ level: 3 }).run() },
+          { label: "Heading 4",   onClick: () => editor.chain().focus().setHeading({ level: 4 }).run() },
+        ]}
+      />
+      <TSep />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon={Bold} />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon={Italic} />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline" icon={UIcon} />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough" icon={Strikethrough} />
+      <TSep />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list" icon={List} />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list" icon={ListOrdered} />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive("taskList")} title="Checklist" icon={CheckSquare} />
+      <TSep />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote" icon={Quote} />
+      <TBtn editor={editor} cmd={setLink} active={editor.isActive("link")} title="Link" icon={LinkIcon} />
+      <TBtn editor={editor} cmd={pickImage} active={false} title="Image" icon={ImageIcon} />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} active={false} title="Table" icon={TableIcon} />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().setHorizontalRule().run()} active={false} title="Divider" icon={Minus} />
+      <TSep />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().undo().run()} active={false} title="Undo" icon={Undo2} />
+      <TBtn editor={editor} cmd={() => editor.chain().focus().redo().run()} active={false} title="Redo" icon={Redo2} />
       <input
         ref={fileInputRef}
         type="file"
