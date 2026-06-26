@@ -186,25 +186,23 @@ export default function HubDocumentEditor({
   }
 
   return (
-    <div className="doc-page">
-      {/* ── Banners ─────────────────────────────────────────────────── */}
-      {activeEditorName && !dismissed && (
-        <div className="doc-banner doc-banner--warning">
-          <span><strong>{activeEditorName}</strong> may be editing this document right now. Changes could conflict.</span>
-          <button className="doc-banner__dismiss" onClick={() => setDismissed(true)}>Continue anyway</button>
-        </div>
-      )}
-      {!isNew && !isAuthor && authorName && (
-        <div className="doc-banner doc-banner--info">
-          You are editing a document created by <strong>{authorName}</strong>.
-        </div>
-      )}
-
-      <div className="doc-page__nav">
-        <a href={`/account/hub/${hubSlug}/documents`} className="doc-page__back">
-          ← Documents
+    <div className="doc-focus">
+      {/* ── App bar — the document NAME lives here, outside the page ──────── */}
+      <div className="doc-focus__bar">
+        <a href={`/account/hub/${hubSlug}/documents`} className="doc-focus__back">
+          ← <span className="doc-focus__back-label">Documents</span>
         </a>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+
+        <input
+          className="doc-focus__title"
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Untitled document"
+          aria-label="Document title"
+        />
+
+        <div className="doc-focus__actions">
           {category === "__new__" || newCat ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
@@ -254,49 +252,60 @@ export default function HubDocumentEditor({
               {locked ? "🔒" : "🔓"}
             </button>
           )}
-        </div>
-      </div>
-
-      <div className="doc-page__card doc-page__card--editor">
-        <RimTiptapEditor
-          value={body}
-          onChange={setBody}
-          placeholder="Begin writing…"
-          variant="doc"
-          title={label}
-          onTitleChange={setLabel}
-          titlePlaceholder="Document title"
-        />
-      </div>
-
-      <HubDocNotifyPanel
-        members={hubMembers}
-        selectedIds={notifyIds}
-        onChange={setNotifyIds}
-        notifiedMap={notifiedMap}
-      />
-
-      <div className="doc-page__footer" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {error && <p style={{ fontFamily: "var(--font-doc)", fontSize: "var(--text-xs)", color: "var(--color-error)", flex: 1, margin: 0 }}>{error}</p>}
-        {locked && (
-          <span style={{ fontFamily: "var(--font-doc)", fontSize: "var(--text-xs)", color: "var(--rim-text-muted)", flex: 1, margin: 0 }}>
-            🔒 Locked{isAuthor ? " — only you and admins can edit" : ""}
-          </span>
-        )}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
-          {!isNew && (
-            <button className="hdoc-editor__delete" onClick={handleArchive}>
-              Archive
-            </button>
-          )}
           <button
             className="hdoc-editor__save"
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? "Saving…" : isNew ? "Create Document" : "Save"}
+            {saving ? "Saving…" : isNew ? "Create" : "Save"}
           </button>
         </div>
+      </div>
+
+      {/* ── Notices (centered to the page column) ────────────────────────── */}
+      {activeEditorName && !dismissed && (
+        <div className="doc-banner doc-banner--warning doc-focus__notice">
+          <span><strong>{activeEditorName}</strong> may be editing this document right now. Changes could conflict.</span>
+          <button className="doc-banner__dismiss" onClick={() => setDismissed(true)}>Continue anyway</button>
+        </div>
+      )}
+      {!isNew && !isAuthor && authorName && (
+        <div className="doc-banner doc-banner--info doc-focus__notice">
+          You are editing a document created by <strong>{authorName}</strong>.
+        </div>
+      )}
+      {error && <p className="doc-focus__notice doc-focus__error">{error}</p>}
+      {locked && (
+        <p className="doc-focus__notice doc-focus__lockedmsg">
+          🔒 Locked{isAuthor ? " — only you and admins can edit" : ""}
+        </p>
+      )}
+
+      {/* ── The document: sticky toolbar (chrome) + centered page body ────── */}
+      <RimTiptapEditor
+        value={body}
+        onChange={setBody}
+        placeholder="Begin writing…"
+        variant="doc"
+      />
+
+      {/* ── Below the page — notify recipients + archive ─────────────────── */}
+      <div className="doc-focus__aside">
+        <HubDocNotifyPanel
+          members={hubMembers}
+          selectedIds={notifyIds}
+          onChange={setNotifyIds}
+          notifiedMap={notifiedMap}
+        />
+        {!isNew && (
+          <button
+            className="hdoc-editor__delete"
+            style={{ alignSelf: "flex-start" }}
+            onClick={handleArchive}
+          >
+            Archive
+          </button>
+        )}
       </div>
     </div>
   );

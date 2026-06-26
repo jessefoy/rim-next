@@ -66,12 +66,6 @@ interface Props {
   className?: string;
   /** If true, the editor is read-only (still renders as Tiptap). */
   readOnly?: boolean;
-  /** Title slot — rendered inside the editor frame above the body. Used by the
-   *  "doc" variant so the document name lives inside the contained surface.
-   *  The value is owned by the parent and saved as a separate field. */
-  title?: string;
-  onTitleChange?: (value: string) => void;
-  titlePlaceholder?: string;
 }
 
 export default function RimTiptapEditor({
@@ -81,9 +75,6 @@ export default function RimTiptapEditor({
   variant = "message",
   className,
   readOnly = false,
-  title,
-  onTitleChange,
-  titlePlaceholder = "Untitled document",
 }: Props) {
   const editor = useEditor({
     extensions: buildExtensions(variant, placeholder),
@@ -100,20 +91,6 @@ export default function RimTiptapEditor({
       {!readOnly && variant === "doc" && <DocToolbar editor={editor} />}
       {!readOnly && (variant === "message" || variant === "document") && (
         <Toolbar editor={editor} variant={variant} />
-      )}
-
-      {/* Title slot — the "doc" variant renders the document name inside the
-          frame, above the body, so the whole document reads as one contained
-          surface. The value is owned by the parent (saved as a separate field). */}
-      {variant === "doc" && onTitleChange && (
-        <input
-          className="rt-title"
-          type="text"
-          value={title ?? ""}
-          placeholder={titlePlaceholder}
-          onChange={(e) => onTitleChange(e.target.value)}
-          aria-label="Document title"
-        />
       )}
 
       {/* Selection bubble menu — appears next to selected text. Every variant

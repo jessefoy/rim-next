@@ -22414,10 +22414,6 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   min-height: 60vh;
 }
 
-/* Editor card: the sticky toolbar is the first child, so the page wants less
-   top room than the reading view — the toolbar + title sit near the top. */
-.doc-page__card--editor { padding-top: 28px; }
-
 .doc-page__card h1 {
   font-family: var(--font-doc);
   font-size: 32px;
@@ -24070,56 +24066,128 @@ input.w-button { -webkit-appearance: button; }
   }
 }
 
-/* ── Doc variant — contained document surface (hub documents) ──────────────
-   The whole document lives in ONE surface: a sticky toolbar pinned below the
-   site nav, the title inside the frame, then the body. No floating bubble, no
-   nested editor box — the .doc-page__card IS the page. (Simple-Editor style.) */
-
-/* No border/box of its own — the document card is the page surface. The
-   double `.rt-wrap.rt-wrap--doc` raises specificity above the generic
-   `.rt-wrap:has(.rt-toolbar)` border rule above. */
-.rt-wrap.rt-wrap--doc:has(.rt-toolbar) {
-  border: 0;
-  border-radius: 0;
-}
-.rt-wrap--doc .ProseMirror,
-.rt-wrap.rt-wrap--doc:has(.rt-toolbar) .ProseMirror {
-  min-height: 60vh;
-  padding: 0;
-  border-radius: 0;
+/* ── Focused document editor (.doc-focus) — "its own page" ─────────────────
+   The native document editor takes over the viewport (same pattern as the
+   office-doc editor's .oo-fullscreen): a slim app bar carrying the document
+   name OUTSIDE the page, a sticky full-width formatting toolbar, and a
+   centered document page (~680px text column) on the warm ground. */
+.doc-focus {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  background: var(--rim-bg);
+  --doc-bar-h: 56px;
 }
 
-/* Title — lives inside the frame, styled as the document title (matches the
-   former .doc-page__title-input: font-doc, 32px). Saved as a separate field. */
-.rt-title {
-  display: block;
-  width: 100%;
+/* App bar — back · title (the name, outside the page) · category · lock · Save */
+.doc-focus__bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: var(--doc-bar-h);
+  padding: 0 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--rim-rule);
+}
+.doc-focus__back {
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.doc-focus__back:hover { color: var(--rim-mid); }
+.doc-focus__title {
+  flex: 1;
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
   font-family: var(--font-doc);
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+  font-size: var(--text-h4);
+  font-weight: 600;
   color: var(--rim-text);
-  padding: 0;
-  margin: 22px 0 18px;
+  text-overflow: ellipsis;
 }
-.rt-title::placeholder { color: #d5d5d5; }
+.doc-focus__title::placeholder { color: #cfc9c0; font-weight: 500; }
+.doc-focus__actions { flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
 
-/* Sticky toolbar — pinned just below the global nav (.nav is sticky, 100px).
-   Inherits the base .rt-toolbar look (bg, padding, border-bottom); we only add
-   stickiness and drop the top corner radius (no wrapper frame to round into). */
-.rt-toolbar--doc {
-  position: sticky;
-  top: 100px;
-  z-index: 20;
+/* Notices (presence / author / error / locked) — centered to the page column */
+.doc-focus__notice {
+  max-width: 800px;
+  margin: 14px auto 0;
+  padding: 0 24px;
+}
+.doc-focus__error    { font-family: var(--font-doc); font-size: var(--text-xs); color: var(--color-error); }
+.doc-focus__lockedmsg { font-family: var(--font-doc); font-size: var(--text-xs); color: var(--rim-text-muted); }
+
+/* Below the page — notify panel + archive, centered to the page column */
+.doc-focus__aside {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 8px 24px 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* The editor wrapper is full-width with no border/box of its own. */
+.rt-wrap.rt-wrap--doc,
+.rt-wrap.rt-wrap--doc:has(.rt-toolbar) {
+  border: 0;
   border-radius: 0;
 }
+/* Sticky full-width formatting toolbar, pinned below the app bar. Inherits the
+   base .rt-toolbar look (bg, padding, border-bottom); we add stickiness, center
+   the button cluster, and drop the corner radius. */
+.rt-toolbar--doc {
+  position: sticky;
+  top: var(--doc-bar-h, 56px);
+  z-index: 20;
+  border-radius: 0;
+  /* Left-align the button cluster to the centered 800px page's left edge, so a
+     wrapped second row stays tidy rather than centering lopsidedly. The bar
+     itself stays full-width (background + border read as chrome). */
+  padding: 6px max(16px, calc((100% - 800px) / 2));
+}
+/* The editable region IS the page: a centered white sheet on the warm ground,
+   capped at the readable measure (~680px text column inside the padding). The
+   double-class selector wins over the generic `.rt-wrap:has(.rt-toolbar)`. */
+.rt-wrap.rt-wrap--doc .ProseMirror,
+.rt-wrap.rt-wrap--doc:has(.rt-toolbar) .ProseMirror {
+  max-width: 800px;
+  margin: 28px auto 0;
+  padding: 60px 64px 96px;
+  background: #fff;
+  box-shadow: var(--card-shadow);
+  border-radius: 2px;
+  min-height: 60vh;
+}
 
+@media (max-width: 768px) {
+  .doc-focus__bar { gap: 10px; padding: 0 12px; }
+  .doc-focus__back-label { display: none; }
+  .doc-focus__title { font-size: var(--text-body); }
+  .rt-wrap.rt-wrap--doc .ProseMirror,
+  .rt-wrap.rt-wrap--doc:has(.rt-toolbar) .ProseMirror {
+    margin: 16px auto 0;
+    padding: 40px 32px 72px;
+  }
+  .doc-focus__notice, .doc-focus__aside { padding-left: 16px; padding-right: 16px; }
+}
 @media (max-width: 430px) {
-  .rt-title { font-size: 26px; }
+  .rt-wrap.rt-wrap--doc .ProseMirror,
+  .rt-wrap.rt-wrap--doc:has(.rt-toolbar) .ProseMirror {
+    padding: 28px 18px 56px;
+    box-shadow: none;
+    border-radius: 0;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
