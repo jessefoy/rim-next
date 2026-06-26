@@ -94,6 +94,7 @@ export default async function HubDocumentEditPage({
       isAdmin={isAdmin}
       isLocked={doc.isLocked}
       authorName={authorName}
+      initialUpdatedAt={doc.updatedAt.toISOString()}
       activeEditorName={editorName}
       hubMembers={serializedMembers}
     />

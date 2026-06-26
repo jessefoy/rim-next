@@ -17,6 +17,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+import { relativeDate } from "@/lib/relativeDate";
 import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
 
 const RimTiptapEditor = dynamic(
@@ -35,6 +36,7 @@ interface Props {
   isAdmin?: boolean;
   isLocked?: boolean;
   authorName?: string;
+  initialUpdatedAt?: string;      // ISO; drives the "last edited" meta line
   activeEditorName?: string | null;
   hubMembers?: NotifyMember[];    // eligible notification recipients
 }
@@ -50,6 +52,7 @@ export default function HubDocumentEditor({
   isAdmin = false,
   isLocked: initialLocked = false,
   authorName,
+  initialUpdatedAt,
   activeEditorName,
   hubMembers = [],
 }: Props) {
@@ -187,125 +190,148 @@ export default function HubDocumentEditor({
 
   return (
     <div className="doc-focus">
-      {/* ── App bar — the document NAME lives here, outside the page ──────── */}
-      <div className="doc-focus__bar">
+      {/* ── Slim top strip — breadcrumb back ─────────────────────────────── */}
+      <div className="doc-focus__top">
         <a href={`/account/hub/${hubSlug}/documents`} className="doc-focus__back">
           ← <span className="doc-focus__back-label">Documents</span>
         </a>
-
-        <input
-          className="doc-focus__title"
-          type="text"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Untitled document"
-          aria-label="Document title"
-        />
-
-        <div className="doc-focus__actions">
-          {category === "__new__" || newCat ? (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                className="hdoc-editor__category-input"
-                type="text"
-                value={newCat}
-                onChange={(e) => setNewCat(e.target.value)}
-                placeholder="New category name"
-              />
-              <button
-                type="button"
-                className="btn--ghost"
-                style={{ fontSize: "var(--text-label)", padding: "4px 8px", whiteSpace: "nowrap" }}
-                onClick={() => { setNewCat(""); setCategory(categories[0] ?? ""); }}
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <div className="hdoc-editor__category-pick">
-              <select
-                className="hdoc-editor__category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="">No category</option>
-                {categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="hdoc-editor__category-add"
-                onClick={() => setCategory("__new__")}
-              >
-                + New
-              </button>
-            </div>
-          )}
-          {/* Lock toggle — only author + admin */}
-          {!isNew && (isAuthor || isAdmin) && (
-            <button
-              className={`doc-lock-btn${locked ? " doc-lock-btn--locked" : ""}`}
-              onClick={toggleLock}
-              title={locked ? "Unlock document" : "Lock document"}
-            >
-              {locked ? "🔒" : "🔓"}
-            </button>
-          )}
-          <button
-            className="hdoc-editor__save"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? "Saving…" : isNew ? "Create" : "Save"}
-          </button>
-        </div>
+        <span className="doc-focus__crumb">{label.trim() || "Untitled document"}</span>
       </div>
 
-      {/* ── Notices (centered to the page column) ────────────────────────── */}
-      {activeEditorName && !dismissed && (
-        <div className="doc-banner doc-banner--warning doc-focus__notice">
-          <span><strong>{activeEditorName}</strong> may be editing this document right now. Changes could conflict.</span>
-          <button className="doc-banner__dismiss" onClick={() => setDismissed(true)}>Continue anyway</button>
-        </div>
-      )}
-      {!isNew && !isAuthor && authorName && (
-        <div className="doc-banner doc-banner--info doc-focus__notice">
-          You are editing a document created by <strong>{authorName}</strong>.
-        </div>
-      )}
-      {error && <p className="doc-focus__notice doc-focus__error">{error}</p>}
-      {locked && (
-        <p className="doc-focus__notice doc-focus__lockedmsg">
-          🔒 Locked{isAuthor ? " — only you and admins can edit" : ""}
-        </p>
-      )}
+      <div className="doc-focus__body">
+        {/* ── Editor canvas: title · meta · toolbar · body ───────────────── */}
+        <div className="doc-focus__main">
+          {activeEditorName && !dismissed && (
+            <div className="doc-banner doc-banner--warning">
+              <span><strong>{activeEditorName}</strong> may be editing this document right now. Changes could conflict.</span>
+              <button className="doc-banner__dismiss" onClick={() => setDismissed(true)}>Continue anyway</button>
+            </div>
+          )}
+          {!isNew && !isAuthor && authorName && (
+            <div className="doc-banner doc-banner--info">
+              You are editing a document created by <strong>{authorName}</strong>.
+            </div>
+          )}
 
-      {/* ── The document: sticky toolbar (chrome) + centered page body ────── */}
-      <RimTiptapEditor
-        value={body}
-        onChange={setBody}
-        placeholder="Begin writing…"
-        variant="doc"
-      />
+          <input
+            className="doc-focus__title"
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Untitled document"
+            aria-label="Document title"
+          />
+          <div className="doc-focus__meta">
+            {isNew
+              ? "New document"
+              : `Last edited ${initialUpdatedAt ? relativeDate(initialUpdatedAt) : "recently"}${authorName ? ` · ${authorName}` : ""}`}
+          </div>
 
-      {/* ── Below the page — notify recipients + archive ─────────────────── */}
-      <div className="doc-focus__aside">
-        <HubDocNotifyPanel
-          members={hubMembers}
-          selectedIds={notifyIds}
-          onChange={setNotifyIds}
-          notifiedMap={notifiedMap}
-        />
-        {!isNew && (
-          <button
-            className="hdoc-editor__delete"
-            style={{ alignSelf: "flex-start" }}
-            onClick={handleArchive}
-          >
-            Archive
-          </button>
-        )}
+          <RimTiptapEditor
+            value={body}
+            onChange={setBody}
+            placeholder="Begin writing…"
+            variant="doc"
+          />
+        </div>
+
+        {/* ── Settings sidebar ───────────────────────────────────────────── */}
+        <aside className="doc-focus__side">
+          <div className="doc-focus__save-row">
+            <button
+              type="button"
+              className="doc-focus__cancel"
+              onClick={() => router.push(`/account/hub/${hubSlug}/documents`)}
+            >
+              Cancel
+            </button>
+            <button
+              className="doc-focus__save"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? "Saving…" : isNew ? "Create" : "Save"}
+            </button>
+          </div>
+          {error && <p className="doc-focus__error">{error}</p>}
+
+          <section className="doc-focus__field">
+            <div className="doc-focus__field-label">Category</div>
+            {category === "__new__" || newCat ? (
+              <div className="doc-focus__cat-new">
+                <input
+                  className="hdoc-editor__category-input"
+                  type="text"
+                  value={newCat}
+                  onChange={(e) => setNewCat(e.target.value)}
+                  placeholder="New category name"
+                />
+                <button
+                  type="button"
+                  className="btn--ghost"
+                  style={{ fontSize: "var(--text-label)", padding: "4px 8px", whiteSpace: "nowrap" }}
+                  onClick={() => { setNewCat(""); setCategory(categories[0] ?? ""); }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="hdoc-editor__category-pick">
+                <select
+                  className="hdoc-editor__category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="">No category</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="hdoc-editor__category-add"
+                  onClick={() => setCategory("__new__")}
+                >
+                  + New
+                </button>
+              </div>
+            )}
+          </section>
+
+          <section className="doc-focus__field">
+            <HubDocNotifyPanel
+              members={hubMembers}
+              selectedIds={notifyIds}
+              onChange={setNotifyIds}
+              notifiedMap={notifiedMap}
+            />
+          </section>
+
+          {!isNew && (isAuthor || isAdmin) && (
+            <section className="doc-focus__field doc-focus__field--row">
+              <div className="doc-focus__field-label">Lock editing</div>
+              <button
+                className={`doc-lock-btn${locked ? " doc-lock-btn--locked" : ""}`}
+                onClick={toggleLock}
+                title={locked ? "Unlock document" : "Lock document"}
+              >
+                {locked ? "🔒" : "🔓"}
+              </button>
+            </section>
+          )}
+
+          {!isNew && authorName && (
+            <div className="doc-focus__author">By {authorName}</div>
+          )}
+
+          {!isNew && (
+            <div className="doc-focus__danger">
+              <button className="hdoc-editor__delete" onClick={handleArchive}>
+                Archive
+              </button>
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );
