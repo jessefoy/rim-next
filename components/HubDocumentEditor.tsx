@@ -39,6 +39,11 @@ interface Props {
   initialUpdatedAt?: string;      // ISO; drives the "last edited" meta line
   activeEditorName?: string | null;
   hubMembers?: NotifyMember[];    // eligible notification recipients
+  canManageSharing?: boolean;     // author / origin-hub coordinator — gates the sharing controls
+  initialVisibility?: "HUB" | "COORDINATORS" | "COMMUNITY";
+  initialSharedHubs?: { id: string; slug: string; name: string }[];
+  viewerHubs?: { id: string; name: string }[];   // viewer's active hubs (share-into picker)
+  originHubId?: string | null;
 }
 
 export default function HubDocumentEditor({
@@ -55,6 +60,11 @@ export default function HubDocumentEditor({
   initialUpdatedAt,
   activeEditorName,
   hubMembers = [],
+  canManageSharing = false,
+  initialVisibility = "HUB",
+  initialSharedHubs = [],
+  viewerHubs = [],
+  originHubId = null,
 }: Props) {
   const router = useRouter();
   const [label, setLabel] = useState(initialLabel);
@@ -71,6 +81,13 @@ export default function HubDocumentEditor({
   const [notifyIds, setNotifyIds] = useState<string[]>([]);
   const [notifiedMap, setNotifiedMap] = useState<Record<string, string>>({});
   const [dismissed, setDismissed] = useState(false);
+  // Sharing state — persists immediately (independent of the doc Save), mirroring
+  // the standalone share modal used on the documents list.
+  const [visibility, setVisibility] = useState<"HUB" | "COORDINATORS" | "COMMUNITY">(initialVisibility);
+  const [sharedHubs, setSharedHubs] = useState(initialSharedHubs);
+  const [addHubId, setAddHubId] = useState("");
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isNew = docId === null;
@@ -120,6 +137,55 @@ export default function HubDocumentEditor({
       const data = await res.json();
       setLocked(data.isLocked);
     }
+  }
+
+  // ── Sharing (visibility + cross-hub placements) — persists immediately ──
+  async function changeVisibility(v: "HUB" | "COORDINATORS" | "COMMUNITY") {
+    if (shareBusy || v === visibility || !docId) return;
+    setShareBusy(true); setShareError(null);
+    try {
+      const res = await fetch(`/api/documents/${docId}/visibility`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility: v }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not change visibility");
+      setVisibility(v);
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : "Could not change visibility");
+    } finally { setShareBusy(false); }
+  }
+
+  async function addHub() {
+    if (!addHubId || shareBusy || !docId) return;
+    setShareBusy(true); setShareError(null);
+    try {
+      const res = await fetch(`/api/documents/${docId}/placements`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hubId: addHubId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not share");
+      setSharedHubs((cur) => [...cur, data.hub]);
+      setAddHubId("");
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : "Could not share");
+    } finally { setShareBusy(false); }
+  }
+
+  async function removeHub(hubId: string) {
+    if (shareBusy || !docId) return;
+    setShareBusy(true); setShareError(null);
+    try {
+      const res = await fetch(`/api/documents/${docId}/placements?hubId=${encodeURIComponent(hubId)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not remove");
+      setSharedHubs((cur) => cur.filter((h) => h.id !== hubId));
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : "Could not remove");
+    } finally { setShareBusy(false); }
   }
 
   async function handleSave() {
@@ -187,6 +253,10 @@ export default function HubDocumentEditor({
     });
     if (res.ok) router.push(`/account/hub/${hubSlug}/documents`);
   }
+
+  // Hubs you could share into: your active hubs, minus the origin + already-shared.
+  const sharedIds = new Set(sharedHubs.map((h) => h.id));
+  const addableHubs = viewerHubs.filter((h) => h.id !== originHubId && !sharedIds.has(h.id));
 
   return (
     <div className="doc-focus">
@@ -297,6 +367,64 @@ export default function HubDocumentEditor({
               </div>
             )}
           </section>
+
+          {!isNew && canManageSharing && (
+            <>
+              <section className="doc-focus__field">
+                <div className="doc-focus__field-label">Who can see it</div>
+                <select
+                  className="fs doc-focus__select"
+                  value={visibility}
+                  disabled={shareBusy}
+                  aria-label="Who can see this document"
+                  onChange={(e) => changeVisibility(e.target.value as "HUB" | "COORDINATORS" | "COMMUNITY")}
+                >
+                  <option value="HUB">Hub members</option>
+                  <option value="COORDINATORS">Coordinators only</option>
+                  <option value="COMMUNITY">Whole community</option>
+                </select>
+              </section>
+
+              <section className="doc-focus__field">
+                <div className="doc-focus__field-label">Shared with other hubs</div>
+                {sharedHubs.length === 0 ? (
+                  <p className="doc-focus__hint">Only in this hub.</p>
+                ) : (
+                  <ul className="doc-focus__hubs">
+                    {sharedHubs.map((h) => (
+                      <li key={h.id} className="doc-focus__hub-row">
+                        <span>{h.name}</span>
+                        <button
+                          type="button"
+                          className="hub-action-btn hub-action-btn--del"
+                          disabled={shareBusy}
+                          onClick={() => removeHub(h.id)}
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {addableHubs.length > 0 && (
+                  <div className="doc-focus__share-add">
+                    <select
+                      className="fs doc-focus__select"
+                      value={addHubId}
+                      disabled={shareBusy}
+                      aria-label="Share into another hub"
+                      onChange={(e) => setAddHubId(e.target.value)}
+                    >
+                      <option value="">Add a hub…</option>
+                      {addableHubs.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    </select>
+                    <button type="button" className="btn btn--sm" disabled={shareBusy || !addHubId} onClick={addHub}>Share</button>
+                  </div>
+                )}
+                {shareError && <p className="doc-focus__share-error">{shareError}</p>}
+              </section>
+            </>
+          )}
 
           <section className="doc-focus__field">
             <HubDocNotifyPanel

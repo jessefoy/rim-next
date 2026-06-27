@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
+import { canManageDocumentSharing } from "@/lib/documentAuth";
 import HubDocumentEditor from "@/components/HubDocumentEditor";
 
 export const dynamic = "force-dynamic";
@@ -22,12 +23,13 @@ export default async function HubDocumentEditPage({
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect(`/account/hub/${slug}/documents`);
 
-  const [doc, hubMemberRows] = await Promise.all([
+  const [doc, hubMemberRows, viewerMemberships] = await Promise.all([
     db.hubDocument.findUnique({
       where: { id },
       include: {
         addedBy:   { select: { firstName: true, lastName: true, preferredName: true } },
         editingBy: { select: { firstName: true, lastName: true, preferredName: true } },
+        placements: { select: { hub: { select: { id: true, slug: true, name: true } } } },
       },
     }),
     db.hubMember.findMany({
@@ -39,6 +41,12 @@ export default async function HubDocumentEditPage({
       },
       include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
       orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+    }),
+    // The viewer's own active hubs — drives the "share into another hub" picker
+    // and the canManageDocumentSharing check (origin-hub authority).
+    db.hubMember.findMany({
+      where:  { userId: session.user.id, status: "ACTIVE" },
+      select: { hubId: true, isCoordinator: true, hub: { select: { id: true, name: true } } },
     }),
   ]);
 
@@ -82,6 +90,24 @@ export default async function HubDocumentEditPage({
     preferredName: m.user.preferredName,
   }));
 
+  // Sharing: only the author or a coordinator of the home hub can manage it
+  // (mirrors the API gate). Compute server-side; the controls hide otherwise.
+  const canManageSharing = canManageDocumentSharing(
+    {
+      addedById:  doc.addedById,
+      hubId:      doc.hubId,
+      visibility: doc.visibility,
+      placements: doc.placements.map((p) => ({ hubId: p.hub.id })),
+    },
+    {
+      userId:      session.user.id,
+      roles:       editRoles,
+      memberships: viewerMemberships.map((m) => ({ hubId: m.hubId, isCoordinator: m.isCoordinator })),
+    },
+  );
+  const viewerHubs = viewerMemberships.map((m) => ({ id: m.hub.id, name: m.hub.name }));
+  const sharedHubs = doc.placements.map((p) => p.hub);
+
   return (
     <HubDocumentEditor
       hubSlug={slug}
@@ -97,6 +123,11 @@ export default async function HubDocumentEditPage({
       initialUpdatedAt={doc.updatedAt.toISOString()}
       activeEditorName={editorName}
       hubMembers={serializedMembers}
+      canManageSharing={canManageSharing}
+      initialVisibility={doc.visibility}
+      initialSharedHubs={sharedHubs}
+      viewerHubs={viewerHubs}
+      originHubId={hub.id}
     />
   );
 }
