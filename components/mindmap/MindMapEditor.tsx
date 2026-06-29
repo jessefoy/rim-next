@@ -33,6 +33,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import FloatingEdge from "./FloatingEdge";
+import MindMapNodeConversation from "./MindMapNodeConversation";
 
 type MMNodeData = {
   label: string;
@@ -55,6 +56,7 @@ interface Props {
   initialTitle: string;
   initialDescription: string | null;
   canEdit: boolean;
+  currentUserId: string;
   initialNodes: SerializedNode[];
 }
 
@@ -83,7 +85,7 @@ function toFlowNodes(seed: SerializedNode[]): MMNode[] {
   }));
 }
 
-function Editor({ mapId, initialTitle, canEdit, initialNodes }: Props) {
+function Editor({ mapId, initialTitle, canEdit, currentUserId, initialNodes }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<MMNode>(toFlowNodes(initialNodes));
   const [title, setTitle] = useState(initialTitle);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -107,8 +109,7 @@ function Editor({ mapId, initialTitle, canEdit, initialNodes }: Props) {
 
   // ── Autosave: edit-driven, serialized, flush-on-unmount ──
   const dirtyRef = useRef(false);
-  const savingRef = useRef(false);
-  const pendingRef = useRef(false);
+  const inFlightRef = useRef<Promise<void> | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const buildPayload = useCallback(
@@ -126,25 +127,30 @@ function Editor({ mapId, initialTitle, canEdit, initialNodes }: Props) {
     [],
   );
 
+  // All saves run on one serial chain — never two concurrent PATCHes (which
+  // could land out of order). Each link sends the LATEST snapshot and clears
+  // the dirty flag; a new edit during a save re-marks dirty + chains another.
   const runSave = useCallback(async () => {
-    if (savingRef.current) { pendingRef.current = true; return; } // serialize — no out-of-order writes
-    savingRef.current = true;
-    setSaveState("saving");
-    try {
-      const res = await fetch(`/api/mindmaps/${mapId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildPayload()),
-      });
-      if (!res.ok) throw new Error();
-      dirtyRef.current = false;
-      setSaveState("saved");
-    } catch {
-      setSaveState("idle");
-    } finally {
-      savingRef.current = false;
-      if (pendingRef.current) { pendingRef.current = false; void runSave(); }
-    }
+    const prev = inFlightRef.current ?? Promise.resolve();
+    const p = prev.then(async () => {
+      if (!dirtyRef.current) return;
+      dirtyRef.current = false; // claim the current edits
+      setSaveState("saving");
+      try {
+        const res = await fetch(`/api/mindmaps/${mapId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildPayload()),
+        });
+        if (!res.ok) throw new Error();
+        setSaveState("saved");
+      } catch {
+        dirtyRef.current = true; // re-mark so a later save retries
+        setSaveState("idle");
+      }
+    });
+    inFlightRef.current = p;
+    await p;
   }, [mapId, buildPayload]);
 
   const scheduleSave = useCallback(() => {
@@ -152,6 +158,14 @@ function Editor({ mapId, initialTitle, canEdit, initialNodes }: Props) {
     dirtyRef.current = true;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => void runSave(), 800);
+  }, [canEdit, runSave]);
+
+  // Persist pending edits NOW and await — so a brand-new topic exists
+  // server-side before its first comment. Idempotent snapshot (last-write-wins).
+  const flushSave = useCallback(async () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!canEdit) return;
+    await runSave(); // awaits the serial chain → the node is persisted on return
   }, [canEdit, runSave]);
 
   // Flush a pending edit on unmount — client-side back-nav keeps the JS context
@@ -386,13 +400,12 @@ function Editor({ mapId, initialTitle, canEdit, initialNodes }: Props) {
                 />
               </label>
 
-              <div className="mm-panel__convo">
-                <span className="mm-panel__convo-title">Conversation</span>
-                <p className="mm-panel__note">
-                  Conversations on a topic arrive in a later step — each topic will open a full discussion
-                  here (replies, follows, reactions).
-                </p>
-              </div>
+              <MindMapNodeConversation
+                mapId={mapId}
+                nodeId={selected.id}
+                currentUserId={currentUserId}
+                flushSave={flushSave}
+              />
 
               {canEdit && (
                 <button className="mm-btn mm-btn--danger" onClick={deleteSelected}>Delete topic</button>

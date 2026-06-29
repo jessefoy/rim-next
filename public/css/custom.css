@@ -24862,3 +24862,141 @@ input.w-button { -webkit-appearance: button; }
   flex: 1;
 }
 
+/* ── Slice 3: per-topic conversation (in the node side panel) ── */
+.mm-convo {
+  border-top: 1px solid var(--rim-bg-accent);
+  padding-top: 16px;
+}
+.mm-convo__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.mm-convo__title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rim-text-muted);
+}
+.mm-convo__follow {
+  border: none;
+  background: transparent;
+  color: var(--rim-mid);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.mm-convo__follow:hover {
+  color: var(--rim-blue);
+  background: var(--rim-bg-accent);
+}
+.mm-convo__empty {
+  margin: 0 0 14px;
+  font-size: var(--text-small);
+  color: var(--rim-text-muted);
+}
+.mm-convo__list {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mm-convo__item {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rim-bg-accent);
+}
+.mm-convo__item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.mm-convo__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.mm-convo__author {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--rim-blue);
+}
+.mm-convo__when {
+  font-size: var(--text-xxs);
+  color: var(--rim-text-muted);
+}
+.mm-convo__body {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 1.55;
+  color: var(--rim-text);
+  white-space: pre-wrap;
+}
+.mm-convo__reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+  align-items: center;
+}
+.mm-react {
+  border: 1px solid var(--rim-bg-accent);
+  background: var(--rim-bg-bright);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  color: var(--rim-text);
+}
+.mm-react.is-mine {
+  border-color: var(--rim-blue);
+  background: var(--rim-bg-accent);
+}
+.mm-react--add {
+  color: var(--rim-text-muted);
+  padding: 2px 9px;
+}
+.mm-react-palette {
+  display: inline-flex;
+  gap: 4px;
+}
+.mm-react--pick {
+  padding: 2px 6px;
+}
+.mm-convo__compose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mm-convo__input {
+  width: 100%;
+  border: 1px solid var(--rim-bg-accent);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--text-body); /* >=16px — avoids iOS input auto-zoom */
+  line-height: 1.5;
+  color: var(--rim-text);
+  background: var(--rim-bg);
+  resize: vertical;
+}
+.mm-convo__input:focus {
+  outline: none;
+  border-color: var(--rim-blue);
+}
+.mm-convo__compose .mm-btn {
+  align-self: flex-start;
+}
+@media (max-width: 768px) {
+  .mm-convo__follow {
+    min-height: 44px;
+  }
+  .mm-react {
+    min-height: 44px;
+  }
+}
+

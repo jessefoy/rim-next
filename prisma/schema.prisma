@@ -1100,6 +1100,7 @@ model MindMapNode {
   map       MindMap      @relation(fields: [mapId], references: [id], onDelete: Cascade)
   parent    MindMapNode? @relation("MindMapNodeParent", fields: [parentId], references: [id], onDelete: SetNull)
   children  MindMapNode[] @relation("MindMapNodeParent")
+  threads   HubConversationThread[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
@@ -1267,12 +1268,17 @@ model HubConversationThread {
 
   // When set, this thread belongs to a document rather than the hub conversations feed.
   documentId           String?
+  // When set, this thread is the conversation for a mind-map TOPIC (one thread
+  // per node). Parallel to documentId. hubId stays a nominal home (the map's
+  // origin hub) but access/notify are map-scoped — see lib/mindMapConversation.
+  mindMapNodeId        String?
 
   hub           Hub               @relation(fields: [hubId], references: [id])
   author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   archivedBy    User?             @relation("HubThreadArchiver", fields: [archivedById], references: [id])
   deletedBy     User?             @relation("HubThreadTrasher", fields: [deletedById], references: [id])
   document      HubDocument?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  mindMapNode   MindMapNode?      @relation(fields: [mindMapNodeId], references: [id], onDelete: Cascade)
   replies       HubConversationReply[]
   subscriptions HubThreadSubscription[]
   createdAt     DateTime          @default(now())
@@ -1280,6 +1286,9 @@ model HubConversationThread {
 
   @@index([hubId, deletedAt])
   @@index([documentId])
+  // One thread per topic. Nullable → Postgres allows many NULLs (hub/doc
+  // threads), but enforces a single thread per non-null node id.
+  @@unique([mindMapNodeId])
   @@map("hub_conversation_threads")
 }
 

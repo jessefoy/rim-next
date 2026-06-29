@@ -2736,6 +2736,78 @@ Or open it directly: {{manageUrl}}`,
       }
     },
   },
+  {
+    // Mind Maps Slice 3 — a conversation per topic. Anchors a thread to a node
+    // (parallel to documentId; ON DELETE CASCADE so deleting a topic removes it).
+    name: "add_mindmapnodeid_to_threads",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'hub_conversation_threads' AND column_name = 'mindMapNodeId'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`ALTER TABLE "hub_conversation_threads" ADD COLUMN "mindMapNodeId" TEXT`);
+        await db.$executeRawUnsafe(
+          `DO $$ BEGIN ALTER TABLE "hub_conversation_threads" ADD CONSTRAINT "hub_conversation_threads_mindMapNodeId_fkey" FOREIGN KEY ("mindMapNodeId") REFERENCES "mind_map_nodes"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+        );
+        // Unique (not plain) so a topic can't end up with two threads from a
+        // concurrent first-comment. Nullable column → many NULLs allowed.
+        await db.$executeRawUnsafe(
+          `CREATE UNIQUE INDEX IF NOT EXISTS "hub_conversation_threads_mindMapNodeId_key" ON "hub_conversation_threads"("mindMapNodeId")`,
+        );
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
+  {
+    // The one email this slice adds (Email Template Gate): a comment on a map
+    // topic, deep-linking back to the map (the hub-conv-* templates link to a
+    // hub conversation URL, which is wrong for a map).
+    name: "seed_mindmap_topic_comment_email_template",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags" WHERE name = 'seed_mindmap_topic_comment_email_template_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+      const existing = await db.emailTemplate.findUnique({ where: { slug: "mindmap-topic-comment" } });
+      if (!existing) {
+        await db.emailTemplate.create({
+          data: {
+            slug: "mindmap-topic-comment",
+            name: "Mind Map: New Topic Comment",
+            description: "Sent to followers + the map's hub coordinators when someone comments on a mind-map topic.",
+            enabled: true,
+            subject: "New comment on “{{topicLabel}}” — {{mapTitle}}",
+            variables: ["firstName", "commenterName", "topicLabel", "mapTitle", "mapUrl"],
+            group: "05-hubs",
+            groupLabel: "Hubs & Onboarding",
+            body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+**{{commenterName}}** commented on the topic *{{topicLabel}}* in the mind map **{{mapTitle}}**.
+
+**[Open the map →]({{mapUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+          },
+        });
+        console.log(`  ✔ Applied: ${this.name} (created)`);
+      } else {
+        console.log(`  ✔ Applied: ${this.name} (already exists — preserved)`);
+      }
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_mindmap_topic_comment_email_template_v1')
+      `);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

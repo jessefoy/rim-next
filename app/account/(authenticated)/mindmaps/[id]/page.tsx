@@ -62,6 +62,7 @@ export default async function MindMapEditorPage({ params }: { params: Promise<{ 
       initialTitle={map.title}
       initialDescription={map.description}
       canEdit={canEditMindMap(shape, viewer)}
+      currentUserId={session.user.id}
       initialNodes={map.nodes.map((n) => ({
         id: n.id,
         label: n.label,

@@ -20,6 +20,7 @@ interface Props {
   initialTitle: string;
   initialDescription: string | null;
   canEdit: boolean;
+  currentUserId: string;
   initialNodes: SerializedNode[];
 }
 
