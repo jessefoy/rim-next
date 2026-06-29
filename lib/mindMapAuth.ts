@@ -32,6 +32,7 @@ export interface MindMapAccessShape {
   addedById: string;
   hubId: string | null;
   visibility: string;
+  editPolicy: string; // OPEN = anyone who can open it edits; RESTRICTED = author + coordinators
   placements: { hubId: string }[];
 }
 
@@ -66,14 +67,19 @@ export function canAccessMindMap(map: MindMapAccessShape, viewer: MindMapViewer)
 }
 
 /**
- * Can this viewer EDIT this map (its nodes/structure)? Author, or a coordinator
- * of any hub the map is placed in (GUIDING_TEACHER acts as coordinator
- * everywhere). Role-driven; ignores `visibility` (a COMMUNITY map is
- * community-readable, never community-editable).
+ * Can this viewer EDIT this map (its nodes/structure)? The per-map option Jesse
+ * chose drives this:
+ *   - author and GUIDING_TEACHER always can;
+ *   - editPolicy "OPEN" (collaborative canvas) — anyone who can OPEN the map can
+ *     edit it (edit == access);
+ *   - editPolicy "RESTRICTED" (document-parity) — only a coordinator of a hub the
+ *     map is in (everyone else views).
  */
 export function canEditMindMap(map: MindMapAccessShape, viewer: MindMapViewer): boolean {
   if (map.addedById === viewer.userId) return true;
   if (viewer.roles.includes("GUIDING_TEACHER")) return true;
+
+  if (map.editPolicy === "OPEN") return canAccessMindMap(map, viewer);
 
   const hubIds = mindMapHubIds(map);
   for (const m of viewer.memberships) {
@@ -118,7 +124,14 @@ export async function canUserAccessMindMap(
 ): Promise<boolean | null> {
   const map = await db.mindMap.findUnique({
     where: { id: mapId },
-    select: { addedById: true, hubId: true, visibility: true, deletedAt: true },
+    select: {
+      addedById: true,
+      hubId: true,
+      visibility: true,
+      editPolicy: true,
+      deletedAt: true,
+      placements: { select: { hubId: true } },
+    },
   });
   if (!map || map.deletedAt) return null;
 
@@ -127,6 +140,5 @@ export async function canUserAccessMindMap(
     select: { hubId: true, isCoordinator: true },
   });
 
-  // Slice 1: no placement table yet → placements is always [].
-  return canAccessMindMap({ ...map, placements: [] }, { userId, roles, memberships });
+  return canAccessMindMap(map, { userId, roles, memberships });
 }

@@ -1033,6 +1033,7 @@ model Hub {
   threads       HubConversationThread[]
   appLinks      HubAppLink[]
   mindMaps      MindMap[]
+  mindMapPlacements MindMapPlacement[]
 
   @@map("hubs")
 }
@@ -1048,18 +1049,40 @@ model MindMap {
   addedById   String
   title       String
   description String?
-  hubId       String?       // origin hub — null = standalone "project" map (Slice 2)
-  visibility  String        @default("HUB") // HUB | COORDINATORS | COMMUNITY (string for now; enum at Slice 2)
+  hubId       String?       // origin hub — null = standalone "project" map
+  visibility  String        @default("HUB") // HUB | COORDINATORS | COMMUNITY (validated string)
+  // editPolicy — who may edit a SHARED map's nodes (the per-map option Jesse chose):
+  //   OPEN       = any viewer who can open it (collaborative canvas)
+  //   RESTRICTED = author + coordinators (document-parity); everyone else views
+  editPolicy  String        @default("OPEN")
   archivedAt  DateTime?
   deletedAt   DateTime?
   addedBy     User          @relation("MindMapAuthor", fields: [addedById], references: [id], onDelete: Cascade)
   hub         Hub?          @relation(fields: [hubId], references: [id])
   nodes       MindMapNode[]
+  placements  MindMapPlacement[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
   @@index([addedById])
   @@map("mind_maps")
+}
+
+// MindMapPlacement — cross-hub sharing (mirrors HubDocumentPlacement). One
+// canonical MindMap, placed in several hubs (origin is MindMap.hubId; extra
+// shares are rows here). The create path rejects hubId === map.hubId.
+model MindMapPlacement {
+  id        String   @id @default(cuid())
+  mapId     String
+  hubId     String
+  createdAt DateTime @default(now())
+
+  map MindMap @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  hub Hub     @relation(fields: [hubId], references: [id], onDelete: Cascade)
+
+  @@unique([mapId, hubId])
+  @@index([hubId])
+  @@map("mind_map_placements")
 }
 
 // MindMapNode — a topic on the canvas. parentId is the branch link (null = a

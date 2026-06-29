@@ -8,9 +8,19 @@ async function loadGateContext(mapId: string, userId: string) {
   const [map, memberships] = await Promise.all([
     db.mindMap.findUnique({
       where: { id: mapId },
-      select: { id: true, addedById: true, hubId: true, visibility: true, deletedAt: true },
+      select: {
+        id: true,
+        addedById: true,
+        hubId: true,
+        visibility: true,
+        editPolicy: true,
+        deletedAt: true,
+        placements: { select: { hubId: true } },
+      },
     }),
-    db.hubMember.findMany({ where: { userId }, select: { hubId: true, isCoordinator: true } }),
+    // ACTIVE only — a removed/paused member's stale row must not confer access
+    // (with editPolicy OPEN, access == edit, so this gate is also the edit gate).
+    db.hubMember.findMany({ where: { userId, status: "ACTIVE" }, select: { hubId: true, isCoordinator: true } }),
   ]);
   return { map, memberships };
 }
@@ -42,7 +52,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!map || map.deletedAt) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const viewer = { userId: session.user.id, roles: session.user.roles ?? [], memberships };
-  if (!canEditMindMap({ ...map, placements: [] }, viewer)) {
+  if (!canEditMindMap(map, viewer)) {
     return NextResponse.json({ error: "You can't edit this map." }, { status: 403 });
   }
 

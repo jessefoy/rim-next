@@ -31,7 +31,9 @@ export default async function MindMapEditorPage({ params }: { params: Promise<{ 
       addedById: true,
       hubId: true,
       visibility: true,
+      editPolicy: true,
       deletedAt: true,
+      placements: { select: { hubId: true } },
       nodes: {
         select: { id: true, label: true, note: true, x: true, y: true, parentId: true },
         orderBy: { createdAt: "asc" },
@@ -41,11 +43,17 @@ export default async function MindMapEditorPage({ params }: { params: Promise<{ 
   if (!map || map.deletedAt) notFound();
 
   const memberships = await db.hubMember.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, status: "ACTIVE" },
     select: { hubId: true, isCoordinator: true },
   });
   const viewer = { userId: session.user.id, roles: session.user.roles ?? [], memberships };
-  const shape = { addedById: map.addedById, hubId: map.hubId, visibility: map.visibility, placements: [] };
+  const shape = {
+    addedById: map.addedById,
+    hubId: map.hubId,
+    visibility: map.visibility,
+    editPolicy: map.editPolicy,
+    placements: map.placements,
+  };
   if (!canAccessMindMap(shape, viewer)) notFound();
 
   return (

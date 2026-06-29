@@ -2702,6 +2702,40 @@ Or open it directly: {{manageUrl}}`,
       }
     },
   },
+  {
+    // Mind Maps Slice 2 — portability: cross-hub placements + the per-map
+    // editPolicy option. Additive; existing maps default editPolicy 'OPEN'.
+    name: "create_mind_map_placements_and_edit_policy",
+    async run() {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "mind_map_placements" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+          "mapId" TEXT NOT NULL,
+          "hubId" TEXT NOT NULL,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "mind_map_placements_pkey" PRIMARY KEY ("id"),
+          CONSTRAINT "mind_map_placements_mapId_fkey" FOREIGN KEY ("mapId") REFERENCES "mind_maps"("id") ON DELETE CASCADE,
+          CONSTRAINT "mind_map_placements_hubId_fkey" FOREIGN KEY ("hubId") REFERENCES "hubs"("id") ON DELETE CASCADE
+        )
+      `);
+      await db.$executeRawUnsafe(
+        `CREATE UNIQUE INDEX IF NOT EXISTS "mind_map_placements_mapId_hubId_key" ON "mind_map_placements"("mapId","hubId")`,
+      );
+      await db.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "mind_map_placements_hubId_idx" ON "mind_map_placements"("hubId")`,
+      );
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'mind_maps' AND column_name = 'editPolicy'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`ALTER TABLE "mind_maps" ADD COLUMN "editPolicy" TEXT NOT NULL DEFAULT 'OPEN'`);
+        console.log(`  ✔ Applied: ${this.name} (placements table + editPolicy column)`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

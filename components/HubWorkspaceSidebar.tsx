@@ -34,6 +34,7 @@ import {
   Menu,
   X,
   Activity,
+  Network,
 } from "lucide-react";
 
 export interface SidebarTool {
@@ -120,6 +121,7 @@ export default function HubWorkspaceSidebar({
     { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
     { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
     { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
+    { label: "Mind Maps",     href: `${base}/mindmaps`,      icon: Network,       badge: 0 },
     { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
   ];
 

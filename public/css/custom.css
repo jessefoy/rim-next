@@ -24758,3 +24758,107 @@ input.w-button { -webkit-appearance: button; }
   }
 }
 
+/* ── Slice 2: directory sections, badges, card actions, share modal ── */
+.mm-dir__section {
+  margin-bottom: 28px;
+}
+.mm-dir__section-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rim-text-muted);
+  margin: 0 0 12px;
+}
+.mm-dir__badge {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: var(--text-xxs);
+  color: var(--rim-mid);
+  background: var(--rim-bg-accent);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.mm-dir__card-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px 10px;
+}
+.mm-dir__card-act {
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--rim-mid);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.mm-dir__card-act:hover {
+  color: var(--rim-blue);
+  background: var(--rim-bg-accent);
+}
+
+/* Share modal inner (rides the shared .hub-doc-notify-overlay/-modal box) */
+.mm-modal {
+  max-width: 480px;
+}
+.mm-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.mm-modal__title {
+  margin: 0;
+  font-size: var(--text-h4);
+  color: var(--rim-blue);
+}
+.mm-modal__close {
+  position: static;
+}
+.mm-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.mm-modal__error {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-error);
+}
+.mm-modal__select {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--rim-bg-accent);
+  border-radius: 8px;
+  background: var(--rim-bg-bright);
+  font-size: var(--text-body); /* >=16px — avoids iOS input auto-zoom */
+  color: var(--rim-text);
+}
+.mm-modal__hublist {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mm-modal__hubrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--rim-bg);
+  border-radius: 8px;
+  font-size: var(--text-small);
+}
+.mm-modal__add {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.mm-modal__add .mm-modal__select {
+  flex: 1;
+}
+
