@@ -2645,6 +2645,63 @@ Or open it directly: {{manageUrl}}`,
       }
     },
   },
+  {
+    // Mind Maps (Slice 1) — RIM's second portable resource after HubDocument.
+    // mind_maps carries placement-ready hubId/visibility now so Slice 2 only
+    // adds mind_map_placements. mind_map_nodes.parentId is a self-FK (the branch
+    // link); ON DELETE SET NULL so deleting a parent frees its children.
+    name: "create_mind_maps_tables",
+    async run() {
+      const tables = await db.$queryRawUnsafe(`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_name IN ('mind_maps', 'mind_map_nodes')
+      `);
+      if (tables.length < 2) {
+        await db.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS "mind_maps" (
+            "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+            "addedById" TEXT NOT NULL,
+            "title" TEXT NOT NULL,
+            "description" TEXT,
+            "hubId" TEXT,
+            "visibility" TEXT NOT NULL DEFAULT 'HUB',
+            "archivedAt" TIMESTAMP(3),
+            "deletedAt" TIMESTAMP(3),
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "mind_maps_pkey" PRIMARY KEY ("id"),
+            CONSTRAINT "mind_maps_addedById_fkey" FOREIGN KEY ("addedById") REFERENCES "users"("id") ON DELETE CASCADE,
+            CONSTRAINT "mind_maps_hubId_fkey" FOREIGN KEY ("hubId") REFERENCES "hubs"("id") ON DELETE SET NULL
+          )
+        `);
+        await db.$executeRawUnsafe(
+          `CREATE INDEX IF NOT EXISTS "mind_maps_addedById_idx" ON "mind_maps"("addedById")`,
+        );
+        await db.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS "mind_map_nodes" (
+            "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+            "mapId" TEXT NOT NULL,
+            "parentId" TEXT,
+            "label" TEXT NOT NULL,
+            "note" TEXT,
+            "x" DOUBLE PRECISION NOT NULL DEFAULT 0,
+            "y" DOUBLE PRECISION NOT NULL DEFAULT 0,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "mind_map_nodes_pkey" PRIMARY KEY ("id"),
+            CONSTRAINT "mind_map_nodes_mapId_fkey" FOREIGN KEY ("mapId") REFERENCES "mind_maps"("id") ON DELETE CASCADE,
+            CONSTRAINT "mind_map_nodes_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "mind_map_nodes"("id") ON DELETE SET NULL
+          )
+        `);
+        await db.$executeRawUnsafe(
+          `CREATE INDEX IF NOT EXISTS "mind_map_nodes_mapId_idx" ON "mind_map_nodes"("mapId")`,
+        );
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

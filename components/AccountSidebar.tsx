@@ -18,6 +18,7 @@ import {
   CalendarCheck,
   BookOpen,
   FileText,
+  Network,
   UserCircle,
   Users,
   House,
@@ -55,6 +56,7 @@ const MEMBER_LINKS: NavLink[] = [
   { label: "My Registrations", href: "/account/programs",             icon: CalendarCheck },
   { label: "Library",          href: "/account/courses",              icon: BookOpen      },
   { label: "Documents",        href: "/account/documents",            icon: FileText      },
+  { label: "Mind Maps",        href: "/account/mindmaps",             icon: Network       },
   { label: "My Profile",       href: "/account/dashboard-my-profile", icon: UserCircle    },
 ];
 

@@ -136,6 +136,7 @@ model User {
   toolAccessGranted    UserToolAccess[]      @relation("ToolAccessGranter")
   standingAssignments        StandingAssignment[] @relation("StandingAssignmentHost")
   standingAssignmentsCreated StandingAssignment[] @relation("StandingAssignmentCreator")
+  mindMaps        MindMap[]    @relation("MindMapAuthor")
 
   @@map("users")
 }
@@ -1031,8 +1032,56 @@ model Hub {
   documentPlacements HubDocumentPlacement[]
   threads       HubConversationThread[]
   appLinks      HubAppLink[]
+  mindMaps      MindMap[]
 
   @@map("hubs")
+}
+
+// MindMap — a portable brainstorming canvas (RIM's second portable resource
+// after HubDocument). Slice 1: standalone, author-owned. The hubId (origin)
+// and visibility columns are present now so Slice 2 (placement into hubs)
+// only adds a mind_map_placements table — no ALTER of this one. A map with
+// no hubId + no placements is private to its author (and GUIDING_TEACHER),
+// which falls out of canAccessMindMap (see lib/mindMapAuth.ts).
+model MindMap {
+  id          String        @id @default(cuid())
+  addedById   String
+  title       String
+  description String?
+  hubId       String?       // origin hub — null = standalone "project" map (Slice 2)
+  visibility  String        @default("HUB") // HUB | COORDINATORS | COMMUNITY (string for now; enum at Slice 2)
+  archivedAt  DateTime?
+  deletedAt   DateTime?
+  addedBy     User          @relation("MindMapAuthor", fields: [addedById], references: [id], onDelete: Cascade)
+  hub         Hub?          @relation(fields: [hubId], references: [id])
+  nodes       MindMapNode[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([addedById])
+  @@map("mind_maps")
+}
+
+// MindMapNode — a topic on the canvas. parentId is the branch link (null = a
+// root / free-floating node); edges are derived from it (no separate edge
+// table in Slice 1 — "reconnect a line" = change parentId). Stable ids matter:
+// Slice 3 anchors a HubConversationThread to a node via mindMapNodeId.
+model MindMapNode {
+  id        String       @id @default(cuid())
+  mapId     String
+  parentId  String?
+  label     String
+  note      String?
+  x         Float        @default(0)
+  y         Float        @default(0)
+  map       MindMap      @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  parent    MindMapNode? @relation("MindMapNodeParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children  MindMapNode[] @relation("MindMapNodeParent")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([mapId])
+  @@map("mind_map_nodes")
 }
 
 model HubAppLink {
