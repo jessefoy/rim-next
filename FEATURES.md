@@ -25,6 +25,7 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 | Programs vs Courses (the offering model) | `RIM_Offering_Model.md` |
 | Registration / dana / Stripe | `RIM_Registration.md` |
 | Hubs — model + per-callsite engineering rules | `RIM_Hub_Model.md`, `RIM_Hub_Engineering.md` |
+| Mind Maps — spatial brainstorming + per-topic conversations | `RIM_MindMaps.md` |
 | Scheduler tool | `RIM_Scheduler.md` |
 | Session room — Zoom (LiveKit room retired s159) | `RIM_Zoom.md` · `RIM_SessionRoom.md` (historical) |
 | Email engineering (template gate, helpers) | `RIM_Email_Engineering.md` |
@@ -144,6 +145,18 @@ Hubs are team-centric workspaces. Each provides a **Home**, **Conversations**, *
 
 ### Hub admin
 `/admin/hubs`, `/admin/hubs/new`, `/admin/hubs/[slug]/edit` — create/edit/archive hubs, app links, coverage copy, schedule flags. ADMIN only. New hubs auto-write a coordinator `HubMember` for the creating admin.
+
+---
+
+## Mind Maps
+
+A spatial brainstorming surface for the Sangha (session 160) — a draggable canvas of **topics** organized into branches, where **each topic opens a real conversation**. RIM's **second portable resource** after Documents, and a **built-in hub module** alongside Documents/Conversations. Built on `@xyflow/react` (React Flow). Read **`RIM_MindMaps.md`** before touching any mind-map surface.
+
+- **Create/edit** — `/account/mindmaps` (cross-hub directory: your hubs → Community → Projects) and the per-hub **Mind Maps tab** `/account/hub/[slug]/mindmaps`. The canvas editor at `/account/mindmaps/[id]` (full-screen React Flow): add/rename/note/drag/**reparent** topics, **floating edges**, **"Tidy up"** auto-layout, debounced **autosave**.
+- **Portable** — `MindMap` + `MindMapNode` (+ `MindMapPlacement`); created standalone or hub-owned, **shared into other hubs** with **visibility** (Hub / Coordinators / Community) and a per-map **edit option** (`editPolicy`: collaborative *vs* coordinators-only) via the share modal. Access via `lib/mindMapAuth.ts::canAccessMindMap` (mirrors `canAccessDocument`).
+- **Conversation per topic** — one shared discussion per topic across every hub the map's in, anchored via `HubConversationThread.mindMapNodeId` (reuses the conversation tables behind map-scoped routes; `lib/mindMapConversation.ts`). Plain-text comments, 5-emoji reactions, Follow/Unfollow; coordinators of the map's hubs auto-follow; followers emailed via the **`mindmap-topic-comment`** template.
+- **Routes/API:** pages above + `/api/mindmaps`, `/api/mindmaps/[id]` (+ `/placements`, `/visibility`), `/api/mindmaps/[id]/nodes/[nodeId]/{conversation,follow}`, `/api/mindmaps/[id]/comments/[replyId]/react`. CSS prefix `mm-`.
+- **Deferred:** rich-text comments, comment-count badges, per-topic unread, comment edit/delete, real-time multiplayer.
 
 ---
 

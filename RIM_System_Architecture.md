@@ -29,7 +29,9 @@ Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. M
 
 **Current hubs:** 14 operational hubs + 2 governance hubs, all manageable from `/admin/hubs`. The four hubs with linked tools are: Hosting Hub (`host-team`), Course Hub (`courses`), Registration Hub (`registrar`), Support Hub (`support`). Support Hub has no linked tools — its Support Inbox was removed in session 100.
 
-**What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), Documents, and a Members tab. Dashboard hub cards show unread badges.
+**What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), Documents, **Mind Maps** (session 160), and a Members tab. Dashboard hub cards show unread badges.
+
+**Portable resources (session 160).** Documents and **Mind Maps** are *portable resources*: created standalone or hub-owned, **placed into one or more hubs** (a placement join), carrying their own per-resource **visibility**, and gated by a resource-level access function (`canAccessDocument` / `canAccessMindMap`) rather than plain hub membership. They surface as built-in hub modules AND in a cross-hub master directory (`/account/documents`, `/account/mindmaps`). Mind Maps is the **second** such resource; a third should mirror the same model (see `RIM_MindMaps.md` + `RIM_Documents.md`). A mind-map *topic* also carries a conversation (anchored via `HubConversationThread.mindMapNodeId`, parallel to `documentId`) — **map-scoped, shared across every hub the map is in**, not hub-scoped (see `RIM_MindMaps.md`).
 
 ### Tools (`/tools/*`)
 

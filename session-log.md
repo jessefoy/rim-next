@@ -1,5 +1,30 @@
 ---
 
+## 2026-06-29 (session 160) — Mind Maps for the Sangha: POC → persistent map → hub module → conversation per topic (4 slices, all on `main`)
+
+A full feature arc, co-created from a single open question ("can we build a mindful mind-map system where each topic is a conversation, or should I find one?"). Answer: **build it** — because the value isn't a mind map, it's a *spatial way into Sangha conversations*, which only pays off fused with RIM's real conversation substrate (real names, hubs, follows, notifications) rather than a generic external canvas. Built as four reviewed slices, each fast-forwarded to `main` and verified on prod (auth-gated → prod, per the preview-login gap). **One new dependency: `@xyflow/react`** (React Flow, MIT). New CSS prefix `mm-`. Authority: the new **`RIM_MindMaps.md`**.
+
+**Why slices, and the POC-first move.** A free-form spatial canvas is the busiest, most desktop-bound UI pattern there is — the opposite of RIM's calm/mobile-first restraint. So before any schema, we shipped a **throwaway no-auth POC** (`/mindmap-preview`) with hardcoded sample nodes purely to judge the metaphor in the real aesthetic. Jesse: "looks pretty good to start with." His one note — the connections "line up funny" — drove the **floating-edge** decision. Then three real slices.
+
+### Slice 1 — a persistent map (`66a4a91`)
+`MindMap` + `MindMapNode` (parentId self-FK = the branch link; edges derived, no edge table). Canvas editor: add / rename / note / drag / **reparent via edge reconnection** (cycle-guarded) / delete (guarded, no Backspace) / **"Tidy up"** (left→right tree layout + fit) / **floating edges**. **Debounced autosave.** Standalone at `/account/mindmaps`, private to the author. `lib/mindMapAuth.ts` copied from `documentAuth.ts`. POC removed; its `mm-` CSS kept. Reviewer fixes: autosave reworked to fire on real edits only (not selection), serialized, flushed on unmount with `keepalive`; mobile touch-target/iOS-zoom/token fixes.
+
+### Slice 2 — a portable hub module (`6ad46df`)
+Jesse: "there should be a module available in all hubs, just like documents, conversations." So Mind Maps became a **built-in hub tab** (added to `HubWorkspaceSidebar`) mirroring Documents end-to-end: `MindMapPlacement` (cross-hub sharing), per-map **`editPolicy`** (his "there should be an option" — `OPEN` = collaborative canvas, anyone who can see it edits / `RESTRICTED` = author + coordinators), the **share modal** (visibility + edit option + place into hubs), and the directory reworked into hub/Community/Projects sections. Create-in-hub gates on `canAccessHub`. Reviewer fixes: access/edit gates filter memberships to **ACTIVE** (a removed member can't edit an OPEN map); the GT directory community-bucket badge reflects real visibility. Flagged the parallel **documents** ACTIVE-membership gap as a background task.
+
+### Slice 3 — a conversation per topic (`b0ef22e`)
+The heart of the idea. **One shared conversation per topic** across every hub the map lives in (Jesse's choice over a per-hub split), **notified like hub conversations** (coordinators of every map-hub auto-follow; commenters/followers get emails). Reuses the conversation **tables** behind **new routes gated on `canAccessMindMap`** (participation = view access). One thread per node (`mindMapNodeId` anchor, `@@unique`, lazy-created on first comment). Plain-text comments, 5-emoji reactions, Follow/Unfollow. New `lib/mindMapConversation.ts`. **New email template `mindmap-topic-comment`** (deep-links to the map — the hub-conv templates point at hub URLs) — seeded + `PRE_THRESHOLD`-gated, per the Email Template Gate. The editor exposes **`flushSave()`** so a brand-new topic persists before its first comment. Reviewer fixes: `commentRecipients` now also notifies COMMUNITY/non-member followers + a GT author (not just map-hub members) and excludes comms-off members; `@@unique([mindMapNodeId])` + create-race catch prevents a double thread; **all saves serialized on one in-flight chain** so `flushSave` can't race the autosave; 44px mobile touch targets.
+
+### What this connects to
+- **Documents** — the direct pattern source (portable resource, `canAccessDocument` → `canAccessMindMap`, placement/visibility, share modal, hub tab, directory sections, RSC serialization). Mind Maps is RIM's **second portable resource**.
+- **Hub conversations** — Slice 3 reuses its tables + subscription/reaction mechanics + the `after()` fire-and-forget notify pattern, but map-scoped (`mindMapNodeId` mirrors the `documentId` anchor precedent).
+- **Hub workspace** — Mind Maps joins the built-in module set (Home/Conversations/Documents/**Mind Maps**/Members).
+- **Email** — one new template through the gate; `PRE_THRESHOLD_GATED_SLUGS` extended.
+
+### Open / next
+- **Verify on prod** across the slices (see UP_NEXT). Deferred polish (backlog `2026-06-29-*`): rich-text comments, comment-count badges, per-topic unread, comment edit/delete, real-time multiplayer.
+- The **documents ACTIVE-membership gate** hardening (parallel to a Slice-2 fix) is a spawned background task / backlog item.
+
 ## 2026-06-25 (session 159) — Zoom cutover + LiveKit retired; ProgramEditor perf; volunteer host docs; Zoom scheduling integrity (Layers 1+2)
 
 A long execution session completing the Zoom migration the s158 pilot validated, plus three follow-on threads. **~7 commits on `main`, all deployed.** No new dependencies (**6 removed**); `Program.useZoom` removed from code + schema (physical DB column drop deferred — see below); no new env; **no email templates touched.** Reviewer-gated on the two substantive arcs.

@@ -292,6 +292,12 @@ Two new-pattern callouts:
 - **The OnlyOffice save callback (`POST /api/onlyoffice/callback`) is intentionally NOT session-gated** — the document server calls it server-to-server with no RIM session, so it's authenticated by the shared-secret JWT instead. The one sanctioned exception to "every `/api/**` mutation gates a session"; documented, not a leak.
 - **The cross-hub placement create-path must reject `hubId === document.hubId`** (the origin), or a doc gets double-listed in its own hub (`documentHubIds()` dedupes for *access*, but a directory/list query would show it twice).
 
+### Mind Maps — the second hub-optional, multi-hub resource (session 160)
+
+Mind Maps copies this model exactly (`MindMap` / `MindMapPlacement` / `lib/mindMapAuth.ts::canAccessMindMap`, the reject-origin-on-placement rule, the nullable `hubId`). Two map-specific things to know — full detail in `RIM_MindMaps.md`:
+- **A topic's conversation is MAP-scoped, not hub-scoped.** It reuses the `HubConversationThread`/reply/subscription/reaction tables but via **new routes gated on `canAccessMindMap`** (not `canAccessHub`) and a recipient pool that is the **union of every hub the map is in** (`lib/mindMapConversation.ts`) — because one shared conversation spans all the map's hubs. Do **not** route a map conversation through the hub conversation routes.
+- **Gate-membership loads filter `status: "ACTIVE"`.** With `editPolicy: OPEN`, map access == edit, so a stale (removed/paused) `HubMember` row must not confer either. (A parallel ACTIVE-filter gap exists in the *documents* gate — backlog/task, not yet fixed there.)
+
 Full model + the infra runbook: `RIM_OnlyOffice.md`.
 
 ---

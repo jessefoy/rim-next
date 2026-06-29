@@ -6,6 +6,26 @@
 
 ## Active
 
+### Session 160 (2026-06-29) — ✅ Mind Maps for the Sangha (4 slices) — all on `main`, deployed; prod verification pending
+
+**A whole new feature, end-to-end:** a spatial brainstorming canvas where each **topic** opens a real conversation. Co-created from "build vs find" → **build it** (the value is a spatial way into RIM's *real* conversation substrate, not a generic external canvas). Four reviewed slices, each fast-forwarded to `main`. **One new dep `@xyflow/react`.** Authority: **`RIM_MindMaps.md`**; full narrative in `session-log.md` (session 160).
+
+**Shipped + live (on `main`):**
+- **POC (`66a4a91`, since removed):** throwaway no-auth `/mindmap-preview` canvas to judge the metaphor. Jesse approved; "lines up funny" → floating edges.
+- **Slice 1 (`66a4a91`):** persistent map — `MindMap`/`MindMapNode`, the React Flow editor (add/rename/note/drag/reparent/delete, floating edges, "Tidy up", debounced autosave), standalone at `/account/mindmaps`, private to author. `lib/mindMapAuth.ts`.
+- **Slice 2 (`6ad46df`):** portable **hub module** — `MindMapPlacement` + per-map `editPolicy` (collaborative vs coordinators-only), the **Mind Maps hub tab** (in `HubWorkspaceSidebar`), the share modal (visibility + edit option + place into hubs), directory → hub/Community/Projects sections.
+- **Slice 3 (`b0ef22e`):** **conversation per topic** — one shared discussion across the map's hubs, `HubConversationThread.mindMapNodeId` anchor (`@@unique`, cascade), map-scoped routes (`canAccessMindMap`), plain-text comments + 5-emoji reactions + Follow, coordinators-of-map-hubs auto-follow, **new `mindmap-topic-comment` email** (seeded + gated). `lib/mindMapConversation.ts`; editor `flushSave()`.
+
+**OPEN — verify on prod (Jesse; none blocking):**
+1. **Slice 1:** create a map at `/account/mindmaps`; add/rename/note/drag/reparent/delete; reload → everything persists; edges stay tidy + "Tidy up" re-fits.
+2. **Slice 2:** in a hub → **Mind Maps** tab → New (hub-owned); **Share** into a second hub at Hub-members visibility → appears there badged "Shared from [hub]"; flip the **edit option** → a plain member of the 2nd hub can/can't edit accordingly; the 2nd hub's coordinator can **Remove from hub** (origin survives); a Coordinators-only map stays hidden from a plain member; the directory shows it under the right section.
+3. **Slice 3:** comment a topic → a 2nd member who can see the map sees it on the *same* topic and replies → you (a follower) get an email deep-linking to the map; react; Follow/Unfollow; delete a topic → its conversation cascades away; a hubless map says "place this in a hub to start conversations."
+4. **Deploy log:** `create_mind_maps_tables`, `create_mind_map_placements_and_edit_policy`, `add_mindmapnodeid_to_threads`, `seed_mindmap_topic_comment_email_template`; the **`mindmap-topic-comment`** template appears in `/admin/emails`.
+
+**OPEN — deferred polish (backlog `2026-06-29-*`):** rich-text comments + comment-count badges + per-topic unread + comment edit/delete (`-001`); real-time multiplayer (`-002`); the parallel **documents ACTIVE-membership gate** hardening (`-003`, also a background-task chip).
+
+**Memory candidates (step 7b — proposed, awaiting Jesse's confirm):** (1) *feedback* — **validate a risky/novel UX metaphor with a throwaway no-auth POC before any schema** (the `/mindmap-preview` move; ship it where Jesse can actually open it given the preview-login gap). (2) *feedback/user* — **when Jesse points at an existing surface as the model ("function like documents / a module in all hubs"), mirror that model end-to-end** rather than invent a parallel shape; he reasons by analogy and expects consistency. (3) *feedback* — **offer the genuine product fork, don't pick silently** — the per-map edit "option," the one-conversation-vs-per-hub choice, and notify-scope were all real forks Jesse wanted to decide.
+
 ### Session 159 (2026-06-25) — ✅ Zoom cutover + LiveKit retired + ProgramEditor perf + volunteer host docs + Zoom scheduling integrity — all on `main`, deployed
 
 **The Zoom migration is complete, plus three follow-on threads.** ~7 commits on `main`, all deployed; `tsc`-green, reviewer-gated on the substantive arcs. Authority is **`RIM_Zoom.md`**; full narrative in `session-log.md` (session 159). `RIM_SessionRoom.md` is marked **RETIRED** (kept for history + the still-live droplet server-ops).
