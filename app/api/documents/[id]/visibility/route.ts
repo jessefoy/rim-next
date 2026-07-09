@@ -38,13 +38,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const memberships = await db.hubMember.findMany({
-    where: { userId: session.user.id },
-    select: { hubId: true, isCoordinator: true },
+    where: { userId: session.user.id, status: "ACTIVE" },
+    select: { hubId: true, isCoordinator: true, status: true },
   });
   if (!canManageDocumentSharing(doc, { userId: session.user.id, roles: session.user.roles ?? [], memberships })) {
     return NextResponse.json({ error: "Only the author or a coordinator of the home hub can change sharing." }, { status: 403 });
   }
 
-  await db.hubDocument.update({ where: { id }, data: { visibility } });
-  return NextResponse.json({ visibility });
+  const updated = await db.hubDocument.update({
+    where: { id },
+    data: { visibility },
+    select: { visibility: true, updatedAt: true },
+  });
+  return NextResponse.json({ visibility: updated.visibility, updatedAt: updated.updatedAt.toISOString() });
 }

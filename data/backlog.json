@@ -950,9 +950,9 @@
     "description": "Existing NATIVE hub docs are plain (no Dharma blocks). Optionally migrate them to docKind=ONLYOFFICE .docx server-side (reversible) so all editable docs share one editor. Optional / future — native docs work fine as-is.",
     "category": "Admin Tools",
     "priority": "low",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-22",
-    "notes": ""
+    "notes": "Superseded by the decision to retire OnlyOffice in session 161 (2026-07-09). Native documents remain the supported writer."
   },
   {
     "id": "2026-06-22-004",
@@ -960,9 +960,9 @@
     "description": "Remaining Slice 6 polish: (1) mobile editing (OnlyOffice Community mobile-edit limits — weigh the nonprofit Enterprise discount); (2) first-open speed — the editor opens but is slowish on a cold doc-server (download/convert warm-up); (3) surface the office doc version history (versions are tracked, not shown); (4) the PROPER comment fix — make HubConversationThread.title nullable (~13 consumer surfaces) so doc comments are truly title-less instead of deriving a heading from the first line.",
     "category": "Admin Tools",
     "priority": "low",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-22",
-    "notes": "s155 shipped the lightweight comment fix (derive title from first line, no schema change); this is the full version."
+    "notes": "Superseded by the session-161 retirement. Native-editor safety and mobile toolbar improvements shipped there; revision history remains an explicitly separate future capability."
   },
   {
     "id": "2026-06-22-005",
@@ -970,9 +970,9 @@
     "description": "The shared HS256 secret was pasted in the s154 chat. Rotate: regenerate /root/onlyoffice/.env on the droplet, then docker compose up -d --force-recreate onlyoffice-docs, then set the same value in Vercel Production, then redeploy (lib/onlyoffice.ts reads it into a module-level const at cold start). Not blocking — the JWT is the real boundary and the editor works; do it for hygiene. SSH is awkward for Jesse; the DigitalOcean web Console is the path.",
     "category": "Infrastructure",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-22",
-    "notes": ""
+    "notes": "No rotation needed: the OnlyOffice system was retired in session 161 (2026-07-09). Remove the Vercel variables after the retirement deploy succeeds."
   },
   {
     "id": "2026-06-22-006",
@@ -1010,8 +1010,8 @@
     "description": "Parallel to a fix made for Mind Maps (Slice 2): the hub-DOCUMENTS access/edit gate loads a viewer's memberships without filtering by status, so a removed/paused member (HubMember.status INACTIVE/PAUSED, row still present) can still pass canAccessDocument/canEditDocument for a hub they left. Add status:'ACTIVE' to the membership queries feeding the gates in the document API routes + canUserAccessDocument/accessibleHubDocumentIds (the directory page already filters via myActiveHubs). Mirror the mind-map fix (lib/mindMapAuth + the route loaders now use where:{userId,status:'ACTIVE'}). Verify with npx tsc --noEmit.",
     "category": "Member Accounts",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-29",
-    "notes": "Reviewer-surfaced during session 160 as a class issue; also spawned as a background-task chip. Lower urgency for docs than maps (docs edit isn't access-equals-edit), but worth closing for consistency."
+    "notes": "DONE session 161 (2026-07-09) — `DocumentViewer` now carries membership status and `lib/documentAuth.ts` only grants hub-derived access to ACTIVE members. Updated document page/API, conversations, presence, sharing, placement, and directory callsites; `npx tsc --noEmit` passes."
   }
 ]

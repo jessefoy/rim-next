@@ -30,6 +30,7 @@ interface Props {
   docId: string | null;           // null = new document
   initialLabel: string;
   initialBody: any;               // HTML string or legacy BlockNote JSON
+  initialDescription?: string | null;
   initialCategory: string;
   documentCategories: string[];
   isAuthor?: boolean;
@@ -51,6 +52,7 @@ export default function HubDocumentEditor({
   docId,
   initialLabel,
   initialBody,
+  initialDescription = null,
   initialCategory,
   documentCategories,
   isAuthor = true,
@@ -72,6 +74,8 @@ export default function HubDocumentEditor({
   const [body, setBody] = useState<string>(
     isHtmlString(initialBody) ? initialBody : (renderBlockNoteHtml(initialBody) || ""),
   );
+  const initialBodyHtml = useRef(isHtmlString(initialBody) ? initialBody : (renderBlockNoteHtml(initialBody) || "")).current;
+  const [description, setDescription] = useState(initialDescription ?? "");
   const [category, setCategory] = useState(initialCategory);
   const [newCat, setNewCat] = useState("");
   const [categories, setCategories] = useState(documentCategories);
@@ -81,6 +85,7 @@ export default function HubDocumentEditor({
   const [notifyIds, setNotifyIds] = useState<string[]>([]);
   const [notifiedMap, setNotifiedMap] = useState<Record<string, string>>({});
   const [dismissed, setDismissed] = useState(false);
+  const [revision, setRevision] = useState(initialUpdatedAt ?? null);
   // Sharing state — persists immediately (independent of the doc Save), mirroring
   // the standalone share modal used on the documents list.
   const [visibility, setVisibility] = useState<"HUB" | "COORDINATORS" | "COMMUNITY">(initialVisibility);
@@ -91,6 +96,27 @@ export default function HubDocumentEditor({
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isNew = docId === null;
+  const isDirty =
+    label !== initialLabel ||
+    body !== initialBodyHtml ||
+    description !== (initialDescription ?? "") ||
+    category !== initialCategory ||
+    newCat !== "";
+
+  function leaveEditor(destination: string) {
+    if (isDirty && !window.confirm("Discard your unsaved changes?")) return;
+    router.push(destination);
+  }
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [isDirty]);
 
   // ── Presence heartbeat ───────────────────────────────────────────────
   useEffect(() => {
@@ -136,6 +162,7 @@ export default function HubDocumentEditor({
     if (res.ok) {
       const data = await res.json();
       setLocked(data.isLocked);
+      if (data.updatedAt) setRevision(data.updatedAt);
     }
   }
 
@@ -152,6 +179,7 @@ export default function HubDocumentEditor({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not change visibility");
       setVisibility(v);
+      if (data.updatedAt) setRevision(data.updatedAt);
     } catch (e) {
       setShareError(e instanceof Error ? e.message : "Could not change visibility");
     } finally { setShareBusy(false); }
@@ -205,6 +233,7 @@ export default function HubDocumentEditor({
           body: JSON.stringify({
             label: label.trim(),
             body,
+            description,
             category: resolvedCategory,
             newCategory,
             isNative: true,
@@ -217,9 +246,11 @@ export default function HubDocumentEditor({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             label: label.trim(), body,
+            description,
             category: resolvedCategory,
             newCategory,
             notifyUserIds: notifyIds,
+            expectedUpdatedAt: revision,
           }),
         });
       }
@@ -262,9 +293,9 @@ export default function HubDocumentEditor({
     <div className="doc-focus">
       {/* ── Slim top strip — breadcrumb back ─────────────────────────────── */}
       <div className="doc-focus__top">
-        <a href={`/account/hub/${hubSlug}/documents`} className="doc-focus__back">
+        <button type="button" onClick={() => leaveEditor(`/account/hub/${hubSlug}/documents`)} className="doc-focus__back">
           ← <span className="doc-focus__back-label">Documents</span>
-        </a>
+        </button>
         <span className="doc-focus__crumb">{label.trim() || "Untitled document"}</span>
       </div>
 
@@ -311,7 +342,7 @@ export default function HubDocumentEditor({
             <button
               type="button"
               className="doc-focus__cancel"
-              onClick={() => router.push(`/account/hub/${hubSlug}/documents`)}
+              onClick={() => leaveEditor(`/account/hub/${hubSlug}/documents`)}
             >
               Cancel
             </button>
@@ -324,6 +355,18 @@ export default function HubDocumentEditor({
             </button>
           </div>
           {error && <p className="doc-focus__error">{error}</p>}
+
+          <section className="doc-focus__field">
+            <label className="doc-focus__field-label" htmlFor="document-summary">Directory summary</label>
+            <textarea
+              id="document-summary"
+              className="fi doc-focus__summary"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="A short note to help others find this document"
+              rows={3}
+            />
+          </section>
 
           <section className="doc-focus__field">
             <div className="doc-focus__field-label">Category</div>

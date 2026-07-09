@@ -11,7 +11,37 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
-import { canAccessDocument } from "@/lib/documentAuth";
+import { canAccessDocument, canEditDocument } from "@/lib/documentAuth";
+
+async function editableDocumentForViewer(
+  id: string,
+  hubId: string,
+  userId: string,
+  roles: string[],
+) {
+  const [doc, memberships] = await Promise.all([
+    db.hubDocument.findFirst({
+      where: { id, hubId, deletedAt: null, archivedAt: null },
+      select: {
+        addedById: true,
+        hubId: true,
+        visibility: true,
+        placements: { select: { hubId: true } },
+        editingById: true,
+        editingAt: true,
+        updatedAt: true,
+        editingBy: { select: { firstName: true, lastName: true, preferredName: true } },
+      },
+    }),
+    db.hubMember.findMany({
+      where: { userId, status: "ACTIVE" },
+      select: { hubId: true, isCoordinator: true, status: true },
+    }),
+  ]);
+  if (!doc) return null;
+  const viewer = { userId, roles, memberships };
+  return { doc, viewer };
+}
 
 export async function POST(
   _req: Request,
@@ -22,14 +52,21 @@ export async function POST(
 
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
-  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!hub || (!canAccessHub(member, session.user.roles ?? []))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const result = await editableDocumentForViewer(id, hub.id, session.user.id, session.user.roles ?? []);
+  if (!result) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!canEditDocument(result.doc, result.viewer)) {
+    return NextResponse.json({ error: "Only the author or a coordinator can mark this document as being edited." }, { status: 403 });
+  }
+
   await db.hubDocument.update({
     where: { id },
-    data: { editingById: session.user.id, editingAt: new Date() },
+    // Presence is ephemeral and must not look like a content revision — doing
+    // so would make every editor conflict with its own first heartbeat.
+    data: { editingById: session.user.id, editingAt: new Date(), updatedAt: result.doc.updatedAt },
   });
 
   return NextResponse.json({ ok: true });
@@ -44,31 +81,17 @@ export async function GET(
 
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
-  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!hub || (!canAccessHub(member, session.user.roles ?? []))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const doc = await db.hubDocument.findFirst({
-    where: { id, hubId: hub.id },
-    select: {
-      addedById: true,
-      hubId: true,
-      visibility: true,
-      placements: { select: { hubId: true } },
-      editingById: true,
-      editingAt: true,
-      editingBy: { select: { firstName: true, lastName: true, preferredName: true } },
-    },
-  });
-
-  if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const result = await editableDocumentForViewer(id, hub.id, session.user.id, session.user.roles ?? []);
+  if (!result) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { doc, viewer } = result;
 
   // Doc-level access: don't reveal who's editing a doc the viewer can't reach.
   const canSee = canAccessDocument(doc, {
-    userId:      session.user.id,
-    roles:       session.user.roles ?? [],
-    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+    ...viewer,
   });
   if (!canSee) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -91,10 +114,19 @@ export async function DELETE(
 
   const { slug, id } = await params;
 
-  // Only clear if the current user is the one editing
+  const { hub, member } = await getHubMembership(slug, session.user.id);
+  if (!hub || !canAccessHub(member, session.user.roles ?? [])) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const result = await editableDocumentForViewer(id, hub.id, session.user.id, session.user.roles ?? []);
+  if (!result || !canEditDocument(result.doc, result.viewer)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Only clear if the current user is the one editing.
   await db.hubDocument.updateMany({
     where: { id, editingById: session.user.id },
-    data: { editingById: null, editingAt: null },
+    data: { editingById: null, editingAt: null, updatedAt: result.doc.updatedAt },
   });
 
   return NextResponse.json({ ok: true });

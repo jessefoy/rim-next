@@ -11,8 +11,8 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
-import { canAccessDocument } from "@/lib/documentAuth";
+import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { canAccessDocument, canEditDocument } from "@/lib/documentAuth";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import Link from "next/link";
 import HubDocConversationsClient from "@/components/HubDocConversationsClient";
@@ -45,7 +45,7 @@ export default async function HubDocumentViewPage({
   // canAccessHub → canAccessDocument shift for shared/community docs (§7).
   const viewerMemberships = await db.hubMember.findMany({
     where:  { userId: session.user.id },
-    select: { hubId: true, isCoordinator: true },
+    select: { hubId: true, isCoordinator: true, status: true },
   });
   const inThisHub = doc.hubId === hub.id || doc.placements.some((p) => p.hubId === hub.id);
   const canSee = canAccessDocument(doc, {
@@ -55,7 +55,11 @@ export default async function HubDocumentViewPage({
   });
   if (!inThisHub || !canSee) notFound();
 
-  const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
+  const canEdit = canEditDocument(doc, {
+    userId: session.user.id,
+    roles: session.user.roles ?? [],
+    memberships: viewerMemberships,
+  }) && (!doc.isLocked || doc.addedById === session.user.id || (session.user.roles ?? []).some((role) => role === "ADMIN" || role === "GUIDING_TEACHER"));
 
   // Comments live with the document's ORIGIN hub. When this doc is only shared
   // INTO the current hub (origin is elsewhere, or it's hubless), the conversation
@@ -63,15 +67,7 @@ export default async function HubDocumentViewPage({
   // affordance here that would dead-end. (RIM_Documents.md §7, origin-owns-lifecycle.)
   const isOriginHub = doc.hubId === hub.id;
 
-  // Office docs (OnlyOffice) carry no native `body` — their content lives in the
-  // full-screen editor. This page becomes the doc's home: metadata + the
-  // conversation thread + an "Open in editor" CTA, instead of native body.
-  const isOffice = doc.docKind === "ONLYOFFICE";
-  const officeKindLabel =
-    doc.fileType === "SHEET" ? "Spreadsheet"
-    : doc.fileType === "SLIDE" ? "Presentation"
-    : "Document";
-  const bodyHtml = !isOffice && doc.body ? await renderContentBodyAsync(doc.body) : "";
+  const bodyHtml = doc.body ? await renderContentBodyAsync(doc.body) : "";
 
   const addedByName =
     doc.addedBy.preferredName ||
@@ -126,7 +122,7 @@ export default async function HubDocumentViewPage({
         <Link href={`/account/hub/${slug}/documents`} className="doc-page__back">
           ← Documents
         </Link>
-        {isCoordinator && !isOffice && doc.hubId === hub.id && (
+        {canEdit && doc.hubId === hub.id && (
           <Link href={`/account/hub/${slug}/documents/${id}/edit`} className="doc-page__edit-link">
             Edit
           </Link>
@@ -154,17 +150,7 @@ export default async function HubDocumentViewPage({
         </div>
         <hr />
 
-        {isOffice ? (
-          <div className="doc-page__office">
-            <span className="doc-page__office-kind">{officeKindLabel}</span>
-            <a href={`/account/documents/${id}/office`} className="btn doc-page__office-open">
-              Open in editor →
-            </a>
-            <p className="doc-page__office-hint">
-              Co-editing, comments, version history, and real pages — opens full-screen.
-            </p>
-          </div>
-        ) : bodyHtml ? (
+        {bodyHtml ? (
           <div
             className="doc-body rim-content rim-content--document"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
@@ -176,11 +162,10 @@ export default async function HubDocumentViewPage({
         )}
       </div>
 
-      {!isOffice && (
+      {doc.docKind === "NATIVE" && (
         <div className="doc-page__footer">
-          <a href={`/api/hub/${slug}/documents/${id}/export`} download>
-            ↓ Download as Markdown
-          </a>
+          <a href={`/api/documents/${id}/export?format=md`} download>↓ Download Markdown</a>
+          <a href={`/api/documents/${id}/export?format=print`} target="_blank" rel="noreferrer">Print / Save as PDF</a>
         </div>
       )}
 

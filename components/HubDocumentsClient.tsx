@@ -42,7 +42,7 @@ interface HubDoc {
   url: string | null;
   description: string | null;
   fileType: "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK" | "PDF";
-  docKind: "NATIVE" | "ONLYOFFICE" | "LINK" | "UPLOAD";
+  docKind: "NATIVE" | "LINK" | "UPLOAD";
   category: string | null;
   isNative: boolean;
   isLocked: boolean;
@@ -66,8 +66,6 @@ interface Props {
   initialDocuments: HubDoc[];
   documentCategories: string[];
   isCoordinator: boolean;
-  /** OnlyOffice is configured (env present) — "+ Office doc" shows for any hub member. */
-  officeEnabled: boolean;
   currentUserId: string;
   hubMembers: HubMemberOption[];
   /** Hubs the viewer can share a doc into (their own active hubs). */
@@ -100,7 +98,6 @@ export default function HubDocumentsClient({
   initialDocuments,
   documentCategories: initialCategories,
   isCoordinator,
-  officeEnabled,
   currentUserId,
   hubMembers,
   viewerHubs,
@@ -236,31 +233,6 @@ export default function HubDocumentsClient({
       setShowAdd(false);
     }
     setSaving(false);
-  }
-
-  // ── New OnlyOffice office doc: create the blank, then open the editor ──────
-  const [showOffice, setShowOffice]         = useState(false);
-  const [officeLabel, setOfficeLabel]       = useState("");
-  const [creatingOffice, setCreatingOffice] = useState(false);
-
-  async function createOfficeDoc(fileType: "DOC" | "SHEET" | "SLIDE") {
-    if (!officeLabel.trim() || creatingOffice) return;
-    setCreatingOffice(true);
-    try {
-      const res = await fetch(`/api/hub/${hubSlug}/documents`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ label: officeLabel.trim(), docKind: "ONLYOFFICE", fileType }),
-      });
-      if (res.ok) {
-        const doc = await res.json();
-        window.location.href = `/account/documents/${doc.id}/office`;
-        return;
-      }
-    } catch {
-      /* re-enable below */
-    }
-    setCreatingOffice(false);
   }
 
   // ── Save edit ────────────────────────────────────────────────────────────
@@ -481,11 +453,6 @@ export default function HubDocumentsClient({
           <button className="btn btn--sm btn--ghost" onClick={() => { setShowAdd((v) => !v); resetAddForm(); }}>
             + Add Resource
           </button>
-          {officeEnabled && (
-            <button className="btn btn--sm btn--ghost" onClick={() => setShowOffice((v) => !v)}>
-              + Office doc
-            </button>
-          )}
           <button className="btn btn--sm btn--ghost" onClick={() => setShowCatManager(true)}>
             Manage categories
           </button>
@@ -526,29 +493,6 @@ export default function HubDocumentsClient({
             placeholder="Search documents…"
             aria-label="Search documents"
           />
-        </div>
-      )}
-
-      {/* New office document (OnlyOffice) */}
-      {showOffice && (
-        <div className="hub-doc-add-form">
-          <div className="add-doc-form__title">New office document</div>
-          <input
-            className="oo-create-input"
-            placeholder="Name your document…"
-            value={officeLabel}
-            onChange={(e) => setOfficeLabel(e.target.value)}
-            autoFocus
-          />
-          <div className="oo-create-types">
-            <button type="button" className="btn btn--sm" disabled={!officeLabel.trim() || creatingOffice}
-              onClick={() => createOfficeDoc("DOC")}>Document</button>
-            <button type="button" className="btn btn--sm" disabled={!officeLabel.trim() || creatingOffice}
-              onClick={() => createOfficeDoc("SHEET")}>Spreadsheet</button>
-            <button type="button" className="btn btn--sm" disabled={!officeLabel.trim() || creatingOffice}
-              onClick={() => createOfficeDoc("SLIDE")}>Presentation</button>
-          </div>
-          <p className="oo-create-hint">Opens full-screen — co-editing, comments, version history, real pages.</p>
         </div>
       )}
 
@@ -740,7 +684,7 @@ export default function HubDocumentsClient({
                         <label className="fl">Label</label>
                         <input className="fi" type="text" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
                       </div>
-                      {!doc.isNative && doc.fileType !== "PDF" && doc.docKind !== "ONLYOFFICE" && (
+                      {!doc.isNative && doc.fileType !== "PDF" && (
                         <div className="fg">
                           <label className="fl">URL</label>
                           <div className="hub-doc-url-row">
@@ -800,11 +744,7 @@ export default function HubDocumentsClient({
                       )}
                       {doc.isLocked && <span className="hub-doc-item__edit" title="Locked by author">🔒</span>}
                       <div className="hub-doc-item__text">
-                        {doc.docKind === "ONLYOFFICE" ? (
-                          <a href={`/account/hub/${hubSlug}/documents/${doc.id}`} className="hub-doc-item__native-link">
-                            {doc.label}
-                          </a>
-                        ) : doc.isNative ? (
+                        {doc.isNative ? (
                           <a href={`/account/hub/${hubSlug}/documents/${doc.id}`} className="hub-doc-item__native-link">
                             {doc.label}
                           </a>

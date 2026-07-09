@@ -1,5 +1,33 @@
 ---
 
+## 2026-07-09 (session 161) — Native Documents made production-ready; OnlyOffice retired
+
+Jesse chose the native RIM document system over maintaining a self-hosted office server. The decision is deliberate: RIM documents are a shared writing and filing surface, not a substitute for Google Docs or Word. The system now supports the work it actually promises, and no longer carries an unused server, callback, blobs, or confusing second editor.
+
+### Built
+
+- **Safe native writing:** `HubDocumentEditor` now has an optional directory summary, warns before abandoning unsaved changes, registers a browser unload guard, and sends the document revision with each native save. The PATCH route returns `409` rather than overwriting a document saved by someone else. This is explicitly single-editor collaboration: presence warns, it does not pretend to merge simultaneous edits.
+- **Presence is a real permissioned signal:** the heartbeat checks that the requested document belongs to the route’s hub and that the caller can edit it. Ephemeral presence preserves `updatedAt`, so an editor never creates a false conflict against their own heartbeat.
+- **Access hardening:** document-derived read/edit/share/placement gates now require ACTIVE memberships. This closes the parallel gap found during Mind Maps; author and Guiding Teacher policy remains unchanged.
+- **Exports:** `/api/documents/[id]/export` is resource-gated and serves actual Markdown. A print-ready page gives every native document a dependable browser **Print / Save as PDF** path without inventing a server-side PDF engine.
+- **Mobile restraint:** the document toolbar becomes horizontally scrollable at phone/tablet width rather than growing into a tall sticky control area.
+
+### Retired
+
+- Deleted every OnlyOffice route, editor component, JWT helper, blank-file template, creation path, and `oo-` CSS.
+- `retire_onlyoffice_v1` deletes the test document rows and Blob files, removes `storageKey` and `version`, and recreates `HubDocKind` without `ONLYOFFICE`. The DDL is transactional so it can retry safely on a build failure.
+- Updated the filing, architecture, stack, engineering, editor, feature, and orientation documents. `RIM_OnlyOffice.md` is now a short retirement record.
+
+### What this connects to
+
+- **Document filing system:** native documents retain categories, search, freshness, cross-hub placements, visibility, lifecycle, notifications, conversations, and the master directory.
+- **Mind Maps:** documents now match Mind Maps’ ACTIVE-membership discipline for portable resources.
+- **Infrastructure / Zoom:** the OnlyOffice deployment leaves the former LiveKit droplet with no active RIM workload; after the successful Vercel deploy, Jesse can shut it down and remove the two OnlyOffice Vercel variables.
+
+### Next
+
+Deploy and verify create/search, stale-save protection, Markdown, print-to-PDF, and the mobile toolbar. Then retire the now-unused DigitalOcean droplet. No email templates changed.
+
 ## 2026-06-29 (session 160) — Mind Maps for the Sangha: POC → persistent map → hub module → conversation per topic (4 slices, all on `main`)
 
 A full feature arc, co-created from a single open question ("can we build a mindful mind-map system where each topic is a conversation, or should I find one?"). Answer: **build it** — because the value isn't a mind map, it's a *spatial way into Sangha conversations*, which only pays off fused with RIM's real conversation substrate (real names, hubs, follows, notifications) rather than a generic external canvas. Built as four reviewed slices, each fast-forwarded to `main` and verified on prod (auth-gated → prod, per the preview-login gap). **One new dependency: `@xyflow/react`** (React Flow, MIT). New CSS prefix `mm-`. Authority: the new **`RIM_MindMaps.md`**.

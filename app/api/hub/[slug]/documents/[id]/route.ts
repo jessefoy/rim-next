@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { canAccessHub, canManageTrash, effectiveCoordinator, getHubMembership } from "@/lib/hubAuth";
-import { canAccessDocument } from "@/lib/documentAuth";
+import { canAccessDocument, canEditDocument } from "@/lib/documentAuth";
 import { cleanupRemovedBlobs } from "@/lib/blobCleanup";
 import { sendHubDocumentUpdatedEmail } from "@/lib/email";
 
@@ -36,7 +36,7 @@ export async function GET(
   const canSee = canAccessDocument(doc, {
     userId:      session.user.id,
     roles:       session.user.roles ?? [],
-    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator, status: member.status }] : [],
   });
   if (!canSee) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -65,7 +65,6 @@ export async function PATCH(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const isAdminPatch = (session.user.roles ?? []).includes("ADMIN");
   if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Author or coordinator can edit
@@ -81,9 +80,13 @@ export async function PATCH(
   }
 
   const patchRoles = session.user.roles ?? [];
+  const memberships = await db.hubMember.findMany({
+    where: { userId: session.user.id, status: "ACTIVE" },
+    select: { hubId: true, isCoordinator: true, status: true },
+  });
+  const viewer = { userId: session.user.id, roles: patchRoles, memberships };
   const isAuthor = doc.addedById === session.user.id;
-  const isCoord = effectiveCoordinator(member, patchRoles);
-  if (!isAuthor && !isCoord) {
+  if (!canEditDocument({ ...doc, placements: [] }, viewer)) {
     return NextResponse.json({ error: "Only the author or a coordinator can edit" }, { status: 403 });
   }
 
@@ -96,7 +99,19 @@ export async function PATCH(
     return NextResponse.json({ error: "This document is locked by the author" }, { status: 403 });
   }
 
-  const { label, url, description, fileType, category, newCategory, body, notifyUserIds } = await req.json();
+  const { label, url, description, fileType, category, newCategory, body, notifyUserIds, expectedUpdatedAt } = await req.json();
+
+  // Native docs are intentionally single-editor. Refuse to overwrite a newer
+  // save made after this editor opened; the editor keeps the person's work in
+  // place so they can copy it before refreshing.
+  if (doc.isNative) {
+    if (typeof expectedUpdatedAt !== "string") {
+      return NextResponse.json({ error: "This document needs to be refreshed before saving." }, { status: 400 });
+    }
+    if (doc.updatedAt.toISOString() !== expectedUpdatedAt) {
+      return NextResponse.json({ error: "This document changed while you were editing. Copy any work you need, then refresh before saving." }, { status: 409 });
+    }
+  }
 
   // Handle inline new category creation. Reuse an existing category's casing if
   // one already matches case-insensitively, so we never mint a near-duplicate.

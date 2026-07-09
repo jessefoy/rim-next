@@ -71,9 +71,9 @@ export default async function DocumentsDirectoryPage() {
   const viewer = {
     userId,
     roles,
-    // Use the SAME active-hub set the candidate query used, so the filter and
-    // the query agree (a paused member still reads; retired hubs don't surface).
-    memberships: myActiveHubs.map((m) => ({ hubId: m.hubId, isCoordinator: m.isCoordinator })),
+    // Use the same active-hub set the candidate query used, so the filter and
+    // query agree: paused memberships do not grant document access.
+    memberships: myActiveHubs.map((m) => ({ hubId: m.hubId, isCoordinator: m.isCoordinator, status: m.status })),
   };
   const accessible = candidates.filter((d) => canAccessDocument(d, viewer));
 

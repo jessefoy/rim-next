@@ -6,6 +6,21 @@
 
 ## Active
 
+### Session 161 (2026-07-09) — Native Documents are the supported path; OnlyOffice retired — deploy verification and one ops step remain
+
+**Built:** native documents now carry an optional directory summary; warn before losing unsaved work; detect a stale save instead of overwriting it; validate edit permission before writing presence; require ACTIVE membership for document-derived access; and export as real Markdown or a clean browser **Print / Save as PDF** page. The mobile editor toolbar stays a single horizontally-scrollable row rather than becoming a tall sticky control block.
+
+**Removed:** all OnlyOffice editor, save-callback, download, config, template, CSS, and creation code; its test document records and Blob files are deleted by `retire_onlyoffice_v1`, which also removes `storageKey`, `version`, and the `ONLYOFFICE` enum value. The portable filing model — categories, search, freshness, sharing, visibility, master directory, documents conversations — remains native.
+
+**Verify after deploy:**
+1. Vercel build log completes `retire_onlyoffice_v1` and deployment is green.
+2. Create a native document with a directory summary; confirm it appears in hub and master-directory search.
+3. Open in two browsers: an older editor’s save is refused after the first saves; navigating away with changes asks for confirmation.
+4. Download Markdown and confirm it opens as `.md`; use Print / Save as PDF and confirm headings, lists, and images print cleanly.
+5. On a phone, make sure the editor toolbar scrolls sideways and all controls remain reachable.
+
+**Jesse’s final infrastructure step, only after the deploy succeeds:** stop the OnlyOffice containers, decommission the now-unused DigitalOcean droplet, and remove `ONLYOFFICE_URL` / `ONLYOFFICE_JWT_SECRET` from Vercel. No live feature depends on it after this deployment.
+
 ### Session 160 (2026-06-29) — ✅ Mind Maps for the Sangha (4 slices) — all on `main`, deployed; prod verification pending
 
 **A whole new feature, end-to-end:** a spatial brainstorming canvas where each **topic** opens a real conversation. Co-created from "build vs find" → **build it** (the value is a spatial way into RIM's *real* conversation substrate, not a generic external canvas). Four reviewed slices, each fast-forwarded to `main`. **One new dep `@xyflow/react`.** Authority: **`RIM_MindMaps.md`**; full narrative in `session-log.md` (session 160).

@@ -284,13 +284,13 @@ This was **not** a cross-hub leak (the four routing layers above were clean) —
 
 ---
 
-## Documents are the first hub-optional, multi-hub resource (session 154)
+## Documents are the first hub-optional, multi-hub resource (session 161)
 
-Office documents (OnlyOffice integration, branch `claude/onlyoffice-docs`) break the "every resource belongs to exactly one hub" assumption. A `HubDocument` can live in one hub, several (`HubDocumentPlacement` join), or none (`hubId` is now nullable — hubless community-project docs). So **document access is doc-level, not hub-slug-level**: gate reads with `lib/documentAuth.ts::canAccessDocument` and edits with `canEditDocument` (placements + the per-doc `visibility` enum HUB/COORDINATORS/COMMUNITY), never a single `hubId` check. Author + GUIDING_TEACHER always pass; ADMIN does not (the s128 content boundary holds).
+`HubDocument` breaks the "every resource belongs to exactly one hub" assumption. A document can live in one hub, several (`HubDocumentPlacement`), or none (`hubId` nullable). So **document access is doc-level, not hub-slug-level**: gate reads with `lib/documentAuth.ts::canAccessDocument` and edits with `canEditDocument` (placements + visibility), never a single `hubId` check. Author + GUIDING_TEACHER always pass; ADMIN does not. Hub membership must be **ACTIVE** before it grants document read, edit, share, placement, presence, conversation, or export access.
 
 Two new-pattern callouts:
-- **The OnlyOffice save callback (`POST /api/onlyoffice/callback`) is intentionally NOT session-gated** — the document server calls it server-to-server with no RIM session, so it's authenticated by the shared-secret JWT instead. The one sanctioned exception to "every `/api/**` mutation gates a session"; documented, not a leak.
 - **The cross-hub placement create-path must reject `hubId === document.hubId`** (the origin), or a doc gets double-listed in its own hub (`documentHubIds()` dedupes for *access*, but a directory/list query would show it twice).
+- **Native-editor saves require the `updatedAt` revision**. On mismatch return `409`; do not silently overwrite another person’s save. Presence writes must use `canEditDocument`, not merely a hub door.
 
 ### Mind Maps — the second hub-optional, multi-hub resource (session 160)
 
@@ -298,7 +298,7 @@ Mind Maps copies this model exactly (`MindMap` / `MindMapPlacement` / `lib/mindM
 - **A topic's conversation is MAP-scoped, not hub-scoped.** It reuses the `HubConversationThread`/reply/subscription/reaction tables but via **new routes gated on `canAccessMindMap`** (not `canAccessHub`) and a recipient pool that is the **union of every hub the map is in** (`lib/mindMapConversation.ts`) — because one shared conversation spans all the map's hubs. Do **not** route a map conversation through the hub conversation routes.
 - **Gate-membership loads filter `status: "ACTIVE"`.** With `editPolicy: OPEN`, map access == edit, so a stale (removed/paused) `HubMember` row must not confer either. (A parallel ACTIVE-filter gap exists in the *documents* gate — backlog/task, not yet fixed there.)
 
-Full model + the infra runbook: `RIM_OnlyOffice.md`.
+Full model: `RIM_Documents.md`.
 
 ---
 

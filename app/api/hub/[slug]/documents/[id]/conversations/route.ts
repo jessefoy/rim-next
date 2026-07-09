@@ -30,7 +30,7 @@ export async function GET(
   if (!canAccessDocument(doc, {
     userId:      session.user.id,
     roles:       session.user.roles ?? [],
-    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator, status: member.status }] : [],
   })) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -71,7 +71,7 @@ export async function POST(
   if (!canAccessDocument(doc, {
     userId:      session.user.id,
     roles:       session.user.roles ?? [],
-    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator, status: member.status }] : [],
   })) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

@@ -6,7 +6,7 @@
 > exist; the `useZoom` flag is gone (Zoom is unconditional). The live room is now Zoom —
 > see **`RIM_Zoom.md`**. This doc is kept for (a) historical reference on how the room
 > worked, and (b) the **DigitalOcean droplet server-ops** below, which are still live: the
-> droplet hosts OnlyOffice (`RIM_OnlyOffice.md`). Host-identity logic survived as
+> The former droplet is being retired with OnlyOffice. Host-identity logic survived as
 > `lib/sessionAuth.ts` (renamed from `livekitAuth.ts`); the time-window gate
 > (`lib/sessionWindow.ts`) and `SessionBan` are reused by the Zoom entry.
 

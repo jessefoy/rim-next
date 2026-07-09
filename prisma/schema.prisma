@@ -946,19 +946,17 @@ enum HubDocumentFileType {
   PDF
 }
 
-// How a HubDocument is authored/stored (OnlyOffice integration).
-//   NATIVE     — RIM Tiptap editor, content in `body`
-//   ONLYOFFICE — office file (docx/xlsx/pptx) edited in OnlyOffice, in `storageKey`
-//   LINK       — external URL in `url` (e.g. a Google Drive link)
-//   UPLOAD     — uploaded file (e.g. a PDF) in `url`
+// How a HubDocument is authored/stored.
+//   NATIVE — RIM Tiptap editor, content in `body`
+//   LINK   — external URL in `url` (e.g. a Google Drive link)
+//   UPLOAD — uploaded file (e.g. a PDF) in `url`
 enum HubDocKind {
   NATIVE
-  ONLYOFFICE
   LINK
   UPLOAD
 }
 
-// Per-document visibility (OnlyOffice integration). Layers on top of hub
+// Per-document visibility. Layers on top of hub
 // placement: HUB = all members of the doc's hub(s); COORDINATORS = only those
 // hubs' coordinators; COMMUNITY = any active member, hub-independent.
 enum HubDocVisibility {
@@ -1167,8 +1165,6 @@ model HubDocument {
   category    String?
   body        Json?               // native editor content (Tiptap HTML; legacy BlockNote JSON) — set when docKind = NATIVE
   docKind     HubDocKind          @default(NATIVE) // canonical type discriminator (backfilled from isNative/fileType/url)
-  storageKey  String?             // OnlyOffice office-file key in blob storage — set when docKind = ONLYOFFICE
-  version     Int                 @default(0)      // bumped on each OnlyOffice save; drives the OnlyOffice document key
   visibility  HubDocVisibility    @default(HUB)    // who can reach this doc (layers on hub placement)
   isNative    Boolean             @default(false)
   isLocked    Boolean             @default(false) // Author can lock to prevent edits
@@ -1199,7 +1195,7 @@ model HubDocument {
   @@map("hub_documents")
 }
 
-// Cross-hub sharing (OnlyOffice integration). One canonical HubDocument can be
+// Cross-hub sharing. One canonical HubDocument can be
 // *placed in* several hubs — it surfaces in each hub's list (badged) but is
 // never duplicated. Origin hub is HubDocument.hubId (nullable for hubless
 // project/community docs); additional shares are rows here. The create path

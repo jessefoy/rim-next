@@ -14,7 +14,7 @@ authority for host identity), `RIM_Stack_Reference.md` (env + deps),
 > virtual/hybrid session.** The pilot succeeded; the in-browser LiveKit room was
 > retired (code removed) and the per-program `useZoom` flag dropped. `/session/[slug]`
 > now redirects to `/session/[slug]/enter` (the single entry). The DigitalOcean
-> droplet stays (it hosts OnlyOffice); only the `livekit-server` container is stopped.
+> the former shared droplet can be decommissioned once the native-document retirement deploy is complete.
 > See "Cutover (done)" at the bottom.
 
 ---
@@ -227,7 +227,7 @@ The pilot succeeded, so the migration is complete:
 
 **Remaining (ops, Jesse's — none block the app):**
 - Stop the `livekit-server` container on the DO droplet (**keep the droplet — it
-  hosts OnlyOffice**) and remove the now-unused `NEXT_PUBLIC_LIVEKIT_URL` /
+  no longer hosts an active RIM service**) and remove the now-unused `NEXT_PUBLIC_LIVEKIT_URL` /
   `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` Vercel env vars.
 - **Recording:** on the two pool seats, set Zoom cloud recording to "Record an audio
   only file" **and** "Record a separate audio file of each participant" — the

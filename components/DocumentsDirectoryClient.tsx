@@ -17,7 +17,7 @@ interface DirDoc {
   id: string;
   label: string;
   description: string | null;
-  docKind: "NATIVE" | "ONLYOFFICE" | "LINK" | "UPLOAD";
+  docKind: "NATIVE" | "LINK" | "UPLOAD";
   fileType: string;
   category: string | null;
   updatedAt: string;
@@ -32,7 +32,6 @@ interface DirSection { key: string; label: string; docs: DirDoc[] }
 interface Props { sections: DirSection[] }
 
 const KIND_LABEL: Record<DirDoc["docKind"], string> = {
-  ONLYOFFICE: "Office",
   NATIVE: "Doc",
   LINK: "Link",
   UPLOAD: "File",

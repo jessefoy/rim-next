@@ -1,6 +1,6 @@
 /**
  * POST /api/hub/[slug]/documents/[id]/lock — Toggle document lock.
- * Only the author or ADMIN can lock/unlock.
+ * Only the author, ADMIN, or GUIDING_TEACHER can lock/unlock.
  */
 
 import { auth } from "@/auth";
@@ -17,7 +17,7 @@ export async function POST(
 
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
-  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
+  const canModerate = (session.user.roles ?? []).some((role) => role === "ADMIN" || role === "GUIDING_TEACHER");
   if (!hub || (!canAccessHub(member, session.user.roles ?? []))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -26,15 +26,15 @@ export async function POST(
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Only the author or admin can toggle lock
-  if (doc.addedById !== session.user.id && !isAdmin) {
+  if (doc.addedById !== session.user.id && !canModerate) {
     return NextResponse.json({ error: "Only the author can lock/unlock this document" }, { status: 403 });
   }
 
   const updated = await db.hubDocument.update({
     where: { id },
     data: { isLocked: !doc.isLocked },
-    select: { isLocked: true },
+    select: { isLocked: true, updatedAt: true },
   });
 
-  return NextResponse.json(updated);
+  return NextResponse.json({ ...updated, updatedAt: updated.updatedAt.toISOString() });
 }

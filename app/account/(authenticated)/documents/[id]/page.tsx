@@ -3,9 +3,9 @@
  *
  * The directory's destination for docs reached outside the viewer's hubs
  * (Community) or with no hub at all (Projects). Gated by the pure
- * canUserAccessDocument — no hub context required. Office docs route to the
- * full-screen editor; native docs render read-only; link/file docs offer the
- * file. Per-hub comments live on the hub doc-view page, not here.
+ * canUserAccessDocument — no hub context required. Native docs render
+ * read-only; link/file docs offer the file. Per-hub comments live on the hub
+ * doc-view page, not here.
  */
 
 import { auth } from "@/auth";
@@ -36,11 +36,8 @@ export default async function DocumentReaderPage({
   });
   if (!doc) notFound();
 
-  const isOffice   = doc.docKind === "ONLYOFFICE";
   const isExternal = doc.docKind === "LINK" || doc.docKind === "UPLOAD";
-  const officeKindLabel =
-    doc.fileType === "SHEET" ? "Spreadsheet" : doc.fileType === "SLIDE" ? "Presentation" : "Document";
-  const bodyHtml = !isOffice && !isExternal && doc.body ? await renderContentBodyAsync(doc.body) : "";
+  const bodyHtml = !isExternal && doc.body ? await renderContentBodyAsync(doc.body) : "";
 
   const addedByName =
     doc.addedBy.preferredName ||
@@ -61,19 +58,9 @@ export default async function DocumentReaderPage({
         </p>
         <hr />
 
-        {isOffice ? (
-          <div className="doc-page__office">
-            <span className="doc-page__office-kind">{officeKindLabel}</span>
-            <a href={`/account/documents/${id}/office`} className="btn doc-page__office-open">
-              Open in editor →
-            </a>
-            <p className="doc-page__office-hint">
-              Co-editing, comments, version history, and real pages — opens full-screen.
-            </p>
-          </div>
-        ) : isExternal && doc.url ? (
-          <div className="doc-page__office">
-            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn doc-page__office-open">
+        {isExternal && doc.url ? (
+          <div className="doc-page__external">
+            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn doc-page__external-open">
               Open {doc.fileType === "PDF" ? "file" : "link"} →
             </a>
           </div>
@@ -85,6 +72,12 @@ export default async function DocumentReaderPage({
           </p>
         )}
       </div>
+      {doc.docKind === "NATIVE" && (
+        <div className="doc-page__footer">
+          <a href={`/api/documents/${id}/export?format=md`} download>↓ Download Markdown</a>
+          <a href={`/api/documents/${id}/export?format=print`} target="_blank" rel="noreferrer">Print / Save as PDF</a>
+        </div>
+      )}
       </div>
     </AccountLayout>
   );

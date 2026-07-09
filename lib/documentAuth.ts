@@ -33,11 +33,11 @@ export interface DocumentAccessShape {
   placements: { hubId: string }[];
 }
 
-/** The viewer's identity + their hub memberships (hubId + coordinator flag). */
+/** The viewer's identity + their active hub memberships. */
 export interface DocumentViewer {
   userId: string;
   roles: string[];
-  memberships: { hubId: string; isCoordinator: boolean }[];
+  memberships: { hubId: string; isCoordinator: boolean; status: string }[];
 }
 
 /** The set of hubs a doc lives in: origin hub + every placement. */
@@ -50,7 +50,7 @@ function documentHubIds(doc: DocumentAccessShape): Set<string> {
 
 /**
  * Can this viewer OPEN this document? The canonical access door for the doc
- * view, the master directory, and the OnlyOffice editor-config route. Pure.
+ * view and the master directory. Pure.
  */
 export function canAccessDocument(doc: DocumentAccessShape, viewer: DocumentViewer): boolean {
   if (doc.addedById === viewer.userId) return true; // author always
@@ -59,6 +59,7 @@ export function canAccessDocument(doc: DocumentAccessShape, viewer: DocumentView
 
   const hubIds = documentHubIds(doc);
   for (const m of viewer.memberships) {
+    if (m.status !== "ACTIVE") continue;
     if (!hubIds.has(m.hubId)) continue;
     if (doc.visibility === "HUB") return true;
     if (doc.visibility === "COORDINATORS" && m.isCoordinator) return true;
@@ -80,6 +81,7 @@ export function canEditDocument(doc: DocumentAccessShape, viewer: DocumentViewer
 
   const hubIds = documentHubIds(doc);
   for (const m of viewer.memberships) {
+    if (m.status !== "ACTIVE") continue;
     if (hubIds.has(m.hubId) && m.isCoordinator) return true;
   }
   return false;
@@ -101,7 +103,7 @@ export function canManageDocumentSharing(doc: DocumentAccessShape, viewer: Docum
   if (doc.addedById === viewer.userId) return true;
   if (viewer.roles.includes("GUIDING_TEACHER")) return true;
   if (doc.hubId === null) return false; // hubless project doc: author / GT only
-  return viewer.memberships.some((m) => m.hubId === doc.hubId && m.isCoordinator);
+  return viewer.memberships.some((m) => m.status === "ACTIVE" && m.hubId === doc.hubId && m.isCoordinator);
 }
 
 /**
@@ -113,7 +115,7 @@ export function canManageDocumentSharing(doc: DocumentAccessShape, viewer: Docum
  */
 export function canRemovePlacement(doc: DocumentAccessShape, viewer: DocumentViewer, hubId: string): boolean {
   if (canManageDocumentSharing(doc, viewer)) return true;
-  return viewer.memberships.some((m) => m.hubId === hubId && m.isCoordinator);
+  return viewer.memberships.some((m) => m.status === "ACTIVE" && m.hubId === hubId && m.isCoordinator);
 }
 
 /**
@@ -138,8 +140,8 @@ export async function canUserAccessDocument(
   if (!doc) return null;
 
   const memberships = await db.hubMember.findMany({
-    where: { userId },
-    select: { hubId: true, isCoordinator: true },
+    where: { userId, status: "ACTIVE" },
+    select: { hubId: true, isCoordinator: true, status: true },
   });
 
   return canAccessDocument(doc, { userId, roles, memberships });
@@ -166,8 +168,8 @@ export async function accessibleHubDocumentIds(
       select: { id: true, addedById: true, hubId: true, visibility: true, placements: { select: { hubId: true } } },
     }),
     db.hubMember.findMany({
-      where:  { userId },
-      select: { hubId: true, isCoordinator: true },
+      where:  { userId, status: "ACTIVE" },
+      select: { hubId: true, isCoordinator: true, status: true },
     }),
   ]);
   const viewer = { userId, roles, memberships };

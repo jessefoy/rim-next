@@ -46,7 +46,7 @@ export default async function HubDocumentEditPage({
     // and the canManageDocumentSharing check (origin-hub authority).
     db.hubMember.findMany({
       where:  { userId: session.user.id, status: "ACTIVE" },
-      select: { hubId: true, isCoordinator: true, hub: { select: { id: true, name: true } } },
+      select: { hubId: true, isCoordinator: true, status: true, hub: { select: { id: true, name: true } } },
     }),
   ]);
 
@@ -102,7 +102,7 @@ export default async function HubDocumentEditPage({
     {
       userId:      session.user.id,
       roles:       editRoles,
-      memberships: viewerMemberships.map((m) => ({ hubId: m.hubId, isCoordinator: m.isCoordinator })),
+      memberships: viewerMemberships.map((m) => ({ hubId: m.hubId, isCoordinator: m.isCoordinator, status: m.status })),
     },
   );
   const viewerHubs = viewerMemberships.map((m) => ({ id: m.hub.id, name: m.hub.name }));
@@ -114,6 +114,7 @@ export default async function HubDocumentEditPage({
       docId={id}
       initialLabel={doc.label}
       initialBody={doc.body}
+      initialDescription={doc.description}
       initialCategory={doc.category ?? ""}
       documentCategories={hub.documentCategories as string[]}
       isAuthor={isAuthor}

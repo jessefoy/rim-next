@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { del } from "@vercel/blob";
 import { seedPrograms } from "./seed-programs.mjs";
 import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
 import { seedHostHubOnboardingDocs } from "./seed-host-hub-onboarding-docs.mjs";
@@ -5185,9 +5186,8 @@ Rooted In Mindfulness · Brookfield, WI`,
   }
 
   // ───────────────────────────────────────────────────────────────────────
-  // OnlyOffice document model — office files (docx/xlsx/pptx) edited in a
-  // self-hosted OnlyOffice Document Server, surfaced through the existing
-  // HubDocument record. Additive + idempotent:
+  // Portable document model. This historical migration introduced a document
+  // kind enum, visibility, nullable origin hub, and cross-hub placements.
   //   • enums HubDocKind / HubDocVisibility
   //   • hub_documents gains docKind, storageKey, version, visibility
   //   • hubId made nullable (hubless project/community docs)
@@ -5204,7 +5204,7 @@ Rooted In Mindfulness · Brookfield, WI`,
   `).catch(() => []);
 
   if (onlyofficeDocsFlag.length === 0) {
-    console.log("→ OnlyOffice document model (enums, columns, placements, nullable hubId)…");
+    console.log("→ Portable document model (enums, columns, placements, nullable hubId)…");
     await db.$executeRawUnsafe(
       `DO $$ BEGIN CREATE TYPE "HubDocKind" AS ENUM ('NATIVE','ONLYOFFICE','LINK','UPLOAD'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
     );
@@ -5252,9 +5252,59 @@ Rooted In Mindfulness · Brookfield, WI`,
     await db.$executeRawUnsafe(
       `INSERT INTO "_migration_flags" (name) VALUES ('onlyoffice_documents_v1')`,
     );
-    console.log("  ✔ OnlyOffice document model ready (placements table, nullable hubId, docKind backfilled).");
+    console.log("  ✔ Portable document model ready (placements table, nullable hubId, docKind backfilled).");
   } else {
     console.log("  ⏭ onlyoffice_documents_v1 already applied.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Retire OnlyOffice. The office documents were test records only, so this
+  // migration permanently removes their database rows and Blob files, then
+  // removes the office-only fields and enum value. The portable filing model
+  // (placements, visibility, nullable hubId) remains intact for native docs,
+  // links, and uploads.
+  // ───────────────────────────────────────────────────────────────────────
+  const retireOnlyOfficeFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'retire_onlyoffice_v1'
+  `).catch(() => []);
+
+  if (retireOnlyOfficeFlag.length === 0) {
+    const officeDocs = await db.$queryRawUnsafe(
+      `SELECT "storageKey" FROM "hub_documents" WHERE "docKind"::text = 'ONLYOFFICE'`,
+    );
+    const blobUrls = officeDocs
+      .map((row) => row.storageKey)
+      .filter((url) => typeof url === "string" && url.includes(".public.blob.vercel-storage.com"));
+
+    if (blobUrls.length > 0) {
+      try {
+        await del(blobUrls);
+      } catch (err) {
+        // The database cleanup must still finish; failed Blob cleanup is logged
+        // for a one-time manual sweep rather than leaving retired records live.
+        console.error("[retire_onlyoffice_v1] Could not delete office blobs", err);
+      }
+    }
+
+    // Keep the schema change atomic: if any DDL fails, Postgres rolls it all
+    // back and this migration can safely retry on the next build.
+    await db.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`DELETE FROM "hub_documents" WHERE "docKind"::text = 'ONLYOFFICE'`);
+      await tx.$executeRawUnsafe(`ALTER TABLE "hub_documents" DROP COLUMN IF EXISTS "storageKey"`);
+      await tx.$executeRawUnsafe(`ALTER TABLE "hub_documents" DROP COLUMN IF EXISTS "version"`);
+      await tx.$executeRawUnsafe(`ALTER TABLE "hub_documents" ALTER COLUMN "docKind" DROP DEFAULT`);
+      await tx.$executeRawUnsafe(`CREATE TYPE "HubDocKind_retired" AS ENUM ('NATIVE', 'LINK', 'UPLOAD')`);
+      await tx.$executeRawUnsafe(
+        `ALTER TABLE "hub_documents" ALTER COLUMN "docKind" TYPE "HubDocKind_retired" USING "docKind"::text::"HubDocKind_retired"`,
+      );
+      await tx.$executeRawUnsafe(`DROP TYPE "HubDocKind"`);
+      await tx.$executeRawUnsafe(`ALTER TYPE "HubDocKind_retired" RENAME TO "HubDocKind"`);
+      await tx.$executeRawUnsafe(`ALTER TABLE "hub_documents" ALTER COLUMN "docKind" SET DEFAULT 'NATIVE'`);
+      await tx.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('retire_onlyoffice_v1')`);
+    });
+    console.log(`  ✔ retire_onlyoffice_v1: removed ${officeDocs.length} test office document(s) and retired the office schema.`);
+  } else {
+    console.log("  ⏭ retire_onlyoffice_v1 already applied.");
   }
 
   await db.$disconnect();

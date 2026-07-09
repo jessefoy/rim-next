@@ -8,7 +8,6 @@ import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import { canAccessDocument } from "@/lib/documentAuth";
 import HubDocumentsClient from "@/components/HubDocumentsClient";
-import { onlyOfficeConfigured } from "@/lib/onlyoffice";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +83,7 @@ export default async function HubDocumentsPage({
   const docViewer = {
     userId:      session.user.id,
     roles:       session.user.roles ?? [],
-    memberships: viewerMemberships.map((m) => ({ hubId: m.hubId, isCoordinator: m.isCoordinator })),
+    memberships: viewerMemberships.map((m) => ({ hubId: m.hubId, isCoordinator: m.isCoordinator, status: m.status })),
   };
   const accessibleDocuments = documents.filter((d) => canAccessDocument(d, docViewer));
 
@@ -132,7 +131,6 @@ export default async function HubDocumentsPage({
       initialDocuments={serialized}
       documentCategories={hub.documentCategories as string[]}
       isCoordinator={isCoordinator}
-      officeEnabled={onlyOfficeConfigured()}
       currentUserId={session.user.id}
       hubMembers={serializedMembers}
       viewerHubs={viewerHubs}

@@ -109,7 +109,7 @@ export default async function HubHomePage({
   const recentDocViewer = {
     userId:      session.user.id,
     roles:       session.user.roles ?? [],
-    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator }] : [],
+    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator, status: member.status }] : [],
   };
   const recentDocsRaw = await db.hubDocument.findMany({
     where:  { hubId: hub.id, deletedAt: null, archivedAt: null },
@@ -274,4 +274,3 @@ async function loadHostHubThisMonth(hubId: string) {
     availableMembers,
   };
 }
-
