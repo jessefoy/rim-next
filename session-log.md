@@ -28,6 +28,10 @@ Jesse chose the native RIM document system over maintaining a self-hosted office
 
 Deploy and verify create/search, stale-save protection, Markdown, print-to-PDF, and the mobile toolbar. Then retire the now-unused DigitalOcean droplet. No email templates changed.
 
+### Operations follow-through
+
+Jesse completed the retirement after deployment: removed `ONLYOFFICE_URL` and `ONLYOFFICE_JWT_SECRET` from Vercel, destroyed the former shared DigitalOcean droplet, and removed the `docs`, `livekit`, and `livekit-turn` DNS records. RIM no longer depends on DigitalOcean.
+
 ## 2026-06-29 (session 160) — Mind Maps for the Sangha: POC → persistent map → hub module → conversation per topic (4 slices, all on `main`)
 
 A full feature arc, co-created from a single open question ("can we build a mindful mind-map system where each topic is a conversation, or should I find one?"). Answer: **build it** — because the value isn't a mind map, it's a *spatial way into Sangha conversations*, which only pays off fused with RIM's real conversation substrate (real names, hubs, follows, notifications) rather than a generic external canvas. Built as four reviewed slices, each fast-forwarded to `main` and verified on prod (auth-gated → prod, per the preview-login gap). **One new dependency: `@xyflow/react`** (React Flow, MIT). New CSS prefix `mm-`. Authority: the new **`RIM_MindMaps.md`**.

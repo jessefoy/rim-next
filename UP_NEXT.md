@@ -6,7 +6,7 @@
 
 ## Active
 
-### Session 161 (2026-07-09) — Native Documents are the supported path; OnlyOffice retired — deploy verification and one ops step remain
+### Session 161 (2026-07-09) — Native Documents are the supported path; OnlyOffice fully retired
 
 **Built:** native documents now carry an optional directory summary; warn before losing unsaved work; detect a stale save instead of overwriting it; validate edit permission before writing presence; require ACTIVE membership for document-derived access; and export as real Markdown or a clean browser **Print / Save as PDF** page. The mobile editor toolbar stays a single horizontally-scrollable row rather than becoming a tall sticky control block.
 
@@ -19,7 +19,7 @@
 4. Download Markdown and confirm it opens as `.md`; use Print / Save as PDF and confirm headings, lists, and images print cleanly.
 5. On a phone, make sure the editor toolbar scrolls sideways and all controls remain reachable.
 
-**Jesse’s final infrastructure step, only after the deploy succeeds:** stop the OnlyOffice containers, decommission the now-unused DigitalOcean droplet, and remove `ONLYOFFICE_URL` / `ONLYOFFICE_JWT_SECRET` from Vercel. No live feature depends on it after this deployment.
+**Completed operations:** the OnlyOffice/LiveKit DigitalOcean droplet was destroyed, the retired `docs`, `livekit`, and `livekit-turn` DNS records were removed, and `ONLYOFFICE_URL` / `ONLYOFFICE_JWT_SECRET` were removed from Vercel. No live feature depends on DigitalOcean.
 
 ### Session 160 (2026-06-29) — ✅ Mind Maps for the Sangha (4 slices) — all on `main`, deployed; prod verification pending
 
