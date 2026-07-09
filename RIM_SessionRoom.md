@@ -4,9 +4,9 @@
 > document describes was **removed** when sessions cut over to Zoom — `components/session/*`
 > (except `ZoomLaunch.tsx`), `components/VideoRoom.tsx`, and `app/api/livekit/*` no longer
 > exist; the `useZoom` flag is gone (Zoom is unconditional). The live room is now Zoom —
-> see **`RIM_Zoom.md`**. This doc is kept for (a) historical reference on how the room
-> worked, and (b) the **DigitalOcean droplet server-ops** below, which are still live: the
-> The former droplet is being retired with OnlyOffice. Host-identity logic survived as
+> see **`RIM_Zoom.md`**. This doc is kept as a historical reference only. The former
+> DigitalOcean droplet was destroyed in session 161; the server-operations section
+> below must not be used as current instructions. Host-identity logic survived as
 > `lib/sessionAuth.ts` (renamed from `livekitAuth.ts`); the time-window gate
 > (`lib/sessionWindow.ts`) and `SessionBan` are reused by the Zoom entry.
 
@@ -218,7 +218,10 @@ The **bell is unaffected** — you're unmuted via `M` when you ring it.
 
 ---
 
-## Server operations & hardening (self-hosted LiveKit · sessions 150, 152)
+## Server operations & hardening (historical — droplet destroyed session 161)
+
+There is no LiveKit or OnlyOffice server remaining. The following details describe
+the former deployment only.
 
 The room runs on a self-hosted LiveKit server on a DigitalOcean droplet (**`RIM-LiveKit`**, `104.248.229.126`, Ubuntu 24.04). Compose stack (`~/livekit.rootedinmindfulness.org/`): `livekit-server` + Caddy/TLS (`caddyl4`) + Redis, all `network_mode: host` + `restart: unless-stopped`; Docker is systemd-enabled → the stack auto-restarts on reboot (proven session 152). Manage with `cd ~/livekit.rootedinmindfulness.org && docker compose {ps,logs,restart,pull}`.
 

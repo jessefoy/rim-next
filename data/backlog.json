@@ -107,7 +107,7 @@
     "priority": "high",
     "status": "done",
     "addedAt": "2026-06-24",
-    "notes": "DONE session 159 (2026-06-25) — pilot succeeded; cut over + retired the LiveKit room code (branch claude/zoom-cutover). useZoom dropped (Zoom unconditional for virtual/hybrid); /session/[slug] redirects to /enter; LiveKit components/routes/deps/livekit-test/noise assets removed; lib/livekitAuth->sessionAuth, helpers->sessionIdentity. REMAINING (Jesse's ops, non-blocking): stop the livekit-server container on the droplet (keep the droplet — OnlyOffice) + remove the NEXT_PUBLIC_LIVEKIT_URL/LIVEKIT_API_KEY/LIVEKIT_API_SECRET Vercel env vars. Reference: RIM_Zoom.md 'Cutover (done)'."
+    "notes": "DONE session 159 (2026-06-25) — pilot succeeded; cut over + retired the LiveKit room code (branch claude/zoom-cutover). Session 161 completed the remaining infrastructure retirement: the shared DigitalOcean droplet and retired DNS were removed. `NEXT_PUBLIC_LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` are now inert and may be removed from Vercel if still present. Reference: RIM_Zoom.md 'Cutover (done)'."
   },
   {
     "id": "2026-06-24-005",

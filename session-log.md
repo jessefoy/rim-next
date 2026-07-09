@@ -26,7 +26,7 @@ Jesse chose the native RIM document system over maintaining a self-hosted office
 
 ### Next
 
-Deploy and verify create/search, stale-save protection, Markdown, print-to-PDF, and the mobile toolbar. Then retire the now-unused DigitalOcean droplet. No email templates changed.
+Verify create/search, stale-save protection, Markdown, print-to-PDF, and the mobile toolbar on production. No email templates changed.
 
 ### Operations follow-through
 

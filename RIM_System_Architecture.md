@@ -218,7 +218,7 @@ never copied. Access layers a per-doc **visibility** (HUB / COORDINATORS /
 COMMUNITY) on top of that placement set; the single gate is the pure
 `lib/documentAuth.ts::canAccessDocument` (author + GUIDING_TEACHER always;
 ADMIN-alone does not auto-pass — the session-128 boundary). It's the access model
-the hub doc-view page, the OnlyOffice editor, and the master directory
+the hub doc-view page, native-document export, and the master directory
 (`/account/documents`) all ride. **Origin owns the lifecycle** — edit/archive/
 delete happen at the home hub; a hub a doc is shared into can only remove its own
 placement. The hub doc-view page moved `canAccessHub` → `canAccessDocument` so

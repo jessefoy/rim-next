@@ -12,7 +12,7 @@
 
 **Removed:** all OnlyOffice editor, save-callback, download, config, template, CSS, and creation code; its test document records and Blob files are deleted by `retire_onlyoffice_v1`, which also removes `storageKey`, `version`, and the `ONLYOFFICE` enum value. The portable filing model — categories, search, freshness, sharing, visibility, master directory, documents conversations — remains native.
 
-**Verify after deploy:**
+**Production verification to close the native-document slice:**
 1. Vercel build log completes `retire_onlyoffice_v1` and deployment is green.
 2. Create a native document with a directory summary; confirm it appears in hub and master-directory search.
 3. Open in two browsers: an older editor’s save is refused after the first saves; navigating away with changes asks for confirmation.

@@ -5,7 +5,7 @@ touching the Zoom entry (`app/session/[slug]/enter/`), the Zoom helpers
 (`lib/zoom.ts`, `lib/sessionMeeting.ts`), or the `useZoom` / `recordByDefault`
 program flags.
 
-Companion docs: `RIM_SessionRoom.md` (the LiveKit room being migrated away from),
+Companion docs: `RIM_SessionRoom.md` (historical LiveKit reference),
 `RIM_System_Architecture.md` (Video Conferencing — permission model, still the
 authority for host identity), `RIM_Stack_Reference.md` (env + deps),
 `RIM_Scheduler.md` (HostAssignment — who the host is).
@@ -13,8 +13,8 @@ authority for host identity), `RIM_Stack_Reference.md` (env + deps),
 > **Status (session 159, 2026-06-25): CUT OVER — Zoom is the room for every
 > virtual/hybrid session.** The pilot succeeded; the in-browser LiveKit room was
 > retired (code removed) and the per-program `useZoom` flag dropped. `/session/[slug]`
-> now redirects to `/session/[slug]/enter` (the single entry). The DigitalOcean
-> The former shared droplet was decommissioned in session 161; Zoom has no DigitalOcean dependency.
+> now redirects to `/session/[slug]/enter` (the single entry). The former shared
+> DigitalOcean droplet was decommissioned in session 161; Zoom has no DigitalOcean dependency.
 > See "Cutover (done)" at the bottom.
 
 ---
@@ -225,10 +225,10 @@ The pilot succeeded, so the migration is complete:
    assets, and the 6 LiveKit/noise npm deps. The two SDK-free helpers moved to
    `lib/sessionIdentity.ts`; `lib/livekitAuth.ts` → `lib/sessionAuth.ts`.
 
-**Remaining (ops, Jesse's — none block the app):**
-- Stop the `livekit-server` container on the DO droplet (**keep the droplet — it
-  has been decommissioned**) and remove the now-unused `NEXT_PUBLIC_LIVEKIT_URL` /
-  `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` Vercel env vars.
+**Operations follow-through:** the former DigitalOcean droplet and its retired DNS
+records were removed in session 161. `NEXT_PUBLIC_LIVEKIT_URL`, `LIVEKIT_API_KEY`,
+and `LIVEKIT_API_SECRET` are unused; if they remain in Vercel, remove them as
+non-blocking credential housekeeping.
 - **Recording:** on the two pool seats, set Zoom cloud recording to "Record an audio
   only file" **and** "Record a separate audio file of each participant" — the
   per-speaker option yields a clean teacher track when the teacher is named.
