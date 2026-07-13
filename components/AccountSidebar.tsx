@@ -112,8 +112,7 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
               aria-expanded={teamsOpen || isHubRoute}
             >
               <Globe size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
-              <span className="ac-sidebar__label">Teams</span>
-              <span className="ac-sidebar__count">{hubLinks.length}</span>
+              <span className="ac-sidebar__label">Your teams</span>
               <ChevronDown size={15} className={`ac-sidebar__chevron${teamsOpen ? " ac-sidebar__chevron--open" : ""}`} />
             </button>
             {(teamsOpen || isHubRoute) && hubLinks.map((h) => (
@@ -139,7 +138,7 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
               aria-expanded={manageOpen}
             >
               <Layers size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
-              <span className="ac-sidebar__label">Administration</span>
+              <span className="ac-sidebar__label">Manage RIM</span>
               <ChevronDown size={15} className={`ac-sidebar__chevron${manageOpen ? " ac-sidebar__chevron--open" : ""}`} />
             </button>
             {manageOpen && visibleStaffLinks.map((l) => (

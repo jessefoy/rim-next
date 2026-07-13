@@ -58,7 +58,10 @@ export default function Nav() {
         </Link>
         <div className="member-bar__right">
           <Link href="/account/dashboard-my-profile" className="member-bar__profile">
-            {firstName}
+            <span className="member-bar__avatar" aria-hidden="true">
+              {firstName.charAt(0).toUpperCase()}
+            </span>
+            <span>{firstName}</span>
           </Link>
           <button onClick={() => signOut({ callbackUrl: "/" })} className="member-bar__sign-out">
             Sign out

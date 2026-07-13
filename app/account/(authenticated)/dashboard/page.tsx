@@ -392,10 +392,12 @@ export default async function DashboardPage() {
                   </div>
                   <div className="today-focus__details">
                     <h2>{primaryTodaySession.name}</h2>
-                    <p>Online on Zoom</p>
+                    <div className="today-focus__meta">
+                      <span>Online on Zoom</span>
+                      {primaryTodaySession.isRegistered && <span className="today-registered">Registered</span>}
+                    </div>
                   </div>
                   <div className="today-focus__action">
-                    {primaryTodaySession.isRegistered && <span className="today-registered">Registered</span>}
                     {primaryTodaySession.isLive && (
                       <a href={`/session/${primaryTodaySession.slug}/enter`} className="join-btn">Join on Zoom</a>
                     )}
@@ -418,10 +420,12 @@ export default async function DashboardPage() {
                       <time>{s.startTimeCT}</time>
                       <div>
                         <span className="today-list__title">{s.name}</span>
-                        <span className="today-list__meta">Online on Zoom</span>
+                        <span className="today-list__meta">
+                          <span>Online on Zoom</span>
+                          {s.isRegistered && <span className="today-registered">Registered</span>}
+                        </span>
                       </div>
                       <div className="today-list__action">
-                        {s.isRegistered && <span className="today-registered">Registered</span>}
                         {s.isLive && <a href={`/session/${s.slug}/enter`} className="today-list__join">Join on Zoom</a>}
                         {s.isSetupOpen && <a href={`/session/${s.slug}/enter`} className="today-list__join">Enter as host</a>}
                         {s.isLaterToday && <span className="today-list__context">{s.countdownText}</span>}
@@ -433,9 +437,12 @@ export default async function DashboardPage() {
                       <time>{r.nextTimeCT}</time>
                       <div>
                         <span className="today-list__title">{r.programTitle}</span>
-                        <span className="today-list__meta">In person</span>
+                        <span className="today-list__meta">
+                          <span>In person</span>
+                          <span className="today-registered">Registered</span>
+                        </span>
                       </div>
-                      <span className="today-registered">Registered</span>
+                      <div className="today-list__action" />
                     </div>
                   ))}
                 </div>
@@ -445,7 +452,7 @@ export default async function DashboardPage() {
         )}
 
         {/* Coming up for you (with inline dana status) */}
-        <div className="db-section">
+        <div className="db-section db2-coming-up">
           <p className="db-section__label">Coming up for you</p>
           {sortedRegistrations.length === 0 ? (
             <div className="db2-empty-card">
@@ -492,25 +499,6 @@ export default async function DashboardPage() {
               })}
             </div>
           )}
-        </div>
-
-        {/* Personal destinations are present without competing with the day. */}
-        <div className="db-section db2-practice">
-          <p className="db-section__label">Your practice</p>
-          <div className="db2-practice__links">
-            <Link href="/account/programs" className="db2-practice__card">
-              <span><strong>My registrations</strong><small>Your programs and session details</small></span><span aria-hidden="true">→</span>
-            </Link>
-            <Link href="/account/courses" className="db2-practice__card">
-              <span><strong>Library</strong><small>Courses, lessons, and resources</small></span><span aria-hidden="true">→</span>
-            </Link>
-            <Link href="/account/documents" className="db2-practice__card">
-              <span><strong>Documents</strong><small>Shared writing and files</small></span><span aria-hidden="true">→</span>
-            </Link>
-            <Link href="/account/mindmaps" className="db2-practice__card">
-              <span><strong>Mind maps</strong><small>Ideas, connections, and conversations</small></span><span aria-hidden="true">→</span>
-            </Link>
-          </div>
         </div>
 
         {/* Teams belong in the sidebar. Surface only work that needs attention here. */}
