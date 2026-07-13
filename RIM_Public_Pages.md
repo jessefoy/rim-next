@@ -8,17 +8,18 @@ Reference Jesse points to: the **Esther Perel** site — taken *in spirit* (warm
 
 ---
 
-## The warm-neutral scale (three shades)
+## The neutral foundation — Pampas ground, white surfaces
 
-A named warm-neutral scale in `:root`, light → dark:
+A named, restrained neutral scale in `:root`:
 
 | Token | Hex | Name | Role |
 |---|---|---|---|
-| `--rim-bg-bright` | `#fffbf4` | Bridal Heath | Lightest. Brighter-than-ground warm surfaces — held in reserve (no consumers yet; use for a hover/inset/soft band that wants to read lighter than the ground without being a white card). |
-| `--rim-bg` | `#f4efe8` | Dawn Pink | **The page ground.** Body background, default sections. |
-| `--rim-bg-accent` | `#e7e0d7` | Pearl Bush | Secondary — gentle separation + depth (recede panels, e.g. the program Notes). |
+| `--rim-surface` | `#FFFFFF` | White | **Content surface.** Cards, forms, writing surfaces, and the global navigation. |
+| `--rim-bg` | `#F5F3F0` | Pampas | **The page ground.** Body background and default sections. |
+| `--rim-bg-accent` | `#E9E6E2` | Deeper Pampas | Secondary — gentle separation + depth for receding panels (for example, program Notes). |
+| `--rim-bg-bright` | `#FAF9F7` | Light Pampas | A restrained inset or hover surface; it should never compete with a white content surface. |
 
-**Why Dawn Pink is the ground (not the lighter Bridal Heath):** the page must sit *darker* than the white cards so they read as discrete objects. A near-white ground (Bridal Heath) collapsed the card contrast. Settled session 148 after trying Bridal Heath as the ground first.
+**Why this is the foundation:** Pampas provides a warm, nearly-neutral page ground without asking the eye to interpret a color field. White remains reserved for the things a person reads, completes, or acts on. Mine Shaft (`#333333`, `--rim-text`) is the primary text color everywhere. The contrast quietly establishes hierarchy before typography or buttons do.
 
 ## The blue
 
@@ -30,7 +31,7 @@ A named warm-neutral scale in `:root`, light → dark:
 
 - **Flowing prose stays open on the ground.** Long copy (a program description) is never boxed. Boxing it cramps the most contemplative thing on the page and dilutes what a box *means*.
 - **Discrete modules lift as white cards.** Bounded, scannable content you act on — the program Details block, the pull-quote card. White (`#fff`) + `--card-shadow`.
-- **Supplementary modules recede as panels.** `--rim-bg-accent` (Pearl Bush), **no shadow** — the program Notes.
+- **Supplementary modules recede as panels.** `--rim-bg-accent` (Deeper Pampas), **no shadow** — the program Notes.
 
 **The contrast *is* the design** — a lifted thing only reads as lifted because un-lifted things sit beside it. The shadow is a *signal* ("this is a discrete object"), never decoration.
 
@@ -43,6 +44,10 @@ A named warm-neutral scale in `:root`, light → dark:
 One reusable, deliberately **faint** warm shadow. The white-on-warm contrast + rounded corners do most of the separating; the shadow only reinforces. Every white card uses this token (quote card + Details card). Dialed to "a whisper" (Jesse's calibration: subtler is righter).
 
 > **Second sanctioned exception** to the CSS "no box-shadows" rule (after `.rim-cb-popover`). White cards on the warm public-page ground may use `--card-shadow`. Nothing else.
+
+## Style guide — `/style-guide`
+
+An unlinked, no-indexed visual calibration page. It is not public navigation or a second design project; it is the place to review the live palette, typography, cards, panels, buttons, fields, and semantic feedback states together before extending the system. Use it when a visual change affects more than one screen.
 
 ---
 
@@ -64,7 +69,7 @@ Top to bottom:
 2. **Quote card** straddling the hero/ground seam — white, `--card-shadow`, `.pg-quote__text` 22px/400 serif; overlaps up `-84px` (≈ centered for a two-line quote; longer quotes grow downward keeping a constant in-hero overlap).
 3. **Description prose** — open on the ground (no box).
 4. **Details** white card (`.pg-details-section`, `--card-shadow`) — schedule/time/place/dana rows, then the CTA. The CTA is polymorphic and the markup already splits it: actionable states (`.pg-detail-cta__link` — Register / Join the waitlist / Access Zoom) are styled as a **rim-blue pill button**; informational states (`.pg-detail-cta__text` / `.pg-detail-cta__status` — "you're registered" / "registration isn't open yet" / "simply arrive in person") stay **quiet text**. Button-the-actions, leave-the-messages.
-5. **Notes** recede panel (`.pg-notes`, Pearl Bush, no shadow).
+5. **Notes** recede panel (`.pg-notes`, Deeper Pampas, no shadow).
 6. Footer.
 
 `text-wrap: balance` on title + subtitle is deliberate: every program has different-length copy, so the line shape must be **content-agnostic** (balanced lines for any title/tagline) rather than tuned for one example.
