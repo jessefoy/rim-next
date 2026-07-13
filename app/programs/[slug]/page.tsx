@@ -140,15 +140,12 @@ export default async function ProgramDetailPage({
   // ── Location label ──
   const locationLabel =
     program.programFormat === "virtual"
-      ? `Online (${location.text || "Zoom"}) only`
+      ? "Online on Zoom"
       : program.programFormat === "hybrid"
-        ? `${location.text || "Hybrid"} + Online`
+        ? `${location.text || "In person"} + online on Zoom`
         : location.text;
   const showLocation = !!(locationLabel);
 
-  const heroFacts = [scheduleLabel, timeLabel, locationLabel].filter(
-    (value): value is string => Boolean(value),
-  );
   // Use programTeachers (linked accounts) first, fall back to plain text
   const teacherNames = program.programTeachers.length > 0
     ? program.programTeachers.map((pt) => ({
@@ -180,9 +177,6 @@ export default async function ProgramDetailPage({
           <h1 className="pg-hero__title">{program.name}</h1>
           {program.tagline && (
             <p className="pg-hero__tagline">{program.tagline}</p>
-          )}
-          {heroFacts.length > 0 && (
-            <p className="pg-hero__facts">{heroFacts.join(" · ")}</p>
           )}
         </div>
       </header>
@@ -229,14 +223,14 @@ export default async function ProgramDetailPage({
 
         {/* ── Gathering facts and one state-aware next step ── */}
         <section className="pg-details-section">
-            <h3 className="pg-section-heading">Gathering details</h3>
+          <h3 className="pg-section-heading">Gathering details</h3>
+          <div className="pg-details-list">
             {(scheduleLabel || timeLabel) && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </span>
                 <span className="pg-detail-row__text">
-                  <span className="pg-detail-row__label">When</span>
                   {scheduleLabel && <span>{scheduleLabel}</span>}
                   {timeLabel && <span className="pg-detail-row__secondary">{timeLabel}</span>}
                 </span>
@@ -248,12 +242,12 @@ export default async function ProgramDetailPage({
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 </span>
                 <span className="pg-detail-row__text">
-                  <span className="pg-detail-row__label">Where</span>
-                  {location.link ? (
+                  <span>{locationLabel}</span>
+                  {location.link && (
                     <a href={location.link} target="_blank" rel="noopener noreferrer" className="pg-detail-row__link">
-                      {locationLabel}<span>Get directions ↗</span>
+                      Get directions ↗
                     </a>
-                  ) : <span>{locationLabel}</span>}
+                  )}
                 </span>
               </div>
             )}
@@ -263,14 +257,14 @@ export default async function ProgramDetailPage({
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </span>
                 <span className="pg-detail-row__text">
-                  <span className="pg-detail-row__label">Dana</span>
                   <span>{program.danaText}</span>
                 </span>
               </div>
             )}
+          </div>
 
-            {/* ── Context-aware next step — distinct from factual details. */}
-            <div className="pg-details-action">
+          {/* ── Context-aware next step — distinct from factual details. */}
+          <div className="pg-details-action">
                 {useBuiltInForm ? (
                   /* Registration programs — the person's OWN standing comes first,
                      so a registrant always sees their status even after registration
@@ -325,24 +319,36 @@ export default async function ProgramDetailPage({
                      isn't switched on yet — not a drop-in, so never "just arrive." */
                   <span className="pg-detail-cta__status">Registration isn&rsquo;t open yet.</span>
                 )}
-            </div>
+          </div>
         </section>
 
         {/* ── Facilitators section ── */}
         {hasFacilitators && (
           <section className="pg-facilitators-section">
-            <h3 className="pg-section-heading">Facilitators:</h3>
+            <h3 className="pg-section-heading">Facilitators</h3>
             <div className="pg-facilitators">
-              {teacherNames.map((t, i) => (
-                t.slug ? (
+              {teacherNames.map((t, i) => {
+                const initials = t.name
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((part) => part[0])
+                  .join("")
+                  .toUpperCase();
+
+                return t.slug ? (
                   <Link key={i} href={`/teachers/${t.slug}`} className="pg-facilitator pg-facilitator--link pg-facilitator--profile">
-                    {t.photoUrl && <img src={t.photoUrl} alt="" className="pg-facilitator__photo" />}
+                    {t.photoUrl ? (
+                      <img src={t.photoUrl} alt="" className="pg-facilitator__photo" />
+                    ) : (
+                      <span className="pg-facilitator__placeholder" aria-hidden="true">{initials}</span>
+                    )}
                     <span>{t.name}</span>
                   </Link>
                 ) : (
                   <span key={i} className="pg-facilitator">{t.name}</span>
-                )
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
