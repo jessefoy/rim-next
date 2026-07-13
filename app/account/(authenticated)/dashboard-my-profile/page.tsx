@@ -88,8 +88,13 @@ export default async function MyProfilePage({
 
   return (
     <AccountLayout>
-      <div className="mp-page">
-        <h1 className="mp-heading">My Profile</h1>
+      <div className="mp-page ac-member-page">
+        <header className="ac-page-head">
+          <div>
+            <h1 className="mp-heading ac-page-title">My Profile</h1>
+            <p className="ac-page-sub">Manage your contact information and how you appear in the RIM community.</p>
+          </div>
+        </header>
 
         {saved && (
           <div className="mp-success">Profile saved successfully.</div>
@@ -129,20 +134,20 @@ export default async function MyProfilePage({
 
         {/* Contact form */}
         <section className="mp-section">
-          <p className="mp-section__title">Contact Details</p>
+          <p className="mp-section__title">Contact details</p>
           <form action={updateProfile} className="mp-form">
             <div className="mp-field__row">
               <div className="mp-field">
-                <label htmlFor="firstName" className="mp-label">First Name</label>
+                <label htmlFor="firstName" className="mp-label">First name</label>
                 <input className="mp-input" name="firstName" type="text" id="firstName" maxLength={256} defaultValue={user?.firstName ?? ""} />
               </div>
               <div className="mp-field">
-                <label htmlFor="lastName" className="mp-label">Last Name</label>
+                <label htmlFor="lastName" className="mp-label">Last name</label>
                 <input className="mp-input" name="lastName" type="text" id="lastName" maxLength={256} defaultValue={user?.lastName ?? ""} />
               </div>
             </div>
             <div className="mp-field">
-              <label htmlFor="preferredName" className="mp-label">Preferred Name</label>
+              <label htmlFor="preferredName" className="mp-label">Preferred name</label>
               <input className="mp-input" name="preferredName" type="text" id="preferredName" maxLength={256} placeholder="How you'd like to be addressed" defaultValue={user?.preferredName ?? ""} />
             </div>
             <div className="mp-field">
@@ -153,13 +158,13 @@ export default async function MyProfilePage({
               <label htmlFor="title" className="mp-label">Title</label>
               <input className="mp-input" name="title" type="text" id="title" maxLength={256} placeholder="e.g. Guiding Teacher, Program Registrar" defaultValue={user?.title ?? ""} />
             </div>
-            <input type="submit" className="mp-submit" value="Save Profile" />
+            <input type="submit" className="mp-submit" value="Save profile" />
           </form>
         </section>
 
         {/* Email */}
         <section className="mp-section">
-          <p className="mp-section__title">Email Address</p>
+          <p className="mp-section__title">Email address</p>
           <div className="mp-field">
             <div className="mp-input mp-input--readonly">{user?.email}</div>
             <p className="mp-note">

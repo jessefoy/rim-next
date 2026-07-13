@@ -82,11 +82,13 @@ export default function DocumentsDirectoryClient({ sections }: Props) {
   }
 
   return (
-    <div className="docs-wrap">
-      <div className="docs-header">
-        <h1 className="docs-title">Documents</h1>
-        <p className="docs-sub">Everything you can reach — across your hubs, the community, and projects.</p>
-      </div>
+    <div className="docs-wrap ac-member-page">
+      <header className="docs-header ac-page-head">
+        <div>
+          <h1 className="docs-title ac-page-title">Documents</h1>
+          <p className="docs-sub ac-page-sub">Everything you can reach across your teams, the community, and projects.</p>
+        </div>
+      </header>
 
       {total > 0 && (
         <div className="docs-search">

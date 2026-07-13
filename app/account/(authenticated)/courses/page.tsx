@@ -85,12 +85,10 @@ export default async function MyCoursesPage() {
 
   return (
     <AccountLayout>
-      <div style={{ position: "relative" }}>
-        <MyCourseLibrary
-          enrollments={serialized}
-          onboardingCourses={onboardingCourses}
-        />
-      </div>
+      <MyCourseLibrary
+        enrollments={serialized}
+        onboardingCourses={onboardingCourses}
+      />
     </AccountLayout>
   );
 }

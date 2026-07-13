@@ -201,65 +201,68 @@ export default function MyCourseLibrary({
     </div>
   ) : null;
 
-  if (items.length === 0) {
-    return (
-      <div className="mcl-page">
-        <h1 className="mcl-title">Library</h1>
-        {welcomeBlock}
+  return (
+    <div className="mcl-page ac-member-page">
+      <header className="ac-page-head">
+        <div>
+          <h1 className="mcl-title ac-page-title">Library</h1>
+          <p className="ac-page-sub">
+            Courses, lessons, and resources available to you.
+          </p>
+        </div>
+      </header>
+
+      {welcomeBlock}
+
+      {items.length === 0 ? (
         <div className="mcl-empty">
           <p>You haven&apos;t enrolled in any courses yet.</p>
           <Link href="/courses">Browse courses →</Link>
         </div>
-      </div>
-    );
-  }
+      ) : (
+        <>
+          {inProgress.length > 0 && (
+            <div className="mcl-section">
+              <p className="mcl-section__title">In progress</p>
+              {inProgress.map((item) => (
+                <EnrollmentCard
+                  key={item.courseId}
+                  item={item}
+                  section="inProgress"
+                  onLeave={handleLeave}
+                />
+              ))}
+            </div>
+          )}
 
-  return (
-    <div className="mcl-page">
-      <h1 className="mcl-title">Library</h1>
+          {notStarted.length > 0 && (
+            <div className="mcl-section">
+              <p className="mcl-section__title">Not started</p>
+              {notStarted.map((item) => (
+                <EnrollmentCard
+                  key={item.courseId}
+                  item={item}
+                  section="notStarted"
+                  onLeave={handleLeave}
+                />
+              ))}
+            </div>
+          )}
 
-      {welcomeBlock}
-
-      {inProgress.length > 0 && (
-        <div className="mcl-section">
-          <p className="mcl-section__title">In Progress</p>
-          {inProgress.map((item) => (
-            <EnrollmentCard
-              key={item.courseId}
-              item={item}
-              section="inProgress"
-              onLeave={handleLeave}
-            />
-          ))}
-        </div>
-      )}
-
-      {notStarted.length > 0 && (
-        <div className="mcl-section">
-          <p className="mcl-section__title">Not Started</p>
-          {notStarted.map((item) => (
-            <EnrollmentCard
-              key={item.courseId}
-              item={item}
-              section="notStarted"
-              onLeave={handleLeave}
-            />
-          ))}
-        </div>
-      )}
-
-      {completed.length > 0 && (
-        <div className="mcl-section">
-          <p className="mcl-section__title">Completed</p>
-          {completed.map((item) => (
-            <EnrollmentCard
-              key={item.courseId}
-              item={item}
-              section="completed"
-              onLeave={handleLeave}
-            />
-          ))}
-        </div>
+          {completed.length > 0 && (
+            <div className="mcl-section">
+              <p className="mcl-section__title">Completed</p>
+              {completed.map((item) => (
+                <EnrollmentCard
+                  key={item.courseId}
+                  item={item}
+                  section="completed"
+                  onLeave={handleLeave}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

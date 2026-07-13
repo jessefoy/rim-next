@@ -90,8 +90,13 @@ export default async function MyProgramsPage() {
 
   return (
     <AccountLayout>
-      <div className="mr-page">
-          <h1 className="mr-heading">My Registrations</h1>
+      <div className="mr-page ac-member-page">
+          <header className="ac-page-head">
+            <div>
+              <h1 className="mr-heading ac-page-title">My Registrations</h1>
+              <p className="ac-page-sub">Your program commitments, schedule details, and registration history.</p>
+            </div>
+          </header>
 
           {registrations.length === 0 ? (
             <p className="mr-empty">
@@ -102,7 +107,7 @@ export default async function MyProgramsPage() {
             <>
               {active.length > 0 && (
                 <section className="mr-section">
-                  <p className="mr-section__label">Active Registrations</p>
+                  <p className="mr-section__label">Active registrations</p>
                   <div className="mr-cards">
                     {active.map((r) => {
                       const pgProg = r.pgProgram;
@@ -158,7 +163,7 @@ export default async function MyProgramsPage() {
 
               {past.length > 0 && (
                 <section className="mr-section">
-                  <p className="mr-section__label">Past / Cancelled</p>
+                  <p className="mr-section__label">Past and cancelled</p>
                   <div className="mr-cards">
                     {past.map((r) => (
                       <div key={r.id} className="mr-card mr-card--muted">

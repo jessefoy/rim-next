@@ -102,8 +102,8 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
     <section className="mp-section mp-bio">
       <p className="mp-section__title">About me</p>
       <p className="mp-section__hint">
-        Your presence photo appears on your video tile when your camera is off.
-        The description below is shown on your member profile.
+        Your photo appears in team member lists. The description below is shown
+        on your member profile.
       </p>
 
       <div className="mp-bio__avatar-row">

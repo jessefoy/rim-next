@@ -74,11 +74,11 @@ export default function MindMapsDirectory({
   const empty = sections.length === 0;
 
   return (
-    <div className="mm-dir">
-      <header className="mm-dir__head">
+    <div className="mm-dir ac-member-page">
+      <header className="mm-dir__head ac-page-head">
         <div>
-          <h1 className="mm-dir__title">Mind Maps</h1>
-          <p className="mm-dir__sub">Every map across your hubs. Create maps inside a hub from its Mind Maps tab, or start a personal one here.</p>
+          <h1 className="mm-dir__title ac-page-title">Mind Maps</h1>
+          <p className="mm-dir__sub ac-page-sub">Every map across your teams. Create one inside a team, or begin a personal map here.</p>
         </div>
         <button className="mm-btn" onClick={createMap} disabled={creating}>
           {creating ? "Creating…" : "+ New mind map"}
