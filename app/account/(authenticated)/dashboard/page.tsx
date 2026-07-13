@@ -465,7 +465,7 @@ export default async function DashboardPage() {
                     {laterTodayItems.map((item) => (
                       <div key={item.key} className="today-list__item">
                         <time>{item.startTimeCT}</time>
-                        <div className="today-list__details">
+                        <div>
                           <span className="today-list__title">{item.name}</span>
                           <span className="today-list__meta">
                             <span>{item.formatLabel}</span>
