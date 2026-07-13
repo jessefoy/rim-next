@@ -42,6 +42,20 @@ function timeOfDay(): string {
   return "evening";
 }
 
+type TodayDisplayItem = {
+  key: string;
+  name: string;
+  startTimeCT: string;
+  startEpoch: number;
+  formatLabel: string;
+  isRegistered: boolean;
+  stage: "open" | "setup" | "in-person" | "later";
+  statusText?: string;
+  actionHref?: string;
+  actionLabel?: string;
+  contextText?: string;
+};
+
 export default async function DashboardPage() {
   const session = await auth();
   if (!session) redirect("/login");
@@ -213,8 +227,6 @@ export default async function DashboardPage() {
       };
   }).sort((a, b) => a.startEpoch - b.startEpoch);
 
-  const liveSessions  = todaySessions.filter((s) => s.isLive);
-  const setupSessions = todaySessions.filter((s) => s.isSetupOpen);
   const laterSessions = todaySessions.filter((s) => s.isLaterToday);
   const laterEpochs   = laterSessions.map((s) => s.liveStartEpoch);
   // Refresh epochs for the host/teacher early-open transition: any "later"
@@ -255,26 +267,66 @@ export default async function DashboardPage() {
     return { ...r, nextDateStr, nextTimeCT };
   });
 
-  // In-person sessions the user is registered for that happen today. Hybrid
-  // programs are already covered by `todaySessions` via `allVirtual` (which
-  // includes virtual + hybrid). Strictly in-person registrations are not.
-  // Surfacing them in the Today card keeps every today-commitment in one place.
-  const inPersonTodayRegistrations = registrationsWithNext.filter(
-    (r) => r.nextDateStr === today && r.program?.programFormat === "in-person",
-  );
+  // Project every online session into a common display shape. State remains a
+  // property of its own session — a second live or host-entry session must
+  // never be demoted beneath a generic "Later today" heading.
+  const onlineTodayItems: TodayDisplayItem[] = todaySessions
+    .filter((s) => s.isLive || s.isSetupOpen || s.isLaterToday)
+    .map((s) => ({
+      key: `program-${s._id}`,
+      name: s.name,
+      startTimeCT: s.startTimeCT,
+      startEpoch: s.startEpoch,
+      formatLabel: "Online on Zoom",
+      isRegistered: s.isRegistered,
+      stage: s.isLive ? "open" : s.isSetupOpen ? "setup" : "later",
+      statusText: s.isLive ? "Zoom is open" : s.isSetupOpen ? "Host entry is open" : undefined,
+      actionHref: s.isLive || s.isSetupOpen ? `/session/${s.slug}/enter` : undefined,
+      actionLabel: s.isLive ? "Join on Zoom" : s.isSetupOpen ? "Enter Zoom as host" : undefined,
+      contextText: s.isSetupOpen
+        ? `Member entry opens at ${s.liveStartTimeCT}`
+        : s.isLaterToday
+          ? s.countdownText
+          : undefined,
+    }));
 
-  const showTodayCard =
-    liveSessions.length > 0 ||
-    setupSessions.length > 0 ||
-    laterSessions.length > 0 ||
-    inPersonTodayRegistrations.length > 0;
+  // Strictly in-person registrations are not in `allVirtual`. Place current
+  // and future occurrences into the same chronology, and drop an occurrence
+  // once its session window has passed.
+  const inPersonTodayItems: TodayDisplayItem[] = registrationsWithNext.flatMap((r) => {
+    const p = r.program;
+    if (
+      r.nextDateStr !== today ||
+      p?.programFormat !== "in-person" ||
+      !p.startDatetime
+    ) return [];
 
-  // The dashboard has one clear focal point: a session already open, a host
-  // setup window, or the next session due today — in that order. Everything
-  // else remains available below without competing with the immediate action.
-  const orderedTodaySessions = [...liveSessions, ...setupSessions, ...laterSessions];
-  const primaryTodaySession = orderedTodaySessions[0] ?? null;
-  const remainingTodaySessions = orderedTodaySessions.slice(1);
+    const start = shiftToDate(p.startDatetime.toISOString(), today);
+    const end = p.endDatetime
+      ? shiftToDate(p.endDatetime.toISOString(), today)
+      : new Date(start.getTime() + FALLBACK_DURATION_MIN * 60 * 1000);
+    if (now > end) return [];
+
+    const isHappeningNow = now >= start;
+    return [{
+      key: `registration-${r.id}`,
+      name: r.programTitle,
+      startTimeCT: fmtTimeCT(start.toISOString()),
+      startEpoch: start.getTime(),
+      formatLabel: "In person",
+      isRegistered: true,
+      stage: isHappeningNow ? "in-person" : "later",
+      statusText: isHappeningNow ? "Happening now" : undefined,
+    }];
+  });
+
+  const activeTodayItems = [...onlineTodayItems, ...inPersonTodayItems]
+    .filter((item) => item.stage !== "later")
+    .sort((a, b) => a.startEpoch - b.startEpoch);
+  const laterTodayItems = [...onlineTodayItems, ...inPersonTodayItems]
+    .filter((item) => item.stage === "later")
+    .sort((a, b) => a.startEpoch - b.startEpoch);
+  const showTodayCard = activeTodayItems.length > 0 || laterTodayItems.length > 0;
 
   // "Coming up for you" excludes today's sessions — they live in the Today
   // card above. Drop registrations with no future occurrence too (past
@@ -350,10 +402,8 @@ export default async function DashboardPage() {
   // program running today. The Today card itself still shows all virtual/hybrid
   // community programs (its job is "what you can drop into today"), but the
   // greeting reads in first person and must mean what it says.
-  const sessionCount =
-    liveSessions.filter((s) => s.isRegistered).length +
-    laterSessions.filter((s) => s.isRegistered).length +
-    inPersonTodayRegistrations.length;
+  const sessionCount = [...activeTodayItems, ...laterTodayItems]
+    .filter((item) => item.isRegistered).length;
   const summaryParts: string[] = [];
   if (sessionCount > 0) summaryParts.push(`${sessionCount} session${sessionCount > 1 ? "s" : ""} today`);
   if (pendingDanaCount > 0) summaryParts.push(`${pendingDanaCount} dana offering${pendingDanaCount > 1 ? "s" : ""} to complete`);
@@ -375,7 +425,7 @@ export default async function DashboardPage() {
         {/* First-login host recognition — one-time, dismissible (session 143) */}
         {hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} coverageNoun={hostWelcomeNoun} />}
 
-        {/* Today has one clear focal session, then a quieter list of what follows. */}
+        {/* Today groups sessions by their truthful state, then orders within it. */}
         {showTodayCard && (
           <section className="db-section db2-today">
             <div className="db-section__heading">
@@ -384,67 +434,50 @@ export default async function DashboardPage() {
             </div>
             <div className="today-card">
               <DashboardAutoRefresh liveStartEpochs={laterEpochs} earlyOpenEpochs={earlyEpochs} />
-              {primaryTodaySession && (
-                <article className={`today-focus${primaryTodaySession.isLive ? " today-focus--open" : ""}${primaryTodaySession.isSetupOpen ? " today-focus--setup" : ""}`}>
+              {activeTodayItems.map((item) => (
+                <article key={item.key} className={`today-focus today-focus--${item.stage}`}>
                   <div className="today-focus__time">
-                    <span>{primaryTodaySession.isLive ? "Zoom is open" : primaryTodaySession.isSetupOpen ? "Host entry is open" : "Next session"}</span>
-                    <time>{primaryTodaySession.startTimeCT}</time>
+                    <time>{item.startTimeCT}</time>
                   </div>
                   <div className="today-focus__details">
-                    <h2>{primaryTodaySession.name}</h2>
+                    <h2>{item.name}</h2>
                     <div className="today-focus__meta">
-                      <span>Online on Zoom</span>
-                      {primaryTodaySession.isRegistered && <span className="today-registered">Registered</span>}
+                      <span>{item.formatLabel}</span>
+                      {item.isRegistered && <span className="today-registered">Registered</span>}
                     </div>
                   </div>
                   <div className="today-focus__action">
-                    {primaryTodaySession.isLive && (
-                      <a href={`/session/${primaryTodaySession.slug}/enter`} className="join-btn">Join on Zoom</a>
+                    {item.statusText && <span className="today-focus__status">{item.statusText}</span>}
+                    {item.actionHref && item.actionLabel && (
+                      <a href={item.actionHref} className={`join-btn${item.stage === "setup" ? " join-btn--setup" : ""}`}>
+                        {item.actionLabel}
+                      </a>
                     )}
-                    {primaryTodaySession.isSetupOpen && (
-                      <>
-                        <span className="today-focus__context">Member entry opens at {primaryTodaySession.liveStartTimeCT}</span>
-                        <a href={`/session/${primaryTodaySession.slug}/enter`} className="join-btn join-btn--setup">Enter Zoom as host</a>
-                      </>
-                    )}
-                    {primaryTodaySession.isLaterToday && <span className="today-focus__context">{primaryTodaySession.countdownText}</span>}
+                    {item.contextText && <span className="today-focus__context">{item.contextText}</span>}
                   </div>
                 </article>
-              )}
+              ))}
 
-              {(remainingTodaySessions.length > 0 || inPersonTodayRegistrations.length > 0) && (
-                <div className="today-list">
-                  <p className="today-list__label">Later today</p>
-                  {remainingTodaySessions.map((s) => (
-                    <div key={s._id} className="today-list__item">
-                      <time>{s.startTimeCT}</time>
-                      <div>
-                        <span className="today-list__title">{s.name}</span>
-                        <span className="today-list__meta">
-                          <span>Online on Zoom</span>
-                          {s.isRegistered && <span className="today-registered">Registered</span>}
-                        </span>
+              {laterTodayItems.length > 0 && (
+                <div className="today-later">
+                  <p className="today-later__heading">Later today</p>
+                  <div className="today-list">
+                    {laterTodayItems.map((item) => (
+                      <div key={item.key} className="today-list__item">
+                        <time>{item.startTimeCT}</time>
+                        <div>
+                          <span className="today-list__title">{item.name}</span>
+                          <span className="today-list__meta">
+                            <span>{item.formatLabel}</span>
+                            {item.isRegistered && <span className="today-registered">Registered</span>}
+                          </span>
+                        </div>
+                        <div className="today-list__action">
+                          {item.contextText && <span className="today-list__context">{item.contextText}</span>}
+                        </div>
                       </div>
-                      <div className="today-list__action">
-                        {s.isLive && <a href={`/session/${s.slug}/enter`} className="today-list__join">Join on Zoom</a>}
-                        {s.isSetupOpen && <a href={`/session/${s.slug}/enter`} className="today-list__join">Enter as host</a>}
-                        {s.isLaterToday && <span className="today-list__context">{s.countdownText}</span>}
-                      </div>
-                    </div>
-                  ))}
-                  {inPersonTodayRegistrations.map((r) => (
-                    <div key={r.id} className="today-list__item">
-                      <time>{r.nextTimeCT}</time>
-                      <div>
-                        <span className="today-list__title">{r.programTitle}</span>
-                        <span className="today-list__meta">
-                          <span>In person</span>
-                          <span className="today-registered">Registered</span>
-                        </span>
-                      </div>
-                      <div className="today-list__action" />
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
