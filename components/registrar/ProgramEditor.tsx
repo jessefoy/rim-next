@@ -817,6 +817,12 @@ export default function ProgramEditor({
   async function doSave() {
     setError("");
     setSuccess(false);
+
+    if (!pullQuote.trim()) {
+      setError("Every program needs a short quote that captures its spirit.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -826,8 +832,8 @@ export default function ProgramEditor({
         tagline,
         programImage: programImage || null,
         description,
-        pullQuote,
-        pullQuoteSource,
+        pullQuote: pullQuote.trim(),
+        pullQuoteSource: pullQuoteSource.trim(),
         programNotes,
         teacherFacilitators: teacherFacilitatorsText
           ? teacherFacilitatorsText.split(",").map((s) => s.trim()).filter(Boolean)
@@ -1132,14 +1138,14 @@ export default function ProgramEditor({
           <div className="pe-card__section">
             <div className="pe-form">
               <label className="pe-field">
-                <span className="pe-field__label">Pull Quote</span>
-                <span className="pe-field__help">An optional highlighted quote shown on the public program page — something that captures the spirit of this offering.</span>
-                <input type="text" value={pullQuote} onChange={(e) => setPullQuote(e.target.value)} className="pe-input" />
+                <span className="pe-field__label">Pull Quote *</span>
+                <span className="pe-field__help">A short highlighted quote anchors the public program page. Choose a line that captures the spirit of this offering.</span>
+                <input type="text" value={pullQuote} onChange={(e) => setPullQuote(e.target.value)} className="pe-input" required />
               </label>
 
               <label className="pe-field">
                 <span className="pe-field__label">Pull Quote Source</span>
-                <span className="pe-field__help">Who said the pull quote. Appears below the quote in smaller text.</span>
+                <span className="pe-field__help">Attribute the quote whenever possible. The source appears below it in smaller text.</span>
                 <input type="text" value={pullQuoteSource} onChange={(e) => setPullQuoteSource(e.target.value)} className="pe-input" />
               </label>
             </div>

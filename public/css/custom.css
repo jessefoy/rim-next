@@ -25740,3 +25740,129 @@ input.w-button { -webkit-appearance: button; }
   .today-list__item { padding: 14px 20px; }
   .db2-practice__links { grid-template-columns: 1fr; }
 }
+
+/* ── Public program detail refinement (pg-) ─────────────────────
+   Facts remain calm and separate from the single state-aware next step. */
+.pg-hero__facts {
+  max-width: var(--reading-width);
+  margin: 18px auto 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: var(--lh-body);
+  text-wrap: balance;
+}
+.pg-page .pg-details-section { padding: 26px 30px 0; }
+.pg-page .pg-detail-row {
+  align-items: flex-start;
+  padding: 16px 4px 16px 0;
+}
+.pg-page .pg-detail-row__icon { padding-top: 2px; }
+.pg-page .pg-detail-row__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-small);
+  line-height: var(--lh-body);
+}
+.pg-detail-row__label {
+  color: var(--rim-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+.pg-detail-row__secondary { color: var(--rim-text-muted); }
+.pg-page .pg-detail-row__link {
+  display: inline-flex;
+  width: fit-content;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--rim-text);
+  font-size: var(--text-small);
+  text-decoration: none;
+}
+.pg-page .pg-detail-row__link span {
+  color: var(--rim-blue);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+.pg-page .pg-detail-row__link:hover span { text-decoration: underline; }
+.pg-details-action {
+  display: flex;
+  align-items: center;
+  min-height: 76px;
+  padding: 18px 0 24px;
+  border-top: 1px solid var(--rim-rule);
+}
+.pg-page .pg-detail-cta__text,
+.pg-page .pg-detail-cta__status { font-size: var(--text-small); }
+.pg-page .pg-detail-cta__link { min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; }
+
+.pg-facilitators {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+.pg-page .pg-facilitator + .pg-facilitator::before { content: none; }
+.pg-page .pg-facilitator--profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--rim-blue);
+  font-size: var(--text-small);
+}
+.pg-facilitator__photo {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ── Member Registry teacher portrait upload (adm2-) ─────────── */
+.adm2-teacher-photo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.adm2-teacher-photo__preview,
+.adm2-teacher-photo__empty {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  border-radius: 50%;
+}
+.adm2-teacher-photo__preview { object-fit: cover; }
+.adm2-teacher-photo__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rim-bg-accent);
+  color: var(--rim-text-muted);
+  font-size: var(--text-label);
+}
+.adm2-teacher-photo__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.adm2-teacher-photo__upload,
+.adm2-teacher-photo__remove {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: var(--rim-surface);
+  color: var(--rim-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.adm2-teacher-photo__upload input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; }
+.adm2-teacher-photo__upload:hover,
+.adm2-teacher-photo__remove:hover { border-color: var(--rim-mid); color: var(--rim-blue); }
+
+@media (max-width: 767px) {
+  .pg-page .pg-details-section { padding: 22px 20px 0; }
+  .pg-details-action { min-height: 0; padding: 18px 0 22px; }
+  .pg-hero__facts { font-size: var(--text-label); }
+}

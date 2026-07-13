@@ -33,7 +33,7 @@ export default async function ProgramDetailPage({
         category: true,
         programTeachers: {
           orderBy: { order: "asc" },
-          include: { user: { select: { firstName: true, lastName: true, preferredName: true, teacherProfile: { select: { slug: true } } } } },
+          include: { user: { select: { firstName: true, lastName: true, preferredName: true, teacherProfile: { select: { slug: true, photoUrl: true, isPublic: true } } } } },
         },
       },
     }),
@@ -146,14 +146,17 @@ export default async function ProgramDetailPage({
         : location.text;
   const showLocation = !!(locationLabel);
 
-  const hasDetails = !!(scheduleLabel || timeLabel || showLocation || program.danaText);
+  const heroFacts = [scheduleLabel, timeLabel, locationLabel].filter(
+    (value): value is string => Boolean(value),
+  );
   // Use programTeachers (linked accounts) first, fall back to plain text
   const teacherNames = program.programTeachers.length > 0
     ? program.programTeachers.map((pt) => ({
-        name: `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim(),
-        slug: pt.user.teacherProfile?.slug ?? null,
+      name: `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim(),
+        slug: pt.user.teacherProfile?.isPublic ? pt.user.teacherProfile.slug ?? null : null,
+        photoUrl: pt.user.teacherProfile?.isPublic ? pt.user.teacherProfile.photoUrl ?? null : null,
       }))
-    : program.teacherFacilitators.map((name) => ({ name, slug: null }));
+    : program.teacherFacilitators.map((name) => ({ name, slug: null, photoUrl: null }));
   const hasFacilitators = teacherNames.length > 0;
   const hasDescription = !!program.description;
   const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
@@ -177,6 +180,9 @@ export default async function ProgramDetailPage({
           <h1 className="pg-hero__title">{program.name}</h1>
           {program.tagline && (
             <p className="pg-hero__tagline">{program.tagline}</p>
+          )}
+          {heroFacts.length > 0 && (
+            <p className="pg-hero__facts">{heroFacts.join(" · ")}</p>
           )}
         </div>
       </header>
@@ -221,24 +227,19 @@ export default async function ProgramDetailPage({
           </section>
         )}
 
-        {/* ── Details section ── */}
-        {hasDetails && (
-          <section className="pg-details-section">
-            <h3 className="pg-section-heading">Details:</h3>
-            {scheduleLabel && (
+        {/* ── Gathering facts and one state-aware next step ── */}
+        <section className="pg-details-section">
+            <h3 className="pg-section-heading">Gathering details</h3>
+            {(scheduleLabel || timeLabel) && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </span>
-                <span className="pg-detail-row__text">{scheduleLabel}</span>
-              </div>
-            )}
-            {timeLabel && (
-              <div className="pg-detail-row">
-                <span className="pg-detail-row__icon" aria-hidden="true">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span className="pg-detail-row__text">
+                  <span className="pg-detail-row__label">When</span>
+                  {scheduleLabel && <span>{scheduleLabel}</span>}
+                  {timeLabel && <span className="pg-detail-row__secondary">{timeLabel}</span>}
                 </span>
-                <span className="pg-detail-row__text">{timeLabel}</span>
               </div>
             )}
             {showLocation && (
@@ -247,10 +248,12 @@ export default async function ProgramDetailPage({
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 </span>
                 <span className="pg-detail-row__text">
-                  {locationLabel}
-                  {location.link && (
-                    <a href={location.link} target="_blank" rel="noopener noreferrer" className="pg-detail-row__link"> ↗</a>
-                  )}
+                  <span className="pg-detail-row__label">Where</span>
+                  {location.link ? (
+                    <a href={location.link} target="_blank" rel="noopener noreferrer" className="pg-detail-row__link">
+                      {locationLabel}<span>Get directions ↗</span>
+                    </a>
+                  ) : <span>{locationLabel}</span>}
                 </span>
               </div>
             )}
@@ -259,13 +262,15 @@ export default async function ProgramDetailPage({
                 <span className="pg-detail-row__icon" aria-hidden="true">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </span>
-                <span className="pg-detail-row__text">{program.danaText}</span>
+                <span className="pg-detail-row__text">
+                  <span className="pg-detail-row__label">Dana</span>
+                  <span>{program.danaText}</span>
+                </span>
               </div>
             )}
 
-            {/* ── CTA row — context-aware action ── */}
-            <div className="pg-detail-row pg-detail-row--cta">
-              <span className="pg-detail-row__text">
+            {/* ── Context-aware next step — distinct from factual details. */}
+            <div className="pg-details-action">
                 {useBuiltInForm ? (
                   /* Registration programs — the person's OWN standing comes first,
                      so a registrant always sees their status even after registration
@@ -295,22 +300,20 @@ export default async function ProgramDetailPage({
                   program.programFormat === "virtual" ? (
                     session?.user ? (
                       <Link href="/account/dashboard" className="pg-detail-cta__link">
-                        Join on Zoom from My Home →
+                        Go to My Home to join on Zoom →
                       </Link>
                     ) : (
-                      <span className="pg-detail-cta__text">
-                        Members access Zoom via their <Link href="/account/dashboard" className="pg-detail-cta__inline-link">member home</Link>
-                      </span>
+                      <Link href="/login" className="pg-detail-cta__link">Sign in to find the Zoom link →</Link>
                     )
                   ) : program.programFormat === "hybrid" ? (
                     /* Hybrid — arrive in person OR join online */
                     session?.user ? (
                       <span className="pg-detail-cta__text">
-                        Simply arrive in person · <Link href="/account/dashboard" className="pg-detail-cta__inline-link">Zoom link on My Home</Link>
+                        Simply arrive in person, or <Link href="/account/dashboard" className="pg-detail-cta__inline-link">go to My Home to join online →</Link>
                       </span>
                     ) : (
                       <span className="pg-detail-cta__text">
-                        Simply arrive in person · Members join online via their <Link href="/account/dashboard" className="pg-detail-cta__inline-link">member home</Link>
+                        Simply arrive in person, or <Link href="/login" className="pg-detail-cta__inline-link">sign in to join online →</Link>
                       </span>
                     )
                   ) : (
@@ -322,10 +325,8 @@ export default async function ProgramDetailPage({
                      isn't switched on yet — not a drop-in, so never "just arrive." */
                   <span className="pg-detail-cta__status">Registration isn&rsquo;t open yet.</span>
                 )}
-              </span>
             </div>
-          </section>
-        )}
+        </section>
 
         {/* ── Facilitators section ── */}
         {hasFacilitators && (
@@ -334,7 +335,10 @@ export default async function ProgramDetailPage({
             <div className="pg-facilitators">
               {teacherNames.map((t, i) => (
                 t.slug ? (
-                  <Link key={i} href={`/teachers/${t.slug}`} className="pg-facilitator pg-facilitator--link">{t.name}</Link>
+                  <Link key={i} href={`/teachers/${t.slug}`} className="pg-facilitator pg-facilitator--link pg-facilitator--profile">
+                    {t.photoUrl && <img src={t.photoUrl} alt="" className="pg-facilitator__photo" />}
+                    <span>{t.name}</span>
+                  </Link>
                 ) : (
                   <span key={i} className="pg-facilitator">{t.name}</span>
                 )

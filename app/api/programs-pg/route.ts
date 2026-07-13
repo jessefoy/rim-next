@@ -40,6 +40,10 @@ export async function POST(request: NextRequest) {
   if (!name || !slug) {
     return NextResponse.json({ error: "Name and slug are required" }, { status: 400 });
   }
+  const pullQuote = typeof body.pullQuote === "string" ? body.pullQuote.trim() : "";
+  if (!pullQuote) {
+    return NextResponse.json({ error: "Every program needs a pull quote." }, { status: 422 });
+  }
 
   const existing = await db.program.findUnique({ where: { slug } });
   if (existing) {
@@ -75,8 +79,9 @@ export async function POST(request: NextRequest) {
       tagline: body.tagline || null,
       programImage: body.programImage || null,
       description: body.description || undefined,
-      pullQuote: body.pullQuote || null,
-      pullQuoteSource: body.pullQuoteSource || null,
+      pullQuote,
+      pullQuoteSource: typeof body.pullQuoteSource === "string" ? body.pullQuoteSource.trim() || null : null,
+      programNotes: body.programNotes || null,
       teacherFacilitators: body.teacherFacilitators ?? [],
       teacherLabel: sanitizeTeacherLabel(body.teacherLabel),
       // `hostingHubSlug`: null defaults to host-team at read time. Coordinator

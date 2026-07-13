@@ -93,6 +93,14 @@ export async function PUT(
 
   const body = await request.json();
 
+  const resolvedPullQuote =
+    body.pullQuote !== undefined
+      ? (typeof body.pullQuote === "string" ? body.pullQuote.trim() : "")
+      : existing.pullQuote?.trim() ?? "";
+  if (!resolvedPullQuote) {
+    return NextResponse.json({ error: "Every program needs a pull quote." }, { status: 422 });
+  }
+
   // If slug is changing, check uniqueness
   if (body.slug && body.slug !== slug) {
     const conflict = await db.program.findUnique({ where: { slug: body.slug } });
@@ -109,8 +117,10 @@ export async function PUT(
   if (body.tagline !== undefined) data.tagline = body.tagline || null;
   if (body.programImage !== undefined) data.programImage = body.programImage || null;
   if (body.description !== undefined) data.description = body.description || undefined;
-  if (body.pullQuote !== undefined) data.pullQuote = body.pullQuote || null;
-  if (body.pullQuoteSource !== undefined) data.pullQuoteSource = body.pullQuoteSource || null;
+  if (body.pullQuote !== undefined) data.pullQuote = resolvedPullQuote;
+  if (body.pullQuoteSource !== undefined) {
+    data.pullQuoteSource = typeof body.pullQuoteSource === "string" ? body.pullQuoteSource.trim() || null : null;
+  }
   if (body.programNotes !== undefined) data.programNotes = body.programNotes || null;
   if (body.teacherFacilitators !== undefined) data.teacherFacilitators = body.teacherFacilitators;
   if (body.teacherLabel !== undefined) data.teacherLabel = sanitizeTeacherLabel(body.teacherLabel);

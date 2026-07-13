@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import SlugField from "@/components/SlugField";
+import { upload } from "@vercel/blob/client";
 
 interface Props {
   memberId: string;
@@ -25,6 +26,7 @@ export default function TeacherSection({
   const [teacherSlug, setTeacherSlug] = useState(initialProfile?.slug ?? "");
   const [teacherIsPublic, setTeacherIsPublic] = useState(initialProfile?.isPublic ?? false);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
@@ -69,6 +71,24 @@ export default function TeacherSection({
     }
   };
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    setError("");
+    try {
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      setTeacherPhotoUrl(blob.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not upload the teacher photo.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
   return (
     <>
       {/* ── Teacher Attribution ───────────────────────────────────────────────── */}
@@ -108,14 +128,24 @@ export default function TeacherSection({
               />
             </div>
             <div className="adm2-form__field">
-              <label className="adm2-form__label">Photo URL</label>
-              <input
-                type="text"
-                value={teacherPhotoUrl}
-                onChange={(e) => setTeacherPhotoUrl(e.target.value)}
-                className="adm2-form__input"
-                placeholder="https://…"
-              />
+              <span className="adm2-form__label">Public portrait</span>
+              <span className="adm2-form__hint">Use a clear portrait. The site crops it to a circle; no separate circular image is needed. Save the profile after uploading.</span>
+              <div className="adm2-teacher-photo">
+                {teacherPhotoUrl ? (
+                  <img src={teacherPhotoUrl} alt="Teacher portrait preview" className="adm2-teacher-photo__preview" />
+                ) : (
+                  <div className="adm2-teacher-photo__empty" aria-hidden="true">No photo</div>
+                )}
+                <div className="adm2-teacher-photo__actions">
+                  <label className="adm2-teacher-photo__upload">
+                    <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                    {uploadingPhoto ? "Uploading…" : teacherPhotoUrl ? "Change photo" : "Add photo"}
+                  </label>
+                  {teacherPhotoUrl && (
+                    <button type="button" className="adm2-teacher-photo__remove" onClick={() => setTeacherPhotoUrl("")}>Remove</button>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="adm2-form__field">
               <label className="adm2-form__label">Slug</label>
