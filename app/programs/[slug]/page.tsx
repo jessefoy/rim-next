@@ -295,7 +295,7 @@ export default async function ProgramDetailPage({
                   program.programFormat === "virtual" ? (
                     session?.user ? (
                       <Link href="/account/dashboard" className="pg-detail-cta__link">
-                        Access Zoom Link on My Home →
+                        Join on Zoom from My Home →
                       </Link>
                     ) : (
                       <span className="pg-detail-cta__text">

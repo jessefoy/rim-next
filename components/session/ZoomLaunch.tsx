@@ -15,28 +15,13 @@ export default function ZoomLaunch({ url, programName }: { url: string; programN
   }, [url]);
 
   return (
-    <div
-      style={{
-        minHeight: "60vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 12,
-        textAlign: "center",
-        padding: 24,
-      }}
-    >
-      <p style={{ fontFamily: "var(--font-serif)", fontSize: "var(--text-h3)", fontWeight: 400 }}>
-        Opening {programName} in Zoom…
-      </p>
-      <p style={{ fontSize: "var(--text-ui)", color: "var(--rim-mid)" }}>
-        If it doesn&rsquo;t open automatically,{" "}
-        <a href={url} style={{ color: "var(--rim-blue)", fontWeight: 600 }}>
-          click here to join
-        </a>
-        .
-      </p>
-    </div>
+    <main className="zoom-launch">
+      <div className="zoom-launch__panel">
+        <p className="zoom-launch__eyebrow">Connecting you to Zoom</p>
+        <h1>Joining {programName}</h1>
+        <p>Zoom should open automatically in a moment.</p>
+        <a href={url} className="zoom-launch__fallback">Open Zoom manually</a>
+      </div>
+    </main>
   );
 }

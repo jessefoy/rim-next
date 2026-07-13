@@ -226,18 +226,21 @@ export default async function MemberProgramDetailPage({
         {/* ── Join section ── */}
         <div className="mpd-join">
           {isVirtual && program.livekitRoom && (
-            <a href={`/session/${slug}/enter`} className="mpd-join__btn">
-              Join Session →
-            </a>
+            <>
+              <a href={`/session/${slug}/enter`} className="mpd-join__btn">
+                Join on Zoom
+              </a>
+              <p className="mpd-join__context">This opens Zoom when the session window begins.</p>
+            </>
           )}
           {isVirtual && !program.livekitRoom && (
-            <p className="mpd-join__note">Session link will appear here when available.</p>
+            <p className="mpd-join__note">Zoom access will appear here shortly before the session begins.</p>
           )}
           {isInPerson && (
             <p className="mpd-join__note">
               Simply arrive in person{location.text ? ` at ${location.text}` : ""}.
               {program.programFormat === "hybrid" && program.livekitRoom && (
-                <> Or <a href={`/session/${slug}/enter`} className="mpd-join__inline-link">join online</a>.</>
+                <> Or <a href={`/session/${slug}/enter`} className="mpd-join__inline-link">join on Zoom</a>.</>
               )}
             </p>
           )}

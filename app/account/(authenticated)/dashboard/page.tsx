@@ -192,18 +192,13 @@ export default async function DashboardPage() {
 
       // Compute countdown for later sessions (regular members and host/teacher
       // before their early-open window).
-      const minsUntilJoin = Math.round((liveStart.getTime() - now.getTime()) / 60000);
       const minsUntilEarly = Math.round((earlyOpenStart.getTime() - now.getTime()) / 60000);
       let countdownText = "";
       if (isLaterToday) {
         if (isHostOrTeacher && minsUntilEarly > 0 && minsUntilEarly <= 60) {
-          countdownText = `Setup opens in ${minsUntilEarly} min`;
-        } else if (minsUntilJoin <= 0) {
-          countdownText = "Join opens now";
-        } else if (minsUntilJoin <= 60) {
-          countdownText = `Join opens in ${minsUntilJoin} min`;
+          countdownText = `Host entry opens in ${minsUntilEarly} min`;
         } else {
-          countdownText = `Starts at ${fmtTimeCT(start.toISOString())}`;
+          countdownText = `Zoom opens at ${fmtTimeCT(liveStart.toISOString())}`;
         }
       }
 
@@ -395,14 +390,17 @@ export default async function DashboardPage() {
               {liveSessions.map((s) => (
                 <div key={s._id} className="today-row today-row--live">
                   <div className="today-row__left">
-                    <span className="today-live-badge">Live Now</span>
-                    <span className="today-row__title">{s.name}</span>
+                    <span className="today-live-badge">Zoom open</span>
+                    <span className="today-row__details">
+                      <span className="today-row__title">{s.name}</span>
+                      <span className="today-row__meta">Online on Zoom</span>
+                    </span>
                   </div>
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
                     {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
                       <a href={`/session/${s.slug}/enter`} className="join-btn">
-                        Join now
+                        Join on Zoom
                       </a>
                     )}
                   </div>
@@ -411,14 +409,17 @@ export default async function DashboardPage() {
               {setupSessions.map((s) => (
                 <div key={s._id} className="today-row today-row--setup">
                   <div className="today-row__left">
-                    <span className="today-setup-badge">Open early as host</span>
-                    <span className="today-row__title">{s.name}</span>
+                    <span className="today-setup-badge">Host entry open</span>
+                    <span className="today-row__details">
+                      <span className="today-row__title">{s.name}</span>
+                      <span className="today-row__meta">Online on Zoom</span>
+                    </span>
                   </div>
                   <div className="today-row__right">
-                    <span className="today-row__countdown">Live opens at {s.liveStartTimeCT}</span>
+                    <span className="today-row__countdown">Member entry opens at {s.liveStartTimeCT}</span>
                     {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
                       <a href={`/session/${s.slug}/enter`} className="join-btn join-btn--setup">
-                        Enter as host
+                        Enter Zoom as host
                       </a>
                     )}
                   </div>
@@ -428,7 +429,10 @@ export default async function DashboardPage() {
                 <div key={s._id} className={`today-row today-row--later${index === 0 ? " today-row--next" : ""}`}>
                   <div className="today-row__left">
                     <span className="today-row__time">{s.startTimeCT}</span>
-                    <span className="today-row__title">{s.name}</span>
+                    <span className="today-row__details">
+                      <span className="today-row__title">{s.name}</span>
+                      <span className="today-row__meta">Online on Zoom</span>
+                    </span>
                   </div>
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
@@ -480,8 +484,11 @@ export default async function DashboardPage() {
                       );
                     })()}
                     <span className="db2-upcoming__title">
-                      {r.programTitle}
-                      {r.nextTimeCT && <span className="db2-upcoming__time"> · {r.nextTimeCT}</span>}
+                      <span>{r.programTitle}</span>
+                      <span className="db2-upcoming__meta">
+                        {r.nextTimeCT && <span>{r.nextTimeCT}</span>}
+                        {(r.program?.programFormat === "virtual" || r.program?.programFormat === "hybrid") && <span>Online on Zoom</span>}
+                      </span>
                     </span>
                     <span className="db2-upcoming__status">
                       {hasPendingDana

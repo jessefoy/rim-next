@@ -25345,3 +25345,126 @@ input.w-button { -webkit-appearance: button; }
   .today-row__right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
   .today-row--next { min-height: 0; }
 }
+
+
+/* ═══════════════════════════════════════════════════
+   ZOOM ENTRY CLARITY — dashboard, member program detail, handoff (today-,
+   db2-, mpd-, zoom-launch-)
+   The entry window is a real access boundary. The interface names it plainly
+   instead of suggesting that a member has lost or cannot find a link.
+═══════════════════════════════════════════════════ */
+
+.today-row__details {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.today-row__meta,
+.db2-upcoming__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: var(--rim-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  line-height: 1.35;
+}
+.db2-upcoming__meta span + span::before {
+  content: "·";
+  margin-right: 10px;
+  color: var(--rim-rule);
+}
+.today-row__countdown {
+  color: var(--rim-text-muted);
+  font-size: var(--text-xs);
+  font-style: normal;
+}
+.today-live-badge,
+.today-setup-badge {
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: var(--text-xxs);
+  letter-spacing: 0.05em;
+}
+.today-live-badge { background: var(--color-success-bg); color: var(--color-success); }
+.today-setup-badge { background: color-mix(in srgb, var(--rim-blue) 10%, var(--rim-surface)); color: var(--rim-blue); }
+.today-row--live,
+.today-row--setup { border-left: none; }
+.today-row--next .today-row__meta { font-size: var(--text-xs); }
+.db2-upcoming__title {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mpd-join { margin-top: 4px; }
+.mpd-join__btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--rim-blue);
+  font-size: var(--text-ui);
+}
+.mpd-join__context {
+  margin: 10px 0 0;
+  color: var(--rim-text-muted);
+  font-size: var(--text-xs);
+}
+.mpd-join__note { color: var(--rim-text-muted); font-size: var(--text-small); }
+
+.zoom-launch {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background: var(--rim-bg);
+}
+.zoom-launch__panel {
+  width: min(100%, 520px);
+  padding: 40px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 14px;
+  background: var(--rim-surface);
+  text-align: center;
+}
+.zoom-launch__eyebrow {
+  margin: 0 0 12px;
+  color: var(--rim-text-muted);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.zoom-launch__panel h1 {
+  margin: 0 0 12px;
+  color: var(--rim-text);
+  font-size: var(--text-h2);
+}
+.zoom-launch__panel p:not(.zoom-launch__eyebrow) {
+  margin: 0 0 24px;
+  color: var(--rim-text-muted);
+  font-size: var(--text-small);
+}
+.zoom-launch__fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--rim-blue);
+  border-radius: 999px;
+  color: var(--rim-blue);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  text-decoration: none;
+}
+.zoom-launch__fallback:hover { background: var(--rim-bg-bright); }
+
+@media (max-width: 700px) {
+  .today-row__details { width: calc(100% - 62px); }
+  .today-row__right .today-row__countdown { width: 100%; }
+  .zoom-launch__panel { padding: 32px 24px; }
+}
