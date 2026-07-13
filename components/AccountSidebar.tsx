@@ -3,14 +3,13 @@
 /**
  * AccountSidebar — role-aware nav for all /account/* pages.
  *
- * Desktop: sticky left column, 220px expanded / 56px collapsed.
- *          Collapse state persisted to localStorage.
- * Mobile:  horizontal scroll strip below the main site nav.
+ * Desktop: quiet, always-legible left rail.
+ * Mobile: horizontal scroll strip below the member header.
  *
  * CSS prefix: ac-
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -25,8 +24,6 @@ import {
   Layers,
   Mail,
   Globe,
-  PanelLeftClose,
-  PanelLeftOpen,
   ChevronDown,
 } from "lucide-react";
 
@@ -68,31 +65,13 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
   { label: "Emails",     href: "/admin/emails",     icon: Mail,     adminOnly: true   },
 ];
 
-const STORAGE_KEY = "ac-sidebar-collapsed";
-
 export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
 
   const hasRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin      = roles.includes("ADMIN");
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "1") setCollapsed(true);
-    setMounted(true);
-  }, []);
-
-  function toggle() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-      return next;
-    });
-  }
 
   function linkClass(href: string) {
     const active =
@@ -108,44 +87,21 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   });
   const isHubRoute = pathname.startsWith("/account/hub/");
 
-  // Render an empty shell before mount to avoid hydration mismatch
-  if (!mounted) {
-    return <nav className="ac-sidebar" aria-label="Account navigation" />;
-  }
-
   return (
-    <nav
-      className={`ac-sidebar${collapsed ? " ac-sidebar--collapsed" : ""}`}
-      aria-label="Account navigation"
-    >
-      <button
-        className="ac-sidebar__toggle"
-        onClick={toggle}
-        aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-        title={collapsed ? "Expand navigation" : "Collapse navigation"}
-      >
-        {collapsed
-          ? <PanelLeftOpen  size={18} strokeWidth={1.75} />
-          : <PanelLeftClose size={18} strokeWidth={1.75} />
-        }
-      </button>
-
+    <nav className="ac-sidebar" aria-label="Account navigation">
       <div className="ac-sidebar__nav">
-
-        {/* ── Member links (always) ── */}
+        <p className="ac-sidebar__section-label">My RIM</p>
         {MEMBER_LINKS.map((l) => (
           <Link
             key={l.href}
             href={l.href}
             className={linkClass(l.href)}
-            title={collapsed ? l.label : undefined}
           >
-            <l.icon size={18} strokeWidth={1.75} className="ac-sidebar__icon" />
+            <l.icon size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
             <span className="ac-sidebar__label">{l.label}</span>
           </Link>
         ))}
 
-        {/* ── Your Hubs ── */}
         {hubLinks.length > 0 && (
           <div className="ac-sidebar__group">
             <div className="ac-sidebar__divider" role="separator" />
@@ -154,28 +110,25 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
               className="ac-sidebar__group-toggle"
               onClick={() => setTeamsOpen((open) => !open)}
               aria-expanded={teamsOpen || isHubRoute}
-              title={collapsed ? "Your teams" : undefined}
             >
-              <Globe size={18} strokeWidth={1.75} className="ac-sidebar__icon" />
-              <span className="ac-sidebar__label">Your teams</span>
-              {!collapsed && <span className="ac-sidebar__count">{hubLinks.length}</span>}
-              {!collapsed && <ChevronDown size={15} className={`ac-sidebar__chevron${teamsOpen ? " ac-sidebar__chevron--open" : ""}`} />}
+              <Globe size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+              <span className="ac-sidebar__label">Teams</span>
+              <span className="ac-sidebar__count">{hubLinks.length}</span>
+              <ChevronDown size={15} className={`ac-sidebar__chevron${teamsOpen ? " ac-sidebar__chevron--open" : ""}`} />
             </button>
             {(teamsOpen || isHubRoute) && hubLinks.map((h) => (
               <Link
                 key={h.slug}
                 href={`/account/hub/${h.slug}`}
                 className={`${linkClass(`/account/hub/${h.slug}`)} ac-sidebar__link--nested`}
-                title={collapsed ? h.name : undefined}
               >
-                <Globe size={16} strokeWidth={1.75} className="ac-sidebar__icon" />
+                <Globe size={15} strokeWidth={1.75} className="ac-sidebar__icon" />
                 <span className="ac-sidebar__label">{h.name}</span>
               </Link>
             ))}
           </div>
         )}
 
-        {/* ── Staff / Admin links ── */}
         {visibleStaffLinks.length > 0 && (
           <div className="ac-sidebar__group">
             <div className="ac-sidebar__divider" role="separator" />
@@ -184,20 +137,18 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
               className="ac-sidebar__group-toggle"
               onClick={() => setManageOpen((open) => !open)}
               aria-expanded={manageOpen}
-              title={collapsed ? "Manage" : undefined}
             >
-              <Layers size={18} strokeWidth={1.75} className="ac-sidebar__icon" />
-              <span className="ac-sidebar__label">Manage</span>
-              {!collapsed && <ChevronDown size={15} className={`ac-sidebar__chevron${manageOpen ? " ac-sidebar__chevron--open" : ""}`} />}
+              <Layers size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+              <span className="ac-sidebar__label">Administration</span>
+              <ChevronDown size={15} className={`ac-sidebar__chevron${manageOpen ? " ac-sidebar__chevron--open" : ""}`} />
             </button>
             {manageOpen && visibleStaffLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
                 className={`${linkClass(l.href)} ac-sidebar__link--nested`}
-                title={collapsed ? l.label : undefined}
               >
-                <l.icon size={18} strokeWidth={1.75} className="ac-sidebar__icon" />
+                <l.icon size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
                 <span className="ac-sidebar__label">{l.label}</span>
               </Link>
             ))}

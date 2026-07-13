@@ -45,6 +45,7 @@ export default function Nav() {
   // The account area has its own navigation shell. Keep the shared header as
   // quiet identity + exit only, rather than repeating the public navigation.
   if (isAccountArea) {
+    const firstName = session?.user?.name?.split(" ")[0] ?? "My profile";
     return (
       <header className="member-bar">
         <Link href="/account/dashboard" className="member-bar__brand">
@@ -56,7 +57,9 @@ export default function Nav() {
           <span>Rooted In Mindfulness</span>
         </Link>
         <div className="member-bar__right">
-          <span className="member-bar__label">Member area</span>
+          <Link href="/account/dashboard-my-profile" className="member-bar__profile">
+            {firstName}
+          </Link>
           <button onClick={() => signOut({ callbackUrl: "/" })} className="member-bar__sign-out">
             Sign out
           </button>

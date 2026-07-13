@@ -209,8 +209,9 @@ export default async function DashboardPage() {
         liveStartTimeCT: fmtTimeCT(liveStart.toISOString()),
         earlyOpenEpoch: earlyOpenStart.getTime(),
         countdownText,
+        startEpoch: start.getTime(),
       };
-  });
+  }).sort((a, b) => a.startEpoch - b.startEpoch);
 
   const liveSessions  = todaySessions.filter((s) => s.isLive);
   const setupSessions = todaySessions.filter((s) => s.isSetupOpen);
@@ -264,8 +265,16 @@ export default async function DashboardPage() {
 
   const showTodayCard =
     liveSessions.length > 0 ||
+    setupSessions.length > 0 ||
     laterSessions.length > 0 ||
     inPersonTodayRegistrations.length > 0;
+
+  // The dashboard has one clear focal point: a session already open, a host
+  // setup window, or the next session due today — in that order. Everything
+  // else remains available below without competing with the immediate action.
+  const orderedTodaySessions = [...liveSessions, ...setupSessions, ...laterSessions];
+  const primaryTodaySession = orderedTodaySessions[0] ?? null;
+  const remainingTodaySessions = orderedTodaySessions.slice(1);
 
   // "Coming up for you" excludes today's sessions — they live in the Today
   // card above. Drop registrations with no future occurrence too (past
@@ -277,22 +286,6 @@ export default async function DashboardPage() {
 
   // Your teams: the hubs you're actually a member of. Unread badges live here.
   const myHubs = hubMemberships.map((m) => m.hub);
-  const myHubIds = new Set(myHubs.map((h) => h.id));
-
-  // Oversight reach: ADMIN (technical) + GUIDING_TEACHER (dharma) can enter
-  // every hub. Shown as a quieter, clearly-labeled group — reach without
-  // pretending these are your teams. Mirrors lib/hubAuth.ts::canAccessHub
-  // (GT passes the access door; ADMIN does too here since it can still
-  // configure any hub from /admin/hubs).
-  const canSeeAllHubs = isAdmin || (session.user.roles ?? []).includes("GUIDING_TEACHER");
-  const oversightHubs = canSeeAllHubs
-    ? (
-        await db.hub.findMany({
-          select: { id: true, slug: true, name: true, type: true },
-          orderBy: { name: "asc" },
-        })
-      ).filter((h) => !myHubIds.has(h.id))
-    : [];
 
   // Unread counts only for your own teams (membership-scoped — oversight
   // hubs don't track your unread because you're stewarding, not participating).
@@ -310,6 +303,7 @@ export default async function DashboardPage() {
     });
     hubUnreadCounts[membership.hub.id] = unreadThreads;
   }
+  const hubsWithUnread = myHubs.filter((hub) => (hubUnreadCounts[hub.id] ?? 0) > 0);
 
   // First-login host recognition (session 143, backlog 2026-06-08-003): a host
   // can be pre-staged — role assigned, schedule built — before they ever log in.
@@ -381,78 +375,73 @@ export default async function DashboardPage() {
         {/* First-login host recognition — one-time, dismissible (session 143) */}
         {hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} coverageNoun={hostWelcomeNoun} />}
 
-        {/* Today's Sessions */}
+        {/* Today has one clear focal session, then a quieter list of what follows. */}
         {showTodayCard && (
-          <div className="db-section">
-            <p className="db-section__label">Today</p>
+          <section className="db-section db2-today">
+            <div className="db-section__heading">
+              <p className="db-section__label">Today</p>
+              <Link href="/this-week" className="db-section__link">Full schedule</Link>
+            </div>
             <div className="today-card">
               <DashboardAutoRefresh liveStartEpochs={laterEpochs} earlyOpenEpochs={earlyEpochs} />
-              {liveSessions.map((s) => (
-                <div key={s._id} className="today-row today-row--live">
-                  <div className="today-row__left">
-                    <span className="today-live-badge">Zoom open</span>
-                    <span className="today-row__details">
-                      <span className="today-row__title">{s.name}</span>
-                      <span className="today-row__meta">Online on Zoom</span>
-                    </span>
+              {primaryTodaySession && (
+                <article className={`today-focus${primaryTodaySession.isLive ? " today-focus--open" : ""}${primaryTodaySession.isSetupOpen ? " today-focus--setup" : ""}`}>
+                  <div className="today-focus__time">
+                    <span>{primaryTodaySession.isLive ? "Zoom is open" : primaryTodaySession.isSetupOpen ? "Host entry is open" : "Next session"}</span>
+                    <time>{primaryTodaySession.startTimeCT}</time>
                   </div>
-                  <div className="today-row__right">
-                    {s.isRegistered && <span className="today-registered">Registered</span>}
-                    {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
-                      <a href={`/session/${s.slug}/enter`} className="join-btn">
-                        Join on Zoom
-                      </a>
+                  <div className="today-focus__details">
+                    <h2>{primaryTodaySession.name}</h2>
+                    <p>Online on Zoom</p>
+                  </div>
+                  <div className="today-focus__action">
+                    {primaryTodaySession.isRegistered && <span className="today-registered">Registered</span>}
+                    {primaryTodaySession.isLive && (
+                      <a href={`/session/${primaryTodaySession.slug}/enter`} className="join-btn">Join on Zoom</a>
                     )}
-                  </div>
-                </div>
-              ))}
-              {setupSessions.map((s) => (
-                <div key={s._id} className="today-row today-row--setup">
-                  <div className="today-row__left">
-                    <span className="today-setup-badge">Host entry open</span>
-                    <span className="today-row__details">
-                      <span className="today-row__title">{s.name}</span>
-                      <span className="today-row__meta">Online on Zoom</span>
-                    </span>
-                  </div>
-                  <div className="today-row__right">
-                    <span className="today-row__countdown">Member entry opens at {s.liveStartTimeCT}</span>
-                    {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
-                      <a href={`/session/${s.slug}/enter`} className="join-btn join-btn--setup">
-                        Enter Zoom as host
-                      </a>
+                    {primaryTodaySession.isSetupOpen && (
+                      <>
+                        <span className="today-focus__context">Member entry opens at {primaryTodaySession.liveStartTimeCT}</span>
+                        <a href={`/session/${primaryTodaySession.slug}/enter`} className="join-btn join-btn--setup">Enter Zoom as host</a>
+                      </>
                     )}
+                    {primaryTodaySession.isLaterToday && <span className="today-focus__context">{primaryTodaySession.countdownText}</span>}
                   </div>
+                </article>
+              )}
+
+              {(remainingTodaySessions.length > 0 || inPersonTodayRegistrations.length > 0) && (
+                <div className="today-list">
+                  <p className="today-list__label">Later today</p>
+                  {remainingTodaySessions.map((s) => (
+                    <div key={s._id} className="today-list__item">
+                      <time>{s.startTimeCT}</time>
+                      <div>
+                        <span className="today-list__title">{s.name}</span>
+                        <span className="today-list__meta">Online on Zoom</span>
+                      </div>
+                      <div className="today-list__action">
+                        {s.isRegistered && <span className="today-registered">Registered</span>}
+                        {s.isLive && <a href={`/session/${s.slug}/enter`} className="today-list__join">Join on Zoom</a>}
+                        {s.isSetupOpen && <a href={`/session/${s.slug}/enter`} className="today-list__join">Enter as host</a>}
+                        {s.isLaterToday && <span className="today-list__context">{s.countdownText}</span>}
+                      </div>
+                    </div>
+                  ))}
+                  {inPersonTodayRegistrations.map((r) => (
+                    <div key={r.id} className="today-list__item">
+                      <time>{r.nextTimeCT}</time>
+                      <div>
+                        <span className="today-list__title">{r.programTitle}</span>
+                        <span className="today-list__meta">In person</span>
+                      </div>
+                      <span className="today-registered">Registered</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              {laterSessions.map((s, index) => (
-                <div key={s._id} className={`today-row today-row--later${index === 0 ? " today-row--next" : ""}`}>
-                  <div className="today-row__left">
-                    <span className="today-row__time">{s.startTimeCT}</span>
-                    <span className="today-row__details">
-                      <span className="today-row__title">{s.name}</span>
-                      <span className="today-row__meta">Online on Zoom</span>
-                    </span>
-                  </div>
-                  <div className="today-row__right">
-                    {s.isRegistered && <span className="today-registered">Registered</span>}
-                    <span className="today-row__countdown">{s.countdownText}</span>
-                  </div>
-                </div>
-              ))}
-              {inPersonTodayRegistrations.map((r) => (
-                <div key={r.id} className="today-row today-row--later">
-                  <div className="today-row__left">
-                    <span className="today-row__time">{r.nextTimeCT}</span>
-                    <span className="today-row__title">{r.programTitle}</span>
-                  </div>
-                  <div className="today-row__right">
-                    <span className="today-registered">In-person</span>
-                  </div>
-                </div>
-              ))}
+              )}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Coming up for you (with inline dana status) */}
@@ -509,61 +498,35 @@ export default async function DashboardPage() {
         <div className="db-section db2-practice">
           <p className="db-section__label">Your practice</p>
           <div className="db2-practice__links">
-            <Link href="/account/programs">My registrations <span aria-hidden="true">→</span></Link>
-            <Link href="/account/courses">Library <span aria-hidden="true">→</span></Link>
-            <Link href="/account/documents">Documents <span aria-hidden="true">→</span></Link>
-            <Link href="/account/mindmaps">Mind maps <span aria-hidden="true">→</span></Link>
+            <Link href="/account/programs" className="db2-practice__card">
+              <span><strong>My registrations</strong><small>Your programs and session details</small></span><span aria-hidden="true">→</span>
+            </Link>
+            <Link href="/account/courses" className="db2-practice__card">
+              <span><strong>Library</strong><small>Courses, lessons, and resources</small></span><span aria-hidden="true">→</span>
+            </Link>
+            <Link href="/account/documents" className="db2-practice__card">
+              <span><strong>Documents</strong><small>Shared writing and files</small></span><span aria-hidden="true">→</span>
+            </Link>
+            <Link href="/account/mindmaps" className="db2-practice__card">
+              <span><strong>Mind maps</strong><small>Ideas, connections, and conversations</small></span><span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
 
-        {/* Your teams — hubs you're a member of */}
-        {myHubs.length > 0 && (
+        {/* Teams belong in the sidebar. Surface only work that needs attention here. */}
+        {hubsWithUnread.length > 0 && (
           <div className="db-section">
-            <p className="db-section__label">Your teams</p>
-            <div className="db2-hub-grid">
-              {myHubs.map((hub) => {
+            <p className="db-section__label">From your teams</p>
+            <div className="db2-team-updates">
+              {hubsWithUnread.map((hub) => {
                 const unread = hubUnreadCounts[hub.id] ?? 0;
                 return (
-                  <Link key={hub.id} href={`/account/hub/${hub.slug}`} className="db2-hub-card">
-                    <span className="db2-hub-card__name">{hub.name}</span>
-                    <span className="db2-hub-card__type">
-                      {hub.type === "OPERATIONAL" ? "Operational" :
-                       hub.type === "GOVERNANCE"  ? "Governance"  : "Community Group"}
-                    </span>
-                    {unread > 0 && (
-                      <span className="db2-hub-card__unread">
-                        {unread > 9 ? "9+" : unread}
-                      </span>
-                    )}
+                  <Link key={hub.id} href={`/account/hub/${hub.slug}`} className="db2-team-update">
+                    <span>{hub.name}</span>
+                    <span>{unread > 9 ? "9+" : unread} unread</span>
                   </Link>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* Oversight — every other hub, for guiding-teacher / admin reach.
-            Quieter group: no unread badges, muted treatment, so your own
-            teams above stay the primary thing the eye lands on. */}
-        {oversightHubs.length > 0 && (
-          <div className="db-section">
-            <p className="db-section__label">
-              {myHubs.length > 0 ? "Other hubs — oversight" : "All hubs — oversight"}
-            </p>
-            <div className="db2-hub-grid db2-hub-grid--oversight">
-              {oversightHubs.map((hub) => (
-                <Link
-                  key={hub.id}
-                  href={`/account/hub/${hub.slug}`}
-                  className="db2-hub-card db2-hub-card--oversight"
-                >
-                  <span className="db2-hub-card__name">{hub.name}</span>
-                  <span className="db2-hub-card__type">
-                    {hub.type === "OPERATIONAL" ? "Operational" :
-                     hub.type === "GOVERNANCE"  ? "Governance"  : "Community Group"}
-                  </span>
-                </Link>
-              ))}
             </div>
           </div>
         )}
