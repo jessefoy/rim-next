@@ -11,8 +11,9 @@ export default function Nav() {
   const isLoggedIn = !!session;
   const isAdmin = session?.user?.roles?.includes("ADMIN") ?? false;
   const isSessionArea = pathname?.startsWith("/session") ?? false;
+  const isAccountArea = pathname?.startsWith("/account") ?? false;
   const isMemberArea =
-    (pathname?.startsWith("/account") ?? false) ||
+    isAccountArea ||
     (pathname?.startsWith("/admin") ?? false) ||
     (pathname?.startsWith("/tools") ?? false);
 
@@ -40,6 +41,29 @@ export default function Nav() {
 
   // Video session pages are full-screen — hide the site nav
   if (isSessionArea) return null;
+
+  // The account area has its own navigation shell. Keep the shared header as
+  // quiet identity + exit only, rather than repeating the public navigation.
+  if (isAccountArea) {
+    return (
+      <header className="member-bar">
+        <Link href="/account/dashboard" className="member-bar__brand">
+          <img
+            src="/images/Rooted-In-Mindfulness-Logo.png"
+            alt="Rooted In Mindfulness"
+            height={38}
+          />
+          <span>Rooted In Mindfulness</span>
+        </Link>
+        <div className="member-bar__right">
+          <span className="member-bar__label">Member area</span>
+          <button onClick={() => signOut({ callbackUrl: "/" })} className="member-bar__sign-out">
+            Sign out
+          </button>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="nav">

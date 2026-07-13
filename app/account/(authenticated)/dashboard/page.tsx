@@ -376,17 +376,12 @@ export default async function DashboardPage() {
     <AccountLayout>
       <div className="db2-wrap">
 
-        {/* Greeting */}
-        <div className="db2-greeting">
+        {/* A personal orientation, then the day itself — not a generic dashboard. */}
+        <header className="db2-greeting">
+          <p className="db2-greeting__date">{fmtTodayFull()}</p>
           <h1 className="db2-greeting__name">Good {timeOfDay()}, {firstName}.</h1>
-          <p className="db2-greeting__date">{summaryLine}</p>
-          <p className="db2-greeting__schedule">
-            <Link href="/this-week">See this week&apos;s community schedule →</Link>
-          </p>
-          <p className="db2-greeting__schedule">
-            <Link href="/account/courses">Visit your Library →</Link>
-          </p>
-        </div>
+          <p className="db2-greeting__summary">{summaryLine}</p>
+        </header>
 
         {/* First-login host recognition — one-time, dismissible (session 143) */}
         {hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} coverageNoun={hostWelcomeNoun} />}
@@ -429,8 +424,8 @@ export default async function DashboardPage() {
                   </div>
                 </div>
               ))}
-              {laterSessions.map((s) => (
-                <div key={s._id} className="today-row today-row--later">
+              {laterSessions.map((s, index) => (
+                <div key={s._id} className={`today-row today-row--later${index === 0 ? " today-row--next" : ""}`}>
                   <div className="today-row__left">
                     <span className="today-row__time">{s.startTimeCT}</span>
                     <span className="today-row__title">{s.name}</span>
@@ -503,10 +498,21 @@ export default async function DashboardPage() {
           )}
         </div>
 
+        {/* Personal destinations are present without competing with the day. */}
+        <div className="db-section db2-practice">
+          <p className="db-section__label">Your practice</p>
+          <div className="db2-practice__links">
+            <Link href="/account/programs">My registrations <span aria-hidden="true">→</span></Link>
+            <Link href="/account/courses">Library <span aria-hidden="true">→</span></Link>
+            <Link href="/account/documents">Documents <span aria-hidden="true">→</span></Link>
+            <Link href="/account/mindmaps">Mind maps <span aria-hidden="true">→</span></Link>
+          </div>
+        </div>
+
         {/* Your teams — hubs you're a member of */}
         {myHubs.length > 0 && (
           <div className="db-section">
-            <p className="db-section__label">Where you&apos;re contributing</p>
+            <p className="db-section__label">Your teams</p>
             <div className="db2-hub-grid">
               {myHubs.map((hub) => {
                 const unread = hubUnreadCounts[hub.id] ?? 0;

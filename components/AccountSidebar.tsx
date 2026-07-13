@@ -27,6 +27,7 @@ import {
   Globe,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronDown,
 } from "lucide-react";
 
 interface HubLink {
@@ -73,6 +74,8 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [teamsOpen, setTeamsOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
 
   const hasRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin      = roles.includes("ADMIN");
@@ -103,6 +106,7 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
     if (l.registrarOk) return hasRegistrar;
     return false;
   });
+  const isHubRoute = pathname.startsWith("/account/hub/");
 
   // Render an empty shell before mount to avoid hydration mismatch
   if (!mounted) {
@@ -143,44 +147,61 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
 
         {/* ── Your Hubs ── */}
         {hubLinks.length > 0 && (
-          <>
+          <div className="ac-sidebar__group">
             <div className="ac-sidebar__divider" role="separator" />
-            {!collapsed && (
-              <div className="ac-sidebar__section-label">Your Hubs</div>
-            )}
-            {hubLinks.map((h) => (
+            <button
+              type="button"
+              className="ac-sidebar__group-toggle"
+              onClick={() => setTeamsOpen((open) => !open)}
+              aria-expanded={teamsOpen || isHubRoute}
+              title={collapsed ? "Your teams" : undefined}
+            >
+              <Globe size={18} strokeWidth={1.75} className="ac-sidebar__icon" />
+              <span className="ac-sidebar__label">Your teams</span>
+              {!collapsed && <span className="ac-sidebar__count">{hubLinks.length}</span>}
+              {!collapsed && <ChevronDown size={15} className={`ac-sidebar__chevron${teamsOpen ? " ac-sidebar__chevron--open" : ""}`} />}
+            </button>
+            {(teamsOpen || isHubRoute) && hubLinks.map((h) => (
               <Link
                 key={h.slug}
                 href={`/account/hub/${h.slug}`}
-                className={linkClass(`/account/hub/${h.slug}`)}
+                className={`${linkClass(`/account/hub/${h.slug}`)} ac-sidebar__link--nested`}
                 title={collapsed ? h.name : undefined}
               >
-                <Globe size={18} strokeWidth={1.75} className="ac-sidebar__icon" />
+                <Globe size={16} strokeWidth={1.75} className="ac-sidebar__icon" />
                 <span className="ac-sidebar__label">{h.name}</span>
               </Link>
             ))}
-          </>
+          </div>
         )}
 
         {/* ── Staff / Admin links ── */}
         {visibleStaffLinks.length > 0 && (
-          <>
+          <div className="ac-sidebar__group">
             <div className="ac-sidebar__divider" role="separator" />
-            {!collapsed && (
-              <div className="ac-sidebar__section-label">Staff</div>
-            )}
-            {visibleStaffLinks.map((l) => (
+            <button
+              type="button"
+              className="ac-sidebar__group-toggle"
+              onClick={() => setManageOpen((open) => !open)}
+              aria-expanded={manageOpen}
+              title={collapsed ? "Manage" : undefined}
+            >
+              <Layers size={18} strokeWidth={1.75} className="ac-sidebar__icon" />
+              <span className="ac-sidebar__label">Manage</span>
+              {!collapsed && <ChevronDown size={15} className={`ac-sidebar__chevron${manageOpen ? " ac-sidebar__chevron--open" : ""}`} />}
+            </button>
+            {manageOpen && visibleStaffLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                className={linkClass(l.href)}
+                className={`${linkClass(l.href)} ac-sidebar__link--nested`}
                 title={collapsed ? l.label : undefined}
               >
                 <l.icon size={18} strokeWidth={1.75} className="ac-sidebar__icon" />
                 <span className="ac-sidebar__label">{l.label}</span>
               </Link>
             ))}
-          </>
+          </div>
         )}
 
       </div>
