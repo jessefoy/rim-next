@@ -25785,6 +25785,7 @@ input.w-button { -webkit-appearance: button; }
 }
 .pg-page .pg-detail-row__link:hover { text-decoration: underline; }
 .pg-details-action {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   min-height: 82px;
