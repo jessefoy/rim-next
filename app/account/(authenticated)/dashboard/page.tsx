@@ -280,7 +280,7 @@ export default async function DashboardPage() {
       formatLabel: "Online on Zoom",
       isRegistered: s.isRegistered,
       stage: s.isLive ? "open" : s.isSetupOpen ? "setup" : "later",
-      statusText: s.isLive ? "Zoom is open" : s.isSetupOpen ? "Host entry is open" : undefined,
+      statusText: s.isSetupOpen ? "Host entry is open" : undefined,
       actionHref: s.isLive || s.isSetupOpen ? `/session/${s.slug}/enter` : undefined,
       actionLabel: s.isLive ? "Join on Zoom" : s.isSetupOpen ? "Enter Zoom as host" : undefined,
       contextText: s.isSetupOpen
@@ -465,7 +465,7 @@ export default async function DashboardPage() {
                     {laterTodayItems.map((item) => (
                       <div key={item.key} className="today-list__item">
                         <time>{item.startTimeCT}</time>
-                        <div>
+                        <div className="today-list__details">
                           <span className="today-list__title">{item.name}</span>
                           <span className="today-list__meta">
                             <span>{item.formatLabel}</span>
