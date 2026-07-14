@@ -104,7 +104,7 @@ The browsing experience is deliberately **Mac Finder / iOS Files**–shaped:
 
 ## 5. Risks and honest limits
 
-- **Link leakage** (accepted, Zoom-consistent): anyone holding an edit link can edit and can pass the link on. Mitigations: RIM-only distribution, per-drive lockdown path (per-email grants), Drive version history makes vandalism recoverable.
+- **Link leakage** (accepted, Zoom-consistent): anyone holding an edit link can edit and can pass the link on. Be precise about what this means (reviewer, session 163): the anyone-with-link **editor** permission is minted just-in-time when RIM hands out an open link, is **permanent on the Google side**, and RIM currently has **no revocation tooling** — RIM gates who *receives* a link, never who can use it afterward. Every mint is audit-logged (`google_file_audit`, action `mint-link`). Mitigations: RIM-only distribution, Drive version history makes vandalism recoverable, per-email grants remain the lockdown path for sensitive drives, and an admin revoke/lockdown action is backlogged (`2026-07-14-001`) to build before any sensitive content lands in the drives.
 - **In-app rendering fidelity:** complex Google Docs (heavy tables, embedded objects) may render more simply in RIM's reader than in Google. Acceptable for reading; editors always see the real thing.
 - **Large-file streaming through Vercel:** proxying long audio via a function has platform limits. V1 streams through a route handler for normal sizes; very large media may need a temp-Blob hop or direct-link approach — flagged, not hidden.
 - **Workspace sharing policy:** "anyone with link" on Shared Drive files requires the Workspace admin settings to allow external sharing for those drives — a real setup step, documented below.

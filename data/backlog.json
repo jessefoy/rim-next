@@ -1013,5 +1013,15 @@
     "status": "done",
     "addedAt": "2026-06-29",
     "notes": "DONE session 161 (2026-07-09) — `DocumentViewer` now carries membership status and `lib/documentAuth.ts` only grants hub-derived access to ACTIVE members. Updated document page/API, conversations, presence, sharing, placement, and directory callsites; `npx tsc --noEmit` passes."
+  },
+  {
+    "id": "2026-07-14-001",
+    "title": "Admin revoke/lockdown for minted file links",
+    "description": "The Files system mints permanent anyone-with-link editor permissions when RIM hands out open links (link-as-key, RIM_GoogleWorkspace.md). Build an admin action to revoke the anyone permission on a single file and to lock down an entire drive (sweep all anyone permissions), so a leaked link can be cut off and sensitive drives can be hardened. Every mint is already audit-logged in google_file_audit (action mint-link), which gives the revoke sweep its worklist.",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-07-14",
+    "notes": "Reviewer finding, session 163 (Slice 2 security pass). Build before any sensitive content lands in the drives."
   }
 ]

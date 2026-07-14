@@ -18,6 +18,34 @@ import { getGoogleAccessToken } from "./auth";
 
 const API_BASE = "https://www.googleapis.com/drive/v3";
 
+/**
+ * Retry/backoff at the single choke point every Files surface flows through
+ * (promised for member-facing traffic in RIM_GoogleWorkspace.md §6, Slice 2).
+ * Up to 3 attempts on 429/5xx or a network error, with a small backoff — a
+ * transient Drive blip must not become "We couldn't load these files" across
+ * every hub at once.
+ */
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, attempt === 1 ? 300 : 900));
+    }
+    try {
+      const res = await fetch(url, init);
+      if (RETRYABLE_STATUS.has(res.status) && attempt < 2) continue;
+      return res;
+    } catch (e) {
+      lastError = e; // network-level failure — retry
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Drive request failed after retries");
+}
+
 /** Authenticated Drive API call. Returns parsed JSON, or undefined on 204. */
 export async function driveApi<T = unknown>(
   path: string,
@@ -25,7 +53,7 @@ export async function driveApi<T = unknown>(
 ): Promise<T> {
   const token = await getGoogleAccessToken();
   const hasBody = init.body != null;
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetchWithRetry(`${API_BASE}${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -42,6 +70,23 @@ export async function driveApi<T = unknown>(
   }
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
+}
+
+/**
+ * Authenticated Drive call returning the raw Response — for streaming file
+ * bodies (alt=media) and text exports, where JSON parsing doesn't apply.
+ */
+export async function driveApiRaw(path: string): Promise<Response> {
+  const token = await getGoogleAccessToken();
+  const res = await fetchWithRetry(`${API_BASE}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Drive API GET ${path} failed (${res.status}): ${body}`);
+  }
+  return res;
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -199,6 +244,56 @@ export async function setAnyoneWithLinkEditor(fileId: string): Promise<void> {
     method: "POST",
     body: JSON.stringify({ type: "anyone", role: "writer" }),
   });
+}
+
+/**
+ * Export a Google Doc as HTML (the in-app read path — members read inside
+ * RIM with zero Google literacy; see lib/google/docHtml.ts for the calm-down
+ * transform before rendering).
+ */
+export async function exportDocHtml(fileId: string): Promise<string> {
+  const res = await driveApiRaw(
+    `/files/${encodeURIComponent(fileId)}/export?mimeType=${encodeURIComponent("text/html")}`,
+  );
+  return res.text();
+}
+
+/**
+ * Idempotent link-as-key mint: ensure "anyone with the link can edit" exists
+ * on a file, upgrading a viewer-role link if present. Called just-in-time
+ * when RIM hands out an open/edit link, so files created directly in Drive
+ * (which lack the permission) work too. Files only — Google doesn't support
+ * anyone-with-link on Shared Drive folders.
+ */
+export async function ensureAnyoneWithLinkEditor(fileId: string): Promise<void> {
+  const params = new URLSearchParams({
+    supportsAllDrives: "true",
+    fields: "permissions(id,type,role)",
+  });
+  const existing = await driveApi<{
+    permissions?: { id: string; type: string; role: string }[];
+  }>(`/files/${encodeURIComponent(fileId)}/permissions?${params}`);
+  const anyone = existing.permissions?.find((p) => p.type === "anyone");
+  if (anyone?.role === "writer") return;
+  if (anyone) {
+    const patchParams = new URLSearchParams({ supportsAllDrives: "true" });
+    await driveApi(
+      `/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(anyone.id)}?${patchParams}`,
+      { method: "PATCH", body: JSON.stringify({ role: "writer" }) },
+    );
+    return;
+  }
+  try {
+    await setAnyoneWithLinkEditor(fileId);
+  } catch (e) {
+    // Two members opening the same fresh file concurrently can both reach the
+    // create — tolerate the loser if the permission now exists either way.
+    const recheck = await driveApi<{
+      permissions?: { type: string; role: string }[];
+    }>(`/files/${encodeURIComponent(fileId)}/permissions?${params}`);
+    const now = recheck.permissions?.find((p) => p.type === "anyone");
+    if (!now) throw e;
+  }
 }
 
 /**

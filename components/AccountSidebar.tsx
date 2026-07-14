@@ -25,6 +25,7 @@ import {
   Mail,
   Globe,
   ChevronDown,
+  FolderOpen,
 } from "lucide-react";
 
 interface HubLink {
@@ -35,6 +36,11 @@ interface HubLink {
 interface Props {
   roles: string[];
   hubLinks?: HubLink[];
+  /** Show the Files link (Google Workspace Files, RIM_GoogleWorkspace.md).
+   *  Computed server-side in AccountLayout: ADMIN/GT, or a member of at
+   *  least one files-enabled hub — so members don't see an empty Files
+   *  area before their teams come online. */
+  showFiles?: boolean;
 }
 
 type LucideIcon = React.ComponentType<{
@@ -65,7 +71,7 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
   { label: "Emails",     href: "/admin/emails",     icon: Mail,     adminOnly: true   },
 ];
 
-export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
+export default function AccountSidebar({ roles, hubLinks = [], showFiles = false }: Props) {
   const pathname = usePathname();
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(pathname.startsWith("/admin/"));
@@ -91,7 +97,15 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
     <nav className="ac-sidebar" aria-label="Account navigation">
       <div className="ac-sidebar__nav">
         <p className="ac-sidebar__section-label">My RIM</p>
-        {MEMBER_LINKS.map((l) => (
+        {MEMBER_LINKS.flatMap((l) => {
+          const links = [l];
+          // Files rides right after Documents while the two coexist
+          // (RIM_GoogleWorkspace.md — Documents retires at cutover).
+          if (l.label === "Documents" && showFiles) {
+            links.push({ label: "Files", href: "/account/files", icon: FolderOpen });
+          }
+          return links;
+        }).map((l) => (
           <Link
             key={l.href}
             href={l.href}

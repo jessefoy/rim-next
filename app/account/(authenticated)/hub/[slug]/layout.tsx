@@ -100,6 +100,7 @@ export default async function HubLayout({ children, params }: Props) {
           type: hub.type as "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP",
           memberCount: hub.members.length,
           coordinatorNames,
+          filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
         }}
         tools={tools}
         navCounts={{

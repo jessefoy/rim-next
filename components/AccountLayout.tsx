@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import AccountSidebar from "@/components/AccountSidebar";
+import { googleConfigured } from "@/lib/google/auth";
 
 /**
  * AccountLayout — wraps all /account/* pages that need the sidebar.
@@ -51,9 +52,28 @@ export default async function AccountLayout({
     );
   }
 
+  // Files (Google Workspace) link: ADMIN/GT see it whenever Google is
+  // configured (preview + oversight); members see it once at least one of
+  // their hubs has Files enabled — never an empty surprise surface.
+  let showFiles = false;
+  if (session?.user?.id && googleConfigured()) {
+    if (roles.includes("ADMIN") || roles.includes("GUIDING_TEACHER")) {
+      showFiles = true;
+    } else {
+      const filesHub = await db.hubMember.findFirst({
+        where: {
+          userId: session.user.id,
+          hub: { status: "ACTIVE", googleFilesEnabled: true, googleDriveId: { not: null } },
+        },
+        select: { id: true },
+      });
+      showFiles = !!filesHub;
+    }
+  }
+
   return (
     <div className="ac-layout">
-      <AccountSidebar roles={roles} hubLinks={hubLinks} />
+      <AccountSidebar roles={roles} hubLinks={hubLinks} showFiles={showFiles} />
       <div className="ac-content">
         <div className="ac-inner">{children}</div>
       </div>

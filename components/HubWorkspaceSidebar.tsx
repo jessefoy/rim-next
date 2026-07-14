@@ -35,6 +35,7 @@ import {
   X,
   Activity,
   Network,
+  FolderOpen,
 } from "lucide-react";
 
 export interface SidebarTool {
@@ -55,6 +56,9 @@ interface Props {
     type: "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP";
     memberCount: number;
     coordinatorNames: string[];
+    /** Google Workspace Files tab (RIM_GoogleWorkspace.md) — on only when
+     *  the hub's switch is enabled AND a drive is mapped. */
+    filesEnabled?: boolean;
   };
   tools: SidebarTool[];
   navCounts: SidebarNavCounts;
@@ -121,6 +125,11 @@ export default function HubWorkspaceSidebar({
     { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
     { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
     { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
+    // Files (Google Workspace) coexists with Documents until the cutover
+    // slice retires the native path — RIM_GoogleWorkspace.md §4.
+    ...(hub.filesEnabled
+      ? [{ label: "Files", href: `${base}/files`, icon: FolderOpen, badge: 0 }]
+      : []),
     { label: "Mind Maps",     href: `${base}/mindmaps`,      icon: Network,       badge: 0 },
     { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
   ];
