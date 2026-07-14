@@ -81,7 +81,7 @@ now), `user:read:user:admin`, `user:update:user:admin` (host-key set).
 | `lib/sessionMeeting.ts` | Orchestration: `getOrCreateSessionMeeting` (idempotent per occurrence, free-seat pick, race-safe), `deleteSessionMeeting`, `teardownProgramMeetings` |
 | `app/session/[slug]/enter/page.tsx` | The Zoom entry (server component): gate → provision/self-heal → role-aware render. Member → `ZoomLaunch`; host-capable → `HostLanding` (+ code); admin error panel |
 | `components/session/ZoomLaunch.tsx` | "Opening Zoom…" → `window.location.replace(joinUrl)` |
-| `app/admin/zoom-test/page.tsx` + `components/admin/ZoomSelfTest.tsx` | ADMIN diagnostic: connection check + provisioning round-trip + orchestration round-trip |
+| `app/admin/zoom-test/page.tsx` + `components/admin/AdminSelfTest.tsx` (shared with `/admin/google-test`; renamed from ZoomSelfTest, session 163) | ADMIN diagnostic: connection check + provisioning round-trip + orchestration round-trip |
 | `app/api/admin/zoom/selftest*` | The two self-test routes |
 | `prisma/schema.prisma` | `SessionMeeting` model; `Program.useZoom` + `Program.recordByDefault` |
 

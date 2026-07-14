@@ -19,7 +19,8 @@ import {
   ZOOM_USER_TYPE,
   type ZoomUser,
 } from "@/lib/zoom";
-import ZoomSelfTest from "@/components/admin/ZoomSelfTest";
+import AdminSelfTest from "@/components/admin/AdminSelfTest";
+import { pill } from "@/components/admin/DiagPill";
 
 export const metadata = { title: "Zoom Test — Admin" };
 export const dynamic = "force-dynamic";
@@ -32,14 +33,6 @@ const SEAT_EMAILS = [
 type SeatCheck =
   | { ok: true; email: string; user: ZoomUser }
   | { ok: false; email: string; error: string };
-
-function pill(tone: "success" | "warning" | "error", label: string) {
-  return (
-    <span className={`adm-zoom__pill adm-zoom__pill--${tone}`}>
-      {label}
-    </span>
-  );
-}
 
 export default async function ZoomTestPage() {
   const session = await auth();
@@ -85,7 +78,7 @@ export default async function ZoomTestPage() {
   }
 
   return (
-    <div className="adm-page adm-zoom">
+    <div className="adm-page adm-diag">
       <header className="ac-page-head">
         <div>
           <h1 className="ac-page-title">Zoom connection test</h1>
@@ -97,23 +90,23 @@ export default async function ZoomTestPage() {
       </header>
 
       {/* Credentials */}
-      <div className="adm-zoom__card">
-        <div className="adm-zoom__label">API credentials</div>
+      <div className="adm-diag__card">
+        <div className="adm-diag__label">API credentials</div>
         {tokenOk ? (
-          <div className="adm-zoom__row">
+          <div className="adm-diag__row">
             {pill("success", "Connected")}
             <span>Access token issued successfully.</span>
           </div>
         ) : (
           <div>
-            <div className="adm-zoom__row adm-zoom__row--spaced">
+            <div className="adm-diag__row adm-diag__row--spaced">
               {pill("error", "Failed")}
               <span>Could not get a token.</span>
             </div>
-            <pre className="adm-zoom__error">
+            <pre className="adm-diag__error">
               {tokenError}
             </pre>
-            <p className="adm-zoom__help">
+            <p className="adm-diag__help">
               Check that <code>ZOOM_ACCOUNT_ID</code>, <code>ZOOM_OAUTH_CLIENT_ID</code>, and{" "}
               <code>ZOOM_OAUTH_CLIENT_SECRET</code> are set in Vercel and match the RIM Sessions app.
             </p>
@@ -123,9 +116,9 @@ export default async function ZoomTestPage() {
 
       {/* Seats */}
       {tokenOk && SEAT_EMAILS.length === 0 && (
-        <div className="adm-zoom__card">
+        <div className="adm-diag__card">
           {pill("warning", "Not set")}
-          <p className="adm-zoom__help">
+          <p className="adm-diag__help">
             No seat emails configured. Set <code>ZOOM_SEAT_A_EMAIL</code> and{" "}
             <code>ZOOM_SEAT_B_EMAIL</code> in Vercel.
           </p>
@@ -136,14 +129,14 @@ export default async function ZoomTestPage() {
         const seatLabel = `Seat ${String.fromCharCode(65 + i)}`;
         if (!s.ok) {
           return (
-            <div key={s.email} className="adm-zoom__card">
-              <div className="adm-zoom__label">
+            <div key={s.email} className="adm-diag__card">
+              <div className="adm-diag__label">
                 {seatLabel} — {s.email}
               </div>
-              <div className="adm-zoom__row adm-zoom__row--spaced">
+              <div className="adm-diag__row adm-diag__row--spaced">
                 {pill("error", "Not found")}
               </div>
-              <pre className="adm-zoom__error">
+              <pre className="adm-diag__error">
                 {s.error}
               </pre>
             </div>
@@ -153,11 +146,11 @@ export default async function ZoomTestPage() {
         const isLicensed = user.type === 2;
         const isActive = (user.status ?? "active") === "active";
         return (
-          <div key={s.email} className="adm-zoom__card">
-            <div className="adm-zoom__label">
+          <div key={s.email} className="adm-diag__card">
+            <div className="adm-diag__label">
               {seatLabel} — {s.email}
             </div>
-            <div className="adm-zoom__row adm-zoom__row--wrap">
+            <div className="adm-diag__row adm-diag__row--wrap">
               {pill("success", "Found")}
               {isLicensed
                 ? pill("success", "Licensed")
@@ -167,17 +160,17 @@ export default async function ZoomTestPage() {
                 : pill("warning", user.status ?? "unknown")}
             </div>
             {!isLicensed && (
-              <p className="adm-zoom__warning">
+              <p className="adm-diag__warning">
                 This seat is not Licensed — group meetings would cap at 40 minutes. Assign a Pro
                 license to it in User Management.
               </p>
             )}
             {!isActive && (
-              <p className="adm-zoom__warning">
+              <p className="adm-diag__warning">
                 This seat is &ldquo;{user.status}&rdquo; — accept the Zoom activation email so it can host.
               </p>
             )}
-            <p className="adm-zoom__id">
+            <p className="adm-diag__id">
               userId: {user.id}
             </p>
           </div>
@@ -185,19 +178,19 @@ export default async function ZoomTestPage() {
       })}
 
       {tokenOk && seats.length > 0 && seats.every((s) => s.ok && s.user.type === 2 && (s.user.status ?? "active") === "active") && (
-        <p className="adm-zoom__success">
+        <p className="adm-diag__success">
           ✓ All green — credentials work and both seats are Licensed and active.
         </p>
       )}
 
       {tokenOk && (
         <>
-          <ZoomSelfTest
+          <AdminSelfTest
             endpoint="/api/admin/zoom/selftest"
             title="Provisioning round-trip"
             blurb="Creates a throwaway meeting, mints a fresh host link, adds a named registrant, then deletes it. Nothing real is touched."
           />
-          <ZoomSelfTest
+          <AdminSelfTest
             endpoint="/api/admin/zoom/selftest-orchestration"
             title="Orchestration (DB-backed)"
             blurb="Provisions a meeting for a test occurrence, calls again to confirm it reuses the same meeting (no duplicate), then tears it down."

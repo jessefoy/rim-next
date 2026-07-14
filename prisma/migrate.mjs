@@ -5307,6 +5307,52 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ retire_onlyoffice_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Google Workspace Files foundation (Slice 1 — RIM_GoogleWorkspace.md).
+  // Additive only: the hub→Shared-Drive mapping columns (all nullable /
+  // default-off, so nothing changes for existing hubs) and the audit table.
+  // Raw SQL references the @@map table names ("hubs", "google_file_audit").
+  // ───────────────────────────────────────────────────────────────────────
+  const googleFoundationFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'google_workspace_foundation_v1'
+  `).catch(() => []);
+
+  if (googleFoundationFlag.length === 0) {
+    console.log("→ Google Workspace Files foundation (hub mapping + audit table)…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "googleDriveId" TEXT`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "googleRootFolderId" TEXT`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "googleFilesEnabled" BOOLEAN NOT NULL DEFAULT false`,
+    );
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "google_file_audit" (
+        "id"           TEXT PRIMARY KEY,
+        "userId"       TEXT,
+        "hubId"        TEXT,
+        "action"       TEXT NOT NULL,
+        "googleFileId" TEXT,
+        "detail"       JSONB,
+        "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "google_file_audit_hubId_idx" ON "google_file_audit"("hubId")`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "google_file_audit_userId_idx" ON "google_file_audit"("userId")`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('google_workspace_foundation_v1')`,
+    );
+    console.log("  ✔ hubs.googleDriveId/googleRootFolderId/googleFilesEnabled + google_file_audit ready.");
+  } else {
+    console.log("  ⏭ google_workspace_foundation_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

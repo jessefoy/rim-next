@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import HubAdminForm from "@/components/HubAdminForm";
+import { googleConfigured } from "@/lib/google/auth";
 
 export const metadata = { title: "Edit Hub — Admin" };
 export const dynamic = "force-dynamic";
@@ -61,6 +62,8 @@ export default async function AdminHubEditPage({
     hasSchedule: hub.hasSchedule,
     assignmentGrantsTeacher: hub.assignmentGrantsTeacher,
     teacherLabel: hub.teacherLabel,
+    googleDriveId: hub.googleDriveId,
+    googleFilesEnabled: hub.googleFilesEnabled,
     coverageNoun: hub.coverageNoun,
     coverageVerb: hub.coverageVerb,
     coverageAction: hub.coverageAction,
@@ -94,6 +97,7 @@ export default async function AdminHubEditPage({
           initialData={initialData}
           hubSlug={slug}
           isCurrentUserCoordinator={isCurrentUserCoordinator}
+          googleConfigured={googleConfigured()}
         />
       </div>
     </div>

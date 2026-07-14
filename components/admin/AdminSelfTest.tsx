@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Admin diagnostic control for a Zoom self-test endpoint. Reused for both the
+ * Admin diagnostic control for a self-test endpoint (Zoom, Google, …). Reused for both the
  * primitives round-trip and the DB-backed orchestration test — pass the endpoint
  * + copy via props. Calls the admin-gated route and renders each step.
  */
@@ -11,7 +11,7 @@ import { useState } from "react";
 type Step = { name: string; ok: boolean; detail: string };
 type Result = { ok: boolean; steps: Step[] };
 
-export default function ZoomSelfTest({
+export default function AdminSelfTest({
   endpoint,
   title,
   blurb,

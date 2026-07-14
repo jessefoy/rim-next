@@ -27298,42 +27298,42 @@ input.w-button { -webkit-appearance: button; }
 }
 
 /* Zoom test now follows the same admin page and status language. */
-.admin-ui .adm-zoom {
+.admin-ui .adm-diag {
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
 }
 
-.adm-zoom__card {
+.adm-diag__card {
   margin-bottom: 14px;
   padding: 20px;
   border-radius: 12px;
   background: var(--rim-surface);
 }
 
-.adm-zoom__label {
+.adm-diag__label {
   margin-bottom: 8px;
   color: var(--rim-text-muted);
   font-size: var(--text-xs);
   font-weight: 600;
 }
 
-.adm-zoom__row {
+.adm-diag__row {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: var(--text-ui);
 }
 
-.adm-zoom__row--spaced {
+.adm-diag__row--spaced {
   margin-bottom: 8px;
 }
 
-.adm-zoom__row--wrap {
+.adm-diag__row--wrap {
   flex-wrap: wrap;
 }
 
-.adm-zoom__pill {
+.adm-diag__pill {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
@@ -27343,23 +27343,23 @@ input.w-button { -webkit-appearance: button; }
   font-weight: 600;
 }
 
-.adm-zoom__pill--success {
+.adm-diag__pill--success {
   background: var(--color-success-bg);
   color: var(--color-success);
 }
 
-.adm-zoom__pill--warning {
+.adm-diag__pill--warning {
   background: var(--color-warning-bg);
   color: var(--color-warning);
 }
 
-.adm-zoom__pill--error {
+.adm-diag__pill--error {
   background: var(--color-error-bg);
   color: var(--color-error);
 }
 
-.adm-zoom__error,
-.adm-zoom__id {
+.adm-diag__error,
+.adm-diag__id {
   color: var(--color-error);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -27367,31 +27367,31 @@ input.w-button { -webkit-appearance: button; }
   word-break: break-word;
 }
 
-.adm-zoom__error {
+.adm-diag__error {
   margin: 0;
 }
 
-.adm-zoom__id {
+.adm-diag__id {
   margin: 8px 0 0;
   color: var(--rim-text-muted);
 }
 
-.adm-zoom__help,
-.adm-zoom__warning,
-.adm-zoom__success {
+.adm-diag__help,
+.adm-diag__warning,
+.adm-diag__success {
   margin: 8px 0 0;
   font-size: var(--text-small);
 }
 
-.adm-zoom__help {
+.adm-diag__help {
   color: var(--rim-text-muted);
 }
 
-.adm-zoom__warning {
+.adm-diag__warning {
   color: var(--color-warning);
 }
 
-.adm-zoom__success {
+.adm-diag__success {
   color: var(--color-success);
   font-weight: 600;
 }
@@ -27638,7 +27638,7 @@ input.w-button { -webkit-appearance: button; }
 
   .admin-ui :is(.adm-section, .adm2-section),
   .admin-ui .adm2-header,
-  .adm-zoom__card {
+  .adm-diag__card {
     padding: 20px;
   }
 

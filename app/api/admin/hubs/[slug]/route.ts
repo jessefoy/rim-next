@@ -47,7 +47,7 @@ export async function PATCH(
 
   const { slug } = await params;
   const body = await req.json();
-  const { name, slug: newSlug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
+  const { name, slug: newSlug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, googleDriveId, googleFilesEnabled, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
 
   // Coverage strings: trim, cap at 40. Empty input falls through to the
   // host-team default for that field — clearing an input in the form
@@ -89,6 +89,20 @@ export async function PATCH(
     }
   }
 
+  // Google Drive mapping (RIM_GoogleWorkspace.md) — one merged authority.
+  // The drive id is admin config, not member input (a foreign id is inert:
+  // the service account can only reach drives it manages; the picker +
+  // /admin/google-test give visibility). Compute the effective post-PATCH
+  // drive once; the update block below enforces the invariants that hang
+  // off it — enabled ⇒ mapped, and a root-folder scope never outlives its
+  // drive — regardless of which keys this PATCH body carried.
+  const nextGoogleDriveId =
+    googleDriveId !== undefined
+      ? typeof googleDriveId === "string" && googleDriveId.trim().length > 0
+        ? googleDriveId.trim()
+        : null
+      : hub.googleDriveId;
+
   const updated = await db.hub.update({
     where: { slug },
     data: {
@@ -118,6 +132,20 @@ export async function PATCH(
       ...(coverageNoun   !== undefined && { coverageNoun:   cleanCoverageInput(coverageNoun,   DEFAULT_COVERAGE_COPY.noun) }),
       ...(coverageVerb   !== undefined && { coverageVerb:   cleanCoverageInput(coverageVerb,   DEFAULT_COVERAGE_COPY.verb) }),
       ...(coverageAction !== undefined && { coverageAction: cleanCoverageInput(coverageAction, DEFAULT_COVERAGE_COPY.action) }),
+      // Google Drive mapping — see nextGoogleDriveId above. Touching either
+      // mapping key re-derives the enabled flag, so PATCH {googleDriveId: ""}
+      // alone can't leave a stale enabled=true; and a drive change/clear
+      // always resets the folder scope that belonged to the old drive.
+      ...(googleDriveId !== undefined && { googleDriveId: nextGoogleDriveId }),
+      ...((googleDriveId !== undefined || googleFilesEnabled !== undefined) && {
+        googleFilesEnabled:
+          nextGoogleDriveId !== null &&
+          (googleFilesEnabled !== undefined
+            ? !!googleFilesEnabled
+            : hub.googleFilesEnabled),
+      }),
+      ...(googleDriveId !== undefined &&
+        nextGoogleDriveId !== hub.googleDriveId && { googleRootFolderId: null }),
       ...(welcomeHeadline !== undefined && { welcomeHeadline: welcomeHeadline || null }),
       ...(welcomeBody !== undefined && { welcomeBody }),
       ...(homeContent !== undefined && { homeContent }),
