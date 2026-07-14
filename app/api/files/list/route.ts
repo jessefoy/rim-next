@@ -32,23 +32,37 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    let folderId = place.rootId;
     let folderName: string | null = null;
     if (folder && folder !== place.rootId) {
       // Cold-load into a subfolder (refresh / shared URL): confirm the folder
       // belongs to this place's drive before revealing its name or children.
-      const f = await getFile(folder);
+      // getFile (validation) and listFiles run in parallel — listFiles is
+      // scoped to the drive, so a foreign folder id can only yield an empty
+      // list, and the getFile check still gates the response before return.
+      const [f, files] = await Promise.all([
+        getFile(folder),
+        listFiles(place.driveId, folder),
+      ]);
       if (f.driveId !== place.driveId || f.mimeType !== GOOGLE_MIME.folder) {
         return NextResponse.json(
           { error: "That folder isn't in this space." },
           { status: 404 },
         );
       }
-      folderId = folder;
       folderName = f.name;
+      return NextResponse.json({
+        folderName,
+        files: files.map((file) => ({
+          id: file.id,
+          name: file.name,
+          mimeType: file.mimeType,
+          modifiedTime: file.modifiedTime ?? null,
+          modifiedBy: file.lastModifyingUser?.displayName ?? null,
+        })),
+      });
     }
 
-    const files = await listFiles(place.driveId, folderId);
+    const files = await listFiles(place.driveId, place.rootId);
     return NextResponse.json({
       folderName,
       files: files.map((f) => ({

@@ -35,6 +35,7 @@ interface HubNavResponse {
     type: "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP";
     memberCount: number;
     coordinatorNames: string[];
+    filesEnabled?: boolean;
   };
   tools: SidebarTool[];
   navCounts: SidebarNavCounts;

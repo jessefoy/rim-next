@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import AccountSidebar from "@/components/AccountSidebar";
-import { googleConfigured } from "@/lib/google/auth";
+import { memberHasFilesAccess } from "@/lib/googleFiles";
 
 /**
  * AccountLayout — wraps all /account/* pages that need the sidebar.
@@ -23,8 +23,13 @@ export default async function AccountLayout({
   const isAdmin = roles.includes("ADMIN");
 
   // Admins see all hubs regardless of HubMember record (bypass policy per lib/hubAuth.ts).
-  // Non-admins see only the hubs they belong to.
+  // Non-admins see only the hubs they belong to. The membership query carries
+  // the Files-enablement fields too, so showFiles derives from it — no second
+  // round-trip (reviewer, session 163).
   let hubLinks: { slug: string; name: string }[] = [];
+  let memberships: {
+    hub: { status: string; googleFilesEnabled: boolean; googleDriveId: string | null };
+  }[] = [];
   if (session?.user?.id) {
     if (isAdmin) {
       const allHubs = await db.hub.findMany({
@@ -33,12 +38,23 @@ export default async function AccountLayout({
       });
       hubLinks = allHubs;
     } else {
-      const memberships = await db.hubMember.findMany({
+      const rows = await db.hubMember.findMany({
         where: { userId: session.user.id },
-        include: { hub: { select: { slug: true, name: true } } },
+        select: {
+          hub: {
+            select: {
+              slug: true,
+              name: true,
+              status: true,
+              googleFilesEnabled: true,
+              googleDriveId: true,
+            },
+          },
+        },
         orderBy: { joinedAt: "asc" },
       });
-      hubLinks = memberships.map((m) => ({ slug: m.hub.slug, name: m.hub.name }));
+      hubLinks = rows.map((m) => ({ slug: m.hub.slug, name: m.hub.name }));
+      memberships = rows;
     }
   }
 
@@ -52,24 +68,12 @@ export default async function AccountLayout({
     );
   }
 
-  // Files (Google Workspace) link: ADMIN/GT see it whenever Google is
-  // configured (preview + oversight); members see it once at least one of
-  // their hubs has Files enabled — never an empty surprise surface.
-  let showFiles = false;
-  if (session?.user?.id && googleConfigured()) {
-    if (roles.includes("ADMIN") || roles.includes("GUIDING_TEACHER")) {
-      showFiles = true;
-    } else {
-      const filesHub = await db.hubMember.findFirst({
-        where: {
-          userId: session.user.id,
-          hub: { status: "ACTIVE", googleFilesEnabled: true, googleDriveId: { not: null } },
-        },
-        select: { id: true },
-      });
-      showFiles = !!filesHub;
-    }
-  }
+  // The Files link matches actual access (the one rule in lib/googleFiles.ts):
+  // ADMIN/GT, a member of a files-enabled hub, OR any member once the Community
+  // drive exists (Community is open to all — session 163).
+  const showFiles = session?.user?.id
+    ? await memberHasFilesAccess(roles, memberships)
+    : false;
 
   return (
     <div className="ac-layout">

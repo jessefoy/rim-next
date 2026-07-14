@@ -22,13 +22,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function HubFilesPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ folder?: string }>;
 }) {
   const { slug } = await params;
-  const { folder } = await searchParams;
   const session = await auth();
   if (!session) redirect("/login");
 
@@ -48,9 +45,8 @@ export default async function HubFilesPage({
         </div>
       </header>
       <FilesBrowser
-        places={[{ key: `hub:${slug}`, name: hub.name, kind: "hub" }]}
+        places={[{ key: `hub:${slug}`, name: hub.name }]}
         initialPlaceKey={`hub:${slug}`}
-        initialFolderId={folder ?? null}
         showPlaces={false}
         basePath={`/account/hub/${slug}/files`}
       />

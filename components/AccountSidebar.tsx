@@ -79,6 +79,17 @@ export default function AccountSidebar({ roles, hubLinks = [], showFiles = false
   const hasRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin      = roles.includes("ADMIN");
 
+  // Files (Google Workspace) rides right after Documents while the two coexist
+  // (RIM_GoogleWorkspace.md — Documents retires at cutover). Built as a plain
+  // list rather than keyed off another link's label, so renaming Documents
+  // can't silently drop Files from the rail.
+  const memberLinks: NavLink[] = [...MEMBER_LINKS];
+  if (showFiles) {
+    const docsIndex = memberLinks.findIndex((l) => l.href === "/account/documents");
+    const filesLink: NavLink = { label: "Files", href: "/account/files", icon: FolderOpen };
+    memberLinks.splice(docsIndex >= 0 ? docsIndex + 1 : memberLinks.length, 0, filesLink);
+  }
+
   function linkClass(href: string) {
     const active =
       pathname === href ||
@@ -97,15 +108,7 @@ export default function AccountSidebar({ roles, hubLinks = [], showFiles = false
     <nav className="ac-sidebar" aria-label="Account navigation">
       <div className="ac-sidebar__nav">
         <p className="ac-sidebar__section-label">My RIM</p>
-        {MEMBER_LINKS.flatMap((l) => {
-          const links = [l];
-          // Files rides right after Documents while the two coexist
-          // (RIM_GoogleWorkspace.md — Documents retires at cutover).
-          if (l.label === "Documents" && showFiles) {
-            links.push({ label: "Files", href: "/account/files", icon: FolderOpen });
-          }
-          return links;
-        }).map((l) => (
+        {memberLinks.map((l) => (
           <Link
             key={l.href}
             href={l.href}

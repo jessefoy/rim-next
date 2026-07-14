@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { googleConfigured } from "@/lib/google/auth";
-import { listSharedDrives } from "@/lib/google/drive";
+import { getFile, listSharedDrives, type DriveFile } from "@/lib/google/drive";
 
 /**
  * The Files system's places + authorization layer (RIM_GoogleWorkspace.md).
@@ -49,6 +49,8 @@ export interface FilesPlace {
   key: string;
   kind: "community" | "hub";
   hubSlug: string | null;
+  /** The origin hub's DB id (hub places only) — for audit attribution. */
+  hubId: string | null;
   name: string;
   driveId: string;
   /** Where browsing starts: a hub's optional root folder, else the drive. */
@@ -56,11 +58,29 @@ export interface FilesPlace {
 }
 
 /**
- * The Community drive is found by name — any Shared Drive the service account
- * belongs to whose name contains "community" (the same rule as the
- * /admin/google-test selftest; decided session 163 over an env var). Cached
- * ~5 minutes per warm instance; a lookup failure is NOT cached, so a
- * transient Google blip can't hide Community for the full window.
+ * The Community drive is the ONE Shared Drive whose name is the reserved
+ * "Community" (or "RIM — Community"), matched exactly after normalizing case,
+ * dashes, and spacing. Exact match — not a substring — so a restricted hub
+ * drive that merely contains the word (e.g. "RIM — Community Care Team")
+ * can never be surfaced as the all-members Community place (reviewer,
+ * session 163). Decided over an env var (session 163): zero config, and the
+ * name is admin-controlled at drive creation.
+ */
+function isCommunityDriveName(name: string): boolean {
+  const normalized = name
+    .toLowerCase()
+    .replace(/[—–-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalized === "community" || normalized === "rim community";
+}
+
+/**
+ * Cached ~5 minutes per warm instance. On a refresh FAILURE we serve the
+ * previous (now-stale) value rather than null: a transient Drive blip must
+ * not become an authorization denial for every Community file — serving the
+ * last-known drive id is correct, since drive identity effectively never
+ * changes (reviewer, session 163).
  */
 let communityCache: { drive: { id: string; name: string } | null; at: number } | null = null;
 const COMMUNITY_TTL_MS = 5 * 60_000;
@@ -72,11 +92,12 @@ export async function resolveCommunityDrive(): Promise<{ id: string; name: strin
   }
   try {
     const drives = await listSharedDrives();
-    const drive = drives.find((d) => /community/i.test(d.name)) ?? null;
+    const drive = drives.find((d) => isCommunityDriveName(d.name)) ?? null;
     communityCache = { drive, at: Date.now() };
     return drive;
   } catch {
-    return null;
+    // Serve the last-known value through the blip (may be null if never resolved).
+    return communityCache?.drive ?? null;
   }
 }
 
@@ -85,6 +106,7 @@ function communityPlace(drive: { id: string; name: string }): FilesPlace {
     key: "community",
     kind: "community",
     hubSlug: null,
+    hubId: null,
     name: "Community",
     driveId: drive.id,
     rootId: drive.id,
@@ -92,6 +114,7 @@ function communityPlace(drive: { id: string; name: string }): FilesPlace {
 }
 
 function hubPlace(h: {
+  id: string;
   slug: string;
   name: string;
   googleDriveId: string | null;
@@ -101,6 +124,7 @@ function hubPlace(h: {
     key: `hub:${h.slug}`,
     kind: "hub",
     hubSlug: h.slug,
+    hubId: h.id,
     name: h.name,
     driveId: h.googleDriveId!,
     rootId: h.googleRootFolderId ?? h.googleDriveId!,
@@ -108,6 +132,7 @@ function hubPlace(h: {
 }
 
 const HUB_PLACE_SELECT = {
+  id: true,
   slug: true,
   name: true,
   googleDriveId: true,
@@ -140,48 +165,101 @@ export async function getAccessiblePlaces(
   return places;
 }
 
-/** Resolve + authorize one place by key. Null = no such place for this viewer. */
+/**
+ * Resolve + authorize one place by key. Derived from getAccessiblePlaces so
+ * there is exactly ONE authorization definition — a place can never be
+ * resolvable-by-key after it has dropped out of the sidebar (reviewer,
+ * session 163). Null = no such place for this viewer.
+ */
 export async function resolvePlace(
   userId: string,
   roles: string[],
   key: string,
 ): Promise<FilesPlace | null> {
-  if (!googleConfigured()) return null;
-  if (key === "community") {
-    const community = await resolveCommunityDrive();
-    return community ? communityPlace(community) : null;
-  }
-  if (key.startsWith("hub:")) {
-    const slug = key.slice(4);
-    const isGT = roles.includes("GUIDING_TEACHER");
-    const hub = await db.hub.findFirst({
-      where: {
-        slug,
-        status: "ACTIVE",
-        googleFilesEnabled: true,
-        googleDriveId: { not: null },
-        ...(isGT ? {} : { members: { some: { userId } } }),
-      },
-      select: HUB_PLACE_SELECT,
-    });
-    return hub ? hubPlace(hub) : null;
-  }
-  return null;
+  const places = await getAccessiblePlaces(userId, roles);
+  return places.find((p) => p.key === key) ?? null;
 }
 
 /**
- * May this viewer touch content in this drive? The gate for the per-file
- * routes (stream / open / reader), where the request carries a file id and
- * the file's owning drive is checked against the viewer's places.
+ * The gate for the per-file routes (stream / open / reader): resolve which of
+ * the viewer's places owns this drive, returning the PLACE (not a bare
+ * boolean) so callers get hubId for audit attribution and rootId/hubSlug for
+ * downstream write policy (Slice 3). Null = not authorized.
  */
-export async function canAccessFileDrive(
+export async function resolveDriveAccess(
   userId: string,
   roles: string[],
   driveId: string | null | undefined,
-): Promise<boolean> {
-  if (!driveId) return false;
+): Promise<FilesPlace | null> {
+  if (!driveId) return null;
   const places = await getAccessiblePlaces(userId, roles);
-  return places.some((p) => p.driveId === driveId);
+  return places.find((p) => p.driveId === driveId) ?? null;
+}
+
+/**
+ * Should this member see the Files link in the account sidebar? The one
+ * definition of "has any Files place," derived from the same rules as
+ * getAccessiblePlaces but without a second DB round-trip: it reuses the hub
+ * memberships AccountLayout already fetched, and the cached Community drive.
+ * Kept in sync with the access model so the link never disagrees with what
+ * /account/files actually shows (reviewer, session 163 — flagged by four
+ * angles).
+ */
+export async function memberHasFilesAccess(
+  roles: string[],
+  memberships: {
+    hub: { status: string; googleFilesEnabled: boolean; googleDriveId: string | null };
+  }[],
+): Promise<boolean> {
+  if (!googleConfigured()) return false;
+  if (roles.includes("ADMIN") || roles.includes("GUIDING_TEACHER")) return true;
+  if (
+    memberships.some(
+      (m) =>
+        m.hub.status === "ACTIVE" &&
+        m.hub.googleFilesEnabled &&
+        Boolean(m.hub.googleDriveId),
+    )
+  ) {
+    return true;
+  }
+  // Community is open to every member (session 163) — show the link whenever
+  // the Community drive exists.
+  return Boolean(await resolveCommunityDrive());
+}
+
+/**
+ * The shared front-of-route gate for the per-file API routes (stream, open).
+ * Runs the viewer gate, fetches the file + the viewer's places in parallel,
+ * and confirms the file's owning drive is one the viewer can reach — returning
+ * the authorized { viewer, file, place } or a typed error the route maps to a
+ * response. Centralizes the auth scaffold so a new per-file route (Slice 3)
+ * can't reintroduce the missing-gate bug this pass already fixed once.
+ * Lets getFile throw (network failure) so the route's try/catch returns 502.
+ */
+export type AuthorizedFile = {
+  viewer: { userId: string; roles: string[] };
+  file: DriveFile & { parents?: string[]; driveId?: string };
+  place: FilesPlace;
+};
+
+export async function authorizeFileRequest(
+  session: Parameters<typeof filesViewer>[0],
+  fileId: string,
+): Promise<
+  { ok: true; data: AuthorizedFile } | { ok: false; status: number; error: string }
+> {
+  const viewer = filesViewer(session);
+  if (!viewer) return { ok: false, status: 401, error: "Please sign in." };
+  const [file, places] = await Promise.all([
+    getFile(fileId),
+    getAccessiblePlaces(viewer.userId, viewer.roles),
+  ]);
+  const place = places.find((p) => p.driveId === file.driveId) ?? null;
+  if (!place) {
+    return { ok: false, status: 404, error: "You don't have access to this file." };
+  }
+  return { ok: true, data: { viewer, file, place } };
 }
 
 /**

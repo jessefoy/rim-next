@@ -23,8 +23,13 @@ function emphasisFromRule(cssProps: string): string[] {
   const kept: string[] = [];
   if (/font-weight\s*:\s*(700|800|900|bold)/i.test(cssProps)) kept.push("font-weight:700");
   if (/font-style\s*:\s*italic/i.test(cssProps)) kept.push("font-style:italic");
-  if (/text-decoration\s*:\s*[^;}]*underline/i.test(cssProps)) kept.push("text-decoration:underline");
-  if (/text-decoration\s*:\s*[^;}]*line-through/i.test(cssProps)) kept.push("text-decoration:line-through");
+  // Underline + strikethrough must be ONE declaration — two separate
+  // text-decoration rules would let the later one win in CSS, silently
+  // dropping the other (a run that is both, e.g. superseded-but-referenced).
+  const decorations: string[] = [];
+  if (/text-decoration\s*:\s*[^;}]*underline/i.test(cssProps)) decorations.push("underline");
+  if (/text-decoration\s*:\s*[^;}]*line-through/i.test(cssProps)) decorations.push("line-through");
+  if (decorations.length) kept.push(`text-decoration:${decorations.join(" ")}`);
   return kept;
 }
 
@@ -67,7 +72,7 @@ export function googleDocHtmlToRimHtml(exportHtml: string): string {
       "*": {
         "font-weight": [/^700$/],
         "font-style": [/^italic$/],
-        "text-decoration": [/^underline$/, /^line-through$/],
+        "text-decoration": [/^underline$/, /^line-through$/, /^underline line-through$/],
       },
     },
     allowedSchemes: ["https", "http", "mailto"],

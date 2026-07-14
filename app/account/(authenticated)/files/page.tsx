@@ -16,14 +16,9 @@ import { getAccessiblePlaces } from "@/lib/googleFiles";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Files" };
 
-export default async function FilesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ place?: string; folder?: string }>;
-}) {
+export default async function FilesPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const { place, folder } = await searchParams;
 
   const places = await getAccessiblePlaces(session.user.id, session.user.roles ?? []);
 
@@ -45,13 +40,6 @@ export default async function FilesPage({
     );
   }
 
-  // A folder param only makes sense for the place it belongs to: honor it
-  // when no place was requested (default place) or the requested place
-  // resolved; drop it when falling back from an unknown place key.
-  const requested = place ? places.find((p) => p.key === place) : null;
-  const initialPlaceKey = (requested ?? places[0]).key;
-  const folderBelongsToShownPlace = !place || Boolean(requested);
-
   return (
     <AccountLayout>
       <header className="ac-page-head">
@@ -64,9 +52,8 @@ export default async function FilesPage({
         </div>
       </header>
       <FilesBrowser
-        places={places.map((p) => ({ key: p.key, name: p.name, kind: p.kind }))}
-        initialPlaceKey={initialPlaceKey}
-        initialFolderId={folderBelongsToShownPlace ? (folder ?? null) : null}
+        places={places.map((p) => ({ key: p.key, name: p.name }))}
+        initialPlaceKey={places[0].key}
         showPlaces
         basePath="/account/files"
       />

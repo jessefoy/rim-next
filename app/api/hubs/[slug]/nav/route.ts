@@ -72,6 +72,9 @@ export async function GET(
       type: hub.type,
       memberCount: hub.members.length,
       coordinatorNames,
+      // So the Files tab stays put when the sidebar re-renders inside a hub
+      // tool (?hub=…), matching the hub-section render (reviewer, session 163).
+      filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
     },
     tools,
     navCounts: {

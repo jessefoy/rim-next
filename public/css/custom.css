@@ -27849,8 +27849,10 @@ input.w-button { -webkit-appearance: button; }
   .gf-reader__doc { padding: 28px 20px; }
 }
 .gf-reader__back {
-  display: inline-block;
-  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 8px;
   font-size: var(--text-ui);
   color: var(--rim-blue);
   text-decoration: none;

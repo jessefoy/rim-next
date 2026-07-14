@@ -1023,5 +1023,15 @@
     "status": "open",
     "addedAt": "2026-07-14",
     "notes": "Reviewer finding, session 163 (Slice 2 security pass). Build before any sensitive content lands in the drives."
+  },
+  {
+    "id": "2026-07-14-002",
+    "title": "Enforce googleRootFolderId as an access boundary (Files)",
+    "description": "In the Files system, Hub.googleRootFolderId currently sets only the browse START point — authorization is per-DRIVE (lib/googleFiles.ts::resolveDriveAccess / the list route folder check compare driveId, not folder ancestry). If two hubs are ever mapped to the SAME Shared Drive with different root folders, a member of hub A could list/stream/open/mint content in hub B subtree by pasting a file/folder id. Latent today: nothing writes googleRootFolderId (not in the admin UI) and each hub has its own drive. Before that field is ever settable, add ancestor-chain enforcement (walk parents up to the place rootId) in resolveDriveAccess + the list folder validation, or forbid sharing one drive across hubs with distinct roots.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-07-14",
+    "notes": "Reviewer finding, session 163 (Slice 2 re-review). Gate before enabling per-folder hub scoping."
   }
 ]

@@ -3,15 +3,16 @@
  *
  * The calm read path (RIM_GoogleWorkspace.md): the server exports the doc as
  * HTML, strips it down to semantics + emphasis (lib/google/docHtml.ts), and
- * renders it in RIM's own typography — no Google account, no Google UI.
- * Editing opens the real Google editor via the gated open route.
+ * renders it in RIM's own typography on a white writing surface — no Google
+ * account, no Google UI. Editing opens the real Google editor via the gated
+ * open route.
  */
 
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import AccountLayout from "@/components/AccountLayout";
-import { canAccessFileDrive } from "@/lib/googleFiles";
-import { GOOGLE_MIME, exportDocHtml, getFile } from "@/lib/google/drive";
+import { filesViewer, getAccessiblePlaces } from "@/lib/googleFiles";
+import { GOOGLE_MIME, exportDocHtml, getFileOrNull } from "@/lib/google/drive";
 import { googleDocHtmlToRimHtml } from "@/lib/google/docHtml";
 import { relativeDate } from "@/lib/relativeDate";
 
@@ -24,32 +25,47 @@ export default async function GoogleDocReaderPage({
   params: Promise<{ fileId: string }>;
   searchParams: Promise<{ from?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  // Gate on the page itself, not just the (authenticated) layout: layouts
+  // don't re-run on soft navigation, so an archived-mid-session member could
+  // otherwise soft-navigate into a doc (reviewer, session 163).
+  const viewer = filesViewer(await auth());
+  if (!viewer) redirect("/login");
   const { fileId } = await params;
   const { from } = await searchParams;
 
-  const file = await getFile(fileId).catch(() => null);
-  if (!file) notFound();
+  // Distinguish "deleted / not mine" (notFound) from "Drive briefly down"
+  // (a graceful try-again). notFound() is called OUTSIDE the try so its
+  // control-flow throw isn't swallowed as a load error.
+  let loadFailed = false;
+  let file: Awaited<ReturnType<typeof getFileOrNull>> = null;
+  let accessible = false;
+  try {
+    const [f, places] = await Promise.all([
+      getFileOrNull(fileId),
+      getAccessiblePlaces(viewer.userId, viewer.roles),
+    ]);
+    file = f;
+    accessible = Boolean(f && places.some((p) => p.driveId === f.driveId));
+  } catch {
+    loadFailed = true;
+  }
 
-  const allowed = await canAccessFileDrive(
-    session.user.id,
-    session.user.roles ?? [],
-    file.driveId,
-  );
-  if (!allowed) notFound();
-
-  // Only Google Docs read in-app; anything else goes to Google's own surface.
-  if (file.mimeType !== GOOGLE_MIME.doc) redirect(`/api/files/open/${fileId}`);
+  if (!loadFailed) {
+    if (!file || !accessible) notFound();
+    // Only Google Docs read in-app; anything else goes to Google's own surface.
+    if (file.mimeType !== GOOGLE_MIME.doc) redirect(`/api/files/open/${fileId}`);
+  }
 
   // Reader back-links only ever point inside the member area.
   const backHref = from && from.startsWith("/account/") ? from : "/account/files";
 
   let html: string | null = null;
-  try {
-    html = googleDocHtmlToRimHtml(await exportDocHtml(fileId));
-  } catch (e) {
-    console.error("[files-reader]", e instanceof Error ? e.message : e);
+  if (!loadFailed && file) {
+    try {
+      html = googleDocHtmlToRimHtml(await exportDocHtml(fileId));
+    } catch (e) {
+      console.error("[files-reader]", e instanceof Error ? e.message : e);
+    }
   }
 
   return (
@@ -59,21 +75,25 @@ export default async function GoogleDocReaderPage({
           &larr; Back to files
         </a>
         <header className="gf-reader__head">
-          <h1 className="ac-page-title">{file.name}</h1>
-          <p className="gf-reader__meta">
-            {file.modifiedTime ? `Updated ${relativeDate(file.modifiedTime)}` : ""}
-            {file.lastModifyingUser?.displayName
-              ? ` · ${file.lastModifyingUser.displayName}`
-              : ""}
-          </p>
-          <a
-            className="btn"
-            href={`/api/files/open/${fileId}`}
-            target="_blank"
-            rel="noopener"
-          >
-            Open in Google Docs
-          </a>
+          <h1 className="ac-page-title">{file?.name ?? "Document"}</h1>
+          {file && (
+            <p className="gf-reader__meta">
+              {file.modifiedTime ? `Updated ${relativeDate(file.modifiedTime)}` : ""}
+              {file.lastModifyingUser?.displayName
+                ? ` · ${file.lastModifyingUser.displayName}`
+                : ""}
+            </p>
+          )}
+          {file && (
+            <a
+              className="btn"
+              href={`/api/files/open/${fileId}`}
+              target="_blank"
+              rel="noopener"
+            >
+              Open in Google Docs
+            </a>
+          )}
         </header>
         {html !== null ? (
           <article
@@ -82,8 +102,8 @@ export default async function GoogleDocReaderPage({
           />
         ) : (
           <p className="gf-status">
-            We couldn&rsquo;t load this document right now. Please try again, or
-            open it in Google Docs above.
+            We couldn&rsquo;t load this document right now. Please try again
+            {file ? ", or open it in Google Docs above." : "."}
           </p>
         )}
       </div>

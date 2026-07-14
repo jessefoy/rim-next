@@ -26,8 +26,17 @@ const API_BASE = "https://www.googleapis.com/drive/v3";
  * every hub at once.
  */
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+/**
+ * Only idempotent methods retry on a retryable STATUS: a POST (createFile,
+ * permission create) that got a 5xx may already have committed on Google's
+ * side, so retrying it risks a duplicate. Network-level failures (no response
+ * received) are safe to retry for any method — nothing was delivered.
+ */
+const STATUS_RETRY_METHODS = new Set(["GET", "HEAD"]);
 
 async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  const method = (init.method ?? "GET").toUpperCase();
+  const mayRetryStatus = STATUS_RETRY_METHODS.has(method);
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) {
@@ -35,10 +44,15 @@ async function fetchWithRetry(url: string, init: RequestInit): Promise<Response>
     }
     try {
       const res = await fetch(url, init);
-      if (RETRYABLE_STATUS.has(res.status) && attempt < 2) continue;
+      if (mayRetryStatus && RETRYABLE_STATUS.has(res.status) && attempt < 2) {
+        // Release the discarded body so its socket returns to the pool —
+        // an unconsumed body pins the connection until GC (undici).
+        await res.body?.cancel().catch(() => {});
+        continue;
+      }
       return res;
     } catch (e) {
-      lastError = e; // network-level failure — retry
+      lastError = e; // network-level failure — safe to retry (nothing delivered)
     }
   }
   throw lastError instanceof Error
@@ -75,11 +89,16 @@ export async function driveApi<T = unknown>(
 /**
  * Authenticated Drive call returning the raw Response — for streaming file
  * bodies (alt=media) and text exports, where JSON parsing doesn't apply.
+ * Extra request headers (e.g. a passed-through `Range`) may be supplied; a
+ * 206 Partial Content response is returned as-is (res.ok covers 200–299).
  */
-export async function driveApiRaw(path: string): Promise<Response> {
+export async function driveApiRaw(
+  path: string,
+  extraHeaders?: Record<string, string>,
+): Promise<Response> {
   const token = await getGoogleAccessToken();
   const res = await fetchWithRetry(`${API_BASE}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, ...(extraHeaders ?? {}) },
     cache: "no-store",
   });
   if (!res.ok) {
@@ -96,13 +115,9 @@ export interface SharedDrive {
   name: string;
 }
 
-/** Google Docs/Sheets/Slides + folder MIME types the app branches on. */
-export const GOOGLE_MIME = {
-  folder: "application/vnd.google-apps.folder",
-  doc: "application/vnd.google-apps.document",
-  sheet: "application/vnd.google-apps.spreadsheet",
-  slides: "application/vnd.google-apps.presentation",
-} as const;
+// Google MIME types live in a client-safe module so FilesBrowser shares them;
+// re-exported here so existing server imports (`@/lib/google/drive`) still work.
+export { GOOGLE_MIME } from "./mime";
 
 export interface DriveFile {
   id: string;
@@ -210,6 +225,23 @@ export async function getFile(
 }
 
 /**
+ * Like getFile, but returns null on a genuine 404 (deleted / never existed)
+ * while still throwing on transient failures — so a caller (the reader page)
+ * can tell "this document is gone" apart from "Drive is briefly unavailable"
+ * and not show a false not-found for a blip.
+ */
+export async function getFileOrNull(
+  fileId: string,
+): Promise<(DriveFile & { parents?: string[]; driveId?: string }) | null> {
+  try {
+    return await getFile(fileId);
+  } catch (e) {
+    if (e instanceof Error && /failed \(404\)/.test(e.message)) return null;
+    throw e;
+  }
+}
+
+/**
  * Create a file (Google Doc/Sheet/Slides/folder by MIME type) inside a Shared
  * Drive folder. Returns the created file with its webViewLink.
  */
@@ -264,8 +296,14 @@ export async function exportDocHtml(fileId: string): Promise<string> {
  * when RIM hands out an open/edit link, so files created directly in Drive
  * (which lack the permission) work too. Files only — Google doesn't support
  * anyone-with-link on Shared Drive folders.
+ *
+ * Returns `true` only when this call actually CREATED the anyone-editor
+ * permission (the security-relevant first-mint event), `false` when it was
+ * already present or merely upgraded — so the audit log can record the true
+ * moment a file became link-editable, distinct from routine re-opens
+ * (reviewer, session 163 — feeds the backlogged revoke tooling).
  */
-export async function ensureAnyoneWithLinkEditor(fileId: string): Promise<void> {
+export async function ensureAnyoneWithLinkEditor(fileId: string): Promise<boolean> {
   const params = new URLSearchParams({
     supportsAllDrives: "true",
     fields: "permissions(id,type,role)",
@@ -274,17 +312,18 @@ export async function ensureAnyoneWithLinkEditor(fileId: string): Promise<void> 
     permissions?: { id: string; type: string; role: string }[];
   }>(`/files/${encodeURIComponent(fileId)}/permissions?${params}`);
   const anyone = existing.permissions?.find((p) => p.type === "anyone");
-  if (anyone?.role === "writer") return;
+  if (anyone?.role === "writer") return false;
   if (anyone) {
     const patchParams = new URLSearchParams({ supportsAllDrives: "true" });
     await driveApi(
       `/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(anyone.id)}?${patchParams}`,
       { method: "PATCH", body: JSON.stringify({ role: "writer" }) },
     );
-    return;
+    return false; // upgraded an existing link, not a first mint
   }
   try {
     await setAnyoneWithLinkEditor(fileId);
+    return true;
   } catch (e) {
     // Two members opening the same fresh file concurrently can both reach the
     // create — tolerate the loser if the permission now exists either way.
@@ -293,6 +332,7 @@ export async function ensureAnyoneWithLinkEditor(fileId: string): Promise<void> 
     }>(`/files/${encodeURIComponent(fileId)}/permissions?${params}`);
     const now = recheck.permissions?.find((p) => p.type === "anyone");
     if (!now) throw e;
+    return false; // the winner minted it; this call didn't
   }
 }
 
