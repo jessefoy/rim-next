@@ -76,7 +76,10 @@ export default async function GoogleDocReaderPage({
           </a>
         </header>
         {html !== null ? (
-          <article className="rim-content" dangerouslySetInnerHTML={{ __html: html }} />
+          <article
+            className="rim-content gf-reader__doc"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
         ) : (
           <p className="gf-status">
             We couldn&rsquo;t load this document right now. Please try again, or

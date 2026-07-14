@@ -27834,8 +27834,20 @@ input.w-button { -webkit-appearance: button; }
   text-overflow: ellipsis;
 }
 
-/* The in-app Google Doc reader */
-.gf-reader { max-width: var(--reading-width); }
+/* The in-app Google Doc reader — the document sits on a white writing
+   surface (paper on the desk), not directly on the warm page ground. The
+   wrapper is widened by the sheet's padding so the text column itself
+   keeps the full reading width. */
+.gf-reader { max-width: calc(var(--reading-width) + 112px); }
+.gf-reader__doc {
+  background: var(--rim-surface);
+  border-radius: 12px;
+  padding: 48px 56px;
+  margin-top: 8px;
+}
+@media (max-width: 768px) {
+  .gf-reader__doc { padding: 28px 20px; }
+}
 .gf-reader__back {
   display: inline-block;
   margin-bottom: 16px;
