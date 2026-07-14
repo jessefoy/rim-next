@@ -156,7 +156,7 @@ export default async function HubDocumentViewPage({
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
           />
         ) : (
-          <p style={{ fontFamily: "var(--font-doc)", fontSize: 14, color: "var(--rim-text-muted)", fontStyle: "italic" }}>
+          <p className="doc-page__empty">
             No content yet.
           </p>
         )}

@@ -93,31 +93,33 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
     <>
       {showCreated && <div className="adm-hubs-success">Hub created successfully.</div>}
 
-      <table className="adm-hubs-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Slug</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Members</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {active.map(renderRow)}
-          {archived.length > 0 && (
-            <>
-              {active.length > 0 && (
-                <tr className="adm-hubs-divider-row">
-                  <td colSpan={6} className="adm-hubs-divider-cell">Archived</td>
-                </tr>
-              )}
-              {archived.map(renderRow)}
-            </>
-          )}
-        </tbody>
-      </table>
+      <div className="adm-hubs-table-wrap">
+        <table className="adm-hubs-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Slug</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Members</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {active.map(renderRow)}
+            {archived.length > 0 && (
+              <>
+                {active.length > 0 && (
+                  <tr className="adm-hubs-divider-row">
+                    <td colSpan={6} className="adm-hubs-divider-cell">Archived</td>
+                  </tr>
+                )}
+                {archived.map(renderRow)}
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {hubs.length === 0 && (
         <p className="adm-hubs-empty">No hubs found.</p>

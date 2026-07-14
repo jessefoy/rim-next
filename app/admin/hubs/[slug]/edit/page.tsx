@@ -83,7 +83,12 @@ export default async function AdminHubEditPage({
   return (
     <div className="adm-page">
       <div className="adm-content">
-        <h1 className="adm-hubs-title">Edit Hub: {hub.name}</h1>
+        <header className="ac-page-head">
+          <div>
+            <h1 className="adm-hubs-title ac-page-title">{hub.name}</h1>
+            <p className="ac-page-sub">Hub identity, access, language, content, and connected tools.</p>
+          </div>
+        </header>
         <HubAdminForm
           isEditing
           initialData={initialData}

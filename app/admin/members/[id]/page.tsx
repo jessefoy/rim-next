@@ -174,7 +174,7 @@ export default async function AdminMemberDetailPage({
 
   return (
     <div className="adm2-page">
-      <div className="adm2-content" style={{ position: "relative" }}>
+      <div className="adm2-content">
         <MemberDetail member={serialized} viewerPermissions={viewerPermissions} />
       </div>
     </div>

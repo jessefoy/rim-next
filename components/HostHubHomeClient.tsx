@@ -55,7 +55,7 @@ export default function HostHubHomeClient({
     <div className="hub-home">
       <header className="hub-home__header">
         <div className="hub-home__greeting">Welcome</div>
-        <h2 className="hub-home__state">{hubName}</h2>
+        <h1 className="hub-home__state">{hubName}</h1>
       </header>
 
       <section className="hub-home__section">
@@ -268,4 +268,3 @@ function InlineBlockEditor({
     </div>
   );
 }
-

@@ -42,9 +42,9 @@ export default function Nav() {
   // Video session pages are full-screen — hide the site nav
   if (isSessionArea) return null;
 
-  // The account area has its own navigation shell. Keep the shared header as
-  // quiet identity + exit only, rather than repeating the public navigation.
-  if (isAccountArea) {
+  // Authenticated member, admin, and tool surfaces share one quiet identity
+  // header. Their sidebars and workspace chrome carry the local navigation.
+  if (isMemberArea) {
     const firstName = session?.user?.name?.split(" ")[0] ?? "My profile";
     return (
       <header className="member-bar">

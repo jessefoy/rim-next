@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import AccountLayout from "@/components/AccountLayout";
 import EmailTemplateEditor from "@/components/EmailTemplateEditor";
 
 interface Props {
@@ -43,19 +42,17 @@ export default async function EmailTemplateEditPage({ params }: Props) {
   const userId = (session.user as { id?: string }).id ?? "";
 
   return (
-    <AccountLayout>
-      <EmailTemplateEditor
-        template={{
-          ...template,
-          helpText: template.helpText ?? null,
-          sanityNote: template.sanityNote ?? null,
-          updatedAt: template.updatedAt.toISOString(),
-          updatedBy: template.updatedBy
-            ? `${template.updatedBy.firstName ?? ""} ${template.updatedBy.lastName ?? ""}`.trim()
-            : null,
-        }}
-        userId={userId}
-      />
-    </AccountLayout>
+    <EmailTemplateEditor
+      template={{
+        ...template,
+        helpText: template.helpText ?? null,
+        sanityNote: template.sanityNote ?? null,
+        updatedAt: template.updatedAt.toISOString(),
+        updatedBy: template.updatedBy
+          ? `${template.updatedBy.firstName ?? ""} ${template.updatedBy.lastName ?? ""}`.trim()
+          : null,
+      }}
+      userId={userId}
+    />
   );
 }

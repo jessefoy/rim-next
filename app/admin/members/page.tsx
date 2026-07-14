@@ -93,12 +93,14 @@ export default async function AdminMembersPage({
   return (
     <div className="adm-page">
       <div className="adm-content">
-        <header className="adm-header">
-          <p className="lp-label">Admin</p>
-          <h1 className="adm-header__title">{showLegacyPool ? "Legacy pool" : "Members"}</h1>
-          <p className="adm-header__count">
-            {members.length} {showLegacyPool ? "unclaimed" : "total"}
-          </p>
+        <header className="adm-header ac-page-head">
+          <div>
+            <p className="lp-label">Admin</p>
+            <h1 className="adm-header__title ac-page-title">{showLegacyPool ? "Legacy pool" : "Members"}</h1>
+            <p className="adm-header__count ac-page-sub">
+              {members.length} {showLegacyPool ? "unclaimed" : "total"}
+            </p>
+          </div>
         </header>
 
         <MembersTable members={members} showLegacyPool={showLegacyPool} legacyCount={legacyCount} />

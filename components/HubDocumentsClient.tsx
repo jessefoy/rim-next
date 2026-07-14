@@ -445,7 +445,7 @@ export default function HubDocumentsClient({
 
       {/* Page header */}
       <div className="hub-section-header">
-        <h2 className="hub-page__title">Documents</h2>
+        <h1 className="hub-page__title">Documents</h1>
         <div className="hub-page__actions">
           <a href={`/account/hub/${hubSlug}/documents/new`} className="btn btn--sm">
             + New Document

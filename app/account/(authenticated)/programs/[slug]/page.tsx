@@ -158,7 +158,7 @@ export default async function MemberProgramDetailPage({
 
   return (
     <AccountLayout>
-      <div className="mpd-page">
+      <div className="mpd-page ac-member-page">
 
         {/* ── Back link ── */}
         <Link href="/account/programs" className="mpd-back">← My Programs</Link>

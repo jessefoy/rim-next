@@ -33,21 +33,9 @@ type SeatCheck =
   | { ok: true; email: string; user: ZoomUser }
   | { ok: false; email: string; error: string };
 
-function pill(color: string, label: string) {
+function pill(tone: "success" | "warning" | "error", label: string) {
   return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 10px",
-        borderRadius: 999,
-        fontSize: "var(--text-xxs)",
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: "0.06em",
-        color: "#fff",
-        background: color,
-      }}
-    >
+    <span className={`adm-zoom__pill adm-zoom__pill--${tone}`}>
       {label}
     </span>
   );
@@ -96,65 +84,36 @@ export default async function ZoomTestPage() {
     }
   }
 
-  const labelStyle = {
-    fontSize: "var(--text-label)",
-    fontWeight: 700 as const,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.08em",
-    color: "var(--rim-mid)",
-    marginBottom: 6,
-  };
-  const cardStyle = {
-    border: "1px solid var(--rim-bg-accent)",
-    borderRadius: 10,
-    padding: "16px 18px",
-    marginBottom: 14,
-  };
-
   return (
-    <div className="adm-page" style={{ padding: 24, maxWidth: 660 }}>
-      <h1
-        style={{
-          fontFamily: "var(--font-serif)",
-          fontSize: "var(--text-h2)",
-          fontWeight: 400,
-          marginBottom: 4,
-        }}
-      >
-        Zoom connection test
-      </h1>
-      <p style={{ fontSize: "var(--text-ui)", color: "var(--rim-mid)", marginBottom: 24 }}>
-        Verifies the &ldquo;RIM Sessions&rdquo; Server-to-Server credentials and the two host
-        seats. Read-only; admin only.
-      </p>
+    <div className="adm-page adm-zoom">
+      <header className="ac-page-head">
+        <div>
+          <h1 className="ac-page-title">Zoom connection test</h1>
+          <p className="ac-page-sub">
+            Verifies the &ldquo;RIM Sessions&rdquo; Server-to-Server credentials and the two host
+            seats. Read-only; admin only.
+          </p>
+        </div>
+      </header>
 
       {/* Credentials */}
-      <div style={cardStyle}>
-        <div style={labelStyle}>API credentials</div>
+      <div className="adm-zoom__card">
+        <div className="adm-zoom__label">API credentials</div>
         {tokenOk ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {pill("var(--color-success)", "Connected")}
-            <span style={{ fontSize: "var(--text-ui)" }}>Access token issued successfully.</span>
+          <div className="adm-zoom__row">
+            {pill("success", "Connected")}
+            <span>Access token issued successfully.</span>
           </div>
         ) : (
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              {pill("var(--color-error)", "Failed")}
-              <span style={{ fontSize: "var(--text-ui)" }}>Could not get a token.</span>
+            <div className="adm-zoom__row adm-zoom__row--spaced">
+              {pill("error", "Failed")}
+              <span>Could not get a token.</span>
             </div>
-            <pre
-              style={{
-                fontSize: "var(--text-xs)",
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-error)",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                margin: 0,
-              }}
-            >
+            <pre className="adm-zoom__error">
               {tokenError}
             </pre>
-            <p style={{ fontSize: "var(--text-small)", color: "var(--rim-mid)", marginTop: 8 }}>
+            <p className="adm-zoom__help">
               Check that <code>ZOOM_ACCOUNT_ID</code>, <code>ZOOM_OAUTH_CLIENT_ID</code>, and{" "}
               <code>ZOOM_OAUTH_CLIENT_SECRET</code> are set in Vercel and match the RIM Sessions app.
             </p>
@@ -164,9 +123,9 @@ export default async function ZoomTestPage() {
 
       {/* Seats */}
       {tokenOk && SEAT_EMAILS.length === 0 && (
-        <div style={cardStyle}>
-          {pill("var(--color-warning)", "Not set")}
-          <p style={{ fontSize: "var(--text-ui)", marginTop: 8 }}>
+        <div className="adm-zoom__card">
+          {pill("warning", "Not set")}
+          <p className="adm-zoom__help">
             No seat emails configured. Set <code>ZOOM_SEAT_A_EMAIL</code> and{" "}
             <code>ZOOM_SEAT_B_EMAIL</code> in Vercel.
           </p>
@@ -177,23 +136,14 @@ export default async function ZoomTestPage() {
         const seatLabel = `Seat ${String.fromCharCode(65 + i)}`;
         if (!s.ok) {
           return (
-            <div key={s.email} style={cardStyle}>
-              <div style={labelStyle}>
+            <div key={s.email} className="adm-zoom__card">
+              <div className="adm-zoom__label">
                 {seatLabel} — {s.email}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                {pill("var(--color-error)", "Not found")}
+              <div className="adm-zoom__row adm-zoom__row--spaced">
+                {pill("error", "Not found")}
               </div>
-              <pre
-                style={{
-                  fontSize: "var(--text-xs)",
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--color-error)",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  margin: 0,
-                }}
-              >
+              <pre className="adm-zoom__error">
                 {s.error}
               </pre>
             </div>
@@ -203,31 +153,31 @@ export default async function ZoomTestPage() {
         const isLicensed = user.type === 2;
         const isActive = (user.status ?? "active") === "active";
         return (
-          <div key={s.email} style={cardStyle}>
-            <div style={labelStyle}>
+          <div key={s.email} className="adm-zoom__card">
+            <div className="adm-zoom__label">
               {seatLabel} — {s.email}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {pill("var(--color-success)", "Found")}
+            <div className="adm-zoom__row adm-zoom__row--wrap">
+              {pill("success", "Found")}
               {isLicensed
-                ? pill("var(--color-success)", "Licensed")
-                : pill("var(--color-warning)", ZOOM_USER_TYPE[user.type] ?? `Type ${user.type}`)}
+                ? pill("success", "Licensed")
+                : pill("warning", ZOOM_USER_TYPE[user.type] ?? `Type ${user.type}`)}
               {isActive
-                ? pill("var(--color-success)", "Active")
-                : pill("var(--color-warning)", user.status ?? "unknown")}
+                ? pill("success", "Active")
+                : pill("warning", user.status ?? "unknown")}
             </div>
             {!isLicensed && (
-              <p style={{ fontSize: "var(--text-small)", color: "var(--color-warning)", marginTop: 8 }}>
+              <p className="adm-zoom__warning">
                 This seat is not Licensed — group meetings would cap at 40 minutes. Assign a Pro
                 license to it in User Management.
               </p>
             )}
             {!isActive && (
-              <p style={{ fontSize: "var(--text-small)", color: "var(--color-warning)", marginTop: 8 }}>
+              <p className="adm-zoom__warning">
                 This seat is &ldquo;{user.status}&rdquo; — accept the Zoom activation email so it can host.
               </p>
             )}
-            <p style={{ fontSize: "var(--text-xs)", color: "var(--rim-mid)", marginTop: 8, fontFamily: "var(--font-mono)" }}>
+            <p className="adm-zoom__id">
               userId: {user.id}
             </p>
           </div>
@@ -235,7 +185,7 @@ export default async function ZoomTestPage() {
       })}
 
       {tokenOk && seats.length > 0 && seats.every((s) => s.ok && s.user.type === 2 && (s.user.status ?? "active") === "active") && (
-        <p style={{ fontSize: "var(--text-ui)", color: "var(--color-success)", fontWeight: 600, marginTop: 8 }}>
+        <p className="adm-zoom__success">
           ✓ All green — credentials work and both seats are Licensed and active.
         </p>
       )}

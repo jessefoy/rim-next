@@ -22,7 +22,12 @@ export default async function AdminHubNewPage() {
   return (
     <div className="adm-page">
       <div className="adm-content">
-        <h1 className="adm-hubs-title">Create Hub</h1>
+        <header className="ac-page-head">
+          <div>
+            <h1 className="adm-hubs-title ac-page-title">Create hub</h1>
+            <p className="ac-page-sub">Establish the team identity first, then connect its tools and coordinators.</p>
+          </div>
+        </header>
         <HubAdminForm isEditing={false} />
       </div>
     </div>

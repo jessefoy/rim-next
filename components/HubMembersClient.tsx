@@ -265,7 +265,7 @@ export default function HubMembersClient({
     <div className="hub-mem-container">
 
       <div className="hub-section-header">
-        <h2 className="hub-page__title">Members</h2>
+        <h1 className="hub-page__title">Members</h1>
         {canEdit && (
           <div className="hub-page__actions">
             <button className="btn btn--sm" onClick={() => setShowAddForm((v) => !v)}>

@@ -97,7 +97,7 @@ export default function HubTrashClient({ hubSlug, hubName, initialDocs, initialT
   return (
     <div className="hub-trash">
       <div className="hub-section-header">
-        <h2 className="hub-page__title">Trash</h2>
+        <h1 className="hub-page__title">Trash</h1>
         <div className="hub-trash__sub">
           {totalCount === 0
             ? "Nothing in the trash."

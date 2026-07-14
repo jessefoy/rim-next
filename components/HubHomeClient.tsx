@@ -152,7 +152,7 @@ export default function HubHomeClient({
       {/* ── State sentence ── */}
       <header className="hub-home__header">
         <div className="hub-home__greeting">{greeting()}.</div>
-        <h2 className="hub-home__state">{stateSentence}</h2>
+        <h1 className="hub-home__state">{stateSentence}</h1>
       </header>
 
       {/* ── Primary work card ── */}

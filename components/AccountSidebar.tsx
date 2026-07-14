@@ -68,7 +68,7 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
 export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   const pathname = usePathname();
   const [teamsOpen, setTeamsOpen] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(pathname.startsWith("/admin/"));
 
   const hasRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin      = roles.includes("ADMIN");

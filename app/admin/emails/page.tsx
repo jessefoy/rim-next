@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import Link from "next/link";
-import AccountLayout from "@/components/AccountLayout";
 
 export const metadata = { title: "Email Templates" };
 
@@ -38,19 +37,21 @@ export default async function EmailTemplatesPage() {
   }
 
   return (
-    <AccountLayout>
-      <div className="em-list">
-        <div className="em-list__hdr">
-          <h1 className="em-list__title">Email Templates</h1>
-          <p className="em-list__sub">
+    <div className="em-list">
+      <div className="em-list__hdr ac-page-head">
+        <div>
+          <h1 className="em-list__title ac-page-title">Email templates</h1>
+          <p className="em-list__sub ac-page-sub">
             Automated emails sent by RIM. Edit copy and toggle delivery here.
             Changes take effect on the next send — no deploy required.
           </p>
         </div>
+      </div>
 
-        {groups.map((group) => (
-          <div key={group.key} className="em-list__group">
-            <div className="em-list__group-label">{group.label}</div>
+      {groups.map((group) => (
+        <div key={group.key} className="em-list__group">
+          <div className="em-list__group-label">{group.label}</div>
+          <div className="em-list__table-wrap">
             <table className="em-list__table">
               <thead>
                 <tr>
@@ -87,8 +88,8 @@ export default async function EmailTemplatesPage() {
               </tbody>
             </table>
           </div>
-        ))}
-      </div>
-    </AccountLayout>
+        </div>
+      ))}
+    </div>
   );
 }

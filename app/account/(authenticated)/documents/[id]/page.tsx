@@ -45,7 +45,7 @@ export default async function DocumentReaderPage({
 
   return (
     <AccountLayout>
-      <div className="doc-page">
+      <div className="doc-page ac-member-page">
       <div className="doc-page__nav">
         <Link href="/account/documents" className="doc-page__back">← Documents</Link>
       </div>
@@ -67,7 +67,7 @@ export default async function DocumentReaderPage({
         ) : bodyHtml ? (
           <div className="doc-body rim-content rim-content--document" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
         ) : (
-          <p style={{ fontFamily: "var(--font-doc)", fontSize: 14, color: "var(--rim-text-muted)", fontStyle: "italic" }}>
+          <p className="doc-page__empty">
             No content yet.
           </p>
         )}

@@ -55,10 +55,12 @@ export default async function AdminHouseholdsPage() {
   return (
     <div className="adm-page">
       <div className="adm-content">
-        <header className="adm-header">
-          <p className="lp-label">Admin</p>
-          <h1 className="adm-header__title">Households</h1>
-          <p className="adm-header__count">{households.length} total</p>
+        <header className="adm-header ac-page-head">
+          <div>
+            <p className="lp-label">Admin</p>
+            <h1 className="adm-header__title ac-page-title">Households</h1>
+            <p className="adm-header__count ac-page-sub">{households.length} total</p>
+          </div>
         </header>
 
         {households.length === 0 ? (
@@ -68,10 +70,10 @@ export default async function AdminHouseholdsPage() {
             <table className="adm-table">
               <thead>
                 <tr>
-                  <th style={{ padding: "11px 16px" }}>Household</th>
-                  <th style={{ padding: "11px 16px" }}>Primary contact</th>
-                  <th style={{ padding: "11px 16px" }}>Members</th>
-                  <th style={{ padding: "11px 16px" }}>Address</th>
+                  <th>Household</th>
+                  <th>Primary contact</th>
+                  <th>Members</th>
+                  <th>Address</th>
                 </tr>
               </thead>
               <tbody>
@@ -124,22 +126,24 @@ export default async function AdminHouseholdsPage() {
               These are logged when &ldquo;Other&rdquo; is selected for relationship type.
               Promote frequent labels to the fixed enum when patterns emerge.
             </p>
-            <table className="adm-table hh-custom-labels__table">
-              <thead>
-                <tr>
-                  <th style={{ padding: "11px 16px" }}>Label</th>
-                  <th style={{ padding: "11px 16px" }}>Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customLabels.map((row) => (
-                  <tr key={row.relationshipCustom} className="adm-table__row">
-                    <td>{row.relationshipCustom}</td>
-                    <td className="adm-table__col--num">{row._count.relationshipCustom}</td>
+            <div className="adm-table-wrap">
+              <table className="adm-table hh-custom-labels__table">
+                <thead>
+                  <tr>
+                    <th>Label</th>
+                    <th>Count</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {customLabels.map((row) => (
+                    <tr key={row.relationshipCustom} className="adm-table__row">
+                      <td>{row.relationshipCustom}</td>
+                      <td className="adm-table__col--num">{row._count.relationshipCustom}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
       </div>

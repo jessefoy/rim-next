@@ -4,14 +4,18 @@
  * Reading content inside admin pages (.rim-content) overrides back to 18px.
  */
 
+import AccountLayout from "@/components/AccountLayout";
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="admin-ui">
-      {children}
-    </div>
+    <AccountLayout>
+      <div className="admin-ui">
+        {children}
+      </div>
+    </AccountLayout>
   );
 }

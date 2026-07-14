@@ -45,8 +45,11 @@ export default async function AdminHubsPage({
   return (
     <div className="adm-page">
       <div className="adm-content">
-        <div className="adm-hubs-header">
-          <h1 className="adm-hubs-title">Hubs</h1>
+        <div className="adm-hubs-header ac-page-head">
+          <div>
+            <h1 className="adm-hubs-title ac-page-title">Hubs</h1>
+            <p className="ac-page-sub">Configure team workspaces, access, and connected tools.</p>
+          </div>
           <Link href="/admin/hubs/new" className="adm-hubs-btn-create">
             Create new hub
           </Link>
