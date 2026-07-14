@@ -6,6 +6,18 @@
 
 ## Active
 
+### Session 162 (2026-07-13) — ✅ Public Program refinement + authenticated design unification live on `main`
+
+**Built and live:** Pampas/Mine Shaft/white foundation + `/style-guide`; refined public Program template and required-quote contract; linked teacher portraits with Member Registry upload; clearer Zoom-entry language; rebuilt Today hierarchy; unified personal, hub, admin, and tool shells/styles; dedicated `RIM_ProgramEditor.md` and `RIM_CourseEditor.md` references. Fifteen implementation commits through `9eae63a`; no schema/dependency/env/permission/email-template change.
+
+**Open / being tested:** authenticated visual QA depends on Jesse's signed-in production review. The code/type/CSS gates passed, but the automated browser could not inspect private routes. Review one representative desktop + phone page from each family: personal destination, hub, admin, Program Manager, Course Manager, Scheduler.
+
+**Next concrete step:** collect any page-specific screenshot issues from that representative review and make a small focused correction pass. Do not begin another global styling layer unless the issue is truly shared.
+
+**Queued follow-ons:** hardcoded old-teal sweep (`2026-06-13-001`); public home-page section rhythm (`2026-06-13-002`); public course-landing parity (`2026-06-13-003`); native Documents and Mind Maps production edge-case verification from sessions 160–161.
+
+## Recently completed / reference
+
 ### Session 161 (2026-07-09) — Native Documents are the supported path; OnlyOffice fully retired
 
 **Built:** native documents now carry an optional directory summary; warn before losing unsaved work; detect a stale save instead of overwriting it; validate edit permission before writing presence; require ACTIVE membership for document-derived access; and export as real Markdown or a clean browser **Print / Save as PDF** page. The mobile editor toolbar stays a single horizontally-scrollable row rather than becoming a tall sticky control block.

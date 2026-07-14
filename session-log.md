@@ -1,5 +1,63 @@
 ---
 
+## 2026-07-13 (session 162) — Public program refinement + one coherent authenticated design system
+
+Jesse asked for a full design evaluation—not a cosmetic reskin—and repeatedly tested the work against rendered production screenshots. The session established the visual foundation, refined the public Program template, rebuilt the member dashboard around the actual Zoom-entry task, then carried the same grammar through every personal, hub, admin, and operational-tool destination. Fifteen implementation commits landed on `main`; the closing commit documents the resulting system.
+
+### Built and changed
+
+- **Visual foundation + calibration page:** the site now uses Pampas `#F5F3F0` as the page ground, Mine Shaft `#333333` for primary text, white for working/content surfaces, and a controlled deeper/light Pampas range for separation. The unlinked `/style-guide` page holds the live palette, type, buttons, fields, cards, panels, and semantic states for future calibration.
+- **Public Program template:** refined the image/blue hero, quote overlap, open editorial prose, recede Notes panel, white **Gathering details** card, state-aware action zone, and Facilitators section. Details now group schedule + time, location + directions, and dana into legible rows; the CTA remains one context-aware next step rather than another fact.
+- **Program/editor contract:** every Program now requires a non-empty pull quote. ProgramEditor validates it before save and both create/update routes enforce it with `422`; create now persists `programNotes` consistently. The quote source is trimmed and optional.
+- **Teacher portraits:** the Member Registry teacher section now uploads a normal public portrait through the existing Vercel Blob path. Public facilitator entries link to the teacher page and use CSS to create a circular crop; coordinators do not need to manufacture circular files. Non-public/legacy facilitator names keep the plain-text fallback.
+- **Zoom entry clarity:** dashboard, member Program detail, public Program detail, and `ZoomLaunch` now use consistent Zoom-specific language. Host entry and member entry are distinguishable; the launch fallback is a calm explicit action rather than inline styling.
+- **Member home rebuilt around the day:** the greeting and day frame the page; Today separates the immediate/joinable offering from later sessions; the primary row aligns time, program/context, registration, and action vertically. The redundant “Zoom is open” text was removed—the visible **Join on Zoom** action already communicates that state. “Later today” belongs above the later group, not inside an event row.
+- **One authenticated shell:** the member header now spans account, admin, and tools. Personal/admin pages use `AccountLayout` and the role-aware account rail. Hub pages replace it with the hub workspace rail. A hub-launched tool preserves that rail through `?hub=`; direct tool entry uses quiet tool chrome. No page stacks two sidebars.
+- **Member destinations unified:** My Programs, Library, Documents, Mind Maps, Profile, member Program detail, and document reader now share widths, typography, spacing, empty states, actions, and responsive behavior while retaining their task-specific structures.
+- **Hub workspaces unified:** Home, Activity, Conversations, Documents, Mind Maps, Members, and Trash use the same calm content geometry, headings, filters, list surfaces, and mobile drawer beneath the member header.
+- **Admin and tools unified:** Member Registry, households, hub administration, email manager, Zoom test, Program Manager, Course Manager, lesson surfaces, and Scheduler now use the compact authenticated type scale, responsive table containment, warm ground, quiet white working surfaces, and one action language. Semantic heading structure was corrected on the touched pages.
+
+### Design decisions and why
+
+- **Clear seeing before decoration.** The page must reveal identity, meaning, logistics, and next action in that order. Extra labels, redundant status copy, ornamental cards, and competing navigation were removed.
+- **Balance is vertical, not centered.** Jesse's “centered” correction means time/title/status/action share a composed vertical center in a row; reading order and labels remain left-aligned. Center-aligning the content would reduce scanability.
+- **One rail per context.** Account navigation answers “where am I in My RIM?”; hub navigation answers “which team am I working with?” They replace one another rather than nesting. The global member bar carries identity and exit.
+- **Cards are earned.** White surfaces gather a coherent object or action set. Editorial prose remains open; secondary information recedes on the accent ground. The Program Details card is logistics, not a second hero.
+- **One action per state.** A live session needs a visible Join action, not both a status declaration and a Join button. The Program page similarly buttons real actions while leaving informational states as calm text.
+- **CSS crops portraits.** Source images remain useful rectangular assets; `border-radius` + `object-fit` produces the round display consistently everywhere.
+- **Modern means coherent, not trendy.** RIM borrows warm restraint, strong type hierarchy, and deliberate rhythm from contemporary editorial sites without copying floating navigation, excessive motion, or marketing density that conflicts with a Dharma center.
+
+### What this connects to
+
+- **Program ecosystem:** public detail, ProgramEditor, create/update API validation, category/kind behavior, registration/waitlist/dana CTA states, member Program detail, teacher attribution, Zoom entry, and dashboard occurrence state.
+- **Member Registry:** `TeacherProfile.photoUrl`, public-profile gating, Vercel Blob upload, and teacher/facilitator links.
+- **Zoom:** no provisioning/auth behavior changed; the member-facing language now accurately distinguishes host-entry, member-entry, later, and launch-fallback states.
+- **Three-layer architecture:** the Member Registry, Hubs, and Tools keep their existing boundaries while now sharing one authenticated visual hierarchy.
+- **Hub model:** layout and component styling changed, but capability, recipients, list scoping, and email URL routing did not.
+- **Native Documents + Mind Maps:** both master directories, readers, and per-hub modules now sit coherently in the account/hub system; their access and portable-resource models are unchanged.
+- **Program/Course editors:** both now have dedicated per-tool engineering references (`RIM_ProgramEditor.md`, `RIM_CourseEditor.md`) so future UI changes must trace their full ecosystems.
+
+### Verification
+
+- `npx tsc --noEmit` passed for the completed implementation.
+- CSS parsing/brace checks and focused diffs passed during the implementation slices.
+- All implementation commits were pushed to `main`; Vercel served the new stylesheet. Authenticated visual QA was performed through Jesse's production screenshots because the browser session was not signed into the private member area.
+- `npm run lint` remains an unsuitable clean gate: it reports 416 pre-existing repository/worktree issues. No new lint-specific failure was identified in this slice.
+- No schema migration, dependency, environment variable, service, role, permission, or email template changed.
+
+### Hub and email audits
+
+- **Hub routing layer 1 — capability:** unchanged; no hub authorization helper or API gate changed.
+- **Layer 2 — recipients:** unchanged; no notification recipient query changed.
+- **Layer 3 — UI/list data scope:** unchanged; hub components received semantic/styling classes only and retain their existing scoped queries.
+- **Layer 4 — outbound URLs:** unchanged; no email builder or URL variable changed.
+- **Multi-claim / coverage semantics:** unchanged.
+- **Email Template Gate:** no `sendTemplatedEmail()` callsite or template was added/changed; no seed entry was required.
+
+### What comes next
+
+Jesse should review a representative production page in each private family—personal, hub, admin, Program Manager, Course Manager, and Scheduler—at desktop and phone width. The next work should be specific corrections from that real content, not another broad redesign. Existing follow-ons remain separate: hardcoded old-teal cleanup (`2026-06-13-001`), the public home-page rhythm, course-landing parity, and production verification of the native Documents/Mind Maps edge cases.
+
 ## 2026-07-09 (session 161) — Native Documents made production-ready; OnlyOffice retired
 
 Jesse chose the native RIM document system over maintaining a self-hosted office server. The decision is deliberate: RIM documents are a shared writing and filing surface, not a substitute for Google Docs or Word. The system now supports the work it actually promises, and no longer carries an unused server, callback, blobs, or confusing second editor.

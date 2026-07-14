@@ -27,6 +27,8 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 | Hubs — model + per-callsite engineering rules | `RIM_Hub_Model.md`, `RIM_Hub_Engineering.md` |
 | Mind Maps — spatial brainstorming + per-topic conversations | `RIM_MindMaps.md` |
 | Scheduler tool | `RIM_Scheduler.md` |
+| Program Manager | `RIM_ProgramEditor.md` |
+| Course Manager | `RIM_CourseEditor.md` |
 | Session room — Zoom (LiveKit room retired s159) | `RIM_Zoom.md` · `RIM_SessionRoom.md` (historical) |
 | Email engineering (template gate, helpers) | `RIM_Email_Engineering.md` |
 | Editor surfaces, blocks, placements | `RIM_Editor_Types.md` |
@@ -74,10 +76,10 @@ Postgres-backed fixed-window limiter (`RateLimitWindow`, `lib/rateLimit.ts`) on 
 > The next major build area — the rebuild began in earnest **session 148** (warm three-shade palette + program-detail redesign + the flush-nav decision). The design system — palette, the card-lift / recede-panel surface language, and the tombstones (the reverted floating nav + chapter band) — lives in **`RIM_Public_Pages.md`**; read it before any public-page UI/CSS work. Other pages are still early/rough.
 
 - **Community programs listing** — `/community-programs`. The public catalog of offerings, grouped by category.
-- **Program detail** — `/programs/[slug]`. **Redesigned session 148** onto the warm palette + card language (see `RIM_Public_Pages.md`): a blue (`#31576d`) hero with a quiet category **eyebrow** + balanced title/subtitle, a **quote card** straddling the hero/ground seam, open description prose, a white-card **Details** block whose **Register** is now a pill button (the other CTA-matrix states stay quiet text), and a **Notes** recede panel. The **status-aware "what to do next" CTA** keys off the offering kind + registration state (session 138): the viewer's own standing first (registered / waitlisted, surviving registration close), then Register → / Join the waitlist → / "Registration isn't open yet" / format-aware "how to join" for drop-ins.
+- **Program detail** — `/programs/[slug]`. **Redesigned session 148; refined session 162** onto the warm palette + editorial card language (see `RIM_Public_Pages.md`): image/blue hero, required quote card, open description, optional recede Notes, a quiet **Gathering details** card with a separated state-aware action, and linked facilitator portraits. The **"what to do next" CTA** keys off offering kind + registration + viewer state: registered/waitlisted first, then Register / waitlist / not-open-yet / format-aware drop-in entry. Logged-in online participants go to My Home; visitors sign in first.
 - **Program registration** — `/programs/[slug]/register`. The registration form + dana step.
 - **This Week schedule** — `/this-week`. Dynamic weekly schedule (Mon–Sun, `?week=next`), shared occurrence logic with the Scheduler.
-- **Teachers directory** — `/teachers`, `/teachers/[slug]`. Public teacher profiles (`isTeacher` + `TeacherProfile`).
+- **Teachers directory** — `/teachers`, `/teachers/[slug]`. Public teacher profiles (`isTeacher` + `TeacherProfile`). The Member Registry supports direct portrait upload; normal source images are circularly cropped by CSS on facilitator/profile surfaces.
 - **Public course pages** — `/courses` (index), `/course/[slug]` (public landing, mirrors program-detail shape), `/lessons/[slug]` (lesson reader, access-gated).
 - **Join / membership threshold** — `/join`. The new-member door (see Auth).
 - **Content / static pages** — `/diversity`, `/donate`, `/kalyana-mitta/*` (3: community-groups-events, guidelines, application), `/volunteerism/volunteer` + thanks page.
@@ -87,11 +89,17 @@ Postgres-backed fixed-window limiter (`RateLimitWindow`, `lib/rateLimit.ts`) on 
 
 ## Member area (`/account`)
 
-- **Dashboard** — `/account/dashboard`. The member home: "Today" (live/joinable sessions, host early-open window) and "Coming up for you" (registered offerings). Placement keys off offering kind + registration (session 137). `DashboardAutoRefresh` handles live-state epoch transitions. A one-time, dismissible **host-welcome panel** (session 143, `HostWelcomePanel`) greets a pre-staged host who's just onboarded — shown when they belong to a hub and have hosting assigned and haven't dismissed it (`User.hostWelcomeSeenAt`); links to their Scheduler view. Dismiss/follow → `POST /api/account/host-welcome-seen`.
+The authenticated experience uses one quiet member header and a role-aware account rail. Personal destinations, team links, and administration share this shell; entering a hub replaces the account rail with the hub-specific workspace rail. Session 162 unified the warm ground, compact interface typography, white working surfaces, widths, spacing, actions, and responsive behavior across member, admin, hub, and tool destinations without changing their permission boundaries.
+
+- **Dashboard** — `/account/dashboard`. The member home: "Today" groups the single immediate/live offering from later sessions, with one balanced time/title/context/action row and no redundant “Zoom is open” message; "Coming up for you" holds registered offerings. Host early-entry and member-entry language are distinct. Placement keys off offering kind + registration (session 137); `DashboardAutoRefresh` handles state transitions. A one-time, dismissible **host-welcome panel** (session 143, `HostWelcomePanel`) greets a pre-staged host who's just onboarded — shown when they belong to a hub, have hosting assigned, and haven't dismissed it (`User.hostWelcomeSeenAt`); links to their Scheduler view. Dismiss/follow → `POST /api/account/host-welcome-seen`.
 - **My Profile** — `/account/dashboard-my-profile`. Name, contact, preferences; avatar + bio.
 - **My Programs** — `/account/programs`, `/account/programs/[slug]`. Registration history, status, join button, calendar links, pending-dana prompts, self-service cancellation.
 - **My Courses** — `/account/courses`. Enrolled courses + access.
 - **Account lifecycle** — `/account/welcome` (Community Care Agreements for first-time members), `/account/reactivate` (archived-member reactivation). Both sit *outside* the `(authenticated)` gate so its redirects can't loop.
+
+### Administration surfaces
+
+`/admin/*` remains role-gated per feature but now renders inside the shared account shell. Session 162 standardized the Member Registry, households, hub administration, email manager, and Zoom diagnostic around semantic page headings, restrained tables/forms, responsive overflow, and the compact authenticated type scale. The shell provides orientation only; existing page/API authorization remains authoritative.
 
 ---
 
@@ -117,6 +125,7 @@ The **offering model** (Programs vs Courses, the orthogonal access flags, the ki
 `/tools/programs` — program CRUD, scheduling, registration settings, categories. REGISTRAR / ADMIN.
 - **Routes:** `/tools/programs`, `/tools/programs/new`, `/tools/programs/[programSlug]`, `/tools/programs/[programSlug]/edit`, `/tools/programs/categories` · **API:** `/api/programs-pg/*`, `/api/programs-pg/categories/*`.
 - ProgramEditor tabs: Content / Schedule / Hosting & Access / Categories / Registration / Dana / Visibility. The Registration tab carries a read-only "How this appears to visitors" readout (session 138).
+- **See:** `RIM_ProgramEditor.md` (full ecosystem trace, access, hub context, editor and design contract).
 
 ---
 
@@ -126,15 +135,15 @@ The **offering model** (Programs vs Courses, the orthogonal access flags, the ki
 - **Public:** `/course/[slug]` (landing), `/courses`, `/lessons/[slug]` · **API:** `/api/courses/[slug]/checkout`, `/api/courses/[slug]/enroll`, `/api/courses/categories`.
 - **Lessons** carry rich media — `heroImageUrl`, `audioUrl` (in-page `AudioPlayer`), `videoUrl` (YouTube/Vimeo), downloadable `resources`, `durationMinutes` — plus progress (`LessonProgress`), notes (`LessonNote`), and per-lesson teachers (`LessonTeacher`). API under `/api/lessons/[slug]/*`.
 - **Course Manager tool** — `/tools/learning` (+ `/[courseSlug]`, `/new`, `/lessons`, `/lessons/[lessonSlug]`, `/lessons/new`). TEACHER / ADMIN. 8-tab editor (Content / Lessons / Landing / Categories / Access / Schedule / Dana / Visibility).
-- **See:** `RIM_Offering_Model.md`.
+- **See:** `RIM_Offering_Model.md`, `RIM_CourseEditor.md`.
 
 ---
 
 ## Hubs — team workspaces
 
-Hubs are team-centric workspaces. Each provides a **Home**, **Conversations**, **Documents**, **Members**, **Activity**, and **Trash** views. `HubType` ∈ OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP; all managed at `/admin/hubs` (the source of truth for the full set — ~16 hubs). Tool-linked hubs: **host-team**, **courses**, **registrar**, **support**. Scheduler-using hubs also include **peer-led-silent-meditation**, **audio-visual**, **greeter**.
+Hubs are team-centric workspaces. Each provides **Home**, **Activity**, **Conversations**, **Documents**, **Mind Maps**, **Members**, and coordinator-gated **Trash** views inside one shared hub rail. `HubType` ∈ OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP; all managed at `/admin/hubs` (the source of truth for the full set — ~16 hubs). Tool-linked hubs: **host-team**, **courses**, **registrar**, **support**. Scheduler-using hubs also include **peer-led-silent-meditation**, **audio-visual**, **greeter**.
 
-- **Workspace routes:** `/account/hub/[slug]` + `/activity`, `/conversations`, `/conversations/[id]`, `/documents`, `/documents/[id]`, `/documents/[id]/edit`, `/documents/new`, `/members`, `/trash`. API under `/api/hub/[slug]/*` and `/api/hubs/[slug]/*`.
+- **Workspace routes:** `/account/hub/[slug]` + `/activity`, `/conversations`, `/conversations/[id]`, `/documents`, `/documents/[id]`, `/documents/[id]/edit`, `/documents/new`, `/mindmaps`, `/members`, `/trash`. API under `/api/hub/[slug]/*` and `/api/hubs/[slug]/*`.
 - **Documents** — rich-text + PDF upload (Vercel Blob), per-document Basecamp-style notifications (`HubDocumentNotification`), document conversations (`HubConversationThread.documentId`), author/ADMIN/GT lock + presence.
 - **Conversations** — threads with a subscription model (`HubThreadSubscription`: subscribers get every reply), Follow/Unfollow, editable categories, emoji reactions (reactor names on hover, plus a compact tap-to-reveal list for mobile), and per-reply edit/delete (author edits own; author or coordinator/GT/ADMIN deletes — session 141).
 - **Three-stage lifecycle** — Active → Archived → Trash (`archivedAt` / `deletedAt` on documents and threads). Trash gated by `canManageTrash`.

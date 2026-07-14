@@ -10,6 +10,8 @@ This document records the foundational architectural decisions for how RIM's mem
 - `RIM_Editor_Types.md` — the canonical reference for editor surfaces, blocks, and placements.
 - `RIM_Role_Design.md` — roles, hubs, permissions.
 - `RIM_Hub_Model.md` — hub model.
+- `RIM_ProgramEditor.md` — Program Manager routes, ecosystem trace, and editor contract.
+- `RIM_CourseEditor.md` — Course Manager routes, ecosystem trace, and editor contract.
 
 ---
 
@@ -35,7 +37,7 @@ Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. M
 
 ### Tools (`/tools/*`)
 
-Tools are full-featured staff applications extracted from hubs. They serve one workflow, with their own navigation chrome and sub-pages.
+Tools are full-featured staff applications extracted from hubs. They serve one workflow, with their own sub-pages and task navigation inside the shared authenticated shell.
 
 **Current tools (3):**
 - `/tools/programs` — Program Manager (REGISTRAR/ADMIN)
@@ -53,10 +55,24 @@ Tools are full-featured staff applications extracted from hubs. They serve one w
 | Layer | Purpose | Examples |
 |---|---|---|
 | **Member Registry** (`/admin/members`) | Canonical record authority | Full profile, roles, households, tags |
-| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Conversations, Documents, Members |
+| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Activity, Conversations, Documents, Mind Maps, Members, Trash |
 | **Tools** (`/tools/*`) | Operational applications | Program Manager, Host Schedule, Course Manager |
 
 Hubs and Tools both provide scoped projections of member data — but they serve different needs. A hub is where a team coordinates. A tool is where they do their specialized work.
+
+---
+
+## The Authenticated Interface Structure
+
+Session 162 unified the visual shell without changing any authority boundary:
+
+- `/account/*` uses the member header plus `AccountLayout` / `AccountSidebar` for personal destinations and team/admin entry points.
+- `/admin/*` uses that same account shell. `app/admin/layout.tsx` adds `admin-ui` inside `AccountLayout`; admin content supplies the task, while the account rail supplies location.
+- `/account/hub/[slug]/*` uses the member header plus `HubWorkspaceSidebar`. The hub rail replaces the account rail so there is only one local navigation system.
+- `/tools/*` uses `WorkspaceShell`. A hub-launched tool (`?hub=`) keeps the hub rail and hub identity; direct entry uses the quiet `ToolsNav` header. Tool access and data scope remain governed by their existing helpers—not by the visible shell.
+- Focused document and Mind Map editors may use a reduced/full-canvas composition, but retain an explicit return path to the owning directory or hub.
+
+The shared shell is presentation infrastructure, not authorization. Never infer hub access, tool access, or query scoping from which rail is visible. The route/page/API gates remain authoritative.
 
 ---
 
@@ -227,7 +243,7 @@ shared/community docs resolve. Full model + the filing surfaces in
 
 ## What's Next
 
-**Tools extraction — complete (session 73, refined session 76):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox` (subsequently removed session 100), Host Schedule → `/tools/schedule`. Each tool has its own nav chrome, role gate, and back link to its associated hub. Session 76 removed the Registrar Hub stakeholder Programs tab and all course-specific Course Hub tabs — all hubs now have identical core sections: Home, Conversations, Documents, Members. This establishes the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications).
+**Tools extraction — complete (session 73, refined session 76):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox` (subsequently removed session 100), Host Schedule → `/tools/schedule`. Each tool has its own role gate and task navigation inside the authenticated shell. Session 76 removed the Registrar Hub stakeholder Programs tab and all course-specific Course Hub tabs, establishing the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications). The current built-in hub set is Home, Activity, Conversations, Documents, Mind Maps, Members, and coordinator-gated Trash.
 
 **Hub schema enhancements — session 73:** `HubStatus` enum (ACTIVE/ARCHIVED) with status field on Hub. `HubAppLink` model for hub-to-tool linking. `firstVisitedAt` on HubMember for newcomer welcome tracking.
 
@@ -242,9 +258,9 @@ shared/community docs resolve. Full model + the filing surfaces in
 - **Hub sidebar navigation (session 74):** Horizontal tab strip replaced with 220px left sidebar. Identity block, core sections, Tools section (app links with ↗), Hub settings link. Mobile: slide-in drawer via hamburger. `HubNavStrip.tsx` and `HubHeader.tsx` deleted.
 - **Hub context for tools (session 74):** `?hub=` query param appended to all tool links from sidebar. `ToolsContext` reads param client-side via `useSearchParams()`, exposes `hubSlug` to tool pages. Foundation for scoped data.
 
-**Hub core section conformance — session 76:** All five hub core sections (Home, Conversations, Tasks, Documents, Members) standardized to match the Tasks design standard. CSS prefixes unified: `hub-conv-`, `hub-doc-`, `hub-mem-` (previously `cv-`/`ann-`/`doc-`/`mem-`). Inline `maxWidth` styles replaced with CSS container classes. Conversations gained: emoji reactions (👍❤️🙏💡😊), reply editing (own replies), category filtering (hub `conversationCategories`), and email notifications (new thread → coordinators, new reply → participants). Members gained: coordinator member management (add/remove members, toggle coordinator status) via new API routes. Home app links bug fixed (`?hub=slug` now appended). Dead host-team conversation fork removed: `HubThreadDetailClient.tsx`, `/api/host/threads/*`, `/api/host/replies/*`, `HostThread`/`HostReply` schema models. Features ported to shared system before deletion.
+**Hub core section conformance — session 76:** The then-current hub core sections (Home, Conversations, Tasks, Documents, Members) were standardized. Tasks was removed in session 96; Activity, Trash, and Mind Maps were added later and now follow the same shared workspace grammar. CSS prefixes unified: `hub-conv-`, `hub-doc-`, `hub-mem-` (previously `cv-`/`ann-`/`doc-`/`mem-`). Inline `maxWidth` styles replaced with CSS container classes. Conversations gained: emoji reactions (👍❤️🙏💡😊), reply editing (own replies), category filtering (hub `conversationCategories`), and email notifications (new thread → coordinators, new reply → participants). Members gained: coordinator member management (add/remove members, toggle coordinator status) via new API routes. Home app links bug fixed (`?hub=slug` now appended). Dead host-team conversation fork removed: `HubThreadDetailClient.tsx`, `/api/host/threads/*`, `/api/host/replies/*`, `HostThread`/`HostReply` schema models. Features ported to shared system before deletion.
 
-**Course/Lesson tool extraction + tool access grants — session 76:** Course/Lesson management extracted from Course Hub to `/tools/learning` (Course Manager tool). Registrar Hub's Programs stakeholder tab removed. All hubs now have identical nav: Home, Conversations, Tasks, Documents, Members — no exceptions. New `UserToolAccess` model provides individual tool access grants (admin can grant a specific user access to any tool without assigning a role). All 4 tool layouts (`/tools/learning`, `/tools/programs`, `/tools/inbox`, `/tools/schedule`) standardized to use shared `hasToolAccess()` helper from `lib/toolAuth.ts`. Course/Lesson API auth simplified: `canAccessCourseHub()` replaced with `hasToolAccess()`. Editor components (`CourseEditor`, `LessonEditor`, `LessonListClient`) updated: `hubSlug` prop replaced with `basePath` prop for tool-agnostic navigation.
+**Course/Lesson tool extraction + tool access grants — session 76:** Course/Lesson management extracted from Course Hub to `/tools/learning` (Course Manager tool). Registrar Hub's Programs stakeholder tab removed; hub navigation became shared infrastructure rather than per-hub special cases. New `UserToolAccess` model provides individual tool access grants (admin can grant a specific user access to any tool without assigning a role). All 4 tool layouts (`/tools/learning`, `/tools/programs`, `/tools/inbox`, `/tools/schedule`) standardized to use shared `hasToolAccess()` helper from `lib/toolAuth.ts`. Course/Lesson API auth simplified: `canAccessCourseHub()` replaced with `hasToolAccess()`. Editor components (`CourseEditor`, `LessonEditor`, `LessonListClient`) updated: `hubSlug` prop replaced with `basePath` prop for tool-agnostic navigation.
 
 **What remains:**
 

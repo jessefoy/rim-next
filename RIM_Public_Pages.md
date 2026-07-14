@@ -43,7 +43,7 @@ A named, restrained neutral scale in `:root`:
 
 One reusable, deliberately **faint** warm shadow. The white-on-warm contrast + rounded corners do most of the separating; the shadow only reinforces. Every white card uses this token (quote card + Details card). Dialed to "a whisper" (Jesse's calibration: subtler is righter).
 
-> **Second sanctioned exception** to the CSS "no box-shadows" rule (after `.rim-cb-popover`). White cards on the warm public-page ground may use `--card-shadow`. Nothing else.
+> **Sole sanctioned exception** to the CSS "no box-shadows" rule. White cards on the warm public-page ground may use `--card-shadow`. Nothing else. (The former LiveKit control-bar popover exception disappeared when that room was retired in session 159.)
 
 ## Style guide — `/style-guide`
 
@@ -63,16 +63,22 @@ An Esther-Perel-style **floating cream/white rounded pill** nav was built, shipp
 
 ## The program detail page (`/programs/[slug]`)
 
+Session 162 refined this template around one use: help a visitor understand the offering, then see the relevant next step without turning the page into a dashboard. It also tightened the contract with Program Manager: every Program now requires a pull quote (client and API validation), and linked public teacher profiles can supply portrait cards.
+
 Top to bottom:
 
 1. **Blue hero** — `#31576d` over `programImage`, with a `::before` overlay. Contains: a category **eyebrow** (`.pg-hero__eyebrow` — quiet uppercase, white at 0.72, links to `/community-programs`) · title (`.pg-hero__title`, 46px serif, `text-wrap: balance`) · subtitle (`.pg-hero__tagline`, 20px/400, `text-wrap: balance`).
 2. **Quote card** straddling the hero/ground seam — white, `--card-shadow`, `.pg-quote__text` 22px/400 serif; overlaps up `-84px` (≈ centered for a two-line quote; longer quotes grow downward keeping a constant in-hero overlap).
 3. **Description prose** — open on the ground (no box).
-4. **Details** white card (`.pg-details-section`, `--card-shadow`) — schedule/time/place/dana rows, then the CTA. The CTA is polymorphic and the markup already splits it: actionable states (`.pg-detail-cta__link` — Register / Join the waitlist / Access Zoom) are styled as a **rim-blue pill button**; informational states (`.pg-detail-cta__text` / `.pg-detail-cta__status` — "you're registered" / "registration isn't open yet" / "simply arrive in person") stay **quiet text**. Button-the-actions, leave-the-messages.
-5. **Notes** recede panel (`.pg-notes`, Deeper Pampas, no shadow).
-6. Footer.
+4. **Notes**, when authored — a recede panel (`.pg-notes`, Deeper Pampas, no shadow). The heading belongs to the authored content; the template does not inject a redundant “Notes” label.
+5. **Gathering details** white card (`.pg-details-section`, `--card-shadow`) — each fact is one aligned icon/content row. Schedule + time share a row; location + directions share a row; dana is one row. A ruled action zone follows the facts so the next step is related but not mistaken for another fact.
+6. **One state-aware next step.** Actionable states (`.pg-detail-cta__link` — Register / Join the waitlist / go to My Home for Zoom) use the rim-blue pill. Informational states (`.pg-detail-cta__text` / `.pg-detail-cta__status` — registered, waitlisted, registration not open, arrive in person) stay quiet text. Logged-in and logged-out Zoom paths differ deliberately: members go to My Home; visitors sign in first. Button the actions; leave the messages calm.
+7. **Facilitators**, when present — linked public teacher profiles render as a circular portrait (or initials) plus name and lead to `/teachers/[slug]`; legacy plain-text facilitator names remain simple text. Store/upload a normal portrait in the Member Registry and let CSS crop it with `border-radius: 50%` + `object-fit: cover`; do not manufacture circular image files.
+8. Footer.
 
 `text-wrap: balance` on title + subtitle is deliberate: every program has different-length copy, so the line shape must be **content-agnostic** (balanced lines for any title/tagline) rather than tuned for one example.
+
+The Details card should not become a second hero. Its white surface gathers logistics; the quote and program meaning remain the page's emotional center. Do not add status badges, extra buttons, or a label before every value when the row content is already self-evident.
 
 ### TOMBSTONE — chapter eyebrows + closing band (tried & reverted, session 148)
 

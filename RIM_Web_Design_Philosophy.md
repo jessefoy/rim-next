@@ -81,6 +81,32 @@ The goal is for a member to feel held by the interface, not managed by it.
 
 ---
 
+## Authenticated Spatial Hierarchy
+
+The authenticated application has three kinds of context, and each receives one visual layer—not a stack of competing navigation systems:
+
+- The **member header** answers “who am I here?” and provides profile and sign-out.
+- The **account rail** answers “where am I in My RIM?” and holds personal destinations, teams, and administration.
+- The **hub rail** answers “which team am I working with?” and replaces the account rail inside a hub or a hub-launched tool. It does not nest inside it.
+
+Admin pages remain inside the account shell because administration is one responsibility of the same member, not a separate website. Tools use the hub rail when launched in team context and a quiet direct-entry tool header otherwise. Focused canvases and writers may reduce the surrounding chrome, but they must retain a clear way back.
+
+This hierarchy creates continuity without making every page identical. Personal pages, hub workspaces, admin tables, and operational editors use the same warm ground, restrained white working surfaces, compact interface typography, and blue action language. Their internal geometry changes to serve the task.
+
+**Balance means vertical composure, not indiscriminate centering.** In schedules, lists, toolbars, and action rows, time, title, status, and action should share a calm vertical center. Reading order and labels remain left-aligned. Centering the whole row's content would make it decorative rather than scannable.
+
+Use surfaces deliberately:
+
+- page ground establishes place;
+- a white surface gathers work that belongs together;
+- a quieter accent ground separates a later or secondary state;
+- whitespace establishes chapters;
+- borders appear only when a functional boundary would otherwise be unclear.
+
+Do not turn every destination into cards. A card is earned by a coherent object or action set; open prose, section headings, and simple lists should remain open.
+
+---
+
 ## Designing for Real Users Under Pressure
 
 This section applies to every member-facing and volunteer-facing interface in the RIM platform — not just the public site.

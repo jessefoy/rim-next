@@ -12,7 +12,7 @@ This document is complete enough that a new developer (or a new Claude Code sess
 
 Everything in the volunteer platform lives in one of two layers:
 
-**Hubs are team homes.** A hub is where a team exists — where they communicate, coordinate, manage tasks, share documents, and know who's on their team. Every hub has the same core structure regardless of what team it serves.
+**Hubs are team homes.** A hub is where a team exists — where they communicate, coordinate, share documents and Mind Maps, and know who's on their team. Every hub has the same built-in structure regardless of what team it serves.
 
 **Tools are work applications.** A tool is where specific work gets done — processing registrations, managing a session schedule, handling support emails. Tools are focused, full-screen, and designed for the workflow they serve.
 
@@ -32,7 +32,7 @@ An admin visits `/admin/hubs` and submits the create form. The `POST /api/admin/
 |--------|-------|------------|
 | `Hub` | `hubs` | `slug` (unique), `name`, `type` (OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP), `status` (ACTIVE), `description` |
 
-At this point the hub exists but has no members, no tools, and no content. The four core sections (Home, Conversations, Documents, Members) are available immediately — they require no configuration because they read from hub-scoped tables that start empty.
+At this point the hub exists but has no members, no tools, and no content. The built-in sections (Home, Activity, Conversations, Documents, Mind Maps, Members) are available immediately; coordinator/leadership-gated Trash appears when applicable. They require no per-hub navigation configuration.
 
 **Database defaults on creation:**
 - `status` → `ACTIVE`
@@ -55,20 +55,13 @@ The admin adds members to the hub. Each addition creates:
 |--------|-------|------------|
 | `HubMember` | `hub_members` | `hubId` + `userId` (unique pair), `position`, `isCoordinator` (false by default), `joinedAt` |
 
-A `HubMember` record is the access gate. The hub layout (`app/account/hub/[slug]/layout.tsx`) checks:
-```
-isMember = hub.members.some(m => m.userId === session.user.id)
-```
-No member record → no access (unless ADMIN, who bypasses all hub membership checks).
+A `HubMember` record is the normal access gate. The hub layout resolves membership and calls `canAccessHub(member, roles)`: a membership row or `GUIDING_TEACHER` pastoral authority opens the hub. (Paused/inactive status governs capabilities and communications, not basic visibility.) ADMIN alone does **not** bypass the content door; administrators configure hubs from `/admin/hubs` and participate inside a hub as members (unless they also hold GUIDING_TEACHER).
 
 All hubs use `HubMember` exclusively. No alternative access grant mechanism exists.
 
 ### Step 3: Admin assigns a coordinator
 
-The admin edits a member's record and sets `isCoordinator: true`. This grants:
-- Visibility of the "Hub settings" link in the sidebar
-- Access to the hub admin edit page at `/admin/hubs/[slug]/edit`
-- Coordinator-level permissions on hub content (editing home content, pinning threads, managing documents)
+The admin edits a member's record and sets `isCoordinator: true`. This grants coordinator-level permissions on hub content (member tending, home content where supported, pinning threads, lifecycle/share controls). It does not grant the ADMIN-only hub-configuration page at `/admin/hubs/[slug]/edit`; that page controls structural fields such as slug, type, and app links.
 
 The `requireCoordinator()` helper in `lib/hubAuth.ts` enforces this:
 ```
@@ -106,8 +99,8 @@ When a member navigates to `/account/hub/[slug]`:
 
 1. **Auth check** — redirect to `/login` if not authenticated
 2. **Hub fetch** — query `hubs` by slug, include `members` and `appLinks`
-3. **Membership check** — verify user has a `HubMember` record (or is ADMIN)
-4. **Sidebar render** — `HubSidebar` receives hub data, nav items, coordinator status
+3. **Access check** — resolve the `HubMember` row and apply `canAccessHub(member, roles)`
+4. **Sidebar render** — `HubWorkspaceSidebar` receives hub identity, tools, counts, coordinator/trash authority, and admin state
 5. **First visit tracking** — if `firstVisitedAt` is null, show the welcome interstitial and set the timestamp
 6. **`lastVisitedAt` update** — updated on each visit for unread badge calculation
 
@@ -115,25 +108,27 @@ When a member navigates to `/account/hub/[slug]`:
 
 ## 3. The Hub Sidebar
 
-Every hub has a left sidebar (220px, sticky on desktop) that serves as its navigation environment. The sidebar has four parts:
+Every hub has one left workspace rail (collapsible/sticky on desktop; drawer on mobile) beneath the shared member header. It stays present when a member opens a hub-linked tool, so team identity is not lost. The rail has four parts:
 
 **Identity** — hub type label (e.g. "Operational Hub"), hub name, member count, coordinator name(s). Always visible so you always know where you are.
 
-**Core sections** — Home, Conversations, Documents, Members. These are the same in every hub. Improving any one of them improves every hub simultaneously because they're all powered by the same shared code.
+**Flat work sequence** — Home, enabled Tools, then Activity, Conversations, Documents, Mind Maps, and Members. These built-in destinations are the same in every hub; improving one improves every hub because the components are shared.
 
-**Tools** — a curated list of applications this team uses, rendered from `HubAppLink` records. Each tool link navigates away from the hub to the tool's full-screen experience. An arrow indicator (↗) signals that it's leaving the hub. The `?hub=<slug>` param is automatically appended.
+**Tools** — a curated list of applications this team uses, rendered from `HubAppLink` records immediately below Home. The `?hub=<slug>` param is appended so `WorkspaceShell` preserves this same rail and hub identity while the tool content changes.
 
-**Hub settings** — visible only to coordinators and admins. Links to `/admin/hubs/[slug]/edit`.
+**Footer actions** — Trash for people with trash authority, Hub settings for ADMIN only, and Back to Home for everyone.
 
-**No hub-specific sections.** All hubs have the same four core sections. Hub-specific functionality (course management, program management) lives in tools linked via app links. No hub injects custom nav items.
+**No hub-specific sections.** All hubs have the same built-in module set. Hub-specific functionality (course management, program management, scheduling) lives in linked tools. No hub injects custom nav items.
 
 ### Sidebar nav item construction (in layout.tsx)
 
 ```
 const navItems = [
   { label: "Home",          href: base },
+  { label: "Activity",      href: `${base}/activity` },
   { label: "Conversations", href: `${base}/conversations` },
   { label: "Documents",     href: `${base}/documents` },
+  { label: "Mind Maps",     href: `${base}/mindmaps` },
   { label: "Members",       href: `${base}/members` },
 ];
 ```
@@ -172,7 +167,7 @@ App links connect a *tool* to a hub (UI navigation). Programs connect to a *host
 
 **Which routes consult this:**
 
-- LiveKit token + step-in (pill hierarchy + capability gates)
+- Zoom entry host-capability resolution through `lib/sessionAuth.ts` (the old participant-pill language is historical)
 - `/api/host/assignments` POST self-claim (capability gate routes by program's hub)
 - `/api/host/sub-requests` POST + `[id]/claim` (capability + notification recipient pool)
 - `/api/programs-pg` POST (new-program host-needed notification routes to program's hub)
@@ -198,9 +193,9 @@ const toolHref = link.href.includes("?")
   : `${link.href}?hub=${hub.slug}`;
 ```
 
-**Second**, the tool opens in its own full-screen environment with a `ToolsNav` bar at the top — not the hub's sidebar. The ToolsNav shows the tool name on the left and a back link on the right ("← Registrar Hub") so the member can return to their hub without using the browser back button.
+**Second**, `WorkspaceShell` reads that context and keeps the hub's `HubWorkspaceSidebar` in place while rendering the tool's task header/sub-navigation in the content area. The member remains visibly inside the team workspace.
 
-The tool works the same regardless of how you reached it. If a member navigates directly to `/tools/programs` without coming from a hub, the back link shows "← Dashboard" instead.
+The tool works the same regardless of how it was reached. Direct navigation without `?hub=` uses the compact `ToolsNav` header; its resolved back link returns a member to the tool's primary hub when appropriate and otherwise to Home.
 
 ### Back link resolution
 
@@ -227,11 +222,11 @@ This means the back link is always contextually correct — hub members go back 
 
 ### The two access systems
 
-**Hub access** is controlled by membership. You see a hub if you have a `HubMember` record for it (or you're ADMIN). This is about belonging to a team.
+**Hub access** is controlled by the `canAccessHub` door: a `HubMember` relationship, or GUIDING_TEACHER pastoral reach. ADMIN alone configures from outside and does not inherit private hub content. This is about belonging to a team, with one explicit dharma-authority exception.
 
-**Tool access** is controlled by role. You can use a tool if your `User.roles` array includes the required role. This is about being authorized to do specific work.
+**Tool access** is controlled by `hasToolAccess()`. It grants access through a required role/ADMIN, an individual `UserToolAccess` row, or membership in a hub with an enabled `HubAppLink` for that tool. This is about being authorized to do specific work; the tool's own page/API gates remain the security boundary.
 
-These are separate. Being a member of a hub that links to a tool does not grant access to that tool. A hub member without the right role will see the tool link in their sidebar but will be blocked when they try to open it.
+Hub content access and tool access remain separate decisions even though hub membership is one valid tool-grant pathway. A visible shell or link never replaces the gate.
 
 ### Tool access matrix
 
@@ -239,31 +234,26 @@ These are separate. Being a member of a hub that links to a tool does not grant 
 |------|-------|--------------|-------------|
 | Course Manager | `/tools/learning` | TEACHER or ADMIN | courses |
 | Program Manager | `/tools/programs` | REGISTRAR or ADMIN | registrar |
-| Host Schedule | `/tools/schedule` | HOST, HOST_MANAGER, or ADMIN | host-team |
+| Scheduler | `/tools/schedule` | linked-hub member, HOST_MANAGER, ADMIN, GT, or grant | scheduler-enabled hubs |
 
 All tools also support individual access grants via `UserToolAccess` — admins can grant a specific user access to any tool without assigning them the full role. See `lib/toolAuth.ts`.
 
 ### Role gate pattern
 
-Each tool's `layout.tsx` performs the check:
+Each tool's `layout.tsx` calls the shared helper:
 ```
 const roles = session.user.roles ?? [];
-const isAdmin = roles.includes("ADMIN");
-const hasAccess = isAdmin || roles.includes("REQUIRED_ROLE");
+const hasAccess = await hasToolAccess(userId, roles, ["REQUIRED_ROLE"], "tool-slug");
 if (!hasAccess) return <div>You don't have permission...</div>;
 ```
 
-There is no shared `roleGate()` utility — each tool handles it inline in its layout. This is intentional: it keeps each tool self-contained and the pattern is only three lines.
+Do not replace this with an inline role-only check; that would silently remove hub and individual-grant pathways.
 
 ### Hub section access
 
-All core sections (Home, Conversations, Documents, Members) are visible to every hub member. There is no per-section gating within a hub — if you're a member, you see everything.
+Home, Activity, Conversations, Documents, Mind Maps, and Members are the shared module set. Resource-level gates still apply to portable Documents/Mind Maps and action-level gates still apply inside each module; “the tab is visible” is not blanket edit authority.
 
-Hub-specific sections follow the same rule: if you're a member of Course Hub, you see Series and Lessons. If you're a member of Registrar Hub, you see the Programs stakeholder view.
-
-Coordinator actions (editing home content, managing settings) are gated by `isCoordinator` on the `HubMember` record.
-
-A fifth section, **Trash**, appears in the sidebar only for trash-managers (Admin, Guiding Teacher, or hub coordinator). It lists items soft-deleted from this hub's Documents and Conversations and offers Restore + Permanent Delete. See "Three-stage delete" below.
+Coordinator actions use the canonical coordinator helpers; structural Hub settings stays ADMIN-only. **Trash** appears only for trash-managers (Admin, Guiding Teacher, or hub coordinator) and offers Restore + Permanent Delete. See "Three-stage delete" below.
 
 ### Three-stage delete (Active → Archived → Trash)
 
@@ -292,28 +282,17 @@ Each thread has an explicit subscriber list (`HubThreadSubscription`, introduced
 
 A subscriber can unsubscribe themselves any time. This model replaced the previous implicit "notify coordinators on new thread / notify participants on reply" — same default behavior, but now an explicit row exists per subscriber so the email recipient list is queryable and overridable.
 
-### Complete access control matrix
+### Access summary
 
-| Role | Hubs (membership required) | Tools (role required) | Hub Sections |
-|------|---------------------------|----------------------|--------------|
-| HOST | Host Team | Host Schedule | All core + schedule |
-| HOST_MANAGER | Host Team | Host Schedule | All core + schedule + assignment management |
-| REGISTRAR | Registrar Hub | Program Manager | All core |
-| TEACHER | Course Hub | — | All core + Series + Lessons |
-| ADMIN | All hubs (bypass) | All tools (bypass) | All sections + Hub settings |
-| VOLUNTEER_COORDINATOR | Volunteer Coordination | — | All core |
-| NEWSLETTER | Newsletter | — | All core |
-| GREETER | Greeter Team | — | All core |
-| Other operational roles | Their respective hub | — | All core |
+| Question | Canonical answer |
+|---|---|
+| May this person enter the hub? | `canAccessHub(member, roles)` — member or GUIDING_TEACHER; ADMIN alone does not pass |
+| May this person manage this hub action? | `effectiveCoordinator` / action-specific helper |
+| May this person open a tool? | `hasToolAccess()` — role/ADMIN, individual grant, or linked-hub membership |
+| May this person open a hub's Scheduler? | `canAccessHubScheduler()` — the Scheduler's stricter per-hub door |
+| May this person configure the Hub record? | ADMIN-only `/admin/hubs/*` |
 
-**Coordinator permissions** (any hub, requires `isCoordinator: true`):
-- Edit hub home content
-- Pin/unpin conversation threads
-- Lock/unlock documents
-- Access `/admin/hubs/[slug]/edit`
-- Manage hub members (add/remove/change coordinator status)
-
-**ADMIN bypass:** ADMIN users access all hubs without needing a `HubMember` record and all tools without needing the specific role. The `isCoordinator` computation uses `(member?.isCoordinator ?? false) || isAdmin`.
+See `RIM_Role_Design.md`, `RIM_Hub_Engineering.md`, and each per-tool document for the full matrices.
 
 ---
 
@@ -322,17 +301,17 @@ A subscriber can unsubscribe themselves any time. This model replaced the previo
 ### How hub context flows
 
 ```
-Sidebar click → URL (?hub=slug) → server page (searchParams) → getToolHubContext() → hub + members
+Workspace-rail click → URL (?hub=slug) → WorkspaceShell / server page → hub context
                                 → ToolsContext (client) → useToolsContext().hubSlug
 ```
 
-1. **HubSidebar** appends `?hub=<slug>` to every tool link href
+1. **HubWorkspaceSidebar** appends `?hub=<slug>` to every tool link href
 2. **Server-side:** Page components receive `searchParams` prop with `hub` param. Call `getToolHubContext(hubSlug)` from `lib/toolAuth.ts` to get the full hub record with members. This is the primary hub awareness mechanism.
 3. **Client-side:** `ToolsContext` reads `?hub=` from `useSearchParams()` for any client components that need the hub slug.
 
 ### Hub awareness in tools (implemented)
 
-**Host Schedule** — reads `?hub=` and calls `getToolHubContext()` to get coordinator names and hub membership for access control. Falls back to `"host-team"` if no hub param.
+**Scheduler** — reads `?hub=`, resolves a scheduler-enabled hub, gates that hub, and scopes programs/assignments to the active hub. Direct entry falls back to `host-team`.
 
 **Program Manager and Course Manager** — not yet hub-aware (no hub member queries needed currently). When a tool serves multiple hubs, it will add `getToolHubContext()` to scope its data.
 
@@ -346,7 +325,7 @@ db.program.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] })
 ```
 This is correct for now — the Registrar Hub is the only hub that links to Program Manager, and registrars need the complete view.
 
-**Host Schedule** — fetches all program assignments globally. The Host Team is the only hub that links to this tool.
+**Scheduler** — is fully hub-scoped; multiple hubs use it with different coverage semantics. See `RIM_Scheduler.md`.
 
 ### When scoping will matter
 
@@ -373,7 +352,7 @@ const threads = await db.discussionThread.findMany({
 
 ### Hub sub-page scoping (already implemented)
 
-Hub sections already scope their data by `hubId`. Each hub sub-page calls `getHubMembership()` from `lib/hubAuth.ts`, then queries with `where: { hubId: hub.id }`:
+Hub-native sections such as Conversations, Activity, and Members scope by the resolved hub. Portable resources are the exception: Documents and Mind Maps may originate elsewhere or be hubless, so their lists/access use placements + resource-level helpers rather than a bare `hubId` equality.
 
 ```typescript
 // Conversations page
@@ -382,13 +361,11 @@ const threads = await db.hubConversationThread.findMany({
   orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
 });
 
-// Documents page
-const documents = await db.hubDocument.findMany({
-  where: { hubId: hub.id },
-});
+// Portable resource pages instead use canAccessDocument / canAccessMindMap
+// and include origin OR placement into the current hub.
 ```
 
-This is the model for how tool scoping should work when implemented.
+This distinction is the model for tool scoping too: derive scope from the resource model, not from the visible sidebar alone.
 
 ---
 
@@ -400,25 +377,24 @@ Step-by-step guide for building a new tool from scratch.
 
 - [ ] **1. Create the route directory:** `app/tools/<tool-name>/`
 - [ ] **2. Create `layout.tsx`** — the tool shell:
-  - Import `auth`, `redirect`, `db`, `ToolsProvider`
+  - Import `auth`, `redirect`, `ToolsProvider`, `WorkspaceShell`, `hasToolAccess`
   - Auth check: `if (!session) redirect("/login")`
-  - Role gate: check `session.user.roles` for required role(s) or ADMIN
+  - Access gate: call `hasToolAccess()` with the baseline roles + registered tool slug
   - Resolve back link: look up the tool's primary hub, check if user is a member
-  - Wrap children in `<ToolsProvider value={{ toolName, backHref, backLabel, subNav? }}>`
+  - Wrap children in `ToolsProvider` + `WorkspaceShell`
 - [ ] **3. Create `page.tsx`** — the main tool page:
   - Fetch data (scoped or global depending on use case)
   - Render the tool UI
 - [ ] **4. Create sub-pages** (if needed): `app/tools/<tool-name>/<sub>/page.tsx`
   - Add sub-nav items to the `ToolsProvider` value in layout.tsx
-- [ ] **5. Add the role** to `prisma/schema.prisma` `Role` enum (if new role needed)
-  - Run `prisma db push` and `prisma generate`
+- [ ] **5. Reuse the smallest existing authority model**; add a role only if the power is genuinely system-wide. Prefer linked-hub membership or `UserToolAccess` for team/individual access.
 - [ ] **6. Register the app link** — add a `HubAppLink` record connecting the tool to its primary hub:
   - Via the hub admin edit form at `/admin/hubs/[slug]/edit`
   - Or via `seed-hubs.ts` for initial seeding
 - [ ] **7. Update documentation:**
   - Add tool to the access control table in this document
-  - Add route to `RIM_Stack_Reference.md` Key Directories
-  - Add session entry to `FEATURES.md`
+  - Create its `RIM_<ToolName>.md` per-tool reference and add it to the Design Orientation table
+  - Update `FEATURES.md`, `UP_NEXT.md`, and the session log
 
 ### Template: tool layout.tsx
 
@@ -427,6 +403,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ToolsProvider } from "@/components/ToolsContext";
+import WorkspaceShell from "@/components/WorkspaceShell";
+import { hasToolAccess } from "@/lib/toolAuth";
 
 export default async function MyToolLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -434,7 +412,7 @@ export default async function MyToolLayout({ children }: { children: React.React
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  const hasAccess = isAdmin || roles.includes("MY_ROLE");
+  const hasAccess = await hasToolAccess(session.user.id, roles, ["MY_ROLE"], "my-tool");
 
   if (!hasAccess) {
     return (
@@ -464,7 +442,7 @@ export default async function MyToolLayout({ children }: { children: React.React
 
   return (
     <ToolsProvider value={{ toolName: "My Tool", backHref, backLabel }}>
-      {children}
+      <WorkspaceShell variant="wide">{children}</WorkspaceShell>
     </ToolsProvider>
   );
 }
@@ -495,8 +473,8 @@ When should functionality live inside a hub section vs. be extracted to a standa
 - *Pattern:* Hub retains a lightweight stakeholder view. Tool handles the full operational workflow.
 
 **Host Schedule** (from Host Team Hub → `/tools/schedule`)
-- *Why extracted:* Calendar-based UI with mini-cal + card list. Session management with sub-board integration. Originally had sub-nav (Schedule / Live Session / Journal) — Live Session and Journal removed in session 76; will rebuild around LiveKit video conferencing.
-- *Pattern:* Single-page tool (no sub-nav currently). Hub is where the team coordinates (conversations, tasks, documents).
+- *Why extracted:* Calendar-based staffing UI with a mini-calendar, occurrence rows, coverage actions, and standing rotations; now reused across several coverage hubs.
+- *Pattern:* A hub-scoped operational tool. The hub is where the team coordinates (activity, conversations, documents, Mind Maps); the Scheduler is where coverage work happens.
 
 ### The decision rule
 
@@ -506,9 +484,9 @@ When in doubt, start as a hub section. Extract to a tool when the hub section st
 
 ---
 
-## 10. Core Sections Architecture
+## 10. Built-in Sections Architecture
 
-The four core sections are shared infrastructure. Every hub gets them for free. Improving one improves all hubs.
+The built-in sections are shared infrastructure. Every hub gets them for free. Improving one improves all hubs.
 
 ### Home
 
@@ -522,6 +500,12 @@ The four core sections are shared infrastructure. Every hub gets them for free. 
 **Extension points:**
 - `homeContent` is a freeform JSON rich text field — coordinators can put anything here
 - App link cards are the connection point to tools (see §10 for planned live context cards)
+
+### Activity
+
+**Route:** `/account/hub/[slug]/activity`
+
+A computed, hub-scoped stream that brings conversation and document events into one chronological view. It is a projection, not a separate activity model.
 
 ### Conversations
 
@@ -539,13 +523,13 @@ The four core sections are shared infrastructure. Every hub gets them for free. 
 
 **Route:** `/account/hub/[slug]/documents`
 
-**What it shows:**
-- Document library scoped to `hubId`
-- Category filtering (from `hub.documentCategories[]`)
-- Native documents (created in-app with BlockNote editor) and external links
-- Locked documents (coordinator-only editing)
+**What it shows:** native documents, uploads, and links that originate in or are placed into the hub; search/freshness/category controls; visibility/share/lifecycle affordances according to `canAccessDocument` / `canEditDocument`. Documents are portable resources, not always owned by the visible hub. See `RIM_Documents.md`.
 
-**Data model:** `HubDocument` (hubId, label, url, fileType, category, isNative, isLocked, body as HTML)
+### Mind Maps
+
+**Route:** `/account/hub/[slug]/mindmaps`
+
+The second portable resource: maps originating in or placed into the hub, with map-level visibility/edit policy and one conversation per topic. See `RIM_MindMaps.md`.
 
 ### Members
 
@@ -566,7 +550,7 @@ No hub has custom nav items. All hub-specific functionality has been extracted t
 - Program management → `/tools/programs` (Program Manager tool)
 - Host scheduling → `/tools/schedule` (Host Schedule tool)
 
-Hubs connect to their tools via app links in the sidebar. This ensures every hub is structurally identical — the same four core sections, no exceptions.
+Hubs connect to their tools via app links in the rail. This keeps the built-in workspace structure consistent while allowing different teams to use different operational applications.
 
 ---
 
@@ -585,7 +569,7 @@ An app link is a record in the `hub_app_links` table:
 | `order` | Int | Sort order (0-based) |
 | `isEnabled` | Boolean | Show/hide toggle |
 
-**In the sidebar:** Rendered under a "Tools" divider with an arrow (↗) indicator. `?hub=<slug>` is appended to the href.
+**In the sidebar:** Rendered directly below Home as primary work links. `?hub=<slug>` is appended to the href so the workspace rail persists inside the tool.
 
 **On the home screen:** `HubHomeClient` renders enabled app links as cards in a tools section.
 
@@ -618,16 +602,16 @@ The `HubHomeClient` component would fetch these on mount and overlay the count o
 
 ### Mobile sidebar drawer
 
-On screens ≤ 767px, the hub sidebar transforms into a slide-in drawer:
+On small screens, the `hub-ws-` rail transforms into a slide-in drawer:
 
 **CSS behavior:**
 - Sidebar becomes fixed-position overlay (260px wide, full viewport height)
 - Default state: `transform: translateX(-100%)` (hidden off-screen left)
-- Open state (`.hub-sidebar--open`): `transform: translateX(0)` (slides in)
+- Open state (`.hub-ws-sidebar--open`) slides the rail in
 - Backdrop overlay appears behind sidebar when open (click to close)
 
 **Mobile top bar:**
-- A condensed bar (`hub-sb-mobile-bar`) appears at top with hamburger button (☰) and hub name
+- A condensed `.hub-ws-mobilebar` appears with the menu button and hub name
 - Hidden on desktop via `display: none`, shown on mobile via media query
 
 **Interaction:**
@@ -639,9 +623,9 @@ On screens ≤ 767px, the hub sidebar transforms into a slide-in drawer:
 
 Tools should follow these patterns on mobile:
 
-**ToolsNav:** The back link and tool name render in a top bar that works well on mobile without modification.
+**Hub-launched tools:** keep the same drawer through `WorkspaceShell`. **Direct-entry tools:** use `ToolsNav`.
 
-**Sub-nav tabs:** Tools with sub-navigation render as horizontal scrollable tabs. (Host Schedule currently has no sub-nav — Live Session and Journal were removed; may return with LiveKit integration.)
+**Sub-nav tabs:** Tools with sub-navigation render as horizontal scrollable tabs. Keep them task-specific and preserve 44px touch targets.
 
 **Guideline for new tools:** Design mobile-first. If the tool has a list → detail pattern, use the full-screen progressive disclosure pattern (list screen → detail screen). Avoid side-by-side panels on mobile.
 
@@ -696,7 +680,11 @@ All hub-related models in `prisma/schema.prisma`:
 | `HubStatus` | enum | `ACTIVE`, `ARCHIVED` | Hub lifecycle |
 | `HubAppLink` | `hub_app_links` | `hubId`, `label`, `href`, `order`, `isEnabled` | Hub-to-tool connection |
 | `HubMember` | `hub_members` | `hubId` + `userId` (unique), `position`, `isCoordinator`, `joinedAt`, `lastVisitedAt`, `firstVisitedAt` | Hub membership |
-| `HubDocument` | `hub_documents` | `hubId`, `addedById`, `label`, `url`, `fileType`, `category`, `isNative`, `isLocked`, `body` (HTML) | Hub document library |
+| `HubDocument` | `hub_documents` | nullable origin `hubId`, `addedById`, `label`, `docKind`, `visibility`, `category`, `body` (HTML), lifecycle fields | Portable document resource |
+| `HubDocumentPlacement` | `hub_document_placements` | `documentId`, `hubId` | Cross-hub document placement |
+| `MindMap` | `mind_maps` | nullable origin `hubId`, `addedById`, `visibility`, `editPolicy`, lifecycle fields | Portable spatial-conversation resource |
+| `MindMapPlacement` | `mind_map_placements` | `mapId`, `hubId` | Cross-hub map placement |
+| `MindMapNode` | `mind_map_nodes` | `mapId`, `parentId`, label/note/position | Topic/branch node; conversation anchor |
 | `HubConversationThread` | `hub_conversation_threads` | `hubId`, `authorId`, `title`, `body` (HTML), `status`, `isPinned`, `pinnedAt`, `category` | Hub discussions |
 | `HubConversationReply` | `hub_conversation_replies` | `threadId`, `authorId`, `body` (HTML) | Thread replies |
 | `HubThreadSubscription` | `hub_thread_subscriptions` | `threadId`, `userId`, `source`, `@@unique([threadId, userId])` | Per-thread subscriber list (session 113) |
@@ -705,4 +693,4 @@ All hub-related models in `prisma/schema.prisma`:
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · May 2026 (updated session 113 — three-stage Archive → Trash lifecycle, thread subscriptions, GUIDING_TEACHER role, per-document notifications; session 101 — Tasks removed, Support Inbox removed, Tiptap migration complete)*
+*Working document · updated session 162 (2026-07-13) — shared authenticated/hub/tool shell; built-in Activity + Mind Maps; current access door and tool-context behavior.*

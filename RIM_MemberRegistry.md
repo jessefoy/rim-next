@@ -22,6 +22,12 @@ The profile renders via `lib/memberSectionRegistry.tsx` → `MEMBER_SECTIONS` (o
 
 Current sections + the save model are tabulated in `RIM_System_Architecture.md` ("Member Profile Architecture"). Each section saves independently via its own endpoint; there is no global save bar.
 
+### Teacher profile portrait (session 162)
+
+`components/member-sections/TeacherSection.tsx` manages the public teacher profile, including its portrait. The admin uploads a normal image through the existing `/api/upload` Vercel Blob path, previews it, and then saves the profile; the resulting URL remains `TeacherProfile.photoUrl`. Public program facilitator rows and `/teachers/[slug]` consume that same profile. CSS creates the circular crop (`border-radius: 50%` + `object-fit: cover`)—do not ask coordinators to create circular source files.
+
+An uploaded file is not the saved profile until the section's Save action succeeds. Keep that two-step state explicit in help copy. A facilitator only links/renders the public portrait when `TeacherProfile.isPublic` is true and a public slug exists; otherwise the program page falls back to the plain attributed name.
+
 ---
 
 ## The two controls: system powers vs team membership (session 153)
@@ -73,6 +79,7 @@ So a host needs only host-team membership (set via Teams). `ROLE_HUB_MAPPINGS` k
 - **Don't write a role-derived hub from the Teams tool** — the 409 guard is intentional; the role governs it.
 - **Don't add a person-picker that selects `User` rows without the `isLegacyUnclaimed: false` filter.**
 - **`/api/admin/members` GET is a picker, not the listing** — it filters legacy + archived. The listing is server-rendered in `app/admin/members/page.tsx`; the "+ Add member" is a POST.
+- **A teacher portrait is stored as a normal rectangular image URL.** The public circle is CSS. Preserve the existing upload → preview → Save sequence and the `isPublic`/slug gate.
 - Residual dead code after the HOST retirement (the `addingHost`/`sendHostRoleAssignmentEmail` path in `/api/admin/members/[id]`, `ROLE_COLORS.HOST`) is tracked in backlog `2026-06-17-003`.
 
 ---

@@ -302,6 +302,16 @@ Full model: `RIM_Documents.md`.
 
 ---
 
+## Presentation shell invariant (session 162)
+
+Hub context has one local navigation rail. A normal hub page renders beneath the shared member header and inside `HubWorkspaceSidebar`; it must not also render `AccountSidebar`, a second tool header, or a page-local outer shell. A hub-launched tool uses `WorkspaceShell` with `?hub=` so the same hub rail persists. Direct tool entry may use `ToolsNav` instead.
+
+This is a visual invariant, not an access rule. The hub shown in the rail does not itself prove that data, capability, recipients, or outbound URLs are scoped correctly. Continue to audit all four routing layers independently.
+
+Inside `.hub-ws-content`, prefer the existing hub destination prefixes and shared container widths. Do not add page-local hardcoded widths/colors/shadows to repair one screen; update the shared hub grammar when the relationship is truly common. Focused canvas/editor pages may reduce the rail, but must preserve an explicit way back.
+
+---
+
 ## Engineering rules in one paragraph
 
 When you touch a hub: derive the hub from the resource (usually a program), pass it through every layer (capability, recipients, UI filter, URLs), use the canonical helpers (`getProgramHubSlug`, `getHubNotificationRecipients`, `hubScopedUrl`, etc.), never hardcode `"host-team"`, never bypass hub membership for ADMIN on content access, use `after()` for fire-and-forget emails from route handlers, await emails from non-route functions whose callers already await, and at closing audit all four layers across every callsite you touched.
