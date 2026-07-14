@@ -6,6 +6,25 @@
 
 ## Active
 
+### Session 163 (2026-07-14) — ✅ Google Workspace = RIM's document/file system: Slices 1–2 live on `main`; Slice 3 (writing) is next
+
+**The decision (authority: `RIM_GoogleWorkspace.md`).** Google Workspace **replaces** native Tiptap documents as the primary doc/file system — "RIM orchestrates, Google is the file cabinet" (the Zoom pattern). One **service account** is RIM's only Google identity (Manager on each Shared Drive); **nobody gets a Google account**; RIM's DB is the permission system. Forks decided: **link-as-key** editing, **Drive folders are the filing system** (live-browsed, can't drift), **Community readable + editable by all members**. This deleted 2/3 of the source ChatGPT spec (no managed identities, no OAuth, no Groups/sync, no Admin SDK).
+
+**Shipped + live (4 commits, deployed):**
+- **Slice 1 (`ec6c0ed`)** — server-only `lib/google/` (RS256 JWT via `node:crypto`, **no new deps**); `Hub.googleDriveId/googleRootFolderId/googleFilesEnabled` + `GoogleFileAudit` (migration `google_workspace_foundation_v1`, additive); `/admin/hubs` Drive-mapping picker; `/admin/google-test` diagnostic (round-trip probes the org sharing policy).
+- **Google-side setup done** — `rim-workspace` Cloud project, Drive API, `rim-files@…` SA (Claude drove the Console; Jesse held the credential steps). **Env `GOOGLE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` set in Vercel** (an old Calendar-era EMAIL var was shadowing the key → "Invalid JWT Signature"; fixed + 3 dead Calendar vars removed via the Vercel CLI). `RIM — Community` Shared Drive exists with the SA as Manager. **Diagnostic passes end-to-end incl. the link-as-key sharing probe.**
+- **Slice 2 (`509a234` + `3cd213f` + `caf5905`)** — the Finder: per-hub **Files** tab + `/account/files`, live folder browse (folders-first, breadcrumbs, phone drill-down), Google Docs read in-app (sanitized HTML → RIM typography on a white sheet), binaries streamed, editing via the gated link-as-key open route. Coexists with native Documents until cutover. New `gf-` CSS. **Two full 8-angle reviews** (25 findings fixed; security-heavy — Community exact-match, CSRF on the mint GET, reader self-gate, XSS-safe streaming, retry safety, URL-driven resync).
+
+**OPEN — verify on prod (Jesse; Files is invisible to members until a hub is enabled):**
+1. Account sidebar shows **Files** (you, as admin) → `/account/files` opens at **Community**.
+2. Drop a PDF / create a Google Doc **in the `RIM — Community` Drive** → appears in the list; open the Doc → reads inside RIM on a white surface; "Open in Google Docs" opens the real editor in a new tab; folders drill down.
+3. To preview a **hub** Files tab: `/admin/hubs → [hub] → edit` → pick its Drive + flip "Show the Files area" → that hub gains a Files tab.
+4. Deploy log shows `google_workspace_foundation_v1`.
+
+**NEXT — Slice 3 (the writing half):** "Create document" (Doc first; Sheets/Slides structured to follow), "New folder", rename, move, and **uploads** (small direct; large staged via Blob → `after()` transfer → cron backstop). Every write audit-logged (the `resolveDriveAccess`-returns-place work already wired `hubId`). **Before enabling Files on a real member-facing hub:** build the **admin link revoke/lockdown** action (backlog `2026-07-14-001`) — minted edit links are currently permanent with no revocation path. Then **Slice 4 (cutover):** migrate the few real native docs (HTML→Doc import), transfer Blob PDFs, retire the native editor.
+
+**Deferred (backlog):** `2026-07-14-001` (admin revoke/lockdown — do before sensitive content), `2026-07-14-002` (enforce `googleRootFolderId` as an access boundary before mapping two hubs to one drive — latent today). Doc-fidelity note: the in-RIM reader deliberately drops Google's exact formatting (structure + emphasis only); "Open in Google Docs" carries fidelity. Jesse to feel out whether that's enough before considering an embed option.
+
 ### Session 162 (2026-07-13) — ✅ Public Program refinement + authenticated design unification live on `main`
 
 **Built and live:** Pampas/Mine Shaft/white foundation + `/style-guide`; refined public Program template and required-quote contract; linked teacher portraits with Member Registry upload; clearer Zoom-entry language; rebuilt Today hierarchy; unified personal, hub, admin, and tool shells/styles; dedicated `RIM_ProgramEditor.md` and `RIM_CourseEditor.md` references. Fifteen implementation commits through `9eae63a`; no schema/dependency/env/permission/email-template change.

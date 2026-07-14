@@ -329,6 +329,16 @@ Uses `RimTiptapEditor` with `variant="document"`. Top toolbar present (insertion
 - **Output wrapper:** `rim-content man-body`
 - **Route:** `/admin/manual/[slug]`
 
+### Read-only render surfaces (no editor)
+
+Not every `.rim-content` wrapper is an editor placement — some render externally-sourced HTML for reading only.
+
+#### `google-doc-reader` (session 163)
+- **Component:** `app/account/(authenticated)/files/doc/[fileId]/page.tsx`
+- **Source:** a Google Doc's HTML export, transformed by `lib/google/docHtml.ts` (semantics + emphasis kept; Google's fonts/colors/page layout dropped) and **sanitized** (`sanitize-html`) before render.
+- **Output wrapper:** `rim-content gf-reader__doc` (a white writing surface on the warm ground).
+- **No editor / no blocks.** Reading happens in RIM; editing opens the real Google editor in a new tab. Part of the Google Workspace Files system — see `RIM_GoogleWorkspace.md`.
+
 ### Page Designer type
 
 Uses `RimTiptapEditor` with `variant="document"` — the same component and chrome as the Document type. The Dharma block extensions (PullQuote, VerseQuote, PracticeSuggestion, Reflection) are registered globally on the document variant; the placement's CSS scope (`.rim-content--lesson`, `.rim-content--program`) determines how those blocks render.

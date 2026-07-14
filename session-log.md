@@ -1,5 +1,39 @@
 ---
 
+## 2026-07-14 (session 163) — Google Workspace becomes RIM's document & file system (Slices 1–2)
+
+Jesse brought a ChatGPT-authored spec to build a Google Workspace–backed document/file system. Rather than execute it blind, we checked it against the actual repo: RIM already had a native document system (s154–161) and a standing "don't propose Google Docs" memory from the OnlyOffice era. The spec assumed a greenfield. We reframed the whole thing around RIM's own proven pattern — **"RIM orchestrates, Zoom is the room"** → **"RIM orchestrates, Google is the file cabinet."** New authority doc: **`RIM_GoogleWorkspace.md`**.
+
+### The decision
+
+Google Workspace **replaces** native Tiptap documents as the primary document/file system — Jesse's call ("in use it's not working as well as we'd like… less options, cultural muscle memory, a real Mac-Finder-like filing system"). `RIM_Documents.md` itself anticipated this ("if version history, inline co-editing, office layout become a real need, evaluate that as a new capability"). What Google adds that native docs couldn't: real Docs/Sheets/Slides, live co-editing, version history, and a home for PDFs/audio/large files.
+
+**The model (the reframe that deleted half the ChatGPT spec):** one Google Cloud **service account** is RIM's only Google identity — the equivalent of the Zoom pool seat — added as Manager to each Shared Drive. **Nobody gets a Google account** (not members, not volunteers). RIM's database *is* the permission system. This dropped managed volunteer identities, Google OAuth, Google Groups + sync, the Admin SDK, and domain-wide delegation — the most security-sensitive two-thirds of the spec — because they exist only to mirror teams into Google's permission system, which RIM doesn't need. Decided forks: **link-as-key** editing (files are anyone-with-link-editable; RIM only hands the link to authorized members — the same accepted trade as no-registration Zoom links), **Drive folders are the filing system** (live-browsed, so Drive is the source of truth and can't drift), and **Community is readable + editable by all members**.
+
+### Built + shipped (4 commits on `main`, deployed)
+
+- **Slice 1 — foundation (`ec6c0ed`):** server-only `lib/google/` (RS256 JWT minted with `node:crypto`, no new deps; Drive ops); `Hub.googleDriveId`/`googleRootFolderId`/`googleFilesEnabled` + `GoogleFileAudit` model (migration `google_workspace_foundation_v1`, additive); the `/admin/hubs` Drive-mapping picker (fed by live drive discovery); `/admin/google-test` diagnostic whose round-trip **probes the org sharing policy** (create doc → set anyone-with-link → delete). Diagnostic chrome shared with zoom-test (`AdminSelfTest` + `adm-diag` + `DiagPill`).
+- **Google-side setup (Claude drove the Cloud Console via Chrome; Jesse held the credential steps):** `rim-workspace` project, Drive API, `rim-files@…` service account. **Env untangling:** an old Calendar-era `GOOGLE_SERVICE_ACCOUNT_EMAIL` was shadowing the new key → "Invalid JWT Signature"; fixed via the Vercel CLI (authed as Jesse), then deleted three dead Calendar env vars. Sharing policy verified compatible in-app. `RIM — Community` Shared Drive created with the SA as Manager.
+- **Slice 2 — the Finder read experience (`509a234`):** the per-hub **Files** tab + system-wide `/account/files`; live folder browsing (folders-first, breadcrumbs, phone drill-down); Google Docs **read inside RIM** via sanitized HTML export (semantics + emphasis only, RIM typography); binaries streamed; editing via the gated link-as-key open route. Coexists with the native Documents tab until cutover. New `gf-` CSS.
+- **Reader polish (`3cd213f`):** the rendered doc sits on a white writing surface (Jesse's review of the first live read — it was floating on the ground).
+- **Full-review hardening (`caf5905`):** an 8-angle review (~30 candidates → 15 findings) + fixes — see below.
+
+### Review + hardening (the review earned its keep twice)
+
+Slice 1's 8-angle review confirmed 10 findings (a PATCH invariant hole where clearing a drive stranded the enabled flag; the selftest writing to an arbitrary drive if cleanup failed). Slice 2's full re-review (after a usage-limit interruption that first surfaced only the security angle) confirmed 15: **security** — Community matched by exact reserved name (not substring, so "…Community Care Team" can't leak); the edit-link mint refuses cross-site GETs (no lure-to-mint); the doc reader self-gates (layouts don't re-run on soft nav); inline streaming restricted to safe types + `nosniff` (SVG/HTML would've been stored XSS on RIM's origin). **Correctness** — retry only for idempotent methods + body-cancel (no double-create, no socket leak); stale-cache-through-a-blip; URL-driven Finder (soft nav / back-forward resync); Range passthrough for audio seeking. **Shape** — one authorization rule (`getAccessiblePlaces`) all gates derive from; audit now records hub + distinguishes first-mint from routine open; `authorizeFileRequest` centralizes the per-file gate. The fix-pass review caught a 500-instead-of-502 regression I introduced (gate outside the try) — fixed.
+
+### What this connects to
+
+- **Native Documents (`RIM_Documents.md`)** — the system being replaced; coexists until the Slice-4 cutover, then retires. Its filing concepts (per-hub tab + master directory two-door pattern, freshness, membership gate) carried forward.
+- **Hubs** — Files is a new hub module gated on `googleFilesEnabled` + membership (hub audit: access door + list query are hub-scoped, layer 1 & 3 clean; no notifications/emails, layers 2 & 4 N/A). Touched `app/api/hubs/[slug]/nav`, `AccountLayout`, `HubWorkspaceSidebar`, `WorkspaceShell`.
+- **Zoom** — the architectural sibling; `lib/zoom.ts` was the model for `lib/google/`, and the pool-seat/service-account and link-as-key/no-registration parallels are exact.
+- **Auth** — unchanged (6-digit codes); the new `filesViewer` gate reuses the session's `archivedAt`/`agreedToTerms`.
+- **Backlog** — `2026-07-14-001` (admin link revoke/lockdown), `2026-07-14-002` (per-folder scoping enforcement).
+
+### What comes next
+
+Slice 3 (Create document / New folder / Upload — the writing half), then Slice 4 (cutover: migrate the few real native docs via HTML→Doc import, retire the native editor). Before enabling Files on a real member-facing hub: build the admin revoke tooling (`2026-07-14-001`).
+
 ## 2026-07-13 (session 162) — Public program refinement + one coherent authenticated design system
 
 Jesse asked for a full design evaluation—not a cosmetic reskin—and repeatedly tested the work against rendered production screenshots. The session established the visual foundation, refined the public Program template, rebuilt the member dashboard around the actual Zoom-entry task, then carried the same grammar through every personal, hub, admin, and operational-tool destination. Fifteen implementation commits landed on `main`; the closing commit documents the resulting system.

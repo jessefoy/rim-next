@@ -241,6 +241,30 @@ placement. The hub doc-view page moved `canAccessHub` → `canAccessDocument` so
 shared/community docs resolve. Full model + the filing surfaces in
 **`RIM_Documents.md`**.
 
+## Google Workspace Files — the document system moving off-native (session 163)
+
+RIM's document & file system is migrating to **Google Workspace** — "RIM
+orchestrates, Google is the file cabinet," the same separation as Zoom. The
+structural facts for this architecture doc:
+
+- **One service account is RIM's only Google identity** (Manager on each
+  org-owned Shared Drive). No member or volunteer has a Google account. RIM's
+  database remains the business-level source of truth for who may see/do what;
+  every Drive operation runs server-side as the service account after RIM's own
+  authorization. This deliberately does NOT use Google Groups, the Admin SDK, or
+  managed identities — RIM is the permission system, not Google.
+- **Files is a new hub module** (`/account/hub/[slug]/files`), gated on
+  `Hub.googleFilesEnabled` + the hub access door (`canAccessHub` — membership OR
+  GT; ADMIN-alone excluded, the session-128 boundary), plus a system-wide
+  finder `/account/files`. Authorization lives in `lib/googleFiles.ts` as ONE
+  rule (`getAccessiblePlaces`) that the sidebar visibility, per-place, and
+  per-file gates all derive from — the same "one gate, no drift" discipline as
+  `canAccessDocument`.
+- **It replaces native documents at cutover.** Until then the native Documents
+  tab and the Google Files tab coexist. The native filing concepts (per-hub tab
+  + master directory, freshness, the membership gate) carried forward.
+- Full model, access rules, and the manual Google setup: **`RIM_GoogleWorkspace.md`**.
+
 ## What's Next
 
 **Tools extraction — complete (session 73, refined session 76):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox` (subsequently removed session 100), Host Schedule → `/tools/schedule`. Each tool has its own role gate and task navigation inside the authenticated shell. Session 76 removed the Registrar Hub stakeholder Programs tab and all course-specific Course Hub tabs, establishing the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications). The current built-in hub set is Home, Activity, Conversations, Documents, Mind Maps, Members, and coordinator-gated Trash.
