@@ -26,6 +26,7 @@ import {
   Globe,
   ChevronDown,
   FolderOpen,
+  ShieldCheck,
 } from "lucide-react";
 
 interface HubLink {
@@ -65,10 +66,11 @@ const MEMBER_LINKS: NavLink[] = [
 ];
 
 const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] = [
-  { label: "Members",    href: "/admin/members",    icon: Users,    registrarOk: true },
-  { label: "Households", href: "/admin/households", icon: House,    registrarOk: true },
-  { label: "Hubs",       href: "/admin/hubs",       icon: Layers,   adminOnly: true   },
-  { label: "Emails",     href: "/admin/emails",     icon: Mail,     adminOnly: true   },
+  { label: "Members",      href: "/admin/members",      icon: Users,       registrarOk: true },
+  { label: "Households",   href: "/admin/households",   icon: House,       registrarOk: true },
+  { label: "Hubs",         href: "/admin/hubs",          icon: Layers,      adminOnly: true   },
+  { label: "Emails",       href: "/admin/emails",        icon: Mail,        adminOnly: true   },
+  { label: "Google Files", href: "/admin/google-files",  icon: ShieldCheck, adminOnly: true   },
 ];
 
 export default function AccountSidebar({ roles, hubLinks = [], showFiles = false }: Props) {

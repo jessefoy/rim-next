@@ -388,6 +388,21 @@ export async function exportDocHtml(fileId: string): Promise<string> {
   return res.text();
 }
 
+const PERMISSIONS_FIELDS = "permissions(id,type,role)";
+
+/** The current "anyone" permission on a file, if one exists — the shared read
+ *  ensureAnyoneWithLink, revokeAnyonePermission, and the admin revoke
+ *  tooling all build on. */
+export async function getAnyonePermission(
+  fileId: string,
+): Promise<{ id: string; role: string } | null> {
+  const params = new URLSearchParams({ supportsAllDrives: "true", fields: PERMISSIONS_FIELDS });
+  const existing = await driveApi<{
+    permissions?: { id: string; type: string; role: string }[];
+  }>(`/files/${encodeURIComponent(fileId)}/permissions?${params}`);
+  return existing.permissions?.find((p) => p.type === "anyone") ?? null;
+}
+
 /**
  * Idempotent link-as-key mint: ensure an "anyone with the link" permission of
  * at least `role` exists on a file. Called just-in-time when RIM hands out an
@@ -411,14 +426,7 @@ export async function ensureAnyoneWithLink(
   fileId: string,
   role: "writer" | "reader",
 ): Promise<boolean> {
-  const params = new URLSearchParams({
-    supportsAllDrives: "true",
-    fields: "permissions(id,type,role)",
-  });
-  const existing = await driveApi<{
-    permissions?: { id: string; type: string; role: string }[];
-  }>(`/files/${encodeURIComponent(fileId)}/permissions?${params}`);
-  const anyone = existing.permissions?.find((p) => p.type === "anyone");
+  const anyone = await getAnyonePermission(fileId);
   if (anyone && (anyone.role === "writer" || role === "reader")) return false;
   if (anyone) {
     // A reader-role link exists and a writer is opening: upgrade in place.
@@ -439,13 +447,31 @@ export async function ensureAnyoneWithLink(
   } catch (e) {
     // Two members opening the same fresh file concurrently can both reach the
     // create — tolerate the loser if the permission now exists either way.
-    const recheck = await driveApi<{
-      permissions?: { type: string; role: string }[];
-    }>(`/files/${encodeURIComponent(fileId)}/permissions?${params}`);
-    const now = recheck.permissions?.find((p) => p.type === "anyone");
+    const now = await getAnyonePermission(fileId);
     if (!now) throw e;
     return false; // the winner minted it; this call didn't
   }
+}
+
+/**
+ * Revoke the anyone-with-link permission on a file, if one exists — the
+ * other half of the link-as-key model (RIM_GoogleWorkspace.md §5: "RIM gates
+ * who RECEIVES a link, never who can use it afterward" — this is that
+ * missing lockdown path, admin-only). Non-destructive to the file itself:
+ * RIM's own open route re-mints on the next legitimate access, so revoking
+ * only cuts off anyone still holding the OLD link. Returns whether a
+ * permission was actually removed (false = already locked down, or none was
+ * ever minted).
+ */
+export async function revokeAnyonePermission(fileId: string): Promise<boolean> {
+  const anyone = await getAnyonePermission(fileId);
+  if (!anyone) return false;
+  const params = new URLSearchParams({ supportsAllDrives: "true" });
+  await driveApi(
+    `/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(anyone.id)}?${params}`,
+    { method: "DELETE" },
+  );
+  return true;
 }
 
 /**
