@@ -52,7 +52,7 @@ export default async function FilesPage() {
         </div>
       </header>
       <FilesBrowser
-        places={places.map((p) => ({ key: p.key, name: p.name }))}
+        places={places.map((p) => ({ key: p.key, name: p.name, canWrite: p.canWrite }))}
         initialPlaceKey={places[0].key}
         showPlaces
         basePath="/account/files"

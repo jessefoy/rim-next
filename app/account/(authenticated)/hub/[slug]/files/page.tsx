@@ -10,6 +10,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { hubWriteAllowed } from "@/lib/googleFiles";
 import FilesBrowser from "@/components/FilesBrowser";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,11 @@ export default async function HubFilesPage({
 
   const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect("/account/dashboard");
-  if (!hub.googleFilesEnabled || !hub.googleDriveId) redirect(`/account/hub/${slug}`);
+  // Mirror getAccessiblePlaces' conditions exactly (incl. ACTIVE status) so
+  // this page never renders a place the Files API will refuse.
+  if (hub.status !== "ACTIVE" || !hub.googleFilesEnabled || !hub.googleDriveId) {
+    redirect(`/account/hub/${slug}`);
+  }
 
   return (
     <div>
@@ -45,7 +50,16 @@ export default async function HubFilesPage({
         </div>
       </header>
       <FilesBrowser
-        places={[{ key: `hub:${slug}`, name: hub.name }]}
+        places={[
+          {
+            key: `hub:${slug}`,
+            name: hub.name,
+            // The ONE hub write rule (lib/googleFiles.ts) — ACTIVE membership
+            // or GT, and never on a folder-scoped place; matches what the
+            // API routes enforce via getAccessiblePlaces.
+            canWrite: hubWriteAllowed(session.user.roles ?? [], member?.status, hub),
+          },
+        ]}
         initialPlaceKey={`hub:${slug}`}
         showPlaces={false}
         basePath={`/account/hub/${slug}/files`}

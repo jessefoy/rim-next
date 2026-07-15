@@ -1,7 +1,13 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { googleConfigured } from "@/lib/google/auth";
-import { getFile, listSharedDrives, type DriveFile } from "@/lib/google/drive";
+import {
+  GOOGLE_MIME,
+  getFile,
+  getFileOrNull,
+  listSharedDrives,
+  type DriveFile,
+} from "@/lib/google/drive";
 
 /**
  * The Files system's places + authorization layer (RIM_GoogleWorkspace.md).
@@ -55,6 +61,39 @@ export interface FilesPlace {
   driveId: string;
   /** Where browsing starts: a hub's optional root folder, else the drive. */
   rootId: string;
+  /**
+   * May this viewer create/rename/move/trash/upload here? (Slice 3.)
+   * Community: every member (decided session 163). Hub: ACTIVE membership
+   * or GUIDING_TEACHER — a paused/inactive member keeps read access through
+   * the door but loses working power, matching the hub-membership authority
+   * model. Reads never depend on this flag.
+   */
+  canWrite: boolean;
+}
+
+/**
+ * The ONE definition of hub-place write authority, shared by
+ * getAccessiblePlaces (via hubPlace) and the per-hub Files page so the
+ * toolbar and the API gate can't drift apart. Two conditions:
+ *  - the person: ACTIVE membership or GUIDING_TEACHER (a paused/inactive
+ *    member keeps read access through the door but loses working power);
+ *  - the place: a folder-scoped hub (googleRootFolderId set) is READ-ONLY
+ *    for now — authorization is per-drive, so the root folder is a browse
+ *    start, not an enforced boundary; a write gate that stops at the drive
+ *    would let a member create/move/trash OUTSIDE the visible subtree
+ *    (reviewer, session 163). Writes open up when per-folder enforcement
+ *    lands (backlog 2026-07-14-002). No hub uses scoping today, so this
+ *    refuses nothing real.
+ */
+export function hubWriteAllowed(
+  roles: string[],
+  memberStatus: string | null | undefined,
+  hub: { googleDriveId: string | null; googleRootFolderId: string | null },
+): boolean {
+  const scoped =
+    Boolean(hub.googleRootFolderId) && hub.googleRootFolderId !== hub.googleDriveId;
+  if (scoped) return false;
+  return roles.includes("GUIDING_TEACHER") || memberStatus === "ACTIVE";
 }
 
 /**
@@ -110,16 +149,20 @@ function communityPlace(drive: { id: string; name: string }): FilesPlace {
     name: "Community",
     driveId: drive.id,
     rootId: drive.id,
+    canWrite: true,
   };
 }
 
-function hubPlace(h: {
-  id: string;
-  slug: string;
-  name: string;
-  googleDriveId: string | null;
-  googleRootFolderId: string | null;
-}): FilesPlace {
+function hubPlace(
+  h: {
+    id: string;
+    slug: string;
+    name: string;
+    googleDriveId: string | null;
+    googleRootFolderId: string | null;
+  },
+  canWrite: boolean,
+): FilesPlace {
   return {
     key: `hub:${h.slug}`,
     kind: "hub",
@@ -128,6 +171,7 @@ function hubPlace(h: {
     name: h.name,
     driveId: h.googleDriveId!,
     rootId: h.googleRootFolderId ?? h.googleDriveId!,
+    canWrite,
   };
 }
 
@@ -155,13 +199,20 @@ export async function getAccessiblePlaces(
         googleDriveId: { not: null },
         ...(isGT ? {} : { members: { some: { userId } } }),
       },
-      select: HUB_PLACE_SELECT,
+      select: {
+        ...HUB_PLACE_SELECT,
+        // The viewer's own membership row (empty for a GT browsing a hub
+        // they haven't joined) — feeds the write gate, never the read gate.
+        members: { where: { userId }, select: { status: true } },
+      },
       orderBy: { name: "asc" },
     }),
   ]);
   const places: FilesPlace[] = [];
   if (community) places.push(communityPlace(community));
-  for (const h of hubs) places.push(hubPlace(h));
+  for (const h of hubs) {
+    places.push(hubPlace(h, hubWriteAllowed(roles, h.members[0]?.status, h)));
+  }
   return places;
 }
 
@@ -260,6 +311,146 @@ export async function authorizeFileRequest(
     return { ok: false, status: 404, error: "You don't have access to this file." };
   }
   return { ok: true, data: { viewer, file, place } };
+}
+
+/**
+ * Clean a member-supplied file/folder name: strip control characters,
+ * collapse whitespace, cap the length (Drive itself allows almost anything —
+ * the cap keeps listings readable). Null = nothing usable was entered.
+ */
+export function sanitizeFileName(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const name = raw
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 150);
+  return name || null;
+}
+
+/**
+ * Refuse cross-site requests on state-changing Files routes — the same
+ * defense the open route uses for its GET-that-mints. Our own client is
+ * same-origin ("same-origin"); a hand-typed URL is "none"; only "cross-site"
+ * is rejected.
+ */
+export function isCrossSiteRequest(req: Request): boolean {
+  return req.headers.get("sec-fetch-site") === "cross-site";
+}
+
+/**
+ * Validate a client-supplied destination folder: it must be a real,
+ * un-trashed folder living in this place's drive. Returns the folder to use
+ * ({ id, name: null } = the place root), or null when the folder isn't in
+ * this space — including when it was deleted (a genuine 404 is "not here",
+ * not a 502) or sits in Drive's trash (writing into a trashed folder would
+ * make the content vanish from every listing). Shared by list/create/move/
+ * upload so no route can forget the drive-ownership check.
+ */
+export async function resolveParentFolder(
+  place: FilesPlace,
+  folder: string | null | undefined,
+): Promise<{ id: string; name: string | null } | null> {
+  if (!folder || folder === place.rootId) return { id: place.rootId, name: null };
+  const f = await getFileOrNull(folder);
+  if (
+    !f ||
+    f.driveId !== place.driveId ||
+    f.mimeType !== GOOGLE_MIME.folder ||
+    f.trashed
+  ) {
+    return null;
+  }
+  return { id: folder, name: f.name };
+}
+
+/**
+ * The one JSON shape for a file row sent to the Finder client — list, create,
+ * and update responses all serialize through here so the client-side FileRow
+ * contract can't drift per-route.
+ */
+export function fileRowJson(f: DriveFile): {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime: string | null;
+  modifiedBy: string | null;
+} {
+  return {
+    id: f.id,
+    name: f.name,
+    mimeType: f.mimeType,
+    modifiedTime: f.modifiedTime ?? null,
+    modifiedBy: f.lastModifyingUser?.displayName ?? null,
+  };
+}
+
+/**
+ * The shared gate for state-changing PER-FILE routes (rename/move/trash —
+ * and any Slice 3b+ write): cross-site refusal, the read gate
+ * (authorizeFileRequest), the place's write authority, and the browse-anchor
+ * protection, in one call — mirroring how authorizeFileRequest centralized
+ * the read scaffold so a new write route can't forget a check.
+ */
+export async function authorizeFileWrite(
+  session: Parameters<typeof filesViewer>[0],
+  req: Request,
+  fileId: string,
+): Promise<
+  { ok: true; data: AuthorizedFile } | { ok: false; status: number; error: string }
+> {
+  if (isCrossSiteRequest(req)) {
+    return { ok: false, status: 403, error: "Open this from within RIM." };
+  }
+  const gate = await authorizeFileRequest(session, fileId);
+  if (!gate.ok) return gate;
+  const { place } = gate.data;
+  if (!place.canWrite) {
+    return {
+      ok: false,
+      status: 403,
+      error: "You don't have permission to make changes here.",
+    };
+  }
+  // The place's own root (the drive root, or a hub's scoped root folder) is
+  // RIM's browse anchor — renaming/moving/trashing it would break the whole
+  // Files view. Members never see it as a row; refuse crafted requests.
+  if (fileId === place.rootId || fileId === place.driveId) {
+    return { ok: false, status: 400, error: "This folder can't be changed." };
+  }
+  return gate;
+}
+
+/**
+ * The shared gate for state-changing PER-PLACE routes (create — and Slice
+ * 3b's uploads): cross-site refusal, the viewer gate, place resolution, and
+ * the place's write authority, in one call.
+ */
+export async function resolveWritablePlace(
+  session: Parameters<typeof filesViewer>[0],
+  req: Request,
+  placeKey: string,
+): Promise<
+  | { ok: true; data: { viewer: { userId: string; roles: string[] }; place: FilesPlace } }
+  | { ok: false; status: number; error: string }
+> {
+  if (isCrossSiteRequest(req)) {
+    return { ok: false, status: 403, error: "Open this from within RIM." };
+  }
+  const viewer = filesViewer(session);
+  if (!viewer) return { ok: false, status: 401, error: "Please sign in." };
+  const place = await resolvePlace(viewer.userId, viewer.roles, placeKey);
+  if (!place) {
+    return { ok: false, status: 404, error: "You don't have access to these files." };
+  }
+  if (!place.canWrite) {
+    return {
+      ok: false,
+      status: 403,
+      error: "You don't have permission to make changes here.",
+    };
+  }
+  return { ok: true, data: { viewer, place } };
 }
 
 /**

@@ -27798,7 +27798,7 @@ input.w-button { -webkit-appearance: button; }
   border-radius: 12px;
   overflow: hidden;
 }
-.gf-list li + li .gf-row { border-top: 1px solid var(--rim-bg-accent); }
+.gf-list li + li { border-top: 1px solid var(--rim-bg-accent); }
 .gf-row {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) 110px 200px;
@@ -27833,6 +27833,198 @@ input.w-button { -webkit-appearance: button; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── Write layer (Slice 3): the bar, New menu, row actions, dialogs ── */
+
+.gf-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+/* The bar owns the spacing below itself; the crumbs' own Slice-2 margin
+   would otherwise skew them off the bar's vertical center. */
+.gf-bar .gf-crumbs { flex: 1; min-width: 0; margin-bottom: 0; }
+
+.gf-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 22px;
+  background: var(--rim-blue);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+.gf-new-btn:hover { opacity: 0.92; }
+
+.gf-menu-wrap { position: relative; }
+.gf-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 200px;
+  padding: 6px;
+  background: var(--rim-surface);
+  border: 1px solid var(--rim-bg-accent);
+  border-radius: 10px;
+}
+.gf-menu__item {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+  cursor: pointer;
+}
+.gf-menu__item:hover { background: var(--rim-bg-bright); }
+.gf-menu__item--danger { color: var(--color-error); }
+.gf-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.gf-item {
+  display: flex;
+  align-items: center;
+}
+.gf-item .gf-row { flex: 1; min-width: 0; }
+.gf-item__more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--rim-mid);
+  cursor: pointer;
+}
+.gf-item__more:hover { background: var(--rim-bg-bright); color: var(--rim-text); }
+.gf-item .gf-menu-wrap { margin-right: 8px; }
+
+/* Dialogs — a calm sheet over a quiet scrim; separation by the scrim, not
+   shadows. One dominant action per dialog. */
+.gf-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(51, 51, 51, 0.4);
+}
+.gf-dialog {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  background: var(--rim-surface);
+  border-radius: 12px;
+}
+.gf-dialog--move { max-width: 480px; }
+.gf-dialog__title {
+  margin: 0 0 14px;
+  font-family: var(--font-sans);
+  font-size: var(--text-h4);
+  font-weight: 600;
+  color: var(--rim-text);
+  overflow-wrap: anywhere;
+}
+.gf-dialog__text {
+  margin: 0 0 14px;
+  font-size: var(--text-ui);
+  line-height: 1.55;
+  color: var(--rim-text);
+  overflow-wrap: anywhere;
+}
+.gf-dialog__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--rim-bg-accent);
+  border-radius: 8px;
+  background: var(--rim-bg-bright);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--rim-text);
+}
+.gf-dialog__input:focus { outline: 2px solid var(--rim-blue); outline-offset: -1px; }
+.gf-dialog__error {
+  margin: 10px 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-error);
+}
+.gf-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+.gf-dialog__cancel,
+.gf-dialog__submit,
+.gf-dialog__danger {
+  min-height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 22px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+.gf-dialog__cancel { background: transparent; color: var(--rim-mid); }
+.gf-dialog__cancel:hover { background: var(--rim-bg-bright); color: var(--rim-text); }
+.gf-dialog__submit { background: var(--rim-blue); color: #fff; }
+.gf-dialog__danger { background: var(--color-error); color: #fff; }
+.gf-dialog__submit:disabled,
+.gf-dialog__danger:disabled { opacity: 0.5; cursor: default; }
+
+/* The move destination picker — a small folders-only browser */
+.gf-crumbs--picker { margin-bottom: 8px; }
+.gf-picker {
+  max-height: 40vh;
+  overflow-y: auto;
+  border: 1px solid var(--rim-bg-accent);
+  border-radius: 8px;
+  padding: 4px;
+}
+.gf-picker__folder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+  cursor: pointer;
+}
+.gf-picker__folder:hover { background: var(--rim-bg-bright); }
+.gf-picker__folder svg { color: var(--rim-blue); flex-shrink: 0; }
 
 /* The in-app Google Doc reader — the document sits on a white writing
    surface (paper on the desk), not directly on the warm page ground. The
@@ -27894,4 +28086,13 @@ input.w-button { -webkit-appearance: button; }
   .gf-row__icon { grid-row: 1; }
   .gf-row__kind { display: none; }
   .gf-row__meta { grid-column: 2; text-align: left; }
+  .gf-bar { flex-wrap: wrap; }
+  .gf-bar .gf-crumbs {
+    flex-basis: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+  .gf-item .gf-menu-wrap { margin-right: 4px; }
+  .gf-dialog { padding: 20px 16px; }
 }

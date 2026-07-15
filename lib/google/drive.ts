@@ -208,18 +208,18 @@ export async function listFiles(
 }
 
 /**
- * Fetch one file's metadata, including its parents + owning drive — the
- * fields the route layer needs to verify a file actually belongs to a hub's
- * mapped drive before acting on it.
+ * Fetch one file's metadata, including its parents + owning drive + trashed
+ * flag — the fields the route layer needs to verify a file actually belongs
+ * to a hub's mapped drive (and isn't sitting in the trash) before acting on it.
  */
 export async function getFile(
   fileId: string,
-): Promise<DriveFile & { parents?: string[]; driveId?: string }> {
+): Promise<DriveFile & { parents?: string[]; driveId?: string; trashed?: boolean }> {
   const params = new URLSearchParams({
     supportsAllDrives: "true",
-    fields: FILE_FIELDS + ",parents,driveId",
+    fields: FILE_FIELDS + ",parents,driveId,trashed",
   });
-  return driveApi<DriveFile & { parents?: string[]; driveId?: string }>(
+  return driveApi<DriveFile & { parents?: string[]; driveId?: string; trashed?: boolean }>(
     `/files/${encodeURIComponent(fileId)}?${params}`,
   );
 }
@@ -232,7 +232,7 @@ export async function getFile(
  */
 export async function getFileOrNull(
   fileId: string,
-): Promise<(DriveFile & { parents?: string[]; driveId?: string }) | null> {
+): Promise<(DriveFile & { parents?: string[]; driveId?: string; trashed?: boolean }) | null> {
   try {
     return await getFile(fileId);
   } catch (e) {
@@ -265,6 +265,44 @@ export async function createFile(opts: {
 }
 
 /**
+ * Rename a file or folder in place. Name is sanitized in the route layer
+ * (lib/googleFiles.ts::sanitizeFileName) before it reaches here.
+ */
+export async function renameFile(fileId: string, name: string): Promise<DriveFile> {
+  const params = new URLSearchParams({
+    supportsAllDrives: "true",
+    fields: FILE_FIELDS,
+  });
+  return driveApi<DriveFile>(`/files/${encodeURIComponent(fileId)}?${params}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+/**
+ * Move a file/folder to another folder in the same Shared Drive. Drive models
+ * a move as add-parent + remove-parent on one PATCH. The route layer has
+ * already verified the destination lives in the same drive; Drive itself
+ * rejects a circular move (a folder into its own subtree) — the route maps
+ * that to a friendly message.
+ */
+export async function moveFile(
+  fileId: string,
+  opts: { addParent: string; removeParent?: string },
+): Promise<DriveFile> {
+  const params = new URLSearchParams({
+    supportsAllDrives: "true",
+    fields: FILE_FIELDS,
+    addParents: opts.addParent,
+  });
+  if (opts.removeParent) params.set("removeParents", opts.removeParent);
+  return driveApi<DriveFile>(`/files/${encodeURIComponent(fileId)}?${params}`, {
+    method: "PATCH",
+    body: JSON.stringify({}),
+  });
+}
+
+/**
  * Set "anyone with the link can edit" on a file — the link-as-key model
  * (RIM_GoogleWorkspace.md: RIM is the gate; the link is only handed to members
  * RIM authorizes). This is also the operation the org's "distributing content
@@ -291,19 +329,28 @@ export async function exportDocHtml(fileId: string): Promise<string> {
 }
 
 /**
- * Idempotent link-as-key mint: ensure "anyone with the link can edit" exists
- * on a file, upgrading a viewer-role link if present. Called just-in-time
- * when RIM hands out an open/edit link, so files created directly in Drive
- * (which lack the permission) work too. Files only — Google doesn't support
- * anyone-with-link on Shared Drive folders.
+ * Idempotent link-as-key mint: ensure an "anyone with the link" permission of
+ * at least `role` exists on a file. Called just-in-time when RIM hands out an
+ * open link, so files created directly in Drive (which lack the permission)
+ * work too. Files only — Google doesn't support anyone-with-link on Shared
+ * Drive folders.
  *
- * Returns `true` only when this call actually CREATED the anyone-editor
- * permission (the security-relevant first-mint event), `false` when it was
- * already present or merely upgraded — so the audit log can record the true
- * moment a file became link-editable, distinct from routine re-opens
- * (reviewer, session 163 — feeds the backlogged revoke tooling).
+ * Role follows the viewer's RIM write authority (Slice 3): a writable-place
+ * member mints "writer", a read-only viewer mints "reader". The permission is
+ * file-global, so once ANY writer has minted editor access, a reader opening
+ * the same link gets edit power too — that's the accepted link-as-key trade
+ * (RIM_GoogleWorkspace.md §5); a reader-mint is never downgraded from writer.
+ *
+ * Returns `true` only when this call actually CREATED an anyone permission
+ * (the security-relevant first-mint event), `false` when it was already
+ * present or merely upgraded — so the audit log can record the true moment a
+ * file became link-reachable, distinct from routine re-opens (reviewer,
+ * session 163 — feeds the backlogged revoke tooling).
  */
-export async function ensureAnyoneWithLinkEditor(fileId: string): Promise<boolean> {
+export async function ensureAnyoneWithLink(
+  fileId: string,
+  role: "writer" | "reader",
+): Promise<boolean> {
   const params = new URLSearchParams({
     supportsAllDrives: "true",
     fields: "permissions(id,type,role)",
@@ -312,8 +359,9 @@ export async function ensureAnyoneWithLinkEditor(fileId: string): Promise<boolea
     permissions?: { id: string; type: string; role: string }[];
   }>(`/files/${encodeURIComponent(fileId)}/permissions?${params}`);
   const anyone = existing.permissions?.find((p) => p.type === "anyone");
-  if (anyone?.role === "writer") return false;
+  if (anyone && (anyone.role === "writer" || role === "reader")) return false;
   if (anyone) {
+    // A reader-role link exists and a writer is opening: upgrade in place.
     const patchParams = new URLSearchParams({ supportsAllDrives: "true" });
     await driveApi(
       `/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(anyone.id)}?${patchParams}`,
@@ -322,7 +370,11 @@ export async function ensureAnyoneWithLinkEditor(fileId: string): Promise<boolea
     return false; // upgraded an existing link, not a first mint
   }
   try {
-    await setAnyoneWithLinkEditor(fileId);
+    const createParams = new URLSearchParams({ supportsAllDrives: "true" });
+    await driveApi(`/files/${encodeURIComponent(fileId)}/permissions?${createParams}`, {
+      method: "POST",
+      body: JSON.stringify({ type: "anyone", role }),
+    });
     return true;
   } catch (e) {
     // Two members opening the same fresh file concurrently can both reach the

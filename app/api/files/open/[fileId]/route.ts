@@ -16,8 +16,12 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { authorizeFileRequest, logFileAction } from "@/lib/googleFiles";
-import { GOOGLE_MIME, ensureAnyoneWithLinkEditor } from "@/lib/google/drive";
+import {
+  authorizeFileRequest,
+  isCrossSiteRequest,
+  logFileAction,
+} from "@/lib/googleFiles";
+import { GOOGLE_MIME, ensureAnyoneWithLink } from "@/lib/google/drive";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +29,7 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ fileId: string }> },
 ) {
-  if (req.headers.get("sec-fetch-site") === "cross-site") {
+  if (isCrossSiteRequest(req)) {
     return NextResponse.json({ error: "Open this from within RIM." }, { status: 403 });
   }
   const { fileId } = await params;
@@ -52,7 +56,12 @@ export async function GET(
       );
     }
 
-    const minted = await ensureAnyoneWithLinkEditor(fileId);
+    // The minted role follows the viewer's write authority (Slice 3): a
+    // read-only viewer (e.g. a paused hub member) opens Google as a viewer,
+    // not an editor. If a writer already minted editor access the link is
+    // file-global — the accepted link-as-key trade; never downgraded here.
+    const role = place.canWrite ? ("writer" as const) : ("reader" as const);
+    const minted = await ensureAnyoneWithLink(fileId, role);
     // Log the security-relevant first-mint distinctly from a routine open, and
     // attribute it to the origin hub (null for Community) so the audit trail
     // can answer "when did this file first become link-editable, and where."
@@ -61,7 +70,7 @@ export async function GET(
       action: minted ? "mint-link" : "open",
       googleFileId: fileId,
       hubId: place.hubId,
-      detail: { place: place.key, mimeType: file.mimeType },
+      detail: { place: place.key, mimeType: file.mimeType, role },
     });
     return NextResponse.redirect(file.webViewLink);
   } catch (e) {

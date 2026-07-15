@@ -9,8 +9,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { filesViewer, resolvePlace } from "@/lib/googleFiles";
-import { GOOGLE_MIME, getFile, listFiles } from "@/lib/google/drive";
+import {
+  fileRowJson,
+  filesViewer,
+  resolveParentFolder,
+  resolvePlace,
+} from "@/lib/googleFiles";
+import { listFiles } from "@/lib/google/drive";
 
 export const dynamic = "force-dynamic";
 
@@ -32,46 +37,23 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    let folderName: string | null = null;
-    if (folder && folder !== place.rootId) {
-      // Cold-load into a subfolder (refresh / shared URL): confirm the folder
-      // belongs to this place's drive before revealing its name or children.
-      // getFile (validation) and listFiles run in parallel — listFiles is
-      // scoped to the drive, so a foreign folder id can only yield an empty
-      // list, and the getFile check still gates the response before return.
-      const [f, files] = await Promise.all([
-        getFile(folder),
-        listFiles(place.driveId, folder),
-      ]);
-      if (f.driveId !== place.driveId || f.mimeType !== GOOGLE_MIME.folder) {
-        return NextResponse.json(
-          { error: "That folder isn't in this space." },
-          { status: 404 },
-        );
-      }
-      folderName = f.name;
-      return NextResponse.json({
-        folderName,
-        files: files.map((file) => ({
-          id: file.id,
-          name: file.name,
-          mimeType: file.mimeType,
-          modifiedTime: file.modifiedTime ?? null,
-          modifiedBy: file.lastModifyingUser?.displayName ?? null,
-        })),
-      });
+    // Validation (the shared resolveParentFolder predicate — same rule the
+    // write routes enforce) and listFiles run in parallel: listFiles is
+    // scoped to the drive, so a foreign folder id can only yield an empty
+    // list, and the validation still gates the response before return.
+    const [resolved, files] = await Promise.all([
+      resolveParentFolder(place, folder),
+      listFiles(place.driveId, folder ?? place.rootId),
+    ]);
+    if (!resolved) {
+      return NextResponse.json(
+        { error: "That folder isn't in this space." },
+        { status: 404 },
+      );
     }
-
-    const files = await listFiles(place.driveId, place.rootId);
     return NextResponse.json({
-      folderName,
-      files: files.map((f) => ({
-        id: f.id,
-        name: f.name,
-        mimeType: f.mimeType,
-        modifiedTime: f.modifiedTime ?? null,
-        modifiedBy: f.lastModifyingUser?.displayName ?? null,
-      })),
+      folderName: resolved.name,
+      files: files.map(fileRowJson),
     });
   } catch (e) {
     console.error("[files-list]", e instanceof Error ? e.message : e);
