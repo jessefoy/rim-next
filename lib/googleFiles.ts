@@ -74,25 +74,22 @@ export interface FilesPlace {
 /**
  * The ONE definition of hub-place write authority, shared by
  * getAccessiblePlaces (via hubPlace) and the per-hub Files page so the
- * toolbar and the API gate can't drift apart. Two conditions:
- *  - the person: ACTIVE membership or GUIDING_TEACHER (a paused/inactive
- *    member keeps read access through the door but loses working power);
- *  - the place: a folder-scoped hub (googleRootFolderId set) is READ-ONLY
- *    for now — authorization is per-drive, so the root folder is a browse
- *    start, not an enforced boundary; a write gate that stops at the drive
- *    would let a member create/move/trash OUTSIDE the visible subtree
- *    (reviewer, session 163). Writes open up when per-folder enforcement
- *    lands (backlog 2026-07-14-002). No hub uses scoping today, so this
- *    refuses nothing real.
+ * toolbar and the API gate can't drift apart: ACTIVE membership or
+ * GUIDING_TEACHER (a paused/inactive member keeps read access through the
+ * door but loses working power).
+ *
+ * Folder-scoped Spaces are now fully writable: the per-folder access gate
+ * (resolvePlaceForFile / resolveParentFolder) confines every read AND write
+ * to the Space's own subtree, so there's no longer any reason to hold scoped
+ * places read-only. This replaces the Slice-3a restriction and is the
+ * enforcement backlog 2026-07-14-002 called for — full closure of that item
+ * also needs the provisioning step to keep folder-scoped Spaces on a
+ * dedicated container Drive (see resolvePlaceForFile's invariant note).
  */
 export function hubWriteAllowed(
   roles: string[],
   memberStatus: string | null | undefined,
-  hub: { googleDriveId: string | null; googleRootFolderId: string | null },
 ): boolean {
-  const scoped =
-    Boolean(hub.googleRootFolderId) && hub.googleRootFolderId !== hub.googleDriveId;
-  if (scoped) return false;
   return roles.includes("GUIDING_TEACHER") || memberStatus === "ACTIVE";
 }
 
@@ -211,7 +208,7 @@ export async function getAccessiblePlaces(
   const places: FilesPlace[] = [];
   if (community) places.push(communityPlace(community));
   for (const h of hubs) {
-    places.push(hubPlace(h, hubWriteAllowed(roles, h.members[0]?.status, h)));
+    places.push(hubPlace(h, hubWriteAllowed(roles, h.members[0]?.status)));
   }
   return places;
 }
@@ -232,19 +229,99 @@ export async function resolvePlace(
 }
 
 /**
- * The gate for the per-file routes (stream / open / reader): resolve which of
- * the viewer's places owns this drive, returning the PLACE (not a bare
- * boolean) so callers get hubId for audit attribution and rootId/hubSlug for
- * downstream write policy (Slice 3). Null = not authorized.
+ * A folder-scoped place is one whose root is a FOLDER inside a larger shared
+ * Drive (googleRootFolderId set), as opposed to a whole-drive place
+ * (Community, or a hub that owns its entire Drive) where rootId === driveId.
+ * For a whole-drive place, belonging to the drive is enough; for a
+ * folder-scoped place, a file must descend from the place's own root folder —
+ * because several Spaces can share one Drive, and the Drive alone can't tell
+ * them apart.
  */
-export async function resolveDriveAccess(
-  userId: string,
-  roles: string[],
-  driveId: string | null | undefined,
+export function isFolderScoped(place: FilesPlace): boolean {
+  return place.rootId !== place.driveId;
+}
+
+/**
+ * Does `fileId` live within `rootId`'s subtree? Walks the single-parent chain
+ * upward (Shared Drive items have exactly one parent), asking the injected
+ * `parentsOf` for each ancestor's parents — pure of Drive specifics so the
+ * decision is unit-testable without the live API. Fails CLOSED: reaching the
+ * drive root, running out of parents, a cycle, or exhausting maxDepth all
+ * return false. This is the heart of Space-to-Space isolation on a shared
+ * Drive, so it must never accidentally return true.
+ */
+export async function fileWithinFolderRoot(opts: {
+  fileId: string;
+  fileParents: string[] | undefined;
+  rootId: string;
+  driveId: string;
+  parentsOf: (id: string) => Promise<string[] | undefined>;
+  maxDepth?: number;
+}): Promise<boolean> {
+  const { fileId, rootId, driveId } = opts;
+  if (fileId === rootId) return true; // the Space's own root folder
+  const maxDepth = opts.maxDepth ?? 25;
+  const seen = new Set<string>([fileId]);
+  let parents = opts.fileParents;
+  for (let depth = 0; depth < maxDepth; depth++) {
+    const parent = parents?.[0];
+    if (!parent) return false; // reached the top without hitting rootId
+    if (parent === rootId) return true; // inside the Space's subtree
+    if (parent === driveId) return false; // reached the Drive root, above the Space
+    if (seen.has(parent)) return false; // cycle guard — fail closed
+    seen.add(parent);
+    parents = await opts.parentsOf(parent);
+  }
+  return false; // depth exhausted — fail closed
+}
+
+/**
+ * Resolve WHICH of a viewer's accessible places owns a given file — the
+ * subtree-aware successor to a bare driveId match. A whole-drive place wins
+ * on driveId alone; folder-scoped places (which may share one Drive) each get
+ * the ancestry check, so a member of Space A can never reach Space B's file
+ * merely because both live on the same shared Drive. Null = not authorized.
+ */
+export async function resolvePlaceForFile(
+  places: FilesPlace[],
+  file: DriveFile & { parents?: string[]; driveId?: string },
 ): Promise<FilesPlace | null> {
-  if (!driveId) return null;
-  const places = await getAccessiblePlaces(userId, roles);
-  return places.find((p) => p.driveId === driveId) ?? null;
+  const candidates = places.filter((p) => p.driveId === file.driveId);
+  if (candidates.length === 0) return null;
+  const folderScoped = candidates.filter(isFolderScoped);
+  // Fast path — belonging to the Drive is enough — ONLY when the Drive is
+  // wholly one place's (Community, an own-Drive hub) with NO folder-scoped
+  // Space sharing it. If a folder-scoped Space shares this Drive, a
+  // whole-drive match could leak that sibling's file, so we DON'T
+  // short-circuit; we fall to the subtree walk and, in that (misconfigured)
+  // mix, deny anything not inside a folder-scoped Space rather than granting
+  // whole-drive access. The load-bearing invariant that keeps the common
+  // case both correct and cheap: folder-scoped Spaces live only on a
+  // dedicated container Drive that no place holds whole — enforced at
+  // provisioning; a whole-drive Drive (Community, own-Drive hubs) must never
+  // also host folder-scoped Spaces.
+  if (folderScoped.length === 0) {
+    return candidates.find((p) => !isFolderScoped(p)) ?? null;
+  }
+  // Memoize ancestor lookups across candidate walks — folder-scoped candidates
+  // on one shared Drive have overlapping chains, so N candidates shouldn't
+  // each re-fetch the same parents.
+  const parentCache = new Map<string, string[] | undefined>();
+  const parentsOf = async (id: string) => {
+    if (!parentCache.has(id)) parentCache.set(id, (await getFile(id)).parents);
+    return parentCache.get(id);
+  };
+  for (const p of folderScoped) {
+    const within = await fileWithinFolderRoot({
+      fileId: file.id,
+      fileParents: file.parents,
+      rootId: p.rootId,
+      driveId: p.driveId,
+      parentsOf,
+    });
+    if (within) return p;
+  }
+  return null;
 }
 
 /**
@@ -306,7 +383,9 @@ export async function authorizeFileRequest(
     getFile(fileId),
     getAccessiblePlaces(viewer.userId, viewer.roles),
   ]);
-  const place = places.find((p) => p.driveId === file.driveId) ?? null;
+  // Subtree-aware: a file on a shared Drive belongs to whichever Space's
+  // folder actually contains it, not to every place that shares the Drive.
+  const place = await resolvePlaceForFile(places, file);
   if (!place) {
     return { ok: false, status: 404, error: "You don't have access to this file." };
   }
@@ -360,6 +439,20 @@ export async function resolveParentFolder(
     f.trashed
   ) {
     return null;
+  }
+  // Folder-scoped place: the destination must live within THIS Space's
+  // subtree, not merely on the same shared Drive — else a write could place
+  // content in another Space's folder (the same isolation resolvePlaceForFile
+  // enforces on reads).
+  if (isFolderScoped(place)) {
+    const within = await fileWithinFolderRoot({
+      fileId: f.id,
+      fileParents: f.parents,
+      rootId: place.rootId,
+      driveId: place.driveId,
+      parentsOf: async (id) => (await getFile(id)).parents,
+    });
+    if (!within) return null;
   }
   return { id: folder, name: f.name };
 }

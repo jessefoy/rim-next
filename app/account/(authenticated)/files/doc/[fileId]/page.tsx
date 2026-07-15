@@ -11,7 +11,7 @@
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import AccountLayout from "@/components/AccountLayout";
-import { filesViewer, getAccessiblePlaces } from "@/lib/googleFiles";
+import { filesViewer, getAccessiblePlaces, resolvePlaceForFile } from "@/lib/googleFiles";
 import { GOOGLE_MIME, exportDocHtml, getFileOrNull } from "@/lib/google/drive";
 import { googleDocHtmlToRimHtml } from "@/lib/google/docHtml";
 import { relativeDate } from "@/lib/relativeDate";
@@ -45,7 +45,9 @@ export default async function GoogleDocReaderPage({
       getAccessiblePlaces(viewer.userId, viewer.roles),
     ]);
     file = f;
-    accessible = Boolean(f && places.some((p) => p.driveId === f.driveId));
+    // Subtree-aware (not a bare driveId match): on a shared Drive the doc must
+    // live inside a Space the viewer can actually reach.
+    accessible = Boolean(f && (await resolvePlaceForFile(places, f)));
   } catch {
     loadFailed = true;
   }

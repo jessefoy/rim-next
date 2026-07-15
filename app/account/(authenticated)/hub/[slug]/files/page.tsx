@@ -55,9 +55,8 @@ export default async function HubFilesPage({
             key: `hub:${slug}`,
             name: hub.name,
             // The ONE hub write rule (lib/googleFiles.ts) — ACTIVE membership
-            // or GT, and never on a folder-scoped place; matches what the
-            // API routes enforce via getAccessiblePlaces.
-            canWrite: hubWriteAllowed(session.user.roles ?? [], member?.status, hub),
+            // or GT; matches what the API routes enforce via getAccessiblePlaces.
+            canWrite: hubWriteAllowed(session.user.roles ?? [], member?.status),
           },
         ]}
         initialPlaceKey={`hub:${slug}`}
