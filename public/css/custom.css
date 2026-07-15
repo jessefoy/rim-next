@@ -27851,9 +27851,13 @@ input.w-button { -webkit-appearance: button; }
   padding: 0;
   background: var(--rim-surface);
   border-radius: 12px;
-  overflow: hidden;
+  /* No overflow:hidden — it would clip a row's ⋯ action menu (the third item
+     got cut off at the card's bottom edge). Corners are kept crisp by
+     rounding the first/last rows' hover surface instead. */
 }
 .gf-list li + li { border-top: 1px solid var(--rim-bg-accent); }
+.gf-item:first-child .gf-row { border-top-left-radius: 12px; }
+.gf-item:last-child .gf-row { border-bottom-left-radius: 12px; }
 .gf-row {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) 110px 200px;
