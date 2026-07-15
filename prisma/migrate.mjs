@@ -2646,169 +2646,6 @@ Or open it directly: {{manageUrl}}`,
       }
     },
   },
-  {
-    // Mind Maps (Slice 1) — RIM's second portable resource after HubDocument.
-    // mind_maps carries placement-ready hubId/visibility now so Slice 2 only
-    // adds mind_map_placements. mind_map_nodes.parentId is a self-FK (the branch
-    // link); ON DELETE SET NULL so deleting a parent frees its children.
-    name: "create_mind_maps_tables",
-    async run() {
-      const tables = await db.$queryRawUnsafe(`
-        SELECT table_name FROM information_schema.tables
-        WHERE table_name IN ('mind_maps', 'mind_map_nodes')
-      `);
-      if (tables.length < 2) {
-        await db.$executeRawUnsafe(`
-          CREATE TABLE IF NOT EXISTS "mind_maps" (
-            "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
-            "addedById" TEXT NOT NULL,
-            "title" TEXT NOT NULL,
-            "description" TEXT,
-            "hubId" TEXT,
-            "visibility" TEXT NOT NULL DEFAULT 'HUB',
-            "archivedAt" TIMESTAMP(3),
-            "deletedAt" TIMESTAMP(3),
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT "mind_maps_pkey" PRIMARY KEY ("id"),
-            CONSTRAINT "mind_maps_addedById_fkey" FOREIGN KEY ("addedById") REFERENCES "users"("id") ON DELETE CASCADE,
-            CONSTRAINT "mind_maps_hubId_fkey" FOREIGN KEY ("hubId") REFERENCES "hubs"("id") ON DELETE SET NULL
-          )
-        `);
-        await db.$executeRawUnsafe(
-          `CREATE INDEX IF NOT EXISTS "mind_maps_addedById_idx" ON "mind_maps"("addedById")`,
-        );
-        await db.$executeRawUnsafe(`
-          CREATE TABLE IF NOT EXISTS "mind_map_nodes" (
-            "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
-            "mapId" TEXT NOT NULL,
-            "parentId" TEXT,
-            "label" TEXT NOT NULL,
-            "note" TEXT,
-            "x" DOUBLE PRECISION NOT NULL DEFAULT 0,
-            "y" DOUBLE PRECISION NOT NULL DEFAULT 0,
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT "mind_map_nodes_pkey" PRIMARY KEY ("id"),
-            CONSTRAINT "mind_map_nodes_mapId_fkey" FOREIGN KEY ("mapId") REFERENCES "mind_maps"("id") ON DELETE CASCADE,
-            CONSTRAINT "mind_map_nodes_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "mind_map_nodes"("id") ON DELETE SET NULL
-          )
-        `);
-        await db.$executeRawUnsafe(
-          `CREATE INDEX IF NOT EXISTS "mind_map_nodes_mapId_idx" ON "mind_map_nodes"("mapId")`,
-        );
-        console.log(`  ✔ Applied: ${this.name}`);
-      } else {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-      }
-    },
-  },
-  {
-    // Mind Maps Slice 2 — portability: cross-hub placements + the per-map
-    // editPolicy option. Additive; existing maps default editPolicy 'OPEN'.
-    name: "create_mind_map_placements_and_edit_policy",
-    async run() {
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "mind_map_placements" (
-          "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
-          "mapId" TEXT NOT NULL,
-          "hubId" TEXT NOT NULL,
-          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "mind_map_placements_pkey" PRIMARY KEY ("id"),
-          CONSTRAINT "mind_map_placements_mapId_fkey" FOREIGN KEY ("mapId") REFERENCES "mind_maps"("id") ON DELETE CASCADE,
-          CONSTRAINT "mind_map_placements_hubId_fkey" FOREIGN KEY ("hubId") REFERENCES "hubs"("id") ON DELETE CASCADE
-        )
-      `);
-      await db.$executeRawUnsafe(
-        `CREATE UNIQUE INDEX IF NOT EXISTS "mind_map_placements_mapId_hubId_key" ON "mind_map_placements"("mapId","hubId")`,
-      );
-      await db.$executeRawUnsafe(
-        `CREATE INDEX IF NOT EXISTS "mind_map_placements_hubId_idx" ON "mind_map_placements"("hubId")`,
-      );
-      const cols = await db.$queryRawUnsafe(`
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'mind_maps' AND column_name = 'editPolicy'
-      `);
-      if (cols.length === 0) {
-        await db.$executeRawUnsafe(`ALTER TABLE "mind_maps" ADD COLUMN "editPolicy" TEXT NOT NULL DEFAULT 'OPEN'`);
-        console.log(`  ✔ Applied: ${this.name} (placements table + editPolicy column)`);
-      } else {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-      }
-    },
-  },
-  {
-    // Mind Maps Slice 3 — a conversation per topic. Anchors a thread to a node
-    // (parallel to documentId; ON DELETE CASCADE so deleting a topic removes it).
-    name: "add_mindmapnodeid_to_threads",
-    async run() {
-      const cols = await db.$queryRawUnsafe(`
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'hub_conversation_threads' AND column_name = 'mindMapNodeId'
-      `);
-      if (cols.length === 0) {
-        await db.$executeRawUnsafe(`ALTER TABLE "hub_conversation_threads" ADD COLUMN "mindMapNodeId" TEXT`);
-        await db.$executeRawUnsafe(
-          `DO $$ BEGIN ALTER TABLE "hub_conversation_threads" ADD CONSTRAINT "hub_conversation_threads_mindMapNodeId_fkey" FOREIGN KEY ("mindMapNodeId") REFERENCES "mind_map_nodes"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
-        );
-        // Unique (not plain) so a topic can't end up with two threads from a
-        // concurrent first-comment. Nullable column → many NULLs allowed.
-        await db.$executeRawUnsafe(
-          `CREATE UNIQUE INDEX IF NOT EXISTS "hub_conversation_threads_mindMapNodeId_key" ON "hub_conversation_threads"("mindMapNodeId")`,
-        );
-        console.log(`  ✔ Applied: ${this.name}`);
-      } else {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-      }
-    },
-  },
-  {
-    // The one email this slice adds (Email Template Gate): a comment on a map
-    // topic, deep-linking back to the map (the hub-conv-* templates link to a
-    // hub conversation URL, which is wrong for a map).
-    name: "seed_mindmap_topic_comment_email_template",
-    async run() {
-      const flag = await db.$queryRawUnsafe(`
-        SELECT name FROM "_migration_flags" WHERE name = 'seed_mindmap_topic_comment_email_template_v1'
-      `).catch(() => []);
-      if (flag.length > 0) {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-        return;
-      }
-      const existing = await db.emailTemplate.findUnique({ where: { slug: "mindmap-topic-comment" } });
-      if (!existing) {
-        await db.emailTemplate.create({
-          data: {
-            slug: "mindmap-topic-comment",
-            name: "Mind Map: New Topic Comment",
-            description: "Sent to followers + the map's hub coordinators when someone comments on a mind-map topic.",
-            enabled: true,
-            subject: "New comment on “{{topicLabel}}” — {{mapTitle}}",
-            variables: ["firstName", "commenterName", "topicLabel", "mapTitle", "mapUrl"],
-            group: "05-hubs",
-            groupLabel: "Hubs & Onboarding",
-            body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
-
-**{{commenterName}}** commented on the topic *{{topicLabel}}* in the mind map **{{mapTitle}}**.
-
-**[Open the map →]({{mapUrl}})**
-
----
-Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
-          },
-        });
-        console.log(`  ✔ Applied: ${this.name} (created)`);
-      } else {
-        console.log(`  ✔ Applied: ${this.name} (already exists — preserved)`);
-      }
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
-      `).catch(() => {});
-      await db.$executeRawUnsafe(`
-        INSERT INTO "_migration_flags" (name) VALUES ('seed_mindmap_topic_comment_email_template_v1')
-      `);
-    },
-  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────
@@ -5444,6 +5281,60 @@ Rooted In Mindfulness · Brookfield, WI`,
     );
   } else {
     console.log("  ⏭ remove_mindmap_topic_threads_v1 already applied.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Mind Maps removal — Phase 2 (schema drop). Safe now: the live deployment
+  // is the Phase-1 build, whose code no longer references the mindMapNodeId
+  // column or the mind_map_* tables, so dropping them can't 500 live traffic.
+  // Re-sweeps any topic threads created in the window between the two deploys,
+  // then drops the FK, unique index, and column from hub_conversation_threads;
+  // the three mind_map_* tables; and the orphaned mindmap-topic-comment email
+  // template row. All IF EXISTS / deleteMany, so it's a clean no-op on a fresh
+  // DB (the Phase-1 CREATE migration entries were removed — nothing creates
+  // these objects anymore).
+  // ───────────────────────────────────────────────────────────────────────
+  const mindMapSchemaFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'remove_mindmap_schema_v1'
+  `).catch(() => []);
+
+  if (mindMapSchemaFlag.length === 0) {
+    console.log("→ Dropping mind-map schema (Phase 2)…");
+    // Final sweep of any topic threads created in the interim (column may
+    // already be gone on a fresh DB, in which case there's nothing to sweep).
+    const mmCol2 = await db.$queryRawUnsafe(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'hub_conversation_threads' AND column_name = 'mindMapNodeId'
+    `).catch(() => []);
+    if (mmCol2.length > 0) {
+      const swept = await db.$executeRawUnsafe(
+        `DELETE FROM "hub_conversation_threads" WHERE "mindMapNodeId" IS NOT NULL`,
+      );
+      console.log(`  ✔ final sweep: deleted ${swept} interim topic thread(s).`);
+    }
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_conversation_threads" DROP CONSTRAINT IF EXISTS "hub_conversation_threads_mindMapNodeId_fkey"`,
+    );
+    await db.$executeRawUnsafe(
+      `DROP INDEX IF EXISTS "hub_conversation_threads_mindMapNodeId_key"`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_conversation_threads" DROP COLUMN IF EXISTS "mindMapNodeId"`,
+    );
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "mind_map_placements" CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "mind_map_nodes" CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "mind_maps" CASCADE`);
+    const delTpl = await db.emailTemplate.deleteMany({
+      where: { slug: "mindmap-topic-comment" },
+    });
+    console.log(
+      `  ✔ dropped mind_map_* tables + mindMapNodeId column; removed ${delTpl.count} email template row(s).`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('remove_mindmap_schema_v1')`,
+    );
+  } else {
+    console.log("  ⏭ remove_mindmap_schema_v1 already applied.");
   }
 
   await db.$disconnect();

@@ -15,8 +15,15 @@ const APPLY = process.argv.includes("--apply");
 // Class names / prefixes that belong to removed features. Longer prefixes
 // (rim-block-editor / rim-prose-editor) catch their --modifier variants without
 // colliding with the live rim- / rim-content / rim-el- classes.
+//
+// ⚠️ VERIFY A PREFIX IS TRULY DEAD BEFORE ADDING IT. A prefix here silently
+// deletes every rule whose selectors all start with it on --apply. Two entries
+// were REMOVED (session 165) after becoming live again: `sic-` (the six-box
+// sign-in-code form shim, session 145) and `sg-` (the /style-guide page,
+// session 162). Grep both custom.css (`.prefix-`) and code (className usage)
+// and confirm ZERO live hits before listing a prefix.
 const DEAD_PREFIXES = [
-  "si-", "sic-", "bn-", "bear-", "mantine-", "fmt-", "rte-", "sg-",
+  "si-", "bn-", "bear-", "mantine-", "fmt-", "rte-",
   "el-", "tt-", "img-", "rim-block-editor", "rim-prose-editor", "man-",
 ];
 
