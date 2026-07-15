@@ -20467,6 +20467,13 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 }
 .adm-hubs-select:focus { border-color: var(--rim-mid); outline: none; }
 .adm-hubs-hint { font-size: var(--text-xs); color: var(--rim-text-muted); }
+.adm-hubs-bulk {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 
 /* Coordinator (read-only) */
 .adm-hubs-coordinator { display: flex; flex-direction: column; gap: 4px; }

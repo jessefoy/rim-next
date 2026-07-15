@@ -31,6 +31,35 @@ const TYPE_LABELS: Record<string, string> = {
 export default function HubAdminList({ hubs: initial, showCreated }: Props) {
   const [hubs, setHubs] = useState(initial);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [provisioningAll, setProvisioningAll] = useState(false);
+  const [provisionNote, setProvisionNote] = useState<string>("");
+
+  // Backfill Files storage across every team in one click (finish-sequence
+  // "auto-provision every existing hub"). Idempotent; Community is skipped
+  // server-side (it rides the name-resolved Community Drive, not a folder).
+  async function provisionAll() {
+    setProvisioningAll(true);
+    setProvisionNote("");
+    try {
+      const res = await fetch("/api/admin/hubs/provision-all", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setProvisionNote(data.error ?? "Couldn't set up files. Please try again.");
+      } else {
+        const parts = [`${data.provisioned} set up`, `${data.already} already had files`];
+        if (data.failedCount > 0) {
+          parts.push(
+            `${data.failedCount} failed (${data.failed.map((f: { name: string }) => f.name).join(", ")})`,
+          );
+        }
+        setProvisionNote(`Done — ${parts.join(" · ")}.`);
+      }
+    } catch {
+      setProvisionNote("Couldn't reach the server. Please try again.");
+    } finally {
+      setProvisioningAll(false);
+    }
+  }
 
   async function toggleStatus(hub: HubRow) {
     setToggling(hub.id);
@@ -92,6 +121,18 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
   return (
     <>
       {showCreated && <div className="adm-hubs-success">Hub created successfully.</div>}
+
+      <div className="adm-hubs-bulk">
+        <button
+          type="button"
+          className="adm-hubs-btn-toggle"
+          onClick={provisionAll}
+          disabled={provisioningAll}
+        >
+          {provisioningAll ? "Setting up files…" : "Set up files for all teams"}
+        </button>
+        {provisionNote && <span className="adm-hubs-hint">{provisionNote}</span>}
+      </div>
 
       <div className="adm-hubs-table-wrap">
         <table className="adm-hubs-table">
