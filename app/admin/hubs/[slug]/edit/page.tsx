@@ -63,6 +63,7 @@ export default async function AdminHubEditPage({
     assignmentGrantsTeacher: hub.assignmentGrantsTeacher,
     teacherLabel: hub.teacherLabel,
     googleDriveId: hub.googleDriveId,
+    googleRootFolderId: hub.googleRootFolderId,
     googleFilesEnabled: hub.googleFilesEnabled,
     coverageNoun: hub.coverageNoun,
     coverageVerb: hub.coverageVerb,

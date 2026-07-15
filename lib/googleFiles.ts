@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { googleConfigured } from "@/lib/google/auth";
 import {
   GOOGLE_MIME,
+  createFile,
   getFile,
   getFileOrNull,
   listSharedDrives,
@@ -135,6 +136,114 @@ export async function resolveCommunityDrive(): Promise<{ id: string; name: strin
     // Serve the last-known value through the blip (may be null if never resolved).
     return communityCache?.drive ?? null;
   }
+}
+
+/**
+ * The Spaces container drive is the ONE Shared Drive named "RIM — Spaces"
+ * (reserved name, exact-matched like Community) that holds every
+ * auto-provisioned Space as a top-level folder. It is NEVER mapped as a
+ * hub's whole drive — that's the load-bearing invariant the per-folder gate
+ * relies on (see resolvePlaceForFile): a whole-drive place must never share a
+ * drive with folder-scoped Spaces. Because provisioning only ever creates
+ * folders here (never a whole-drive mapping) and admins map own-Drive/sensitive
+ * hubs to their OWN drives, that invariant holds by construction.
+ */
+function isSpacesContainerName(name: string): boolean {
+  const normalized = name
+    .toLowerCase()
+    .replace(/[—–-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalized === "rim spaces" || normalized === "spaces";
+}
+
+/**
+ * A drive RIM manages specially (the Community place or the Spaces container)
+ * — never selectable as a hub's OWN whole drive in the admin picker, because
+ * a whole-drive hub mapping onto either would break the isolation invariant
+ * the per-folder gate relies on (see resolvePlaceForFile).
+ */
+export function isReservedDriveName(name: string): boolean {
+  return isCommunityDriveName(name) || isSpacesContainerName(name);
+}
+
+let spacesCache: { drive: { id: string; name: string } | null; at: number } | null = null;
+
+export async function resolveSpacesContainerDrive(): Promise<{ id: string; name: string } | null> {
+  if (!googleConfigured()) return null;
+  if (spacesCache && Date.now() - spacesCache.at < COMMUNITY_TTL_MS) {
+    return spacesCache.drive;
+  }
+  try {
+    const drives = await listSharedDrives();
+    const drive = drives.find((d) => isSpacesContainerName(d.name)) ?? null;
+    // Cache only a HIT — unlike Community (which reliably exists), the
+    // container may be created mid-rollout; caching a "missing" result for
+    // 5 min would make an admin's create-then-provision fail spuriously.
+    if (drive) spacesCache = { drive, at: Date.now() };
+    return drive;
+  } catch {
+    return spacesCache?.drive ?? null;
+  }
+}
+
+/**
+ * Auto-provision a hub's Files storage: create a folder for it inside the
+ * "RIM — Spaces" container drive and map the hub to it (folder-scoped), so a
+ * Space gets working, isolated storage with no manual Google Console step —
+ * the automation the drive-per-hub model couldn't offer (the service account
+ * can't create Shared Drives; it CAN create folders in one it manages).
+ *
+ * Idempotent and non-clobbering: a hub that already has ANY drive mapping
+ * (auto-provisioned OR a manually-mapped own drive for a sensitive team) is
+ * left untouched. Only an unmapped hub is provisioned. Best-effort at call
+ * sites — a provisioning failure never blocks hub creation; the hub can be
+ * provisioned later from the admin edit page.
+ */
+export async function provisionHubSpaceStorage(
+  hub: { id: string; name: string; googleDriveId: string | null; googleRootFolderId: string | null },
+  actorUserId: string,
+): Promise<
+  | { ok: true; driveId: string; rootFolderId: string; alreadyMapped: boolean }
+  | { ok: false; error: string }
+> {
+  if (!googleConfigured()) return { ok: false, error: "Google Files isn't configured." };
+  // Respect an existing mapping (auto or manual own-drive) — never clobber it.
+  if (hub.googleDriveId) {
+    return {
+      ok: true,
+      driveId: hub.googleDriveId,
+      rootFolderId: hub.googleRootFolderId ?? hub.googleDriveId,
+      alreadyMapped: true,
+    };
+  }
+  const container = await resolveSpacesContainerDrive();
+  if (!container) {
+    return {
+      ok: false,
+      error: 'The "RIM — Spaces" Shared Drive isn\'t set up yet — create it in Google Drive and add the service account as a Manager.',
+    };
+  }
+  const folder = await createFile({
+    name: hub.name,
+    mimeType: GOOGLE_MIME.folder,
+    parentId: container.id,
+  });
+  await db.hub.update({
+    where: { id: hub.id },
+    data: {
+      googleDriveId: container.id,
+      googleRootFolderId: folder.id,
+      googleFilesEnabled: true,
+    },
+  });
+  await logFileAction({
+    userId: actorUserId,
+    action: "provision-space",
+    hubId: hub.id,
+    detail: { folderId: folder.id, name: hub.name, containerDriveId: container.id },
+  });
+  return { ok: true, driveId: container.id, rootFolderId: folder.id, alreadyMapped: false };
 }
 
 function communityPlace(drive: { id: string; name: string }): FilesPlace {

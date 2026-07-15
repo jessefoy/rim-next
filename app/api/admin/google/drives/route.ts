@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { googleConfigured } from "@/lib/google/auth";
 import { listSharedDrives } from "@/lib/google/drive";
+import { isReservedDriveName } from "@/lib/googleFiles";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,13 @@ export async function GET() {
   }
   try {
     const drives = await listSharedDrives();
-    return NextResponse.json({ drives });
+    // Hide the specially-managed drives (Community + the "RIM — Spaces"
+    // container): a hub must never be mapped whole-drive onto either, or it
+    // would break the per-folder isolation invariant. Ordinary hubs use
+    // "Set up files for this team" (auto folder in the container); this
+    // picker is only for a hub that needs its OWN separate Drive.
+    const mappable = drives.filter((d) => !isReservedDriveName(d.name));
+    return NextResponse.json({ drives: mappable });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Could not list drives" },

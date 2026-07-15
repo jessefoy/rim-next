@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { DEFAULT_COVERAGE_COPY } from "@/lib/programHub";
+import { provisionHubSpaceStorage } from "@/lib/googleFiles";
 
 /** GET /api/admin/hubs — list all hubs with member count (ADMIN only) */
 export async function GET() {
@@ -110,6 +111,20 @@ export async function POST(req: Request) {
       appLinks: { orderBy: { order: "asc" } },
     },
   });
+
+  // Auto-provision the hub's Files storage — a folder in the "RIM — Spaces"
+  // container drive — so a new Space is Files-ready with no manual Google
+  // step (the automation Jesse asked for). Best-effort: a provisioning
+  // failure (e.g. the container drive isn't set up yet) must not fail hub
+  // creation; the admin can provision later from the edit page.
+  try {
+    const result = await provisionHubSpaceStorage(hub, creatorId);
+    if (!result.ok) {
+      console.warn(`[hub-create] Files not provisioned for ${hub.slug}: ${result.error}`);
+    }
+  } catch (e) {
+    console.error(`[hub-create] provisioning threw for ${hub.slug}`, e);
+  }
 
   return NextResponse.json(hub, { status: 201 });
 }

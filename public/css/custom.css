@@ -20445,6 +20445,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 /* Form */
 .adm-hubs-form { display: flex; flex-direction: column; gap: 20px; max-width: 640px; }
 .adm-hubs-field { display: flex; flex-direction: column; gap: 6px; }
+.adm-hubs-provision { margin: 2px 0 4px; }
 .adm-hubs-label {
   font-size: var(--text-label); font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--rim-text-muted);

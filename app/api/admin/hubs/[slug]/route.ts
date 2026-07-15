@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { DEFAULT_COVERAGE_COPY } from "@/lib/programHub";
+import { resolveCommunityDrive, resolveSpacesContainerDrive } from "@/lib/googleFiles";
 
 /** GET /api/admin/hubs/[slug] — fetch one hub with appLinks (ADMIN only) */
 export async function GET(
@@ -102,6 +103,32 @@ export async function PATCH(
         ? googleDriveId.trim()
         : null
       : hub.googleDriveId;
+
+  // Server-side invariant guard (not just the client picker's filter): a hub
+  // must never be mapped WHOLE-DRIVE onto a managed drive — the Community
+  // place or the "RIM — Spaces" container. Either would put a whole-drive
+  // place on a drive that also holds folder-scoped Spaces, defeating the
+  // per-folder isolation gate (see lib/googleFiles.ts::resolvePlaceForFile).
+  // Only checked on an actual drive CHANGE to a new non-null drive.
+  if (
+    googleDriveId !== undefined &&
+    nextGoogleDriveId &&
+    nextGoogleDriveId !== hub.googleDriveId
+  ) {
+    const [community, container] = await Promise.all([
+      resolveCommunityDrive(),
+      resolveSpacesContainerDrive(),
+    ]);
+    if (nextGoogleDriveId === community?.id || nextGoogleDriveId === container?.id) {
+      return NextResponse.json(
+        {
+          error:
+            "That drive is managed automatically — use “Set up files for this team” instead of mapping it here.",
+        },
+        { status: 400 },
+      );
+    }
+  }
 
   const updated = await db.hub.update({
     where: { slug },

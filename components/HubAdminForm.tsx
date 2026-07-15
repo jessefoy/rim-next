@@ -63,6 +63,10 @@ interface HubData {
    *  Shared Drive + the per-hub rollout switch. Edit-mode only: a hub is
    *  mapped after its drive exists and the service account is a Manager. */
   googleDriveId?: string | null;
+  /** Set when the hub is auto-provisioned (a folder in the shared Spaces
+   *  drive) rather than mapped to its own whole drive — drives the "managed
+   *  automatically" view vs the drive picker. */
+  googleRootFolderId?: string | null;
   googleFilesEnabled?: boolean;
   coverageNoun: string;
   coverageVerb: string;
@@ -152,6 +156,16 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
   // True only after the list genuinely loaded — a failed fetch must not be
   // mistaken for "the mapped drive is gone" (the select labels differ).
   const [drivesLoaded, setDrivesLoaded] = useState(false);
+  // One-click auto-provisioning (create this hub's folder in the shared
+  // "RIM — Spaces" drive) — the no-manual-Console path for existing hubs.
+  const [provisioning, setProvisioning] = useState(false);
+  const [provisionNote, setProvisionNote] = useState<string>("");
+  // Auto-provisioned = mapped to a drive AND folder-scoped (a folder in the
+  // shared container). Drives the clean "managed automatically" view instead
+  // of the drive picker (which is for own-drive/sensitive hubs only).
+  const [filesManaged, setFilesManaged] = useState<boolean>(
+    Boolean(initialData?.googleDriveId && initialData?.googleRootFolderId),
+  );
   const [appLinks, setAppLinks] = useState<AppLink[]>(initialData?.appLinks ?? []);
   const [welcomeHeadline, setWelcomeHeadline] = useState(initialData?.welcomeHeadline ?? "");
   const [welcomeBody, setWelcomeBody] = useState<string>(
@@ -234,6 +248,38 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setAddingMe(false);
+    }
+  }
+
+  async function handleProvisionSpace() {
+    if (!hubSlug) return;
+    setProvisioning(true);
+    setProvisionNote("");
+    try {
+      const res = await fetch(`/api/admin/hubs/${hubSlug}/provision-space`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Couldn't set up files for this hub.");
+      }
+      // Reflect the new mapping in the form so the picker + toggle update
+      // without a reload; the drive now lives in the shared container.
+      setGoogleDriveId(data.driveId ?? "");
+      setGoogleFilesEnabled(true);
+      // A provisioned hub is folder-scoped in the container → managed view.
+      if (data.rootFolderId && data.rootFolderId !== data.driveId) {
+        setFilesManaged(true);
+      }
+      setProvisionNote(
+        data.alreadyMapped
+          ? "This hub already had files set up."
+          : "Files are set up — a folder for this team was created and the Files area is on.",
+      );
+    } catch (err) {
+      setProvisionNote(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setProvisioning(false);
     }
   }
 
@@ -517,65 +563,116 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
         </div>
       )}
 
-      {/* Google Drive mapping — RIM_GoogleWorkspace.md (Files system).
-          Edit-mode only: the ritual is create the Shared Drive in Google,
-          add the service account as Manager, then map + enable it here. */}
+      {/* Team files — RIM_GoogleWorkspace.md (Files system). Edit-mode only.
+          Two shapes: an auto-provisioned hub (a folder in the shared
+          "RIM — Spaces" drive) shows a clean managed view; everything else
+          offers one-click setup plus an advanced own-drive picker for a team
+          that needs its own separate Drive. */}
       {isEditing && (
         <div className="adm-hubs-field">
-          <label className="adm-hubs-label">Team files (Google Drive)</label>
-          <p className="adm-hubs-hint">
-            The Shared Drive that holds this team&rsquo;s files. Members never
-            need Google accounts — RIM checks hub membership and shows the
-            files itself.
-          </p>
-          <select
-            className="adm-hubs-input"
-            value={googleDriveId}
-            onChange={(e) => {
-              const next = e.target.value;
-              setGoogleDriveId(next);
-              if (!next) setGoogleFilesEnabled(false);
-            }}
-            disabled={driveOptions === null}
-          >
-            <option value="">
-              {driveOptions === null ? "Loading drives…" : "No drive connected"}
-            </option>
-            {/* Keep the mapped drive selectable while the list loads, when
-                the list can't load, and when it's genuinely absent — so an
-                accidental save can't silently clear the mapping, and the
-                label never claims more than we actually know. */}
-            {googleDriveId &&
-              !(driveOptions ?? []).some((d) => d.id === googleDriveId) && (
-                <option value={googleDriveId}>
-                  {driveOptions === null
-                    ? "Current drive (loading list…)"
-                    : drivesLoaded
-                      ? "Currently mapped drive (not visible to the service account)"
-                      : "Currently mapped drive"}
-                </option>
+          <label className="adm-hubs-label">Team files</label>
+
+          {filesManaged ? (
+            <>
+              <p className="adm-hubs-hint">
+                Files are set up automatically for this team — a folder in the
+                shared Spaces drive. Members reach it through RIM; no Google
+                account needed.
+              </p>
+              <label className="adm-hubs-label" style={{ marginTop: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={googleFilesEnabled}
+                  onChange={(e) => setGoogleFilesEnabled(e.target.checked)}
+                  style={{ marginRight: 8 }}
+                />
+                Show the Files area to this hub&rsquo;s members
+              </label>
+            </>
+          ) : (
+            <>
+              <p className="adm-hubs-hint">
+                Members never need Google accounts — RIM checks hub membership
+                and shows the files itself. New hubs are set up automatically;
+                set this one up in one click.
+              </p>
+
+              {!googleDriveId && (
+                <div className="adm-hubs-provision">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={handleProvisionSpace}
+                    disabled={provisioning || !googleConfigured}
+                  >
+                    {provisioning ? "Setting up…" : "Set up files for this team"}
+                  </button>
+                  {!googleConfigured && (
+                    <p className="adm-hubs-hint">
+                      Connect Google first at Admin &rarr; Google connection test.
+                    </p>
+                  )}
+                </div>
               )}
-            {(driveOptions ?? []).map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-          {drivesNote && <p className="adm-hubs-hint">{drivesNote}</p>}
-          <label className="adm-hubs-label" style={{ marginTop: 12 }}>
-            <input
-              type="checkbox"
-              checked={googleFilesEnabled}
-              onChange={(e) => setGoogleFilesEnabled(e.target.checked)}
-              disabled={!googleDriveId}
-              style={{ marginRight: 8 }}
-            />
-            Show the Files area to this hub&rsquo;s members
-          </label>
-          <p className="adm-hubs-hint">
-            The per-hub rollout switch. Leave off until the drive is ready —
-            members see nothing new until this is on.
-          </p>
+              {provisionNote && <p className="adm-hubs-hint">{provisionNote}</p>}
+
+              <label className="adm-hubs-label" style={{ marginTop: 16 }}>
+                Advanced: use a separate Shared Drive
+              </label>
+              <p className="adm-hubs-hint">
+                Only for a team that needs its own Drive (e.g. sensitive
+                material). Most teams use the automatic setup above.
+              </p>
+              <select
+                className="adm-hubs-input"
+                value={googleDriveId}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setGoogleDriveId(next);
+                  if (!next) setGoogleFilesEnabled(false);
+                }}
+                disabled={driveOptions === null}
+              >
+                <option value="">
+                  {driveOptions === null ? "Loading drives…" : "No drive connected"}
+                </option>
+                {/* Keep the mapped drive selectable while the list loads, when
+                    the list can't load, and when it's genuinely absent — so an
+                    accidental save can't silently clear the mapping, and the
+                    label never claims more than we actually know. */}
+                {googleDriveId &&
+                  !(driveOptions ?? []).some((d) => d.id === googleDriveId) && (
+                    <option value={googleDriveId}>
+                      {driveOptions === null
+                        ? "Current drive (loading list…)"
+                        : drivesLoaded
+                          ? "Currently mapped drive (not visible to the service account)"
+                          : "Currently mapped drive"}
+                    </option>
+                  )}
+                {(driveOptions ?? []).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+              {drivesNote && <p className="adm-hubs-hint">{drivesNote}</p>}
+              <label className="adm-hubs-label" style={{ marginTop: 12 }}>
+                <input
+                  type="checkbox"
+                  checked={googleFilesEnabled}
+                  onChange={(e) => setGoogleFilesEnabled(e.target.checked)}
+                  disabled={!googleDriveId}
+                  style={{ marginRight: 8 }}
+                />
+                Show the Files area to this hub&rsquo;s members
+              </label>
+              <p className="adm-hubs-hint">
+                The per-hub rollout switch. Leave off until the drive is ready —
+                members see nothing new until this is on.
+              </p>
+            </>
+          )}
         </div>
       )}
 
