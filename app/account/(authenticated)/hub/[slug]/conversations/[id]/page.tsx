@@ -58,7 +58,7 @@ export default async function HubConvThreadPage({
   if (!session) redirect("/login");
 
   const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect("/account/dashboard");
+  if (!hub || !canAccessHub(member, session.user.roles ?? [], hub?.openToAllMembers)) redirect("/account/dashboard");
 
   const thread = await db.hubConversationThread.findUnique({
     where: { id },

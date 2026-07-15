@@ -30,13 +30,23 @@ export default async function HubFilesPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect("/account/dashboard");
-  // Mirror getAccessiblePlaces' conditions exactly (incl. ACTIVE status) so
-  // this page never renders a place the Files API will refuse.
-  if (hub.status !== "ACTIVE" || !hub.googleFilesEnabled || !hub.googleDriveId) {
+  const roles = session.user.roles ?? [];
+  const { hub, member } = await getHubMembership(slug, session.user.id, roles);
+  if (!hub || !canAccessHub(member, roles, hub.openToAllMembers)) redirect("/account/dashboard");
+  if (hub.status !== "ACTIVE") redirect(`/account/hub/${slug}`);
+
+  // An open-to-all Space (Community) has no hub drive mapping — its files live
+  // on the name-resolved "RIM — Community" Drive, reached through the shared
+  // `community` place (open + writable for every member, session 163). Every
+  // other hub uses its own mapped drive place and the ACTIVE-membership write
+  // rule. Both keys are authorized server-side by getAccessiblePlaces, so this
+  // page never renders a place the Files API would refuse.
+  const isCommunitySpace = hub.openToAllMembers && !hub.googleDriveId;
+  if (!isCommunitySpace && (!hub.googleFilesEnabled || !hub.googleDriveId)) {
     redirect(`/account/hub/${slug}`);
   }
+  const placeKey = isCommunitySpace ? "community" : `hub:${slug}`;
+  const canWrite = isCommunitySpace ? true : hubWriteAllowed(roles, member?.status);
 
   return (
     <div>
@@ -50,16 +60,8 @@ export default async function HubFilesPage({
         </div>
       </header>
       <FilesBrowser
-        places={[
-          {
-            key: `hub:${slug}`,
-            name: hub.name,
-            // The ONE hub write rule (lib/googleFiles.ts) — ACTIVE membership
-            // or GT; matches what the API routes enforce via getAccessiblePlaces.
-            canWrite: hubWriteAllowed(session.user.roles ?? [], member?.status),
-          },
-        ]}
-        initialPlaceKey={`hub:${slug}`}
+        places={[{ key: placeKey, name: hub.name, canWrite }]}
+        initialPlaceKey={placeKey}
         showPlaces={false}
         basePath={`/account/hub/${slug}/files`}
       />

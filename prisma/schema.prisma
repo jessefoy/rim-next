@@ -1013,6 +1013,16 @@ model Hub {
   googleDriveId      String?
   googleRootFolderId String?
   googleFilesEnabled Boolean @default(false)
+  // Open-to-all-members access primitive (session 165 — the Community Space).
+  // When true, EVERY signed-in member reaches this Space's participation
+  // surfaces (entry, Files, Conversations, Activity) without a HubMember row —
+  // so a sangha-wide "Community" Space needs no 1,500-row roster. It does NOT
+  // open the roster/admin surfaces (Members, Trash, category management): a
+  // hub whose membership is universal has no roster to show and no per-hub
+  // coordinators, so those tabs are hidden. Threaded through
+  // lib/hubAuth.ts::canAccessHub (the optional `openToAll` arg) only at the
+  // participation gates; every other gate stays membership-only by default.
+  openToAllMembers   Boolean @default(false)
   // Role-aware copy (session 130 follow-up — Maria + Jesse). Each hub
   // represents a functional role; UI copy and email subjects should speak
   // the role's language rather than the host-team default. Three fields:

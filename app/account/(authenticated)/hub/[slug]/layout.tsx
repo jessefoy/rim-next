@@ -49,8 +49,9 @@ export default async function HubLayout({ children, params }: Props) {
   // dharma authority — an implicit coordinator on every hub). ADMIN-alone
   // does NOT pass: ADMIN configures hubs from /admin/hubs (outside) and
   // participates from inside as a member, like everyone else (session 128).
+  // `openToAllMembers` (the Community Space) opens the door to every member.
   // See lib/hubAuth.ts::canAccessHub.
-  const hasAccess = canAccessHub(member, roles);
+  const hasAccess = canAccessHub(member, roles, hub.openToAllMembers);
 
   if (!hasAccess) {
     return (
@@ -100,7 +101,12 @@ export default async function HubLayout({ children, params }: Props) {
           type: hub.type as "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP",
           memberCount: hub.members.length,
           coordinatorNames,
-          filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
+          // An open-to-all Space (Community) always shows Files — they ride the
+          // name-resolved community Drive, not a hub googleDriveId mapping.
+          filesEnabled: hub.openToAllMembers
+            ? true
+            : hub.googleFilesEnabled && Boolean(hub.googleDriveId),
+          openToAll: hub.openToAllMembers,
         }}
         tools={tools}
         navCounts={{

@@ -58,6 +58,10 @@ interface Props {
     /** Google Workspace Files tab (RIM_GoogleWorkspace.md) — on only when
      *  the hub's switch is enabled AND a drive is mapped. */
     filesEnabled?: boolean;
+    /** Open-to-all Space (Community, session 165): membership is universal, so
+     *  there's no roster and no per-hub coordinators — hide Documents (native,
+     *  being retired) + Members, leaving the participation surfaces. */
+    openToAll?: boolean;
   };
   tools: SidebarTool[];
   navCounts: SidebarNavCounts;
@@ -120,17 +124,27 @@ export default function HubWorkspaceSidebar({
   // are the universal hub features. No Work/Team section split — for hubs
   // with one tool the divider was visual overhead.
   const homeItem = { label: "Home", href: base, icon: Home, badge: 0 };
-  const otherItems = [
-    { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
-    { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
-    { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
-    // Files (Google Workspace) coexists with Documents until the cutover
-    // slice retires the native path — RIM_GoogleWorkspace.md §4.
-    ...(hub.filesEnabled
-      ? [{ label: "Files", href: `${base}/files`, icon: FolderOpen, badge: 0 }]
-      : []),
-    { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
-  ];
+  const filesItem = hub.filesEnabled
+    ? [{ label: "Files", href: `${base}/files`, icon: FolderOpen, badge: 0 }]
+    : [];
+  // An open-to-all Space (Community) shows only the participation surfaces:
+  // Activity, Conversations, Files. Documents (native, being retired) and
+  // Members (no roster when membership is universal) are hidden.
+  const otherItems = hub.openToAll
+    ? [
+        { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
+        { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
+        ...filesItem,
+      ]
+    : [
+        { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
+        { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
+        { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
+        // Files (Google Workspace) coexists with Documents until the cutover
+        // slice retires the native path — RIM_GoogleWorkspace.md §4.
+        ...filesItem,
+        { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
+      ];
 
   function isActive(href: string, exact: boolean) {
     if (exact) return pathname === href;
@@ -147,10 +161,14 @@ export default function HubWorkspaceSidebar({
   }
 
   const coordSummary = coordinatorSummary(hub.coordinatorNames);
-  const metaLine = [
-    coordSummary,
-    `${hub.memberCount} ${hub.memberCount === 1 ? "member" : "members"}`,
-  ].filter(Boolean).join(" · ");
+  // An open-to-all Space has no roster — a member count ("0 members") would
+  // misread, so name the openness instead.
+  const metaLine = hub.openToAll
+    ? "Open to all members"
+    : [
+        coordSummary,
+        `${hub.memberCount} ${hub.memberCount === 1 ? "member" : "members"}`,
+      ].filter(Boolean).join(" · ");
 
   return (
     <>

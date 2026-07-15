@@ -5337,6 +5337,55 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ remove_mindmap_schema_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Community Space (session 165). Adds the openToAllMembers access primitive
+  // (additive column, safe against live-old code) and seeds the one
+  // open-to-all Space, "Community", so the all-members Google file cabinet has
+  // a real home once the global /account/files finder is retired. Community's
+  // Files ride the name-resolved "RIM — Community" Drive via the community
+  // place — NOT a hub drive mapping — so googleDriveId stays null (mapping it
+  // whole-drive would both double-list the place and reserve-drive-collide);
+  // its Files tab renders through the openToAll path in the UI.
+  // ───────────────────────────────────────────────────────────────────────
+  const communitySpaceFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'community_space_v1'
+  `).catch(() => []);
+
+  if (communitySpaceFlag.length === 0) {
+    console.log("→ Community Space (openToAllMembers primitive + seed)…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "openToAllMembers" BOOLEAN NOT NULL DEFAULT false`,
+    );
+    const existingCommunity = await db.hub.findUnique({ where: { slug: "community" } });
+    if (!existingCommunity) {
+      await db.hub.create({
+        data: {
+          slug: "community",
+          name: "Community",
+          type: "COMMUNITY_GROUP",
+          status: "ACTIVE",
+          openToAllMembers: true,
+          description:
+            "The whole sangha's shared Space — files and conversations open to every member.",
+          conversationCategories: ["General"],
+        },
+      });
+      console.log("  ✔ created the Community Space.");
+    } else {
+      // Never clobber a hand-made 'community' hub — just ensure the primitive.
+      await db.hub.update({
+        where: { slug: "community" },
+        data: { openToAllMembers: true },
+      });
+      console.log("  ✔ Community hub already existed — ensured openToAllMembers.");
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('community_space_v1')`,
+    );
+  } else {
+    console.log("  ⏭ community_space_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

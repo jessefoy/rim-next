@@ -92,9 +92,19 @@ export async function getHubMembership(slug: string, userId: string, roles: stri
  * Authority *within* a hub (coordinator-only actions — delete, member
  * management, trash) is gated separately by effectiveCoordinator /
  * requireCoordinator / canManageTrash, all of which already honor GT.
+ *
+ * `openToAll` (session 165) is the Community-Space primitive: pass
+ * `hub.openToAllMembers` at a hub's PARTICIPATION gates (entry, Files,
+ * Conversations, Activity) so every signed-in member reaches them without a
+ * HubMember row. Defaulted false, so the ~80 existing call sites keep pure
+ * membership-gating — the flag only widens the door where a caller opts in.
+ * Deliberately NOT passed at roster/admin gates (Members, Trash, category
+ * management): an open-to-all Space has no roster and no per-hub coordinators,
+ * so those surfaces stay closed.
  */
-export function canAccessHub(member: unknown, roles: string[]): boolean {
+export function canAccessHub(member: unknown, roles: string[], openToAll = false): boolean {
   if (member) return true;
+  if (openToAll) return true;
   return roles.includes("GUIDING_TEACHER");
 }
 
