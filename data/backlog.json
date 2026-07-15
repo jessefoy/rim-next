@@ -1020,9 +1020,9 @@
     "description": "The Files system mints permanent anyone-with-link editor permissions when RIM hands out open links (link-as-key, RIM_GoogleWorkspace.md). Build an admin action to revoke the anyone permission on a single file and to lock down an entire drive (sweep all anyone permissions), so a leaked link can be cut off and sensitive drives can be hardened. Every mint is already audit-logged in google_file_audit (action mint-link), which gives the revoke sweep its worklist.",
     "category": "Admin Tools",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-07-14",
-    "notes": "Reviewer finding, session 163 (Slice 2 security pass). Build before any sensitive content lands in the drives."
+    "notes": "Reviewer finding, session 163 (Slice 2 security pass). Build before any sensitive content lands in the drives. | Done session 164 (2026-07-15): admin link revoke/lockdown shipped at /admin/google-files."
   },
   {
     "id": "2026-07-14-002",
@@ -1030,9 +1030,9 @@
     "description": "In the Files system, Hub.googleRootFolderId currently sets only the browse START point \u2014 authorization is per-DRIVE (lib/googleFiles.ts::resolveDriveAccess / the list route folder check compare driveId, not folder ancestry). If two hubs are ever mapped to the SAME Shared Drive with different root folders, a member of hub A could list/stream/open/mint content in hub B subtree by pasting a file/folder id. Latent today: nothing writes googleRootFolderId (not in the admin UI) and each hub has its own drive. Before that field is ever settable, add ancestor-chain enforcement (walk parents up to the place rootId) in resolveDriveAccess + the list folder validation, or forbid sharing one drive across hubs with distinct roots.",
     "category": "Infrastructure",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-07-14",
-    "notes": "Reviewer finding, session 163 (Slice 2 re-review). Gate before enabling per-folder hub scoping."
+    "notes": "Reviewer finding, session 163 (Slice 2 re-review). Gate before enabling per-folder hub scoping. | Done session 164 (2026-07-15): per-folder access gate (resolvePlaceForFile/fileWithinFolderRoot) + provisioning-on-container + hub-PATCH guard + drive-picker filter enforce folder-scope as the boundary; the original 'don't map two hubs to one drive' concern is now the intended, safe design."
   },
   {
     "id": "2026-07-15-001",

@@ -1,8 +1,10 @@
 # RIM Google Workspace — Files & Documents
 
-**Status: foundation in design/build (session 163, 2026-07-14). Not yet live.**
+**Status: Slices 1–3 + the Spaces access/provisioning foundation LIVE on `main` (through session 164, 2026-07-15). Cutover (migrate + retire native docs) is the remaining sequence.**
 
 This is the authority document for RIM's Google Workspace file and document system — the assessment of what exists, the architecture decided with Jesse, the build plan, and the manual Google setup steps. When the cutover completes, this supersedes `RIM_Documents.md` (native documents), which becomes historical.
+
+> **Live now (read/write both):** browse + read (Slice 2); create Doc/Sheet/Slides/folder, rename, move, move-to-trash, uploads ≤500 MB (Slice 3); admin link revoke/lockdown (`/admin/google-files`); the **per-folder access gate** (Spaces on one shared Drive stay isolated); **auto-provisioning** (a Space's storage is an auto-created folder in the `RIM — Spaces` container Drive). See §9 for the model as-built and §6 for what remains.
 
 ---
 
@@ -123,9 +125,12 @@ Each slice ships independently, reviewer-gated, `tsc`-green; hubs come online on
 - **Slice 0 — Google-side setup (Jesse + guide, §7):** confirm Workspace edition, Cloud project, enable Drive API, service account + key, env vars in Vercel, first Shared Drive(s) with the service account as Manager, sharing policy.
 - **Slice 1 — Service layer + mapping + diagnostic:** server-only `lib/google/` (auth, drive ops, error normalization; modeled on `lib/zoom.ts` — a **deliberate mirror**, so a fix to one must be hand-carried to the other); env validation (incl. private-key newline handling); `Hub` mapping fields + `/admin/hubs` edit UI; `/admin/google-test` diagnostic (the `/admin/zoom-test` pattern); the audit-log model. Retry/backoff is **not** in Slice 1.
 - **Slice 2 — The Finder (read):** per-hub **Files** tab + `/account/files`; live folder browsing, breadcrumbs, folders-first; open files — Google Docs render in-app, PDFs/images/audio open/stream; search; empty/error states in plain language. Also lands here: **the Community drive's place** (Community isn't a hub, so its selection needs its own mechanism — not the hub mapping) and **retry/backoff at the single `driveApi` choke point** before member-facing traffic depends on it.
-- **Slice 3 — Write:** "Create document" (Doc first; Sheets/Slides structured to follow), new folder, rename, move; link-as-key edit buttons for authorized members; uploads (small direct; large staged via Blob → `after()` transfer → cron backstop; type/size rules, name sanitization, temp cleanup); audit logging on every write.
-- **Slice 4 — Cutover:** convert real native docs → Google Docs (HTML import); transfer Blob PDFs; retire the native editor + placement/visibility machinery; the Documents tab becomes (or redirects to) Files; update `RIM_Documents.md` (historical banner), FEATURES.md, architecture docs.
-- **Targeted tests** (alongside slices 2–3): the access-gate logic only — mapping resolution, membership checks, refusal of unmapped/foreign drive IDs. Mocked Google; no live API in tests.
+- **Slice 3 — Write ✅ (session 164):** create Doc/Sheet/Slides/folder, rename, move, move-to-trash (Drive's own 30-day trash; no permanent delete exposed); link-as-key opens role-aware (paused member opens as viewer); uploads ≤500 MB (Blob staging → `GoogleFileTransfer` ledger → `after()` transfer + daily cron `process-file-transfers`; idempotent vs the at-least-once webhook via `blobPathname @unique`; auth re-derived at transfer time). Two shared write gates (`authorizeFileWrite` / `resolveWritablePlace`). Audit-logged. Migration `google_file_transfers_v1`.
+- **Admin revoke/lockdown ✅ (session 164, backlog `2026-07-14-001`):** `/admin/google-files` (ADMIN) — revoke one minted link or lock down a place, worklist from the `mint-link` audit log + live exposure check. `lib/googleFileAdmin.ts`.
+- **Per-folder access gate ✅ (session 164):** the keystone — see §9. Made authorization subtree-aware so many Spaces safely share one Drive.
+- **Auto-provisioning ✅ (session 164):** a Space's storage is an auto-created folder in the `RIM — Spaces` container Drive — because the probe proved the service account **cannot** create Shared Drives (see §9). New hubs on create; existing hubs one-click.
+- **Slice 4 — Cutover (remaining):** convert real native docs → Google Docs (HTML import) into their **Space folder**; transfer Blob PDFs; retire the native editor + placement/visibility machinery; the Documents tab redirects to Files; update `RIM_Documents.md` (historical banner), FEATURES, architecture docs. Two-phase (drop tables in a follow-up deploy). **Precedes it:** the strict-per-Space reshape (Community-as-Space, remove the global finder, provision all hubs) — see §9. **The retirement is the one-way door — after Jesse's prod verification of the reshaped model.**
+- **Targeted tests:** the access-gate logic is proven by a standalone 18-case simulation (session 164; `fileWithinFolderRoot` + `resolvePlaceForFile`) rather than a framework (RIM has none). No live API in the check.
 
 ---
 
@@ -145,10 +150,12 @@ Steps RIM's code cannot do. Placeholders in `⟨⟩`; no real values in this fil
 **C. Google Admin Console (once + per sensitive change)**
 1. Ensure sharing settings for the relevant OUs/Shared Drives allow **sharing outside the domain with link** (required for link-as-key). Scope this as narrowly as the console allows.
 
-**D. Per hub (repeatable, as each hub comes online)**
-1. In Google Drive, create a Shared Drive, e.g. `RIM — ⟨Hub name⟩` (plus one `RIM — Community`).
-2. Add the service account's email as a **Manager** member of that drive.
-3. Copy the drive's ID (from its URL) into the hub's mapping in `/admin/hubs`.
+**D. Shared Drives (once — NOT per hub anymore)**
+> Revised session 164: the probe proved the service account **can't create Shared Drives** (`403 userCannotCreateTeamDrives`), so ordinary Spaces are **auto-created folders** in one container Drive, not a Drive each. There are only ever a handful of Shared Drives, all created once by hand.
+1. Create **`RIM — Community`** (all-members) and **`RIM — Spaces`** (the container that holds every ordinary Space's folder). Both matched by reserved name — no ID to copy.
+2. Add `rim-files@…` as a **Manager** of each.
+3. Ordinary hubs then provision **automatically** (a folder in `RIM — Spaces`) — on creation, or one-click "Set up files for this team" on the hub's admin edit page. No Console step per hub.
+4. **Only a genuinely sensitive Space** (Board/finance/pastoral, if ever) gets its OWN Shared Drive: create it by hand, add the SA as Manager, and map it via the hub edit page's "Advanced: use a separate Shared Drive" picker (which hides the two reserved drives). This is the deliberate hard-wall exception; rare.
 
 **E. Vercel env vars (server-only; never `NEXT_PUBLIC_`)**
 
@@ -164,6 +171,39 @@ Slice 1 reads **only these two**. The per-hub rollout switch is `Hub.googleFiles
 ## 8. Open items
 
 - Per-hub tightening of who can edit vs. read vs. manage structure (v1 default: all active hub members full working power, matching current culture).
-- Sensitive-drive hardening (per-email grants) — designed, deferred.
-- Drag-and-drop move; Sheets/Slides creation; file-anchored conversations/notifications — post-cutover candidates.
-- Stale memory `project-onlyoffice-docs` ("don't propose Google Docs") — update at session close.
+- Sensitive-drive hardening (per-email grants) — designed, deferred. (An own-Drive sensitive Space is the coarse version, available now.)
+- Drag-and-drop move; file-anchored conversations/notifications — post-cutover candidates.
+- Stale memory `project-onlyoffice-docs` ("don't propose Google Docs") — superseded by `project-google-workspace-files`.
+
+---
+
+## 9. As-built model + the finish sequence (session 164)
+
+### Storage topology — folder-per-Space (forced by the probe)
+
+The service account **cannot create Shared Drives** (`403 userCannotCreateTeamDrives` — it would need domain-wide delegation, which we refuse). It **can** create folders in a Drive it manages. So:
+
+- **Community** → its own `RIM — Community` Drive (all members; whole-drive; no per-folder gating needed — everyone's in).
+- **Ordinary Spaces** → an auto-created **folder** in one shared **`RIM — Spaces`** container Drive. Isolation between them is RIM's job (the gate).
+- **Sensitive Spaces** (future) → their own Shared Drive (the physical wall), mapped via the Advanced picker.
+
+`Hub.googleDriveId` + `googleRootFolderId` express all three: whole-drive place = `rootId === driveId`; folder-scoped place = `googleRootFolderId` set (a folder inside the container). No schema change was needed.
+
+### The per-folder access gate (the isolation keystone)
+
+Because many Spaces share the `RIM — Spaces` Drive, "same driveId" is **not** sufficient authorization. `lib/googleFiles.ts`:
+- `isFolderScoped(place)` — `rootId !== driveId`.
+- `fileWithinFolderRoot(...)` — walks the single-parent ancestry (Shared Drive files have exactly one parent) to decide whether a file descends from a Space's root folder. **Fails closed** on cycle / depth / missing-parent / reaching the drive root.
+- `resolvePlaceForFile(places, file)` — whole-drive place matches by driveId; folder-scoped places get the ancestry walk. **Fast-path short-circuit only when NO folder-scoped place shares the drive**, so a mis-mapped mix fails closed instead of leaking a sibling Space's file.
+
+`authorizeFileRequest`, `resolveParentFolder` (writes), and the doc-reader page all route through this. **The load-bearing invariant:** folder-scoped Spaces live only on a container Drive that no place holds whole. Enforced three ways: provisioning only ever creates folders on the container; the hub PATCH route rejects mapping a hub whole-drive onto a managed drive; the drive picker hides Community + the container (`isReservedDriveName`). Proven by an 18-case simulation + adversarial security review.
+
+### The Spaces model (decided; reshape pending)
+
+- **Everything is a "Space"** — team / project / personal / community, one templated container (Basecamp-style). User-facing word is **"Space"**; internal code stays `Hub` (a literal rename is a deferred, separate pass). ADMIN + Guiding Teacher can create Spaces "on request" (see `RIM_Role_Design.md` — this crosses the deliberate ADMIN/GT boundary; the GT self-serve entry point is deferred, the provisioning mechanism is ready).
+- **Strict per-Space filing — NO global finder.** Files live only in a Space's own context; provisioning is fully automatic (no manual enable). This is the anti-"files everywhere" decision (Jesse's community's real problem). **Reshape not yet built:** (1) Community becomes a Space (open-to-all-members access primitive); (2) auto-provision every existing hub + drop the manual enable; (3) **remove `/account/files` + the sidebar "Files" link** (after 1–2, so nothing's briefly unreachable).
+- **Cross-Space sharing** (a file managed in one Space, shared into others — the registration-spreadsheet case) is **deferred** (backlog `2026-07-15-001`): *isolation by default, explicit visible share-grants as the exception* (the reborn Documents placements model — additive on the gate). Native docs shared across hubs collapse to their home Space at cutover until this ships.
+
+### Then cutover (Slice 4)
+
+Migrate native docs → Google Docs into their Space folder (temporary admin tool, **dry-run first**), transfer Blob PDFs, then **retire** native Documents (the one-way door; two-phase table drop; after Jesse's prod verification).

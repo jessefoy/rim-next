@@ -264,11 +264,13 @@ What GT does NOT inherit from `ADMIN`:
 
 - Hard-remove a hub member (`DELETE /api/hub/[slug]/members/[userId]` — ADMIN only)
 - Edit hub config: name, slug, type, app links, status (the `/admin/hubs/[slug]/edit` page is ADMIN-gated)
-- Create or delete hubs
+- Create or delete hubs — **but see the Spaces exception below**
 - Edit roles on the canonical User record (`/admin/members/[id]`)
 - Edit email templates, manual chapters, Sanity content, or other site-wide configuration
 
 The mental model: **GT is a soft admin at the content layer; not at the configuration layer.**
+
+> **Decided exception (session 164) — creating a "Space" is a content act.** As RIM's hubs become the universal **Space** container (team / project / personal / community — see `RIM_GoogleWorkspace.md` §9), **ADMIN + Guiding Teacher may create Spaces** "on request." This deliberately crosses the boundary above, on the reasoning that spinning up a place to work is a *content* act, not infrastructure operation. The line is preserved by scope: GT can **create** a Space and coordinates the ones they create, but **reconfiguring or deleting the operational team hubs stays ADMIN-only**. The provisioning mechanism is built (session 164); the GT-facing self-serve create entry point is deferred (creation is ADMIN-only in the UI until it ships). Update this section when that entry point lands.
 
 ### Why this scope
 

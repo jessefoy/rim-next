@@ -253,17 +253,33 @@ structural facts for this architecture doc:
   every Drive operation runs server-side as the service account after RIM's own
   authorization. This deliberately does NOT use Google Groups, the Admin SDK, or
   managed identities — RIM is the permission system, not Google.
-- **Files is a new hub module** (`/account/hub/[slug]/files`), gated on
+- **Files is a hub module** (`/account/hub/[slug]/files`), gated on
   `Hub.googleFilesEnabled` + the hub access door (`canAccessHub` — membership OR
-  GT; ADMIN-alone excluded, the session-128 boundary), plus a system-wide
-  finder `/account/files`. Authorization lives in `lib/googleFiles.ts` as ONE
-  rule (`getAccessiblePlaces`) that the sidebar visibility, per-place, and
-  per-file gates all derive from — the same "one gate, no drift" discipline as
-  `canAccessDocument`.
-- **It replaces native documents at cutover.** Until then the native Documents
-  tab and the Google Files tab coexist. The native filing concepts (per-hub tab
-  + master directory, freshness, the membership gate) carried forward.
-- Full model, access rules, and the manual Google setup: **`RIM_GoogleWorkspace.md`**.
+  GT; ADMIN-alone excluded, the session-128 boundary). Authorization lives in
+  `lib/googleFiles.ts` as ONE rule (`getAccessiblePlaces`) that sidebar
+  visibility, per-place, and per-file gates all derive from — the same "one
+  gate, no drift" discipline as `canAccessDocument`.
+- **Storage = folder-per-Space (session 164).** The service account **can't
+  create Shared Drives** (proven by probe), so a Space's storage is an
+  auto-created folder in one shared `RIM — Spaces` container Drive; Community +
+  future sensitive Spaces keep their own Drive. Because Spaces share a Drive,
+  authorization is **subtree-aware**: `resolvePlaceForFile` / `fileWithinFolderRoot`
+  require a file to descend from the Space's root folder (fails closed). The
+  load-bearing invariant — folder-scoped Spaces never share a Drive with a
+  whole-drive place — is enforced at provisioning, at the hub PATCH route, and
+  by the drive picker. `provisionHubSpaceStorage` auto-creates the folder on
+  hub creation / one-click for existing hubs.
+- **Direction: "everything is a Space" + strict per-Space filing (session 164,
+  reshape pending).** Hubs are the universal container (team/project/personal/
+  community; user-facing word "Space", code stays `Hub`). Files will live ONLY
+  in a Space's context — the global `/account/files` finder is being removed
+  (Jesse's anti-"files everywhere" decision); Community becomes a Space
+  (open-to-all). ADMIN + GT can create Spaces (crosses the ADMIN/GT boundary —
+  see `RIM_Role_Design.md`). Cross-Space sharing is deferred (backlog
+  `2026-07-15-001`): isolation by default, explicit share-grants later.
+- **It replaces native documents at cutover** (the one-way door, after prod
+  verification). Until then the native Documents tab and Google Files coexist.
+- Full model, access rules, the gate, and setup: **`RIM_GoogleWorkspace.md`** (§9 = as-built).
 
 ## What's Next
 
