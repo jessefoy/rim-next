@@ -10,11 +10,19 @@
  * Google editor in a new tab via the gated open route.
  *
  * Writing (Slice 3): a "New" menu (Create document/spreadsheet/presentation,
- * New folder) and a per-row ⋯ menu (Rename, Move, Move to trash). The server
- * decides writability per place (canWrite — Community: every member; hub:
- * ACTIVE membership or GT) so no affordance renders that the API would
- * refuse. Trash is Drive's own trash — recoverable for ~30 days; RIM exposes
- * no permanent delete.
+ * New folder, Upload a file) and a per-row ⋯ menu (Rename, Move, Move to
+ * trash). The server decides writability per place (canWrite — Community:
+ * every member; hub: ACTIVE membership or GT) so no affordance renders that
+ * the API would refuse. Trash is Drive's own trash — recoverable for ~30
+ * days; RIM exposes no permanent delete.
+ *
+ * Uploads always stage in Vercel Blob first (client-direct, up to 500 MB —
+ * the same pattern the rest of RIM already uses for images/audio/PDFs), then
+ * transfer server-side into Drive; the file never proxies through this
+ * component's own request. Because the Drive-side move can take a moment
+ * after the browser's upload finishes, a soft reload fires once after a
+ * short delay to catch the common fast case — if the file isn't there yet, a
+ * later navigation or refresh will show it once the transfer completes.
  *
  * Navigation is URL-driven: the place + folder live in the query string, and a
  * single effect keyed on them does the fetch — so soft navigation (clicking
@@ -31,6 +39,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 import {
   File,
   FileAudio,
@@ -42,10 +51,15 @@ import {
   MoreHorizontal,
   Plus,
   Presentation,
+  Upload as UploadIcon,
   type LucideIcon,
 } from "lucide-react";
-import { GOOGLE_MIME } from "@/lib/google/mime";
+import { ALLOWED_UPLOAD_MIME_TYPES, GOOGLE_MIME } from "@/lib/google/mime";
 import { relativeDate } from "@/lib/relativeDate";
+
+// The exact same list the server's Blob-token scope enforces (lib/google/
+// mime.ts) — the picker can never offer a type the server would reject.
+const UPLOAD_ACCEPT = ALLOWED_UPLOAD_MIME_TYPES.join(",");
 
 export interface FilesPlaceLink {
   key: string;
@@ -133,6 +147,23 @@ export default function FilesBrowser({
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Upload progress/status, shown as a slim line under the toolbar rather
+  // than a modal — it runs alongside browsing, not blocking it.
+  const [uploadStatus, setUploadStatus] = useState<
+    | { name: string; percentage: number; phase: "sending" | "finishing" }
+    | { name: string; error: string }
+    | null
+  >(null);
+  const uploadAbort = useRef<AbortController | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Tracks the CURRENT place/folder for the upload's delayed soft-reload
+  // (below): if the member navigates away before the reload fires, its
+  // closure would otherwise overwrite whatever folder is now on screen with
+  // stale data from where the upload started.
+  const currentLocation = useRef({ placeKey, folderId });
+  useEffect(() => {
+    currentLocation.current = { placeKey, folderId };
+  }, [placeKey, folderId]);
   // The trail a click intends, carried across the router navigation (names
   // aren't in the URL). Consumed by the load effect when it matches folderId.
   const pendingTrail = useRef<Crumb[] | null>(null);
@@ -319,6 +350,79 @@ export default function FilesBrowser({
     load({ soft: true });
   }
 
+  // One upload at a time in v1 (restraint over tracking a list of concurrent
+  // uploads) — true while a real upload is progressing, false once it's
+  // done/errored, so the New menu can refuse a second pick mid-flight.
+  const uploadInFlight = uploadStatus != null && !("error" in uploadStatus);
+
+  function triggerUpload() {
+    if (uploadInFlight) return;
+    setMenuOpen(null);
+    fileInputRef.current?.click();
+  }
+
+  /**
+   * A safe, unique Blob pathname — distinct from the file's DISPLAY name
+   * (which travels separately via clientPayload and becomes the name Drive
+   * shows). Slashes/unicode/odd characters in a member's actual filename
+   * must not become the literal Blob URL path.
+   */
+  function blobPathnameFor(fileName: string): string {
+    const safe = fileName.replace(/[^a-zA-Z0-9.-]/g, "-").slice(0, 150) || "file";
+    return `google-files/${crypto.randomUUID()}-${safe}`;
+  }
+
+  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file || uploadInFlight) return;
+
+    const controller = new AbortController();
+    uploadAbort.current = controller;
+    setUploadStatus({ name: file.name, percentage: 0, phase: "sending" });
+    // Capture where this upload started — the destination it should land in
+    // and reload, regardless of where the member browses to afterward.
+    const origin = { placeKey, folderId };
+
+    try {
+      await upload(blobPathnameFor(file.name), file, {
+        access: "public",
+        handleUploadUrl: "/api/files/upload",
+        abortSignal: controller.signal,
+        clientPayload: JSON.stringify({
+          place: origin.placeKey,
+          folder: origin.folderId,
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+        }),
+        onUploadProgress: ({ percentage }) => {
+          setUploadStatus({ name: file.name, percentage, phase: "sending" });
+        },
+      });
+      // The bytes are safely in Blob; the Drive-side move runs server-side
+      // (immediately, usually) — give it a moment, then check for it, but
+      // only if the member is still looking at the folder it's landing in.
+      setUploadStatus({ name: file.name, percentage: 100, phase: "finishing" });
+      window.setTimeout(() => {
+        const here = currentLocation.current;
+        if (here.placeKey === origin.placeKey && here.folderId === origin.folderId) {
+          load({ soft: true });
+        }
+        setUploadStatus(null);
+      }, 1500);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setUploadStatus(null);
+        return;
+      }
+      const message = err instanceof Error ? err.message : "The upload didn't go through.";
+      setUploadStatus({ name: file.name, error: message });
+      window.setTimeout(() => setUploadStatus(null), 4000);
+    } finally {
+      uploadAbort.current = null;
+    }
+  }
+
   return (
     <div className={`gf-browser${showPlaces ? " gf-browser--with-places" : ""}`}>
       {showPlaces && places.length > 1 && (
@@ -376,11 +480,59 @@ export default function FilesBrowser({
                       {c.menuLabel}
                     </button>
                   ))}
+                  <button
+                    className="gf-menu__item"
+                    role="menuitem"
+                    onClick={triggerUpload}
+                    disabled={uploadInFlight}
+                    title={uploadInFlight ? "Finish the current upload first" : undefined}
+                  >
+                    Upload a file
+                  </button>
                 </div>
               )}
             </div>
           )}
         </div>
+
+        {canWrite && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={UPLOAD_ACCEPT}
+            className="gf-visually-hidden"
+            onChange={handleFileSelected}
+            aria-hidden="true"
+            tabIndex={-1}
+          />
+        )}
+
+        {uploadStatus && (
+          <div className="gf-upload-status">
+            <UploadIcon size={16} strokeWidth={1.75} aria-hidden="true" />
+            {"error" in uploadStatus ? (
+              <span className="gf-upload-status__text">
+                &ldquo;{uploadStatus.name}&rdquo; — {uploadStatus.error}
+              </span>
+            ) : (
+              <>
+                <span className="gf-upload-status__text">
+                  {uploadStatus.phase === "finishing"
+                    ? `Finishing "${uploadStatus.name}"…`
+                    : `Uploading "${uploadStatus.name}"… ${uploadStatus.percentage}%`}
+                </span>
+                {uploadStatus.phase === "sending" && (
+                  <button
+                    className="gf-upload-status__cancel"
+                    onClick={() => uploadAbort.current?.abort()}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {files === null && !error && <p className="gf-status">Loading files…</p>}
 

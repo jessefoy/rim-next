@@ -5353,6 +5353,57 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ google_workspace_foundation_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Google Workspace Files uploads (Slice 3 — RIM_GoogleWorkspace.md). A
+  // large upload stages in Vercel Blob, then transfers into Drive via
+  // after() + a cron backstop; this ledger tracks that hand-off. Additive
+  // only — a brand-new table, nothing existing changes.
+  // ───────────────────────────────────────────────────────────────────────
+  const googleTransfersFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'google_file_transfers_v1'
+  `).catch(() => []);
+
+  if (googleTransfersFlag.length === 0) {
+    console.log("→ Google Workspace Files transfer ledger (Slice 3 uploads)…");
+    await db.$executeRawUnsafe(
+      `DO $$ BEGIN CREATE TYPE "GoogleFileTransferStatus" AS ENUM ('PENDING','PROCESSING','DONE','FAILED'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+    );
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "google_file_transfers" (
+        "id"            TEXT PRIMARY KEY,
+        "userId"        TEXT NOT NULL,
+        "placeKey"      TEXT NOT NULL,
+        "folderId"      TEXT,
+        "fileName"      TEXT NOT NULL,
+        "mimeType"      TEXT NOT NULL,
+        "blobUrl"       TEXT NOT NULL,
+        "blobPathname"  TEXT NOT NULL,
+        "status"        "GoogleFileTransferStatus" NOT NULL DEFAULT 'PENDING',
+        "attempts"      INTEGER NOT NULL DEFAULT 0,
+        "lastError"     TEXT,
+        "googleFileId"  TEXT,
+        "blobDeletedAt" TIMESTAMP(3),
+        "createdAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "google_file_transfers_status_idx" ON "google_file_transfers"("status")`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "google_file_transfers_userId_idx" ON "google_file_transfers"("userId")`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "google_file_transfers_blobPathname_key" ON "google_file_transfers"("blobPathname")`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('google_file_transfers_v1')`,
+    );
+    console.log("  ✔ google_file_transfers ready.");
+  } else {
+    console.log("  ⏭ google_file_transfers_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

@@ -1183,6 +1183,44 @@ model GoogleFileAudit {
   @@map("google_file_audit")
 }
 
+enum GoogleFileTransferStatus {
+  PENDING // enqueued; the immediate after() attempt or the cron backstop will process it
+  PROCESSING // claimed by a worker — reclaimed by the cron if stuck past a staleness window
+  DONE
+  FAILED // exhausted MAX_ATTEMPTS or hit a terminal error (e.g. no longer authorized)
+}
+
+// A large upload (Slice 3) staged in Vercel Blob on its way into Google Drive.
+// Loose references by design, like GoogleFileAudit — this ledger outlives the
+// Blob object it points to. Re-derives drive/folder access at transfer time
+// from placeKey (never trusts a stored drive id as authorization) so a
+// membership change between enqueue and transfer is honored.
+model GoogleFileTransfer {
+  id            String                   @id @default(cuid())
+  userId        String
+  placeKey      String // "community" or "hub:<slug>" — re-resolved, never trusted alone
+  folderId      String? // destination folder id; null = the place's root
+  fileName      String
+  mimeType      String
+  blobUrl       String
+  // Unique: Vercel's upload-completed webhook is at-least-once delivery, so a
+  // retried callback must not create a second transfer row for the same
+  // staged file (app/api/files/upload/route.ts catches the resulting unique-
+  // constraint violation and reuses the existing row instead of duplicating).
+  blobPathname  String                   @unique // also used to delete the staging blob once safely in Drive
+  status        GoogleFileTransferStatus @default(PENDING)
+  attempts      Int                      @default(0)
+  lastError     String?
+  googleFileId  String? // set once the Drive upload succeeds
+  blobDeletedAt DateTime? // set once the staging blob has been cleaned up
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@index([status])
+  @@index([userId])
+  @@map("google_file_transfers")
+}
+
 model HubDocument {
   id          String              @id @default(cuid())
   hubId       String?             // nullable — hubless project/community docs (shares carry hub access)

@@ -17,6 +17,7 @@ import { getGoogleAccessToken } from "./auth";
  */
 
 const API_BASE = "https://www.googleapis.com/drive/v3";
+const UPLOAD_API_BASE = "https://www.googleapis.com/upload/drive/v3";
 
 /**
  * Retry/backoff at the single choke point every Files surface flows through
@@ -300,6 +301,65 @@ export async function moveFile(
     method: "PATCH",
     body: JSON.stringify({}),
   });
+}
+
+/**
+ * Upload real file content (an audio/PDF/image/etc — not a Google-native
+ * doc) into a Shared Drive folder, streaming the body rather than buffering
+ * it in memory — the one deliberate exception to the driveApi/fetchWithRetry
+ * choke point, since Drive's resumable-upload endpoint needs its own base URL
+ * and a streamed PUT body, not JSON. Single attempt: a mid-transfer failure
+ * is caught and retried at the WHOLE-FILE level by the transfer worker
+ * (lib/googleFileTransfer.ts's processFileTransfer), not by resuming the byte range — RIM
+ * has no queue/worker infrastructure to justify the extra complexity of true
+ * resumable retry (RIM_GoogleWorkspace.md §2).
+ */
+export async function uploadFileContent(opts: {
+  name: string;
+  mimeType: string;
+  parentId: string;
+  content: ReadableStream<Uint8Array>;
+  contentLength?: number;
+}): Promise<DriveFile> {
+  const token = await getGoogleAccessToken();
+  const initParams = new URLSearchParams({
+    supportsAllDrives: "true",
+    fields: FILE_FIELDS,
+    uploadType: "resumable",
+  });
+  const initRes = await fetch(`${UPLOAD_API_BASE}/files?${initParams}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json; charset=UTF-8",
+      "X-Upload-Content-Type": opts.mimeType,
+      ...(opts.contentLength != null
+        ? { "X-Upload-Content-Length": String(opts.contentLength) }
+        : {}),
+    },
+    body: JSON.stringify({ name: opts.name, mimeType: opts.mimeType, parents: [opts.parentId] }),
+  });
+  if (!initRes.ok) {
+    throw new Error(`Drive upload init failed (${initRes.status}): ${await initRes.text()}`);
+  }
+  const uploadUrl = initRes.headers.get("location");
+  if (!uploadUrl) throw new Error("Drive upload init returned no session URL");
+
+  const putRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": opts.mimeType,
+      ...(opts.contentLength != null ? { "Content-Length": String(opts.contentLength) } : {}),
+    },
+    body: opts.content,
+    // A streamed request body requires duplex on Node's fetch (undici); the
+    // DOM lib's RequestInit type doesn't know this option yet.
+    ...({ duplex: "half" } as Record<string, unknown>),
+  });
+  if (!putRes.ok) {
+    throw new Error(`Drive upload failed (${putRes.status}): ${await putRes.text()}`);
+  }
+  return putRes.json();
 }
 
 /**
