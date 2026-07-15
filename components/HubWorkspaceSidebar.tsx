@@ -34,7 +34,6 @@ import {
   Menu,
   X,
   Activity,
-  Network,
   FolderOpen,
 } from "lucide-react";
 
@@ -130,7 +129,6 @@ export default function HubWorkspaceSidebar({
     ...(hub.filesEnabled
       ? [{ label: "Files", href: `${base}/files`, icon: FolderOpen, badge: 0 }]
       : []),
-    { label: "Mind Maps",     href: `${base}/mindmaps`,      icon: Network,       badge: 0 },
     { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
   ];
 

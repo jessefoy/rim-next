@@ -284,7 +284,6 @@ const PRE_THRESHOLD_GATED_SLUGS = new Set<string>([
   "hub-conv-new-reply",
   "hub-document-created",
   "hub-document-updated",
-  "mindmap-topic-comment",
 ]);
 
 export async function sendTemplatedEmail(
@@ -1289,29 +1288,6 @@ export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): 
     hubName:     data.hubName,
     threadTitle: data.threadTitle,
     threadUrl:   `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
-  });
-}
-
-export interface MindMapCommentEmailData {
-  to: string;
-  firstName: string | null;
-  commenterName: string;
-  topicLabel: string;
-  mapTitle: string;
-  mapId: string;
-}
-
-/**
- * Sent to a mind-map topic's followers (+ the map's hub coordinators) when a
- * new comment is posted. Deep-links to the map (not a hub conversation URL).
- */
-export async function sendMindMapCommentEmail(data: MindMapCommentEmailData): Promise<void> {
-  await sendTemplatedEmail("mindmap-topic-comment", data.to, {
-    firstName:     data.firstName,
-    commenterName: data.commenterName,
-    topicLabel:    data.topicLabel,
-    mapTitle:      data.mapTitle,
-    mapUrl:        `${BASE_URL}/account/mindmaps/${data.mapId}`,
   });
 }
 

@@ -5404,6 +5404,48 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ google_file_transfers_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Mind Maps removal — Phase 1 (data cleanup only; NO schema drop).
+  // The feature was retired: its code, Prisma models, and the
+  // HubConversationThread.mindMapNodeId field are gone. Topic conversations
+  // were HubConversationThread rows with a real hubId + documentId NULL +
+  // mindMapNodeId set — so the hub Conversations and Activity feeds (which
+  // filter on documentId only, never mindMapNodeId) would otherwise surface
+  // them as phantom threads. Delete them here; the replies + subscriptions
+  // FKs are ON DELETE CASCADE, so they clear automatically. Deleting ROWS is
+  // safe against the still-live previous deployment during the build-time
+  // migrate window (it just sees fewer threads). The mindMapNodeId column, its
+  // unique index, the mind_map_* tables, and the 'mindmap-topic-comment' email
+  // row are dropped in a Phase-2 follow-up deploy — only safe once no live
+  // code selects that column.
+  // ───────────────────────────────────────────────────────────────────────
+  const mindMapThreadsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'remove_mindmap_topic_threads_v1'
+  `).catch(() => []);
+
+  if (mindMapThreadsFlag.length === 0) {
+    console.log("→ Removing orphaned mind-map topic conversation threads…");
+    // Only delete while the column still exists (guards against Phase 2 having
+    // run first in an out-of-order apply).
+    const mmCol = await db.$queryRawUnsafe(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'hub_conversation_threads' AND column_name = 'mindMapNodeId'
+    `).catch(() => []);
+    if (mmCol.length > 0) {
+      const deleted = await db.$executeRawUnsafe(
+        `DELETE FROM "hub_conversation_threads" WHERE "mindMapNodeId" IS NOT NULL`,
+      );
+      console.log(`  ✔ deleted ${deleted} mind-map topic thread(s) (+ cascaded replies/subscriptions).`);
+    } else {
+      console.log("  ⏭ mindMapNodeId column already gone — nothing to delete.");
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('remove_mindmap_topic_threads_v1')`,
+    );
+  } else {
+    console.log("  ⏭ remove_mindmap_topic_threads_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

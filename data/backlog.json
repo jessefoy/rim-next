@@ -985,26 +985,6 @@
     "notes": "All four are deliberate scoping calls in the s156 Slice-4 build, captured so they're not rediscovered. The directory is intentionally a finder (active docs, recency-first, search) \u2014 these are enhancements, not gaps. See session-log 156 + RIM_Documents.md (Build order / non-goals)."
   },
   {
-    "id": "2026-06-29-001",
-    "title": "Mind Maps \u2014 conversation polish (rich text, counts, unread, edit/delete)",
-    "description": "Deferred v1 restraints from the session-160 Slice-3 build of per-topic conversations. (1) Rich-text comments \u2014 currently plain text; swap the compose for the RimTiptapEditor message variant + render stored body (mirrors hub conversations). (2) Comment-count badge \u2014 show a comment count on each topic node and on the hub/directory map cards (the data is a HubConversationThread reply count per node). (3) Per-topic unread \u2014 a 'new since you last looked' marker. (4) Comment edit/delete affordances \u2014 the reply tables already support edit/delete; wire author/coordinator controls (reuse the hub reply rules). See RIM_MindMaps.md (Deferred) + session-log 160.",
-    "category": "Member Accounts",
-    "priority": "low",
-    "status": "open",
-    "addedAt": "2026-06-29",
-    "notes": "Intentional v1 scoping \u2014 plain-text comments + one thread per node were chosen for calm/restraint. These are enhancements, not gaps."
-  },
-  {
-    "id": "2026-06-29-002",
-    "title": "Mind Maps \u2014 real-time multiplayer canvas",
-    "description": "A map is async/curated for now (last-write-wins snapshot autosave; multiple people edit over time, not simultaneously). If live co-editing is wanted later, add real-time sync (presence + CRDT or a y-websocket layer over the React Flow node set). Significant infra; explicitly deferred at design time per Jesse ('nice but hold off if complex'). See RIM_MindMaps.md.",
-    "category": "Member Accounts",
-    "priority": "low",
-    "status": "open",
-    "addedAt": "2026-06-29",
-    "notes": "Decision at planning: start async; multiplayer is a later, separate build."
-  },
-  {
     "id": "2026-06-29-003",
     "title": "Harden documents access/edit gate to filter ACTIVE memberships",
     "description": "Parallel to a fix made for Mind Maps (Slice 2): the hub-DOCUMENTS access/edit gate loads a viewer's memberships without filtering by status, so a removed/paused member (HubMember.status INACTIVE/PAUSED, row still present) can still pass canAccessDocument/canEditDocument for a hub they left. Add status:'ACTIVE' to the membership queries feeding the gates in the document API routes + canUserAccessDocument/accessibleHubDocumentIds (the directory page already filters via myActiveHubs). Mirror the mind-map fix (lib/mindMapAuth + the route loaders now use where:{userId,status:'ACTIVE'}). Verify with npx tsc --noEmit.",
