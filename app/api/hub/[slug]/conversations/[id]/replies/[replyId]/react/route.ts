@@ -53,7 +53,7 @@ export async function POST(
 
   const { slug, id: threadId, replyId } = await params;
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!canAccessHub(member, session.user.roles ?? [], hub?.openToAllMembers))) {
+  if (!hub || ((!hub?.conversationsEnabled || !canAccessHub(member, session.user.roles ?? [], hub?.openToAllMembers)))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -48,7 +48,7 @@ export async function PATCH(
 
   const { slug } = await params;
   const body = await req.json();
-  const { name, slug: newSlug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, googleDriveId, googleFilesEnabled, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
+  const { name, slug: newSlug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, googleDriveId, googleFilesEnabled, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
 
   // Coverage strings: trim, cap at 40. Empty input falls through to the
   // host-team default for that field — clearing an input in the form
@@ -139,6 +139,7 @@ export async function PATCH(
       ...(type !== undefined && { type }),
       ...(status !== undefined && { status }),
       ...(hasSchedule !== undefined && { hasSchedule: !!hasSchedule }),
+      ...(conversationsEnabled !== undefined && { conversationsEnabled: !!conversationsEnabled }),
       ...(assignmentGrantsTeacher !== undefined && { assignmentGrantsTeacher: !!assignmentGrantsTeacher }),
       // teacherLabel: trim + cap at 20, null when empty.  Effective capability
       // for this update = the body's flag if present, otherwise the hub's

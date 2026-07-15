@@ -5356,6 +5356,9 @@ Rooted In Mindfulness · Brookfield, WI`,
     await db.$executeRawUnsafe(
       `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "openToAllMembers" BOOLEAN NOT NULL DEFAULT false`,
     );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "conversationsEnabled" BOOLEAN NOT NULL DEFAULT true`,
+    );
     const existingCommunity = await db.hub.findUnique({ where: { slug: "community" } });
     if (!existingCommunity) {
       await db.hub.create({
@@ -5365,12 +5368,14 @@ Rooted In Mindfulness · Brookfield, WI`,
           type: "COMMUNITY_GROUP",
           status: "ACTIVE",
           openToAllMembers: true,
+          // Launch Files-only; an admin turns Conversations on from hub settings.
+          conversationsEnabled: false,
           description:
-            "The whole sangha's shared Space — files and conversations open to every member.",
+            "The whole sangha's shared Space — files open to every member.",
           conversationCategories: ["General"],
         },
       });
-      console.log("  ✔ created the Community Space.");
+      console.log("  ✔ created the Community Space (Files-only).");
     } else {
       // Never clobber a hand-made 'community' hub — just ensure the primitive.
       await db.hub.update({

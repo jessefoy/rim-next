@@ -62,6 +62,9 @@ interface Props {
      *  there's no roster and no per-hub coordinators — hide Documents (native,
      *  being retired) + Members, leaving the participation surfaces. */
     openToAll?: boolean;
+    /** Per-hub Conversations switch (session 165). Default on; when off, the
+     *  Conversations tab is hidden (and its routes deny). */
+    conversationsEnabled?: boolean;
   };
   tools: SidebarTool[];
   navCounts: SidebarNavCounts;
@@ -127,18 +130,25 @@ export default function HubWorkspaceSidebar({
   const filesItem = hub.filesEnabled
     ? [{ label: "Files", href: `${base}/files`, icon: FolderOpen, badge: 0 }]
     : [];
+  const convEnabled = hub.conversationsEnabled ?? true;
+  const conversationsItem = convEnabled
+    ? [{ label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 }]
+    : [];
   // An open-to-all Space (Community) shows only the participation surfaces:
-  // Activity, Conversations, Files. Documents (native, being retired) and
-  // Members (no roster when membership is universal) are hidden.
+  // Activity + Conversations (only while Conversations is on — Activity is just
+  // conversation activity there) and Files (always). Documents (native, being
+  // retired) and Members (no roster when membership is universal) are hidden.
   const otherItems = hub.openToAll
     ? [
-        { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
-        { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
+        ...(convEnabled
+          ? [{ label: "Activity", href: `${base}/activity`, icon: Activity, badge: 0 }]
+          : []),
+        ...conversationsItem,
         ...filesItem,
       ]
     : [
         { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
-        { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
+        ...conversationsItem,
         { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
         // Files (Google Workspace) coexists with Documents until the cutover
         // slice retires the native path — RIM_GoogleWorkspace.md §4.

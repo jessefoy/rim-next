@@ -60,6 +60,7 @@ export default async function AdminHubEditPage({
     type: hub.type,
     status: hub.status,
     hasSchedule: hub.hasSchedule,
+    conversationsEnabled: hub.conversationsEnabled,
     assignmentGrantsTeacher: hub.assignmentGrantsTeacher,
     teacherLabel: hub.teacherLabel,
     googleDriveId: hub.googleDriveId,

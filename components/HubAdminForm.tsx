@@ -45,6 +45,7 @@ interface HubData {
    *  separate concern — supporting-role hubs use the Scheduler too,
    *  they just don't run the live session. */
   hasSchedule: boolean;
+  conversationsEnabled?: boolean;
   /** Session 128 — when true, an active HostAssignment from this hub
    *  confers Teacher capability (bell-friendly audio + Teacher pill) on
    *  the assigned leader. Used by peer-led hubs where the act of claiming
@@ -110,6 +111,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
   const [status, setStatus] = useState<HubData["status"]>(initialData?.status ?? "ACTIVE");
   const [hasSchedule, setHasSchedule] = useState<boolean>(
     initialData?.hasSchedule ?? false,
+  );
+  const [conversationsEnabled, setConversationsEnabled] = useState<boolean>(
+    initialData?.conversationsEnabled ?? true,
   );
   const [assignmentGrantsTeacher, setAssignmentGrantsTeacher] = useState<boolean>(
     initialData?.assignmentGrantsTeacher ?? false,
@@ -345,6 +349,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       type,
       status,
       hasSchedule,
+      conversationsEnabled,
       assignmentGrantsTeacher,
       teacherLabel: resolvedTeacherLabel,
       coverageNoun: coverageNoun.trim(),
@@ -484,6 +489,25 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           dropdown and get the host-team-style Home view (with the
           &ldquo;Our offerings this month&rdquo; panel). Leave off
           for AV, greeter, and other supporting-role hubs.
+        </p>
+      </div>
+
+      {/* Per-hub feature switch — Conversations (session 165) */}
+      <div className="adm-hubs-field">
+        <label className="adm-hubs-label">
+          <input
+            type="checkbox"
+            checked={conversationsEnabled}
+            onChange={(e) => setConversationsEnabled(e.target.checked)}
+            style={{ marginRight: 8 }}
+          />
+          Conversations enabled
+        </label>
+        <p className="adm-hubs-hint">
+          On for every team hub. Turn off to launch a Space narrow (the
+          Community Space starts Files-only) and light Conversations up here
+          when you&rsquo;re ready. When off, the Conversations tab is hidden and
+          its pages are closed.
         </p>
       </div>
 

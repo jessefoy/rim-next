@@ -107,6 +107,7 @@ export default async function HubLayout({ children, params }: Props) {
             ? true
             : hub.googleFilesEnabled && Boolean(hub.googleDriveId),
           openToAll: hub.openToAllMembers,
+          conversationsEnabled: hub.conversationsEnabled,
         }}
         tools={tools}
         navCounts={{
