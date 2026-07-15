@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { getGoogleAccessToken } from "./auth";
 
 /**
@@ -168,6 +169,51 @@ export async function listSharedDrives(): Promise<SharedDrive[]> {
     pages += 1;
   } while (pageToken && pages < 3);
   return drives;
+}
+
+/**
+ * Create a Shared Drive as the service account (RIM_GoogleWorkspace.md — the
+ * capability the auto-provision-per-hub decision hinges on). `requestId` is a
+ * required idempotency key; reused verbatim across fetchWithRetry's retries
+ * so a network blip can't create two drives. The creator is automatically an
+ * organizer of the new drive.
+ *
+ * Currently only the admin probe (/api/admin/google/drive-probe) calls this;
+ * it graduates to production hub-provisioning only if the probe confirms the
+ * service account can create drives without domain-wide delegation.
+ */
+export async function createSharedDrive(name: string): Promise<SharedDrive> {
+  const params = new URLSearchParams({ requestId: randomUUID() });
+  return driveApi<SharedDrive>(`/drives?${params}`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+/**
+ * The service account's own capabilities on a Shared Drive — used by the
+ * probe to confirm it's an organizer of a drive it just created (i.e. that
+ * auto-provisioned drives would actually be manageable).
+ */
+export async function getSharedDriveCapabilities(
+  driveId: string,
+): Promise<{ canManageMembers?: boolean; canDeleteDrive?: boolean }> {
+  const params = new URLSearchParams({
+    fields: "capabilities(canManageMembers,canDeleteDrive)",
+  });
+  const res = await driveApi<{
+    capabilities?: { canManageMembers?: boolean; canDeleteDrive?: boolean };
+  }>(`/drives/${encodeURIComponent(driveId)}?${params}`);
+  return res.capabilities ?? {};
+}
+
+/**
+ * Delete a Shared Drive — probe cleanup only. Google requires the drive to be
+ * empty and the caller to be an organizer (the service account is, as
+ * creator), so this only ever removes the throwaway probe drive.
+ */
+export async function deleteSharedDrive(driveId: string): Promise<void> {
+  await driveApi(`/drives/${encodeURIComponent(driveId)}`, { method: "DELETE" });
 }
 
 // ── Files ────────────────────────────────────────────────────────────────────

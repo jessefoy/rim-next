@@ -155,6 +155,14 @@ export default async function GoogleTestPage() {
           blurb="Creates a throwaway Google Doc in a Shared Drive, sets the link-as-key permission (this probes the org's sharing policy), then deletes it. Nothing real is touched."
         />
       )}
+
+      {tokenOk && (
+        <AdminSelfTest
+          endpoint="/api/admin/google/drive-probe"
+          title="Auto-provision probe — can we create Shared Drives?"
+          blurb="Tests whether the service account can create a Shared Drive on its own — the capability needed to auto-provision a Drive per hub when a hub is created. Creates a throwaway Shared Drive, confirms the service account manages it, then deletes it. If this fails with a permission error, per-hub storage will use auto-created folders instead."
+        />
+      )}
     </div>
   );
 }
