@@ -133,35 +133,32 @@ export default async function FileDetailPage({
     createdByName = cu ? sessionDisplayName(cu, "A member") : "A member";
   }
 
-  // The "Change creator" picker list is only rendered when the viewer can
-  // manage, so only build it then — a read-only view skips the roster query.
-  // Always include the viewer so "attribute to me" works (incl. Community,
-  // which has no roster).
-  let members: { id: string; name: string }[] = [];
-  if (canManage) {
-    const memberRows = place.hubId
-      ? await db.hubMember.findMany({
-          where: { hubId: place.hubId },
-          select: {
-            user: {
-              select: { id: true, firstName: true, lastName: true, preferredName: true },
-            },
+  // The Space's members — used by the "Change creator" picker AND the Notify
+  // pickers (comment + "Notify the Space"). Anyone who can read the file can
+  // comment and choose who to notify, so this is fetched for every viewer, not
+  // just managers. Always include the viewer so "attribute to me" works.
+  const memberRows = place.hubId
+    ? await db.hubMember.findMany({
+        where: { hubId: place.hubId },
+        select: {
+          user: {
+            select: { id: true, firstName: true, lastName: true, preferredName: true },
           },
-        })
-      : [];
-    members = memberRows.map((r) => ({
-      id: r.user.id,
-      name: sessionDisplayName(r.user, "A member"),
-    }));
-    if (!members.some((m) => m.id === viewer.userId)) {
-      const vu = await db.user.findUnique({
-        where: { id: viewer.userId },
-        select: { id: true, firstName: true, lastName: true, preferredName: true },
-      });
-      if (vu) members.push({ id: vu.id, name: sessionDisplayName(vu, "A member") });
-    }
-    members.sort((a, b) => a.name.localeCompare(b.name));
+        },
+      })
+    : [];
+  const members = memberRows.map((r) => ({
+    id: r.user.id,
+    name: sessionDisplayName(r.user, "A member"),
+  }));
+  if (!members.some((m) => m.id === viewer.userId)) {
+    const vu = await db.user.findUnique({
+      where: { id: viewer.userId },
+      select: { id: true, firstName: true, lastName: true, preferredName: true },
+    });
+    if (vu) members.push({ id: vu.id, name: sessionDisplayName(vu, "A member") });
   }
+  members.sort((a, b) => a.name.localeCompare(b.name));
 
   // Decide how to render the body. Drive-touching work (mint, export) is
   // wrapped so a failure degrades to a panel, never a 500.
@@ -311,6 +308,7 @@ export default async function FileDetailPage({
           viewerId={viewer.userId}
           canModerate={canModerate}
           initialComments={conversationComments}
+          members={members}
         />
       </div>
     </AccountLayout>

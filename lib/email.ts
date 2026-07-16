@@ -282,6 +282,10 @@ const PRE_THRESHOLD_GATED_SLUGS = new Set<string>([
   // recipients (not the hub pool), so they need explicit gating here.
   "hub-conv-new-thread",
   "hub-conv-new-reply",
+  // File notifications go to per-post picked recipients (may include a directly
+  // chosen individual), so gate them here too.
+  "file-shared",
+  "file-comment",
 ]);
 
 export async function sendTemplatedEmail(
@@ -1286,6 +1290,48 @@ export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): 
     hubName:     data.hubName,
     threadTitle: data.threadTitle,
     threadUrl:   `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
+  });
+}
+
+// ─── Google Files notifications (Basecamp-style, per-post opt-in) ────────────
+// Sent only to the specific people the poster chose to notify (default: no
+// one). Both deep-link to the file's detail page.
+
+export async function sendFileSharedEmail(data: {
+  to: string;
+  firstName: string | null;
+  sharerName: string;
+  fileName: string;
+  spaceName: string;
+  note: string | null;
+  fileId: string;
+}): Promise<void> {
+  await sendTemplatedEmail("file-shared", data.to, {
+    firstName: data.firstName,
+    sharerName: data.sharerName,
+    fileName: data.fileName,
+    spaceName: data.spaceName,
+    note: data.note ?? "",
+    fileUrl: `${BASE_URL}/account/files/${data.fileId}`,
+  });
+}
+
+export async function sendFileCommentEmail(data: {
+  to: string;
+  firstName: string | null;
+  commenterName: string;
+  fileName: string;
+  spaceName: string;
+  excerpt: string;
+  fileId: string;
+}): Promise<void> {
+  await sendTemplatedEmail("file-comment", data.to, {
+    firstName: data.firstName,
+    commenterName: data.commenterName,
+    fileName: data.fileName,
+    spaceName: data.spaceName,
+    excerpt: data.excerpt,
+    fileUrl: `${BASE_URL}/account/files/${data.fileId}`,
   });
 }
 

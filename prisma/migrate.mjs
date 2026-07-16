@@ -5655,6 +5655,69 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ google_file_pending_delete_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // File notification templates (RIM_GoogleWorkspace.md, notifications slice).
+  // Per the Email Template Gate: brand-new slugs are seeded findUnique → create
+  // (create-if-absent) so they appear in /admin/emails AND a coordinator's
+  // later edits are never clobbered by a deploy. Allocated to a "Files &
+  // Documents" group so they're easy to find in the editor.
+  // ───────────────────────────────────────────────────────────────────────
+  const fileNotifyTemplates = [
+    {
+      slug: "file-shared",
+      name: "File shared with a Space",
+      description:
+        "Sent to the people a member chooses to notify when they share/post a file to a Space.",
+      enabled: true,
+      group: "06-files",
+      groupLabel: "Files & Documents",
+      subject: `{{sharerName}} shared "{{fileName}}" with {{spaceName}}`,
+      variables: ["firstName", "sharerName", "fileName", "spaceName", "note", "fileUrl"],
+      body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+**{{sharerName}}** shared a file with the {{spaceName}} space: **{{fileName}}**
+{{#if note}}
+
+"{{note}}"
+{{/if}}
+
+**[Open it in RIM →]({{fileUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+    },
+    {
+      slug: "file-comment",
+      name: "New comment on a file",
+      description:
+        "Sent to the people a member chooses to notify when they comment on a file's conversation.",
+      enabled: true,
+      group: "06-files",
+      groupLabel: "Files & Documents",
+      subject: `{{commenterName}} commented on "{{fileName}}"`,
+      variables: ["firstName", "commenterName", "fileName", "spaceName", "excerpt", "fileUrl"],
+      body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+**{{commenterName}}** left a comment on **{{fileName}}** in {{spaceName}}:
+
+"{{excerpt}}"
+
+**[Read & reply →]({{fileUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+    },
+  ];
+  for (const t of fileNotifyTemplates) {
+    const existing = await db.emailTemplate.findUnique({ where: { slug: t.slug } });
+    if (existing) {
+      console.log(`  ⏭ email template "${t.slug}" already exists — left as-is (edits preserved).`);
+    } else {
+      await db.emailTemplate.create({ data: t });
+      console.log(`  ✔ seeded email template "${t.slug}" (Files & Documents).`);
+    }
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

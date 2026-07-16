@@ -1,6 +1,7 @@
 /**
- * POST /api/files/[fileId]/conversation — add a comment { body } to a file's
- * discussion (RIM_GoogleWorkspace.md, file-detail slice).
+ * POST /api/files/[fileId]/conversation — add a comment { body, notify? } to a
+ * file's discussion (RIM_GoogleWorkspace.md). `notify` (Basecamp-style, default
+ * none) picks who gets an email about the comment.
  *
  * Rides authorizeFileRead: commenting requires the same access as reading the
  * file, so a held draft's conversation is private to its creator/moderators
@@ -9,7 +10,7 @@
  * a separate fetch (initial comments are server-rendered on the detail page).
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import {
@@ -17,7 +18,10 @@ import {
   isCrossSiteRequest,
   listFileComments,
   logFileAction,
+  resolveNotifyRecipients,
 } from "@/lib/googleFiles";
+import { sessionDisplayName } from "@/lib/sessionIdentity";
+import { sendFileCommentEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +36,7 @@ export async function POST(
   }
   const { fileId } = await params;
 
-  let body: { body?: unknown };
+  let body: { body?: unknown; notify?: { mode?: unknown; userIds?: unknown } };
   try {
     body = await req.json();
   } catch {
@@ -49,7 +53,7 @@ export async function POST(
   try {
     const gate = await authorizeFileRead(await auth(), fileId);
     if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
-    const { viewer, place } = gate.data;
+    const { viewer, file, place } = gate.data;
 
     await db.fileComment.create({
       data: { googleFileId: fileId, authorId: viewer.userId, body: text },
@@ -61,6 +65,31 @@ export async function POST(
       hubId: place.hubId,
       detail: { place: place.key },
     });
+
+    // Basecamp-style: notify only the people the commenter chose (default none).
+    const recipients = await resolveNotifyRecipients(place, body.notify, viewer.userId);
+    if (recipients.length > 0) {
+      const actor = await db.user.findUnique({
+        where: { id: viewer.userId },
+        select: { firstName: true, lastName: true, preferredName: true },
+      });
+      const commenterName = sessionDisplayName(actor, "A member");
+      const excerpt = text.length > 140 ? `${text.slice(0, 140)}…` : text;
+      after(async () => {
+        for (const r of recipients) {
+          await sendFileCommentEmail({
+            to: r.email,
+            firstName: r.firstName,
+            commenterName,
+            fileName: file.name,
+            spaceName: place.name,
+            excerpt,
+            fileId,
+          });
+        }
+      });
+    }
+
     return NextResponse.json({ comments: await listFileComments(fileId) });
   } catch (e) {
     console.error("[files-conversation-post]", e instanceof Error ? e.message : e);

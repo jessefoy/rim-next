@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import { relativeDate } from "@/lib/relativeDate";
+import NotifyPicker, { type NotifyValue, NOTIFY_NONE } from "@/components/NotifyPicker";
 
 const REACTIONS = ["👍", "❤️", "🙏", "💡", "😊"] as const;
 const GENERIC_ERROR = "Something went wrong. Please try again.";
@@ -34,6 +35,8 @@ interface Props {
   /** May the viewer delete other people's comments (coordinator/GT/ADMIN)? */
   canModerate: boolean;
   initialComments: Comment[];
+  /** The Space's members, for the "Notify → Choose people" picker. */
+  members: { id: string; name: string }[];
 }
 
 export default function FileConversation({
@@ -41,9 +44,11 @@ export default function FileConversation({
   viewerId,
   canModerate,
   initialComments,
+  members,
 }: Props) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [draft, setDraft] = useState("");
+  const [notify, setNotify] = useState<NotifyValue>(NOTIFY_NONE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +61,7 @@ export default function FileConversation({
       const res = await fetch(`/api/files/${fileId}/conversation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text }),
+        body: JSON.stringify({ body: text, notify }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -65,6 +70,7 @@ export default function FileConversation({
       }
       setComments(data.comments ?? []);
       setDraft("");
+      setNotify(NOTIFY_NONE);
     } catch {
       setError(GENERIC_ERROR);
     } finally {
@@ -170,6 +176,7 @@ export default function FileConversation({
           rows={3}
           disabled={busy}
         />
+        <NotifyPicker members={members} value={notify} onChange={setNotify} disabled={busy} />
         <div className="gf-conv__compose-actions">
           {error && (
             <span className="gf-conv__error" role="alert">

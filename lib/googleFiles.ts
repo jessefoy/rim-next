@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { isHubCoordinator } from "@/lib/hubAuth";
+import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { sessionDisplayName } from "@/lib/sessionIdentity";
 import { googleConfigured } from "@/lib/google/auth";
 import {
@@ -704,6 +705,43 @@ export async function canModerateFileConversation(
   place: FilesPlace,
 ): Promise<boolean> {
   return isSpaceLead(viewer, place);
+}
+
+export interface NotifyRecipient {
+  id: string;
+  email: string;
+  firstName: string | null;
+}
+
+/**
+ * Resolve who a member chose to notify about a file event (Basecamp-style,
+ * per-post). `none` (the default) → no one. `everyone` → the Space's
+ * notifiable members. `people` → the chosen ids, intersected with that pool.
+ * Recipients always come from getHubNotificationRecipients, so the pre-threshold
+ * gate, communications-off, paused, and archived exclusions apply uniformly —
+ * a picked individual who shouldn't be emailed still won't be. The actor is
+ * always excluded (you don't notify yourself).
+ */
+export async function resolveNotifyRecipients(
+  place: FilesPlace,
+  notify: { mode?: unknown; userIds?: unknown } | null | undefined,
+  excludeUserId: string,
+): Promise<NotifyRecipient[]> {
+  const mode = notify && typeof notify.mode === "string" ? notify.mode : "none";
+  if (mode === "none" || !place.hubSlug) return [];
+  const members = await getHubNotificationRecipients(place.hubSlug, { excludeUserId });
+  if (mode === "everyone") {
+    return members.map((m) => ({ id: m.id, email: m.email, firstName: m.firstName }));
+  }
+  if (mode === "people" && notify && Array.isArray(notify.userIds)) {
+    const wanted = new Set(
+      (notify.userIds as unknown[]).filter((x): x is string => typeof x === "string"),
+    );
+    return members
+      .filter((m) => wanted.has(m.id))
+      .map((m) => ({ id: m.id, email: m.email, firstName: m.firstName }));
+  }
+  return [];
 }
 
 export interface PendingRemoval {

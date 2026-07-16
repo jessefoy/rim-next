@@ -19,6 +19,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import NotifyPicker, { type NotifyValue, NOTIFY_NONE } from "@/components/NotifyPicker";
 
 interface Member {
   id: string;
@@ -80,6 +81,10 @@ export default function FileDetailActions({
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [pickValue, setPickValue] = useState(createdByUserId ?? "");
+  const [notifying, setNotifying] = useState(false);
+  const [notifyValue, setNotifyValue] = useState<NotifyValue>(NOTIFY_NONE);
+  const [note, setNote] = useState("");
+  const [notifyDone, setNotifyDone] = useState<string | null>(null);
 
   async function patch(payload: Record<string, unknown>) {
     setBusy(true);
@@ -126,6 +131,36 @@ export default function FileDetailActions({
 
   async function cancelRemoval() {
     if (await patch({ action: "cancel-removal" })) router.refresh();
+  }
+
+  async function sendNotify() {
+    if (notifyValue.mode === "none") {
+      setNotifying(false);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/files/${fileId}/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notify: notifyValue, note: note.trim() || null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? GENERIC_ERROR);
+        return;
+      }
+      const n = Number(data.notified ?? 0);
+      setNotifyDone(n > 0 ? `Notified ${n} ${n === 1 ? "person" : "people"}.` : "No one to notify.");
+      setNotifying(false);
+      setNotifyValue(NOTIFY_NONE);
+      setNote("");
+    } catch {
+      setError(GENERIC_ERROR);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -283,6 +318,59 @@ export default function FileDetailActions({
               </button>
             )}
           </div>
+
+          {/* Basecamp-style: announce this file to the Space — nobody is
+              emailed unless the sharer picks people (default No one). */}
+          {canRemove &&
+            (notifying ? (
+              <div className="gf-detail__notify">
+                <NotifyPicker
+                  members={members}
+                  value={notifyValue}
+                  onChange={setNotifyValue}
+                  disabled={busy}
+                />
+                <input
+                  className="gf-detail__note"
+                  placeholder="Add a short message (optional)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  maxLength={500}
+                  disabled={busy}
+                />
+                <div className="gf-detail__picker-actions">
+                  <button
+                    className="gf-detail__btn gf-detail__btn--ghost"
+                    onClick={() => {
+                      setNotifying(false);
+                      setNotifyValue(NOTIFY_NONE);
+                      setNote("");
+                    }}
+                    disabled={busy}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="gf-detail__btn gf-detail__btn--primary"
+                    onClick={sendNotify}
+                    disabled={busy || notifyValue.mode === "none"}
+                  >
+                    {busy ? "Sending…" : "Send"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="gf-detail__link-btn"
+                onClick={() => {
+                  setNotifying(true);
+                  setNotifyDone(null);
+                }}
+              >
+                Notify the Space about this
+              </button>
+            ))}
+          {notifyDone && <p className="gf-detail__notify-done">{notifyDone}</p>}
         </>
       )}
 
