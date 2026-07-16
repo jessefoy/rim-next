@@ -172,6 +172,17 @@ body {
 }
 
 /* ── Global element defaults ─────────────────────────────────────────────── */
+/* Restore border-box for form controls. webflow.css used to carry a global
+   `* { box-sizing: border-box }` reset, but it's no longer loaded (Webflow
+   retirement) — so controls fall back to the browser default content-box, and
+   any field with width:100% + padding/border overflows its container by that
+   padding+border. Scoping to form controls fixes the recurring "text box
+   overhangs its card" symptom app-wide without re-sizing every element. */
+input,
+textarea,
+select {
+  box-sizing: border-box;
+}
 p {
   font-family: inherit;
   font-size: inherit;
