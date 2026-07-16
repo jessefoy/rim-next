@@ -1,5 +1,15 @@
 [
   {
+    "id": "2026-07-16-001",
+    "title": "Phase 2: drop the openToAllMembers column from hubs",
+    "description": "The Community Space was retired (Phase 1): the community hub row is deleted (migration retire_community_space_v1) and every code read of Hub.openToAllMembers is gone. The physical column drop was deferred to a follow-up deploy because prisma/migrate.mjs runs during the Vercel build against the shared prod DB while the PREVIOUS deploy's code is still live and still SELECTs openToAllMembers — a same-deploy DROP COLUMN would briefly 500 it (same two-phase discipline as the useZoom drop, 2026-06-25-004). Once Phase 1 is deployed and stable, add a flag-guarded migration that runs ALTER TABLE \"hubs\" DROP COLUMN IF EXISTS \"openToAllMembers\", and remove the column from schema.prisma.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-07-16",
+    "notes": "Phase 1 removed all reads + deleted the community hub; Prisma ignores the lingering column so leaving it is harmless until this runs. Confirm no code references openToAllMembers before dropping."
+  },
+  {
     "id": "2026-06-25-005",
     "title": "Zoom scheduling-integrity follow-ons: standalone coordinator view + create-path warning + reconciliation cron",
     "description": "Session 159 shipped the seat-conflict integrity Layers 1 (tear down stale meetings on a schedule edit) and 2 (a non-blocking save-time warning via lib/sessionConflicts.ts). Three follow-ons remain, in priority order: (1) STANDALONE VIEW \u2014 a coordinator/admin 'scheduling integrity' page listing the next several weeks of virtual/hybrid sessions with any over-capacity slots flagged at a glance (generalize conflictsForProgram into an allScheduleConflicts sweep). The save-time warning is reactive; the view is the proactive at-a-glance. (2) CREATE-PATH WARNING \u2014 POST /api/programs-pg returns seatConflicts but the ProgramEditor create branch redirects before showing it, so a brand-new conflicting program only warns on its first edit-save; persist + surface across the redirect. (3) RECONCILIATION CRON \u2014 a daily job that deletes SessionMeeting rows whose occurrence no longer exists (post-edit orphans) and old past meetings, optionally logging upcoming over-capacity slots \u2014 the self-healing backstop beneath Layers 1-2.",
