@@ -32,7 +32,6 @@ import { Prisma } from "@prisma/client";
 export function activeHubThreadWhere(hubId: string): Prisma.HubConversationThreadWhereInput {
   return {
     hubId,
-    documentId: null,
     deletedAt: null,
     archivedAt: null,
   };

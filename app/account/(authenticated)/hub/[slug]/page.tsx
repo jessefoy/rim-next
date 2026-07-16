@@ -14,7 +14,6 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
-import { canAccessDocument } from "@/lib/documentAuth";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { getHubContext } from "@/lib/hubContext";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
@@ -103,26 +102,6 @@ export default async function HubHomePage({
     take: 4,
   });
 
-  // Recent documents — exclude archived/trashed, and hide docs this viewer can't
-  // reach (COORDINATORS visibility). Filter by doc-level access, then take 3;
-  // these are all origin-in-this-hub, so the viewer's own membership decides.
-  const recentDocViewer = {
-    userId:      session.user.id,
-    roles:       session.user.roles ?? [],
-    memberships: member ? [{ hubId: hub.id, isCoordinator: member.isCoordinator, status: member.status }] : [],
-  };
-  const recentDocsRaw = await db.hubDocument.findMany({
-    where:  { hubId: hub.id, deletedAt: null, archivedAt: null },
-    select: {
-      id: true, label: true, updatedAt: true, isNative: true,
-      addedById: true, hubId: true, visibility: true, placements: { select: { hubId: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
-  const recentDocs = recentDocsRaw
-    .filter((d) => canAccessDocument(d, recentDocViewer))
-    .slice(0, 3);
-
   const homeContentHtml = await renderFormattedTextAsync(hub.homeContent);
   const welcomeBodyHtml = await renderFormattedTextAsync(hub.welcomeBody);
 
@@ -155,12 +134,6 @@ export default async function HubHomePage({
         authorName: t.author.preferredName || t.author.firstName || "Someone",
         replyCount: t._count.replies,
         updatedAt: t.updatedAt.toISOString(),
-      }))}
-      recentDocs={recentDocs.map((d) => ({
-        id: d.id,
-        label: d.label,
-        isNative: d.isNative,
-        updatedAt: d.updatedAt.toISOString(),
       }))}
       homeContentHtml={homeContentHtml}
     />

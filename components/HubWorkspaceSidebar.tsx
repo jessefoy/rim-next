@@ -23,7 +23,6 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   MessageSquare,
-  FileText,
   Users,
   Briefcase,
   Settings,
@@ -136,8 +135,9 @@ export default function HubWorkspaceSidebar({
     : [];
   // An open-to-all Space (Community) shows only the participation surfaces:
   // Activity + Conversations (only while Conversations is on — Activity is just
-  // conversation activity there) and Files (always). Documents (native, being
-  // retired) and Members (no roster when membership is universal) are hidden.
+  // conversation activity there) and Files (always). Members (no roster when
+  // membership is universal) is hidden. (Native Documents was retired in
+  // session 165 — Files is the document surface now.)
   const otherItems = hub.openToAll
     ? [
         ...(convEnabled
@@ -149,9 +149,6 @@ export default function HubWorkspaceSidebar({
     : [
         { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
         ...conversationsItem,
-        { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
-        // Files (Google Workspace) coexists with Documents until the cutover
-        // slice retires the native path — RIM_GoogleWorkspace.md §4.
         ...filesItem,
         { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
       ];

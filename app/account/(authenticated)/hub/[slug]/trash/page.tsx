@@ -2,8 +2,8 @@
  * /account/hub/[slug]/trash — Hub trash bin.
  *
  * Visible only to trash-managers (ADMIN, GUIDING_TEACHER, hub coordinators).
- * Lists soft-deleted documents and threads side by side, sorted by deletion
- * date (most recent first). Each row offers Restore or Permanently Delete.
+ * Lists soft-deleted conversation threads, most recent first. Each row offers
+ * Restore or Permanently Delete. (Native Documents were retired session 165.)
  *
  * General members never see this page or its contents — even direct URL
  * access redirects them to the dashboard.
@@ -41,43 +41,15 @@ export default async function HubTrashPage({
     redirect(`/account/hub/${slug}`);
   }
 
-  const [trashedDocs, trashedThreads] = await Promise.all([
-    db.hubDocument.findMany({
-      where:   { hubId: hub.id, deletedAt: { not: null } },
-      include: {
-        addedBy:   { select: { firstName: true, lastName: true, preferredName: true } },
-        deletedBy: { select: { firstName: true, lastName: true, preferredName: true } },
-      },
-      orderBy: { deletedAt: "desc" },
-    }),
-    db.hubConversationThread.findMany({
-      where:   { hubId: hub.id, deletedAt: { not: null } },
-      include: {
-        author:    { select: { firstName: true, lastName: true, preferredName: true } },
-        deletedBy: { select: { firstName: true, lastName: true, preferredName: true } },
-        _count:    { select: { replies: true } },
-      },
-      orderBy: { deletedAt: "desc" },
-    }),
-  ]);
-
-  const serializedDocs = trashedDocs.map((d) => ({
-    id:         d.id,
-    label:      d.label,
-    fileType:   d.fileType as string,
-    category:   d.category,
-    addedBy: {
-      firstName:     d.addedBy.firstName,
-      lastName:      d.addedBy.lastName,
-      preferredName: d.addedBy.preferredName,
+  const trashedThreads = await db.hubConversationThread.findMany({
+    where:   { hubId: hub.id, deletedAt: { not: null } },
+    include: {
+      author:    { select: { firstName: true, lastName: true, preferredName: true } },
+      deletedBy: { select: { firstName: true, lastName: true, preferredName: true } },
+      _count:    { select: { replies: true } },
     },
-    deletedAt:  d.deletedAt!.toISOString(),
-    deletedBy: d.deletedBy ? {
-      firstName:     d.deletedBy.firstName,
-      lastName:      d.deletedBy.lastName,
-      preferredName: d.deletedBy.preferredName,
-    } : null,
-  }));
+    orderBy: { deletedAt: "desc" },
+  });
 
   const serializedThreads = trashedThreads.map((t) => ({
     id:         t.id,
@@ -101,7 +73,6 @@ export default async function HubTrashPage({
     <HubTrashClient
       hubSlug={slug}
       hubName={hub.name}
-      initialDocs={serializedDocs}
       initialThreads={serializedThreads}
     />
   );

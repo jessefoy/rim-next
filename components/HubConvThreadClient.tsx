@@ -45,8 +45,6 @@ interface Reply {
 
 interface Thread {
   id: string;
-  documentId: string | null;
-  documentLabel: string | null;
   title: string;
   body: any;
   bodyHtml: string;
@@ -427,21 +425,10 @@ export default function HubConvThreadClient({
 
   return (
     <div className="hub-conv-thread">
-      {/* Back link — goes to parent document if this thread belongs to one */}
-      {initialThread.documentId ? (
-        <Link
-          href={`/account/hub/${hubSlug}/documents/${initialThread.documentId}`}
-          className="hub-conv-thread__back"
-        >
-          <ArrowLeft size={15} />
-          <span>{initialThread.documentLabel ?? "Document"}</span>
-        </Link>
-      ) : (
-        <Link href={`/account/hub/${hubSlug}/conversations`} className="hub-conv-thread__back">
-          <ArrowLeft size={15} />
-          <span>Conversations</span>
-        </Link>
-      )}
+      <Link href={`/account/hub/${hubSlug}/conversations`} className="hub-conv-thread__back">
+        <ArrowLeft size={15} />
+        <span>Conversations</span>
+      </Link>
 
       {/* Thread header: title + meta + coordinator menu */}
       <header className="hub-conv-thread__head">

@@ -16,7 +16,6 @@ import {
   Home,
   CalendarCheck,
   BookOpen,
-  FileText,
   UserCircle,
   Users,
   House,
@@ -53,7 +52,6 @@ const MEMBER_LINKS: NavLink[] = [
   { label: "Home",             href: "/account/dashboard",            icon: Home          },
   { label: "My Registrations", href: "/account/programs",             icon: CalendarCheck },
   { label: "Library",          href: "/account/courses",              icon: BookOpen      },
-  { label: "Documents",        href: "/account/documents",            icon: FileText      },
   { label: "My Profile",       href: "/account/dashboard-my-profile", icon: UserCircle    },
 ];
 
@@ -73,10 +71,9 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   const hasRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin      = roles.includes("ADMIN");
 
-  // Google Files live per-Space now (each hub's Files tab + the Community
-  // Space) — the global /account/files finder was retired (session 165,
-  // strict per-Space filing). The account rail keeps the native Documents
-  // master directory until the Google cutover.
+  // Files live per-Space (each hub's Files tab + the Community Space); the
+  // global finder and the native Documents system were both retired (session
+  // 165 — Google Workspace is the document/file system now).
   const memberLinks: NavLink[] = MEMBER_LINKS;
 
   function linkClass(href: string) {

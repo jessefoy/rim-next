@@ -282,8 +282,6 @@ const PRE_THRESHOLD_GATED_SLUGS = new Set<string>([
   // recipients (not the hub pool), so they need explicit gating here.
   "hub-conv-new-thread",
   "hub-conv-new-reply",
-  "hub-document-created",
-  "hub-document-updated",
 ]);
 
 export async function sendTemplatedEmail(
@@ -1315,35 +1313,6 @@ export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<vo
 }
 
 // ─── Hub document notifications ──────────────────────────────────────────────
-
-export interface HubDocumentEmailData {
-  to: string;
-  firstName: string | null | undefined;
-  authorName: string;
-  hubName: string;
-  docLabel: string;
-  docUrl: string;
-}
-
-export async function sendHubDocumentCreatedEmail(data: HubDocumentEmailData): Promise<void> {
-  await sendTemplatedEmail("hub-document-created", data.to, {
-    firstName:  data.firstName ?? "",
-    authorName: data.authorName,
-    hubName:    data.hubName,
-    docLabel:   data.docLabel,
-    docUrl:     data.docUrl,
-  });
-}
-
-export async function sendHubDocumentUpdatedEmail(data: HubDocumentEmailData): Promise<void> {
-  await sendTemplatedEmail("hub-document-updated", data.to, {
-    firstName:  data.firstName ?? "",
-    authorName: data.authorName,
-    hubName:    data.hubName,
-    docLabel:   data.docLabel,
-    docUrl:     data.docUrl,
-  });
-}
 
 // ─── Public form submission notifications (to TEAM_EMAIL) ────────────────────
 

@@ -5413,6 +5413,44 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ hub_document_migrated_google_file_id_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Native Documents retirement — Phase 1 (data cleanup, NO schema drop).
+  // The native document system is gone (code + Prisma models removed). Its
+  // per-document conversation threads were HubConversationThread rows with a
+  // real hubId + documentId set — so, exactly like the Mind Maps retirement,
+  // they'd otherwise surface as phantom threads in the hub Conversations /
+  // Activity feeds (which no longer filter documentId). Delete them here;
+  // replies + subscriptions cascade. Deleting ROWS is safe against the still-
+  // live previous deployment during the build-time migrate window. The
+  // hub_documents* tables, the documentId / documentCategories columns, the
+  // doc enums, and the hub-document-* email rows drop in a Phase-2 follow-up
+  // deploy (only safe once no live code selects those columns).
+  // ───────────────────────────────────────────────────────────────────────
+  const docThreadsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'remove_document_conversation_threads_v1'
+  `).catch(() => []);
+
+  if (docThreadsFlag.length === 0) {
+    console.log("→ Removing orphaned document-conversation threads…");
+    const docCol = await db.$queryRawUnsafe(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'hub_conversation_threads' AND column_name = 'documentId'
+    `).catch(() => []);
+    if (docCol.length > 0) {
+      const deleted = await db.$executeRawUnsafe(
+        `DELETE FROM "hub_conversation_threads" WHERE "documentId" IS NOT NULL`,
+      );
+      console.log(`  ✔ deleted ${deleted} document-conversation thread(s) (+ cascaded replies/subscriptions).`);
+    } else {
+      console.log("  ⏭ documentId column already gone — nothing to delete.");
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('remove_document_conversation_threads_v1')`,
+    );
+  } else {
+    console.log("  ⏭ remove_document_conversation_threads_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

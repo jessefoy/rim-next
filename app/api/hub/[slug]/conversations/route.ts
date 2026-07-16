@@ -33,7 +33,7 @@ export async function GET(
       : { archivedAt: null };
 
   const threads = await db.hubConversationThread.findMany({
-    where: { hubId: hub.id, documentId: null, deletedAt: null, ...archiveFilter },
+    where: { hubId: hub.id, deletedAt: null, ...archiveFilter },
     include: {
       author: { select: { firstName: true, lastName: true, preferredName: true } },
       _count:  { select: { replies: true } },

@@ -1,27 +1,21 @@
 /**
- * /account/hub/[slug]/activity — Unified hub activity stream
+ * /account/hub/[slug]/activity — hub activity stream
  *
- * Shows everything that has happened in the hub: documents added/updated,
- * hub conversations, document conversations, and replies. One river,
- * newest first. Filter pills narrow to Documents, Conversations, or Mine.
+ * New conversation threads and replies, newest first. (Native Documents were
+ * retired in session 165, so the stream is conversation activity.)
  */
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
-import { accessibleHubDocumentIds } from "@/lib/documentAuth";
 import HubActivityClient from "@/components/HubActivityClient";
 
 export const dynamic = "force-dynamic";
 
 type ActivityItem =
-  | { type: "document_added";   id: string; docId: string; docLabel: string; authorId: string; authorName: string; ts: string }
-  | { type: "document_updated"; id: string; docId: string; docLabel: string; authorId: string; authorName: string; ts: string }
-  | { type: "hub_thread";       id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string }
-  | { type: "hub_reply";        id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string }
-  | { type: "doc_thread";       id: string; threadId: string; threadTitle: string; docId: string; docLabel: string; authorId: string; authorName: string; ts: string }
-  | { type: "doc_reply";        id: string; threadId: string; threadTitle: string; docId: string; docLabel: string; authorId: string; authorName: string; ts: string };
+  | { type: "hub_thread"; id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string }
+  | { type: "hub_reply";  id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string };
 
 function personName(u: { firstName: string | null; lastName: string | null; preferredName: string | null }) {
   const first = u.preferredName || u.firstName;
@@ -42,18 +36,9 @@ export default async function HubActivityPage({
 
   const LIMIT = 30;
 
-  const [docs, hubThreads, hubReplies, docThreads, docReplies] = await Promise.all([
-    db.hubDocument.findMany({
-      where: { hubId: hub.id, deletedAt: null },
-      select: {
-        id: true, label: true, addedById: true, createdAt: true, updatedAt: true,
-        addedBy: { select: { firstName: true, lastName: true, preferredName: true } },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: LIMIT,
-    }),
+  const [hubThreads, hubReplies] = await Promise.all([
     db.hubConversationThread.findMany({
-      where: { hubId: hub.id, documentId: null, deletedAt: null },
+      where: { hubId: hub.id, deletedAt: null },
       select: {
         id: true, title: true, authorId: true, createdAt: true,
         author: { select: { firstName: true, lastName: true, preferredName: true } },
@@ -62,7 +47,7 @@ export default async function HubActivityPage({
       take: LIMIT,
     }),
     db.hubConversationReply.findMany({
-      where: { thread: { hubId: hub.id, documentId: null, deletedAt: null } },
+      where: { thread: { hubId: hub.id, deletedAt: null } },
       select: {
         id: true, authorId: true, createdAt: true,
         author: { select: { firstName: true, lastName: true, preferredName: true } },
@@ -71,47 +56,9 @@ export default async function HubActivityPage({
       orderBy: { createdAt: "desc" },
       take: LIMIT,
     }),
-    db.hubConversationThread.findMany({
-      where: { hubId: hub.id, deletedAt: null, documentId: { not: null } },
-      select: {
-        id: true, title: true, authorId: true, documentId: true, createdAt: true,
-        author:   { select: { firstName: true, lastName: true, preferredName: true } },
-        document: { select: { label: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: LIMIT,
-    }),
-    db.hubConversationReply.findMany({
-      where: { thread: { hubId: hub.id, documentId: { not: null }, deletedAt: null } },
-      select: {
-        id: true, authorId: true, createdAt: true,
-        author:  { select: { firstName: true, lastName: true, preferredName: true } },
-        thread:  { select: { id: true, title: true, documentId: true, document: { select: { label: true } } } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: LIMIT,
-    }),
   ]);
 
-  // Doc-level access: hide added/updated + comment activity for docs this viewer
-  // can't reach (COORDINATORS visibility). One id-set for all doc-derived items.
-  const accessibleDocIds = await accessibleHubDocumentIds(hub.id, session.user.id, session.user.roles ?? []);
-
   const items: ActivityItem[] = [];
-
-  for (const doc of docs) {
-    if (!accessibleDocIds.has(doc.id)) continue;
-    const isNew = Math.abs(doc.updatedAt.getTime() - doc.createdAt.getTime()) < 5000;
-    items.push({
-      type:       isNew ? "document_added" : "document_updated",
-      id:         `doc-${doc.id}-${isNew ? "added" : "updated"}`,
-      docId:      doc.id,
-      docLabel:   doc.label,
-      authorId:   doc.addedById,
-      authorName: personName(doc.addedBy),
-      ts:         doc.updatedAt.toISOString(),
-    });
-  }
 
   for (const t of hubThreads) {
     items.push({
@@ -126,28 +73,6 @@ export default async function HubActivityPage({
     items.push({
       type: "hub_reply", id: `hub-reply-${r.id}`,
       threadId: r.thread.id, threadTitle: r.thread.title,
-      authorId: r.authorId, authorName: personName(r.author),
-      ts: r.createdAt.toISOString(),
-    });
-  }
-
-  for (const t of docThreads) {
-    if (!accessibleDocIds.has(t.documentId!)) continue;
-    items.push({
-      type: "doc_thread", id: `doc-thread-${t.id}`,
-      threadId: t.id, threadTitle: t.title,
-      docId: t.documentId!, docLabel: t.document?.label ?? "Document",
-      authorId: t.authorId, authorName: personName(t.author),
-      ts: t.createdAt.toISOString(),
-    });
-  }
-
-  for (const r of docReplies) {
-    if (!accessibleDocIds.has(r.thread.documentId!)) continue;
-    items.push({
-      type: "doc_reply", id: `doc-reply-${r.id}`,
-      threadId: r.thread.id, threadTitle: r.thread.title,
-      docId: r.thread.documentId!, docLabel: r.thread.document?.label ?? "Document",
       authorId: r.authorId, authorName: personName(r.author),
       ts: r.createdAt.toISOString(),
     });

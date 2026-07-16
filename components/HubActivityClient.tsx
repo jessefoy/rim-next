@@ -1,31 +1,25 @@
 "use client";
 
 /**
- * HubActivityClient — Unified activity stream for a hub.
+ * HubActivityClient — the hub activity stream.
  * CSS prefix: hub-act-
  *
- * Shows documents, hub conversations, document conversations, and replies
- * in a single chronological river. Filter pills narrow the view.
+ * New conversation threads and replies in one chronological river (native
+ * Documents were retired session 165). Filter pills: All / Mine.
  *
- * Each item shows:
- *   [icon] [label] — [author] · [relative time]
- *
- * Clicking navigates to the source (document page or conversation thread).
+ * Each item shows: [icon] [label] — [author] · [relative time]; clicking
+ * opens the conversation thread.
  */
 
 import { useState } from "react";
 import Link from "next/link";
-import { FileText, MessageSquare, CornerDownRight } from "lucide-react";
+import { MessageSquare, CornerDownRight } from "lucide-react";
 
 type ActivityItem =
-  | { type: "document_added";   id: string; docId: string; docLabel: string; authorId: string; authorName: string; ts: string }
-  | { type: "document_updated"; id: string; docId: string; docLabel: string; authorId: string; authorName: string; ts: string }
-  | { type: "hub_thread";       id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string }
-  | { type: "hub_reply";        id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string }
-  | { type: "doc_thread";       id: string; threadId: string; threadTitle: string; docId: string; docLabel: string; authorId: string; authorName: string; ts: string }
-  | { type: "doc_reply";        id: string; threadId: string; threadTitle: string; docId: string; docLabel: string; authorId: string; authorName: string; ts: string };
+  | { type: "hub_thread"; id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string }
+  | { type: "hub_reply";  id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string };
 
-type Filter = "all" | "documents" | "conversations" | "mine";
+type Filter = "all" | "mine";
 
 interface Props {
   hubSlug: string;
@@ -45,24 +39,8 @@ function relativeTime(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function itemHref(item: ActivityItem, hubSlug: string): string {
-  switch (item.type) {
-    case "document_added":
-    case "document_updated":
-      return `/account/hub/${hubSlug}/documents/${item.docId}`;
-    case "hub_thread":
-    case "hub_reply":
-    case "doc_thread":
-    case "doc_reply":
-      return `/account/hub/${hubSlug}/conversations/${item.threadId}`;
-  }
-}
-
 function ItemIcon({ type }: { type: ActivityItem["type"] }) {
-  if (type === "document_added" || type === "document_updated") {
-    return <FileText size={15} strokeWidth={1.75} className="hub-act-item__icon hub-act-item__icon--doc" />;
-  }
-  if (type === "hub_reply" || type === "doc_reply") {
+  if (type === "hub_reply") {
     return <CornerDownRight size={15} strokeWidth={1.75} className="hub-act-item__icon hub-act-item__icon--reply" />;
   }
   return <MessageSquare size={15} strokeWidth={1.75} className="hub-act-item__icon hub-act-item__icon--conv" />;
@@ -70,33 +48,16 @@ function ItemIcon({ type }: { type: ActivityItem["type"] }) {
 
 function ItemLabel({ item }: { item: ActivityItem }) {
   switch (item.type) {
-    case "document_added":
-      return <><strong>{item.authorName}</strong> added <em>{item.docLabel}</em></>;
-    case "document_updated":
-      return <><strong>{item.authorName}</strong> updated <em>{item.docLabel}</em></>;
     case "hub_thread":
       return <><strong>{item.authorName}</strong> started <em>{item.threadTitle}</em></>;
     case "hub_reply":
       return <><strong>{item.authorName}</strong> replied to <em>{item.threadTitle}</em></>;
-    case "doc_thread":
-      return <><strong>{item.authorName}</strong> started a conversation on <em>{item.docLabel}</em> — {item.threadTitle}</>;
-    case "doc_reply":
-      return <><strong>{item.authorName}</strong> replied on <em>{item.docLabel}</em> — {item.threadTitle}</>;
   }
 }
 
-function matchesFilter(item: ActivityItem, filter: Filter, currentUserId: string): boolean {
-  if (filter === "mine") return item.authorId === currentUserId;
-  if (filter === "documents") return item.type === "document_added" || item.type === "document_updated";
-  if (filter === "conversations") return item.type !== "document_added" && item.type !== "document_updated";
-  return true;
-}
-
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all",           label: "All" },
-  { key: "documents",     label: "Documents" },
-  { key: "conversations", label: "Conversations" },
-  { key: "mine",          label: "Mine" },
+  { key: "all",  label: "All" },
+  { key: "mine", label: "Mine" },
 ];
 
 export default function HubActivityClient({ hubSlug, currentUserId, initialItems }: Props) {
@@ -105,14 +66,13 @@ export default function HubActivityClient({ hubSlug, currentUserId, initialItems
   const [loading, setLoading] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  const visible = items.filter((i) => matchesFilter(i, filter, currentUserId));
+  const visible = items.filter((i) => (filter === "mine" ? i.authorId === currentUserId : true));
 
   async function loadMore() {
     if (!nextCursor || loading) return;
     setLoading(true);
     try {
       const qs = new URLSearchParams({ cursor: nextCursor, limit: "30" });
-      if (filter !== "all" && filter !== "mine") qs.set("filter", filter);
       if (filter === "mine") qs.set("mine", "true");
       const res = await fetch(`/api/hub/${hubSlug}/activity?${qs}`);
       if (!res.ok) throw new Error();
@@ -152,7 +112,7 @@ export default function HubActivityClient({ hubSlug, currentUserId, initialItems
         <ul className="hub-act__list">
           {visible.map((item) => (
             <li key={item.id} className="hub-act__item">
-              <Link href={itemHref(item, hubSlug)} className="hub-act__item-link">
+              <Link href={`/account/hub/${hubSlug}/conversations/${item.threadId}`} className="hub-act__item-link">
                 <ItemIcon type={item.type} />
                 <span className="hub-act__item-label">
                   <ItemLabel item={item} />

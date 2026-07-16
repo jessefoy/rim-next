@@ -120,11 +120,6 @@ model User {
   subClaims       SubClaim[]         @relation("SubClaims")
   // Hub system
   hubMemberships  HubMember[]
-  hubDocuments            HubDocument[] @relation("HubDocumentAuthor")
-  hubDocumentsEditing     HubDocument[] @relation("HubDocumentEditor")
-  hubDocumentsArchived    HubDocument[] @relation("HubDocumentArchiver")
-  hubDocumentsTrashed     HubDocument[] @relation("HubDocumentTrasher")
-  hubDocumentNotifications HubDocumentNotification[]
   hubThreads2     HubConversationThread[]
   hubThreadsArchived HubConversationThread[] @relation("HubThreadArchiver")
   hubThreadsTrashed HubConversationThread[] @relation("HubThreadTrasher")
@@ -936,33 +931,8 @@ enum HubStatus {
 }
 
 
-enum HubDocumentFileType {
-  DOC
-  SHEET
-  SLIDE
-  FORM
-  LINK
-  PDF
-}
-
-// How a HubDocument is authored/stored.
-//   NATIVE — RIM Tiptap editor, content in `body`
-//   LINK   — external URL in `url` (e.g. a Google Drive link)
-//   UPLOAD — uploaded file (e.g. a PDF) in `url`
-enum HubDocKind {
-  NATIVE
-  LINK
-  UPLOAD
-}
-
-// Per-document visibility. Layers on top of hub
-// placement: HUB = all members of the doc's hub(s); COORDINATORS = only those
-// hubs' coordinators; COMMUNITY = any active member, hub-independent.
-enum HubDocVisibility {
-  HUB
-  COORDINATORS
-  COMMUNITY
-}
+// (Native Documents — HubDocument + its enums/models — were retired in
+// session 165; Google Workspace Files is the document/file system now.)
 
 model Hub {
   id                     String        @id @default(cuid())
@@ -975,7 +945,6 @@ model Hub {
   welcomeHeadline        String?
   welcomeBody            Json?
   homeContent            Json?
-  documentCategories     String[]      @default([])
   conversationCategories String[]      @default(["General"])
   // Hub-as-authority for programs (session 128 — Silent Meditation Hub).
   // When `assignmentGrantsTeacher` is true, an active HostAssignment for a
@@ -1051,8 +1020,6 @@ model Hub {
   updatedAt              DateTime      @updatedAt
 
   members       HubMember[]
-  documents     HubDocument[]
-  documentPlacements HubDocumentPlacement[]
   threads       HubConversationThread[]
   appLinks      HubAppLink[]
 
@@ -1165,89 +1132,6 @@ model GoogleFileTransfer {
   @@map("google_file_transfers")
 }
 
-model HubDocument {
-  id          String              @id @default(cuid())
-  hubId       String?             // nullable — hubless project/community docs (shares carry hub access)
-  addedById   String
-  label       String
-  url         String?             // nullable — native docs have no external URL
-  description String?
-  fileType    HubDocumentFileType @default(LINK)
-  category    String?
-  body        Json?               // native editor content (Tiptap HTML; legacy BlockNote JSON) — set when docKind = NATIVE
-  docKind     HubDocKind          @default(NATIVE) // canonical type discriminator (backfilled from isNative/fileType/url)
-  // Google Files cutover (session 165). Set to the created Google file id once
-  // this native doc has been migrated into its Space folder — the idempotency
-  // marker so a re-run never double-migrates. Native rows stay intact until the
-  // separate two-phase retirement; this is additive + reversible.
-  migratedGoogleFileId String?
-  visibility  HubDocVisibility    @default(HUB)    // who can reach this doc (layers on hub placement)
-  isNative    Boolean             @default(false)
-  isLocked    Boolean             @default(false) // Author can lock to prevent edits
-  editingById String?             // Currently editing — presence tracking
-  editingAt   DateTime?           // When the editor was last opened/heartbeat
-
-  // Two-stage lifecycle.
-  //   archivedAt = null + deletedAt = null → ACTIVE (shows in main list)
-  //   archivedAt set, deletedAt = null    → ARCHIVED (read-only, "Archived" filter, visible to all members)
-  //   deletedAt set                        → TRASHED (vanishes from members; visible only to ADMIN/GUIDING_TEACHER/coordinator at /trash)
-  archivedAt   DateTime?
-  archivedById String?
-  deletedAt    DateTime?
-  deletedById  String?
-
-  hub           Hub?     @relation(fields: [hubId], references: [id])
-  addedBy       User     @relation("HubDocumentAuthor", fields: [addedById], references: [id], onDelete: Cascade)
-  editingBy     User?    @relation("HubDocumentEditor", fields: [editingById], references: [id])
-  archivedBy    User?    @relation("HubDocumentArchiver", fields: [archivedById], references: [id])
-  deletedBy     User?    @relation("HubDocumentTrasher",  fields: [deletedById],  references: [id])
-  notifications HubDocumentNotification[]
-  conversations HubConversationThread[]
-  placements    HubDocumentPlacement[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([hubId, deletedAt])
-  @@map("hub_documents")
-}
-
-// Cross-hub sharing. One canonical HubDocument can be
-// *placed in* several hubs — it surfaces in each hub's list (badged) but is
-// never duplicated. Origin hub is HubDocument.hubId (nullable for hubless
-// project/community docs); additional shares are rows here. The create path
-// must reject hubId === document.hubId so the origin hub isn't double-listed.
-model HubDocumentPlacement {
-  id         String   @id @default(cuid())
-  documentId String
-  hubId      String
-  createdAt  DateTime @default(now())
-
-  document HubDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  hub      Hub         @relation(fields: [hubId], references: [id], onDelete: Cascade)
-
-  @@unique([documentId, hubId])
-  @@index([hubId])
-  @@map("hub_document_placements")
-}
-
-// One row per notification sent. No unique constraint on (documentId, userId) —
-// the same person can be notified on creation and again on a later update.
-// "Not yet notified" query: hub members whose userId is NOT IN
-// (SELECT DISTINCT userId FROM hub_document_notifications WHERE documentId = X)
-model HubDocumentNotification {
-  id         String   @id @default(cuid())
-  documentId String
-  userId     String
-  notifiedAt DateTime @default(now())
-  eventType  String   @default("created") // "created" | "updated"
-
-  document HubDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([documentId])
-  @@index([documentId, userId])
-  @@map("hub_document_notifications")
-}
 
 model HubConversationThread {
   id                   String    @id @default(cuid())
@@ -1278,21 +1162,16 @@ model HubConversationThread {
   deletedAt            DateTime?
   deletedById          String?
 
-  // When set, this thread belongs to a document rather than the hub conversations feed.
-  documentId           String?
-
   hub           Hub               @relation(fields: [hubId], references: [id])
   author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   archivedBy    User?             @relation("HubThreadArchiver", fields: [archivedById], references: [id])
   deletedBy     User?             @relation("HubThreadTrasher", fields: [deletedById], references: [id])
-  document      HubDocument?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
   replies       HubConversationReply[]
   subscriptions HubThreadSubscription[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
   @@index([hubId, deletedAt])
-  @@index([documentId])
   @@map("hub_conversation_threads")
 }
 

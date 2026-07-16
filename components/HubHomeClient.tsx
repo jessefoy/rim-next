@@ -50,12 +50,6 @@ interface RecentThread {
   updatedAt: string;
 }
 
-interface RecentDoc {
-  id: string;
-  label: string;
-  isNative: boolean;
-  updatedAt: string;
-}
 
 interface Props {
   slug: string;
@@ -68,7 +62,6 @@ interface Props {
   hasWelcomeContent: boolean;
   pinnedThreads: PinnedThread[];
   recentThreads: RecentThread[];
-  recentDocs: RecentDoc[];
   homeContentHtml: string;
 }
 
@@ -103,7 +96,6 @@ export default function HubHomeClient({
   hasWelcomeContent,
   pinnedThreads,
   recentThreads,
-  recentDocs,
   homeContentHtml,
 }: Props) {
   const [showWelcome, setShowWelcome] = useState(isNewcomer && hasWelcomeContent);
@@ -180,45 +172,23 @@ export default function HubHomeClient({
       )}
 
       {/* ── Activity rail ── */}
-      {(recentThreads.length > 0 || recentDocs.length > 0) && (
+      {recentThreads.length > 0 && (
         <section className="hub-home__activity">
-          {recentThreads.length > 0 && (
-            <ActivityCard
-              heading="Recent conversations"
-              viewAllHref={`/account/hub/${slug}/conversations`}
-            >
-              {recentThreads.map((t) => (
-                <ActivityRow
-                  key={t.id}
-                  href={`/account/hub/${slug}/conversations/${t.id}`}
-                  title={t.title}
-                  meta={`${t.authorName} · ${t.replyCount} ${
-                    t.replyCount === 1 ? "reply" : "replies"
-                  } · ${relativeTime(t.updatedAt)}`}
-                />
-              ))}
-            </ActivityCard>
-          )}
-
-          {recentDocs.length > 0 && (
-            <ActivityCard
-              heading="Recent documents"
-              viewAllHref={`/account/hub/${slug}/documents`}
-            >
-              {recentDocs.map((d) => (
-                <ActivityRow
-                  key={d.id}
-                  href={
-                    d.isNative
-                      ? `/account/hub/${slug}/documents/${d.id}`
-                      : `/account/hub/${slug}/documents`
-                  }
-                  title={d.label}
-                  meta={relativeTime(d.updatedAt)}
-                />
-              ))}
-            </ActivityCard>
-          )}
+          <ActivityCard
+            heading="Recent conversations"
+            viewAllHref={`/account/hub/${slug}/conversations`}
+          >
+            {recentThreads.map((t) => (
+              <ActivityRow
+                key={t.id}
+                href={`/account/hub/${slug}/conversations/${t.id}`}
+                title={t.title}
+                meta={`${t.authorName} · ${t.replyCount} ${
+                  t.replyCount === 1 ? "reply" : "replies"
+                } · ${relativeTime(t.updatedAt)}`}
+              />
+            ))}
+          </ActivityCard>
         </section>
       )}
 

@@ -64,7 +64,6 @@ export default async function HubConvThreadPage({
     where: { id },
     include: {
       author:   { select: { firstName: true, lastName: true, preferredName: true } },
-      document: { select: { id: true, label: true } },
       replies: {
         include: {
           author: { select: { firstName: true, lastName: true, preferredName: true } },
@@ -90,8 +89,6 @@ export default async function HubConvThreadPage({
 
   const serialized = {
     id:           thread.id,
-    documentId:   thread.documentId ?? null,
-    documentLabel: thread.document?.label ?? null,
     title:    thread.title,
     body:     thread.body,
     bodyHtml: await renderFormattedTextAsync(thread.body),
