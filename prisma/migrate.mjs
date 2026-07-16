@@ -5391,6 +5391,28 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ community_space_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Google cutover marker (session 165) — records the Google file id once a
+  // native HubDocument has been migrated, so the migrate step is idempotent
+  // and never double-migrates. Additive; native rows are untouched until the
+  // separate two-phase retirement.
+  // ───────────────────────────────────────────────────────────────────────
+  const migratedColFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'hub_document_migrated_google_file_id_v1'
+  `).catch(() => []);
+  if (migratedColFlag.length === 0) {
+    console.log("→ hub_documents.migratedGoogleFileId (Google cutover marker)…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_documents" ADD COLUMN IF NOT EXISTS "migratedGoogleFileId" TEXT`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('hub_document_migrated_google_file_id_v1')`,
+    );
+    console.log("  ✔ column ready.");
+  } else {
+    console.log("  ⏭ hub_document_migrated_google_file_id_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

@@ -1,5 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { importHtmlAsDoc } from "@/lib/google/drive";
+import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
+import { resolveCommunityDrive, logFileAction, sanitizeFileName } from "@/lib/googleFiles";
 
 /**
  * Native-documents → Google Files migration — the DRY-RUN reporter
@@ -152,4 +155,89 @@ export async function buildMigrationDryRun(): Promise<MigrationDryRun> {
   }
 
   return r;
+}
+
+/**
+ * The write step: migrate up to `limit` ACTIVE native docs into their home
+ * Space folder as Google Docs. Idempotent — a doc with migratedGoogleFileId
+ * set is skipped, so re-running continues where it left off (and a mid-batch
+ * failure never double-migrates). Additive: the native HubDocument row is
+ * left intact (retirement is a separate two-phase step). Empty docs migrate as
+ * empty Google Docs so nothing is left behind. Home = origin hub, else first
+ * placement hub, else the Community Drive (hubless).
+ */
+export interface MigrateOutcome {
+  migrated: number;
+  emptyMigrated: number;
+  failed: { label: string; error: string }[];
+  remaining: number;
+}
+
+export async function migrateDocuments(opts: {
+  limit: number;
+  actorUserId: string;
+}): Promise<MigrateOutcome> {
+  const folderSelect = { googleRootFolderId: true, googleDriveId: true } as const;
+  const candidates = await db.hubDocument.findMany({
+    where: {
+      deletedAt: null,
+      archivedAt: null,
+      docKind: "NATIVE",
+      migratedGoogleFileId: null,
+    },
+    select: {
+      id: true,
+      label: true,
+      body: true,
+      hub: { select: folderSelect },
+      placements: { select: { hub: { select: folderSelect } }, take: 1 },
+    },
+    orderBy: { createdAt: "asc" },
+    take: opts.limit,
+  });
+
+  const community = await resolveCommunityDrive();
+  const outcome: MigrateOutcome = { migrated: 0, emptyMigrated: 0, failed: [], remaining: 0 };
+
+  for (const doc of candidates) {
+    // Home Space folder: origin hub, else first placement, else Community.
+    const parentId =
+      doc.hub?.googleRootFolderId ??
+      doc.hub?.googleDriveId ??
+      doc.placements[0]?.hub.googleRootFolderId ??
+      doc.placements[0]?.hub.googleDriveId ??
+      community?.id ??
+      null;
+    if (!parentId) {
+      outcome.failed.push({ label: doc.label, error: "no home Space folder" });
+      continue;
+    }
+    try {
+      const html = await renderContentBodyAsync(doc.body, "document");
+      const name = sanitizeFileName(doc.label) ?? "Untitled document";
+      const file = await importHtmlAsDoc({ name, html, parentId });
+      await db.hubDocument.update({
+        where: { id: doc.id },
+        data: { migratedGoogleFileId: file.id },
+      });
+      await logFileAction({
+        userId: opts.actorUserId,
+        action: "migrate-document",
+        googleFileId: file.id,
+        detail: { hubDocumentId: doc.id, label: doc.label, empty: html.trim().length === 0 },
+      });
+      outcome.migrated++;
+      if (html.trim().length === 0) outcome.emptyMigrated++;
+    } catch (e) {
+      outcome.failed.push({
+        label: doc.label,
+        error: e instanceof Error ? e.message : "migration failed",
+      });
+    }
+  }
+
+  outcome.remaining = await db.hubDocument.count({
+    where: { deletedAt: null, archivedAt: null, docKind: "NATIVE", migratedGoogleFileId: null },
+  });
+  return outcome;
 }

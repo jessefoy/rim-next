@@ -1176,6 +1176,11 @@ model HubDocument {
   category    String?
   body        Json?               // native editor content (Tiptap HTML; legacy BlockNote JSON) — set when docKind = NATIVE
   docKind     HubDocKind          @default(NATIVE) // canonical type discriminator (backfilled from isNative/fileType/url)
+  // Google Files cutover (session 165). Set to the created Google file id once
+  // this native doc has been migrated into its Space folder — the idempotency
+  // marker so a re-run never double-migrates. Native rows stay intact until the
+  // separate two-phase retirement; this is additive + reversible.
+  migratedGoogleFileId String?
   visibility  HubDocVisibility    @default(HUB)    // who can reach this doc (layers on hub placement)
   isNative    Boolean             @default(false)
   isLocked    Boolean             @default(false) // Author can lock to prevent edits

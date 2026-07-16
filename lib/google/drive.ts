@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { getGoogleAccessToken } from "./auth";
+import { GOOGLE_MIME } from "./mime";
 
 /**
  * Google Drive REST helpers — server-only, the thin primitives under RIM's
@@ -406,6 +407,53 @@ export async function uploadFileContent(opts: {
     throw new Error(`Drive upload failed (${putRes.status}): ${await putRes.text()}`);
   }
   return putRes.json();
+}
+
+/**
+ * Import an HTML string as a native Google Doc into a Shared Drive folder
+ * (the native-docs → Google cutover, RIM_GoogleWorkspace.md §6). Drive
+ * converts the uploaded text/html into a real Google Doc when the file's
+ * metadata mimeType is application/vnd.google-apps.document — a multipart
+ * upload carries the metadata + the HTML in one request. Small payloads only
+ * (a native doc's body), so multipart (not resumable) is fine.
+ */
+export async function importHtmlAsDoc(opts: {
+  name: string;
+  html: string;
+  parentId: string;
+}): Promise<DriveFile> {
+  const token = await getGoogleAccessToken();
+  const boundary = `rimdoc${randomUUID().replace(/-/g, "")}`;
+  const metadata = {
+    name: opts.name,
+    mimeType: GOOGLE_MIME.doc,
+    parents: [opts.parentId],
+  };
+  const body =
+    `--${boundary}\r\n` +
+    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+    `${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\n` +
+    `Content-Type: text/html; charset=UTF-8\r\n\r\n` +
+    `${opts.html}\r\n` +
+    `--${boundary}--`;
+  const params = new URLSearchParams({
+    supportsAllDrives: "true",
+    uploadType: "multipart",
+    fields: FILE_FIELDS,
+  });
+  const res = await fetch(`${UPLOAD_API_BASE}/files?${params}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": `multipart/related; boundary=${boundary}`,
+    },
+    body,
+  });
+  if (!res.ok) {
+    throw new Error(`Drive HTML import failed (${res.status}): ${await res.text()}`);
+  }
+  return res.json();
 }
 
 /**

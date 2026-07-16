@@ -29,6 +29,49 @@ export default function MigrateDocumentsClient() {
   const [running, setRunning] = useState(false);
   const [report, setReport] = useState<DryRun | null>(null);
   const [error, setError] = useState("");
+  const [migrating, setMigrating] = useState(false);
+  const [migrateMsg, setMigrateMsg] = useState("");
+
+  // Migrate a test batch (2) or loop idempotent batches until none remain.
+  async function runMigrate(all: boolean) {
+    if (all && !window.confirm("Migrate all remaining native docs into their Google Space folders? Native docs stay intact; this only creates the Google copies.")) {
+      return;
+    }
+    setMigrating(true);
+    setMigrateMsg("");
+    let totalMigrated = 0;
+    let totalEmpty = 0;
+    let totalFailed = 0;
+    try {
+      const limit = all ? 25 : 2;
+      let remaining = Infinity;
+      do {
+        const res = await fetch("/api/admin/migrate-documents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "migrate", limit }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setMigrateMsg(data.error ?? "The migration couldn't complete.");
+          break;
+        }
+        totalMigrated += data.outcome.migrated;
+        totalEmpty += data.outcome.emptyMigrated;
+        totalFailed += data.outcome.failed.length;
+        remaining = data.outcome.remaining;
+        setMigrateMsg(
+          `Migrated ${totalMigrated}${totalEmpty ? ` (${totalEmpty} empty)` : ""} · ${remaining} remaining${totalFailed ? ` · ${totalFailed} failed` : ""}`,
+        );
+        if (!all) break;
+        if (data.outcome.migrated === 0) break; // no progress this batch — stop
+      } while (remaining > 0);
+    } catch {
+      setMigrateMsg("Couldn't reach the server. Please try again.");
+    } finally {
+      setMigrating(false);
+    }
+  }
 
   async function runDryRun() {
     setRunning(true);
@@ -62,10 +105,20 @@ export default function MigrateDocumentsClient() {
   return (
     <div>
       <div className="adm-hubs-bulk">
-        <button type="button" className="adm-hubs-btn-toggle" onClick={runDryRun} disabled={running}>
+        <button type="button" className="adm-hubs-btn-toggle" onClick={runDryRun} disabled={running || migrating}>
           {running ? "Running dry-run…" : "Run dry-run"}
         </button>
         {error && <span className="adm-hubs-hint" style={{ color: "var(--color-error)" }}>{error}</span>}
+      </div>
+
+      <div className="adm-hubs-bulk">
+        <button type="button" className="adm-hubs-btn-toggle" onClick={() => runMigrate(false)} disabled={migrating || running}>
+          {migrating ? "Migrating…" : "Migrate 2 (test)"}
+        </button>
+        <button type="button" className="adm-hubs-btn-toggle" onClick={() => runMigrate(true)} disabled={migrating || running}>
+          Migrate all remaining
+        </button>
+        {migrateMsg && <span className="adm-hubs-hint">{migrateMsg}</span>}
       </div>
 
       {report && (

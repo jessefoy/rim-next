@@ -25,8 +25,10 @@ export default async function MigrateDocumentsPage() {
           <div>
             <h1 className="ac-page-title">Migrate native documents to Google Files</h1>
             <p className="ac-page-sub">
-              The dry-run reports what would move — nothing is written until we
-              build and run the migrate step. Native documents stay untouched.
+              Run the dry-run to see what moves. &ldquo;Migrate 2 (test)&rdquo;
+              copies two docs so you can eyeball them in Files first;
+              &ldquo;Migrate all remaining&rdquo; does the rest. Native
+              documents stay intact — this only creates the Google copies.
             </p>
           </div>
         </div>
