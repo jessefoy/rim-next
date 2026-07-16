@@ -396,9 +396,17 @@ export async function authorizeFileRequest(
   const viewer = filesViewer(session);
   if (!viewer) return { ok: false, status: 401, error: "Please sign in." };
   const [file, places] = await Promise.all([
-    getFile(fileId),
+    // getFileOrNull, not getFile: a file permanently deleted directly in Google
+    // Drive (an admin escape hatch — members have no Drive access) 404s. Return
+    // an honest "no longer available" instead of throwing into the caller's
+    // generic "try again" (which reads as a transient blip). A real transient
+    // error still throws → the route's 502.
+    getFileOrNull(fileId),
     getAccessiblePlaces(viewer.userId, viewer.roles),
   ]);
+  if (!file) {
+    return { ok: false, status: 404, error: "This file is no longer available." };
+  }
   // Subtree-aware: a file on a shared Drive belongs to whichever Space's
   // folder actually contains it, not to every place that shares the Drive.
   const place = await resolvePlaceForFile(places, file);
@@ -866,6 +874,53 @@ export async function resolveWritablePlace(
     };
   }
   return { ok: true, data: { viewer, place } };
+}
+
+/**
+ * Purge RIM per-file state (comments + GoogleFileMeta) for files that have been
+ * PERMANENTLY deleted directly in Google Drive (an admin escape hatch around
+ * RIM's governed-deletion flow — members have no Drive access). Those rows are
+ * loose-referenced by googleFileId, so a Drive delete never errors RIM; it just
+ * leaves orphans. This is the daily backstop that clears them.
+ *
+ * Only a CONFIRMED 404 (getFileOrNull → null) counts as gone: a file merely in
+ * Google's trash still resolves (recoverable for 30 days — its comments must
+ * survive so they reattach on restore), and a transient error (getFileOrNull
+ * throws → caught → skipped) never deletes anything. The GoogleFileAudit log is
+ * deliberately NOT swept — it's RIM's permanent record of who did what,
+ * independent of whether the file still exists. Capped per run (member-scale
+ * filing needs no unbounded Drive traffic); logs when it caps.
+ */
+export async function sweepOrphanFileData(
+  maxChecks = 300,
+): Promise<{ checked: number; purgedFiles: number; comments: number; metas: number; capped: boolean }> {
+  const empty = { checked: 0, purgedFiles: 0, comments: 0, metas: 0, capped: false };
+  if (!googleConfigured()) return empty;
+  const [metaRows, commentRows] = await Promise.all([
+    db.googleFileMeta.findMany({ select: { googleFileId: true } }),
+    db.fileComment.findMany({ select: { googleFileId: true }, distinct: ["googleFileId"] }),
+  ]);
+  const allIds = [...new Set([...metaRows.map((r) => r.googleFileId), ...commentRows.map((r) => r.googleFileId)])];
+  const capped = allIds.length > maxChecks;
+  const ids = allIds.slice(0, maxChecks);
+
+  const gone: string[] = [];
+  for (let i = 0; i < ids.length; i += 5) {
+    const chunk = ids.slice(i, i + 5);
+    const results = await Promise.all(
+      // .catch → undefined so a transient Drive error is skipped this run
+      // (only a definitive null = permanent 404 marks a file gone).
+      chunk.map((id) => getFileOrNull(id).then((f) => ({ id, f })).catch(() => ({ id, f: undefined }))),
+    );
+    for (const r of results) if (r.f === null) gone.push(r.id);
+  }
+  if (gone.length === 0) return { checked: ids.length, purgedFiles: 0, comments: 0, metas: 0, capped };
+
+  const [c, m] = await Promise.all([
+    db.fileComment.deleteMany({ where: { googleFileId: { in: gone } } }),
+    db.googleFileMeta.deleteMany({ where: { googleFileId: { in: gone } } }),
+  ]);
+  return { checked: ids.length, purgedFiles: gone.length, comments: c.count, metas: m.count, capped };
 }
 
 /**

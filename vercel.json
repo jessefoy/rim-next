@@ -37,6 +37,10 @@
     {
       "path": "/api/cron/process-file-transfers",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/sweep-orphan-file-data",
+      "schedule": "45 9 * * *"
     }
   ]
 }

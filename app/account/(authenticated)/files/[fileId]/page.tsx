@@ -25,7 +25,7 @@
 
 import { auth } from "@/auth";
 import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import AccountLayout from "@/components/AccountLayout";
 import FileDetailActions from "@/components/FileDetailActions";
 import FileConversation from "@/components/FileConversation";
@@ -73,8 +73,9 @@ export default async function FileDetailPage({
   const { fileId } = await params;
   const { from } = await searchParams;
 
-  // Distinguish a genuine denial (notFound/redirect) from a transient Drive
-  // blip (graceful "try again"). getFile can throw inside authorizeFileRead.
+  // Distinguish a genuine denial (a clean gate result) from a transient Drive
+  // blip (a thrown error → "try again"). authorizeFileRead returns a 404 for a
+  // file that's gone or unreachable; it only throws on a real transient failure.
   let loadFailed = false;
   let gate: Awaited<ReturnType<typeof authorizeFileRead>> | null = null;
   try {
@@ -85,13 +86,27 @@ export default async function FileDetailPage({
 
   const backHref = from && from.startsWith("/account/") ? from : "/account/dashboard";
 
-  // Control-flow throws (redirect/notFound) live outside the try above.
+  // redirect() throws, so it lives outside the try above.
+  if (gate && !gate.ok && gate.status === 401) redirect("/login");
+
+  // A clean denial (file gone / no access) → a calm in-context message with the
+  // gate's own honest text ("This file is no longer available." / "You don't
+  // have access…"), not a raw 404 page.
   if (gate && !gate.ok) {
-    if (gate.status === 401) redirect("/login");
-    notFound();
+    return (
+      <AccountLayout>
+        <div className="gf-detail">
+          <a className="gf-detail__back" href={backHref}>
+            &larr; Back to files
+          </a>
+          <p className="gf-status">{gate.error}</p>
+        </div>
+      </AccountLayout>
+    );
   }
 
-  if (loadFailed || !gate || !gate.ok) {
+  // A thrown error is a transient blip — invite a retry.
+  if (loadFailed || !gate) {
     return (
       <AccountLayout>
         <div className="gf-detail">
