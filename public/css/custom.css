@@ -27640,7 +27640,9 @@ input.w-button { -webkit-appearance: button; }
 
 /* ── File conversation: one flat discussion on the file's detail page. Calm
    white comment cards on the page ground, a quiet compose box. ── */
-.gf-conv { margin-top: 32px; max-width: var(--reading-width); }
+/* Span the full detail-page width so the compose box + comment cards line up
+   with the header card and the document above them (no narrower "step"). */
+.gf-conv { margin-top: 32px; }
 .gf-conv__title {
   font-size: var(--text-h4);
   margin: 0 0 16px;
