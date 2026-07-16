@@ -5589,6 +5589,47 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ file_comments_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Retire the Community Space (Phase 1). The open-to-all Community hub is
+  // removed: every Space is now stewarded with a real roster, which the
+  // governed-deletion + notification work depends on. Deleting ROWS is safe
+  // against the still-live previous deploy during the build-time migrate
+  // window (it just sees fewer hubs; the community Files place resolved by
+  // Drive NAME still works until the new code ships). The openToAllMembers
+  // COLUMN drop is deferred to a Phase-2 follow-up deploy — old code still
+  // SELECTs it, so dropping it here would 500 the live old code. FK-safe:
+  // threads cascade their replies + subscriptions (schema onDelete: Cascade);
+  // app links + members are cleared before the hub row.
+  // ───────────────────────────────────────────────────────────────────────
+  const retireCommunityFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'retire_community_space_v1'
+  `).catch(() => []);
+
+  if (retireCommunityFlag.length === 0) {
+    console.log("→ Retiring the Community Space (deleting the community hub)…");
+    const community = await db.hub.findUnique({
+      where: { slug: "community" },
+      select: { id: true },
+    });
+    if (community) {
+      const hubId = community.id;
+      const threads = await db.hubConversationThread.deleteMany({ where: { hubId } });
+      const links = await db.hubAppLink.deleteMany({ where: { hubId } });
+      const members = await db.hubMember.deleteMany({ where: { hubId } });
+      await db.hub.delete({ where: { id: hubId } });
+      console.log(
+        `  ✔ deleted community hub (+ ${threads.count} thread(s), ${links.count} app link(s), ${members.count} member(s)). openToAllMembers column drops in Phase 2.`,
+      );
+    } else {
+      console.log("  ⏭ no community hub found — nothing to delete.");
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('retire_community_space_v1')`,
+    );
+  } else {
+    console.log("  ⏭ retire_community_space_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

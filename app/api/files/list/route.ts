@@ -1,8 +1,8 @@
 /**
  * GET /api/files/list?place=<key>&folder=<id> — one folder of one place.
  *
- * The Finder's navigation endpoint. The place key ("community" / "hub:<slug>")
- * is resolved + authorized server-side (lib/googleFiles.ts); the folder id is
+ * The Finder's navigation endpoint. The place key ("hub:<slug>") is resolved
+ * + authorized server-side (lib/googleFiles.ts); the folder id is
  * verified to live in that place's drive before its name is returned. The
  * client never supplies a drive id.
  */

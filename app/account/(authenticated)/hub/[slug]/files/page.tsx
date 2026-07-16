@@ -32,21 +32,17 @@ export default async function HubFilesPage({
 
   const roles = session.user.roles ?? [];
   const { hub, member } = await getHubMembership(slug, session.user.id, roles);
-  if (!hub || !canAccessHub(member, roles, hub.openToAllMembers)) redirect("/account/dashboard");
+  if (!hub || !canAccessHub(member, roles)) redirect("/account/dashboard");
   if (hub.status !== "ACTIVE") redirect(`/account/hub/${slug}`);
 
-  // An open-to-all Space (Community) has no hub drive mapping — its files live
-  // on the name-resolved "RIM — Community" Drive, reached through the shared
-  // `community` place (open + writable for every member, session 163). Every
-  // other hub uses its own mapped drive place and the ACTIVE-membership write
-  // rule. Both keys are authorized server-side by getAccessiblePlaces, so this
-  // page never renders a place the Files API would refuse.
-  const isCommunitySpace = hub.openToAllMembers && !hub.googleDriveId;
-  if (!isCommunitySpace && (!hub.googleFilesEnabled || !hub.googleDriveId)) {
+  // Every Space uses its own mapped Drive place and the ACTIVE-membership
+  // write rule; the place key is authorized server-side by getAccessiblePlaces,
+  // so this page never renders a place the Files API would refuse.
+  if (!hub.googleFilesEnabled || !hub.googleDriveId) {
     redirect(`/account/hub/${slug}`);
   }
-  const placeKey = isCommunitySpace ? "community" : `hub:${slug}`;
-  const canWrite = isCommunitySpace ? true : hubWriteAllowed(roles, member?.status);
+  const placeKey = `hub:${slug}`;
+  const canWrite = hubWriteAllowed(roles, member?.status);
 
   return (
     <div>

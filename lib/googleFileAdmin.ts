@@ -6,7 +6,7 @@ import {
   getFileOrNull,
   revokeAnyonePermission,
 } from "@/lib/google/drive";
-import { logFileAction, resolveCommunityDrive } from "@/lib/googleFiles";
+import { logFileAction } from "@/lib/googleFiles";
 
 /**
  * Admin link revoke/lockdown (RIM_GoogleWorkspace.md §5; backlog
@@ -38,28 +38,22 @@ async function runInBatches<T, R>(
 }
 
 export interface AdminPlace {
-  /** "community" or "hub:<slug>" — mirrors the FilesPlace key convention. */
+  /** "hub:<slug>" — mirrors the FilesPlace key convention. */
   key: string;
   name: string;
-  /** The audit-log grouping key — null means Community. */
+  /** The audit-log grouping key (the owning hub id). */
   hubId: string | null;
 }
 
 /** Every files-enabled place, admin-wide — no membership filter. */
 export async function getAllFilesPlaces(): Promise<AdminPlace[]> {
   if (!googleConfigured()) return [];
-  const [community, hubs] = await Promise.all([
-    resolveCommunityDrive(),
-    db.hub.findMany({
-      where: { googleFilesEnabled: true, googleDriveId: { not: null } },
-      select: { id: true, slug: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
-  const places: AdminPlace[] = [];
-  if (community) places.push({ key: "community", name: "Community", hubId: null });
-  for (const h of hubs) places.push({ key: `hub:${h.slug}`, name: h.name, hubId: h.id });
-  return places;
+  const hubs = await db.hub.findMany({
+    where: { googleFilesEnabled: true, googleDriveId: { not: null } },
+    select: { id: true, slug: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  return hubs.map((h) => ({ key: `hub:${h.slug}`, name: h.name, hubId: h.id }));
 }
 
 /** Resolve one admin place by key — derived from getAllFilesPlaces so there's

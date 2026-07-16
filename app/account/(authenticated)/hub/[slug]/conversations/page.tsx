@@ -27,7 +27,7 @@ export default async function HubConversationsPage({
   if (!session) redirect("/login");
 
   const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!hub?.conversationsEnabled || !canAccessHub(member, session.user.roles ?? [], hub?.openToAllMembers))) redirect("/account/dashboard");
+  if (!hub || (!hub?.conversationsEnabled || !canAccessHub(member, session.user.roles ?? []))) redirect("/account/dashboard");
 
   const priorLastVisitedAt = member?.lastVisitedAt?.toISOString() ?? null;
 

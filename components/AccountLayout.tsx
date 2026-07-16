@@ -39,18 +39,6 @@ export default async function AccountLayout({
       });
       hubLinks = rows.map((m) => ({ slug: m.hub.slug, name: m.hub.name }));
     }
-    // Open-to-all Spaces (Community, session 165) belong in every member's rail
-    // even without a HubMember row. Merge them in, de-duped by slug (admins
-    // already list every hub). Generalizes to any future open-to-all Space.
-    const openHubs = await db.hub.findMany({
-      where: { status: "ACTIVE", openToAllMembers: true },
-      select: { slug: true, name: true },
-      orderBy: { name: "asc" },
-    });
-    const seenSlugs = new Set(hubLinks.map((h) => h.slug));
-    for (const h of openHubs) {
-      if (!seenSlugs.has(h.slug)) hubLinks.push(h);
-    }
   }
 
   if (suppressSidebar) {

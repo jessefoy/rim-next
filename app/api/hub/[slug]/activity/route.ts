@@ -36,7 +36,7 @@ export async function GET(
   const { slug } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!canAccessHub(member, session.user.roles ?? [], hub?.openToAllMembers)) {
+  if (!canAccessHub(member, session.user.roles ?? [])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

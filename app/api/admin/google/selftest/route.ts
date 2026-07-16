@@ -15,10 +15,10 @@ import { auth } from "@/auth";
 import {
   GOOGLE_MIME,
   createFile,
-  listSharedDrives,
   permanentlyDeleteFile,
   setAnyoneWithLinkEditor,
 } from "@/lib/google/drive";
+import { resolveSpacesContainerDrive } from "@/lib/googleFiles";
 
 export const dynamic = "force-dynamic";
 
@@ -38,20 +38,17 @@ export async function POST() {
   let fileId: string | null = null;
 
   try {
-    // 1. Find the Community drive — the ONLY drive this test writes into.
-    // No fallback to an arbitrary drive: if cleanup ever failed, a stray
-    // world-editable test file must not land in a real (possibly sensitive)
-    // team's drive.
-    const drives = await listSharedDrives();
-    const drive = drives.find((d) => /community/i.test(d.name));
+    // 1. Find the "RIM — Spaces" container drive — the ONLY drive this test
+    // writes into. No fallback to an arbitrary drive: if cleanup ever failed,
+    // a stray world-editable test file must not land in a real (possibly
+    // sensitive) team's drive.
+    const drive = await resolveSpacesContainerDrive();
     steps.push({
-      name: "Find the Community drive",
+      name: "Find the Spaces container drive",
       ok: Boolean(drive),
       detail: drive
         ? `using “${drive.name}”`
-        : drives.length === 0
-          ? "no drives visible — create one in Google Drive and add the service account as a Manager"
-          : "no drive named like “Community” — this test only writes there by design; create “RIM — Community” and add the service account as a Manager",
+        : "no “RIM — Spaces” drive visible — create it in Google Drive and add the service account as a Manager",
     });
     if (!drive) return NextResponse.json({ ok: false, steps });
 

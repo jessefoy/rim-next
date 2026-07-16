@@ -22,7 +22,7 @@ export async function POST(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if ((!hub?.conversationsEnabled || !canAccessHub(member, session.user.roles ?? [], hub?.openToAllMembers))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if ((!hub?.conversationsEnabled || !canAccessHub(member, session.user.roles ?? []))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const thread = await db.hubConversationThread.findUnique({ where: { id } });
   if (!thread || thread.hubId !== hub.id) {

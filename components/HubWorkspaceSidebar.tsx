@@ -60,7 +60,6 @@ interface Props {
     /** Open-to-all Space (Community, session 165): membership is universal, so
      *  there's no roster and no per-hub coordinators — hide Documents (native,
      *  being retired) + Members, leaving the participation surfaces. */
-    openToAll?: boolean;
     /** Per-hub Conversations switch (session 165). Default on; when off, the
      *  Conversations tab is hidden (and its routes deny). */
     conversationsEnabled?: boolean;
@@ -133,25 +132,12 @@ export default function HubWorkspaceSidebar({
   const conversationsItem = convEnabled
     ? [{ label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 }]
     : [];
-  // An open-to-all Space (Community) shows only the participation surfaces:
-  // Activity + Conversations (only while Conversations is on — Activity is just
-  // conversation activity there) and Files (always). Members (no roster when
-  // membership is universal) is hidden. (Native Documents was retired in
-  // session 165 — Files is the document surface now.)
-  const otherItems = hub.openToAll
-    ? [
-        ...(convEnabled
-          ? [{ label: "Activity", href: `${base}/activity`, icon: Activity, badge: 0 }]
-          : []),
-        ...conversationsItem,
-        ...filesItem,
-      ]
-    : [
-        { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
-        ...conversationsItem,
-        ...filesItem,
-        { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
-      ];
+  const otherItems = [
+    { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
+    ...conversationsItem,
+    ...filesItem,
+    { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
+  ];
 
   function isActive(href: string, exact: boolean) {
     if (exact) return pathname === href;
@@ -168,14 +154,10 @@ export default function HubWorkspaceSidebar({
   }
 
   const coordSummary = coordinatorSummary(hub.coordinatorNames);
-  // An open-to-all Space has no roster — a member count ("0 members") would
-  // misread, so name the openness instead.
-  const metaLine = hub.openToAll
-    ? "Open to all members"
-    : [
-        coordSummary,
-        `${hub.memberCount} ${hub.memberCount === 1 ? "member" : "members"}`,
-      ].filter(Boolean).join(" · ");
+  const metaLine = [
+    coordSummary,
+    `${hub.memberCount} ${hub.memberCount === 1 ? "member" : "members"}`,
+  ].filter(Boolean).join(" · ");
 
   return (
     <>

@@ -15,17 +15,12 @@ import {
 /**
  * The Files system's places + authorization layer (RIM_GoogleWorkspace.md).
  *
- * A "place" is a location in the Finder's sidebar: the Community drive plus
- * each files-enabled hub drive the viewer can enter. RIM's database is the
- * permission system — every Files route resolves the target drive from these
- * server-side mappings and NEVER from a client-supplied drive id. The access
- * rules mirror the documents model:
- *   - hub places:      a HubMember row (any status) OR GUIDING_TEACHER —
- *                      the same door as lib/hubAuth.ts::canAccessHub.
- *                      ADMIN-alone does not pass (the session-128 boundary).
- *   - Community place: any signed-in member (decided session 163: Community
- *                      is readable AND editable by all members — "tended,
- *                      not gated"; revisit if the need arises).
+ * A "place" is a location in the Finder's sidebar: each files-enabled hub
+ * (Space) drive the viewer can enter. RIM's database is the permission system
+ * — every Files route resolves the target drive from these server-side
+ * mappings and NEVER from a client-supplied drive id. Access mirrors the hub
+ * door: a HubMember row (any status) OR GUIDING_TEACHER (lib/hubAuth.ts::
+ * canAccessHub); ADMIN-alone does not pass (the session-128 boundary).
  */
 
 /**
@@ -54,9 +49,9 @@ export function filesViewer(
 }
 
 export interface FilesPlace {
-  /** "community" or "hub:<slug>" — the key the client passes back. */
+  /** "hub:<slug>" — the key the client passes back. */
   key: string;
-  kind: "community" | "hub";
+  kind: "hub";
   hubSlug: string | null;
   /** The origin hub's DB id (hub places only) — for audit attribution. */
   hubId: string | null;
@@ -96,49 +91,8 @@ export function hubWriteAllowed(
   return roles.includes("GUIDING_TEACHER") || memberStatus === "ACTIVE";
 }
 
-/**
- * The Community drive is the ONE Shared Drive whose name is the reserved
- * "Community" (or "RIM — Community"), matched exactly after normalizing case,
- * dashes, and spacing. Exact match — not a substring — so a restricted hub
- * drive that merely contains the word (e.g. "RIM — Community Care Team")
- * can never be surfaced as the all-members Community place (reviewer,
- * session 163). Decided over an env var (session 163): zero config, and the
- * name is admin-controlled at drive creation.
- */
-function isCommunityDriveName(name: string): boolean {
-  const normalized = name
-    .toLowerCase()
-    .replace(/[—–-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return normalized === "community" || normalized === "rim community";
-}
-
-/**
- * Cached ~5 minutes per warm instance. On a refresh FAILURE we serve the
- * previous (now-stale) value rather than null: a transient Drive blip must
- * not become an authorization denial for every Community file — serving the
- * last-known drive id is correct, since drive identity effectively never
- * changes (reviewer, session 163).
- */
-let communityCache: { drive: { id: string; name: string } | null; at: number } | null = null;
-const COMMUNITY_TTL_MS = 5 * 60_000;
-
-export async function resolveCommunityDrive(): Promise<{ id: string; name: string } | null> {
-  if (!googleConfigured()) return null;
-  if (communityCache && Date.now() - communityCache.at < COMMUNITY_TTL_MS) {
-    return communityCache.drive;
-  }
-  try {
-    const drives = await listSharedDrives();
-    const drive = drives.find((d) => isCommunityDriveName(d.name)) ?? null;
-    communityCache = { drive, at: Date.now() };
-    return drive;
-  } catch {
-    // Serve the last-known value through the blip (may be null if never resolved).
-    return communityCache?.drive ?? null;
-  }
-}
+/** Shared-drive resolution cache TTL (~5 min per warm instance). */
+const DRIVE_CACHE_TTL_MS = 5 * 60_000;
 
 /**
  * The Spaces container drive is the ONE Shared Drive named "RIM — Spaces"
@@ -160,20 +114,19 @@ function isSpacesContainerName(name: string): boolean {
 }
 
 /**
- * A drive RIM manages specially (the Community place or the Spaces container)
- * — never selectable as a hub's OWN whole drive in the admin picker, because
- * a whole-drive hub mapping onto either would break the isolation invariant
- * the per-folder gate relies on (see resolvePlaceForFile).
+ * The Spaces container drive — never selectable as a hub's OWN whole drive in
+ * the admin picker, because a whole-drive hub mapping onto it would break the
+ * isolation invariant the per-folder gate relies on (see resolvePlaceForFile).
  */
 export function isReservedDriveName(name: string): boolean {
-  return isCommunityDriveName(name) || isSpacesContainerName(name);
+  return isSpacesContainerName(name);
 }
 
 let spacesCache: { drive: { id: string; name: string } | null; at: number } | null = null;
 
 export async function resolveSpacesContainerDrive(): Promise<{ id: string; name: string } | null> {
   if (!googleConfigured()) return null;
-  if (spacesCache && Date.now() - spacesCache.at < COMMUNITY_TTL_MS) {
+  if (spacesCache && Date.now() - spacesCache.at < DRIVE_CACHE_TTL_MS) {
     return spacesCache.drive;
   }
   try {
@@ -248,19 +201,6 @@ export async function provisionHubSpaceStorage(
   return { ok: true, driveId: container.id, rootFolderId: folder.id, alreadyMapped: false };
 }
 
-function communityPlace(drive: { id: string; name: string }): FilesPlace {
-  return {
-    key: "community",
-    kind: "community",
-    hubSlug: null,
-    hubId: null,
-    name: "Community",
-    driveId: drive.id,
-    rootId: drive.id,
-    canWrite: true,
-  };
-}
-
 function hubPlace(
   h: {
     id: string;
@@ -291,33 +231,29 @@ const HUB_PLACE_SELECT = {
   googleRootFolderId: true,
 } as const;
 
-/** Every place this member can open — Community first, then their team drives. */
+/** Every Space this member can open — their team drives (Community retired). */
 export async function getAccessiblePlaces(
   userId: string,
   roles: string[],
 ): Promise<FilesPlace[]> {
   if (!googleConfigured()) return [];
   const isGT = roles.includes("GUIDING_TEACHER");
-  const [community, hubs] = await Promise.all([
-    resolveCommunityDrive(),
-    db.hub.findMany({
-      where: {
-        status: "ACTIVE",
-        googleFilesEnabled: true,
-        googleDriveId: { not: null },
-        ...(isGT ? {} : { members: { some: { userId } } }),
-      },
-      select: {
-        ...HUB_PLACE_SELECT,
-        // The viewer's own membership row (empty for a GT browsing a hub
-        // they haven't joined) — feeds the write gate, never the read gate.
-        members: { where: { userId }, select: { status: true } },
-      },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  const hubs = await db.hub.findMany({
+    where: {
+      status: "ACTIVE",
+      googleFilesEnabled: true,
+      googleDriveId: { not: null },
+      ...(isGT ? {} : { members: { some: { userId } } }),
+    },
+    select: {
+      ...HUB_PLACE_SELECT,
+      // The viewer's own membership row (empty for a GT browsing a hub
+      // they haven't joined) — feeds the write gate, never the read gate.
+      members: { where: { userId }, select: { status: true } },
+    },
+    orderBy: { name: "asc" },
+  });
   const places: FilesPlace[] = [];
-  if (community) places.push(communityPlace(community));
   for (const h of hubs) {
     places.push(hubPlace(h, hubWriteAllowed(roles, h.members[0]?.status)));
   }
@@ -341,8 +277,8 @@ export async function resolvePlace(
 
 /**
  * A folder-scoped place is one whose root is a FOLDER inside a larger shared
- * Drive (googleRootFolderId set), as opposed to a whole-drive place
- * (Community, or a hub that owns its entire Drive) where rootId === driveId.
+ * Drive (googleRootFolderId set), as opposed to a whole-drive place (a hub
+ * that owns its entire Drive) where rootId === driveId.
  * For a whole-drive place, belonging to the drive is enough; for a
  * folder-scoped place, a file must descend from the place's own root folder —
  * because several Spaces can share one Drive, and the Drive alone can't tell

@@ -28,7 +28,7 @@ export async function POST() {
   }
 
   const hubs = await db.hub.findMany({
-    where: { status: "ACTIVE", openToAllMembers: false },
+    where: { status: "ACTIVE" },
     select: { id: true, name: true, googleDriveId: true, googleRootFolderId: true },
     orderBy: { name: "asc" },
   });
