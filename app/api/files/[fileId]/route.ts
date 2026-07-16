@@ -1,17 +1,18 @@
 /**
- * PATCH /api/files/[fileId] — rename, move, or trash one file/folder
- * (RIM_GoogleWorkspace.md, Slice 3). Drive itself models all three as file
- * PATCHes, so RIM does too: one gated route, three actions.
+ * PATCH /api/files/[fileId] — one gated route, many file actions (Drive models
+ * them all as file PATCHes, so RIM does too):
+ *   - structure:   { action: "rename", name } | { action: "move", folder }
+ *   - draft:       { action: "hold" } | { action: "share" }
+ *   - attribution: { action: "set-creator", creatorUserId }
+ *   - governed deletion: { action: "request-removal" }  (any writer proposes)
+ *                        { action: "approve-removal" }  (a lead → Google trash)
+ *                        { action: "cancel-removal" }   (requester or a lead)
  *
- * Body: { action: "rename", name } | { action: "move", folder: string | null }
- *     | { action: "trash" }
- *
- * The shared authorizeFileWrite gate handles cross-site refusal, the read
- * gate (file's drive must be one of the viewer's places), write authority
- * (Community: every member; hub: ACTIVE membership or GT), and the
- * browse-anchor protection. "Trash" is Drive's own trash — recoverable for
- * ~30 days; RIM exposes no permanent delete to members (admins hold the
- * final say by construction).
+ * The shared authorizeFileWrite gate handles cross-site refusal, the read gate
+ * (file's drive must be one of the viewer's places), write authority (hub:
+ * ACTIVE membership or GT), and the browse-anchor protection. Removal is a
+ * proposal, never a one-tap destroy: only "approve-removal" reaches Google's
+ * own 30-day trash; RIM exposes no permanent delete to members.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -21,6 +22,7 @@ import {
   authorizeFileWrite,
   canManageFileMeta,
   fileRowJson,
+  isSpaceLead,
   logFileAction,
   resolveParentFolder,
   sanitizeFileName,
@@ -111,14 +113,75 @@ export async function PATCH(
       }
     }
 
-    if (body.action === "trash") {
-      await trashFile(fileId);
+    // Governed deletion: "Remove" is a PROPOSAL, not a destroy. Any writer can
+    // request removal; the file leaves the active list and waits in the Space's
+    // "Pending removal" review. Only a lead can APPROVE (which finally trashes
+    // it in Google — the 30-day net); the requester or a lead can CANCEL.
+    if (body.action === "request-removal") {
+      const meta = await db.googleFileMeta.findUnique({ where: { googleFileId: fileId } });
+      await db.googleFileMeta.upsert({
+        where: { googleFileId: fileId },
+        update: { pendingDeleteAt: new Date(), pendingDeleteById: viewer.userId },
+        create: {
+          googleFileId: fileId,
+          pendingDeleteAt: new Date(),
+          pendingDeleteById: viewer.userId,
+          creatorUserId: meta?.creatorUserId ?? null,
+          hubId: place.hubId,
+          placeKey: place.key,
+        },
+      });
       await logFileAction({
         userId: viewer.userId,
-        action: "trash",
+        action: "request-removal",
         googleFileId: fileId,
         hubId: place.hubId,
         detail: { place: place.key, name: file.name, mimeType: file.mimeType },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (body.action === "approve-removal") {
+      if (!(await isSpaceLead(viewer, place))) {
+        return NextResponse.json(
+          { error: "Only a Space lead can approve a removal." },
+          { status: 403 },
+        );
+      }
+      await trashFile(fileId);
+      await db.googleFileMeta.updateMany({
+        where: { googleFileId: fileId },
+        data: { pendingDeleteAt: null, pendingDeleteById: null },
+      });
+      await logFileAction({
+        userId: viewer.userId,
+        action: "approve-removal",
+        googleFileId: fileId,
+        hubId: place.hubId,
+        detail: { place: place.key, name: file.name, mimeType: file.mimeType },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (body.action === "cancel-removal") {
+      const meta = await db.googleFileMeta.findUnique({ where: { googleFileId: fileId } });
+      const isRequester = !!meta?.pendingDeleteById && meta.pendingDeleteById === viewer.userId;
+      if (!isRequester && !(await isSpaceLead(viewer, place))) {
+        return NextResponse.json(
+          { error: "Only the person who requested this, or a Space lead, can cancel it." },
+          { status: 403 },
+        );
+      }
+      await db.googleFileMeta.updateMany({
+        where: { googleFileId: fileId },
+        data: { pendingDeleteAt: null, pendingDeleteById: null },
+      });
+      await logFileAction({
+        userId: viewer.userId,
+        action: "cancel-removal",
+        googleFileId: fileId,
+        hubId: place.hubId,
+        detail: { place: place.key, name: file.name },
       });
       return NextResponse.json({ ok: true });
     }

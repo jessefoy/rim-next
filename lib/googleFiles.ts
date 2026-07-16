@@ -407,7 +407,12 @@ export async function authorizeFileRequest(
   return { ok: true, data: { viewer, file, place } };
 }
 
-export type FileMetaLite = { creatorUserId: string | null; heldAt: Date | null };
+export type FileMetaLite = {
+  creatorUserId: string | null;
+  heldAt: Date | null;
+  pendingDeleteAt: Date | null;
+  pendingDeleteById: string | null;
+};
 
 /**
  * The READ gate for opening/streaming/reading a file (open, stream, doc
@@ -431,7 +436,7 @@ export async function authorizeFileRead(
   const { viewer } = gate.data;
   const meta = await db.googleFileMeta.findUnique({
     where: { googleFileId: fileId },
-    select: { creatorUserId: true, heldAt: true },
+    select: { creatorUserId: true, heldAt: true, pendingDeleteAt: true, pendingDeleteById: true },
   });
   if (meta?.heldAt) {
     const isModerator =
@@ -567,7 +572,7 @@ export async function buildFileRows(
   if (files.length === 0) return [];
   const metas = await db.googleFileMeta.findMany({
     where: { googleFileId: { in: files.map((f) => f.id) } },
-    select: { googleFileId: true, creatorUserId: true, heldAt: true },
+    select: { googleFileId: true, creatorUserId: true, heldAt: true, pendingDeleteAt: true },
   });
   const metaById = new Map(metas.map((m) => [m.googleFileId, m]));
 
@@ -588,6 +593,9 @@ export async function buildFileRows(
   const rows: FileRowJson[] = [];
   for (const f of files) {
     const m = metaById.get(f.id);
+    // A file proposed for removal leaves the active list entirely — it lives in
+    // the Space's "Pending removal" review until a lead approves or cancels.
+    if (m?.pendingDeleteAt) continue;
     const held = !!m?.heldAt;
     const mine = !!m?.creatorUserId && m.creatorUserId === viewer.userId;
     // A held file is filtered out of the LISTING for anyone but its creator or
@@ -671,13 +679,13 @@ export async function listFileComments(googleFileId: string): Promise<FileCommen
 }
 
 /**
- * May the viewer moderate (delete any comment on) this file's conversation? A
- * comment's own author can always delete it; beyond that it's a Space
- * coordinator or a GUIDING_TEACHER/ADMIN — mirroring hub-reply deletion. This
- * is distinct from canManageFileMeta (which also lets the FILE's creator act):
- * making a file doesn't make you a moderator of everyone's comments on it.
+ * Is the viewer a LEAD of this Space — a coordinator of its hub, or a
+ * GUIDING_TEACHER/ADMIN? This is the "who has final say" set, mirroring the
+ * hub Trash gate (lib/hubAuth.ts::canManageTrash). Leads approve a removal and
+ * can cancel anyone's; they also moderate the conversation. Distinct from
+ * canManageFileMeta, which ALSO lets the file's own creator act.
  */
-export async function canModerateFileConversation(
+export async function isSpaceLead(
   viewer: { userId: string; roles: string[] },
   place: FilesPlace,
 ): Promise<boolean> {
@@ -686,6 +694,72 @@ export async function canModerateFileConversation(
   }
   if (place.hubSlug && (await isHubCoordinator(viewer.userId, place.hubSlug))) return true;
   return false;
+}
+
+/** May the viewer moderate (delete any comment on) this file's conversation? A
+ *  comment's own author can always delete it; beyond that it's the Space's
+ *  leads — the same set that approves removals. */
+export async function canModerateFileConversation(
+  viewer: { userId: string; roles: string[] },
+  place: FilesPlace,
+): Promise<boolean> {
+  return isSpaceLead(viewer, place);
+}
+
+export interface PendingRemoval {
+  id: string;
+  name: string;
+  requestedByName: string;
+  requestedAt: string;
+}
+
+/**
+ * The files proposed for removal in a Space, awaiting a lead's decision. A
+ * lead sees ALL of them; a plain member sees only their own request (so they
+ * can cancel it). File names come from Drive; an item already gone (approved →
+ * trashed, or vanished) is dropped. `isLead` is passed in so the caller can
+ * resolve it once and also send it to the client as the approve-capability.
+ */
+export async function listPendingRemovals(
+  place: FilesPlace,
+  viewer: { userId: string; roles: string[] },
+  isLead: boolean,
+): Promise<PendingRemoval[]> {
+  const metas = await db.googleFileMeta.findMany({
+    where: {
+      placeKey: place.key,
+      pendingDeleteAt: { not: null },
+      ...(isLead ? {} : { pendingDeleteById: viewer.userId }),
+    },
+    orderBy: { pendingDeleteAt: "asc" },
+    select: { googleFileId: true, pendingDeleteById: true, pendingDeleteAt: true },
+  });
+  if (metas.length === 0) return [];
+  const requesterIds = [
+    ...new Set(metas.map((m) => m.pendingDeleteById).filter((id): id is string => !!id)),
+  ];
+  const users = requesterIds.length
+    ? await db.user.findMany({
+        where: { id: { in: requesterIds } },
+        select: { id: true, firstName: true, lastName: true, preferredName: true },
+      })
+    : [];
+  const nameById = new Map(users.map((u) => [u.id, sessionDisplayName(u, "A member")]));
+  const items = await Promise.all(
+    metas.map(async (m) => {
+      const f = await getFileOrNull(m.googleFileId);
+      if (!f || f.trashed) return null; // already removed or gone
+      return {
+        id: m.googleFileId,
+        name: f.name,
+        requestedByName: m.pendingDeleteById
+          ? nameById.get(m.pendingDeleteById) ?? "A member"
+          : "A member",
+        requestedAt: m.pendingDeleteAt!.toISOString(),
+      };
+    }),
+  );
+  return items.filter((x): x is PendingRemoval => x !== null);
 }
 
 /**

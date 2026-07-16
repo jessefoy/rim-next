@@ -5630,6 +5630,31 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ retire_community_space_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Governed deletion (RIM_GoogleWorkspace.md, file-detail slice). Two nullable
+  // columns on google_file_meta so a removal is a proposal a Space lead
+  // approves, not a one-tap destroy. Additive.
+  // ───────────────────────────────────────────────────────────────────────
+  const pendingDeleteFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'google_file_pending_delete_v1'
+  `).catch(() => []);
+
+  if (pendingDeleteFlag.length === 0) {
+    console.log("→ Google Files governed deletion (pending-removal columns)…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "google_file_meta" ADD COLUMN IF NOT EXISTS "pendingDeleteAt" TIMESTAMP(3)`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "google_file_meta" ADD COLUMN IF NOT EXISTS "pendingDeleteById" TEXT`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('google_file_pending_delete_v1')`,
+    );
+    console.log("  ✔ pending-removal columns ready.");
+  } else {
+    console.log("  ⏭ google_file_pending_delete_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

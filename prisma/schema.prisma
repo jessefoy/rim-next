@@ -1147,7 +1147,14 @@ model GoogleFileMeta {
   // Draft marker: when set, the file is hidden from the Space in the Finder
   // (visible only to its creator + GUIDING_TEACHER/ADMIN). null = shared.
   heldAt   DateTime?
-  // The owning place, for scoping/attribution queries (null = Community).
+  // Governed deletion: a member proposes removal (pendingDeleteAt set), then a
+  // Space lead approves (→ Google trash) or the requester/lead cancels. The
+  // file stays in place + openable while pending — it's just held out of the
+  // active list and surfaced in the Space's "Pending removal" review, so a
+  // single tap can never destroy a project's file.
+  pendingDeleteAt   DateTime?
+  pendingDeleteById String?
+  // The owning place, for scoping/attribution queries.
   hubId    String?
   placeKey String?
   createdAt DateTime @default(now())

@@ -253,6 +253,13 @@ export default async function FileDetailPage({
           createdByUserId={createdByUserId}
           modifiedLabel={file.modifiedTime ? relativeDate(file.modifiedTime) : null}
           members={members}
+          pendingRemoval={!!meta?.pendingDeleteAt}
+          isRemovalRequester={
+            !!meta?.pendingDeleteById && meta.pendingDeleteById === viewer.userId
+          }
+          canApproveRemoval={canModerate}
+          canRemove={place.canWrite}
+          backHref={backHref}
         />
 
         <div className="gf-detail__body">

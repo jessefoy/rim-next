@@ -90,6 +90,13 @@ interface Crumb {
   name: string;
 }
 
+interface PendingItem {
+  id: string;
+  name: string;
+  requestedByName: string;
+  requestedAt: string;
+}
+
 interface Props {
   places: FilesPlaceLink[];
   initialPlaceKey: string;
@@ -114,7 +121,7 @@ type Dialog =
   | { mode: "create"; kind: CreateKind; title: string }
   | { mode: "rename"; row: FileRow }
   | { mode: "move"; row: FileRow }
-  | { mode: "trash"; row: FileRow };
+  | { mode: "remove"; row: FileRow };
 
 const GENERIC_ERROR = "We couldn't make that change. Please try again.";
 
@@ -150,6 +157,10 @@ export default function FilesBrowser({
   const [trail, setTrail] = useState<Crumb[]>([]);
   const [files, setFiles] = useState<FileRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Governed deletion: files proposed for removal in this Space, awaiting a
+  // lead's decision. Space-wide (not per-folder), so keyed on placeKey.
+  const [pending, setPending] = useState<PendingItem[]>([]);
+  const [canApprovePending, setCanApprovePending] = useState(false);
   // Write-layer state: which menu is open ("new" or a row id), the active
   // dialog, its in-flight + error state.
   const [menuOpen, setMenuOpen] = useState<"new" | string | null>(null);
@@ -239,6 +250,27 @@ export default function FilesBrowser({
     load();
   }, [load]);
 
+  // Pending removals are Space-wide (not folder-specific), so they load per
+  // place and refresh after a request/approve/cancel — not on folder clicks.
+  const loadPending = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/files/pending?place=${encodeURIComponent(placeKey)}`);
+      const data = await res.json();
+      if (res.ok) {
+        setPending(data.items ?? []);
+        setCanApprovePending(Boolean(data.canApprove));
+      } else {
+        setPending([]);
+      }
+    } catch {
+      setPending([]);
+    }
+  }, [placeKey]);
+
+  useEffect(() => {
+    loadPending();
+  }, [loadPending]);
+
   const closeDialog = useCallback(() => {
     setDialog(null);
     setActionError(null);
@@ -316,7 +348,8 @@ export default function FilesBrowser({
     }
   }
 
-  /** Shared by rename/move/trash — one PATCH, then close + refresh in place. */
+  /** Shared by rename/move/remove — one PATCH, then close + refresh in place.
+   *  Also refreshes pending removals (a request-removal moves a file there). */
   async function patchFile(rowId: string, payload: Record<string, unknown>) {
     const { ok } = await writeRequest(`/api/files/${rowId}`, {
       method: "PATCH",
@@ -324,6 +357,19 @@ export default function FilesBrowser({
     });
     if (!ok) return;
     closeDialog();
+    load({ soft: true });
+    loadPending();
+  }
+
+  /** Approve or cancel a pending removal (from the Pending removal section),
+   *  then refresh both the pending list and the active file list. */
+  async function mutatePending(id: string, action: "approve-removal" | "cancel-removal") {
+    const { ok } = await writeRequest(`/api/files/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ action }),
+    });
+    if (!ok) return;
+    loadPending();
     load({ soft: true });
   }
 
@@ -542,9 +588,9 @@ export default function FilesBrowser({
                 <button
                   className="gf-menu__item gf-menu__item--danger"
                   role="menuitem"
-                  onClick={() => openDialog({ mode: "trash", row })}
+                  onClick={() => openDialog({ mode: "remove", row })}
                 >
-                  Move to trash
+                  Remove
                 </button>
               </div>
             )}
@@ -693,6 +739,49 @@ export default function FilesBrowser({
           </p>
         )}
 
+        {pending.length > 0 && (
+          <section className="gf-pending" aria-label="Pending removal">
+            <div className="gf-pending__head">
+              <h2 className="gf-pending__title">Pending removal</h2>
+              <p className="gf-pending__sub">
+                {canApprovePending
+                  ? "Approve to remove these, or keep them in the Space."
+                  : "Waiting for a Space lead to review."}
+              </p>
+            </div>
+            <ul className="gf-list">
+              {pending.map((p) => (
+                <li key={p.id} className="gf-item gf-item--pending">
+                  <div className="gf-pending__info">
+                    <span className="gf-row__name">{p.name}</span>
+                    <span className="gf-row__meta">
+                      Requested by {p.requestedByName} · {relativeDate(p.requestedAt)}
+                    </span>
+                  </div>
+                  <div className="gf-pending__actions">
+                    {canApprovePending && (
+                      <button
+                        className="gf-pending__approve"
+                        onClick={() => mutatePending(p.id, "approve-removal")}
+                        disabled={busy}
+                      >
+                        Approve removal
+                      </button>
+                    )}
+                    <button
+                      className="gf-pending__keep"
+                      onClick={() => mutatePending(p.id, "cancel-removal")}
+                      disabled={busy}
+                    >
+                      {canApprovePending ? "Keep" : "Cancel request"}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {myDrafts.length > 0 && (
           <section className="gf-drafts" aria-label="Your drafts">
             <div className="gf-drafts__head">
@@ -752,15 +841,14 @@ export default function FilesBrowser({
         />
       )}
 
-      {dialog?.mode === "trash" && (
-        <div className="gf-overlay" role="dialog" aria-modal="true" aria-label="Move to trash">
+      {dialog?.mode === "remove" && (
+        <div className="gf-overlay" role="dialog" aria-modal="true" aria-label="Remove file">
           <div className="gf-dialog">
-            <h2 className="gf-dialog__title">Move to trash?</h2>
+            <h2 className="gf-dialog__title">Remove this file?</h2>
             <p className="gf-dialog__text">
-              {dialog.row.mimeType === GOOGLE_MIME.folder
-                ? `"${dialog.row.name}" and everything inside it will move to the trash.`
-                : `"${dialog.row.name}" will move to the trash.`}{" "}
-              It can be recovered for 30 days.
+              &ldquo;{dialog.row.name}&rdquo; will be held for a Space lead to approve.
+              Nothing is deleted yet — it stays recoverable, and a lead (or you) can keep
+              it instead.
             </p>
             {actionError && <p className="gf-dialog__error">{actionError}</p>}
             <div className="gf-dialog__actions">
@@ -769,10 +857,10 @@ export default function FilesBrowser({
               </button>
               <button
                 className="gf-dialog__danger"
-                onClick={() => patchFile(dialog.row.id, { action: "trash" })}
+                onClick={() => patchFile(dialog.row.id, { action: "request-removal" })}
                 disabled={busy}
               >
-                {busy ? "Moving…" : "Move to trash"}
+                {busy ? "Requesting…" : "Request removal"}
               </button>
             </div>
           </div>

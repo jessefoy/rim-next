@@ -43,6 +43,16 @@ interface Props {
   modifiedLabel: string | null;
   /** The Space's members, for the "Change creator" picker. */
   members: Member[];
+  /** This file is proposed for removal, awaiting a lead's decision. */
+  pendingRemoval: boolean;
+  /** The viewer requested the removal (so may cancel their own request). */
+  isRemovalRequester: boolean;
+  /** The viewer is a Space lead (may approve, or keep, a pending removal). */
+  canApproveRemoval: boolean;
+  /** The viewer may propose removal (a writer of this Space). */
+  canRemove: boolean;
+  /** Where to return after an approved removal (the file is then trashed). */
+  backHref: string;
 }
 
 const GENERIC_ERROR = "Something went wrong. Please try again.";
@@ -59,6 +69,11 @@ export default function FileDetailActions({
   createdByUserId,
   modifiedLabel,
   members,
+  pendingRemoval,
+  isRemovalRequester,
+  canApproveRemoval,
+  canRemove,
+  backHref,
 }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -100,6 +115,19 @@ export default function FileDetailActions({
     }
   }
 
+  async function requestRemoval() {
+    if (await patch({ action: "request-removal" })) router.refresh();
+  }
+
+  async function approveRemoval() {
+    // The file is trashed on approval, so leave the (now-gone) detail page.
+    if (await patch({ action: "approve-removal" })) router.push(backHref);
+  }
+
+  async function cancelRemoval() {
+    if (await patch({ action: "cancel-removal" })) router.refresh();
+  }
+
   return (
     <div className="gf-detail__head">
       <p className="gf-detail__meta">
@@ -108,7 +136,7 @@ export default function FileDetailActions({
           {createdByName ? `Created by ${createdByName}` : "Added directly in Google Drive"}
         </span>
         {modifiedLabel && <span className="gf-detail__updated">Updated {modifiedLabel}</span>}
-        {canManage && !picking && (
+        {canManage && !picking && !pendingRemoval && (
           <button className="gf-detail__link-btn" onClick={() => setPicking(true)}>
             Change
           </button>
@@ -153,57 +181,110 @@ export default function FileDetailActions({
         </div>
       )}
 
-      {held && (
-        <p className="gf-detail__draft-note">
-          <span className="gf-detail__draft-pill">Draft</span>
-          {mine
-            ? "Only you can see this until you share it with the Space."
-            : "A draft — not yet shared with the Space by its creator."}
-        </p>
+      {pendingRemoval ? (
+        <>
+          <p className="gf-detail__draft-note">
+            <span className="gf-detail__draft-pill gf-detail__draft-pill--remove">
+              Pending removal
+            </span>
+            {canApproveRemoval
+              ? "Approve to remove this, or keep it in the Space."
+              : "Held for a Space lead to approve — you can cancel your request."}
+          </p>
+          <div className="gf-detail__actions">
+            {canApproveRemoval && (
+              <button
+                className="gf-detail__btn gf-detail__btn--danger"
+                onClick={approveRemoval}
+                disabled={busy}
+              >
+                Approve removal
+              </button>
+            )}
+            {(canApproveRemoval || isRemovalRequester) && (
+              <button
+                className="gf-detail__btn gf-detail__btn--ghost"
+                onClick={cancelRemoval}
+                disabled={busy}
+              >
+                {canApproveRemoval ? "Keep in the Space" : "Cancel request"}
+              </button>
+            )}
+            <a
+              className="gf-detail__btn gf-detail__btn--ghost"
+              href={isGoogleEditor ? `/api/files/open/${fileId}` : `/api/files/stream/${fileId}`}
+              target="_blank"
+              rel="noopener"
+            >
+              {isGoogleEditor ? (editorName ? `Open in Google ${editorName}` : "Open in Google") : "Download"}
+            </a>
+          </div>
+        </>
+      ) : (
+        <>
+          {held && (
+            <p className="gf-detail__draft-note">
+              <span className="gf-detail__draft-pill">Draft</span>
+              {mine
+                ? "Only you can see this until you share it with the Space."
+                : "A draft — not yet shared with the Space by its creator."}
+            </p>
+          )}
+
+          <div className="gf-detail__actions">
+            {/* One dominant action per state. */}
+            {held && canManage && (
+              <button
+                className="gf-detail__btn gf-detail__btn--primary"
+                onClick={() => toggleDraft("share")}
+                disabled={busy}
+              >
+                Share with the Space
+              </button>
+            )}
+
+            {isGoogleEditor ? (
+              <a
+                className={`gf-detail__btn${held && canManage ? " gf-detail__btn--ghost" : " gf-detail__btn--primary"}`}
+                href={`/api/files/open/${fileId}`}
+                target="_blank"
+                rel="noopener"
+              >
+                {editorName ? `Edit in Google ${editorName}` : "Open in Google"}
+              </a>
+            ) : (
+              <a
+                className={`gf-detail__btn${held && canManage ? " gf-detail__btn--ghost" : " gf-detail__btn--primary"}`}
+                href={`/api/files/stream/${fileId}`}
+                target="_blank"
+                rel="noopener"
+              >
+                Download
+              </a>
+            )}
+
+            {!held && canManage && (
+              <button
+                className="gf-detail__btn gf-detail__btn--ghost"
+                onClick={() => toggleDraft("hold")}
+                disabled={busy}
+              >
+                Hold as draft
+              </button>
+            )}
+
+            {canRemove && (
+              <button
+                className="gf-detail__btn gf-detail__btn--ghost gf-detail__btn--danger-text"
+                onClick={requestRemoval}
+                disabled={busy}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </>
       )}
-
-      <div className="gf-detail__actions">
-        {/* One dominant action per state. */}
-        {held && canManage && (
-          <button
-            className="gf-detail__btn gf-detail__btn--primary"
-            onClick={() => toggleDraft("share")}
-            disabled={busy}
-          >
-            Share with the Space
-          </button>
-        )}
-
-        {isGoogleEditor ? (
-          <a
-            className={`gf-detail__btn${held && canManage ? " gf-detail__btn--ghost" : " gf-detail__btn--primary"}`}
-            href={`/api/files/open/${fileId}`}
-            target="_blank"
-            rel="noopener"
-          >
-            {editorName ? `Edit in Google ${editorName}` : "Open in Google"}
-          </a>
-        ) : (
-          <a
-            className={`gf-detail__btn${held && canManage ? " gf-detail__btn--ghost" : " gf-detail__btn--primary"}`}
-            href={`/api/files/stream/${fileId}`}
-            target="_blank"
-            rel="noopener"
-          >
-            Download
-          </a>
-        )}
-
-        {!held && canManage && (
-          <button
-            className="gf-detail__btn gf-detail__btn--ghost"
-            onClick={() => toggleDraft("hold")}
-            disabled={busy}
-          >
-            Hold as draft
-          </button>
-        )}
-      </div>
 
       {error && (
         <p className="gf-detail__error" role="alert">
