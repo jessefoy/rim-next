@@ -6,6 +6,28 @@
 
 ## Active
 
+### Session 166 (2026-07-16) — ✅ Google Files fine-tuning: file detail page + Community retired + governed deletion + Basecamp notifications — all on `main`, deployed
+
+A co-created refinement pass on the Google file system. **11 feature commits on `main`, deployed, `tsc`-green + reviewer-gated each.** Authority: `RIM_GoogleWorkspace.md`.
+
+**Shipped + live:**
+- **File detail page (3 slices).** `GoogleFileMeta` (sparse, loose-keyed) → **creator attribution** (backfilled from the audit log) + **draft/"held" state** (opt-out; RIM-created docs born held; "Your drafts" + Share). A **universal detail page** `/account/files/[fileId]` every file opens into, with **fidelity-aware rendering** (Google `/preview` iframe for shared docs — mints a reader link; RIM export for drafts; native embed for PDF/image/audio). A **conversation per file** (`FileComment`, plain-text + 5-emoji reactions, leads moderate).
+- **Community Space retired — Phase 1.** The open, ownerless commons removed (it fit nothing in the governance model). Dropped the `openToAllMembers` primitive from code + the `canAccessHub` param + all call-sites; removed the Google-files Community place; deleted the seeded hub (`retire_community_space_v1`). **Phase 2 = drop the `openToAllMembers` column** (backlog `2026-07-16-001`, two-phase).
+- **Governed deletion.** Remove → **Pending removal** (a member proposes) → a **Space lead** (coordinator/GT/ADMIN, via `isSpaceLead`) approves (→ Google's 30-day trash) or keeps; the requester can cancel. `GoogleFileMeta.pendingDeleteAt/ById` (`google_file_pending_delete_v1`); `GET /api/files/pending` + review sections.
+- **Basecamp notifications.** Default **No one**, per-post, email-first. Two new gated templates `file-shared` + `file-comment` (seeded create-if-absent, "Files & Documents" group in `/admin/emails`). `NotifyPicker` (No one / Everyone / Choose people) in the comment compose + a "Notify the Space" detail action.
+- **Cleanups.** Restored the `box-sizing: border-box` reset for form controls (webflow.css no longer loaded → the recurring "field overhangs its card" bug); honest "no longer available" 404 for files deleted directly in Drive; a daily `sweep-orphan-file-data` cron (7th) clearing RIM rows for permanently-gone files (trashed/transient left alone; audit log never swept).
+
+**OPEN — prod verification (Jesse; none blocking):**
+1. Deploy log shows `google_file_meta_v1` (+ "backfilled N"), `google_file_pending_delete_v1`, `retire_community_space_v1`, and the two `file-*` template seed lines.
+2. **`/admin/emails`** — `file-shared` + `file-comment` appear under **Files & Documents**, editable.
+3. Create a doc → lands in **Your drafts** (only you) → **Share with the Space** → teammate sees it. Open a shared Google Doc → renders with formatting; a PDF/image opens inline.
+4. A file shows **Created by** (real names via backfill); **Change** re-attributes; a directly-dropped file reads "Added directly in Google Drive."
+5. **Remove** a file → it moves to **Pending removal**; a lead **Approves** (gone) or **Keeps** it; the requester can **Cancel**.
+6. Comment + **"Notify the Space"** → only the picked people get an email.
+7. **Community** gone from the members' rail; other Spaces' **Files** open normally.
+
+**NEXT (deferred, non-blocking):** Phase 2 column drop (`2026-07-16-001`); in-app notification inbox (deferred by design); cross-Space sharing (`2026-07-15-001`); two low review notes (notify picker over-offers paused members; /notify write-gate asymmetry). The "RIM — Community" Google Drive still exists in Google — Jesse's to delete/repurpose there.
+
 ### Session 165 (2026-07-16) — ✅ Google Files reshape finished + cutover complete; Mind Maps removed; native Documents retired — all on `main`
 
 **The Google Workspace Files arc is DONE.** RIM's document & file system is now Google, per-Space. 13 commits on `main`, deployed, `tsc`-green; the big removals were inventoried (Explore) + two-phase. Authority: `RIM_GoogleWorkspace.md` (now as-built through cutover).

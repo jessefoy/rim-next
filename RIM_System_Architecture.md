@@ -33,7 +33,9 @@ Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. M
 
 **What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), **Files** (Google Workspace), and a Members tab. Dashboard hub cards show unread badges. (Native Documents and Mind Maps — the former "portable resources" — were both retired in session 165.)
 
-**The Community Space + per-hub feature switches (session 165).** `Hub.openToAllMembers` opens a Space's participation surfaces (entry, Files, Conversations, Activity) to every signed-in member with no `HubMember` row — the "Community" Space. `Hub.conversationsEnabled` (default true) is a per-hub Conversations toggle in hub settings. `lib/hubAuth.ts::canAccessHub(member, roles, openToAll)` widens the door **only** at those participation gates; roster/admin gates (Members, Trash, category management) stay membership-only, so an open Space is fail-closed there. Community launches Files-only; every new hub comes up fully equipped with Google Files auto-provisioned.
+**Per-hub feature switch.** `Hub.conversationsEnabled` (default true) is a per-hub Conversations toggle in hub settings; every new hub comes up fully equipped with Google Files auto-provisioned on create.
+
+> **The Community Space was retired (session 166).** The session-165 `Hub.openToAllMembers` "Community" open-to-all primitive is gone — an open, ownerless commons was the one place the coordinator-led governance model (governed file deletion, "notify everyone") couldn't cover, so **every Space is now a stewarded team/project with a real roster.** `lib/hubAuth.ts::canAccessHub(member, roles)` is again purely a `HubMember` row OR GUIDING_TEACHER (the `openToAll` param + all call-sites removed); the seeded community hub was deleted (`retire_community_space_v1`). The `openToAllMembers` column drop is Phase 2 (backlog `2026-07-16-001`, two-phase). See `RIM_GoogleWorkspace.md` §9.
 
 ### Tools (`/tools/*`)
 

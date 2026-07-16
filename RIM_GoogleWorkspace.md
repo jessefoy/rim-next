@@ -1,6 +1,8 @@
 # RIM Google Workspace — Files & Documents
 
-**Status: COMPLETE (through session 165, 2026-07-16). Google Workspace Files is RIM's document & file system — Slices 1–3, the Spaces foundation, the finish reshape (Community Space, universal provisioning, global-finder removal), AND the cutover (native docs migrated → Google Docs, native Documents retired code + DB) are all LIVE on `main`. `RIM_Documents.md` is now historical.**
+**Status: COMPLETE (through session 166, 2026-07-16). Google Workspace Files is RIM's document & file system — Slices 1–3, the Spaces foundation, the finish reshape (universal provisioning, global-finder removal), AND the cutover (native docs migrated → Google Docs, native Documents retired code + DB) are all LIVE on `main`. `RIM_Documents.md` is now historical.**
+
+> **Session 166 (the file-detail refinement) — LIVE.** Added a per-file state layer (`GoogleFileMeta`), the universal **file detail page** (fidelity-aware rendering + attribution + draft state + a conversation per file), **governed deletion** (propose → a lead approves), and **Basecamp-style notifications** (per-post, default no one). **Retired the Community Space** (the s165 open-to-all commons — it had no steward to fit the governance model). See §10 (file-detail model) + §9 (Community reversal).**
 
 This is the authority document for RIM's Google Workspace file and document system — the assessment of what exists, the architecture decided with Jesse, the build plan, and the manual Google setup steps. When the cutover completes, this supersedes `RIM_Documents.md` (native documents), which becomes historical.
 
@@ -198,9 +200,11 @@ Because many Spaces share the `RIM — Spaces` Drive, "same driveId" is **not** 
 
 `authorizeFileRequest`, `resolveParentFolder` (writes), and the doc-reader page all route through this. **The load-bearing invariant:** folder-scoped Spaces live only on a container Drive that no place holds whole. Enforced three ways: provisioning only ever creates folders on the container; the hub PATCH route rejects mapping a hub whole-drive onto a managed drive; the drive picker hides Community + the container (`isReservedDriveName`). Proven by an 18-case simulation + adversarial security review.
 
-### The Spaces model (reshape SHIPPED — session 165)
+### The Spaces model (reshape SHIPPED — session 165; Community REVERSED — session 166)
 
-> The reshape below is **built + live**: `Hub.openToAllMembers` is the open-to-all access primitive; Community is a seeded open-to-all Space (Files-only, with a `Hub.conversationsEnabled` toggle in hub settings); the global `/account/files` finder is removed (files live only per-Space); every hub is auto-provisioned (bulk "Set up files for all teams" + on-create). `canAccessHub(member, roles, openToAll)` widens the door only at participation gates (entry, Files, Conversations, Activity); roster/admin gates stay membership-only. The literal `Hub`→`Space` code rename + the GT self-serve create entry remain deferred.
+> **⚠️ Community reversal (session 166):** the open-to-all **Community Space is retired.** Jesse reconsidered it — an open, ownerless commons is the one place the coordinator-led governance model (governed deletion, "notify everyone") can't cover, so every Space is now a stewarded team/project with a real roster. Removed: the `Hub.openToAllMembers` **access primitive** (the `canAccessHub` 3rd param + all call-sites + the AccountLayout rail merge + the sidebar open-Space branches), the **Google-files Community place** (`isCommunityDriveName`/`resolveCommunityDrive`/`communityPlace`/the `"community"` key; `isReservedDriveName` now guards only the `RIM — Spaces` container), and the seeded **community hub** (migration `retire_community_space_v1`, FK-safe). The `openToAllMembers` **column drop is Phase 2** (backlog `2026-07-16-001`, two-phase — old code still SELECTs it during the build window). `Hub.conversationsEnabled` (the per-hub Conversations toggle) is unrelated and **kept**. The "RIM — Community" Google Drive still exists in Google (Jesse's to remove there).
+>
+> The rest of the reshape stands: the global `/account/files` finder is removed (files live only per-Space); every hub is auto-provisioned. `canAccessHub(member, roles)` is now purely membership OR GT.
 
 - **Everything is a "Space"** — team / project / personal / community, one templated container (Basecamp-style). User-facing word is **"Space"**; internal code stays `Hub` (a literal rename is a deferred, separate pass). ADMIN + Guiding Teacher can create Spaces "on request" (see `RIM_Role_Design.md` — this crosses the deliberate ADMIN/GT boundary; the GT self-serve entry point is deferred, the provisioning mechanism is ready).
 - **Strict per-Space filing — NO global finder.** Files live only in a Space's own context; provisioning is fully automatic (no manual enable). This is the anti-"files everywhere" decision (Jesse's community's real problem). **Reshape not yet built:** (1) Community becomes a Space (open-to-all-members access primitive); (2) auto-provision every existing hub + drop the manual enable; (3) **remove `/account/files` + the sidebar "Files" link** (after 1–2, so nothing's briefly unreachable).
@@ -209,3 +213,49 @@ Because many Spaces share the `RIM — Spaces` Drive, "same driveId" is **not** 
 ### Then cutover (Slice 4)
 
 Migrate native docs → Google Docs into their Space folder (temporary admin tool, **dry-run first**), transfer Blob PDFs, then **retire** native Documents (the one-way door; two-phase table drop; after Jesse's prod verification).
+
+---
+
+## 10. The file-detail layer (session 166) — as-built
+
+RIM's own per-file state, the file detail page, governed deletion, and notifications. The through-line: **Google is the file cabinet; RIM holds identity, state, discussion, and governance.**
+
+### `GoogleFileMeta` — the per-file state record
+
+Sparse, **loose-keyed by `googleFileId`** (no FK to a Drive file RIM doesn't own — like `GoogleFileAudit`/`GoogleFileTransfer`; a Drive delete never errors RIM). Absence of a row = a shared file with an unknown creator (the opt-out default that keeps "drop it in the Drive and it shows up" true). Fields: `creatorUserId`, `heldAt` (draft), `pendingDeleteAt`/`pendingDeleteById` (governed deletion), `hubId`/`placeKey` (scoping). Migrations: `google_file_meta_v1` (backfills `creatorUserId` from the earliest `create-*`/`upload` audit row), `google_file_pending_delete_v1`.
+
+### Attribution
+
+"Created by" is **RIM's own record**, not Google's (we can't set the name Google shows an anonymous editor, and we assign no Google accounts). Resolution order: manual override → the create/upload audit trail (via the backfill / born-with-creator write) → else null → the UI shows "Added directly in Google Drive," **never** the service-account. `set-creator` (a person picker, leads + creator) re-attributes; audit-logged.
+
+### Draft ("held") state — opt-out
+
+Documents created **through RIM** are **born held** (`heldAt` set) — private to the creator until "Share with the Space." Folders/uploads are shared. `buildFileRows` filters held files from the active list (creator + GT/ADMIN only); the Finder surfaces them under "Your drafts." A draft is *not surfaced*, and (via `authorizeFileRead`) not readable by others — but it is *not sealed* on Google's side once a link is ever minted (the accepted link-as-key trade).
+
+### The file detail page — `/account/files/[fileId]`
+
+Every file (except folders → drill down) opens here. **Fidelity-aware body** (Jesse's fork): a **shared** Google Doc/Sheet/Slides embeds Google's own `/preview` iframe (mints an anyone-with-link **reader** just-in-time — lighter than the editor mint; cross-site-guarded so a lure can't trigger a mint); a **draft** Doc renders through RIM's calm HTML export (no mint — stays private); PDF/image/audio/video embed off the stream route; other Google types → an "open in Google" panel. `FileDetailActions` (client) carries attribution + "Change creator", the draft toggle, open/download, the removal controls, and "Notify the Space." Old `/account/files/doc/[id]` → redirect here.
+
+### The read gate — `authorizeFileRead`
+
+`authorizeFileRequest` + the draft gate: a held file 404s for anyone but its creator or a moderator (GT/ADMIN), so hiding it from the list actually means private. It uses **`getFileOrNull`** — a permanently-deleted file returns a clean 404 "This file is no longer available." (not a transient "try again"); a real transient error still throws. Used by open/stream/reader/detail; writes keep `authorizeFileWrite` (a creator/coordinator must act on held files).
+
+### Conversation per file — `FileComment`
+
+A dedicated model (NOT `HubConversationThread`, which is hub-scoped with a non-null `hubId` and feeds the hub Conversations list — a file comment must work uniformly and never leak there). Plain-text body, `reactions` JSON (5 emojis), loose `authorId`. Routes under `/api/files/[fileId]/conversation`; delete = author or a lead. Access rides `authorizeFileRead`.
+
+### Governed deletion — propose → a lead approves
+
+"Remove" is a proposal, never a one-tap destroy (the open-system safeguard). PATCH actions on `/api/files/[fileId]`: **request-removal** (any writer → `pendingDeleteAt` set; the file leaves the active list into a "Pending removal" review), **approve-removal** (a lead → `trashFile` = Google's own 30-day trash), **cancel-removal** (the requester or a lead). **`isSpaceLead(viewer, place)`** = GT/ADMIN or the Space's coordinator — the same "final say" set as hub Trash (`canManageTrash`); `canModerateFileConversation` delegates to it. `GET /api/files/pending` feeds the review section (a lead sees all Space pending; a member sees only their own). **The `trash` action was removed** — members no longer one-tap-trash; only approval reaches Google trash.
+
+### Notifications — Basecamp-style, per-post, email-first
+
+Default **No one**; recipients are picked fresh each post (NOT a subscription). Two gated templates (`file-shared`, `file-comment`, "Files & Documents" group, seeded findUnique→create so `/admin/emails` edits survive deploys). `resolveNotifyRecipients(place, notify, actor)` = none / everyone / people ∩ the notifiable pool (`getHubNotificationRecipients` — pre-threshold/comms-off/paused excluded; sender excluded). `NotifyPicker` in the comment compose + a "Notify the Space" detail action; `POST /api/files/[fileId]/notify` + the comment POST's `notify` payload; sends via `after()`. In-app inbox deferred.
+
+### Direct-in-Drive deletion + the orphan sweep
+
+Only an admin can delete directly in Drive (members have no Drive access — the governed flow is the only member path). Doing so leaves RIM's loose-keyed rows as orphans. Daily cron **`sweep-orphan-file-data`** (7th cron) clears `FileComment` + `GoogleFileMeta` for **confirmed-gone (404)** files; **trashed-but-recoverable** files (30-day) and transient errors are left alone (comments reattach on restore); the **`GoogleFileAudit` log is never swept** (RIM's permanent record). Capped per run.
+
+### New audit actions
+
+`hold`, `share`, `set-creator`, `request-removal`, `approve-removal`, `cancel-removal`, `comment`, `notify-shared`, plus the existing `create-*`/`upload`/`rename`/`move`/`mint-link`/`revoke-link`/`lockdown-drive`/`provision-space`.

@@ -10,6 +10,16 @@
     "notes": "Phase 1 removed all reads + deleted the community hub; Prisma ignores the lingering column so leaving it is harmless until this runs. Confirm no code references openToAllMembers before dropping."
   },
   {
+    "id": "2026-07-16-002",
+    "title": "In-app notification inbox for Google Files (Basecamp \"Hey!\" style)",
+    "description": "Session 166 shipped Basecamp-style file notifications email-first (per-post NotifyPicker: No one / Everyone / Choose people; templates file-shared + file-comment; POST /api/files/[fileId]/notify + the comment notify payload). The deferred half is the in-app side: a notification center where a member's notifications collect (someone shared a file with you / commented on a file you're on), with read/unread + a badge, mirroring Basecamp's inbox. This is its own build (a Notification model or a reuse of an existing unread mechanism, a header entry point, mark-read). Until then, notifications are email-only. Two small v1 refinements to fold in: (a) the NotifyPicker 'Choose people' list shows all hub members but only notifiable ones (active/comms-on/onboarded) actually get emailed — pass a notifiable-only list so it doesn't silently over-offer; (b) the standalone /notify requires write while comment-notify needs only read — align if it matters.",
+    "category": "Email & Notifications",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-07-16",
+    "notes": "Authority: RIM_GoogleWorkspace.md §10. Email path is live + gated; this is the in-app inbox layer Jesse okayed deferring."
+  },
+  {
     "id": "2026-06-25-005",
     "title": "Zoom scheduling-integrity follow-ons: standalone coordinator view + create-path warning + reconciliation cron",
     "description": "Session 159 shipped the seat-conflict integrity Layers 1 (tear down stale meetings on a schedule edit) and 2 (a non-blocking save-time warning via lib/sessionConflicts.ts). Three follow-ons remain, in priority order: (1) STANDALONE VIEW \u2014 a coordinator/admin 'scheduling integrity' page listing the next several weeks of virtual/hybrid sessions with any over-capacity slots flagged at a glance (generalize conflictsForProgram into an allScheduleConflicts sweep). The save-time warning is reactive; the view is the proactive at-a-glance. (2) CREATE-PATH WARNING \u2014 POST /api/programs-pg returns seatConflicts but the ProgramEditor create branch redirects before showing it, so a brand-new conflicting program only warns on its first edit-save; persist + surface across the redirect. (3) RECONCILIATION CRON \u2014 a daily job that deletes SessionMeeting rows whose occurrence no longer exists (post-edit orphans) and old past meetings, optionally logging upcoming over-capacity slots \u2014 the self-healing backstop beneath Layers 1-2.",
