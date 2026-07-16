@@ -5451,6 +5451,58 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ remove_document_conversation_threads_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Native Documents retirement — Phase 2 (schema drop). Safe now: the live
+  // deployment is the Phase-1 build, whose code no longer references the
+  // hub_documents* tables, the documentId / documentCategories columns, or the
+  // doc enums. Re-sweeps any doc-conversation thread created in the window
+  // between the deploys, then drops the columns (CASCADE clears the FK +
+  // index), the three tables, the doc enums, and the orphaned document email
+  // rows. All IF EXISTS. (The historical doc CREATE/seed blocks earlier in this
+  // file are left as-is — flag-guarded, so they no-op on prod; on a fresh DB
+  // they create-then-drop, wasteful but harmless.)
+  // ───────────────────────────────────────────────────────────────────────
+  const docSchemaFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'remove_document_schema_v1'
+  `).catch(() => []);
+
+  if (docSchemaFlag.length === 0) {
+    console.log("→ Dropping native Documents schema (Phase 2)…");
+    const docCol2 = await db.$queryRawUnsafe(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'hub_conversation_threads' AND column_name = 'documentId'
+    `).catch(() => []);
+    if (docCol2.length > 0) {
+      const swept = await db.$executeRawUnsafe(
+        `DELETE FROM "hub_conversation_threads" WHERE "documentId" IS NOT NULL`,
+      );
+      console.log(`  ✔ final sweep: deleted ${swept} interim document-conversation thread(s).`);
+    }
+    // Drop the anchor column with CASCADE so its FK + index go with it (no need
+    // to know their generated names).
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_conversation_threads" DROP COLUMN IF EXISTS "documentId" CASCADE`,
+    );
+    await db.$executeRawUnsafe(`ALTER TABLE "hubs" DROP COLUMN IF EXISTS "documentCategories"`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "hub_document_notifications" CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "hub_document_placements" CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "hub_documents" CASCADE`);
+    await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "HubDocumentFileType" CASCADE`);
+    await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "HubDocKind" CASCADE`);
+    await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "HubDocVisibility" CASCADE`);
+    const delDocTpls = await db.emailTemplate.deleteMany({
+      where: { slug: { in: ["hub-document-created", "hub-document-updated"] } },
+    });
+    console.log(
+      `  ✔ dropped hub_documents* tables + doc columns/enums; removed ${delDocTpls.count} email template row(s).`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('remove_document_schema_v1')`,
+    );
+  } else {
+    console.log("  ⏭ remove_document_schema_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
