@@ -28,10 +28,13 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import AccountLayout from "@/components/AccountLayout";
 import FileDetailActions from "@/components/FileDetailActions";
+import FileConversation from "@/components/FileConversation";
 import { db } from "@/lib/db";
 import {
   authorizeFileRead,
   canManageFileMeta,
+  canModerateFileConversation,
+  listFileComments,
   logFileAction,
 } from "@/lib/googleFiles";
 import { sessionDisplayName } from "@/lib/sessionIdentity";
@@ -223,6 +226,13 @@ export default async function FileDetailPage({
 
   const streamSrc = `/api/files/stream/${fileId}`;
 
+  // The file's conversation (initial render server-side, no load flash) + the
+  // viewer's moderation authority for it.
+  const [conversationComments, canModerate] = await Promise.all([
+    listFileComments(fileId),
+    canModerateFileConversation(viewer, place),
+  ]);
+
   return (
     <AccountLayout>
       <div className="gf-detail">
@@ -288,6 +298,13 @@ export default async function FileDetailPage({
             </div>
           )}
         </div>
+
+        <FileConversation
+          fileId={fileId}
+          viewerId={viewer.userId}
+          canModerate={canModerate}
+          initialComments={conversationComments}
+        />
       </div>
     </AccountLayout>
   );

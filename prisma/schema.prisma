@@ -1157,6 +1157,29 @@ model GoogleFileMeta {
   @@map("google_file_meta")
 }
 
+// A comment on a Google Drive file, anchored by googleFileId — the discussion
+// that lives on a file's detail page. Deliberately NOT a HubConversationThread
+// (that model is hub-scoped with a non-null hubId and feeds the hub
+// Conversations list; a file comment must work for Community files too and
+// must never leak into that feed). Loose references, like GoogleFileMeta /
+// GoogleFileAudit: authorId is a plain user id resolved at read, so no FK and
+// no back-relation on User. Access is governed entirely by authorizeFileRead
+// (see the file, see its conversation). body is plain text (RIM_GoogleWorkspace
+// §8); reactions is { "👍": [userId, …], … }.
+model FileComment {
+  id           String    @id @default(cuid())
+  googleFileId String
+  authorId     String
+  body         String
+  reactions    Json      @default("{}")
+  editedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([googleFileId])
+  @@map("file_comments")
+}
+
 model HubConversationThread {
   id                   String    @id @default(cuid())
   hubId                String

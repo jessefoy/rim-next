@@ -27634,6 +27634,112 @@ input.w-button { -webkit-appearance: button; }
   .gf-detail__btn { flex: 1; }
 }
 
+/* ── File conversation: one flat discussion on the file's detail page. Calm
+   white comment cards on the page ground, a quiet compose box. ── */
+.gf-conv { margin-top: 32px; max-width: var(--reading-width); }
+.gf-conv__title {
+  font-size: var(--text-h4);
+  margin: 0 0 16px;
+}
+.gf-conv__empty {
+  margin: 0 0 16px;
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+}
+.gf-conv__list { list-style: none; margin: 0 0 20px; padding: 0; }
+.gf-comment {
+  background: var(--rim-surface);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.gf-conv__list li + li { margin-top: 10px; }
+.gf-comment__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.gf-comment__author { font-size: var(--text-ui); font-weight: 600; color: var(--rim-text); }
+.gf-comment__time { font-size: var(--text-xs); color: var(--rim-mid); }
+.gf-comment__delete {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  min-height: 32px;
+  font-size: var(--text-xs);
+  color: var(--rim-mid);
+  cursor: pointer;
+}
+.gf-comment__delete:hover { color: var(--color-error); }
+.gf-comment__body {
+  margin: 0;
+  font-size: var(--text-ui);
+  line-height: var(--lh-body);
+  color: var(--rim-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.gf-comment__reactions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.gf-react {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--rim-bg-accent);
+  border-radius: 999px;
+  background: var(--rim-bg-bright);
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+.gf-react:hover { background: var(--rim-bg-accent); }
+.gf-react--mine {
+  border-color: var(--rim-blue);
+  background: var(--rim-bg-accent);
+}
+.gf-react__count { font-size: var(--text-xs); color: var(--rim-mid); }
+.gf-conv__compose {
+  background: var(--rim-surface);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.gf-conv__input {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--lh-body);
+  color: var(--rim-text);
+  background: var(--rim-bg-bright);
+  border: 1px solid var(--rim-bg-accent);
+  border-radius: 8px;
+  resize: vertical;
+}
+.gf-conv__input:focus { outline: 2px solid var(--rim-blue); outline-offset: -1px; }
+.gf-conv__compose-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+.gf-conv__error { font-size: var(--text-xs); color: var(--color-error); margin-right: auto; }
+.gf-conv__post {
+  min-height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 22px;
+  background: var(--rim-blue);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+.gf-conv__post:hover { opacity: 0.92; }
+.gf-conv__post:disabled { opacity: 0.6; cursor: default; }
+
 /* Tablet & below: places become a horizontal strip above the pane */
 @media (max-width: 768px) {
   .gf-browser--with-places { flex-direction: column; gap: 14px; }

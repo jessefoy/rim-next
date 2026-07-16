@@ -692,6 +692,66 @@ export async function canManageFileMeta(
   return false;
 }
 
+/** The five reactions a file comment supports (mirrors hub conversations). */
+export const FILE_REACTION_EMOJIS = ["👍", "❤️", "🙏", "💡", "😊"] as const;
+
+export interface FileCommentJson {
+  id: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+  editedAt: string | null;
+  /** emoji → the ids of members who reacted with it. */
+  reactions: Record<string, string[]>;
+}
+
+/**
+ * A file's conversation, oldest-first, with author names resolved in one batch
+ * (loose authorId → the app's "Nancy L." display). Shared by the detail page's
+ * server render and the GET refetch route so the shape can't drift.
+ */
+export async function listFileComments(googleFileId: string): Promise<FileCommentJson[]> {
+  const comments = await db.fileComment.findMany({
+    where: { googleFileId },
+    orderBy: { createdAt: "asc" },
+  });
+  if (comments.length === 0) return [];
+  const authorIds = [...new Set(comments.map((c) => c.authorId))];
+  const users = await db.user.findMany({
+    where: { id: { in: authorIds } },
+    select: { id: true, firstName: true, lastName: true, preferredName: true },
+  });
+  const nameById = new Map(users.map((u) => [u.id, sessionDisplayName(u, "A member")]));
+  return comments.map((c) => ({
+    id: c.id,
+    authorId: c.authorId,
+    authorName: nameById.get(c.authorId) ?? "A member",
+    body: c.body,
+    createdAt: c.createdAt.toISOString(),
+    editedAt: c.editedAt ? c.editedAt.toISOString() : null,
+    reactions: (c.reactions as Record<string, string[]>) ?? {},
+  }));
+}
+
+/**
+ * May the viewer moderate (delete any comment on) this file's conversation? A
+ * comment's own author can always delete it; beyond that it's a Space
+ * coordinator or a GUIDING_TEACHER/ADMIN — mirroring hub-reply deletion. This
+ * is distinct from canManageFileMeta (which also lets the FILE's creator act):
+ * making a file doesn't make you a moderator of everyone's comments on it.
+ */
+export async function canModerateFileConversation(
+  viewer: { userId: string; roles: string[] },
+  place: FilesPlace,
+): Promise<boolean> {
+  if (viewer.roles.includes("GUIDING_TEACHER") || viewer.roles.includes("ADMIN")) {
+    return true;
+  }
+  if (place.hubSlug && (await isHubCoordinator(viewer.userId, place.hubSlug))) return true;
+  return false;
+}
+
 /**
  * The shared gate for state-changing PER-FILE routes (rename/move/trash —
  * and any Slice 3b+ write): cross-site refusal, the read gate

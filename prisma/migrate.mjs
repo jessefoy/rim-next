@@ -5554,6 +5554,41 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ google_file_meta_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // File comments (RIM_GoogleWorkspace.md, file-detail slice). One discussion
+  // per Google Drive file, anchored by googleFileId. Additive — a brand-new
+  // table, nothing existing changes. Loose authorId (no FK), like the other
+  // google-file tables.
+  // ───────────────────────────────────────────────────────────────────────
+  const fileCommentsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'file_comments_v1'
+  `).catch(() => []);
+
+  if (fileCommentsFlag.length === 0) {
+    console.log("→ File comments (conversation per Google file) …");
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "file_comments" (
+        "id"           TEXT PRIMARY KEY,
+        "googleFileId" TEXT NOT NULL,
+        "authorId"     TEXT NOT NULL,
+        "body"         TEXT NOT NULL,
+        "reactions"    JSONB NOT NULL DEFAULT '{}',
+        "editedAt"     TIMESTAMP(3),
+        "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "file_comments_googleFileId_idx" ON "file_comments"("googleFileId")`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('file_comments_v1')`,
+    );
+    console.log("  ✔ file_comments ready.");
+  } else {
+    console.log("  ⏭ file_comments_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
