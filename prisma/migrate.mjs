@@ -5503,6 +5503,57 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ remove_document_schema_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Google Files per-file state layer (RIM_GoogleWorkspace.md, file-detail
+  // slice). RIM's own record of who created a file + whether it's a draft
+  // (held). Additive — a brand-new table, nothing existing changes. Also
+  // backfills creatorUserId from the audit log so files RIM already created
+  // show a real "Created by" immediately; heldAt stays NULL on the backfill so
+  // existing files remain visible (opt-out default — never retroactively hide).
+  // ───────────────────────────────────────────────────────────────────────
+  const googleFileMetaFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'google_file_meta_v1'
+  `).catch(() => []);
+
+  if (googleFileMetaFlag.length === 0) {
+    console.log("→ Google Files per-file state (creator + draft) …");
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "google_file_meta" (
+        "id"            TEXT PRIMARY KEY,
+        "googleFileId"  TEXT NOT NULL,
+        "creatorUserId" TEXT,
+        "heldAt"        TIMESTAMP(3),
+        "hubId"         TEXT,
+        "placeKey"      TEXT,
+        "createdAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "google_file_meta_googleFileId_key" ON "google_file_meta"("googleFileId")`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "google_file_meta_creatorUserId_idx" ON "google_file_meta"("creatorUserId")`,
+    );
+    // Backfill creator from the earliest create-*/upload audit row per file.
+    const backfilled = await db.$executeRawUnsafe(`
+      INSERT INTO "google_file_meta" ("id","googleFileId","creatorUserId","hubId","createdAt","updatedAt")
+      SELECT DISTINCT ON ("googleFileId")
+        gen_random_uuid()::text, "googleFileId", "userId", "hubId", NOW(), NOW()
+      FROM "google_file_audit"
+      WHERE "googleFileId" IS NOT NULL
+        AND ("action" LIKE 'create-%' OR "action" = 'upload')
+      ORDER BY "googleFileId", "createdAt" ASC
+      ON CONFLICT ("googleFileId") DO NOTHING
+    `);
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('google_file_meta_v1')`,
+    );
+    console.log(`  ✔ google_file_meta ready; backfilled ${backfilled} creator record(s).`);
+  } else {
+    console.log("  ⏭ google_file_meta_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

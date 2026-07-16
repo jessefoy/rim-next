@@ -74,7 +74,15 @@ interface FileRow {
   name: string;
   mimeType: string;
   modifiedTime: string | null;
+  /** Google's own last-editor (often anonymous) — no longer shown in the row;
+   *  reserved for the Slice-2 file detail page. RIM attribution is createdBy. */
   modifiedBy: string | null;
+  /** RIM's own attribution (resolved member name); null = added directly. */
+  createdBy: string | null;
+  /** A draft — held back from the Space until shared. */
+  held: boolean;
+  /** This viewer created it (drives the "Your drafts" grouping). */
+  mine: boolean;
 }
 
 interface Crumb {
@@ -323,6 +331,17 @@ export default function FilesBrowser({
     load({ soft: true });
   }
 
+  /** Draft toggle — a direct menu/pill action (no dialog). Flips RIM's held
+   * state, then refreshes so the file moves into or out of "Your drafts". */
+  async function toggleDraft(rowId: string, action: "hold" | "share") {
+    setMenuOpen(null);
+    const { ok } = await writeRequest(`/api/files/${rowId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ action }),
+    });
+    if (ok) load({ soft: true });
+  }
+
   async function performCreate(kind: CreateKind, name: string) {
     // Open the placeholder tab synchronously (inside the user gesture) so
     // Safari doesn't block the editor tab a successful create deserves.
@@ -443,6 +462,107 @@ export default function FilesBrowser({
     }
   }
 
+  // One file/folder row — shared by the "Your drafts" section and the main
+  // list so their markup can't drift. A visible "Share with the Space" pill is
+  // the dominant action on the viewer's own drafts (one clear next step); the
+  // ⋯ menu carries the draft toggle for every other case plus rename/move/trash.
+  function renderRow(row: FileRow) {
+    const kind = fileKind(row.mimeType);
+    const Icon = kind.icon;
+    const othersDraft = row.held && !row.mine; // a moderator viewing someone else's draft
+    return (
+      <li key={row.id} className="gf-item">
+        <button className="gf-row" onClick={() => openFile(row)}>
+          <Icon
+            size={18}
+            strokeWidth={1.75}
+            className={`gf-row__icon${kind.open === "folder" ? " gf-row__icon--folder" : ""}`}
+            aria-hidden="true"
+          />
+          <span className="gf-row__namecell">
+            <span className="gf-row__name">{row.name}</span>
+            {othersDraft && <span className="gf-row__tag">Draft</span>}
+          </span>
+          <span className="gf-row__kind">{kind.label}</span>
+          <span className="gf-row__meta">
+            {row.modifiedTime ? `Updated ${relativeDate(row.modifiedTime)}` : ""}
+            {row.createdBy ? ` · ${row.createdBy}` : ""}
+          </span>
+        </button>
+        {row.held && row.mine && (
+          <button
+            className="gf-row__share"
+            onClick={() => toggleDraft(row.id, "share")}
+            disabled={busy}
+          >
+            Share with the Space
+          </button>
+        )}
+        {canWrite && (
+          <div className="gf-menu-wrap">
+            <button
+              className="gf-item__more"
+              aria-label={`Actions for ${row.name}`}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen === row.id}
+              onClick={() => setMenuOpen(menuOpen === row.id ? null : row.id)}
+            >
+              <MoreHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+            {menuOpen === row.id && (
+              <div className="gf-menu gf-menu--row" role="menu">
+                {!row.held && (
+                  <button
+                    className="gf-menu__item"
+                    role="menuitem"
+                    onClick={() => toggleDraft(row.id, "hold")}
+                  >
+                    Hold as draft
+                  </button>
+                )}
+                {othersDraft && (
+                  <button
+                    className="gf-menu__item"
+                    role="menuitem"
+                    onClick={() => toggleDraft(row.id, "share")}
+                  >
+                    Share with the Space
+                  </button>
+                )}
+                <button
+                  className="gf-menu__item"
+                  role="menuitem"
+                  onClick={() => openDialog({ mode: "rename", row })}
+                >
+                  Rename
+                </button>
+                <button
+                  className="gf-menu__item"
+                  role="menuitem"
+                  onClick={() => openDialog({ mode: "move", row })}
+                >
+                  Move…
+                </button>
+                <button
+                  className="gf-menu__item gf-menu__item--danger"
+                  role="menuitem"
+                  onClick={() => openDialog({ mode: "trash", row })}
+                >
+                  Move to trash
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </li>
+    );
+  }
+
+  // The viewer's own drafts float to a distinct section at the top; everything
+  // else (shared files + any drafts a moderator can see) stays in the main list.
+  const myDrafts = files?.filter((f) => f.held && f.mine) ?? [];
+  const rest = files?.filter((f) => !(f.held && f.mine)) ?? [];
+
   return (
     <div className={`gf-browser${showPlaces ? " gf-browser--with-places" : ""}`}>
       {showPlaces && places.length > 1 && (
@@ -554,6 +674,12 @@ export default function FilesBrowser({
           </div>
         )}
 
+        {actionError && !dialog && (
+          <p className="gf-notice" role="alert">
+            {actionError}
+          </p>
+        )}
+
         {files === null && !error && <p className="gf-status">Loading files…</p>}
 
         {error && (
@@ -571,70 +697,17 @@ export default function FilesBrowser({
           </p>
         )}
 
-        {files !== null && files.length > 0 && (
-          <ul className="gf-list">
-            {files.map((row) => {
-              const kind = fileKind(row.mimeType);
-              const Icon = kind.icon;
-              return (
-                <li key={row.id} className="gf-item">
-                  <button className="gf-row" onClick={() => openFile(row)}>
-                    <Icon
-                      size={18}
-                      strokeWidth={1.75}
-                      className={`gf-row__icon${kind.open === "folder" ? " gf-row__icon--folder" : ""}`}
-                      aria-hidden="true"
-                    />
-                    <span className="gf-row__name">{row.name}</span>
-                    <span className="gf-row__kind">{kind.label}</span>
-                    <span className="gf-row__meta">
-                      {row.modifiedTime ? `Updated ${relativeDate(row.modifiedTime)}` : ""}
-                      {row.modifiedBy ? ` · ${row.modifiedBy}` : ""}
-                    </span>
-                  </button>
-                  {canWrite && (
-                    <div className="gf-menu-wrap">
-                      <button
-                        className="gf-item__more"
-                        aria-label={`Actions for ${row.name}`}
-                        aria-haspopup="menu"
-                        aria-expanded={menuOpen === row.id}
-                        onClick={() => setMenuOpen(menuOpen === row.id ? null : row.id)}
-                      >
-                        <MoreHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
-                      </button>
-                      {menuOpen === row.id && (
-                        <div className="gf-menu gf-menu--row" role="menu">
-                          <button
-                            className="gf-menu__item"
-                            role="menuitem"
-                            onClick={() => openDialog({ mode: "rename", row })}
-                          >
-                            Rename
-                          </button>
-                          <button
-                            className="gf-menu__item"
-                            role="menuitem"
-                            onClick={() => openDialog({ mode: "move", row })}
-                          >
-                            Move…
-                          </button>
-                          <button
-                            className="gf-menu__item gf-menu__item--danger"
-                            role="menuitem"
-                            onClick={() => openDialog({ mode: "trash", row })}
-                          >
-                            Move to trash
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+        {myDrafts.length > 0 && (
+          <section className="gf-drafts" aria-label="Your drafts">
+            <div className="gf-drafts__head">
+              <h2 className="gf-drafts__title">Your drafts</h2>
+              <p className="gf-drafts__sub">Only you can see these until you share them.</p>
+            </div>
+            <ul className="gf-list">{myDrafts.map(renderRow)}</ul>
+          </section>
         )}
+
+        {rest.length > 0 && <ul className="gf-list">{rest.map(renderRow)}</ul>}
       </div>
 
       {/* A quiet backdrop closes any open menu on an outside tap. */}

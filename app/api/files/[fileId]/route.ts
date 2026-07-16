@@ -16,8 +16,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import {
   authorizeFileWrite,
+  canManageFileMeta,
   fileRowJson,
   logFileAction,
   resolveParentFolder,
@@ -117,6 +119,40 @@ export async function PATCH(
         googleFileId: fileId,
         hubId: place.hubId,
         detail: { place: place.key, name: file.name, mimeType: file.mimeType },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    // Draft toggle — hold a file back from the Space, or share it in. Neither
+    // touches Google; both flip RIM's own GoogleFileMeta.heldAt. Restricted
+    // beyond baseline write access to the file's creator, a Space coordinator,
+    // or a GUIDING_TEACHER/ADMIN (canManageFileMeta).
+    if (body.action === "hold" || body.action === "share") {
+      const meta = await db.googleFileMeta.findUnique({ where: { googleFileId: fileId } });
+      if (!(await canManageFileMeta(viewer, place, meta))) {
+        return NextResponse.json(
+          { error: "Only the file's creator or a coordinator can change this." },
+          { status: 403 },
+        );
+      }
+      const heldAt = body.action === "hold" ? new Date() : null;
+      await db.googleFileMeta.upsert({
+        where: { googleFileId: fileId },
+        update: { heldAt },
+        create: {
+          googleFileId: fileId,
+          heldAt,
+          creatorUserId: meta?.creatorUserId ?? null,
+          hubId: place.hubId,
+          placeKey: place.key,
+        },
+      });
+      await logFileAction({
+        userId: viewer.userId,
+        action: body.action,
+        googleFileId: fileId,
+        hubId: place.hubId,
+        detail: { place: place.key, name: file.name },
       });
       return NextResponse.json({ ok: true });
     }

@@ -162,6 +162,28 @@ export async function processFileTransfer(id: string): Promise<void> {
       detail: { place: place.key, name: transfer.fileName, mimeType: transfer.mimeType },
     });
 
+    // Record RIM's own attribution so an uploaded file shows the uploader's
+    // name in the Finder (not the "Added directly in Google Drive" placeholder
+    // reserved for files that truly bypassed RIM). Uploads are shared, not
+    // drafts (heldAt stays null). Best-effort + idempotent (upsert on the
+    // unique googleFileId) — the transfer is already DONE, so a failure here
+    // is a missing attribution nit, never a reason to fail/retry the upload.
+    try {
+      await db.googleFileMeta.upsert({
+        where: { googleFileId: file.id },
+        update: {},
+        create: {
+          googleFileId: file.id,
+          creatorUserId: transfer.userId,
+          heldAt: null,
+          hubId: place.hubId,
+          placeKey: place.key,
+        },
+      });
+    } catch (metaErr) {
+      console.error("[files-transfer] meta upsert failed", transfer.id, metaErr);
+    }
+
     // Best-effort: the file is already safe in Drive, so a failed cleanup
     // here is a storage-cost nit, not a data-loss risk — leave it for the
     // cron's orphan sweep rather than failing a successful transfer over it.

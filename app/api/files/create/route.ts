@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import {
   fileRowJson,
   logFileAction,
@@ -70,6 +71,20 @@ export async function POST(req: NextRequest) {
     }
 
     const file = await createFile({ name, mimeType: KIND_MIME[kind], parentId: parent.id });
+    // Record RIM's own attribution + born-held draft state. Documents start
+    // held (a private draft — the opt-out default: the creator holds the link
+    // and shares when ready); folders are structure, shared immediately. If
+    // this write fails the create 502s and the member retries — better than a
+    // silently-visible draft.
+    await db.googleFileMeta.create({
+      data: {
+        googleFileId: file.id,
+        creatorUserId: viewer.userId,
+        heldAt: kind === "folder" ? null : new Date(),
+        hubId: place.hubId,
+        placeKey: place.key,
+      },
+    });
     await logFileAction({
       userId: viewer.userId,
       action: `create-${kind}`,

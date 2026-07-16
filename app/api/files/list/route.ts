@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
-  fileRowJson,
+  buildFileRows,
   filesViewer,
   resolveParentFolder,
   resolvePlace,
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     }
     return NextResponse.json({
       folderName: resolved.name,
-      files: files.map(fileRowJson),
+      files: await buildFileRows(files, viewer),
     });
   } catch (e) {
     console.error("[files-list]", e instanceof Error ? e.message : e);

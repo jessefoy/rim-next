@@ -1,5 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { isHubCoordinator } from "@/lib/hubAuth";
+import { sessionDisplayName } from "@/lib/sessionIdentity";
 import { googleConfigured } from "@/lib/google/auth";
 import {
   GOOGLE_MIME,
@@ -537,22 +539,118 @@ export async function resolveParentFolder(
 /**
  * The one JSON shape for a file row sent to the Finder client — list, create,
  * and update responses all serialize through here so the client-side FileRow
- * contract can't drift per-route.
+ * contract can't drift per-route. The RIM-layer fields (createdBy / held /
+ * mine) come from GoogleFileMeta via buildFileRows; a bare fileRowJson(f) call
+ * (single-file rename/move responses the client re-fetches anyway) leaves them
+ * at their harmless defaults.
  */
-export function fileRowJson(f: DriveFile): {
+export interface FileRowJson {
   id: string;
   name: string;
   mimeType: string;
   modifiedTime: string | null;
+  /** Google's own last-editor name — often anonymous; kept for completeness. */
   modifiedBy: string | null;
-} {
+  /** RIM's own attribution (resolved member name). null = "Added directly". */
+  createdBy: string | null;
+  /** A draft: hidden from the Space until shared. */
+  held: boolean;
+  /** This viewer is the file's creator (drives the "Your drafts" grouping). */
+  mine: boolean;
+}
+
+export function fileRowJson(
+  f: DriveFile,
+  extra?: { createdBy?: string | null; held?: boolean; mine?: boolean },
+): FileRowJson {
   return {
     id: f.id,
     name: f.name,
     mimeType: f.mimeType,
     modifiedTime: f.modifiedTime ?? null,
     modifiedBy: f.lastModifyingUser?.displayName ?? null,
+    createdBy: extra?.createdBy ?? null,
+    held: extra?.held ?? false,
+    mine: extra?.mine ?? false,
   };
+}
+
+/**
+ * Annotate a Drive listing with RIM's per-file state (GoogleFileMeta) and
+ * filter out other people's drafts. Batched: one meta query + one name query
+ * for the whole folder. A held file is returned only to its creator (`mine`)
+ * or a moderator (GUIDING_TEACHER/ADMIN); everyone else never sees it —
+ * decision: a draft is genuinely private until shared. Creator names resolve
+ * to the app's "Nancy L." display; an unknown creator (no meta row — e.g. a
+ * file dropped straight into the Drive) stays null so the UI shows a clean
+ * placeholder instead of the service-account attribution.
+ */
+export async function buildFileRows(
+  files: DriveFile[],
+  viewer: { userId: string; roles: string[] },
+): Promise<FileRowJson[]> {
+  if (files.length === 0) return [];
+  const metas = await db.googleFileMeta.findMany({
+    where: { googleFileId: { in: files.map((f) => f.id) } },
+    select: { googleFileId: true, creatorUserId: true, heldAt: true },
+  });
+  const metaById = new Map(metas.map((m) => [m.googleFileId, m]));
+
+  const creatorIds = [
+    ...new Set(metas.map((m) => m.creatorUserId).filter((id): id is string => !!id)),
+  ];
+  const users = creatorIds.length
+    ? await db.user.findMany({
+        where: { id: { in: creatorIds } },
+        select: { id: true, firstName: true, lastName: true, preferredName: true },
+      })
+    : [];
+  const nameById = new Map(users.map((u) => [u.id, sessionDisplayName(u, "")]));
+
+  const isModerator =
+    viewer.roles.includes("GUIDING_TEACHER") || viewer.roles.includes("ADMIN");
+
+  const rows: FileRowJson[] = [];
+  for (const f of files) {
+    const m = metaById.get(f.id);
+    const held = !!m?.heldAt;
+    const mine = !!m?.creatorUserId && m.creatorUserId === viewer.userId;
+    // A held file is filtered out of the LISTING for anyone but its creator or
+    // a moderator. (Note: this hides it, it doesn't seal it — the open/stream/
+    // reader routes don't yet gate on held; a same-Space member holding the
+    // file id could still read it. A read-route held gate lands with the
+    // Slice-2 detail page. In practice a never-shared draft's id isn't
+    // discoverable, since it never appears in a list the non-creator can see.)
+    if (held && !mine && !isModerator) continue;
+    // createdBy resolution: a known creator with no name resolves to a generic
+    // "A member" (still attributed), NOT null — null is reserved for a file
+    // with no creator record at all, which the UI renders "Added directly".
+    const createdBy = m?.creatorUserId
+      ? nameById.get(m.creatorUserId) || "A member"
+      : null;
+    rows.push(fileRowJson(f, { createdBy, held, mine }));
+  }
+  return rows;
+}
+
+/**
+ * May this viewer change a file's RIM state (hold/share, and later re-attribute
+ * its creator)? Broader than draft *visibility* (creator + moderator only):
+ * the file's creator, a coordinator of its Space, or a GUIDING_TEACHER/ADMIN.
+ * A Community file (no hub) has no coordinator, so it's creator + moderator.
+ * Runs AFTER authorizeFileWrite has already confirmed baseline write access.
+ */
+export async function canManageFileMeta(
+  viewer: { userId: string; roles: string[] },
+  place: FilesPlace,
+  meta: { creatorUserId: string | null } | null,
+): Promise<boolean> {
+  if (viewer.roles.includes("GUIDING_TEACHER") || viewer.roles.includes("ADMIN")) {
+    return true;
+  }
+  if (meta?.creatorUserId && meta.creatorUserId === viewer.userId) return true;
+  if (place.hubSlug && (await isHubCoordinator(viewer.userId, place.hubSlug))) return true;
+  return false;
 }
 
 /**

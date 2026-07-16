@@ -1132,6 +1132,30 @@ model GoogleFileTransfer {
   @@map("google_file_transfers")
 }
 
+// RIM's own per-file state layer over Google Drive (RIM_GoogleWorkspace.md).
+// Sparse by design: a file with NO row is shared + RIM-unknown-creator — the
+// opt-out default that keeps "just drop it in the Drive and it shows up" true.
+// Loose references, like GoogleFileAudit: no FK to a Drive file RIM doesn't
+// own, and creatorUserId is a loose user id so a row outlives account churn.
+model GoogleFileMeta {
+  id           String @id @default(cuid())
+  googleFileId String @unique
+  // The RIM member credited as creator: create-through-RIM, backfilled from
+  // the audit log, or a manual "Set creator" override. null renders as "Added
+  // directly in Google Drive" — never the messy service-account attribution.
+  creatorUserId String?
+  // Draft marker: when set, the file is hidden from the Space in the Finder
+  // (visible only to its creator + GUIDING_TEACHER/ADMIN). null = shared.
+  heldAt   DateTime?
+  // The owning place, for scoping/attribution queries (null = Community).
+  hubId    String?
+  placeKey String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creatorUserId])
+  @@map("google_file_meta")
+}
 
 model HubConversationThread {
   id                   String    @id @default(cuid())
