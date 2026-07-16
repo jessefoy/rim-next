@@ -22,7 +22,6 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 | Auth, sign-in, NextAuth callbacks, rate-limit | **`RIM_Auth.md`** — sign-in flow, code generation, error states, rate-limit thresholds, key namespacing, common pitfalls |
 | Program registration, dana, Stripe checkout/webhook, or anything that lists/counts registrations | **`RIM_Registration.md`** — completion-follows-the-choice model, the `PENDING_PAYMENT` held state, the `sendRegistrationConfirmation` choke point, visibility rules, pitfalls. Read with `RIM_Offering_Model.md`. |
 | Editor, text field, block, or rich content work | `RIM_Editor_Types.md` — canonical reference. Supersedes the older `RIM_Editor_Design.md`. |
-| Native documents and filing — the per-hub Documents tab, native writer, master directory, category governance, freshness/search, placement/visibility (`components/HubDocumentsClient`, `HubDocumentEditor`, `/api/documents/[id]/export`, `lib/documentAuth.ts`) | **`RIM_Documents.md`** — supported native document and filing-system reference. |
 | New feature of any kind | `FEATURES.md` — check what already exists and what it connects to |
 | Program-related changes | Trace the full program ecosystem (registration, hosts, teachers, Zoom sessions, dana, pages, dashboard) |
 

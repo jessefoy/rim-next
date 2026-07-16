@@ -48,7 +48,7 @@ Real example from Slice 2.5: capability gates routed correctly to peer-led-silen
 | `getEffectiveHostingCapability(userId, hubSlug, fallback)` | `lib/hubMemberAuth.ts` | "Is this user an active hosting-capable member of this hub?" Pass `program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG`. |
 | `getHubNotificationRecipients(hubSlug, opts)` | `lib/toolAuth.ts` | Active members of a hub with `communicationsEnabled`. Use for notification recipient pools. |
 | `getHubMembership(slug, userId, roles)` | `lib/hubAuth.ts` | Returns `{ hub, member, isAdmin }`. Fetches the row; gate access with `canAccessHub`, never a bare `!member` (see *ADMIN policy* below). |
-| `canAccessHub(member, roles)` | `lib/hubAuth.ts` | **The access door** (session 135). True if a `HubMember` row exists OR roles includes `GUIDING_TEACHER`. ADMIN-alone does NOT pass. Single source of truth — use at every hub access gate (the layout, all sub-pages, every `/api/hub/[slug]/**` route). Replaces the scattered `!member` / `(!member && !isAdmin)` checks. |
+| `canAccessHub(member, roles, openToAll?)` | `lib/hubAuth.ts` | **The access door** (session 135). True if a `HubMember` row exists OR roles includes `GUIDING_TEACHER`. ADMIN-alone does NOT pass. Single source of truth — use at every hub access gate (the layout, all sub-pages, every `/api/hub/[slug]/**` route). The optional `openToAll` (session 165) is the Community-Space primitive — see below. |
 | `effectiveCoordinator(member, roles)` | `lib/hubAuth.ts` | "Is this user acting as coordinator on this hub?" True for the coordinator flag, ADMIN, or GUIDING_TEACHER. Use everywhere you would have written `(member?.isCoordinator ?? false) || isAdmin`. |
 | `hubScopedUrl(path, hubSlug)` | `lib/email.ts` | Append `?hub=<slug>` to a `/tools/*` URL when the slug isn't the host-team default. Use for every email link to a hub-scoped tool view. |
 | `hubHomeUrl(hubSlug)` | `lib/email.ts` | Build `/account/hub/<slug>` (the hub's own workspace URL). |
@@ -90,6 +90,14 @@ The mental model: **ADMIN configures hubs from outside; ADMIN participates from 
 **Auto-coordinator on hub creation (session 131).** `POST /api/admin/hubs` writes a `HubMember` row for the calling admin atomically alongside the hub itself, via Prisma nested `members.create`. Values mirror `/api/admin/hubs/[slug]/add-me-as-coordinator` exactly (`isCoordinator: true`, `status: ACTIVE`, `hostingCapability: true`, `communicationsEnabled: true`, `position: "Coordinator"`). The standard creator flow no longer requires the post-create "Add me as coordinator" click. The safety-net endpoint stays for the case where an admin needs to bootstrap into a hub someone else created. **Implication for new code:** when a hub exists, its creating admin is *always* a coordinator-member. Don't write defensive code that assumes "the creator might not be a member."
 
 ---
+
+## The open-to-all Space primitive + per-hub feature switches (session 165)
+
+`Hub.openToAllMembers` makes a Space reachable by **every signed-in member with no `HubMember` row** (the "Community" Space). The rule that keeps it safe:
+
+- Pass `hub.openToAllMembers` to `canAccessHub` **only at participation gates** — hub entry (the layout), Files, Conversations, Activity (pages + `/api/hub/[slug]/**` routes for those). Every roster/admin gate (Members, Trash, category management) keeps the plain 2-arg call, so an open Space is **fail-closed** there (no roster to show, no per-hub coordinators). The default arg is `false`, so the ~80 other call sites are unaffected — the flag only widens the door where a caller opts in.
+- `Hub.conversationsEnabled` (default true) is a **per-hub feature switch**. The rule against show-but-can't-act / hidden-but-reachable: gate every conversation route/page as **`hub.conversationsEnabled && canAccessHub(member, roles, hub.openToAllMembers)`** AND hide the tab in the sidebar on the same flag. When off, the tab is hidden *and* the routes deny.
+- Community rides the name-resolved `RIM — Community` Drive (its `googleDriveId` stays null); its Files tab uses the `community` place, not a hub drive mapping. New feature switches should follow the same "flag gates both the UI tab and the route access, together" discipline.
 
 ## Common pitfalls
 

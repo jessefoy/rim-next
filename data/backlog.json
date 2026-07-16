@@ -1023,5 +1023,15 @@
     "status": "open",
     "addedAt": "2026-07-15",
     "notes": "Also consider: cross-Space MOVE and a copy/duplicate action (Drive files.copy) \u2014 smaller adjacent asks raised in the same conversation. Move-between-Spaces and duplicate are simpler than share and could ship first."
+  },
+  {
+    "id": "2026-07-16-001",
+    "title": "Prune orphaned doc-/hub-doc- CSS after native Documents retirement",
+    "description": "Native Documents was retired in session 165, leaving orphaned CSS: the doc-focus-, hub-doc-, docs- (master directory), and hdoc- prefixes. Prune them from public/css/custom.css. CAREFUL: hub-doc-notify is SHARED with the Conversations notify panel (HubDocNotifyPanel) and must stay; hub-doc-container/hub-doc-item may be referenced by kept surfaces. Use scripts/css-prune.mjs scoped to the truly-dead prefixes (verify each has ZERO live className usage in app/components first, per the DEAD_PREFIXES warning), plus css-cut for any banner block. Verify brace balance + npx tsc has nothing to do with CSS but re-check the app renders.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-07-16",
+    "notes": "Housekeeping from the native-Documents retirement. Non-blocking; orphaned CSS is harmless. Mirror the mm- prune approach (session 165)."
   }
 ]

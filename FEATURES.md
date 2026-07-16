@@ -25,7 +25,6 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 | Programs vs Courses (the offering model) | `RIM_Offering_Model.md` |
 | Registration / dana / Stripe | `RIM_Registration.md` |
 | Hubs — model + per-callsite engineering rules | `RIM_Hub_Model.md`, `RIM_Hub_Engineering.md` |
-| Mind Maps — spatial brainstorming + per-topic conversations | `RIM_MindMaps.md` |
 | Scheduler tool | `RIM_Scheduler.md` |
 | Program Manager | `RIM_ProgramEditor.md` |
 | Course Manager | `RIM_CourseEditor.md` |
@@ -141,7 +140,9 @@ The **offering model** (Programs vs Courses, the orthogonal access flags, the ki
 
 ## Hubs — team workspaces
 
-Hubs are team-centric workspaces. Each provides **Home**, **Activity**, **Conversations**, **Documents**, **Mind Maps**, **Members**, and coordinator-gated **Trash** views inside one shared hub rail. `HubType` ∈ OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP; all managed at `/admin/hubs` (the source of truth for the full set — ~16 hubs). Tool-linked hubs: **host-team**, **courses**, **registrar**, **support**. Scheduler-using hubs also include **peer-led-silent-meditation**, **audio-visual**, **greeter**.
+Hubs are team-centric workspaces. Each provides **Home**, **Activity**, **Conversations**, **Files** (Google Workspace), **Members**, and coordinator-gated **Trash** views inside one shared hub rail. (Native Documents and Mind Maps were both retired — sessions 165/165.) `HubType` ∈ OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP; all managed at `/admin/hubs` (the source of truth for the full set — ~16 hubs). Tool-linked hubs: **host-team**, **courses**, **registrar**, **support**. Scheduler-using hubs also include **peer-led-silent-meditation**, **audio-visual**, **greeter**.
+
+**The Community Space + per-hub feature switches (session 165).** `Hub.openToAllMembers` (the "Community" Space) opens a hub's participation surfaces to every signed-in member with no `HubMember` row; `Hub.conversationsEnabled` (default true) is a per-hub Conversations toggle set in hub settings. Community launches Files-only; every new hub comes up fully equipped (all features + apps) with Google Files auto-provisioned on create.
 
 - **Workspace routes:** `/account/hub/[slug]` + `/activity`, `/conversations`, `/conversations/[id]`, `/documents`, `/documents/[id]`, `/documents/[id]/edit`, `/documents/new`, `/mindmaps`, `/members`, `/trash`. API under `/api/hub/[slug]/*` and `/api/hubs/[slug]/*`.
 - **Documents** — rich-text + PDF upload (Vercel Blob), per-document Basecamp-style notifications (`HubDocumentNotification`), document conversations (`HubConversationThread.documentId`), author/ADMIN/GT lock + presence.
@@ -154,18 +155,6 @@ Hubs are team-centric workspaces. Each provides **Home**, **Activity**, **Conver
 
 ### Hub admin
 `/admin/hubs`, `/admin/hubs/new`, `/admin/hubs/[slug]/edit` — create/edit/archive hubs, app links, coverage copy, schedule flags. ADMIN only. New hubs auto-write a coordinator `HubMember` for the creating admin.
-
----
-
-## Mind Maps
-
-A spatial brainstorming surface for the Sangha (session 160) — a draggable canvas of **topics** organized into branches, where **each topic opens a real conversation**. RIM's **second portable resource** after Documents, and a **built-in hub module** alongside Documents/Conversations. Built on `@xyflow/react` (React Flow). Read **`RIM_MindMaps.md`** before touching any mind-map surface.
-
-- **Create/edit** — `/account/mindmaps` (cross-hub directory: your hubs → Community → Projects) and the per-hub **Mind Maps tab** `/account/hub/[slug]/mindmaps`. The canvas editor at `/account/mindmaps/[id]` (full-screen React Flow): add/rename/note/drag/**reparent** topics, **floating edges**, **"Tidy up"** auto-layout, debounced **autosave**.
-- **Portable** — `MindMap` + `MindMapNode` (+ `MindMapPlacement`); created standalone or hub-owned, **shared into other hubs** with **visibility** (Hub / Coordinators / Community) and a per-map **edit option** (`editPolicy`: collaborative *vs* coordinators-only) via the share modal. Access via `lib/mindMapAuth.ts::canAccessMindMap` (mirrors `canAccessDocument`).
-- **Conversation per topic** — one shared discussion per topic across every hub the map's in, anchored via `HubConversationThread.mindMapNodeId` (reuses the conversation tables behind map-scoped routes; `lib/mindMapConversation.ts`). Plain-text comments, 5-emoji reactions, Follow/Unfollow; coordinators of the map's hubs auto-follow; followers emailed via the **`mindmap-topic-comment`** template.
-- **Routes/API:** pages above + `/api/mindmaps`, `/api/mindmaps/[id]` (+ `/placements`, `/visibility`), `/api/mindmaps/[id]/nodes/[nodeId]/{conversation,follow}`, `/api/mindmaps/[id]/comments/[replyId]/react`. CSS prefix `mm-`.
-- **Deferred:** rich-text comments, comment-count badges, per-topic unread, comment edit/delete, real-time multiplayer.
 
 ---
 
@@ -232,13 +221,11 @@ Each virtual/hybrid program has a full-page video room at `/session/[slug]` (sel
 All rich-text authoring uses **`RimTiptapEditor`** (`components/rim-tiptap/`) — Tiptap 3, one component, four variants (`minimal` / `message` / `document` / `doc`), storing **plain HTML strings**. Custom blocks: Callout (note/decision), PullQuote, VerseQuote, PracticeSuggestion, Reflection. A selection bubble menu handles inline marks; the top toolbar handles insertion. Output renders into `.rim-content` wrappers. Legacy BlockNote was fully removed in session 97; renderers still format-detect to display any unmigrated rows.
 - **See:** `RIM_Editor_Types.md` (canonical reference — block library + placement registry).
 
-> **Direction shift (session 163):** **Google Workspace is replacing native documents as RIM's document & file system** — see the Google Workspace Files section below. Native documents remain live and coexist until the cutover (Slice 4); the two document surfaces sit side by side (Documents tab + Files tab) during the transition.
-
-**Native documents, filing & directory** — Native documents are the supported in-RIM writing path: a full-screen Tiptap editor with an optional directory summary, single-editor presence/stale-save safeguards, and true Markdown plus print-to-PDF export. Links and uploaded PDFs remain useful resources. Each hub's Documents tab leads with **"Updated <when>"** freshness, search across title/summary/category/author, and recency-first category groups. Categories are tended, not gated. One canonical document can be shared into other hubs through `HubDocumentPlacement`; visibility is Hub / Coordinators / Community and the origin hub owns the lifecycle. The master directory at `/account/documents` gathers each document a member can access. The `ONLYOFFICE` test system was retired in session 161; see `RIM_Documents.md` for the supported model and `RIM_OnlyOffice.md` for the retirement record.
+> **The document/file system is Google Workspace Files (cutover complete, session 165).** The native Documents system was fully retired — its editor, filing, sharing, master directory, and document conversations are gone (active docs migrated to Google Docs first). `RimTiptapEditor` remains the rich-text editor for everything *else* (program/course/lesson content, conversations, member bio/notes, hub home). See the Google Workspace Files section below; `RIM_Documents.md` is historical.
 
 ---
 
-## Google Workspace Files (Slices 1–3 + Spaces foundation live — through session 164)
+## Google Workspace Files (COMPLETE — RIM's document & file system, through session 165)
 
 RIM's document & file system is moving to **Google Workspace** — "RIM orchestrates, Google is the file cabinet" (the Zoom pattern applied to files). Google provides the editors (Docs/Sheets/Slides), storage (PDFs/audio/images), real co-editing, and version history; RIM keeps identity, team membership, permissions, and the calm front door. **Authority: `RIM_GoogleWorkspace.md`.** Read + write are live; **replaces native documents** at cutover (they coexist until then).
 
@@ -299,6 +286,8 @@ Kept as a tombstone so future work doesn't re-discover or re-propose them. Full 
 | Staff Manual (in-app) | s139 | Unused; was woven across ~50 sites + 35 seed scripts. `manual_sections` table left dormant | session-log s139; `CLEANUP.md` |
 | Schedule PDF export | s139 | Unused; `@react-pdf/renderer` now removable | session-log s139; `CLEANUP.md` |
 | Reflection Questions (lesson Q&A) | s139 | Unused; kept the separate `reflectionPrompt`. `reflection_*` tables + `questionsRequired` column left dormant | session-log s139 |
+| Mind Maps (React Flow canvas + per-topic conversations) | s165 | Experimental; never adopted. Code + `@xyflow/react` + `mind_map_*` tables + `mindmap-topic-comment` email all removed (two-phase) | session-log s165 |
+| Native Documents (Tiptap editor + filing/directory/sharing/doc-conversations) | s165 | Replaced by Google Workspace Files; active docs migrated to Google Docs first. Code + `hub_documents*` tables + doc enums + `HubConversationThread.documentId` + `hub-document-*` emails removed (two-phase) | session-log s165; `RIM_Documents.md` (historical) |
 
 ---
 

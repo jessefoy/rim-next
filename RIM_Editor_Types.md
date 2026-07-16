@@ -314,13 +314,8 @@ The placement name (e.g., `hub-document`) is the same string used in `lib/editor
 
 Uses `RimTiptapEditor` with `variant="document"`. Top toolbar present (insertion-only actions); selection bubble menu with full formatting parity.
 
-#### `hub-document`
-- **Component:** `components/HubDocumentEditor.tsx`
-- **Schema field:** `HubDocument.body`
-- **Output destination:** interactive web
-- **Output wrapper:** `rim-content hdoc-body`
-- **Route:** `/account/hub/[slug]/documents/[id]`
-- **Note (session 161):** native hub documents use the specialized `variant="doc"` surface inside `HubDocumentEditor` (rather than the generic `variant="document"`). It keeps the native writer focused, adds single-editor safety, and supports directory summaries plus Markdown/print export. `HubDocument.docKind` is `NATIVE`, `LINK`, or `UPLOAD`; only `NATIVE` uses this editor.
+#### `hub-document` — RETIRED (session 165)
+- The native hub-document editor (`HubDocumentEditor`, the specialized `variant="doc"` surface) and the whole `HubDocument` model were removed when the document/file system moved to Google Workspace Files. This placement no longer exists. `RimTiptapEditor` is unaffected — it still serves every other placement below. The `doc` variant of `RimTiptapEditor` is now unused by any placement (kept in the component; prune if desired).
 
 #### `manual`
 - **Component:** `components/ManualSectionEditor.tsx`

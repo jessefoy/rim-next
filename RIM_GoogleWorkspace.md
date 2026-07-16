@@ -1,6 +1,6 @@
 # RIM Google Workspace — Files & Documents
 
-**Status: Slices 1–3 + the Spaces access/provisioning foundation LIVE on `main` (through session 164, 2026-07-15). Cutover (migrate + retire native docs) is the remaining sequence.**
+**Status: COMPLETE (through session 165, 2026-07-16). Google Workspace Files is RIM's document & file system — Slices 1–3, the Spaces foundation, the finish reshape (Community Space, universal provisioning, global-finder removal), AND the cutover (native docs migrated → Google Docs, native Documents retired code + DB) are all LIVE on `main`. `RIM_Documents.md` is now historical.**
 
 This is the authority document for RIM's Google Workspace file and document system — the assessment of what exists, the architecture decided with Jesse, the build plan, and the manual Google setup steps. When the cutover completes, this supersedes `RIM_Documents.md` (native documents), which becomes historical.
 
@@ -129,7 +129,7 @@ Each slice ships independently, reviewer-gated, `tsc`-green; hubs come online on
 - **Admin revoke/lockdown ✅ (session 164, backlog `2026-07-14-001`):** `/admin/google-files` (ADMIN) — revoke one minted link or lock down a place, worklist from the `mint-link` audit log + live exposure check. `lib/googleFileAdmin.ts`.
 - **Per-folder access gate ✅ (session 164):** the keystone — see §9. Made authorization subtree-aware so many Spaces safely share one Drive.
 - **Auto-provisioning ✅ (session 164):** a Space's storage is an auto-created folder in the `RIM — Spaces` container Drive — because the probe proved the service account **cannot** create Shared Drives (see §9). New hubs on create; existing hubs one-click.
-- **Slice 4 — Cutover (remaining):** convert real native docs → Google Docs (HTML import) into their **Space folder**; transfer Blob PDFs; retire the native editor + placement/visibility machinery; the Documents tab redirects to Files; update `RIM_Documents.md` (historical banner), FEATURES, architecture docs. Two-phase (drop tables in a follow-up deploy). **Precedes it:** the strict-per-Space reshape (Community-as-Space, remove the global finder, provision all hubs) — see §9. **The retirement is the one-way door — after Jesse's prod verification of the reshaped model.**
+- **Slice 4 — Cutover ✅ (session 165):** all 38 active native docs converted → Google Docs (HTML import via `importHtmlAsDoc`, idempotent through `HubDocument.migratedGoogleFileId`), verify-first via a dry-run + test batch; then native Documents **fully retired** (two-phase: code removal + orphaned-thread cleanup, then the DB drop of the `hub_documents*` tables / `documentId` / `documentCategories` / doc enums / doc email rows). The reshape preceding it — **Community as a Space, global finder removed, every hub provisioned** — also shipped (session 165). `RIM_Documents.md` is historical. The migration tool (`/admin/migrate-documents`) was removed with the cutover.
 - **Targeted tests:** the access-gate logic is proven by a standalone 18-case simulation (session 164; `fileWithinFolderRoot` + `resolvePlaceForFile`) rather than a framework (RIM has none). No live API in the check.
 
 ---
@@ -198,7 +198,9 @@ Because many Spaces share the `RIM — Spaces` Drive, "same driveId" is **not** 
 
 `authorizeFileRequest`, `resolveParentFolder` (writes), and the doc-reader page all route through this. **The load-bearing invariant:** folder-scoped Spaces live only on a container Drive that no place holds whole. Enforced three ways: provisioning only ever creates folders on the container; the hub PATCH route rejects mapping a hub whole-drive onto a managed drive; the drive picker hides Community + the container (`isReservedDriveName`). Proven by an 18-case simulation + adversarial security review.
 
-### The Spaces model (decided; reshape pending)
+### The Spaces model (reshape SHIPPED — session 165)
+
+> The reshape below is **built + live**: `Hub.openToAllMembers` is the open-to-all access primitive; Community is a seeded open-to-all Space (Files-only, with a `Hub.conversationsEnabled` toggle in hub settings); the global `/account/files` finder is removed (files live only per-Space); every hub is auto-provisioned (bulk "Set up files for all teams" + on-create). `canAccessHub(member, roles, openToAll)` widens the door only at participation gates (entry, Files, Conversations, Activity); roster/admin gates stay membership-only. The literal `Hub`→`Space` code rename + the GT self-serve create entry remain deferred.
 
 - **Everything is a "Space"** — team / project / personal / community, one templated container (Basecamp-style). User-facing word is **"Space"**; internal code stays `Hub` (a literal rename is a deferred, separate pass). ADMIN + Guiding Teacher can create Spaces "on request" (see `RIM_Role_Design.md` — this crosses the deliberate ADMIN/GT boundary; the GT self-serve entry point is deferred, the provisioning mechanism is ready).
 - **Strict per-Space filing — NO global finder.** Files live only in a Space's own context; provisioning is fully automatic (no manual enable). This is the anti-"files everywhere" decision (Jesse's community's real problem). **Reshape not yet built:** (1) Community becomes a Space (open-to-all-members access primitive); (2) auto-provision every existing hub + drop the manual enable; (3) **remove `/account/files` + the sidebar "Files" link** (after 1–2, so nothing's briefly unreachable).

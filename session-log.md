@@ -1,5 +1,37 @@
 ---
 
+## 2026-07-16 (session 165) — Finish the Google Files reshape + cut over: Mind Maps removed, Community Space, universal provisioning, finder retired, native Documents migrated & retired
+
+Drove the whole Google-Files finish sequence from session 164 to completion, plus a full-feature removal (Mind Maps) and the one-way-door cutover. 13 commits on `main`, all deployed, `tsc`-green throughout; the big removal was inventoried by an Explore sub-agent first. RIM's document & file system **is now Google Workspace, per-Space** — the "real filing system within the hubs" goal. Authority: `RIM_GoogleWorkspace.md`.
+
+### Built + shipped (in order)
+
+- **Mind Maps removed entirely (`afdf5a6` Phase 1, `56eaf35` Phase 2).** Jesse called it experimental and cut it. Phase 1 deleted all code (9 components, 2 libs, 7 API routes, 3 pages), nav links, the `sendMindMapCommentEmail` builder + `mindmap-topic-comment` gated slug, the `@xyflow/react` dependency, ~140 `.mm-` CSS rules (via `css-prune` scoped to `mm-` + a `css-cut` banner block + surgical `:is()` arm strips), the 3 Prisma models + `HubConversationThread.mindMapNodeId` + backlog items — with a **flag-guarded data cleanup deleting orphaned mind-map topic threads** (they had a real `hubId` + `documentId:null`, so they'd have surfaced as phantom threads in hub feeds — the reviewer catch). Phase 2 dropped the tables/column/index/email row and removed the original CREATE entries (the s159 two-phase discipline). **css-prune hazard fix in the same push:** removed `sic-` (live sign-in-code form) + `sg-` (live /style-guide) from `DEAD_PREFIXES` so a bulk `--apply` can't nuke live CSS.
+- **Community Space + per-hub Conversations toggle (`2a0cbc5`, `46a225d`).** New `Hub.openToAllMembers` primitive (every signed-in member reaches a Space's participation surfaces without a `HubMember` row) + `Hub.conversationsEnabled` (default true; toggle in hub settings). Community seeded as an open-to-all Space, **Files-only**, Conversations turn-on-able from `/admin/hubs`. `canAccessHub(member, roles, openToAll)` threaded **only** at participation gates (entry, Files, Conversations, Activity) — roster/admin gates stay membership-only, so Members/Documents/Trash are fail-closed for an open Space; the conversation gate is `conversationsEnabled && canAccessHub(...)` (no shown-but-can't-act, no hidden-but-reachable). Community merged into every member's rail; sidebar shows a reduced tab set for an open Space.
+- **Files universal (`ea93749`).** ADMIN `/api/admin/hubs/provision-all` + a "Set up files for all teams" button on `/admin/hubs` — backfills every existing hub's `RIM — Spaces` folder in one click (idempotent; skips open-to-all Spaces). New hubs already auto-provision (s164). Jesse ran it; all hubs Files-ready.
+- **Upload appears without refresh (`cd044ab`).** `FilesBrowser` now **polls** the listing (~15s) until the Blob→Drive `after()` transfer lands, replacing the single 1.5s soft-reload (Jesse's bug report).
+- **Global finder retired (`6ea16cb`).** `/account/files` → redirect to dashboard; the "Files" rail link + `showFiles`/`memberHasFilesAccess` plumbing removed. Files live **only** per-Space now (each hub's Files tab + Community). The shared in-app Doc reader `/account/files/doc/[id]` stays.
+- **Native-docs → Google migration (`0818a02` dry-run, `a0f7292` write).** Dry-run reporter first (read-only) → revealed **49 native docs, 0 uploads, 0 links, 38 active**. Then the write path: `importHtmlAsDoc` (multipart HTML→Google Doc conversion) + `migrateDocuments` (render `body`→HTML → import into the doc's home Space folder), idempotent via `HubDocument.migratedGoogleFileId`, verify-first ("Migrate 2 (test)" then "Migrate all"). Jesse migrated all + verified fidelity in Files.
+- **Native Documents retired (`a2a6e56` Phase 1, `519e7ed` Phase 2) — the one-way door.** Explore-inventoried first (not cleanly isolated). Phase 1 removed 30 files (~5,760 lines): all doc pages/APIs/components, the editor, `documentAuth`, the migration tool; cross-boundary edits stripped the doc half from the **Activity feed, hub home, Trash, Conversations feed, `hubQueries`, email, and both sidebars**; schema models/enums/`documentId`/`documentCategories` removed; redirects added; orphaned doc-conversation threads deleted (same phantom-thread fix as Mind Maps). Phase 2 dropped the `hub_documents*` tables, `documentId`/`documentCategories` columns, the doc enums, and the `hub-document-*` email rows. **Kept:** RimTiptapEditor, the rich-content renderers, `relativeDate`, `HubConversationThread` (only its doc anchor went), `HubDocNotifyPanel` (Conversations' notify selector).
+
+### Decisions
+
+- **Community launches Files-only, admin-toggleable** (not the full open workspace) — a 1,500-member open Conversations board is a real moderation surface, so it's opt-in from hub settings, not on by default. The `conversationsEnabled` toggle generalizes to any hub.
+- **Every hub is a fully-equipped Space** — all core features + apps on by default, Files auto-provisioned on create; the admin only turns things *off*. Community is the deliberate exception (open + Files-only).
+- **Everything two-phase** — every DB drop (Mind Maps, Documents) shipped as code-first / drop-second, with an interim orphaned-thread cleanup, so the live-old code never 500s during the build-time migrate window.
+- **Legacy/pre-staged members** are excluded from Community by the existing `agreedToTerms` gate (they can't hold a session); notifications are safe (no member pool + pre-threshold gate + Files-only sends none) — verified, no change needed.
+
+### Connects to
+
+Hubs (the `openToAllMembers`/`conversationsEnabled` fields + the participation-gate threading through `canAccessHub`), the Conversations feature (feed/hubQueries/Activity/Trash all lost their doc half but keep the thread model), the account + hub sidebars, `lib/email.ts` (three senders removed), Vercel Blob + Drive (migration import), and `RIM_GoogleWorkspace.md` (now as-built through cutover). `RIM_Documents.md` and `RIM_MindMaps.md` are now historical/deleted.
+
+### What comes next
+
+- **CSS prune** of the orphaned `doc-`/`hub-doc-` prefixes (careful — `hub-doc-notify` is shared with Conversations).
+- Deferred: cross-Space file sharing (backlog `2026-07-15-001`); the literal `Hub`→`Space` code rename; the GT self-serve "create a Space" entry point.
+
+---
+
 ## 2026-07-15 (session 164) — Google Files: the write half + the Spaces foundation (Slice 3, admin revoke, per-folder gate, auto-provisioning)
 
 Picked up session 163's thread (Google Workspace Files, Slices 1–2 live) and drove it through the whole **writing** half plus the access + provisioning foundation that turns "folders in a shared Drive" into genuinely walled team **Spaces**. Eight commits on `main`, all deployed, each reviewer-gated (`tsc`-green throughout). Authority remains **`RIM_GoogleWorkspace.md`**.

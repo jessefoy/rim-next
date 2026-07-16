@@ -1,6 +1,8 @@
 # RIM Documents — the filing system
 
-RIM Documents helps a community find and tend shared work without turning it into an impersonal file cabinet. It answers three quiet questions: *what is this, where does it belong, and is it current?*
+> **⚠️ HISTORICAL (retired session 165, 2026-07-16).** The native Documents system described here was **fully retired** — code and database — and replaced by **Google Workspace Files** (`RIM_GoogleWorkspace.md`). Active native docs were migrated to Google Docs first; the editor, routes, components, `documentAuth`, the models/enums, `HubConversationThread.documentId`, and `Hub.documentCategories` are all gone. This document is kept only as a record of the model that was. **Do not build against it** — Google Files is the document/file system now.
+
+RIM Documents helped a community find and tend shared work without turning it into an impersonal file cabinet. It answered three quiet questions: *what is this, where does it belong, and is it current?*
 
 ## The supported document system
 

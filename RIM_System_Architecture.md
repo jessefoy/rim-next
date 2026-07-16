@@ -31,9 +31,9 @@ Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. M
 
 **Current hubs:** 14 operational hubs + 2 governance hubs, all manageable from `/admin/hubs`. The four hubs with linked tools are: Hosting Hub (`host-team`), Course Hub (`courses`), Registration Hub (`registrar`), Support Hub (`support`). Support Hub has no linked tools — its Support Inbox was removed in session 100.
 
-**What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), Documents, **Mind Maps** (session 160), and a Members tab. Dashboard hub cards show unread badges.
+**What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), **Files** (Google Workspace), and a Members tab. Dashboard hub cards show unread badges. (Native Documents and Mind Maps — the former "portable resources" — were both retired in session 165.)
 
-**Portable resources (session 160).** Documents and **Mind Maps** are *portable resources*: created standalone or hub-owned, **placed into one or more hubs** (a placement join), carrying their own per-resource **visibility**, and gated by a resource-level access function (`canAccessDocument` / `canAccessMindMap`) rather than plain hub membership. They surface as built-in hub modules AND in a cross-hub master directory (`/account/documents`, `/account/mindmaps`). Mind Maps is the **second** such resource; a third should mirror the same model (see `RIM_MindMaps.md` + `RIM_Documents.md`). A mind-map *topic* also carries a conversation (anchored via `HubConversationThread.mindMapNodeId`, parallel to `documentId`) — **map-scoped, shared across every hub the map is in**, not hub-scoped (see `RIM_MindMaps.md`).
+**The Community Space + per-hub feature switches (session 165).** `Hub.openToAllMembers` opens a Space's participation surfaces (entry, Files, Conversations, Activity) to every signed-in member with no `HubMember` row — the "Community" Space. `Hub.conversationsEnabled` (default true) is a per-hub Conversations toggle in hub settings. `lib/hubAuth.ts::canAccessHub(member, roles, openToAll)` widens the door **only** at those participation gates; roster/admin gates (Members, Trash, category management) stay membership-only, so an open Space is fail-closed there. Community launches Files-only; every new hub comes up fully equipped with Google Files auto-provisioned.
 
 ### Tools (`/tools/*`)
 
@@ -55,7 +55,7 @@ Tools are full-featured staff applications extracted from hubs. They serve one w
 | Layer | Purpose | Examples |
 |---|---|---|
 | **Member Registry** (`/admin/members`) | Canonical record authority | Full profile, roles, households, tags |
-| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Activity, Conversations, Documents, Mind Maps, Members, Trash |
+| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Activity, Conversations, Files, Members, Trash |
 | **Tools** (`/tools/*`) | Operational applications | Program Manager, Host Schedule, Course Manager |
 
 Hubs and Tools both provide scoped projections of member data — but they serve different needs. A hub is where a team coordinates. A tool is where they do their specialized work.
@@ -225,7 +225,13 @@ Previously, hosting permission (LiveKit admin grants, sub-request claims, HostAs
 
 ---
 
-## Document access — cross-hub sharing (session 156)
+## Document access — cross-hub sharing (session 156) — RETIRED (session 165)
+
+> The native `HubDocument` system described in this section was fully retired in
+> session 165 (replaced by Google Workspace Files). Kept as a record of the
+> placement/visibility access model. The parallel resource-level access pattern
+> (`canAccessDocument`) is gone; hub Files access is governed by `canAccessHub`
+> + `lib/googleFiles.ts`.
 
 Hub documents generalize "one resource ↔ one hub." A `HubDocument` has an origin
 hub (`hubId`, nullable for hubless project/community docs) and can be *placed in*
@@ -241,7 +247,7 @@ placement. The hub doc-view page moved `canAccessHub` → `canAccessDocument` so
 shared/community docs resolve. Full model + the filing surfaces in
 **`RIM_Documents.md`**.
 
-## Google Workspace Files — the document system moving off-native (session 163)
+## Google Workspace Files — RIM's document & file system (sessions 163–165, COMPLETE)
 
 RIM's document & file system is migrating to **Google Workspace** — "RIM
 orchestrates, Google is the file cabinet," the same separation as Zoom. The

@@ -6,37 +6,24 @@
 
 ## Active
 
-### Session 164 (2026-07-15) — ✅ Google Files write layer + the Spaces foundation live on `main`; the strict-per-Space reshape + cutover is the remaining sequence
+### Session 165 (2026-07-16) — ✅ Google Files reshape finished + cutover complete; Mind Maps removed; native Documents retired — all on `main`
 
-**Authority: `RIM_GoogleWorkspace.md`.** Model unchanged from s163 (service account is RIM's only Google identity; nobody gets a Google account; RIM's DB is the permission system; link-as-key editing). This session built the **writing** half + the access/provisioning foundation, and made the design decisions that shape the finish.
+**The Google Workspace Files arc is DONE.** RIM's document & file system is now Google, per-Space. 13 commits on `main`, deployed, `tsc`-green; the big removals were inventoried (Explore) + two-phase. Authority: `RIM_GoogleWorkspace.md` (now as-built through cutover).
 
-**Shipped + live (8 commits, deployed, each reviewer-gated, `tsc`-green):**
-- **Slice 3a write layer (`b72073b`)** — create Doc/Sheet/Slides/folder, rename, move, move-to-trash. Two shared write gates (`authorizeFileWrite` / `resolveWritablePlace`). Trash = Drive's own 30-day trash; **no permanent delete exposed** (admins hold the final say). Link mint follows viewer's write role (paused member opens as *viewer*).
-- **Slice 3b uploads (`d42bfb7`)** — ≤500 MB via Blob staging → `GoogleFileTransfer` ledger → `after()` transfer + daily cron `process-file-transfers`. Idempotent vs the at-least-once webhook (`blobPathname @unique`); auth re-derived at transfer time. Migration `google_file_transfers_v1`. New `lib/googleFileTransfer.ts`.
-- **Admin revoke/lockdown (`a620a49`)** — `/admin/google-files` (ADMIN); revoke a minted link or lock down a place; worklist from the `mint-link` audit log + live exposure check. New `lib/googleFileAdmin.ts`. Closes backlog `2026-07-14-001`.
-- **Drive-creation probe (`1622a10`)** → **`403 userCannotCreateTeamDrives`**: the SA **cannot** create Shared Drives without domain-wide delegation. This decided the topology (folder-per-Space, below).
-- **Menu-clip fix (`afa0e1c`)**, **per-folder access gate (`5e7b103`)**, **auto-provisioning (`afbaf03`)** — see below.
+**Shipped + live:**
+- **Mind Maps removed entirely** (`afdf5a6` + `56eaf35`, two-phase) — code, schema, `@xyflow/react`, ~140 `.mm-` CSS rules, nav, the `mindmap-topic-comment` email; orphaned topic threads cleaned up. **css-prune hazard fixed** (`sic-`/`sg-` removed from `DEAD_PREFIXES` — they'd become live again).
+- **Community Space** (`2a0cbc5` + `46a225d`) — `Hub.openToAllMembers` primitive + `Hub.conversationsEnabled` toggle; Community seeded **Files-only**, Conversations turn-on-able in `/admin/hubs`; `canAccessHub(…, openToAll)` threaded only at participation gates (roster/admin fail-closed).
+- **Files universal** (`ea93749`) — "Set up files for all teams" on `/admin/hubs` (`provision-all`); Jesse ran it, all hubs Files-ready. New hubs auto-provision on create (s164).
+- **Upload poll fix** (`cd044ab`) — FilesBrowser polls until the Blob→Drive transfer lands (no manual refresh).
+- **Global finder retired** (`6ea16cb`) — `/account/files` → redirect; rail "Files" link gone; files live only per-Space. Doc reader `/account/files/doc/[id]` kept.
+- **Native docs migrated** (`0818a02` dry-run + `a0f7292` write) — 38 active native docs → Google Docs (`importHtmlAsDoc`), idempotent via `migratedGoogleFileId`; Jesse migrated all + verified fidelity.
+- **Native Documents retired** (`a2a6e56` P1 + `519e7ed` P2, two-phase) — 30 files / ~5,760 lines removed; Activity/hub-home/Trash/Conversations stripped of their doc half; schema models/enums/`documentId`/`documentCategories` dropped; redirects added. **Kept:** RimTiptapEditor, renderers, `relativeDate`, `HubConversationThread`, `HubDocNotifyPanel`.
 
-**The per-folder gate (`5e7b103`) — the keystone.** Authorization is now **subtree-aware**: a whole-drive place matches by driveId; a folder-scoped place requires the file to descend from its root folder (bounded single-parent ancestry walk, fails closed). `fileWithinFolderRoot` + `resolvePlaceForFile`; `authorizeFileRequest`/`resolveParentFolder`/doc-reader all route through it; dead `resolveDriveAccess` removed. Proven by an 18-case simulation + security review (the whole-drive shortcut was hardened to fail closed in a mixed-drive misconfig). Closes the enforcement side of `2026-07-14-002`.
+**OPEN — verify on prod (Jesse; none blocking):** confirm the final deploy is green and (a) hub Conversations still open + post; (b) a hub's old `…/documents` URL redirects to its Files tab; (c) Community shows Files, and flipping **Conversations enabled** in its hub settings surfaces the board.
 
-**Auto-provisioning (`afbaf03`).** SA can't create Drives → a Space's storage is an auto-created **folder** in the shared **`RIM — Spaces`** Drive (Jesse created it + added the SA as Manager). New hubs provision on create; existing hubs via one-click "Set up files for this team" (`/admin/hubs/[slug]/edit`). Invariant enforced on the write path: PATCH rejects mapping a hub whole-drive onto a managed drive; the picker hides Community + the container (`isReservedDriveName`).
-
-**KEY DECISIONS (drive the remaining work):**
-- **Folder-per-Space in one `RIM — Spaces` container** (Community + future sensitive Spaces keep their own Drive — the hard wall). `Hub.googleDriveId`+`googleRootFolderId` express both; no schema change.
-- **Everything is a "Space"** (team/project/personal/community, Basecamp-style). UI word = **"Space"**, code stays `Hub` (literal rename deferred). ADMIN+GT can create Spaces "on request" (crosses the ADMIN/GT boundary — see `RIM_Role_Design.md`; GT self-serve entry deferred, mechanism ready).
-- **Strict per-Space filing, NO global finder** (Jesse's organization insight — "files everywhere" is the community's real problem). Files live only in a Space's context; provisioning fully automatic (no manual enable). **Designed, not yet built.**
-- **Cross-Space sharing deferred** (backlog `2026-07-15-001`): isolation by default, deliberate visible share-grants later (the reborn Documents placements model). Native docs shared across hubs collapse to their home Space at cutover until this ships.
-
-**OPEN — verify on prod (Jesse):** you provisioned **Hosting Hub** — open its **Files** tab (Your teams → Hosting Hub), create a doc there, confirm it's isolated to that hub. That proves provisioning + the gate end-to-end. (The Files system itself is confirmed at Community from s163.)
-
-**NEXT — the finish line (a bounded sequence; retirement is the one-way door, do it fresh + after Jesse's prod check):**
-1. **Community as a Space** (open-to-all-members access primitive) — so its files have a home once the finder is gone.
-2. **Auto-provision every existing hub** + drop the manual enable step (fully automatic).
-3. **Remove the global `/account/files` finder + the sidebar "Files" link** — files per-Space only. (Do AFTER 1–2 so nothing's briefly unreachable.)
-4. **Migrate** native docs → per-Space Google Docs — temporary admin tool, **dry-run first** (reports counts per hub + which docs were cross-shared); provisions each hub; transfers Blob PDFs. Additive/reversible.
-5. **Retire** native Documents — delete editor/routes/components, redirect old URLs, drop tables in a **follow-up** deploy (two-phase; migrate.mjs runs against the live DB). **The one-way door — only after 4's dry-run + a real migrated doc look right to Jesse.** Full retirement inventory is in the session-164 arc / the Explore inventory (6 pages, ~13 API routes, 6 components, 3 models, 3 enums, `HubConversationThread.documentId`).
-
-**Deferred (backlog):** `2026-07-15-001` (cross-Space sharing + move-between-Spaces + duplicate). `2026-07-14-002` enforcement done (gate + provisioning + PATCH guard); its *original* "don't map two hubs to one drive with different roots" concern is now the intended design, made safe. Doc-fidelity note (s163) still stands: the in-RIM reader drops exact Google formatting; "Open in Google Docs" carries fidelity.
+**NEXT (housekeeping, non-blocking):**
+1. **Prune orphaned `doc-`/`hub-doc-` CSS** — careful pass (`hub-doc-notify` is shared with Conversations; use `css-prune` scoped, verify no live class).
+2. Deferred: cross-Space file sharing (backlog `2026-07-15-001`); the literal `Hub`→`Space` code rename; the GT self-serve "create a Space" entry point.
 
 ### Session 162 (2026-07-13) — ✅ Public Program refinement + authenticated design unification live on `main`
 
