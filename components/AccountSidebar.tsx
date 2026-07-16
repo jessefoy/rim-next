@@ -24,7 +24,6 @@ import {
   Mail,
   Globe,
   ChevronDown,
-  FolderOpen,
   ShieldCheck,
 } from "lucide-react";
 
@@ -36,11 +35,6 @@ interface HubLink {
 interface Props {
   roles: string[];
   hubLinks?: HubLink[];
-  /** Show the Files link (Google Workspace Files, RIM_GoogleWorkspace.md).
-   *  Computed server-side in AccountLayout: ADMIN/GT, or a member of at
-   *  least one files-enabled hub — so members don't see an empty Files
-   *  area before their teams come online. */
-  showFiles?: boolean;
 }
 
 type LucideIcon = React.ComponentType<{
@@ -71,7 +65,7 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
   { label: "Google Files", href: "/admin/google-files",  icon: ShieldCheck, adminOnly: true   },
 ];
 
-export default function AccountSidebar({ roles, hubLinks = [], showFiles = false }: Props) {
+export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   const pathname = usePathname();
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(pathname.startsWith("/admin/"));
@@ -79,16 +73,11 @@ export default function AccountSidebar({ roles, hubLinks = [], showFiles = false
   const hasRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin      = roles.includes("ADMIN");
 
-  // Files (Google Workspace) rides right after Documents while the two coexist
-  // (RIM_GoogleWorkspace.md — Documents retires at cutover). Built as a plain
-  // list rather than keyed off another link's label, so renaming Documents
-  // can't silently drop Files from the rail.
-  const memberLinks: NavLink[] = [...MEMBER_LINKS];
-  if (showFiles) {
-    const docsIndex = memberLinks.findIndex((l) => l.href === "/account/documents");
-    const filesLink: NavLink = { label: "Files", href: "/account/files", icon: FolderOpen };
-    memberLinks.splice(docsIndex >= 0 ? docsIndex + 1 : memberLinks.length, 0, filesLink);
-  }
+  // Google Files live per-Space now (each hub's Files tab + the Community
+  // Space) — the global /account/files finder was retired (session 165,
+  // strict per-Space filing). The account rail keeps the native Documents
+  // master directory until the Google cutover.
+  const memberLinks: NavLink[] = MEMBER_LINKS;
 
   function linkClass(href: string) {
     const active =

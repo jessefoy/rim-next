@@ -58,8 +58,10 @@ export default async function GoogleDocReaderPage({
     if (file.mimeType !== GOOGLE_MIME.doc) redirect(`/api/files/open/${fileId}`);
   }
 
-  // Reader back-links only ever point inside the member area.
-  const backHref = from && from.startsWith("/account/") ? from : "/account/files";
+  // Reader back-links only ever point inside the member area. Docs are opened
+  // from a Space's Files tab (which passes `from`); the fallback is the
+  // dashboard now that the global /account/files finder is retired.
+  const backHref = from && from.startsWith("/account/") ? from : "/account/dashboard";
 
   let html: string | null = null;
   if (!loadFailed && file) {

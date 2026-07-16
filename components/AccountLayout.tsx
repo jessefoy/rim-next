@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import AccountSidebar from "@/components/AccountSidebar";
-import { memberHasFilesAccess } from "@/lib/googleFiles";
 
 /**
  * AccountLayout — wraps all /account/* pages that need the sidebar.
@@ -23,13 +22,8 @@ export default async function AccountLayout({
   const isAdmin = roles.includes("ADMIN");
 
   // Admins see all hubs regardless of HubMember record (bypass policy per lib/hubAuth.ts).
-  // Non-admins see only the hubs they belong to. The membership query carries
-  // the Files-enablement fields too, so showFiles derives from it — no second
-  // round-trip (reviewer, session 163).
+  // Non-admins see only the hubs they belong to.
   let hubLinks: { slug: string; name: string }[] = [];
-  let memberships: {
-    hub: { status: string; googleFilesEnabled: boolean; googleDriveId: string | null };
-  }[] = [];
   if (session?.user?.id) {
     if (isAdmin) {
       const allHubs = await db.hub.findMany({
@@ -40,21 +34,10 @@ export default async function AccountLayout({
     } else {
       const rows = await db.hubMember.findMany({
         where: { userId: session.user.id },
-        select: {
-          hub: {
-            select: {
-              slug: true,
-              name: true,
-              status: true,
-              googleFilesEnabled: true,
-              googleDriveId: true,
-            },
-          },
-        },
+        select: { hub: { select: { slug: true, name: true } } },
         orderBy: { joinedAt: "asc" },
       });
       hubLinks = rows.map((m) => ({ slug: m.hub.slug, name: m.hub.name }));
-      memberships = rows;
     }
     // Open-to-all Spaces (Community, session 165) belong in every member's rail
     // even without a HubMember row. Merge them in, de-duped by slug (admins
@@ -80,16 +63,9 @@ export default async function AccountLayout({
     );
   }
 
-  // The Files link matches actual access (the one rule in lib/googleFiles.ts):
-  // ADMIN/GT, a member of a files-enabled hub, OR any member once the Community
-  // drive exists (Community is open to all — session 163).
-  const showFiles = session?.user?.id
-    ? await memberHasFilesAccess(roles, memberships)
-    : false;
-
   return (
     <div className="ac-layout">
-      <AccountSidebar roles={roles} hubLinks={hubLinks} showFiles={showFiles} />
+      <AccountSidebar roles={roles} hubLinks={hubLinks} />
       <div className="ac-content">
         <div className="ac-inner">{children}</div>
       </div>

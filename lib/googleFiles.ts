@@ -434,38 +434,6 @@ export async function resolvePlaceForFile(
 }
 
 /**
- * Should this member see the Files link in the account sidebar? The one
- * definition of "has any Files place," derived from the same rules as
- * getAccessiblePlaces but without a second DB round-trip: it reuses the hub
- * memberships AccountLayout already fetched, and the cached Community drive.
- * Kept in sync with the access model so the link never disagrees with what
- * /account/files actually shows (reviewer, session 163 — flagged by four
- * angles).
- */
-export async function memberHasFilesAccess(
-  roles: string[],
-  memberships: {
-    hub: { status: string; googleFilesEnabled: boolean; googleDriveId: string | null };
-  }[],
-): Promise<boolean> {
-  if (!googleConfigured()) return false;
-  if (roles.includes("ADMIN") || roles.includes("GUIDING_TEACHER")) return true;
-  if (
-    memberships.some(
-      (m) =>
-        m.hub.status === "ACTIVE" &&
-        m.hub.googleFilesEnabled &&
-        Boolean(m.hub.googleDriveId),
-    )
-  ) {
-    return true;
-  }
-  // Community is open to every member (session 163) — show the link whenever
-  // the Community drive exists.
-  return Boolean(await resolveCommunityDrive());
-}
-
-/**
  * The shared front-of-route gate for the per-file API routes (stream, open).
  * Runs the viewer gate, fetches the file + the viewer's places in parallel,
  * and confirms the file's owning drive is one the viewer can reach — returning
