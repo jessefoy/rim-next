@@ -19,10 +19,11 @@
  * Uploads always stage in Vercel Blob first (client-direct, up to 500 MB —
  * the same pattern the rest of RIM already uses for images/audio/PDFs), then
  * transfer server-side into Drive; the file never proxies through this
- * component's own request. Because the Drive-side move can take a moment
- * after the browser's upload finishes, a soft reload fires once after a
- * short delay to catch the common fast case — if the file isn't there yet, a
- * later navigation or refresh will show it once the transfer completes.
+ * component's own request. Because the Drive-side move runs in after() and can
+ * take a moment after the browser's upload finishes, the handler POLLS the
+ * listing for a few seconds until the file appears, so it shows without a
+ * manual refresh (the daily cron backstop + a later refresh cover an unusually
+ * slow move).
  *
  * Navigation is URL-driven: the place + folder live in the query string, and a
  * single effect keyed on them does the fetch — so soft navigation (clicking
@@ -399,17 +400,36 @@ export default function FilesBrowser({
           setUploadStatus({ name: file.name, percentage, phase: "sending" });
         },
       });
-      // The bytes are safely in Blob; the Drive-side move runs server-side
-      // (immediately, usually) — give it a moment, then check for it, but
-      // only if the member is still looking at the folder it's landing in.
+      // The bytes are safely in Blob; the Drive-side move runs in after()
+      // (usually ~1–3s, but not guaranteed to finish within a single delay).
+      // Poll the listing until the file appears so it shows WITHOUT a manual
+      // refresh — only while the member is still looking at the folder it lands
+      // in, so a late reload can't clobber a folder they've since navigated to.
       setUploadStatus({ name: file.name, percentage: 100, phase: "finishing" });
-      window.setTimeout(() => {
+      const stillAtOrigin = () => {
         const here = currentLocation.current;
-        if (here.placeKey === origin.placeKey && here.folderId === origin.folderId) {
-          load({ soft: true });
+        return here.placeKey === origin.placeKey && here.folderId === origin.folderId;
+      };
+      const pollDelays = [1200, 1800, 2500, 4000, 6000]; // ~15.5s total
+      for (const delay of pollDelays) {
+        await new Promise((r) => window.setTimeout(r, delay));
+        if (controller.signal.aborted || !stillAtOrigin()) break;
+        try {
+          const params = new URLSearchParams({ place: origin.placeKey });
+          if (origin.folderId) params.set("folder", origin.folderId);
+          const res = await fetch(`/api/files/list?${params}`);
+          const data = await res.json();
+          if (res.ok && (data.files ?? []).some((f: { name: string }) => f.name === file.name)) {
+            break; // it landed in Drive
+          }
+        } catch {
+          // transient list failure — keep polling
         }
-        setUploadStatus(null);
-      }, 1500);
+      }
+      // Sync the visible list to the final state (shows the file once it landed;
+      // the daily cron backstop + a later refresh cover an unusually slow move).
+      if (stillAtOrigin()) load({ soft: true });
+      setUploadStatus(null);
     } catch (err) {
       if (controller.signal.aborted) {
         setUploadStatus(null);
