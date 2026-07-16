@@ -27460,6 +27460,180 @@ input.w-button { -webkit-appearance: button; }
   color: var(--rim-mid);
 }
 
+/* ── File detail page: one calm home per file — read/preview, attribution,
+   draft state, (Slice 3) conversation. White working surfaces on the page
+   ground, shadowless like the rest of the Files area; a functional border
+   only where an embed needs a boundary. ── */
+.gf-detail { max-width: 960px; }
+.gf-detail__back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 4px;
+  font-size: var(--text-ui);
+  color: var(--rim-blue);
+  text-decoration: none;
+}
+.gf-detail__back:hover { text-decoration: underline; }
+.gf-detail__title { margin: 0 0 14px; }
+
+/* The header card — attribution + state + actions gathered together. */
+.gf-detail__head {
+  background: var(--rim-surface);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+.gf-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+}
+.gf-detail__kind { font-weight: 600; color: var(--rim-text); }
+/* A quiet dot between meta facets (kind · created by · updated). */
+.gf-detail__attribution::before,
+.gf-detail__updated::before {
+  content: "·";
+  margin-right: 12px;
+  color: var(--rim-mid);
+}
+.gf-detail__link-btn {
+  border: none;
+  background: transparent;
+  padding: 0 4px;
+  min-height: 32px;
+  font-size: var(--text-xs);
+  color: var(--rim-blue);
+  cursor: pointer;
+}
+.gf-detail__link-btn:hover { text-decoration: underline; }
+
+/* The "Change creator" picker (revealed on demand). */
+.gf-detail__picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rim-bg-accent);
+}
+.gf-detail__picker-label {
+  display: block;
+  width: 100%;
+  font-size: var(--text-label);
+  color: var(--rim-mid);
+}
+.gf-detail__select {
+  flex: 1;
+  min-width: 200px;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 16px;
+  font-family: var(--font-sans);
+  color: var(--rim-text);
+  background: var(--rim-bg-bright);
+  border: 1px solid var(--rim-bg-accent);
+  border-radius: 8px;
+}
+.gf-detail__picker-actions { display: flex; gap: 8px; }
+
+/* Draft state line. */
+.gf-detail__draft-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+}
+.gf-detail__draft-pill {
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--rim-blue);
+  background: var(--rim-bg-accent);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* Action row — one dominant (primary) action per state; the rest ghost. */
+.gf-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.gf-detail__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 22px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+.gf-detail__btn--primary { background: var(--rim-blue); color: #fff; }
+.gf-detail__btn--primary:hover { opacity: 0.92; }
+.gf-detail__btn--ghost {
+  background: transparent;
+  color: var(--rim-blue);
+  border: 1px solid var(--rim-bg-accent);
+}
+.gf-detail__btn--ghost:hover { background: var(--rim-bg-bright); }
+.gf-detail__btn:disabled { opacity: 0.6; cursor: default; }
+.gf-detail__error { margin: 10px 0 0; font-size: var(--text-xs); color: var(--color-error); }
+
+/* The body — where the document actually renders. */
+.gf-detail__body { margin-top: 20px; }
+.gf-detail__frame {
+  width: 100%;
+  height: 75vh;
+  min-height: 420px;
+  border: 1px solid var(--rim-bg-accent);
+  border-radius: 12px;
+  background: var(--rim-surface);
+}
+.gf-detail__doc {
+  background: var(--rim-surface);
+  border-radius: 12px;
+  padding: 48px 56px;
+}
+.gf-detail__img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 12px;
+}
+.gf-detail__audio { width: 100%; }
+.gf-detail__video { width: 100%; border-radius: 12px; }
+.gf-detail__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--rim-surface);
+  border-radius: 12px;
+}
+.gf-detail__panel-text { margin: 0; font-size: var(--text-body); color: var(--rim-mid); }
+@media (max-width: 768px) {
+  .gf-detail__head { padding: 16px 16px; }
+  .gf-detail__doc { padding: 28px 20px; }
+  .gf-detail__frame { height: 68vh; min-height: 360px; }
+  .gf-detail__btn { flex: 1; }
+}
+
 /* Tablet & below: places become a horizontal strip above the pane */
 @media (max-width: 768px) {
   .gf-browser--with-places { flex-direction: column; gap: 14px; }

@@ -35,7 +35,7 @@ export async function PATCH(
 ) {
   const { fileId } = await params;
 
-  let body: { action?: unknown; name?: unknown; folder?: unknown };
+  let body: { action?: unknown; name?: unknown; folder?: unknown; creatorUserId?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -153,6 +153,50 @@ export async function PATCH(
         googleFileId: fileId,
         hubId: place.hubId,
         detail: { place: place.key, name: file.name },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    // Re-attribute a file's creator — RIM's own label, not a Google change.
+    // Same authority as the draft toggle (creator/coordinator/GT/ADMIN). The
+    // target must be a real user; empty clears the override back to "unknown"
+    // (the "Added directly" placeholder).
+    if (body.action === "set-creator") {
+      const creatorUserId =
+        typeof body.creatorUserId === "string" && body.creatorUserId ? body.creatorUserId : null;
+      const meta = await db.googleFileMeta.findUnique({ where: { googleFileId: fileId } });
+      if (!(await canManageFileMeta(viewer, place, meta))) {
+        return NextResponse.json(
+          { error: "Only the file's creator or a coordinator can change this." },
+          { status: 403 },
+        );
+      }
+      if (creatorUserId) {
+        const target = await db.user.findUnique({
+          where: { id: creatorUserId },
+          select: { id: true },
+        });
+        if (!target) {
+          return NextResponse.json({ error: "That person wasn't found." }, { status: 400 });
+        }
+      }
+      await db.googleFileMeta.upsert({
+        where: { googleFileId: fileId },
+        update: { creatorUserId },
+        create: {
+          googleFileId: fileId,
+          creatorUserId,
+          heldAt: meta?.heldAt ?? null,
+          hubId: place.hubId,
+          placeKey: place.key,
+        },
+      });
+      await logFileAction({
+        userId: viewer.userId,
+        action: "set-creator",
+        googleFileId: fileId,
+        hubId: place.hubId,
+        detail: { place: place.key, name: file.name, to: creatorUserId },
       });
       return NextResponse.json({ ok: true });
     }

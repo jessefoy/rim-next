@@ -10,6 +10,32 @@ export const GOOGLE_MIME = {
   slides: "application/vnd.google-apps.presentation",
 } as const;
 
+/** True for a Google-native editor file (Doc/Sheet/Slides) — the types that
+ *  have a high-fidelity Google `/preview` embed (and no clean HTML export for
+ *  Sheets/Slides). Excludes folders and uploaded binaries. */
+export function isGoogleEditorMime(mimeType: string): boolean {
+  return (
+    mimeType === GOOGLE_MIME.doc ||
+    mimeType === GOOGLE_MIME.sheet ||
+    mimeType === GOOGLE_MIME.slides
+  );
+}
+
+/**
+ * The embeddable Google `/preview` URL for a Google-native file — Google's own
+ * pixel-perfect rendering in an iframe (unlike `/edit`, `/preview` is
+ * framable). Returns null for non-Google-native types (RIM streams those
+ * itself). The file must carry an anyone-with-link permission for an
+ * un-signed-in member's browser to load it — the caller mints a reader link.
+ */
+export function googlePreviewUrl(mimeType: string, fileId: string): string | null {
+  const id = encodeURIComponent(fileId);
+  if (mimeType === GOOGLE_MIME.doc) return `https://docs.google.com/document/d/${id}/preview`;
+  if (mimeType === GOOGLE_MIME.sheet) return `https://docs.google.com/spreadsheets/d/${id}/preview`;
+  if (mimeType === GOOGLE_MIME.slides) return `https://docs.google.com/presentation/d/${id}/preview`;
+  return null;
+}
+
 /**
  * The upload allowlist (Slice 3) — one list so the server's Blob token scope
  * (app/api/files/upload/route.ts's allowedContentTypes) and the client's file

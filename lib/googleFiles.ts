@@ -471,6 +471,45 @@ export async function authorizeFileRequest(
   return { ok: true, data: { viewer, file, place } };
 }
 
+export type FileMetaLite = { creatorUserId: string | null; heldAt: Date | null };
+
+/**
+ * The READ gate for opening/streaming/reading a file (open, stream, doc
+ * reader, the detail page). It's authorizeFileRequest PLUS the draft gate: a
+ * held file is readable only by its creator or a moderator (GT/ADMIN), so
+ * hiding it from the Finder list actually MEANS private — a same-Space member
+ * who happens to have the id can't open it either. Writes keep using
+ * authorizeFileWrite (a creator/coordinator must be able to act on a held
+ * file). Returns the file's meta alongside, since every read caller needs it
+ * (attribution + held display).
+ */
+export async function authorizeFileRead(
+  session: Parameters<typeof filesViewer>[0],
+  fileId: string,
+): Promise<
+  | { ok: true; data: AuthorizedFile & { meta: FileMetaLite | null } }
+  | { ok: false; status: number; error: string }
+> {
+  const gate = await authorizeFileRequest(session, fileId);
+  if (!gate.ok) return gate;
+  const { viewer } = gate.data;
+  const meta = await db.googleFileMeta.findUnique({
+    where: { googleFileId: fileId },
+    select: { creatorUserId: true, heldAt: true },
+  });
+  if (meta?.heldAt) {
+    const isModerator =
+      viewer.roles.includes("GUIDING_TEACHER") || viewer.roles.includes("ADMIN");
+    const isCreator = !!meta.creatorUserId && meta.creatorUserId === viewer.userId;
+    if (!isCreator && !isModerator) {
+      // Same 404 as a file in a Space you can't reach — a held draft simply
+      // doesn't exist for anyone but its creator.
+      return { ok: false, status: 404, error: "You don't have access to this file." };
+    }
+  }
+  return { ok: true, data: { ...gate.data, meta } };
+}
+
 /**
  * Clean a member-supplied file/folder name: strip control characters,
  * collapse whitespace, cap the length (Drive itself allows almost anything —

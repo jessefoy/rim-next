@@ -13,7 +13,7 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { authorizeFileRequest } from "@/lib/googleFiles";
+import { authorizeFileRead } from "@/lib/googleFiles";
 import { driveApiRaw } from "@/lib/google/drive";
 
 export const dynamic = "force-dynamic";
@@ -41,10 +41,11 @@ export async function GET(
   const { fileId } = await params;
 
   try {
-    // Inside the try so a getFile network/5xx failure (via authorizeFileRequest)
+    // Inside the try so a getFile network/5xx failure (via authorizeFileRead)
     // becomes the friendly 502 below, not an uncaught 500; the gate's own
-    // 401/404 are returned as-is.
-    const gate = await authorizeFileRequest(await auth(), fileId);
+    // 401/404 are returned as-is. authorizeFileRead also enforces the draft
+    // gate — a held file won't stream to a non-creator even with its id.
+    const gate = await authorizeFileRead(await auth(), fileId);
     if (!gate.ok) {
       return NextResponse.json({ error: gate.error }, { status: gate.status });
     }

@@ -276,16 +276,12 @@ export default function FilesBrowser({
   }
 
   function openFile(row: FileRow) {
-    const kind = fileKind(row.mimeType);
-    if (kind.open === "folder") return openFolder(row);
-    if (kind.open === "reader") {
-      const back = buildUrl(placeKey, folderId);
-      router.push(`/account/files/doc/${row.id}?from=${encodeURIComponent(back)}`);
-      return;
-    }
-    const href =
-      kind.open === "stream" ? `/api/files/stream/${row.id}` : `/api/files/open/${row.id}`;
-    window.open(href, "_blank", "noopener");
+    // Folders drill down in place; every other file type opens the detail page
+    // (the one home where it's read/previewed, attributed, and discussed) —
+    // the page itself decides how to render + whether to reach Google.
+    if (fileKind(row.mimeType).open === "folder") return openFolder(row);
+    const back = buildUrl(placeKey, folderId);
+    router.push(`/account/files/${row.id}?from=${encodeURIComponent(back)}`);
   }
 
   function openDialog(d: Dialog) {
