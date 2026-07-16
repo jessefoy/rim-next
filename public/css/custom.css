@@ -27595,12 +27595,16 @@ input.w-button { -webkit-appearance: button; }
 /* The body — where the document actually renders. */
 .gf-detail__body { margin-top: 20px; }
 .gf-detail__frame {
+  display: block;
   width: 100%;
   height: 75vh;
   min-height: 420px;
   border: 1px solid var(--rim-bg-accent);
   border-radius: 12px;
-  background: var(--rim-surface);
+  /* Clip Google's own preview canvas to the rounded corners so it reads as one
+     surface, not a box-in-a-box; block removes the inline-iframe baseline gap. */
+  overflow: hidden;
+  background: var(--rim-bg-bright);
 }
 .gf-detail__doc {
   background: var(--rim-surface);
