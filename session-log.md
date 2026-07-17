@@ -2,7 +2,7 @@
 
 ## 2026-07-17 (sessions 167–168) — Universal Space Home and app contract, clear Updates, real navigation collapse, and occurrence-first scheduling
 
-This was one sustained design-and-implementation run across the entire member Space experience. It began with a question about whether every team needed a custom-built hub, established a universal Space plus installable-app architecture, and then refined the navigation, dashboard, Scheduler, and Updates surfaces against production screenshots. A series of implementation commits landed on `main`, plus a temporary plain-English team guide that Jesse downloaded and then asked to remove from the repository. The final state is `tsc`-green, lint-clean, CSS-brace-balanced, and pushed; Vercel responded normally after the last push.
+This was one sustained design-and-implementation run across the entire member Space experience. It began with a question about whether every team needed a custom-built hub, established a universal Space plus installable-app architecture, and then refined the navigation, dashboard, Scheduler, and Updates surfaces against production screenshots. A series of implementation commits landed on `main`, plus a temporary plain-English team guide that Jesse downloaded and then asked to remove from the repository. The final state is `tsc`-green, lint-clean, CSS-brace-balanced, and pushed for Vercel's automatic deployment.
 
 ### Built + shipped
 

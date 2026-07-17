@@ -10,7 +10,7 @@
 
 **Shipped:** one universal Space Home; zero-or-more installed apps with exactly one primary app when registered apps exist; registry/provider rules for Home, Updates, attention, compatibility, semantic icons, and tool access; source-aware Updates with stateless All / seven-day Recent / For me filters; a Scheduler-style organizer for Date and time / All categories / each active category; truly narrow desktop account + Space rails with full labeled mobile drawers; scroll-safe team navigation; clearer member-dashboard program surfaces; and occurrence-first calendar/date cards across the Scheduler, rotations, This Week, and cross-hub staffing.
 
-**State:** no half-built code. Ten implementation commits are on `main`; TypeScript, focused lint, CSS brace balance, and diff checks passed. The final production URL responded normally after the last push.
+**State:** no half-built code. The implementation is on `main`; TypeScript, focused lint, CSS brace balance, and diff checks passed. Vercel deploys each pushed follow-up automatically.
 
 **Open verification (Jesse; non-blocking):**
 1. Expand/collapse the account rail and one Space rail on desktop; confirm the narrow rail genuinely returns content width.
