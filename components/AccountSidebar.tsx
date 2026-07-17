@@ -86,8 +86,13 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
 
   useEffect(() => {
     try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (localStorage.getItem(COLLAPSE_KEY) === "1") setCollapsed(true);
+      if (
+        window.matchMedia("(min-width: 701px)").matches &&
+        localStorage.getItem(COLLAPSE_KEY) === "1"
+      ) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCollapsed(true);
+      }
     } catch {}
   }, []);
 
@@ -183,7 +188,7 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
               <span className="ac-sidebar__label">Your teams</span>
               <ChevronDown size={15} className={`ac-sidebar__chevron${teamsOpen ? " ac-sidebar__chevron--open" : ""}`} />
             </button>
-            {!collapsed && (teamsOpen || isHubRoute) && hubLinks.map((h) => (
+            {(teamsOpen || isHubRoute) && hubLinks.map((h) => (
               <Link
                 key={h.slug}
                 href={`/account/hub/${h.slug}`}

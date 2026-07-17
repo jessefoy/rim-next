@@ -24957,6 +24957,7 @@ input.w-button { -webkit-appearance: button; }
 .ac-sidebar--collapsed .ac-sidebar__section-label { display: none; }
 .ac-sidebar--collapsed .ac-sidebar__divider { margin-right: 6px; margin-left: 6px; }
 .ac-sidebar--collapsed .ac-sidebar__chevron { display: none; }
+.ac-sidebar--collapsed .ac-sidebar__link--nested { display: none; }
 .ac-sidebar__team-mark {
   width: 24px;
   height: 24px;
@@ -25202,6 +25203,12 @@ input.w-button { -webkit-appearance: button; }
     opacity: 1;
     pointer-events: auto;
   }
+  .ac-sidebar--collapsed .ac-sidebar__link,
+  .ac-sidebar--collapsed .ac-sidebar__group-toggle {
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+  .ac-sidebar--collapsed .ac-sidebar__link--nested { display: inline-flex; }
   .ac-sidebar__section-label { display: none; }
   .ac-sidebar__link,
   .ac-sidebar__group-toggle { border-left: none; padding: 10px 12px; }
@@ -27012,6 +27019,7 @@ input.w-button { -webkit-appearance: button; }
   .hub-ws-sidebar,
   .hub-ws-sidebar--collapsed {
     top: 60px;
+    width: 280px;
     height: calc(100vh - 60px);
     box-shadow: none;
   }
