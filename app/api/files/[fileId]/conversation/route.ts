@@ -63,7 +63,7 @@ export async function POST(
       action: "comment",
       googleFileId: fileId,
       hubId: place.hubId,
-      detail: { place: place.key },
+      detail: { place: place.key, name: file.name },
     });
 
     // Basecamp-style: notify only the people the commenter chose (default none).

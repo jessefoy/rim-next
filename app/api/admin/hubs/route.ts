@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { DEFAULT_COVERAGE_COPY } from "@/lib/programHub";
 import { provisionHubSpaceStorage } from "@/lib/googleFiles";
+import { getToolBySlug, isToolCompatibleWithHub } from "@/lib/toolRegistry";
 
 /** GET /api/admin/hubs — list all hubs with member count (ADMIN only) */
 export async function GET() {
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
   const creatorId = session.user.id;
 
   const body = await req.json();
-  const { name, slug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, appLinks } = body;
+  const { name, slug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, appLinks } = body;
 
   if (!name || !slug) {
     return NextResponse.json({ error: "Name and slug are required." }, { status: 400 });
@@ -43,6 +44,24 @@ export async function POST(req: Request) {
   const existing = await db.hub.findUnique({ where: { slug } });
   if (existing) {
     return NextResponse.json({ error: "A hub with this slug already exists." }, { status: 409 });
+  }
+
+  if (appLinks !== undefined && !Array.isArray(appLinks)) {
+    return NextResponse.json({ error: "Apps must be a list." }, { status: 400 });
+  }
+  const seenTools = new Set<string>();
+  for (const link of appLinks ?? []) {
+    if (!link.toolSlug) continue;
+    if (seenTools.has(link.toolSlug)) {
+      return NextResponse.json({ error: "Each app can be installed only once per Space." }, { status: 400 });
+    }
+    seenTools.add(link.toolSlug);
+    if (!getToolBySlug(link.toolSlug) || !isToolCompatibleWithHub(link.toolSlug, slug)) {
+      return NextResponse.json(
+        { error: "That app is not designed for this Space. Add it as a custom link only if navigation is all you need." },
+        { status: 400 },
+      );
+    }
   }
 
   // teacherLabel only meaningful when assignmentGrantsTeacher is true;
@@ -71,6 +90,7 @@ export async function POST(req: Request) {
       type: type || "OPERATIONAL",
       status: status || "ACTIVE",
       hasSchedule: !!hasSchedule,
+      conversationsEnabled: conversationsEnabled !== false,
       assignmentGrantsTeacher: grantsTeacher,
       teacherLabel: sanitizedLabel,
       coverageNoun:   cleanCoverageInput(coverageNoun,   DEFAULT_COVERAGE_COPY.noun),
@@ -79,13 +99,16 @@ export async function POST(req: Request) {
       conversationCategories: ["General"],
       appLinks: appLinks?.length
         ? {
-            create: appLinks.map((link: { toolSlug?: string | null; label: string; href: string; isEnabled?: boolean }, i: number) => ({
-              toolSlug: link.toolSlug ?? null,
-              label: link.label,
-              href: link.href,
-              order: i,
-              isEnabled: link.isEnabled ?? true,
-            })),
+            create: appLinks.map((link: { toolSlug?: string | null; label: string; href: string; isEnabled?: boolean }, i: number) => {
+              const registered = link.toolSlug ? getToolBySlug(link.toolSlug) : null;
+              return {
+                toolSlug: registered?.slug ?? null,
+                label: registered?.label ?? link.label.trim(),
+                href: registered?.path ?? link.href.trim(),
+                order: i,
+                isEnabled: link.isEnabled ?? true,
+              };
+            }),
           }
         : undefined,
       // Bootstrap the creating admin as the first coordinator + active

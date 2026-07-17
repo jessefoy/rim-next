@@ -2882,6 +2882,27 @@ async function main() {
   await db.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
   `);
+
+  // Add new HubMember columns before ANY Prisma-model read. The generated
+  // client already selects activitySeenAt, so placing this at the tail would
+  // make an earlier hubMember.findMany fail against the pre-migration table.
+  const hubActivitySeenFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'hub_activity_seen_v1'
+  `).catch(() => []);
+
+  if (hubActivitySeenFlag.length === 0) {
+    console.log("→ Space Activity independent read boundary …");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hub_members" ADD COLUMN IF NOT EXISTS "activitySeenAt" TIMESTAMP(3)`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('hub_activity_seen_v1')`,
+    );
+    console.log("  ✔ hub_members.activitySeenAt ready (existing rows left unread-neutral).\n");
+  } else {
+    console.log("  ⏭ hub_activity_seen_v1 already applied.");
+  }
+
   for (const m of migrations) {
     await m.run();
   }

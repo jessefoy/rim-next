@@ -360,7 +360,7 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 
 #### `hub-welcome`
 - **Schema field:** `Hub.welcomeBody`
-- **Component:** `components/HubAdminForm.tsx`
+- **Components:** `components/HubAdminForm.tsx`, inline editor on `components/HubHomeClient.tsx`
 - **Variant:** message
 - **Output destination:** web template
 - **Output wrapper:** interactively rendered in `HubHomeClient` welcome interstitial
@@ -368,7 +368,7 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 
 #### `hub-home`
 - **Schema field:** `Hub.homeContent`
-- **Component:** `components/HubAdminForm.tsx`
+- **Components:** `components/HubAdminForm.tsx`, inline editor on `components/HubHomeClient.tsx`
 - **Variant:** message
 - **Output destination:** web template
 - **Output wrapper:** rendered inside hub home orientation block

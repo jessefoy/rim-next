@@ -1,30 +1,20 @@
 "use client";
 
-/**
- * HubActivityClient — the hub activity stream.
- * CSS prefix: hub-act-
- *
- * New conversation threads and replies in one chronological river (native
- * Documents were retired session 165). Filter pills: All / Mine.
- *
- * Each item shows: [icon] [label] — [author] · [relative time]; clicking
- * opens the conversation thread.
- */
-
 import { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, CornerDownRight } from "lucide-react";
+import { Briefcase, CornerDownRight, FileText, MessageSquare, UserPlus } from "lucide-react";
+import type { HubActivityFilter, HubActivityItem } from "@/lib/hubActivity";
 
-type ActivityItem =
-  | { type: "hub_thread"; id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string }
-  | { type: "hub_reply";  id: string; threadId: string; threadTitle: string; authorId: string; authorName: string; ts: string };
-
-type Filter = "all" | "mine";
+interface ActivityPageState {
+  items: HubActivityItem[];
+  nextCursor: string | null;
+  loaded: boolean;
+}
 
 interface Props {
   hubSlug: string;
-  currentUserId: string;
-  initialItems: ActivityItem[];
+  initialItems: HubActivityItem[];
+  initialNextCursor: string | null;
 }
 
 function relativeTime(iso: string) {
@@ -39,83 +29,104 @@ function relativeTime(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function ItemIcon({ type }: { type: ActivityItem["type"] }) {
-  if (type === "hub_reply") {
-    return <CornerDownRight size={15} strokeWidth={1.75} className="hub-act-item__icon hub-act-item__icon--reply" />;
-  }
-  return <MessageSquare size={15} strokeWidth={1.75} className="hub-act-item__icon hub-act-item__icon--conv" />;
+function ItemIcon({ type }: { type: HubActivityItem["type"] }) {
+  const common = { size: 16, strokeWidth: 1.75, className: "hub-act-item__icon" };
+  if (type === "reply") return <CornerDownRight {...common} />;
+  if (type === "file") return <FileText {...common} />;
+  if (type === "member") return <UserPlus {...common} />;
+  if (type === "app") return <Briefcase {...common} />;
+  return <MessageSquare {...common} />;
 }
 
-function ItemLabel({ item }: { item: ActivityItem }) {
-  switch (item.type) {
-    case "hub_thread":
-      return <><strong>{item.authorName}</strong> started <em>{item.threadTitle}</em></>;
-    case "hub_reply":
-      return <><strong>{item.authorName}</strong> replied to <em>{item.threadTitle}</em></>;
-  }
-}
-
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all",  label: "All" },
-  { key: "mine", label: "Mine" },
+const FILTERS: { key: HubActivityFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "mine", label: "My activity" },
 ];
 
-export default function HubActivityClient({ hubSlug, currentUserId, initialItems }: Props) {
-  const [filter, setFilter] = useState<Filter>("all");
-  const [items, setItems] = useState<ActivityItem[]>(initialItems);
+export default function HubActivityClient({ hubSlug, initialItems, initialNextCursor }: Props) {
+  const [filter, setFilter] = useState<HubActivityFilter>("all");
+  const [pages, setPages] = useState<Record<HubActivityFilter, ActivityPageState>>({
+    all: { items: initialItems, nextCursor: initialNextCursor, loaded: true },
+    mine: { items: [], nextCursor: null, loaded: false },
+  });
   const [loading, setLoading] = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const current = pages[filter];
 
-  const visible = items.filter((i) => (filter === "mine" ? i.authorId === currentUserId : true));
-
-  async function loadMore() {
-    if (!nextCursor || loading) return;
+  async function fetchPage(nextFilter: HubActivityFilter, cursor?: string | null) {
+    if (loading) return;
     setLoading(true);
+    setError("");
     try {
-      const qs = new URLSearchParams({ cursor: nextCursor, limit: "30" });
-      if (filter === "mine") qs.set("mine", "true");
+      const qs = new URLSearchParams({ limit: "30" });
+      if (nextFilter === "mine") qs.set("mine", "true");
+      if (cursor) qs.set("cursor", cursor);
       const res = await fetch(`/api/hub/${hubSlug}/activity?${qs}`);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setItems((prev) => {
-        const ids = new Set(prev.map((i) => i.id));
-        return [...prev, ...data.items.filter((i: ActivityItem) => !ids.has(i.id))];
+      if (!res.ok) throw new Error("Activity could not be loaded.");
+      const data = await res.json() as { items: HubActivityItem[]; nextCursor: string | null };
+      setPages((prev) => {
+        const existing = cursor ? prev[nextFilter].items : [];
+        const ids = new Set(existing.map((item) => item.id));
+        return {
+          ...prev,
+          [nextFilter]: {
+            items: [...existing, ...data.items.filter((item) => !ids.has(item.id))],
+            nextCursor: data.nextCursor,
+            loaded: true,
+          },
+        };
       });
-      setNextCursor(data.nextCursor);
+    } catch {
+      setError("Activity couldn’t be loaded. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
+  function changeFilter(next: HubActivityFilter) {
+    setFilter(next);
+    if (!pages[next].loaded) void fetchPage(next);
+  }
+
   return (
     <div className="hub-act">
       <header className="hub-act__header">
-        <h1 className="hub-act__title">Activity</h1>
+        <div>
+          <h1 className="hub-act__title">Activity</h1>
+          <p className="hub-act__intro">Conversations, files, and people — in one shared history.</p>
+        </div>
         <div className="hub-act__filters" role="group" aria-label="Filter activity">
-          {FILTERS.map((f) => (
+          {FILTERS.map((item) => (
             <button
-              key={f.key}
-              className={`hub-act__filter${filter === f.key ? " hub-act__filter--active" : ""}`}
-              onClick={() => setFilter(f.key)}
+              key={item.key}
+              type="button"
+              className={`hub-act__filter${filter === item.key ? " hub-act__filter--active" : ""}`}
+              onClick={() => changeFilter(item.key)}
+              aria-pressed={filter === item.key}
             >
-              {f.label}
+              {item.label}
             </button>
           ))}
         </div>
       </header>
 
-      {visible.length === 0 ? (
+      {error && <p className="hub-act__error" role="alert">{error}</p>}
+
+      {loading && !current.loaded ? (
+        <p className="hub-act__empty">Loading activity…</p>
+      ) : current.items.length === 0 ? (
         <p className="hub-act__empty">
-          {filter === "mine" ? "Nothing here yet — your activity will appear as you post." : "No activity yet."}
+          {filter === "mine" ? "You haven’t added anything here yet." : "No activity yet."}
         </p>
       ) : (
         <ul className="hub-act__list">
-          {visible.map((item) => (
+          {current.items.map((item) => (
             <li key={item.id} className="hub-act__item">
-              <Link href={`/account/hub/${hubSlug}/conversations/${item.threadId}`} className="hub-act__item-link">
+              <Link href={item.href} className="hub-act__item-link">
                 <ItemIcon type={item.type} />
                 <span className="hub-act__item-label">
-                  <ItemLabel item={item} />
+                  <strong>{item.authorName}</strong> {item.verb}
+                  {item.subject && <> <em>{item.subject}</em></>}
                 </span>
                 <span className="hub-act__item-time">{relativeTime(item.ts)}</span>
               </Link>
@@ -124,10 +135,11 @@ export default function HubActivityClient({ hubSlug, currentUserId, initialItems
         </ul>
       )}
 
-      {nextCursor && (
+      {current.nextCursor && (
         <button
+          type="button"
           className="hub-act__load-more"
-          onClick={loadMore}
+          onClick={() => void fetchPage(filter, current.nextCursor)}
           disabled={loading}
         >
           {loading ? "Loading…" : "Load more"}

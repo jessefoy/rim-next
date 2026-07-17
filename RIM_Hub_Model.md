@@ -12,7 +12,7 @@ This document is complete enough that a new developer (or a new Claude Code sess
 
 Everything in the volunteer platform lives in one of two layers:
 
-**Hubs are team homes.** A hub is where a team exists — where they communicate, coordinate, share documents and Mind Maps, and know who's on their team. Every hub has the same built-in structure regardless of what team it serves.
+**Hubs are team homes.** A hub is where a team exists — where they communicate, coordinate, share Google Workspace files, and know who's on their team. Every hub has the same built-in structure regardless of what team it serves.
 
 **Tools are work applications.** A tool is where specific work gets done — processing registrations, managing a session schedule, handling support emails. Tools are focused, full-screen, and designed for the workflow they serve.
 
@@ -32,7 +32,7 @@ An admin visits `/admin/hubs` and submits the create form. The `POST /api/admin/
 |--------|-------|------------|
 | `Hub` | `hubs` | `slug` (unique), `name`, `type` (OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP), `status` (ACTIVE), `description` |
 
-At this point the hub exists but has no members, no tools, and no content. The built-in sections (Home, Activity, Conversations, Documents, Mind Maps, Members) are available immediately; coordinator/leadership-gated Trash appears when applicable. They require no per-hub navigation configuration.
+The create route also adds the creating admin as the first active coordinator and best-effort provisions the Space's Google Files folder. The built-in sections (Home, Activity, Conversations, Files when provisioned, and Members) are available without per-hub navigation configuration; coordinator/leadership-gated Trash appears when applicable.
 
 **Database defaults on creation:**
 - `status` → `ACTIVE`
@@ -40,8 +40,8 @@ At this point the hub exists but has no members, no tools, and no content. The b
 - `welcomeHeadline` → `null` (no newcomer welcome)
 - `welcomeBody` → `null`
 - `homeContent` → `null`
-- `documentCategories` → `[]`
 - `conversationCategories` → `["General"]`
+- `conversationsEnabled` → `true`
 - `assignmentGrantsTeacher` → `false` (added session 128 — see below)
 - `teacherLabel` → `null`
 
@@ -74,7 +74,7 @@ In the hub edit form, the admin adds app links. Each one creates:
 
 | Record | Table | Key fields |
 |--------|-------|------------|
-| `HubAppLink` | `hub_app_links` | `hubId`, `label`, `href`, `order`, `isEnabled` (true) |
+| `HubAppLink` | `hub_app_links` | `hubId`, `toolSlug`, `label`, `href`, `order`, `isEnabled` (true) |
 
 Example app links seeded for existing hubs:
 
@@ -83,12 +83,14 @@ Example app links seeded for existing hubs:
 | Host Team | Host Schedule | `/tools/schedule` |
 | Registrar Hub | Program Manager | `/tools/programs` |
 
-**Update strategy:** The PATCH endpoint for hubs uses delete-all + recreate for app links. This is safe because app links have no foreign keys pointing to them.
+**Update strategy:** The PATCH endpoint replaces app links and hub configuration inside one database transaction. Existing rows remain valid until the replacement and hub update can both succeed.
+
+**Registered app contract:** `toolSlug` identifies a registered app in `lib/toolRegistry.ts`. The registry declares whether the app is multi-Space safe or restricted to one primary Space, plus its Home and Activity contribution adapters. Scheduler is multi-Space; Program Manager is restricted to `registrar`; Course Manager is restricted to `courses`. A custom link has `toolSlug: null`: it is navigation only and never grants tool access or contributes app data.
 
 ### Step 5: Coordinator configures hub content
 
 The coordinator (or admin) can now:
-- Edit the Home screen content via `RimTiptapEditor` (stored as `homeContent` HTML on the Hub)
+- Edit the Home welcome and orientation inline via `RimTiptapEditor` (also available in hub admin)
 - Set a welcome headline and body for newcomer interstitials (stored as `welcomeHeadline` / `welcomeBody`)
 - Create conversation categories, document categories
 - Pin important conversation threads
@@ -101,8 +103,8 @@ When a member navigates to `/account/hub/[slug]`:
 2. **Hub fetch** — query `hubs` by slug, include `members` and `appLinks`
 3. **Access check** — resolve the `HubMember` row and apply `canAccessHub(member, roles)`
 4. **Sidebar render** — `HubWorkspaceSidebar` receives hub identity, tools, counts, coordinator/trash authority, and admin state
-5. **First visit tracking** — if `firstVisitedAt` is null, show the welcome interstitial and set the timestamp
-6. **`lastVisitedAt` update** — updated on each visit for unread badge calculation
+5. **First visit tracking** — if both `firstVisitedAt` and prior `lastVisitedAt` are null, show the welcome interstitial and set the timestamp (the second check protects established members created before first-visit tracking)
+6. **Read tracking** — `lastVisitedAt` remains the Home/conversation boundary; `activitySeenAt` is updated only when Activity opens
 
 ---
 
@@ -112,9 +114,9 @@ Every hub has one left workspace rail (collapsible/sticky on desktop; drawer on 
 
 **Identity** — hub type label (e.g. "Operational Hub"), hub name, member count, coordinator name(s). Always visible so you always know where you are.
 
-**Flat work sequence** — Home, enabled Tools, then Activity, Conversations, Documents, Mind Maps, and Members. These built-in destinations are the same in every hub; improving one improves every hub because the components are shared.
+**Flat work sequence** — Home, enabled apps/links, then Activity, Conversations (when enabled), Files (when provisioned), and Members. These built-in destinations are the same in every hub; improving one improves every hub because the components are shared.
 
-**Tools** — a curated list of applications this team uses, rendered from `HubAppLink` records immediately below Home. The `?hub=<slug>` param is appended so `WorkspaceShell` preserves this same rail and hub identity while the tool content changes.
+**Apps and links** — registered apps and custom navigation rendered from `HubAppLink` records immediately below Home. Registered apps receive `?hub=<slug>` so `WorkspaceShell` preserves this rail; custom links retain their exact URL.
 
 **Footer actions** — Trash for people with trash authority, Hub settings for ADMIN only, and Back to Home for everyone.
 
@@ -127,8 +129,7 @@ const navItems = [
   { label: "Home",          href: base },
   { label: "Activity",      href: `${base}/activity` },
   { label: "Conversations", href: `${base}/conversations` },
-  { label: "Documents",     href: `${base}/documents` },
-  { label: "Mind Maps",     href: `${base}/mindmaps` },
+  { label: "Files",         href: `${base}/files` },
   { label: "Members",       href: `${base}/members` },
 ];
 ```
@@ -142,11 +143,11 @@ const navItems = [
 
 ## 4. Connecting Tools to a Hub
 
-An admin connects a tool to a hub by adding an app link in the hub's settings at `/admin/hubs/[slug]/edit`. An app link has a label ("Program Manager"), a path (`/tools/programs`), and an enabled toggle. Links can be reordered.
+An admin connects a registered app or custom link in `/admin/hubs/[slug]/edit`. Registered apps are offered only where their registry contract says their data and authority are safely scoped. Existing legacy installations are preserved during ordinary edits, but new incompatible installations are rejected by both the UI and API.
 
-Once added, the tool link appears in the hub sidebar under Tools and as a card on the hub's Home screen. The Home screen card will eventually surface live context — "3 new registrations" or "2 sessions need hosts" — so the team sees what needs attention before they even open the tool. (See §10 for the planned evolution.)
+Once added, every enabled item appears in the sidebar and on the universal Home. Registered apps contribute live, server-rendered context — for example registrations, draft courses, or hub-scoped Scheduler gaps. Custom links render as connected links with no access grant or data adapter.
 
-Any tool can be linked from any hub. A single tool can be linked from multiple hubs.
+Only apps declared `multi-space` can be installed in multiple hubs. An app declared `primary-space` is installable only in its named hub until its queries, writes, and permissions are genuinely hub-scoped.
 
 ---
 
@@ -224,7 +225,7 @@ This means the back link is always contextually correct — hub members go back 
 
 **Hub access** is controlled by the `canAccessHub` door: a `HubMember` relationship, or GUIDING_TEACHER pastoral reach. ADMIN alone configures from outside and does not inherit private hub content. This is about belonging to a team, with one explicit dharma-authority exception.
 
-**Tool access** is controlled by `hasToolAccess()`. It grants access through a required role/ADMIN, an individual `UserToolAccess` row, or membership in a hub with an enabled `HubAppLink` for that tool. This is about being authorized to do specific work; the tool's own page/API gates remain the security boundary.
+**Tool access** is controlled by `hasToolAccess()`. It grants access through a required role/ADMIN, an individual `UserToolAccess` row, or ACTIVE membership in an ACTIVE hub with an enabled registered `HubAppLink` for that tool. This is about being authorized to do specific work; the tool's own page/API gates remain the security boundary.
 
 Hub content access and tool access remain separate decisions even though hub membership is one valid tool-grant pathway. A visible shell or link never replaces the gate.
 
@@ -251,19 +252,19 @@ Do not replace this with an inline role-only check; that would silently remove h
 
 ### Hub section access
 
-Home, Activity, Conversations, Documents, Mind Maps, and Members are the shared module set. Resource-level gates still apply to portable Documents/Mind Maps and action-level gates still apply inside each module; “the tab is visible” is not blanket edit authority.
+Home, Activity, Conversations, Files, and Members are the shared module set. Resource/action gates still apply inside each module; “the tab is visible” is not blanket edit authority.
 
 Coordinator actions use the canonical coordinator helpers; structural Hub settings stays ADMIN-only. **Trash** appears only for trash-managers (Admin, Guiding Teacher, or hub coordinator) and offers Restore + Permanent Delete. See "Three-stage delete" below.
 
 ### Three-stage delete (Active → Archived → Trash)
 
-Both Hub Documents and Conversation threads share a three-stage soft-delete lifecycle (introduced session 113):
+Conversation threads use a three-stage soft-delete lifecycle (introduced session 113):
 
-1. **Active** — default state. Documents appear in the main list; threads in the "Active" filter.
-2. **Archived** — author or coordinator can archive. Documents move to an "Archived" filter view (still member-readable, read-only). Threads keep their existing `status: "CLOSED"` (relabeled "Archived" in the UI).
+1. **Active** — default state; threads appear in the "Active" filter.
+2. **Archived** — author or coordinator can archive; threads use `status: "CLOSED"` (relabeled "Archived" in the UI).
 3. **Trash** — the only action available on an Archived item is "Delete", which soft-deletes the item: it disappears from member view entirely and surfaces only on the per-hub Trash page (`/account/hub/[slug]/trash`).
 
-From Trash, a trash-manager can **Restore** (back to whatever state — archived or active for documents, archived for threads) or **Delete permanently** (irreversible cascade).
+From Trash, a trash-manager can **Restore** (to archived) or **Delete permanently** (irreversible cascade).
 
 Members never have a "go straight to trash" option. The Archive step is deliberate — it's reversible and visible. Trash is the second deliberate step that puts the item in front of leadership for review before final removal.
 
@@ -352,7 +353,7 @@ const threads = await db.discussionThread.findMany({
 
 ### Hub sub-page scoping (already implemented)
 
-Hub-native sections such as Conversations, Activity, and Members scope by the resolved hub. Portable resources are the exception: Documents and Mind Maps may originate elsewhere or be hubless, so their lists/access use placements + resource-level helpers rather than a bare `hubId` equality.
+Hub-native sections such as Conversations, Activity, Files, and Members scope by the resolved hub. Files authorize by their resolved Space place and folder subtree; the hub slug is context, not sufficient proof by itself.
 
 ```typescript
 // Conversations page
@@ -474,7 +475,7 @@ When should functionality live inside a hub section vs. be extracted to a standa
 
 **Host Schedule** (from Host Team Hub → `/tools/schedule`)
 - *Why extracted:* Calendar-based staffing UI with a mini-calendar, occurrence rows, coverage actions, and standing rotations; now reused across several coverage hubs.
-- *Pattern:* A hub-scoped operational tool. The hub is where the team coordinates (activity, conversations, documents, Mind Maps); the Scheduler is where coverage work happens.
+- *Pattern:* A hub-scoped operational app. The Space is where the team coordinates (Home, Activity, Conversations, Files); the Scheduler is where coverage work happens.
 
 ### The decision rule
 
@@ -493,19 +494,24 @@ The built-in sections are shared infrastructure. Every hub gets them for free. I
 **Route:** `/account/hub/[slug]` (page.tsx)
 
 **What it shows:**
-- Coordinator-editable rich text content (`homeContent` HTML via `RimTiptapEditor variant="document"`)
-- App link cards (rendered from `HubAppLink` records)
+- A greeting and one plain-language attention sentence
+- The first-visit welcome interstitial for genuinely new members
+- Coordinator-editable persistent welcome (where configured) and orientation content
+- One card for every enabled `HubAppLink`; registered apps add live context through `lib/hubApps.ts`, custom links remain quiet navigation
+- App modules below their card when the contract provides one (Scheduler-owned Spaces use the hub-scoped “Our offerings this month” module)
 - Pinned conversation threads (from `HubConversationThread` where `isPinned: true`)
+- A recent Activity preview across the same shared stream (without marking it read)
 
 **Extension points:**
-- `homeContent` is a freeform JSON rich text field — coordinators can put anything here
-- App link cards are the connection point to tools (see §10 for planned live context cards)
+- `welcomeBody` and `homeContent` are HTML strings stored in the existing JSON fields and edited inline or in hub admin
+- A new app extends the registry contract and a server adapter; the base Home component does not branch by hub slug
+- `Hub.hasSchedule` controls the Scheduler month module and Program Editor hosting eligibility; it no longer selects a separate Home implementation
 
 ### Activity
 
 **Route:** `/account/hub/[slug]/activity`
 
-A computed, hub-scoped stream that brings conversation and document events into one chronological view. It is a projection, not a separate activity model.
+A computed, hub-scoped stream that brings together conversation starts/replies, visible Google Files events, member joins, and installed Scheduler events. It is a projection, not a separate activity model. The page and API share `lib/hubActivity.ts`, including filter semantics and pagination. `HubMember.activitySeenAt` is an independent read boundary; visiting Home does not clear Activity.
 
 ### Conversations
 
@@ -519,17 +525,11 @@ A computed, hub-scoped stream that brings conversation and document events into 
 
 **Data model:** `HubConversationThread` (title, body as HTML, status, isPinned, pinnedAt) → `HubConversationReply` (body as HTML)
 
-### Documents
+### Files
 
-**Route:** `/account/hub/[slug]/documents`
+**Route:** `/account/hub/[slug]/files`
 
-**What it shows:** native documents, uploads, and links that originate in or are placed into the hub; search/freshness/category controls; visibility/share/lifecycle affordances according to `canAccessDocument` / `canEditDocument`. Documents are portable resources, not always owned by the visible hub. See `RIM_Documents.md`.
-
-### Mind Maps
-
-**Route:** `/account/hub/[slug]/mindmaps`
-
-The second portable resource: maps originating in or placed into the hub, with map-level visibility/edit policy and one conversation per topic. See `RIM_MindMaps.md`.
+**What it shows:** the Space's Google Workspace folder/Drive through RIM's authorization layer. Files remain in Google; RIM supplies identity, attribution, draft/share state, comments, and governed deletion. See `RIM_GoogleWorkspace.md`.
 
 ### Members
 
@@ -540,7 +540,7 @@ The second portable resource: maps originating in or placed into the hub, with m
 - Last visited timestamp
 - Member count
 
-**Data model:** `HubMember` (hubId, userId, position, isCoordinator, joinedAt, lastVisitedAt, firstVisitedAt)
+**Data model:** `HubMember` (hubId, userId, position, isCoordinator, joinedAt, lastVisitedAt, firstVisitedAt, activitySeenAt)
 
 ### No Hub-Specific Additions
 
@@ -556,7 +556,7 @@ Hubs connect to their tools via app links in the rail. This keeps the built-in w
 
 ## 11. App Link and Home Screen Pattern
 
-### How app links work today
+### How app installations work today
 
 An app link is a record in the `hub_app_links` table:
 
@@ -564,37 +564,37 @@ An app link is a record in the `hub_app_links` table:
 |-------|------|---------|
 | `id` | String (cuid) | Primary key |
 | `hubId` | String | Foreign key to `hubs` |
+| `toolSlug` | String? | Registered app identity; null means custom link |
 | `label` | String | Display text (e.g. "Program Manager") |
 | `href` | String | Tool URL path (e.g. "/tools/programs") |
 | `order` | Int | Sort order (0-based) |
 | `isEnabled` | Boolean | Show/hide toggle |
 
-**In the sidebar:** Rendered directly below Home as primary work links. `?hub=<slug>` is appended to the href so the workspace rail persists inside the tool.
+**In the sidebar:** Rendered directly below Home. Registered apps receive `?hub=<slug>`; custom links keep the exact configured href.
 
-**On the home screen:** `HubHomeClient` renders enabled app links as cards in a tools section.
+**On the home screen:** `HubHomeClient` renders every enabled installation in one Apps section. `lib/hubApps.ts` resolves registered adapters and supplies live counts/copy; custom links receive no adapter.
 
-### Planned evolution: live context cards
+### Registry contract
 
-Today, app link cards on the hub home screen are static labels. The planned enhancement:
+`lib/toolRegistry.ts` is the app manifest. Each registered app declares:
 
-**Goal:** Each card surfaces a live count from its linked tool — "3 new registrations", "2 sessions need hosts", "5 unread threads". The team sees what needs attention without opening the tool.
+- canonical slug, label, path, and description
+- `spaceMode`: `multi-space` or `primary-space`
+- `primarySpaceSlug` when restricted
+- `homeContribution`
+- `activityContribution`
 
-**Planned API pattern:**
+The installation is intentionally the only modifier layered onto the general Space. It may add navigation, a Home card/module, Activity events, and active-member tool access. It must not replace the Home, introduce hub-name conditionals, or make a global tool appear hub-scoped when it is not.
 
-Each tool that wants to provide context to hub home cards would expose a lightweight endpoint:
+Current contracts:
 
-```
-GET /api/tools/<tool-name>/context?hub=<slug>
-→ { count: number, label: string }
-```
+| App | Space mode | Home | Activity |
+|---|---|---|---|
+| Scheduler | multi-space | hub-scoped open coverage + optional month module | cover requests + claims |
+| Program Manager | primary-space (`registrar`) | recent registrations | none until its mutations have durable actor attribution |
+| Course Manager | primary-space (`courses`) | draft courses | none until its mutations have durable actor attribution |
 
-Examples:
-- `/api/tools/programs/context?hub=registrar` → `{ count: 3, label: "new registrations" }`
-- `/api/tools/schedule/context?hub=host-team` → `{ count: 2, label: "sessions need hosts" }`
-
-The `HubHomeClient` component would fetch these on mount and overlay the count on each app link card. The `hub` param allows scoped counts when the same tool serves multiple hubs.
-
-**Status:** Foundation laid (app links render on home), context endpoints not yet implemented.
+**Authorization rule:** only ACTIVE members inherit access through a registered app on an ACTIVE hub. Role grants and `UserToolAccess` remain separate pathways. Custom links never grant access.
 
 ---
 
@@ -693,4 +693,4 @@ All hub-related models in `prisma/schema.prisma`:
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · updated session 162 (2026-07-13) — shared authenticated/hub/tool shell; built-in Activity + Mind Maps; current access door and tool-context behavior.*
+*Working document · updated session 167 (2026-07-17) — universal Home, registered-app contract, multi-source Activity, independent Activity read boundary, Google Files-era built-ins.*

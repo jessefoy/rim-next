@@ -40,10 +40,12 @@ export interface SidebarTool {
   slug: string;
   label: string;
   path: string;
+  isRegistered?: boolean;
   badgeCount?: number;
 }
 
 export interface SidebarNavCounts {
+  activity?: number;
   conversations?: number;
 }
 
@@ -105,11 +107,17 @@ export default function HubWorkspaceSidebar({
   useEffect(() => {
     try {
       const stored = localStorage.getItem(COLLAPSE_KEY);
+      // Hydration-safe: localStorage is available only after mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (stored === "1") setCollapsed(true);
     } catch {}
   }, []);
 
-  useEffect(() => { setMobileOpen(false); }, [pathname]);
+  useEffect(() => {
+    // Route changes close the mobile drawer, including browser navigation.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMobileOpen(false);
+  }, [pathname]);
 
   function toggleCollapsed() {
     setCollapsed((v) => {
@@ -133,7 +141,7 @@ export default function HubWorkspaceSidebar({
     ? [{ label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 }]
     : [];
   const otherItems = [
-    { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
+    { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: navCounts.activity ?? 0 },
     ...conversationsItem,
     ...filesItem,
     { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
@@ -148,9 +156,10 @@ export default function HubWorkspaceSidebar({
     return pathname === toolPath || pathname.startsWith(toolPath + "/");
   }
 
-  function toolHref(path: string) {
-    const qs = path.includes("?") ? `&hub=${hub.slug}` : `?hub=${hub.slug}`;
-    return path + qs;
+  function toolHref(tool: SidebarTool) {
+    if (!tool.isRegistered) return tool.path;
+    const qs = tool.path.includes("?") ? `&hub=${hub.slug}` : `?hub=${hub.slug}`;
+    return tool.path + qs;
   }
 
   const coordSummary = coordinatorSummary(hub.coordinatorNames);
@@ -249,7 +258,7 @@ export default function HubWorkspaceSidebar({
             return (
               <Link
                 key={tool.slug}
-                href={toolHref(tool.path)}
+                href={toolHref(tool)}
                 className={`hub-ws-link hub-ws-link--primary${active ? " hub-ws-link--active" : ""}`}
                 title={collapsed ? tool.label : undefined}
               >

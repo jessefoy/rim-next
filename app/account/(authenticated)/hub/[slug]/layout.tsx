@@ -17,6 +17,7 @@ import { db } from "@/lib/db";
 import HubWorkspaceSidebar from "@/components/HubWorkspaceSidebar";
 import { getHubContext } from "@/lib/hubContext";
 import { canAccessHub, canManageTrash, effectiveCoordinator } from "@/lib/hubAuth";
+import { resolveRegisteredTool } from "@/lib/hubApps";
 
 interface Props {
   children: React.ReactNode;
@@ -74,6 +75,8 @@ export default async function HubLayout({ children, params }: Props) {
     hub.id,
     session.user.id,
     member?.lastVisitedAt ?? null,
+    member?.activitySeenAt ?? null,
+    hub.conversationsEnabled,
   );
 
   const coordinatorNames = hub.members
@@ -83,13 +86,17 @@ export default async function HubLayout({ children, params }: Props) {
       return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "—";
     });
 
-  const tools = hub.appLinks.map((link) => ({
-    slug: link.toolSlug ?? link.label.toLowerCase().replace(/\s+/g, "-"),
-    label: link.label,
-    path: link.href,
-    badgeCount:
-      ctx.primaryTool && link.toolSlug === ctx.primaryTool.slug ? ctx.primaryCount : 0,
-  }));
+  const tools = hub.appLinks.map((link) => {
+    const registered = resolveRegisteredTool(link);
+    return {
+      slug: registered?.slug ?? link.label.toLowerCase().replace(/\s+/g, "-"),
+      label: link.label,
+      path: link.href,
+      isRegistered: Boolean(registered),
+      badgeCount:
+        ctx.primaryTool && registered?.slug === ctx.primaryTool.slug ? ctx.primaryCount : 0,
+    };
+  });
 
   return (
     <div className="hub-ws-layout">
@@ -105,6 +112,7 @@ export default async function HubLayout({ children, params }: Props) {
         }}
         tools={tools}
         navCounts={{
+          activity: ctx.activityUnread,
           conversations: ctx.conversationsUnread,
         }}
         isCoordinator={isCoordinator}

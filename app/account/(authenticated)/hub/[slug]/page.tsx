@@ -18,8 +18,10 @@ import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { getHubContext } from "@/lib/hubContext";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
 import HubHomeClient from "@/components/HubHomeClient";
-import HostHubHomeClient from "@/components/HostHubHomeClient";
 import { ctDateStr, isOccurrenceOnDate, type ScheduleProgram } from "@/lib/scheduleUtils";
+import { getHubCoverageConfig, getHubCoverageCopy, getProgramSlugsForHub } from "@/lib/programHub";
+import { getHubHomeApps } from "@/lib/hubApps";
+import { listHubActivity } from "@/lib/hubActivity";
 
 export const dynamic = "force-dynamic";
 
@@ -52,90 +54,66 @@ export default async function HubHomePage({
     });
   }
 
-  // Hosting hub: single unified home (one view for everyone). Coordinators have
-  // an inline edit affordance on the welcome message; nothing else differs.
-  // Below the welcome is the "Our offerings this month" panel — team
-  // contribution + open coverage at a glance. Gated on hub.hasSchedule (a
-  // schema field) rather than a slug literal so a future hosting hub works
-  // without code changes.
-  if (hub.hasSchedule) {
-    const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
+  const ctx = await getHubContext(
+    hub.slug,
+    hub.id,
+    session.user.id,
+    priorLastVisitedAt,
+    member?.activitySeenAt ?? null,
+    hub.conversationsEnabled,
+  );
 
-    const [welcomeHtml, thisMonth] = await Promise.all([
-      renderFormattedTextAsync(hub.welcomeBody),
-      loadHostHubThisMonth(hub.id),
-    ]);
-
-    return (
-      <HostHubHomeClient
-        slug={slug}
-        hubName={hub.name}
-        canEditContent={isCoordinator}
-        welcomeHtml={welcomeHtml}
-        welcomeBody={isCoordinator ? (typeof hub.welcomeBody === "string" ? hub.welcomeBody : "") : ""}
-        thisMonth={thisMonth}
-      />
-    );
-  }
-
-  const ctx = await getHubContext(hub.slug, hub.id, session.user.id, priorLastVisitedAt);
-
-  // Pinned threads (always surfaced)
-  const pinnedThreads = await db.hubConversationThread.findMany({
-    where: { ...activeHubThreadWhere(hub.id), isPinned: true },
-    select: { id: true, title: true },
-    orderBy: { pinnedAt: "desc" },
-    take: 3,
+  const appLinks = await db.hubAppLink.findMany({
+    where: { hubId: hub.id, isEnabled: true },
+    orderBy: { order: "asc" },
   });
+  const [pinnedThreads, recentActivity, homeContentHtml, welcomeBodyHtml, apps, thisMonth] = await Promise.all([
+    hub.conversationsEnabled
+      ? db.hubConversationThread.findMany({
+          where: { ...activeHubThreadWhere(hub.id), isPinned: true },
+          select: { id: true, title: true },
+          orderBy: { pinnedAt: "desc" },
+          take: 3,
+        })
+      : Promise.resolve([]),
+    listHubActivity({
+      hubId: hub.id,
+      hubSlug: hub.slug,
+      userId: session.user.id,
+      conversationsEnabled: hub.conversationsEnabled,
+      limit: 4,
+    }),
+    renderFormattedTextAsync(hub.homeContent),
+    renderFormattedTextAsync(hub.welcomeBody),
+    getHubHomeApps(hub.slug, appLinks),
+    hub.hasSchedule ? loadHostHubThisMonth(hub.id, hub.slug) : Promise.resolve(null),
+  ]);
 
-  // Recent conversations
-  const recentThreads = await db.hubConversationThread.findMany({
-    where: { ...activeHubThreadWhere(hub.id), isPinned: false },
-    select: {
-      id: true,
-      title: true,
-      updatedAt: true,
-      author: { select: { firstName: true, preferredName: true } },
-      _count: { select: { replies: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 4,
-  });
-
-  const homeContentHtml = await renderFormattedTextAsync(hub.homeContent);
-  const welcomeBodyHtml = await renderFormattedTextAsync(hub.welcomeBody);
-
-  const isNewcomer = member ? !member.firstVisitedAt : false;
+  // Existing hosting-space members often predate firstVisitedAt. lastVisitedAt
+  // prevents a surprise newcomer screen for them while new members still get
+  // the universal welcome on their genuine first visit.
+  const isNewcomer = member ? !member.firstVisitedAt && !priorLastVisitedAt : false;
   const hasWelcomeContent = !!hub.welcomeBody;
+  const canEditContent = effectiveCoordinator(member, session.user.roles ?? []);
 
   return (
     <HubHomeClient
       slug={slug}
       hubName={hub.name}
       stateSentence={ctx.stateSentence}
-      primaryTool={
-        ctx.primaryTool
-          ? {
-              label: ctx.primaryTool.label,
-              path: ctx.primaryTool.path,
-              count: ctx.primaryCount,
-              label_short: ctx.primaryLabel,
-            }
-          : null
-      }
+      apps={apps}
       welcomeHeadline={hub.welcomeHeadline}
       welcomeBodyHtml={welcomeBodyHtml}
+      welcomeBody={canEditContent && typeof hub.welcomeBody === "string" ? hub.welcomeBody : ""}
       isNewcomer={isNewcomer}
       hasWelcomeContent={hasWelcomeContent}
+      showWelcomeOnHome={hub.hasSchedule}
+      canEditContent={canEditContent}
       pinnedThreads={pinnedThreads}
-      recentThreads={recentThreads.map((t) => ({
-        id: t.id,
-        title: t.title,
-        authorName: t.author.preferredName || t.author.firstName || "Someone",
-        replyCount: t._count.replies,
-        updatedAt: t.updatedAt.toISOString(),
-      }))}
+      recentActivity={recentActivity.items}
       homeContentHtml={homeContentHtml}
+      homeContent={canEditContent && typeof hub.homeContent === "string" ? hub.homeContent : ""}
+      thisMonth={thisMonth}
     />
   );
 }
@@ -148,18 +126,35 @@ export default async function HubHomePage({
  * emphasizes presence/willingness rather than absence; the split list avoids
  * putting "0" next to a member's name.
  */
-async function loadHostHubThisMonth(hubId: string) {
+async function loadHostHubThisMonth(hubId: string, hubSlug: string) {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const startOfMonth = new Date(year, month, 1);
-  const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
+  const [yearText, monthText] = ctDateStr(now.toISOString()).split("-");
+  const year = Number(yearText);
+  const month = Number(monthText) - 1;
+  // Query a one-day UTC buffer on both sides, then bucket by CT date below.
+  // Late-evening CT sessions can be stored on the following UTC date.
+  const startOfMonth = new Date(Date.UTC(year, month, 1) - 24 * 60 * 60 * 1000);
+  const endOfMonth = new Date(Date.UTC(year, month + 1, 1) + 24 * 60 * 60 * 1000);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const monthLabel = new Date(Date.UTC(year, month, 15, 12)).toLocaleDateString("en-US", {
+    timeZone: "America/Chicago",
+    month: "long",
+    year: "numeric",
+  });
+
+  const [programSlugs, coverageConfig, coverageCopy] = await Promise.all([
+    getProgramSlugsForHub(hubSlug),
+    getHubCoverageConfig(hubSlug),
+    getHubCoverageCopy(hubSlug),
+  ]);
 
   const [programs, assignments, members] = await Promise.all([
     db.program.findMany({
-      where: { programFormat: { in: ["virtual", "hybrid"] }, archivedAt: null },
+      where: {
+        slug: { in: programSlugs },
+        programFormat: { in: coverageConfig?.appliesToFormats ?? ["virtual", "hybrid"] },
+        archivedAt: null,
+      },
       select: {
         id: true, slug: true, name: true,
         programFormat: true, startDatetime: true, endDatetime: true,
@@ -168,7 +163,11 @@ async function loadHostHubThisMonth(hubId: string) {
       },
     }),
     db.hostAssignment.findMany({
-      where: { sessionDate: { gte: startOfMonth, lte: endOfMonth } },
+      where: {
+        hubSlug,
+        programSlug: { in: programSlugs },
+        sessionDate: { gte: startOfMonth, lte: endOfMonth },
+      },
       select: {
         userId: true,
         programSlug: true,
@@ -218,6 +217,8 @@ async function loadHostHubThisMonth(hubId: string) {
   const hostingCounts = new Map<string, number>();
   for (const a of assignments) {
     if (!a.userId) continue;
+    const assignmentDate = a.sessionDate ? ctDateStr(a.sessionDate.toISOString()) : "";
+    if (!assignmentDate.startsWith(`${year}-${String(month + 1).padStart(2, "0")}-`)) continue;
     hostingCounts.set(a.userId, (hostingCounts.get(a.userId) ?? 0) + 1);
   }
 
@@ -241,6 +242,7 @@ async function loadHostHubThisMonth(hubId: string) {
 
   return {
     monthLabel,
+    coverageNoun: coverageCopy.noun,
     totalSessions,
     openSessions,
     hostingMembers,

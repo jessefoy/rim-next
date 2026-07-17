@@ -36,7 +36,9 @@ export async function hasToolAccess(
   const hubAccess = await db.hubMember.findFirst({
     where: {
       userId,
+      status: "ACTIVE",
       hub: {
+        status: "ACTIVE",
         appLinks: {
           some: { toolSlug, isEnabled: true },
         },

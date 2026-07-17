@@ -3,6 +3,15 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { DEFAULT_COVERAGE_COPY } from "@/lib/programHub";
 import { resolveSpacesContainerDrive } from "@/lib/googleFiles";
+import { getToolBySlug, isToolCompatibleWithHub } from "@/lib/toolRegistry";
+import type { Prisma } from "@prisma/client";
+
+type AppLinkInput = {
+  toolSlug?: string | null;
+  label: string;
+  href: string;
+  isEnabled?: boolean;
+};
 
 /** GET /api/admin/hubs/[slug] — fetch one hub with appLinks (ADMIN only) */
 export async function GET(
@@ -73,21 +82,49 @@ export async function PATCH(
     }
   }
 
-  // Replace appLinks: delete all, recreate
+  if (appLinks !== undefined && !Array.isArray(appLinks)) {
+    return NextResponse.json({ error: "Apps must be a list." }, { status: 400 });
+  }
+  let normalizedAppLinks: AppLinkInput[] | undefined;
   if (appLinks !== undefined) {
-    await db.hubAppLink.deleteMany({ where: { hubId: hub.id } });
-    if (appLinks.length > 0) {
-      await db.hubAppLink.createMany({
-        data: appLinks.map((link: { toolSlug?: string | null; label: string; href: string; isEnabled?: boolean }, i: number) => ({
-          hubId: hub.id,
-          toolSlug: link.toolSlug ?? null,
-          label: link.label,
-          href: link.href,
-          order: i,
-          isEnabled: link.isEnabled ?? true,
-        })),
-      });
+    const installed = await db.hubAppLink.findMany({
+      where: { hubId: hub.id, toolSlug: { not: null } },
+      select: { toolSlug: true, label: true, href: true },
+    });
+    const existingToolSlugs = new Set(installed.flatMap((link) => link.toolSlug ? [link.toolSlug] : []));
+    const seenToolSlugs = new Set<string>();
+    const effectiveSlug = newSlug || slug;
+    for (const link of appLinks as AppLinkInput[]) {
+      if (!link.toolSlug) continue;
+      if (seenToolSlugs.has(link.toolSlug)) {
+        return NextResponse.json({ error: "Each app can be installed only once per Space." }, { status: 400 });
+      }
+      seenToolSlugs.add(link.toolSlug);
+      const known = getToolBySlug(link.toolSlug);
+      const compatible = known && isToolCompatibleWithHub(link.toolSlug, effectiveSlug);
+      // Preserve a pre-existing incompatible installation during ordinary
+      // edits. New installs (and slug changes that would make an app newly
+      // incompatible) are refused instead of silently widening app scope.
+      const grandfathered = effectiveSlug === slug && existingToolSlugs.has(link.toolSlug);
+      if (!compatible && !grandfathered) {
+        return NextResponse.json(
+          { error: "That app is not designed for this Space. Existing installations are preserved, but new incompatible installations are blocked." },
+          { status: 400 },
+        );
+      }
     }
+
+    const existingByTool = new Map(installed.flatMap((link) => link.toolSlug ? [[link.toolSlug, link]] : []));
+    normalizedAppLinks = (appLinks as AppLinkInput[]).map((link) => {
+      if (!link.toolSlug) return { ...link, label: link.label.trim(), href: link.href.trim() };
+      const existing = existingByTool.get(link.toolSlug);
+      const registered = getToolBySlug(link.toolSlug);
+      return {
+        ...link,
+        label: existing?.label ?? registered?.label ?? link.label.trim(),
+        href: existing?.href ?? registered?.path ?? link.href.trim(),
+      };
+    });
   }
 
   // Google Drive mapping (RIM_GoogleWorkspace.md) — one merged authority.
@@ -127,9 +164,7 @@ export async function PATCH(
     }
   }
 
-  const updated = await db.hub.update({
-    where: { slug },
-    data: {
+  const updateData: Prisma.HubUpdateInput = {
       ...(name !== undefined && { name }),
       ...(newSlug && newSlug !== slug && { slug: newSlug }),
       ...(description !== undefined && { description: description || null }),
@@ -174,14 +209,37 @@ export async function PATCH(
       ...(welcomeHeadline !== undefined && { welcomeHeadline: welcomeHeadline || null }),
       ...(welcomeBody !== undefined && { welcomeBody }),
       ...(homeContent !== undefined && { homeContent }),
-    },
-    include: {
-      appLinks: { orderBy: { order: "asc" } },
-      members: {
-        where: { isCoordinator: true },
-        include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+  };
+
+  // App replacement and hub config are one unit. A failed create can no
+  // longer leave a Space with every app link deleted.
+  const updated = await db.$transaction(async (tx) => {
+    if (normalizedAppLinks !== undefined) {
+      await tx.hubAppLink.deleteMany({ where: { hubId: hub.id } });
+      if (normalizedAppLinks.length > 0) {
+        await tx.hubAppLink.createMany({
+          data: normalizedAppLinks.map((link, i) => ({
+            hubId: hub.id,
+            toolSlug: link.toolSlug ?? null,
+            label: link.label,
+            href: link.href,
+            order: i,
+            isEnabled: link.isEnabled ?? true,
+          })),
+        });
+      }
+    }
+    return tx.hub.update({
+      where: { slug },
+      data: updateData,
+      include: {
+        appLinks: { orderBy: { order: "asc" } },
+        members: {
+          where: { isCoordinator: true },
+          include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+        },
       },
-    },
+    });
   });
 
   return NextResponse.json(updated);

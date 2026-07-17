@@ -9973,6 +9973,14 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   margin-top: 6px; letter-spacing: 0.01em;
 }
 
+/* Installed apps are contributions to the same base Home. One app keeps the
+   familiar full-width emphasis; multiple apps form a calm responsive grid. */
+.hub-home-apps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
 /* ── Activity card (recent conversations / tasks / docs) ── */
 .hub-home-act {
   background: #fff; border: 1px solid var(--rim-rule); border-radius: 10px;
@@ -10174,6 +10182,18 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-home__section-label--with-action {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
 }
+.hub-home__section-action {
+  appearance: none;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--rim-blue);
+  font: inherit;
+  cursor: pointer;
+}
+.hub-home__section-action:hover,
+.hub-home__section-action:focus-visible { text-decoration: underline; }
 .hub-home__edit-link {
   appearance: none; background: transparent; border: 0; padding: 0;
   font-family: var(--font-sans);
@@ -10191,10 +10211,29 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   font-style: italic;
 }
 .hub-home__empty-action {
-  appearance: none; background: transparent; border: 0; padding: 0;
+  appearance: none; display: inline-flex; align-items: center; min-height: 44px;
+  background: transparent; border: 0; padding: 0;
   font: inherit; color: var(--rim-blue); cursor: pointer;
   text-decoration: underline; font-style: normal;
 }
+
+.hub-home__editor { display: flex; flex-direction: column; gap: 12px; }
+.hub-home__editor-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.hub-home__editor-cancel,
+.hub-home__editor-save {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+.hub-home__editor-cancel { background: var(--rim-bg-accent); color: var(--rim-text); }
+.hub-home__editor-save { background: var(--rim-blue); color: var(--rim-surface); }
+.hub-home__editor-cancel:disabled,
+.hub-home__editor-save:disabled { opacity: 0.6; cursor: default; }
 
 .hub-home__inline-editor {
   display: flex; flex-direction: column; gap: 10px;
@@ -22631,6 +22670,7 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .hub-act { padding: 32px 0 80px; max-width: 720px; }
 .hub-act__header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
 .hub-act__title { font-size: var(--text-h2); font-weight: 700; color: var(--rim-text); margin: 0; }
+.hub-act__intro { margin: 6px 0 0; color: var(--rim-text-muted); font-size: var(--text-small); }
 .hub-act__filters { display: flex; gap: 0; border: 1px solid var(--rim-rule); border-radius: 6px; overflow: hidden; }
 .hub-act__filter { padding: 6px 14px; font-size: var(--text-xs); font-family: var(--font-sans); background: #fff; color: var(--rim-text-muted); border: none; border-right: 1px solid var(--rim-rule); cursor: pointer; transition: background 0.1s, color 0.1s; }
 .hub-act__filter:last-child { border-right: none; }
@@ -22638,11 +22678,14 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .hub-act__filter:hover:not(.hub-act__filter--active) { background: var(--rim-bg-accent); }
 
 .hub-act__empty { font-size: var(--text-small); color: var(--rim-text-muted); font-style: italic; }
+.hub-act__error,
+.hub-home__editor-error { color: var(--color-error); font-size: var(--text-xs); }
 .hub-act__list { list-style: none; padding: 0; margin: 0; }
 .hub-act__item { border-bottom: 1px solid var(--rim-rule); }
 .hub-act__item:first-child { border-top: 1px solid var(--rim-rule); }
 .hub-act__item-link { display: flex; align-items: baseline; gap: 10px; padding: 13px 0; text-decoration: none; transition: opacity 0.1s; }
 .hub-act__item-link:hover { opacity: 0.75; }
+.hub-act-item__icon { flex-shrink: 0; color: var(--rim-text-muted); }
 .hub-act__item__icon { flex-shrink: 0; margin-top: 1px; }
 .hub-act__item__icon--doc   { color: var(--rim-blue); }
 .hub-act__item__icon--conv  { color: var(--rim-text-muted); }
@@ -22651,12 +22694,13 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .hub-act__item-label strong { font-weight: 600; }
 .hub-act__item-label em { font-style: normal; color: var(--rim-mid); }
 .hub-act__item-time { font-size: var(--text-xs); color: var(--rim-text-muted); white-space: nowrap; flex-shrink: 0; }
-.hub-act__load-more { margin-top: 24px; display: block; font-size: var(--text-xs); color: var(--rim-text-muted); background: none; border: 1px solid var(--rim-rule); border-radius: 6px; padding: 8px 20px; cursor: pointer; transition: background 0.1s; }
+.hub-act__load-more { min-height: 44px; margin-top: 24px; display: block; font-size: var(--text-xs); color: var(--rim-text-muted); background: none; border: 1px solid var(--rim-rule); border-radius: 6px; padding: 8px 20px; cursor: pointer; transition: background 0.1s; }
 .hub-act__load-more:hover { background: var(--rim-bg-accent); }
 
 @media (max-width: 430px) {
   .hub-act { padding: 20px 0 60px; }
   .hub-act__header { flex-direction: column; gap: 12px; }
+  .hub-home-apps { grid-template-columns: 1fr; }
 }
 
 /* ── Document banners (author attribution, presence warning) ── */

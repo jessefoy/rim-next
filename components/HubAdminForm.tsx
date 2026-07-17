@@ -15,7 +15,12 @@ const RimTiptapEditor = dynamic(
   { ssr: false, loading: () => <div style={{ height: 120 }} /> },
 );
 import Link from "next/link";
-import { TOOL_REGISTRY, getToolBySlug } from "@/lib/toolRegistry";
+import {
+  TOOL_REGISTRY,
+  getToolBySlug,
+  isToolCompatibleWithHub,
+  toolCompatibilityNote,
+} from "@/lib/toolRegistry";
 
 interface AppLink {
   toolSlug: string | null;
@@ -38,7 +43,7 @@ interface HubData {
   status: "ACTIVE" | "ARCHIVED";
   /** True for hubs that run live sessions (host-team, peer-led-silent-
    *  meditation). Drives two things: the hub's Home view shows the
-   *  host-team-style "Our offerings this month" panel, AND the hub
+   *  Scheduler contribution includes an "Our offerings this month" panel, AND the hub
    *  is selectable as a primary hosting team in the Program editor.
    *  Leave off for AV / greeter / future supporting-role hubs.
    *  Note: a hub having a Scheduler app link in its sidebar is a
@@ -75,8 +80,8 @@ interface HubData {
   appLinks: AppLink[];
   coordinators: CoordinatorInfo[];
   welcomeHeadline: string;
-  welcomeBody: any;
-  homeContent: any;
+  welcomeBody: unknown;
+  homeContent: unknown;
 }
 
 interface Props {
@@ -295,7 +300,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
   }
 
   const usedToolSlugs = appLinks.map((l) => l.toolSlug).filter(Boolean) as string[];
-  const availableTools = TOOL_REGISTRY.filter((t) => !usedToolSlugs.includes(t.slug));
+  const availableTools = TOOL_REGISTRY.filter(
+    (t) => !usedToolSlugs.includes(t.slug) && isToolCompatibleWithHub(t.slug, slug),
+  );
 
   function addToolLink(toolSlug: string) {
     const tool = getToolBySlug(toolSlug);
@@ -486,8 +493,8 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           Check this for hubs that own the live session itself — Host
           Team, Peer-Led Silent Meditation, future hosting hubs. These
           hubs appear in the Program editor&rsquo;s Hosting team
-          dropdown and get the host-team-style Home view (with the
-          &ldquo;Our offerings this month&rdquo; panel). Leave off
+          dropdown and add an &ldquo;Our offerings this month&rdquo; module to
+          the universal Home. Leave off
           for AV, greeter, and other supporting-role hubs.
         </p>
       </div>
@@ -844,9 +851,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
         </span>
       </div>
 
-      {/* Tools */}
+      {/* Apps and navigation links */}
       <div className="adm-hubs-field">
-        <label className="adm-hubs-label">Tools</label>
+        <label className="adm-hubs-label">Apps &amp; links</label>
         {appLinks.length === 0 && (
           <p className="adm-hubs-hint">No tools connected. Add a tool to show it in this hub&apos;s sidebar.</p>
         )}
@@ -859,6 +866,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
                   <>
                     <div className="adm-hubs-applink__tool-name">{tool.label}</div>
                     <div className="adm-hubs-applink__tool-desc">{tool.description}</div>
+                    <div className="adm-hubs-applink__tool-desc">
+                      {isToolCompatibleWithHub(tool.slug, slug)
+                        ? toolCompatibilityNote(tool)
+                        : "This existing installation is being preserved, but the app is not designed for this Space. Remove it only after its workflow has been moved."}
+                    </div>
                   </>
                 ) : (
                   <>
@@ -939,6 +951,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
             + Custom link
           </button>
         </div>
+        <p className="adm-hubs-hint">
+          Apps can add Home information and grant tool access. Only apps whose data is safely scoped to this Space appear here; custom links remain navigation only.
+        </p>
       </div>
 
       {/* Submit */}

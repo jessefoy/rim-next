@@ -10,7 +10,8 @@
 import { db } from "./db";
 import { TOOL_REGISTRY, type ToolDefinition } from "./toolRegistry";
 import { activeHubThreadWhere } from "./hubQueries";
-import { getHubCoverageCopy } from "./programHub";
+import { countHubActivitySince } from "./hubActivity";
+import { getHubHomeApps } from "./hubApps";
 
 export interface HubContext {
   /** The tool surfaced as the primary work card + "Work" sidebar item. Null for non-tool hubs. */
@@ -23,6 +24,8 @@ export interface HubContext {
   stateSentence: string;
   /** Non-archived conversation threads updated since the viewer's last visit. */
   conversationsUnread: number;
+  /** Meaningful Space events since Activity was last opened. */
+  activityUnread: number;
 }
 
 const NEUTRAL_SENTENCE = "Nothing needs your attention right now.";
@@ -36,10 +39,15 @@ export async function getHubContext(
   hubId: string,
   userId: string,
   lastVisitedAt: Date | null,
+  activitySeenAt: Date | null,
+  conversationsEnabled: boolean,
 ): Promise<HubContext> {
-  const [primary, conversationsUnread] = await Promise.all([
-    getPrimaryToolContext(hubSlug, userId),
-    countUnreadConversations(hubId, userId, lastVisitedAt),
+  const [primary, conversationsUnread, activityUnread] = await Promise.all([
+    getPrimaryToolContext(hubSlug),
+    conversationsEnabled
+      ? countUnreadConversations(hubId, userId, lastVisitedAt)
+      : Promise.resolve(0),
+    countHubActivitySince(hubId, activitySeenAt),
   ]);
 
   const stateSentence = buildStateSentence({
@@ -54,74 +62,31 @@ export async function getHubContext(
     primaryLabel: primary.primaryLabel,
     stateSentence,
     conversationsUnread,
+    activityUnread,
   };
 }
 
 /* ─────────────────────────  Primary-tool counts  ───────────────────────── */
 
-async function getPrimaryToolContext(hubSlug: string, userId: string): Promise<{
+async function getPrimaryToolContext(hubSlug: string): Promise<{
   primaryTool: ToolDefinition | null;
   primaryCount: number;
   primaryLabel: string;
 }> {
-  switch (hubSlug) {
-    case "registrar": {
-      // "New registrations in the last 7 days" — a practical signal of work to review
-      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const count = await db.registration.count({
-        // Exclude held (PENDING_PAYMENT) rows — not real registrations until paid.
-        where: { createdAt: { gte: since }, status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
-      });
-      return {
-        primaryTool: toolBySlug("programs"),
-        primaryCount: count,
-        primaryLabel: plural(count, "new registration", "new registrations"),
-      };
-    }
-
-    // Single-slot scheduler hubs — unclaimed coverage in the next 14 days, in
-    // the hub's OWN coverage noun ("open AV slot", "open Greeter slot"). Counts
-    // are hub-scoped, so each hub's home shows only its own gaps. Multi-claim
-    // hubs (greeter) have no "unclaimed seed" concept, so they fall through to
-    // the neutral default rather than showing a misleading count.
-    case "host-team":
-    case "audio-visual":
-    case "peer-led-silent-meditation":
-      return schedulerHubContext(hubSlug);
-
-    case "courses": {
-      // Inactive courses = drafts waiting to be published
-      const count = await db.course.count({ where: { isActive: false } });
-      return {
-        primaryTool: toolBySlug("learning"),
-        primaryCount: count,
-        primaryLabel: plural(count, "draft course", "draft courses"),
-      };
-    }
-
-    default:
-      return { primaryTool: null, primaryCount: 0, primaryLabel: "" };
+  const links = await db.hubAppLink.findMany({
+    where: { hub: { slug: hubSlug }, isEnabled: true },
+    select: { toolSlug: true, label: true, href: true, isEnabled: true },
+    orderBy: { order: "asc" },
+  });
+  const apps = await getHubHomeApps(hubSlug, links);
+  const primary = apps.find((app) => app.toolSlug !== null);
+  if (!primary?.toolSlug) {
+    return { primaryTool: null, primaryCount: 0, primaryLabel: "" };
   }
-}
-
-/** Coverage gaps for one single-slot scheduler hub, in that hub's own noun. */
-async function schedulerHubContext(hubSlug: string): Promise<{
-  primaryTool: ToolDefinition | null;
-  primaryCount: number;
-  primaryLabel: string;
-}> {
-  const now = new Date();
-  const in14 = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-  const [count, copy] = await Promise.all([
-    db.hostAssignment.count({
-      where: { userId: null, hubSlug, sessionDate: { gte: now, lte: in14 } },
-    }),
-    getHubCoverageCopy(hubSlug),
-  ]);
   return {
-    primaryTool: toolBySlug("schedule"),
-    primaryCount: count,
-    primaryLabel: plural(count, `open ${copy.noun} slot`, `open ${copy.noun} slots`),
+    primaryTool: toolBySlug(primary.toolSlug),
+    primaryCount: primary.count ?? 0,
+    primaryLabel: primary.countLabel ?? "",
   };
 }
 

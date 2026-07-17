@@ -91,13 +91,9 @@ The mental model: **ADMIN configures hubs from outside; ADMIN participates from 
 
 ---
 
-## The open-to-all Space primitive + per-hub feature switches (session 165)
+## Per-hub feature switches
 
-`Hub.openToAllMembers` makes a Space reachable by **every signed-in member with no `HubMember` row** (the "Community" Space). The rule that keeps it safe:
-
-- Pass `hub.openToAllMembers` to `canAccessHub` **only at participation gates** — hub entry (the layout), Files, Conversations, Activity (pages + `/api/hub/[slug]/**` routes for those). Every roster/admin gate (Members, Trash, category management) keeps the plain 2-arg call, so an open Space is **fail-closed** there (no roster to show, no per-hub coordinators). The default arg is `false`, so the ~80 other call sites are unaffected — the flag only widens the door where a caller opts in.
-- `Hub.conversationsEnabled` (default true) is a **per-hub feature switch**. The rule against show-but-can't-act / hidden-but-reachable: gate every conversation route/page as **`hub.conversationsEnabled && canAccessHub(member, roles, hub.openToAllMembers)`** AND hide the tab in the sidebar on the same flag. When off, the tab is hidden *and* the routes deny.
-- Community rides the name-resolved `RIM — Community` Drive (its `googleDriveId` stays null); its Files tab uses the `community` place, not a hub drive mapping. New feature switches should follow the same "flag gates both the UI tab and the route access, together" discipline.
+`Hub.conversationsEnabled` (default true) gates both the Conversations tab and every conversation page/API. Never ship show-but-can't-act or hidden-but-reachable behavior: one flag closes or opens the entire feature boundary. The session-165 `openToAllMembers` primitive and Community Space were retired in session 166; every Space again uses a real roster plus the `canAccessHub(member, roles)` membership-or-GT door.
 
 ## Common pitfalls
 
@@ -186,7 +182,7 @@ After session 130's final commits, six hub-config fields drive every per-hub beh
 
 | Field | Drives |
 |---|---|
-| `hasSchedule` | Hub Home view (HostHubHomeClient vs generic) + Hosting team dropdown eligibility |
+| `hasSchedule` | Scheduler month contribution on the universal Home + Hosting team dropdown eligibility |
 | `allowsMultipleAssignments` | Single-slot vs open-signup Schedule UX |
 | `appliesToFormats` | Which programs surface (virtual/hybrid vs in-person/hybrid) |
 | `assignmentGrantsTeacher` + `teacherLabel` | Session-room pill semantics |
@@ -194,6 +190,24 @@ After session 130's final commits, six hub-config fields drive every per-hub beh
 | `ProgramCoverageHub` (join table) | Primary + auxiliary program coverage |
 
 When adding a new hub-aware behavior, the first question is: **is this a code branch per slug, or a new hub-config field?** Default to the config field. New hubs become configuration on top of the architecture, not new code. A code branch per slug is a hint that a missing config field hasn't been articulated yet.
+
+## A registered app is a contract, not a link (session 167)
+
+`HubAppLink.toolSlug` marks a real installation. `lib/toolRegistry.ts` declares the app's canonical route, whether it is `multi-space` or restricted to a `primary-space`, and its Home/Activity adapter keys. `lib/hubApps.ts` builds the Home contributions from the enabled installations. A row with `toolSlug: null` is a custom navigation link only.
+
+An installation may provide four things: sidebar navigation, active-member tool access, a Home card/module, and Activity events. Those four must agree about the same Space. It must never replace the base Home or use a hub-slug switch to create a parallel Space implementation.
+
+Current safety rules:
+
+- Scheduler is multi-Space because every query/write already routes by `hubSlug` and the program/resource hub.
+- Program Manager is restricted to `registrar`; Course Manager is restricted to `courses` until their data and permissions are truly multi-Space scoped.
+- Admin UI and POST/PATCH APIs both block newly incompatible installs. Ordinary edits preserve an existing incompatible row so an unrelated save cannot break a team.
+- Hub config + app replacement commit in one `$transaction`; never delete all links before a possibly-failing hub update.
+- `hasToolAccess()` grants the app-link pathway only to ACTIVE members of an ACTIVE hub. Custom links never grant access.
+- Home adapters render every enabled installation; custom links get navigation only. Activity adapters emit only meaningful, visible events (never held Google-file draft activity).
+- `HubMember.activitySeenAt` is the Activity read boundary. Home/conversation visits must not clear it.
+
+When registering a new app, answer explicitly: Is it multi-Space? Which Home data is safe to summarize? Which durable events have actor attribution? What exact resource hub gates its routes? If any answer is missing, restrict it to its primary Space or ship it as a custom link.
 
 ## Audit at the user-flow layer, not just the code-correctness layer (session 130)
 
@@ -224,7 +238,7 @@ These are distinct concerns. Conflating them in session 129's first ship caused 
 
 | Signal | Storage | Means | Drives |
 |---|---|---|---|
-| `Hub.hasSchedule` | column on Hub (boolean) | "this hub runs live sessions" — it owns the LiveKit room, holds dharma authority | Home view (`HostHubHomeClient` vs generic), ProgramEditor's Hosting team dropdown eligibility |
+| `Hub.hasSchedule` | column on Hub (boolean) | "this hub runs live sessions" and holds primary hosting authority | Scheduler month module on the universal Home, ProgramEditor's Hosting team dropdown eligibility |
 | `usesScheduler` | derived (`HubAppLink` with `toolSlug = "schedule"` exists on the hub) | "this hub uses the Scheduler tool to staff roles" | ProgramEditor's Auxiliary coverage eligibility, Members tab hosting affordances, destructive-action warning |
 
 Rule of thumb when adding a hub-aware feature:
@@ -292,21 +306,9 @@ This was **not** a cross-hub leak (the four routing layers above were clean) —
 
 ---
 
-## Documents are the first hub-optional, multi-hub resource (session 161)
+## Google Files are resource-gated inside a Space (sessions 163–166)
 
-`HubDocument` breaks the "every resource belongs to exactly one hub" assumption. A document can live in one hub, several (`HubDocumentPlacement`), or none (`hubId` nullable). So **document access is doc-level, not hub-slug-level**: gate reads with `lib/documentAuth.ts::canAccessDocument` and edits with `canEditDocument` (placements + visibility), never a single `hubId` check. Author + GUIDING_TEACHER always pass; ADMIN does not. Hub membership must be **ACTIVE** before it grants document read, edit, share, placement, presence, conversation, or export access.
-
-Two new-pattern callouts:
-- **The cross-hub placement create-path must reject `hubId === document.hubId`** (the origin), or a doc gets double-listed in its own hub (`documentHubIds()` dedupes for *access*, but a directory/list query would show it twice).
-- **Native-editor saves require the `updatedAt` revision**. On mismatch return `409`; do not silently overwrite another person’s save. Presence writes must use `canEditDocument`, not merely a hub door.
-
-### Mind Maps — the second hub-optional, multi-hub resource (session 160)
-
-Mind Maps copies this model exactly (`MindMap` / `MindMapPlacement` / `lib/mindMapAuth.ts::canAccessMindMap`, the reject-origin-on-placement rule, the nullable `hubId`). Two map-specific things to know — full detail in `RIM_MindMaps.md`:
-- **A topic's conversation is MAP-scoped, not hub-scoped.** It reuses the `HubConversationThread`/reply/subscription/reaction tables but via **new routes gated on `canAccessMindMap`** (not `canAccessHub`) and a recipient pool that is the **union of every hub the map is in** (`lib/mindMapConversation.ts`) — because one shared conversation spans all the map's hubs. Do **not** route a map conversation through the hub conversation routes.
-- **Gate-membership loads filter `status: "ACTIVE"`.** With `editPolicy: OPEN`, map access == edit, so a stale (removed/paused) `HubMember` row must not confer either. (A parallel ACTIVE-filter gap exists in the *documents* gate — backlog/task, not yet fixed there.)
-
-Full model: `RIM_Documents.md`.
+The Space rail identifies context; it is not file authorization. Every file read/write resolves the file back to an accessible Google Files place and, for folder-scoped Spaces, verifies that it descends from that Space's configured root. Use the gates in `lib/googleFiles.ts`; never trust a caller's `hubSlug`, Drive id, or file id by itself. Held drafts must not leak through lists, Home, or Activity. Full model: `RIM_GoogleWorkspace.md`.
 
 ---
 

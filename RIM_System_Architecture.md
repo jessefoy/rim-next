@@ -269,42 +269,39 @@ structural facts for this architecture doc:
   gate, no drift" discipline as `canAccessDocument`.
 - **Storage = folder-per-Space (session 164).** The service account **can't
   create Shared Drives** (proven by probe), so a Space's storage is an
-  auto-created folder in one shared `RIM — Spaces` container Drive; Community +
-  future sensitive Spaces keep their own Drive. Because Spaces share a Drive,
+  auto-created folder in one shared `RIM — Spaces` container Drive; future
+  sensitive Spaces may keep their own Drive. Because Spaces share a Drive,
   authorization is **subtree-aware**: `resolvePlaceForFile` / `fileWithinFolderRoot`
   require a file to descend from the Space's root folder (fails closed). The
   load-bearing invariant — folder-scoped Spaces never share a Drive with a
   whole-drive place — is enforced at provisioning, at the hub PATCH route, and
   by the drive picker. `provisionHubSpaceStorage` auto-creates the folder on
   hub creation / one-click for existing hubs.
-- **Direction: "everything is a Space" + strict per-Space filing (session 164,
-  reshape pending).** Hubs are the universal container (team/project/personal/
-  community; user-facing word "Space", code stays `Hub`). Files will live ONLY
-  in a Space's context — the global `/account/files` finder is being removed
-  (Jesse's anti-"files everywhere" decision); Community becomes a Space
-  (open-to-all). ADMIN + GT can create Spaces (crosses the ADMIN/GT boundary —
-  see `RIM_Role_Design.md`). Cross-Space sharing is deferred (backlog
+- **"Everything is a Space" + strict per-Space filing (sessions 164–166).**
+  Hubs are the universal team/project container (user-facing word "Space",
+  code stays `Hub`). Files live only in a Space context; the global finder,
+  native Documents, Mind Maps, and the open-to-all Community Space are retired.
+  Every live Space is stewarded by a real roster. Cross-Space sharing is deferred (backlog
   `2026-07-15-001`): isolation by default, explicit share-grants later.
-- **It replaces native documents at cutover** (the one-way door, after prod
-  verification). Until then the native Documents tab and Google Files coexist.
+- **Google Files replaced native documents at cutover** (session 165).
 - Full model, access rules, the gate, and setup: **`RIM_GoogleWorkspace.md`** (§9 = as-built).
 
 ## What's Next
 
-**Tools extraction — complete (session 73, refined session 76):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox` (subsequently removed session 100), Host Schedule → `/tools/schedule`. Each tool has its own role gate and task navigation inside the authenticated shell. Session 76 removed the Registrar Hub stakeholder Programs tab and all course-specific Course Hub tabs, establishing the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications). The current built-in hub set is Home, Activity, Conversations, Documents, Mind Maps, Members, and coordinator-gated Trash.
+**Tools extraction — complete (session 73, universalized session 167):** Operational applications live at `/tools/*`: Program Manager → `/tools/programs`, Course Manager → `/tools/learning`, Scheduler → `/tools/schedule` (Support Inbox was removed session 100). The three-layer architecture is Member Registry (canonical authority) → Spaces/Hubs (team workspaces) → Apps/Tools (operational work). The current built-in Space set is universal Home, Activity, Conversations, Google Files, Members, and coordinator-gated Trash.
 
-**Hub schema enhancements — session 73:** `HubStatus` enum (ACTIVE/ARCHIVED) with status field on Hub. `HubAppLink` model for hub-to-tool linking. `firstVisitedAt` on HubMember for newcomer welcome tracking.
+**Hub schema enhancements — sessions 73/167:** `HubStatus` enum (ACTIVE/ARCHIVED), `HubAppLink` for app installation/custom navigation, `firstVisitedAt` for newcomer welcome, and independent `HubMember.activitySeenAt` for Activity unread state.
 
 > **Tasks removed (session 96, 2026-04-27).** `TaskList`, `Task`, `Subtask` models and the `TaskStatus` enum were dropped from the schema; all `/api/hubs/[slug]/tasks/**` routes deleted; the `task-reminders` cron removed from `vercel.json`. Tasks were never adopted in practice and added complexity to every hub template. May be revisited later if a real need emerges.
 
 **Completed since session 73:**
 
 - **Hub admin page (session 74):** `/admin/hubs` — create, edit, archive hubs with app links, coordinator display. Replaces seed-script-only management.
-- **Hub home screen (session 74):** Coordinator-editable home content via `RimProseEditor variant="document"`, app links rendered on home, pinned threads surfaced.
+- **Universal Hub Home (session 167):** one `HubHomeClient` for every Space: attention state, newcomer welcome, installed-app cards/modules, pinned/recent conversations, and coordinator-editable welcome/orientation. `lib/toolRegistry.ts` + `lib/hubApps.ts` define app compatibility and contributions; hub slugs no longer select parallel Home implementations.
 - **Hub newcomer welcome (session 74):** One-time interstitial on first visit (uses `firstVisitedAt` + `welcomeBody`).
 - ~~**Hub task system (session 74):**~~ **Removed in session 96 (2026-04-27).** The full three-column task UI (rail, task list, detail panel) was deleted along with the schema models. Tasks were never adopted operationally.
 - **Hub sidebar navigation (session 74):** Horizontal tab strip replaced with 220px left sidebar. Identity block, core sections, Tools section (app links with ↗), Hub settings link. Mobile: slide-in drawer via hamburger. `HubNavStrip.tsx` and `HubHeader.tsx` deleted.
-- **Hub context for tools (session 74):** `?hub=` query param appended to all tool links from sidebar. `ToolsContext` reads param client-side via `useSearchParams()`, exposes `hubSlug` to tool pages. Foundation for scoped data.
+- **Hub context for registered apps (sessions 74/167):** `?hub=` is appended only to registered apps; custom links preserve their exact URL. The registry declares `multi-space` vs `primary-space`; Scheduler is multi-Space, Program/Course managers remain restricted to registrar/courses. ACTIVE membership is required for app-link tool access.
 
 **Hub core section conformance — session 76:** The then-current hub core sections (Home, Conversations, Tasks, Documents, Members) were standardized. Tasks was removed in session 96; Activity, Trash, and Mind Maps were added later and now follow the same shared workspace grammar. CSS prefixes unified: `hub-conv-`, `hub-doc-`, `hub-mem-` (previously `cv-`/`ann-`/`doc-`/`mem-`). Inline `maxWidth` styles replaced with CSS container classes. Conversations gained: emoji reactions (👍❤️🙏💡😊), reply editing (own replies), category filtering (hub `conversationCategories`), and email notifications (new thread → coordinators, new reply → participants). Members gained: coordinator member management (add/remove members, toggle coordinator status) via new API routes. Home app links bug fixed (`?hub=slug` now appended). Dead host-team conversation fork removed: `HubThreadDetailClient.tsx`, `/api/host/threads/*`, `/api/host/replies/*`, `HostThread`/`HostReply` schema models. Features ported to shared system before deletion.
 
@@ -313,9 +310,8 @@ structural facts for this architecture doc:
 **What remains:**
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
-- **Tool home screen cards with live context:** App links on hub home could surface tool-specific counts ("3 new registrations") — needs per-tool API endpoints.
-- **Hub-scoped tool data:** Tools read `?hub=` server-side via `getToolHubContext()`. Schedule is hub-aware. Program Manager and Course Manager will add hub-scoping when they serve multiple hubs.
-- **Documents page-based unification:** Link documents still use inline forms; native documents use page-based editors. Planned: unify both to page-based creation/editing flow.
+- **Additional app Activity adapters:** Program Manager and Course Manager need durable mutation actor attribution before they contribute events; until then their registry contract declares `activityContribution: "none"`.
+- **Hub-scoped app data:** Scheduler is multi-Space. Program Manager and Course Manager stay primary-Space restricted until their reads, writes, permissions, and notifications all accept a resource Space.
 - **Tool access admin UI:** `UserToolAccess` grants currently managed via Neon console. A UI for granting/revoking tool access could be added to the member profile admin page.
 
 ---
@@ -329,8 +325,8 @@ The complete architecture for how hubs and tools relate is documented in **`RIM_
 - Tool creation pattern — checklist and template for building new tools
 - Data scoping — how `?hub=` context flows from sidebar → URL → ToolsContext → queries
 - Decision tree — when to keep functionality in a hub section vs. extract to a tool
-- Core sections architecture — Home, Conversations, Documents, Members as shared infrastructure
-- App link and home screen pattern — current implementation and planned live context cards
+- Core sections architecture — universal Home, Activity, Conversations, Google Files, and Members
+- Registered-app contract — compatibility, Home/Activity contributions, custom-link boundary, and tool access
 - Access control matrix — complete role → hub → tool → section mapping
 - Mobile navigation — sidebar drawer, tool patterns
 - Database schema reference — all hub-related models and their fields
@@ -400,11 +396,11 @@ This identity/capability split matters operationally. The pre-2026-05-26 model g
 
 **Host/teacher 10-minute early-open on the dashboard (session 121).** Session Host + ProgramTeacher + ADMIN see a distinct "Open early as host" row on the dashboard Today card between `start - 30min` and `start - 10min` (session 141 — was 22/12; the numbers now come from `lib/sessionWindowConstants.ts`, shared with the gate + the Scheduler link). Teal accent, "Enter as host" button, "Live opens at X:XX" clarifier. At `start - 10min` the row collapses into the standard "Live Now" state shown to everyone. `DashboardAutoRefresh` handles both epoch transitions automatically. Detection is a batched lookup (HostAssignment + ProgramTeacher) keyed to today's program list. Standing-host assignments (legacy `sessionDate: null` rows) are honored.
 
-**`hasSchedule` vs `usesScheduler` — two distinct hub signals (session 129 audit).** Two different concerns that the codebase initially conflated:
-- **`Hub.hasSchedule`** (boolean column, exposed in `/admin/hubs` as "This hub runs live sessions"): hubs that run the live session itself — host-team, peer-led-silent-meditation. Drives the hub's Home view routing (`HostHubHomeClient` vs generic `HubHomeClient`) AND eligibility for the ProgramEditor's Hosting team dropdown. False for pure auxiliary hubs.
+**`hasSchedule` vs `usesScheduler` — two distinct hub signals (session 129 audit; Home integration corrected session 167).** Two different concerns that the codebase initially conflated:
+- **`Hub.hasSchedule`** (boolean column, exposed in `/admin/hubs` as "This hub runs live sessions"): hubs that run the live session itself — host-team, peer-led-silent-meditation. Drives the Scheduler month module on the universal Home AND eligibility for the ProgramEditor's Hosting team dropdown. False for pure auxiliary hubs.
 - **`usesScheduler`** (derived from the existence of a `HubAppLink` with `toolSlug = "schedule"` on the hub): the authoritative signal of "this hub uses the Scheduler tool to staff roles." True for all four scheduler-using hubs. Drives the ProgramEditor's Auxiliary coverage eligibility, the Members tab's hosting-capability affordances, and the destructive-action warning's relevance check.
 
-The two signals can be summarized: `hasSchedule` is about identity (this hub is a hosting hub); `usesScheduler` is about tooling (this hub uses the Scheduler). Confusing them caused the AV/Greeter hubs to inadvertently render the host-team-style Home view in early session-129 ships.
+The two signals can be summarized: `hasSchedule` is about identity (this hub is a primary hosting hub); `usesScheduler` is about installation (this hub uses the Scheduler). No signal replaces the base Home.
 
 **Auxiliary-hub coverage — many hubs per program (session 129).** Slice 1's `Program.hostingHubSlug` model assumed one program ↔ one hub. Session 129 generalizes to one program ↔ many hubs, each covering a different role. `hostingHubSlug` remains the **primary** hub (who runs the live session); auxiliary hubs are recorded in the new `ProgramCoverageHub` join table (`programSlug` + `hubSlug`). Two new fields on Hub: `allowsMultipleAssignments Boolean @default(false)` (false = single-slot like host-team / peer-led / audio-visual; true = open multi-claim sign-up like greeter) and `appliesToFormats String[] @default(["virtual","hybrid"])` (drives the Scheduler page's program-format filter — host-team and peer-led keep the default, audio-visual and greeter set `["in-person","hybrid"]`). `HostAssignment.hubSlug` and `StandingAssignment.hubSlug` columns carry the assignment's / rotation's owning hub directly. The historical `HostAssignment.@@unique([programSlug, sessionDate])` was dropped in favor of app-layer enforcement (single-slot hubs enforce uniqueness per `(programSlug, sessionDate, hubSlug)`; multi-claim hubs allow many rows per session). `StandingAssignment.@@unique` was widened to include `hubSlug` so a program can hold parallel rotations across hubs (a host-team rotation + an AV rotation on the same first-Saturday is two independent records). The Scheduler page + API GET both union primary + auxiliary programs via the new `getProgramSlugsForHub(hubSlug)` helper, then apply the hub's `appliesToFormats`. Multi-claim sessions render as community-of-people: plain-language state header sentence ("3 signed up · you're one of them"), stacked names with a "YOU" self-recognition mark on the signed-in user's row, action labels that read as invitation ("I'll be the first" / "I'll be there too" / "Cancel my signup"). Sub-requests refuse on multi-claim hubs — release-my-claim is the only exit. Standing rotations hub-scoped per record across all 6 routes; apply-time emails group per-user-and-hub so a multi-hub rotation user gets one email per hub, each linking to the right Scheduler view. ProgramEditor "Hosting & Access" tab gains an "Auxiliary role coverage" fieldset listing every active scheduler-enabled hub minus the primary; checkboxes write `ProgramCoverageHub` rows. Migration `auxiliary_hub_coverage_v1` is idempotent + value-preserving + auto-configures `audio-visual` (single-slot in-person/hybrid) and `greeter` (multi-claim in-person/hybrid) the moment those hub rows exist. The "clear seeing is correctness" principle (per `feedback-clear-seeing-is-correctness.md`) governs the multi-claim UX — visual hierarchy, plain-language state, and self-recognition are part of correctness for any RIM UI, not polish to defer.
 
@@ -472,17 +468,13 @@ Three coordinated systems share the same Basecamp-style mental model and the sam
 
 All three systems use `after()` from `next/server` for reliable serverless background dispatch and filter recipients to active hub members with `communicationsEnabled` before sending. All three systems' email templates are seeded in `prisma/migrate.mjs` per the **Email Template Gate** documented in `CLAUDE.md`.
 
-### Document conversations and the Activity stream (session 114)
+### Universal Activity stream (session 114; rebuilt session 167)
 
-**Document conversations.** `HubConversationThread` has an optional `documentId FK` (nullable, ON DELETE CASCADE, indexed). When set, the thread is a document conversation — it lives on the document view page and is excluded from the hub-level Conversations feed. Hub Conversations and `countUnreadConversations` both filter `documentId: null`. Document conversations filter to `documentId: docId`. The thread detail page's back link is context-aware: "← Back to [Document]" if `documentId` is set, "← Conversations" otherwise.
+The Activity page (`/account/hub/[slug]/activity`) remains a computed projection rather than a duplicate event ledger. `lib/hubActivity.ts` is now the single query/serialization contract used by both the server page and paginated API. It merges conversation starts/replies, meaningful visible Google Files audit events, member joins, and Scheduler cover requests/claims only when Scheduler is installed. “My activity” consistently means events authored by the viewer. Deleted threads and held-file draft events are excluded. `HubMember.activitySeenAt` is updated only on Activity, so Home no longer consumes that unread boundary.
 
-**Unified Activity stream.** The Activity page (`/account/hub/[slug]/activity`) is a computed union — no model, just five parallel queries joined in memory. Types: `document_added`, `document_updated`, `hub_thread`, `hub_reply`, `doc_thread`, `doc_reply`. The stream is the single place to see the full hub picture across both conversation surfaces and document activity. It sits first in the sidebar below Home, above Conversations.
+### Google Files resource boundary (sessions 163–166)
 
-### Documents — the first hub-optional resource (session 161)
-
-`HubDocument` can live in **one hub, several, or none**. `hubId` is nullable for hubless projects; `HubDocumentPlacement` makes one canonical document surface in more hubs without copying. `docKind` is `NATIVE` / `LINK` / `UPLOAD`; visibility is `HUB` / `COORDINATORS` / `COMMUNITY`.
-
-Document access is resource-level, resolved by `lib/documentAuth.ts::canAccessDocument` (placements + visibility + **ACTIVE** membership), not a single hub gate. Native documents use RIM’s own editor with presence and stale-save protection; Markdown and print-to-PDF exports are served by `/api/documents/[id]/export`. The old OnlyOffice integration was retired with its test records and infrastructure. Full supported model: `RIM_Documents.md`.
+Google Workspace is the file/document system. The Space provides context, while `lib/googleFiles.ts` resolves and authorizes every file against the configured place and folder subtree. RIM layers attribution, held/shared state, comments, and governed deletion on top. Native Documents and their placement model are retired; `RIM_Documents.md` is historical.
 
 ---
 
