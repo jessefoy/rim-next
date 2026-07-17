@@ -26651,6 +26651,10 @@ input.w-button { -webkit-appearance: button; }
   border-top: 0;
 }
 
+.hub-act__item:last-child {
+  border-bottom: 0;
+}
+
 .hub-act__item-link {
   min-height: 56px;
   box-sizing: border-box;
