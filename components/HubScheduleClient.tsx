@@ -636,7 +636,8 @@ function HsRow({
     case "covered":
       statusEl = (
         <span className="hs-row__status hs-row__status--covered">
-          {nounCap}: {session.hostName ?? "—"}
+          <span className="hs-row__status-label">{nounCap}</span>
+          <span className="hs-row__status-name">{session.hostName ?? "—"}</span>
           {session.hostBadge && (
             <span className="hs-row__paused-badge">
               {session.hostBadge === "inactive" ? "inactive" : "paused"}
@@ -753,15 +754,15 @@ function HsRow({
     <div className={`hs-row hs-row--${kind}${isPast ? " hs-row--past" : ""}`}>
       <div className="hs-row__when">
         {dateBlock ? (
-          <time className="hs-row__date-block" dateTime={session.sessionDate ?? undefined} aria-label={dateBlock.label}>
+          <time className="hs-row__date-block" dateTime={session.sessionDate ?? undefined} aria-label={`${dateBlock.label} at ${timeStr}`}>
             <span className="hs-row__date-weekday">{dateBlock.weekday}</span>
             <span className="hs-row__date-month">{dateBlock.month}</span>
             <span className="hs-row__date-day">{dateBlock.day}</span>
+            <span className="hs-row__time">{timeStr}</span>
           </time>
         ) : (
           <span className="hs-row__date">Date to be confirmed</span>
         )}
-        <time className="hs-row__time" dateTime={session.sessionDate ?? undefined}>{timeStr}</time>
       </div>
       <div className="hs-row__what">
         <div className="hs-row__name">
