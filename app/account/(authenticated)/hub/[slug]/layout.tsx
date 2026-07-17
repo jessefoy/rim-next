@@ -93,8 +93,7 @@ export default async function HubLayout({ children, params }: Props) {
       label: link.label,
       path: link.href,
       isRegistered: Boolean(registered),
-      badgeCount:
-        ctx.primaryTool && registered?.slug === ctx.primaryTool.slug ? ctx.primaryCount : 0,
+      isPrimary: link.isPrimary,
     };
   });
 

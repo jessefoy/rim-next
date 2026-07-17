@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { HubHomeApp } from "@/lib/hubApps";
-import type { HubActivityItem } from "@/lib/hubActivity";
+import type { HubAttentionItem } from "@/lib/hubActivity";
 import {
   InlineBlockEditor,
   ThisMonthGlancePanel,
@@ -24,25 +24,12 @@ interface Props {
   welcomeBody: string;
   isNewcomer: boolean;
   hasWelcomeContent: boolean;
-  showWelcomeOnHome: boolean;
   canEditContent: boolean;
   pinnedThreads: PinnedThread[];
-  recentActivity: HubActivityItem[];
+  attention: HubAttentionItem[];
   homeContentHtml: string;
   homeContent: string;
   thisMonth: ThisMonthGlance | null;
-}
-
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function greeting(): string {
@@ -64,10 +51,9 @@ export default function HubHomeClient(props: Props) {
     welcomeBody,
     isNewcomer,
     hasWelcomeContent,
-    showWelcomeOnHome,
     canEditContent,
     pinnedThreads,
-    recentActivity,
+    attention,
     homeContentHtml,
     homeContent,
     thisMonth,
@@ -76,6 +62,10 @@ export default function HubHomeClient(props: Props) {
   const [dismissing, setDismissing] = useState(false);
   const [editingWelcome, setEditingWelcome] = useState(false);
   const [editingOrientation, setEditingOrientation] = useState(false);
+  const primaryApp = apps.find((app) => app.role === "primary") ?? null;
+  const supportingApps = apps.filter((app) => app.role === "supporting");
+  const connectedLinks = apps.filter((app) => app.role === "link");
+  const primaryUsesModule = primaryApp?.homeMode === "module" && thisMonth;
 
   async function dismissWelcome() {
     setDismissing(true);
@@ -116,36 +106,71 @@ export default function HubHomeClient(props: Props) {
         <h1 className="hub-home__state">{stateSentence}</h1>
       </header>
 
-      {showWelcomeOnHome && (
-        <EditableContentSection
-          label="Welcome"
-          canEdit={canEditContent}
-          editing={editingWelcome}
-          onEdit={() => setEditingWelcome(true)}
-          editor={
-            <InlineBlockEditor
-              slug={slug}
-              field="welcomeBody"
-              initialValue={welcomeBody}
-              placeholder="Welcome this team to the Space and describe what they can expect here."
-              onDone={() => setEditingWelcome(false)}
-            />
-          }
-          html={welcomeBodyHtml}
-          emptyText="No welcome content yet."
-        />
-      )}
-
-      {apps.length > 0 && (
-        <section className="hub-home__section" aria-labelledby="hub-home-apps-heading">
-          <div className="hub-home__section-label" id="hub-home-apps-heading">Apps</div>
-          <div className="hub-home-apps">
-            {apps.map((app) => <AppCard key={app.key} app={app} hubSlug={slug} />)}
+      {attention.length > 0 && (
+        <section className="hub-home__attention" aria-labelledby="hub-home-attention-heading">
+          <div className="hub-home__section-label" id="hub-home-attention-heading">Needs your attention</div>
+          <div className="hub-home-attention">
+            {attention.map((item) => (
+              <Link key={item.id} href={item.href} className="hub-home-attention__row">
+                <span className="hub-home-attention__source">{item.sourceLabel}</span>
+                <span className="hub-home-attention__label">{item.label}</span>
+                <span className="hub-home-attention__cta">Open →</span>
+              </Link>
+            ))}
           </div>
         </section>
       )}
 
-      {thisMonth && <ThisMonthGlancePanel data={thisMonth} hubSlug={slug} />}
+      <EditableContentSection
+        label="Welcome"
+        canEdit={canEditContent}
+        editing={editingWelcome}
+        onEdit={() => setEditingWelcome(true)}
+        editor={
+          <InlineBlockEditor
+            slug={slug}
+            field="welcomeBody"
+            initialValue={welcomeBody}
+            placeholder="Welcome this team to the Space and describe what they can expect here."
+            onDone={() => setEditingWelcome(false)}
+          />
+        }
+        html={welcomeBodyHtml}
+        emptyText="No welcome content yet."
+      />
+
+      {primaryApp && !primaryUsesModule && (
+        <section className="hub-home__section" aria-labelledby="hub-home-apps-heading">
+          <div className="hub-home__section-label" id="hub-home-apps-heading">App</div>
+          <div className="hub-home-apps">
+            <AppCard app={primaryApp} hubSlug={slug} />
+          </div>
+        </section>
+      )}
+
+      {primaryUsesModule && <ThisMonthGlancePanel data={thisMonth} hubSlug={slug} />}
+
+      {supportingApps.length > 0 && (
+        <section className="hub-home__section" aria-labelledby="hub-home-supporting-apps-heading">
+          <div className="hub-home__section-label" id="hub-home-supporting-apps-heading">More apps</div>
+          <div className="hub-home-apps hub-home-apps--supporting">
+            {supportingApps.map((app) => <AppCard key={app.key} app={app} hubSlug={slug} />)}
+          </div>
+        </section>
+      )}
+
+      {connectedLinks.length > 0 && (
+        <section className="hub-home__section" aria-labelledby="hub-home-links-heading">
+          <div className="hub-home__section-label" id="hub-home-links-heading">Links</div>
+          <div className="hub-home-links">
+            {connectedLinks.map((link) => (
+              <Link key={link.key} href={link.path} className="hub-home-links__link">
+                {link.label} <span aria-hidden="true">→</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {pinnedThreads.length > 0 && (
         <section className="hub-home__section">
@@ -159,29 +184,6 @@ export default function HubHomeClient(props: Props) {
               </li>
             ))}
           </ul>
-        </section>
-      )}
-
-      {recentActivity.length > 0 && (
-        <section className="hub-home__activity">
-          <div className="hub-home-act">
-            <div className="hub-home-act__head">
-              <span className="hub-home-act__heading">Recent activity</span>
-              <Link href={`/account/hub/${slug}/activity`} className="hub-home-act__view">View all</Link>
-            </div>
-            <div className="hub-home-act__body">
-              {recentActivity.map((item) => (
-                <Link key={item.id} href={item.href} className="hub-home-act__row">
-                  <span className="hub-home-act__title">
-                    {item.authorName} {item.verb}{item.subject ? ` ${item.subject}` : ""}
-                  </span>
-                  <span className="hub-home-act__meta">
-                    {item.type === "app" ? "App" : item.type.charAt(0).toUpperCase() + item.type.slice(1)} · {relativeTime(item.ts)}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
         </section>
       )}
 
@@ -212,9 +214,11 @@ function AppCard({ app, hubSlug }: { app: HubHomeApp; hubSlug: string }) {
     : app.path;
   const hasCount = app.count !== null && app.count > 0;
   return (
-    <Link href={href} className={`hub-home-card${hasCount ? " hub-home-card--active" : ""}`}>
+    <Link href={href} className={`hub-home-card hub-home-card--${app.role}${hasCount ? " hub-home-card--active" : ""}`}>
       <div className="hub-home-card__inner">
-        <div className="hub-home-card__label">{app.isRegistered ? "Space app" : "Connected link"}</div>
+        <div className="hub-home-card__label">
+          {app.role === "primary" ? "Primary app" : app.role === "supporting" ? "Supporting app" : "Connected link"}
+        </div>
         <div className="hub-home-card__headline">{app.label}</div>
         {hasCount ? (
           <div className="hub-home-card__count">

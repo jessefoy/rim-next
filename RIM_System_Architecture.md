@@ -57,7 +57,7 @@ Tools are full-featured staff applications extracted from hubs. They serve one w
 | Layer | Purpose | Examples |
 |---|---|---|
 | **Member Registry** (`/admin/members`) | Canonical record authority | Full profile, roles, households, tags |
-| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Activity, Conversations, Files, Members, Trash |
+| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Updates, Conversations, Files, Members, Trash |
 | **Tools** (`/tools/*`) | Operational applications | Program Manager, Host Schedule, Course Manager |
 
 Hubs and Tools both provide scoped projections of member data — but they serve different needs. A hub is where a team coordinates. A tool is where they do their specialized work.
@@ -288,16 +288,16 @@ structural facts for this architecture doc:
 
 ## What's Next
 
-**Tools extraction — complete (session 73, universalized session 167):** Operational applications live at `/tools/*`: Program Manager → `/tools/programs`, Course Manager → `/tools/learning`, Scheduler → `/tools/schedule` (Support Inbox was removed session 100). The three-layer architecture is Member Registry (canonical authority) → Spaces/Hubs (team workspaces) → Apps/Tools (operational work). The current built-in Space set is universal Home, Activity, Conversations, Google Files, Members, and coordinator-gated Trash.
+**Tools extraction — complete (session 73, universalized sessions 167–168):** Operational applications live at `/tools/*`: Program Manager → `/tools/programs`, Course Manager → `/tools/learning`, Scheduler → `/tools/schedule` (Support Inbox was removed session 100). The three-layer architecture is Member Registry (canonical authority) → Spaces/Hubs (team workspaces) → Apps/Tools (operational work). The current built-in Space set is universal Home, Updates, Conversations, Google Files, Members, and coordinator-gated Trash.
 
-**Hub schema enhancements — sessions 73/167:** `HubStatus` enum (ACTIVE/ARCHIVED), `HubAppLink` for app installation/custom navigation, `firstVisitedAt` for newcomer welcome, and independent `HubMember.activitySeenAt` for Activity unread state.
+**Hub schema enhancements — sessions 73/167/168:** `HubStatus` enum (ACTIVE/ARCHIVED), `HubAppLink` for app installation/custom navigation, `HubAppLink.isPrimary` for the single app that leads a Space Home, `firstVisitedAt` for newcomer welcome, and independent `HubMember.activitySeenAt` for Updates unread state. Migration `add_primary_to_hub_app_links` is additive, backfills the first enabled registered app by configured order, and adds a partial unique index on `hubId WHERE isPrimary=true`.
 
 > **Tasks removed (session 96, 2026-04-27).** `TaskList`, `Task`, `Subtask` models and the `TaskStatus` enum were dropped from the schema; all `/api/hubs/[slug]/tasks/**` routes deleted; the `task-reminders` cron removed from `vercel.json`. Tasks were never adopted in practice and added complexity to every hub template. May be revisited later if a real need emerges.
 
 **Completed since session 73:**
 
 - **Hub admin page (session 74):** `/admin/hubs` — create, edit, archive hubs with app links, coordinator display. Replaces seed-script-only management.
-- **Universal Hub Home (session 167):** one `HubHomeClient` for every Space: attention state, newcomer welcome, installed-app cards/modules, pinned/recent conversations, and coordinator-editable welcome/orientation. `lib/toolRegistry.ts` + `lib/hubApps.ts` define app compatibility and contributions; hub slugs no longer select parallel Home implementations.
+- **Universal Hub Home (sessions 167–168):** one `HubHomeClient` for every Space: personal attention, newcomer welcome, one primary app contribution, compact supporting apps, pinned conversations, and coordinator-editable welcome/orientation. The duplicate chronological preview was removed; shared history lives only in Updates. A primary full module replaces its app card. `lib/toolRegistry.ts` declares app compatibility and promised contributions; the exhaustive server provider registry in `lib/hubApps.ts` fulfills Home, Updates, and attention without hub-slug branches.
 - **Hub newcomer welcome (session 74):** One-time interstitial on first visit (uses `firstVisitedAt` + `welcomeBody`).
 - ~~**Hub task system (session 74):**~~ **Removed in session 96 (2026-04-27).** The full three-column task UI (rail, task list, detail panel) was deleted along with the schema models. Tasks were never adopted operationally.
 - **Hub sidebar navigation (session 74):** Horizontal tab strip replaced with 220px left sidebar. Identity block, core sections, Tools section (app links with ↗), Hub settings link. Mobile: slide-in drawer via hamburger. `HubNavStrip.tsx` and `HubHeader.tsx` deleted.
@@ -310,7 +310,7 @@ structural facts for this architecture doc:
 **What remains:**
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
-- **Additional app Activity adapters:** Program Manager and Course Manager need durable mutation actor attribution before they contribute events; until then their registry contract declares `activityContribution: "none"`.
+- **Additional app Updates adapters:** Program Manager and Course Manager need durable mutation actor attribution before they contribute events; until then their registry contract declares `spaceContributions.updates: false` and `attention: false`.
 - **Hub-scoped app data:** Scheduler is multi-Space. Program Manager and Course Manager stay primary-Space restricted until their reads, writes, permissions, and notifications all accept a resource Space.
 - **Tool access admin UI:** `UserToolAccess` grants currently managed via Neon console. A UI for granting/revoking tool access could be added to the member profile admin page.
 
@@ -325,8 +325,8 @@ The complete architecture for how hubs and tools relate is documented in **`RIM_
 - Tool creation pattern — checklist and template for building new tools
 - Data scoping — how `?hub=` context flows from sidebar → URL → ToolsContext → queries
 - Decision tree — when to keep functionality in a hub section vs. extract to a tool
-- Core sections architecture — universal Home, Activity, Conversations, Google Files, and Members
-- Registered-app contract — compatibility, Home/Activity contributions, custom-link boundary, and tool access
+- Core sections architecture — universal Home, Updates, Conversations, Google Files, and Members
+- Registered-app contract — compatibility, primary/supporting placement, Home/Updates/attention providers, custom-link boundary, and tool access
 - Access control matrix — complete role → hub → tool → section mapping
 - Mobile navigation — sidebar drawer, tool patterns
 - Database schema reference — all hub-related models and their fields
@@ -468,9 +468,9 @@ Three coordinated systems share the same Basecamp-style mental model and the sam
 
 All three systems use `after()` from `next/server` for reliable serverless background dispatch and filter recipients to active hub members with `communicationsEnabled` before sending. All three systems' email templates are seeded in `prisma/migrate.mjs` per the **Email Template Gate** documented in `CLAUDE.md`.
 
-### Universal Activity stream (session 114; rebuilt session 167)
+### Universal Updates stream (session 114; rebuilt sessions 167–168)
 
-The Activity page (`/account/hub/[slug]/activity`) remains a computed projection rather than a duplicate event ledger. `lib/hubActivity.ts` is now the single query/serialization contract used by both the server page and paginated API. It merges conversation starts/replies, meaningful visible Google Files audit events, member joins, and Scheduler cover requests/claims only when Scheduler is installed. “My activity” consistently means events authored by the viewer. Deleted threads and held-file draft events are excluded. `HubMember.activitySeenAt` is updated only on Activity, so Home no longer consumes that unread boundary.
+The Updates page (`/account/hub/[slug]/activity`, stable URL) remains a computed projection rather than a duplicate event ledger. `lib/hubActivity.ts` is the core query/serialization contract used by both the server page and paginated API; installed-app events arrive through `lib/hubApps.ts` providers. It merges conversation starts/replies, meaningful visible Google Files audit events, member joins, and app events. Every item carries `sourceKey`, `sourceLabel`, and `kind`; File comments are visibly distinct from Space Conversations. Filters are All / New / For me. “For me” uses subscribed-thread replies, comments on files the viewer created, and app-owned relevance—not events authored by the viewer. Deleted threads and held-file draft events are excluded. `HubMember.activitySeenAt` is updated only on Updates; the rail shows a quiet dot instead of turning passive history into a numeric alert.
 
 ### Google Files resource boundary (sessions 163–166)
 

@@ -27,6 +27,7 @@ interface AppLink {
   label: string;
   href: string;
   isEnabled: boolean;
+  isPrimary: boolean;
 }
 
 interface CoordinatorInfo {
@@ -43,7 +44,7 @@ interface HubData {
   status: "ACTIVE" | "ARCHIVED";
   /** True for hubs that run live sessions (host-team, peer-led-silent-
    *  meditation). Drives two things: the hub's Home view shows the
-   *  Scheduler contribution includes an "Our offerings this month" panel, AND the hub
+   *  primary Scheduler contribution may include an "Our offerings this month" panel, AND the hub
    *  is selectable as a primary hosting team in the Program editor.
    *  Leave off for AV / greeter / future supporting-role hubs.
    *  Note: a hub having a Scheduler app link in its sidebar is a
@@ -307,19 +308,58 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
   function addToolLink(toolSlug: string) {
     const tool = getToolBySlug(toolSlug);
     if (!tool) return;
-    setAppLinks([...appLinks, { toolSlug: tool.slug, label: tool.label, href: tool.path, isEnabled: true }]);
+    const hasPrimary = appLinks.some((link) => link.toolSlug && link.isEnabled && link.isPrimary);
+    setAppLinks([
+      ...appLinks,
+      {
+        toolSlug: tool.slug,
+        label: tool.label,
+        href: tool.path,
+        isEnabled: true,
+        isPrimary: tool.canBePrimary && !hasPrimary,
+      },
+    ]);
   }
 
   function addCustomLink() {
-    setAppLinks([...appLinks, { toolSlug: null, label: "", href: "", isEnabled: true }]);
+    setAppLinks([...appLinks, { toolSlug: null, label: "", href: "", isEnabled: true, isPrimary: false }]);
   }
 
   function updateAppLink(index: number, field: keyof AppLink, value: string | boolean) {
-    setAppLinks(appLinks.map((l, i) => (i === index ? { ...l, [field]: value } : l)));
+    setAppLinks((current) => {
+      const next = current.map((link, i) => (i === index ? { ...link, [field]: value } : link));
+      if (field === "isEnabled" && value === false && current[index]?.isPrimary) {
+        const replacement = next.findIndex((link, i) => {
+          const tool = link.toolSlug ? getToolBySlug(link.toolSlug) : null;
+          return i !== index && link.isEnabled && Boolean(tool?.canBePrimary);
+        });
+        if (replacement >= 0) next[replacement] = { ...next[replacement], isPrimary: true };
+        next[index] = { ...next[index], isPrimary: false };
+      }
+      return next;
+    });
   }
 
   function removeAppLink(index: number) {
-    setAppLinks(appLinks.filter((_, i) => i !== index));
+    setAppLinks((current) => {
+      const removedWasPrimary = current[index]?.isPrimary;
+      const next = current.filter((_, i) => i !== index);
+      if (removedWasPrimary) {
+        const replacement = next.findIndex((link) => {
+          const tool = link.toolSlug ? getToolBySlug(link.toolSlug) : null;
+          return link.isEnabled && Boolean(tool?.canBePrimary);
+        });
+        if (replacement >= 0) next[replacement] = { ...next[replacement], isPrimary: true };
+      }
+      return next;
+    });
+  }
+
+  function setPrimaryApp(index: number) {
+    setAppLinks(appLinks.map((link, i) => ({
+      ...link,
+      isPrimary: Boolean(i === index && link.toolSlug && link.isEnabled),
+    })));
   }
 
   function moveAppLink(index: number, dir: -1 | 1) {
@@ -847,7 +887,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           placeholder="Optional orientation block shown at the bottom of this hub's Home..."
         />
         <span className="adm-hubs-hint">
-          Long-lived context for this hub — shown beneath the activity rail on Home. Leave blank to hide.
+          Long-lived context for this Space — shown near the bottom of Home. Leave blank to hide.
         </span>
       </div>
 
@@ -892,6 +932,17 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
                 )}
               </div>
               <div className="adm-hubs-applink__actions">
+                {tool && tool.canBePrimary && link.isEnabled && (
+                  <label className="adm-hubs-applink__toggle">
+                    <input
+                      type="radio"
+                      name="primary-space-app"
+                      checked={link.isPrimary}
+                      onChange={() => setPrimaryApp(i)}
+                    />
+                    {link.isPrimary ? "Primary app" : "Make primary"}
+                  </label>
+                )}
                 <label className="adm-hubs-applink__toggle">
                   <input
                     type="checkbox"
@@ -952,7 +1003,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           </button>
         </div>
         <p className="adm-hubs-hint">
-          Apps can add Home information and grant tool access. Only apps whose data is safely scoped to this Space appear here; custom links remain navigation only.
+          One enabled app leads Home; any others are supporting apps. Apps can add Home information, Updates, and tool access. Custom links remain navigation only.
         </p>
       </div>
 

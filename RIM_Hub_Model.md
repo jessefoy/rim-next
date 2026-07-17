@@ -32,7 +32,7 @@ An admin visits `/admin/hubs` and submits the create form. The `POST /api/admin/
 |--------|-------|------------|
 | `Hub` | `hubs` | `slug` (unique), `name`, `type` (OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP), `status` (ACTIVE), `description` |
 
-The create route also adds the creating admin as the first active coordinator and best-effort provisions the Space's Google Files folder. The built-in sections (Home, Activity, Conversations, Files when provisioned, and Members) are available without per-hub navigation configuration; coordinator/leadership-gated Trash appears when applicable.
+The create route also adds the creating admin as the first active coordinator and best-effort provisions the Space's Google Files folder. The built-in sections (Home, Updates, Conversations, Files when provisioned, and Members) are available without per-hub navigation configuration; coordinator/leadership-gated Trash appears when applicable.
 
 **Database defaults on creation:**
 - `status` → `ACTIVE`
@@ -85,7 +85,7 @@ Example app links seeded for existing hubs:
 
 **Update strategy:** The PATCH endpoint replaces app links and hub configuration inside one database transaction. Existing rows remain valid until the replacement and hub update can both succeed.
 
-**Registered app contract:** `toolSlug` identifies a registered app in `lib/toolRegistry.ts`. The registry declares whether the app is multi-Space safe or restricted to one primary Space, plus its Home and Activity contribution adapters. Scheduler is multi-Space; Program Manager is restricted to `registrar`; Course Manager is restricted to `courses`. A custom link has `toolSlug: null`: it is navigation only and never grants tool access or contributes app data.
+**Registered app contract:** `toolSlug` identifies a registered app in `lib/toolRegistry.ts`. The registry declares whether the app is multi-Space safe or restricted to one primary Space, whether it may lead Home, and its promised Home/Updates/attention contributions. Scheduler is multi-Space; Program Manager is restricted to `registrar`; Course Manager is restricted to `courses`. A custom link has `toolSlug: null`: it is navigation only and never grants tool access or contributes app data.
 
 ### Step 5: Coordinator configures hub content
 
@@ -104,7 +104,7 @@ When a member navigates to `/account/hub/[slug]`:
 3. **Access check** — resolve the `HubMember` row and apply `canAccessHub(member, roles)`
 4. **Sidebar render** — `HubWorkspaceSidebar` receives hub identity, tools, counts, coordinator/trash authority, and admin state
 5. **First visit tracking** — if both `firstVisitedAt` and prior `lastVisitedAt` are null, show the welcome interstitial and set the timestamp (the second check protects established members created before first-visit tracking)
-6. **Read tracking** — `lastVisitedAt` remains the Home/conversation boundary; `activitySeenAt` is updated only when Activity opens
+6. **Read tracking** — `lastVisitedAt` remains the Home/conversation boundary; `activitySeenAt` is updated only when Updates opens
 
 ---
 
@@ -114,7 +114,7 @@ Every hub has one left workspace rail (collapsible/sticky on desktop; drawer on 
 
 **Identity** — hub type label (e.g. "Operational Hub"), hub name, member count, coordinator name(s). Always visible so you always know where you are.
 
-**Flat work sequence** — Home, enabled apps/links, then Activity, Conversations (when enabled), Files (when provisioned), and Members. These built-in destinations are the same in every hub; improving one improves every hub because the components are shared.
+**Flat work sequence** — Home, enabled apps/links, then Updates, Conversations (when enabled), Files (when provisioned), and Members. These built-in destinations are the same in every hub; improving one improves every hub because the components are shared.
 
 **Apps and links** — registered apps and custom navigation rendered from `HubAppLink` records immediately below Home. Registered apps receive `?hub=<slug>` so `WorkspaceShell` preserves this rail; custom links retain their exact URL.
 
@@ -127,7 +127,7 @@ Every hub has one left workspace rail (collapsible/sticky on desktop; drawer on 
 ```
 const navItems = [
   { label: "Home",          href: base },
-  { label: "Activity",      href: `${base}/activity` },
+  { label: "Updates",       href: `${base}/activity` },
   { label: "Conversations", href: `${base}/conversations` },
   { label: "Files",         href: `${base}/files` },
   { label: "Members",       href: `${base}/members` },
@@ -252,7 +252,7 @@ Do not replace this with an inline role-only check; that would silently remove h
 
 ### Hub section access
 
-Home, Activity, Conversations, Files, and Members are the shared module set. Resource/action gates still apply inside each module; “the tab is visible” is not blanket edit authority.
+Home, Updates, Conversations, Files, and Members are the shared module set. Resource/action gates still apply inside each module; “the tab is visible” is not blanket edit authority.
 
 Coordinator actions use the canonical coordinator helpers; structural Hub settings stays ADMIN-only. **Trash** appears only for trash-managers (Admin, Guiding Teacher, or hub coordinator) and offers Restore + Permanent Delete. See "Three-stage delete" below.
 
@@ -353,7 +353,7 @@ const threads = await db.discussionThread.findMany({
 
 ### Hub sub-page scoping (already implemented)
 
-Hub-native sections such as Conversations, Activity, Files, and Members scope by the resolved hub. Files authorize by their resolved Space place and folder subtree; the hub slug is context, not sufficient proof by itself.
+Hub-native sections such as Conversations, Updates, Files, and Members scope by the resolved hub. Files authorize by their resolved Space place and folder subtree; the hub slug is context, not sufficient proof by itself.
 
 ```typescript
 // Conversations page
@@ -475,7 +475,7 @@ When should functionality live inside a hub section vs. be extracted to a standa
 
 **Host Schedule** (from Host Team Hub → `/tools/schedule`)
 - *Why extracted:* Calendar-based staffing UI with a mini-calendar, occurrence rows, coverage actions, and standing rotations; now reused across several coverage hubs.
-- *Pattern:* A hub-scoped operational app. The Space is where the team coordinates (Home, Activity, Conversations, Files); the Scheduler is where coverage work happens.
+- *Pattern:* A hub-scoped operational app. The Space is where the team coordinates (Home, Updates, Conversations, Files); the Scheduler is where coverage work happens.
 
 ### The decision rule
 
@@ -497,21 +497,21 @@ The built-in sections are shared infrastructure. Every hub gets them for free. I
 - A greeting and one plain-language attention sentence
 - The first-visit welcome interstitial for genuinely new members
 - Coordinator-editable persistent welcome (where configured) and orientation content
-- One card for every enabled `HubAppLink`; registered apps add live context through `lib/hubApps.ts`, custom links remain quiet navigation
-- App modules below their card when the contract provides one (Scheduler-owned Spaces use the hub-scoped “Our offerings this month” module)
+- A short, conditional “Needs your attention” list; passive chronological history never appears on Home
+- One primary app contribution; if it is a full module, that module replaces the launcher card
+- Compact supporting-app contributions and quiet custom links
 - Pinned conversation threads (from `HubConversationThread` where `isPinned: true`)
-- A recent Activity preview across the same shared stream (without marking it read)
 
 **Extension points:**
 - `welcomeBody` and `homeContent` are HTML strings stored in the existing JSON fields and edited inline or in hub admin
 - A new app extends the registry contract and a server adapter; the base Home component does not branch by hub slug
 - `Hub.hasSchedule` controls the Scheduler month module and Program Editor hosting eligibility; it no longer selects a separate Home implementation
 
-### Activity
+### Updates
 
 **Route:** `/account/hub/[slug]/activity`
 
-A computed, hub-scoped stream that brings together conversation starts/replies, visible Google Files events, member joins, and installed Scheduler events. It is a projection, not a separate activity model. The page and API share `lib/hubActivity.ts`, including filter semantics and pagination. `HubMember.activitySeenAt` is an independent read boundary; visiting Home does not clear Activity.
+A computed, hub-scoped stream that brings together conversation starts/replies, visible Google Files events, member joins, and installed-app events. The stable route remains `/activity` to avoid breaking links, but the UI name is **Updates**. It is a projection, not a separate activity model. Every item names its source (`Conversation`, `Conversation reply`, `Files`, `File comment`, `Members`, or the app label), plus a durable event kind. Filters are **All**, **New**, and **For me**; “For me” means subscribed conversation replies, comments on files the viewer created, and app-defined personally relevant events—not actions authored by the viewer. `HubMember.activitySeenAt` is an independent read boundary; visiting Home does not clear Updates.
 
 ### Conversations
 
@@ -569,10 +569,11 @@ An app link is a record in the `hub_app_links` table:
 | `href` | String | Tool URL path (e.g. "/tools/programs") |
 | `order` | Int | Sort order (0-based) |
 | `isEnabled` | Boolean | Show/hide toggle |
+| `isPrimary` | Boolean | The one registered, enabled app that leads this Space Home |
 
 **In the sidebar:** Rendered directly below Home. Registered apps receive `?hub=<slug>`; custom links keep the exact configured href.
 
-**On the home screen:** `HubHomeClient` renders every enabled installation in one Apps section. `lib/hubApps.ts` resolves registered adapters and supplies live counts/copy; custom links receive no adapter.
+**On the home screen:** `HubHomeClient` renders one primary app contribution, compact supporting apps, and quiet custom links. A primary module replaces its card; Home never displays both. `lib/hubApps.ts` resolves the server providers and supplies live summaries, Updates, and attention.
 
 ### Registry contract
 
@@ -581,14 +582,16 @@ An app link is a record in the `hub_app_links` table:
 - canonical slug, label, path, and description
 - `spaceMode`: `multi-space` or `primary-space`
 - `primarySpaceSlug` when restricted
-- `homeContribution`
-- `activityContribution`
+- `canBePrimary`
+- `spaceContributions.home`: `summary`, `module`, or `none`
+- `spaceContributions.updates`: whether a source-aware provider is required
+- `spaceContributions.attention`: whether a personal-attention provider is required
 
-The installation is intentionally the only modifier layered onto the general Space. It may add navigation, a Home card/module, Activity events, and active-member tool access. It must not replace the Home, introduce hub-name conditionals, or make a global tool appear hub-scoped when it is not.
+The installation is intentionally the only modifier layered onto the general Space. It may add navigation, one Home contribution, source-aware Updates, personal attention, and active-member tool access. It must not replace Home, introduce hub-name conditionals, or make a global tool appear hub-scoped when it is not.
 
 Current contracts:
 
-| App | Space mode | Home | Activity |
+| App | Space mode | Home | Updates / attention |
 |---|---|---|---|
 | Scheduler | multi-space | hub-scoped open coverage + optional month module | cover requests + claims |
 | Program Manager | primary-space (`registrar`) | recent registrations | none until its mutations have durable actor attribution |
@@ -693,4 +696,4 @@ All hub-related models in `prisma/schema.prisma`:
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · updated session 167 (2026-07-17) — universal Home, registered-app contract, multi-source Activity, independent Activity read boundary, Google Files-era built-ins.*
+*Working document · updated session 168 (2026-07-17) — simple Home, primary/supporting app contract, source-aware Updates, personal attention, Google Files-era built-ins.*

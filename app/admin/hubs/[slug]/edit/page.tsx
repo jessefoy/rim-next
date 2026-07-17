@@ -74,6 +74,7 @@ export default async function AdminHubEditPage({
       label: l.label,
       href: l.href,
       isEnabled: l.isEnabled,
+      isPrimary: l.isPrimary,
     })),
     coordinators: hub.members.map((m) => ({
       firstName: m.user.firstName,

@@ -5,6 +5,14 @@ import { DEFAULT_COVERAGE_COPY } from "@/lib/programHub";
 import { provisionHubSpaceStorage } from "@/lib/googleFiles";
 import { getToolBySlug, isToolCompatibleWithHub } from "@/lib/toolRegistry";
 
+type AppLinkInput = {
+  toolSlug?: string | null;
+  label: string;
+  href: string;
+  isEnabled?: boolean;
+  isPrimary?: boolean;
+};
+
 /** GET /api/admin/hubs — list all hubs with member count (ADMIN only) */
 export async function GET() {
   const session = await auth();
@@ -49,8 +57,9 @@ export async function POST(req: Request) {
   if (appLinks !== undefined && !Array.isArray(appLinks)) {
     return NextResponse.json({ error: "Apps must be a list." }, { status: 400 });
   }
+  const requestedAppLinks = (appLinks ?? []) as AppLinkInput[];
   const seenTools = new Set<string>();
-  for (const link of appLinks ?? []) {
+  for (const link of requestedAppLinks) {
     if (!link.toolSlug) continue;
     if (seenTools.has(link.toolSlug)) {
       return NextResponse.json({ error: "Each app can be installed only once per Space." }, { status: 400 });
@@ -62,6 +71,30 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+  }
+  const requestedPrimary = requestedAppLinks.filter((link) => link.isPrimary);
+  if (requestedPrimary.length > 1) {
+    return NextResponse.json({ error: "A Space can have only one primary app." }, { status: 400 });
+  }
+  if (requestedPrimary.some((link) => !link.toolSlug || link.isEnabled === false || !getToolBySlug(link.toolSlug)?.canBePrimary)) {
+    return NextResponse.json({ error: "The primary app must be an enabled, registered app." }, { status: 400 });
+  }
+  const defaultPrimaryIndex = requestedAppLinks.findIndex((link) => {
+    const tool = link.toolSlug ? getToolBySlug(link.toolSlug) : null;
+    return Boolean(tool?.canBePrimary && link.isEnabled !== false);
+  });
+  const normalizedAppLinks = requestedAppLinks.map((link, index) => ({
+    ...link,
+    isPrimary: requestedPrimary.length > 0 ? Boolean(link.isPrimary) : index === defaultPrimaryIndex,
+  }));
+  const enabledRegisteredApps = normalizedAppLinks.filter(
+    (link) => link.toolSlug && link.isEnabled !== false && getToolBySlug(link.toolSlug),
+  );
+  if (enabledRegisteredApps.length > 0 && !enabledRegisteredApps.some((link) => link.isPrimary)) {
+    return NextResponse.json(
+      { error: "Choose one enabled app as the primary app for this Space." },
+      { status: 400 },
+    );
   }
 
   // teacherLabel only meaningful when assignmentGrantsTeacher is true;
@@ -97,9 +130,9 @@ export async function POST(req: Request) {
       coverageVerb:   cleanCoverageInput(coverageVerb,   DEFAULT_COVERAGE_COPY.verb),
       coverageAction: cleanCoverageInput(coverageAction, DEFAULT_COVERAGE_COPY.action),
       conversationCategories: ["General"],
-      appLinks: appLinks?.length
+      appLinks: normalizedAppLinks.length
         ? {
-            create: appLinks.map((link: { toolSlug?: string | null; label: string; href: string; isEnabled?: boolean }, i: number) => {
+            create: normalizedAppLinks.map((link, i) => {
               const registered = link.toolSlug ? getToolBySlug(link.toolSlug) : null;
               return {
                 toolSlug: registered?.slug ?? null,
@@ -107,6 +140,7 @@ export async function POST(req: Request) {
                 href: registered?.path ?? link.href.trim(),
                 order: i,
                 isEnabled: link.isEnabled ?? true,
+                isPrimary: link.isPrimary,
               };
             }),
           }

@@ -9572,10 +9572,15 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   justify-content: center;
   line-height: 1;
 }
-.hub-ws-badge--primary {
+.hub-ws-badge--dot {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 50%;
   background: var(--rim-blue);
-  color: #ffffff;
 }
+.hub-ws-link--supporting .hub-ws-link__icon { color: var(--rim-text-muted); }
 
 /* ── Footer ── */
 .hub-ws-footer {
@@ -9918,11 +9923,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 }
 .hub-home__pinned-link:hover { background: #f0efed; }
 
-/* Activity rail: stacked cards of recent work */
-.hub-home__activity {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;
-}
-
 /* Orientation block (coordinator home content) */
 .hub-home__orientation { display: flex; flex-direction: column; gap: 10px; }
 .hub-home__orientation-body { font-size: var(--text-small); line-height: 1.65; color: var(--rim-text); }
@@ -9980,40 +9980,58 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
 }
+.hub-home-apps--supporting { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.hub-home-card--supporting .hub-home-card__inner { padding: 18px 20px; }
+.hub-home-card--supporting .hub-home-card__count-num { font-size: var(--text-h2); }
+.hub-home-card--supporting .hub-home-card__headline { font-size: var(--text-small); }
 
-/* ── Activity card (recent conversations / tasks / docs) ── */
-.hub-home-act {
-  background: #fff; border: 1px solid var(--rim-rule); border-radius: 10px;
-  overflow: hidden; display: flex; flex-direction: column;
+/* Personal attention is deliberately not a second activity river. It is a
+   short list of current signals with explicit sources, and disappears when
+   there is nothing for this person. */
+.hub-home-attention,
+.hub-home-links { display: flex; flex-direction: column; }
+.hub-home-attention {
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--rim-surface);
 }
-.hub-home-act__head {
-  display: flex; align-items: baseline; justify-content: space-between;
-  padding: 12px 16px; border-bottom: 1px solid var(--rim-rule);
-  background: #fafaf9;
+.hub-home-attention__row {
+  min-height: 56px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(90px, 0.35fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  color: var(--rim-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rim-rule);
 }
-.hub-home-act__heading {
-  font-size: var(--text-xxs); font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.12em; color: var(--rim-text-muted);
+.hub-home-attention__row:last-child { border-bottom: 0; }
+.hub-home-attention__row:hover { background: var(--rim-bg-bright); }
+.hub-home-attention__source {
+  color: var(--rim-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
-.hub-home-act__view {
-  font-size: var(--text-xs); color: var(--rim-mid); text-decoration: none;
+.hub-home-attention__label { font-size: var(--text-small); }
+.hub-home-attention__cta {
+  color: var(--rim-blue);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
-.hub-home-act__view:hover { text-decoration: underline; }
-.hub-home-act__body { display: flex; flex-direction: column; }
-.hub-home-act__row {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 10px 16px; border-bottom: 1px solid var(--rim-rule);
-  text-decoration: none; color: var(--rim-text); transition: background 0.12s;
+.hub-home-links { gap: 8px; }
+.hub-home-links__link {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  color: var(--rim-blue);
+  font-size: var(--text-small);
+  text-decoration: none;
 }
-.hub-home-act__row:last-child { border-bottom: none; }
-a.hub-home-act__row:hover { background: #fafaf9; }
-.hub-home-act__title {
-  font-size: var(--text-ui); color: var(--rim-text); font-weight: 500;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.hub-home-act__meta {
-  font-size: var(--text-label); color: var(--rim-text-muted);
-}
+.hub-home-links__link:hover { text-decoration: underline; }
 
 /* ── Hub Home role toggle (coordinator-only preview-as-host) — Phase 5 ── */
 .hub-home-toggle {
@@ -22683,13 +22701,12 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .hub-act__list { list-style: none; padding: 0; margin: 0; }
 .hub-act__item { border-bottom: 1px solid var(--rim-rule); }
 .hub-act__item:first-child { border-top: 1px solid var(--rim-rule); }
-.hub-act__item-link { display: flex; align-items: baseline; gap: 10px; padding: 13px 0; text-decoration: none; transition: opacity 0.1s; }
+.hub-act__item-link { display: flex; align-items: center; gap: 12px; padding: 13px 0; text-decoration: none; transition: opacity 0.1s; }
 .hub-act__item-link:hover { opacity: 0.75; }
 .hub-act-item__icon { flex-shrink: 0; color: var(--rim-text-muted); }
-.hub-act__item__icon { flex-shrink: 0; margin-top: 1px; }
-.hub-act__item__icon--doc   { color: var(--rim-blue); }
-.hub-act__item__icon--conv  { color: var(--rim-text-muted); }
-.hub-act__item__icon--reply { color: var(--rim-text-muted); }
+.hub-act__item-content { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.hub-act__item-source { display: flex; align-items: center; gap: 8px; color: var(--rim-text-muted); font-size: var(--text-label); font-weight: 600; }
+.hub-act__item-new { color: var(--rim-blue); font-size: var(--text-xxs); text-transform: uppercase; letter-spacing: 0.06em; }
 .hub-act__item-label { flex: 1; font-size: var(--text-small); color: var(--rim-text); line-height: 1.5; }
 .hub-act__item-label strong { font-weight: 600; }
 .hub-act__item-label em { font-style: normal; color: var(--rim-mid); }
@@ -22701,6 +22718,10 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   .hub-act { padding: 20px 0 60px; }
   .hub-act__header { flex-direction: column; gap: 12px; }
   .hub-home-apps { grid-template-columns: 1fr; }
+  .hub-home-attention__row { grid-template-columns: 1fr auto; gap: 4px 12px; padding: 14px 16px; }
+  .hub-home-attention__source { grid-column: 1 / -1; }
+  .hub-act__item-link { align-items: flex-start; padding: 14px 16px; }
+  .hub-act__item-time { font-size: var(--text-label); }
 }
 
 /* ── Document banners (author attribution, presence warning) ── */
@@ -26144,7 +26165,6 @@ input.w-button { -webkit-appearance: button; }
 }
 
 .hub-home-card,
-.hub-home-act,
 .hub-home-att,
 .hh-month,
 .hub-roster-card {
@@ -26169,10 +26189,6 @@ input.w-button { -webkit-appearance: button; }
 
 .hub-home-card__count-num {
   font-size: var(--text-h1);
-}
-
-.hub-home-act__head {
-  background: var(--rim-bg-bright);
 }
 
 .hub-home-toggle,

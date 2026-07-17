@@ -91,11 +91,7 @@ export function ThisMonthGlancePanel({ data, hubSlug }: { data: ThisMonthGlance;
 
       {data.openSessions > 0 && (
         <Link
-          href={
-            hubSlug === "host-team"
-              ? "/tools/schedule"
-              : `/tools/schedule?hub=${encodeURIComponent(hubSlug)}`
-          }
+          href={`/tools/schedule?hub=${encodeURIComponent(hubSlug)}`}
           className="hh-month__cta"
         >
           See the schedule →

@@ -41,7 +41,7 @@ export interface SidebarTool {
   label: string;
   path: string;
   isRegistered?: boolean;
-  badgeCount?: number;
+  isPrimary?: boolean;
 }
 
 export interface SidebarNavCounts {
@@ -141,10 +141,10 @@ export default function HubWorkspaceSidebar({
     ? [{ label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 }]
     : [];
   const otherItems = [
-    { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: navCounts.activity ?? 0 },
-    ...conversationsItem,
-    ...filesItem,
-    { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
+    { label: "Updates", href: `${base}/activity`, icon: Activity, badge: 0, hasNew: (navCounts.activity ?? 0) > 0 },
+    ...conversationsItem.map((item) => ({ ...item, hasNew: false })),
+    ...filesItem.map((item) => ({ ...item, hasNew: false })),
+    { label: "Members", href: `${base}/members`, icon: Users, badge: 0, hasNew: false },
   ];
 
   function isActive(href: string, exact: boolean) {
@@ -253,20 +253,17 @@ export default function HubWorkspaceSidebar({
           })()}
 
           {/* Tools — sit immediately under Home as primary work links */}
-          {tools.map((tool) => {
+          {[...tools].sort((a, b) => Number(Boolean(b.isPrimary)) - Number(Boolean(a.isPrimary))).map((tool) => {
             const active = isToolActive(tool.path);
             return (
               <Link
                 key={tool.slug}
                 href={toolHref(tool)}
-                className={`hub-ws-link hub-ws-link--primary${active ? " hub-ws-link--active" : ""}`}
+                className={`hub-ws-link${tool.isPrimary ? " hub-ws-link--primary" : " hub-ws-link--supporting"}${active ? " hub-ws-link--active" : ""}`}
                 title={collapsed ? tool.label : undefined}
               >
                 <Briefcase size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
                 <span className="hub-ws-link__label">{tool.label}</span>
-                {tool.badgeCount !== undefined && tool.badgeCount > 0 && (
-                  <span className="hub-ws-badge hub-ws-badge--primary">{tool.badgeCount}</span>
-                )}
               </Link>
             );
           })}
@@ -285,6 +282,9 @@ export default function HubWorkspaceSidebar({
                 <item.icon size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
                 <span className="hub-ws-link__label">{item.label}</span>
                 {item.badge > 0 && <span className="hub-ws-badge">{item.badge}</span>}
+                {item.hasNew && (
+                  <span className="hub-ws-badge hub-ws-badge--dot" aria-label="New updates" />
+                )}
               </Link>
             );
           })}

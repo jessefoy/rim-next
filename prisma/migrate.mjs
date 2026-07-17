@@ -43,6 +43,46 @@ const migrations = [
     },
   },
   {
+    // Must run before any Prisma HubAppLink read in this build: the generated
+    // client selects every scalar field, so the physical column has to exist
+    // before later migrations use db.hubAppLink.*.
+    name: "add_primary_to_hub_app_links",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'hub_app_links' AND column_name = 'isPrimary'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`
+          ALTER TABLE "hub_app_links"
+          ADD COLUMN "isPrimary" BOOLEAN NOT NULL DEFAULT false
+        `);
+        await db.$executeRawUnsafe(`
+          WITH ranked AS (
+            SELECT "id", ROW_NUMBER() OVER (
+              PARTITION BY "hubId"
+              ORDER BY "order" ASC, "id" ASC
+            ) AS rn
+            FROM "hub_app_links"
+            WHERE "toolSlug" IS NOT NULL AND "isEnabled" = true
+          )
+          UPDATE "hub_app_links" AS links
+          SET "isPrimary" = true
+          FROM ranked
+          WHERE links."id" = ranked."id" AND ranked.rn = 1
+        `);
+      }
+      await db.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "hub_app_links_one_primary_per_hub"
+        ON "hub_app_links" ("hubId")
+        WHERE "isPrimary" = true
+      `);
+      console.log(cols.length === 0
+        ? `  ✔ Applied: ${this.name}`
+        : `  ⏭ Already applied: ${this.name}`);
+    },
+  },
+  {
     name: "add_sort_order_to_program_categories",
     async run() {
       const cols = await db.$queryRawUnsafe(`

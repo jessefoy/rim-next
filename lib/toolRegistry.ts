@@ -8,8 +8,11 @@
  * `slug` must match the toolSlug used in hasToolAccess() and UserToolAccess.
  */
 
+export const TOOL_SLUGS = ["schedule", "programs", "learning"] as const;
+export type ToolSlug = (typeof TOOL_SLUGS)[number];
+
 export interface ToolDefinition {
-  slug: string;
+  slug: ToolSlug;
   label: string;
   path: string;
   description: string;
@@ -21,21 +24,25 @@ export interface ToolDefinition {
   spaceMode: "multi-space" | "primary-space";
   /** Required when spaceMode is primary-space. */
   primarySpaceSlug?: string;
-  /** Server adapter used to build the app's Home contribution. */
-  homeContribution: "schedule" | "programs" | "learning";
-  /** Meaningful events the app can add to the shared Activity river. */
-  activityContribution: "schedule" | "none";
+  /** Whether this app may lead a Space Home instead of being supporting-only. */
+  canBePrimary: boolean;
+  /** Product-level contract. Server providers live in lib/hubApps.ts. */
+  spaceContributions: {
+    home: "summary" | "module" | "none";
+    updates: boolean;
+    attention: boolean;
+  };
 }
 
-export const TOOL_REGISTRY: ToolDefinition[] = [
+export const TOOL_REGISTRY = [
   {
     slug: "schedule",
     label: "Scheduler",
     path: "/tools/schedule",
     description: "Session calendar, assignments, sub requests — scoped per hub",
     spaceMode: "multi-space",
-    homeContribution: "schedule",
-    activityContribution: "schedule",
+    canBePrimary: true,
+    spaceContributions: { home: "module", updates: true, attention: true },
   },
   {
     slug: "programs",
@@ -44,8 +51,8 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     description: "Program CRUD, scheduling, registration settings",
     spaceMode: "primary-space",
     primarySpaceSlug: "registrar",
-    homeContribution: "programs",
-    activityContribution: "none",
+    canBePrimary: true,
+    spaceContributions: { home: "summary", updates: false, attention: false },
   },
   {
     slug: "learning",
@@ -54,10 +61,10 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     description: "Series, lessons, and course content management",
     spaceMode: "primary-space",
     primarySpaceSlug: "courses",
-    homeContribution: "learning",
-    activityContribution: "none",
+    canBePrimary: true,
+    spaceContributions: { home: "summary", updates: false, attention: false },
   },
-];
+] satisfies readonly ToolDefinition[];
 
 export function getToolBySlug(slug: string): ToolDefinition | null {
   return TOOL_REGISTRY.find((t) => t.slug === slug) ?? null;

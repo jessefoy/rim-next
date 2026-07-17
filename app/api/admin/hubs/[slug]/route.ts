@@ -11,6 +11,7 @@ type AppLinkInput = {
   label: string;
   href: string;
   isEnabled?: boolean;
+  isPrimary?: boolean;
 };
 
 /** GET /api/admin/hubs/[slug] — fetch one hub with appLinks (ADMIN only) */
@@ -115,7 +116,19 @@ export async function PATCH(
     }
 
     const existingByTool = new Map(installed.flatMap((link) => link.toolSlug ? [[link.toolSlug, link]] : []));
-    normalizedAppLinks = (appLinks as AppLinkInput[]).map((link) => {
+    const requested = appLinks as AppLinkInput[];
+    const requestedPrimary = requested.filter((link) => link.isPrimary);
+    if (requestedPrimary.length > 1) {
+      return NextResponse.json({ error: "A Space can have only one primary app." }, { status: 400 });
+    }
+    if (requestedPrimary.some((link) => !link.toolSlug || link.isEnabled === false || !getToolBySlug(link.toolSlug)?.canBePrimary)) {
+      return NextResponse.json({ error: "The primary app must be an enabled, registered app." }, { status: 400 });
+    }
+    const defaultPrimaryIndex = requested.findIndex((link) => {
+      const tool = link.toolSlug ? getToolBySlug(link.toolSlug) : null;
+      return Boolean(tool?.canBePrimary && link.isEnabled !== false);
+    });
+    normalizedAppLinks = requested.map((link, index) => {
       if (!link.toolSlug) return { ...link, label: link.label.trim(), href: link.href.trim() };
       const existing = existingByTool.get(link.toolSlug);
       const registered = getToolBySlug(link.toolSlug);
@@ -123,8 +136,18 @@ export async function PATCH(
         ...link,
         label: existing?.label ?? registered?.label ?? link.label.trim(),
         href: existing?.href ?? registered?.path ?? link.href.trim(),
+        isPrimary: requestedPrimary.length > 0 ? Boolean(link.isPrimary) : index === defaultPrimaryIndex,
       };
     });
+    const enabledRegisteredApps = normalizedAppLinks.filter(
+      (link) => link.toolSlug && link.isEnabled !== false && getToolBySlug(link.toolSlug),
+    );
+    if (enabledRegisteredApps.length > 0 && !enabledRegisteredApps.some((link) => link.isPrimary)) {
+      return NextResponse.json(
+        { error: "Choose one enabled app as the primary app for this Space." },
+        { status: 400 },
+      );
+    }
   }
 
   // Google Drive mapping (RIM_GoogleWorkspace.md) — one merged authority.
@@ -225,6 +248,7 @@ export async function PATCH(
             href: link.href,
             order: i,
             isEnabled: link.isEnabled ?? true,
+            isPrimary: link.isPrimary ?? false,
           })),
         });
       }

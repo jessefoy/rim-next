@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Briefcase, CornerDownRight, FileText, MessageSquare, UserPlus } from "lucide-react";
+import { CalendarDays, FileText, MessageSquare, UserPlus } from "lucide-react";
 import type { HubActivityFilter, HubActivityItem } from "@/lib/hubActivity";
 
 interface ActivityPageState {
@@ -15,6 +15,8 @@ interface Props {
   hubSlug: string;
   initialItems: HubActivityItem[];
   initialNextCursor: string | null;
+  initialFilter: HubActivityFilter;
+  newSince: string | null;
 }
 
 function relativeTime(iso: string) {
@@ -29,25 +31,33 @@ function relativeTime(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function ItemIcon({ type }: { type: HubActivityItem["type"] }) {
-  const common = { size: 16, strokeWidth: 1.75, className: "hub-act-item__icon" };
-  if (type === "reply") return <CornerDownRight {...common} />;
-  if (type === "file") return <FileText {...common} />;
-  if (type === "member") return <UserPlus {...common} />;
-  if (type === "app") return <Briefcase {...common} />;
+function ItemIcon({ sourceKey }: { sourceKey: HubActivityItem["sourceKey"] }) {
+  const common = { size: 17, strokeWidth: 1.75, className: "hub-act-item__icon" };
+  if (sourceKey === "files") return <FileText {...common} />;
+  if (sourceKey === "members") return <UserPlus {...common} />;
+  if (sourceKey.startsWith("app:")) return <CalendarDays {...common} />;
   return <MessageSquare {...common} />;
 }
 
 const FILTERS: { key: HubActivityFilter; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "mine", label: "My activity" },
+  { key: "new", label: "New" },
+  { key: "for-me", label: "For me" },
 ];
 
-export default function HubActivityClient({ hubSlug, initialItems, initialNextCursor }: Props) {
-  const [filter, setFilter] = useState<HubActivityFilter>("all");
+export default function HubActivityClient({
+  hubSlug,
+  initialItems,
+  initialNextCursor,
+  initialFilter,
+  newSince,
+}: Props) {
+  const emptyState = (): ActivityPageState => ({ items: [], nextCursor: null, loaded: false });
+  const [filter, setFilter] = useState<HubActivityFilter>(initialFilter);
   const [pages, setPages] = useState<Record<HubActivityFilter, ActivityPageState>>({
-    all: { items: initialItems, nextCursor: initialNextCursor, loaded: true },
-    mine: { items: [], nextCursor: null, loaded: false },
+    all: initialFilter === "all" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
+    new: initialFilter === "new" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
+    "for-me": initialFilter === "for-me" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -58,11 +68,11 @@ export default function HubActivityClient({ hubSlug, initialItems, initialNextCu
     setLoading(true);
     setError("");
     try {
-      const qs = new URLSearchParams({ limit: "30" });
-      if (nextFilter === "mine") qs.set("mine", "true");
+      const qs = new URLSearchParams({ limit: "30", filter: nextFilter });
       if (cursor) qs.set("cursor", cursor);
+      if (newSince) qs.set("newSince", newSince);
       const res = await fetch(`/api/hub/${hubSlug}/activity?${qs}`);
-      if (!res.ok) throw new Error("Activity could not be loaded.");
+      if (!res.ok) throw new Error("Updates could not be loaded.");
       const data = await res.json() as { items: HubActivityItem[]; nextCursor: string | null };
       setPages((prev) => {
         const existing = cursor ? prev[nextFilter].items : [];
@@ -77,7 +87,7 @@ export default function HubActivityClient({ hubSlug, initialItems, initialNextCu
         };
       });
     } catch {
-      setError("Activity couldn’t be loaded. Please try again.");
+      setError("Updates couldn’t be loaded. Try again.");
     } finally {
       setLoading(false);
     }
@@ -88,14 +98,20 @@ export default function HubActivityClient({ hubSlug, initialItems, initialNextCu
     if (!pages[next].loaded) void fetchPage(next);
   }
 
+  const emptyCopy = filter === "new"
+    ? "You’re caught up."
+    : filter === "for-me"
+      ? "Nothing needs your attention here."
+      : "No updates yet.";
+
   return (
     <div className="hub-act">
       <header className="hub-act__header">
         <div>
-          <h1 className="hub-act__title">Activity</h1>
-          <p className="hub-act__intro">Conversations, files, and people — in one shared history.</p>
+          <h1 className="hub-act__title">Updates</h1>
+          <p className="hub-act__intro">Meaningful changes from Conversations, Files, Members, and this Space’s apps.</p>
         </div>
-        <div className="hub-act__filters" role="group" aria-label="Filter activity">
+        <div className="hub-act__filters" role="group" aria-label="Filter updates">
           {FILTERS.map((item) => (
             <button
               key={item.key}
@@ -113,20 +129,24 @@ export default function HubActivityClient({ hubSlug, initialItems, initialNextCu
       {error && <p className="hub-act__error" role="alert">{error}</p>}
 
       {loading && !current.loaded ? (
-        <p className="hub-act__empty">Loading activity…</p>
+        <p className="hub-act__empty">Loading updates…</p>
       ) : current.items.length === 0 ? (
-        <p className="hub-act__empty">
-          {filter === "mine" ? "You haven’t added anything here yet." : "No activity yet."}
-        </p>
+        <p className="hub-act__empty">{emptyCopy}</p>
       ) : (
         <ul className="hub-act__list">
           {current.items.map((item) => (
             <li key={item.id} className="hub-act__item">
               <Link href={item.href} className="hub-act__item-link">
-                <ItemIcon type={item.type} />
-                <span className="hub-act__item-label">
-                  <strong>{item.authorName}</strong> {item.verb}
-                  {item.subject && <> <em>{item.subject}</em></>}
+                <ItemIcon sourceKey={item.sourceKey} />
+                <span className="hub-act__item-content">
+                  <span className="hub-act__item-source">
+                    {item.sourceLabel}
+                    {filter === "all" && item.isNew && <span className="hub-act__item-new">New</span>}
+                  </span>
+                  <span className="hub-act__item-label">
+                    <strong>{item.authorName}</strong> {item.verb}
+                    {item.subject && <> <em>{item.subject}</em></>}
+                  </span>
                 </span>
                 <span className="hub-act__item-time">{relativeTime(item.ts)}</span>
               </Link>

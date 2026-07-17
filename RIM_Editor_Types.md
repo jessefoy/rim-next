@@ -371,7 +371,7 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 - **Components:** `components/HubAdminForm.tsx`, inline editor on `components/HubHomeClient.tsx`
 - **Variant:** message
 - **Output destination:** web template
-- **Output wrapper:** rendered inside hub home orientation block
+- **Output wrapper:** rendered inside the persistent orientation block near the bottom of the universal Space Home, after attention/app/pinned content
 
 #### `hub-conversation`
 - **Schema fields:** `HubConversationThread.body`, `HubConversationReply.body`

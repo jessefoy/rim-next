@@ -29,6 +29,25 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 
 **When Jesse asks for something or asks your opinion**, think about how it fits the whole — design philosophy, interconnected features, existing patterns. Offer that thinking. Engage as a co-creator, not a task executor.
 
+## Hub App Integration Gate (not optional)
+
+A Space is the stable team home; an app is an optional focused capability installed into it. An app may extend the universal Home, Updates, and attention systems, but it must never replace Home or create a hub-specific fork.
+
+Before registering or changing any app that can be installed through `HubAppLink`, verify all of the following in code and in `RIM_Hub_Engineering.md`:
+
+1. Declare `multi-space` or `primary-space` compatibility and whether the app may be primary.
+2. Scope every read, write, permission gate, notification recipient, and URL by the resource Space.
+3. Provide no more than one Home contribution (`summary`, `module`, or `none`); a module replaces its launcher card.
+4. Emit only meaningful, visible Updates with explicit `sourceKey`, `sourceLabel`, and durable `kind`.
+5. Define personal attention separately from shared Updates; passive history is not a notification.
+6. Let the app own event meaning and detailed counts; let the Space own consistent rendering and read state.
+7. Keep install/remove safe: the base Home, Conversations, Files, Members, and Updates must still work without the app.
+8. When enabled registered apps exist, use `HubAppLink.isPrimary` for the one primary app; other apps are supporting and custom links can never be primary.
+9. Add the app to the exhaustive server provider registry in `lib/hubApps.ts`; do not add hub-slug branches to Home or Updates.
+10. Complete all four hub-routing audit layers before release.
+
+Installing an existing compatible app into a new Space must be an admin configuration action, not a new coding task. Building genuinely new app behavior still requires engineering once, through this contract.
+
 ## Session Opening — Required
 
 When Jesse says **"opening prompt"** (or similar), execute the full opening ritual below.

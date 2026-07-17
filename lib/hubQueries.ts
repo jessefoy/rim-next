@@ -25,7 +25,7 @@ import { Prisma } from "@prisma/client";
  * instead of the legacy `status: "OPEN"` string. The status column is kept in
  * sync by the PATCH route for backward compat with clients that still read it.
  *
- * The Activity stream is intentionally NOT a caller — it shows replies to
+ * The Updates stream is intentionally NOT a caller — it shows replies to
  * archived threads as history, so it filters only `deletedAt: null` inline.
  * Keep that separation.
  */

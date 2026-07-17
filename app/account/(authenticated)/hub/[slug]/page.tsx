@@ -1,10 +1,10 @@
 /**
  * /account/hub/[slug] — Hub Home (default landing).
  *
- * New design (session 87):
+ * Universal Home (sessions 87/167–168):
  *   - Plain-language state sentence at top
- *   - Primary work card (tool hubs) or pinned-thread / task-for-you card (non-tool hubs)
- *   - Compact activity rail: recent conversations, open tasks (assigned to you), recent docs
+ *   - One primary app contribution plus compact supporting apps
+ *   - Personal attention only; shared chronological history stays in Updates
  *   - Orientation block at bottom (only if coordinator has authored home content)
  *
  * Newcomers see the welcome interstitial once (firstVisitedAt).
@@ -15,13 +15,12 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
-import { getHubContext } from "@/lib/hubContext";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
 import HubHomeClient from "@/components/HubHomeClient";
 import { ctDateStr, isOccurrenceOnDate, type ScheduleProgram } from "@/lib/scheduleUtils";
 import { getHubCoverageConfig, getHubCoverageCopy, getProgramSlugsForHub } from "@/lib/programHub";
 import { getHubHomeApps } from "@/lib/hubApps";
-import { listHubActivity } from "@/lib/hubActivity";
+import { getHubHomeAttention } from "@/lib/hubActivity";
 
 export const dynamic = "force-dynamic";
 
@@ -54,20 +53,14 @@ export default async function HubHomePage({
     });
   }
 
-  const ctx = await getHubContext(
-    hub.slug,
-    hub.id,
-    session.user.id,
-    priorLastVisitedAt,
-    member?.activitySeenAt ?? null,
-    hub.conversationsEnabled,
-  );
-
   const appLinks = await db.hubAppLink.findMany({
     where: { hubId: hub.id, isEnabled: true },
     orderBy: { order: "asc" },
   });
-  const [pinnedThreads, recentActivity, homeContentHtml, welcomeBodyHtml, apps, thisMonth] = await Promise.all([
+  const primaryScheduler = appLinks.some(
+    (link) => link.isPrimary && link.toolSlug === "schedule" && link.isEnabled,
+  );
+  const [pinnedThreads, attention, homeContentHtml, welcomeBodyHtml, apps, thisMonth] = await Promise.all([
     hub.conversationsEnabled
       ? db.hubConversationThread.findMany({
           where: { ...activeHubThreadWhere(hub.id), isPinned: true },
@@ -76,17 +69,17 @@ export default async function HubHomePage({
           take: 3,
         })
       : Promise.resolve([]),
-    listHubActivity({
+    getHubHomeAttention({
       hubId: hub.id,
       hubSlug: hub.slug,
       userId: session.user.id,
+      seenAt: member?.activitySeenAt ?? null,
       conversationsEnabled: hub.conversationsEnabled,
-      limit: 4,
     }),
     renderFormattedTextAsync(hub.homeContent),
     renderFormattedTextAsync(hub.welcomeBody),
     getHubHomeApps(hub.slug, appLinks),
-    hub.hasSchedule ? loadHostHubThisMonth(hub.id, hub.slug) : Promise.resolve(null),
+    hub.hasSchedule && primaryScheduler ? loadHostHubThisMonth(hub.id, hub.slug) : Promise.resolve(null),
   ]);
 
   // Existing hosting-space members often predate firstVisitedAt. lastVisitedAt
@@ -100,17 +93,22 @@ export default async function HubHomePage({
     <HubHomeClient
       slug={slug}
       hubName={hub.name}
-      stateSentence={ctx.stateSentence}
+      stateSentence={
+        attention.length === 0
+          ? "Nothing needs your attention right now."
+          : attention.length === 1
+            ? "One thing is ready for you."
+            : "A few things are ready for you."
+      }
       apps={apps}
       welcomeHeadline={hub.welcomeHeadline}
       welcomeBodyHtml={welcomeBodyHtml}
       welcomeBody={canEditContent && typeof hub.welcomeBody === "string" ? hub.welcomeBody : ""}
       isNewcomer={isNewcomer}
       hasWelcomeContent={hasWelcomeContent}
-      showWelcomeOnHome={hub.hasSchedule}
       canEditContent={canEditContent}
       pinnedThreads={pinnedThreads}
-      recentActivity={recentActivity.items}
+      attention={attention}
       homeContentHtml={homeContentHtml}
       homeContent={canEditContent && typeof hub.homeContent === "string" ? hub.homeContent : ""}
       thisMonth={thisMonth}

@@ -191,11 +191,11 @@ After session 130's final commits, six hub-config fields drive every per-hub beh
 
 When adding a new hub-aware behavior, the first question is: **is this a code branch per slug, or a new hub-config field?** Default to the config field. New hubs become configuration on top of the architecture, not new code. A code branch per slug is a hint that a missing config field hasn't been articulated yet.
 
-## A registered app is a contract, not a link (session 167)
+## A registered app is a contract, not a link (sessions 167–168)
 
-`HubAppLink.toolSlug` marks a real installation. `lib/toolRegistry.ts` declares the app's canonical route, whether it is `multi-space` or restricted to a `primary-space`, and its Home/Activity adapter keys. `lib/hubApps.ts` builds the Home contributions from the enabled installations. A row with `toolSlug: null` is a custom navigation link only.
+`HubAppLink.toolSlug` marks a real installation. `lib/toolRegistry.ts` declares the app's canonical route, compatibility, whether it may be primary, and which Space contributions it promises. `lib/hubApps.ts` is the server provider registry that fulfills those promises. The module validates declared Updates/attention capabilities at load time, and its provider map is exhaustive over `ToolSlug`; registering a slug without a provider is a compile-time failure. A row with `toolSlug: null` is a custom navigation link only.
 
-An installation may provide four things: sidebar navigation, active-member tool access, a Home card/module, and Activity events. Those four must agree about the same Space. It must never replace the base Home or use a hub-slug switch to create a parallel Space implementation.
+An installation may provide five things: sidebar navigation, active-member tool access, one Home contribution, source-aware Updates, and personal attention. Those must agree about the same Space. It must never replace the base Home or use a hub-slug switch to create a parallel Space implementation.
 
 Current safety rules:
 
@@ -204,10 +204,28 @@ Current safety rules:
 - Admin UI and POST/PATCH APIs both block newly incompatible installs. Ordinary edits preserve an existing incompatible row so an unrelated save cannot break a team.
 - Hub config + app replacement commit in one `$transaction`; never delete all links before a possibly-failing hub update.
 - `hasToolAccess()` grants the app-link pathway only to ACTIVE members of an ACTIVE hub. Custom links never grant access.
-- Home adapters render every enabled installation; custom links get navigation only. Activity adapters emit only meaningful, visible events (never held Google-file draft activity).
-- `HubMember.activitySeenAt` is the Activity read boundary. Home/conversation visits must not clear it.
+- When a Space has enabled registered apps, one is primary (`HubAppLink.isPrimary`); a partial unique index enforces at most one primary per Space. Other registered apps are supporting. Custom links can never be primary.
+- Home renders at most one contribution per app. A primary module replaces its launcher card rather than appearing beside a duplicate card. Supporting apps stay compact; custom links are quiet navigation.
+- Updates adapters emit only meaningful, visible events (never held Google-file draft activity) and every item names `sourceKey`, `sourceLabel`, and `kind`.
+- Personal attention is separate from shared Updates. An app owns the meaning and recipients; the Space owns the consistent Home rendering. Passive history must not become an attention badge.
+- `HubMember.activitySeenAt` is the Updates read boundary. Home/conversation visits must not clear it. The Updates rail uses a quiet new dot; detailed counts belong to their owning feature/app.
 
-When registering a new app, answer explicitly: Is it multi-Space? Which Home data is safe to summarize? Which durable events have actor attribution? What exact resource hub gates its routes? If any answer is missing, restrict it to its primary Space or ship it as a custom link.
+### New app integration gate
+
+Before a new app may be installed through `HubAppLink`, all ten answers must be explicit:
+
+1. Is it `multi-space` or `primary-space`?
+2. May it be the primary app?
+3. Do every scoped read and write derive authority from the resource Space?
+4. What is its single Home contribution (`summary`, `module`, or `none`)?
+5. Which durable, actor-attributed events are meaningful Updates?
+6. Which signals are personally actionable, and for whom?
+7. Which detailed count does the app itself own?
+8. Does install/remove leave the base Space intact?
+9. Do navigation, access, Home, Updates, attention, notifications, and URLs use the same Space?
+10. Has the four-layer hub audit passed?
+
+If any answer is missing, restrict the app to its primary Space or ship it as a custom link. Installing an existing compatible app must be an admin configuration action; only building genuinely new app behavior should require engineering.
 
 ## Audit at the user-flow layer, not just the code-correctness layer (session 130)
 
@@ -308,7 +326,7 @@ This was **not** a cross-hub leak (the four routing layers above were clean) —
 
 ## Google Files are resource-gated inside a Space (sessions 163–166)
 
-The Space rail identifies context; it is not file authorization. Every file read/write resolves the file back to an accessible Google Files place and, for folder-scoped Spaces, verifies that it descends from that Space's configured root. Use the gates in `lib/googleFiles.ts`; never trust a caller's `hubSlug`, Drive id, or file id by itself. Held drafts must not leak through lists, Home, or Activity. Full model: `RIM_GoogleWorkspace.md`.
+The Space rail identifies context; it is not file authorization. Every file read/write resolves the file back to an accessible Google Files place and, for folder-scoped Spaces, verifies that it descends from that Space's configured root. Use the gates in `lib/googleFiles.ts`; never trust a caller's `hubSlug`, Drive id, or file id by itself. Held drafts must not leak through lists, Home, or Updates. Full model: `RIM_GoogleWorkspace.md`.
 
 ---
 
