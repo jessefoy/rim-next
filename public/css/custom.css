@@ -16082,11 +16082,14 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
    without adding another modal or custom menu. */
 .hs-row__manage { text-align: right; }
 .hs-row__manage summary {
+  align-items: center;
   color: var(--rim-mid);
   cursor: pointer;
+  display: inline-flex;
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   list-style: none;
+  min-height: 44px;
 }
 .hs-row__manage summary::-webkit-details-marker { display: none; }
 .hs-row__manage summary::after { content: " ▾"; }
