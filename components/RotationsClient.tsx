@@ -223,14 +223,22 @@ function projectUpcoming(
   form: FormState,
   teamMembers: { id: string; displayName: string }[],
   count = 6,
-): { dateStr: string; label: string; hostName: string | null }[] {
+): { dateStr: string; hostName: string | null }[] {
   return upcomingDates(form.dayOfWeek, count).map((dateStr) => {
     const occN = occurrenceInMonth(dateStr);
     const userId = resolvePreviewHost(occN, form);
     const hostName = userId ? (teamMembers.find((m) => m.id === userId)?.displayName ?? null) : null;
-    const label = new Date(`${dateStr}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    return { dateStr, label, hostName };
+    return { dateStr, hostName };
   });
+}
+
+function miniDateParts(dateStr: string): { month: string; day: string; label: string } {
+  const date = new Date(`${dateStr}T12:00:00`);
+  return {
+    month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+    day: date.toLocaleDateString("en-US", { day: "numeric" }),
+    label: date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+  };
 }
 
 export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, hubSlug, onScheduleStale }: Props) {
@@ -261,7 +269,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   // without leaving to hunt for it (session 141, Maria's #5). Cleared on
   // re-edit or dismiss.
   const [justSaved, setJustSaved] = useState<
-    { programSlug: string; dayOfWeek: DayOfWeek; rows: { dateStr: string; label: string; hostName: string | null }[]; summary?: string }
+    { programSlug: string; dayOfWeek: DayOfWeek; rows: { dateStr: string; hostName: string | null }[]; summary?: string }
   | null>(null);
   const [form, setForm]       = useState<FormState | null>(null);
   const [saving, setSaving]   = useState(false);
@@ -922,14 +930,19 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                         {justSaved.summary && <p className="hs-rot__saved-summary">{justSaved.summary}</p>}
                         <p className="hs-rot__saved-caption">Next sessions:</p>
                         <div className="hs-rot__saved-rows">
-                          {justSaved.rows.map((r) => (
-                            <div key={r.dateStr} className="hs-rot__saved-row">
-                              <span className="hs-rot__saved-date">{r.label}</span>
-                              <span className={`hs-rot__saved-host${!r.hostName ? " hs-rot__saved-host--empty" : ""}`}>
-                                {r.hostName ?? "—"}
-                              </span>
-                            </div>
-                          ))}
+                          {justSaved.rows.map((r) => {
+                            const date = miniDateParts(r.dateStr);
+                            return (
+                              <div key={r.dateStr} className="hs-rot__saved-row">
+                                <time className="hs-rot__mini-date" dateTime={r.dateStr} aria-label={date.label}>
+                                  <span>{date.month}</span><strong>{date.day}</strong>
+                                </time>
+                                <span className={`hs-rot__saved-host${!r.hostName ? " hs-rot__saved-host--empty" : ""}`}>
+                                  {r.hostName ?? "—"}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -1313,14 +1326,19 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
           <div className="hs-rot__preview">
             <span className="hs-rot__preview-label">Preview</span>
             <div className="hs-rot__preview-rows">
-              {rows.map((r) => (
-                <div key={r.dateStr} className="hs-rot__preview-row">
-                  <span className="hs-rot__preview-date">{r.label}</span>
-                  <span className={`hs-rot__preview-host${!r.hostName ? " hs-rot__preview-host--empty" : ""}`}>
-                    {r.hostName ?? "—"}
-                  </span>
-                </div>
-              ))}
+              {rows.map((r) => {
+                const date = miniDateParts(r.dateStr);
+                return (
+                  <div key={r.dateStr} className="hs-rot__preview-row">
+                    <time className="hs-rot__mini-date" dateTime={r.dateStr} aria-label={date.label}>
+                      <span>{date.month}</span><strong>{date.day}</strong>
+                    </time>
+                    <span className={`hs-rot__preview-host${!r.hostName ? " hs-rot__preview-host--empty" : ""}`}>
+                      {r.hostName ?? "—"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

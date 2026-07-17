@@ -110,14 +110,16 @@ export default async function ThisWeekPage({
   }
 
   // Group programs by day, sorted by time of day within each day
-  const dayGroups: { dayName: string; programs: typeof programs }[] = [];
+  const dayGroups: { dayName: string; date: Date; programs: typeof programs }[] = [];
   for (let i = 0; i < 7; i++) {
     const dateStr = weekDates[i];
+    const date = new Date(monday);
+    date.setDate(date.getDate() + i);
     const dayPrograms = programs
       .filter((p) => isOccurrenceOnDate(p as ScheduleProgram, dateStr))
       .sort((a, b) => timeOfDay(a) - timeOfDay(b));
     if (dayPrograms.length > 0) {
-      dayGroups.push({ dayName: DAY_NAMES[i], programs: dayPrograms });
+      dayGroups.push({ dayName: DAY_NAMES[i], date, programs: dayPrograms });
     }
   }
 
@@ -155,9 +157,17 @@ export default async function ThisWeekPage({
           {dayGroups.length === 0 ? (
             <p className="tw-empty">No programs scheduled for this week.</p>
           ) : (
-            dayGroups.map(({ dayName, programs: dayPrograms }) => (
+            dayGroups.map(({ dayName, date, programs: dayPrograms }) => (
               <div key={dayName} className="pl-cat">
-                <h2 className="pl-cat__heading">{dayName}</h2>
+                <div className="tw-day-heading">
+                  <time className="tw-day-heading__date" dateTime={toDateStr(date)} aria-label={formatShortDate(date)}>
+                    <span className="tw-day-heading__month">
+                      {date.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}
+                    </span>
+                    <span className="tw-day-heading__day">{date.getDate()}</span>
+                  </time>
+                  <h2 className="pl-cat__heading tw-day-heading__title">{dayName}</h2>
+                </div>
                 <div className="pl-list">
                   {dayPrograms.map((program) => (
                     <div key={program.id} className="lr-row">

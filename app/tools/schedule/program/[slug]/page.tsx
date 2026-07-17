@@ -325,16 +325,31 @@ export default async function ProgramStaffingPage({
                                 timeZone: TZ,
                               })
                             : dateStr;
+                          const month = sessionDate
+                            ? sessionDate.toLocaleDateString("en-US", { month: "short", timeZone: TZ }).toUpperCase()
+                            : "";
+                          const day = sessionDate
+                            ? sessionDate.toLocaleDateString("en-US", { day: "numeric", timeZone: TZ })
+                            : "";
+                          const weekday = sessionDate
+                            ? sessionDate.toLocaleDateString("en-US", { weekday: "short", timeZone: TZ })
+                            : label;
                           return (
                             <li key={dateStr} className="ps-multi__row">
-                              <span className="ps-multi__date">{label}</span>
-                              <span className="ps-multi__count">
-                                {count === 0
-                                  ? "No one signed up yet"
-                                  : count === 1
-                                    ? "1 person signed up"
-                                    : `${count} people signed up`}
-                              </span>
+                              <time className="ps-multi__date-block" dateTime={dateStr} aria-label={label}>
+                                <span className="ps-multi__date-month">{month}</span>
+                                <span className="ps-multi__date-day">{day}</span>
+                              </time>
+                              <div className="ps-multi__info">
+                                <span className="ps-multi__date">{weekday}</span>
+                                <span className="ps-multi__count">
+                                  {count === 0
+                                    ? "No one signed up yet"
+                                    : count === 1
+                                      ? "1 person signed up"
+                                      : `${count} people signed up`}
+                                </span>
+                              </div>
                             </li>
                           );
                         })}

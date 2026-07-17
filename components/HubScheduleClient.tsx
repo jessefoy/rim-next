@@ -154,6 +154,17 @@ function fmtDateShort(iso: string | null): string {
     weekday: "short", month: "short", day: "numeric", timeZone: TZ,
   });
 }
+function fmtDateBlock(iso: string | null): { weekday: string; month: string; day: string; label: string } | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    weekday: date.toLocaleDateString("en-US", { weekday: "short", timeZone: TZ }),
+    month: date.toLocaleDateString("en-US", { month: "short", timeZone: TZ }).toUpperCase(),
+    day: date.toLocaleDateString("en-US", { day: "numeric", timeZone: TZ }),
+    label: fmtDateLong(iso),
+  };
+}
 function fmtTime(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleTimeString("en-US", {
@@ -514,7 +525,7 @@ function HsRow({
   coverageCopy,
   isManager, teamMembers, onAssign, allowsMultipleAssignments,
 }: RowProps) {
-  const dateShort = fmtDateShort(session.sessionDate);
+  const dateBlock = fmtDateBlock(session.sessionDate);
   const timeStr = fmtTime(session.sessionDate);
   const fmt = fmtFormat(session.programFormat);
 
@@ -741,8 +752,16 @@ function HsRow({
   return (
     <div className={`hs-row hs-row--${kind}${isPast ? " hs-row--past" : ""}`}>
       <div className="hs-row__when">
-        <div className="hs-row__date">{dateShort}</div>
-        <div className="hs-row__time">{timeStr}</div>
+        {dateBlock ? (
+          <time className="hs-row__date-block" dateTime={session.sessionDate ?? undefined} aria-label={dateBlock.label}>
+            <span className="hs-row__date-weekday">{dateBlock.weekday}</span>
+            <span className="hs-row__date-month">{dateBlock.month}</span>
+            <span className="hs-row__date-day">{dateBlock.day}</span>
+          </time>
+        ) : (
+          <span className="hs-row__date">Date to be confirmed</span>
+        )}
+        <time className="hs-row__time" dateTime={session.sessionDate ?? undefined}>{timeStr}</time>
       </div>
       <div className="hs-row__what">
         <div className="hs-row__name">
@@ -769,19 +788,22 @@ function HsRow({
         <div className="hs-row__do">
           {actionEl}
           {showCoverageManage && (
-            <>
-              {/* Ordered least-to-most drastic: ask the team to cover (host
-                  stays on) → remove (slot reopens) → take it over myself. */}
-              <button className="hs-row__quiet" onClick={() => onAskCoverFor(session)}>
-                Ask the team to cover
-              </button>
-              <button className="hs-row__quiet" onClick={() => onUnassign(session)}>
-                Remove
-              </button>
-              <button className="hs-row__manager" onClick={() => onReassign(session)}>
-                Reassign to me
-              </button>
-            </>
+            <details className="hs-row__manage">
+              <summary>Manage coverage</summary>
+              <div className="hs-row__manage-actions">
+                {/* Ordered least-to-most disruptive: ask the team to cover
+                    (the person stays assigned) → remove → take it over. */}
+                <button className="hs-row__quiet" onClick={() => onAskCoverFor(session)}>
+                  Ask the team to cover
+                </button>
+                <button className="hs-row__quiet" onClick={() => onUnassign(session)}>
+                  Remove {nounLower}
+                </button>
+                <button className="hs-row__manager" onClick={() => onReassign(session)}>
+                  Reassign to me
+                </button>
+              </div>
+            </details>
           )}
         </div>
       </div>
@@ -1526,9 +1548,12 @@ export default function HubScheduleClient({
           Needs help <span className="hs-filter__count">{counts.needs}</span>
         </button>
 
-        {/* Member-picker pill — defaults to "Mine" (self), can switch to any
-            host-team member. Body click = activate filter, arrow = open list. */}
-        <div className="hs-filter-group" ref={memberPillRef}>
+        {/* Member-picker pill — defaults to the signed-in person, can switch
+            to any teammate. The visible label keeps its purpose clear instead
+            of relying on the caret alone. */}
+        <div className="hs-member-filter" ref={memberPillRef}>
+          <span className="hs-member-filter__label">View</span>
+          <div className="hs-filter-group">
           <button
             role="tab"
             aria-selected={filter === "mine"}
@@ -1540,7 +1565,7 @@ export default function HubScheduleClient({
           >
             <span className="hs-filter__label">
               {selectedMemberId === currentUserId
-                ? "Mine"
+                ? "My schedule"
                 : (teamMembers.find(m => m.id === selectedMemberId)?.displayName ?? "Member")}
             </span>
             <span className="hs-filter__count">{counts.mine}</span>
@@ -1568,7 +1593,7 @@ export default function HubScheduleClient({
                   setMemberDropdownOpen(false);
                 }}
               >
-                Mine
+                My schedule
               </button>
               {teamMembers.length > 0 && <div className="hs-member-menu__divider" />}
               {teamMembers.map(m => (
@@ -1589,6 +1614,7 @@ export default function HubScheduleClient({
               ))}
             </div>
           )}
+          </div>
         </div>
 
         {selectedMemberId === currentUserId && counts.myReq > 0 && (
