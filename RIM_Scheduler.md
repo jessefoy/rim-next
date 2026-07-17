@@ -462,12 +462,13 @@ A rule of thumb: if the same string would read awkwardly on the AV hub or the gr
 
 ## Occurrence-first agenda grammar
 
-Every dated Scheduler occurrence uses the same visual order: **calendar date → program → coverage state → next action**. The date is a quiet calendar block (weekday, month, day) rather than a line of metadata, so a volunteer can orient themselves before parsing the row. This is shared by all Scheduler hubs: host-team, peer-led, audio-visual, and greeter.
+Every dated Scheduler occurrence uses the same visual order: **calendar date and time → program → coverage state → next action**. Date and time share one quiet calendar block (weekday, month, day, time) rather than splitting the time into a second strip below the date, so a volunteer can orient themselves before parsing the row. This is shared by all Scheduler hubs: host-team, peer-led, audio-visual, and greeter.
 
 - **Single-slot hubs:** the coverage state remains plain-language and role-aware; the volunteer's relevant action stays visible. Coordinator-only choices are grouped under the visible native disclosure **“Manage coverage”** (ask team to cover → remove role → reassign to me), rather than competing with the normal action on every card.
 - **Multi-claim hubs:** the date block is shared, but the people-and-signup area stays the dedicated greeter community rendering described above. Do not fold it into the single-slot assignment interface.
 - **Rotations:** a rotation is a recurring rule, not an occurrence, so its editor continues to lead with weekday/pattern. Only its *projected next sessions* and saved confirmation use compact calendar blocks.
 - **Other surfaces:** `/this-week` uses one calendar block per day heading; the cross-hub program staffing page uses it for Greeter's next dated signups. Registration timestamps, activity timestamps, monthly hub summaries, and recurring date labels are metadata/rules — do not apply the calendar block to them.
+- **Section rhythm:** “This week” / “Next week” and similar group headings rely on spacing and type hierarchy. Do not add a divider line beneath them when the following card already establishes the boundary.
 
 This is presentation-only. It must not alter assignment data, filters, hub scoping, deep links, rotation application, permissions, or emails.
 

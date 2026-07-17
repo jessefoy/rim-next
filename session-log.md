@@ -1,5 +1,54 @@
 ---
 
+## 2026-07-17 (sessions 167–168) — Universal Space Home and app contract, clear Updates, real navigation collapse, and occurrence-first scheduling
+
+This was one sustained design-and-implementation run across the entire member Space experience. It began with a question about whether every team needed a custom-built hub, established a universal Space plus installable-app architecture, and then refined the navigation, dashboard, Scheduler, and Updates surfaces against production screenshots. **Ten implementation commits landed on `main`, plus a temporary plain-English team guide that Jesse downloaded and then asked to remove from the repository.** The final state is `tsc`-green, lint-clean, CSS-brace-balanced, and pushed; Vercel responded normally after the last push.
+
+### Built + shipped
+
+- **One universal Space Home.** Every Space now uses the same `HubHomeClient`: greeting/state sentence, genuine first-visit welcome, a short personal-attention list, pinned conversations, app contributions, and coordinator-editable welcome/orientation. The old hosting-only Home fork was retired. Passive chronological history no longer duplicates onto Home; it belongs in Updates.
+- **Apps became the only deliberate modifier.** A Space may have zero, one, or several apps. `lib/toolRegistry.ts` declares each registered app's semantic icon, compatibility (`multi-space` or restricted primary Space), primary eligibility, and Home/Updates/attention promises. The exhaustive providers in `lib/hubApps.ts` fulfill those promises. Exactly one enabled registered app leads Home when apps are present; supporting apps stay compact; custom links remain navigation only. `HubAppLink.isPrimary` is protected by an additive migration + partial unique index. Admin create/edit validates compatibility and commits app replacement with the Space update in one transaction.
+- **Source-aware Updates and personal attention.** `lib/hubActivity.ts` now produces one hub-scoped stream from Conversations, visible Google Files activity, member joins, and installed-app providers. Every item carries source + kind. `HubMember.activitySeenAt` is independent from Home/conversation visits, so the Space rail uses a quiet Updates dot without turning shared history into an alarm. Filters are All / New / For me.
+- **A Scheduler-style Updates organizer.** The View menu now offers **Date and time** (default chronology), **All categories** (grouped), then every exact category active in that Space—enabled core sections plus installed Updates-capable apps—in alphabetical order. Exact-category filtering happens on the server before pagination, so Load more remains complete. The dropdown scrolls as new apps expand the list.
+- **Navigation that truly saves space.** The account rail and Space rail now collapse to a real narrow icon rail rather than merely hiding labels inside a full-width column. Identity and every destination use distinct semantic icons. Long team lists scroll instead of being cut off. On phones, both rails remain full labeled drawers; compact desktop state is never reused as the mobile navigation.
+- **Member dashboard surface fixes.** Teams remain reachable in the account rail, and the Coming up list uses a white working surface against the warm page ground so program rows read as real objects instead of disappearing into the background.
+- **Occurrence-first Scheduler design.** Across the Scheduler, rotation projections/saved confirmations, `/this-week`, and the cross-hub staffing page, dated sessions lead with one calendar-style date/time block followed by program, coverage state, and next action. Time is no longer orphaned below the date tile. Single-slot coordinator actions sit inside **Manage coverage**; greeter/multi-claim rendering remains its own community-of-people model. Cards are unified, touch targets remain at least 44px, and decorative header dividers were removed where spacing already establishes the section.
+- **Documentation for the team.** A plain-English guide to Spaces, Home, Updates, and apps was created for Jesse to download, then deleted from the repository as requested so GitHub does not carry a redundant team handout.
+
+### Decisions and why
+
+- **A Space is stable infrastructure; an app is optional capability.** Creating a new team should not require Jesse, Codex, or Claude to build a new hub variant. Configure the universal Space, install a compatible app only when the team needs one, and let the registry/provider contract integrate it consistently.
+- **Multiple apps are valid, but Home still has one lead.** Supporting apps may coexist without competing for the user's first attention. This keeps the model extensible without making the Home page feel like an application marketplace.
+- **Attention is not activity.** Home answers “what needs me?” Updates answers “what changed?” App-owned notification meaning stays separate from the Space-owned rendering and read boundary.
+- **Organizing and filtering are different axes.** All / New / For me expresses relevance; Date and time / All categories / exact category expresses arrangement or source. Keeping those controls distinct makes the stream predictable.
+- **Calendar hierarchy is a reusable grammar, not decoration.** Date and time belong together because they orient the volunteer to one occurrence. It applies to dated session lists, not to every timestamp or recurring-rule editor.
+- **Dividers are functional, not habitual.** Use a line only when it clarifies a boundary—such as separating general View choices from exact categories inside a dropdown—not automatically beneath every heading.
+
+### Connections
+
+- **Space architecture:** `Hub`, `HubMember`, `HubAppLink`, the hub admin routes/form, `HubHomeClient`, `HubWorkspaceSidebar`, `lib/toolRegistry.ts`, `lib/hubApps.ts`, `lib/hubActivity.ts`, and `lib/hubContext.ts`.
+- **Core Space modules:** Conversations subscriptions, Google Files audit/meta visibility, Members, Trash, and the independent Updates read boundary.
+- **Tools:** Scheduler is the first fully multi-Space provider; Program Manager and Course Manager remain primary-Space restricted until their reads/writes/notifications are genuinely portable.
+- **Scheduler ecosystem:** Schedule + Rotations tabs, hub-specific coverage language, single-slot vs multi-claim behavior, `/this-week`, and cross-hub program staffing.
+- **Member shell:** account dashboard, account rail, Space rail, mobile drawers, and semantic tool/navigation icons.
+
+### Closing audits
+
+- **Hub routing layers:** capability/access continues through the resolved Space and installed registered app; Scheduler Home/Updates/attention queries filter by the active `hubSlug`; UI/list queries use the resolved `hubId`/`hubSlug`; no changed email callsite or email URL exists in this slice, so recipient-pool and email-URL layers are N/A. No new `host-team` shortcut was introduced.
+- **Email Template Gate:** no email sender or template was added or changed. The `prisma/migrate.mjs` work is only `hub_activity_seen_v1` and `add_primary_to_hub_app_links`.
+- **Editor registry:** the live `hub-welcome` and `hub-home` Message placements remain the same editor type; only their shared Home placement/rendering changed. Native hub-document conversation documentation is marked retired.
+- **Backlog:** no new item. All concerns raised in this run were implemented; existing deferred app portability and Google Files items remain in `data/backlog.json`.
+- **Stack:** no dependency, environment variable, service, cron, or email-template change. Schema additions are nullable `HubMember.activitySeenAt` and `HubAppLink.isPrimary` with additive migrations.
+
+### What comes next
+
+There is no half-built code. The next concrete step is a calm signed-in production review of one ordinary Space and each Scheduler mode: desktop expanded/collapsed rail, phone drawer, Home with/without a primary app, Updates in Date and time / All categories / one exact category, and single-slot plus greeter cards. Any follow-up should be a screenshot-specific correction, not another global redesign layer.
+
+### Behavior-memory candidates — awaiting Jesse's confirmation
+
+1. **Mirror an existing control end-to-end when Jesse names it as the model.** “Like the Scheduler dropdown” means mirror the interaction hierarchy, live option source, selected-state behavior, and pagination semantics—not merely its pill styling.
+2. **Divider lines must earn a structural job.** Do not place rules automatically beneath headings when whitespace, type, and the following card already make the boundary clear; retain them only where they genuinely separate choices or regions.
+
 ## 2026-07-16 (session 166) — Google Files fine-tuning: the file detail page (draft, attribution, conversation), Community Space retired, governed deletion, Basecamp notifications
 
 A co-created refinement pass on the now-Google file system. Started as Jesse's "a few issues to address," explored each as a design conversation, then built the agreed shape. **11 feature commits on `main`, all deployed, `tsc`-green + reviewer-gated each; two migrations run.** Authority: `RIM_GoogleWorkspace.md`.
