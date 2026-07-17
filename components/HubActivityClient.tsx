@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CalendarDays, FileText, MessageSquare, UserPlus } from "lucide-react";
 import type { HubActivityFilter, HubActivityItem } from "@/lib/hubActivity";
@@ -104,6 +104,8 @@ export default function HubActivityClient({
   const emptyState = (): ActivityPageState => ({ items: [], nextCursor: null, loaded: false });
   const [filter, setFilter] = useState<HubActivityFilter>(initialFilter);
   const [view, setView] = useState<ActivityView>("recent");
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const viewMenuRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<Record<HubActivityFilter, ActivityPageState>>({
     all: initialFilter === "all" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
     new: initialFilter === "new" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
@@ -113,6 +115,17 @@ export default function HubActivityClient({
   const [error, setError] = useState("");
   const current = pages[filter];
   const categoryGroups = groupByCategory(current.items);
+
+  useEffect(() => {
+    if (!viewMenuOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (viewMenuRef.current && !viewMenuRef.current.contains(event.target as Node)) {
+        setViewMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [viewMenuOpen]);
 
   async function fetchPage(nextFilter: HubActivityFilter, cursor?: string | null) {
     if (loading) return;
@@ -176,17 +189,47 @@ export default function HubActivityClient({
               </button>
             ))}
           </div>
-          <label className="hub-act__view">
-            <span className="hub-act__view-label">View:</span>
-            <select
-              className="hub-act__view-select"
-              value={view}
-              onChange={(event) => setView(event.target.value as ActivityView)}
-            >
-              <option value="recent">Recent</option>
-              <option value="category">By category</option>
-            </select>
-          </label>
+          <div className="hub-act__view" ref={viewMenuRef}>
+            <span className="hub-act__view-label">View</span>
+            <div className="hub-act__view-picker">
+              <button
+                type="button"
+                className="hub-act__view-button"
+                aria-haspopup="menu"
+                aria-expanded={viewMenuOpen}
+                onClick={() => setViewMenuOpen((open) => !open)}
+              >
+                <span>{view === "recent" ? "Recent" : "By category"}</span>
+                <span className="hub-act__view-caret" aria-hidden="true">▾</span>
+              </button>
+              {viewMenuOpen && (
+                <div className="hub-act__view-menu" role="menu" aria-label="Organize updates">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`hub-act__view-option${view === "recent" ? " hub-act__view-option--active" : ""}`}
+                    onClick={() => {
+                      setView("recent");
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    Recent
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`hub-act__view-option${view === "category" ? " hub-act__view-option--active" : ""}`}
+                    onClick={() => {
+                      setView("category");
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    By category
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
