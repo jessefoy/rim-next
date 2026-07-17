@@ -19,6 +19,8 @@ interface Props {
   newSince: string | null;
 }
 
+type ActivityView = "recent" | "category";
+
 function relativeTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -45,6 +47,53 @@ const FILTERS: { key: HubActivityFilter; label: string }[] = [
   { key: "for-me", label: "For me" },
 ];
 
+function categoryLabel(item: HubActivityItem): string {
+  if (item.sourceKey === "conversations") return "Conversations";
+  if (item.sourceKey === "files") return "Files";
+  if (item.sourceKey === "members") return "Members";
+  return item.sourceLabel;
+}
+
+function groupByCategory(items: HubActivityItem[]) {
+  const groups = new Map<string, { label: string; items: HubActivityItem[] }>();
+  for (const item of items) {
+    const existing = groups.get(item.sourceKey);
+    if (existing) {
+      existing.items.push(item);
+    } else {
+      groups.set(item.sourceKey, { label: categoryLabel(item), items: [item] });
+    }
+  }
+  return [...groups.entries()].map(([key, group]) => ({ key, ...group }));
+}
+
+function ActivityItemRow({
+  item,
+  showNew,
+}: {
+  item: HubActivityItem;
+  showNew: boolean;
+}) {
+  return (
+    <li className="hub-act__item">
+      <Link href={item.href} className="hub-act__item-link">
+        <ItemIcon sourceKey={item.sourceKey} />
+        <span className="hub-act__item-content">
+          <span className="hub-act__item-source">
+            {item.sourceLabel}
+            {showNew && item.isNew && <span className="hub-act__item-new">New</span>}
+          </span>
+          <span className="hub-act__item-label">
+            <strong>{item.authorName}</strong> {item.verb}
+            {item.subject && <> <em>{item.subject}</em></>}
+          </span>
+        </span>
+        <span className="hub-act__item-time">{relativeTime(item.ts)}</span>
+      </Link>
+    </li>
+  );
+}
+
 export default function HubActivityClient({
   hubSlug,
   initialItems,
@@ -54,6 +103,7 @@ export default function HubActivityClient({
 }: Props) {
   const emptyState = (): ActivityPageState => ({ items: [], nextCursor: null, loaded: false });
   const [filter, setFilter] = useState<HubActivityFilter>(initialFilter);
+  const [view, setView] = useState<ActivityView>("recent");
   const [pages, setPages] = useState<Record<HubActivityFilter, ActivityPageState>>({
     all: initialFilter === "all" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
     new: initialFilter === "new" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
@@ -62,6 +112,7 @@ export default function HubActivityClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const current = pages[filter];
+  const categoryGroups = groupByCategory(current.items);
 
   async function fetchPage(nextFilter: HubActivityFilter, cursor?: string | null) {
     if (loading) return;
@@ -111,18 +162,31 @@ export default function HubActivityClient({
           <h1 className="hub-act__title">Updates</h1>
           <p className="hub-act__intro">Meaningful changes from Conversations, Files, Members, and this Space’s apps.</p>
         </div>
-        <div className="hub-act__filters" role="group" aria-label="Filter updates">
-          {FILTERS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`hub-act__filter${filter === item.key ? " hub-act__filter--active" : ""}`}
-              onClick={() => changeFilter(item.key)}
-              aria-pressed={filter === item.key}
+        <div className="hub-act__controls">
+          <div className="hub-act__filters" role="group" aria-label="Filter updates">
+            {FILTERS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`hub-act__filter${filter === item.key ? " hub-act__filter--active" : ""}`}
+                onClick={() => changeFilter(item.key)}
+                aria-pressed={filter === item.key}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <label className="hub-act__view">
+            <span className="hub-act__view-label">View:</span>
+            <select
+              className="hub-act__view-select"
+              value={view}
+              onChange={(event) => setView(event.target.value as ActivityView)}
             >
-              {item.label}
-            </button>
-          ))}
+              <option value="recent">Recent</option>
+              <option value="category">By category</option>
+            </select>
+          </label>
         </div>
       </header>
 
@@ -132,27 +196,30 @@ export default function HubActivityClient({
         <p className="hub-act__empty">Loading updates…</p>
       ) : current.items.length === 0 ? (
         <p className="hub-act__empty">{emptyCopy}</p>
-      ) : (
+      ) : view === "recent" ? (
         <ul className="hub-act__list">
           {current.items.map((item) => (
-            <li key={item.id} className="hub-act__item">
-              <Link href={item.href} className="hub-act__item-link">
-                <ItemIcon sourceKey={item.sourceKey} />
-                <span className="hub-act__item-content">
-                  <span className="hub-act__item-source">
-                    {item.sourceLabel}
-                    {filter === "all" && item.isNew && <span className="hub-act__item-new">New</span>}
-                  </span>
-                  <span className="hub-act__item-label">
-                    <strong>{item.authorName}</strong> {item.verb}
-                    {item.subject && <> <em>{item.subject}</em></>}
-                  </span>
-                </span>
-                <span className="hub-act__item-time">{relativeTime(item.ts)}</span>
-              </Link>
-            </li>
+            <ActivityItemRow key={item.id} item={item} showNew={filter === "all"} />
           ))}
         </ul>
+      ) : (
+        <div className="hub-act__groups">
+          {categoryGroups.map((group) => (
+            <section key={group.key} className="hub-act__group">
+              <header className="hub-act__group-header">
+                <h2 className="hub-act__group-title">{group.label}</h2>
+                <span className="hub-act__group-count">
+                  {group.items.length} {group.items.length === 1 ? "update" : "updates"}
+                </span>
+              </header>
+              <ul className="hub-act__list hub-act__list--grouped">
+                {group.items.map((item) => (
+                  <ActivityItemRow key={item.id} item={item} showNew={filter === "all"} />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
 
       {current.nextCursor && (

@@ -26496,6 +26496,49 @@ input.w-button { -webkit-appearance: button; }
   background: var(--rim-surface);
 }
 
+.hub-act__controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hub-act__view {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--rim-rule);
+  border-radius: 22px;
+  background: var(--rim-surface);
+  color: var(--rim-text);
+}
+
+.hub-act__view-label {
+  padding-left: 14px;
+  color: var(--rim-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.hub-act__view-select {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--rim-text);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  padding: 0 14px 0 5px;
+}
+
+.hub-act__view-select:focus-visible {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: -3px;
+}
+
 .hub-act__filter,
 .hub-conv-segment__btn,
 .hub-conv-chip {
@@ -26517,6 +26560,41 @@ input.w-button { -webkit-appearance: button; }
   background: var(--rim-surface);
 }
 
+.hub-act__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.hub-act__group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.hub-act__group-title {
+  margin: 0;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  font-weight: 500;
+}
+
+.hub-act__group-count {
+  color: var(--rim-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hub-act__list--grouped {
+  border-radius: 12px;
+}
+
 .hub-act__item:first-child {
   border-top: 0;
 }
@@ -26526,6 +26604,19 @@ input.w-button { -webkit-appearance: button; }
   box-sizing: border-box;
   align-items: center;
   padding: 12px 20px;
+}
+
+@media (max-width: 768px) {
+  .hub-act__controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .hub-act__view {
+    max-width: 100%;
+  }
+
+  .hub-act__groups { gap: 22px; }
 }
 
 .hub-conv-row {
