@@ -21,7 +21,6 @@ interface Props {
   initialItems: HubActivityItem[];
   initialNextCursor: string | null;
   initialFilter: HubActivityFilter;
-  newSince: string | null;
   sourceOptions: HubActivitySourceOption[];
 }
 
@@ -57,7 +56,7 @@ function ItemIcon({ sourceKey }: { sourceKey: HubActivityItem["sourceKey"] }) {
 
 const FILTERS: { key: HubActivityFilter; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "new", label: "New" },
+  { key: "recent", label: "Recent" },
   { key: "for-me", label: "For me" },
 ];
 
@@ -83,13 +82,7 @@ function groupByCategory(items: HubActivityItem[]) {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-function ActivityItemRow({
-  item,
-  showNew,
-}: {
-  item: HubActivityItem;
-  showNew: boolean;
-}) {
+function ActivityItemRow({ item }: { item: HubActivityItem }) {
   return (
     <li className="hub-act__item">
       <Link href={item.href} className="hub-act__item-link">
@@ -97,7 +90,6 @@ function ActivityItemRow({
         <span className="hub-act__item-content">
           <span className="hub-act__item-source">
             {item.sourceLabel}
-            {showNew && item.isNew && <span className="hub-act__item-new">New</span>}
           </span>
           <span className="hub-act__item-label">
             <strong>{item.authorName}</strong> {item.verb}
@@ -115,7 +107,6 @@ export default function HubActivityClient({
   initialItems,
   initialNextCursor,
   initialFilter,
-  newSince,
   sourceOptions,
 }: Props) {
   const emptyState = (): ActivityPageState => ({ items: [], nextCursor: null, loaded: false });
@@ -163,7 +154,6 @@ export default function HubActivityClient({
       const source = sourceForView(nextView);
       if (source !== "all") qs.set("source", source);
       if (cursor) qs.set("cursor", cursor);
-      if (newSince) qs.set("newSince", newSince);
       const res = await fetch(`/api/hub/${hubSlug}/activity?${qs}`);
       if (!res.ok) throw new Error("Updates could not be loaded.");
       const data = await res.json() as { items: HubActivityItem[]; nextCursor: string | null };
@@ -203,13 +193,13 @@ export default function HubActivityClient({
 
   const sourceName = selectedSource?.label;
   const emptyCopy = sourceName
-    ? filter === "new"
-      ? `No new ${sourceName.toLowerCase()} updates.`
+    ? filter === "recent"
+      ? `No ${sourceName.toLowerCase()} updates in the last seven days.`
       : filter === "for-me"
         ? `No ${sourceName.toLowerCase()} updates need your attention.`
         : `No ${sourceName.toLowerCase()} updates yet.`
-    : filter === "new"
-      ? "You’re caught up."
+    : filter === "recent"
+      ? "No updates in the last seven days."
       : filter === "for-me"
         ? "Nothing needs your attention here."
         : "No updates yet.";
@@ -297,7 +287,7 @@ export default function HubActivityClient({
       ) : view !== "categories" ? (
         <ul className="hub-act__list">
           {current.items.map((item) => (
-            <ActivityItemRow key={item.id} item={item} showNew={filter === "all"} />
+            <ActivityItemRow key={item.id} item={item} />
           ))}
         </ul>
       ) : (
@@ -312,7 +302,7 @@ export default function HubActivityClient({
               </header>
               <ul className="hub-act__list hub-act__list--grouped">
                 {group.items.map((item) => (
-                  <ActivityItemRow key={item.id} item={item} showNew={filter === "all"} />
+                  <ActivityItemRow key={item.id} item={item} />
                 ))}
               </ul>
             </section>

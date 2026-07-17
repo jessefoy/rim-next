@@ -48,7 +48,6 @@ export interface SidebarTool {
 }
 
 export interface SidebarNavCounts {
-  activity?: number;
   conversations?: number;
 }
 
@@ -151,10 +150,10 @@ export default function HubWorkspaceSidebar({
     ? [{ label: "Conversations", href: `${base}/conversations`, icon: MessagesSquare, badge: navCounts.conversations ?? 0 }]
     : [];
   const otherItems = [
-    { label: "Updates", href: `${base}/activity`, icon: History, badge: 0, hasNew: (navCounts.activity ?? 0) > 0 },
-    ...conversationsItem.map((item) => ({ ...item, hasNew: false })),
-    ...filesItem.map((item) => ({ ...item, hasNew: false })),
-    { label: "Members", href: `${base}/members`, icon: UsersRound, badge: 0, hasNew: false },
+    { label: "Updates", href: `${base}/activity`, icon: History, badge: 0 },
+    ...conversationsItem,
+    ...filesItem,
+    { label: "Members", href: `${base}/members`, icon: UsersRound, badge: 0 },
   ];
 
   function isActive(href: string, exact: boolean) {
@@ -293,9 +292,6 @@ export default function HubWorkspaceSidebar({
                 <item.icon size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
                 <span className="hub-ws-link__label">{item.label}</span>
                 {item.badge > 0 && <span className="hub-ws-badge">{item.badge}</span>}
-                {item.hasNew && (
-                  <span className="hub-ws-badge hub-ws-badge--dot" aria-label="New updates" />
-                )}
               </Link>
             );
           })}

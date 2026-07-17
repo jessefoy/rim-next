@@ -75,7 +75,6 @@ export default async function HubLayout({ children, params }: Props) {
     hub.id,
     session.user.id,
     member?.lastVisitedAt ?? null,
-    member?.activitySeenAt ?? null,
     hub.conversationsEnabled,
   );
 
@@ -112,7 +111,6 @@ export default async function HubLayout({ children, params }: Props) {
         }}
         tools={tools}
         navCounts={{
-          activity: ctx.activityUnread,
           conversations: ctx.conversationsUnread,
         }}
         isCoordinator={isCoordinator}

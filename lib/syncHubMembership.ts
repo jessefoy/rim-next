@@ -56,7 +56,7 @@ export function roleDerivedHubs(
  *   - Sync owns: hubId, userId, position, isCoordinator (identity + role-derived)
  *   - Coordinator owns: status, hostingCapability, communicationsEnabled,
  *     pausedAt, pausedById, pauseNote, coordinatorNote
- *   - Member owns: firstVisitedAt, lastVisitedAt, activitySeenAt
+ *   - Member owns: firstVisitedAt, lastVisitedAt (activitySeenAt is legacy/inert)
  *
  * This function MUST NOT touch coordinator-owned or member-owned fields.
  *

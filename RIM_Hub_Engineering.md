@@ -209,7 +209,7 @@ Current safety rules:
 - Updates adapters emit only meaningful, visible events (never held Google-file draft activity) and every item names `sourceKey`, `sourceLabel`, and `kind`.
 - The Updates View menu derives exact categories from enabled core features plus installed apps whose registry contract promises Updates. Exact-source filtering happens in `listHubActivity()` before the merged stream is paginated; never filter only the already-loaded client page.
 - Personal attention is separate from shared Updates. An app owns the meaning and recipients; the Space owns the consistent Home rendering. Passive history must not become an attention badge.
-- `HubMember.activitySeenAt` is the Updates read boundary. Home/conversation visits must not clear it. The Updates rail uses a quiet new dot; detailed counts belong to their owning feature/app.
+- Updates has no read boundary. **Recent always means the rolling previous seven days**; page visits and item clicks do not mutate it. Do not add a passive Updates dot or count to the rail. If something must persist until handled, its app must expose a durable attention state with an explicit resolution condition.
 
 ### New app integration gate
 

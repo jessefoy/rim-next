@@ -8,7 +8,7 @@
 
 ### Sessions 167–168 (2026-07-17) — ✅ Universal Spaces + app contract + navigation/Scheduler/Updates refinement — all on `main`
 
-**Shipped:** one universal Space Home; zero-or-more installed apps with exactly one primary app when registered apps exist; registry/provider rules for Home, Updates, attention, compatibility, semantic icons, and tool access; source-aware Updates with an independent read boundary; a Scheduler-style organizer for Date and time / All categories / each active category; truly narrow desktop account + Space rails with full labeled mobile drawers; scroll-safe team navigation; clearer member-dashboard program surfaces; and occurrence-first calendar/date cards across the Scheduler, rotations, This Week, and cross-hub staffing.
+**Shipped:** one universal Space Home; zero-or-more installed apps with exactly one primary app when registered apps exist; registry/provider rules for Home, Updates, attention, compatibility, semantic icons, and tool access; source-aware Updates with stateless All / seven-day Recent / For me filters; a Scheduler-style organizer for Date and time / All categories / each active category; truly narrow desktop account + Space rails with full labeled mobile drawers; scroll-safe team navigation; clearer member-dashboard program surfaces; and occurrence-first calendar/date cards across the Scheduler, rotations, This Week, and cross-hub staffing.
 
 **State:** no half-built code. Ten implementation commits are on `main`; TypeScript, focused lint, CSS brace balance, and diff checks passed. The final production URL responded normally after the last push.
 
@@ -16,7 +16,7 @@
 1. Expand/collapse the account rail and one Space rail on desktop; confirm the narrow rail genuinely returns content width.
 2. On a phone, confirm both navigation drawers remain fully labeled and the Teams list scrolls.
 3. Open an ordinary Space Home and a Scheduler-led Space Home; confirm the shared core remains recognizable and only the app contribution changes.
-4. In Updates, try Date and time, All categories, and one exact category; then Load more. Confirm the category list reflects only active core features/apps for that Space.
+4. In Updates, confirm Recent always shows the rolling previous seven days after leaving and returning; then try Date and time, All categories, one exact category, and Load more. Confirm the category list reflects only active core features/apps for that Space.
 5. Check one single-slot Scheduler hub and Greeter: date + time stay together, Manage coverage is clear, and the multi-claim people view is unchanged.
 
 **Next concrete step:** collect only screenshot-specific production issues from that review. Do not create another per-team Home or app fork; new Spaces are configuration, and new apps extend the registry/provider contract.

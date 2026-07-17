@@ -57,8 +57,8 @@ export interface HubAppUpdateQuery {
   hubSlug: string;
   userId: string;
   cursorDate: Date | null;
-  newSince: Date | null;
-  filter: "all" | "new" | "for-me";
+  recentSince: Date;
+  filter: "all" | "recent" | "for-me";
   limit: number;
 }
 
@@ -67,7 +67,6 @@ type HomeContribution = Pick<HubHomeApp, "count" | "countLabel" | "quietText">;
 interface HubAppProvider {
   home(hubSlug: string): Promise<HomeContribution>;
   updates?(query: HubAppUpdateQuery): Promise<HubAppUpdateItem[]>;
-  countUpdatesSince?(hubSlug: string, since: Date): Promise<number>;
   attention?(hubId: string, hubSlug: string, userId: string): Promise<HubAppAttentionItem[]>;
 }
 
@@ -95,7 +94,7 @@ function sessionLabel(date: Date | null): string {
 }
 
 function createdAtWindow(query: HubAppUpdateQuery) {
-  const gt = query.filter === "new" ? query.newSince ?? undefined : undefined;
+  const gt = query.filter === "recent" ? query.recentSince : undefined;
   const lt = query.cursorDate ?? undefined;
   return gt || lt ? { ...(gt ? { gt } : {}), ...(lt ? { lt } : {}) } : undefined;
 }
@@ -258,13 +257,6 @@ const HUB_APP_PROVIDERS: Record<ToolSlug, HubAppProvider> = {
   schedule: {
     home: scheduleHome,
     updates: scheduleUpdates,
-    countUpdatesSince: async (hubSlug, since) => {
-      const [requests, claims] = await Promise.all([
-        db.subRequest.count({ where: { assignment: { hubSlug }, createdAt: { gt: since } } }),
-        db.subClaim.count({ where: { request: { assignment: { hubSlug } }, createdAt: { gt: since } } }),
-      ]);
-      return requests + claims;
-    },
     attention: scheduleAttention,
   },
   programs: {
@@ -348,13 +340,6 @@ export async function listInstalledAppUpdates(toolSlugs: ToolSlug[], query: HubA
     toolSlugs.map((slug) => HUB_APP_PROVIDERS[slug].updates?.(query) ?? Promise.resolve([])),
   );
   return results.flat();
-}
-
-export async function countInstalledAppUpdatesSince(toolSlugs: ToolSlug[], hubSlug: string, since: Date) {
-  const counts = await Promise.all(
-    toolSlugs.map((slug) => HUB_APP_PROVIDERS[slug].countUpdatesSince?.(hubSlug, since) ?? Promise.resolve(0)),
-  );
-  return counts.reduce((sum, count) => sum + count, 0);
 }
 
 export async function getInstalledAppAttention(toolSlugs: ToolSlug[], hubId: string, hubSlug: string, userId: string) {

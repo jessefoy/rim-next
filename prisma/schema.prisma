@@ -1069,7 +1069,7 @@ model HubMember {
   // Member-owned
   lastVisitedAt  DateTime? // for unread dot tracking on dashboard hub cards
   firstVisitedAt DateTime? // for newcomer welcome interstitial (Phase 2c)
-  activitySeenAt DateTime? // independent read boundary for Space Updates
+  activitySeenAt DateTime? // legacy Updates boundary; retained inert for migration safety
 
   hub  Hub  @relation(fields: [hubId], references: [id])
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

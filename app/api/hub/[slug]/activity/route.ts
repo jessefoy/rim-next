@@ -22,13 +22,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   const url = new URL(req.url);
   const rawLimit = Number.parseInt(url.searchParams.get("limit") ?? "30", 10);
   const rawFilter = url.searchParams.get("filter");
-  const filter: HubActivityFilter = rawFilter === "new" || rawFilter === "for-me" ? rawFilter : "all";
+  const filter: HubActivityFilter = rawFilter === "recent" || rawFilter === "for-me" ? rawFilter : "all";
   const source = parseHubActivitySource(url.searchParams.get("source"));
-  const rawNewSince = url.searchParams.get("newSince");
-  const parsedNewSince = rawNewSince ? new Date(rawNewSince) : null;
-  const newSince = parsedNewSince && !Number.isNaN(parsedNewSince.getTime())
-    ? parsedNewSince
-    : member?.activitySeenAt ?? null;
   const result = await listHubActivity({
     hubId: hub.id,
     hubSlug: slug,
@@ -37,7 +32,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
     source,
     filter,
-    newSince,
     cursor: url.searchParams.get("cursor"),
     limit: Number.isFinite(rawLimit) ? rawLimit : 30,
   });

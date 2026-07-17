@@ -73,8 +73,6 @@ export default async function HubHomePage({
       hubId: hub.id,
       hubSlug: hub.slug,
       userId: session.user.id,
-      seenAt: member?.activitySeenAt ?? null,
-      conversationsEnabled: hub.conversationsEnabled,
     }),
     renderFormattedTextAsync(hub.homeContent),
     renderFormattedTextAsync(hub.welcomeBody),

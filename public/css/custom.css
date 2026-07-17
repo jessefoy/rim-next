@@ -9604,14 +9604,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   justify-content: center;
   line-height: 1;
 }
-.hub-ws-badge--dot {
-  min-width: 8px;
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--rim-blue);
-}
 .hub-ws-link--supporting .hub-ws-link__icon { color: var(--rim-text-muted); }
 
 /* ── Footer ── */
@@ -22937,7 +22929,6 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .hub-act-item__icon { flex-shrink: 0; color: var(--rim-text-muted); }
 .hub-act__item-content { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .hub-act__item-source { display: flex; align-items: center; gap: 8px; color: var(--rim-text-muted); font-size: var(--text-label); font-weight: 600; }
-.hub-act__item-new { color: var(--rim-blue); font-size: var(--text-xxs); text-transform: uppercase; letter-spacing: 0.06em; }
 .hub-act__item-label { flex: 1; font-size: var(--text-small); color: var(--rim-text); line-height: 1.5; }
 .hub-act__item-label strong { font-weight: 600; }
 .hub-act__item-label em { font-style: normal; color: var(--rim-mid); }

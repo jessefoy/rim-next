@@ -104,7 +104,7 @@ When a member navigates to `/account/hub/[slug]`:
 3. **Access check** — resolve the `HubMember` row and apply `canAccessHub(member, roles)`
 4. **Sidebar render** — `HubWorkspaceSidebar` receives hub identity, tools, counts, coordinator/trash authority, and admin state
 5. **First visit tracking** — if both `firstVisitedAt` and prior `lastVisitedAt` are null, show the welcome interstitial and set the timestamp (the second check protects established members created before first-visit tracking)
-6. **Read tracking** — `lastVisitedAt` remains the Home/conversation boundary; `activitySeenAt` is updated only when Updates opens
+6. **Visit tracking** — `lastVisitedAt` remains the Home/conversation boundary; Updates uses a fixed seven-day Recent window and does not record a read state
 
 ---
 
@@ -511,7 +511,7 @@ The built-in sections are shared infrastructure. Every hub gets them for free. I
 
 **Route:** `/account/hub/[slug]/activity`
 
-A computed, hub-scoped stream that brings together conversation starts/replies, visible Google Files events, member joins, and installed-app events. The stable route remains `/activity` to avoid breaking links, but the UI name is **Updates**. It is a projection, not a separate activity model. Every item names its source (`Conversation`, `Conversation reply`, `Files`, `File comment`, `Members`, or the app label), plus a durable event kind. Filters are **All**, **New**, and **For me**; “For me” means subscribed conversation replies, comments on files the viewer created, and app-defined personally relevant events—not actions authored by the viewer. A Scheduler-style **View** menu organizes the stream by **Date and time** (the default chronology), **All categories** (grouped newest-first), or one exact active category such as Conversations, Files, Members, or Scheduler. Exact category choices are derived from the Space's enabled core features and installed Updates-capable apps, then filtered on the server before pagination so “Load more” remains complete and correct. `HubMember.activitySeenAt` is an independent read boundary; visiting Home does not clear Updates.
+A computed, hub-scoped stream that brings together conversation starts/replies, visible Google Files events, member joins, and installed-app events. The stable route remains `/activity` to avoid breaking links, but the UI name is **Updates**. It is a projection, not a separate activity model. Every item names its source (`Conversation`, `Conversation reply`, `Files`, `File comment`, `Members`, or the app label), plus a durable event kind. Filters are **All**, **Recent**, and **For me**; Recent is the rolling seven days and does not change when a member opens the page or clicks an item. “For me” means subscribed conversation replies, comments on files the viewer created, and app-defined personally relevant events—not actions authored by the viewer. A Scheduler-style **View** menu organizes the stream by **Date and time** (the default chronology), **All categories** (grouped newest-first), or one exact active category such as Conversations, Files, Members, or Scheduler. Exact category choices are derived from the Space's enabled core features and installed Updates-capable apps, then filtered on the server before pagination so “Load more” remains complete and correct. All retains the complete history; passive Updates create no unread state or rail dot. Durable Home attention comes only from an owning app's live open/closed state.
 
 ### Conversations
 
@@ -540,7 +540,7 @@ A computed, hub-scoped stream that brings together conversation starts/replies, 
 - Last visited timestamp
 - Member count
 
-**Data model:** `HubMember` (hubId, userId, position, isCoordinator, joinedAt, lastVisitedAt, firstVisitedAt, activitySeenAt)
+**Data model:** `HubMember` (hubId, userId, position, isCoordinator, joinedAt, lastVisitedAt, firstVisitedAt). The nullable `activitySeenAt` column remains only as a migration-safe legacy field; current Updates code neither reads nor writes it.
 
 ### No Hub-Specific Additions
 

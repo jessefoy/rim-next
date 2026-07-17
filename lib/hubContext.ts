@@ -1,14 +1,11 @@
-/** Shared unread markers for the Space rail. */
+/** Shared conversation marker for the Space rail. */
 
 import { db } from "./db";
 import { activeHubThreadWhere } from "./hubQueries";
-import { countHubActivitySince } from "./hubActivity";
 
 export interface HubContext {
   /** Non-archived conversation threads updated since the viewer's last visit. */
   conversationsUnread: number;
-  /** Meaningful Space events since Updates was last opened. */
-  activityUnread: number;
 }
 
 export async function getHubContext(
@@ -16,17 +13,13 @@ export async function getHubContext(
   hubId: string,
   userId: string,
   lastVisitedAt: Date | null,
-  activitySeenAt: Date | null,
   conversationsEnabled: boolean,
 ): Promise<HubContext> {
-  const [conversationsUnread, activityUnread] = await Promise.all([
-    conversationsEnabled
-      ? countUnreadConversations(hubId, userId, lastVisitedAt)
-      : Promise.resolve(0),
-    countHubActivitySince(hubId, activitySeenAt),
-  ]);
+  const conversationsUnread = conversationsEnabled
+    ? await countUnreadConversations(hubId, userId, lastVisitedAt)
+    : 0;
 
-  return { conversationsUnread, activityUnread };
+  return { conversationsUnread };
 }
 
 async function countUnreadConversations(

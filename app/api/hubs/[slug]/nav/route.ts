@@ -50,7 +50,6 @@ export async function GET(
     hub.id,
     session.user.id,
     member?.lastVisitedAt ?? null,
-    member?.activitySeenAt ?? null,
     hub.conversationsEnabled,
   );
 
@@ -86,7 +85,6 @@ export async function GET(
     },
     tools,
     navCounts: {
-      activity: ctx.activityUnread,
       conversations: ctx.conversationsUnread,
     },
     isCoordinator: effectiveCoordinator(member, roles),
