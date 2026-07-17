@@ -69,6 +69,7 @@ export async function GET(
       path: link.href,
       isRegistered: Boolean(registered),
       isPrimary: link.isPrimary,
+      iconKey: registered?.iconKey ?? "link",
     };
   });
 

@@ -7,9 +7,7 @@
  * navigating into /tools/* with ?hub=<slug>, so the hub and its tools feel
  * like one workspace.
  *
- * Two groups:
- *   WORK  — the hub's primary tool (with badge count)
- *   TEAM  — Home, Conversations, Documents, Members (with badges)
+ * One flat, stable navigation: Home, installed apps, then Space features.
  *
  * Mobile: slide-in drawer opened by a hamburger bar at the top.
  * Desktop: collapsible icon rail (persisted in localStorage).
@@ -22,9 +20,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  MessageSquare,
-  Users,
-  Briefcase,
+  MessagesSquare,
+  UsersRound,
   Settings,
   Trash2,
   ChevronLeft,
@@ -32,9 +29,14 @@ import {
   ChevronsRight,
   Menu,
   X,
-  Activity,
+  History,
   FolderOpen,
+  CalendarDays,
+  ClipboardList,
+  GraduationCap,
+  Link2,
 } from "lucide-react";
+import type { ToolIconKey } from "@/lib/toolRegistry";
 
 export interface SidebarTool {
   slug: string;
@@ -42,6 +44,7 @@ export interface SidebarTool {
   path: string;
   isRegistered?: boolean;
   isPrimary?: boolean;
+  iconKey?: ToolIconKey | "link";
 }
 
 export interface SidebarNavCounts {
@@ -80,6 +83,13 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const COLLAPSE_KEY = "rim-hub-sidebar-collapsed";
+
+const TOOL_ICONS = {
+  calendar: CalendarDays,
+  programs: ClipboardList,
+  learning: GraduationCap,
+  link: Link2,
+} as const;
 
 function firstNameOnly(fullName: string) {
   return fullName.split(/\s+/).filter(Boolean)[0] ?? fullName;
@@ -138,13 +148,13 @@ export default function HubWorkspaceSidebar({
     : [];
   const convEnabled = hub.conversationsEnabled ?? true;
   const conversationsItem = convEnabled
-    ? [{ label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 }]
+    ? [{ label: "Conversations", href: `${base}/conversations`, icon: MessagesSquare, badge: navCounts.conversations ?? 0 }]
     : [];
   const otherItems = [
-    { label: "Updates", href: `${base}/activity`, icon: Activity, badge: 0, hasNew: (navCounts.activity ?? 0) > 0 },
+    { label: "Updates", href: `${base}/activity`, icon: History, badge: 0, hasNew: (navCounts.activity ?? 0) > 0 },
     ...conversationsItem.map((item) => ({ ...item, hasNew: false })),
     ...filesItem.map((item) => ({ ...item, hasNew: false })),
-    { label: "Members", href: `${base}/members`, icon: Users, badge: 0, hasNew: false },
+    { label: "Members", href: `${base}/members`, icon: UsersRound, badge: 0, hasNew: false },
   ];
 
   function isActive(href: string, exact: boolean) {
@@ -255,6 +265,7 @@ export default function HubWorkspaceSidebar({
           {/* Tools — sit immediately under Home as primary work links */}
           {[...tools].sort((a, b) => Number(Boolean(b.isPrimary)) - Number(Boolean(a.isPrimary))).map((tool) => {
             const active = isToolActive(tool.path);
+            const ToolIcon = TOOL_ICONS[tool.iconKey ?? "link"];
             return (
               <Link
                 key={tool.slug}
@@ -262,7 +273,7 @@ export default function HubWorkspaceSidebar({
                 className={`hub-ws-link${tool.isPrimary ? " hub-ws-link--primary" : " hub-ws-link--supporting"}${active ? " hub-ws-link--active" : ""}`}
                 title={collapsed ? tool.label : undefined}
               >
-                <Briefcase size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
+                <ToolIcon size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
                 <span className="hub-ws-link__label">{tool.label}</span>
               </Link>
             );

@@ -3,13 +3,13 @@
 /**
  * AccountSidebar — role-aware nav for all /account/* pages.
  *
- * Desktop: quiet, always-legible left rail.
+ * Desktop: quiet rail that can collapse to return working width.
  * Mobile: horizontal scroll strip below the member header.
  *
  * CSS prefix: ac-
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -18,12 +18,15 @@ import {
   BookOpen,
   UserCircle,
   Users,
-  House,
+  HouseHeart,
   Layers,
   Mail,
-  Globe,
   ChevronDown,
   ShieldCheck,
+  ChevronsLeft,
+  ChevronsRight,
+  Settings,
+  UsersRound,
 } from "lucide-react";
 
 interface HubLink {
@@ -57,16 +60,36 @@ const MEMBER_LINKS: NavLink[] = [
 
 const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] = [
   { label: "Members",      href: "/admin/members",      icon: Users,       registrarOk: true },
-  { label: "Households",   href: "/admin/households",   icon: House,       registrarOk: true },
+  { label: "Households",   href: "/admin/households",   icon: HouseHeart,  registrarOk: true },
   { label: "Hubs",         href: "/admin/hubs",          icon: Layers,      adminOnly: true   },
   { label: "Emails",       href: "/admin/emails",        icon: Mail,        adminOnly: true   },
   { label: "Google Files", href: "/admin/google-files",  icon: ShieldCheck, adminOnly: true   },
 ];
 
+const COLLAPSE_KEY = "rim-account-sidebar-collapsed";
+
+function teamInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase() || "T";
+}
+
 export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   const pathname = usePathname();
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(pathname.startsWith("/admin/"));
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (localStorage.getItem(COLLAPSE_KEY) === "1") setCollapsed(true);
+    } catch {}
+  }, []);
 
   const hasRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin      = roles.includes("ADMIN");
@@ -90,15 +113,55 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   });
   const isHubRoute = pathname.startsWith("/account/hub/");
 
+  function setCollapsedAndRemember(next: boolean) {
+    setCollapsed(next);
+    try { localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0"); } catch {}
+  }
+
+  function toggleTeams() {
+    if (collapsed) {
+      setCollapsedAndRemember(false);
+      setTeamsOpen(true);
+      return;
+    }
+    setTeamsOpen((open) => !open);
+  }
+
+  function toggleManage() {
+    if (collapsed) {
+      setCollapsedAndRemember(false);
+      setManageOpen(true);
+      return;
+    }
+    setManageOpen((open) => !open);
+  }
+
   return (
-    <nav className="ac-sidebar" aria-label="Account navigation">
+    <nav
+      className={`ac-sidebar${collapsed ? " ac-sidebar--collapsed" : ""}`}
+      aria-label="Account navigation"
+      data-collapsed={collapsed ? "true" : "false"}
+    >
       <div className="ac-sidebar__nav">
+        <button
+          type="button"
+          className="ac-sidebar__toggle"
+          onClick={() => setCollapsedAndRemember(!collapsed)}
+          aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+          aria-pressed={collapsed}
+          title={collapsed ? "Expand navigation" : "Collapse navigation"}
+        >
+          {collapsed
+            ? <ChevronsRight size={17} strokeWidth={1.75} />
+            : <ChevronsLeft size={17} strokeWidth={1.75} />}
+        </button>
         <p className="ac-sidebar__section-label">My RIM</p>
         {memberLinks.map((l) => (
           <Link
             key={l.href}
             href={l.href}
             className={linkClass(l.href)}
+            title={collapsed ? l.label : undefined}
           >
             <l.icon size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
             <span className="ac-sidebar__label">{l.label}</span>
@@ -111,20 +174,23 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
             <button
               type="button"
               className="ac-sidebar__group-toggle"
-              onClick={() => setTeamsOpen((open) => !open)}
-              aria-expanded={teamsOpen || isHubRoute}
+              onClick={toggleTeams}
+              aria-expanded={!collapsed && (teamsOpen || isHubRoute)}
+              aria-label="Your teams"
+              title={collapsed ? "Your teams" : undefined}
             >
-              <Globe size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+              <UsersRound size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
               <span className="ac-sidebar__label">Your teams</span>
               <ChevronDown size={15} className={`ac-sidebar__chevron${teamsOpen ? " ac-sidebar__chevron--open" : ""}`} />
             </button>
-            {(teamsOpen || isHubRoute) && hubLinks.map((h) => (
+            {!collapsed && (teamsOpen || isHubRoute) && hubLinks.map((h) => (
               <Link
                 key={h.slug}
                 href={`/account/hub/${h.slug}`}
                 className={`${linkClass(`/account/hub/${h.slug}`)} ac-sidebar__link--nested`}
+                title={h.name}
               >
-                <Globe size={15} strokeWidth={1.75} className="ac-sidebar__icon" />
+                <span className="ac-sidebar__team-mark" aria-hidden="true">{teamInitials(h.name)}</span>
                 <span className="ac-sidebar__label">{h.name}</span>
               </Link>
             ))}
@@ -137,10 +203,12 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
             <button
               type="button"
               className="ac-sidebar__group-toggle"
-              onClick={() => setManageOpen((open) => !open)}
-              aria-expanded={manageOpen}
+              onClick={toggleManage}
+              aria-expanded={!collapsed && manageOpen}
+              aria-label="Manage RIM"
+              title={collapsed ? "Manage RIM" : undefined}
             >
-              <Layers size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+              <Settings size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
               <span className="ac-sidebar__label">Manage RIM</span>
               <ChevronDown size={15} className={`ac-sidebar__chevron${manageOpen ? " ac-sidebar__chevron--open" : ""}`} />
             </button>
@@ -149,6 +217,7 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
                 key={l.href}
                 href={l.href}
                 className={`${linkClass(l.href)} ac-sidebar__link--nested`}
+                title={l.label}
               >
                 <l.icon size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
                 <span className="ac-sidebar__label">{l.label}</span>

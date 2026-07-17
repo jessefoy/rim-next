@@ -94,6 +94,7 @@ export default async function HubLayout({ children, params }: Props) {
       path: link.href,
       isRegistered: Boolean(registered),
       isPrimary: link.isPrimary,
+      iconKey: registered?.iconKey ?? "link" as const,
     };
   });
 

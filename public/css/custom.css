@@ -15516,9 +15516,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   padding: 0 18px;
 }
 
-/* Dana invitation icon */
-.db2-dana-icon { color: #b45309; display: block; }
-
 /* ═══════════════════════════════════════════════════
    HOST SCHEDULE — Team Agenda View  (hs- prefix)
    /tools/schedule
@@ -24707,25 +24704,32 @@ input.w-button { -webkit-appearance: button; }
 }
 .db2-empty-card__text { color: var(--rim-text-muted); }
 .db2-empty-card__link { color: var(--rim-blue); font-size: var(--text-small); }
-.db2-upcoming { border: none; border-radius: 0; background: transparent; }
-.db2-upcoming__item {
-  min-height: 72px;
-  padding: 0;
-  border-bottom-color: var(--rim-rule);
-  background: transparent;
+.db2-upcoming {
+  overflow: hidden;
+  border: none;
+  border-radius: 12px;
+  background: var(--rim-surface);
 }
+.db2-upcoming__item {
+  min-height: 76px;
+  padding: 0;
+  border-bottom: 1px solid var(--rim-rule);
+  background: var(--rim-surface);
+}
+.db2-upcoming__item:last-child { border-bottom: none; }
 .db2-upcoming__item:hover { background: var(--rim-bg-bright); }
 .db2-upcoming__date-block {
-  width: 68px;
-  background: transparent;
+  width: 72px;
+  background: var(--rim-bg-bright);
   border-right: none;
 }
 .db2-upcoming__date-month,
 .db2-upcoming__date-day { color: var(--rim-text-muted); }
-.db2-upcoming__title { padding: 14px 8px; color: var(--rim-text); font-family: var(--font-serif); font-size: var(--text-small); }
+.db2-upcoming__title { padding: 16px; color: var(--rim-text); font-family: var(--font-serif); font-size: var(--text-small); }
 .db2-upcoming__time { color: var(--rim-text-muted); }
-.db2-upcoming__status { padding-right: 10px; }
+.db2-upcoming__status { padding-right: 18px; }
 .db2-chip { background: var(--color-success-bg); color: var(--color-success); }
+.db2-chip--dana { background: var(--rim-bg-accent); color: var(--rim-blue); }
 
 .db2-hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .db2-hub-card {
@@ -24944,6 +24948,28 @@ input.w-button { -webkit-appearance: button; }
   border-right: none;
   background: var(--rim-bg-bright);
 }
+.ac-sidebar--collapsed {
+  width: 64px;
+  padding-right: 8px;
+  padding-left: 8px;
+}
+.ac-sidebar__toggle { width: 44px; height: 44px; }
+.ac-sidebar--collapsed .ac-sidebar__section-label { display: none; }
+.ac-sidebar--collapsed .ac-sidebar__divider { margin-right: 6px; margin-left: 6px; }
+.ac-sidebar--collapsed .ac-sidebar__chevron { display: none; }
+.ac-sidebar__team-mark {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--rim-bg-accent);
+  color: var(--rim-blue);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+}
 .ac-sidebar__nav { gap: 0; }
 .ac-sidebar__section-label {
   margin: 0 0 8px;
@@ -24976,6 +25002,13 @@ input.w-button { -webkit-appearance: button; }
 .ac-sidebar__link--nested {
   padding-left: 42px;
   font-size: var(--text-xs);
+  align-items: flex-start;
+}
+.ac-sidebar__link--nested .ac-sidebar__label {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  line-height: 1.35;
 }
 
 .ac-content { padding: 56px clamp(32px, 5vw, 80px) 96px; }
@@ -25163,6 +25196,12 @@ input.w-button { -webkit-appearance: button; }
   .member-bar__brand img { height: 30px; }
   .ac-layout { min-height: calc(100vh - 60px); }
   .ac-sidebar { height: auto; padding: 0; }
+  .ac-sidebar--collapsed .ac-sidebar__label {
+    width: auto;
+    overflow: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
   .ac-sidebar__section-label { display: none; }
   .ac-sidebar__link,
   .ac-sidebar__group-toggle { border-left: none; padding: 10px 12px; }
@@ -25178,6 +25217,9 @@ input.w-button { -webkit-appearance: button; }
   .today-focus__action { align-items: flex-start; justify-content: center; text-align: left; }
   .today-list__action { justify-content: flex-start; text-align: left; }
   .today-list__item { padding: 14px 20px 18px; }
+  .db2-upcoming__date-block { width: 58px; }
+  .db2-upcoming__title { padding: 14px 12px; }
+  .db2-upcoming__status { padding-right: 12px; }
 }
 
 /* ── Public program detail refinement (pg-) ─────────────────────
@@ -25970,6 +26012,12 @@ input.w-button { -webkit-appearance: button; }
   border-right: 0;
   background: var(--rim-bg-bright);
 }
+
+/* This final cascade owns authenticated shell geometry. Keep the collapsed
+   rail narrow here too; otherwise this later rule restores 220px while the
+   labels disappear. */
+.hub-ws-sidebar--collapsed { width: 64px; }
+.hub-ws-collapse { width: 44px; height: 44px; }
 
 .hub-ws-identity {
   padding: 32px 18px 18px;

@@ -36,7 +36,7 @@ A Space is the stable team home; an app is an optional focused capability instal
 
 Before registering or changing any app that can be installed through `HubAppLink`, verify all of the following in code and in `RIM_Hub_Engineering.md`:
 
-1. Declare `multi-space` or `primary-space` compatibility and whether the app may be primary.
+1. Declare `multi-space` or `primary-space` compatibility, whether the app may be primary, and one distinct semantic `iconKey`.
 2. Scope every read, write, permission gate, notification recipient, and URL by the resource Space.
 3. Provide no more than one Home contribution (`summary`, `module`, or `none`); a module replaces its launcher card.
 4. Emit only meaningful, visible Updates with explicit `sourceKey`, `sourceLabel`, and durable `kind`.

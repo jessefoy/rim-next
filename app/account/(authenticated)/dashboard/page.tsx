@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Flame } from "lucide-react";
 import { db } from "@/lib/db";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
 import { ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
@@ -406,10 +405,10 @@ export default async function DashboardPage() {
     .filter((item) => item.isRegistered).length;
   const summaryParts: string[] = [];
   if (sessionCount > 0) summaryParts.push(`${sessionCount} session${sessionCount > 1 ? "s" : ""} today`);
-  if (pendingDanaCount > 0) summaryParts.push(`${pendingDanaCount} dana offering${pendingDanaCount > 1 ? "s" : ""} to complete`);
+  if (pendingDanaCount > 0) summaryParts.push(`${pendingDanaCount} dana invitation${pendingDanaCount > 1 ? "s" : ""}`);
   const summaryLine = summaryParts.length > 0
     ? `You have ${summaryParts.join(" and ")}.`
-    : fmtTodayFull();
+    : "You have nothing scheduled today.";
 
   return (
     <AccountLayout>
@@ -521,8 +520,11 @@ export default async function DashboardPage() {
                     </span>
                     <span className="db2-upcoming__status">
                       {hasPendingDana
-                        ? <span title="You're invited to offer dana for this program — a voluntary gift, welcomed with gratitude.">
-                            <Flame size={16} strokeWidth={1.75} className="db2-dana-icon" />
+                        ? <span
+                            className="db2-chip db2-chip--dana"
+                            title="You're invited to offer dana for this program — a voluntary gift, welcomed with gratitude."
+                          >
+                            Dana invitation
                           </span>
                         : <span className="db2-chip db2-chip--registered">Registered</span>
                       }

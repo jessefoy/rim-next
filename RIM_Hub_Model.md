@@ -85,7 +85,7 @@ Example app links seeded for existing hubs:
 
 **Update strategy:** The PATCH endpoint replaces app links and hub configuration inside one database transaction. Existing rows remain valid until the replacement and hub update can both succeed.
 
-**Registered app contract:** `toolSlug` identifies a registered app in `lib/toolRegistry.ts`. The registry declares whether the app is multi-Space safe or restricted to one primary Space, whether it may lead Home, and its promised Home/Updates/attention contributions. Scheduler is multi-Space; Program Manager is restricted to `registrar`; Course Manager is restricted to `courses`. A custom link has `toolSlug: null`: it is navigation only and never grants tool access or contributes app data.
+**Registered app contract:** `toolSlug` identifies a registered app in `lib/toolRegistry.ts`. The registry declares its distinct semantic navigation icon, whether the app is multi-Space safe or restricted to one primary Space, whether it may lead Home, and its promised Home/Updates/attention contributions. Scheduler is multi-Space; Program Manager is restricted to `registrar`; Course Manager is restricted to `courses`. A custom link has `toolSlug: null`: it is navigation only and never grants tool access or contributes app data.
 
 ### Step 5: Coordinator configures hub content
 

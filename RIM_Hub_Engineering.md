@@ -193,7 +193,7 @@ When adding a new hub-aware behavior, the first question is: **is this a code br
 
 ## A registered app is a contract, not a link (sessions 167–168)
 
-`HubAppLink.toolSlug` marks a real installation. `lib/toolRegistry.ts` declares the app's canonical route, compatibility, whether it may be primary, and which Space contributions it promises. `lib/hubApps.ts` is the server provider registry that fulfills those promises. The module validates declared Updates/attention capabilities at load time, and its provider map is exhaustive over `ToolSlug`; registering a slug without a provider is a compile-time failure. A row with `toolSlug: null` is a custom navigation link only.
+`HubAppLink.toolSlug` marks a real installation. `lib/toolRegistry.ts` declares the app's canonical route, distinct semantic `iconKey`, compatibility, whether it may be primary, and which Space contributions it promises. `lib/hubApps.ts` is the server provider registry that fulfills those promises. The module validates declared Updates/attention capabilities at load time, and its provider map is exhaustive over `ToolSlug`; registering a slug without a provider is a compile-time failure. A row with `toolSlug: null` is a custom navigation link only.
 
 An installation may provide five things: sidebar navigation, active-member tool access, one Home contribution, source-aware Updates, and personal attention. Those must agree about the same Space. It must never replace the base Home or use a hub-slug switch to create a parallel Space implementation.
 
@@ -215,7 +215,7 @@ Current safety rules:
 Before a new app may be installed through `HubAppLink`, all ten answers must be explicit:
 
 1. Is it `multi-space` or `primary-space`?
-2. May it be the primary app?
+2. May it be the primary app, and which unique semantic icon identifies it?
 3. Do every scoped read and write derive authority from the resource Space?
 4. What is its single Home contribution (`summary`, `module`, or `none`)?
 5. Which durable, actor-attributed events are meaningful Updates?

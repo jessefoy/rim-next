@@ -10,11 +10,14 @@
 
 export const TOOL_SLUGS = ["schedule", "programs", "learning"] as const;
 export type ToolSlug = (typeof TOOL_SLUGS)[number];
+export type ToolIconKey = "calendar" | "programs" | "learning";
 
 export interface ToolDefinition {
   slug: ToolSlug;
   label: string;
   path: string;
+  /** Stable semantic icon identity used by every Space navigation rail. */
+  iconKey: ToolIconKey;
   description: string;
   /**
    * Whether this app can safely operate in more than one Space. A registered
@@ -39,6 +42,7 @@ export const TOOL_REGISTRY = [
     slug: "schedule",
     label: "Scheduler",
     path: "/tools/schedule",
+    iconKey: "calendar",
     description: "Session calendar, assignments, sub requests — scoped per hub",
     spaceMode: "multi-space",
     canBePrimary: true,
@@ -48,6 +52,7 @@ export const TOOL_REGISTRY = [
     slug: "programs",
     label: "Program Manager",
     path: "/tools/programs",
+    iconKey: "programs",
     description: "Program CRUD, scheduling, registration settings",
     spaceMode: "primary-space",
     primarySpaceSlug: "registrar",
@@ -58,6 +63,7 @@ export const TOOL_REGISTRY = [
     slug: "learning",
     label: "Course Manager",
     path: "/tools/learning",
+    iconKey: "learning",
     description: "Series, lessons, and course content management",
     spaceMode: "primary-space",
     primarySpaceSlug: "courses",
