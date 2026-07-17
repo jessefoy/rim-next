@@ -13,7 +13,7 @@ For broader hub rules see `RIM_Hub_Engineering.md`. For email rules see `RIM_Ema
 The Scheduler is the team tool for managing live session coverage. Every hub that hosts programs has its own scoped view of the Scheduler — host-team sees host-team programs, peer-led-silent-meditation sees peer-led-silent-meditation programs.
 
 Two top-level tabs:
-- **Schedule** — month-by-month view of upcoming sessions, claim/release affordances, sub-request UI, the "Your Rotations" panel summarizing the current user's standing assignments scoped to this hub.
+- **Schedule** — month-by-month view of upcoming sessions, claim/release affordances, and sub-request UI. The dated session cards are the member's authoritative view of what they are covering; standing-rotation rules are not repeated above the schedule.
 - **Rotations** — coordinator-only editor for standing host assignments. Hub-scoped per record as of session 129; any hub's coordinator can manage rotations in their own hub.
 
 The tool was originally named "Host Schedule" when host-team was the only hub. Renamed to "Scheduler" in Slice 2 to read correctly across multiple hubs.
@@ -70,8 +70,6 @@ const programs = await db.program.findMany({
 Primary-hub coverage: programs with `hostingHubSlug = hub` (host-team picks up null + explicit via Prisma `OR`).  Auxiliary-hub coverage: programs with a matching `ProgramCoverageHub` row.
 
 **Outbound URLs (layer 4).** Every email sent from a Scheduler action constructs URLs via `hubScopedUrl(path, hubSlug)` where `hubSlug` is the assignment's / rotation's own hub. Slice 2.5 established the helper; session 129 routes by the resource's hub so AV emails land in AV, etc.
-
-**Your Rotations panel (a layer-3 detail).** Hub-scoped via the new `StandingAssignment.hubSlug` column — the query is now `where: { userId, hubSlug: activeHubSlug }` directly, no in-memory filtering needed (replaces the Slice 2 in-memory filter).
 
 ---
 
@@ -193,10 +191,11 @@ All three emails carry `hubSlug` derived from `program.hostingHubSlug` so every 
 
 Affordance gates: `kind === "mine"` AND `!isPast`. `kind === "mine"` requires `hostUserId === currentUserId`. The Schedule page defaults to the current month; the apply path (`applyStandingAssignments.ts`) skips past dates when creating HostAssignments — so a host whose rotation starts in a future month has no "mine" rows in the current-month default view, and the "Ask the team to cover" button never appears.
 
-Session 130 closed this with two layers of discoverability:
+Session 130 closed this with a month-specific email deep link:
 
 - **`sendStandingAssignmentScheduledEmail`** now takes `firstSessionMonth?: string` (the YYYY-MM of the earliest scheduled session) and deep-links the CTA URL to `/tools/schedule?month=<that>&hub=<slug>`. Computed at the apply / standing-assignments POST / cron call sites from the apply result's `sessions[].dateStr`. The schedule page reads `?month=` permissively (bad input falls back to current month).
-- **The Your Rotations panel's "Next" block** is a clickable `<button>` that jumps the calendar to the target month via `jumpToMonth(year, month)` in `HubScheduleClient`. Use `Intl.DateTimeFormat(..., { timeZone: TZ }).formatToParts()` to extract year/month from the next-session ISO — locale-string parsing through `new Date()` is not in the ECMA spec and is unreliable on Safari.
+
+The former "Your Rotations" summary above the Schedule was removed in session 168 because it duplicated the actual dated assignments and added visual clutter. Rotation rules remain fully available to coordinators in the Rotations tab; members see the resulting sessions in the Schedule. Keep the `?month=YYYY-MM` email deep link as the direct path to a future assigned session.
 
 When adding any feature that points a user at a specific session by URL, prefer `?month=YYYY-MM` (deep-link the month) over relying on the current-month default. The URL is the contract.
 
@@ -333,8 +332,6 @@ A program with `recurrenceFreq = "MONTHLY"` repeats on the **same weekday-and-po
 ## Common pitfalls
 
 **The schedule URL without `?hub=` defaults to host-team.** Always include the hub when generating links — internally (sidebar app-link auto-append), externally (email URLs via `hubScopedUrl`).
-
-**Standing rotations leaking across hubs in the "Your Rotations" panel.** Fixed in Slice 2 by the in-memory filter, but if you change the data flow (e.g. add a second query that pulls rotations), apply the same filter or replicate the program-slug `IN (...)` constraint.
 
 **The cover URL deep link.** The full URL pattern is `/tools/schedule?action=cover&id=<id>&hub=<slug>` (Slice 2.5 added the hub param). The schedule page reads `action` and `id` from the query string and opens the cover modal. Don't break that handshake — if you change the URL shape, update both the email and the page.
 

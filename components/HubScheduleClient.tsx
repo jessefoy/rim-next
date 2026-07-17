@@ -72,16 +72,6 @@ interface Session {
   hostBadge?: "paused" | "inactive" | null;
 }
 
-/** A standing rotation the current user is on — drives the host-side summary. */
-interface MyRotation {
-  id:          string;
-  programSlug: string;
-  programName: string;
-  occurrence:  "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "FIFTH" | "LAST" | "ALL";
-  dayOfWeek:   string | null;
-  endsOn:      string | null;
-}
-
 /** Programs created within this many days show a NEW badge on schedule cards. */
 const NEW_PROGRAM_DAYS = 14;
 
@@ -112,10 +102,6 @@ interface Props {
   isHostManager?: boolean;
   /** HOST_MANAGER / ADMIN / hub coordinator — rotation clear/reset controls. */
   isManager?: boolean;
-  /** The current user's active standing rotations (host-side summary only). */
-  myRotations?: MyRotation[];
-  /** Next upcoming HostAssignment ISO datetime per programSlug — drives the "Next" column. */
-  nextSessionBySlug?: Record<string, string>;
   apiBase?: string;
   /** Active hub slug — drives the hub-scoped rotation list lookup. Slice 2.6. */
   hubSlug?: string;
@@ -814,44 +800,11 @@ function HsRow({
 
 // ── Main ────────────────────────────────────────────────────
 
-const OCC_ORDER = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH"] as const;
-const OCC_SHORT: Record<string, string> = {
-  FIRST: "1st", SECOND: "2nd", THIRD: "3rd", FOURTH: "4th", FIFTH: "5th",
-};
-
-/** Format a set of occurrence values into a single readable label. */
-function formatOccurrences(occs: Set<string>): string {
-  if (occs.has("ALL"))  return "every session";
-  if (occs.has("LAST")) return "last of the month";
-  const sorted = OCC_ORDER.filter((o) => occs.has(o));
-  if (sorted.length === 0) return "—";
-  // Named common patterns
-  const key = sorted.join(",");
-  if (key === "FIRST,SECOND,THIRD,FOURTH") return "every week";
-  if (key === "FIRST,THIRD")  return "1st & 3rd of the month";
-  if (key === "SECOND,FOURTH") return "2nd & 4th of the month";
-  // General
-  const labels = sorted.map((o) => OCC_SHORT[o] ?? o.toLowerCase());
-  return (labels.length === 1 ? labels[0] : labels.slice(0, -1).join(", ") + " & " + labels[labels.length - 1]) + " of the month";
-}
-
-/** Format a next-session ISO datetime as "Tue, May 20 · 8:00 AM" (CT). */
-function formatNextSession(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString("en-US", {
-    timeZone: TZ, weekday: "short", month: "short", day: "numeric",
-  });
-  const time = d.toLocaleTimeString("en-US", {
-    timeZone: TZ, hour: "numeric", minute: "2-digit",
-  });
-  return `${date} · ${time}`;
-}
-
 export default function HubScheduleClient({
   initialSessions, programs, teamMembers, initialYear, initialMonth,
   currentUserId, currentUserName,
-  isHostManager = false, isManager = false, myRotations = [],
-  nextSessionBySlug = {}, apiBase = "/api/host", hubSlug,
+  isHostManager = false, isManager = false,
+  apiBase = "/api/host", hubSlug,
   allowsMultipleAssignments = false,
   coverageCopy = { noun: "Host", verb: "hosting", action: "host this" },
 }: Props) {
@@ -969,14 +922,6 @@ export default function HubScheduleClient({
     const m = month === 11 ? 0 : month + 1;
     const y = month === 11 ? year + 1 : year;
     setYear(y); setMonth(m); loadMonth(y, m);
-  }
-  /** Jump to an arbitrary year+month (CT). Used by the Your Rotations
-   *  panel's "Next" affordance so a host can land directly on the month
-   *  containing their next rotation-derived session — session 130 fix
-   *  for the discoverability gap Maria's beta test surfaced. */
-  function jumpToMonth(targetYear: number, targetMonth: number) {
-    if (targetYear === year && targetMonth === month) return;
-    setYear(targetYear); setMonth(targetMonth); loadMonth(targetYear, targetMonth);
   }
   function goToCurrentMonth() {
     const t = new Date();
@@ -1426,91 +1371,6 @@ export default function HubScheduleClient({
 
       {/* Schedule view — hidden when rotations is active */}
       {view === "schedule" && <>
-
-      {/* Your standing rotations — host-side awareness panel.
-          One card per program. Multiple occurrence records for the same program
-          (e.g. FIRST + THIRD from an alternate pattern) are grouped and the
-          occurrences formatted as a single readable label. The right column
-          shows the next upcoming HostAssignment datetime for that program. */}
-      {myRotations.length > 0 && (() => {
-        const grouped = new Map<string, { programName: string; occs: Set<string>; endsOn: string | null }>();
-        for (const r of myRotations) {
-          if (!grouped.has(r.programSlug)) {
-            grouped.set(r.programSlug, { programName: r.programName, occs: new Set(), endsOn: r.endsOn });
-          }
-          grouped.get(r.programSlug)!.occs.add(r.occurrence);
-        }
-        return (
-          <div className="hs-myrot">
-            <p className="hs-myrot__heading">Your rotations</p>
-            {Array.from(grouped.entries()).map(([slug, g]) => {
-              const patLabel  = formatOccurrences(g.occs);
-              const endsLabel = g.endsOn
-                ? new Date(g.endsOn).toLocaleDateString("en-US", { month: "short", year: "numeric" })
-                : null;
-              const meta      = [patLabel, endsLabel ? `until ${endsLabel}` : null].filter(Boolean).join(" · ");
-              const nextIso   = nextSessionBySlug[slug] ?? null;
-              const nextLabel = nextIso ? formatNextSession(nextIso) : null;
-              // Compute the target month (in CT) so the "Next" button can
-              // jump the calendar there. Session 130 — closes the
-              // discoverability gap where Maria couldn't find the
-              // sub-request affordance from the current month because her
-              // rotation rows were all in a future month.
-              //
-              // Use `Intl.DateTimeFormat(..., { timeZone }).formatToParts()`
-              // rather than round-tripping a locale-formatted string through
-              // `new Date()`. Locale-string parsing is not in the ECMA spec
-              // and Safari has historically failed on common shapes —
-              // reviewer flagged in finding #3. This pattern is engine-
-              // agnostic and gives integers directly.
-              const nextTarget = (() => {
-                if (!nextIso) return null;
-                const d = new Date(nextIso);
-                if (Number.isNaN(d.getTime())) return null;
-                const parts = new Intl.DateTimeFormat("en-US", {
-                  timeZone: TZ,
-                  year:  "numeric",
-                  month: "numeric",
-                }).formatToParts(d);
-                const y = parseInt(parts.find((p) => p.type === "year")?.value ?? "", 10);
-                const m = parseInt(parts.find((p) => p.type === "month")?.value ?? "", 10);
-                if (!Number.isFinite(y) || !Number.isFinite(m)) return null;
-                return { year: y, month: m - 1 }; // JS month is 0-indexed
-              })();
-              const isAlreadyHere =
-                nextTarget !== null &&
-                nextTarget.year === year &&
-                nextTarget.month === month;
-              return (
-                <div key={slug} className="hs-myrot__card">
-                  <div className="hs-myrot__left">
-                    <p className="hs-myrot__prog">{g.programName}</p>
-                    <p className="hs-myrot__meta">{meta}</p>
-                  </div>
-                  {nextLabel && nextTarget && (
-                    isAlreadyHere ? (
-                      <div className="hs-myrot__right">
-                        <p className="hs-myrot__next-label">Next</p>
-                        <p className="hs-myrot__next-date">{nextLabel}</p>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="hs-myrot__right hs-myrot__right--jump"
-                        onClick={() => jumpToMonth(nextTarget.year, nextTarget.month)}
-                        aria-label={`Jump to ${nextLabel}`}
-                      >
-                        <p className="hs-myrot__next-label">Next →</p>
-                        <p className="hs-myrot__next-date">{nextLabel}</p>
-                      </button>
-                    )
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
 
       {/* Month nav */}
       <div className="hs-monthnav">

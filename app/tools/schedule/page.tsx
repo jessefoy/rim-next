@@ -48,10 +48,9 @@ export default async function ScheduleToolPage({
   // host-team when ?hub= is absent. After Slice 1, peer-led hubs (Silent
   // Meditation, etc.) can reach this page via `?hub=peer-led-silent-meditation`
   // and see only their hub's programs and rotations.
-  // `?month=YYYY-MM` (session 130) deep-links to a specific month — the
-  // standing-assignment confirmation email and the Your Rotations panel's
-  // "Next" affordance both pass it so hosts land on the actual month
-  // containing their next session.
+  // `?month=YYYY-MM` (session 130) deep-links to a specific month so the
+  // standing-assignment confirmation email can land hosts on the actual
+  // month containing their next session.
   const { hub: hubSlug, month: monthParam } = await searchParams;
   const activeHubSlug = hubSlug || DEFAULT_HOSTING_HUB_SLUG;
 
@@ -152,7 +151,7 @@ export default async function ScheduleToolPage({
   // surface in host-team's virtual-session view.
   const eligibleSlugs = await getProgramSlugsForHub(activeHubSlug);
 
-  const [pgPrograms, assignments, myRotationsRaw] = await Promise.all([
+  const [pgPrograms, assignments] = await Promise.all([
     db.program.findMany({
       where: {
         programFormat: { in: appliesToFormats },
@@ -181,26 +180,7 @@ export default async function ScheduleToolPage({
       },
       orderBy: { sessionDate: "asc" },
     }),
-    // Standing rotations for the current user — drives "Your standing rotations"
-    // summary at the top of the schedule. Coordinators see all rotations via the
-    // Rotations tab; hosts see just their own rotations here so they understand
-    // the recurring pattern that's putting sessions on their calendar.
-    // Hub-scoped via the StandingAssignment.hubSlug column (session 129) so
-    // a user with both a host-team rotation and an AV rotation sees only
-    // the active hub's panel.
-    db.standingAssignment.findMany({
-      where: {
-        userId: session.user.id,
-        hubSlug: activeHubSlug,
-        OR: [{ endsOn: null }, { endsOn: { gte: now } }],
-      },
-      orderBy: [{ programSlug: "asc" }, { occurrence: "asc" }],
-    }),
   ]);
-
-  // Already hub-scoped via the query; the in-memory filter Slice 2.6
-  // needed is no longer required.
-  const myRotationsRawScoped = myRotationsRaw;
 
   // Build pause-state map: userId → "paused" | "inactive"
   // A single HubMember query covers all assigned hosts in the initial month
@@ -393,43 +373,6 @@ export default async function ScheduleToolPage({
     }
   }
 
-  // Serialize the current user's active rotations for the host-side summary.
-  // Uses the hub-scoped list so cross-hub rotations don't leak into the
-  // Your Rotations panel.
-  const programNameBySlug = new Map(pgPrograms.map((p) => [p.slug, p.name]));
-  const myRotations = myRotationsRawScoped.map((r) => ({
-    id:          r.id,
-    programSlug: r.programSlug,
-    programName: programNameBySlug.get(r.programSlug) ?? r.programSlug,
-    occurrence:  r.occurrence,
-    dayOfWeek:   r.dayOfWeek ?? null,
-    endsOn:      r.endsOn?.toISOString() ?? null,
-  }));
-
-  // Next upcoming HostAssignment per rotation program for this user.
-  // Drives the "Next" column in the Your Rotations panel. Hub-scoped
-  // (session 129) so an AV volunteer's "Next" reads their AV assignment,
-  // not a host-team assignment on the same program.
-  const rotationSlugs = [...new Set(myRotationsRawScoped.map((r) => r.programSlug))];
-  const nextSessionBySlug: Record<string, string> = {};
-  if (rotationSlugs.length > 0) {
-    const upcoming = await db.hostAssignment.findMany({
-      where: {
-        userId: session.user.id,
-        hubSlug: activeHubSlug,
-        programSlug: { in: rotationSlugs },
-        sessionDate: { gte: now },
-      },
-      orderBy: { sessionDate: "asc" },
-      select: { programSlug: true, sessionDate: true },
-    });
-    for (const a of upcoming) {
-      if (a.sessionDate && !nextSessionBySlug[a.programSlug]) {
-        nextSessionBySlug[a.programSlug] = a.sessionDate.toISOString();
-      }
-    }
-  }
-
   const serializedPrograms = pgPrograms.map((p) => ({
     id: p.id,
     slug: p.slug,
@@ -452,8 +395,6 @@ export default async function ScheduleToolPage({
         isHostManager={isHostManager}
         coverageCopy={coverageCopy}
         isManager={isManager}
-        myRotations={myRotations}
-        nextSessionBySlug={nextSessionBySlug}
         apiBase="/api/host"
         hubSlug={activeHubSlug}
         allowsMultipleAssignments={allowsMultipleAssignments}
