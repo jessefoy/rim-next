@@ -7,6 +7,12 @@ import {
 import { getToolBySlug, type ToolSlug } from "@/lib/toolRegistry";
 
 export type HubActivitySourceKey = "conversations" | "files" | "members" | `app:${ToolSlug}`;
+export type HubActivitySource = "all" | HubActivitySourceKey;
+
+export type HubActivitySourceOption = {
+  key: HubActivitySourceKey;
+  label: string;
+};
 
 /** One source-aware shape for every meaningful item in Space Updates. */
 export type HubActivityItem = {
@@ -101,10 +107,43 @@ async function installedUpdateApps(hubId: string): Promise<ToolSlug[]> {
     where: { hubId, isEnabled: true, toolSlug: { not: null } },
     select: { toolSlug: true },
   });
-  return links.flatMap((link) => {
+  const toolSlugs = links.flatMap((link) => {
     const tool = link.toolSlug ? getToolBySlug(link.toolSlug) : null;
     return tool?.spaceContributions.updates ? [tool.slug] : [];
   });
+  return [...new Set(toolSlugs)];
+}
+
+/** The core sections and installed apps that can contribute Updates here. */
+export async function listHubActivitySources(options: {
+  hubId: string;
+  conversationsEnabled: boolean;
+  filesEnabled: boolean;
+}): Promise<HubActivitySourceOption[]> {
+  const toolSlugs = await installedUpdateApps(options.hubId);
+  const sources: HubActivitySourceOption[] = [
+    ...(options.conversationsEnabled
+      ? [{ key: "conversations" as const, label: "Conversations" }]
+      : []),
+    ...(options.filesEnabled ? [{ key: "files" as const, label: "Files" }] : []),
+    { key: "members", label: "Members" },
+    ...toolSlugs.flatMap((slug) => {
+      const tool = getToolBySlug(slug);
+      return tool ? [{ key: `app:${slug}` as const, label: tool.label }] : [];
+    }),
+  ];
+  return sources.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/** Treat an unknown or non-Updates source as the complete stream. */
+export function parseHubActivitySource(value: string | null): HubActivitySource {
+  if (value === "conversations" || value === "files" || value === "members") return value;
+  if (value?.startsWith("app:")) {
+    const slug = value.slice(4);
+    const tool = getToolBySlug(slug);
+    if (tool?.spaceContributions.updates) return `app:${tool.slug}`;
+  }
+  return "all";
 }
 
 export async function listHubActivity(options: {
@@ -112,6 +151,8 @@ export async function listHubActivity(options: {
   hubSlug: string;
   userId: string;
   conversationsEnabled?: boolean;
+  filesEnabled?: boolean;
+  source?: HubActivitySource;
   filter?: HubActivityFilter;
   newSince?: Date | null;
   cursor?: string | null;
@@ -125,10 +166,17 @@ export async function listHubActivity(options: {
   const cursorDate = validCursor(options.cursor);
   const createdAt = createdAtWindow(cursorDate, filter, options.newSince ?? null);
   const forUser = filter === "for-me";
-  const toolSlugs = await installedUpdateApps(options.hubId);
+  const source = options.source ?? "all";
+  const includesSource = (key: HubActivitySourceKey) => source === "all" || source === key;
+  const installedToolSlugs = await installedUpdateApps(options.hubId);
+  const toolSlugs = source === "all"
+    ? installedToolSlugs
+    : source.startsWith("app:")
+      ? installedToolSlugs.filter((slug) => source === `app:${slug}`)
+      : [];
 
   const [threads, replies, fileAudits, joins, appItems] = await Promise.all([
-    options.conversationsEnabled === false || forUser
+    !includesSource("conversations") || options.conversationsEnabled === false || forUser
       ? Promise.resolve([])
       : db.hubConversationThread.findMany({
           where: {
@@ -146,7 +194,7 @@ export async function listHubActivity(options: {
           orderBy: { createdAt: "desc" },
           take: limit,
         }),
-    options.conversationsEnabled === false
+    !includesSource("conversations") || options.conversationsEnabled === false
       ? Promise.resolve([])
       : db.hubConversationReply.findMany({
           where: {
@@ -174,18 +222,20 @@ export async function listHubActivity(options: {
           orderBy: { createdAt: "desc" },
           take: limit,
         }),
-    db.googleFileAudit.findMany({
-      where: {
-        hubId: options.hubId,
-        action: { in: forUser ? ["comment"] : [...FILE_ACTIONS] },
-        ...(forUser ? { userId: { not: options.userId } } : {}),
-        ...(createdAt ? { createdAt } : {}),
-      },
-      select: { id: true, userId: true, action: true, googleFileId: true, detail: true, createdAt: true },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-    }),
-    forUser
+    !includesSource("files") || options.filesEnabled === false
+      ? Promise.resolve([])
+      : db.googleFileAudit.findMany({
+          where: {
+            hubId: options.hubId,
+            action: { in: forUser ? ["comment"] : [...FILE_ACTIONS] },
+            ...(forUser ? { userId: { not: options.userId } } : {}),
+            ...(createdAt ? { createdAt } : {}),
+          },
+          select: { id: true, userId: true, action: true, googleFileId: true, detail: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+    !includesSource("members") || forUser
       ? Promise.resolve([])
       : db.hubMember.findMany({
           where: {

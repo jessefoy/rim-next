@@ -207,6 +207,7 @@ Current safety rules:
 - When a Space has enabled registered apps, one is primary (`HubAppLink.isPrimary`); a partial unique index enforces at most one primary per Space. Other registered apps are supporting. Custom links can never be primary.
 - Home renders at most one contribution per app. A primary module replaces its launcher card rather than appearing beside a duplicate card. Supporting apps stay compact; custom links are quiet navigation.
 - Updates adapters emit only meaningful, visible events (never held Google-file draft activity) and every item names `sourceKey`, `sourceLabel`, and `kind`.
+- The Updates View menu derives exact categories from enabled core features plus installed apps whose registry contract promises Updates. Exact-source filtering happens in `listHubActivity()` before the merged stream is paginated; never filter only the already-loaded client page.
 - Personal attention is separate from shared Updates. An app owns the meaning and recipients; the Space owns the consistent Home rendering. Passive history must not become an attention badge.
 - `HubMember.activitySeenAt` is the Updates read boundary. Home/conversation visits must not clear it. The Updates rail uses a quiet new dot; detailed counts belong to their owning feature/app.
 

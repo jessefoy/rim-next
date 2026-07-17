@@ -1,7 +1,11 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
-import { listHubActivity, type HubActivityFilter } from "@/lib/hubActivity";
+import {
+  listHubActivity,
+  parseHubActivitySource,
+  type HubActivityFilter,
+} from "@/lib/hubActivity";
 
 /** Paginated, source-aware Space Updates. */
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -19,6 +23,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   const rawLimit = Number.parseInt(url.searchParams.get("limit") ?? "30", 10);
   const rawFilter = url.searchParams.get("filter");
   const filter: HubActivityFilter = rawFilter === "new" || rawFilter === "for-me" ? rawFilter : "all";
+  const source = parseHubActivitySource(url.searchParams.get("source"));
   const rawNewSince = url.searchParams.get("newSince");
   const parsedNewSince = rawNewSince ? new Date(rawNewSince) : null;
   const newSince = parsedNewSince && !Number.isNaN(parsedNewSince.getTime())
@@ -29,6 +34,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     hubSlug: slug,
     userId: session.user.id,
     conversationsEnabled: hub.conversationsEnabled,
+    filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
+    source,
     filter,
     newSince,
     cursor: url.searchParams.get("cursor"),

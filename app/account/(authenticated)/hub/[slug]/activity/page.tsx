@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
-import { listHubActivity } from "@/lib/hubActivity";
+import { listHubActivity, listHubActivitySources } from "@/lib/hubActivity";
 import HubActivityClient from "@/components/HubActivityClient";
 
 export const dynamic = "force-dynamic";
@@ -26,15 +26,24 @@ export default async function HubActivityPage({
 
   const priorSeenAt = member?.activitySeenAt ?? null;
   const initialFilter = query.filter === "new" || query.filter === "for-me" ? query.filter : "all";
-  const initial = await listHubActivity({
-    hubId: hub.id,
-    hubSlug: slug,
-    userId: session.user.id,
-    conversationsEnabled: hub.conversationsEnabled,
-    filter: initialFilter,
-    newSince: priorSeenAt,
-    limit: 30,
-  });
+  const filesEnabled = hub.googleFilesEnabled && Boolean(hub.googleDriveId);
+  const [initial, sourceOptions] = await Promise.all([
+    listHubActivity({
+      hubId: hub.id,
+      hubSlug: slug,
+      userId: session.user.id,
+      conversationsEnabled: hub.conversationsEnabled,
+      filesEnabled,
+      filter: initialFilter,
+      newSince: priorSeenAt,
+      limit: 30,
+    }),
+    listHubActivitySources({
+      hubId: hub.id,
+      conversationsEnabled: hub.conversationsEnabled,
+      filesEnabled,
+    }),
+  ]);
 
   // Updates owns its read boundary. Visiting Home or Conversations no longer
   // consumes this stream's badge.
@@ -52,6 +61,7 @@ export default async function HubActivityPage({
       initialNextCursor={initial.nextCursor}
       initialFilter={initialFilter}
       newSince={priorSeenAt?.toISOString() ?? null}
+      sourceOptions={sourceOptions}
     />
   );
 }

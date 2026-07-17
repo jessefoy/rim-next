@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CalendarDays, FileText, MessageSquare, UserPlus } from "lucide-react";
-import type { HubActivityFilter, HubActivityItem } from "@/lib/hubActivity";
+import type {
+  HubActivityFilter,
+  HubActivityItem,
+  HubActivitySourceKey,
+  HubActivitySourceOption,
+} from "@/lib/hubActivity";
 
 interface ActivityPageState {
   items: HubActivityItem[];
@@ -17,9 +22,18 @@ interface Props {
   initialNextCursor: string | null;
   initialFilter: HubActivityFilter;
   newSince: string | null;
+  sourceOptions: HubActivitySourceOption[];
 }
 
-type ActivityView = "recent" | "category";
+type ActivityView = "timeline" | "categories" | HubActivitySourceKey;
+
+function sourceForView(view: ActivityView): "all" | HubActivitySourceKey {
+  return view === "timeline" || view === "categories" ? "all" : view;
+}
+
+function pageKey(filter: HubActivityFilter, view: ActivityView): string {
+  return `${filter}:${sourceForView(view)}`;
+}
 
 function relativeTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -64,7 +78,9 @@ function groupByCategory(items: HubActivityItem[]) {
       groups.set(item.sourceKey, { label: categoryLabel(item), items: [item] });
     }
   }
-  return [...groups.entries()].map(([key, group]) => ({ key, ...group }));
+  return [...groups.entries()]
+    .map(([key, group]) => ({ key, ...group }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
 function ActivityItemRow({
@@ -100,21 +116,32 @@ export default function HubActivityClient({
   initialNextCursor,
   initialFilter,
   newSince,
+  sourceOptions,
 }: Props) {
   const emptyState = (): ActivityPageState => ({ items: [], nextCursor: null, loaded: false });
   const [filter, setFilter] = useState<HubActivityFilter>(initialFilter);
-  const [view, setView] = useState<ActivityView>("recent");
+  const [view, setView] = useState<ActivityView>("timeline");
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const viewMenuRef = useRef<HTMLDivElement>(null);
-  const [pages, setPages] = useState<Record<HubActivityFilter, ActivityPageState>>({
-    all: initialFilter === "all" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
-    new: initialFilter === "new" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
-    "for-me": initialFilter === "for-me" ? { items: initialItems, nextCursor: initialNextCursor, loaded: true } : emptyState(),
+  const [pages, setPages] = useState<Record<string, ActivityPageState>>({
+    [pageKey(initialFilter, "timeline")]: {
+      items: initialItems,
+      nextCursor: initialNextCursor,
+      loaded: true,
+    },
   });
+  const pendingRequests = useRef(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const current = pages[filter];
+  const currentPageKey = pageKey(filter, view);
+  const current = pages[currentPageKey] ?? emptyState();
   const categoryGroups = groupByCategory(current.items);
+  const selectedSource = sourceOptions.find((option) => option.key === view);
+  const viewLabel = view === "timeline"
+    ? "Date and time"
+    : view === "categories"
+      ? "All categories"
+      : selectedSource?.label ?? "Category";
 
   useEffect(() => {
     if (!viewMenuOpen) return;
@@ -127,23 +154,26 @@ export default function HubActivityClient({
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, [viewMenuOpen]);
 
-  async function fetchPage(nextFilter: HubActivityFilter, cursor?: string | null) {
-    if (loading) return;
+  async function fetchPage(nextFilter: HubActivityFilter, nextView: ActivityView, cursor?: string | null) {
+    pendingRequests.current += 1;
     setLoading(true);
     setError("");
     try {
       const qs = new URLSearchParams({ limit: "30", filter: nextFilter });
+      const source = sourceForView(nextView);
+      if (source !== "all") qs.set("source", source);
       if (cursor) qs.set("cursor", cursor);
       if (newSince) qs.set("newSince", newSince);
       const res = await fetch(`/api/hub/${hubSlug}/activity?${qs}`);
       if (!res.ok) throw new Error("Updates could not be loaded.");
       const data = await res.json() as { items: HubActivityItem[]; nextCursor: string | null };
       setPages((prev) => {
-        const existing = cursor ? prev[nextFilter].items : [];
+        const key = pageKey(nextFilter, nextView);
+        const existing = cursor ? (prev[key]?.items ?? []) : [];
         const ids = new Set(existing.map((item) => item.id));
         return {
           ...prev,
-          [nextFilter]: {
+          [key]: {
             items: [...existing, ...data.items.filter((item) => !ids.has(item.id))],
             nextCursor: data.nextCursor,
             loaded: true,
@@ -153,20 +183,36 @@ export default function HubActivityClient({
     } catch {
       setError("Updates couldn’t be loaded. Try again.");
     } finally {
-      setLoading(false);
+      pendingRequests.current -= 1;
+      if (pendingRequests.current === 0) setLoading(false);
     }
   }
 
   function changeFilter(next: HubActivityFilter) {
     setFilter(next);
-    if (!pages[next].loaded) void fetchPage(next);
+    const key = pageKey(next, view);
+    if (!pages[key]?.loaded) void fetchPage(next, view);
   }
 
-  const emptyCopy = filter === "new"
-    ? "You’re caught up."
-    : filter === "for-me"
-      ? "Nothing needs your attention here."
-      : "No updates yet.";
+  function changeView(next: ActivityView) {
+    setView(next);
+    setViewMenuOpen(false);
+    const key = pageKey(filter, next);
+    if (!pages[key]?.loaded) void fetchPage(filter, next);
+  }
+
+  const sourceName = selectedSource?.label;
+  const emptyCopy = sourceName
+    ? filter === "new"
+      ? `No new ${sourceName.toLowerCase()} updates.`
+      : filter === "for-me"
+        ? `No ${sourceName.toLowerCase()} updates need your attention.`
+        : `No ${sourceName.toLowerCase()} updates yet.`
+    : filter === "new"
+      ? "You’re caught up."
+      : filter === "for-me"
+        ? "Nothing needs your attention here."
+        : "No updates yet.";
 
   return (
     <div className="hub-act">
@@ -199,33 +245,42 @@ export default function HubActivityClient({
                 aria-expanded={viewMenuOpen}
                 onClick={() => setViewMenuOpen((open) => !open)}
               >
-                <span>{view === "recent" ? "Recent" : "By category"}</span>
+                <span>{viewLabel}</span>
                 <span className="hub-act__view-caret" aria-hidden="true">▾</span>
               </button>
               {viewMenuOpen && (
                 <div className="hub-act__view-menu" role="menu" aria-label="Organize updates">
                   <button
                     type="button"
-                    role="menuitem"
-                    className={`hub-act__view-option${view === "recent" ? " hub-act__view-option--active" : ""}`}
-                    onClick={() => {
-                      setView("recent");
-                      setViewMenuOpen(false);
-                    }}
+                    role="menuitemradio"
+                    aria-checked={view === "timeline"}
+                    className={`hub-act__view-option${view === "timeline" ? " hub-act__view-option--active" : ""}`}
+                    onClick={() => changeView("timeline")}
                   >
-                    Recent
+                    Date and time
                   </button>
                   <button
                     type="button"
-                    role="menuitem"
-                    className={`hub-act__view-option${view === "category" ? " hub-act__view-option--active" : ""}`}
-                    onClick={() => {
-                      setView("category");
-                      setViewMenuOpen(false);
-                    }}
+                    role="menuitemradio"
+                    aria-checked={view === "categories"}
+                    className={`hub-act__view-option${view === "categories" ? " hub-act__view-option--active" : ""}`}
+                    onClick={() => changeView("categories")}
                   >
-                    By category
+                    All categories
                   </button>
+                  {sourceOptions.length > 0 && <div className="hub-act__view-divider" />}
+                  {sourceOptions.map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={view === option.key}
+                      className={`hub-act__view-option${view === option.key ? " hub-act__view-option--active" : ""}`}
+                      onClick={() => changeView(option.key)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -239,7 +294,7 @@ export default function HubActivityClient({
         <p className="hub-act__empty">Loading updates…</p>
       ) : current.items.length === 0 ? (
         <p className="hub-act__empty">{emptyCopy}</p>
-      ) : view === "recent" ? (
+      ) : view !== "categories" ? (
         <ul className="hub-act__list">
           {current.items.map((item) => (
             <ActivityItemRow key={item.id} item={item} showNew={filter === "all"} />
@@ -269,7 +324,7 @@ export default function HubActivityClient({
         <button
           type="button"
           className="hub-act__load-more"
-          onClick={() => void fetchPage(filter, current.nextCursor)}
+          onClick={() => void fetchPage(filter, view, current.nextCursor)}
           disabled={loading}
         >
           {loading ? "Loading…" : "Load more"}
