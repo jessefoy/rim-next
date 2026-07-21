@@ -8,10 +8,19 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+const GOOD_FIRST_VISIT_SLUGS = new Set([
+  "the-art-of-meditation",
+  "meditation-and-dharma-talk",
+]);
+
 export default async function CommunityProgramsPage() {
   const [programs, categories] = await Promise.all([
     db.program.findMany({
-      where: { hideFromProgramPageList: false, archivedAt: null },
+      where: {
+        hideFromProgramPageList: false,
+        archivedAt: null,
+        slug: { not: "dummy-test-program" },
+      },
       include: { category: true },
       orderBy: { sortOrder: "asc" },
     }),
@@ -45,8 +54,8 @@ export default async function CommunityProgramsPage() {
             <p className="pl-catalog__eyebrow">Find a place to begin</p>
             <h2 className="pl-catalog__title">Come as you are.</h2>
             <p className="pl-catalog__body">
-              Join a single gathering, find a regular practice, or explore a course when
-              you&rsquo;re ready.
+              New here? Begin with any drop-in. Return whenever you like, find a regular
+              rhythm, or explore a course when you&rsquo;re ready.
             </p>
           </div>
 
@@ -55,11 +64,14 @@ export default async function CommunityProgramsPage() {
               (p) => p.category?.name === category.name
             );
             if (categoryPrograms.length === 0) return null;
+            const categoryHeading = category.name === "Drop-Ins: Open Practice and Learning"
+              ? "Open Practice & Learning"
+              : category.name;
 
             return (
               <div key={category.id} className="pl-cat">
                 <div className="pl-cat__header">
-                  <h2 className="pl-cat__heading">{category.name}</h2>
+                  <h2 className="pl-cat__heading">{categoryHeading}</h2>
                 </div>
                 <div className="pl-grid">
                   {categoryPrograms.map((program) => {
@@ -77,7 +89,12 @@ export default async function CommunityProgramsPage() {
                       >
                         <div className="pl-card__content">
                           <div className="pl-card__main">
-                            <h3 className="pl-card__title">{program.name}</h3>
+                            <div className="pl-card__title-row">
+                              <h3 className="pl-card__title">{program.name}</h3>
+                              {GOOD_FIRST_VISIT_SLUGS.has(program.slug) && (
+                                <span className="pl-card__starter">Good first visit</span>
+                              )}
+                            </div>
                             {program.tagline && (
                               <span className="pl-card__tagline">{program.tagline}</span>
                             )}
@@ -85,11 +102,6 @@ export default async function CommunityProgramsPage() {
                               {schedule && <span className="pl-card__schedule">{schedule}</span>}
                               <span className="pl-card__format">{format}</span>
                             </div>
-                            {program.specialAnnouncement && (
-                              <span className="pl-card__announcement">
-                                {program.specialAnnouncement}
-                              </span>
-                            )}
                           </div>
                           <span className="pl-card__action" aria-hidden="true">→</span>
                         </div>
