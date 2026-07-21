@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import Image from "next/image";
 import Link from "next/link";
 import { buildSubtitle, fmtLabel } from "@/lib/programUtils";
 
@@ -80,12 +79,12 @@ export default async function CommunityProgramsPage() {
                         className="pl-card"
                       >
                         <span className="pl-card__media">
-                          <Image
+                          {/* Program images come from coordinator-managed Sanity and Blob URLs. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
                             src={program.programImage || "/images/Bodhi-Leaves.jpg"}
                             alt=""
-                            fill
-                            sizes="(max-width: 768px) 100vw, 50vw"
-                            unoptimized
+                            loading="lazy"
                           />
                           <span className="pl-card__format">{format}</span>
                         </span>

@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
@@ -332,13 +331,14 @@ export default async function ProgramDetailPage({
                 return t.slug ? (
                   <Link key={i} href={`/teachers/${t.slug}`} className="pg-facilitator pg-facilitator--link pg-facilitator--profile">
                     {t.photoUrl ? (
-                      <Image
+                      // Facilitator images may use coordinator-managed remote URLs.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
                         src={t.photoUrl}
                         alt=""
                         width={56}
                         height={56}
                         className="pg-facilitator__photo"
-                        unoptimized
                       />
                     ) : (
                       <span className="pg-facilitator__placeholder" aria-hidden="true">{initials}</span>
