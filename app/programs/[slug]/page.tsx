@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
@@ -54,7 +55,7 @@ export default async function ProgramDetailPage({
   );
 
   // DB queries — only when built-in form is active
-  const [activeCount, userProfile, existingRegistration] = await Promise.all([
+  const [activeCount, existingRegistration] = await Promise.all([
     useBuiltInForm && program.registrationCapacity
       ? db.registration.count({
           // PENDING_PAYMENT holds a seat during checkout — count it so the shown
@@ -62,12 +63,6 @@ export default async function ProgramDetailPage({
           where: { programId: program.id, status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] } },
         })
       : Promise.resolve(0),
-    useBuiltInForm && session?.user?.id
-      ? db.user.findUnique({
-          where: { id: session.user.id },
-          select: { firstName: true, lastName: true, phone: true, email: true },
-        })
-      : Promise.resolve(null),
     useBuiltInForm && session?.user?.id
       ? db.registration.findFirst({
           where: {
@@ -85,8 +80,6 @@ export default async function ProgramDetailPage({
     useBuiltInForm && program.registrationCapacity
       ? Math.max(0, program.registrationCapacity - activeCount)
       : null;
-  const showLowSpots = spotsRemaining !== null && spotsRemaining > 0 && spotsRemaining <= 5;
-
   // Resolve location from venue + programFormat
   const location = resolveLocation(program.venue, program.locationText, program.locationLink);
   const startIso = program.startDatetime?.toISOString() ?? null;
@@ -182,7 +175,7 @@ export default async function ProgramDetailPage({
       </header>
 
       {/* ── Content column ── */}
-      <div className="lp-content">
+      <div className="lp-content pg-content">
 
         {/* Dana result banners — shown after Stripe redirects back */}
         {resolvedSearch?.dana === "success" && (
@@ -339,7 +332,14 @@ export default async function ProgramDetailPage({
                 return t.slug ? (
                   <Link key={i} href={`/teachers/${t.slug}`} className="pg-facilitator pg-facilitator--link pg-facilitator--profile">
                     {t.photoUrl ? (
-                      <img src={t.photoUrl} alt="" className="pg-facilitator__photo" />
+                      <Image
+                        src={t.photoUrl}
+                        alt=""
+                        width={56}
+                        height={56}
+                        className="pg-facilitator__photo"
+                        unoptimized
+                      />
                     ) : (
                       <span className="pg-facilitator__placeholder" aria-hidden="true">{initials}</span>
                     )}
@@ -353,7 +353,14 @@ export default async function ProgramDetailPage({
           </section>
         )}
 
-
+        <nav className="pg-page-end" aria-label="Program navigation">
+          <Link href="/community-programs" className="pg-page-end__link">
+            <span aria-hidden="true">←</span> Explore all programs
+          </Link>
+          <Link href="/this-week" className="pg-page-end__link">
+            See this week&rsquo;s schedule <span aria-hidden="true">→</span>
+          </Link>
+        </nav>
       </div>
     </div>
   );

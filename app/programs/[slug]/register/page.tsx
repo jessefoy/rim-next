@@ -4,6 +4,7 @@ import Link from "next/link";
 import RegistrationForm, { RegistrationField } from "@/components/RegistrationForm";
 import { db } from "@/lib/db";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
+import { buildSubtitle } from "@/lib/programUtils";
 
 // Always show fresh data — this page is user-specific
 export const dynamic = "force-dynamic";
@@ -103,38 +104,60 @@ export default async function RegisterPage({
     : spotsRemaining === 0
     ? "Join the Waitlist"
     : "Register";
+  const scheduleLabel = buildSubtitle(pgProgram);
 
   return (
     <div className="rg-page">
 
       {/* ── Header ── */}
-      <header className="rg-header">
-        <Link href={`/programs/${slug}`} className="rg-header__back">
-          ← Back to Program
-        </Link>
-        <p className="rg-header__program-name">{program.name}</p>
-        <h1 className="rg-header__title">{headerTitle}</h1>
+      <header
+        className="rg-header"
+        style={{ backgroundImage: `url(${pgProgram.programImage || "/images/Bodhi-Leaves.jpg"})` }}
+      >
+        <div className="rg-header__inner">
+          <Link href={`/programs/${slug}`} className="rg-header__back">
+            <span aria-hidden="true">←</span> Back to program
+          </Link>
+          <p className="rg-header__eyebrow">{headerTitle}</p>
+          <h1 className="rg-header__title">{program.name}</h1>
+          {scheduleLabel && <p className="rg-header__meta">{scheduleLabel}</p>}
+        </div>
       </header>
 
       {/* ── Content ── */}
       <div className="rg-content">
-        {showAlreadyRegistered ? (
-          <div className="rg-already">
-            <p>You&rsquo;re already registered for this program.</p>
-            <Link href={`/programs/${slug}`}>← Back to Program</Link>
-          </div>
-        ) : (
-          <RegistrationForm
-            program={program}
-            spotsRemaining={spotsRemaining}
-            userProfile={userProfile}
-            sessionUserId={session?.user?.id ?? null}
-            alreadyRegistered={alreadyRegistered}
-            existingDonationStatus={existingRegistration?.donationStatus ?? null}
-            existingRegistrationId={existingRegistration?.id ?? null}
-            deadlinePassed={deadlinePassed}
-          />
-        )}
+        <section className="rg-card">
+          {showAlreadyRegistered ? (
+            <div className="rg-already">
+              <h2>You&rsquo;re already registered.</h2>
+              <p>Your place in this program is confirmed.</p>
+              <Link href={`/account/programs/${slug}`}>View your program details →</Link>
+            </div>
+          ) : (
+            <>
+              {!hasPendingDana && (
+                <div className="rg-card__intro">
+                  <h2>{spotsRemaining === 0 ? "Add your name" : "Your information"}</h2>
+                  <p>
+                    {spotsRemaining === 0
+                      ? "Tell us how to reach you. We’ll be in touch if a place becomes available."
+                      : "Tell us how to reach you. We’ll send the program details and confirmation by email."}
+                  </p>
+                </div>
+              )}
+              <RegistrationForm
+                program={program}
+                spotsRemaining={spotsRemaining}
+                userProfile={userProfile}
+                sessionUserId={session?.user?.id ?? null}
+                alreadyRegistered={alreadyRegistered}
+                existingDonationStatus={existingRegistration?.donationStatus ?? null}
+                existingRegistrationId={existingRegistration?.id ?? null}
+                deadlinePassed={deadlinePassed}
+              />
+            </>
+          )}
+        </section>
       </div>
 
     </div>

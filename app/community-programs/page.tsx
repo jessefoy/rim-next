@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
+import Image from "next/image";
 import Link from "next/link";
-import ListRow from "@/components/ListRow";
-import { buildSubtitle } from "@/lib/programUtils";
+import { buildSubtitle, fmtLabel } from "@/lib/programUtils";
 
 export const metadata = {
   title: "Programs and Events — Rooted In Mindfulness",
@@ -23,25 +23,34 @@ export default async function CommunityProgramsPage() {
   ]);
 
   return (
-    <>
+    <div className="pl-page">
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="pl-hero rim-section">
-        <div className="rim-container">
+      <section className="pl-hero">
+        <div className="rim-container pl-hero__inner">
+          <p className="pl-hero__eyebrow">Practice in community</p>
           <h1 className="pl-hero__title">Programs and Events</h1>
           <p className="pl-hero__body">
             Sit together, study the teachings, and bring what you find into the rest of your life.
-            Our programs are offered in person at the center and online — drop-ins, courses, and
-            community groups for every stage of practice. No experience needed. No fees.
+            Join us at the center or online, whether you are beginning or have practiced for years.
           </p>
-          <Link href="/join" className="pl-hero__cta">
-            Become a Member
+          <Link href="/this-week" className="pl-hero__cta">
+            See what&rsquo;s happening this week <span aria-hidden="true">→</span>
           </Link>
         </div>
       </section>
 
       {/* ── Program Listings ─────────────────────────────── */}
-      <section className="rim-section rim-section--grey">
+      <section className="pl-catalog">
         <div className="rim-container">
+          <div className="pl-catalog__intro">
+            <p className="pl-catalog__eyebrow">Find a place to begin</p>
+            <h2 className="pl-catalog__title">Come as you are.</h2>
+            <p className="pl-catalog__body">
+              Drop-ins are an open door: no experience and no long-term commitment needed.
+              Courses, retreats, and community groups offer more ways to learn and practice together.
+            </p>
+          </div>
+
           {categories.map((category) => {
             const categoryPrograms = programs.filter(
               (p) => p.category?.name === category.name
@@ -50,24 +59,76 @@ export default async function CommunityProgramsPage() {
 
             return (
               <div key={category.id} className="pl-cat">
-                <h2 className="pl-cat__heading">{category.name}</h2>
-                <div className="pl-list">
-                  {categoryPrograms.map((program) => (
-                    <ListRow
-                      key={program.id}
-                      title={program.name}
-                      subtitle={buildSubtitle(program) ?? undefined}
-                      announcement={program.specialAnnouncement ?? undefined}
-                      href={`/programs/${program.slug}`}
-                      buttonLabel="Learn More"
-                    />
-                  ))}
+                <div className="pl-cat__header">
+                  <h2 className="pl-cat__heading">{category.name}</h2>
+                  <span className="pl-cat__count">
+                    {categoryPrograms.length} {categoryPrograms.length === 1 ? "offering" : "offerings"}
+                  </span>
+                </div>
+                <div className="pl-grid">
+                  {categoryPrograms.map((program) => {
+                    const fullSubtitle = buildSubtitle(program);
+                    const format = fmtLabel(program.programFormat);
+                    const schedule = fullSubtitle?.endsWith(` | ${format}`)
+                      ? fullSubtitle.slice(0, -(` | ${format}`).length)
+                      : fullSubtitle;
+
+                    return (
+                      <Link
+                        key={program.id}
+                        href={`/programs/${program.slug}`}
+                        className="pl-card"
+                      >
+                        <span className="pl-card__media">
+                          <Image
+                            src={program.programImage || "/images/Bodhi-Leaves.jpg"}
+                            alt=""
+                            fill
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                            unoptimized
+                          />
+                          <span className="pl-card__format">{format}</span>
+                        </span>
+                        <div className="pl-card__content">
+                          <h3 className="pl-card__title">{program.name}</h3>
+                          {program.tagline && (
+                            <span className="pl-card__tagline">{program.tagline}</span>
+                          )}
+                          {schedule && (
+                            <span className="pl-card__schedule">{schedule}</span>
+                          )}
+                          {program.specialAnnouncement && (
+                            <span className="pl-card__announcement">
+                              {program.specialAnnouncement}
+                            </span>
+                          )}
+                          <span className="pl-card__action">
+                            View program <span aria-hidden="true">→</span>
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
+
+          <aside className="pl-membership">
+            <div>
+              <p className="pl-membership__eyebrow">A community of practice</p>
+              <h2 className="pl-membership__title">You are welcome here.</h2>
+              <p className="pl-membership__body">
+                Membership is free and opens the door to online gatherings, registration,
+                learning resources, and the life of the RIM community.
+              </p>
+            </div>
+            <Link href="/join" className="pl-membership__link">
+              Become a member <span aria-hidden="true">→</span>
+            </Link>
+          </aside>
         </div>
       </section>
-    </>
+    </div>
   );
 }
