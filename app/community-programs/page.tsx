@@ -45,8 +45,8 @@ export default async function CommunityProgramsPage() {
             <p className="pl-catalog__eyebrow">Find a place to begin</p>
             <h2 className="pl-catalog__title">Come as you are.</h2>
             <p className="pl-catalog__body">
-              Drop-ins are an open door: no experience and no long-term commitment needed.
-              Courses, retreats, and community groups offer more ways to learn and practice together.
+              Join a single gathering, find a regular practice, or explore a course when
+              you&rsquo;re ready.
             </p>
           </div>
 
@@ -77,24 +77,21 @@ export default async function CommunityProgramsPage() {
                       >
                         <div className="pl-card__content">
                           <div className="pl-card__main">
-                            <div className="pl-card__meta">
-                              <span className="pl-card__format">{format}</span>
-                              {schedule && <span className="pl-card__schedule">{schedule}</span>}
-                            </div>
                             <h3 className="pl-card__title">{program.name}</h3>
                             {program.tagline && (
                               <span className="pl-card__tagline">{program.tagline}</span>
                             )}
+                            <div className="pl-card__meta">
+                              {schedule && <span className="pl-card__schedule">{schedule}</span>}
+                              <span className="pl-card__format">{format}</span>
+                            </div>
                             {program.specialAnnouncement && (
                               <span className="pl-card__announcement">
                                 {program.specialAnnouncement}
                               </span>
                             )}
                           </div>
-                          <span className="pl-card__action">
-                            <span className="pl-card__action-label">View program</span>
-                            <span aria-hidden="true">→</span>
-                          </span>
+                          <span className="pl-card__action" aria-hidden="true">→</span>
                         </div>
                       </Link>
                     );
