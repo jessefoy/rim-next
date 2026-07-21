@@ -60,9 +60,6 @@ export default async function CommunityProgramsPage() {
               <div key={category.id} className="pl-cat">
                 <div className="pl-cat__header">
                   <h2 className="pl-cat__heading">{category.name}</h2>
-                  <span className="pl-cat__count">
-                    {categoryPrograms.length} {categoryPrograms.length === 1 ? "offering" : "offerings"}
-                  </span>
                 </div>
                 <div className="pl-grid">
                   {categoryPrograms.map((program) => {
@@ -78,31 +75,25 @@ export default async function CommunityProgramsPage() {
                         href={`/programs/${program.slug}`}
                         className="pl-card"
                       >
-                        <span className="pl-card__media">
-                          {/* Program images come from coordinator-managed Sanity and Blob URLs. */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={program.programImage || "/images/Bodhi-Leaves.jpg"}
-                            alt=""
-                            loading="lazy"
-                          />
-                          <span className="pl-card__format">{format}</span>
-                        </span>
                         <div className="pl-card__content">
-                          <h3 className="pl-card__title">{program.name}</h3>
-                          {program.tagline && (
-                            <span className="pl-card__tagline">{program.tagline}</span>
-                          )}
-                          {schedule && (
-                            <span className="pl-card__schedule">{schedule}</span>
-                          )}
-                          {program.specialAnnouncement && (
-                            <span className="pl-card__announcement">
-                              {program.specialAnnouncement}
-                            </span>
-                          )}
+                          <div className="pl-card__main">
+                            <div className="pl-card__meta">
+                              <span className="pl-card__format">{format}</span>
+                              {schedule && <span className="pl-card__schedule">{schedule}</span>}
+                            </div>
+                            <h3 className="pl-card__title">{program.name}</h3>
+                            {program.tagline && (
+                              <span className="pl-card__tagline">{program.tagline}</span>
+                            )}
+                            {program.specialAnnouncement && (
+                              <span className="pl-card__announcement">
+                                {program.specialAnnouncement}
+                              </span>
+                            )}
+                          </div>
                           <span className="pl-card__action">
-                            View program <span aria-hidden="true">→</span>
+                            <span className="pl-card__action-label">View program</span>
+                            <span aria-hidden="true">→</span>
                           </span>
                         </div>
                       </Link>
