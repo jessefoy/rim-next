@@ -2687,6 +2687,7 @@ h4 { font-size: var(--text-h4); }
 ═══════════════════════════════════════════════════ */
 
 .pl-page { background: var(--rim-bg); }
+.pl-page .rim-container { box-sizing: border-box; }
 
 .pl-hero {
   min-height: 430px;
