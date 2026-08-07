@@ -163,20 +163,22 @@ export default async function ThisWeekPage({
             {dateRange}. All times are Central&nbsp;(CT).
           </p>
           <div className="pp-hero__actions">
-            <Link
-              href="/this-week"
-              className={`pp-btn ${isNextWeek ? "pp-btn--onblue-ghost" : "pp-btn--onblue"}`}
-              aria-current={!isNextWeek ? "page" : undefined}
-            >
-              This week
-            </Link>
-            <Link
-              href="/this-week?week=next"
-              className={`pp-btn ${isNextWeek ? "pp-btn--onblue" : "pp-btn--onblue-ghost"}`}
-              aria-current={isNextWeek ? "page" : undefined}
-            >
-              Next week
-            </Link>
+            <div className="tw-weeknav">
+              <Link
+                href="/this-week"
+                className={`pp-btn ${isNextWeek ? "pp-btn--onblue-ghost" : "pp-btn--onblue"}`}
+                aria-current={!isNextWeek ? "page" : undefined}
+              >
+                This week
+              </Link>
+              <Link
+                href="/this-week?week=next"
+                className={`pp-btn ${isNextWeek ? "pp-btn--onblue" : "pp-btn--onblue-ghost"}`}
+                aria-current={isNextWeek ? "page" : undefined}
+              >
+                Next week
+              </Link>
+            </div>
             {hasToday && (
               <a href="#today" className="pp-hero__link">
                 Jump to today <span aria-hidden="true">↓</span>
@@ -225,7 +227,12 @@ export default async function ThisWeekPage({
                         className="pl-card pl-card--time"
                       >
                         <div className="pl-card__content">
-                          {time && <span className="pl-card__time">{time}</span>}
+                          {time && (
+                            <span className="pl-card__time">
+                              <span className="rim-sr-only">{dayName}, {formatShortDate(date)}, </span>
+                              {time}
+                            </span>
+                          )}
                           <div className="pl-card__main">
                             <h3 className="pl-card__title">{program.name}</h3>
                             {format && (
