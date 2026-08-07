@@ -28830,6 +28830,13 @@ input.w-button { -webkit-appearance: button; }
   line-height: var(--lh-body);
 }
 .pp-prose > *:first-child { margin-top: 0; }
+
+/* Paired with a section opener: share the opener's column so the heading
+   and the copy start on the same left edge. The reading measure moves to
+   the text. Standalone prose (Diversity, the KM guidelines) keeps its own
+   centred column. */
+.pp-intro ~ .pp-prose { max-width: 900px; }
+.pp-intro ~ .pp-prose > * { max-width: var(--reading-width); }
 .pp-prose > *:last-child  { margin-bottom: 0; }
 
 .pp-prose h2 {
@@ -29543,13 +29550,14 @@ a.pp-card:hover .pp-card__action {
 .pp-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
+  align-items: stretch;
   gap: 64px;
 }
 .pp-split--flip .pp-split__media { order: 2; }
 
 .pp-split__media {
   min-height: 420px;
+  height: 100%;
   border-radius: 16px;
   background-color: var(--rim-blue);
   background-image: var(--pp-split-image, none);
