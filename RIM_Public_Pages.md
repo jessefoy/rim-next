@@ -95,12 +95,79 @@ Adding **uppercase chapter eyebrows** ("ABOUT THIS DROP-IN" / "DETAILS" / "FACIL
 
 ---
 
+## The `pp-` grammar — the static front-facing pages (session 169)
+
+One shared surface language for the pages that are neither catalog nor program detail: **home, donate, diversity, volunteer (+ thanks), and the three Kalyana Mitta pages.**
+
+**Why it exists.** These pages were still wearing Webflow-era class names — `.section-19`, `.main-container`, `.grid-halves-3`, `.diversity-content-box`, `.bg-accent-2`, `.milestone-circle`, `.w-richtext`, `.button-2` — and **none of them has a rule in `custom.css`**. Only `custom.css` is linked; `rim.webflow.css` and `webflow.css` sit unused in `public/css/`. The pages rendered as bare document flow. This shipped that way for months.
+
+`pp-` deliberately extends the `pl-`/`pg-` language rather than starting a second system: same hero grammar, same card lift, same recede panel, same eyebrow treatment.
+
+### The pieces
+
+| Class | What it is |
+|---|---|
+| `.pp-hero` (+ `--flat`, `--video`, `--donate`) | Hero over photography, footage, or flat blue. Pass a photo with `--pp-hero-image`. |
+| `.pp-hero__eyebrow / __title / __body / __actions / __link` | The hero tiers. |
+| `.pp-section` (+ `--white`, `--accent`, `--tight`, `--last`, `--airy`, `--airiest`) | Page rhythm. |
+| `.pp-intro` | Section opener: eyebrow, serif title, body. |
+| `.pp-prose` | Flowing copy at `--reading-width`, open on the ground, never boxed. |
+| `.pp-cards` / `.pp-card` (+ `--row`) | Discrete modules that lift. Row cards match `.pl-card` exactly. |
+| `.pp-panel` | Supplementary content that recedes. Deeper Pampas, never a shadow. |
+| `.pp-notice` | The calm "you need an account" message. A message, not an alarm. |
+| `.pp-form` | Forms sit on a white surface. 16px input floor (iOS zoom). |
+| `.pp-quote` | Centred pull quote. |
+| `.pp-details` | Native `<details>`/`<summary>` disclosure. |
+| `.pp-give` / `.pp-statement` / `.pp-timeline` / `.pp-steps` | The donate page's three blocks. |
+| `.pp-closing` | Section-ending aside; mirrors `.pl-membership`. |
+
+### Rules learned the hard way
+
+**Build from the rendering, not the text.** The first pass extracted copy from the archived Webflow HTML and invented the composition around it. Every page was wrong in ways reading the markup could never reveal. The fix was to open the live page and **measure it** — `getBoundingClientRect` at 1280 — then match the numbers. On donate that moved the hero from 380/616 to equal halves, the statement card from 820 to **585** with a **54px** heading, the note to **720 centred**, and the timeline card from 490 to **530**. Do this before rebuilding any remaining page.
+
+**A section opener and a prose block must share a column.** `.pp-intro` is 900px and `.pp-prose` is 700px; centring both independently puts the heading ~100px left of its own body text. `.pp-intro ~ .pp-prose` now takes the opener's box and moves the reading measure onto the text.
+
+**Split media stretches, it does not centre.** Against a tall copy column a centred image floats with dead space above and below.
+
+### Contrast over photography — measured, not eyeballed
+
+Scrims sized by eye failed WCAG AA on their own photographs. Measure with `sharp` against the actual image, sampling the band the copy occupies, and use a high percentile (p99) rather than the mean:
+
+| Image | p99 luminance in the copy column | Consequence |
+|---|---:|---|
+| Community-Hands (volunteer/KM/diversity) | 0.457 | the shared photo scrim is tuned for this |
+| Sky Heavenly (donate) | 0.459 | needed its flat scrim at **0.70**, not 0.50 |
+| Bodhi poster (home) | **0.971** | backlit leaves are effectively white; needed its own `--video` scrim |
+
+**Tier floors:** hero body **95%** white (88% cannot reach 4.5:1 over near-white footage at any scrim that leaves the image legible); eyebrow **85%** (70% measured 4.00 at 11px, under the 4.5 required).
+
+### TOMBSTONE — the white hero "paper panel" (retired session 169)
+
+The home hero held its copy inside a 95%-opaque white panel. Retired for the same reason as the floating nav pill: RIM heroes already carry a featured floating object on some pages (the program-detail quote card), and a second white rectangle on the same image reads as clutter. Copy now sits directly on the scrim, protected by the scrim alone. **Do not re-propose the paper panel.**
+
+### Recorded departure — the home hero is dark by choice
+
+The live site's home hero is **light**: centred navy serif on the bright footage. That is the legible answer to a near-white video. RIM Next ships a **dark, left-aligned** hero because Jesse compared both at a temporary `/hero-compare` route and preferred it. The scrim was strengthened to carry white type at AA. This is a deliberate departure from the live site, not an oversight.
+
+### The eyebrow ban does not apply here
+
+The `impeccable` skill's craft floor bans eyebrows outright ("a ban, not a default: no brief earns it back"). RIM's committed visual world uses them — the hero category eyebrow, `pl-hero__eyebrow`, `sg-eyebrow`, the live donate page's "THE PRACTICE OF FINANCIAL DANA". Craft-floor's own opening defers to the committed world. **Eyebrows stay.**
+
+### Third-party embeds need a standing fallback
+
+The donate page's entire purpose is three Givebutter custom elements behind one deferred script. Donation widgets are routinely blocked by ad blockers, and RIM is 100% donation-funded, so a silent failure costs real money. `.pp-give__assist` carries phone and email under the cards, plus a `noscript`. **Always visible, not revealed on failure** — hydration is not observable without JavaScript, so a guess either hides it when needed or cries wolf when not.
+
+
+---
+
 ## Known follow-ons (see `data/backlog.json`)
 
 - **`2026-06-13-001`** — member/hub/admin internal UI still holds hardcoded old teal the token flip didn't reach; sweep.
-- **`2026-06-13-002`** — home page alternating sections (`.rim-section--grey` uses `--rim-bg`) flatten on the warm ground; repoint to the Pearl Bush secondary for rhythm.
+- **`2026-06-13-002`** — home page alternating sections (`.rim-section--grey` uses `--rim-bg`) flatten on the warm ground; repoint to the Pearl Bush secondary for rhythm. *(Largely superseded: home is on `pp-` as of session 169.)*
+- **`2026-08-07-001`** — the home page's four category doors are stale and non-functional: they match the real taxonomy on one of four, omit Silent Meditation Drop-Ins, and three of four link to the same URL. Needs `id` anchors on `.pl-cat` first.
+- **`2026-08-07-002`** — volunteer and the three Kalyana Mitta pages have never been measured against the live rendering, which is what caught every donate discrepancy.
 - **`2026-06-13-003`** — course landing (`/course/[slug]`) still on the old colon-heading language; bring into this system (but **not** the reverted eyebrows/band — match the *shipped* program-page language).
 
 ---
 
-*Rooted in Mindfulness · public-page rebuild · begun session 148 (2026-06-13). Evolving — update as the system settles.*
+*Rooted in Mindfulness · public-page rebuild · begun session 148 (2026-06-13); the `pp-` grammar added session 169 (2026-08-07). Evolving — update as the system settles.*

@@ -6,22 +6,38 @@
 
 ## Active
 
-### Sessions 167–168 (2026-07-17) — ✅ Universal Spaces + app contract + navigation/Scheduler/Updates refinement — all on `main`
+### Session 169 (2026-08-07) — ✅ Webflow site cloned, the eight static public pages rebuilt on the new `pp-` grammar, design system installed as a skill — all on `main`, deployed
 
-**Shipped:** one universal Space Home; zero-or-more installed apps with exactly one primary app when registered apps exist; registry/provider rules for Home, Updates, attention, compatibility, semantic icons, and tool access; source-aware Updates with stateless All / seven-day Recent / For me filters; a Scheduler-style organizer for Date and time / All categories / each active category; truly narrow desktop account + Space rails with full labeled mobile drawers; scroll-safe team navigation; clearer member-dashboard program surfaces; occurrence-first calendar/date cards across the Scheduler, rotations, This Week, and cross-hub staffing; and removal of the redundant **Your rotations** summary so the dated Schedule is the one member-facing source of assignment truth.
+**Shipped + live.** An offline clone of the whole Webflow site at `~/Sites/rim-site-archive/` (317 pages, 158 assets, 84 MB — the only copy of those assets outside Webflow). Eight static front-facing pages rebuilt: home, donate, diversity, volunteer, volunteer-thanks, and the three Kalyana Mitta pages. A new **`pp-` public-page grammar** in `custom.css` (~1,060 lines, pure append, zero existing rules modified). The RIM design system installed at `.claude/skills/rim-design/` as `/rim-design`. An `/impeccable audit` (16/20) followed by a hardening pass on contrast, a donation fallback, and reduced motion. 8 commits, fast-forwarded to `main`, branch deleted, deployed, verified 200 on all eight pages. Authority: **`RIM_Public_Pages.md`** (now carries the `pp-` grammar); full narrative in `session-log.md` (session 169).
 
-**State:** no half-built code. The implementation is on `main`; TypeScript, focused lint, CSS brace balance, and diff checks passed. Vercel deploys each pushed follow-up automatically.
+**Why it was needed:** those pages wore Webflow-era class names with **zero rules in `custom.css`** and had been rendering as bare document flow in production.
 
-**Open verification (Jesse; non-blocking):**
-1. Expand/collapse the account rail and one Space rail on desktop; confirm the narrow rail genuinely returns content width.
-2. On a phone, confirm both navigation drawers remain fully labeled and the Teams list scrolls.
-3. Open an ordinary Space Home and a Scheduler-led Space Home; confirm the shared core remains recognizable and only the app contribution changes.
-4. In Updates, confirm Recent always shows the rolling previous seven days after leaving and returning; then try Date and time, All categories, one exact category, and Load more. Confirm the category list reflects only active core features/apps for that Space.
-5. Check one single-slot Scheduler hub and Greeter: the page begins with the month controls (no **Your rotations** box), date + time stay together, Manage coverage is clear, and the multi-claim people view is unchanged.
+**NEXT SESSION — optimize the home page design.** Read first, in this order:
+1. `RIM_Web_Design_Philosophy.md` — intent.
+2. `RIM_Public_Pages.md` — the concrete system, now including the **`pp-` grammar**, the **measure-don't-read rule**, the contrast floors, and three tombstones (floating nav pill · chapter eyebrows + closing band · **the hero paper panel**).
+3. `/rim-design` skill — tokens, components, UI kits, copy voice. Reference and prototyping only; **`custom.css` wins** when they disagree.
+4. `app/page.tsx` and the `pp-`/`pl-` blocks in `custom.css` — the incumbent.
 
-**Next concrete step:** collect only screenshot-specific production issues from that review. Do not create another per-team Home or app fork; new Spaces are configuration, and new apps extend the registry/provider contract.
+**The concrete candidate (backlog `2026-08-07-001`): the four category doors.** They are the weakest section on the page — four identical cards carrying only a title, three of four linking to the same URL, and the taxonomy is stale. Live doors vs the real `ProgramCategory` rows match on **one of four**: "Classes & Courses" is not a category, and "Silent Meditation Drop-Ins" — 10 of this week's 17 occurrences — has no door at all. **Prerequisite:** `.pl-cat` sections on `/community-programs` have no `id`, so no category link can work until anchors exist.
 
-**Queued, unchanged:** Program Manager/Course Manager stay primary-Space-only until their data and notification boundaries are portable; additional Updates adapters wait for durable actor attribution. Existing Google Files and safe-column-drop backlog items remain the source of truth in `data/backlog.json`.
+**Recommended shape (proposed, not agreed):** drive the doors from the database so they can never drift again, give each a count and a link to its own anchor. **Recommended against:** putting the weekly schedule on the home page — 10 of the 17 occurrences are the same two silent sittings repeating, and `/this-week` is already linked twice (hero CTA + Programs dropdown).
+
+**Two things that will look wrong while walking the site, neither caused by this work:**
+- `/courses` on production lists **one course: `test-course`**. Webflow has four real ones (backlog `2026-08-07-004`).
+- `/teachers` has **one profile** (jesse-foy) against 57 Webflow `/team/` pages; program pages link facilitators with nowhere to land (backlog `2026-08-07-005`).
+
+**Open / unverified:**
+- **Volunteer and the three KM pages were never measured against the live rendering** (backlog `2026-08-07-002`). Measuring donate caught a 820-vs-585 card, a 38-vs-54px heading and a 490-vs-530 timeline that reading the markup never would have. Same method needed there.
+- **Redirect map for the retired Webflow URLs** (backlog `2026-08-07-003`) — `vercel.json` has 12 redirects, all internal member-area moves; none cover `/glossary/*`, `/team/*`, `/magazine-articles/*`, `/volunteer-positions/*`, `/community-membership`, `/log-in`, `/password/*`, `/checkout`, `/search`. **Jesse has decided glossary and the magazine are not coming across**, and volunteer positions were never built — so these are pure redirects. This is the last thing standing between him and cancelling Webflow.
+- **Captivate.fm export** before cancelling that service (backlog `2026-08-07-006`).
+
+**Decisions recorded so they are not re-litigated:**
+- **The home hero is dark and left-aligned by Jesse's choice**, against the live site's light centred hero. He compared both at a temporary `/hero-compare` route. The scrim was strengthened so white type clears AA. A deliberate departure, not an oversight.
+- **The hero white "paper panel" is retired** — tombstoned in `RIM_Public_Pages.md`.
+- **Eyebrows stay.** The `impeccable` craft floor bans them outright; its own opening defers to the committed visual world, and RIM's uses them throughout.
+- **`custom.css` is the source of truth**, not the design-system skill's copy of the tokens.
+
+**Still unoffered/unadded:** a `CLAUDE.md` line scoping `/impeccable` (use `audit`/`harden`/`optimize`/`clarify`; avoid `bolder`/`delight`/`overdrive`/`animate`/`colorize` on RIM surfaces, since they will re-propose the tombstoned patterns). Jesse has not said yes or no.
 
 ## Prior handoff reference
 

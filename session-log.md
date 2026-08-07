@@ -1,5 +1,84 @@
 ---
 
+## 2026-08-07 (session 169) — The live Webflow site cloned, the static public pages rebuilt in RIM's own system, and the design system installed as a skill
+
+The session began with a cost problem, not a design one: Jesse is paying for several services for the old Webflow site and wanted the front-facing pages brought into RIM Next so the domain can move. It ended with eight pages rebuilt and shipped to `main`, an offline archive of the entire Webflow site, and the RIM design system installed as a project skill. Everything is deployed and `tsc`-green.
+
+### The archive — `~/Sites/rim-site-archive/`
+
+A complete offline clone of `www.rootedinmindfulness.org`: **317 pages, 158 assets, 84 MB**, captured from the published sitemap with a dependency-free Python script (kept as `capture.py` alongside it). Internal links and Webflow-CDN assets are rewritten to local relative paths; all 9,187 local references were verified to resolve. **This is the only copy of those assets outside Webflow** — the CDN dies with the plan.
+
+The capture surfaced two services nobody had inventoried: **Captivate.fm** hosts ~26 lesson audio embeds on the old site (RIM Next uses its own Vercel Blob audio, so the app does not depend on it — but the source MP3s need their own export if Captivate is cancelled), and **Flodesk** is load-bearing, since `/api/subscribe` posts to it.
+
+### What was rebuilt
+
+Eight static front-facing pages: home, donate, diversity, volunteer, volunteer-thanks, and the three Kalyana Mitta pages.
+
+**The defect that made this necessary.** These pages were still wearing Webflow-era class names — `.section-19`, `.main-container`, `.grid-halves-3`, `.diversity-content-box`, `.bg-accent-2`, `.milestone-circle`, `.w-richtext`. Checked against the *deployed* stylesheet, not just local: **every one of them has zero rules**. Only `custom.css` is linked; `rim.webflow.css` and `webflow.css` sit unused in `public/css/`. The pages were rendering as bare document flow — a 1260px or full-bleed column with no cards, panels, or rhythm. This was live.
+
+**The `pp-` public-page grammar** (~1,060 lines appended to `custom.css`, a pure append — zero existing rules modified) now carries them: hero (photo / video / flat variants), split, intro, prose, cards, row cards, panel, notice, form, quote, disclosure, give cards, statement, numbered timeline, closing. It deliberately extends the shipped `pl-`/`pg-` language rather than starting a second system.
+
+### The lesson of the session: build from the rendering, not the text
+
+The first pass extracted *text* from the archive and invented the composition around it. Jesse rejected the donate page — "it doesn't look like the design that I currently have" — and he was right. The correction was to **measure the live page** at 1280 with `getBoundingClientRect` and match the numbers:
+
+| | live | first pass | after |
+|---|---|---|---|
+| hero columns | 560/560 | 380/616 | equal halves |
+| dana card | 585 wide, 54px heading | 820 wide, 38px | exact |
+| blue note | 720, centred | ~700, left | exact |
+| timeline card | 530 | 490 | 530 |
+| section rhythm | 130/120/140 | 96/68/68 | matched |
+
+The same error had been made on the home hero (built dark and left-aligned; live is light, centred, navy) and on the split order.
+
+### Design decisions
+
+- **The home hero is dark, by Jesse's choice and against the live site.** Shown both treatments at a temporary `/hero-compare` route, he picked the dark one. This is a deliberate departure from fidelity, recorded because it will look like a mistake to a future reader comparing the two.
+- **The white "paper panel" hero is retired.** RIM heroes already carry a featured floating object on some pages (the program-detail quote card); a second white rectangle on the same image was the same busyness that retired the floating nav pill.
+- **The hardcoded "This Week at RIM" table was dropped from home** — seven hand-typed rows that would drift from real program data. The live site does not have it and `/this-week` does it properly.
+- **KM community groups now list real Programs** from the Community Groups category instead of a hardcoded list.
+- **The donate accordion became native `<details>`/`<summary>`** — keyboard-operable, no client component, no ARIA to get wrong. `DonateAccordions.tsx` deleted.
+- **Lorem ipsum was removed from the volunteer page.** It is still live on the Webflow site today.
+
+### The `/impeccable audit` and hardening pass
+
+Scored **16/20**. The detector found **0 findings** in the authored `pp-` block; all 57 in `custom.css` are pre-existing legacy. Then contrast was measured with `sharp` against the real photographs, sampling the band the copy actually occupies:
+
+- **Donate hero failed** — Sky Heavenly carries bright cloud through the copy column (p99 luminance 0.459); title 3.76, body 3.43. Flat scrim 0.50 → 0.70 puts them at 5.59 / 5.36.
+- **Home hero failed worse** — the bodhi leaves are backlit to p99 0.971, effectively white. It inherits the shared photographic scrim, which is tuned for Community-Hands (p99 0.457). Title 2.77 → 5.85 with a dedicated `pp-hero--video` scrim that holds a dark plateau across the copy then releases so the leaves on the right stay bright.
+- **Tiers moved** — eyebrow 70% → 85% (was 4.00 at 11px, needs 4.5), body 88% → 95% (88% cannot reach 4.5 over near-white footage at any scrim that leaves the image legible).
+- **The donation widgets had no fallback.** Three Givebutter custom elements, one deferred script, nothing else. Donation widgets are routinely blocked by ad blockers, and RIM is 100% donation-funded — the page's entire purpose could fail silently. Added a standing phone/email line plus `noscript`.
+- **Reduced motion destroyed the imagery** — the old rule hid the video and the home hero set no background image, so those users got a flat colour band. The poster now rides on `--pp-hero-image`.
+
+**Craft-floor conflict, resolved in RIM's favour.** The `impeccable` skill bans eyebrows outright ("no brief earns it back"). RIM's committed visual world uses them throughout, and craft-floor's own opening defers to the committed world. Kept; their contrast fixed instead.
+
+### The design system skill
+
+Jesse generated a design system with Claude Design and asked how to install it. It is an **extraction from this codebase**, not a new design — its readme names `rim-next/` as the source and `custom.css` as the single source of truth. Its tokens were verified to match the live stylesheet exactly.
+
+Installed at `.claude/skills/rim-design/`, invocable as `/rim-design`. Two things were done to it:
+
+1. **Corrected the hero it teaches.** The package predated this session and documented the retired paper panel with "A place to practice, together." Installing it unchanged would have taught future sessions to rebuild exactly what Jesse rejected. `HeroPanel.jsx` rewritten plus its `.d.ts`, `.prompt.md`, the readme's Transparency/Protection/Backgrounds paragraphs, two templates, the UI kit, and the type specimen. `_ds_bundle.js` is a prebuilt artifact that still holds the old component — flagged stale rather than hand-edited.
+2. **Versioned and de-duplicated.** `.claude/` was gitignored, which would have left the system untracked and free to drift from the CSS it documents. A narrow exception was added for this skill only. Its `assets/` duplicated files already in `public/`, so the 32 byte-identical ones became relative symlinks (matched by content hash, catching renames like `buddha-lotus.jpeg` → `buddga-lotus-unsplash.jpg`). 6.1 MB de-duplicated; the skill is 992K.
+
+### What this connects to
+
+- **`RIM_Public_Pages.md`** gains the `pp-` grammar; it is the authority for all of it.
+- **`/community-programs` and `/programs/[slug]`** supplied the visual language (`pl-`/`pg-`) these pages extend. They were not modified.
+- **`Nav.tsx` needed no work** — it already carries the live menu's structure and copy word-for-word, including the Get Involved dropdown descriptions. The only differences are the deliberate session-148 decisions.
+- **The footer** already carried the live "Stay Connected" newsletter (Flodesk via `/api/subscribe`) and the live contact block, so home needed no duplicate band.
+- **`Program` / `ProgramCategory`** are read by the KM groups page.
+- **No hub, role, permission, schema, dependency, env, or email-template change.** No member, admin, tool, API, or session surface touched — verified by diff before merging, because production is in daily use by members.
+
+### Production data uncovered
+
+Reading the deployed site (production Neon is unreachable from Jesse's machine — `P1001`): **12 programs** across 4 categories, **1 public teacher profile** (jesse-foy), and **1 course on the public catalog — `test-course`**. Webflow has 4 real courses and 57 `/team/` pages. Also: the live home's four category doors match the real taxonomy on only **one of four** — it advertises "Classes & Courses", which is not a category, and omits "Silent Meditation Drop-Ins", which carries 10 of this week's 17 occurrences.
+
+### What comes next
+
+Optimizing the home page design is the next session. The immediate candidate is the four category doors: they are the weakest section on the page (four identical cards carrying only a title, three pointing at the same URL, and the taxonomy is stale). The catalog's `.pl-cat` sections have no `id`, so category links cannot work until anchors exist.
+
 ## 2026-07-17 (sessions 167–168) — Universal Space Home and app contract, clear Updates, real navigation collapse, and occurrence-first scheduling
 
 This was one sustained design-and-implementation run across the entire member Space experience. It began with a question about whether every team needed a custom-built hub, established a universal Space plus installable-app architecture, and then refined the navigation, dashboard, Scheduler, and Updates surfaces against production screenshots. A series of implementation commits landed on `main`, plus a temporary plain-English team guide that Jesse downloaded and then asked to remove from the repository. The final state is `tsc`-green, lint-clean, CSS-brace-balanced, and pushed for Vercel's automatic deployment.

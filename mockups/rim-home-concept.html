@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A visual homepage concept for Rooted In Mindfulness — a meditation and dharma community in Brookfield, Wisconsin.">
+  <title>Rooted In Mindfulness — Homepage Concept</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: "Quincy";
+      src: url("../public/fonts/QuincyCF-Regular.woff2") format("woff2");
+      font-display: swap;
+      font-style: normal;
+      font-weight: 400;
+    }
+
+    @font-face {
+      font-family: "Quincy";
+      src: url("../public/fonts/QuincyCF-LightItalic.woff2") format("woff2");
+      font-display: swap;
+      font-style: italic;
+      font-weight: 300;
+    }
+
+    :root {
+      --ink: #26312d;
+      --ink-soft: #53605b;
+      --moss: #355c4b;
+      --moss-deep: #244537;
+      --moss-pale: #dfe8df;
+      --blue: #31576d;
+      --clay: #b86649;
+      --clay-pale: #ead9ce;
+      --sun: #e8b85f;
+      --pampas: #f4f1eb;
+      --paper: #fcfbf8;
+      --white: #fff;
+      --rule: rgba(38, 49, 45, 0.16);
+      --serif: "Quincy", Georgia, serif;
+      --sans: "Manrope", "Open Sans", sans-serif;
+      --mono: "DM Mono", monospace;
+      --container: 76rem;
+      --reading: 44rem;
+      --radius-sm: 0.8rem;
+      --radius-md: 1.4rem;
+      --radius-lg: 2.4rem;
+      --shadow: 0 1.5rem 4rem rgba(28, 42, 35, 0.11);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--pampas);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.65;
+      text-rendering: optimizeLegibility;
+    }
+
+    body.menu-open { overflow: hidden; }
+
+    img, video { display: block; max-width: 100%; }
+
+    a { color: inherit; }
+
+    button, input { font: inherit; }
+
+    button, a { -webkit-tap-highlight-color: transparent; }
+
+    :focus-visible {
+      outline: 0.2rem solid var(--sun);
+      outline-offset: 0.25rem;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 1000;
+      padding: 0.75rem 1rem;
+      background: var(--white);
+      color: var(--ink);
+      border-radius: 999px;
+      transform: translateY(-150%);
+      transition: transform 180ms ease;
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .shell {
+      width: min(calc(100% - 3rem), var(--container));
+      margin-inline: auto;
+    }
+
+    .eyebrow {
+      margin: 0 0 1.25rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+
+    .section-title {
+      max-width: 16ch;
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(2.55rem, 5vw, 5.5rem);
+      font-weight: 400;
+      letter-spacing: -0.035em;
+      line-height: 0.98;
+      text-wrap: balance;
+    }
+
+    .button {
+      min-height: 3.2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.8rem;
+      padding: 0.85rem 1.35rem;
+      border: 0;
+      border-radius: 999px;
+      background: var(--moss);
+      color: var(--white);
+      font-size: 0.88rem;
+      font-weight: 700;
+      line-height: 1;
+      text-decoration: none;
+      transition: background 180ms ease, transform 180ms ease;
+    }
+
+    .button:hover { background: var(--moss-deep); transform: translateY(-0.12rem); }
+
+    .button--light { background: var(--paper); color: var(--moss-deep); }
+    .button--light:hover { background: var(--white); }
+
+    .text-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      min-height: 2.75rem;
+      color: var(--moss-deep);
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-decoration-thickness: 0.08rem;
+      text-underline-offset: 0.3rem;
+    }
+
+    .text-link span { transition: transform 180ms ease; }
+    .text-link:hover span { transform: translateX(0.25rem); }
+
+    /* Header */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: color-mix(in srgb, var(--paper) 93%, transparent);
+      border-bottom: 1px solid var(--rule);
+      backdrop-filter: blur(1rem);
+    }
+
+    .nav {
+      min-height: 5.7rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.8rem;
+      flex: 0 0 auto;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand img { width: 2.7rem; height: 2.7rem; object-fit: contain; }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.08;
+    }
+
+    .brand-name { font-family: var(--serif); font-size: 1.1rem; }
+    .brand-place { margin-top: 0.25rem; color: var(--ink-soft); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.15rem;
+      margin-left: auto;
+    }
+
+    .nav-link {
+      min-height: 2.75rem;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.7rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .nav-link:hover { background: var(--moss-pale); }
+    .nav .button { margin-left: 0.35rem; }
+
+    .menu-button {
+      width: 3rem;
+      height: 3rem;
+      display: none;
+      place-items: center;
+      margin-left: auto;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: var(--moss-pale);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .menu-button span,
+    .menu-button::before,
+    .menu-button::after {
+      width: 1.15rem;
+      height: 0.1rem;
+      display: block;
+      position: absolute;
+      background: currentColor;
+      content: "";
+      transition: transform 180ms ease, opacity 180ms ease;
+    }
+
+    .menu-button::before { transform: translateY(-0.34rem); }
+    .menu-button::after { transform: translateY(0.34rem); }
+    .menu-button[aria-expanded="true"] span { opacity: 0; }
+    .menu-button[aria-expanded="true"]::before { transform: rotate(45deg); }
+    .menu-button[aria-expanded="true"]::after { transform: rotate(-45deg); }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      min-height: calc(100svh - 5.7rem);
+      display: grid;
+      overflow: hidden;
+      background: var(--paper);
+    }
+
+    .hero::before {
+      width: 27rem;
+      height: 27rem;
+      position: absolute;
+      left: -12rem;
+      bottom: -16rem;
+      border: 1px solid var(--rule);
+      border-radius: 50%;
+      content: "";
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(25rem, 0.95fr);
+      gap: clamp(2rem, 5vw, 5.5rem);
+      align-items: center;
+      padding-block: clamp(3.5rem, 8vw, 7.5rem);
+    }
+
+    .hero-copy { position: relative; z-index: 2; }
+
+    .hero .eyebrow { color: var(--clay); }
+
+    .hero h1 {
+      max-width: 10ch;
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(4rem, 8.4vw, 8.5rem);
+      font-weight: 400;
+      letter-spacing: -0.055em;
+      line-height: 0.84;
+      text-wrap: balance;
+    }
+
+    .hero h1 em { color: var(--moss); font-weight: 300; }
+
+    .hero-intro {
+      max-width: 35rem;
+      margin: 2rem 0 0;
+      color: var(--ink-soft);
+      font-size: clamp(1rem, 1.4vw, 1.25rem);
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem 1.3rem;
+      margin-top: 2rem;
+    }
+
+    .hero-reassurance {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem 1.2rem;
+      margin: 2.3rem 0 0;
+      padding: 1.25rem 0 0;
+      border-top: 1px solid var(--rule);
+      color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hero-reassurance span::before { margin-right: 0.55rem; color: var(--clay); content: "•"; }
+
+    .hero-visual {
+      min-height: 40rem;
+      position: relative;
+    }
+
+    .hero-media {
+      height: 100%;
+      min-height: 40rem;
+      position: absolute;
+      inset: 0 0 0 2.2rem;
+      overflow: hidden;
+      border-radius: 48% 48% var(--radius-lg) var(--radius-lg);
+      background: var(--moss-pale);
+    }
+
+    .hero-media video { width: 100%; height: 100%; object-fit: cover; }
+
+    .hero-media::after {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(15, 34, 25, 0.05), rgba(15, 34, 25, 0.24));
+      content: "";
+    }
+
+    .next-card {
+      width: min(22rem, calc(100% - 1.5rem));
+      position: absolute;
+      left: -1.25rem;
+      bottom: 2rem;
+      z-index: 3;
+      padding: 1.4rem;
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--white) 94%, transparent);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(1rem);
+    }
+
+    .next-card-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .live-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--moss);
+    }
+
+    .live-dot::before {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--clay);
+      content: "";
+    }
+
+    .next-card h2 { margin: 0; font-family: var(--serif); font-size: 1.65rem; font-weight: 400; line-height: 1.1; }
+    .next-card p { margin: 0.75rem 0 1rem; color: var(--ink-soft); font-size: 0.86rem; line-height: 1.55; }
+    .next-card a { color: var(--moss); font-size: 0.78rem; font-weight: 700; text-underline-offset: 0.25rem; }
+
+    .hero-caption {
+      position: absolute;
+      top: 4rem;
+      right: -1rem;
+      z-index: 3;
+      color: var(--white);
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      transform: rotate(90deg) translateX(100%);
+      transform-origin: top right;
+    }
+
+    /* Welcome statement */
+    .welcome {
+      padding: clamp(6rem, 13vw, 12rem) 0;
+      background: var(--moss);
+      color: var(--white);
+    }
+
+    .welcome-grid {
+      display: grid;
+      grid-template-columns: 0.35fr 1fr;
+      gap: clamp(2rem, 8vw, 8rem);
+      align-items: start;
+    }
+
+    .welcome .eyebrow { color: var(--sun); }
+
+    .welcome-statement {
+      max-width: 20ch;
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(2.5rem, 5.2vw, 5.6rem);
+      font-weight: 400;
+      letter-spacing: -0.035em;
+      line-height: 1.02;
+      text-wrap: pretty;
+    }
+
+    .welcome-statement em { color: #d5c7a9; font-weight: 300; }
+
+    /* Path selector */
+    .paths-section { padding: clamp(6rem, 12vw, 11rem) 0; }
+
+    .section-heading-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 3rem;
+      align-items: end;
+      margin-bottom: clamp(3rem, 7vw, 6rem);
+    }
+
+    .section-heading-row p {
+      max-width: 31rem;
+      margin: 0 0 0.5rem;
+      color: var(--ink-soft);
+      font-size: 1.05rem;
+    }
+
+    .path-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--ink);
+    }
+
+    .path-card {
+      min-height: 30rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding: 2rem;
+      border-bottom: 1px solid var(--ink);
+      overflow: hidden;
+      text-decoration: none;
+      transition: color 220ms ease;
+    }
+
+    .path-card + .path-card { border-left: 1px solid var(--ink); }
+
+    .path-card::before {
+      position: absolute;
+      inset: 100% 0 0;
+      z-index: -1;
+      background: var(--moss);
+      content: "";
+      transition: inset 280ms cubic-bezier(.22,.61,.36,1);
+    }
+
+    .path-card:nth-child(2)::before { background: var(--blue); }
+    .path-card:nth-child(3)::before { background: var(--clay); }
+    .path-card:hover { color: var(--white); }
+    .path-card:hover::before { inset: 0; }
+
+    .path-number { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; }
+
+    .path-card h3 {
+      max-width: 8ch;
+      margin: auto 0 1.2rem;
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 3.6vw, 4rem);
+      font-weight: 400;
+      letter-spacing: -0.03em;
+      line-height: 0.98;
+    }
+
+    .path-card p { max-width: 25rem; margin: 0; color: var(--ink-soft); font-size: 0.9rem; }
+    .path-card:hover p { color: rgba(255, 255, 255, 0.82); }
+
+    .path-arrow {
+      width: 3rem;
+      height: 3rem;
+      display: grid;
+      place-items: center;
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      font-size: 1.2rem;
+    }
+
+    /* First visit */
+    .first-visit {
+      padding: clamp(5rem, 11vw, 10rem) 0;
+      background: var(--paper);
+    }
+
+    .visit-grid {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: clamp(3rem, 8vw, 8rem);
+      align-items: center;
+    }
+
+    .visit-image {
+      min-height: 42rem;
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-lg) 9rem var(--radius-lg) var(--radius-lg);
+      background: var(--moss-pale);
+    }
+
+    .visit-image img { width: 100%; height: 100%; position: absolute; object-fit: cover; filter: saturate(0.78); }
+
+    .visit-image-note {
+      max-width: 18rem;
+      position: absolute;
+      right: 1.5rem;
+      bottom: 1.5rem;
+      padding: 1.1rem 1.25rem;
+      border-radius: var(--radius-sm);
+      background: var(--paper);
+      font-family: var(--serif);
+      font-size: 1.05rem;
+      line-height: 1.35;
+    }
+
+    .visit-copy .eyebrow { color: var(--clay); }
+    .visit-copy h2 { max-width: 11ch; }
+
+    .visit-intro {
+      max-width: 36rem;
+      margin: 1.7rem 0 2.5rem;
+      color: var(--ink-soft);
+      font-size: 1.05rem;
+    }
+
+    .visit-steps { margin: 0; padding: 0; list-style: none; }
+
+    .visit-step {
+      display: grid;
+      grid-template-columns: 2.8rem 1fr;
+      gap: 1.2rem;
+      padding: 1.5rem 0;
+      border-top: 1px solid var(--rule);
+    }
+
+    .visit-step:last-child { border-bottom: 1px solid var(--rule); }
+
+    .visit-step-num {
+      width: 2.6rem;
+      height: 2.6rem;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--moss-pale);
+      color: var(--moss);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+    }
+
+    .visit-step h3 { margin: 0 0 0.25rem; font-family: var(--serif); font-size: 1.35rem; font-weight: 400; }
+    .visit-step p { margin: 0; color: var(--ink-soft); font-size: 0.88rem; }
+    .visit-copy .button { margin-top: 2rem; }
+
+    /* Schedule */
+    .schedule-section {
+      padding: clamp(6rem, 12vw, 11rem) 0;
+      background: var(--clay-pale);
+    }
+
+    .schedule-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2rem;
+      align-items: end;
+      margin-bottom: 3rem;
+    }
+
+    .schedule-head .eyebrow { color: #814630; }
+
+    .schedule-tabs {
+      display: flex;
+      gap: 0.4rem;
+      padding: 0.3rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.46);
+    }
+
+    .schedule-tab {
+      min-height: 2.8rem;
+      padding: 0.65rem 1rem;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--ink-soft);
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .schedule-tab[aria-selected="true"] { background: var(--paper); color: var(--ink); }
+
+    .schedule-list { border-top: 1px solid var(--ink); }
+
+    .schedule-row {
+      display: grid;
+      grid-template-columns: 7rem minmax(0, 1.5fr) 0.7fr 0.7fr 3rem;
+      gap: 1rem;
+      align-items: center;
+      min-height: 7.4rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(38, 49, 45, 0.3);
+      color: var(--ink);
+      text-decoration: none;
+      transition: padding 180ms ease, background 180ms ease;
+    }
+
+    .schedule-row:hover { padding-inline: 1rem; background: rgba(255, 255, 255, 0.38); }
+    .schedule-day { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.09em; text-transform: uppercase; }
+    .schedule-program strong { display: block; font-family: var(--serif); font-size: clamp(1.3rem, 2.1vw, 2rem); font-weight: 400; line-height: 1.15; }
+    .schedule-program small { color: var(--ink-soft); font-size: 0.78rem; }
+    .schedule-time, .schedule-place { color: var(--ink-soft); font-size: 0.82rem; }
+    .schedule-arrow { width: 2.6rem; height: 2.6rem; display: grid; place-items: center; justify-self: end; border: 1px solid currentColor; border-radius: 50%; }
+    .schedule-more { margin-top: 2rem; }
+
+    /* Community quote */
+    .community-section {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      min-height: 51rem;
+      background: var(--blue);
+      color: var(--white);
+    }
+
+    .community-image { min-height: 34rem; position: relative; overflow: hidden; }
+    .community-image img { width: 100%; height: 100%; position: absolute; object-fit: cover; filter: saturate(0.68); }
+    .community-image::after { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(14, 35, 45, 0.45)); content: ""; }
+
+    .community-quote {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: clamp(3rem, 8vw, 8rem);
+    }
+
+    .community-quote .eyebrow { color: #d5c7a9; }
+
+    blockquote { margin: 0; }
+
+    .community-quote blockquote p {
+      max-width: 16ch;
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(2rem, 4vw, 4.4rem);
+      font-weight: 300;
+      font-style: italic;
+      letter-spacing: -0.025em;
+      line-height: 1.08;
+    }
+
+    .community-quote footer { margin-top: 2rem; color: rgba(255, 255, 255, 0.68); font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.09em; text-transform: uppercase; }
+
+    /* Depth */
+    .depth-section {
+      position: relative;
+      padding: clamp(6rem, 13vw, 12rem) 0;
+      overflow: hidden;
+      background: var(--ink);
+      color: var(--white);
+    }
+
+    .depth-section::after {
+      width: min(42vw, 38rem);
+      aspect-ratio: 1;
+      position: absolute;
+      right: -12vw;
+      bottom: -15rem;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50%;
+      content: "";
+    }
+
+    .depth-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: clamp(3rem, 10vw, 10rem);
+    }
+
+    .depth-title .eyebrow { color: var(--sun); }
+    .depth-title h2 { max-width: 9ch; }
+    .depth-copy > p { max-width: 36rem; margin: 0 0 3rem; color: rgba(255,255,255,0.7); font-size: 1.05rem; }
+
+    .depth-list { margin: 0; padding: 0; list-style: none; }
+
+    .depth-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 1.5rem 0;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .depth-item:last-child { border-bottom: 1px solid rgba(255,255,255,0.2); }
+    .depth-item h3 { margin: 0; font-family: var(--serif); font-size: 1.5rem; font-weight: 400; }
+    .depth-item p { margin: 0.3rem 0 0; color: rgba(255,255,255,0.58); font-size: 0.8rem; }
+    .depth-item span { color: var(--sun); font-size: 1.2rem; }
+
+    /* Roots */
+    .roots-section { padding: clamp(6rem, 12vw, 11rem) 0; background: var(--paper); }
+
+    .roots-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: clamp(3rem, 8vw, 8rem);
+      align-items: center;
+    }
+
+    .roots-copy .eyebrow { color: var(--clay); }
+    .roots-copy h2 { max-width: 10ch; }
+    .roots-copy > p { max-width: 36rem; margin: 1.8rem 0 0; color: var(--ink-soft); font-size: 1.05rem; }
+    .roots-copy .text-link { margin-top: 1.5rem; }
+
+    .roots-visual {
+      min-height: 40rem;
+      position: relative;
+    }
+
+    .roots-visual img {
+      width: calc(100% - 3.5rem);
+      height: calc(100% - 2.5rem);
+      position: absolute;
+      inset: 0 3.5rem 2.5rem 0;
+      object-fit: cover;
+      border-radius: 10rem 10rem var(--radius-lg) var(--radius-lg);
+    }
+
+    .roots-note {
+      width: min(21rem, calc(100% - 1rem));
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      background: var(--moss-pale);
+    }
+
+    .roots-note p { margin: 0; font-family: var(--serif); font-size: 1.35rem; line-height: 1.35; }
+    .roots-note small { display: block; margin-top: 1rem; color: var(--ink-soft); font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    /* Dana */
+    .dana-section { padding: clamp(5rem, 10vw, 9rem) 0; background: var(--clay); color: var(--white); }
+
+    .dana-grid {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      gap: clamp(2.5rem, 9vw, 9rem);
+      align-items: center;
+    }
+
+    .dana-section .eyebrow { color: #f4dcbd; }
+    .dana-section h2 { max-width: 10ch; }
+    .dana-copy { max-width: 39rem; }
+    .dana-copy p { margin: 0; font-family: var(--serif); font-size: clamp(1.45rem, 2.7vw, 2.5rem); line-height: 1.25; }
+    .dana-actions { display: flex; flex-wrap: wrap; gap: 1rem 1.3rem; align-items: center; margin-top: 2rem; }
+    .dana-actions .text-link { color: var(--white); }
+
+    /* Closing */
+    .closing-section {
+      padding: clamp(7rem, 15vw, 14rem) 0;
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+      background: var(--moss-pale);
+    }
+
+    .closing-section::before,
+    .closing-section::after {
+      width: 25rem;
+      height: 25rem;
+      position: absolute;
+      border: 1px solid rgba(53, 92, 75, 0.25);
+      border-radius: 50%;
+      content: "";
+    }
+
+    .closing-section::before { top: -15rem; left: -10rem; }
+    .closing-section::after { right: -11rem; bottom: -17rem; }
+
+    .closing-content { position: relative; z-index: 1; }
+    .closing-section .eyebrow { color: var(--moss); }
+    .closing-section h2 { max-width: 13ch; margin-inline: auto; }
+    .closing-section p { max-width: 38rem; margin: 1.8rem auto 2.2rem; color: var(--ink-soft); font-size: 1.05rem; }
+    .closing-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem 1.4rem; align-items: center; }
+
+    /* Footer */
+    .footer { padding: 5rem 0 2rem; background: var(--moss-deep); color: var(--white); }
+
+    .footer-top {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 5rem;
+      padding-bottom: 4rem;
+    }
+
+    .footer-brand { display: flex; align-items: flex-start; gap: 1rem; }
+    .footer-brand img { width: 4rem; filter: brightness(0) invert(1); }
+    .footer-brand strong { display: block; font-family: var(--serif); font-size: 1.5rem; font-weight: 400; }
+    .footer-brand span { display: block; margin-top: 0.35rem; color: rgba(255,255,255,0.6); font-size: 0.75rem; }
+
+    .footer-links {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    .footer-column h3 { margin: 0 0 1rem; color: #d5c7a9; font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; }
+    .footer-column a { min-height: 2.25rem; display: flex; align-items: center; color: rgba(255,255,255,0.76); font-size: 0.82rem; text-decoration: none; }
+    .footer-column a:hover { color: var(--white); text-decoration: underline; text-underline-offset: 0.25rem; }
+
+    .newsletter {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-column: 1 / -1;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .newsletter label { grid-column: 1 / -1; color: rgba(255,255,255,0.65); font-size: 0.78rem; }
+    .newsletter input { min-width: 0; min-height: 3.2rem; padding: 0.85rem 1rem; border: 1px solid rgba(255,255,255,0.28); border-radius: 999px; background: transparent; color: var(--white); font-size: 1rem; }
+    .newsletter input::placeholder { color: rgba(255,255,255,0.48); }
+    .newsletter button { min-height: 3.2rem; padding: 0.85rem 1.25rem; border: 0; border-radius: 999px; background: var(--paper); color: var(--moss-deep); font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      gap: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255,255,255,0.16);
+      color: rgba(255,255,255,0.5);
+      font-size: 0.68rem;
+    }
+
+    .concept-note { font-family: var(--mono); letter-spacing: 0.05em; text-transform: uppercase; }
+
+    @media (max-width: 60rem) {
+      .nav-links { display: none; }
+      .menu-button { display: grid; position: relative; }
+      .nav-links.is-open {
+        display: flex;
+        align-items: stretch;
+        position: fixed;
+        inset: 5.7rem 0 0;
+        flex-direction: column;
+        gap: 0;
+        margin: 0;
+        padding: 2rem 1.5rem;
+        background: var(--paper);
+      }
+      .nav-links.is-open .nav-link { min-height: 4rem; justify-content: space-between; border-bottom: 1px solid var(--rule); border-radius: 0; font-family: var(--serif); font-size: 1.6rem; font-weight: 400; }
+      .nav-links.is-open .nav-link::after { content: "↗"; font-family: var(--sans); font-size: 1rem; }
+      .nav-links.is-open .button { margin: 2rem 0 0; }
+
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-copy { padding-top: 1rem; }
+      .hero h1 { max-width: 9ch; }
+      .hero-visual { min-height: 36rem; }
+      .hero-media { min-height: 36rem; left: 0; }
+
+      .welcome-grid, .depth-grid { grid-template-columns: 1fr; }
+      .welcome-grid { gap: 2rem; }
+      .welcome .eyebrow { margin: 0; }
+
+      .section-heading-row { display: grid; }
+      .path-grid { grid-template-columns: 1fr; }
+      .path-card { min-height: 22rem; }
+      .path-card + .path-card { border-left: 0; }
+
+      .visit-grid, .roots-grid { grid-template-columns: 1fr; }
+      .visit-image { min-height: 36rem; }
+      .roots-visual { min-height: 36rem; }
+
+      .community-section { grid-template-columns: 1fr; }
+      .community-image { min-height: 32rem; }
+
+      .dana-grid { grid-template-columns: 1fr; }
+      .footer-top { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 44rem) {
+      .shell { width: min(calc(100% - 2rem), var(--container)); }
+      .brand-place { display: none; }
+      .brand-name { font-size: 0.95rem; }
+      .nav { min-height: 4.8rem; }
+      .nav-links.is-open { top: 4.8rem; }
+
+      .hero { min-height: auto; }
+      .hero-grid { gap: 2.5rem; padding-block: 3.5rem 2rem; }
+      .hero h1 { font-size: clamp(3.7rem, 18vw, 5.2rem); }
+      .hero-intro { font-size: 1rem; }
+      .hero-actions { align-items: stretch; flex-direction: column; }
+      .hero-actions .button { width: 100%; }
+      .hero-reassurance { display: grid; grid-template-columns: 1fr; }
+      .hero-visual { min-height: 31rem; }
+      .hero-media { min-height: 29rem; inset: 0; border-radius: 48% 48% 1.4rem 1.4rem; }
+      .next-card { left: 0.75rem; bottom: 0; }
+      .hero-caption { display: none; }
+
+      .welcome { padding-block: 6rem; }
+      .welcome-statement { font-size: clamp(2.5rem, 12vw, 3.7rem); }
+
+      .section-title { font-size: clamp(2.65rem, 13vw, 4rem); }
+      .section-heading-row { gap: 1.5rem; }
+      .path-card { min-height: 20rem; padding: 1.5rem; }
+      .path-card h3 { font-size: 2.7rem; }
+
+      .visit-image { min-height: 30rem; }
+      .visit-step { grid-template-columns: 2.6rem 1fr; gap: 0.8rem; }
+
+      .schedule-head { grid-template-columns: 1fr; }
+      .schedule-tabs { width: 100%; }
+      .schedule-tab { flex: 1; }
+      .schedule-row { grid-template-columns: 4.8rem 1fr 2.6rem; min-height: 6.5rem; }
+      .schedule-time, .schedule-place { display: none; }
+      .schedule-program strong { font-size: 1.25rem; }
+
+      .community-quote { padding: 4rem 1.5rem; }
+      .community-quote blockquote p { font-size: 2.3rem; }
+
+      .depth-grid { gap: 2.5rem; }
+      .roots-visual { min-height: 31rem; }
+      .roots-visual img { width: calc(100% - 1.5rem); right: 1.5rem; border-radius: 7rem 7rem 1.4rem 1.4rem; }
+
+      .dana-actions, .closing-actions { align-items: stretch; flex-direction: column; }
+      .dana-actions .button, .closing-actions .button { width: 100%; }
+
+      .footer-links { grid-template-columns: 1fr 1fr; }
+      .newsletter { grid-template-columns: 1fr; }
+      .newsletter button { width: 100%; }
+      .footer-bottom { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="shell nav">
+      <a class="brand" href="#" aria-label="Rooted In Mindfulness home">
+        <img src="../public/images/Rooted-In-Mindfulness-Logo.png" alt="">
+        <span class="brand-text">
+          <span class="brand-name">Rooted In Mindfulness</span>
+          <span class="brand-place">Brookfield, Wisconsin · Online everywhere</span>
+        </span>
+      </a>
+
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Open navigation"><span></span></button>
+
+      <nav class="nav-links" id="primary-nav" aria-label="Primary navigation">
+        <a class="nav-link" href="#first-visit">Your first visit</a>
+        <a class="nav-link" href="#practice">Ways to practice</a>
+        <a class="nav-link" href="#roots">Who we are</a>
+        <a class="nav-link" href="#give">Give</a>
+        <a class="button" href="#schedule">See this week <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Meditation · Dharma · Community</p>
+          <h1>Come as you are. <em>Practice what is real.</em></h1>
+          <p class="hero-intro">A place to meditate, learn, ask honest questions, and be human together. Buddhist-rooted, open to everyone, and sustained by generosity.</p>
+          <div class="hero-actions">
+            <a class="button" href="#first-visit">Plan your first visit <span aria-hidden="true">↘</span></a>
+            <a class="text-link" href="#schedule">See what’s happening this week <span aria-hidden="true">→</span></a>
+          </div>
+          <p class="hero-reassurance" aria-label="What to expect">
+            <span>No experience needed</span>
+            <span>No required fee</span>
+            <span>In person + online</span>
+          </p>
+        </div>
+
+        <div class="hero-visual" aria-label="Sunlight moving through bodhi leaves">
+          <div class="hero-media">
+            <video autoplay loop muted playsinline poster="../public/videos/Bodhi_Leaves-poster-00001.jpg">
+              <source src="../public/videos/Bodhi_Leaves-transcode.webm" type="video/webm">
+              <source src="../public/videos/Bodhi_Leaves-transcode.mp4" type="video/mp4">
+            </video>
+          </div>
+          <span class="hero-caption">A place to arrive, breathe, and begin again</span>
+          <aside class="next-card" aria-label="Next recommended gathering">
+            <div class="next-card-top">
+              <span class="live-dot">Good first visit</span>
+              <time datetime="2026-07-25T09:30">Sat · 9:30 AM</time>
+            </div>
+            <h2>Meditation &amp; Dharma Talk</h2>
+            <p>A guided sit, practical teaching, and time for questions. Join us in Brookfield or on Zoom.</p>
+            <a href="#schedule">What to expect and how to join →</a>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="welcome" aria-labelledby="welcome-title">
+      <div class="shell welcome-grid">
+        <p class="eyebrow">You are welcome here</p>
+        <h2 class="welcome-statement" id="welcome-title">Some people come because they want to learn to meditate. Some are carrying something hard. Some have practiced for years and are ready for community. <em>Whatever brought you here, that is enough.</em></h2>
+      </div>
+    </section>
+
+    <section class="paths-section" id="practice" aria-labelledby="paths-title">
+      <div class="shell">
+        <div class="section-heading-row">
+          <h2 class="section-title" id="paths-title">A place for where you are now.</h2>
+          <p>You don’t have to figure out the whole path. Choose the doorway that sounds most like you today.</p>
+        </div>
+
+        <div class="path-grid">
+          <a class="path-card" href="#first-visit">
+            <span class="path-number">01 · BEGIN</span>
+            <span class="path-arrow" aria-hidden="true">↘</span>
+            <h3>I’m new to meditation.</h3>
+            <p>Start gently with a guided practice, a real teacher, and plenty of room for questions.</p>
+          </a>
+          <a class="path-card" href="#schedule">
+            <span class="path-number">02 · RETURN</span>
+            <span class="path-arrow" aria-hidden="true">↘</span>
+            <h3>I want to practice with others.</h3>
+            <p>Drop in once or make it a rhythm. Come in person, online, or move between both.</p>
+          </a>
+          <a class="path-card" href="#depth">
+            <span class="path-number">03 · DEEPEN</span>
+            <span class="path-arrow" aria-hidden="true">↘</span>
+            <h3>I’ve been at this a while.</h3>
+            <p>Study early Buddhist teaching, sit in silence, join a course, and bring practice into service.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="first-visit" id="first-visit" aria-labelledby="visit-title">
+      <div class="shell visit-grid">
+        <div class="visit-image">
+          <img src="../public/images/Asian-Woman-Headhphones-unsplash.jpg" alt="A person pausing outdoors with headphones">
+          <p class="visit-image-note">“There is nothing to perform here. Just arrive as yourself.”</p>
+        </div>
+
+        <div class="visit-copy">
+          <p class="eyebrow">Your first visit</p>
+          <h2 class="section-title" id="visit-title">Knowing what will happen helps.</h2>
+          <p class="visit-intro">A first meditation group can feel unfamiliar. Here is the whole thing—no hidden expectations and no special vocabulary required.</p>
+          <ol class="visit-steps">
+            <li class="visit-step">
+              <span class="visit-step-num">01</span>
+              <div><h3>Choose in person or online.</h3><p>Come to our quiet center in Brookfield or join the same gathering on Zoom from home.</p></div>
+            </li>
+            <li class="visit-step">
+              <span class="visit-step-num">02</span>
+              <div><h3>Arrive a few minutes early.</h3><p>Someone will greet you. Chairs and cushions are ready; wear whatever lets you sit comfortably.</p></div>
+            </li>
+            <li class="visit-step">
+              <span class="visit-step-num">03</span>
+              <div><h3>Practice, listen, ask—or simply be quiet.</h3><p>Most gatherings include guided meditation and teaching. Participation is always invitational.</p></div>
+            </li>
+            <li class="visit-step">
+              <span class="visit-step-num">04</span>
+              <div><h3>Offer dana only if you want to.</h3><p>There is no admission price. Generosity makes the teaching available to the next person.</p></div>
+            </li>
+          </ol>
+          <a class="button" href="#schedule">Choose a first gathering <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="schedule-section" id="schedule" aria-labelledby="schedule-title">
+      <div class="shell">
+        <div class="schedule-head">
+          <div>
+            <p class="eyebrow">July 20–26 · Central time</p>
+            <h2 class="section-title" id="schedule-title">Practice with us this week.</h2>
+          </div>
+          <div class="schedule-tabs" role="tablist" aria-label="Filter weekly gatherings">
+            <button class="schedule-tab" type="button" role="tab" aria-selected="true" data-filter="all">All</button>
+            <button class="schedule-tab" type="button" role="tab" aria-selected="false" data-filter="good-first">Good first visit</button>
+            <button class="schedule-tab" type="button" role="tab" aria-selected="false" data-filter="online">Online</button>
+          </div>
+        </div>
+
+        <div class="schedule-list" aria-live="polite">
+          <a class="schedule-row" href="#" data-tags="online">
+            <span class="schedule-day">Monday</span>
+            <span class="schedule-program"><strong>Awakening the Heart</strong><small>Lovingkindness practice</small></span>
+            <span class="schedule-time">9:30–10:45 AM</span>
+            <span class="schedule-place">Online</span>
+            <span class="schedule-arrow" aria-hidden="true">↗</span>
+          </a>
+          <a class="schedule-row" href="#" data-tags="good-first online">
+            <span class="schedule-day">Tuesday</span>
+            <span class="schedule-program"><strong>The Art of Meditation</strong><small>Guided practice &amp; teaching</small></span>
+            <span class="schedule-time">9:30–10:45 AM</span>
+            <span class="schedule-place">Brookfield + online</span>
+            <span class="schedule-arrow" aria-hidden="true">↗</span>
+          </a>
+          <a class="schedule-row" href="#" data-tags="online">
+            <span class="schedule-day">Thursday</span>
+            <span class="schedule-program"><strong>Essential Dharma Study</strong><small>Teaching &amp; dialogue</small></span>
+            <span class="schedule-time">9:30–11:00 AM</span>
+            <span class="schedule-place">Online</span>
+            <span class="schedule-arrow" aria-hidden="true">↗</span>
+          </a>
+          <a class="schedule-row" href="#" data-tags="good-first online">
+            <span class="schedule-day">Saturday</span>
+            <span class="schedule-program"><strong>Meditation &amp; Dharma Talk</strong><small>Guided sit &amp; practical teaching</small></span>
+            <span class="schedule-time">9:30–11:00 AM</span>
+            <span class="schedule-place">Brookfield + online</span>
+            <span class="schedule-arrow" aria-hidden="true">↗</span>
+          </a>
+        </div>
+        <a class="text-link schedule-more" href="#">See the full calendar and all programs <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+
+    <section class="community-section" aria-label="A community member’s experience">
+      <div class="community-image">
+        <img src="../public/images/Community-Hands-on-Tree.jpg" alt="Many people resting their hands together on the trunk of an old tree">
+      </div>
+      <div class="community-quote">
+        <p class="eyebrow">Real people · Real practice</p>
+        <blockquote>
+          <p>“RIM has been a safe place for me to bring my anxiety and brokenness—to feel supported and okay. I can show up with all my baggage and leave feeling lighter.”</p>
+          <footer>— A member of the RIM community</footer>
+        </blockquote>
+      </div>
+    </section>
+
+    <section class="depth-section" id="depth" aria-labelledby="depth-title">
+      <div class="shell depth-grid">
+        <div class="depth-title">
+          <p class="eyebrow">The path keeps opening</p>
+          <h2 class="section-title" id="depth-title">Depth without pretense.</h2>
+        </div>
+        <div class="depth-copy">
+          <p>For experienced practitioners, RIM offers sustained study and a community that takes the dharma seriously without turning it into an identity. Bring your questions, your discipline, and your ordinary life.</p>
+          <ul class="depth-list">
+            <li class="depth-item"><div><h3>Silent Meditation</h3><p>Daily morning and evening sits · online</p></div><span aria-hidden="true">↗</span></li>
+            <li class="depth-item"><div><h3>Early Buddhist Teachings</h3><p>Close study, dialogue, and application</p></div><span aria-hidden="true">↗</span></li>
+            <li class="depth-item"><div><h3>Silent Illumination</h3><p>Chan practice and the intimacy of just sitting</p></div><span aria-hidden="true">↗</span></li>
+            <li class="depth-item"><div><h3>Practice in Service</h3><p>Volunteer, host, welcome, and help hold the community</p></div><span aria-hidden="true">↗</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="roots-section" id="roots" aria-labelledby="roots-title">
+      <div class="shell roots-grid">
+        <div class="roots-copy">
+          <p class="eyebrow">Ancient roots · Plain language</p>
+          <h2 class="section-title" id="roots-title">A tradition you can question.</h2>
+          <p>We are rooted in the earliest Buddhist teachings and the Chan practice of Silent Illumination. We teach them as living practices—not beliefs you are asked to adopt, and not ideas that stand between you and your own experience.</p>
+          <p>You do not need to be Buddhist to practice here. Curiosity, honesty, and a willingness to pay attention are enough.</p>
+          <a class="text-link" href="#">Meet Jesse and our teachers <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="roots-visual">
+          <img src="../public/images/Looking-Up-Pine-Trees-unsplash.jpg" alt="Looking upward through a circle of tall trees">
+          <div class="roots-note">
+            <p>“The teaching should help you meet your life more directly—not escape it.”</p>
+            <small>— Jesse Foy, guiding teacher</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="dana-section" id="give" aria-labelledby="dana-title">
+      <div class="shell dana-grid">
+        <div>
+          <p class="eyebrow">Sustained by generosity</p>
+          <h2 class="section-title" id="dana-title">No price at the door.</h2>
+        </div>
+        <div class="dana-copy">
+          <p>Teachers offer the dharma freely. Those who are able help sustain the center, the teachers, and access for the next person. Give money, time, care—or simply your sincere presence.</p>
+          <div class="dana-actions">
+            <a class="button button--light" href="#">Offer dana <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="#">Volunteer with RIM <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing-section" aria-labelledby="closing-title">
+      <div class="shell closing-content">
+        <p class="eyebrow">The door is open</p>
+        <h2 class="section-title" id="closing-title">Sit for an hour. See what you notice.</h2>
+        <p>You don’t need to decide whether RIM is “for you.” Come once. Meet the people. Try the practice. Let your own experience tell you what comes next.</p>
+        <div class="closing-actions">
+          <a class="button" href="#schedule">Find your first gathering <span aria-hidden="true">→</span></a>
+          <a class="text-link" href="#">Ask us a question <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <img src="../public/images/Rooted-In-Mindfulness-Logo.png" alt="">
+          <div><strong>Rooted In Mindfulness</strong><span>4040 N. Calhoun Road · Brookfield, WI 53005</span></div>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-column"><h3>Practice</h3><a href="#schedule">This week</a><a href="#practice">All programs</a><a href="#first-visit">New here</a></div>
+          <div class="footer-column"><h3>Community</h3><a href="#roots">Our teachers</a><a href="#">Become a member</a><a href="#give">Volunteer</a></div>
+          <div class="footer-column"><h3>Connect</h3><a href="#">Contact us</a><a href="#">Instagram</a><a href="#">Member sign in</a></div>
+          <form class="newsletter">
+            <label for="newsletter-email">A quiet note each week: gatherings, teachings, and community news.</label>
+            <input id="newsletter-email" name="email" type="email" autocomplete="email" placeholder="Your email address">
+            <button type="submit">Stay connected</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© 2026 Rooted In Mindfulness · A 501(c)(3) nonprofit</span>
+        <span class="concept-note">Homepage concept · imagery is representative</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const menuButton = document.querySelector('.menu-button');
+    const nav = document.querySelector('.nav-links');
+
+    menuButton.addEventListener('click', () => {
+      const isOpen = menuButton.getAttribute('aria-expanded') === 'true';
+      menuButton.setAttribute('aria-expanded', String(!isOpen));
+      menuButton.setAttribute('aria-label', isOpen ? 'Open navigation' : 'Close navigation');
+      nav.classList.toggle('is-open', !isOpen);
+      document.body.classList.toggle('menu-open', !isOpen);
+    });
+
+    nav.addEventListener('click', (event) => {
+      if (!event.target.closest('a')) return;
+      menuButton.setAttribute('aria-expanded', 'false');
+      menuButton.setAttribute('aria-label', 'Open navigation');
+      nav.classList.remove('is-open');
+      document.body.classList.remove('menu-open');
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      menuButton.setAttribute('aria-expanded', 'false');
+      menuButton.setAttribute('aria-label', 'Open navigation');
+      nav.classList.remove('is-open');
+      document.body.classList.remove('menu-open');
+    });
+
+    const tabs = [...document.querySelectorAll('.schedule-tab')];
+    const rows = [...document.querySelectorAll('.schedule-row')];
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const filter = tab.dataset.filter;
+        tabs.forEach((item) => item.setAttribute('aria-selected', String(item === tab)));
+        rows.forEach((row) => {
+          const visible = filter === 'all' || row.dataset.tags.split(' ').includes(filter);
+          row.hidden = !visible;
+        });
+      });
+    });
+
+    document.querySelector('.newsletter').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const button = event.currentTarget.querySelector('button');
+      button.textContent = 'You’re on the list';
+      button.disabled = true;
+    });
+  </script>
+</body>
+</html>

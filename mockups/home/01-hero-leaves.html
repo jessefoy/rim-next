@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RIM Home hero — leaves at the top, two treatments</title>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<style>
+/* Home hero, from scratch, SHIPPED SYSTEM ONLY.
+   Layout follows the shipped .hp-hero: bodhi leaves full-bleed at the
+   TOP, content over them. Two treatments of that one layout:
+     C1 — white panel over a dark overlay (the shipped pattern, refined)
+     C2 — text directly on the leaves under a rim-blue scrim
+   Control at the end: no image at all. */
+@font-face{font-family:Quincycf;src:url("../../public/fonts/QuincyCF-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Quincycf;src:url("../../public/fonts/QuincyCF-LightItalic.woff2") format("woff2");font-weight:300;font-style:italic;font-display:swap}
+:root{
+  --rim-surface:#ffffff;--rim-bg-bright:#faf9f7;--rim-bg:#f5f3f0;--rim-bg-accent:#e9e6e2;
+  --rim-dark:#0d2235;--rim-blue:#31576d;--rim-mid:#39607a;--rim-text:#333333;
+  --rim-text-quote:#555555;--rim-text-muted:#666666;--rim-rule:#dedbd7;
+  --font-serif:'Quincycf',Georgia,serif;--font-sans:'Open Sans',sans-serif;
+  --text-hero:clamp(2.5rem,4vw + 1rem,3.25rem);--text-body:18px;--text-small:15px;
+  --text-ui:14px;--text-xxs:11px;--lh-body:1.7;
+  --page:80rem;--nav-h:100px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--rim-bg);color:var(--rim-text);font-family:var(--font-sans);font-size:var(--text-body);line-height:var(--lh-body)}
+img{display:block}
+a{color:inherit}
+.wrap{width:min(calc(100% - 3rem),var(--page));margin-inline:auto}
+.topbar{position:relative;z-index:5;background:var(--rim-surface);border-bottom:1px solid var(--rim-rule)}
+.nav{min-height:var(--nav-h);display:flex;align-items:center;gap:.75rem}
+.nav img{width:2.6rem;height:2.6rem;object-fit:contain}
+.nav span{font-family:var(--font-serif);font-size:1.1rem;line-height:1.1}
+.tag{padding:.8rem 0;background:var(--rim-text);color:var(--rim-surface);font-size:var(--text-xxs);font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.tag em{color:#b9c6cf;font-style:normal;font-weight:400;letter-spacing:.05em;text-transform:none}
+
+/* ── the hero: leaves fill it, top to bottom ─────────────────── */
+.hero{position:relative;min-height:640px;display:flex;align-items:center;overflow:hidden;background:var(--rim-dark)}
+.hero__media{position:absolute;inset:0;z-index:0}
+.hero__media img{width:100%;height:100%;object-fit:cover}
+.hero__scrim{position:absolute;inset:0;z-index:1}
+.hero .wrap{position:relative;z-index:2}
+
+/* shared type */
+.hero h1{margin:0 0 1.25rem;font-family:var(--font-serif);font-size:var(--text-hero);font-weight:400;line-height:1.2;text-wrap:balance}
+.hero h1 em{font-weight:300}
+.hero__sub{margin:0 0 2rem;font-size:var(--text-body);line-height:var(--lh-body)}
+.cta{display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;align-items:center}
+.cta__go{min-height:52px;display:inline-flex;align-items:center;padding:.85rem 1.75rem;border-radius:32px;background:var(--rim-blue);color:#fff;font-size:var(--text-ui);font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-decoration:none}
+.cta__go:hover{background:var(--rim-mid)}
+.cta__alt{min-height:44px;display:inline-flex;align-items:center;gap:.5rem;font-size:var(--text-ui);font-weight:600;text-decoration:underline;text-underline-offset:.3rem;text-decoration-thickness:1px}
+.barriers{display:flex;flex-wrap:wrap;gap:.1rem 1.5rem;margin:2rem 0 0;padding:0;list-style:none;font-size:var(--text-small);font-weight:600}
+.barriers li{min-height:44px;display:inline-flex;align-items:center}
+.barriers li::before{margin-right:.5rem;content:"●";font-size:.4rem}
+
+/* ── C1: white panel over a dark overlay (shipped pattern) ───── */
+.c1 .hero__scrim{background:rgba(12,18,22,.38)}
+.c1 .panel{max-width:600px;margin:80px 0;padding:56px 60px;background:rgb(255 255 255 / .95)}
+.c1 h1{color:var(--rim-text)}
+.c1 h1 em{color:var(--rim-mid)}
+.c1 .hero__sub{color:var(--rim-text)}
+.c1 .cta__alt{color:var(--rim-blue)}
+.c1 .barriers{color:var(--rim-text-quote);border-top:1px solid var(--rim-rule);padding-top:1rem}
+.c1 .barriers li::before{color:var(--rim-mid)}
+
+/* ── C2: text on the leaves under a rim-blue scrim ──────────── */
+.c2 .hero__scrim{background:
+  linear-gradient(90deg,rgba(13,34,53,.88) 0%,rgba(13,34,53,.74) 42%,rgba(49,87,109,.34) 72%,rgba(49,87,109,.12) 100%)}
+.c2 .copy{max-width:40rem;padding:96px 0}
+.c2 h1{color:#fff;font-size:clamp(2.6rem,5vw,4rem)}
+.c2 h1 em{color:#cfe0e8}
+.c2 .hero__sub{max-width:34rem;color:rgba(255,255,255,.86)}
+.c2 .cta__go{background:#fff;color:var(--rim-blue)}
+.c2 .cta__go:hover{background:var(--rim-bg-accent)}
+.c2 .cta__alt{color:#fff}
+.c2 .barriers{max-width:34rem;color:rgba(255,255,255,.84)}
+.c2 .barriers li::before{color:#cfe0e8}
+
+/* ── control: no image ──────────────────────────────────────── */
+.c0{background:var(--rim-bg);min-height:auto}
+.c0 .copy{max-width:40rem;padding:96px 0}
+.c0 h1{color:var(--rim-text);font-size:clamp(2.6rem,5vw,4rem)}
+.c0 h1 em{color:var(--rim-mid)}
+.c0 .hero__sub{max-width:34rem;color:var(--rim-text-quote)}
+.c0 .barriers{max-width:34rem;color:var(--rim-text-quote)}
+.c0 .barriers li::before{color:var(--rim-mid)}
+.c0 .cta__alt{color:var(--rim-blue)}
+
+@media (max-width:768px){
+  .wrap{width:min(calc(100% - 2rem),var(--page))}
+  :root{--nav-h:76px}
+  .hero{min-height:auto}
+  .c1 .panel{margin:40px 0;padding:32px 24px}
+  .c2 .copy,.c0 .copy{padding:56px 0}
+  /* on a phone the scrim runs vertically, since the copy stacks */
+  .c2 .hero__scrim{background:linear-gradient(180deg,rgba(13,34,53,.9) 0%,rgba(13,34,53,.78) 55%,rgba(49,87,109,.42) 100%)}
+  .cta{align-items:stretch;flex-direction:column}
+  .cta__go{justify-content:center}
+}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="wrap nav"><img src="../../public/images/Rooted-In-Mindfulness-Logo.png" alt=""><span>Rooted In<br>Mindfulness</span></div></header>
+
+<div class="tag"><div class="wrap">Treatment C1 — <em>leaves full-bleed, dark overlay, white panel. Your shipped pattern, refined.</em></div></div>
+<section class="hero c1">
+  <div class="hero__media"><img src="../../public/images/Bodhi-Leaves.jpg" alt=""></div>
+  <div class="hero__scrim"></div>
+  <div class="wrap">
+    <div class="panel">
+      <h1>A place to practice, <em>together.</em></h1>
+      <p class="hero__sub">A meditation and dharma community in Brookfield and online. We sit together, study the teachings, and make room for whatever life brings.</p>
+      <div class="cta"><a class="cta__go" href="#">Join a gathering this week</a><a class="cta__alt" href="#">What to expect <span aria-hidden="true">→</span></a></div>
+      <ul class="barriers"><li>No experience needed</li><li>No belief required</li><li>In person or online</li><li>Cost is never a barrier</li></ul>
+    </div>
+  </div>
+</section>
+
+<div class="tag"><div class="wrap">Treatment C2 — <em>text on the leaves under a rim-blue scrim. No box; the blue hero language from the program page.</em></div></div>
+<section class="hero c2">
+  <div class="hero__media"><img src="../../public/images/Bodhi-Leaves.jpg" alt=""></div>
+  <div class="hero__scrim"></div>
+  <div class="wrap">
+    <div class="copy">
+      <h1>A place to practice, <em>together.</em></h1>
+      <p class="hero__sub">A meditation and dharma community in Brookfield and online. We sit together, study the teachings, and make room for whatever life brings.</p>
+      <div class="cta"><a class="cta__go" href="#">Join a gathering this week</a><a class="cta__alt" href="#">What to expect on your first visit <span aria-hidden="true">→</span></a></div>
+      <ul class="barriers"><li>No experience needed</li><li>No belief required</li><li>In person or online</li><li>Cost is never a barrier</li></ul>
+    </div>
+  </div>
+</section>
+
+<div class="tag"><div class="wrap">Control — <em>no image. For comparison only.</em></div></div>
+<section class="hero c0">
+  <div class="wrap">
+    <div class="copy">
+      <h1>A place to practice, <em>together.</em></h1>
+      <p class="hero__sub">A meditation and dharma community in Brookfield and online. We sit together, study the teachings, and make room for whatever life brings.</p>
+      <div class="cta"><a class="cta__go" href="#">Join a gathering this week</a><a class="cta__alt" href="#">What to expect on your first visit <span aria-hidden="true">→</span></a></div>
+      <ul class="barriers"><li>No experience needed</li><li>No belief required</li><li>In person or online</li><li>Cost is never a barrier</li></ul>
+    </div>
+  </div>
+</section>
+</body>
+</html>
