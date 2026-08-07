@@ -1,0 +1,26 @@
+/* Semantic aliases — what a surface IS, not what colour it is. */
+:root{
+  --page-ground:var(--rim-bg);
+  --surface-card:var(--rim-surface);
+  --surface-inset:var(--rim-bg-bright);
+  --surface-panel:var(--rim-bg-accent);
+  --surface-inverse:var(--rim-blue);
+  --surface-inverse-deep:var(--rim-dark);
+
+  --text-primary:var(--rim-text);
+  --text-secondary:var(--rim-text-quote);
+  --text-muted:var(--rim-text-muted);
+  --text-on-inverse:#ffffff;
+  --text-on-inverse-muted:rgba(255,255,255,0.75);
+  --text-link:var(--rim-mid);
+  --text-link-hover:var(--rim-blue);
+
+  --border-rule:var(--rim-rule);
+  --border-inverse:rgba(255,255,255,0.18);
+
+  --action-primary:var(--rim-blue);
+  --action-primary-hover:var(--rim-mid);
+  --action-on-primary:#ffffff;
+  --action-danger:var(--rim-donate);
+  --focus-ring:var(--rim-mid);
+}

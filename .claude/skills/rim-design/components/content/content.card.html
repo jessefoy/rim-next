@@ -1,0 +1,28 @@
+<!-- @dsCard group="Components" viewport="700x400" name="Content" subtitle="Rows, program cards, quotes, schedule, details" -->
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css"><style>body{margin:0;background:var(--rim-bg);font-family:var(--font-sans)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script></head><body>
+<div id="root" style="padding:20px"></div>
+<script type="text/babel">
+const { ListRow, ProgramCard, PullQuote, DetailRow, Testimonial, ScheduleRow } = window.RootedInMindfulnessDesignSystem_980dba;
+function Demo(){return (
+<div style={{display:"grid",gap:16}}>
+  <ListRow name="The Art of Meditation" schedule="Tuesdays · 9:30 AM · In person & online" actionLabel="Register" />
+  <ProgramCard title="Foundations of Mindfulness" tags={["Course"]} meta={["8 weeks","Wednesdays","6:30 PM"]} description="Where most people begin — a real practice, not just ideas." />
+  <div style={{background:"var(--rim-surface)",borderRadius:"var(--radius-2xl)",padding:"6px 24px",boxShadow:"var(--card-shadow)"}}>
+    <DetailRow icon={<span style={{fontSize:14}}>◷</span>}>Tuesdays, 9:30–10:45 AM</DetailRow>
+    <DetailRow icon={<span style={{fontSize:14}}>◎</span>} link="Directions →" linkHref="#" last>4040 N. Calhoun Rd., Brookfield</DetailRow>
+  </div>
+  <div style={{borderTop:"1px solid var(--rim-rule)"}}>
+    <ScheduleRow day="Tuesday" name="The Art of Meditation" description="Guided practice and teaching" time="9:30 AM" format="In person & online" inPerson />
+    <ScheduleRow day="Saturday" name="Meditation and Dharma Talk" description="Guided sit and teaching" time="9:30 AM" format="Online" />
+  </div>
+  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}}>
+    <Testimonial>After the first drop-in session, I knew I was home.</Testimonial>
+    <PullQuote source="— Jesse" style={{margin:0,padding:"24px 26px",maxWidth:"none"}}>If something brought you here, that's enough.</PullQuote>
+  </div>
+</div>)}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script></body></html>

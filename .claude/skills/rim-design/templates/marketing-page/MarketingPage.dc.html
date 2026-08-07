@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Marketing page" description="Public RIM page: hero over nature footage, welcome, weekly schedule, community voices, teal band, and the blue footer." -->
+<helmet><script src="./ds-base.js"></script></helmet>
+<div style="background:var(--rim-bg);font-family:var(--font-sans);color:var(--rim-text)">
+
+<header style="position:sticky;top:0;z-index:100;background:#fff">
+<div style="display:flex;align-items:center;max-width:1200px;margin:0 auto;padding:0 24px;height:100px;gap:8px">
+<a href="#" style="display:flex;align-items:center;gap:12px;text-decoration:none;flex-shrink:0"><img src="../../assets/logo/Rooted-In-Mindfulness-Logo.png" alt="Rooted In Mindfulness" height="45"><span style="font-family:var(--font-serif);font-size:var(--text-h4);color:var(--rim-text);line-height:1.2">Rooted In Mindfulness</span></a>
+<nav style="display:flex;align-items:center;gap:2px;margin-left:auto">
+<a href="#" style="font-size:16px;font-weight:500;color:var(--rim-text);text-decoration:none;padding:8px 12px;border-radius:4px" style-hover="color:var(--rim-blue);background:var(--rim-bg)">Programs</a>
+<a href="#" style="font-size:16px;font-weight:500;color:var(--rim-text);text-decoration:none;padding:8px 12px;border-radius:4px" style-hover="color:var(--rim-blue);background:var(--rim-bg)">Get Involved</a>
+<a href="#" style="font-size:16px;font-weight:500;color:var(--rim-text);text-decoration:none;padding:8px 12px;border-radius:4px" style-hover="color:var(--rim-blue);background:var(--rim-bg)">Members</a>
+</nav>
+<a href="#" style="font-size:var(--text-label);font-weight:700;letter-spacing:0.08em;color:#fff;background:var(--rim-donate);padding:8px 18px;border-radius:9999px;text-decoration:none;margin-left:8px" style-hover="background:var(--rim-donate-hover)">DONATE</a>
+</div>
+</header>
+
+<section style="position:relative;min-height:640px;display:flex;align-items:center;background-color:var(--rim-dark);background-image:url('../../assets/images/Bodhi_Leaves-poster.jpg');background-size:cover;background-position:center;overflow:hidden">
+<div style="position:absolute;inset:0;background:rgba(12,18,22,0.38)"></div>
+<div style="position:relative;z-index:2;width:100%;max-width:1140px;margin:0 auto;padding:0 40px;box-sizing:border-box">
+<div style="display:inline-block;background:rgb(255 255 255 / 0.95);padding:56px 64px;max-width:560px;margin:80px 0">
+<h1 style="margin:0 0 22px;font-family:var(--font-serif);font-size:var(--text-hero);font-weight:500;letter-spacing:-0.02em;color:#fff;line-height:1.14;text-wrap:balance">Awaken your Mind, Open your Heart, Nourish your Life, Beautify the World.</h1>
+<p style="margin:0 0 32px;font-size:var(--text-body);line-height:var(--lh-body)">We're a meditation and dharma community in Brookfield, Wisconsin. We sit together, we study the teachings, and we try to bring what we find into the rest of our lives. Buddhist-rooted, open to everyone, and offered in the spirit of generosity.</p>
+<a href="#" style="display:inline-block;background:#fff;color:var(--rim-blue);font-size:var(--text-small);font-weight:600;text-decoration:none;padding:14px 28px;border-radius:9999px" style-hover="background:var(--rim-mid)">Join us–today</a>
+</div>
+</div>
+</section>
+
+<section style="background:var(--rim-surface);padding:96px 0">
+<div style="max-width:700px;margin:0 auto;padding:0 40px;box-sizing:border-box">
+<p style="margin:0 0 24px;font-size:var(--text-body);line-height:var(--lh-body)">People come to RIM for different reasons. Some want to learn to meditate. Some have been practicing on their own and are ready for a teacher and a community. Some are going through something hard and need a place where they don't have to explain themselves.</p>
+<p style="margin:0;font-family:var(--font-serif);font-size:var(--text-h3);color:var(--rim-mid);line-height:1.5">Whatever brought you here, you're welcome. No experience needed. No fees. Come as you are, and see what you find.</p>
+</div>
+</section>
+
+<section style="background:var(--rim-bg);padding:96px 0">
+<div style="max-width:1140px;margin:0 auto;padding:0 40px;box-sizing:border-box">
+<h2 style="margin:0 0 36px">This Week at RIM</h2>
+<div style="border-top:1px solid var(--rim-rule);margin-bottom:20px">
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.ScheduleRow" day="Monday" name="Awakening the Heart" description="Lovingkindness practice" time="9:30 AM" format="Online" hint-size="100%,74px"></x-import>
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.ScheduleRow" day="Tuesday" name="The Art of Meditation" description="Guided practice and teaching" time="9:30 AM" format="In person & online" in-person="{{ true }}" hint-size="100%,74px"></x-import>
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.ScheduleRow" day="Wednesday" name="Qigong at RIM" description="Gentle movement and breath" time="10:00 AM" format="Online" hint-size="100%,74px"></x-import>
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.ScheduleRow" day="Thursday" name="Essential Dharma Study" description="Teaching and dialogue" time="9:30 AM" format="Online" hint-size="100%,74px"></x-import>
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.ScheduleRow" day="Saturday" name="Meditation and Dharma Talk" description="Guided sit and teaching" time="9:30 AM" format="In person & online" in-person="{{ true }}" hint-size="100%,74px"></x-import>
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.ScheduleRow" day="Every day" name="Silent Meditation" description="Morning · Evening" time="6:30 AM · 7:30 PM" format="Online" hint-size="100%,74px"></x-import>
+</div>
+<p style="font-size:var(--text-small);color:var(--rim-text-muted);line-height:var(--lh-body);margin:0 0 28px">New to meditation? <strong>Tuesdays</strong> and <strong>Saturdays</strong> are great places to start — both are offered in person at the center and online.</p>
+<a href="#" style="font-size:var(--text-body);color:var(--rim-mid);font-weight:500;text-decoration:none" style-hover="text-decoration:underline">See All Programs →</a>
+</div>
+</section>
+
+<section style="background:var(--rim-surface);padding:96px 0">
+<div style="max-width:1140px;margin:0 auto;padding:0 40px;box-sizing:border-box">
+<h2 style="font-size:var(--text-h3);margin:0 0 48px;text-align:center">What people find here</h2>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.Testimonial" hint-size="100%,220px">"RIM has been a safe place for me to bring my anxiety and brokenness — to feel supported and okay. You allow me to show up with all my baggage and leave it here. Feeling lighter."</x-import>
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.Testimonial" hint-size="100%,220px">"I have not found anyone else who melds the philosophy of mindfulness with the practice itself. There are those who teach, those who do, and only one I have found who does both."</x-import>
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.Testimonial" hint-size="100%,220px">"After the first drop-in session, I knew I was home. The warm, welcoming, engaging community were where I wanted to grow my practice."</x-import>
+</div>
+</div>
+</section>
+
+<section style="background:var(--rim-bg);padding:96px 0">
+<div style="max-width:1140px;margin:0 auto;padding:0 40px;box-sizing:border-box">
+<h2 style="max-width:620px;margin:0 0 48px">Wherever you are, there's a place to practice</h2>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rim-rule);border-bottom:1px solid var(--rim-rule)">
+<div style="padding:36px 32px 36px 0;border-right:1px solid var(--rim-rule)">
+<h3 style="font-family:var(--font-serif);font-size:var(--text-h4);font-weight:400;color:var(--rim-blue);margin:0 0 12px">Drop-In Sessions</h3>
+<p style="margin:0;font-size:var(--text-body);line-height:var(--lh-body)">The open door. Guided meditation, short teaching, time for questions. Come when you can, as often as you like. No commitment, no experience needed.</p>
+</div>
+<div style="padding:36px 32px;border-right:1px solid var(--rim-rule)">
+<h3 style="font-family:var(--font-serif);font-size:var(--text-h4);font-weight:400;color:var(--rim-blue);margin:0 0 12px">Courses</h3>
+<p style="margin:0;font-size:var(--text-body);line-height:var(--lh-body)">Multi-week programs for those ready to go deeper. Foundations of Mindfulness is where most people begin. Each course builds a real practice — not just ideas, but skills you can use.</p>
+</div>
+<div style="padding:36px 0 36px 32px">
+<h3 style="font-family:var(--font-serif);font-size:var(--text-h4);font-weight:400;color:var(--rim-blue);margin:0 0 12px">Study &amp; Community Groups</h3>
+<p style="margin:0;font-size:var(--text-body);line-height:var(--lh-body)">Dharma study, book clubs, qigong, nature meditation, community service. For the practitioner who wants to keep going — and wants company on the way.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section style="background:var(--rim-blue);padding:96px 0">
+<div style="max-width:1140px;margin:0 auto;padding:0 40px;box-sizing:border-box">
+<h2 style="text-align:center;color:#fff;margin:0 0 56px">Why we practice together</h2>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:48px">
+<div>
+<h3 style="font-family:var(--font-serif);font-size:var(--text-h3);font-weight:400;color:#fff;margin:0 0 16px">For yourself.</h3>
+<p style="margin:0;color:rgba(255,255,255,0.88)">This is where practice begins — a steadier mind, a more open heart, a clearer way of being in your own life.</p>
+</div>
+<div>
+<h3 style="font-family:var(--font-serif);font-size:var(--text-h3);font-weight:400;color:#fff;margin:0 0 16px">For those you love.</h3>
+<p style="margin:0;color:rgba(255,255,255,0.88)">What changes in you moves outward. The way you listen, the way you respond, the patience you bring home.</p>
+</div>
+<div>
+<h3 style="font-family:var(--font-serif);font-size:var(--text-h3);font-weight:400;color:#fff;margin:0 0 16px">For our shared world.</h3>
+<p style="margin:0;color:rgba(255,255,255,0.88)">We don't practice only for ourselves. We practice because the world needs people who are present, compassionate, and willing to show up.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section style="background:var(--rim-bg);padding:96px 0">
+<div style="max-width:700px;margin:0 auto;padding:0 40px;box-sizing:border-box">
+<blockquote style="margin:0;padding:0 0 0 28px;border-left:3px solid var(--rim-rule)">
+<p style="font-family:var(--font-serif);font-size:var(--text-h3);font-style:italic;line-height:1.45;margin:0 0 16px">"If something brought you here, that's enough. Come to a drop-in. Sit for an hour. See what you notice."</p>
+<footer style="font-size:var(--text-small);color:var(--rim-text-muted);font-weight:600">— Jesse</footer>
+</blockquote>
+</div>
+</section>
+
+<x-import component-from-global-scope="RootedInMindfulnessDesignSystem_980dba.SiteFooter" logo-src="../../assets/logo/RIM-Website-Footer-Logo-White.png" hint-size="100%,520px"></x-import>
+</div>
+</x-dc>
+</body>
+</html>

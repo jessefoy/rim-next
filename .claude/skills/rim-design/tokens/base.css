@@ -1,0 +1,16 @@
+/* Base element defaults — mirrors the BASE TYPOGRAPHY block in custom.css */
+body{font-family:var(--font-sans);font-size:var(--text-body);line-height:var(--lh-body);color:var(--rim-text);background-color:var(--rim-bg);margin:0}
+input,textarea,select{box-sizing:border-box}
+p{font-family:inherit;font-size:inherit;line-height:inherit;margin:0 0 1.2em}
+ul,ol{margin-left:0;padding-left:1.75em;font-family:inherit;font-size:inherit;line-height:inherit}
+li{margin-left:0;margin-bottom:.35em;padding-left:0;font:inherit}
+h1,h2,h3,h4,h5,h6{font-family:var(--font-serif);font-weight:400;line-height:var(--lh-heading);color:var(--rim-text)}
+h1{font-size:var(--text-h1)}
+h2{font-size:var(--text-h2)}
+h3{font-size:var(--text-h3)}
+h4{font-size:var(--text-h4)}
+a{color:var(--rim-mid);text-decoration:none}
+a:hover{color:var(--rim-blue);text-decoration:underline}
+strong{font-weight:700}
+em{font-style:italic}
+:focus-visible{outline:2px solid var(--rim-mid);outline-offset:2px}

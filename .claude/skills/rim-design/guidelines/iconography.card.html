@@ -1,0 +1,12 @@
+<!-- @dsCard group="Brand" viewport="700x170" name="Iconography" subtitle="Lucide at 17px / stroke 1.75 — plus a handful of legacy PNGs" -->
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css"><style>body{margin:0;background:var(--rim-bg);font-family:var(--font-sans);color:var(--rim-text)}.p{padding:20px}</style></head><body><div class="p" style="display:grid;gap:14px">
+<div id="ic" style="display:flex;gap:18px;align-items:center;color:var(--rim-text)"></div>
+<div style="display:flex;gap:18px;align-items:center">
+<figure style="margin:0;text-align:center"><img src="../assets/icons/Date.png" style="height:26px;width:auto"><figcaption style="font-size:10px;color:var(--rim-text-muted);margin-top:4px">Date</figcaption></figure><figure style="margin:0;text-align:center"><img src="../assets/icons/Time.png" style="height:26px;width:auto"><figcaption style="font-size:10px;color:var(--rim-text-muted);margin-top:4px">Time</figcaption></figure><figure style="margin:0;text-align:center"><img src="../assets/icons/Location.png" style="height:26px;width:auto"><figcaption style="font-size:10px;color:var(--rim-text-muted);margin-top:4px">Location</figcaption></figure><figure style="margin:0;text-align:center"><img src="../assets/icons/Dana.png" style="height:26px;width:auto"><figcaption style="font-size:10px;color:var(--rim-text-muted);margin-top:4px">Dana</figcaption></figure><figure style="margin:0;text-align:center"><img src="../assets/icons/Registration.png" style="height:26px;width:auto"><figcaption style="font-size:10px;color:var(--rim-text-muted);margin-top:4px">Registration</figcaption></figure>
+<span style="font-size:12px;color:var(--rim-text-muted);max-width:280px;line-height:1.5">Legacy program-detail PNGs. New work uses Lucide. Unicode <b>▾ · → ←  •</b> appear inline; no emoji except the single 🙏 in the newsletter thank-you.</span>
+</div></div>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.js"></script>
+<script>const names=['home','calendar-check','book-open','user-circle','users','layers','mail','settings','chevron-down','chevrons-left','shield-check','pin','message-square','file-text','bell'];
+document.getElementById('ic').innerHTML=names.map(n=>'<i data-lucide="'+n+'"></i>').join('');
+lucide.createIcons({attrs:{width:20,height:20,'stroke-width':1.75}});</script>
+</body></html>

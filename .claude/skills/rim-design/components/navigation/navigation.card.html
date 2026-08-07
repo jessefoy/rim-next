@@ -1,0 +1,32 @@
+<!-- @dsCard group="Components" viewport="700x400" name="Navigation" subtitle="Site header, member bar, account rail, footer" -->
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css"><style>body{margin:0;background:var(--rim-bg);font-family:var(--font-sans)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script></head><body>
+<div id="root"></div>
+<script type="text/babel">
+const { SiteNav, MemberBar, AccountSidebar, SiteFooter } = window.RootedInMindfulnessDesignSystem_980dba;
+const nav=[{label:"Programs",children:[{label:"All Programs",href:"#",description:"Drop-ins, courses, and community groups"},{label:"This Week's Schedule",href:"#",description:"What's happening day by day"}]},{label:"Get Involved",children:[{label:"Volunteer",href:"#",description:"Help Co-Create Refuge at RIM"}]},{label:"Members",href:"#"}];
+const dot=(c)=><span style={{width:15,height:15,borderRadius:3,border:"1.75px solid "+c,display:"inline-block"}}/>;
+function Demo(){return (
+<div>
+  <div style={{transform:"scale(0.55)",transformOrigin:"top left",width:"181.8%"}}>
+    <SiteNav logoSrc="../../assets/logo/Rooted-In-Mindfulness-Logo.png" items={nav} />
+  </div>
+  <div style={{marginTop:-42}}>
+    <MemberBar logoSrc="../../assets/logo/Rooted-In-Mindfulness-Logo.png" name="Marguerite Chen" />
+  </div>
+  <div style={{display:"flex",background:"var(--rim-bg)"}}>
+    <AccountSidebar activeHref="/account/dashboard" sections={[{label:"My RIM",links:[{label:"Home",href:"/account/dashboard",icon:dot("var(--rim-blue)")},{label:"My Registrations",href:"/a",icon:dot("var(--rim-text-muted)")},{label:"Library",href:"/b",icon:dot("var(--rim-text-muted)")},{label:"My Profile",href:"/c",icon:dot("var(--rim-text-muted)")}]}]} />
+    <div style={{flex:1,padding:"24px 28px"}}>
+      <p style={{margin:"0 0 6px",color:"var(--rim-text-muted)",fontSize:"var(--text-xs)",fontWeight:600}}>Tuesday, August 4</p>
+      <h1 style={{margin:0,fontSize:"var(--text-h2)"}}>Good morning, Marguerite.</h1>
+    </div>
+  </div>
+  <div style={{transform:"scale(0.55)",transformOrigin:"top left",width:"181.8%"}}>
+    <SiteFooter logoSrc="../../assets/logo/RIM-Website-Footer-Logo-White.png" memberArea />
+  </div>
+</div>)}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script></body></html>

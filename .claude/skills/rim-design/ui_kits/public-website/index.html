@@ -1,0 +1,42 @@
+<!-- @dsCard group="Public Website" viewport="1280x900" name="Public site" subtitle="Homepage → programs catalog → program detail" -->
+<!doctype html><html><head><meta charset="utf-8"><title>RIM — Public Website Kit</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--rim-bg)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.js"></script>
+<script src="../../_ds_bundle.js"></script>
+</head><body>
+<div id="root"></div>
+<script type="text/babel" src="Home.jsx"></script>
+<script type="text/babel" src="ProgramsList.jsx"></script>
+<script type="text/babel" src="ProgramDetail.jsx"></script>
+<script type="text/babel">
+const { SiteNav, SiteFooter } = window.RootedInMindfulnessDesignSystem_980dba;
+const NAV = [
+  { label:"Programs", children:[
+    { label:"All Programs", href:"#programs", description:"Drop-ins, courses, and community groups" },
+    { label:"This Week's Schedule", href:"#", description:"What's happening day by day" }]},
+  { label:"Get Involved", children:[
+    { label:"Volunteer", href:"#", description:"Help Co-Create Refuge at RIM" },
+    { label:"Start a Community Group", href:"#", description:"Create a Community Group or Event" }]},
+  { label:"Members", children:[
+    { label:"Become a Member", href:"#", description:"Read our community care agreements and join" },
+    { label:"Sign in", href:"#", description:"Already a member? Continue here" }]},
+];
+function App(){
+  const [view,setView]=React.useState("home");
+  const [program,setProgram]=React.useState(null);
+  function go(next,payload){ if(payload) setProgram(payload); setView(next); window.scrollTo(0,0); }
+  React.useEffect(()=>{ if(window.lucide) lucide.createIcons({attrs:{width:20,height:20,'stroke-width':1.75}}); });
+  return (<>
+    <SiteNav logoSrc="../../assets/logo/Rooted-In-Mindfulness-Logo.png" items={NAV} activeLabel={view==="home"?undefined:"Programs"} />
+    {view==="home" && <Home go={go} />}
+    {view==="programs" && <ProgramsList go={go} />}
+    {view==="detail" && <ProgramDetail program={program||{}} go={go} />}
+    <SiteFooter logoSrc="../../assets/logo/RIM-Website-Footer-Logo-White.png" />
+  </>);
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>

@@ -1,0 +1,9 @@
+/* Quincy CF — self-hosted editorial serif. Copied from rim-next/public/fonts. */
+@font-face{font-family:Quincycf;src:url("../assets/fonts/QuincyCF-Light.woff2") format("woff2");font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:Quincycf;src:url("../assets/fonts/QuincyCF-LightItalic.woff2") format("woff2");font-weight:300;font-style:italic;font-display:swap}
+@font-face{font-family:Quincycf;src:url("../assets/fonts/QuincyCF-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Quincycf;src:url("../assets/fonts/QuincyCF-RegularItalic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:Quincycf;src:url("../assets/fonts/QuincyCF-Medium.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:Quincycf;src:url("../assets/fonts/QuincyCF-MediumItalic.woff2") format("woff2");font-weight:500;font-style:italic;font-display:swap}
+@font-face{font-family:Quincycf;src:url("../assets/fonts/QuincyCF-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:Quincycf;src:url("../assets/fonts/QuincyCF-BoldItalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap}

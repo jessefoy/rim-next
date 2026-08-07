@@ -45,3 +45,13 @@ next-env.d.ts
 
 # Claude Code local harness data (sessions, worktrees, etc.)
 .claude/
+
+# ...except the RIM design system skill, which is versioned alongside the
+# stylesheet it documents. A design system that isn't tracked next to its
+# source drifts silently — git has to be able to show the diff.
+# Its assets/ are symlinks into public/, so there is one copy of each binary.
+!.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/rim-design/

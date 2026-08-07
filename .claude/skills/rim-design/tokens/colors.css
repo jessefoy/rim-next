@@ -1,0 +1,32 @@
+/* Base palette — verbatim from rim-next/public/css/custom.css :root */
+:root{
+  /* Neutral foundation: white surfaces on a quiet Pampas ground */
+  --rim-surface:#ffffff;      /* white — cards, forms, writing surfaces */
+  --rim-bg-bright:#faf9f7;    /* restrained inset / hover surface */
+  --rim-bg:#f5f3f0;           /* Pampas — primary page background */
+  --rim-bg-accent:#e9e6e2;    /* deeper Pampas separation surface */
+  --rim-dark:#0d2235;         /* deep navy */
+  --rim-blue:#31576d;         /* main blue — hero, footer, buttons, links */
+  --rim-mid:#39607a;          /* mid teal-blue — links, accents */
+  --rim-text:#333333;         /* primary text (Mine Shaft) */
+  --rim-text-quote:#555555;   /* pull-quotes, secondary text */
+  --rim-text-muted:#666666;   /* labels, captions, attribution */
+  --rim-rule:#dedbd7;         /* borders, dividers — warm-neutral grey */
+
+  /* Donate — the one warm-red accent in the system */
+  --rim-donate:#c23b3b;
+  --rim-donate-hover:#a83232;
+
+  /* Alert / notification */
+  --color-alert:#C8821A;
+  --color-alert-bg:#FDF6EC;
+  --color-alert-border:#F0C98A;
+
+  /* Semantic feedback */
+  --color-error:#c0392b;
+  --color-error-bg:#fef2f2;
+  --color-success:#2e7d32;
+  --color-success-bg:#e8f5e9;
+  --color-warning:#7a4f00;
+  --color-warning-bg:#fff8ec;
+}

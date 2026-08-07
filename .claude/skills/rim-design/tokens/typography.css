@@ -1,0 +1,30 @@
+/* Type — the locked scale. Do not invent sizes per component. */
+:root{
+  --font-heading:'Quincycf',Georgia,serif;
+  --font-serif:'Quincycf',Georgia,serif;
+  --font-sans:'Open Sans',sans-serif;
+  --font-source-sans:'Source Sans 3','Open Sans',sans-serif;
+  --font-mono:ui-monospace,'SF Mono',Menlo,'Courier New',monospace;
+
+  --text-hero:52px; /* fluid 40→52px via the media queries below */
+  --text-h1:38px;
+  --text-h2:28px;
+  --text-h3:24px;
+  --text-h4:20px;
+  --text-body:18px;   /* p, li, td — all editorial body text */
+  --text-small:15px;  /* captions, timestamps, helper text */
+  --text-ui:14px;     /* admin body, form inputs, buttons, table cells */
+  --text-xs:13px;     /* field labels, small links, section help */
+  --text-label:12px;  /* form help text, meta captions */
+  --text-xxs:11px;    /* badges, table headers, uppercase eyebrows */
+
+  --lh-heading:1.3; /* @kind other */
+  --lh-body:1.7; /* @kind other */
+
+  /* Eyebrow tracking — uppercase orientation labels */
+  --tracking-eyebrow:0.12em;
+  --tracking-eyebrow-wide:0.15em;
+}
+/* Hero scales down on narrow viewports (was clamp(2.5rem, 4vw + 1rem, 3.25rem)) */
+@media (max-width:1200px){:root{--text-hero:calc(4vw + 1rem)}}
+@media (max-width:768px){:root{--text-hero:40px}}
