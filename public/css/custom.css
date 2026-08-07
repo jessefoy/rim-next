@@ -2705,9 +2705,15 @@ h4 { font-size: var(--text-h4); }
 .pl-membership__eyebrow { color: var(--rim-mid); }
 
 /* The orientation note sits between the hero and the first category.
-   .pp-notice is 700px against the 900px category blocks, so it reads
-   as an inset aside rather than a third opening statement. */
-.pl-catalog__notice { margin-bottom: 52px; }
+   The panel takes the 900px content column so its left edge lines up
+   with the category headings and cards below it — .pp-notice's own
+   700px, centred inside 900, reads as a misaligned box rather than a
+   deliberate inset. The text keeps the reading measure inside it. */
+.pl-catalog__notice {
+  max-width: 900px;
+  margin-bottom: 52px;
+}
+.pl-catalog__notice .pp-notice__body { max-width: var(--reading-width); }
 
 .pl-membership__title {
   margin: 0 0 18px;
