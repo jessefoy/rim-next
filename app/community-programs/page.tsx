@@ -97,10 +97,13 @@ export default async function CommunityProgramsPage() {
                             {program.tagline && (
                               <span className="pl-card__tagline">{program.tagline}</span>
                             )}
-                            <div className="pl-card__meta">
-                              {schedule && <span className="pl-card__schedule">{schedule}</span>}
-                              <span className="pl-card__format">{format}</span>
-                            </div>
+                          </div>
+                          {/* What it is on the left, when and how on the right.
+                              The card is 900px wide and the copy ran out around
+                              560, leaving the arrow floating alone. */}
+                          <div className="pl-card__when">
+                            {schedule && <span className="pl-card__schedule">{schedule}</span>}
+                            {format && <span className="pl-card__format">{format}</span>}
                           </div>
                           <span className="pl-card__action" aria-hidden="true">→</span>
                         </div>
