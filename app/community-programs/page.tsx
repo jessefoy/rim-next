@@ -58,12 +58,15 @@ export default async function CommunityProgramsPage() {
       {/* ── Program Listings ─────────────────────────────── */}
       <section className="pl-catalog">
         <div className="rim-container">
-          <div className="pl-catalog__intro">
-            <p className="pl-catalog__eyebrow">Find a place to begin</p>
-            <h2 className="pl-catalog__title">Come as you are.</h2>
-            <p className="pl-catalog__body">
-              New here? Begin with any drop-in. Return whenever you like, find a regular
-              rhythm, or explore a course when you&rsquo;re ready.
+          {/* The hero already welcomes. What a visitor still doesn't know at
+              this point is practical: can I just turn up, and do I need an
+              account? Same .pp-notice the volunteer and Kalyana Mitta pages
+              use to say the same kind of thing. */}
+          <div className="pp-notice pl-catalog__notice">
+            <p className="pp-notice__title">Most of what we offer is drop-in</p>
+            <p className="pp-notice__body">
+              Come once, or come every week. To sit with us in person, just come. To join
+              on Zoom, you&rsquo;ll need a free account to get the link.
             </p>
           </div>
 
@@ -123,11 +126,11 @@ export default async function CommunityProgramsPage() {
 
           <aside className="pl-membership">
             <div>
-              <p className="pl-membership__eyebrow">A community of practice</p>
-              <h2 className="pl-membership__title">You are welcome here.</h2>
+              <p className="pl-membership__eyebrow">Practice with us</p>
+              <h2 className="pl-membership__title">Membership is free.</h2>
               <p className="pl-membership__body">
-                Membership is free and opens the door to online gatherings, registration,
-                learning resources, and the life of the RIM community.
+                An account is how you get the Zoom links and how you register for classes
+                and retreats.
               </p>
             </div>
             <Link href="/join" className="pl-membership__link">
