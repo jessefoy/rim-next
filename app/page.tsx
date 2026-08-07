@@ -18,7 +18,7 @@ export default function HomePage() {
   return (
     <div className="pp-page">
       {/* ── Hero ──────────────────────────────────────────── */}
-      <section className="pp-hero pp-hero--video pp-hero--light">
+      <section className="pp-hero pp-hero--video">
         <div className="pp-hero__video" aria-hidden="true">
           <video
             autoPlay
@@ -48,7 +48,7 @@ export default function HomePage() {
             love, and our shared world.
           </p>
           <div className="pp-hero__actions">
-            <Link href="/join" className="pp-btn">
+            <Link href="/join" className="pp-btn pp-btn--onblue">
               Join us&ndash;today
             </Link>
             <Link href="/this-week" className="pp-hero__link">
