@@ -29791,3 +29791,65 @@ a.pp-card:hover .pp-card__action {
   .pp-timeline-intro { margin-bottom: 44px; }
   .pp-timeline-intro__note { padding: 28px 24px; }
 }
+
+/* ── Light video hero ────────────────────────────────────────────
+   The home hero as the live site composes it: the copy is centred and
+   dark on a bright, backlit video that fades into the page ground, not
+   white type on a dark scrim. The fade is what joins the hero to the
+   first section, so the page opens as one surface. */
+
+.pp-hero--light {
+  min-height: 80vh;
+  align-items: center;
+  background-color: var(--rim-bg);
+}
+
+/* Replaces the directional scrim with the live page's wash: a soft veil
+   over the footage that resolves to the page ground at the bottom edge. */
+.pp-hero--light::before {
+  background:
+    radial-gradient(circle at 50% 0,
+      color-mix(in srgb, var(--rim-bg-bright) 0%, transparent) 62%,
+      var(--rim-bg) 100%),
+    linear-gradient(
+      color-mix(in srgb, var(--rim-mid) 3%, transparent) 40%,
+      var(--rim-bg) 88%);
+  background-color: color-mix(in srgb, var(--rim-bg-bright) 52%, transparent);
+}
+
+.pp-hero--light .pp-hero__inner {
+  max-width: 860px;
+  padding-top: 72px;
+  padding-bottom: 72px;
+  text-align: center;
+}
+
+.pp-hero--light .pp-hero__title {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--rim-blue);
+  font-size: clamp(2.5rem, 3.6vw + 1.25rem, 4.5rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.pp-hero--light .pp-hero__body {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--rim-text);
+  font-weight: 500;
+}
+
+.pp-hero--light .pp-hero__actions { justify-content: center; }
+
+.pp-hero--light .pp-hero__link { color: var(--rim-blue); }
+
+@media (max-width: 768px) {
+  .pp-hero--light { min-height: 0; }
+  .pp-hero--light .pp-hero__inner { padding-top: 56px; padding-bottom: 64px; }
+  .pp-hero--light .pp-hero__title { font-size: 38px; }
+}

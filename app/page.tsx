@@ -18,7 +18,7 @@ export default function HomePage() {
   return (
     <div className="pp-page">
       {/* ── Hero ──────────────────────────────────────────── */}
-      <section className="pp-hero pp-hero--video">
+      <section className="pp-hero pp-hero--video pp-hero--light">
         <div className="pp-hero__video" aria-hidden="true">
           <video
             autoPlay
@@ -48,8 +48,8 @@ export default function HomePage() {
             love, and our shared world.
           </p>
           <div className="pp-hero__actions">
-            <Link href="/join" className="pp-btn pp-btn--onblue">
-              Join us today
+            <Link href="/join" className="pp-btn">
+              Join us&ndash;today
             </Link>
             <Link href="/this-week" className="pp-hero__link">
               See what&rsquo;s happening this week <span aria-hidden="true">→</span>
@@ -61,7 +61,7 @@ export default function HomePage() {
       {/* ── What we do ────────────────────────────────────── */}
       <section className="pp-section pp-section--white">
         <div className="rim-container">
-          <div className="pp-split">
+          <div className="pp-split pp-split--flip">
             <div
               className="pp-split__media"
               style={{
