@@ -224,7 +224,7 @@ export default function DonatePage() {
       </section>
 
       {/* ── Dana at RIM ───────────────────────────────────── */}
-      <section id="dana-at-rim" className="pp-section">
+      <section id="dana-at-rim" className="pp-section pp-section--airy">
         <div className="rim-container">
           <div className="pp-statement">
             <h2 className="pp-statement__title">
@@ -273,7 +273,7 @@ export default function DonatePage() {
       </section>
 
       {/* ── How much to give ──────────────────────────────── */}
-      <section id="how-much" className="pp-section pp-section--white pp-section--last">
+      <section id="how-much" className="pp-section pp-section--white pp-section--airiest">
         <div className="rim-container">
           <div className="pp-timeline-intro">
             <p className="pp-intro__eyebrow">The Practice Of Financial Dana (Generosity)</p>
@@ -295,7 +295,8 @@ export default function DonatePage() {
 
           <div className="pp-timeline">
             {CONTEMPLATIONS.map((item, i) => {
-              const onRight = i % 2 === 1;
+              // The live page opens the sequence on the right.
+              const onRight = i % 2 === 0;
               const rowClass = [
                 "pp-timeline__row",
                 i === 0 ? "pp-timeline__row--first" : "",

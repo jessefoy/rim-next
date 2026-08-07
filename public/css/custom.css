@@ -29601,15 +29601,15 @@ a.pp-card:hover .pp-card__action {
 .pp-hero--donate::before { background: rgba(0, 0, 0, 0.5); }
 
 .pp-hero--donate .pp-hero__inner {
-  padding-top: 96px;
-  padding-bottom: 96px;
+  padding-top: 130px;
+  padding-bottom: 130px;
 }
 
 .pp-donate-hero {
   display: grid;
-  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
-  gap: 64px;
+  gap: 24px;
 }
 
 .pp-donate-hero__lead { padding-top: 12px; }
@@ -29617,7 +29617,7 @@ a.pp-card:hover .pp-card__action {
 /* A named display exception, like the hero token itself: the live
    headline is 72px and wraps to four lines. */
 .pp-hero__title--display {
-  max-width: 380px;
+  max-width: 365px;
   margin-bottom: 30px;
   font-size: clamp(2.75rem, 3.4vw + 1.5rem, 4.5rem);
   font-weight: 400;
@@ -29643,11 +29643,11 @@ a.pp-card:hover .pp-card__action {
    heading over left-aligned reading copy. */
 
 .pp-statement {
-  max-width: 820px;
+  max-width: 585px;
   box-sizing: border-box;
   margin: 0 auto;
   border-radius: 16px;
-  padding: 64px 72px;
+  padding: 45px 60px;
   background: var(--rim-surface);
   box-shadow: var(--card-shadow);
 }
@@ -29656,7 +29656,7 @@ a.pp-card:hover .pp-card__action {
   margin: 0 0 32px;
   color: var(--rim-text);
   font-family: var(--font-serif);
-  font-size: var(--text-h1);
+  font-size: clamp(2rem, 2.6vw + 1.3rem, 3.375rem);
   font-weight: 500;
   line-height: 1.2;
   text-align: center;
@@ -29776,15 +29776,15 @@ a.pp-card:hover .pp-card__action {
 
 .pp-timeline-intro__note {
   box-sizing: border-box;
-  max-width: 65ch;
+  max-width: 720px;
   margin: 40px auto 0;
   border-radius: 12px;
-  padding: 40px;
+  padding: 45px 40px;
   background: var(--rim-blue);
   color: var(--rim-surface);
   font-size: var(--text-small);
   line-height: 1.7;
-  text-align: left;
+  text-align: center;
 }
 .pp-timeline-intro__note p { margin: 0 0 16px; font-size: inherit; line-height: inherit; }
 .pp-timeline-intro__note p:last-child { margin-bottom: 0; }
@@ -29861,3 +29861,20 @@ a.pp-card:hover .pp-card__action {
   .pp-hero--light .pp-hero__inner { padding-top: 56px; padding-bottom: 64px; }
   .pp-hero--light .pp-hero__title { font-size: 38px; }
 }
+
+/* Section rhythm on the donate page. The live page breathes considerably
+   more than the default 68px: 120px around the statement, 140px around
+   the contemplations. */
+.pp-section--airy { padding: 120px 0; }
+.pp-section--airiest { padding: 140px 0; }
+
+@media (max-width: 768px) {
+  .pp-section--airy    { padding: 56px 0; }
+  .pp-section--airiest { padding: 64px 0; }
+  .pp-statement__title { font-size: var(--text-h2); }
+}
+
+/* The contemplation grid measures from the full 1140 the live page gives it,
+   which puts each card at 530. Inside the default container's 40px gutters
+   it lands at 490, so widen the container for this section only. */
+.pp-section--airiest > .rim-container { max-width: 1220px; }
