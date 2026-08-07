@@ -17,7 +17,8 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 | Session room — **retired session 159** (the in-browser LiveKit room — `components/session/*`, `components/VideoRoom.tsx`, `app/api/livekit/*` — was removed; sessions run on Zoom, see the Zoom row) | **`RIM_SessionRoom.md`** — kept as historical reference |
 | Zoom sessions — "RIM orchestrates, Zoom is the room" (the live room for every virtual/hybrid program): `app/session/[slug]/enter/*`, `app/session/[slug]/page.tsx` (redirect), `lib/zoom.ts`, `lib/sessionMeeting.ts`, `lib/sessionAuth.ts`, `lib/sessionIdentity.ts`, the `recordByDefault` flag, `/admin/zoom-test` | **`RIM_Zoom.md`** — the per-tool reference (decision + account model, S2S provisioning, per-occurrence meeting + self-heal, own-name Claim-Host, guest open-access entry, the no-registration/rate-limit pitfall; **cutover complete session 159**) |
 | Public-facing page — program/course detail, this-week, teachers, content pages, nav, footer (any UI/CSS) | **`RIM_Public_Pages.md`** — the public-page design system (warm three-shade palette, card-lift / recede-panel surface language, the flush-nav + chapters/band tombstones) + `RIM_Web_Design_Philosophy.md` |
-| Prototype, mock, or throwaway visual artifact for any RIM surface | **`/rim-design` skill** (`.claude/skills/rim-design/`) — tokens, components, UI kits, and copied assets, extracted from `custom.css`. Reference and prototyping only: **`public/css/custom.css` stays the source of truth**, and the skill's `styles.css` is never linked into the app. |
+| Prototype, mock, or throwaway visual artifact for any RIM surface | **`/rim-design` skill** (`.claude/skills/rim-design/`) — tokens, components, UI kits, and copied assets, extracted from `custom.css`. Reference and prototyping only: **`public/css/custom.css` stays the source of truth**, and the skill's `styles.css` is never linked into the app. Past design explorations live in `mockups/` — references, never a spec; read its README first. |
+| Design quality, accessibility, or "is this actually good" on any RIM surface | **`/impeccable` skill** — see the note below on how it fits RIM. |
 | Role, permission, or member data | `RIM_Role_Design.md` + `RIM_System_Architecture.md` |
 | Member Registry / member profile (`/admin/members`, the Teams + Roles & access sections, pre-staging, roles-vs-hub-membership) | **`RIM_MemberRegistry.md`** — the per-tool reference (section registry, system-powers vs team-membership split, role-derived locking, HOST retired, legacy pool excluded from pickers) |
 | Auth, sign-in, NextAuth callbacks, rate-limit | **`RIM_Auth.md`** — sign-in flow, code generation, error states, rate-limit thresholds, key namespacing, common pitfalls |
@@ -30,6 +31,17 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 **Before writing code**, read at least one existing similar page or component in the codebase. Never build in isolation from what already exists.
 
 **When Jesse asks for something or asks your opinion**, think about how it fits the whole — design philosophy, interconnected features, existing patterns. Offer that thinking. Engage as a co-creator, not a task executor.
+
+## Using `/impeccable` on RIM surfaces
+
+The integrity check is wanted. Jesse: *"I do like the integrity check of that skill… it's really important to be able to make sure that it's conforming to best practices and the integrity for what it was intended to do."* Its `audit`, `harden`, `optimize`, and `clarify` modes measure things RIM's own docs don't cover — contrast, touch targets, keyboard access, responsive behaviour, third-party failure modes. In session 169 an audit found the donate and home heroes failing WCAG AA over their own photographs, and the donation widgets having no fallback at all on a page that is the only way to give to a 100%-donation-funded nonprofit. **Run it.** The background detector that scans files on edit stays on.
+
+**Its expressive modes are not banned, but they do not outrank RIM's design system.** `bolder`, `delight`, `overdrive`, `animate`, and `colorize` are built on an ethos — *"Go all out. Dream big and bold"* — that is the opposite of RIM's *"the design's job is to get out of the way."* Use them for exploration when the work calls for it; do not let them silently overwrite a committed decision.
+
+**When the skill's craft floor and RIM's system conflict, RIM wins — and say so out loud.** The craft floor bans uppercase eyebrow labels outright ("a ban, not a default: no brief earns it back"). RIM uses them throughout — the hero category eyebrow, `pl-hero__eyebrow`, `sg-eyebrow`, the live donate page. Craft-floor's own opening defers to the committed visual world, so eyebrows stay. Resolve conflicts like this in the open, in the response, rather than quietly picking a side.
+
+**The tombstones are memory, not a freeze.** `RIM_Public_Pages.md` records patterns built, shipped, and reverted — the floating nav pill, the chapter eyebrows and closing band, the hero paper panel. They exist so a failed experiment isn't re-run at Jesse's expense, **not** to close the design. The public design is explicitly still being refined: at the close of session 169 Jesse said he is *"not satisfied with what we have, 100%"* and wants to keep refining. Propose new directions freely. Just don't re-propose a tombstoned one without saying what's different this time.
+
 
 ## Hub App Integration Gate (not optional)
 

@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Open Sky homepage composition, re-skinned into the shipped RIM public design system.">
+  <title>Rooted In Mindfulness — Open Sky, in-system (v3)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════
+       v3 — the v2 "Open Sky" COMPOSITION, rendered in the shipped
+       RIM public system. Nothing here invents a color or a typeface.
+
+       Tokens copied verbatim from public/css/custom.css :root.
+       Section grounds use only the four-step neutral scale plus the
+       one blue. Dividers use --rim-rule. No box-shadows anywhere.
+
+       Named exception (permitted by the type-scale comment in
+       custom.css): the display sizes below sit outside the locked
+       scale, as the hero/editorial exception. Everything that is
+       body copy, UI, or a label uses a scale token.
+       ══════════════════════════════════════════════════════════════ */
+
+    @font-face {
+      font-family: Quincycf;
+      src: url("../public/fonts/QuincyCF-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: Quincycf;
+      src: url("../public/fonts/QuincyCF-RegularItalic.woff2") format("woff2");
+      font-weight: 400;
+      font-style: italic;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: Quincycf;
+      src: url("../public/fonts/QuincyCF-LightItalic.woff2") format("woff2");
+      font-weight: 300;
+      font-style: italic;
+      font-display: swap;
+    }
+
+    :root {
+      /* ── shipped RIM tokens ─────────────────────────────── */
+      --rim-surface:    #ffffff;
+      --rim-bg-bright:  #faf9f7;
+      --rim-bg:         #f5f3f0;
+      --rim-bg-accent:  #e9e6e2;
+      --rim-blue:       #31576d;
+      --rim-mid:        #39607a;
+      --rim-text:       #333333;
+      --rim-text-quote: #555555;
+      --rim-text-muted: #666666;
+      --rim-rule:       #dedbd7;
+
+      --font-serif: 'Quincycf', Georgia, serif;
+      --font-sans:  'Open Sans', sans-serif;
+
+      --text-body:  18px;
+      --text-small: 15px;
+      --text-ui:    14px;
+      --text-xs:    13px;
+      --text-xxs:   11px;
+      --lh-body:    1.7;
+
+      /* the accent: in-system, this is the mid teal-blue */
+      --accent: var(--rim-mid);
+
+      /* on-blue text ramp */
+      --on-blue:       #ffffff;
+      --on-blue-soft:  rgba(255, 255, 255, 0.74);
+      --on-blue-rule:  rgba(255, 255, 255, 0.28);
+
+      --page: 80rem;
+      --nav-h: 100px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--rim-bg);
+      color: var(--rim-text);
+      font-family: var(--font-sans);
+      font-size: var(--text-body);
+      line-height: var(--lh-body);
+      text-rendering: optimizeLegibility;
+    }
+
+    body.nav-open { overflow: hidden; }
+    img { display: block; width: 100%; }
+    a { color: inherit; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    :focus-visible {
+      outline: 2px solid var(--rim-blue);
+      outline-offset: 3px;
+    }
+
+    .skip {
+      position: fixed;
+      top: 0.8rem;
+      left: 0.8rem;
+      z-index: 500;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      background: var(--rim-surface);
+      font-size: var(--text-ui);
+      transform: translateY(-160%);
+    }
+
+    .skip:focus { transform: translateY(0); }
+
+    .wrap {
+      width: min(calc(100% - 3rem), var(--page));
+      margin-inline: auto;
+    }
+
+    /* ── shared type ─────────────────────────────────────── */
+
+    /* uppercase eyebrow — --text-xxs is the token for exactly this */
+    .eyebrow {
+      margin: 0;
+      color: var(--accent);
+      font-size: var(--text-xxs);
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+
+    /* display: named hero/editorial exception */
+    .display {
+      margin: 0;
+      color: var(--rim-text);
+      font-family: var(--font-serif);
+      font-size: clamp(2.6rem, 5.6vw, 5.4rem);
+      font-weight: 400;
+      letter-spacing: -0.03em;
+      line-height: 1.02;
+      text-wrap: balance;
+    }
+
+    .display em { color: var(--accent); font-weight: 300; }
+
+    /* ── buttons: the rim-blue pill, per the shipped system ── */
+    .button {
+      min-height: 52px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      padding: 0.8rem 1.5rem;
+      border: 1px solid var(--rim-blue);
+      border-radius: 999px;
+      background: var(--rim-blue);
+      color: var(--rim-surface);
+      font-size: var(--text-ui);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      text-decoration: none;
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+    }
+
+    .button:hover { background: var(--rim-mid); border-color: var(--rim-mid); }
+
+    .button--quiet {
+      background: transparent;
+      color: var(--rim-blue);
+    }
+
+    .button--quiet:hover { background: var(--rim-blue); color: var(--rim-surface); }
+
+    /* on a blue field, the pill inverts */
+    .button--onblue {
+      border-color: var(--rim-surface);
+      background: var(--rim-surface);
+      color: var(--rim-blue);
+    }
+
+    .button--onblue:hover { background: var(--rim-bg-accent); border-color: var(--rim-bg-accent); color: var(--rim-blue); }
+
+    .button--onblue-quiet {
+      border-color: var(--on-blue-rule);
+      background: transparent;
+      color: var(--on-blue);
+    }
+
+    .button--onblue-quiet:hover { border-color: var(--rim-surface); background: rgba(255,255,255,0.1); }
+
+    .arrow-link {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--rim-blue);
+      font-size: var(--text-ui);
+      font-weight: 600;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.3rem;
+    }
+
+    .arrow-link span { transition: transform 160ms ease; }
+    .arrow-link:hover span { transform: translateX(0.3rem); }
+
+    /* ── navigation: flush white bar, 100px (NOT a floating pill) ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--rim-surface);
+      border-bottom: 1px solid var(--rim-rule);
+    }
+
+    .nav {
+      min-height: var(--nav-h);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .wordmark {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      width: max-content;
+      text-decoration: none;
+    }
+
+    .wordmark img { width: 2.6rem; height: 2.6rem; object-fit: contain; }
+
+    .wordmark span {
+      color: var(--rim-text);
+      font-family: var(--font-serif);
+      font-size: 1.1rem;
+      line-height: 1.1;
+    }
+
+    .nav-center { display: flex; align-items: center; gap: 0.15rem; }
+
+    .nav-center a {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.65rem 0.85rem;
+      border-radius: 4px;
+      color: var(--rim-text);
+      font-size: var(--text-ui);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .nav-center a:hover { background: var(--rim-bg); color: var(--rim-blue); }
+    .nav-end { display: flex; justify-content: flex-end; }
+
+    .nav-toggle {
+      width: 48px;
+      height: 48px;
+      display: none;
+      place-items: center;
+      position: relative;
+      justify-self: end;
+      padding: 0;
+      border: 1px solid var(--rim-rule);
+      border-radius: 4px;
+      background: transparent;
+      color: var(--rim-text);
+      cursor: pointer;
+    }
+
+    .nav-toggle span,
+    .nav-toggle::before,
+    .nav-toggle::after {
+      width: 1.2rem;
+      height: 1px;
+      position: absolute;
+      background: currentColor;
+      content: "";
+      transition: transform 170ms ease, opacity 170ms ease;
+    }
+
+    .nav-toggle::before { transform: translateY(-0.35rem); }
+    .nav-toggle::after { transform: translateY(0.35rem); }
+    .nav-toggle[aria-expanded="true"] span { opacity: 0; }
+    .nav-toggle[aria-expanded="true"]::before { transform: rotate(45deg); }
+    .nav-toggle[aria-expanded="true"]::after { transform: rotate(-45deg); }
+
+    /* ══ 1. HERO — Pampas ground, sky image, Pampas scrim ══ */
+    .hp-hero {
+      min-height: calc(100svh - var(--nav-h));
+      display: grid;
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      background: var(--rim-bg);
+    }
+
+    .hp-hero::before {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      background-image: url("../public/images/Sky-Heavenly.jpg");
+      background-position: center;
+      background-size: cover;
+      content: "";
+    }
+
+    .hp-hero::after {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(90deg,
+        rgba(245, 243, 240, 0.98) 0%,
+        rgba(245, 243, 240, 0.93) 40%,
+        rgba(245, 243, 240, 0.12) 78%);
+      content: "";
+    }
+
+    .hp-hero__inner {
+      display: grid;
+      grid-template-columns: 0.78fr 0.22fr;
+      align-content: space-between;
+      gap: 3rem;
+      padding-block: clamp(3.5rem, 7vw, 6.5rem) 2rem;
+    }
+
+    .hp-hero__copy { max-width: 57rem; }
+    .hp-hero .eyebrow { margin-bottom: 1.8rem; }
+
+    .hp-hero__title {
+      max-width: 11ch;
+      margin: 0;
+      color: var(--rim-text);
+      font-family: var(--font-serif);
+      font-size: clamp(3.4rem, 8vw, 8rem);
+      font-weight: 400;
+      letter-spacing: -0.045em;
+      line-height: 0.86;
+      text-wrap: balance;
+    }
+
+    .hp-hero__title em {
+      display: block;
+      color: var(--accent);
+      font-weight: 300;
+    }
+
+    .hp-hero__intro {
+      max-width: 34rem;
+      margin: 2.2rem 0 0;
+      color: var(--rim-text-quote);
+      font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+      line-height: 1.6;
+    }
+
+    .hp-hero__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+
+    /* the breath pause — kept from v2; it is the most RIM thing on the page */
+    .hp-breath { align-self: end; justify-self: end; width: 11rem; text-align: center; }
+
+    .hp-breath__button {
+      width: 8.5rem;
+      height: 8.5rem;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 1rem;
+      padding: 1rem;
+      border: 1px solid var(--rim-mid);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.55);
+      color: var(--rim-blue);
+      font-size: var(--text-xxs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      line-height: 1.5;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 200ms ease;
+    }
+
+    .hp-breath__button:hover { background: var(--rim-surface); }
+    .hp-breath__button.is-breathing { animation: breathe 8s ease-in-out 2; background: var(--rim-surface); }
+
+    .hp-breath__status {
+      min-height: 2.2rem;
+      margin: 0;
+      color: var(--rim-text-quote);
+      font-family: var(--font-serif);
+      font-size: var(--text-small);
+      font-style: italic;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      45%, 55% { transform: scale(1.22); }
+    }
+
+    .hp-hero__foot {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, auto) 1fr;
+      gap: 1.5rem;
+      align-items: center;
+      padding-top: 1.4rem;
+      border-top: 1px solid var(--rim-rule);
+      color: var(--rim-text-quote);
+      font-size: var(--text-xs);
+      font-weight: 600;
+    }
+
+    .hp-hero__foot span::before {
+      margin-right: 0.55rem;
+      color: var(--accent);
+      content: "●";
+      font-size: 0.45rem;
+      vertical-align: middle;
+    }
+
+    .hp-hero__foot a { justify-self: end; }
+
+    /* ══ 2. PRINCIPLES — white ══════════════════════════════ */
+    .hp-principles { padding: clamp(5rem, 11vw, 10rem) 0; background: var(--rim-surface); }
+    .hp-principles .eyebrow { margin-bottom: 3.5rem; }
+    .hp-principles__list { margin: 0; padding: 0; list-style: none; }
+
+    .hp-principle {
+      display: grid;
+      grid-template-columns: 0.18fr 0.82fr;
+      gap: 2rem;
+      padding: clamp(2.2rem, 4.5vw, 4rem) 0;
+      border-top: 1px solid var(--rim-rule);
+    }
+
+    .hp-principle:last-child { border-bottom: 1px solid var(--rim-rule); }
+
+    .hp-principle__num {
+      padding-top: 0.7rem;
+      color: var(--rim-text-muted);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+
+    .hp-principle h2 {
+      max-width: 19ch;
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4.2vw, 4.2rem);
+      font-weight: 400;
+      letter-spacing: -0.03em;
+      line-height: 1.02;
+    }
+
+    .hp-principle h2 em { color: var(--accent); font-weight: 300; }
+
+    /* ══ 3. DOORS — Deeper Pampas ═══════════════════════════ */
+    .hp-doors { padding: clamp(5rem, 10vw, 9rem) 0; background: var(--rim-bg-accent); }
+
+    .hp-doors__head {
+      display: grid;
+      grid-template-columns: 1fr 0.55fr;
+      gap: 3rem;
+      align-items: end;
+      margin-bottom: 3.5rem;
+    }
+
+    .hp-doors__head p { max-width: 31rem; margin: 0; color: var(--rim-text-quote); }
+
+    .hp-doors__grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background: var(--rim-rule);
+    }
+
+    .hp-door {
+      min-height: 18rem;
+      display: flex;
+      flex-direction: column;
+      padding: 2rem;
+      background: var(--rim-bg-accent);
+      text-decoration: none;
+      transition: background 180ms ease, color 180ms ease;
+    }
+
+    .hp-door:hover { background: var(--rim-blue); color: var(--rim-surface); }
+    .hp-door:hover .hp-door__top,
+    .hp-door:hover p { color: var(--on-blue-soft); }
+
+    .hp-door__top {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      color: var(--rim-text-muted);
+      font-size: var(--text-xxs);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hp-door h3 {
+      max-width: 14ch;
+      margin: auto 0 1rem;
+      font-family: var(--font-serif);
+      font-size: clamp(1.7rem, 3.2vw, 2.9rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+
+    .hp-door p { max-width: 30rem; margin: 0; color: var(--rim-text-quote); font-size: var(--text-small); line-height: 1.6; }
+
+    /* ══ 4. NEXT GATHERING — blue field ═════════════════════ */
+    .hp-next { padding: clamp(4.5rem, 9vw, 7.5rem) 0; background: var(--rim-blue); color: var(--on-blue); }
+    .hp-next .eyebrow { margin-bottom: 2rem; color: var(--on-blue-soft); }
+
+    .hp-next__grid {
+      display: grid;
+      grid-template-columns: 0.55fr 1.45fr;
+      gap: 4rem;
+      align-items: start;
+    }
+
+    .hp-next__date {
+      width: 9rem;
+      height: 9rem;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--on-blue-rule);
+      border-radius: 50%;
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      line-height: 1.15;
+      text-align: center;
+    }
+
+    .hp-next__main h2 {
+      max-width: 18ch;
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(2.4rem, 5.2vw, 5rem);
+      font-weight: 400;
+      letter-spacing: -0.035em;
+      line-height: 0.98;
+    }
+
+    .hp-next__main > p { max-width: 37rem; margin: 1.6rem 0; color: var(--on-blue-soft); font-size: 1.05rem; }
+
+    .hp-next__meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
+
+    .hp-next__meta span {
+      padding: 0.5rem 0.8rem;
+      border: 1px solid var(--on-blue-rule);
+      border-radius: 999px;
+      font-size: var(--text-xs);
+      font-weight: 600;
+    }
+
+    /* ══ 5. FIRST TIME — white, split ═══════════════════════ */
+    .hp-first { background: var(--rim-surface); }
+
+    .hp-first__grid {
+      width: min(100%, 100rem);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      margin-inline: auto;
+    }
+
+    .hp-first__image { min-height: 44rem; position: relative; overflow: hidden; }
+    .hp-first__image img { height: 100%; position: absolute; object-fit: cover; }
+
+    .hp-first__copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: clamp(3rem, 7vw, 7rem);
+    }
+
+    .hp-first__copy .eyebrow { margin-bottom: 1.4rem; }
+    .hp-first__copy .display { max-width: 11ch; }
+    .hp-first__copy > p { max-width: 32rem; margin: 1.6rem 0 2rem; color: var(--rim-text-quote); }
+
+    .hp-truths { margin: 0; padding: 0; list-style: none; }
+
+    .hp-truths li {
+      display: grid;
+      grid-template-columns: 1.6rem 1fr;
+      gap: 0.7rem;
+      padding: 0.85rem 0;
+      border-top: 1px solid var(--rim-rule);
+      font-size: var(--text-small);
+      line-height: 1.6;
+    }
+
+    .hp-truths li:last-child { border-bottom: 1px solid var(--rim-rule); }
+    .hp-truths li::before { color: var(--accent); content: "✦"; }
+    .hp-first__copy .button { align-self: flex-start; margin-top: 2rem; }
+
+    /* ══ 6. THIS WEEK — Pampas ══════════════════════════════ */
+    .hp-week { padding: clamp(5rem, 10vw, 9rem) 0; background: var(--rim-bg); }
+
+    .hp-week__head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2rem;
+      align-items: end;
+      margin-bottom: 3rem;
+    }
+
+    .hp-week__head .eyebrow { margin-bottom: 0.9rem; }
+    .hp-week__list { border-top: 1px solid var(--rim-rule); }
+
+    .hp-week__row {
+      display: grid;
+      grid-template-columns: 8rem 1.2fr 0.7fr 0.8fr auto;
+      gap: 1rem;
+      align-items: center;
+      min-height: 6.5rem;
+      border-bottom: 1px solid var(--rim-rule);
+      text-decoration: none;
+      transition: background 160ms ease;
+    }
+
+    /* hover responds with background + a transform-only arrow advance.
+       v2 animated padding-inline here; that thrashes layout on every
+       row. Same felt response, no reflow. */
+    .hp-week__row:hover { background: var(--rim-surface); }
+
+    .hp-week__day {
+      color: var(--rim-text-muted);
+      font-size: var(--text-xxs);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hp-week__name {
+      font-family: var(--font-serif);
+      font-size: clamp(1.3rem, 2.2vw, 2rem);
+      line-height: 1.15;
+    }
+
+    .hp-week__time,
+    .hp-week__mode { color: var(--rim-text-muted); font-size: var(--text-small); }
+
+    .hp-week__go {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--rim-rule);
+      border-radius: 50%;
+      color: var(--rim-blue);
+      transition: border-color 160ms ease, transform 160ms ease;
+    }
+
+    .hp-week__row:hover .hp-week__go { border-color: var(--rim-blue); transform: translateX(0.3rem); }
+
+    /* ══ 7. MEANING — blue field, the emotional center ══════ */
+    .hp-meaning {
+      padding: clamp(6rem, 12vw, 11rem) 0;
+      position: relative;
+      overflow: hidden;
+      background: var(--rim-blue);
+      color: var(--on-blue);
+    }
+
+    .hp-meaning::before {
+      width: 44rem;
+      height: 44rem;
+      position: absolute;
+      top: -23rem;
+      right: -16rem;
+      border: 1px solid var(--on-blue-rule);
+      border-radius: 50%;
+      content: "";
+    }
+
+    .hp-meaning__grid { display: grid; grid-template-columns: 0.4fr 1fr; gap: clamp(2rem, 7vw, 7rem); }
+    .hp-meaning .eyebrow { color: var(--on-blue-soft); }
+
+    .hp-meaning blockquote {
+      max-width: 24ch;
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(1.9rem, 4.2vw, 4rem);
+      font-weight: 300;
+      font-style: italic;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+    }
+
+    .hp-meaning footer {
+      margin-top: 1.8rem;
+      color: var(--on-blue-soft);
+      font-family: var(--font-sans);
+      font-size: var(--text-xxs);
+      font-style: normal;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* ══ 8. TRADITION — white ═══════════════════════════════ */
+    .hp-tradition { padding: clamp(5rem, 10vw, 9rem) 0; background: var(--rim-surface); }
+    .hp-tradition__grid { display: grid; grid-template-columns: 1fr 0.85fr; gap: clamp(3rem, 7vw, 7rem); align-items: center; }
+    .hp-tradition__copy .eyebrow { margin-bottom: 1.4rem; }
+    .hp-tradition__copy .display { max-width: 12ch; }
+    .hp-tradition__copy > p { max-width: 38rem; margin: 1.8rem 0 0; color: var(--rim-text-quote); }
+    .hp-tradition__links { display: flex; flex-wrap: wrap; gap: 1.4rem; margin-top: 1.8rem; }
+
+    .hp-tradition__image { min-height: 36rem; position: relative; }
+    .hp-tradition__image img { height: calc(100% - 3rem); position: absolute; top: 0; object-fit: cover; }
+
+    .hp-tradition__note {
+      width: 80%;
+      position: absolute;
+      right: -1rem;
+      bottom: 0;
+      margin: 0;
+      padding: 1.5rem;
+      background: var(--rim-bg-accent);
+      color: var(--rim-text);
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      line-height: 1.4;
+    }
+
+    /* ══ 9. DANA — Pampas ═══════════════════════════════════ */
+    .hp-dana { padding: clamp(5rem, 10vw, 8.5rem) 0; background: var(--rim-bg); }
+    .hp-dana__grid { display: grid; grid-template-columns: 0.6fr 1fr; gap: clamp(2rem, 7vw, 7rem); }
+
+    .hp-dana__main h2 {
+      max-width: 15ch;
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(2.2rem, 4.6vw, 4.4rem);
+      font-weight: 400;
+      letter-spacing: -0.03em;
+      line-height: 1.02;
+    }
+
+    .hp-dana__main p { max-width: 38rem; margin: 1.6rem 0; color: var(--rim-text-quote); }
+    .hp-dana__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+    /* ══ 10. FINAL — Deeper Pampas (the blue footer closes) ══ */
+    .hp-final { padding: clamp(6rem, 13vw, 12rem) 0; text-align: center; background: var(--rim-bg-accent); }
+    .hp-final .eyebrow { margin-bottom: 1.4rem; }
+
+    .hp-final h2 {
+      max-width: 14ch;
+      margin: 0 auto;
+      font-family: var(--font-serif);
+      font-size: clamp(2.8rem, 6.4vw, 6.4rem);
+      font-weight: 400;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+    }
+
+    .hp-final p { max-width: 36rem; margin: 1.8rem auto; color: var(--rim-text-quote); }
+    .hp-final__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; }
+
+    /* ══ FOOTER — the shipped blue footer ═══════════════════ */
+    .hp-footer { padding: 4.5rem 0 2rem; background: var(--rim-blue); color: var(--on-blue); }
+    .hp-footer__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; padding-bottom: 3.5rem; }
+    .hp-footer__brand img { width: 4rem; filter: brightness(0) invert(1); }
+
+    .hp-footer__brand h2 {
+      max-width: 12ch;
+      margin: 1.2rem 0 0;
+      font-family: var(--font-serif);
+      font-size: 1.9rem;
+      font-weight: 400;
+      line-height: 1.1;
+    }
+
+    .hp-footer__brand p { margin: 1rem 0 0; color: var(--on-blue-soft); font-size: var(--text-small); }
+    .hp-footer__right { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+
+    .hp-footer__col h3 {
+      margin: 0 0 0.9rem;
+      color: var(--on-blue-soft);
+      font-size: var(--text-xxs);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hp-footer__col a {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      color: var(--on-blue);
+      font-size: var(--text-small);
+      text-decoration: none;
+    }
+
+    .hp-footer__col a:hover { text-decoration: underline; text-underline-offset: 0.25rem; }
+
+    .hp-signup { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; margin-top: 1rem; }
+    .hp-signup label { grid-column: 1 / -1; color: var(--on-blue-soft); font-size: var(--text-xs); }
+
+    .hp-signup input {
+      min-width: 0;
+      min-height: 52px;
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--on-blue-rule);
+      border-radius: 4px;
+      background: transparent;
+      color: var(--on-blue);
+      font-size: 16px; /* 16px floor — prevents iOS auto-zoom */
+    }
+
+    .hp-signup input::placeholder { color: rgba(255, 255, 255, 0.5); }
+
+    .hp-signup button {
+      min-height: 52px;
+      padding: 0.8rem 1.5rem;
+      border: 0;
+      border-radius: 999px;
+      background: var(--rim-surface);
+      color: var(--rim-blue);
+      font-size: var(--text-ui);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .hp-footer__bottom {
+      display: flex;
+      justify-content: space-between;
+      gap: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--on-blue-rule);
+      color: var(--on-blue-soft);
+      font-size: var(--text-xs);
+    }
+
+    .hp-concept { letter-spacing: 0.1em; text-transform: uppercase; }
+
+    /* ══ TABLET ═════════════════════════════════════════════ */
+    @media (max-width: 992px) {
+      .nav { grid-template-columns: 1fr auto; }
+      .nav-center, .nav-end { display: none; }
+      .nav-toggle { display: grid; }
+
+      .nav-center.open {
+        display: flex;
+        align-items: stretch;
+        position: fixed;
+        inset: var(--nav-h) 0 0;
+        flex-direction: column;
+        gap: 0;
+        padding: 2rem 1.5rem;
+        background: var(--rim-surface);
+      }
+
+      .nav-center.open a {
+        min-height: 64px;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--rim-rule);
+        border-radius: 0;
+        font-family: var(--font-serif);
+        font-size: 1.6rem;
+        font-weight: 400;
+      }
+
+      .nav-center.open a::after { content: "→"; font-family: var(--font-sans); font-size: 1rem; color: var(--rim-blue); }
+
+      .hp-hero__inner { grid-template-columns: 1fr; }
+      .hp-breath { justify-self: start; }
+      .hp-hero__foot { grid-template-columns: repeat(3, auto); }
+      .hp-hero__foot a { grid-column: 1 / -1; justify-self: start; }
+
+      .hp-doors__head,
+      .hp-next__grid,
+      .hp-meaning__grid,
+      .hp-dana__grid,
+      .hp-first__grid,
+      .hp-tradition__grid { grid-template-columns: 1fr; }
+
+      .hp-first__image { min-height: 32rem; }
+      .hp-tradition__image { min-height: 32rem; }
+      .hp-footer__grid { grid-template-columns: 1fr; gap: 3.5rem; }
+    }
+
+    /* ══ PHONE — 390px primary target, 360px floor ══════════ */
+    @media (max-width: 768px) {
+      .wrap { width: min(calc(100% - 2rem), var(--page)); }
+      :root { --nav-h: 76px; }
+      .wordmark span { font-size: 1rem; }
+
+      .hp-hero { min-height: auto; }
+
+      .hp-hero::after {
+        background: linear-gradient(180deg,
+          rgba(245, 243, 240, 0.97) 0%,
+          rgba(245, 243, 240, 0.9) 62%,
+          rgba(245, 243, 240, 0.4) 100%);
+      }
+
+      .hp-hero__inner { gap: 2.5rem; padding-block: 3rem 1.5rem; }
+      .hp-hero__title { max-width: none; font-size: clamp(2.8rem, 13.2vw, 4rem); line-height: 0.94; }
+      .hp-hero__title em { display: inline; }
+      .hp-hero__intro { font-size: 1.05rem; }
+      .hp-hero__actions { align-items: stretch; flex-direction: column; }
+      .hp-hero__actions .button { width: 100%; }
+
+      /* the breath pause stays in the left-aligned reading column —
+         "balance means vertical composure, not indiscriminate centering" */
+      .hp-breath { width: 100%; text-align: left; }
+      .hp-breath__button { width: 7rem; height: 7rem; margin: 0 0 0.9rem; }
+      .hp-hero__foot { grid-template-columns: 1fr; gap: 0.5rem; }
+      .hp-hero__foot a { grid-column: auto; justify-self: start; }
+
+      .hp-principle { grid-template-columns: 1fr; gap: 0.8rem; }
+      .hp-principle__num { padding: 0; }
+      .hp-principle h2 { max-width: none; font-size: clamp(1.9rem, 9vw, 2.6rem); }
+
+      .hp-doors__head { gap: 1.2rem; }
+      .hp-doors__grid { grid-template-columns: 1fr; }
+      .hp-door { min-height: 15rem; padding: 1.5rem; }
+      .hp-door h3 { max-width: none; }
+
+      .hp-next__date { width: 7rem; height: 7rem; font-size: 1.25rem; }
+      .hp-next__main h2 { max-width: none; font-size: clamp(2.1rem, 10vw, 3rem); }
+
+      .hp-first__image { min-height: 24rem; }
+      .hp-first__copy { padding: 3.5rem 1rem; }
+      .hp-first__copy .display,
+      .hp-tradition__copy .display { max-width: none; }
+      .hp-first__copy .button { width: 100%; }
+
+      .hp-week__head { grid-template-columns: 1fr; align-items: start; gap: 1.2rem; }
+      .hp-week__row { grid-template-columns: 5.5rem 1fr 44px; min-height: 6rem; }
+      .hp-week__time, .hp-week__mode { display: none; }
+      .hp-week__name { font-size: 1.25rem; }
+
+      .hp-meaning blockquote { max-width: none; font-size: clamp(1.8rem, 8.5vw, 2.5rem); }
+      .hp-tradition__image { min-height: 26rem; }
+      .hp-tradition__note { width: calc(100% - 1rem); right: 0; font-size: 1.05rem; }
+
+      .hp-dana__main h2,
+      .hp-final h2 { max-width: none; }
+      .hp-dana__actions, .hp-final__actions { align-items: stretch; flex-direction: column; }
+      .hp-dana__actions .button, .hp-final__actions .button { width: 100%; }
+
+      .hp-footer__right { grid-template-columns: 1fr 1fr; }
+      .hp-signup { grid-template-columns: 1fr; }
+      .hp-signup button { width: 100%; }
+      .hp-footer__bottom { flex-direction: column; gap: 0.75rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+
+  <header class="topbar">
+    <div class="wrap nav">
+      <a class="wordmark" href="#" aria-label="Rooted In Mindfulness home">
+        <img src="../public/images/Rooted-In-Mindfulness-Logo.png" alt="">
+        <span>Rooted In<br>Mindfulness</span>
+      </a>
+
+      <nav class="nav-center" id="site-nav" aria-label="Main navigation">
+        <a href="#first-time">New here</a>
+        <a href="#week">Practice</a>
+        <a href="#tradition">Our approach</a>
+        <a href="#doors">Community</a>
+        <a href="#dana">Give</a>
+      </nav>
+
+      <div class="nav-end"><a class="button button--quiet" href="#week">What’s happening this week</a></div>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open navigation"><span></span></button>
+    </div>
+  </header>
+
+  <main id="content">
+    <!-- 1. HERO -->
+    <section class="hp-hero" aria-labelledby="hero-title">
+      <div class="wrap hp-hero__inner">
+        <div class="hp-hero__copy">
+          <p class="eyebrow">A meditation and dharma community · Brookfield + online</p>
+          <h1 class="hp-hero__title" id="hero-title">You are not a problem <em>to solve.</em></h1>
+          <p class="hp-hero__intro">Practice is learning to meet this life—your actual life—with a steadier mind, an open heart, and the courage to see clearly.</p>
+          <div class="hp-hero__actions">
+            <a class="button" href="#first-time">Come sit with us</a>
+            <a class="button button--quiet" href="#doors">Find your way in</a>
+          </div>
+        </div>
+
+        <aside class="hp-breath" aria-label="Optional breathing pause">
+          <button class="hp-breath__button" type="button">Pause for<br>one breath</button>
+          <p class="hp-breath__status" aria-live="polite">Whenever you’re ready.</p>
+        </aside>
+
+        <div class="hp-hero__foot">
+          <span>No experience needed</span>
+          <span>No required fee</span>
+          <span>No belief test</span>
+          <a class="arrow-link" href="#next">Next gathering: Saturday at 9:30 AM <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. PRINCIPLES -->
+    <section class="hp-principles" aria-labelledby="principles-title">
+      <div class="wrap">
+        <p class="eyebrow" id="principles-title">What we practice here</p>
+        <ol class="hp-principles__list">
+          <li class="hp-principle"><span class="hp-principle__num">01</span><h2>Pay attention to what is <em>actually here.</em></h2></li>
+          <li class="hp-principle"><span class="hp-principle__num">02</span><h2>Meet it without abandoning <em>yourself or others.</em></h2></li>
+          <li class="hp-principle"><span class="hp-principle__num">03</span><h2>Respond with more wisdom, freedom, <em>and care.</em></h2></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 3. DOORS -->
+    <section class="hp-doors" id="doors" aria-labelledby="doors-title">
+      <div class="wrap">
+        <div class="hp-doors__head">
+          <h2 class="display" id="doors-title">What do you need today?</h2>
+          <p>You don’t need to understand every program or know where you belong. Start with the need you can name.</p>
+        </div>
+
+        <div class="hp-doors__grid">
+          <a class="hp-door" href="#first-time"><span class="hp-door__top"><span>Quiet</span><span aria-hidden="true">↘</span></span><h3>I need somewhere to land.</h3><p>A gentle first gathering, guided meditation, and no pressure to speak.</p></a>
+          <a class="hp-door" href="#week"><span class="hp-door__top"><span>Guidance</span><span aria-hidden="true">↘</span></span><h3>I want to learn how to meditate.</h3><p>Clear instruction, practical teaching, and room to ask the questions you really have.</p></a>
+          <a class="hp-door" href="#meaning"><span class="hp-door__top"><span>Company</span><span aria-hidden="true">↘</span></span><h3>I don’t want to do this alone.</h3><p>A community of ordinary people practicing through joy, grief, change, and daily life.</p></a>
+          <a class="hp-door" href="#tradition"><span class="hp-door__top"><span>Depth</span><span aria-hidden="true">↘</span></span><h3>I’m ready to go further.</h3><p>Courses, sustained study, silent practice, and a tradition deep enough to keep opening.</p></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. NEXT GATHERING -->
+    <section class="hp-next" id="next" aria-labelledby="next-title">
+      <div class="wrap">
+        <p class="eyebrow">A good place to begin</p>
+        <div class="hp-next__grid">
+          <time class="hp-next__date" datetime="2026-08-08T09:30">SAT<br>AUG 8</time>
+          <div class="hp-next__main">
+            <h2 id="next-title">Meditation &amp; Dharma Talk</h2>
+            <p>We’ll sit together, hear a practical teaching, and leave time for questions. Some people come every week. Others are walking in for the first time.</p>
+            <div class="hp-next__meta"><span>9:30–11:00 AM CT</span><span>Brookfield + Zoom</span><span>No registration</span><span>All experience levels</span></div>
+            <a class="button button--onblue" href="#first-time">Plan your first visit</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. FIRST TIME -->
+    <section class="hp-first" id="first-time" aria-labelledby="first-title">
+      <div class="hp-first__grid">
+        <div class="hp-first__image"><img src="../public/images/Tranquility-water.jpg" alt="Still water disappearing into a soft horizon"></div>
+        <div class="hp-first__copy">
+          <p class="eyebrow">If this is your first time</p>
+          <h2 class="display" id="first-title">You can simply show up.</h2>
+          <p>Wear something comfortable. Sit in a chair or on a cushion. Keep your camera off online. Listen without speaking. Leave early if you need to. The practice is invitational.</p>
+          <ul class="hp-truths">
+            <li>Someone will welcome you and help you get settled.</li>
+            <li>You will never be asked to claim a religious identity.</li>
+            <li>There is no admission price or required donation.</li>
+            <li>You do not have to feel calm, spiritual, or “good at this.”</li>
+          </ul>
+          <a class="button" href="#week">Choose a gathering</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. THIS WEEK -->
+    <section class="hp-week" id="week" aria-labelledby="week-title">
+      <div class="wrap">
+        <div class="hp-week__head">
+          <div><p class="eyebrow">August 3–9 · Central time</p><h2 class="display" id="week-title">This week at RIM.</h2></div>
+          <a class="arrow-link" href="#">View the full calendar <span aria-hidden="true">→</span></a>
+        </div>
+
+        <div class="hp-week__list">
+          <a class="hp-week__row" href="#"><span class="hp-week__day">Monday</span><span class="hp-week__name">Awakening the Heart</span><span class="hp-week__time">9:30 AM</span><span class="hp-week__mode">Online</span><span class="hp-week__go" aria-hidden="true">→</span></a>
+          <a class="hp-week__row" href="#"><span class="hp-week__day">Tuesday</span><span class="hp-week__name">The Art of Meditation</span><span class="hp-week__time">9:30 AM</span><span class="hp-week__mode">Brookfield + online</span><span class="hp-week__go" aria-hidden="true">→</span></a>
+          <a class="hp-week__row" href="#"><span class="hp-week__day">Wednesday</span><span class="hp-week__name">Qigong at RIM</span><span class="hp-week__time">10:00 AM</span><span class="hp-week__mode">Online</span><span class="hp-week__go" aria-hidden="true">→</span></a>
+          <a class="hp-week__row" href="#"><span class="hp-week__day">Thursday</span><span class="hp-week__name">Essential Dharma Study</span><span class="hp-week__time">9:30 AM</span><span class="hp-week__mode">Online</span><span class="hp-week__go" aria-hidden="true">→</span></a>
+          <a class="hp-week__row" href="#"><span class="hp-week__day">Saturday</span><span class="hp-week__name">Meditation &amp; Dharma Talk</span><span class="hp-week__time">9:30 AM</span><span class="hp-week__mode">Brookfield + online</span><span class="hp-week__go" aria-hidden="true">→</span></a>
+          <a class="hp-week__row" href="#"><span class="hp-week__day">Every day</span><span class="hp-week__name">Silent Meditation</span><span class="hp-week__time">6:30 AM · 7:30 PM</span><span class="hp-week__mode">Online</span><span class="hp-week__go" aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. MEANING -->
+    <section class="hp-meaning" id="meaning" aria-label="Community member reflection">
+      <div class="wrap hp-meaning__grid">
+        <p class="eyebrow">What people find here</p>
+        <blockquote>“After the first drop-in session, I knew I was home. The warm, welcoming, engaging community was where I wanted to grow my practice.”<footer>— A member of the RIM community</footer></blockquote>
+      </div>
+    </section>
+
+    <!-- 8. TRADITION -->
+    <section class="hp-tradition" id="tradition" aria-labelledby="tradition-title">
+      <div class="wrap hp-tradition__grid">
+        <div class="hp-tradition__copy">
+          <p class="eyebrow">For beginners · For lifelong practitioners</p>
+          <h2 class="display" id="tradition-title">Ancient roots. No spiritual theater.</h2>
+          <p>RIM is grounded in the earliest Buddhist teachings and the Chan practice of Silent Illumination. We study them closely and teach them plainly—because the point is not to collect ideas. The point is to live with less confusion and more care.</p>
+          <p>Experienced practitioners will find serious study, silent sits, courses, and opportunities to make practice inseparable from service and community.</p>
+          <div class="hp-tradition__links"><a class="arrow-link" href="#">Meet Jesse and our teachers <span aria-hidden="true">→</span></a><a class="arrow-link" href="#">Explore courses and study <span aria-hidden="true">→</span></a></div>
+        </div>
+        <div class="hp-tradition__image">
+          <img src="../public/images/Tree-BG.jpg" alt="An old tree with deep roots illuminated by sunlight">
+          <p class="hp-tradition__note">“The teaching is here to support your practice—not to stand between you and it.”</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. DANA -->
+    <section class="hp-dana" id="dana" aria-labelledby="dana-title">
+      <div class="wrap hp-dana__grid">
+        <p class="eyebrow">Dana · Generosity</p>
+        <div class="hp-dana__main">
+          <h2 id="dana-title">What is freely offered is freely supported.</h2>
+          <p>There are no fees for RIM’s regular gatherings. Teachers offer the dharma, and the community responds according to its ability—with donations, volunteering, care, and participation. This is how the door stays open for everyone.</p>
+          <div class="hp-dana__actions"><a class="button" href="#">Make an offering</a><a class="button button--quiet" href="#">Volunteer with RIM</a></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. FINAL -->
+    <section class="hp-final" aria-labelledby="final-title">
+      <div class="wrap">
+        <p class="eyebrow">Come as you are</p>
+        <h2 id="final-title">One hour is enough to begin.</h2>
+        <p>Come to a drop-in. Sit with us. Ask a question or stay quiet. Notice what happens when you don’t have to do it alone.</p>
+        <div class="hp-final__actions"><a class="button" href="#week">Find your first gathering</a><a class="button button--quiet" href="#">Ask us anything</a></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="hp-footer">
+    <div class="wrap">
+      <div class="hp-footer__grid">
+        <div class="hp-footer__brand">
+          <img src="../public/images/Rooted-In-Mindfulness-Logo.png" alt="">
+          <h2>Rooted In Mindfulness</h2>
+          <p>4040 N. Calhoun Road · Brookfield, Wisconsin 53005<br>A meditation and dharma community, in person and online.</p>
+        </div>
+        <div class="hp-footer__right">
+          <div class="hp-footer__col"><h3>Start here</h3><a href="#first-time">Your first visit</a><a href="#week">This week</a><a href="#doors">Find a program</a></div>
+          <div class="hp-footer__col"><h3>Go deeper</h3><a href="#tradition">Our approach</a><a href="#">Teachers</a><a href="#">Courses</a></div>
+          <div class="hp-footer__col"><h3>Belong</h3><a href="#">Join RIM</a><a href="#dana">Volunteer</a><a href="#dana">Donate</a></div>
+          <form class="hp-signup"><label for="email">A calm weekly note with gatherings, teachings, and community news.</label><input id="email" type="email" autocomplete="email" placeholder="Your email address"><button type="submit">Stay connected</button></form>
+        </div>
+      </div>
+      <div class="hp-footer__bottom"><span>© 2026 Rooted In Mindfulness · 501(c)(3) nonprofit</span><span class="hp-concept">Open Sky composition · in-system re-skin (v3)</span></div>
+    </div>
+  </footer>
+
+  <script>
+    const navToggle = document.querySelector('.nav-toggle');
+    const siteNav = document.querySelector('.nav-center');
+    const breathButton = document.querySelector('.hp-breath__button');
+    const breathStatus = document.querySelector('.hp-breath__status');
+    const signup = document.querySelector('.hp-signup');
+    let breathTimers = [];
+
+    function closeNavigation() {
+      navToggle.setAttribute('aria-expanded', 'false');
+      navToggle.setAttribute('aria-label', 'Open navigation');
+      siteNav.classList.remove('open');
+      document.body.classList.remove('nav-open');
+    }
+
+    navToggle.addEventListener('click', () => {
+      const opening = navToggle.getAttribute('aria-expanded') !== 'true';
+      navToggle.setAttribute('aria-expanded', String(opening));
+      navToggle.setAttribute('aria-label', opening ? 'Close navigation' : 'Open navigation');
+      siteNav.classList.toggle('open', opening);
+      document.body.classList.toggle('nav-open', opening);
+    });
+
+    siteNav.addEventListener('click', (event) => {
+      if (event.target.closest('a')) closeNavigation();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeNavigation();
+    });
+
+    function clearBreathTimers() {
+      breathTimers.forEach((timer) => window.clearTimeout(timer));
+      breathTimers = [];
+    }
+
+    breathButton.addEventListener('click', () => {
+      clearBreathTimers();
+      breathButton.classList.remove('is-breathing');
+      void breathButton.offsetWidth;
+      breathButton.classList.add('is-breathing');
+      breathButton.textContent = 'Breathing with you';
+      breathStatus.textContent = 'Slowly breathe in…';
+      breathTimers.push(window.setTimeout(() => { breathStatus.textContent = 'Rest at the top…'; }, 3600));
+      breathTimers.push(window.setTimeout(() => { breathStatus.textContent = 'Slowly breathe out…'; }, 4400));
+      breathTimers.push(window.setTimeout(() => { breathStatus.textContent = 'And once more, breathe in…'; }, 8000));
+      breathTimers.push(window.setTimeout(() => { breathStatus.textContent = 'Let the breath go…'; }, 12400));
+      breathTimers.push(window.setTimeout(() => {
+        breathButton.classList.remove('is-breathing');
+        breathButton.innerHTML = 'Pause for<br>one breath';
+        breathStatus.textContent = 'You’re here.';
+      }, 16000));
+    });
+
+    signup.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const button = signup.querySelector('button');
+      button.textContent = 'You’re connected';
+      button.disabled = true;
+    });
+  </script>
+</body>
+</html>

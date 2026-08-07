@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RIM Home — Section 1: Hero (three headline registers)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════
+       HOME PAGE — SECTION 1 of 7: HERO
+       Built from the persona brief, not from the old page.
+
+       Brief (RIM Visitor Personas, persona 1 + 3):
+       · lead with an emotional STATE, not an organizational description
+       · no mission, no history, no tradition above the fold
+       · exactly ONE action, and make it concrete rather than generic
+       · reassurance as plain speech, not badges
+       · the visitor is the subject; RIM is the answer
+
+       Structure is deliberately NOT either mockup: no split column,
+       no floating card, no arch crop, no breath circle. Vertical
+       and quiet — headline, one dated invitation, reassurance.
+
+       Three headline registers below (A / B / C) share one layout,
+       so the comparison is copy, not composition.
+       ══════════════════════════════════════════════════════════ */
+
+    @font-face {
+      font-family: Quincycf;
+      src: url("../../public/fonts/QuincyCF-Regular.woff2") format("woff2");
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+
+    @font-face {
+      font-family: Quincycf;
+      src: url("../../public/fonts/QuincyCF-RegularItalic.woff2") format("woff2");
+      font-weight: 400; font-style: italic; font-display: swap;
+    }
+
+    @font-face {
+      font-family: Quincycf;
+      src: url("../../public/fonts/QuincyCF-LightItalic.woff2") format("woff2");
+      font-weight: 300; font-style: italic; font-display: swap;
+    }
+
+    :root {
+      --rim-surface:    #ffffff;
+      --rim-bg-bright:  #faf9f7;
+      --rim-bg:         #f5f3f0;
+      --rim-bg-accent:  #e9e6e2;
+      --rim-blue:       #31576d;
+      --rim-mid:        #39607a;
+      --rim-text:       #333333;
+      --rim-text-quote: #555555;
+      --rim-text-muted: #666666;
+      --rim-rule:       #dedbd7;
+
+      /* the one sanctioned lift: white cards on the warm ground */
+      --card-shadow: 0 1px 2px rgba(45,38,28,0.03), 0 4px 11px rgba(45,38,28,0.035);
+
+      --font-serif: 'Quincycf', Georgia, serif;
+      --font-sans:  'Open Sans', sans-serif;
+
+      --text-body:  18px;
+      --text-small: 15px;
+      --text-ui:    14px;
+      --text-xs:    13px;
+      --text-xxs:   11px;
+      --lh-body:    1.7;
+
+      --page: 80rem;
+      --nav-h: 100px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--rim-bg);
+      color: var(--rim-text);
+      font-family: var(--font-sans);
+      font-size: var(--text-body);
+      line-height: var(--lh-body);
+      text-rendering: optimizeLegibility;
+    }
+
+    img { display: block; width: 100%; }
+    a { color: inherit; }
+
+    :focus-visible { outline: 2px solid var(--rim-blue); outline-offset: 3px; }
+
+    .wrap { width: min(calc(100% - 3rem), var(--page)); margin-inline: auto; }
+
+    /* ── review chrome (not part of the design) ───────────── */
+    .variant-tag {
+      padding: 0.9rem 0;
+      background: var(--rim-text);
+      color: var(--rim-surface);
+      font-family: var(--font-sans);
+      font-size: var(--text-xxs);
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .variant-tag em { color: #b9c6cf; font-style: normal; font-weight: 400; letter-spacing: 0.06em; text-transform: none; }
+
+    /* ── the flush white nav, per the shipped system ──────── */
+    .topbar { background: var(--rim-surface); border-bottom: 1px solid var(--rim-rule); }
+
+    .nav { min-height: var(--nav-h); display: flex; align-items: center; justify-content: space-between; gap: 2rem; }
+
+    .wordmark { min-height: 44px; display: flex; align-items: center; gap: 0.7rem; text-decoration: none; }
+    .wordmark img { width: 2.6rem; height: 2.6rem; object-fit: contain; }
+    .wordmark span { font-family: var(--font-serif); font-size: 1.1rem; line-height: 1.1; }
+
+    .nav-links { display: flex; align-items: center; gap: 0.15rem; }
+
+    .nav-links a {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.65rem 0.85rem;
+      border-radius: 4px;
+      font-size: var(--text-ui);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .nav-links a:hover { background: var(--rim-bg); color: var(--rim-blue); }
+
+    /* ══ HERO ══════════════════════════════════════════════ */
+    .hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      background: var(--rim-bg);
+    }
+
+    /* the image sits low and quiet — it is atmosphere, not the subject.
+       SLOT: replace with a candid photograph of RIM practitioners
+       once real community photography exists (personas 3 + 5). */
+    .hero__image {
+      height: 46%;
+      position: absolute;
+      inset: auto 0 0 0;
+      z-index: -2;
+    }
+
+    .hero__image img { height: 100%; object-fit: cover; object-position: center 62%; }
+
+    .hero::after {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(180deg,
+        var(--rim-bg) 0%,
+        var(--rim-bg) 44%,
+        rgba(245, 243, 240, 0.86) 62%,
+        rgba(245, 243, 240, 0.55) 100%);
+      content: "";
+    }
+
+    .hero__inner {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(2.5rem, 5vw, 4rem);
+      padding-block: clamp(4rem, 9vw, 8rem) clamp(5rem, 11vw, 10rem);
+    }
+
+    /* NB: `ch` resolves against the element's OWN font. Setting a ch
+       max-width on this container would measure 18px Open Sans and
+       crush the 90px Quincy headline — so the measure lives on the
+       children, each in its own type. */
+    .hero__copy { max-width: none; }
+
+    /* named hero exception to the locked type scale */
+    .hero__title {
+      max-width: 17ch;
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(2.7rem, 6.4vw, 5.6rem);
+      font-weight: 400;
+      letter-spacing: -0.035em;
+      line-height: 1.0;
+      text-wrap: balance;
+    }
+
+    .hero__title em { color: var(--rim-mid); font-weight: 300; }
+
+    .hero__sub {
+      max-width: 46ch;
+      margin: 1.6rem 0 0;
+      color: var(--rim-text-quote);
+      font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+      line-height: 1.6;
+    }
+
+    /* ── the one action, made concrete: a real dated gathering ──
+       Not "See our programs." A specific door, on a specific day,
+       with the two facts persona 2 needs (time, format) and the
+       one fact persona 1 needs (nothing is required of you). */
+    .hero__invite {
+      max-width: 46rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 1.75rem;
+      align-items: center;
+      padding: 1.5rem 1.75rem;
+      border-radius: 8px;
+      background: var(--rim-surface);
+      box-shadow: var(--card-shadow);
+      text-decoration: none;
+    }
+
+    .hero__when {
+      padding-right: 1.75rem;
+      border-right: 1px solid var(--rim-rule);
+      text-align: center;
+    }
+
+    .hero__when-day {
+      display: block;
+      color: var(--rim-text-muted);
+      font-size: var(--text-xxs);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+
+    .hero__when-time {
+      display: block;
+      color: var(--rim-text);
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      line-height: 1.2;
+    }
+
+    .hero__what strong {
+      display: block;
+      font-family: var(--font-serif);
+      font-size: 1.35rem;
+      font-weight: 400;
+      line-height: 1.25;
+    }
+
+    .hero__what span {
+      display: block;
+      margin-top: 0.3rem;
+      color: var(--rim-text-muted);
+      font-size: var(--text-small);
+      line-height: 1.5;
+    }
+
+    .hero__go {
+      min-height: 52px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.8rem 1.5rem;
+      border-radius: 999px;
+      background: var(--rim-blue);
+      color: var(--rim-surface);
+      font-size: var(--text-ui);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .hero__invite:hover .hero__go { background: var(--rim-mid); }
+
+    /* ── reassurance as plain speech, not badges ──────────── */
+    .hero__reassure {
+      max-width: 46rem;
+      margin: 0;
+      color: var(--rim-text-quote);
+      font-size: var(--text-small);
+      line-height: 1.75;
+    }
+
+    .hero__reassure b { color: var(--rim-text); font-weight: 600; }
+
+    .hero__alt {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 44px;
+      color: var(--rim-blue);
+      font-size: var(--text-ui);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 0.3rem;
+      text-decoration-thickness: 1px;
+    }
+
+    .hero__alt span { transition: transform 160ms ease; }
+    .hero__alt:hover span { transform: translateX(0.3rem); }
+
+    /* ══ TABLET ════════════════════════════════════════════ */
+    @media (max-width: 992px) {
+      .nav-links { display: none; }
+      .hero__copy { max-width: none; }
+    }
+
+    /* ══ PHONE — 390 target, 360 floor ═════════════════════ */
+    @media (max-width: 768px) {
+      .wrap { width: min(calc(100% - 2rem), var(--page)); }
+      :root { --nav-h: 76px; }
+
+      .hero__image { height: 38%; }
+      .hero__inner { padding-block: 3rem 4rem; gap: 2.25rem; }
+      .hero__title { font-size: clamp(2.4rem, 11vw, 3.4rem); }
+      .hero__sub { font-size: 1.05rem; }
+
+      /* the invitation restacks — the day/time stops being a rail */
+      .hero__invite { grid-template-columns: 1fr; gap: 1.1rem; padding: 1.25rem; }
+      .hero__when { padding: 0 0 1.1rem; border-right: 0; border-bottom: 1px solid var(--rim-rule); text-align: left; }
+      .hero__when-day { display: inline; }
+      .hero__when-time { display: inline; margin-left: 0.5rem; font-size: 1.25rem; }
+      .hero__go { width: 100%; justify-content: center; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="wrap nav">
+      <a class="wordmark" href="#">
+        <img src="../../public/images/Rooted-In-Mindfulness-Logo.png" alt="">
+        <span>Rooted In<br>Mindfulness</span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="#">New here</a>
+        <a href="#">Programs</a>
+        <a href="#">This week</a>
+        <a href="#">Community</a>
+        <a href="#">Give</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ─────────────── VARIANT A ─────────────── -->
+  <div class="variant-tag"><div class="wrap">Register A: <em>meets persona 1 by naming what she carries without asking her to.</em></div></div>
+
+  <section class="hero">
+    <div class="hero__image"><img src="../../public/images/Sky-Heavenly.jpg" alt=""></div>
+    <div class="wrap hero__inner">
+      <div class="hero__copy">
+        <h1 class="hero__title">Bring what you're <em>carrying.</em></h1>
+        <p class="hero__sub">You won't be asked what it is, or why. Sit down and breathe with us for an hour.</p>
+      </div>
+
+      <a class="hero__invite" href="#">
+        <span class="hero__when">
+          <span class="hero__when-day">This Saturday</span>
+          <span class="hero__when-time">9:30 AM</span>
+        </span>
+        <span class="hero__what">
+          <strong>Meditation &amp; Dharma Talk</strong>
+          <span>90 minutes · Brookfield or online · nothing to sign up for</span>
+        </span>
+        <span class="hero__go">Come sit with us</span>
+      </a>
+
+      <p class="hero__reassure">
+        <b>No experience needed.</b> Someone will welcome you and show you where to sit. You can keep your camera off online, say nothing the whole time, and leave early if you need to.
+        <b>There's no fee</b>, and nothing you have to believe.
+        <br><a class="hero__alt" href="#">Or read what happens when you show up <span aria-hidden="true">→</span></a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────────── VARIANT B ─────────────── -->
+  <div class="variant-tag"><div class="wrap">Register B: <em>permission first. Disarms persona 3 with the phrase the community owns.</em></div></div>
+
+  <section class="hero">
+    <div class="hero__image"><img src="../../public/images/Sky-Heavenly.jpg" alt=""></div>
+    <div class="wrap hero__inner">
+      <div class="hero__copy">
+        <h1 class="hero__title">Take what works. <em>Leave the rest.</em></h1>
+        <p class="hero__sub">Nobody here is keeping score. Some people come once. Some have been sitting with us for years. You're welcome either way.</p>
+      </div>
+
+      <a class="hero__invite" href="#">
+        <span class="hero__when">
+          <span class="hero__when-day">This Saturday</span>
+          <span class="hero__when-time">9:30 AM</span>
+        </span>
+        <span class="hero__what">
+          <strong>Meditation &amp; Dharma Talk</strong>
+          <span>90 minutes · Brookfield or online · nothing to sign up for</span>
+        </span>
+        <span class="hero__go">Come sit with us</span>
+      </a>
+
+      <p class="hero__reassure">
+        <b>No experience needed.</b> Someone will welcome you and show you where to sit. You can keep your camera off online, say nothing the whole time, and leave early if you need to.
+        <b>There's no fee</b>, and nothing you have to believe.
+        <br><a class="hero__alt" href="#">Or read what happens when you show up <span aria-hidden="true">→</span></a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────────── VARIANT C ─────────────── -->
+  <div class="variant-tag"><div class="wrap">Register C: <em>the teaching in plain speech, from Jesse's own framing of cause and effect.</em></div></div>
+
+  <section class="hero">
+    <div class="hero__image"><img src="../../public/images/Sky-Heavenly.jpg" alt=""></div>
+    <div class="wrap hero__inner">
+      <div class="hero__copy">
+        <h1 class="hero__title">Suffering has causes. <em>So does ease.</em></h1>
+        <p class="hero__sub">You don't have to believe that. You can test it. We sit together, look at what's here, and practice meeting it with less struggle.</p>
+      </div>
+
+      <a class="hero__invite" href="#">
+        <span class="hero__when">
+          <span class="hero__when-day">This Saturday</span>
+          <span class="hero__when-time">9:30 AM</span>
+        </span>
+        <span class="hero__what">
+          <strong>Meditation &amp; Dharma Talk</strong>
+          <span>90 minutes · Brookfield or online · nothing to sign up for</span>
+        </span>
+        <span class="hero__go">Come sit with us</span>
+      </a>
+
+      <p class="hero__reassure">
+        <b>No experience needed.</b> Someone will welcome you and show you where to sit. You can keep your camera off online, say nothing the whole time, and leave early if you need to.
+        <b>There's no fee</b>, and nothing you have to believe.
+        <br><a class="hero__alt" href="#">Or read what happens when you show up <span aria-hidden="true">→</span></a>
+      </p>
+    </div>
+  </section>
+
+</body>
+</html>

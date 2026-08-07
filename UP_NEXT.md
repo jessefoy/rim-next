@@ -12,6 +12,12 @@
 
 **Why it was needed:** those pages wore Webflow-era class names with **zero rules in `custom.css`** and had been rendering as bare document flow in production.
 
+**THE FRAMING FOR NEXT SESSION — the look is not settled.** Jesse, closing session 169: *"We'll have to at some point come back to the design decisions, because I think they've been built through multiple sessions trying to find the right look. I'm not satisfied with what we have, 100%… I still want to refine the design as we're going."*
+
+Read that before treating `RIM_Public_Pages.md` as settled law. It is an accurate record of **what has been tried, shipped, and reverted** — that is its value, and the tombstones exist so a failed experiment isn't re-run at his expense. It is **not** a statement that the design is finished. The public look has accreted across sessions 148, 162 and 169, each solving a local problem; nobody has yet stood back and asked whether the whole reads as one considered thing. Jesse is inviting that.
+
+So: propose real directions. Use `mockups/` (five home-page explorations, several with their own review notes) as input — references, never a spec; read `mockups/README.md` first. Just don't re-propose a tombstoned pattern without saying what is different this time.
+
 **NEXT SESSION — optimize the home page design.** Read first, in this order:
 1. `RIM_Web_Design_Philosophy.md` — intent.
 2. `RIM_Public_Pages.md` — the concrete system, now including the **`pp-` grammar**, the **measure-don't-read rule**, the contrast floors, and three tombstones (floating nav pill · chapter eyebrows + closing band · **the hero paper panel**).
@@ -37,7 +43,7 @@
 - **Eyebrows stay.** The `impeccable` craft floor bans them outright; its own opening defers to the committed visual world, and RIM's uses them throughout.
 - **`custom.css` is the source of truth**, not the design-system skill's copy of the tokens.
 
-**Still unoffered/unadded:** a `CLAUDE.md` line scoping `/impeccable` (use `audit`/`harden`/`optimize`/`clarify`; avoid `bolder`/`delight`/`overdrive`/`animate`/`colorize` on RIM surfaces, since they will re-propose the tombstoned patterns). Jesse has not said yes or no.
+**Settled at close:** `mockups/` stays in the repo, with `mockups/README.md` marking it as references rather than a spec. `CLAUDE.md` gained a **"Using `/impeccable` on RIM surfaces"** section — the integrity half (`audit`/`harden`/`optimize`/`clarify`) is explicitly wanted and the background detector stays on; the expressive modes are allowed for exploration but never silently override a committed decision; craft-floor/RIM conflicts get resolved in the open, in the response.
 
 ## Prior handoff reference
 
