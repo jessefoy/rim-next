@@ -398,6 +398,12 @@ h4 { font-size: var(--text-h4); }
 }
 
 .lr-btn {
+  /* border-box, not the default content-box: at <=430px the rule below sets
+     width:100%, and with 44px of horizontal padding a content-box button
+     overhangs its card by exactly that much. webflow.css (which carried the
+     global * { box-sizing: border-box }) is no longer loaded, so each control
+     has to declare it. Was visibly clipped on /this-week on every phone. */
+  box-sizing: border-box;
   display: inline-block;
   padding: 10px 22px;
   background: var(--rim-blue);
@@ -2689,87 +2695,10 @@ h4 { font-size: var(--text-h4); }
 .pl-page { background: var(--rim-bg); }
 .pl-page .rim-container { box-sizing: border-box; }
 
-.pl-hero {
-  min-height: 430px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-  background-color: var(--rim-blue);
-  background-image: url('/images/Looking-Up-Pine-Trees-unsplash.jpg');
-  background-size: cover;
-  background-position: center 48%;
-}
-
-.pl-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--rim-dark) 96%, transparent) 0%,
-    color-mix(in srgb, var(--rim-blue) 83%, transparent) 54%,
-    color-mix(in srgb, var(--rim-blue) 48%, transparent) 100%
-  );
-  pointer-events: none;
-}
-
-.pl-hero__inner {
-  position: relative;
-  z-index: 1;
-  padding-top: 72px;
-  padding-bottom: 76px;
-}
-
-.pl-hero__eyebrow,
-.pl-catalog__eyebrow,
-.pl-membership__eyebrow {
-  margin: 0 0 16px;
-  font-family: var(--font-sans);
-  font-size: var(--text-xxs);
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
-.pl-hero__eyebrow { color: color-mix(in srgb, var(--rim-surface) 70%, transparent); }
-
-.pl-hero__title {
-  max-width: 650px;
-  margin: 0 0 22px;
-  color: var(--rim-surface);
-  font-family: var(--font-serif);
-  font-size: var(--text-hero);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
-  text-wrap: balance;
-}
-
-.pl-hero__body {
-  max-width: 600px;
-  margin: 0 0 34px;
-  color: color-mix(in srgb, var(--rim-surface) 88%, transparent);
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
-  line-height: var(--lh-body);
-}
-
-.pl-hero__cta {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--rim-surface);
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  font-weight: 600;
-  text-decoration: none;
-}
-.pl-hero__cta span { transition: transform 0.15s ease; }
-.pl-hero__cta:hover span { transform: translateX(4px); }
+/* The hero is .pp-hero (see the pp- grammar). It began life here as
+   .pl-hero and pp-hero was written as a copy of it; keeping two
+   implementations of one hero meant only one of them got the
+   session-169 contrast hardening. Folded into pp- in session 170. */
 
 .pl-catalog { padding: 68px 0 88px; }
 
@@ -2936,6 +2865,44 @@ h4 { font-size: var(--text-h4); }
   transform: translateX(3px);
 }
 
+/* ── Time-led variant ────────────────────────────────────────────
+   /this-week. Same card, one extra leading column: on a dated
+   schedule the time is the decision criterion, so it leads the row —
+   matching the occurrence-first agenda grammar the Scheduler uses.
+   The whole card is the link, so its accessible name is
+   "6:30–7 AM · Good Morning Silent Meditation · Zoom Only" — unique
+   per row, which a page of identical "Learn More" links was not. */
+.pl-card--time .pl-card__content {
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  gap: 8px 20px;
+}
+
+.pl-card__time {
+  color: var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 700;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-card--time .pl-card__title { margin-bottom: 0; }
+.pl-card--time .pl-card__meta { margin-top: 8px; }
+
+/* Narrow: the time moves above the title rather than squeezing the
+   name into a column too thin to hold it. The arrow stays put. */
+@media (max-width: 560px) {
+  .pl-card--time .pl-card__content {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "time   action"
+      "main   action";
+  }
+  .pl-card__time { grid-area: time; }
+  .pl-card--time .pl-card__main { grid-area: main; }
+  .pl-card--time .pl-card__action { grid-area: action; align-self: center; }
+}
+
 .pl-membership {
   max-width: 900px;
   box-sizing: border-box;
@@ -2969,9 +2936,6 @@ h4 { font-size: var(--text-h4); }
 }
 
 @media (max-width: 768px) {
-  .pl-hero { min-height: 410px; background-position: 62% center; }
-  .pl-hero::before { background: color-mix(in srgb, var(--rim-blue) 88%, transparent); }
-  .pl-hero__inner { padding-top: 64px; padding-bottom: 66px; }
   .pl-catalog { padding: 58px 0 76px; }
   .pl-catalog__intro { margin-bottom: 46px; }
   .pl-membership { grid-template-columns: 1fr; align-items: start; gap: 28px; padding: 42px 36px; }
@@ -2979,10 +2943,6 @@ h4 { font-size: var(--text-h4); }
 }
 
 @media (max-width: 430px) {
-  .pl-hero { min-height: 390px; }
-  .pl-hero__inner { padding-top: 48px; padding-bottom: 50px; }
-  .pl-hero__title { font-size: var(--text-h1); }
-  .pl-hero__body { font-size: var(--text-small); }
   .pl-catalog { padding: 48px 0 62px; }
   .pl-catalog__intro { margin-bottom: 40px; }
   .pl-catalog__title { font-size: var(--text-h2); }
@@ -3001,88 +2961,13 @@ h4 { font-size: var(--text-h4); }
 /* ═══════════════════════════════════════════════════
    THIS WEEK PAGE  (tw- prefix)
    /this-week — dynamic weekly schedule from Program data.
-   Hero matches pl-hero (bg image + teal overlay).
-   Program rows reuse lr-row card styling.
+   The hero is .pp-hero and the rows are .pl-card--time: this page
+   holds only what is genuinely its own — the day heading and the
+   today marker. It previously carried a third hero implementation
+   and borrowed .lr-row from the member area, which is why it read
+   as a different site from /community-programs (session 170).
 ═══════════════════════════════════════════════════ */
 
-/* Hero — same bg/overlay as pl-hero, centered text */
-.tw-hero {
-  background-color: var(--rim-blue);
-  background-image: url('/images/Bodhi-Leaves.jpg');
-  background-size: cover;
-  background-position: center 40%;
-  background-repeat: no-repeat;
-  position: relative;
-  text-align: center;
-}
-
-.tw-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(49, 87, 109, 0.70);
-  pointer-events: none;
-}
-
-.tw-hero .rim-container { position: relative; z-index: 1; }
-
-.tw-hero__title {
-  font-family: var(--font-serif);
-  font-size: 52px;
-  font-weight: 500;
-  color: #fff;
-  margin: 0 0 14px;
-  line-height: 1.15;
-  letter-spacing: -0.5px;
-}
-
-.tw-hero__subtitle {
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
-  color: rgba(255, 255, 255, 0.75);
-  margin: 0 0 6px;
-}
-
-.tw-hero__range {
-  font-family: var(--font-serif);
-  font-size: var(--text-h3);
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
-  margin: 0 0 32px;
-  letter-spacing: -0.3px;
-}
-
-/* Week nav pills */
-.tw-hero__nav {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
-.tw-nav-btn {
-  display: inline-block;
-  padding: 9px 22px;
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
-  border-radius: 50px;
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.tw-nav-btn:hover {
-  border-color: #fff;
-  color: #fff;
-}
-.tw-nav-btn--active {
-  background: #fff;
-  color: var(--rim-blue);
-  border-color: #fff;
-}
-
-/* Program rows reuse lr-row + pl-cat + pl-list from the programs
-   list page. These are the only overrides needed: */
 .tw-day-heading {
   display: flex;
   align-items: center;
@@ -3091,6 +2976,7 @@ h4 { font-size: var(--text-h4); }
 .tw-day-heading__date {
   width: 52px;
   min-height: 52px;
+  box-sizing: border-box;
   background: var(--rim-bg-accent);
   border-radius: 8px;
   color: var(--rim-text);
@@ -3114,13 +3000,38 @@ h4 { font-size: var(--text-h4); }
   font-weight: 700;
   line-height: 1.1;
 }
-.tw-day-heading__title { padding-left: 0; }
+.tw-day-heading__title {
+  padding-left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
 
-/* Subtle category tag appended to the schedule line */
-.tw-cat-tag {
-  color: var(--rim-text-muted);
-  font-size: var(--text-xs);
-  font-style: italic;
+/* Today. The page's whole job is "what can I attend now", and a
+   visitor arriving on Friday previously had to scroll ~2,300px past
+   four spent days to reach it. The date block inverts, a pill names
+   it in words, and the hero carries a #today jump link. */
+.tw-day--today { scroll-margin-top: 120px; }
+
+.tw-day--today .tw-day-heading__date { background: var(--rim-blue); }
+.tw-day--today .tw-day-heading__month { color: color-mix(in srgb, var(--rim-surface) 78%, transparent); }
+.tw-day--today .tw-day-heading__day { color: var(--rim-surface); }
+
+.tw-today-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: var(--rim-blue);
+  color: var(--rim-surface);
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
 }
 
 /* Footer note */
@@ -3139,10 +3050,6 @@ h4 { font-size: var(--text-h4); }
   color: var(--rim-mid);
   text-align: center;
   padding: 40px 0;
-}
-
-@media (max-width: 430px) {
-  .tw-hero__title { font-size: var(--text-h2); }
 }
 
 
@@ -28675,7 +28582,7 @@ input.w-button { -webkit-appearance: button; }
 .pp-page .rim-container { box-sizing: border-box; }
 
 /* ── Hero ────────────────────────────────────────────────────────
-   Matches .pl-hero. Pass a photograph with the --pp-hero-image custom
+   The one hero for every public page. Pass a photograph with the --pp-hero-image custom
    property on the element; without one the hero is flat rim-blue. */
 
 .pp-hero {
@@ -28756,7 +28663,7 @@ input.w-button { -webkit-appearance: button; }
   gap: 14px 24px;
 }
 
-/* A quiet arrow link on the hero — same affordance as .pl-hero__cta. */
+/* A quiet arrow link on the hero. */
 .pp-hero__link {
   min-height: 44px;
   display: inline-flex;
@@ -29074,6 +28981,20 @@ a.pp-card:hover .pp-card__action {
   color: var(--rim-blue);
 }
 .pp-btn--onblue:hover { background: var(--rim-bg-bright); color: var(--rim-blue); }
+
+/* The unselected sibling of --onblue: same shape, outline only. 75% white,
+   not 60% — the boundary of a control is non-text contrast (WCAG 1.4.11,
+   3:1) and 60% measured 2.8:1 over the hero gradient. */
+.pp-btn--onblue-ghost {
+  background: transparent;
+  color: var(--rim-surface);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rim-surface) 75%, transparent);
+}
+.pp-btn--onblue-ghost:hover {
+  background: color-mix(in srgb, var(--rim-surface) 14%, transparent);
+  color: var(--rim-surface);
+  box-shadow: inset 0 0 0 1.5px var(--rim-surface);
+}
 
 .pp-link {
   min-height: 44px;

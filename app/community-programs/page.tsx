@@ -33,17 +33,25 @@ export default async function CommunityProgramsPage() {
   return (
     <div className="pl-page">
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="pl-hero">
-        <div className="rim-container pl-hero__inner">
-          <p className="pl-hero__eyebrow">Practice in community</p>
-          <h1 className="pl-hero__title">Programs and Events</h1>
-          <p className="pl-hero__body">
+      <section
+        className="pp-hero"
+        style={{
+          ["--pp-hero-image" as string]: "url('/images/Looking-Up-Pine-Trees-unsplash.jpg')",
+          ["--pp-hero-position" as string]: "center 48%",
+        }}
+      >
+        <div className="rim-container pp-hero__inner">
+          <p className="pp-hero__eyebrow">Practice in community</p>
+          <h1 className="pp-hero__title">Programs and Events</h1>
+          <p className="pp-hero__body">
             Sit together, study the teachings, and bring what you find into the rest of your life.
             Join us at the center or online, whether you are beginning or have practiced for years.
           </p>
-          <Link href="/this-week" className="pl-hero__cta">
-            See what&rsquo;s happening this week <span aria-hidden="true">→</span>
-          </Link>
+          <div className="pp-hero__actions">
+            <Link href="/this-week" className="pp-hero__link">
+              See what&rsquo;s happening this week <span aria-hidden="true">→</span>
+            </Link>
+          </div>
         </div>
       </section>
 
