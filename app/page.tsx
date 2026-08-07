@@ -18,7 +18,14 @@ export default function HomePage() {
   return (
     <div className="pp-page">
       {/* ── Hero ──────────────────────────────────────────── */}
-      <section className="pp-hero pp-hero--video">
+      <section
+        className="pp-hero pp-hero--video"
+        style={{
+          // Also the reduced-motion fallback: when the video is hidden the
+          // poster still carries the hero instead of a flat colour band.
+          ["--pp-hero-image" as string]: "url('/videos/Bodhi_Leaves-poster-00001.jpg')",
+        }}
+      >
         <div className="pp-hero__video" aria-hidden="true">
           <video
             autoPlay

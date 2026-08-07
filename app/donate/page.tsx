@@ -218,6 +218,21 @@ export default function DonatePage() {
                   Need help determining an amount to give?
                 </a>
               </div>
+
+              {/* Inside the card column, not a third child of the hero grid —
+                  it belongs under the forms it refers to. */}
+              <p className="pp-give__assist">
+                <noscript>
+                  The donation forms need JavaScript.{" "}
+                </noscript>
+                Trouble with the donation form? Some browser extensions block it.
+                You can also give by phone at{" "}
+                <a href="tel:4148828932">(414) 882-8932</a> or email{" "}
+                <a href="mailto:support@rootedinmindfulness.org?subject=Donating%20to%20RIM">
+                  support@rootedinmindfulness.org
+                </a>
+                .
+              </p>
             </div>
           </div>
         </div>

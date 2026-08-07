@@ -28715,7 +28715,9 @@ input.w-button { -webkit-appearance: button; }
 
 .pp-hero__eyebrow {
   margin: 0 0 16px;
-  color: color-mix(in srgb, var(--rim-surface) 70%, transparent);
+  /* 85%, not 70%: at 11px this tier needs 4.5:1 and 70% measured 4.00
+     worst-case over the photographic heroes. */
+  color: color-mix(in srgb, var(--rim-surface) 85%, transparent);
   font-family: var(--font-sans);
   font-size: var(--text-xxs);
   font-weight: 700;
@@ -28739,7 +28741,8 @@ input.w-button { -webkit-appearance: button; }
 .pp-hero__body {
   max-width: 600px;
   margin: 0 0 34px;
-  color: color-mix(in srgb, var(--rim-surface) 88%, transparent);
+  /* 95%, not 88%: over near-white footage 88% tops out around 4.2:1. */
+  color: color-mix(in srgb, var(--rim-surface) 95%, transparent);
   font-family: var(--font-sans);
   font-size: var(--text-body);
   line-height: var(--lh-body);
@@ -29533,14 +29536,33 @@ a.pp-card:hover .pp-card__action {
 .pp-hero--video::before { z-index: 1; }
 .pp-hero--video .pp-hero__inner { z-index: 2; }
 
+/* The home footage is backlit bodhi leaves — the copy column measures p90
+   0.925 and p99 0.971 luminance, effectively white. The shared photographic
+   scrim (tuned for Community-Hands, p99 0.457) leaves the headline at
+   2.77:1 there. This variant holds a dark plateau across the copy, then
+   releases so the leaves on the right stay bright.
+   Measured after: title 5.74:1, body 5.50:1 across the copy column;
+   title 3.99:1 at its far edge, against the 3.0 large-text threshold. */
+.pp-hero--video::before {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--rim-dark) 97%, transparent) 0%,
+    color-mix(in srgb, var(--rim-dark) 88%, transparent) 62%,
+    color-mix(in srgb, var(--rim-blue) 55%, transparent) 100%
+  );
+}
+
+/* Reduced motion: the video is hidden, so the hero must still carry its
+   poster. Pass it as --pp-hero-image on the section and the still frame
+   sits underneath, rather than collapsing to a flat colour band. */
+@media (prefers-reduced-motion: reduce) {
+  .pp-hero--video .pp-hero__video { display: none; }
+}
+
 .pp-hero--video .pp-hero__title {
   max-width: 780px;
   font-size: clamp(2.5rem, 4.4vw + 1rem, 3.75rem);
   line-height: 1.14;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pp-hero__video video { display: none; }
 }
 
 /* ── Split section ───────────────────────────────────────────────
@@ -29593,12 +29615,18 @@ a.pp-card:hover .pp-card__action {
 .pp-hero--donate {
   min-height: 0;
   align-items: flex-start;
-  background-attachment: fixed;
+  /* scroll, not fixed: fixed attachment repaints the full hero on every
+     scroll frame and is unreliable on iOS. The parallax is not worth it. */
+  background-attachment: scroll;
   background-position: center;
 }
 /* A flat scrim, not the directional gradient — the copy column is narrow
-   and the cards need even contrast across the full width. */
-.pp-hero--donate::before { background: rgba(0, 0, 0, 0.5); }
+   and the cards need even contrast across the full width.
+   0.70, not the live page's 0.50: the Sky Heavenly frame carries bright
+   cloud through the copy column (p99 luminance 0.459), which left the
+   headline at 3.76:1 and the body at 3.43:1. At 0.70 they measure 5.59
+   and 5.04. */
+.pp-hero--donate::before { background: rgba(0, 0, 0, 0.7); }
 
 .pp-hero--donate .pp-hero__inner {
   padding-top: 130px;
@@ -29633,8 +29661,6 @@ a.pp-card:hover .pp-card__action {
 }
 
 @media (max-width: 768px) {
-  /* fixed attachment is unreliable on iOS and costs a repaint per frame */
-  .pp-hero--donate { background-attachment: scroll; }
   .pp-hero--donate .pp-hero__inner { padding-top: 64px; padding-bottom: 64px; }
 }
 
@@ -29819,3 +29845,23 @@ a.pp-card:hover .pp-card__action {
   .pp-section--airiest { padding: 64px 0; }
   .pp-statement__title { font-size: var(--text-h2); }
 }
+
+/* A quiet standing route to give when the embedded form does not load —
+   blocked by an extension, or JavaScript off. The page's entire purpose is
+   a third-party widget, so it cannot be the only path. Always visible
+   rather than revealed on failure: hydration timing is not observable
+   without JavaScript, and a wrong guess either hides it when it is needed
+   or shows a false alarm when it is not. */
+.pp-give__assist {
+  margin: 0;
+  color: color-mix(in srgb, var(--rim-surface) 82%, transparent);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+.pp-give__assist a {
+  color: var(--rim-surface);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+
