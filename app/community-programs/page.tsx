@@ -58,18 +58,6 @@ export default async function CommunityProgramsPage() {
       {/* ── Program Listings ─────────────────────────────── */}
       <section className="pl-catalog">
         <div className="rim-container">
-          {/* The hero already welcomes. What a visitor still doesn't know at
-              this point is practical: can I just turn up, and do I need an
-              account? Same .pp-notice the volunteer and Kalyana Mitta pages
-              use to say the same kind of thing. */}
-          <div className="pp-notice pl-catalog__notice">
-            <p className="pp-notice__title">Most of what we offer is drop-in</p>
-            <p className="pp-notice__body">
-              Come once, or come every week. To sit with us in person, just come. To join
-              on Zoom, you&rsquo;ll need a free account to get the link.
-            </p>
-          </div>
-
           {categories.map((category) => {
             const categoryPrograms = programs.filter(
               (p) => p.category?.name === category.name
