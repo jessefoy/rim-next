@@ -1,128 +1,174 @@
 import Link from "next/link";
+import { db } from "@/lib/db";
+import { buildSubtitle, fmtLabel } from "@/lib/programUtils";
 
-export const metadata = { title: "Community Groups and Activities — Rooted In Mindfulness" };
+export const metadata = {
+  title: "Community Groups and Activities — Rooted In Mindfulness",
+  description:
+    "Kalyana Mitta groups at RIM — connect with others to deepen your practice, share interests, and grow spiritual friendships.",
+};
 
-export default function KalyanaGroupsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function KalyanaGroupsPage() {
+  // The live site lists its current KM groups by hand. These are real Programs
+  // in the Community Groups category, so read them rather than hardcode a list
+  // that drifts the moment a group starts or ends.
+  const groups = await db.program.findMany({
+    where: {
+      archivedAt: null,
+      hideFromProgramPageList: false,
+      category: { name: "Community Groups" },
+    },
+    include: { category: true },
+    orderBy: { sortOrder: "asc" },
+  });
+
   return (
-    <>
-      <div className="section-20">
-        <div className="main-container">
-          <div className="w-layout-grid grid-halves-4">
-            <div className="container">
-              <div className="image-wrapper">
-                <div className="fade-image-on-scroll">
-                  <img
-                    src="/images/Community-Hands-on-Tree.jpg"
-                    alt="Diversity Community Hands on Tree Together"
-                    srcSet="/images/Community-Hands-on-Tree-p-500.jpeg 500w, /images/Community-Hands-on-Tree-p-800.jpeg 800w, /images/Community-Hands-on-Tree.jpg 900w"
-                    sizes="(max-width: 479px) 100vw, (max-width: 767px) 88vw, (max-width: 991px) 469px, 44vw"
-                    className="fade-image-element"
-                  />
-                </div>
-              </div>
-            </div>
-            <div
-              id="w-node-_40ab4b02-a826-8442-5396-747c555ec687-dcb725b4"
-              className="container increased-width align-bottom"
+    <div className="pp-page">
+      {/* ── Hero ──────────────────────────────────────────── */}
+      <section
+        className="pp-hero"
+        style={{
+          ["--pp-hero-image" as string]: "url('/images/Community-Hands-on-Tree.jpg')",
+          ["--pp-hero-position" as string]: "center 45%",
+        }}
+      >
+        <div className="rim-container pp-hero__inner">
+          <p className="pp-hero__eyebrow">Kalyana Mitta</p>
+          <h1 className="pp-hero__title">Community Groups and Activities</h1>
+          <p className="pp-hero__body">
+            Connect with others to deepen your learning, practice, shared interests, affinity
+            connections, and engaged mindfulness — and to grow <em>spiritual friendships</em>.
+            Following tradition, these community-led activities are called <em>Kalyana Mitta</em>.
+          </p>
+          <div className="pp-hero__actions">
+            <a href="#current-groups" className="pp-btn pp-btn--onblue">
+              Find a group
+            </a>
+            <Link
+              href="/kalyana-mitta/kalyana-mitta-group-application"
+              className="pp-hero__link"
             >
-              <h1>
-                Community Groups and Activities
-                <br />
-              </h1>
-              <div className="large-text">
-                Connect with others to deepen your learning, practice, shared interests, affinity
-                connections, engaged mindfulness, and grow{" "}
-                <strong>
-                  <em>spiritual friendships</em>
-                </strong>
-                . Following tradition, these community lead activities are called{" "}
-                <strong>
-                  <em>Kalyana</em>
-                </strong>{" "}
-                <strong>
-                  <em>Mitta</em>
-                </strong>
-                .
-              </div>
-              <div className="button-row">
-                <a href="#About-KM-Groups" className="button-5 w-inline-block">
-                  <div className="button-text">Learn More ↓</div>
-                </a>
-              </div>
-            </div>
+              Start a group or event <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div id="About-KM-Groups" className="section-19 bg-accent-2">
-        <div className="main-container">
-          <div className="container increased-width align-center">
-            <div className="article w-richtext">
-              <h2>
-                About Kalyana <strong></strong>Mitta Groups and Activities
-              </h2>
-              <p>
-                <strong>Kalyana Mitta (KM)</strong> is a Pali term that loosely means
-                &quot;supportive friend.&quot; It refers to fellow travelers on the Dharma path who
-                come together to support each other&apos;s learning, meditation, and mindful living
-                practice.
-                <br />
-              </p>
-              <p>
-                KM groups and events connect us. They provide opportunities to study the Dharma,
-                share mindfulness and meditation experiences, and build meaningful friendships
-                rooted in shared interests and common intentions.
-              </p>
-            </div>
-            <div className="button-row">
-              <a href="#Current-KM-Groups" className="button-5 w-inline-block">
-                <div className="button-text">Find A KM Group / Event</div>
-                <div className="button-hover-element"></div>
-              </a>
-              <Link
-                href="/kalyana-mitta/kalyana-mitta-group-application"
-                className="button-5 bordered adjacent-to-button w-inline-block"
-              >
-                <div className="text-block-66">Start A Group / Event</div>
-              </Link>
-            </div>
+      {/* ── About ─────────────────────────────────────────── */}
+      <section className="pp-section pp-section--white">
+        <div className="rim-container">
+          <div className="pp-intro">
+            <p className="pp-intro__eyebrow">What they are</p>
+            <h2 className="pp-intro__title">
+              About Kalyana Mitta groups and activities
+            </h2>
+          </div>
+          <div className="pp-prose">
+            <p>
+              <strong>Kalyana Mitta (KM)</strong> is a Pali term that loosely means &ldquo;supportive
+              friend.&rdquo; It refers to fellow travelers on the Dharma path who come together to
+              support each other&rsquo;s learning, meditation, and mindful living practice.
+            </p>
+            <p>
+              KM groups and events connect us. They provide opportunities to study the Dharma, share
+              mindfulness and meditation experiences, and build meaningful friendships rooted in
+              shared interests and common intentions.
+            </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div id="Current-KM-Groups" className="section-19">
-        <div className="main-container">
-          <div className="container increased-width align-center">
-            <div className="section-title-3">
-              <h2>Looking for a Community Group or Event?</h2>
-              <div className="w-richtext">
-                <p>
-                  Are you interested in joining a Community Group or Event at Rooted In
-                  Mindfulness? Explore current groups:
-                </p>
-              </div>
-            </div>
-            <div>
-              <div className="div-block-136">
-                <div className="w-richtext">
-                  <p>
-                    Don&apos;t see a group or event that fits your needs? Consider starting a new
-                    one.
-                  </p>
-                </div>
-                <div className="button-row remove-spacing">
+      {/* ── Current groups ────────────────────────────────── */}
+      <section id="current-groups" className="pp-section">
+        <div className="rim-container">
+          <div className="pp-intro">
+            <p className="pp-intro__eyebrow">Join one</p>
+            <h2 className="pp-intro__title">Looking for a community group or event?</h2>
+            <p className="pp-intro__body">
+              Explore the groups meeting at RIM right now. Each one is led by members of the
+              community.
+            </p>
+          </div>
+
+          {groups.length > 0 ? (
+            <div className="pp-cards">
+              {groups.map((group) => {
+                const fullSubtitle = buildSubtitle(group);
+                const format = fmtLabel(group.programFormat);
+                const schedule = fullSubtitle?.endsWith(` | ${format}`)
+                  ? fullSubtitle.slice(0, -(` | ${format}`).length)
+                  : fullSubtitle;
+
+                return (
                   <Link
-                    href="/kalyana-mitta/kalyana-mitta-group-application"
-                    className="button-5 w-inline-block"
+                    key={group.id}
+                    href={`/programs/${group.slug}`}
+                    className="pp-card pp-card--row"
                   >
-                    <div className="text-block-79">Start A Group / Event</div>
+                    <div className="pp-card__row">
+                      <div className="pp-card__main">
+                        <h3 className="pp-card__title">{group.name}</h3>
+                        {group.tagline && (
+                          <p className="pp-card__body">{group.tagline}</p>
+                        )}
+                        <div className="pp-card__meta">
+                          {schedule && <span className="pp-card__schedule">{schedule}</span>}
+                          <span className="pp-card__format">{format}</span>
+                        </div>
+                      </div>
+                      <span className="pp-card__action" aria-hidden="true">
+                        →
+                      </span>
+                    </div>
                   </Link>
-                </div>
-              </div>
+                );
+              })}
             </div>
+          ) : (
+            <div className="pp-panel">
+              <p className="pp-panel__body">
+                There are no community groups listed at the moment. If you have an idea for one,
+                we&rsquo;d love to hear it.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Start one ─────────────────────────────────────── */}
+      <section className="pp-section pp-section--last">
+        <div className="rim-container">
+          <div className="pp-closing">
+            <div>
+              <p className="pp-closing__eyebrow">Start something</p>
+              <h2 className="pp-closing__title">
+                Don&rsquo;t see a group that fits?
+              </h2>
+              <p className="pp-closing__body">
+                Any member of RIM can start a Kalyana Mitta group or community activity. Read the
+                guidelines, then tell us about your idea — we&rsquo;ll help you get it going.
+              </p>
+            </div>
+            <Link
+              href="/kalyana-mitta/kalyana-mitta-group-application"
+              className="pp-btn pp-closing__link"
+            >
+              Start a group
+            </Link>
+          </div>
+
+          <div className="pp-actions pp-actions--center">
+            <Link
+              href="/kalyana-mitta/guidelines-for-starting-a-kalyana-mitta-group"
+              className="pp-link"
+            >
+              Read the group guidelines <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

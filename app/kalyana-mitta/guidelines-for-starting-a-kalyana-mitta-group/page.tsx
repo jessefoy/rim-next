@@ -1,21 +1,28 @@
 import Link from "next/link";
 
-export const metadata = { title: "Guidelines for Starting a Kalyana Mitta Group — Rooted In Mindfulness" };
+export const metadata = {
+  title: "Guidelines for Starting a Kalyana Mitta Group — Rooted In Mindfulness",
+  description:
+    "What to consider before starting a Kalyana Mitta group at RIM — purpose, size, co-facilitation, focus, commitment, and the responsibilities of facilitators.",
+};
 
 export default function KMGuidelinesPage() {
   return (
-    <>
-      <div className="section lesson-hero">
-        <div className="container-4"></div>
-        <h1 className="lesson-page-heading">
-          <strong>Kalyana Mitta Group Guidelines</strong>
-        </h1>
-      </div>
+    <div className="pp-page">
+      <section className="pp-hero pp-hero--flat">
+        <div className="rim-container pp-hero__inner">
+          <p className="pp-hero__eyebrow">Kalyana Mitta</p>
+          <h1 className="pp-hero__title">Group Guidelines</h1>
+          <p className="pp-hero__body">
+            What to think through before starting a group — and what RIM asks of the people who
+            facilitate one.
+          </p>
+        </div>
+      </section>
 
-      <div className="section-10">
-        <div className="content-container centered">
-          <div className="rich-text-container">
-            <div className="article w-richtext">
+      <section className="pp-section pp-section--last">
+        <div className="rim-container">
+          <div className="pp-prose">
               <h3>Group Purpose</h3>
               <p>
                 Kalyana Mitta is a Pali term that means &quot;spiritual friend.&quot; Often used to
@@ -273,10 +280,21 @@ export default function KMGuidelinesPage() {
                 Thanks for considering starting a Kalyana Mitta Group at RIM. We are profoundly grateful
                 for your gift to the entire RIM community.
               </p>
-            </div>
+          </div>
+
+          <div className="pp-actions pp-actions--center">
+            <Link
+              href="/kalyana-mitta/kalyana-mitta-group-application"
+              className="pp-btn"
+            >
+              Start a group
+            </Link>
+            <Link href="/kalyana-mitta/community-groups-events" className="pp-link">
+              See current groups <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

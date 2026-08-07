@@ -3,7 +3,11 @@ import { sendKalyanaApplicationEmail } from "@/lib/email";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
-export const metadata = { title: "Kalyana Mitta Group Application — Rooted In Mindfulness" };
+export const metadata = {
+  title: "Kalyana Mitta Group Application — Rooted In Mindfulness",
+  description:
+    "Any member of RIM can start a Kalyana Mitta group or community activity. Tell us about your idea and we'll help you get it going.",
+};
 
 export default async function KalyanaApplicationPage({
   searchParams,
@@ -25,142 +29,164 @@ export default async function KalyanaApplicationPage({
   }
 
   return (
-    <>
-      <div className="section lesson-hero">
-        <div className="container-4"></div>
-        <h1 className="lesson-page-heading">
-          <strong>
-            Interested in starting a Kalyana Mitta Group, Event, or Activity?
-          </strong>
-        </h1>
-      </div>
+    <div className="pp-page">
+      <section className="pp-hero pp-hero--flat">
+        <div className="rim-container pp-hero__inner">
+          <p className="pp-hero__eyebrow">Kalyana Mitta</p>
+          <h1 className="pp-hero__title">
+            Interested in starting a group, event, or activity?
+          </h1>
+          <p className="pp-hero__body">
+            Any member of RIM can start a Kalyana Mitta group or community activity.
+          </p>
+        </div>
+      </section>
 
-      <div className="section background-white">
-        <div className="content-container">
-          <div className="diversity-content-box">
-            <div className="w-richtext">
-              <h4>
-                <strong>
-                  Any member of RIM can start a Kalyana Mitta Group or community activity.
-                  <br />
-                </strong>
-              </h4>
-              <p>
-                Dharma practice is a whole-life practice. Therefore, the possible focus and
-                intentions for forming a group or planning an event are countless. Some groups have
-                a single purpose, such as right speech, dharma study, recovery, affinity, or
-                community service, to name a few. Other KM Groups more generally address keeping
-                the practice alive and fresh in one&apos;s daily life and supporting each other in
-                this intention.
-                <br />
-              </p>
-              <p>
-                Kalyana Mitta Groups are a wonderful way to connect with friends who share our
-                intentions to deepen meditation and mindful living practices, and to feel encouraged
-                and supported along the way.
-              </p>
-              <ul role="list">
-                <li>
-                  <strong>Do you have an idea for a KM group or event?</strong>
-                </li>
-                <li>
-                  <strong>Are you interested in planning or sustaining a group?</strong>
-                </li>
-              </ul>
-              <p>
-                We are here to help you get started, stay rooted in the living Dharma, and
-                strengthen RIM&apos;s mission and vision. We will support you and the group as it
-                is established, grows, and meets challenges.
-              </p>
-              <p>
-                <strong>
-                  <em>
-                    Starting a Kalyana Mitta Group is a true act of generosity. On behalf of
-                    everyone at RIM, thank you!
-                  </em>
-                </strong>
-              </p>
-            </div>
+      <section className="pp-section pp-section--white">
+        <div className="rim-container">
+          <div className="pp-prose">
+            <p>
+              Dharma practice is a whole-life practice. Therefore, the possible focus and intentions
+              for forming a group or planning an event are countless. Some groups have a single
+              purpose, such as right speech, dharma study, recovery, affinity, or community service,
+              to name a few. Other KM Groups more generally address keeping the practice alive and
+              fresh in one&rsquo;s daily life and supporting each other in this intention.
+            </p>
+            <p>
+              Kalyana Mitta Groups are a wonderful way to connect with friends who share our
+              intentions to deepen meditation and mindful living practices, and to feel encouraged
+              and supported along the way.
+            </p>
+            <ul>
+              <li>
+                <strong>Do you have an idea for a KM group or event?</strong>
+              </li>
+              <li>
+                <strong>Are you interested in planning or sustaining a group?</strong>
+              </li>
+            </ul>
+            <p>
+              We are here to help you get started, stay rooted in the living Dharma, and strengthen
+              RIM&rsquo;s mission and vision. We will support you and the group as it is
+              established, grows, and meets challenges.
+            </p>
+            <p>
+              <em>
+                Starting a Kalyana Mitta Group is a true act of generosity. On behalf of everyone at
+                RIM, thank you!
+              </em>
+            </p>
+          </div>
 
-            <div className="line-spacer"></div>
-
-            {!isLoggedIn ? (
-              <div className="km-application-not-logged-in-message">
-                <h4>Oops. It looks like you are not signed-in.</h4>
-                <div className="w-richtext">
-                  <p>
-                    RIM community members are welcome to create a new Kalyana Mitta Group.
-                    Please{" "}
-                    <Link href="/login">
-                      <strong>join or sign in</strong>
-                    </Link>
-                    {" "}and return to this page to access the application form.
-                  </p>
-                </div>
-              </div>
-            ) : submitted ? (
-              <div
-                style={{
-                  background: "#d4edda",
-                  color: "#155724",
-                  padding: "1rem 1.5rem",
-                  borderRadius: "4px",
-                }}
-              >
-                Thank you for your application! We&apos;ll be in touch soon.
-              </div>
-            ) : (
-              <div className="km-application-form">
-                <div className="w-richtext">
-                  <h3>Kalyana Mitta Group Application:</h3>
-                </div>
-                <div className="w-form">
-                  <form action={handleApplication} className="form-5">
-                    <label htmlFor="firstName" className="field-label">First Name</label>
-                    <input
-                      className="form-input-field w-input"
-                      maxLength={256}
-                      name="firstName"
-                      type="text"
-                      id="firstName"
-                      defaultValue={session.user?.name?.split(" ")[0] ?? ""}
-                    />
-                    <label htmlFor="lastName" className="field-label">Last Name</label>
-                    <input
-                      className="form-input-field w-input"
-                      maxLength={256}
-                      name="lastName"
-                      type="text"
-                      id="lastName"
-                    />
-                    <label htmlFor="email" className="field-label">Email Address</label>
-                    <input
-                      className="form-input-field w-input"
-                      maxLength={256}
-                      name="email"
-                      type="email"
-                      id="email"
-                      defaultValue={session.user?.email ?? ""}
-                      required
-                    />
-                    <label htmlFor="idea" className="field-label">
-                      Tell us about your idea for a Kalyana Mitta Group at RIM :)
-                    </label>
-                    <textarea
-                      id="idea"
-                      name="idea"
-                      maxLength={5000}
-                      required
-                      className="form-input-field large-text-input-field w-input"
-                    ></textarea>
-                    <input type="submit" className="button-4 w-button" value="Submit" />
-                  </form>
-                </div>
-              </div>
-            )}
+          <div className="pp-actions pp-actions--center">
+            <Link
+              href="/kalyana-mitta/guidelines-for-starting-a-kalyana-mitta-group"
+              className="pp-link"
+            >
+              Read the group guidelines first <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
-      </div>
-    </>
+      </section>
+
+      <section className="pp-section pp-section--last">
+        <div className="rim-container">
+          <div className="pp-intro pp-intro--center">
+            <p className="pp-intro__eyebrow">The application</p>
+            <h2 className="pp-intro__title pp-intro__title--h2">
+              Tell us about your idea
+            </h2>
+          </div>
+
+          {!isLoggedIn ? (
+            <div className="pp-notice">
+              <p className="pp-notice__title">You&rsquo;ll need an account for this form</p>
+              <p className="pp-notice__body">
+                RIM community members are welcome to create a new Kalyana Mitta group. Membership is
+                free — create an account or sign in, then return to this page and the form will be
+                here.
+              </p>
+              <div className="pp-actions">
+                <Link href="/join" className="pp-btn">
+                  Become a member
+                </Link>
+                <Link href="/login" className="pp-link">
+                  I already have an account <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+          ) : submitted ? (
+            <div className="pp-form__done">
+              <p>
+                <strong>Thank you for your application.</strong> The Kalyana Mitta Coordinator will
+                be in touch soon.
+              </p>
+            </div>
+          ) : (
+            <form action={handleApplication} className="pp-form">
+              <div className="pp-form__row">
+                <div className="pp-form__field">
+                  <label className="pp-form__label" htmlFor="firstName">
+                    First name
+                  </label>
+                  <input
+                    className="pp-form__input"
+                    maxLength={256}
+                    name="firstName"
+                    type="text"
+                    id="firstName"
+                    defaultValue={session.user?.name?.split(" ")[0] ?? ""}
+                  />
+                </div>
+                <div className="pp-form__field">
+                  <label className="pp-form__label" htmlFor="lastName">
+                    Last name
+                  </label>
+                  <input
+                    className="pp-form__input"
+                    maxLength={256}
+                    name="lastName"
+                    type="text"
+                    id="lastName"
+                  />
+                </div>
+              </div>
+
+              <div className="pp-form__field">
+                <label className="pp-form__label" htmlFor="email">
+                  Email address
+                </label>
+                <input
+                  className="pp-form__input"
+                  maxLength={256}
+                  name="email"
+                  type="email"
+                  id="email"
+                  defaultValue={session.user?.email ?? ""}
+                  required
+                />
+              </div>
+
+              <div className="pp-form__field">
+                <label className="pp-form__label" htmlFor="idea">
+                  Tell us about your idea for a Kalyana Mitta group at RIM
+                </label>
+                <textarea
+                  id="idea"
+                  name="idea"
+                  maxLength={5000}
+                  required
+                  className="pp-form__textarea"
+                />
+              </div>
+
+              <button type="submit" className="pp-btn pp-form__submit">
+                Send application
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
