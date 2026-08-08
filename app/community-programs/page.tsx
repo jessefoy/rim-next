@@ -8,11 +8,6 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-const GOOD_FIRST_VISIT_SLUGS = new Set([
-  "the-art-of-meditation",
-  "meditation-and-dharma-talk",
-]);
-
 export default async function CommunityProgramsPage() {
   const [programs, categories] = await Promise.all([
     db.program.findMany({
@@ -90,9 +85,6 @@ export default async function CommunityProgramsPage() {
                           <div className="pl-card__main">
                             <div className="pl-card__title-row">
                               <h3 className="pl-card__title">{program.name}</h3>
-                              {GOOD_FIRST_VISIT_SLUGS.has(program.slug) && (
-                                <span className="pl-card__starter">Good first visit</span>
-                              )}
                             </div>
                             {program.tagline && (
                               <span className="pl-card__tagline">{program.tagline}</span>
@@ -118,10 +110,14 @@ export default async function CommunityProgramsPage() {
           <aside className="pl-membership">
             <div>
               <p className="pl-membership__eyebrow">Practice with us</p>
-              <h2 className="pl-membership__title">Membership is free.</h2>
+              <h2 className="pl-membership__title">We don&rsquo;t charge for the teachings.</h2>
               <p className="pl-membership__body">
-                An account is how you get the Zoom links and how you register for classes
-                and retreats.
+                RIM asks no fees or tuition. The center is held by the people who practice
+                here, each giving as they are able. That giving is called{" "}
+                <Link href="/donate#dana-at-rim" className="pl-membership__inline-link">
+                  dana
+                </Link>
+                . An account is how you join us on Zoom and register for what&rsquo;s coming.
               </p>
             </div>
             <Link href="/join" className="pl-membership__link">
