@@ -1,5 +1,82 @@
 ---
 
+## 2026-08-07 (session 170) — The two public listing pages made one system: one hero, one card, one spine
+
+Jesse opened with a ChatGPT critique of `/community-programs` and `/this-week` and asked for my own read plus an `/impeccable` run. The session ended with both pages on a single grammar, four defects fixed that neither the critique nor a code reading had found, and the membership block rewritten in RIM's own dana language. **10 commits, all on `main`, deployed, `tsc`-green.** Authority: `RIM_Public_Pages.md`. No schema, migration, dependency, env var, cron, or email-template change.
+
+### The critique, graded
+
+ChatGPT's thesis — the two pages are two systems doing one job — was right, and it was verifiable rather than a matter of taste. But roughly a third of its recommendations described work already shipped (the hero CTA it wanted was on line 44; the cards were already fully clickable), and a third were data or editorial rather than code (the category headings it wanted restructured are `ProgramCategory` rows editable at `/tools/programs/categories`). Two of its suggestions were declined with reasons: stripping the `/this-week` hero would have made it the only public page without one, deepening the inconsistency it was diagnosing; and filter chips over 12 programs in 4 groups cost more attention than they save.
+
+It also missed the two worst defects, both of which only measurement found.
+
+### What measurement found that reading did not
+
+**A live P0 on every phone.** `.lr-btn` overhung its card by exactly 44px at ≤430px — `width: 100%` plus 44px of horizontal padding on a `content-box` control, with no global border-box reset since `webflow.css` stopped loading. The primary action on all 17 schedule rows was visibly clipped. Fixed at the control, so `ListRow` and the Scheduler inherit it; above 430px the button has no set width, so `border-box` is a no-op there.
+
+**Two WCAG AA failures in the `/this-week` hero**, measured with `sharp` against the actual photograph at p99 luminance in the copy column: subtitle **2.80:1** and week nav **2.96:1**, both needing 4.5. The copy column of `Bodhi-Leaves.jpg` measures **p99 0.992** — brighter than the home hero's documented 0.971. Session 169's hardening pass never reached this page.
+
+**`/community-programs` was failing too**, at 4.29:1 — `.pl-hero` still carried the pre-hardening 88% body tier. This is the reason the fold below matters: `pp-hero` had been written as a *copy* of `pl-hero`, so only one of the two ever received the session-169 contrast floors.
+
+**A correction worth recording.** My first contrast pass reported the eyebrow failing at 3.76:1 and I was about to darken the shared gradient. That was an artifact of sampling element boxes — the eyebrow element spans the full container while its text is ~176px wide. Re-measured on real glyph extents via `Range.getClientRects()`, it is **8.08:1**. Three darker candidate gradients were tested and all three rejected: they over-darken the photograph to fix nothing. **The committed gradient plus the committed tiers were already correct.** Measure the glyphs, not the box.
+
+### The consolidation
+
+- **One hero.** `.pl-hero` deleted; both listing pages use `.pp-hero`. This is what fixed `/community-programs`' contrast — the fold *was* the fix.
+- **One card.** `/this-week` moved off `.lr-row` (a member-area component it had borrowed, shared with `HubScheduleClient`) onto `.pl-card--time`, a leading-time variant. It also referenced `.pl-list`, a class with **zero rules** — renamed to `.pl-grid` in the session-148 redesign, never updated here; the rows had spacing only because `.lr-row` carries `margin-bottom: 20px`.
+- **17 identical "Learn More" links** became descriptive per-row names (WCAG 2.4.4). The day is carried visually-hidden via a new `.rim-sr-only`, because a daily program's name otherwise repeats seven times in a links list.
+- **Today is findable.** Inverted date block, a "Today" pill, and a `#today` jump in the hero. It had been ~2,360px down on desktop, ~2,940px on mobile — on a page whose entire job is "what can I attend now."
+
+### The spine — Jesse's "some content is narrower than others"
+
+Measured at 1280, one page had **four different left edges**: hero copy at 110 (the container's own text edge), every block below centred inside the 1140 container at 190, then each panel's padding pushing its interior text to 214, 222 and 238. The hero read as a narrow orphan column above a wider one.
+
+`.pl-cat` and `.pl-membership` now left-align to the container's text edge instead of centring inside it — the content moved to meet the hero, which left every other public hero (home, donate, Kalyana Mitta) exactly where it was. Later in the session Jesse asked for rows to run the full container width, so the 900px cap and its `--pp-column` token were removed entirely. **One left edge, verified at 360 / 768 / 1280 on both pages.**
+
+`/this-week`'s footer note and empty state were the only centred elements on a page where everything else shared a left edge; both moved onto the spine.
+
+### Hierarchy inside the element
+
+Jesse: *"it's a little boring and without proper hierarchy within each element."* Three causes, all measurable:
+
+1. **The cadence was flat** — 60 between chapters / 18 under a heading / 14 between cards, so a heading sat barely further from its own cards than the cards sat from each other. Ended at **96 / 36 / 24** (72 / 28 / 20 on phones) after Jesse asked for 20–30px between items; raising only the card gap would have re-flattened the groups.
+2. **The card's decision fact was its quietest element** — the schedule was 13px muted, ranked below the marketing tagline. Now 15px in full text colour, with the tagline taking the muted tone.
+3. **The card wasted 400px.** Only the render showed this: the card held the 900px column but its copy ran out around x=566, leaving the arrow floating unattached at the far right. Title and tagline now hold the left; **schedule and format hold their own right column**. Below 860px the right column drops under the title and returns to the left edge.
+
+**No decoration was added.** The obvious move for differentiating four category groups is chapter eyebrows, and that is tombstoned — built, shipped and reverted in session 148, where a sparse version of a rich pattern read as cheap. The four categories are genuinely peer content; uniformity there is correct.
+
+### Copy — and a block built then removed
+
+A `.pp-notice` orientation block was added above the listings, replacing a redundant "Come as you are." section that was a third opening statement and put an `h2` in the same type slot as the category headings. **Jesse then asked for the notice gone**, and it was removed. The `h2` de-duplication survives; the page now has four category headings plus the membership block and nothing competing with them.
+
+**"Good first visit" was never data.** A hardcoded `Set` of two slugs in the page file — no `Program` column, nothing in Sanity, nothing to undo in Program Manager. It shipped from a mockup and picked its two programs arbitrarily. Removed with the `.pl-card__starter` rule it was the only user of. (It had been flagged as a drift hazard in the audit for exactly this reason.)
+
+**"Membership is free." → the dana framing.** Jesse: *"I don't like how it says 'free' at the end. It should reiterate our spirit of Dana."* He was right that it framed RIM as a pay-for-service model that happens to cost nothing. Rewritten via `/how-jesse-writes` from the language already on the home page and `/donate`:
+
+> **We don't charge for the teachings.**
+> RIM asks no fees or tuition. The center is held by the people who practice here, each giving as they are able. That giving is called **dana**. An account is how you join us on Zoom and register for what's coming.
+
+"dana" is named *after* the giving is described, per the guide's experience-before-the-name rule, and links to `/donate#dana-at-rim`. **Worth recording: the guide's grep script returned zero hits on the incumbent copy as well as the new copy.** The script is not what separated them — the case was the architecture check, and it was stated in the open so it could be overruled.
+
+### The stuck deploy
+
+Commit `1cc8ab6` sat on `origin/main` for ~15 minutes without reaching production, against a ~40s norm. Ruled out as a code problem: `npx next build` compiled all routes clean locally, postcss parsed `custom.css` at 6,200 rules, and a cache-busted request returned `x-vercel-cache: MISS` / `age: 0`, proving the origin itself was serving the old build. An empty retrigger commit deployed in 40 seconds. **A stuck Vercel build, not a defect** — but the reflex worth keeping is that a deploy which does not land is diagnosed before it is explained, and never reported as shipped.
+
+### What this connects to
+
+- **`/programs/[slug]`** — every card's destination; its `pg-` language is what both listings must feel continuous with. The dana copy's factual claim (online needs an account, in-person does not) was verified in that page's CTA branches rather than taken from the docs.
+- **`/donate`** — now linked from the membership block at its `#dana-at-rim` anchor.
+- **`ListRow` + `HubScheduleClient`** — share `.lr-btn`; both inherit the border-box fix. `/this-week` no longer depends on either.
+- **`ProgramCategory`** — supplies the four category headings; the taxonomy is editorial, changed in Program Manager, not in code.
+- **Home-page category doors** (backlog `2026-08-07-001`) — still blocked on `id` anchors for `.pl-cat`, which this work did not add.
+- **The `pp-` grammar** — `pl-hero` folded into it; `pp-btn--onblue-ghost` and `.rim-sr-only` added.
+
+### What comes next
+
+Dated events (Retreats) still render like weekly drop-ins with no date — the strongest remaining hierarchy move, and real information rather than decoration. The nav's own touch targets are under 44px. And two programs carry a bad `endDatetime` (10:30 PM for a morning class) that only Jesse can fix in Program Manager.
+
+---
+
 ## 2026-08-07 (session 169) — The live Webflow site cloned, the static public pages rebuilt in RIM's own system, and the design system installed as a skill
 
 The session began with a cost problem, not a design one: Jesse is paying for several services for the old Webflow site and wanted the front-facing pages brought into RIM Next so the domain can move. It ended with eight pages rebuilt and shipped to `main`, an offline archive of the entire Webflow site, and the RIM design system installed as a project skill. Everything is deployed and `tsc`-green.

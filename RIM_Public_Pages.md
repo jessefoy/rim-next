@@ -86,12 +86,15 @@ Adding **uppercase chapter eyebrows** ("ABOUT THIS DROP-IN" / "DETAILS" / "FACIL
 
 ---
 
-## Process — preview before production for new design elements
+## Process — everything ships to `main`
 
-- **Spacing nudges, color swaps, token tweaks** → direct to `main` (the fast push-to-see loop).
-- **New compositional elements** (a band, a section pattern, a new heading language) → a `claude/*` **preview branch** for a look *before* production. Vercel deploys every branch as a preview. The chapters/band revert is the cautionary tale — sparse-scaffolding mistakes are only visible rendered.
+**Push design work straight to `main`, including new compositional elements.** Jesse, session 170: *"Oh, please always go ahead and push to main."*
 
-*(Proposed session 148 — confirm with Jesse.)*
+This **supersedes the session-148 proposal** that new compositional elements sit on a `claude/*` preview branch until he had looked. That distinction is retired. RIM's loop is push-to-see: Vercel deploys `main` in ~1–2 minutes and Jesse looks at the real site, not a preview URL. A branch held for review stalls the loop and hides the work behind a link he has to go find; a revert is one commit, so waiting costs more than a wrong pattern does.
+
+Work on a `claude/*` branch for the type-check and reviewer gates if useful, then fast-forward `main` and delete the branch **in the same turn**. Never end a turn with finished, verified work parked on a branch.
+
+**Shipping straight to production raises the bar on self-verification, it does not lower it.** Measure the rendered result before pushing — and if a deploy does not land, diagnose it before explaining it, and never report it as shipped. (Session 170 lost ~15 minutes to a stuck Vercel build; `npx next build` locally, a postcss parse, and a cache-busted request showing `x-vercel-cache: MISS` proved the code was fine, and an empty retrigger commit deployed in 40 seconds.)
 
 ---
 
@@ -160,14 +163,89 @@ The donate page's entire purpose is three Givebutter custom elements behind one 
 
 ---
 
+## The two listing pages — one system (session 170)
+
+`/community-programs` and `/this-week` are one job done twice, and are now built from one grammar. Read this before touching either.
+
+### One hero — `.pl-hero` is gone
+
+Both pages use **`.pp-hero`**. `pp-hero` had originally been written as a *copy* of `pl-hero`, which is precisely why only one of the two ever received the session-169 contrast hardening: `/community-programs` was still shipping the pre-hardening 88% body tier and measured **4.29:1**. Folding them was the contrast fix, not a side effect of it. Pass the photograph via `--pp-hero-image` / `--pp-hero-position`.
+
+### One card
+
+| Class | Where | Shape |
+|---|---|---|
+| `.pl-card` | `/community-programs` | title + tagline left · schedule + format right (`.pl-card__when`) · arrow |
+| `.pl-card--time` | `/this-week` | time leads · title + format · arrow |
+
+The time-led variant matches the **occurrence-first agenda grammar** the Scheduler settled on in sessions 167–168: a dated session leads with its time.
+
+**`/this-week` no longer borrows from the member area.** It had been built on `.lr-row` / `.lr-btn` — components shared with `HubScheduleClient` — and referenced `.pl-list`, a class with **zero rules** since the session-148 rename to `.pl-grid`. Its rows had spacing only because `.lr-row` carries a `margin-bottom`. That is the whole reason the two pages read as different sites.
+
+### The spine — one left edge
+
+Every block on a public listing page **left-aligns to `.rim-container`'s text edge and runs its full width**. Before session 170 one page had four different left edges: hero copy at 110, blocks centred inside the 1140 container at 190, and interior text at 214 / 222 / 238 depending on each panel's padding.
+
+Two rules follow:
+
+- **Content adapts to the hero, never the reverse.** Aligning the blocks left rather than widening the hero is what kept home, donate and the Kalyana Mitta heroes untouched.
+- **Rows fill the container.** A 900px cap inside a 1140px container leaves every row 160px short of its own column. The `--pp-column` token that carried that cap was removed in the same session it was introduced.
+
+### Cadence
+
+**96 between chapters · 36 under a heading · 24 between cards** (72 / 28 / 20 at ≤430px).
+
+The interval that matters is the *ratio*, not any single value. It was 60 / 18 / 14, where a heading sat barely further from its own cards than the cards sat from each other, so four groups read as one uniform field. When Jesse asked for 20–30px between items, the other two intervals had to grow with it or the flatness returns.
+
+### Contrast — measure glyphs, not boxes
+
+The session-169 rule stands, with one correction that changed a decision. Sampling an **element box** reported the hero eyebrow at 3.76:1 and nearly triggered a gradient change; the eyebrow *element* spans the full container while its text is ~176px wide. Re-measured on real glyph extents (`Range.getClientRects()`) it is **8.08:1**. Three darker candidate gradients were then tested and rejected — they over-darken the photograph to fix nothing.
+
+**The committed `pp-hero` gradient plus its committed tiers (85% eyebrow / 95% body) already clear AA on both photographs.** Verified failures at the time of the fold: `/this-week` subtitle 2.80:1 and week nav 2.96:1 (its own `Bodhi-Leaves.jpg` copy column measures **p99 0.992**), `/community-programs` body 4.29:1.
+
+**Non-text contrast counts.** `.pp-btn--onblue-ghost` uses a 75% white outline, not 60% — a control's boundary is WCAG 1.4.11 (3:1) and 60% measured 2.8:1.
+
+### No global border-box — check every full-width control
+
+`webflow.css` no longer loads, so there is no `* { box-sizing: border-box }`; `custom.css` resets only `input`/`textarea`/`select`. `.lr-btn` took `width: 100%` at ≤430px with 44px of horizontal padding and **overhung its card by exactly 44px on every phone**, clipping the primary action on 17 rows. Any control given a percentage width must declare `box-sizing` itself.
+
+### Specificity — `pp-` is declared ~26,000 lines after `pl-`
+
+A single-class `pl-` rule loses to a single-class `pp-` rule on source order. A `pl-` override of anything `pp-` sets needs a doubled selector (`.pp-notice.pl-catalog__notice`). This silently swallowed both a `max-width` and a `margin` in session 170.
+
+### Badges must come from data
+
+**`GOOD_FIRST_VISIT_SLUGS` was a hardcoded `Set` of two program slugs in the page file** — no column, no CMS, arbitrary by construction, shipped from a mockup. Removed session 170 at Jesse's instruction. Any future per-program badge comes from a `Program` field editable in Program Manager, or it does not ship. This is the same drift mechanism that made the home page's four category doors go stale.
+
+### Copy — the membership block speaks dana, not "free"
+
+"Membership is free." framed RIM as a pay-for-service model that happens to cost nothing, which inverts the actual model. The block now reads from the language already on the home page and `/donate`: no fees or tuition, the center held by the people who practice here, each giving as they are able, **with "dana" named after the giving is described** (the `/how-jesse-writes` experience-before-the-name rule) and linked to `/donate#dana-at-rim`.
+
+Two things worth carrying forward. The house style **script returned zero hits on the incumbent copy as well as the replacement** — it is not what justifies a rewrite; the architecture check is, and it should be stated in the open so it can be overruled. And the factual claim in that copy (online needs an account, in-person does not) was **verified in `app/programs/[slug]/page.tsx`'s CTA branches**, not taken from doc prose.
+
+### Accessibility
+
+- **Row links carry their own name.** 17 links called "Learn More" became per-row descriptive names (WCAG 2.4.4). The day is carried in a **`.rim-sr-only`** span, because a daily program's name otherwise repeats seven times in a links list. (`.rim-sr-only` is a third visually-hidden utility alongside `.th-sr-only` and `.gf-visually-hidden` — consolidation candidate.)
+- **Program names are headings** on both pages (`h1` → `h2` day/category → `h3` program). `/this-week` had been rendering them as `<p>`.
+- `aria-current` names the active week.
+
+### TOMBSTONE — the orientation notice above the listings (session 170)
+
+A `.pp-notice` panel was added above the program listings carrying the practical answer a visitor lacks (most offerings are drop-in; in-person needs nothing; Zoom needs a free account). It replaced a redundant "Come as you are." section. **Jesse asked for it removed the same session.** The `h2` de-duplication it achieved was kept — that heading had been sitting in the same type slot as the category headings and read as a category. **Do not re-add a standing explanatory panel above the listings.**
+
+---
+
 ## Known follow-ons (see `data/backlog.json`)
 
 - **`2026-06-13-001`** — member/hub/admin internal UI still holds hardcoded old teal the token flip didn't reach; sweep.
 - **`2026-06-13-002`** — home page alternating sections (`.rim-section--grey` uses `--rim-bg`) flatten on the warm ground; repoint to the Pearl Bush secondary for rhythm. *(Largely superseded: home is on `pp-` as of session 169.)*
 - **`2026-08-07-001`** — the home page's four category doors are stale and non-functional: they match the real taxonomy on one of four, omit Silent Meditation Drop-Ins, and three of four link to the same URL. Needs `id` anchors on `.pl-cat` first.
 - **`2026-08-07-002`** — volunteer and the three Kalyana Mitta pages have never been measured against the live rendering, which is what caught every donate discrepancy.
+- **`2026-08-07-008`** — dated events (Retreats) render identically to weekly drop-ins, with no date. Date is the decision criterion for a one-time event; this is the strongest remaining hierarchy move on `/community-programs` and it is real information, not decoration.
+- **`2026-08-07-009`** — the global nav's own touch targets are under 44px (Programs / Get Involved / Members at 38px, Donate at 36px, the footer phone link at 24px). Shared by every page.
+- **`2026-08-07-010`** — three visually-hidden utilities now exist (`.rim-sr-only`, `.th-sr-only`, `.gf-visually-hidden`); consolidate onto one.
 - **`2026-06-13-003`** — course landing (`/course/[slug]`) still on the old colon-heading language; bring into this system (but **not** the reverted eyebrows/band — match the *shipped* program-page language).
 
 ---
 
-*Rooted in Mindfulness · public-page rebuild · begun session 148 (2026-06-13); the `pp-` grammar added session 169 (2026-08-07). Evolving — update as the system settles.*
+*Rooted in Mindfulness · public-page rebuild · begun session 148 (2026-06-13); the `pp-` grammar added session 169; the two listing pages unified onto one hero, one card and one spine session 170 (both 2026-08-07). Evolving — update as the system settles.*

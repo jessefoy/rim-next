@@ -1123,5 +1123,45 @@
     "status": "open",
     "addedAt": "2026-08-07",
     "notes": ""
+  },
+  {
+    "id": "2026-08-07-008",
+    "title": "Dated events (Retreats) show no date on the programs listing",
+    "description": "On /community-programs a retreat renders identically to a weekly drop-in. For a one-time event the date is the principal decision criterion, so it should lead the card the way the time leads a /this-week row. This is the strongest remaining hierarchy move on the page and it is real information rather than decoration. Needs a check of what date data the Retreats category's programs actually carry.",
+    "category": "CSS & Design",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-08-07",
+    "notes": "Raised in the session-170 critique; deferred as its own slice."
+  },
+  {
+    "id": "2026-08-07-009",
+    "title": "Global nav and footer touch targets are under 44px",
+    "description": "Measured on production: nav items Programs / Get Involved / Members are 38px tall, Donate 36px, the footer phone link 24px. RIM's own CSS rule is a 44px minimum on interactive elements. Shared by every page via components/Nav.tsx and the root layout footer.",
+    "category": "Nav & Layout",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-08-07",
+    "notes": "Found during the session-170 /impeccable pass; out of scope there."
+  },
+  {
+    "id": "2026-08-07-010",
+    "title": "Consolidate the three visually-hidden CSS utilities",
+    "description": "custom.css now carries .rim-sr-only (session 170), .th-sr-only and .gf-visually-hidden — three implementations of the same screen-reader-only pattern, one per area prefix. Collapse onto a single utility and repoint the call sites.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-08-07",
+    "notes": "Deliberately not widened into the session-170 change."
+  },
+  {
+    "id": "2026-08-07-011",
+    "title": "Two programs carry a bad endDatetime (10:30 PM for a morning class)",
+    "description": "Awakening The Heart and The Art of Meditation both render '9:30 AM-10:30 PM CT' on /this-week and /community-programs. The end time is stored at 22:30 instead of 10:30. Data fix in Program Manager; production Neon is unreachable from a dev machine.",
+    "category": "Programs & Sanity",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-08-07",
+    "notes": "Visible on the live site. Jesse's fix."
   }
 ]

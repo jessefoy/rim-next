@@ -6,44 +6,38 @@
 
 ## Active
 
-### Session 169 (2026-08-07) — ✅ Webflow site cloned, the eight static public pages rebuilt on the new `pp-` grammar, design system installed as a skill — all on `main`, deployed
+### Session 170 (2026-08-07) — ✅ The two public listing pages made one system: one hero, one card, one spine — all on `main`, deployed
 
-**Shipped + live.** An offline clone of the whole Webflow site at `~/Sites/rim-site-archive/` (317 pages, 158 assets, 84 MB — the only copy of those assets outside Webflow). Eight static front-facing pages rebuilt: home, donate, diversity, volunteer, volunteer-thanks, and the three Kalyana Mitta pages. A new **`pp-` public-page grammar** in `custom.css` (~1,060 lines, pure append, zero existing rules modified). The RIM design system installed at `.claude/skills/rim-design/` as `/rim-design`. An `/impeccable audit` (16/20) followed by a hardening pass on contrast, a donation fallback, and reduced motion. 8 commits, fast-forwarded to `main`, branch deleted, deployed, verified 200 on all eight pages. Authority: **`RIM_Public_Pages.md`** (now carries the `pp-` grammar); full narrative in `session-log.md` (session 169).
+**Shipped + live.** `/community-programs` and `/this-week` were one job done two ways; they are now built from one grammar. **10 commits on `main`, deployed, `tsc`-green.** No schema, migration, dependency, env var, cron, or email-template change — two page files and `custom.css`. Authority: **`RIM_Public_Pages.md`** (now carries the listing-page system, the two CSS traps, and the new tombstone); full narrative in `session-log.md` (session 170).
 
-**Why it was needed:** those pages wore Webflow-era class names with **zero rules in `custom.css`** and had been rendering as bare document flow in production.
+**What was wrong, measured rather than read:**
+- **A live P0 on every phone** — `.lr-btn` overhung its card by exactly 44px at ≤430px (`width:100%` + 44px padding on a `content-box` control; no global border-box since `webflow.css` stopped loading). The primary action on 17 rows was clipped. Fixed at the control, so `ListRow` + `HubScheduleClient` inherit it.
+- **Three WCAG AA failures** — `/this-week` subtitle 2.80:1 and week nav 2.96:1 over its own photograph (copy column p99 **0.992**); `/community-programs` body 4.29:1. All cleared by folding both heroes onto `pp-hero`, which already carried the session-169 tiers.
+- **`/this-week` was borrowing from the member area** — built on `.lr-row`/`.lr-btn` (shared with `HubScheduleClient`) and referencing `.pl-list`, a class with **zero rules** since the session-148 rename. That is why the two pages read as different sites.
+- **Four different left edges on one page** — hero copy at 110, blocks centred at 190, interior text at 214 / 222 / 238.
+- **17 links called "Learn More."**
+- **Today ~2,360px down** on a page whose whole job is "what can I attend now."
 
-**THE FRAMING FOR NEXT SESSION — the look is not settled.** Jesse, closing session 169: *"We'll have to at some point come back to the design decisions, because I think they've been built through multiple sessions trying to find the right look. I'm not satisfied with what we have, 100%… I still want to refine the design as we're going."*
+**Now:** one `pp-hero` (`.pl-hero` deleted), one card (`.pl-card` + a leading-time `.pl-card--time` matching the Scheduler's occurrence-first grammar), **one left edge at every width**, rows running the full container, cadence **96 / 36 / 24** (72 / 28 / 20 on phones), today marked and jumpable, descriptive per-row link names, and program names as real headings.
 
-Read that before treating `RIM_Public_Pages.md` as settled law. It is an accurate record of **what has been tried, shipped, and reverted** — that is its value, and the tombstones exist so a failed experiment isn't re-run at his expense. It is **not** a statement that the design is finished. The public look has accreted across sessions 148, 162 and 169, each solving a local problem; nobody has yet stood back and asked whether the whole reads as one considered thing. Jesse is inviting that.
+**Jesse's calls this session, recorded so they are not re-litigated:**
+- **"Always push to `main`."** This **supersedes** the session-148 preview-branch rule for new compositional elements. `RIM_Public_Pages.md` → "Process" and the `feedback-preview-before-production` memory were both rewritten. Work a `claude/*` branch for the gates if useful, then fast-forward and delete it **in the same turn**.
+- **The orientation notice is tombstoned.** A `.pp-notice` panel above the listings was built and removed the same session. Its `h2` de-duplication was kept.
+- **"Good first visit" is gone** — it was a hardcoded `Set` of two slugs in the page file, never a `Program` field. Any future badge comes from data editable in Program Manager or it does not ship.
+- **The membership block speaks dana, not "free."** Rewritten via `/how-jesse-writes` from the home + donate language, "dana" named after the giving is described, linked to `/donate#dana-at-rim`.
+- **Rows run the full container width** — the 900px cap and its `--pp-column` token were removed.
 
-So: propose real directions. Use `mockups/` (five home-page explorations, several with their own review notes) as input — references, never a spec; read `mockups/README.md` first. Just don't re-propose a tombstoned pattern without saying what is different this time.
+**⚠️ ONE THING FOR JESSE — a data fix only he can make (backlog `2026-08-07-011`).** Awakening The Heart and The Art of Meditation both render **"9:30 AM–10:30 PM CT"** on the live site. The end time is stored at 22:30 instead of 10:30. Program Manager; production Neon is unreachable from a dev machine.
 
-**NEXT SESSION — optimize the home page design.** Read first, in this order:
-1. `RIM_Web_Design_Philosophy.md` — intent.
-2. `RIM_Public_Pages.md` — the concrete system, now including the **`pp-` grammar**, the **measure-don't-read rule**, the contrast floors, and three tombstones (floating nav pill · chapter eyebrows + closing band · **the hero paper panel**).
-3. `/rim-design` skill — tokens, components, UI kits, copy voice. Reference and prototyping only; **`custom.css` wins** when they disagree.
-4. `app/page.tsx` and the `pp-`/`pl-` blocks in `custom.css` — the incumbent.
+**NEXT — the strongest remaining move (backlog `2026-08-07-008`): dated events.** A retreat currently renders identically to a weekly drop-in, with no date. For a one-time event the date *is* the decision criterion, and it should lead the card the way time leads a `/this-week` row. This is real information hierarchy rather than decoration, which matters because the obvious alternative — chapter eyebrows to differentiate the four category groups — is **tombstoned** (session 148: a sparse version of a rich pattern reads as cheap), and the four categories are genuinely peer content anyway.
 
-**The concrete candidate (backlog `2026-08-07-001`): the four category doors.** They are the weakest section on the page — four identical cards carrying only a title, three of four linking to the same URL, and the taxonomy is stale. Live doors vs the real `ProgramCategory` rows match on **one of four**: "Classes & Courses" is not a category, and "Silent Meditation Drop-Ins" — 10 of this week's 17 occurrences — has no door at all. **Prerequisite:** `.pl-cat` sections on `/community-programs` have no `id`, so no category link can work until anchors exist.
+**Also queued:** nav/footer touch targets under 44px (`2026-08-07-009`); consolidate the three visually-hidden utilities (`2026-08-07-010`); `.pl-cat` still has no `id` anchors, which still blocks the home-page category doors (`2026-08-07-001`); volunteer + the three Kalyana Mitta pages still unmeasured against the live rendering (`2026-08-07-002`); the Webflow redirect map (`2026-08-07-003`) remains the last thing standing between Jesse and cancelling Webflow.
 
-**Recommended shape (proposed, not agreed):** drive the doors from the database so they can never drift again, give each a count and a link to its own anchor. **Recommended against:** putting the weekly schedule on the home page — 10 of the 17 occurrences are the same two silent sittings repeating, and `/this-week` is already linked twice (hero CTA + Programs dropdown).
+**Two reflexes worth carrying (both cost time this session):**
+1. **Measure glyph extents, not element boxes.** Sampling boxes reported the hero eyebrow at 3.76:1 and nearly triggered a gradient change that would have over-darkened the photograph for nothing; on real glyph extents it is 8.08:1.
+2. **`pp-` is declared ~26,000 lines after `pl-`**, so an equal-specificity `pl-` override loses on source order — it silently swallowed a `max-width` and a `margin` before a doubled selector fixed it.
 
-**Two things that will look wrong while walking the site, neither caused by this work:**
-- `/courses` on production lists **one course: `test-course`**. Webflow has four real ones (backlog `2026-08-07-004`).
-- `/teachers` has **one profile** (jesse-foy) against 57 Webflow `/team/` pages; program pages link facilitators with nowhere to land (backlog `2026-08-07-005`).
-
-**Open / unverified:**
-- **Volunteer and the three KM pages were never measured against the live rendering** (backlog `2026-08-07-002`). Measuring donate caught a 820-vs-585 card, a 38-vs-54px heading and a 490-vs-530 timeline that reading the markup never would have. Same method needed there.
-- **Redirect map for the retired Webflow URLs** (backlog `2026-08-07-003`) — `vercel.json` has 12 redirects, all internal member-area moves; none cover `/glossary/*`, `/team/*`, `/magazine-articles/*`, `/volunteer-positions/*`, `/community-membership`, `/log-in`, `/password/*`, `/checkout`, `/search`. **Jesse has decided glossary and the magazine are not coming across**, and volunteer positions were never built — so these are pure redirects. This is the last thing standing between him and cancelling Webflow.
-- **Captivate.fm export** before cancelling that service (backlog `2026-08-07-006`).
-
-**Decisions recorded so they are not re-litigated:**
-- **The home hero is dark and left-aligned by Jesse's choice**, against the live site's light centred hero. He compared both at a temporary `/hero-compare` route. The scrim was strengthened so white type clears AA. A deliberate departure, not an oversight.
-- **The hero white "paper panel" is retired** — tombstoned in `RIM_Public_Pages.md`.
-- **Eyebrows stay.** The `impeccable` craft floor bans them outright; its own opening defers to the committed visual world, and RIM's uses them throughout.
-- **`custom.css` is the source of truth**, not the design-system skill's copy of the tokens.
-
-**Settled at close:** `mockups/` stays in the repo, with `mockups/README.md` marking it as references rather than a spec. `CLAUDE.md` gained a **"Using `/impeccable` on RIM surfaces"** section — the integrity half (`audit`/`harden`/`optimize`/`clarify`) is explicitly wanted and the background detector stays on; the expressive modes are allowed for exploration but never silently override a committed decision; craft-floor/RIM conflicts get resolved in the open, in the response.
+**Ops:** one deploy sat ~15 minutes without reaching production (norm ~40s). `npx next build`, a postcss parse, and a cache-busted `x-vercel-cache: MISS` proved the code was fine; an empty retrigger commit shipped in 40s. A deploy that does not land gets diagnosed before it is explained, and is never reported as shipped.
 
 ## Prior handoff reference
 
