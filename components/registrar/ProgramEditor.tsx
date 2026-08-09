@@ -98,6 +98,7 @@ export interface ProgramData {
   dashboardShowAt: string;
   hideFromProgramPageList: boolean;
   hideFromWeeklySchedule: boolean;
+  hideWhenPast: boolean;
   isOpenAccess: boolean;
   guestAccessKey: string;
   /** Which hub hosts this program. Null = "host-team" (the implicit default).
@@ -636,6 +637,7 @@ export default function ProgramEditor({
   const [dashboardShowAt, setDashboardShowAt] = useState(initialData?.dashboardShowAt ?? "");
   const [hideFromProgramPageList, setHideFromProgramPageList] = useState(initialData?.hideFromProgramPageList ?? false);
   const [hideFromWeeklySchedule, setHideFromWeeklySchedule] = useState(initialData?.hideFromWeeklySchedule ?? false);
+  const [hideWhenPast, setHideWhenPast] = useState(initialData?.hideWhenPast ?? true);
 
   const [isOpenAccess, setIsOpenAccess] = useState(initialData?.isOpenAccess ?? false);
   const [guestAccessKey, setGuestAccessKey] = useState(initialData?.guestAccessKey ?? "");
@@ -881,6 +883,7 @@ export default function ProgramEditor({
         dashboardShowAt: dashboardShowAt || null,
         hideFromProgramPageList,
         hideFromWeeklySchedule,
+        hideWhenPast,
         isOpenAccess,
         // Empty string serialises as null (the implicit "host-team" default).
         // Server-side `getProgramHubSlug` falls through to host-team when null.
@@ -2150,6 +2153,21 @@ export default function ProgramEditor({
               </label>
               <p className="pe-field__help">This program won&rsquo;t appear on the weekly schedule page. Useful for special events or programs that shouldn&rsquo;t clutter the regular calendar.</p>
             </div>
+
+            {/* One-time programs only: a recurring schedule never "passes." */}
+            {!recurrenceFreq && (
+              <div className="pe-visibility-option">
+                <label className="pe-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={hideWhenPast}
+                    onChange={(e) => setHideWhenPast(e.target.checked)}
+                  />
+                  <span className="pe-checkbox__label">Hide automatically after the date passes</span>
+                </label>
+                <p className="pe-field__help">Once this one-time program&rsquo;s date is behind us, it leaves the public Programs &amp; Events page on its own. Turn off to keep it listed after the date.</p>
+              </div>
+            )}
 
             <div className="pe-visibility-option">
               <label className="pe-checkbox">

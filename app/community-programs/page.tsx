@@ -1,6 +1,12 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
-import { buildSubtitle, fmtLabel } from "@/lib/programUtils";
+import {
+  buildSubtitle,
+  fmtLabel,
+  computeDateText,
+  computeTimeText,
+  hasConcludedOneTime,
+} from "@/lib/programUtils";
 
 export const metadata = {
   title: "Programs and Events — Rooted In Mindfulness",
@@ -8,8 +14,38 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+const TZ = "America/Chicago";
+
+/** CT calendar parts for a date. */
+function ctYmd(d: Date): { y: number; m: number; d: number } {
+  const [y, m, day] = d.toLocaleDateString("en-CA", { timeZone: TZ }).split("-").map(Number);
+  return { y, m, d: day };
+}
+
+function ctMonthShort(d: Date): string {
+  return d.toLocaleDateString("en-US", { timeZone: TZ, month: "short" });
+}
+
+/**
+ * The compact leading date for a one-time program's card:
+ *   "Sep 21" · "Sep 10–13" · "Sep 28 – Oct 1"
+ * The year rides separately so it only renders when it isn't this year.
+ */
+function datedEventLead(start: Date, end: Date | null): { lead: string; year: number } {
+  const s = ctYmd(start);
+  const sMonth = ctMonthShort(start);
+  if (end) {
+    const e = ctYmd(end);
+    if (e.y !== s.y || e.m !== s.m || e.d !== s.d) {
+      if (e.y === s.y && e.m === s.m) return { lead: `${sMonth} ${s.d}–${e.d}`, year: s.y };
+      return { lead: `${sMonth} ${s.d} – ${ctMonthShort(end)} ${e.d}`, year: s.y };
+    }
+  }
+  return { lead: `${sMonth} ${s.d}`, year: s.y };
+}
+
 export default async function CommunityProgramsPage() {
-  const [programs, categories] = await Promise.all([
+  const [allPrograms, categories] = await Promise.all([
     db.program.findMany({
       where: {
         hideFromProgramPageList: false,
@@ -24,6 +60,12 @@ export default async function CommunityProgramsPage() {
       orderBy: { sortOrder: "asc" },
     }),
   ]);
+
+  // A concluded one-time program leaves the listing on its own the day after
+  // its date, unless the editor opted out (hideWhenPast, default true).
+  const todayYmd = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+  const isOneTime = (p: (typeof allPrograms)[number]) => !p.recurrenceFreq && !!p.startDatetime;
+  const programs = allPrograms.filter((p) => !(p.hideWhenPast && hasConcludedOneTime(p)));
 
   return (
     <div className="pl-page">
@@ -69,8 +111,64 @@ export default async function CommunityProgramsPage() {
                 </div>
                 <div className="pl-grid">
                   {categoryPrograms.map((program) => {
-                    const fullSubtitle = buildSubtitle(program);
                     const format = fmtLabel(program.programFormat);
+
+                    // One-time upcoming: the date is the decision criterion,
+                    // so it leads the row — the catalog's counterpart of
+                    // /this-week's time-led rows. A past-but-kept-listed
+                    // program falls through to the plain card; a stale date
+                    // isn't showcased.
+                    if (isOneTime(program) && !hasConcludedOneTime(program)) {
+                      const { lead, year } = datedEventLead(
+                        program.startDatetime!,
+                        program.endDatetime
+                      );
+                      const currentYear = Number(todayYmd.split("-")[0]);
+                      // Prefer the coordinator's dateText (the same override
+                      // order buildSubtitle uses); it's the cached computed
+                      // label in practice, but an override must win here too.
+                      const fullDate =
+                        program.dateText ||
+                        computeDateText(
+                          program.startDatetime, null, null, null, program.endDatetime
+                        );
+                      const time =
+                        program.timeText ||
+                        computeTimeText(program.startDatetime, program.endDatetime);
+
+                      return (
+                        <Link
+                          key={program.id}
+                          href={`/programs/${program.slug}`}
+                          className="pl-card pl-card--date"
+                        >
+                          <div className="pl-card__content">
+                            <span className="rim-sr-only">{fullDate}, </span>
+                            <span className="pl-card__date" aria-hidden="true">
+                              {lead}
+                              {year !== currentYear && (
+                                <span className="pl-card__date-year">{year}</span>
+                              )}
+                            </span>
+                            <div className="pl-card__main">
+                              <div className="pl-card__title-row">
+                                <h3 className="pl-card__title">{program.name}</h3>
+                              </div>
+                              {program.tagline && (
+                                <span className="pl-card__tagline">{program.tagline}</span>
+                              )}
+                            </div>
+                            <div className="pl-card__when">
+                              {time && <span className="pl-card__schedule">{time}</span>}
+                              {format && <span className="pl-card__format">{format}</span>}
+                            </div>
+                            <span className="pl-card__action" aria-hidden="true">→</span>
+                          </div>
+                        </Link>
+                      );
+                    }
+
+                    const fullSubtitle = buildSubtitle(program);
                     const schedule = fullSubtitle?.endsWith(` | ${format}`)
                       ? fullSubtitle.slice(0, -(` | ${format}`).length)
                       : fullSubtitle;

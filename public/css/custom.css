@@ -2934,6 +2934,47 @@ h4 { font-size: var(--text-h4); }
   .pl-card--time .pl-card__action { grid-area: action; align-self: center; }
 }
 
+/* ── Date-led variant ────────────────────────────────────────────
+   /community-programs, one-time upcoming events (a retreat, a
+   day-long, a quarterly gathering). For a one-time event the date is
+   the decision criterion, so it leads the row — the catalog's
+   counterpart of /this-week's time-led rows and the Scheduler's
+   occurrence-first agenda. The card otherwise keeps the catalog
+   grammar: what-it-is left, when-and-how right. */
+.pl-card--date .pl-card__content {
+  grid-template-columns: 112px minmax(0, 1fr) auto auto;
+}
+
+.pl-card__date {
+  color: var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 700;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Only renders when the event isn't in the current year. */
+.pl-card__date-year {
+  display: block;
+  color: var(--rim-text-muted);
+  font-size: var(--text-label);
+  font-weight: 600;
+}
+
+/* Narrow: the date moves above the title, mirroring the time-led
+   collapse; the when/how facts follow beneath. The arrow stays put. */
+@media (max-width: 860px) {
+  .pl-card--date .pl-card__content {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "date  when-action"
+      "main  when-action"
+      "when  when-action";
+  }
+  .pl-card--date .pl-card__date { grid-area: date; }
+}
+
 .pl-membership {
   box-sizing: border-box;
   display: grid;

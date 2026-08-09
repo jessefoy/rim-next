@@ -288,6 +288,7 @@ model Program {
   dashboardShowAt          DateTime? // if set, auto-shows on dashboards on this date even if removeFromProgramList is true
   hideFromProgramPageList  Boolean   @default(false)
   hideFromWeeklySchedule   Boolean   @default(false)
+  hideWhenPast             Boolean   @default(true)  // one-time programs only (recurrenceFreq null): once the occurrence's CT day has ended, drop it from the public Programs & Events listing automatically. Editor opt-out on the Visibility tab.
   archivedAt               DateTime?
 
   // ── Relations ──────────────────────────────────────────

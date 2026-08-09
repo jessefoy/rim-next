@@ -153,6 +153,7 @@ export default async function EditProgramToolPage({
     dashboardShowAt: toCentralDatetime(program.dashboardShowAt),
     hideFromProgramPageList: program.hideFromProgramPageList,
     hideFromWeeklySchedule: program.hideFromWeeklySchedule,
+    hideWhenPast: program.hideWhenPast,
     isOpenAccess: program.isOpenAccess,
     guestAccessKey: program.guestAccessKey ?? "",
     programNotes: program.programNotes ?? null,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { buildSubtitle, fmtLabel } from "@/lib/programUtils";
+import { buildSubtitle, fmtLabel, hasConcludedOneTime } from "@/lib/programUtils";
 
 export const metadata = {
   title: "Community Groups and Activities — Rooted In Mindfulness",
@@ -14,7 +14,7 @@ export default async function KalyanaGroupsPage() {
   // The live site lists its current KM groups by hand. These are real Programs
   // in the Community Groups category, so read them rather than hardcode a list
   // that drifts the moment a group starts or ends.
-  const groups = await db.program.findMany({
+  const allGroups = await db.program.findMany({
     where: {
       archivedAt: null,
       hideFromProgramPageList: false,
@@ -23,6 +23,10 @@ export default async function KalyanaGroupsPage() {
     include: { category: true },
     orderBy: { sortOrder: "asc" },
   });
+
+  // Same rule as /community-programs: a concluded one-time event leaves the
+  // public listings unless the editor opted out (hideWhenPast, default true).
+  const groups = allGroups.filter((g) => !(g.hideWhenPast && hasConcludedOneTime(g)));
 
   return (
     <div className="pp-page">

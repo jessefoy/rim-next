@@ -180,6 +180,27 @@ export function sanitizeTeacherLabel(input: unknown): string | null {
   return cleaned.length > 0 ? cleaned : null;
 }
 
+/**
+ * A one-time program (no recurrence) has concluded once the CT calendar day
+ * of its last moment (endDatetime, else startDatetime) is behind us; it still
+ * counts as current on the day itself. Recurring programs never conclude this
+ * way. Paired with Program.hideWhenPast: public listings drop a concluded
+ * one-time program unless the editor opted out on the Visibility tab.
+ */
+export function hasConcludedOneTime(p: {
+  startDatetime: Date | string | null;
+  endDatetime: Date | string | null;
+  recurrenceFreq: string | null;
+}): boolean {
+  if (p.recurrenceFreq || !p.startDatetime) return false;
+  const last = p.endDatetime ?? p.startDatetime;
+  const lastDate = typeof last === "string" ? new Date(last) : last;
+  if (isNaN(lastDate.getTime())) return false;
+  const lastYmd = lastDate.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  const todayYmd = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  return lastYmd < todayYmd;
+}
+
 export function fmtLabel(fmt: string): string {
   switch (fmt) {
     case "virtual":   return "Zoom Only";

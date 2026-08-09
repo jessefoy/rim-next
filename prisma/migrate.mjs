@@ -5818,6 +5818,29 @@ Rooted In Mindfulness · Brookfield, WI`,
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Dated events auto-hide (backlog 2026-08-07-008, session 172). One-time
+  // programs (recurrenceFreq null) leave the public Programs & Events listing
+  // automatically once their occurrence's CT day has ended. Opt-out per
+  // program on the editor's Visibility tab. Additive, default true.
+  // ───────────────────────────────────────────────────────────────────────
+  const hideWhenPastFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'program_hide_when_past_v1'
+  `).catch(() => []);
+
+  if (hideWhenPastFlag.length === 0) {
+    console.log("→ Dated events auto-hide (programs.hideWhenPast)…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "hideWhenPast" BOOLEAN NOT NULL DEFAULT true`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('program_hide_when_past_v1')`,
+    );
+    console.log("  ✔ hideWhenPast column ready (default true).");
+  } else {
+    console.log("  ⏭ program_hide_when_past_v1 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
