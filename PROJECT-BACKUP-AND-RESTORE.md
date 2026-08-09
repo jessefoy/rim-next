@@ -9,14 +9,13 @@ Everything you need to get back up and running on a new machine.
 | What | Where | How to Access |
 |---|---|---|
 | All app code (Next.js, CSS, API routes) | GitHub `jessefoy/rim-next` | `git clone https://github.com/jessefoy/rim-next.git` |
-| Eleventy site + Sanity schemas | GitHub `jessefoy/rim-website` | `git clone https://github.com/jessefoy/rim-website.git` |
 | Claude memory files | GitHub `rim-next/.claude-memory/` | Cloned with the repo |
 | Database (members, programs, lessons) | Neon Postgres (cloud) | Connection string in Vercel env vars |
-| CMS content (legacy programs) | Sanity Cloud (project `xxgvfpjf`) | https://rooted-in-mindfulness.sanity.studio/ |
 | File uploads (audio, PDFs, images) | Vercel Blob (cloud) | Managed via Vercel dashboard |
 | Environment variables | Vercel dashboard | `npx vercel env pull .env.local` |
 | Email service | Resend (transactional), Flodesk (newsletter) | Cloud dashboards |
-| Video conferencing | LiveKit Cloud (Ship tier) | Cloud dashboard |
+| Video conferencing | Zoom (2 Pro pool seats; S2S OAuth) | Zoom admin dashboard |
+| Team documents & files | Google Workspace (service account) | Google Cloud console + Drive |
 | Gmail integration | Google Cloud OAuth2 | Cloud console |
 | DNS / domain | Your registrar | rootedinmindfulness.org |
 | Stripe (dana/donations) | Stripe Dashboard | Test keys in Vercel env |
@@ -40,7 +39,6 @@ npm install -g @anthropic-ai/claude-code
 ```bash
 cd ~/Sites
 git clone https://github.com/jessefoy/rim-next.git
-git clone https://github.com/jessefoy/rim-website.git
 ```
 
 ### 3. Install Dependencies
@@ -63,7 +61,7 @@ npx vercel link
 npx vercel env pull .env.local
 ```
 
-This pulls all secrets: `AUTH_SECRET`, `SANITY_API_TOKEN`, `RESEND_API_KEY`, `POSTGRES_PRISMA_URL`, `STRIPE_SECRET_KEY`, `LIVEKIT_API_KEY`, `GMAIL_CLIENT_ID`, `CRON_SECRET`, and everything else.
+This pulls all secrets: `AUTH_SECRET`, `RESEND_API_KEY`, `POSTGRES_PRISMA_URL`, `STRIPE_SECRET_KEY`, the `ZOOM_*` S2S credentials, the Google service-account keys, `CRON_SECRET`, and everything else.
 
 ### 5. Generate Prisma Client
 
@@ -81,29 +79,22 @@ If it builds clean, you're good. Push to GitHub and Vercel auto-deploys.
 
 ### 7. Restore Claude Code Memory
 
-The Claude memory files are backed up in `rim-next/.claude-memory/`. To restore them:
+The Claude memory files are backed up in `rim-next/.claude-memory/` — a mirror of
+the live memory directory (`MEMORY.md` index + one file per memory). Refreshed
+session 171 (2026-08-08); refresh it at closing whenever memory has changed
+meaningfully. To restore:
 
 ```bash
-# Create the Claude project directories
+# Create the Claude project directory
 mkdir -p ~/.claude/projects/-Users-$(whoami)-Sites-rim-next/memory
-mkdir -p ~/.claude/projects/-Users-$(whoami)-Sites-rim-website/memory
 
-# Copy memory files back
-cp rim-next/.claude-memory/MEMORY_rim-next.md \
-   ~/.claude/projects/-Users-$(whoami)-Sites-rim-next/memory/MEMORY.md
-
-cp rim-next/.claude-memory/MEMORY_rim-website.md \
-   ~/.claude/projects/-Users-$(whoami)-Sites-rim-website/memory/MEMORY.md
-
-cp rim-next/.claude-memory/feedback_editor_standard.md \
-   ~/.claude/projects/-Users-$(whoami)-Sites-rim-website/memory/
-
-cp rim-next/.claude-memory/improvements.md \
-   ~/.claude/projects/-Users-$(whoami)-Sites-rim-website/memory/
-
-cp rim-next/.claude-memory/pages-inventory.md \
-   ~/.claude/projects/-Users-$(whoami)-Sites-rim-website/memory/
+# Copy the whole mirror back
+cp rim-next/.claude-memory/*.md \
+   ~/.claude/projects/-Users-$(whoami)-Sites-rim-next/memory/
 ```
+
+(The old rim-website memory backup was dropped session 171 — that project is
+retired; its last snapshot is recoverable from git history.)
 
 > **Note:** The Claude project directory path includes your username and the full path to the repo. If your new machine has a different username or directory structure, adjust the paths accordingly. The pattern is `~/.claude/projects/-Users-USERNAME-Sites-REPO-NAME/memory/`.
 

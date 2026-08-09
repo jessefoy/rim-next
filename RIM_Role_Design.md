@@ -68,7 +68,7 @@ This distinction matters significantly for what a host can know before and durin
 #### During the session
 The live attendance view — participants populating automatically as they join from their dashboard, with first-time-attendee and returning-after-absence flags, a one-tap to mark someone for a post-session note — was designed here and built in early sessions. It was removed in session 89 during the tools extraction as it was tied to systems that no longer exist.
 
-This design intent remains valid. The live view is deferred as D1–D2 in the current build plan (see HOSTING_HUB_READINESS.md).
+This design intent remains valid. The live view remains deferred. (It was tracked as D1–D2 in HOSTING_HUB_READINESS.md, the May-2026 readiness inventory for the LiveKit cutover — that plan was reversed and the file removed session 171; recover it from git history if the detail is ever needed.)
 
 **Design principle preserved:** When this is rebuilt, it must require almost no interaction. A tap is acceptable. Reading, typing, or deciding during a session is not. If the tool pulls the host out of presence, the tool is wrong.
 

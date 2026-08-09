@@ -1,0 +1,16 @@
+---
+name: project-zoom-migration
+description: "Sessions run on Zoom — 'RIM orchestrates, Zoom is the room'. CUT OVER (session 159): the LiveKit room was retired (code removed) + the useZoom flag dropped (Zoom unconditional for virtual/hybrid); reverses the s120 committed-LiveKit stand. Remaining is Jesse's ops (stop the droplet's livekit container + remove LIVEKIT_* env). Authority: RIM_Zoom.md"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: dd11edcf-118f-4f64-a690-de34acd4b8e8
+---
+
+As of **session 158 (2026-06-24)**, RIM's live sessions are migrating from the custom in-browser LiveKit room to **Zoom**. Thesis: **"RIM orchestrates, Zoom is the room."** RIM keeps everything it does well — program → auto-provision → assignment → dashboard "Join" → host identity (still `HostAssignment` / `resolveSessionRole`, unchanged) — and **Zoom becomes the actual A/V room** (native app: familiar to the community, reliable, best echo cancellation, phone dial-in). This **reverses the session-120 "browser LiveKit is the committed architecture" decision** (members kept hitting browser-media limits; a dharma community that can't afford a failed session values Zoom's familiarity + reliability).
+
+**Status: CUT OVER (session 159).** The pilot succeeded; Zoom is the room for **every** virtual/hybrid session, the in-browser LiveKit room was **removed** (code), and `useZoom` was **dropped** (Zoom unconditional). `/session/[slug]` redirects to `/enter`; a guest open-access `?key=` forwards into Zoom with no account. Remaining (Jesse's ops, non-blocking): stop the droplet's `livekit-server` container (**keep the droplet — OnlyOffice**, see [[livekit-self-hosted]]) + remove the `LIVEKIT_*` Vercel env vars.
+
+**Model:** one RIM Zoom org account (owner `jesse@`, nonprofit) + **two licensed Pro "pool seats"** (`zoom.host@` / `zoom.host2@` = **2 concurrent meetings**) + a **Server-to-Server OAuth app** ("RIM Sessions"; no SDK, plain `fetch`). One Zoom meeting **per session occurrence**, created just-in-time on a free seat (`SessionMeeting` table), reused within the window, self-healed if it dies. Members join via the **standard link by name** (typed once, remembered) — **no per-person registration** (Zoom rate-limits Add-Registrant ~3/day/email; pre-registering to pre-fill names was the root cause of the s158 join-"blink" 429). The host shows under their **own name** and claims host with a 6-digit code (`ZOOM_HOST_KEY`). Env: `ZOOM_ACCOUNT_ID`, `ZOOM_OAUTH_CLIENT_ID/SECRET`, `ZOOM_SEAT_A/B_EMAIL`, `ZOOM_HOST_KEY`. Schema: `SessionMeeting` + `Program.recordByDefault` (`Program.useZoom` dropped s159). Entry `/session/[slug]/enter`; diagnostic `/admin/zoom-test`.
+
+**How to apply:** For session-room work, **`RIM_Zoom.md` is the authority** (account model, provisioning, self-heal, own-name hosting, the no-registration pitfall, the cutover). Verify live state there / in `UP_NEXT.md` before asserting — this note is a pointer, not live state. Backlog `2026-06-24-004`/`005` (cutover + the redirect guard) are **done** (session 159); what remains is Jesse's ops (container stop + env removal) + the per-seat recording config (`2026-06-24-006`). Relates to [[feature-interconnections]] and [[sanity-status]] (infra-state pointers).
