@@ -1,13 +1,33 @@
 [
   {
+    "id": "2026-08-08-004",
+    "title": "Drop the orphaned SessionChatMessage model + session_chat_messages table",
+    "description": "The session-159 Zoom cutover removed the in-browser room and its chat, but the SessionChatMessage model (prisma/schema.prisma, @@map session_chat_messages) survived with orphaned rows nobody reads or writes. Retire it the way retire_onlyoffice_v1 did: a migration that drops the table, plus the schema model removal, in one deploy. Verify first that no raw SQL or adapter references the table (the pattern-audit lesson: greps miss Prisma includes / raw SQL).",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-08-08",
+    "notes": "Found session 171 while retiring the stale session-room block in RIM_Stack_Reference.md."
+  },
+  {
+    "id": "2026-08-08-005",
+    "title": "Decide: should effectiveCoordinator (content-layer authority) also require ACTIVE status?",
+    "description": "Session 171 made isHubCoordinator (coverage/rotation/file authority) ACTIVE-only. Its content-layer twin effectiveCoordinator(member, roles) in lib/hubAuth.ts still ignores status \u2014 a PAUSED coordinator keeps trash management, conversation moderation, member management, and category editing across ~11 files (hub layout/page/members, conversations routes, categories, nav/home). Arguments for ACTIVE-only: RIM_Hub_Model.md says pause governs capabilities; the admin edit page already requires ACTIVE. Argument against: a pause is often brief and content moderation may be expected to continue. This is a policy call for Jesse, not a missing filter. If changed: update every UI surface that renders coordinator affordances in the same slice (no show-but-can't-act), and note canManageTrash/requireCoordinator take pre-computed booleans whose callers would need the same filter.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-08-08",
+    "notes": "Deliberately NOT changed in session 171 \u2014 the coverage fix was doc-backed; this one needs a policy decision first."
+  },
+  {
     "id": "2026-08-08-002",
     "title": "Paused coordinators keep full coverage authority \u2014 isHubCoordinator has no status filter",
     "description": "lib/hubAuth.ts:152 isHubCoordinator() queries { userId, hub: { slug }, isCoordinator: true } with no status filter, so a HubMember whose status is PAUSED or INACTIVE still passes. It gates six coverage-mutation routes: /api/host/sub-requests (POST), /api/host/sub-requests/[id], /api/host/assignments (POST), /api/host/assignments/reassign, /api/host/assignments/clear. app/tools/schedule/page.tsx:60 repeats the same unfiltered findFirst inline to compute isManager. The precedent points the other way: app/admin/hubs/[slug]/edit/page.tsx:54 requires isCoordinator && status === 'ACTIVE'. RIM_Hub_Model.md:58 says paused/inactive 'governs capabilities and communications, not basic visibility' \u2014 coverage authority is a capability, so a paused coordinator should not keep assign/remove/reassign/clear. Note removal is a hard delete (removeHubMembershipWithCleanup), so this is only about PAUSED/INACTIVE, not removed members.",
     "category": "Admin Tools",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-08-08",
-    "notes": "Do the helper and the UI gate in one slice \u2014 changing isHubCoordinator alone leaves app/tools/schedule/page.tsx showing rotation controls that then 403 (show-but-can't-act). Decide first whether a paused coordinator SHOULD lose coverage authority; that's a policy call, not just a missing filter. Found session 171 while triaging a stranded worktree."
+    "notes": "Do the helper and the UI gate in one slice \u2014 changing isHubCoordinator alone leaves app/tools/schedule/page.tsx showing rotation controls that then 403 (show-but-can't-act). Decide first whether a paused coordinator SHOULD lose coverage authority; that's a policy call, not just a missing filter. Found session 171 while triaging a stranded worktree.\n\nDONE session 171 \u2014 and the class was bigger than recorded: 17 callsites, not 6 (all coverage/rotation mutations plus isSpaceLead/file-authority in lib/googleFiles.ts). Fixed at the choke point: isHubCoordinator now requires status ACTIVE; the Scheduler page's inline isManager check carries the same filter so UI and gates agree. All 17 callsites verified to be mutation/authority gates, so paused-member visibility is untouched \u2014 with one deliberate nuance: isSpaceLead also scopes the pending-removals LIST in GET /api/files/pending, so a paused coordinator's review queue narrows to their own requests (UI and API derive from the same call, so they stay consistent). The content-layer twin (effectiveCoordinator) is 2026-08-08-005."
   },
   {
     "id": "2026-08-08-003",
@@ -15,9 +35,9 @@
     "description": "RIM_Stack_Reference.md:253 describes 'Custom chat (RIMChat.tsx + app/api/livekit/chat/route.ts + SessionChatMessage Prisma model)' in the present tense, including the session_chat_messages table and the publishData topic 'rim-chat'. All of that was removed in the session-159 Zoom cutover. The doc should either drop the section or mark it retired the way CLAUDE.md marks RIM_SessionRoom.md. Check the surrounding section for other LiveKit-era entries at the same time.",
     "category": "Infrastructure",
     "priority": "low",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-08-08",
-    "notes": "Docs-only. Same class as the Sanity staleness fixed in session 171 \u2014 a directive going out of date is nobody's job unless it's explicitly someone's job."
+    "notes": "Docs-only. Same class as the Sanity staleness fixed in session 171 \u2014 a directive going out of date is nobody's job unless it's explicitly someone's job.\n\nDONE session 171 \u2014 went deeper than the one section: retired the whole session-room block, the LiveKit env section and service/cost rows, the stale 'pilot-ready' Zoom bullet, plus four Sanity regions (links row, CMS row, env section, Studio/GROQ section)."
   },
   {
     "id": "2026-08-08-001",

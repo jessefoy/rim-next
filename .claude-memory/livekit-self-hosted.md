@@ -1,20 +1,31 @@
 ---
 name: livekit-self-hosted
-description: "LiveKit moved from Cloud to a self-hosted DigitalOcean server (session 150, 2026-06-16); cost-driven; includes the SSH/access model + the can't-SSH-from-sandbox limit; the droplet now also co-hosts OnlyOffice (s154). RETIRED IN PART (s159): the LiveKit ROOM is gone (code removed, Zoom is the room) — but the droplet STAYS (co-hosts OnlyOffice) and its firewall/SSH/OnlyOffice ops below are LIVE. Only the livekit-server container is to-be-stopped + the LIVEKIT_* Vercel env removed (Jesse's ops). See [[project-zoom-migration]]"
-metadata: 
+description: "HISTORICAL — the LiveKit/OnlyOffice DigitalOcean droplet was DESTROYED session 161 (2026-07-09): DNS records (docs/livekit/livekit-turn) removed, ONLYOFFICE_* env removed, no DigitalOcean dependency remains. Supersedes the earlier 'droplet stays' state. Sessions are Zoom; files are Google. See [[project-zoom-migration]] + [[project-google-workspace-files]]"
+metadata:
   node_type: memory
   type: project
   originSessionId: 6701f809-b23e-4f5d-8d5d-dfd59f7456cd
+  modified: 2026-08-09T14:45:15.171Z
 ---
 
-> **✅ Cut over (session 159): the in-browser LiveKit ROOM is retired — code removed, Zoom is the room** (see [[project-zoom-migration]] + `RIM_Zoom.md`). The droplet **STAYS** (it co-hosts OnlyOffice) and the firewall / SSH / OnlyOffice ops below are **still live**. Remaining LiveKit teardown (Jesse's ops, non-blocking): stop the `livekit-server` container + remove the `LIVEKIT_*` Vercel env vars. The LiveKit *room / noise-cancellation* detail in this note is now historical; the *server / infra* detail is current.
+> **Nothing here is live infrastructure anymore.** The DigitalOcean droplet
+> (`RIM-LiveKit`, which self-hosted the LiveKit server from session 150 and
+> co-hosted OnlyOffice from session 154) was **destroyed in session 161**
+> (2026-07-09), after the LiveKit room retired (s159, Zoom cutover) and
+> OnlyOffice retired (s161). The `docs` / `livekit` / `livekit-turn` DNS
+> records were removed and `ONLYOFFICE_URL` / `ONLYOFFICE_JWT_SECRET` came out
+> of Vercel. RIM has **no DigitalOcean dependency**. (`LIVEKIT_*` Vercel vars:
+> remove if any still exist — nothing reads them; noted in
+> `RIM_Stack_Reference.md`.)
 
-As of session 150 (2026-06-16), RIM's LiveKit video runs on a **self-hosted DigitalOcean droplet**, not LiveKit Cloud. Server `wss://livekit.rootedinmindfulness.org` (droplet `RIM-LiveKit`, IP `104.248.229.126`, Ubuntu 24.04, ~$58/mo flat; Docker Compose: livekit-server + Caddy/TLS + Redis + TURN; config on the droplet at `~/livekit.rootedinmindfulness.org/`, with the API key/secret in `livekit.yaml`). The app points at it via Vercel env `NEXT_PUBLIC_LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` — no room code changed (same open-source server + client SDK; only the URL + keys moved).
+**History, for cost-reasoning reference only:** LiveKit Cloud metered
+downstream data at $0.12/GB (~$260–620/mo at RIM's all-camera circle scale),
+which drove the s150 move to a ~$58/mo flat DO droplet — and that operational
+burden in turn helped justify the s159 "Zoom is the room" cutover. The old
+SSH/firewall/OnlyOffice runbook detail lives in git history of this file and
+`RIM_OnlyOffice.md` if ever needed.
 
-**Why:** LiveKit Cloud meters downstream data at $0.12/GB; RIM's all-camera 30-person circles (~6/week) ran ~$260–620/mo — unsustainable for a small center. Self-hosting bundles bandwidth (~flat $58). Chose DigitalOcean US over Hetzner (Hetzner's cheap line is EU-only; Hetzner-US was ~$141, pricier than DO) for guaranteed low latency + simplicity.
-
-**Access & operations:** SSH is `root@104.248.229.126`, but auth is by **password + a Secure-Enclave (Secretive) key that is NOT in the droplet's `authorized_keys` yet** (true key-only is backlog `2026-06-17-001`). Critically, **a sandboxed Claude shell CANNOT SSH into the droplet** — server work needs Jesse interactive, or the DigitalOcean web Console as the out-of-band path (so drive it, per [[feedback-drive-infra-ops]]). Manage the stack with `cd ~/livekit.rootedinmindfulness.org && docker compose {ps,logs,restart,pull}`. Inbound is locked by the DO **Cloud Firewall `rim-livekit`** (session 152): SSH/22 from Jesse's IP only, plus TCP 443/5349/7881 and UDP 3478/50000–60000; 7880/80/2019/6379/53 closed. `LIVEKIT_API_SECRET` rotation is pending (backlog `2026-06-17-002`).
-
-**Also co-hosts OnlyOffice (session 154):** the droplet now runs a second isolated stack at `/root/onlyoffice/` — self-hosted OnlyOffice Docs (Community) for office-document editing, reached at `docs.rootedinmindfulness.org` via the same LiveKit Caddy (a new SNI route). It runs **bridge-networked + a `caddy:2` header shim**: the LiveKit Caddy is `caddyl4` in pure Layer-4 mode (can't add the `X-Forwarded-Proto` OnlyOffice requires), and OnlyOffice's bundled Redis would collide with LiveKit's on host port 6379. Resource-capped so it can't starve a live session. The LiveKit `caddy.yaml` got one SNI route → `localhost:8081`; rollback keeps a `caddy.yaml.bak`. See [[project-onlyoffice-docs]] + `RIM_OnlyOffice.md` for the runbook.
-
-**How to apply:** Sessions now run on **Zoom** (session 159) — there is no in-browser room, so RNNoise / Krisp / any browser-NC concern is moot; for session work see [[project-zoom-migration]] + `RIM_Zoom.md`. The droplet itself is **live infra** (OnlyOffice + the `rim-livekit` firewall + the SSH model) — that part of this note stands. Verify live values in `RIM_OnlyOffice.md` / `RIM_Stack_Reference.md` / the DO console before asserting; don't quote this note alone. Relates to [[feature-interconnections]] and [[sanity-status]] (infra-state pointers).
+**How to apply:** Don't propose DigitalOcean, LiveKit, RNNoise/Krisp, or
+in-browser-room work — sessions run on Zoom ([[project-zoom-migration]],
+`RIM_Zoom.md`) and documents live in Google ([[project-google-workspace-files]],
+`RIM_GoogleWorkspace.md`).
