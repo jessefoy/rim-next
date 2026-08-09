@@ -73,7 +73,11 @@ export default async function MemberProgramDetailPage({
   ]);
 
   // ── Access control ──
-  if (!program || program.archivedAt) notFound();
+  // An archived program stays reachable for someone who registered for it —
+  // it's their history, and concluded one-time programs now archive
+  // automatically (archive-concluded-programs cron). Without a registration,
+  // archived is gone.
+  if (!program || (program.archivedAt && !registration)) notFound();
 
   // Commitment offerings (classes, events, retreats, registration-required
   // community groups, etc.) require an active registration to reach the member
@@ -180,7 +184,10 @@ export default async function MemberProgramDetailPage({
         )}
 
         {/* ── Pending dana action ── */}
-        {registration?.donationStatus === "PENDING" && (
+        {/* Not on an archived program: its register route redirects away, so
+            the link would dead-end. The daily cleanup cron waives stale
+            pending dana anyway. */}
+        {!program.archivedAt && registration?.donationStatus === "PENDING" && (
           <div className="mpd-dana">
             {danaMessageHtml
               ? <div className="mpd-dana__text man-body rim-content rim-content--document" dangerouslySetInnerHTML={{ __html: danaMessageHtml }} />
@@ -224,6 +231,13 @@ export default async function MemberProgramDetailPage({
         </div>
 
         {/* ── Join section ── */}
+        {/* An archived program is history — no join affordance. The plain
+            sentence tells a member arriving from My Programs where they are. */}
+        {program.archivedAt ? (
+          <div className="mpd-join">
+            <p className="mpd-join__note">This program has concluded.</p>
+          </div>
+        ) : (
         <div className="mpd-join">
           {isVirtual && program.livekitRoom && (
             <>
@@ -245,6 +259,7 @@ export default async function MemberProgramDetailPage({
             </p>
           )}
         </div>
+        )}
 
         {/* ── Early arrival message ── */}
         {program.earlyArrivalMessage && (
@@ -307,9 +322,14 @@ export default async function MemberProgramDetailPage({
               </div>
             )}
 
-            <div className="mpd-reg__actions">
-              <CancelRegistrationButton id={registration.id} programTitle={program.name} />
-            </div>
+            {/* Cancelling a concluded program's registration would only erase
+                the member's own history view (this page 404s without a live
+                registration once archived). */}
+            {!program.archivedAt && (
+              <div className="mpd-reg__actions">
+                <CancelRegistrationButton id={registration.id} programTitle={program.name} />
+              </div>
+            )}
           </div>
         )}
 

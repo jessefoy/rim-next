@@ -65,9 +65,17 @@ export default async function ZoomEnterPage({
       recurrenceInterval: true,
       recurrenceDays: true,
       recurrenceCount: true,
+      archivedAt: true,
     },
   });
   if (!program) redirect("/account/dashboard");
+
+  // An archived program has no live sessions — don't provision a Zoom meeting
+  // for it. Matters more now that concluded one-time programs archive
+  // automatically; also closes the hand-crafted-URL path for a manually
+  // archived recurring program whose old weekly window would otherwise pass
+  // the time gate.
+  if (program.archivedAt) redirect("/account/dashboard?session=closed");
 
   // Only virtual/hybrid programs have an online room — a hand-crafted /enter URL
   // for an in-person program shouldn't burn a Zoom pool seat. Send them to the page.

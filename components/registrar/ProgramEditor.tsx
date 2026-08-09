@@ -2165,7 +2165,7 @@ export default function ProgramEditor({
                   />
                   <span className="pe-checkbox__label">Hide automatically after the date passes</span>
                 </label>
-                <p className="pe-field__help">Once this one-time program&rsquo;s date is behind us, it leaves the public Programs &amp; Events page on its own. Turn off to keep it listed after the date.</p>
+                <p className="pe-field__help">Once this one-time program&rsquo;s date is behind us, it leaves the public Programs &amp; Events page on its own and is archived for you the next morning. Turn off to keep it listed and active after the date.</p>
               </div>
             )}
 

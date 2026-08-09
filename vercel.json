@@ -1,17 +1,65 @@
 {
   "redirects": [
-    { "source": "/account/hub/teacher",        "destination": "/account/hub/courses",        "permanent": true },
-    { "source": "/account/hub/teacher/:path*", "destination": "/account/hub/courses/:path*", "permanent": true },
-    { "source": "/account/hub/:slug/documents",        "destination": "/account/hub/:slug/files", "permanent": true },
-    { "source": "/account/hub/:slug/documents/:path*", "destination": "/account/hub/:slug/files", "permanent": true },
-    { "source": "/account/documents",         "destination": "/account/dashboard", "permanent": true },
-    { "source": "/account/documents/:path*",  "destination": "/account/dashboard", "permanent": true },
-    { "source": "/volunteer/programs/:slug", "destination": "/tools/programs/:slug", "permanent": true },
-    { "source": "/volunteer", "destination": "/tools/programs", "permanent": true },
-    { "source": "/account/registrar/:slug", "destination": "/tools/programs/:slug", "permanent": true },
-    { "source": "/account/registrar", "destination": "/tools/programs", "permanent": true },
-    { "source": "/account/dashboard-my-registrations", "destination": "/account/programs", "permanent": true },
-    { "source": "/account/dashboard-my-library", "destination": "/account/courses", "permanent": true }
+    {
+      "source": "/account/hub/teacher",
+      "destination": "/account/hub/courses",
+      "permanent": true
+    },
+    {
+      "source": "/account/hub/teacher/:path*",
+      "destination": "/account/hub/courses/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/account/hub/:slug/documents",
+      "destination": "/account/hub/:slug/files",
+      "permanent": true
+    },
+    {
+      "source": "/account/hub/:slug/documents/:path*",
+      "destination": "/account/hub/:slug/files",
+      "permanent": true
+    },
+    {
+      "source": "/account/documents",
+      "destination": "/account/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/account/documents/:path*",
+      "destination": "/account/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/volunteer/programs/:slug",
+      "destination": "/tools/programs/:slug",
+      "permanent": true
+    },
+    {
+      "source": "/volunteer",
+      "destination": "/tools/programs",
+      "permanent": true
+    },
+    {
+      "source": "/account/registrar/:slug",
+      "destination": "/tools/programs/:slug",
+      "permanent": true
+    },
+    {
+      "source": "/account/registrar",
+      "destination": "/tools/programs",
+      "permanent": true
+    },
+    {
+      "source": "/account/dashboard-my-registrations",
+      "destination": "/account/programs",
+      "permanent": true
+    },
+    {
+      "source": "/account/dashboard-my-library",
+      "destination": "/account/courses",
+      "permanent": true
+    }
   ],
   "crons": [
     {
@@ -41,6 +89,10 @@
     {
       "path": "/api/cron/sweep-orphan-file-data",
       "schedule": "45 9 * * *"
+    },
+    {
+      "path": "/api/cron/archive-concluded-programs",
+      "schedule": "15 9 * * *"
     }
   ]
 }

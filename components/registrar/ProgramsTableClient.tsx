@@ -47,9 +47,13 @@ export default function ProgramsTableClient({
 
   const searchLower = search.toLowerCase();
 
-  // Separate active vs archived
+  // Separate active vs archived. The archive reads by recency — most recently
+  // archived first — which is how a registrar actually looks for a program
+  // that just concluded (the auto-archive cron feeds this list daily).
   const active = rows.filter((p) => !p.archivedAt);
-  const archived = rows.filter((p) => !!p.archivedAt);
+  const archived = rows
+    .filter((p) => !!p.archivedAt)
+    .sort((a, b) => (b.archivedAt ?? "").localeCompare(a.archivedAt ?? ""));
 
   // Apply filter
   let filtered: ProgramRow[];
@@ -215,7 +219,7 @@ export default function ProgramsTableClient({
     if (confirming.action === "archive") {
       title = `Archive ${p.name}?`;
       body =
-        "It will be hidden from all public and member-facing views. You can restore it at any time.";
+        "It will be hidden from all public views and scheduling. Members who registered keep their registration history. You can restore it at any time.";
       btnLabel = "Archive";
       btnClass = "vol-confirm-btn--warn";
     } else if (confirming.action === "restore") {
