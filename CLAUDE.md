@@ -141,7 +141,6 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 
 ## Stack
 - Next.js **16** (App Router) + TypeScript
-- Sanity v3 (project `xxgvfpjf`, dataset `production`) — content CMS at `rooted-in-mindfulness.sanity.studio`
 - NextAuth v5 — 6-digit sign-in code auth via Resend, no passwords. `auth()` for server components. (Switched from magic links session 119, 2026-05-21.)
 - Prisma 5 + Neon Postgres — member data, registrations, roles, hub models
 - Stripe (test mode) — dana/payment collection via Checkout
@@ -153,7 +152,7 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 - **Never edit** `normalize.css`, `webflow.css`, or `rim.webflow.css` in `public/css/`.
 - All custom styles go in `public/css/custom.css` only.
 - Per-page prefix system: `lp-` lessons, `pg-` programs, `wl-` welcome, `vol-` registrar, `adm-` admin, `db-` dashboard, `mr-` my registrations, `mp-` my profile, `nav-` nav, `hs-` host area, `hub-` hub components, `hh-` households, `ac-` account layout/sidebar, `ca-` course access.
-- Design tokens in `:root`: Colors — **neutral Pampas foundation** (see `RIM_Public_Pages.md`): `--rim-surface` (White `#ffffff` — cards/forms/writing surfaces), `--rim-bg-bright` (Light Pampas `#faf9f7` — inset/hover), `--rim-bg` (Pampas `#f5f3f0` — page ground), `--rim-bg-accent` (Deeper Pampas `#e9e6e2` — separation); `--rim-blue` (`#31576d`, the main blue — hero/footer/buttons/links), `--rim-text` (`#333333`), `--rim-mid`, `--color-error`, `--color-success`, `--color-warning` (each with `-bg` variant). Surface: `--card-shadow` (the one reusable white-card lift). Fonts: `--font-serif`, `--font-sans`, `--font-mono`. Type scale: `--text-hero` (clamp), `--text-h1` (38px), `--text-h2` (28px), `--text-h3` (24px), `--text-h4` (20px), `--text-body` (18px), `--text-small` (15px), `--text-ui` (14px), `--text-xs` (13px), `--text-label` (12px), `--text-xxs` (11px). Line heights: `--lh-heading` (1.3), `--lh-body` (1.7). Layout: `--reading-width` (700px). **Use tokens — never invent raw px values or raw hex colors per component.**
+- Design tokens live in `:root` in `public/css/custom.css` — colors (the **neutral Pampas foundation**: `--rim-surface` / `--rim-bg-bright` / `--rim-bg` / `--rim-bg-accent`, `--rim-blue`, `--rim-text`, `--rim-mid`, the `--color-error|success|warning` pairs), `--card-shadow`, the `--font-*` stacks, the `--text-*` scale, the `--lh-*` line heights, and `--reading-width`. Read the values there; each is commented. The palette rationale is in `RIM_Public_Pages.md`. **Use tokens — never invent raw px values or raw hex colors per component.**
 - No box-shadows. No borders unless functionally required. (One scoped exception: white **cards** on the warm public-page ground use `--card-shadow`, a deliberately faint lift — session 148, see `RIM_Public_Pages.md`. Recede *panels* and everything else stay shadowless. The old LiveKit control-bar popover shadow exception went away with the session-159 room retirement.)
 - **Mobile-first responsive:** All new UI must work at 360px minimum (primary target 390px). Breakpoints: `@media (max-width: 430px)` for phones, `@media (max-width: 768px)` for tablets. Minimum 44px touch targets on all interactive elements. Minimum 16px font on all inputs/selects (prevents iOS auto-zoom).
 - **CSS hygiene tools** (session 134): `scripts/css-prune.mjs` removes fully-dead CSS rules by prefix via postcss (dry-run by default, `--apply` to write; edit the `DEAD_PREFIXES` list; it preserves any rule that shares a selector with a live class). `scripts/css-cut.mjs "<START banner text>" "<END banner text>"` removes a contiguous banner-delimited block. Both verify brace balance before writing. Use these when a removed feature leaves an orphaned CSS prefix — `custom.css` is large and accretes dead prefixes over time.
@@ -187,86 +186,21 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 - `app/account/(authenticated)/layout.tsx` — structural gate for the authenticated member area (session + agreedToTerms + archivedAt)
 - `auth.ts` — NextAuth config; session callback enriches `session.user` with firstName, roles, archivedAt, agreedToTerms
 - `prisma/schema.prisma` — full schema (User, Registration, CourseAccess, Donation, Household, HouseholdMember, HostAssignment, SubRequest, SubClaim)
-- `lib/queries.ts` — all Sanity GROQ queries
 - `lib/email.ts` — all Resend transactional email builders
-- `lib/dateLabel.ts` — `buildDateLabel(p)` auto-generates schedule label from Sanity datetime/recurrence fields (CT timezone)
+- `lib/dateLabel.ts` — `buildDateLabel(p)` auto-generates the schedule label from a program's datetime + recurrence fields (CT timezone)
 - `lib/locations.ts` — `resolveLocation()` helper + RIM address constants
 - `public/css/custom.css` — all custom CSS
-
-## Sanity / GROQ Rules
-- Always exclude drafts: `!(_id in path("drafts.**"))`
-- `_type` values are **plural** (`"programs"` not `"program"`)
-- `dayOfWeek` is array ref: `dayOfWeek[]->` not `dayOfWeek->`
-- Array contains filter: `$slug in field[]->slug.current`
-- ⚠️ Slugs are join keys for `HostAssignment` records — treat as permanent once assignments exist
 
 ## RSC Serialization (critical)
 Never spread a Prisma `include` result into Client Component props. Raw Date objects cause silent navigation failure in Next.js 16 + React 19. Always construct props explicitly; convert all dates to `.toISOString()`.
 
 ## Feature Backlog
 
-When the user says **"remember that we need [X]"**, **"add this to the backlog"**, or similar:
-
-1. Read `data/backlog.json`
-2. If vague, ask 1–2 clarifying questions — capture intent accurately
-3. Add a new item with all required fields (see below)
-4. Write the file back
-5. `git add data/backlog.json && git commit -m "Backlog: add [title]" && git push`
-6. Confirm — `data/backlog.json` is the git-tracked source of truth. There is no in-app viewer (the old `/admin/ideas` page was intentionally removed); read the backlog directly from the file or on GitHub.
-
-**Item structure:**
-```json
-{
-  "id": "YYYY-MM-DD-NNN",
-  "title": "Short title",
-  "description": "Clear description of what needs to be built and why.",
-  "category": "One of the categories below",
-  "priority": "high | medium | low",
-  "status": "open",
-  "addedAt": "YYYY-MM-DD",
-  "notes": ""
-}
-```
-
-**Valid categories:** `Registration` | `Member Accounts` | `Admin Tools` | `Programs & Sanity` | `Courses & Library` | `Email & Notifications` | `Dashboard` | `Nav & Layout` | `CSS & Design` | `Infrastructure`
+When Jesse says **"remember that we need [X]"**, **"add this to the backlog"**, or similar, invoke the **`backlog`** skill and follow it — it carries the item schema, the valid categories, and the commit-and-push step. `data/backlog.json` is the git-tracked source of truth; there is no in-app viewer.
 
 ## Closing Ritual — "let's document everything"
 
-When Jesse says **"closing prompt"**, **"let's document everything"**, or similar, complete ALL of the following before ending the session. No exceptions.
-
-1. **Session log** (`session-log.md`) — Add an entry at the top. Include:
-   - What was built or changed
-   - What design decisions were made and why
-   - **What this work connects to** — which existing features, routes, or systems are affected by or related to what was built. This is not optional. The interconnection record is how future sessions stay oriented.
-   - What comes next
-
-2. **FEATURES.md** — Add or update the relevant feature section(s). If a new feature was built, it gets its own section. If an existing feature was modified, update that section.
-
-3. **RIM_Stack_Reference.md** — Update if anything changed: new dependency, new env var, new tool, version bump, role change, architectural shift.
-
-4. **RIM_System_Architecture.md** — Update if any hub, tool, role, or permission logic changed.
-
-4a. **RIM_Editor_Types.md** — Update if any editor surface, block, or placement changed. New blocks go into the Block Library section; new placements go into the Placement Registry. If an editor surface changed type or wrapper class, update the registry entry. The doc must match the code at session end — no drift.
-
-4b. **Hub / Email / per-tool engineering docs** — Update the relevant engineering doc(s) if any rule, pattern, helper, or pitfall was added, changed, or invalidated during this session. The docs (`RIM_Hub_Engineering.md`, `RIM_Email_Engineering.md`, `RIM_Scheduler.md`, etc.) are the institutional memory — when a slice produces a new rule or surfaces a new pitfall, that rule lives in the doc, not just in the commit message or session log. The doc must match the code at session end.
-
-4c. **Hub audit (when this slice touched hubs).** If this slice modified anything in `lib/hubAuth.ts`, `lib/hubMemberAuth.ts`, `lib/programHub.ts`, `lib/email.ts`, `/app/api/hub/*`, `/app/api/host/*`, `/app/account/hub/*`, `/admin/hubs`, or any tool that has a HubAppLink, audit all four routing layers per `RIM_Hub_Engineering.md`: (1) capability gates route by program/resource hub, (2) notification recipient pools use `getHubNotificationRecipients(programHubSlug, …)`, (3) UI / list queries filter by hub, (4) every email-template URL variable passes through `hubScopedUrl()` or `hubHomeUrl()`. Slice 1 (session 128) addressed layers 1–3; Slice 2.5 (session 128 follow-up) found and fixed layer 4. Don't skip the audit just because the change felt small — layer 4 was the leak nobody noticed for a full slice.
-
-4d. **Per-tool engineering doc creation.** If this slice touched a tool or component without its own engineering doc (e.g. ProgramEditor, SessionRoom, HubAdmin, CourseEditor), create one as part of closing. The doc is the per-tool reference — its routes, hub-scoping story, common pitfalls, what's deferred. Name pattern: `RIM_<ToolName>.md`. Update the Design Orientation table to reference it. Self-perpetuating: every slice that touches a new surface produces its reference doc.
-
-4e. **Email template audit (when this slice sent or changed any email).** For every `sendTemplatedEmail("slug", …)` call site added or changed this session, confirm the slug has a matching seed in `prisma/migrate.mjs` — so the row exists in the DB and appears in the editor at `/admin/emails`. Without the seed the send silently no-ops and the recipient gets nothing; the compiler can't catch it. Rules: reusing an existing template (no new slug) needs no seed; a brand-new slug MUST ship its seed in the same commit (`findUnique → create`, `enabled: true`); an intentional re-seed of an existing template needs Jesse's consent + a per-template apply log. This is the closing-time backstop for the always-on **Email Template Gate** above — verified every session, not just trusted. State explicitly which templates were added/changed, or "no email templates touched."
-
-5. **Backlog** (`data/backlog.json`) — If any new items were identified during the session, add them.
-
-6. **UP_NEXT.md** — Rewrite the "Active" section to reflect where this session ended. Capture: what was built and is now live, what is open (being tested, half-built, or waiting on Jesse), the next concrete step, and any queued follow-ons. This file is read at the top of the next session's opening ritual — it is how Jesse picks up where we left off without starting cold.
-
-7. **Architectural decisions.** If a significant architectural or strategic decision was made or reversed during this session, identify the authoritative document for that decision and update or supersede it before closing. This is the step the closing ritual was missing when the Webflow directive went stale — a directive going out of date is nobody's job unless it's explicitly someone's job. Don't let the docs lie.
-
-7b. **Behavior audit — scan the session for memory candidates.** Re-read the session transcript with a single question: *did Jesse correct, validate, or surface anything that future-me should not have to learn again?* Look for three signals: (1) corrections ("don't," "stop doing that," "no, the other way") — these go in `feedback-*` memory files; (2) validated approaches that surprised me or weren't obvious ("yes, exactly," accepting an unusual choice without pushback) — these also go in `feedback-*` files, with a *Why* line capturing what made it the right call; (3) surprises about project state, external systems, or user role — these go in `project-*`, `reference-*`, or `user-*` files. Don't write the memory files silently. List each proposed entry with a one-line summary and ask Jesse to confirm or discard. The five-minute audit is what keeps the memory system from drifting into "only what Claude noticed mid-flight." Most sessions will produce zero memory updates; that's fine — the value is in the scan, not in always finding something.
-
-8. **Commit and push all documentation changes together.**
-
-If any of these files do not need updating for this session, say so explicitly. Do not silently skip them.
+When Jesse says **"closing prompt"**, **"let's document everything"**, or similar, invoke the **`closing-ritual`** skill and complete every step in it before ending the session. No exceptions, no silent skips — the skill carries the full pass (session log, FEATURES, stack + architecture refs, editor types, per-tool engineering docs, the four-layer hub audit, the email-template audit, backlog, UP_NEXT, architectural decisions, and the memory behavior audit).
 
 ## Do Not
 - Run a local dev server

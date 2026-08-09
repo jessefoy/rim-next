@@ -55,3 +55,8 @@ next-env.d.ts
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/rim-design/
+# ...and the two ritual skills CLAUDE.md dispatches to by name. CLAUDE.md is
+# tracked, so if these aren't, every other checkout (worktrees included) has a
+# directive pointing at a skill that isn't there.
+!.claude/skills/closing-ritual/
+!.claude/skills/backlog/
