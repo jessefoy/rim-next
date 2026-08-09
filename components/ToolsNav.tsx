@@ -18,6 +18,11 @@ import { useToolsContext } from "@/components/ToolsContext";
 export default function ToolsNav() {
   const { toolName, backHref, backLabel } = useToolsContext();
 
+  // For a hub member the back link goes to their hub, so "My RIM" is a
+  // second, distinct destination worth its own link. When the back link
+  // already IS the dashboard, a duplicate would just be noise.
+  const showHomeLink = backHref !== "/account/dashboard";
+
   return (
     <header className="tools-nav">
       <div className="tools-nav__inner">
@@ -25,6 +30,11 @@ export default function ToolsNav() {
           <Link href={backHref} className="tools-nav__back">
             &larr; {backLabel}
           </Link>
+          {showHomeLink && (
+            <Link href="/account/dashboard" className="tools-nav__back tools-nav__home">
+              My RIM
+            </Link>
+          )}
         </div>
         <div className="tools-nav__right">
           <span className="tools-nav__name">{toolName}</span>

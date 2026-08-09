@@ -182,8 +182,10 @@ export default function HubWorkspaceSidebar({
       {/* Mobile top bar */}
       <div className="hub-ws-mobilebar">
         <button
+          type="button"
           className="hub-ws-mobilebar__btn"
           aria-label="Open navigation"
+          aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(true)}
         >
           <Menu size={20} strokeWidth={1.75} />
@@ -212,6 +214,7 @@ export default function HubWorkspaceSidebar({
         {/* Identity */}
         <div className="hub-ws-identity">
           <button
+            type="button"
             className="hub-ws-close"
             aria-label="Close navigation"
             onClick={() => setMobileOpen(false)}
@@ -219,6 +222,7 @@ export default function HubWorkspaceSidebar({
             <X size={18} strokeWidth={1.75} />
           </button>
           <button
+            type="button"
             className="hub-ws-collapse"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-pressed={collapsed}
@@ -324,13 +328,16 @@ export default function HubWorkspaceSidebar({
               <span>Hub settings</span>
             </Link>
           )}
+          {/* "My RIM", not "Back to Home" — the rail's first item is already
+              "Home" (the hub's), and two different Homes one list apart is
+              exactly the ambiguity the account rail's "My Home" rename fixed. */}
           <Link
             href="/account/dashboard"
             className="hub-ws-footer__link"
-            title={collapsed ? "Back to Home" : undefined}
+            title={collapsed ? "My RIM" : undefined}
           >
             <ChevronLeft size={16} strokeWidth={1.75} />
-            <span>Back to Home</span>
+            <span>My RIM</span>
           </Link>
         </div>
       </nav>

@@ -218,7 +218,19 @@ export default async function MemberProgramDetailPage({
               <svg className="mpd-info__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <span>
                 {locationLabel}
-                {location.link && <a href={location.link} target="_blank" rel="noopener noreferrer" className="mpd-info__ext"> ↗</a>}
+                {/* A worded link, not a bare arrow — the glyph alone had no
+                    accessible name and a ~10px touch target. */}
+                {location.link && (
+                  <a
+                    href={location.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mpd-info__ext"
+                    aria-label="Open map in a new tab"
+                  >
+                    Map <span aria-hidden="true">↗</span>
+                  </a>
+                )}
               </span>
             </div>
           )}

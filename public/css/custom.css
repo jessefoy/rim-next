@@ -27872,3 +27872,225 @@ a.pp-card:hover .pp-card__action {
 }
 
 
+
+/* ═══════════════════════════════════════════════════
+   MEMBER-AREA INTERACTION FLOOR (session 172)
+   The /impeccable audit extended from the account shell to every
+   authenticated surface — hub workspaces, the three tools, and the member
+   personal pages. Three systematic defect classes, fixed as one layer:
+   keyboard focus visibility (the content layer had none), 44px touch
+   targets, and a 14px floor on interactive text (16px on inputs).
+   Declared last so it wins every earlier block by source order.
+═══════════════════════════════════════════════════ */
+
+/* ── Keyboard focus — one visible ring for every interactive element the
+      audit found bare (or whose :focus rule set outline: none). ── */
+.hub-ws-link:focus-visible,
+.hub-ws-footer__link:focus-visible,
+.hub-ws-collapse:focus-visible,
+.hub-ws-close:focus-visible,
+.hub-ws-mobilebar__btn:focus-visible,
+.hub-ws-subnav__link:focus-visible,
+.hub-home-attention__row:focus-visible,
+.hub-home-card:focus-visible,
+.hub-home-links__link:focus-visible,
+.hub-home__pinned-link:focus-visible,
+.hub-welcome__btn:focus-visible,
+.hub-home__empty-action:focus-visible,
+.hub-home__section-action:focus-visible,
+.tools-nav__back:focus-visible,
+.hs-viewtab:focus-visible,
+.hs-filter:focus-visible,
+.hs-filter__caret:focus-visible,
+.hs-member-menu__item:focus-visible,
+.hs-monthnav__btn:focus-visible,
+.hs-monthnav__today:focus-visible,
+.hs-row__quiet:focus-visible,
+.hs-row__manage summary:focus-visible,
+.pe-tabs__tab:focus-visible,
+.pe-btn:focus-visible,
+.th-btn:focus-visible,
+.th-link:focus-visible,
+.vol-pill:focus-visible,
+.vol-table__action:focus-visible,
+.vol-back:focus-visible,
+.vol-table-search:focus-visible,
+.th-input:focus-visible,
+.th-textarea:focus-visible,
+.th-select:focus-visible,
+.th-section-row__input:focus-visible,
+.pe-input:focus-visible,
+.pe-textarea:focus-visible,
+.pe-select:focus-visible,
+.mp-input:focus-visible,
+.ca-search:focus-visible,
+.db-section__link:focus-visible,
+.db2-empty-card__link:focus-visible,
+.db2-upcoming__item:focus-visible,
+.db2-team-update:focus-visible,
+.join-btn:focus-visible,
+.mr-card__title:focus-visible,
+.mr-card__dana-link:focus-visible,
+.mr-cancel-btn:focus-visible,
+.mr-cancel-btn--yes:focus-visible,
+.mr-cancel-btn--keep:focus-visible,
+.mpd-back:focus-visible,
+.mpd-category:focus-visible,
+.mpd-info__ext:focus-visible,
+.mpd-join__btn:focus-visible,
+.mpd-dana__link:focus-visible,
+.mpd-calendar__link:focus-visible,
+.mcl-card__title:focus-visible,
+.mcl-continue-btn:focus-visible,
+.mcl-leave-link:focus-visible,
+.mcl-leave-confirm__yes:focus-visible,
+.mcl-leave-confirm__cancel:focus-visible,
+.mp-hub-link:focus-visible,
+.mp-submit:focus-visible,
+.mp-save__btn:focus-visible,
+.mp-bio__avatar-btn:focus-visible,
+.mp-bio__avatar-remove:focus-visible {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: 2px;
+}
+
+/* ── Hub workspace chrome ── */
+.hub-ws-close { width: 44px; height: 44px; }
+/* 44px at every width — the old 44px patch was scoped to ≤768px while the
+   drawer breakpoint is 900px, leaving a 40px hamburger on small tablets. */
+.hub-ws-mobilebar__btn { width: 44px; height: 44px; }
+.hub-ws-footer__link { font-size: var(--text-ui); }
+.hub-ws-identity__meta { font-size: var(--text-xs); }
+.hub-ws-badge { background: var(--rim-bg-accent); }
+.hub-ws-sidebar--collapsed .hub-ws-badge {
+  font-size: var(--text-xxs);
+  min-width: 18px;
+  height: 18px;
+}
+/* The absolute collapse control painted over the identity text on hover;
+   reserve its gutter. The collapsed rail centers its mark — no gutter. */
+.hub-ws-sidebar:not(.hub-ws-sidebar--collapsed) .hub-ws-identity {
+  padding-right: 64px;
+}
+@media (max-width: 900px) {
+  /* Closed drawer leaves the tab order — matches .ac-sidebar exactly. */
+  .hub-ws-sidebar {
+    visibility: hidden;
+    transition: transform 0.22s ease, visibility 0s linear 0.22s;
+  }
+  .hub-ws-sidebar--open {
+    visibility: visible;
+    transition: transform 0.22s ease;
+  }
+  /* The drawer re-expands to full labels even when the desktop collapse
+     flag persists from localStorage — so the identity gutter and full-size
+     badge must come back with it. */
+  .hub-ws-sidebar--collapsed .hub-ws-identity { padding-right: 64px; }
+  .hub-ws-sidebar--collapsed .hub-ws-badge {
+    min-width: 22px;
+    height: 20px;
+    font-size: var(--text-xxs);
+  }
+}
+
+/* ── Tools chrome ── */
+.tools-nav__left { display: flex; align-items: center; gap: 20px; }
+.tools-nav__back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--text-ui);
+}
+.hs-viewtab { min-height: 44px; }
+.hs-filter__caret { min-width: 44px; min-height: 44px; font-size: var(--text-ui); }
+.hs-member-menu__item { min-height: 44px; }
+.hs-row__quiet { min-height: 44px; font-size: var(--text-ui); }
+.hs-row__manage summary { font-size: var(--text-ui); }
+.vol-back { display: inline-flex; align-items: center; min-height: 44px; }
+.vol-pill { font-size: var(--text-ui); }
+.vol-table__action { font-size: var(--text-ui); }
+.vol-table__action--danger { color: var(--color-error); }
+/* !important only to beat the original's own !important. */
+.vol-add-btn { font-size: var(--text-ui) !important; }
+.pe-btn--small,
+.th-btn--small,
+.th-link--sm { font-size: var(--text-ui); }
+/* Inputs: 16px stated explicitly (iOS zoom floor). The .tools-shell layer
+   sets these to `inherit`, which happens to resolve to 16-18px today — this
+   makes the floor intentional instead of an accident of ancestor sizing. */
+.th-input,
+.th-textarea,
+.th-select,
+.vol-table-search,
+.tools-shell :is(.th-input, .th-textarea, .th-select, .vol-table-search) {
+  font-size: 16px;
+}
+/* The Course Manager table scrolls sideways instead of clipping its
+   Actions column off phones. */
+.th-table-wrap { overflow-x: auto; border-radius: 12px; }
+.th-table-wrap .th-table { min-width: 640px; }
+@media (max-width: 768px) {
+  /* Undo the old shrink-to-13px — mobile is the wrong direction to shrink. */
+  .th-table { font-size: var(--text-ui); }
+}
+@media (max-width: 767px) {
+  /* Restores the phone padding a later desktop block had clobbered — the
+     back link was sitting 16px off the content edge below it. */
+  .tools-nav__inner { height: 48px; padding: 0 16px; }
+  .tools-nav__name { font-size: 16px; }
+}
+/* ── Member personal pages ── */
+.db-section__link,
+.db2-empty-card__link,
+.mpd-dana__link,
+.mpd-calendar__link,
+.mpd-category,
+.mpd-info__ext,
+.mp-hub-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.db-section__link,
+.mpd-calendar__link,
+.mpd-info__ext,
+.mpd-category { font-size: var(--text-ui); }
+/* Scoped: the .ac-member-page layer pins these at 13px with higher
+   specificity, so the floor must match it to win. */
+.ac-member-page .mr-cancel-btn,
+.ac-member-page .mr-cancel-btn--yes,
+.ac-member-page .mr-cancel-btn--keep,
+.ac-member-page .mcl-leave-link,
+.ac-member-page .mcl-leave-confirm__yes,
+.ac-member-page .mcl-leave-confirm__cancel { font-size: var(--text-ui); }
+.ac-member-page .mp-hub-link { min-height: 44px; }
+.mr-cancel-btn:hover { color: var(--color-error); }
+/* Explicit iOS-zoom guard — it was only accidental via the shell's 16px. */
+.ac-member-page .mp-input { font-size: 16px; }
+/* Long program names shrink instead of pushing the status cell. */
+.db2-upcoming__title { min-width: 0; }
+/* The dana chip's explanation, visible — it lived in a title tooltip. */
+.db2-chip-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.db2-chip-note {
+  max-width: 17ch; /* wraps to two lines instead of squeezing the title */
+  color: var(--rim-text-muted);
+  font-size: var(--text-label);
+  line-height: 1.3;
+  text-align: right;
+}
+@media (max-width: 700px) {
+  /* These mobile sizes existed but were dead — beaten by later same- or
+     higher-specificity desktop rules. Restated here so they win. */
+  .ac-member-page .mpd-title { font-size: var(--text-h3); }
+  .ac-page-title { font-size: var(--text-h3); }
+}
+@media (max-width: 430px) {
+  .mpd-calendar { flex-direction: column; align-items: flex-start; }
+  .db2-chip-stack { align-items: flex-start; }
+  .db2-chip-note { text-align: left; }
+}

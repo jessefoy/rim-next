@@ -31,7 +31,7 @@ export default async function LearningToolLayout({
 
   // Resolve back link: check if user is in the courses hub
   let backHref = "/account/dashboard";
-  let backLabel = "Home";
+  let backLabel = "My RIM";
 
   const hub = await db.hub.findUnique({ where: { slug: "courses" }, select: { id: true, name: true } });
   if (hub) {

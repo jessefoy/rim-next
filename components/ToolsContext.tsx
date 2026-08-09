@@ -35,7 +35,7 @@ export interface ToolsProviderProps {
 const ToolsContext = createContext<ToolsConfig>({
   toolName: "",
   backHref: "/account/dashboard",
-  backLabel: "Home",
+  backLabel: "My RIM",
 });
 
 function ToolsProviderInner({

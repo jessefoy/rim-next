@@ -36,6 +36,7 @@ export default async function SeriesListPage() {
       {courses.length === 0 ? (
         <p className="th-empty">No series yet. Create your first series to get started.</p>
       ) : (
+        <div className="th-table-wrap">
         <table className="th-table">
           <thead>
             <tr>
@@ -89,6 +90,7 @@ export default async function SeriesListPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

@@ -520,11 +520,15 @@ export default async function DashboardPage() {
                     </span>
                     <span className="db2-upcoming__status">
                       {hasPendingDana
-                        ? <span
-                            className="db2-chip db2-chip--dana"
-                            title="You're invited to offer dana for this program — a voluntary gift, welcomed with gratitude."
-                          >
-                            Dana invitation
+                        ? <span className="db2-chip-stack">
+                            {/* Visible words, not a title tooltip — touch
+                                devices and screen readers never saw it. */}
+                            <span className="db2-chip db2-chip--dana">
+                              Dana invitation
+                            </span>
+                            <span className="db2-chip-note">
+                              A voluntary gift — never required
+                            </span>
                           </span>
                         : <span className="db2-chip db2-chip--registered">Registered</span>
                       }

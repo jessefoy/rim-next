@@ -37,7 +37,7 @@ export default async function ScheduleToolLayout({
   // its own hub sidebar with a hub-scoped back affordance, so this
   // fallback is only seen by direct-entry admins.
   let backHref = "/account/dashboard";
-  let backLabel = "Home";
+  let backLabel = "My RIM";
 
   const hub = await db.hub.findUnique({
     where: { slug: DEFAULT_HOSTING_HUB_SLUG },

@@ -1039,11 +1039,15 @@ export default function ProgramEditor({
       )}
 
       {/* ── Tab bar ── */}
-      <div className="pe-tabs">
+      {/* Real tab semantics, mirroring the Scheduler's tablists — the active
+          state was CSS-only, invisible to assistive tech. */}
+      <div className="pe-tabs" role="tablist" aria-label="Program editor sections">
         {TABS.map((t) => (
           <button
             key={t}
             type="button"
+            role="tab"
+            aria-selected={tab === t}
             className={`pe-tabs__tab${tab === t ? " pe-tabs__tab--active" : ""}`}
             onClick={() => setTab(t)}
           >

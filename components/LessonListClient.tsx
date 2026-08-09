@@ -52,6 +52,7 @@ function LessonTableRow({ lesson, basePath, seriesBasePath }: { lesson: LessonRo
 
 function LessonTable({ lessons, basePath, seriesBasePath }: { lessons: LessonRow[]; basePath: string; seriesBasePath: string }) {
   return (
+    <div className="th-table-wrap">
     <table className="th-table">
       <thead>
         <tr>
@@ -65,6 +66,7 @@ function LessonTable({ lessons, basePath, seriesBasePath }: { lessons: LessonRow
         {lessons.map((l) => <LessonTableRow key={l.id} lesson={l} basePath={basePath} seriesBasePath={seriesBasePath} />)}
       </tbody>
     </table>
+    </div>
   );
 }
 
