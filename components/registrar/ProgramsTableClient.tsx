@@ -317,6 +317,7 @@ export default function ProgramsTableClient({
             : "No programs found."}
         </p>
       ) : (
+        <div className="vol-table-wrap">
         <table className="vol-table">
           <thead>
             <tr>
@@ -431,6 +432,7 @@ export default function ProgramsTableClient({
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </>
   );

@@ -28094,3 +28094,21 @@ a.pp-card:hover .pp-card__action {
   .db2-chip-stack { align-items: flex-start; }
   .db2-chip-note { text-align: left; }
 }
+
+/* ── Wide tables scroll, never clip (session 172, user-reported) ──
+   At half-screen desktop widths (431–900px) the member area was cutting
+   content off with no way to reach it, two ways at once: the .admin-ui
+   layer set table wrappers to overflow:hidden at desktop widths (its
+   overflow-x:auto only lived in a mobile block), and the Programs /
+   registrations / rotation-grid tables had no scrolling wrapper at all —
+   they pushed past the page edge, where body{overflow-x:clip} cut them.
+   One rule: every wide table lives in a container that scrolls
+   horizontally at EVERY width. The table's own min-content width is the
+   scroll width — no artificial min-widths needed. */
+.vol-table-wrap,
+.ps-grid,
+.admin-ui :is(.adm-table-wrap, .adm-hubs-table-wrap, .em-list__table-wrap) {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.vol-table-wrap { border-radius: 12px; }
