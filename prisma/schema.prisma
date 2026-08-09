@@ -1296,7 +1296,9 @@ model EmailTemplate {
 
   // Help text displayed above the subject line in the editor
   helpText    String?
-  // Callout for variables that originate in Sanity Studio (rendered distinctly)
+  // Callout for variables that originate in the program record rather than this
+  // template — rendered distinctly in the editor. Named for the retired Sanity
+  // Studio; the source is now the Program Manager. Rename needs a migration.
   sanityNote  String?
 
   updatedAt   DateTime @updatedAt

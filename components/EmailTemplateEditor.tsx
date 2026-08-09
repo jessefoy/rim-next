@@ -123,7 +123,7 @@ export default function EmailTemplateEditor({ template, userId }: Props) {
           )}
           {template.sanityNote && (
             <div className="em-editor__sanity-callout">
-              <span className="em-editor__sanity-callout-label">Sanity Studio</span>
+              <span className="em-editor__sanity-callout-label">Program Manager</span>
               {template.sanityNote}
             </div>
           )}

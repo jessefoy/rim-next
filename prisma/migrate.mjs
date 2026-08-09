@@ -2686,6 +2686,45 @@ Or open it directly: {{manageUrl}}`,
       }
     },
   },
+  {
+    // Any EmailTemplate rows still telling coordinators to edit the program in
+    // "Sanity Studio" — a CMS RIM no longer runs — get repointed to the Program
+    // Manager (/tools/programs). The per-slug log lines show the actual count.
+    //
+    // Surgical on purpose: this replaces only the stale product name inside
+    // sanityNote, so any wording Jesse has since customized around it survives.
+    // Idempotent — once no row contains "Sanity Studio" there is nothing to do.
+    // (The column is still named sanityNote; renaming it needs its own
+    // migration. Backlog: 2026-08-08-001.)
+    name: "repoint_email_template_sanity_note_to_program_manager",
+    async run() {
+      const rows = await db.emailTemplate.findMany({
+        where: { sanityNote: { contains: "Sanity Studio" } },
+        select: { id: true, slug: true, sanityNote: true },
+      });
+
+      if (rows.length === 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      for (const row of rows) {
+        // Article-carrying forms first, so "the/The Sanity Studio" can't
+        // become "the the Program Manager".
+        const next = row.sanityNote
+          .replaceAll("The Sanity Studio", "The Program Manager")
+          .replaceAll("the Sanity Studio", "the Program Manager")
+          .replaceAll("Sanity Studio", "the Program Manager");
+        await db.emailTemplate.update({
+          where: { id: row.id },
+          data: { sanityNote: next },
+        });
+        console.log(`     · ${row.slug}: repointed to the Program Manager`);
+      }
+
+      console.log(`  ✔ Applied: ${this.name} — updated ${rows.length} template(s)`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────
