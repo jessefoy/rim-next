@@ -4641,61 +4641,11 @@ h4 { font-size: var(--text-h4); }
   margin: 0 auto;
 }
 
-/* ── Mobile: horizontal scroll strip ── */
+/* ── Mobile ── The rail becomes a slide-in drawer on phones; the complete
+   drawer treatment lives in ONE block at the end of the member-shell section
+   (search "account rail drawer") so it wins the whole cascade. Only content
+   padding stays here. */
 @media (max-width: 700px) {
-  .ac-layout {
-    flex-direction: column;
-  }
-
-  .ac-sidebar {
-    width: 100% !important;
-    height: auto;
-    position: static;
-    padding: 0;
-    border-right: none;
-    border-bottom: 1px solid var(--rim-rule);
-    overflow-y: visible;
-    overflow-x: auto;
-    transition: none;
-  }
-
-  .ac-sidebar__toggle {
-    display: none;
-  }
-
-  .ac-sidebar__nav {
-    flex-direction: row;
-    gap: 0;
-    padding: 6px 12px;
-    white-space: nowrap;
-  }
-
-  .ac-sidebar__link {
-    display: inline-flex;
-    font-size: var(--text-xs);
-    padding: 8px 10px;
-    gap: 6px;
-    white-space: nowrap;
-    overflow: visible;
-  }
-
-  .ac-sidebar__label {
-    opacity: 1 !important;
-    width: auto !important;
-  }
-
-  .ac-sidebar__section-label {
-    display: none;
-  }
-
-  .ac-sidebar__divider {
-    width: 1px;
-    height: 20px;
-    margin: 0 4px;
-    align-self: center;
-    flex-shrink: 0;
-  }
-
   .ac-content {
     padding: 24px 20px 48px;
   }
@@ -23111,16 +23061,6 @@ input.w-button { -webkit-appearance: button; }
   .member-bar__brand { font-size: var(--text-small); }
   .member-bar__brand img { height: 32px; }
   .member-bar__label { display: none; }
-  .member-bar__right { gap: 0; }
-  .ac-sidebar { background: var(--rim-surface); border-bottom-color: var(--rim-rule); }
-  .ac-sidebar__nav { padding: 6px 12px; }
-  .ac-sidebar__link,
-  .ac-sidebar__group-toggle { min-height: 44px; padding: 10px 12px; }
-  .ac-sidebar__group { display: contents; }
-  .ac-sidebar__divider { display: none; }
-  .ac-sidebar__count,
-  .ac-sidebar__chevron { display: none; }
-  .ac-sidebar__link--nested { padding-left: 12px; }
   .ac-content { padding: 36px 20px 64px; }
   .db2-greeting__name { font-size: var(--text-h2); }
   .db2-hub-grid { grid-template-columns: 1fr; }
@@ -23580,26 +23520,6 @@ input.w-button { -webkit-appearance: button; }
   .member-bar__profile-name { display: none; }
   .member-bar__right { gap: 14px; }
   .ac-layout { min-height: calc(100vh - 60px); }
-  .ac-sidebar { height: auto; padding: 0; }
-  .ac-sidebar__link,
-  .ac-sidebar__group-toggle { font-size: var(--text-ui); }
-  .ac-sidebar--collapsed .ac-sidebar__label {
-    width: auto;
-    overflow: visible;
-    opacity: 1;
-    pointer-events: auto;
-  }
-  .ac-sidebar--collapsed .ac-sidebar__link,
-  .ac-sidebar--collapsed .ac-sidebar__group-toggle {
-    justify-content: flex-start;
-    padding: 10px 12px;
-  }
-  .ac-sidebar--collapsed .ac-sidebar__link--nested { display: inline-flex; }
-  .ac-sidebar__section-label { display: none; }
-  .ac-sidebar__link,
-  .ac-sidebar__group-toggle { border-left: none; padding: 10px 12px; }
-  .ac-sidebar__link--active { background: var(--rim-bg-accent); }
-  .ac-sidebar__divider { display: none; }
   .ac-content { padding: 32px 20px 64px; }
   .db2-wrap { margin: 0; }
   .db2-greeting { margin-bottom: 40px; }
@@ -23613,6 +23533,132 @@ input.w-button { -webkit-appearance: button; }
   .db2-upcoming__date-block { width: 58px; }
   .db2-upcoming__title { padding: 14px 12px; }
   .db2-upcoming__status { padding-right: 12px; }
+}
+
+/* ── Account rail drawer (session 172) ──────────────────────────
+   On phones the account rail is a slide-in drawer opened from a hamburger
+   bar — the same pattern as the hub workspace rail (hub-ws-*), so the two
+   sibling rails behave identically. This is the ONE mobile treatment for
+   ac-sidebar; the old horizontal scroll strip is gone. Declared last so it
+   wins the whole ac- cascade. The drawer shows the full rail: section
+   labels, groups, dividers, and chevrons all stay. */
+
+/* Desktop: handle, backdrop, and close button don't exist. */
+.ac-mobilebar { display: none; }
+.ac-backdrop { display: none; }
+.ac-sidebar__close { display: none; }
+
+@media (max-width: 700px) {
+  /* Block, not flex: the fixed-position drawer must be unambiguously out
+     of flow (same reasoning as .hub-ws-layout). */
+  .ac-layout { display: block; }
+
+  .ac-mobilebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--rim-bg-bright); /* matches the hub mobilebar */
+    border-bottom: 1px solid var(--rim-rule);
+    position: sticky;
+    top: 60px; /* rides directly under the 60px member-bar */
+    z-index: 40;
+  }
+  .ac-mobilebar__btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--rim-text);
+    cursor: pointer;
+  }
+  .ac-mobilebar__btn:hover { background: var(--rim-bg); }
+  .ac-mobilebar__btn:focus-visible {
+    outline: 2px solid var(--rim-blue);
+    outline-offset: 2px;
+  }
+  .ac-mobilebar__name {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--rim-text);
+  }
+
+  /* Under the 60px member-bar, exactly like the shipped hub drawer — the
+     bar (with its Main site link) stays visible while the drawer is open. */
+  .ac-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    top: 60px;
+    background: rgba(20, 30, 36, 0.38);
+    z-index: 55;
+  }
+
+  .ac-sidebar {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    height: calc(100vh - 60px);
+    width: 280px;
+    z-index: 60;
+    padding: 16px 14px 48px;
+    background: var(--rim-surface);
+    transform: translateX(-100%);
+    /* visibility keeps the closed drawer's links out of the tab order;
+       the 0s delay hides it only after the slide-out finishes. */
+    visibility: hidden;
+    transition: transform 0.22s ease, visibility 0s linear 0.22s;
+    overflow-y: auto;
+  }
+  .ac-sidebar--open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.22s ease;
+  }
+
+  /* Desktop collapse never applies to the drawer — always full labels. */
+  .ac-sidebar--collapsed { width: 280px; padding: 16px 14px 48px; }
+  .ac-sidebar--collapsed .ac-sidebar__label {
+    width: auto;
+    overflow: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .ac-sidebar--collapsed .ac-sidebar__link,
+  .ac-sidebar--collapsed .ac-sidebar__group-toggle {
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+  .ac-sidebar--collapsed .ac-sidebar__link--nested { display: flex; }
+  .ac-sidebar--collapsed .ac-sidebar__section-label { display: block; }
+  .ac-sidebar--collapsed .ac-sidebar__chevron { display: block; }
+
+  /* The desktop collapse control makes no sense in a drawer. */
+  .ac-sidebar__toggle { display: none; }
+
+  .ac-sidebar__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: 0 0 8px auto;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--rim-text-muted);
+    cursor: pointer;
+  }
+  .ac-sidebar__close:hover { background: var(--rim-bg-accent); color: var(--rim-text); }
+  .ac-sidebar__close:focus-visible {
+    outline: 2px solid var(--rim-blue);
+    outline-offset: 2px;
+  }
 }
 
 /* ── Public program detail refinement (pg-) ─────────────────────

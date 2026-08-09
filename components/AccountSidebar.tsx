@@ -4,7 +4,10 @@
  * AccountSidebar — role-aware nav for all /account/* pages.
  *
  * Desktop: quiet rail that can collapse to return working width.
- * Mobile: horizontal scroll strip below the member header.
+ * Mobile: slide-in drawer opened from a hamburger bar — the same pattern as
+ * the hub workspace rail (HubWorkspaceSidebar), so the two sibling rails
+ * behave identically on phones. (Replaced the horizontal scroll strip,
+ * session 172 — the strip hid section labels and expanded groups inline.)
  *
  * CSS prefix: ac-
  */
@@ -13,6 +16,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Menu,
+  X,
   Home,
   CalendarCheck,
   BookOpen,
@@ -85,6 +90,14 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(pathname.startsWith("/admin/"));
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    // Route changes close the mobile drawer, including browser navigation —
+    // mirrors HubWorkspaceSidebar.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     try {
@@ -144,12 +157,44 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   }
 
   return (
+    <>
+      {/* Mobile top bar — the drawer's handle. Hidden on desktop. */}
+      <div className="ac-mobilebar">
+        <button
+          type="button"
+          className="ac-mobilebar__btn"
+          aria-label="Open navigation"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu size={20} strokeWidth={1.75} />
+        </button>
+        <div className="ac-mobilebar__name">My RIM</div>
+      </div>
+
+      {/* Backdrop (mobile only) */}
+      {mobileOpen && (
+        <div
+          className="ac-backdrop"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
     <nav
-      className={`ac-sidebar${collapsed ? " ac-sidebar--collapsed" : ""}`}
+      className={`ac-sidebar${collapsed ? " ac-sidebar--collapsed" : ""}${mobileOpen ? " ac-sidebar--open" : ""}`}
       aria-label="Account navigation"
       data-collapsed={collapsed ? "true" : "false"}
     >
       <div className="ac-sidebar__nav">
+        <button
+          type="button"
+          className="ac-sidebar__close"
+          aria-label="Close navigation"
+          onClick={() => setMobileOpen(false)}
+        >
+          <X size={18} strokeWidth={1.75} />
+        </button>
         <button
           type="button"
           className="ac-sidebar__toggle"
@@ -235,5 +280,6 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
 
       </div>
     </nav>
+    </>
   );
 }
