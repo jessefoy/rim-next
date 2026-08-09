@@ -58,7 +58,7 @@ export default async function ScheduleToolPage({
   // active hub so a Silent Meditation coordinator sees rotation controls
   // there without holding HOST_MANAGER globally.
   const coordinatorRecord = await db.hubMember.findFirst({
-    where: { userId: session.user.id, hub: { slug: activeHubSlug }, isCoordinator: true },
+    where: { userId: session.user.id, hub: { slug: activeHubSlug }, isCoordinator: true, status: "ACTIVE" },
     select: { id: true },
   });
   const isManager = isHostManager || !!coordinatorRecord;

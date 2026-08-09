@@ -140,17 +140,25 @@ export function effectiveCoordinator(
 }
 
 /**
- * Is this user a coordinator of the named hub? Looks up the HubMember row
- * and checks isCoordinator. Does NOT consider ADMIN / GUIDING_TEACHER —
- * callers should check role-based bypass separately, then fall back to
- * this for hub-specific coordinator authority.
+ * Is this user an ACTIVE coordinator of the named hub? Looks up the HubMember
+ * row and checks isCoordinator + status. Does NOT consider ADMIN /
+ * GUIDING_TEACHER — callers should check role-based bypass separately, then
+ * fall back to this for hub-specific coordinator authority.
+ *
+ * ACTIVE-only (session 171): every callsite is a mutation or authority gate —
+ * coverage assign/reassign/clear, sub-request management, standing rotations,
+ * Google-file lead approval (isSpaceLead) — and pause/inactive "governs
+ * capabilities and communications, not basic visibility" (RIM_Hub_Model.md).
+ * A PAUSED coordinator keeps board visibility via canAccessHubScheduler below;
+ * they just can't act with coordinator authority until reactivated. Matches
+ * the /admin/hubs edit-page precedent (isCoordinator && status === "ACTIVE").
  *
  * Added Slice 2.6 to replace inline hardcoded-hub coordinator checks
  * scattered across the standing-rotation routes.
  */
 export async function isHubCoordinator(userId: string, hubSlug: string): Promise<boolean> {
   const membership = await db.hubMember.findFirst({
-    where: { userId, hub: { slug: hubSlug }, isCoordinator: true },
+    where: { userId, hub: { slug: hubSlug }, isCoordinator: true, status: "ACTIVE" },
     select: { id: true },
   });
   return !!membership;

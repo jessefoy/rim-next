@@ -75,7 +75,7 @@ Primary-hub coverage: programs with `hostingHubSlug = hub` (host-team picks up n
 
 ## Coordinator coverage authority — the role model (sessions 142–143)
 
-A **hub coordinator** (a `HubMember` with `isCoordinator=true` on the hub — NOT necessarily holding the global HOST_MANAGER role) is a manager *for their own hub's coverage*. The rule across every coverage mutation: **`isManager(roles) || isHubCoordinator(userId, resource.hubSlug)`**, scoped to the *resource's* hub (the assignment's or rotation's `hubSlug`, server-loaded — never a body value). A coordinator of hub A cannot touch hub B's coverage.
+A **hub coordinator** (a `HubMember` with `isCoordinator=true` on the hub — NOT necessarily holding the global HOST_MANAGER role) is a manager *for their own hub's coverage*. The rule across every coverage mutation: **`isManager(roles) || isHubCoordinator(userId, resource.hubSlug)`**, scoped to the *resource's* hub (the assignment's or rotation's `hubSlug`, server-loaded — never a body value). A coordinator of hub A cannot touch hub B's coverage. **ACTIVE-only (session 171):** `isHubCoordinator` requires `status: "ACTIVE"` — a PAUSED/INACTIVE coordinator keeps board *visibility* (`canAccessHubScheduler` is deliberately status-blind) but loses coordinator *authority* until reactivated, matching `getEffectiveHostingCapability`'s ACTIVE gate on claiming and the `/admin/hubs` edit-page precedent. The Scheduler page's inline `isManager` computation carries the same filter so the UI and the route gates agree.
 
 | Coverage action | Host volunteer | Hub coordinator (own hub) | HOST_MANAGER / ADMIN |
 |---|---|---|---|

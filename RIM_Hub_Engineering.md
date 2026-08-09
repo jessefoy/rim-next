@@ -275,7 +275,7 @@ The session-129 audit found that the destructive routes (`/api/host/programs/[sl
 
 Pattern for any destructive route:
 1. Take `hubSlug` as a required body field (or derive from a resource the user explicitly identified).
-2. Gate by `isHubCoordinator(userId, hubSlug)` plus ADMIN bypass.
+2. Gate by `isHubCoordinator(userId, hubSlug)` plus ADMIN bypass. (Since session 171 the helper is ACTIVE-only — a paused coordinator has no mutation authority anywhere it gates, including `isSpaceLead` in Google Files.)
 3. Scope every `deleteMany` / `updateMany` by `hubSlug`.
 4. Update UI copy to make the hub scope plain ("Reset this team" not "Reset everything").
 
