@@ -6,91 +6,40 @@
 
 ## Active
 
-### Session 170 (2026-08-07) — ✅ The two public listing pages made one system: one hero, one card, one spine — all on `main`, deployed
+### Session 171 (2026-08-08–09) — ✅ The optimization session: doctor pass, context diet, staleness purge, ACTIVE coordinator authority — all on `main`, deployed
 
-**Shipped + live.** `/community-programs` and `/this-week` were one job done two ways; they are now built from one grammar. **10 commits on `main`, deployed, `tsc`-green.** No schema, migration, dependency, env var, cron, or email-template change — two page files and `custom.css`. Authority: **`RIM_Public_Pages.md`** (now carries the listing-page system, the two CSS traps, and the new tombstone); full narrative in `session-log.md` (session 170).
+**Shipped + live.** A whole-system hygiene pass — 9 commits + 3 closing-doc commits on `main`, every round reviewer-gated, `tsc`-green. Full narrative: `session-log.md` (session 171).
 
-**What was wrong, measured rather than read:**
-- **A live P0 on every phone** — `.lr-btn` overhung its card by exactly 44px at ≤430px (`width:100%` + 44px padding on a `content-box` control; no global border-box since `webflow.css` stopped loading). The primary action on 17 rows was clipped. Fixed at the control, so `ListRow` + `HubScheduleClient` inherit it.
-- **Three WCAG AA failures** — `/this-week` subtitle 2.80:1 and week nav 2.96:1 over its own photograph (copy column p99 **0.992**); `/community-programs` body 4.29:1. All cleared by folding both heroes onto `pp-hero`, which already carried the session-169 tiers.
-- **`/this-week` was borrowing from the member area** — built on `.lr-row`/`.lr-btn` (shared with `HubScheduleClient`) and referencing `.pl-list`, a class with **zero rules** since the session-148 rename. That is why the two pages read as different sites.
-- **Four different left edges on one page** — hero copy at 110, blocks centred at 190, interior text at 214 / 222 / 238.
-- **17 links called "Learn More."**
-- **Today ~2,360px down** on a page whose whole job is "what can I attend now."
+- **Context diet:** CLAUDE.md 278 → 212 lines (Closing Ritual + Feature Backlog became the `closing-ritual` + `backlog` skills; Sanity content gone); UP_NEXT itself 1,856 → 177 lines. Next session's opening loads ~67k fewer est. tokens.
+- **Auth fix:** `isHubCoordinator` is now **ACTIVE-only** — a paused/inactive coordinator keeps board visibility but loses all 17 mutation/authority gates (coverage, rotations, sub-requests, Google-file lead approval). Rule recorded in `RIM_Scheduler.md`, `RIM_Hub_Engineering.md`, `RIM_System_Architecture.md`, `FEATURES.md`.
+- **Staleness purge:** `RIM_Stack_Reference.md` truth pass (session-room block, LiveKit env/rows, Sanity ×4, rim-connect rows → tombstones); 330 dead session-room CSS rules + `livekit-prefabs.css` pruned; 7 spent docs + `AGENTS.md` removed; `.claude-memory/` mirror refreshed + wired into closing as step 7c; all merged branches deleted (only `main` remains, local and remote); dead WASM config out of `next.config.ts`.
+- **Email templates:** the "Sanity Studio" callout repointed to Program Manager — label, seeds, and the idempotent `repoint_email_template_sanity_note_to_program_manager` migration (runs on this deploy).
 
-**Now:** one `pp-hero` (`.pl-hero` deleted), one card (`.pl-card` + a leading-time `.pl-card--time` matching the Scheduler's occurrence-first grammar), **one left edge at every width**, rows running the full container, cadence **96 / 36 / 24** (72 / 28 / 20 on phones), today marked and jumpable, descriptive per-row link names, and program names as real headings.
+**OPEN — Jesse's dashboard chores (none blocking):**
+1. **Vercel build log** — confirm the deploy is green and shows the sanityNote migration's per-template `repointed` lines.
+2. **`/plugin` in the Claude app** — confirm the 5 disabled plugins (productivity, marketing, small-business, cowork-plugin-management, the custom `plugin_01Eeb…`) actually show disabled.
+3. **Vercel env** — remove any lingering `LIVEKIT_*` / `SANITY_*` vars (nothing reads them).
+4. **Sanity** — project `xxgvfpjf` + the Studio can be deleted when ready (export the dataset first if any legacy content matters).
 
-**Jesse's calls this session, recorded so they are not re-litigated:**
-- **"Always push to `main`."** This **supersedes** the session-148 preview-branch rule for new compositional elements. `RIM_Public_Pages.md` → "Process" and the `feedback-preview-before-production` memory were both rewritten. Work a `claude/*` branch for the gates if useful, then fast-forward and delete it **in the same turn**.
-- **The orientation notice is tombstoned.** A `.pp-notice` panel above the listings was built and removed the same session. Its `h2` de-duplication was kept.
-- **"Good first visit" is gone** — it was a hardcoded `Set` of two slugs in the page file, never a `Program` field. Any future badge comes from data editable in Program Manager or it does not ship.
-- **The membership block speaks dana, not "free."** Rewritten via `/how-jesse-writes` from the home + donate language, "dana" named after the giving is described, linked to `/donate#dana-at-rim`.
-- **Rows run the full container width** — the 900px cap and its `--pp-column` token were removed.
+**NEXT concrete step:** unchanged from session 170 — **dated events** (backlog `2026-08-07-008`): a retreat renders identically to a weekly drop-in with no date; for one-time events the date is the decision criterion and should lead the card. (The chapter-eyebrow alternative is tombstoned, s148.)
 
-**⚠️ ONE THING FOR JESSE — a data fix only he can make (backlog `2026-08-07-011`).** Awakening The Heart and The Art of Meditation both render **"9:30 AM–10:30 PM CT"** on the live site. The end time is stored at 22:30 instead of 10:30. Program Manager; production Neon is unreachable from a dev machine.
-
-**NEXT — the strongest remaining move (backlog `2026-08-07-008`): dated events.** A retreat currently renders identically to a weekly drop-in, with no date. For a one-time event the date *is* the decision criterion, and it should lead the card the way time leads a `/this-week` row. This is real information hierarchy rather than decoration, which matters because the obvious alternative — chapter eyebrows to differentiate the four category groups — is **tombstoned** (session 148: a sparse version of a rich pattern reads as cheap), and the four categories are genuinely peer content anyway.
-
-**Also queued:** nav/footer touch targets under 44px (`2026-08-07-009`); consolidate the three visually-hidden utilities (`2026-08-07-010`); `.pl-cat` still has no `id` anchors, which still blocks the home-page category doors (`2026-08-07-001`); volunteer + the three Kalyana Mitta pages still unmeasured against the live rendering (`2026-08-07-002`); the Webflow redirect map (`2026-08-07-003`) remains the last thing standing between Jesse and cancelling Webflow.
-
-**Two reflexes worth carrying (both cost time this session):**
-1. **Measure glyph extents, not element boxes.** Sampling boxes reported the hero eyebrow at 3.76:1 and nearly triggered a gradient change that would have over-darkened the photograph for nothing; on real glyph extents it is 8.08:1.
-2. **`pp-` is declared ~26,000 lines after `pl-`**, so an equal-specificity `pl-` override loses on source order — it silently swallowed a `max-width` and a `margin` before a doubled selector fixed it.
-
-**Ops:** one deploy sat ~15 minutes without reaching production (norm ~40s). `npx next build`, a postcss parse, and a cache-busted `x-vercel-cache: MISS` proved the code was fine; an empty retrigger commit shipped in 40s. A deploy that does not land gets diagnosed before it is explained, and is never reported as shipped.
+**Queued decisions for Jesse (from this session):** `2026-08-08-005` — should `effectiveCoordinator` (content-layer: trash, moderation, member management) also require ACTIVE status? Policy call, not a missing filter.
 
 ## Prior handoff reference
 
-### Session 166 (2026-07-16) — ✅ Google Files fine-tuning: file detail page + Community retired + governed deletion + Basecamp notifications — all on `main`, deployed
+### Session 170 (2026-08-07) — ✅ The two public listing pages made one system — deployed
 
-A co-created refinement pass on the Google file system. **11 feature commits on `main`, deployed, `tsc`-green + reviewer-gated each.** Authority: `RIM_GoogleWorkspace.md`.
+`/community-programs` + `/this-week` now share one grammar: one `pp-hero`, one card (`.pl-card` / `.pl-card--time`), one left edge, cadence 96/36/24, today marked and jumpable. Fixed in passing: the 44px `.lr-btn` phone overflow (P0), three WCAG AA hero failures, 17 "Learn More" links. Authority: `RIM_Public_Pages.md`; full narrative in `session-log.md` (s170).
 
-**Shipped + live:**
-- **File detail page (3 slices).** `GoogleFileMeta` (sparse, loose-keyed) → **creator attribution** (backfilled from the audit log) + **draft/"held" state** (opt-out; RIM-created docs born held; "Your drafts" + Share). A **universal detail page** `/account/files/[fileId]` every file opens into, with **fidelity-aware rendering** (Google `/preview` iframe for shared docs — mints a reader link; RIM export for drafts; native embed for PDF/image/audio). A **conversation per file** (`FileComment`, plain-text + 5-emoji reactions, leads moderate).
-- **Community Space retired — Phase 1.** The open, ownerless commons removed (it fit nothing in the governance model). Dropped the `openToAllMembers` primitive from code + the `canAccessHub` param + all call-sites; removed the Google-files Community place; deleted the seeded hub (`retire_community_space_v1`). **Phase 2 = drop the `openToAllMembers` column** (backlog `2026-07-16-001`, two-phase).
-- **Governed deletion.** Remove → **Pending removal** (a member proposes) → a **Space lead** (coordinator/GT/ADMIN, via `isSpaceLead`) approves (→ Google's 30-day trash) or keeps; the requester can cancel. `GoogleFileMeta.pendingDeleteAt/ById` (`google_file_pending_delete_v1`); `GET /api/files/pending` + review sections.
-- **Basecamp notifications.** Default **No one**, per-post, email-first. Two new gated templates `file-shared` + `file-comment` (seeded create-if-absent, "Files & Documents" group in `/admin/emails`). `NotifyPicker` (No one / Everyone / Choose people) in the comment compose + a "Notify the Space" detail action.
-- **Cleanups.** Restored the `box-sizing: border-box` reset for form controls (webflow.css no longer loaded → the recurring "field overhangs its card" bug); honest "no longer available" 404 for files deleted directly in Drive; a daily `sweep-orphan-file-data` cron (7th) clearing RIM rows for permanently-gone files (trashed/transient left alone; audit log never swept).
+**Still open from s170:**
+- **⚠️ Data fix only Jesse can make (`2026-08-07-011`):** Awakening The Heart + The Art of Meditation show "9:30 AM–10:30 PM CT" — end time stored as 22:30 instead of 10:30. Fix in Program Manager.
+- Jesse's standing calls: **always push to `main`** (supersedes the s148 preview-branch rule); the orientation notice + "Good first visit" are tombstoned; membership block speaks dana.
+- Queued: nav/footer touch targets (`2026-08-07-009`); consolidate visually-hidden utilities (`-010`); `.pl-cat` id anchors for home-page category doors (`-001`); volunteer + Kalyana Mitta pages unmeasured (`-002`); the Webflow redirect map (`-003`) is the last thing between Jesse and cancelling Webflow.
 
-**OPEN — prod verification (Jesse; none blocking):**
-1. Deploy log shows `google_file_meta_v1` (+ "backfilled N"), `google_file_pending_delete_v1`, `retire_community_space_v1`, and the two `file-*` template seed lines.
-2. **`/admin/emails`** — `file-shared` + `file-comment` appear under **Files & Documents**, editable.
-3. Create a doc → lands in **Your drafts** (only you) → **Share with the Space** → teammate sees it. Open a shared Google Doc → renders with formatting; a PDF/image opens inline.
-4. A file shows **Created by** (real names via backfill); **Change** re-attributes; a directly-dropped file reads "Added directly in Google Drive."
-5. **Remove** a file → it moves to **Pending removal**; a lead **Approves** (gone) or **Keeps** it; the requester can **Cancel**.
-6. Comment + **"Notify the Space"** → only the picked people get an email.
-7. **Community** gone from the members' rail; other Spaces' **Files** open normally.
-
-**NEXT (deferred, non-blocking):** Phase 2 column drop (`2026-07-16-001`); in-app notification inbox (deferred by design); cross-Space sharing (`2026-07-15-001`); two low review notes (notify picker over-offers paused members; /notify write-gate asymmetry). The "RIM — Community" Google Drive still exists in Google — Jesse's to delete/repurpose there.
-
-### Session 165 (2026-07-16) — ✅ Google Files reshape finished + cutover complete; Mind Maps removed; native Documents retired — all on `main`
-
-**The Google Workspace Files arc is DONE.** RIM's document & file system is now Google, per-Space. 13 commits on `main`, deployed, `tsc`-green; the big removals were inventoried (Explore) + two-phase. Authority: `RIM_GoogleWorkspace.md` (now as-built through cutover).
-
-**Shipped + live:**
-- **Mind Maps removed entirely** (`afdf5a6` + `56eaf35`, two-phase) — code, schema, `@xyflow/react`, ~140 `.mm-` CSS rules, nav, the `mindmap-topic-comment` email; orphaned topic threads cleaned up. **css-prune hazard fixed** (`sic-`/`sg-` removed from `DEAD_PREFIXES` — they'd become live again).
-- **Community Space** (`2a0cbc5` + `46a225d`) — `Hub.openToAllMembers` primitive + `Hub.conversationsEnabled` toggle; Community seeded **Files-only**, Conversations turn-on-able in `/admin/hubs`; `canAccessHub(…, openToAll)` threaded only at participation gates (roster/admin fail-closed).
-- **Files universal** (`ea93749`) — "Set up files for all teams" on `/admin/hubs` (`provision-all`); Jesse ran it, all hubs Files-ready. New hubs auto-provision on create (s164).
-- **Upload poll fix** (`cd044ab`) — FilesBrowser polls until the Blob→Drive transfer lands (no manual refresh).
-- **Global finder retired** (`6ea16cb`) — `/account/files` → redirect; rail "Files" link gone; files live only per-Space. Doc reader `/account/files/doc/[id]` kept.
-- **Native docs migrated** (`0818a02` dry-run + `a0f7292` write) — 38 active native docs → Google Docs (`importHtmlAsDoc`), idempotent via `migratedGoogleFileId`; Jesse migrated all + verified fidelity.
-- **Native Documents retired** (`a2a6e56` P1 + `519e7ed` P2, two-phase) — 30 files / ~5,760 lines removed; Activity/hub-home/Trash/Conversations stripped of their doc half; schema models/enums/`documentId`/`documentCategories` dropped; redirects added. **Kept:** RimTiptapEditor, renderers, `relativeDate`, `HubConversationThread`, `HubDocNotifyPanel`.
-
-**OPEN — verify on prod (Jesse; none blocking):** confirm the final deploy is green and (a) hub Conversations still open + post; (b) a hub's old `…/documents` URL redirects to its Files tab; (c) Community shows Files, and flipping **Conversations enabled** in its hub settings surfaces the board.
-
-**NEXT (housekeeping, non-blocking):**
-1. **Prune orphaned `doc-`/`hub-doc-` CSS** — careful pass (`hub-doc-notify` is shared with Conversations; use `css-prune` scoped, verify no live class).
-2. Deferred: cross-Space file sharing (backlog `2026-07-15-001`); the literal `Hub`→`Space` code rename; the GT self-serve "create a Space" entry point.
-
-### Session 162 (2026-07-13) — ✅ Public Program refinement + authenticated design unification live on `main`
-
-**Built and live:** Pampas/Mine Shaft/white foundation + `/style-guide`; refined public Program template and required-quote contract; linked teacher portraits with Member Registry upload; clearer Zoom-entry language; rebuilt Today hierarchy; unified personal, hub, admin, and tool shells/styles; dedicated `RIM_ProgramEditor.md` and `RIM_CourseEditor.md` references. Fifteen implementation commits through `9eae63a`; no schema/dependency/env/permission/email-template change.
-
-**Open / being tested:** authenticated visual QA depends on Jesse's signed-in production review. The code/type/CSS gates passed, but the automated browser could not inspect private routes. Review one representative desktop + phone page from each family: personal destination, hub, admin, Program Manager, Course Manager, Scheduler.
-
-**Next concrete step:** collect any page-specific screenshot issues from that representative review and make a small focused correction pass. Do not begin another global styling layer unless the issue is truly shared.
-
-**Queued follow-ons:** hardcoded old-teal sweep (`2026-06-13-001`); public home-page section rhythm (`2026-06-13-002`); public course-landing parity (`2026-06-13-003`); native Documents and Mind Maps production edge-case verification from sessions 160–161.
+**Still open from earlier sessions (verification, none blocking):**
+- **s166 (Google Files fine-tuning):** prod walk-through — drafts→Share flow, creator attribution, governed deletion (Remove → lead Approves/Keeps), "Notify the Space" emails, `file-shared`/`file-comment` templates visible in `/admin/emails`. The "RIM — Community" Drive folder is Jesse's to delete in Google.
+- **s165 (cutover):** old `…/documents` URLs redirect to Files; Community's Conversations toggle works.
+- **s162 (authenticated design unification):** signed-in visual QA of one representative desktop + phone page per family (personal, hub, admin, Program Manager, Course Manager, Scheduler).
 
 ## Recently completed / reference
 

@@ -1,5 +1,48 @@
 ---
 
+## 2026-08-08–09 (session 171) — The optimization session: doctor pass, context diet, staleness purge, ACTIVE coordinator authority
+
+A whole-system hygiene session, started by a Claude Code `/doctor` health check and widened by Jesse's directive: *"I think a more optimized system is better… make sure we're not breaking any of the integrity."* Everything below shipped to `main` across 9 commits, each round reviewer-gated with no blockers, `tsc`-green throughout.
+
+### Context diet — what every future session stops paying for
+
+- **CLAUDE.md 278 → 212 lines.** The Closing Ritual and Feature Backlog sections became project skills (`.claude/skills/closing-ritual/`, `.claude/skills/backlog/`) with one-line dispatch stubs — the full text now loads only when invoked. The design-token enumeration became a pointer to the tokens' real home in `custom.css` (the copy had already drifted from the CSS once). All Sanity content removed — see the staleness purge below. `.gitignore` gained allowlist entries so the two skills are tracked (CLAUDE.md is committed and dispatches to them by name; untracked skills would strand every other checkout).
+- **UP_NEXT.md 1,856 → 177 lines (~62k → ~5.5k est. tokens).** The "Recently completed / reference" section had accreted 47 sessions of narrative back to s118, all duplicated in `session-log.md` — verified per-session before cutting. Replaced with a landmarks block. The keep-it-lean rule now lives in the closing-ritual skill (step 6) so it can't silently re-accrete.
+- **Claude-side:** 9 never-used higgsfield skills disabled, 5 unused desktop-app plugins disabled, auto permission mode set as default, the Homebrew CLI upgraded 2.1.49 → 2.1.220.
+
+### Staleness purge — the docs stop lying
+
+- **Sanity is *fully* gone and now the docs say so.** Investigation found no `@sanity` deps and no `lib/sanity.ts` / `lib/queries.ts` — more retired than even memory claimed. Removed from CLAUDE.md (stack bullet, GROQ rules section, Key Files) and from four regions of `RIM_Stack_Reference.md` (links row, CMS row, env section, Studio/GROQ section). The one surviving rule — program slugs are `HostAssignment` join keys, permanent once assignments exist — was already in CLAUDE.md's Do Not.
+- **The email-template "Sanity Studio" callout repointed to the Program Manager** — label in `EmailTemplateEditor.tsx`, seed strings, and a surgical idempotent migration (`repoint_email_template_sanity_note_to_program_manager`) that replaces only the product name inside `sanityNote` rows so any customized wording survives. Column rename queued as backlog `2026-08-08-001`.
+- **`RIM_Stack_Reference.md` truth pass:** the 78-line retired session-room block, the self-hosted-droplet bullet, LiveKit env vars, cost/service rows, and the removed `rim-connect.js` Webflow-bridge rows all tombstoned; the live content embedded among them (Stripe build hardening, Editor standard, SlugField, Open Access) kept and re-verified against code. `next.config.ts` lost the webpack WASM experiments that existed only for the retired blur processor (zero WASM usage or deps remain). Verified before touching the Webflow links row that the live domain still serves `x-wf-region` — Webflow genuinely still hosts the public site.
+- **Session-room CSS fully pruned:** three `css-prune.mjs` passes over **19 verified-dead prefixes** (rim-tile, rim-cb, rim-pp, gr-, vs-, rim-settings, the banners/prompts, …) — 330 dead rules + the orphaned comment region + the `rim-signal-pop` keyframe; `custom.css` 29,839 → 27,761 lines. `livekit-prefabs.css` (22.5KB vendored build, linked from nothing) deleted. Reviewer confirmed all removed rules dead-rooted with no comma-grouped live selectors; the live `sic-` sign-in styles verified intact.
+- **Repo hygiene:** 7 spent working docs removed (4 April prompt/spec one-offs, the wrong-direction LiveKit-era `TRAINING_PLAN.md` + `HOSTING_HUB_READINESS.md`, and `AGENTS.md` — Codex is out of the workflow). The deliberately tombstoned docs untouched. `.claude-memory/` refreshed from a 4-month-stale snapshot to a current 48-file mirror; `PROJECT-BACKUP-AND-RESTORE.md` updated to the Zoom + Google stack; the rim-website backup dropped with that retired project. All merged branches deleted — 10 local + 15 remote; `origin/main` is now the only branch. The stranded `globals.css` removal commit (a dormant `* { box-sizing: border-box }` + Arial trap) merged; both stale worktrees removed (43MB).
+
+### The real bug: paused coordinators kept full authority
+
+Triaging a stranded worktree's uncommitted diff (an ACTIVE-membership fix for the since-retired Documents system) prompted a pattern audit: `lib/hubAuth.ts::isHubCoordinator` had **no status filter**, so a PAUSED/INACTIVE coordinator retained every coverage mutation — and the class was bigger than first scoped: **17 callsites, not 6**, including `isSpaceLead` in `lib/googleFiles.ts` (a paused coordinator could approve file deletions). Fixed at the choke point: the helper now requires `status: "ACTIVE"`; the Scheduler page's inline `isManager` check carries the same filter so UI and route gates agree. All 17 callsites individually verified (plus adversarially reviewed) as mutation/authority gates — visibility paths (`canAccessHubScheduler`, standing-assignment reads) deliberately untouched, so a paused member still sees their team's board. Matches the existing ACTIVE gates in `getEffectiveHostingCapability` and the `/admin/hubs` edit page. One deliberate nuance: `isSpaceLead` also scopes the pending-removals *list*, so a paused coordinator's review queue narrows to their own requests. The content-layer twin (`effectiveCoordinator` — trash, moderation, member management) was **deliberately not changed**: that's a policy call, recorded as backlog `2026-08-08-005`.
+
+### Design decisions and why
+
+- **Rituals became skills, but the Session Opening stayed in CLAUDE.md** — a lazily-loaded skill might not be in context at the moment the opening ritual must fire; always-loaded earns its cost exactly there.
+- **Backlog categories renamed** (`Programs & Sanity` → `Programs`, `LiveKit / Session Room` → `Sessions & Zoom`); 8 LiveKit-room feature requests marked `rejected` with a session-159 note rather than deleted — history stays queryable. Two pre-existing duplicate ids renumbered.
+- **Landmarks, not a second log** — UP_NEXT's job is orientation; `session-log.md` is the archive. Codified in the skill.
+
+### What this connects to
+
+- `lib/hubAuth.ts` gates the Scheduler (`/tools/schedule`), all `/api/host/*` coverage + standing-assignment routes, and Google Files lead authority (`isSpaceLead` → governed deletion, `canManageFileMeta`) — the ACTIVE rule now applies across all of them. Docs updated: `RIM_Scheduler.md`, `RIM_Hub_Engineering.md`, `RIM_System_Architecture.md`, `FEATURES.md`.
+- The sanityNote migration runs on deploy and touches the managed EmailTemplate rows' editor callout at `/admin/emails/[slug]`.
+- The closing-ritual + backlog skills are now the operative form of two CLAUDE.md contracts; the memory-backup mirror (`.claude-memory/`) is wired into closing as step 7c.
+- Memory corrected: `livekit-self-hosted` now records the s161 droplet destruction (it had claimed the droplet lived on hosting OnlyOffice).
+
+### What comes next
+
+- **Jesse's dashboard chores:** verify the 5 plugins show disabled in `/plugin`; remove lingering `LIVEKIT_*` / `SANITY_*` Vercel env vars; delete Sanity project `xxgvfpjf` when ready (export first if anything's worth keeping).
+- **Deploy check:** the sanityNote migration's per-template log lines in the Vercel build output.
+- **Backlog:** `2026-08-08-001` (sanityNote column rename), `-004` (drop the orphaned `SessionChatMessage` table), `-005` (the `effectiveCoordinator` status policy question — Jesse's call).
+
+---
+
 ## 2026-08-07 (session 170) — The two public listing pages made one system: one hero, one card, one spine
 
 Jesse opened with a ChatGPT critique of `/community-programs` and `/this-week` and asked for my own read plus an `/impeccable` run. The session ended with both pages on a single grammar, four defects fixed that neither the critique nor a code reading had found, and the membership block rewritten in RIM's own dana language. **10 commits, all on `main`, deployed, `tsc`-green.** Authority: `RIM_Public_Pages.md`. No schema, migration, dependency, env var, cron, or email-template change.

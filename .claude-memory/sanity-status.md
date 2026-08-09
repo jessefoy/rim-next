@@ -1,29 +1,29 @@
 ---
-name: Sanity is on its way out (don't propose it)
-description: Sanity CMS is no longer the source of truth for any active feature; remaining code references are residue, not load-bearing — do not propose Sanity for any new work
-type: project
-originSessionId: c5ca4e7f-fe43-42bf-b0ff-ec66825a0001
+name: sanity-status
+description: "Sanity is FULLY retired (verified session 171, 2026-08-09): no @sanity deps, no lib/sanity.ts / lib/queries.ts, no code reads it. Don't propose it; all content lives in Postgres. Remaining: dashboard teardown ops (backlog 2026-08-09-001) + the vestigial sanityNote column rename (2026-08-08-001)."
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 4191d0e2-2a15-4ac6-b38f-562c72d6ecc2
+  modified: 2026-08-09T15:42:48.003Z
 ---
-**Sanity is effectively retired.** It is not the source of truth for any feature Jesse actively uses, and no new work should depend on it. Don't propose Sanity Studio links in nav/sidebar UI, don't suggest moving content to Sanity, don't add new GROQ queries.
 
-**Why:** The April 2026 Webflow + RIM Next hybrid was reversed in May 2026 (per the SUPERSEDED header on `RIM_Architecture_Directive.md`). Programs, courses, and lessons were migrated to Postgres back in earlier sessions. The remaining public-facing content types that historically came from Sanity (glossary, volunteer-positions, teams, magazine articles) are no longer being maintained there. `CLEANUP.md` item #56 lists the Sanity schemas as "future-removable" once dataset documents are confirmed unused.
+**Sanity is fully retired — verified in code, session 171 (2026-08-09).**
+`package.json` has no `@sanity/*` or `next-sanity` dependencies; `lib/sanity.ts`
+and `lib/queries.ts` do not exist; repo-wide grep finds no live reads. (An
+earlier version of this memory claimed residue in those files and two public
+routes — that was true once, but the removal outpaced the note.) All content —
+programs, courses, lessons, teams, glossary — lives in Postgres.
 
-**Code-level residue that still references Sanity (do NOT treat these as authoritative — they're slated for removal):**
-- `lib/sanity.ts` — the Sanity client singleton
-- `lib/queries.ts` — GROQ queries
-- `app/glossary/[slug]/page.tsx` — public glossary page, still calls Sanity
-- `app/volunteer-positions/[slug]/page.tsx` — public volunteer-positions page, still calls Sanity
-- `app/api/admin/courses/route.ts` — has a stale "Phase 2" comment about fetching program names from Sanity (programs are in Postgres now)
-- `@sanity/client`, `@portabletext/react`, `@portabletext/to-html` in `package.json`
-- `lib/email.ts` + `lib/dateLabel.ts` comments referencing Sanity fields (the code itself reads Postgres `Program.*` fields; only the comments are stale)
-- `lib/portableTextEmail.ts` — Portable Text → markdown converter still imported by `lib/email.ts` for `reminderMessage`
-- `components/MemberGate.tsx` — uses `PortableText`
-- `EmailTemplate.sanityNote` field + `EmailTemplateEditor` UI panel that surfaces it
+What remains, tracked in the repo:
+- **Dashboard ops** (backlog `2026-08-09-001`): remove `SANITY_*` Vercel env
+  vars; export + delete project `xxgvfpjf` and the Studio — Jesse's call, his
+  dashboards.
+- **The `EmailTemplate.sanityNote` column** is vestigial-named (the callout it
+  holds now points at the Program Manager — session 171 migration); rename is
+  backlog `2026-08-08-001`.
 
-**How to apply:**
-- When asked to add a link, page, or content source, never reach for Sanity — pick Postgres or an existing RIM Next surface.
-- When you encounter Sanity code while doing other work, flag it (don't silently leave it) but don't expand scope to remove it unless Jesse asks for a Sanity-cleanup session.
-- If Jesse asks "why is X still wired to Sanity?", the honest answer is the migration is incomplete — not that Sanity is still in use.
-- For comments in `lib/email.ts` / `lib/dateLabel.ts` that say "from Sanity": the code reads Postgres now; only the comments are stale.
-
-**Adjacent fact:** Sanity Studio at `rooted-in-mindfulness.sanity.studio` still loads, but Jesse doesn't use it. Don't surface a link to it in any nav or admin UI.
+**How to apply:** never propose Sanity for new work; treat any doc or comment
+presenting it as live as staleness to fix (CLAUDE.md and
+`RIM_Stack_Reference.md` were both purged session 171). Authority for what the
+stack IS: `RIM_Stack_Reference.md`. Relates to [[project-architecture-pivot]].

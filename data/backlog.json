@@ -1,5 +1,15 @@
 [
   {
+    "id": "2026-08-09-001",
+    "title": "Ops: finish the LiveKit/Sanity teardown outside the repo",
+    "description": "The code and docs are clean (session 171); three teardown steps live in dashboards only Jesse can reach: (1) Vercel \u2014 remove any lingering LIVEKIT_API_KEY / LIVEKIT_API_SECRET / NEXT_PUBLIC_LIVEKIT_URL and NEXT_PUBLIC_SANITY_PROJECT_ID / NEXT_PUBLIC_SANITY_DATASET / SANITY_API_TOKEN env vars (nothing reads them \u2014 verified by grep); also the long-flagged GMAIL_* vars from the removed Support Inbox. (2) Sanity \u2014 export the xxgvfpjf dataset if any legacy content is worth keeping, then delete the project + Studio. (3) Claude desktop app \u2014 confirm in /plugin that the 5 disabled plugins actually show disabled.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-08-09",
+    "notes": "Tracked here so it survives UP_NEXT rotation. All three are reversible-safe: env vars are re-addable, the Sanity export guards the delete."
+  },
+  {
     "id": "2026-08-08-004",
     "title": "Drop the orphaned SessionChatMessage model + session_chat_messages table",
     "description": "The session-159 Zoom cutover removed the in-browser room and its chat, but the SessionChatMessage model (prisma/schema.prisma, @@map session_chat_messages) survived with orphaned rows nobody reads or writes. Retire it the way retire_onlyoffice_v1 did: a migration that drops the table, plus the schema model removal, in one deploy. Verify first that no raw SQL or adapter references the table (the pattern-audit lesson: greps miss Prisma includes / raw SQL).",
