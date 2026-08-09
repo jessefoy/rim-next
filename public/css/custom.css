@@ -28112,3 +28112,39 @@ a.pp-card:hover .pp-card__action {
   max-width: 100%;
 }
 .vol-table-wrap { border-radius: 12px; }
+
+/* ── Layout containers are border-box (session 172, user-reported) ──
+   There is no global border-box in this app (webflow.css no longer loads),
+   so `width: 100%` plus horizontal padding makes a container wider than its
+   parent by exactly the padding — and everything inside clips at the window
+   edge. The s170 .lr-btn trap, found again on the two backend layout
+   containers: every hub destination and every tool page was cut off on the
+   right at half-screen widths by its own padding. */
+.hub-ws-content,
+.tools-content {
+  box-sizing: border-box;
+}
+
+/* The same trap, every remaining live instance — a deterministic sweep of
+   all 98 backend `width: 100%` rules found exactly these 16 with horizontal
+   padding and no border-box (everything else is rescued by flex-shrink, a
+   later padding override, or a scroll wrapper). The worst was .adm2-content:
+   the whole admin member record clipped at the window edge below 720px. */
+.adm2-content,
+.hs-rot__form,
+.hs-rot__end-confirm,
+.hs-rot__release-panel,
+.hs-rot__end-date-section,
+.pe-option-card,
+.vol-confirm-btn,
+.hub-welcome__btn,
+.ac-sidebar__group-toggle,
+.hub-act__view-option,
+.hh-search__result,
+.hub-mem-search-result,
+.pe-teacher-result,
+.th-teacher-result,
+.th-lessons__result,
+.adm-table__sort-btn {
+  box-sizing: border-box;
+}
