@@ -23270,15 +23270,17 @@ input.w-button { -webkit-appearance: button; }
 .member-bar__brand img { height: 36px; }
 .member-bar__right { gap: 20px; }
 .member-bar__profile,
-.member-bar__sign-out {
+.member-bar__sign-out,
+.member-bar__site-link {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   color: var(--rim-text-muted);
   font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font-size: var(--text-small);
   text-decoration: none;
 }
+.member-bar__site-link:hover { color: var(--rim-blue); }
 .member-bar__profile {
   gap: 8px;
   color: var(--rim-text);
@@ -23312,7 +23314,11 @@ input.w-button { -webkit-appearance: button; }
   padding-right: 8px;
   padding-left: 8px;
 }
-.ac-sidebar__toggle { width: 44px; height: 44px; }
+/* Expanded, the collapse control sits on the edge it collapses toward —
+   centered it floated in the middle of the rail, attached to nothing.
+   Collapsed, centering is the whole rail's alignment, so it returns. */
+.ac-sidebar__toggle { width: 44px; height: 44px; margin: 0 0 14px auto; }
+.ac-sidebar--collapsed .ac-sidebar__toggle { margin: 0 auto 14px; }
 .ac-sidebar--collapsed .ac-sidebar__section-label { display: none; }
 .ac-sidebar--collapsed .ac-sidebar__divider { margin-right: 6px; margin-left: 6px; }
 .ac-sidebar--collapsed .ac-sidebar__chevron { display: none; }
@@ -23343,7 +23349,7 @@ input.w-button { -webkit-appearance: button; }
   padding: 10px 12px;
   border-radius: 8px;
   color: var(--rim-text-muted);
-  font-size: var(--text-ui);
+  font-size: var(--text-small);
   font-weight: 400;
 }
 .ac-sidebar__link:hover,
@@ -23361,8 +23367,20 @@ input.w-button { -webkit-appearance: button; }
 .ac-sidebar__chevron { margin-left: auto; }
 .ac-sidebar__link--nested {
   padding-left: 42px;
-  font-size: var(--text-xs);
+  font-size: var(--text-ui);
   align-items: flex-start;
+}
+/* The shell's keyboard path was invisible — no interactive element in the
+   member header or rail had a focus style. Matches .pl-card:focus-visible. */
+.ac-sidebar__link:focus-visible,
+.ac-sidebar__group-toggle:focus-visible,
+.ac-sidebar__toggle:focus-visible,
+.member-bar__brand:focus-visible,
+.member-bar__profile:focus-visible,
+.member-bar__site-link:focus-visible,
+.member-bar__sign-out:focus-visible {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: 2px;
 }
 .ac-sidebar__link--nested .ac-sidebar__label {
   min-width: 0;
@@ -23552,10 +23570,19 @@ input.w-button { -webkit-appearance: button; }
 
 @media (max-width: 700px) {
   .member-bar { height: 60px; padding: 0 16px; }
-  .member-bar__brand { font-size: var(--text-xs); }
+  .member-bar__brand { font-size: var(--text-small); }
   .member-bar__brand img { height: 30px; }
+  /* The 60px bar keeps all three right-side affordances at every width by
+     shedding the wordmark and the profile name — the logo and the avatar
+     carry those identities alone on phones. "Main site" must stay in the
+     bar: tool and hub pages have no account rail to move it into. */
+  .member-bar__brand span { display: none; }
+  .member-bar__profile-name { display: none; }
+  .member-bar__right { gap: 14px; }
   .ac-layout { min-height: calc(100vh - 60px); }
   .ac-sidebar { height: auto; padding: 0; }
+  .ac-sidebar__link,
+  .ac-sidebar__group-toggle { font-size: var(--text-ui); }
   .ac-sidebar--collapsed .ac-sidebar__label {
     width: auto;
     overflow: visible;

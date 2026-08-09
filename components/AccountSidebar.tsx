@@ -52,7 +52,9 @@ interface NavLink {
 }
 
 const MEMBER_LINKS: NavLink[] = [
-  { label: "Home",             href: "/account/dashboard",            icon: Home          },
+  // "My Home", not "Home" — the member-bar now carries a "Main site" link, so
+  // an unqualified "Home" would read as the public home page.
+  { label: "My Home",          href: "/account/dashboard",            icon: Home          },
   { label: "My Registrations", href: "/account/programs",             icon: CalendarCheck },
   { label: "Library",          href: "/account/courses",              icon: BookOpen      },
   { label: "My Profile",       href: "/account/dashboard-my-profile", icon: UserCircle    },

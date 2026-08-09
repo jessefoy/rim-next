@@ -9,7 +9,6 @@ export default function Nav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const isLoggedIn = !!session;
-  const isAdmin = session?.user?.roles?.includes("ADMIN") ?? false;
   const isSessionArea = pathname?.startsWith("/session") ?? false;
   const isAccountArea = pathname?.startsWith("/account") ?? false;
   const isMemberArea =
@@ -57,11 +56,22 @@ export default function Nav() {
           <span>Rooted In Mindfulness</span>
         </Link>
         <div className="member-bar__right">
-          <Link href="/account/dashboard-my-profile" className="member-bar__profile">
+          {/* The one path back to the public site, on every member/admin/tool
+              surface at every viewport — tool and hub pages render this bar
+              without the account rail, so the link must live here. On phones
+              the bar makes room by dropping the wordmark and profile name. */}
+          <Link href="/" className="member-bar__site-link">
+            Main site
+          </Link>
+          <Link
+            href="/account/dashboard-my-profile"
+            className="member-bar__profile"
+            aria-label={`${firstName} — my profile`}
+          >
             <span className="member-bar__avatar" aria-hidden="true">
               {firstName.charAt(0).toUpperCase()}
             </span>
-            <span>{firstName}</span>
+            <span className="member-bar__profile-name">{firstName}</span>
           </Link>
           <button onClick={() => signOut({ callbackUrl: "/" })} className="member-bar__sign-out">
             Sign out
@@ -85,47 +95,9 @@ export default function Nav() {
         </Link>
 
         {/* ── Desktop nav ───────────────────────────────── */}
+        {/* Public only: member/admin/tool routes return the member-bar above,
+            so this nav never renders there. */}
         <nav className="nav__desktop" aria-label="Main navigation">
-          {isMemberArea ? (
-            /* Member area desktop: minimal. Sidebar is the authoritative left rail —
-               top nav is intentionally light. Programs dropdown stays because
-               members regularly browse it; Courses/Teachers reached via sidebar. */
-            <>
-              <Link
-                href="/account/dashboard"
-                className={`nav__link${isActive("/account/dashboard")}`}
-              >
-                My Home
-              </Link>
-              <div className="nav__dropdown">
-                <button className="nav__dropdown-toggle">
-                  Programs
-                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                </button>
-                <div className="nav__dropdown-panel">
-                  <div className="nav__dropdown-panel-inner">
-                    <Link href="/community-programs" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">All Programs</div>
-                      <div className="nav__dropdown-desc">Drop-ins, courses, and community groups</div>
-                    </Link>
-                    <Link href="/this-week" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
-                      <div className="nav__dropdown-desc">What&apos;s happening day by day</div>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="nav__link"
-              >
-                Sign Out
-              </button>
-            </>
-          ) : (
-            /* Public desktop nav */
-            <>
               <div className="nav__dropdown">
                 <button className="nav__dropdown-toggle">
                   Programs
@@ -210,8 +182,6 @@ export default function Nav() {
                   </div>
                 </div>
               </div>
-            </>
-          )}
         </nav>
 
         {/* Donate CTA */}
@@ -230,35 +200,10 @@ export default function Nav() {
         </button>
       </div>
 
-      {/* ── Mobile nav ────────────────────────────────── */}
+      {/* ── Mobile nav — public only; member/admin/tool routes return the
+             member-bar above and never reach this. ─────── */}
       {menuOpen && (
         <nav className="nav__mobile" aria-label="Mobile navigation">
-          {isMemberArea ? (
-            <>
-              <Link
-                href="/account/dashboard"
-                className={`nav__mobile-link${isActive("/account/dashboard")}`}
-              >
-                My Home
-              </Link>
-              <Link href="/community-programs" className="nav__mobile-link">
-                All Programs
-              </Link>
-              <Link href="/this-week" className={`nav__mobile-link${isActive("/this-week")}`}>
-                This Week&apos;s Schedule
-              </Link>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="nav__mobile-link"
-              >
-                Sign Out
-              </button>
-              <Link href="/donate" className="nav__mobile-donate">
-                Donate Today
-              </Link>
-            </>
-          ) : (
-            <>
               {!isLoggedIn && (
                 <Link href="/join" className="nav__mobile-link">
                   Become a Member
@@ -309,8 +254,6 @@ export default function Nav() {
               <Link href="/donate" className="nav__mobile-donate">
                 Donate Today
               </Link>
-            </>
-          )}
         </nav>
       )}
     </header>
