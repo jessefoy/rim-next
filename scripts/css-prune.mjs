@@ -25,6 +25,20 @@ const APPLY = process.argv.includes("--apply");
 const DEAD_PREFIXES = [
   "si-", "bn-", "bear-", "mantine-", "fmt-", "rte-",
   "el-", "tt-", "img-", "rim-block-editor", "rim-prose-editor", "man-",
+  // Session-room CSS, orphaned by the session-159 Zoom cutover (the in-browser
+  // LiveKit room and its components were deleted; only their styles were left).
+  // Verified session 171: zero live hits for each, repo-wide — the only apparent
+  // matches for `lk-` were the substrings in `walk`/`chalk`/`vol-reminder-bulk-btn`,
+  // which don't match because this script tests parsed class names, not substrings.
+  "rim-tile", "rim-conference", "rim-focus", "vr-", "vs-room", "lk-", "rim-chat",
+  // The rest of the same set, per the prefix inventory in RIM_SessionRoom.md:56:
+  // control bar, participants panel, the hand/pin banners, and the greenroom.
+  "rim-cb", "rim-pp", "rim-hand-banner", "rim-pin-banner", "gr-",
+  // Third pass (review catch): families the RIM_SessionRoom.md inventory itself
+  // omits — the /video-session page chrome, guest entry, settings panel, and the
+  // in-room banners/prompts. Verified zero live classNames session 171.
+  "vs-", "vre-room", "rim-spotlight-banner", "rim-reconnect-banner",
+  "rim-audio-prompt", "rim-unmute-prompt", "rim-settings",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;
