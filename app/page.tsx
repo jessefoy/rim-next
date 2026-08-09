@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { db } from "@/lib/db";
+import { categoryDisplayName } from "@/lib/programUtils";
 
 export const metadata = {
   title: "Rooted In Mindfulness - Meditation Center - Brookfield - Greater Milwaukee",
@@ -6,15 +8,37 @@ export const metadata = {
     "RIM is a Community Insight Meditation Center dedicated to providing a spiritual refuge for all who wish to live with greater wisdom, compassion, and well-being.",
 };
 
-/* The four doors into the program catalog, as the live site presents them. */
-const PROGRAM_DOORS = [
-  { title: "Ongoing Drop-Ins", href: "/community-programs" },
-  { title: "Classes & Courses", href: "/community-programs" },
-  { title: "Retreats & Workshops", href: "/community-programs" },
-  { title: "Community Groups", href: "/kalyana-mitta/community-groups-events" },
-];
+export const dynamic = "force-dynamic";
 
-export default function HomePage() {
+export default async function HomePage() {
+  // The doors into the catalog are the real, editorial taxonomy — the same
+  // categories Program Manager maintains and /community-programs renders —
+  // never a hardcoded list (the previous four were stale on arrival and three
+  // pointed at the same URL; backlog 2026-08-07-001). Each door deep-links to
+  // its category's anchor on the listing page. Empty categories don't get a
+  // door: an anchor with nothing under it is a broken promise.
+  const categories = await db.programCategory.findMany({
+    where: { hideFromProgramsPage: false },
+    orderBy: { sortOrder: "asc" },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      _count: {
+        select: {
+          programs: {
+            where: {
+              archivedAt: null,
+              hideFromProgramPageList: false,
+              slug: { not: "dummy-test-program" },
+            },
+          },
+        },
+      },
+    },
+  });
+  const doors = categories.filter((c) => c._count.programs > 0);
+
   return (
     <div className="pp-page">
       {/* ── Hero ──────────────────────────────────────────── */}
@@ -65,7 +89,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── What we do ────────────────────────────────────── */}
+      {/* ── What we do — image right ──────────────────────── */}
       <section className="pp-section pp-section--white">
         <div className="rim-container">
           <div className="pp-split pp-split--flip">
@@ -114,10 +138,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Community + programs ──────────────────────────── */}
+      {/* ── Community — image left, alternating with the section above ── */}
       <section id="programs" className="pp-section">
         <div className="rim-container">
-          <div className="pp-split pp-split--flip">
+          <div className="pp-split">
             <div
               className="pp-split__media"
               style={{
@@ -157,12 +181,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Program doors ─────────────────────────────────── */}
+      {/* ── Program doors — the live taxonomy, each leading to its own
+             chapter of the catalog ─────────────────────────── */}
       <section className="pp-section pp-section--white">
         <div className="rim-container">
           <div className="pp-intro">
             <p className="pp-intro__eyebrow">Community programs</p>
-            <h2 className="pp-intro__title">Learn and practice with others.</h2>
+            <h2 className="pp-intro__title">Learn and practice with the support of others.</h2>
             <p className="pp-intro__body">
               To safely stay connected, sit together, and support each other, Tuesday and Saturday
               drop-in classes are offered <strong>in person at the center or online</strong> via
@@ -171,11 +196,19 @@ export default function HomePage() {
           </div>
 
           <div className="pp-cards pp-cards--two">
-            {PROGRAM_DOORS.map((door) => (
-              <Link key={door.title} href={door.href} className="pp-card pp-card--row">
+            {doors.map((door) => (
+              <Link
+                key={door.id}
+                href={`/community-programs#${door.slug}`}
+                className="pp-card pp-card--row pp-card--door"
+              >
                 <div className="pp-card__row">
                   <div className="pp-card__main">
-                    <h3 className="pp-card__title">{door.title}</h3>
+                    <h3 className="pp-card__title">{categoryDisplayName(door.name)}</h3>
+                    <p className="pp-card__body pp-card__count">
+                      {door._count.programs}{" "}
+                      {door._count.programs === 1 ? "offering" : "offerings"}
+                    </p>
                   </div>
                   <span className="pp-card__action" aria-hidden="true">
                     →
@@ -193,44 +226,51 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Generosity ────────────────────────────────────── */}
+      {/* ── Generosity — image right, completing the page's alternation ── */}
       <section className="pp-section pp-section--last">
         <div className="rim-container">
-          <div className="pp-intro">
-            <p className="pp-intro__eyebrow">Dana</p>
-            <h2 className="pp-intro__title">A Generosity-Based Approach</h2>
-          </div>
+          <div className="pp-split pp-split--flip">
+            <div
+              className="pp-split__media"
+              style={{
+                ["--pp-split-image" as string]: "url('/images/Community-Hands-on-Tree.jpg')",
+                ["--pp-split-position" as string]: "center",
+              }}
+              aria-hidden="true"
+            />
+            <div className="pp-split__body">
+              <div className="pp-intro">
+                <p className="pp-intro__eyebrow">Dana</p>
+                <h2 className="pp-intro__title">A Generosity-Based Approach</h2>
+                <p className="pp-intro__body">
+                  RIM is inspired by the spirit of <em>Dana</em>, an ancient Pali language word that
+                  means generosity of heart, mind, and action. <em>Dana</em> promotes a healthier,
+                  selfless, caring, and grateful world.
+                </p>
+                <p className="pp-intro__body">
+                  Traditionally, Buddhist nuns and monks offer teachings in the spirit of
+                  generosity, while the community supports the teachers and the center to the level
+                  of their ability. In this same spirit, RIM and its teachers do not charge any fees
+                  or tuition and are supported by the community.
+                </p>
+                <p className="pp-intro__body">
+                  As an alternative to a pay-for-service economics model, RIM embraces a
+                  generosity-based model. The RIM community is a living gift made possible by the
+                  appreciation, goodwill, and generosity of the kind people inspired to give
+                  financial support, volunteer, teach, and support one another.
+                </p>
+                <p className="pp-intro__note">RIM is a 501(c)(3) non-profit organization.</p>
+              </div>
 
-          <div className="pp-prose">
-            <p>
-              RIM is inspired by the spirit of <em>Dana</em>, an ancient Pali language word that
-              means generosity of heart, mind, and action. <em>Dana</em> promotes a healthier,
-              selfless, caring, and grateful world.
-            </p>
-            <p>
-              Traditionally, Buddhist nuns and monks offer teachings in the spirit of generosity,
-              while the community supports the teachers and the center to the level of their ability.
-              In this same spirit, RIM and its teachers do not charge any fees or tuition and are
-              supported by the community.
-            </p>
-            <p>
-              As an alternative to a pay-for-service economics model, RIM embraces a generosity-based
-              model. The RIM community is a living gift made possible by the appreciation, goodwill,
-              and generosity of the kind people inspired to give financial support, volunteer, teach,
-              and support one another.
-            </p>
-            <p>
-              <em>RIM is a 501(c)(3) non-profit organization.</em>
-            </p>
-          </div>
-
-          <div className="pp-actions pp-actions--center">
-            <Link href="/donate" className="pp-btn">
-              Give a donation
-            </Link>
-            <Link href="/volunteerism/volunteer" className="pp-link">
-              Volunteer with us <span aria-hidden="true">→</span>
-            </Link>
+              <div className="pp-actions">
+                <Link href="/donate" className="pp-btn">
+                  Give a donation
+                </Link>
+                <Link href="/volunteerism/volunteer" className="pp-link">
+                  Volunteer with us <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -6,6 +6,7 @@ import {
   computeDateText,
   computeTimeText,
   hasConcludedOneTime,
+  categoryDisplayName,
 } from "@/lib/programUtils";
 
 export const metadata = {
@@ -100,12 +101,12 @@ export default async function CommunityProgramsPage() {
               (p) => p.category?.name === category.name
             );
             if (categoryPrograms.length === 0) return null;
-            const categoryHeading = category.name === "Drop-Ins: Open Practice and Learning"
-              ? "Open Practice & Learning"
-              : category.name;
+            const categoryHeading = categoryDisplayName(category.name);
 
             return (
-              <div key={category.id} className="pl-cat">
+              // The id is the anchor the home page's category doors deep-link
+              // to (/community-programs#<slug>).
+              <div key={category.id} id={category.slug} className="pl-cat">
                 <div className="pl-cat__header">
                   <h2 className="pl-cat__heading">{categoryHeading}</h2>
                 </div>

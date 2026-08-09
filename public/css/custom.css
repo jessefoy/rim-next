@@ -28148,3 +28148,41 @@ a.pp-card:hover .pp-card__action {
 .adm-table__sort-btn {
   box-sizing: border-box;
 }
+
+/* ── Home page refinements (session 172) ─────────────────────────
+   The category doors read from the live taxonomy and deep-link into the
+   catalog; the section's separation comes from the inset ground, not a
+   border. The Dana chapter joined the page's split grammar. */
+
+/* Doors: a restrained Light-Pampas inset on the white section — white cards
+   on white ground were invisible. An inset, not a lifted card, so no shadow
+   (the card-shadow is reserved for white on the warm ground). */
+.pp-card--door {
+  background: var(--rim-bg-bright);
+  box-shadow: none;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+.pp-card--door:hover { background: var(--rim-bg-accent); }
+.pp-card--door:focus-visible {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: 2px;
+}
+.pp-card--door .pp-card__row { padding: 24px 26px; }
+.pp-card__count {
+  margin: 0;
+  color: var(--rim-text-muted);
+  font-size: var(--text-small);
+}
+
+/* The 501(c)(3) line is a quiet caption, not a paragraph. */
+.pp-intro__note {
+  margin: 4px 0 0;
+  color: var(--rim-text-muted);
+  font-size: var(--text-small);
+  font-style: italic;
+}
+
+/* A door's deep link lands with the category heading clear of the sticky
+   nav (100px) instead of underneath it. */
+.pl-cat { scroll-margin-top: 124px; }

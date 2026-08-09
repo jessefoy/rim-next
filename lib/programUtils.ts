@@ -201,6 +201,18 @@ export function hasConcludedOneTime(p: {
   return lastYmd < todayYmd;
 }
 
+/**
+ * Public display name for a program category. The taxonomy is editorial
+ * (renamed in Program Manager, not code) — this is the one presentation
+ * adjustment, shared by the home-page doors and /community-programs so the
+ * two can't drift.
+ */
+export function categoryDisplayName(name: string): string {
+  return name === "Drop-Ins: Open Practice and Learning"
+    ? "Open Practice & Learning"
+    : name;
+}
+
 export function fmtLabel(fmt: string): string {
   switch (fmt) {
     case "virtual":   return "Zoom Only";
