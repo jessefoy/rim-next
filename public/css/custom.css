@@ -19635,12 +19635,18 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   width: 100%;
 }
 
+/* An email address has no space or hyphen, so it is one unbreakable token: a
+   53-character address (jesse.foy.rootedinmindfulness@…) pushed this panel 39px
+   past a 375px viewport and 54px past 360px. `anywhere` (not `break-word`) so it
+   also lowers min-content and the flex parent can actually shrink the panel.
+   box-sizing would NOT fix this — the constraint is the token, not the padding. */
 .adm2-email-confirm__text {
   font-family: var(--font-sans);
   font-size: var(--text-ui);
   color: var(--rim-text);
   line-height: 1.6;
   margin: 0 0 14px;
+  overflow-wrap: anywhere;
 }
 
 .adm2-email-confirm__actions {
@@ -21594,6 +21600,16 @@ input.w-button { -webkit-appearance: button; }
   width: 100%;
   max-width: 440px;
 }
+/* The code-entry page prints the member's own address back to them
+   ("We sent a 6-digit code to <strong>you@example.org</strong>"), and an email
+   is one unbreakable token. Measured at 375px: a 38-character address ran 26px
+   off the right edge and a 77-character one 392px. Threshold was ~34
+   characters, so maria.sprecher@rootedinmindfulness.org and any
+   first.m.last@gmail.com clipped. The value is user-supplied, so it has no
+   safe upper bound — this is the sign-in threshold and it must not break. */
+.login-box strong {
+  overflow-wrap: anywhere;
+}
 .form-container-4 { width: 100%; }
 .form-header { margin-top: 0; margin-bottom: 10px; }
 .text-field-wrapper { margin-bottom: 18px; }
@@ -23153,8 +23169,13 @@ input.w-button { -webkit-appearance: button; }
   padding: 32px 20px;
   background: var(--rim-bg);
 }
+/* border-box because this is a GRID item with an explicit width: unlike a flex
+   item it is not shrunk to fit, so content-box added its 40px of padding on top
+   of min(100%, 520px) and the panel overhung both edges (measured 385px in a
+   375px viewport, clipped 5px right and 25px left by the grid centering). */
 .zoom-launch__panel {
   width: min(100%, 520px);
+  box-sizing: border-box;
   padding: 40px;
   border: 1px solid var(--rim-rule);
   border-radius: 14px;
