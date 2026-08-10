@@ -6,6 +6,27 @@
 
 ## Active
 
+### ⏰ STANDING REMINDER — say this to Jesse every session until he closes it
+
+**Two things on the public copy are waiting on Jesse, and he asked to be reminded each session:**
+
+1. **`/your-first-visit` carries two placeholder paragraphs Claude wrote** (backlog `2026-08-10-002`, marked `PROVISIONAL` in the source). They need his real logistics: **parking + which entrance** at 4040 N. Calhoun Rd, and the **practical details** (shoes off? tea? restrooms?). The placeholders deliberately assert nothing unverifiable about the building — they point a visitor at a person to ask — but this page is linked from the home hero's primary button, so it sits on RIM's main path to a first visit.
+2. **The whole session-174 copy set is provisional until his read-aloud.** Ratification is his explicit yes, never inferred from silence or a positive reaction. The read-aloud document was produced session 174; regenerate it if he wants it again.
+
+### Session 174 (2026-08-10) — ✅ The Copy and Voice Brief implemented across the public pages — on `main`, deployed, verified
+
+**Shipped + live.** Commit `bf952fc` + a backlog commit. Jesse brought a ratified **Copy and Voice Brief** from a chat session and asked for it implemented on rim-next. No schema/migrations/crons/email templates; `npx tsc --noEmit` and `npx next build` both clean; both new routes prerender static; measured at 375px (zero overflow, all touch targets ≥44px) and at 1024px (nav has 156px slack, no crowding).
+
+**What changed.** Home: hero names the community and the place; "Learn, Practice, and Grow Together" meets the reader's life by naming **particulars, never the epoch**; "Timeless Wisdom" drops the lineage vocabulary (Insight/Vipassana/Pāli Canon moved to **metadata**, where a seeker still finds it) and names A Handful of Leaves; the Community section speaks friendship; the programs chapter replaces the pandemic-era "Tuesday and Saturday"; the Dana section describes the giving before naming it. **Two new pages:** `/what-we-practice` (nav label "Our Practice") and `/your-first-visit` — both pure prose on the ground per the sparse-≠-minimal tombstone. `/join` gained **"What membership means"** ahead of the agreements. `/diversity` replaced at half length. Two donate line edits. One orientation line on `/this-week`. Newsletter copy + errors in the house voice, and `/api/subscribe` no longer surfaces Flodesk's API-consumer messages to visitors.
+
+**Rulings made this session (Jesse's):** nav label is **"Our Practice"** (route `/what-we-practice`, page title "A Handful of Leaves"); ship first-visit with Claude-written temporary text rather than hold it; leave `/community-programs` alone; **don't link `/teachers` yet**; hero primary is "Plan your first visit" with this-week as the secondary link; **dana framing consistent but not over the top** — which is why the brief's third "freely offered and community-supported" was cut from the Dana section (the hero already says it).
+
+**Judgment calls to overrule if he disagrees:** the cut Dana opening (above); `/diversity` re-homed as the quiet secondary link in the home Community section, because dropping the brief's old button would have **orphaned the page** — nothing else on the site links it; the volunteer notice now reads "freely offered" (it said "Membership is free," a direct violation of the price-word ruling, and wasn't in the brief).
+
+**Not done, flagged:** the brief's *"Dana is how a community takes care of what it loves"* has **no target** — the line it replaces lived only on home and went with the rewritten Dana section. Unplaced; his call whether it opens the Donate statement or is dropped. `/donate`'s "fosters" (challenged word) was left alone deliberately — the brief's Do Not Touch list limits Donate to its named line edits.
+
+**Observed, not changed:** the `pp-prose` pages carry **three left edges** (hero 110 / prose 290 / actions 110 at 1280). This is the *shipped, approved* convention — `/diversity` measures identically and `/donate`, the page matched to the live site by measurement, centres its statement at 348 against a hero at 110. The s170 one-left-edge rule is scoped to the two **listing** pages. A real design question for a later pass, not a defect introduced here.
+
 ### Session 173 (2026-08-10) — ✅ Five measured box-model overflows fixed — on `main`, deployed, verified
 
 **Shipped + live.** CSS-only (`public/css/custom.css`), no TS/schema/migrations/crons/emails. Commits `08da32f` (public) + `7a8da4a` (authenticated) + two backlog commits. Full narrative: `session-log.md` (session 173).
