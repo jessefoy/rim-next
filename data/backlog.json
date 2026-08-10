@@ -1273,5 +1273,15 @@
     "status": "open",
     "addedAt": "2026-08-09",
     "notes": "Jesse's dashboards only. Once files land in public/images or Downloads, the encode+swap is one session slice."
+  },
+  {
+    "id": "2026-08-10-001",
+    "title": "Finish the box-sizing audit in the authenticated area (18 unverified candidates)",
+    "description": "Session 173 fixed three verified content-box overflows on public surfaces (.container-7-copy on all three /login pages and .nav__mobile-link on every public mobile menu, both 48px; plus .rim-container hardened at source so it no longer depends on a .pl-page/.pp-page ancestor). A deterministic postcss sweep of custom.css — width set + horizontal padding/border + no box-sizing:border-box, minus selectors granted border-box elsewhere, minus dead classes, minus the input/textarea/select reset — left 18 live candidates that all sit BEHIND LOGIN, so they could not be measured and were deliberately NOT blind-patched: .adm-modal (L5130, pad 28px), .hub-mem-dialog__panel (L13497, 24px), .hs-modal (L14431, 32px), .hs-rot__form.pe-form (L14715), .hs-rot__end-confirm (L14907), .hs-rot__release-panel (L14955), .vol-table-search (L17937, 12px/14px), .ls-lesson-footer .lp-complete-btn + --locked (L19253/19257), .adm2-form__input/.adm2-form__select (L19543), .adm2-email-confirm (L19624), .zoom-launch__panel (L23148, width:min(100%,520px) pad 40px), .gf-row (L25833), .gf-menu__item (L26025), .gf-dialog (L26130), .gf-dialog__input (L26153), .gf-picker__folder (L26204), .gf-conv__input (L26510), .gf-detail__note (L26594). Modal/dialog panels are the highest suspicion: width:100% + max-width + padding overflows its max-width by the padding, which clips at phone widths against html{overflow-x:clip}. Method that worked and should be reused: render the page at 375px and flag every element whose getBoundingClientRect().right exceeds documentElement.clientWidth, then inject the candidate fix and re-measure — pattern-matching CSS alone produced a false positive (.rim-container measured fine). Requires either a signed-in session or Jesse reproducing on a phone.",
+    "category": "CSS & Design",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-08-10",
+    "notes": "Public surfaces are now fully measured and clean (all 16 public routes at 375px, plus the mobile menu open and the /login trio at 375/1000/1440). Only the authenticated area is unverified. Do not blind-patch: measure first, per feedback-visual-bugs-verify."
   }
 ]
