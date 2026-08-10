@@ -214,6 +214,15 @@ share-link UI).
 - **`redirect()` to external URLs:** the member path uses a client
   `window.location.replace` (`ZoomLaunch`), not server `redirect()`, for the
   external Zoom URL. Gating `redirect()`s are all same-origin + before the try.
+- **`ZoomLaunch`'s panel is a GRID item, so nothing shrinks it** (fixed session
+  173). `.zoom-launch__panel` had `width: min(100%, 520px)` + 40px padding with no
+  `box-sizing: border-box`, and because `.zoom-launch` is `display: grid` — not
+  flex — the panel was never shrunk to fit: 385px wide in a 375px viewport,
+  overhanging both edges (the grid centres it, so it clipped 25px left and 5px
+  right). This is the page **every virtual session's Join button lands on**, so
+  it's phone-critical. Any new rule here that sets a width plus padding must
+  declare `border-box`; a flex child would have been safe, a grid child is not.
+  Full rule + the measurement method: `RIM_Public_Pages.md` → "No global border-box."
 
 ## Cutover (done — session 159)
 

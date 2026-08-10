@@ -1262,7 +1262,7 @@
     "priority": "low",
     "status": "open",
     "addedAt": "2026-08-09",
-    "notes": ""
+    "notes": "Session 173 addition: .content-container (custom.css ~L21562) is also dead (zero tsx references) and carries the same width:100% + 40px padding + no border-box trap as .container-7-copy did — prune it rather than fix it. Verified dead by the s173 postcss sweep."
   },
   {
     "id": "2026-08-09-006",

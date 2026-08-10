@@ -1,5 +1,59 @@
 ---
 
+## 2026-08-10 (session 173) — Five measured overflows: the sign-in pages, the phone menu, the Zoom door, and two long email addresses
+
+A short session that started as an opening ritual and became a box-sizing audit. Three commits of fixes plus two backlog commits, all on `main`, `tsc`-green, reviewer-gated, each verified against the deployed site by measurement rather than by eye. **No new dependencies, env vars, services, schema, migrations, crons, or email templates — `public/css/custom.css` only.**
+
+### The opening ritual closed two verification items on its own
+
+- **The `archive-concluded-programs` cron's first run worked** (s172's open item #1). Nature Meditation KM Group is gone from `/community-programs`, gone from the Kalyana Mitta groups page, and its detail page 404s — which is the *archived* state, not merely the read-time hide, so both halves of `hideWhenPast` are proven in production. Read from the deployed site rather than Vercel logs.
+- **The bad end times were still live** and Jesse fixed them mid-session (backlog `2026-08-07-011`, now closed): Awakening The Heart and The Art of Meditation had rendered "9:30 AM–10:30 PM CT" on the catalog. Re-measured after his fix — both read "9:30–10:30 AM CT".
+- Also settled without asking Jesse: the hero video now **loads the MP4**, not the WebM (`currentSrc` checked on production), which was the whole of the s172 "dancing blocks" change. Only the by-eye judgement remained, and Jesse confirmed it looks fixed.
+
+### Arc 1 — Jesse's report: "it does extend into the right border of the screen a little bit. The page that is waiting for the code."
+
+Measured before touching CSS, per `feedback-visual-bugs-verify`. `.container-7-copy` — the wrapper on all three `/login` pages, one of the legacy Webflow classes re-implemented in `custom.css` — was `width: 100%` + 24px side padding with no `border-box`: **48px past the viewport, content shifted 24px right, the sign-in card 24px off true centre, on every viewport under ~1148px** (so most laptops, not just phones). A `max-width: 1100px` cap is why it survived on a wide monitor.
+
+The same measurement pass found a **second live instance Jesse hadn't reported**: every row of the public phone menu (`.nav__mobile-link`) was 423px wide in a 375px viewport, clipping its right padding, row border, and hover background — on every public page. A page-level sweep can't see it because the menu is closed; it took clicking `.nav__hamburger` in the harness. The s172 sweep missed both because that sweep was scoped to *backend* classes.
+
+`.rim-container` measured correct but only **by ancestry** — `.pl-page` and `.pp-page` each granted `border-box` through a descendant selector. Moved onto the container itself and both grandfathered rules deleted; all 10 live usages already sat under one of those wrappers, so nothing rendered differently, and a future public page that forgets the wrapper can't inherit an 80px overflow. The reviewer independently confirmed `.pp-section--airiest`'s 1220→530px card arithmetic was authored *against* border-box, so promoting it preserves that layout exactly.
+
+Commit `08da32f`. Verified on production: 16 public routes at 375px, the menu open, and the `/login` trio at 375 / 1000 / 1440 — all zero, card centred 24/24 and 280/280.
+
+### Arc 2 — "Can you address the things that you found?"
+
+I had listed 18 further candidates as backlog `2026-08-10-001` and deliberately not patched them, because they all sit behind login and `feedback-visual-bugs-verify` forbids guessing at CSS I can't see. Jesse asked for them anyway — and the right answer was neither blind-patching nor deferring, but **getting evidence a different way**: reproduce each candidate's real ancestor chain (read from the component source) inside a 375px iframe on the production origin, where the deployed stylesheet is already applied, and measure. That works for signed-in surfaces without a session.
+
+**The static pattern was wrong about 15 of 18.** The finding worth keeping: `width: 100%` + padding only overflows when *nothing shrinks the element*. Every flagged modal, dialog, and row is a **flex child**, and a flex item's `width: 100%` is a base size that `flex-shrink: 1` reduces to fit — so content-box costs it nothing. Six others land on real `input`/`textarea`/`select` elements already covered by the existing reset. My own geometric prediction said all of them overflowed; the browser disagreed and the browser was right.
+
+Three reproduced (`7a8da4a`):
+
+- **`.zoom-launch__panel`** — a **grid** item with an explicit width, so unlike a flex item nothing shrinks it: 385px in a 375px viewport, overhanging both edges. This is the page every virtual session's Join lands on. Fixed by `border-box`.
+- **`.login-box strong`** and **`.adm2-email-confirm__text`** — **not box-sizing bugs at all.** An email address has no space or hyphen, so it is one unbreakable token; past ~34 characters at 375px it simply runs off the edge. 26px over for `maria.sprecher@rootedinmindfulness.org`, 392px for a 77-character address, 39px on the registry's email-change confirmation with a 53-character one. `overflow-wrap: anywhere` (not `break-word` — `anywhere` also lowers min-content so a flex parent can shrink). **`border-box` fixes neither**, which is the whole argument for measuring: patching the pattern would have shipped a fix, declared the audit finished, and left the sign-in page broken.
+
+Three surfaces I suspected and left alone because they measured clean: `.adm2-header__meta`, `.mp-header__details`, `.adm2-section__hint`.
+
+### Design decisions and why
+
+- **Measure, don't pattern-match.** A postcss sweep of `custom.css` is a candidate generator, not a defect list — 83% false-positive rate here. The harness (real ancestor chain + `document.fonts.ready` + realistic long content) is now the documented method in `RIM_Public_Pages.md`.
+- **Test with real content, not lorem.** Both email bugs are invisible with a short address. The first pass looked clean at 38 characters and only reproduced at 53 — I briefly misattributed that to a font race before pinning it to address length.
+- **"I can't verify it" is a reason to build a harness, not to defer.** The deferral was right at the moment I made it and wrong to leave standing.
+- **`.rim-container` hardened at source rather than left working-by-accident** — zero rendering delta, verified, and it removes a trap for the next public page.
+- **Don't fix what measures correct.** 15 candidates stay untouched; the backlog item records why, so it isn't re-derived.
+
+### What this connects to
+
+- **The public sign-in threshold** (`/login`, `/login/check-email`, `/login/error`): the only three pages still on legacy Webflow class names. Recorded as pitfall 6 in `RIM_Auth.md`. `RIM_Web_Design_Philosophy.md`'s "Forms as Thresholds" is why a clipped code box is a correctness bug, not cosmetics.
+- **The public nav** (`components/Nav.tsx`), shared by every public page. Backlog `2026-08-07-009` (nav/footer touch targets under 44px) is still open and still about the *desktop* bar — the phone rows measure 53–54px tall, so height was never the issue there.
+- **The Zoom door** (`components/session/ZoomLaunch.tsx`, `/session/[slug]/enter`) — recorded as a pitfall in `RIM_Zoom.md`.
+- **The Member Registry** email-change confirmation (`components/member-sections/CoreRecordSection.tsx`).
+- **`RIM_Public_Pages.md` → "No global border-box"** is the authority; it now carries the flex-vs-grid correction, the long-token failure mode, and the method. This is the third session in a row that section has grown (s170 `.lr-btn`, s172 layout containers, s173 public + authenticated).
+
+### What comes next
+
+- **Unchanged and still Jesse's:** the drawer + rail walkthrough behind login, the half-screen-width pass, the Vercel env cleanup + Sanity project deletion (`2026-08-09-001`). The "check dialogs on your phone" ask from earlier in the session is **withdrawn** — those got measured instead.
+- **The Webflow pre-cancellation errand** is the next build: the redirect map (`2026-08-07-003`, Claude can do this alone) + the asset rescue (`2026-08-09-006`, needs Jesse's downloads first).
+
 ## 2026-08-09 (session 172) — Dated events retire themselves; the member area gets its interaction floor; the home page composes
 
 Eleven commits on `main`, every slice reviewer-gated and `tsc`-green, each verified on the deployed site to the extent auth allows. Three arcs: the dated-events feature (the s171 handoff's "next concrete step"), a member-area quality campaign that Jesse's own browsing kept sharpening, and a home-page design pass.
