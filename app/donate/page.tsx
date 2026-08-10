@@ -72,8 +72,8 @@ const CONTEMPLATIONS = [
       <>
         When you offer Dana at RIM, you join other kind and generous members of the community who
         help ensure that RIM exists as a safe and supportive refuge for all who may benefit — even
-        when times are financially difficult. You are not only benefiting yourself, you are also
-        helping others who need support.{" "}
+        when times are financially difficult. Your gift reaches past you. It helps hold the door open
+        for people you will never meet.{" "}
         <em>
           Consider the impact of making the teachings, practices, and community support available to
           everyone.
@@ -268,8 +268,8 @@ export default function DonatePage() {
                 Dana challenges the conventional fee-for-service models, and instead, strengthens our
                 intentions to give from a place of mutual understanding and care.{" "}
                 <strong>
-                  RIM does not charge any &ldquo;fees,&rdquo; instead, we ask that all members agree
-                  to contribute an amount that feels right to them
+                  RIM does not charge fees; we ask that all members contribute an amount that feels
+                  right to them
                 </strong>.
               </p>
               <p>

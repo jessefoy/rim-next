@@ -22,29 +22,32 @@ export interface CommunityAgreement {
 
 /**
  * Page-opening copy for /join — the warm orientation that introduces what
- * RIM is before asking for anything. Mirrors the Webflow hero verbatim.
+ * RIM is before asking for anything.
  */
 export const JOIN_HERO_TITLE = "Become a member";
 export const JOIN_HERO_INTRO =
-  "RIM is a refuge we create together — a place for learning, practice, " +
-  "and genuine friendship. Everyone is welcome, from all backgrounds and " +
+  "RIM is a refuge we create together: a place for learning, practice, " +
+  "and honest friendship. Everyone is welcome, from all backgrounds and " +
   "phases of life. Come as you are.";
 
 /**
  * Lead-in paragraph rendered immediately above the agreements list.
  * Same wording on every surface so the agreement feels like the same thing
  * wherever it appears.
+ *
+ * The count in this sentence tracks COMMUNITY_AGREEMENTS below — if the set
+ * ever changes size, this line changes with it.
  */
 export const COMMUNITY_AGREEMENTS_LEAD_IN =
-  "We ask members to hold these four shared intentions, which together " +
-  "create a safe and supportive environment for all.";
+  "These four intentions are all we ask of members. They are directions to " +
+  "hold, not requirements to be graded on.";
 
 /**
  * Form-section lead rendered above the form fields on /join. Tells the
  * reader why the form follows the agreements.
  */
 export const JOIN_FORM_LEAD =
-  "If these intentions resonate with you, we'd be honored to have you join us.";
+  "If you can hold these intentions with us, we would be honored to have you.";
 
 /** Checkbox label next to the agreement-acceptance checkbox. */
 export const COMMUNITY_AGREEMENTS_CHECKBOX_LABEL =
@@ -58,7 +61,7 @@ export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
   {
     title: "Care for Yourself",
     summary:
-      "Take responsibility for your own path. Teachers and community offer support and friendship, but the journey is yours to walk.",
+      "Take responsibility for your own path. Teachers and community offer support and friendship, but the path is yours to walk.",
   },
   {
     title: "Care for Others",
@@ -73,6 +76,6 @@ export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
   {
     title: "Care for Our Shared Vision",
     summary:
-      "We practice to cultivate wisdom and compassion — for ourselves, each other, and all beings.",
+      "We practice to cultivate wisdom and compassion: for ourselves, each other, and all beings.",
   },
 ];

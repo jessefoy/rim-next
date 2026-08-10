@@ -114,8 +114,8 @@ export default async function VolunteerPage({
             <div className="pp-notice">
               <p className="pp-notice__title">You&rsquo;ll need an account for this form</p>
               <p className="pp-notice__body">
-                Membership is free. Create an account or sign in, then come back to this page and
-                the form will be here.
+                Membership is freely offered. Create an account or sign in, then come back to this
+                page and the form will be here.
               </p>
               <div className="pp-actions">
                 <Link href="/join" className="pp-btn">

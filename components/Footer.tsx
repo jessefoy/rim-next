@@ -17,7 +17,7 @@ export default function Footer({ memberArea = false }: FooterProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email) {
-      setMessage("Please enter your email address.");
+      setMessage("We need an email address to add you.");
       return;
     }
     setLoading(true);
@@ -32,10 +32,13 @@ export default function Footer({ memberArea = false }: FooterProps) {
       if (res.ok) {
         setSubmitted(true);
       } else {
-        setMessage(data.error || "Something went wrong. Please try again.");
+        setMessage(
+          data.error ||
+            "Something went wrong. Try again, or email us and we'll add you ourselves.",
+        );
       }
     } catch {
-      setMessage("Something went wrong. Please try again.");
+      setMessage("Something went wrong. Try again, or email us and we'll add you ourselves.");
     } finally {
       setLoading(false);
     }
@@ -48,9 +51,12 @@ export default function Footer({ memberArea = false }: FooterProps) {
           <>
             <div className="rim-footer-newsletter">
               <h3 className="rim-footer-heading">Stay Connected</h3>
-              <p className="rim-footer-sub">Sign up for programs, events, and community news.</p>
+              <p className="rim-footer-sub">
+                Sign up for the RIM newsletter for upcoming programs, retreats, and community news.
+                That is all we will send.
+              </p>
               {submitted ? (
-                <p className="footer-subscribe-success">Thank you! You&apos;re on the list. 🙏</p>
+                <p className="footer-subscribe-success">Thank you. You&apos;re on the list.</p>
               ) : (
                 <form className="footer-subscribe-form" onSubmit={handleSubmit} noValidate>
                   <div className="footer-subscribe-row">

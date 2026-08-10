@@ -98,6 +98,15 @@ export default function Nav() {
         {/* Public only: member/admin/tool routes return the member-bar above,
             so this nav never renders there. */}
         <nav className="nav__desktop" aria-label="Main navigation">
+              {/* A single page, so a flat link rather than a fourth door. The
+                  page keeps its own title ("A Handful of Leaves"); the bar is
+                  tight, so the label is short. */}
+              <Link
+                href="/what-we-practice"
+                className={`nav__link${isActive("/what-we-practice")}`}
+              >
+                Our Practice
+              </Link>
               <div className="nav__dropdown">
                 <button className="nav__dropdown-toggle">
                   Programs
@@ -112,6 +121,10 @@ export default function Nav() {
                     <Link href="/this-week" className="nav__dropdown-link">
                       <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
                       <div className="nav__dropdown-desc">What&apos;s happening day by day</div>
+                    </Link>
+                    <Link href="/your-first-visit" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Your First Visit</div>
+                      <div className="nav__dropdown-desc">What to expect if you&apos;ve never been</div>
                     </Link>
                   </div>
                 </div>
@@ -215,6 +228,12 @@ export default function Nav() {
                 </Link>
               )}
               <Link
+                href="/what-we-practice"
+                className={`nav__mobile-link${isActive("/what-we-practice")}`}
+              >
+                Our Practice
+              </Link>
+              <Link
                 href="/community-programs"
                 className={`nav__mobile-link${isActive("/community-programs")}`}
               >
@@ -225,6 +244,12 @@ export default function Nav() {
                 className={`nav__mobile-link${isActive("/this-week")}`}
               >
                 This Week&apos;s Schedule
+              </Link>
+              <Link
+                href="/your-first-visit"
+                className={`nav__mobile-link${isActive("/your-first-visit")}`}
+              >
+                Your First Visit
               </Link>
               <Link
                 href="/volunteerism/volunteer"

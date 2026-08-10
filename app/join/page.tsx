@@ -42,6 +42,47 @@ export default async function JoinPage({
         </header>
 
         <div className="jn-panel">
+          {/* Membership and the word "community" are themselves intimidating;
+              this section disarms that before the agreements teach anything.
+              The reader's own objection ("will I have to be social?") is raised
+              at the moment it occurs and answered with a real distinction. */}
+          <section
+            className="jn-panel__section"
+            aria-labelledby="jn-meaning-heading"
+          >
+            <h2 id="jn-meaning-heading" className="jn-panel__heading">
+              What membership means
+            </h2>
+            <p className="jn-panel__lead">
+              Membership may not mean here what it has meant to you elsewhere. There are no dues;
+              like everything at RIM, membership is freely offered. There is no attendance
+              requirement and no role to fill, and nobody tracks how often you come. Joining says
+              one thing: this is my practice community, and I would like a seat in it.
+            </p>
+            <p className="jn-panel__lead">
+              If you are quiet by nature, you may be carrying the question many of us carried in:
+              will I have to be social? You will not. The heart of what we do together is sitting in
+              silence, side by side. Nobody will ask you to share, to mingle, or to be anyone other
+              than the person who walked in. Some of the steadiest members of this community are
+              also its quietest. Presence is enough.
+            </p>
+            <p className="jn-panel__lead">
+              So why practice with others at all? Because the work of this path is inward, and it
+              goes better in company. A room of settled people settles you. Other people&rsquo;s
+              honest difficulties teach as much as their calm. And over time, without anyone forcing
+              it, the people you sit beside become what the tradition warmly calls friends on the
+              path. The Buddha&rsquo;s own attendant once guessed that such friendship must be half
+              of the spiritual life. The Buddha corrected him: it is the whole of it.
+            </p>
+            <p className="jn-panel__lead">
+              That is what we mean by community. Friends who support one another&rsquo;s practice:
+              each of us releasing what gets in the way, each of us strengthening what serves, for
+              our own lives and for the people and the world our lives touch.
+            </p>
+          </section>
+
+          <hr className="jn-panel__divider" />
+
           <section
             className="jn-panel__section"
             aria-labelledby="jn-agreements-heading"

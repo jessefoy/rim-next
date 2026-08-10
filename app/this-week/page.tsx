@@ -162,6 +162,10 @@ export default async function ThisWeekPage({
           <p className="pp-hero__body">
             {dateRange}. All times are Central&nbsp;(CT).
           </p>
+          <p className="pp-hero__body">
+            New to RIM? Any session marked drop-in is open to you, no registration and no experience
+            needed.
+          </p>
           <div className="pp-hero__actions">
             <div className="tw-weeknav">
               <Link

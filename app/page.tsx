@@ -2,10 +2,13 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { categoryDisplayName } from "@/lib/programUtils";
 
+// The searchable lineage terms ("insight meditation", "vipassana") live here,
+// in metadata, and deliberately not in the welcome prose — a seeker still finds
+// the door, and a first-time visitor isn't met with vocabulary.
 export const metadata = {
   title: "Rooted In Mindfulness - Meditation Center - Brookfield - Greater Milwaukee",
   description:
-    "RIM is a Community Insight Meditation Center dedicated to providing a spiritual refuge for all who wish to live with greater wisdom, compassion, and well-being.",
+    "Rooted in Mindfulness is a Buddhist meditation community in Brookfield, Wisconsin, near Milwaukee. Insight meditation, mindfulness practice, and dharma teachings, freely offered and community-supported. In person and online. Come as you are.",
 };
 
 export const dynamic = "force-dynamic";
@@ -91,14 +94,14 @@ export default async function HomePage() {
             Beautify the World.
           </h1>
           <p className="pp-hero__body">
-            RIM is a modern, welcoming Dharma center grounded in traditional Buddhist wisdom. We
-            offer meditation and mindful living practices in a safe and supportive community — to
-            help one another heal, grow, awaken, and live in ways that benefit yourself, those you
-            love, and our shared world.
+            Rooted in Mindfulness is a Buddhist meditation community in Brookfield, Wisconsin. We
+            sit together, learn together, and help one another live with more clarity, kindness,
+            and steadiness. Everything here is freely offered and community-supported, and open to
+            everyone. Come as you are.
           </p>
           <div className="pp-hero__actions">
-            <Link href="/join" className="pp-btn pp-btn--onblue">
-              Join us&ndash;today
+            <Link href="/your-first-visit" className="pp-btn pp-btn--onblue">
+              Plan your first visit
             </Link>
             <Link href="/this-week" className="pp-hero__link">
               See what&rsquo;s happening this week <span aria-hidden="true">→</span>
@@ -120,35 +123,43 @@ export default async function HomePage() {
               aria-hidden="true"
             />
             <div className="pp-split__body">
+              {/* Meets the reader's actual life by naming particulars, never the
+                  epoch. No "turbulent times", no "today's fast-paced world",
+                  anywhere on the site. */}
               <div className="pp-intro">
                 <h2 className="pp-intro__title">Learn, Practice, and Grow Together.</h2>
                 <p className="pp-intro__body">
-                  <strong>RIM</strong> is a diverse community where people from all walks of life
-                  come together to nurture our natural capacity for wisdom, compassion, well-being,
-                  and authentic happiness.
+                  Most of us are carrying more than we let on. Full days that somehow do not
+                  nourish. News that arrives faster than a heart can hold it. Plenty of connection
+                  on a screen, and more loneliness than anyone says out loud. Nobody needs to be
+                  told the times are hard. What we need is a place to put some of it down.
                 </p>
                 <p className="pp-intro__body">
-                  Through the timeless teachings of meditation, mindful living, and shared community
-                  support, we aspire to live in ways that uplift ourselves, benefit others, and care
-                  for our shared world.
+                  And what helps is old, and it still works: a practice that settles the mind,
+                  teachings that give a life meaning and direction, and people who take both
+                  seriously, sitting beside you. That is what we are making here, together.
                 </p>
               </div>
 
               <div className="pp-intro">
                 <h2 className="pp-intro__title">Timeless Wisdom for our Modern Life.</h2>
                 <p className="pp-intro__body">
-                  We share the heart of Buddhist wisdom through Insight (Vipassana) practice — rooted
-                  in the Pāli Canon and enriched by the universal Dharma of all Buddhist traditions.
-                  Our teachings and practices are free from dogma, informed by modern science and
-                  lived experience, and offered in a spirit of generosity. Accessible to secular and
-                  spiritual seekers alike, they invite everyone to explore a more mindful,
-                  compassionate, and awakened way of life.
+                  What we practice is Buddhist wisdom, gathered from across the traditions and
+                  offered so that anyone can use it. You do not need to be Buddhist to practice
+                  here, and nobody will try to make you one. Our teachings are informed by modern
+                  science, by the mindfulness programs many of us started with, and by the
+                  world&rsquo;s wisdom traditions.
+                </p>
+                <p className="pp-intro__body">
+                  And everything we keep passes one old test: does it help a person suffer less, see
+                  more clearly, and love more capably? We call what we have gathered A Handful of
+                  Leaves, after a story the Buddha told in a forest.
                 </p>
               </div>
 
               <div className="pp-actions">
-                <Link href="/diversity" className="pp-btn pp-btn--ghost">
-                  Diverse Together — learn more
+                <Link href="/what-we-practice" className="pp-btn pp-btn--ghost">
+                  Read the story of the name
                 </Link>
               </div>
             </div>
@@ -173,25 +184,24 @@ export default async function HomePage() {
               <div className="pp-intro">
                 <h2 className="pp-intro__title">Join a Mindfulness-Based Community</h2>
                 <p className="pp-intro__body">
-                  An intentional community provides connection, support, and friendship that can
-                  nourish us in a world where we may feel disconnected and unsupported.
+                  This path is difficult to walk alone, and no one here has to. Anyone who has sat
+                  in a room of settled people knows that steadiness is contagious, and in community
+                  we learn as much from one another&rsquo;s honest difficulties as from one
+                  another&rsquo;s calm.
                 </p>
                 <p className="pp-intro__body">
-                  Be with others who share an intention to awaken our innate human goodness through
-                  meditation and mindful living. Together, we learn and practice ways to reduce harm
-                  and nourish well-being within one another and our shared world.
-                </p>
-                <p className="pp-intro__body">
-                  <strong>
-                    Become a RIM Community Member and participate in events, meditation sessions,
-                    dharma talks, classes, community groups, retreats, and much more.
-                  </strong>
+                  Members gather for meditation, dharma talks, classes, community groups, and
+                  retreats, and friendships form around what matters. Membership, like everything
+                  else here, is freely offered.
                 </p>
               </div>
 
               <div className="pp-actions">
                 <Link href="/join" className="pp-btn">
-                  Learn more &amp; join us
+                  Become a member
+                </Link>
+                <Link href="/diversity" className="pp-link">
+                  Diverse Together <span aria-hidden="true">→</span>
                 </Link>
               </div>
             </div>
@@ -213,13 +223,17 @@ export default async function HomePage() {
                   Learn and practice with the support of others.
                 </h2>
                 <p className="pp-intro__body">
-                  To safely stay connected, sit together, and support each other, Tuesday and
-                  Saturday drop-in classes are offered{" "}
-                  <strong>in person at the center or online</strong> via Zoom. Other classes are
-                  held on Zoom exclusively.
+                  We gather through the week, mornings and evenings,{" "}
+                  <strong>in person at the center and online</strong>. Every session is complete in
+                  itself. No background is needed and no one will ask you to explain yourself, so
+                  you can come this week, just as you are.
                 </p>
+                {/* Lifted from the membership block on /community-programs on
+                    purpose — recurrence is how a line becomes the community's
+                    own vocabulary. Keep the two in step. */}
                 <p className="pp-intro__body">
-                  Every offering is open to all — there are no fees or tuition.
+                  RIM asks no fees or tuition; the center is held by the people who practice here,
+                  each giving as they are able.
                 </p>
               </div>
 
@@ -277,24 +291,23 @@ export default async function HomePage() {
               <div className="pp-intro">
                 <p className="pp-intro__eyebrow">Dana</p>
                 <h2 className="pp-intro__title">A Generosity-Based Approach</h2>
+                {/* The giving is described before the word arrives — the
+                    experience-before-the-name rule. The brief's opening line
+                    ("Everything at RIM is freely offered and community-supported")
+                    was cut here: the hero already says it, and this section says
+                    it more concretely one sentence later. */}
                 <p className="pp-intro__body">
-                  RIM is inspired by the spirit of <em>Dana</em>, an ancient Pali language word that
-                  means generosity of heart, mind, and action. <em>Dana</em> promotes a healthier,
-                  selfless, caring, and grateful world.
+                  We follow an old practice here: the teachings are given as a gift, never sold.
+                  There is no fee or tuition for anything. The community sustains the teachers and
+                  the center, each person as they are able.
                 </p>
                 <p className="pp-intro__body">
-                  Traditionally, Buddhist nuns and monks offer teachings in the spirit of
-                  generosity, while the community supports the teachers and the center to the level
-                  of their ability. In this same spirit, RIM and its teachers do not charge any fees
-                  or tuition and are supported by the community.
+                  The tradition calls this <em>dana</em>, generosity of heart: a gift economy rather
+                  than a fee for service. What you receive here was given by someone, and what you
+                  give keeps the door open for the next person. A teaching given freely can be
+                  trusted freely.
                 </p>
-                <p className="pp-intro__body">
-                  As an alternative to a pay-for-service economics model, RIM embraces a
-                  generosity-based model. The RIM community is a living gift made possible by the
-                  appreciation, goodwill, and generosity of the kind people inspired to give
-                  financial support, volunteer, teach, and support one another.
-                </p>
-                <p className="pp-intro__note">RIM is a 501(c)(3) non-profit organization.</p>
+                <p className="pp-intro__note">RIM is a 501(c)(3) nonprofit.</p>
               </div>
 
               <div className="pp-actions">

@@ -6,13 +6,17 @@ const SEGMENT_ID = "6340e5b00170f97cbdfc4b87";
 export async function POST(request: Request) {
   const { email, first_name, last_name } = await request.json();
 
+  // These strings are rendered to the visitor in the footer form, so they are
+  // written in the house voice, not as system messages.
+  const FALLBACK = "Something went wrong. Try again, or email us and we'll add you ourselves.";
+
   if (!email || !email.includes("@")) {
-    return Response.json({ error: "A valid email address is required." }, { status: 400 });
+    return Response.json({ error: "That email address doesn't look right." }, { status: 400 });
   }
 
   const apiKey = process.env.FLODESK_API_KEY;
   if (!apiKey) {
-    return Response.json({ error: "Server configuration error." }, { status: 500 });
+    return Response.json({ error: FALLBACK }, { status: 500 });
   }
 
   const auth = "Basic " + Buffer.from(apiKey + ":").toString("base64");
@@ -34,8 +38,11 @@ export async function POST(request: Request) {
     });
 
     if (!subRes.ok) {
+      // Flodesk's own message is logged for us, never shown to the visitor —
+      // it is written for an API consumer, not for a person signing up.
       const err = await subRes.json().catch(() => ({}));
-      return Response.json({ error: (err as any).message || "Could not add subscriber." }, { status: subRes.status });
+      console.warn("Subscribe failed:", subRes.status, (err as { message?: string }).message);
+      return Response.json({ error: FALLBACK }, { status: subRes.status });
     }
 
     const subscriber = await subRes.json().catch(() => ({}));
@@ -62,6 +69,6 @@ export async function POST(request: Request) {
     return Response.json({ success: true });
   } catch (err) {
     console.error("Subscribe error:", err);
-    return Response.json({ error: "Server error. Please try again." }, { status: 500 });
+    return Response.json({ error: FALLBACK }, { status: 500 });
   }
 }
