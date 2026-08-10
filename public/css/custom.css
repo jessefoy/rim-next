@@ -468,7 +468,13 @@ h4 { font-size: var(--text-h4); }
 .rim-section--teal p  { color: rgba(255,255,255,0.88); }
 .rim-section--teal strong { color: #fff; }
 
-/* Container — max-width centered, responsive padding */
+/* Container — max-width centered, responsive padding.
+   border-box is load-bearing, not cosmetic: there is no global
+   `* { box-sizing: border-box }` (webflow.css no longer loads), so
+   width:100% + 40px of side padding would compute 80px wider than its
+   parent and clip against `html { overflow-x: clip }`. It lives here, on
+   the container itself, rather than on `.pl-page`/`.pp-page` descendant
+   selectors — a new public page that forgets that wrapper still fits. */
 .rim-container {
   width: 100%;
   max-width: 1140px;
@@ -476,6 +482,7 @@ h4 { font-size: var(--text-h4); }
   margin-right: auto;
   padding-left: 40px;
   padding-right: 40px;
+  box-sizing: border-box;
 }
 .rim-container--narrow {
   max-width: var(--reading-width);
@@ -2693,7 +2700,6 @@ h4 { font-size: var(--text-h4); }
 ═══════════════════════════════════════════════════ */
 
 .pl-page { background: var(--rim-bg); }
-.pl-page .rim-container { box-sizing: border-box; }
 
 /* The hero is .pp-hero (see the pp- grammar). It began life here as
    .pl-hero and pp-hero was written as a copy of it; keeping two
@@ -8432,6 +8438,7 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   border-bottom: 1px solid var(--rim-bg-accent);
   cursor: pointer;
   width: 100%;
+  box-sizing: border-box;
   text-align: left;
   transition: color 0.15s, background 0.15s;
 }
@@ -21581,6 +21588,7 @@ input.w-button { -webkit-appearance: button; }
   margin-right: auto;
   padding-left: 24px;
   padding-right: 24px;
+  box-sizing: border-box;
 }
 .login-box {
   width: 100%;
@@ -26665,7 +26673,6 @@ input.w-button { -webkit-appearance: button; }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .pp-page { background: var(--rim-bg); }
-.pp-page .rim-container { box-sizing: border-box; }
 
 /* ── Hero ────────────────────────────────────────────────────────
    The one hero for every public page. Pass a photograph with the --pp-hero-image custom
