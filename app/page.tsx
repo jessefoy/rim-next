@@ -254,15 +254,17 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Generosity — image right, completing the page's alternation ── */}
+      {/* ── Generosity — image right, completing the page's alternation.
+             The held lotus (Olga Nayda, Unsplash) — an offered flower is the
+             dana gesture itself. ── */}
       <section className="pp-section pp-section--last">
         <div className="rim-container">
           <div className="pp-split pp-split--flip">
             <div
               className="pp-split__media"
               style={{
-                ["--pp-split-image" as string]: "url('/images/Community-Hands-on-Tree.jpg')",
-                ["--pp-split-position" as string]: "center",
+                ["--pp-split-image" as string]: "url('/images/lotus-held-unsplash-1600.webp')",
+                ["--pp-split-position" as string]: "center 42%",
               }}
               aria-hidden="true"
             />
