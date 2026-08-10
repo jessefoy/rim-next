@@ -1283,5 +1283,15 @@
     "status": "done",
     "addedAt": "2026-08-10",
     "notes": "DONE 2026-08-10 (session 173, commit 7a8da4a). Measured every candidate by rebuilding its real ancestor chain at 375/360px rather than patching the static pattern — the pattern had a ~83% false-positive rate. 15 were clean because they are FLEX children: a flex item with width:100% is shrunk to fit its container, so content-box costs it nothing (.adm-modal, .hs-modal, .hub-mem-dialog__panel, .gf-dialog + --move, .gf-row, .gf-menu__item, .gf-picker__folder, .hs-rot__end-confirm, .hs-rot__release-panel, .hs-rot__form.pe-form, plus the six that land on real input/textarea/select and were already covered by the element reset). Three reproduced and were fixed: .zoom-launch__panel (a GRID item with explicit width, so nothing shrinks it — 385px in a 375px viewport, overhanging both edges, fixed by border-box); .login-box strong and .adm2-email-confirm__text (NOT box-sizing bugs — an email address is one unbreakable token, so >34 chars ran off the edge; fixed by overflow-wrap:anywhere). Lesson worth keeping: box-sizing only overflows when nothing shrinks the element, i.e. grid items and plain blocks — not flex children; and a long-token overflow looks identical but needs a wrap fix, not border-box."
+  },
+  {
+    "id": "2026-08-10-002",
+    "title": "Your First Visit — replace the two provisional paragraphs with Jesse's own logistics",
+    "description": "/your-first-visit shipped session 174 with two placeholder paragraphs Claude wrote, marked PROVISIONAL in the source. They deliberately assert nothing unverifiable about the building: instead of inventing a parking lot, a door, or a shoe rule, they point a visitor at a person to ask. Needed from Jesse: (1) parking and entrance details for 4040 N. Calhoun Rd — where to park, which door, what a first-timer sees on arrival; (2) the practical details — shoes off at the door or not, tea, where the restrooms are, anything else worth knowing. The page is the largest gap the copy brief identified (nothing on the site told a nervous first-timer what walking in is like), and it is linked from the home hero's primary button, the nav under Programs, and What We Practice — so the placeholders are on RIM's most-trafficked path to a first visit. Replace, don't add: the paragraphs have the right shape, they need the real facts.",
+    "category": "CSS & Design",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-08-10",
+    "notes": "Jesse asked to be reminded each session — also carried at the top of UP_NEXT.md. Separately: the whole copy set from the Copy and Voice Brief is provisional until his read-aloud (read-aloud document produced session 174); ratification is his explicit yes, never assumed from silence."
   }
 ]
