@@ -28186,3 +28186,15 @@ a.pp-card:hover .pp-card__action {
 /* A door's deep link lands with the category heading clear of the sticky
    nav (100px) instead of underneath it. */
 .pl-cat { scroll-margin-top: 124px; }
+
+/* Doors chapter: words left, doors right — the section now composes like
+   the page's other split chapters instead of floating an intro above a
+   card grid with an empty right half. */
+.pp-split--doors { align-items: center; }
+.pp-doors {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  min-width: 0;
+}

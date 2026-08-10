@@ -24,6 +24,7 @@ export default async function HomePage() {
       id: true,
       slug: true,
       name: true,
+      kind: true,
       _count: {
         select: {
           programs: {
@@ -38,6 +39,18 @@ export default async function HomePage() {
     },
   });
   const doors = categories.filter((c) => c._count.programs > 0);
+
+  // One public-voice line per offering KIND (the category's behavior-driving
+  // attribute, lib/programKind.ts) — real information a visitor needs before
+  // choosing a door, derived from data that already exists.
+  const KIND_LINES: Record<string, string> = {
+    DROP_IN: "Anyone can drop in — no registration needed",
+    COMMUNITY_GROUP: "Ongoing peer-led communities",
+    CLASS: "Taught classes and series",
+    EVENT: "One-time gatherings",
+    RETREAT: "Multi-day immersive practice",
+    SERVICE: "Serving the community together",
+  };
 
   return (
     <div className="pp-page">
@@ -96,7 +109,7 @@ export default async function HomePage() {
             <div
               className="pp-split__media"
               style={{
-                ["--pp-split-image" as string]: "url('/images/buddga-lotus-unsplash.jpg')",
+                ["--pp-split-image" as string]: "url('/images/buddga-lotus-unsplash-1600.webp')",
                 ["--pp-split-position" as string]: "center 30%",
               }}
               aria-hidden="true"
@@ -182,46 +195,61 @@ export default async function HomePage() {
       </section>
 
       {/* ── Program doors — the live taxonomy, each leading to its own
-             chapter of the catalog ─────────────────────────── */}
+             chapter of the catalog. Composed like the page's other chapters:
+             words on one side, the doors on the other, so the section fills
+             its container instead of floating an intro over a card grid. */}
       <section className="pp-section pp-section--white">
         <div className="rim-container">
-          <div className="pp-intro">
-            <p className="pp-intro__eyebrow">Community programs</p>
-            <h2 className="pp-intro__title">Learn and practice with the support of others.</h2>
-            <p className="pp-intro__body">
-              To safely stay connected, sit together, and support each other, Tuesday and Saturday
-              drop-in classes are offered <strong>in person at the center or online</strong> via
-              Zoom. Other classes are held on Zoom exclusively.
-            </p>
-          </div>
+          <div className="pp-split pp-split--doors">
+            <div className="pp-split__body">
+              <div className="pp-intro">
+                <p className="pp-intro__eyebrow">Community programs</p>
+                <h2 className="pp-intro__title">
+                  Learn and practice with the support of others.
+                </h2>
+                <p className="pp-intro__body">
+                  To safely stay connected, sit together, and support each other, Tuesday and
+                  Saturday drop-in classes are offered{" "}
+                  <strong>in person at the center or online</strong> via Zoom. Other classes are
+                  held on Zoom exclusively.
+                </p>
+                <p className="pp-intro__body">
+                  Every offering is open to all — there are no fees or tuition.
+                </p>
+              </div>
 
-          <div className="pp-cards pp-cards--two">
-            {doors.map((door) => (
-              <Link
-                key={door.id}
-                href={`/community-programs#${door.slug}`}
-                className="pp-card pp-card--row pp-card--door"
-              >
-                <div className="pp-card__row">
-                  <div className="pp-card__main">
-                    <h3 className="pp-card__title">{categoryDisplayName(door.name)}</h3>
-                    <p className="pp-card__body pp-card__count">
-                      {door._count.programs}{" "}
-                      {door._count.programs === 1 ? "offering" : "offerings"}
-                    </p>
+              <div className="pp-actions">
+                <Link href="/community-programs" className="pp-btn pp-btn--ghost">
+                  See all programs
+                </Link>
+              </div>
+            </div>
+
+            <div className="pp-doors">
+              {doors.map((door) => (
+                <Link
+                  key={door.id}
+                  href={`/community-programs#${door.slug}`}
+                  className="pp-card pp-card--row pp-card--door"
+                >
+                  <div className="pp-card__row">
+                    <div className="pp-card__main">
+                      <h3 className="pp-card__title">{categoryDisplayName(door.name)}</h3>
+                      <p className="pp-card__body pp-card__count">
+                        {door.kind && KIND_LINES[door.kind] && (
+                          <>{KIND_LINES[door.kind]} · </>
+                        )}
+                        {door._count.programs}{" "}
+                        {door._count.programs === 1 ? "offering" : "offerings"}
+                      </p>
+                    </div>
+                    <span className="pp-card__action" aria-hidden="true">
+                      →
+                    </span>
                   </div>
-                  <span className="pp-card__action" aria-hidden="true">
-                    →
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="pp-actions pp-actions--center">
-            <Link href="/community-programs" className="pp-link">
-              See all programs <span aria-hidden="true">→</span>
-            </Link>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>
