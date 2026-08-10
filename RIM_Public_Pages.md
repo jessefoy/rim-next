@@ -177,8 +177,9 @@ Both pages use **`.pp-hero`**. `pp-hero` had originally been written as a *copy*
 |---|---|---|
 | `.pl-card` | `/community-programs` | title + tagline left · schedule + format right (`.pl-card__when`) · arrow |
 | `.pl-card--time` | `/this-week` | time leads · title + format · arrow |
+| `.pl-card--date` | `/community-programs`, one-time upcoming programs (s172) | date leads ("Sep 10–13", year line only when not this year) · title + tagline · time + format right · arrow |
 
-The time-led variant matches the **occurrence-first agenda grammar** the Scheduler settled on in sessions 167–168: a dated session leads with its time.
+The time-led variant matches the **occurrence-first agenda grammar** the Scheduler settled on in sessions 167–168: a dated session leads with its time. The date-led variant (session 172) is its catalog counterpart: for a one-time event the **date** is the decision criterion. Datedness is **data shape** (`recurrenceFreq` null + `startDatetime`), never category kind — community groups carry one-time dates too. Concluded one-time programs auto-hide/auto-archive via `Program.hideWhenPast` (see `RIM_ProgramEditor.md`); a past-but-kept program renders the plain card — a stale date is never showcased. Each `.pl-cat` carries `id={category.slug}` (+ `scroll-margin-top: 124px` clearing the sticky nav) — the home page's doors deep-link to them.
 
 **`/this-week` no longer borrows from the member area.** It had been built on `.lr-row` / `.lr-btn` — components shared with `HubScheduleClient` — and referenced `.pl-list`, a class with **zero rules** since the session-148 rename to `.pl-grid`. Its rows had spacing only because `.lr-row` carries a `margin-bottom`. That is the whole reason the two pages read as different sites.
 
@@ -209,6 +210,8 @@ The session-169 rule stands, with one correction that changed a decision. Sampli
 
 `webflow.css` no longer loads, so there is no `* { box-sizing: border-box }`; `custom.css` resets only `input`/`textarea`/`select`. `.lr-btn` took `width: 100%` at ≤430px with 44px of horizontal padding and **overhung its card by exactly 44px on every phone**, clipping the primary action on 17 rows. Any control given a percentage width must declare `box-sizing` itself.
 
+**The trap struck again at the layout level (session 172):** `.hub-ws-content` and `.tools-content` were `width: 100%` + horizontal padding — every hub destination and tool page rendered viewport-plus-padding wide and clipped at the window edge at half-screen widths (`body { overflow-x: clip }` cuts silently, no scrollbar). A deterministic sweep of all 98 backend `width: 100%` rules found 16 live instances of the class; all are border-box now (grouped rule at the end of `custom.css`). **Any new `width: 100%` + padding rule must declare `border-box` at birth.**
+
 ### Specificity — `pp-` is declared ~26,000 lines after `pl-`
 
 A single-class `pl-` rule loses to a single-class `pp-` rule on source order. A `pl-` override of anything `pp-` sets needs a doubled selector (`.pp-notice.pl-catalog__notice`). This silently swallowed both a `max-width` and a `margin` in session 170.
@@ -235,13 +238,22 @@ A `.pp-notice` panel was added above the program listings carrying the practical
 
 ---
 
+## The home page composition (session 172)
+
+- **Splits alternate** — image right (What we do) / left (Community) / right (Dana). Both had carried `--flip`; every image on one side was the redundancy Jesse flagged.
+- **The doors are dynamic** — the live `ProgramCategory` taxonomy (Program Manager's rows, sortOrder), each with a kind-derived public line + offerings count (`KIND_LINES` in `app/page.tsx`), deep-linking to the listing's category anchors. Empty categories get no door; the page is `force-dynamic`. `categoryDisplayName` (lib/programUtils.ts) is shared with the listing so the one editorial rename can't drift. **Badges/doors come from data** — the s170 rule, now honored.
+- **The doors chapter uses the split grammar** — words left, doors right (Light-Pampas insets on the white section: white cards on white were invisible; an inset, not a lifted card, so no shadow).
+- **Dana is the third split** — the held lotus ("Lotus flower in hand", Olga Nayda, Unsplash License; 2400w source + 1600w/62KB WebP). An offered flower is the dana gesture; the many-hands photo stays the volunteer/KM/diversity hero only.
+- **Images:** splits serve 1600w WebP (buddga-lotus went 1.6MB → 74KB). **Sharpness ceiling:** Looking-Up-Pine-Trees is 534px and Community-Hands 900px — both serve full-bleed heroes and need higher-res re-downloads; no processing adds pixels.
+- **Hero video prefers MP4** — flaky VP9 hardware decode produced intermittent "dancing blocks"; both transcodes verified clean frame-by-frame and byte-identical to the live Webflow copies. Baseline 720p-on-Retina softness remains until the original clip is rescued from Webflow's Assets panel.
+
 ## Known follow-ons (see `data/backlog.json`)
 
 - **`2026-06-13-001`** — member/hub/admin internal UI still holds hardcoded old teal the token flip didn't reach; sweep.
 - **`2026-06-13-002`** — home page alternating sections (`.rim-section--grey` uses `--rim-bg`) flatten on the warm ground; repoint to the Pearl Bush secondary for rhythm. *(Largely superseded: home is on `pp-` as of session 169.)*
-- **`2026-08-07-001`** — the home page's four category doors are stale and non-functional: they match the real taxonomy on one of four, omit Silent Meditation Drop-Ins, and three of four link to the same URL. Needs `id` anchors on `.pl-cat` first.
+- ~~**`2026-08-07-001`**~~ — **done session 172**: the doors are dynamic and anchored (see "The home page composition").
 - **`2026-08-07-002`** — volunteer and the three Kalyana Mitta pages have never been measured against the live rendering, which is what caught every donate discrepancy.
-- **`2026-08-07-008`** — dated events (Retreats) render identically to weekly drop-ins, with no date. Date is the decision criterion for a one-time event; this is the strongest remaining hierarchy move on `/community-programs` and it is real information, not decoration.
+- ~~**`2026-08-07-008`**~~ — **done session 172**: the date-led `.pl-card--date` + `hideWhenPast` auto-retire (see "One card").
 - **`2026-08-07-009`** — the global nav's own touch targets are under 44px (Programs / Get Involved / Members at 38px, Donate at 36px, the footer phone link at 24px). Shared by every page.
 - **`2026-08-07-010`** — three visually-hidden utilities now exist (`.rim-sr-only`, `.th-sr-only`, `.gf-visually-hidden`); consolidate onto one.
 - **`2026-06-13-003`** — course landing (`/course/[slug]`) still on the old colon-heading language; bring into this system (but **not** the reverted eyebrows/band — match the *shipped* program-page language).

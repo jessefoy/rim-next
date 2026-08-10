@@ -99,9 +99,13 @@ entry/host screens use inline styles + tokens (no new prefix).
 1. The dashboard / program page / Scheduler "Join" links all point at
    `/session/[slug]/enter`. The legacy `/session/[slug]` URL redirects there too
    (preserving an open-access `?key=`), so old bookmarks/guest links still resolve.
-2. `/enter` gates: auth (or a valid open-access guest `?key=`) → in-person programs
-   bounce to their page → time window (`getActiveSessionWindow`, ADMIN/GT bypass) →
-   `SessionBan` (members by id; guests have none).
+2. `/enter` gates: auth (or a valid open-access guest `?key=`) → **archived
+   programs bounce to the dashboard** (`archivedAt`, session 172 — an archived
+   program has no live sessions, and this closes the hand-crafted-URL path that
+   could provision a meeting for a manually archived recurring program during
+   its old weekly window) → in-person programs bounce to their page → time
+   window (`getActiveSessionWindow`, ADMIN/GT bypass) → `SessionBan` (members
+   by id; guests have none).
 3. Provision/reuse the occurrence's meeting + fetch its standard join link
    (`getMeeting`), with **self-heal** (see below).
 4. Resolve role (`resolveSessionRole`). `canHost = isSessionHost || isHostTeam ||

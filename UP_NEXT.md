@@ -6,26 +6,28 @@
 
 ## Active
 
-### Session 171 (2026-08-08–09) — ✅ The optimization session: doctor pass, context diet, staleness purge, ACTIVE coordinator authority — all on `main`, deployed
+### Session 172 (2026-08-09) — ✅ Dated events retire themselves; member-area interaction floor; home page composed — all on `main`, deployed
 
-**Shipped + live.** A whole-system hygiene pass — 9 commits + 3 closing-doc commits on `main`, every round reviewer-gated, `tsc`-green. Full narrative: `session-log.md` (session 171).
+**Shipped + live.** 11 commits, every slice reviewer-gated, `tsc`-green, verified on the deployed site. Full narrative: `session-log.md` (session 172). The three arcs:
 
-- **Context diet:** CLAUDE.md 278 → 212 lines (Closing Ritual + Feature Backlog became the `closing-ritual` + `backlog` skills; Sanity content gone); UP_NEXT itself 1,856 → 177 lines. Next session's opening loads ~67k fewer est. tokens.
-- **Auth fix:** `isHubCoordinator` is now **ACTIVE-only** — a paused/inactive coordinator keeps board visibility but loses all 17 mutation/authority gates (coverage, rotations, sub-requests, Google-file lead approval). Rule recorded in `RIM_Scheduler.md`, `RIM_Hub_Engineering.md`, `RIM_System_Architecture.md`, `FEATURES.md`.
-- **Staleness purge:** `RIM_Stack_Reference.md` truth pass (session-room block, LiveKit env/rows, Sanity ×4, rim-connect rows → tombstones); 330 dead session-room CSS rules + `livekit-prefabs.css` pruned; 7 spent docs + `AGENTS.md` removed; `.claude-memory/` mirror refreshed + wired into closing as step 7c; all merged branches deleted (only `main` remains, local and remote); dead WASM config out of `next.config.ts`.
-- **Email templates:** the "Sanity Studio" callout repointed to Program Manager — label, seeds, and the idempotent `repoint_email_template_sanity_note_to_program_manager` migration (runs on this deploy).
+1. **Dated events** (closed `2026-08-07-008`): date-led `.pl-card--date` on the catalog; `Program.hideWhenPast` (default true) hides concluded one-time programs at read time (both public listings, shared `hasConcludedOneTime`) and the new daily **`archive-concluded-programs` cron** (8th cron, 09:15 UTC) archives them next morning. Member history survives archiving; the Zoom enter route refuses archived programs (closed a real hole).
+2. **Member-area quality campaign**: "Main site" in the member-bar everywhere; account rail is a phone drawer matching the hub drawer; the interaction floor (~65-selector focus-visible, 44px targets, 14/16px text); every wide table scrolls instead of clipping; the **border-box sweep** (hub-ws-content/tools-content + 16 classes — Jesse's "a lot is cut off" screenshots pinned it).
+3. **Home page** (closed `2026-08-07-001`): splits alternate; the doors are the live category taxonomy with kind lines + counts, deep-linking to new listing anchors; the doors chapter + Dana are split compositions; held-lotus (Olga Nayda/Unsplash) on Dana; lotus split image 1.6MB → 74KB WebP; hero video MP4-first (the "dancing blocks" were flaky VP9 decode — files verified clean and identical to the live site's).
 
-**OPEN — Jesse's dashboard chores (none blocking):**
-1. **Vercel build log** — confirm the deploy is green and shows the sanityNote migration's per-template `repointed` lines.
-2. **`/plugin` in the Claude app** — confirm the 5 disabled plugins (productivity, marketing, small-business, cowork-plugin-management, the custom `plugin_01Eeb…`) actually show disabled.
-3. **Vercel env** — remove any lingering `LIVEKIT_*` / `SANITY_*` vars (nothing reads them).
-4. **Sanity** — project `xxgvfpjf` + the Studio can be deleted when ready (export the dataset first if any legacy content matters).
+**OPEN — verification (none blocking):**
+1. **Cron first run** (~4:15am CT 2026-08-10): Vercel logs should show `[archive-concluded-programs] archived "nature-meditation-km-group"` (its July 26 date passed). If those walks still run May–October, give the program a real recurring schedule in Program Manager — or just Restore it; nothing is lost.
+2. **Jesse's eyes on the authenticated shell** (behind login, unverifiable by Claude): the account drawer + rail toggle on phone/desktop, the hub drawer, and whether the hero video's dancing blocks are gone now that it plays the MP4.
+3. Also still open from s171: the Vercel env cleanup + Sanity project deletion (backlog `2026-08-09-001`).
 
-**NEXT concrete step:** unchanged from session 170 — **dated events** (backlog `2026-08-07-008`): a retreat renders identically to a weekly drop-in with no date; for one-time events the date is the decision criterion and should lead the card. (The chapter-eyebrow alternative is tombstoned, s148.)
+**NEXT concrete step:** the **Webflow pre-cancellation errand** — the redirect map (`2026-08-07-003`) + the new **asset rescue** (`2026-08-09-006`: original Bodhi Leaves video from Webflow's Assets panel + higher-res pine-trees/community-hands sources; Claude encodes and swaps once files land). These two together are the last things between Jesse and cancelling Webflow.
 
-**Queued decisions for Jesse (from this session):** `2026-08-08-005` — should `effectiveCoordinator` (content-layer: trash, moderation, member management) also require ACTIVE status? Policy call, not a missing filter.
+**Queued from this session:** `2026-08-09-002` (in-tool links drop `?hub=` — the chrome changes shape mid-task; needs the four-layer hub-routing treatment), `-003` (Programs tool index has no page title), `-004` (tools-chrome hex sweep), `-005` (css-prune the ~14 dead backend CSS families the border-box sweep inventoried). Still queued from s170: nav/footer touch targets (`2026-08-07-009` — the PUBLIC nav; the member shell got its floor this session), visually-hidden utility consolidation (`-010`), course landing onto the design system (`2026-06-13-003`).
 
 ## Prior handoff reference
+
+### Session 171 (2026-08-08–09) — ✅ The optimization session — deployed
+
+Context diet (CLAUDE.md 278→212; UP_NEXT 1,856→177), `isHubCoordinator` now **ACTIVE-only** across all 17 authority gates, staleness purge (Sanity fully gone from docs, 330 dead session-room CSS rules pruned, branches consolidated to `main` only), the sanityNote email-template repoint migration. Full narrative: `session-log.md` (s171). Jesse's dashboard chores live on as backlog `2026-08-09-001`. Queued decision: `2026-08-08-005` — should `effectiveCoordinator` (content layer) also require ACTIVE?
 
 ### Session 170 (2026-08-07) — ✅ The two public listing pages made one system — deployed
 
@@ -49,6 +51,11 @@ cold session needs for orientation; at closing, move anything older than the
 last couple of sessions into the log instead of letting it accrete here.
 
 **Landmarks (newest first):**
+- **s172 — program lifecycle completes + the member-area interaction floor.**
+  One-time programs retire themselves (`hideWhenPast` + the archive cron); the
+  home page composes (dynamic doors, alternating splits); the whole
+  authenticated area got focus/target/text floors and stopped clipping at
+  half-screen widths (the border-box sweep).
 - **s169–170 — public pages rebuilt natively.** The static front-facing pages
   live in RIM's own design system (`RIM_Public_Pages.md`); the two listing
   pages share one hero/card/spine grammar. Design still being refined.

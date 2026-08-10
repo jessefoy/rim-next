@@ -29,6 +29,8 @@ The hub is team context, not program data authority. Program Manager is not curr
 
 Every Program requires a trimmed pull quote. ProgramEditor blocks an empty save, and both create/update API routes enforce the same rule with `422`; do not rely on the HTML `required` attribute alone. The source is encouraged and trimmed but remains optional. Program notes must be included in both create and update payloads.
 
+**Dated events retire themselves (session 172).** `Program.hideWhenPast` (default true) means "this one-time program retires itself": once its CT day has fully passed it leaves the public listings at read time (`hasConcludedOneTime` in `lib/programUtils.ts` — shared by `/community-programs` and the KM groups page) and the daily `archive-concluded-programs` cron sets `archivedAt` the next morning. The Visibility-tab checkbox renders **only for one-time programs** (`!recurrenceFreq`) — a recurring schedule never "passes"; the stored value persists invisibly if a program later gains recurrence, and is harmless because the concluded check is false for recurring. The Archived tab in `ProgramsTableClient` sorts by `archivedAt` desc (most recently archived first). Archiving is reversible (Restore) and never touches registrations; a registrant's `/account/programs/[slug]` history page survives it. The tab strip carries real `tablist`/`tab`/`aria-selected` semantics (session 172) — keep them when adding tabs.
+
 The visitor-facing registration readout is intentionally present in the Registration tab. It translates category kind + registration state + format into the public consequence before a coordinator saves. Preserve this clear-seeing bridge whenever those rules change.
 
 ## Full ecosystem trace
