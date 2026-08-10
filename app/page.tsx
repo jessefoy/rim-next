@@ -71,8 +71,13 @@ export default async function HomePage() {
             playsInline
             poster="/videos/Bodhi_Leaves-poster-00001.jpg"
           >
-            <source src="/videos/Bodhi_Leaves-transcode.webm" type="video/webm" />
+            {/* MP4 (H.264) first, deliberately: both files decode clean
+                frame-by-frame, but intermittent "dancing blocks" were
+                appearing during WebM playback — flaky VP9 hardware decode
+                (notably Safari). H.264 decode is dependable everywhere;
+                browsers take the first source they support. */}
             <source src="/videos/Bodhi_Leaves-transcode.mp4" type="video/mp4" />
+            <source src="/videos/Bodhi_Leaves-transcode.webm" type="video/webm" />
           </video>
         </div>
         <div className="rim-container pp-hero__inner">
