@@ -26863,6 +26863,18 @@ input.w-button { -webkit-appearance: button; }
 .pp-intro ~ .pp-prose > * { max-width: var(--reading-width); }
 .pp-prose > *:last-child  { margin-bottom: 0; }
 
+/* --spine: left-align the reading column to the container's text edge instead
+   of centring it, so a long-form page has ONE left edge — its hero copy, its
+   prose, and its closing actions all start together. The reading measure is
+   unchanged; only the centring goes.
+
+   Opt-in by design. Standalone centred prose is the shipped convention on the
+   pages that were measured against the live site (/donate centres its statement
+   at 348 against a hero at 110; /diversity measures the same), so this is a
+   modifier rather than a change to .pp-prose — those pages must not move. Use
+   it on pages long enough that the misalignment reads as drift. */
+.pp-prose--spine { margin-left: 0; margin-right: auto; }
+
 .pp-prose h2 {
   margin: 52px 0 16px;
   font-family: var(--font-serif);
