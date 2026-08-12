@@ -102,6 +102,8 @@ Work on a `claude/*` branch for the type-check and reviewer gates if useful, the
 
 One shared surface language for the pages that are neither catalog nor program detail: **home, donate, diversity, volunteer (+ thanks), and the three Kalyana Mitta pages.**
 
+Session 174 added two more: **`/what-we-practice`** (A Handful of Leaves — the page that answers what RIM is) and **`/your-first-visit`** (what walking in is actually like). Both are pure prose on the ground, per the sparse-≠-minimal tombstone — a reading page must not be dressed in card scaffolding it doesn't need.
+
 **Why it exists.** These pages were still wearing Webflow-era class names — `.section-19`, `.main-container`, `.grid-halves-3`, `.diversity-content-box`, `.bg-accent-2`, `.milestone-circle`, `.w-richtext`, `.button-2` — and **none of them has a rule in `custom.css`**. Only `custom.css` is linked; `rim.webflow.css` and `webflow.css` sit unused in `public/css/`. The pages rendered as bare document flow. This shipped that way for months.
 
 `pp-` deliberately extends the `pl-`/`pg-` language rather than starting a second system: same hero grammar, same card lift, same recede panel, same eyebrow treatment.
@@ -114,7 +116,7 @@ One shared surface language for the pages that are neither catalog nor program d
 | `.pp-hero__eyebrow / __title / __body / __actions / __link` | The hero tiers. |
 | `.pp-section` (+ `--white`, `--accent`, `--tight`, `--last`, `--airy`, `--airiest`) | Page rhythm. |
 | `.pp-intro` | Section opener: eyebrow, serif title, body. |
-| `.pp-prose` | Flowing copy at `--reading-width`, open on the ground, never boxed. |
+| `.pp-prose` (+ `--spine`) | Flowing copy at `--reading-width`, open on the ground, never boxed. `--spine` left-aligns it to the container text edge instead of centring — see below. |
 | `.pp-cards` / `.pp-card` (+ `--row`) | Discrete modules that lift. Row cards match `.pl-card` exactly. |
 | `.pp-panel` | Supplementary content that recedes. Deeper Pampas, never a shadow. |
 | `.pp-notice` | The calm "you need an account" message. A message, not an alarm. |
@@ -229,6 +231,40 @@ A single-class `pl-` rule loses to a single-class `pp-` rule on source order. A 
 ### Badges must come from data
 
 **`GOOD_FIRST_VISIT_SLUGS` was a hardcoded `Set` of two program slugs in the page file** — no column, no CMS, arbitrary by construction, shipped from a mockup. Removed session 170 at Jesse's instruction. Any future per-program badge comes from a `Program` field editable in Program Manager, or it does not ship. This is the same drift mechanism that made the home page's four category doors go stale.
+
+### The reading column — `.pp-prose--spine` (session 174)
+
+`.pp-prose` centres a `--reading-width` (700px) column, so on a page whose hero copy sits at 110 the prose lands at **290** and the closing actions return to 110: three left edges. `.pp-prose--spine` sets `margin-left: 0` and leaves the measure alone, giving one left edge for the whole page.
+
+**It is opt-in, and must stay opt-in.** Centred standalone prose is the *shipped, approved* convention on the pages that were measured against the live site — `/donate` centres its statement at **348** against a hero at 110, and `/diversity` measures **290**. Changing `.pp-prose` itself would move both. Use `--spine` on pages long enough that the misalignment reads as drift; `/what-we-practice` is the first (110 across hero, prose, headings, and actions). The family is now deliberately inconsistent pending Jesse's call — backlog `2026-08-10-006`.
+
+The s170 **"one left edge"** rule is scoped to the two *listing* pages, exactly as written. It is not a sitewide law, and this measurement is why.
+
+---
+
+## Copy and voice — the public pages (session 174)
+
+The public pages carry a **ratified copy standard**, not just a design system. The rules live in the **`/how-jesse-writes` skill** (`references/how-we-write.md` — read it fresh; it was amended six times in one day during its fast season). Invoke the skill for anything longer than a label. What follows is only what a RIM implementer needs at the door.
+
+**The five that bite most often on the web:**
+
+- **Never "free" as a price word.** Not "free," not "free of charge," not "no cost." The house wording is **freely offered** and **community-supported**. This is a ruling: *free* is a price word and dana is a gift economy, not a fee waived. Session 174 caught `/volunteerism/volunteer` still saying "Membership is free."
+- **No em-dashes in prose**, no exclamation points in system text, no "Oops." Errors sound like a person: *"Something went wrong. Try again, or email us and we'll add you ourselves."*
+- **Button labels are invitations, not commands** — "Come sit with us," "Plan your first visit." Never "Get Started!"
+- **Never name the epoch.** No "turbulent times," no "today's fast-paced world," no "in a world where," anywhere on the site. Name the **particulars** instead — the home page's "full days that somehow do not nourish" is the model.
+- **Never narrate the reader's inner life.** Point at things; let them do their own feeling.
+
+**Three rules learned on the web surface specifically:**
+
+- **One image per page.** The community introduction is rich with them (the pond and the mud, the sun and the frost, the house and its guests, the gardener and the rose, the medicine cabinet, the hall and the orchestra). A page takes **one**, chosen for the work it does — `/what-we-practice` takes the hall and the orchestra because that image answers the eclecticism suspicion. Stacking is banned; the rest stay in the introduction, where there is room to live inside them.
+- **The repeating frame is the tell to watch when implementing a brief.** A sentence-frame clean once is a fingerprint thrice, and word-level tools pass it clean. Session 174: "freely offered and community-supported" was to appear in the home hero *and* open the Dana section, with "membership is freely offered" between them — three on one page. One was cut. Check across sections, not per sentence.
+- **The web reader is not the introduction's reader.** The introduction meets someone who has already walked in and is examining their own mind under instruction, so it disarms **shame** first. A visitor carries no such weight, and reassurance aimed at the unafraid reads as condescension. Name that as a decision rather than applying the move by reflex.
+
+**Run the script, then bring the flags.** `python scripts/style_check.py <draft.md> --community` in the skill directory. It finds candidates, never scores — sort every hit into fixed / defended out loud / overridden. The standing false positive is **first person inside depicted speech** (the Buddha's quoted words, the reader's own interior question); the script cannot see quotation context. And the script is not the real gate: session 174's architecture check found that a page **never turned outward**, which every sentence-level tool passed clean.
+
+**Ratification is Jesse's read-aloud, and nothing else.** Not the brief, not the session log, not a positive reaction, not silence. Implemented copy ships and stays **provisional** until he has read it aloud and ruled. Give him the copy as one markdown document in visitor order with the flags first — clicking through eight pages is the wrong instrument for a read-aloud.
+
+**What RIM is, in one line, because getting it wrong is the recurring failure:** the handful is an **ordered structure** — organized by function into seven gatherings — and it exists **as a response to** having every tradition available at once. It is not eclectic gathering and it is not picking and choosing. The authority is the community introduction (`A Handful of Leaves: An Introduction`), the document given to every new participant. See `/what-we-practice` and the session-174 log.
 
 ### Copy — the membership block speaks dana, not "free"
 

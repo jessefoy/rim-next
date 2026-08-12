@@ -1293,5 +1293,45 @@
     "status": "open",
     "addedAt": "2026-08-10",
     "notes": "Jesse asked to be reminded each session — also carried at the top of UP_NEXT.md. Separately: the whole copy set from the Copy and Voice Brief is provisional until his read-aloud (read-aloud document produced session 174); ratification is his explicit yes, never assumed from silence."
+  },
+  {
+    "id": "2026-08-10-003",
+    "title": "Forms & integrations cutover audit — findings preserved (Jesse parked the work)",
+    "description": "Session 174 audited every form on the live Webflow site against rim-next; Jesse then changed direction and asked to hold the work while he thinks. Nothing was built. Findings, so the audit isn't re-run: (1) BLOCKING UNKNOWN — every Webflow form posts to Webflow's own handler (no action attribute, submitted by webflow.js), so all Zapier/Mailchimp wiring lives in Webflow's dashboard and cannot be read from the markup or the archive. Jesse must open Webflow > Forms and Zapier > Zaps and report what's connected. (2) Possible two-list newsletter problem: the live form carries a hidden tags=6432381 inside a div classed html-embed-mailchimp-tag (a Mailchimp tag id) while /api/subscribe writes to Flodesk segment 6340e5b00170f97cbdfc4b87; Mailchimp appears nowhere in the repo. FLODESK_API_KEY is set in production (verified) but the round trip is untested — testing writes to Jesse's live list. (3) Seven live Fillout program-registration embeds still taking submissions: essential-dharma-study 7562PfDDk6us, bookmarks-breath 1MNKNhcQDbus, mindfulness-and-meditation-retreat mTL6L8cHtrus, nature-meditation-km-group-2024 186nsqBKAJus, qigong-at-rim usjibS8U7Tus, rim-greater-community-engagement fLnmeYC4L6us, the-heart-of-wisdom-2026 ahY3CW4JDBus — export history and kill the Zaps before cancelling Fillout. (4) The KM Group Details Form (14 fields, /kalyana-mitta/kalyana-mitta-group-detail-form) has no rim-next equivalent and nothing on the site links to it; decide port / Google Form / retire. (5) 17 /volunteer-positions/* pages carry an application form — decided non-port, fold into the redirect map. (6) Contact is mailto, not a form (171 mailto:support@ links) — nothing to port. (7) Adjacent: GTM is on all 317 live pages and rim-next has no analytics at all; a Donorbox popup sits on 57 live pages while our donate page is Givebutter.",
+    "category": "Infrastructure",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-08-10",
+    "notes": "Jesse: 'Let's hold off. I need to give it some thought.' Recorded so the audit work isn't lost — delete if he decides against it. Prerequisite for cancelling Webflow, alongside 2026-08-07-003 (redirect map) and 2026-08-09-006 (asset rescue). The durable-record defect in it is tracked separately as 2026-08-10-004."
+  },
+  {
+    "id": "2026-08-10-004",
+    "title": "Volunteer + KM application forms have no durable record — email-only, and a failed send loses the submission",
+    "description": "The two public forms ported into rim-next (/volunteerism/volunteer and /kalyana-mitta/kalyana-mitta-group-application) write no DB row. Each server action calls sendVolunteerInterestEmail / sendKalyanaApplicationEmail and nothing else. Three consequences: (a) if Resend fails or someone toggles the template off at /admin/emails, the submission vanishes with no trace anywhere; (b) the action awaits the send BEFORE redirect(), so a throw shows the visitor an error page and loses everything they typed; (c) TEAM_EMAIL is not set in Vercel, so both fall back to hello@rootedinmindfulness.org. On Webflow these submissions were at least retained in Webflow's own form dashboard, so this is a genuine regression rather than parity. Fix: persist a row (a small FormSubmission model, or reuse an existing surface) before sending, and move the send off the critical path with after() from next/server so a mail failure can never eat the submission. Found during the session-174 forms audit.",
+    "category": "Admin Tools",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-08-10",
+    "notes": "The one genuine regression the forms audit found. Independent of the parked cutover questions in 2026-08-10-003 — this is a defect in code we already own."
+  },
+  {
+    "id": "2026-08-10-005",
+    "title": "rim-connect.js 404s on all 317 live Webflow pages — pull the script tag",
+    "description": "Every page of the live Webflow site loads https://rim-next.vercel.app/rim-connect.js, which returns 404. The Webflow bridge was removed from our side during the May-2026 pivot reversal but the script tag was never pulled from Webflow's site settings, so every public page has fired a failed request ever since. Harmless in effect (nothing depends on it), but it means the docs' 'the bridge is gone' is only half true, and it is one dashboard edit in Webflow to close. Also worth doing before any cutover measurement, so the live pages aren't carrying a phantom dependency on the app that is replacing them.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-08-10",
+    "notes": "Jesse's edit — Webflow site settings / custom code. Verified 404 session 174."
+  },
+  {
+    "id": "2026-08-10-006",
+    "title": "Prose pages: decide whether the reading column left-aligns to the spine",
+    "description": "Session 174 added .pp-prose--spine (margin-left: 0, reading measure unchanged) so a long-form page has ONE left edge, and applied it only to /what-we-practice — which now measures 110 across hero, prose, headings, and actions. The other pp-prose pages still centre: /diversity sits at 290 against a hero at 110, and /donate centres its statement at 348 against a hero at 110. That centring is the shipped, Jesse-approved convention (donate was matched to the live site by measurement), which is exactly why the modifier is opt-in rather than a change to .pp-prose. But the family is now visibly inconsistent: one prose page aligns to the spine and the others do not. Decide one way for the family — either extend --spine to /diversity and the KM guidelines, or keep centring as the convention and treat /what-we-practice as the exception for long-form. This is a design call for Jesse, not a defect.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-08-10",
+    "notes": "Measured session 174: hero 110 on every page; prose 290 (/diversity), 348 (/donate statement), 110 (/what-we-practice, with --spine). Related: RIM_Public_Pages.md 'The spine — one left edge' is scoped to the two listing pages."
   }
 ]

@@ -1,5 +1,81 @@
 ---
 
+## 2026-08-10 (session 174) — The public pages in the house voice, and the handful is ordered
+
+Jesse arrived with a **ratified Copy and Voice Brief** he had built in a separate chat session and asked to have implemented on rim-next. Five commits, all on `main`, `tsc --noEmit` and `npx next build` both green, every change verified against the deployed site by measurement. **No new dependencies, env vars, services, schema, migrations, crons, or email templates.** Two new routes, both prerendered static; one new CSS modifier.
+
+The session had a false start worth recording, because the work it produced is not lost.
+
+### Arc 0 — the forms and integrations audit (asked for, delivered, then parked by Jesse)
+
+Jesse's opening concern was the site's forms: "newsletter sign-up, contact forms throughout the website. Some of these are hooked up to Zapier and other systems." Audited both sides — the live Webflow site (published Jul 19), the offline clone at `~/Sites/rim-site-archive/`, and our own repo — then he changed direction to the copy work before any of it was built. **Nothing was half-built; the findings are preserved in backlog `2026-08-10-003`.** The substance:
+
+- **25 distinct forms exist on the live site; four are real intake forms.** Newsletter (home), General Volunteer Interests, Kalyana Mitta Group Application, and a **KM Group Details Form** (14 fields) that has **no equivalent in rim-next** and which *nothing on the site links to* — the coordinator almost certainly emails the link to approved groups. The rest are Memberstack auth, Webflow ecommerce checkout, and a commenting test page.
+- **The integrations are invisible from outside.** Every Webflow form posts to Webflow's *own* handler — no `action` attribute, submitted by `webflow.js` — so Zapier/Mailchimp wiring lives in Webflow's dashboard, not the markup. Neither the live HTML nor the archive can reveal it. **This is the blocking unknown for cutover** and only Jesse can resolve it.
+- **A possible two-list newsletter problem.** The live form carries a hidden `tags=6432381` inside a div classed `html-embed-mailchimp-tag` — a Mailchimp tag id. Our `/api/subscribe` writes to **Flodesk**, segment `6340e5b00170f97cbdfc4b87`. Mailchimp appears nowhere in the repo or docs. `FLODESK_API_KEY` **is** set in production (verified via `vercel env ls`); the round trip is untested, and testing it writes to Jesse's live list, so it stays his to run.
+- **Seven live Fillout embeds** still take program registrations: `essential-dharma-study` (`7562PfDDk6us`), `bookmarks-breath`, `mindfulness-and-meditation-retreat`, `nature-meditation-km-group-2024`, `qigong-at-rim`, `rim-greater-community-engagement`, `the-heart-of-wisdom-2026`. Native `Registration` replaces the function; Fillout is a separate paid service with its own history and possibly its own Zaps.
+- **The two ported forms have no durable record.** `/volunteerism/volunteer` and the KM application are email-only — no DB row. Templates are seeded `enabled: true` and go to `TEAM_EMAIL`, which is **not set in Vercel**, so both fall back to `hello@`. Worse, the server action `await`s the send *before* `redirect()`, so a failed send shows the visitor an error and loses their text. Webflow at least kept a copy in its own dashboard. **The one genuine regression the audit found.**
+- Both ported forms are login-gated in rim-next, and **were login-gated on Webflow too** (`data-ms-content="members"`) — parity, not a regression. Corrected my own initial read on that.
+- **`rim-connect.js` is 404ing on all 317 live pages right now.** Every Webflow page still loads `https://rim-next.vercel.app/rim-connect.js`; the bridge was removed from our side and the script tag was never pulled from Webflow. So "the bridge is gone" is only half true.
+- Contact is **`mailto`, not a form** — 171 `mailto:support@…?subject=Dear RIM Support` links, nothing to port. And adjacent: GTM is on all 317 live pages while rim-next has **no analytics at all**; a Donorbox popup script sits on 57 live pages while our donate page is Givebutter.
+
+### Arc 1 — the Copy and Voice Brief, implemented (`bf952fc`)
+
+The brief was written against the **Webflow** site; rim-next's pages were already rebuilt with different copy (sessions 169–172). Mapping brief-section → actual route was most of the thinking, and four of its assumptions did not hold: "Programs — leave it alone" was about Webflow's page (ours is a different rebuild, and its membership block already speaks dana); "Stay Connected" is a home-page section on Webflow but the **global Footer** here, so that copy lands on every public page; the "does the site get a teachers page" open question is **already resolved** — `/teachers` exists on real profile data, just unlinked since s148; and one of the three Donate line edits had **no target** (see below).
+
+The propagation surface worth naming: the agreements, their lead-in, and the form lead live in **`lib/communityAgreements.ts`** and are rendered by `/join`, `/account/welcome`, and `components/RegistrationForm.tsx`. Three of the brief's line edits live there, so they reached the **program registration form** and the **post-sign-in welcome ritual** too, by design.
+
+What shipped: the home page rewritten section by section (hero names the community and the place; "Learn, Practice, and Grow Together" meets the reader's life by naming **particulars, never the epoch**; "Timeless Wisdom" drops the lineage vocabulary — Insight/Vipassana/Pāli Canon moved to **metadata**, where a seeker still finds the door; the programs chapter replaces the pandemic-era "Tuesday and Saturday"; the Dana section describes the giving before naming it). Two new pages. `/join` gained **"What membership means"** ahead of the agreements — the section that disarms dues, attendance, and the social fear, and raises the reader's own objection ("will I have to be social?") at the moment it occurs. `/diversity` replaced at half length. Two Donate line edits. One orientation line on `/this-week`. Newsletter copy, confirmation, and errors in the house voice, and `/api/subscribe` stopped surfacing Flodesk's API-consumer messages to visitors.
+
+**Decisions made in the open, any of which Jesse can overrule at the read-aloud:**
+
+- **Cut the brief's third "freely offered and community-supported."** The hero says it, "membership is freely offered" sits between, and the Dana section opened with the same frame — three on one page, which is the **repeating-frame** tell the house guide names as stronger than any single word. The section now opens on "We follow an old practice here," which says it more concretely one line later. Jesse's own instruction that session — dana "consistent and easy, but not over the top everywhere" — is what licensed the cut.
+- **Re-homed the `/diversity` link.** The brief replaces that section's button with "Read the story of the name," which would have **orphaned the page** — nothing else on the site links `/diversity`. It became the quiet secondary beside "Become a member," matching the Dana section's button-plus-link pattern.
+- **Fixed one thing outside the brief:** `/volunteerism/volunteer` read "Membership is free," a head-on violation of the price-word ruling. Now "freely offered." Left `/donate`'s "fosters" alone deliberately — the brief's Do Not Touch list limits Donate to its named edits.
+- **One line has no home.** *"Dana is how a community takes care of what it loves"* was to replace "Dana promotes a healthier, selfless, caring, and grateful world" on Donate. That sentence lived **only on the home page** and went with the rewritten Dana section. Unplaced, and deliberately not forced somewhere — it would be a second potent line in a passage that already has one.
+
+### Arc 2 — Jesse's correction: the handful is ordered, not eclectic (`090072a`)
+
+Jesse pasted the full **community introduction** (`A Handful of Leaves: An Introduction`) — the document **given to every new participant** — and made the substantive correction of the session: *"we are not just collecting from all traditions. We have organized it in a way that it's not just picking and choosing. It is an ordered structure practice, and this is actually a response to how much we have."*
+
+The shipped page said "gathered from across the traditions" and stopped, which reads as a spiritual supermarket — the one thing RIM is not. It also had a formatting problem that turned out to be the *same* problem: **295 words, four paragraphs, zero headings**, two of them 83 and 115 words unbroken at 78 characters per line. The sections it was missing were the headings it was missing.
+
+Because Jesse said the articulation mattered, this followed the `how-jesse-writes` front door: Spine questions answered out loud, structure proposed, his yes before prose. The reader analysis is worth keeping — **this page's reader is not the introduction's reader.** The introduction meets someone who has already walked in and is examining their own mind under instruction, so it disarms **shame** first. The web reader carries no such weight and gets **no shame-disarming** (reassuring the unafraid reads as condescension). What they *do* carry is suspicion of eclecticism and accumulation fatigue, and the page now answers both.
+
+Five sections: the story of the name · **why a handful** (the situation — *exposure everywhere, orientation nowhere* — and the traditions cleared of fault: each lineage complete in itself, met broadly rather than deeply, and breadth without roots scatters) · **how it is ordered** (organized **by function**, not by school or country, into seven gatherings met as the arc of a practicing life) · **one practice, many doors** (the reader's own objection — many practices competing for one cushion? — answered with the hall-and-orchestra distinction) · for anyone. Title hierarchy mirrors the introduction: eyebrow "What and how we practice", title "A Handful of Leaves". Nav label stays "Our Practice" (the bar has ~156px slack at 1024px, and the full phrase is roughly twice the width).
+
+**The editing pass earned its keep twice.** The script flagged six items: three are the Buddha's quoted speech (overridden — depicted speech, attribution before the words), one was a genuine **trailing warrant** (`"competes with it, because nothing is on its level"` → repaired with a period, which lets the repetition do the work), and two are defended and kept — **"broadly rather than deeply"** (the contrast term the sentence turns on, not an empty intensifier) and **"add the practice gently"** (the manner *is* the instruction). Then the **architecture check found the real defect**, which no sentence-level tool would catch: **the page never turned outward.** The Buddha's words had been cut short at "Only what leads onward," dropping exactly the clause that opens the teaching past the reader. Restored to the introduction's own wording.
+
+**Image discipline, stated as a rule going forward:** the introduction is rich with images — the pond and the mud, the sun and the frost, the house and its guests, the gardener and the rose, the medicine cabinet, the hall and the orchestra. **A web page carries one.** This page took the hall and the orchestra, because it is the image that does the anti-eclecticism work; everything else stayed in the introduction, where there is room to live inside it.
+
+### Arc 3 — `.pp-prose--spine`, and the left-edge question answered by measurement
+
+The page had three left edges: hero copy at 110, prose at 290, closing actions back at 110. Before changing anything I checked whether I had introduced it — and I had not. `/diversity` measures identically, and **`/donate`, the page matched to the live site by measurement and approved, centres its statement at 348 against a hero at 110.** So a centred reading column against a left-aligned hero is the **shipped, approved convention**, and the s170 one-left-edge rule is scoped to the two *listing* pages, exactly as it says.
+
+New `.pp-prose--spine` sets `margin-left: 0` and leaves the reading measure alone, so a long-form page has one left edge. **Deliberately opt-in**, not a change to `.pp-prose`: the measured pages must not move, and both were verified unmoved after deploy (`/donate` 348/585/408, `/diversity` 290). Applied only to `/what-we-practice`, which is now 110 across hero, prose, headings, and actions.
+
+### Your First Visit shipped provisional, by Jesse's ruling
+
+The brief marked the first-visit logistics `[TODO: Jesse]` and forbade inventing them. Offered to hold the page unlinked; Jesse chose otherwise — *"Let's create a page with temporary text that seems good to you, and then remind me each session about this."* So two paragraphs are mine, marked `PROVISIONAL` in the source, and written to **assert nothing unverifiable about the building**: instead of inventing a parking lot, a door, or a shoe rule, they point a visitor at a person to ask. That distinction matters, because this page is linked from the home hero's primary button and a nervous first-timer standing in a parking lot is exactly who would be misled by a confident invention.
+
+### What this connects to
+
+- **`lib/communityAgreements.ts` → `/join` + `/account/welcome` + `RegistrationForm`.** One source, three surfaces, by design. Any future agreement edit reaches the registration flow.
+- **`components/Footer.tsx` → every public page.** The newsletter block is global; `FooterWrapper` suppresses it on `/admin`, `/account`, `/tools`, `/session`, `/lessons/`, `/course/`.
+- **`app/api/subscribe/route.ts` → Flodesk** (segment `6340e5b00170f97cbdfc4b87`). Its error strings render directly in the footer form, which is why they are house-voiced now and why Flodesk's own message is logged instead of shown.
+- **`components/Nav.tsx`** gained a flat top-level link — the first non-dropdown item in the public bar since the s148 slimming. Both desktop and mobile menus updated. Touch targets: the new link measures 43px, its dropdown neighbours 38px (backlog `2026-08-07-009` still open on all of them).
+- **The home page's dynamic doors are untouched** — only the prose above them changed. The `ProgramCategory` read, `KIND_LINES`, and the category anchors all still work as built in s172.
+- **`/community-programs` membership block** — the home programs chapter deliberately re-uses its "no fees or tuition; the center is held by the people who practice here" line. Recurrence is how a line becomes the community's vocabulary; keep the two in step.
+- **The Webflow cutover** — neither new page has a Webflow counterpart, so the redirect map (`2026-08-07-003`) gains nothing. But `/community-membership` → `/join` is still owed there.
+
+### What comes next
+
+The gate on all of this copy is **Jesse's read-aloud**, not the brief and not this log. Ratification is his explicit yes; silence is not consent. A read-aloud document carrying every block in visitor order, with the flags first, was produced and delivered.
+
+Open and waiting on him: the first-visit logistics (`2026-08-10-002`, with a standing reminder at the top of `UP_NEXT.md`); where the unplaced dana line goes, if anywhere; whether the community introduction and the brief itself should live in the repo rather than being pasted each session; and the parked forms audit (`2026-08-10-003`).
+
+---
+
 ## 2026-08-10 (session 173) — Five measured overflows: the sign-in pages, the phone menu, the Zoom door, and two long email addresses
 
 A short session that started as an opening ritual and became a box-sizing audit. Three commits of fixes plus two backlog commits, all on `main`, `tsc`-green, reviewer-gated, each verified against the deployed site by measurement rather than by eye. **No new dependencies, env vars, services, schema, migrations, crons, or email templates — `public/css/custom.css` only.**
