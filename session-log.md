@@ -1,5 +1,19 @@
 ---
 
+## 2026-09-01 (session 175) — Member registration management removed; older public-page draft identified and preserved
+
+Jesse asked to simplify the current RIM-NEXT release by removing the member-facing `/account/programs` feature. The governing product call is explicit: **members should not manually cancel registrations.** Commit `ab686b1` removed the list/detail routes, member registration APIs, cancellation button, navigation entry, and the feature-specific CSS, design-system examples, inventories, and architecture references. Old account-program URLs now permanently redirect to the member dashboard; upcoming-program links there go to the public program page.
+
+The removal deliberately stops at the member self-service boundary. Public registration and waitlisting still work, registration rows and dashboard upcoming-program data remain, and registrar/staff tools retain their management and cancellation path. Registration confirmation mail remains part of public registration. The internal cancellation notification remains for staff cancellations and now links to `/tools/programs/[slug]`; there is no member cancellation API or corresponding member cancellation-email path left. No schema, migration, cron, or stored registration data was removed.
+
+Verification was proportionate to the change: TypeScript, targeted ESLint, `git diff --check`, and the CSS prune/brace check passed. The commit deployed successfully from `main`, and the removed production routes were verified redirecting to `/account/dashboard`. At closing, local `main` and `origin/main` both point to `ab686b1`.
+
+The phrase “provisional public-page work” referred to an older, unrelated working-tree draft, not anything hidden in the deployment. Its new files are timestamped 2026-08-12, after the s174 closing commit, and no later commit or handoff records them. The audit grouped it into four coherent slices: Community Care Agreements; program notices and Practice With Us; home-page refinements; and the expanded Diversity page/image. Most wiring is present, TypeScript passes, the new static pages are responsive, and the `/join#community-care-agreements` anchor lands correctly. It remains honestly unclosed: substantive copy lacks Jesse's explicit read-aloud ratification, two prose passages use forbidden em dashes, a canonical-copy comment is stale, the new image's provenance is unrecorded, and database-backed/authenticated surfaces were not fully exercised locally because the database was unavailable. Those fifteen paths stayed uncommitted and were not included in the s175 deployment.
+
+Restart there only after Jesse chooses to finish that draft: ratify the copy, establish image provenance, repair the known standards issues, run the remaining runtime checks, update the feature/handoff documentation, and commit it separately. The deployed removal of member self-cancellation is frozen unless Jesse explicitly reverses the product call.
+
+---
+
 ## 2026-08-10 (session 174) — The public pages in the house voice, and the handful is ordered
 
 Jesse arrived with a **ratified Copy and Voice Brief** he had built in a separate chat session and asked to have implemented on rim-next. Five commits, all on `main`, `tsc --noEmit` and `npx next build` both green, every change verified against the deployed site by measurement. **No new dependencies, env vars, services, schema, migrations, crons, or email templates.** Two new routes, both prerendered static; one new CSS modifier.

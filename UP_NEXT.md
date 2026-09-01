@@ -6,6 +6,18 @@
 
 ## Active
 
+### Session 175 (2026-09-01) — ✅ Member self-service registration management removed — on `main`, deployed, verified
+
+**Outcome.** Jesse chose to remove the member-facing **My Registrations** feature and explicitly does not want members cancelling their own registrations. Commit `ab686b1` removes `/account/programs`, its detail page, the two member registration APIs, `CancelRegistrationButton`, the member-nav entry, and the feature's CSS/design-system/documentation residue. Dashboard upcoming-program links now go to the public program page. Legacy `/account/programs` URLs permanently redirect to `/account/dashboard`.
+
+**Boundary preserved.** Public registration, waitlists, registration records, dashboard upcoming-program data, registrar tools, and staff cancellation remain. No schema, migration, cron, stored registration, or public registration-confirmation email was removed. The internal cancellation notification remains because staff can still cancel; its copy and link now describe the staff-only path. There is no member cancellation endpoint or member cancellation email path left.
+
+**Evidence.** `npx tsc --noEmit`, targeted ESLint, `git diff --check`, and the CSS prune/brace check passed. Vercel reported a successful production deployment from `main`; the removed account routes were checked on production and redirect to the dashboard. `main` and `origin/main` both point to `ab686b1` at closing.
+
+**Preserved pre-existing draft — do not mix into s175.** Fifteen modified/untracked public-page paths remain in the working tree from a coherent post-s174 draft made on 2026-08-12: a new Community Care Agreements page and shared agreement copy, program-card notices plus a shared Practice With Us close, home-page refinements, and an expanded Diversity page with `color-powder-diversity.webp`. The audit found the implementation largely wired and type-safe; the static agreement/diversity pages and the join hash target render responsively. It is **not release-ready or ratified**: the public copy still needs Jesse's explicit read-aloud approval, two prose passages violate the no-em-dash rule, one source comment is stale, the Diversity image has no recorded provenance, and database/authenticated surfaces still need runtime QA. These paths were not staged, committed, or deployed in s175.
+
+**Exact restart point.** First decide whether to finish and ship the preserved public-page draft. If yes: read it aloud with Jesse, settle the image provenance, repair the two copy-standard violations and stale comment, verify the database-backed program listings plus the signed-in profile surface, document the new route/features, and commit it as a separate coherent change. Do not restore member self-cancellation while doing that work.
+
 ### ⏰ STANDING REMINDER — say this to Jesse every session until he closes it
 
 **Two things on the public copy are waiting on Jesse, and he asked to be reminded each session:**
@@ -40,7 +52,7 @@ Session 174 opened on his concern about the site's forms and delivered the audit
 3. **The authenticated shell walkthrough** (behind login, unverifiable by Claude): the account drawer + rail collapse on phone and desktop, the hub drawer, and the half-screen-width pass (drag a desktop window to ~half screen and walk a Space, the Scheduler, Program Manager, the Member Registry — nothing should clip, wide tables should scroll in their own box).
 4. **Vercel env cleanup + Sanity project deletion** (`2026-08-09-001`): drop the `LIVEKIT_*`, `NEXT_PUBLIC_SANITY_*`, `SANITY_API_TOKEN`, and `GMAIL_*` vars; **also fix the `NEXTAUTH_URL` trailing space** at source and redeploy (that one *is* read). Then delete the old Sanity project and the "RIM — Community" Drive folder. Worth adding `TEAM_EMAIL` while he's in there — it's unset, so the two public forms fall back to `hello@`.
 
-**NEXT concrete step:** still the **Webflow pre-cancellation errand** — the redirect map (`2026-08-07-003`, Claude can build this alone) + the asset rescue (`2026-08-09-006`: original Bodhi Leaves video from Webflow's Assets panel + higher-res pine-trees/community-hands sources; Claude encodes and swaps once files land). The forms audit (`2026-08-10-003`) is now a third item on that errand.
+**NEXT concrete step:** disposition the preserved public-page draft recorded in s175. It is implementation-complete enough for a focused read-aloud and final QA pass, but it must not be inferred approved or mixed with the already-deployed registration removal. After that, the **Webflow pre-cancellation errand** remains: the redirect map (`2026-08-07-003`), asset rescue (`2026-08-09-006`), and forms audit (`2026-08-10-003`).
 
 **Still queued (backlog):** `2026-08-10-006` (prose-page left edge — decide for the family), `2026-08-09-002` (in-tool links drop `?hub=` — needs the four-layer hub-routing treatment), `-003` (Programs tool index has no page title), `-004` (tools-chrome hex sweep), `-005` (css-prune the ~14 dead backend CSS families), `2026-08-07-009` (public **desktop** nav/footer touch targets — the phone rows measure 53–54px, so height was never the issue there; the new "Our Practice" link measures 43px against its 38px neighbours), `-010` (consolidate the three visually-hidden utilities), `-002` (volunteer + Kalyana Mitta pages unmeasured), `2026-06-13-003` (course landing onto the design system), `2026-08-08-005` (queued decision: should `effectiveCoordinator` also require ACTIVE?).
 
