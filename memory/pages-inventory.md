@@ -47,7 +47,6 @@ Once ALL pages are 🟢, delete the three Webflow CSS `<link>` tags from `app/la
 | Status | Route | File |
 |---|---|---|
 | 🟢 | `/account/dashboard` | `app/account/dashboard/page.tsx` — prefix: `db-` |
-| 🟢 | `/account/dashboard-my-registrations` | `app/account/dashboard-my-registrations/page.tsx` — prefix: `mr-` (new) |
 | 🟢 | `/account/dashboard-my-library` | `app/account/dashboard-my-library/page.tsx` — prefix: `ml-` |
 | 🟢 | `/account/dashboard-my-profile` | `app/account/dashboard-my-profile/page.tsx` — prefix: `mp-` |
 | 🟢 | `/account/dashboard-member-care-agreements` | `app/account/dashboard-member-care-agreements/page.tsx` — prefix: `mc-` |
@@ -75,9 +74,9 @@ Once ALL pages are 🟢, delete the three Webflow CSS `<link>` tags from `app/la
 
 ---
 
-## Progress: 14 / 31 pages migrated 🟢
+## Progress: 13 / 30 pages migrated 🟢
 
-*(Includes: `/lessons/[slug]`, `/programs/[slug]`, `/account/welcome`, `/account/dashboard`, `/account/dashboard-my-registrations`, `/account/dashboard-my-library`, `/account/dashboard-my-profile`, `/account/dashboard-member-care-agreements`, `/volunteer`, `/volunteer/programs/[slug]`, `/admin/members`, `/admin/members/[id]`, `/admin/sitemap`, `/update/[token]`)*
+*(Includes: `/lessons/[slug]`, `/programs/[slug]`, `/account/welcome`, `/account/dashboard`, `/account/dashboard-my-library`, `/account/dashboard-my-profile`, `/account/dashboard-member-care-agreements`, `/volunteer`, `/volunteer/programs/[slug]`, `/admin/members`, `/admin/members/[id]`, `/admin/sitemap`, `/update/[token]`)*
 
 ## Remaining 🟠 Pages — Suggested Migration Order (easiest → heaviest)
 

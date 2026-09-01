@@ -54,7 +54,7 @@ A new `RegistrationStatus` value. Only required-payment registrations use it. Se
 When you add or touch a `db.registration.{findMany,findFirst,count,groupBy}`, decide which side of the line it's on:
 
 - **INCLUDE `PENDING_PAYMENT`** (it holds a seat) — capacity counts only: `programs/[slug]` + `programs/[slug]/register` spots-remaining.
-- **EXCLUDE `PENDING_PAYMENT`** (not a real registration) — everything member/registrar-facing: dashboard "coming up" + greeting + per-session "is registered" check; `account/programs` (My Registrations) page + API; admin member registry (page + API); Program Manager list (pending-dana groupBy), per-program roster, CSV export; `lib/hubContext.ts` registrar badge; the "already registered?" checks on the public/register pages; `lib/courseAccess.ts` program-registration access (already excludes via its `["REGISTERED","APPROVED"]` allow-list).
+- **EXCLUDE `PENDING_PAYMENT`** (not a real registration) — everything member/registrar-facing: dashboard "coming up" + greeting + per-session "is registered" check; admin member registry (page + API); Program Manager list (pending-dana groupBy), per-program roster, CSV export; `lib/hubContext.ts` registrar badge; the "already registered?" checks on the public/register pages; `lib/courseAccess.ts` program-registration access (already excludes via its `["REGISTERED","APPROVED"]` allow-list).
 - **Reminders** (`send-reminders`, `send-reminder`) already exclude it (explicit `["REGISTERED","APPROVED"]`).
 
 Drift here is the classic failure: session 136's reviewer pass found three sites missed on the first sweep, two of them *second* queries in a file where only the first was fixed — **one granted gated course access to an unpaid held registration.** When you touch one registration query in a file, grep the whole file for others.
@@ -81,7 +81,7 @@ Drift here is the classic failure: session 136's reviewer pass found three sites
 - **Don't read `danaMode` from the client body** to decide required-vs-not — derive it from the program.
 - **Don't add a member/registrar-facing registration query without excluding `PENDING_PAYMENT`**, and don't add a capacity count without including it.
 - **The Stripe webhook endpoint must subscribe to `checkout.session.expired`** — otherwise abandoned holds clear only via the daily cron, not in real time.
-- **The My Registrations pending-dana banner is a *voluntary invitation*, not a waitlist alert.** `app/account/(authenticated)/programs/page.tsx` shows it for any `donationStatus === "PENDING"` — which on this page means a voluntary registration awaiting the give/decline choice (required-payment rows are `PENDING_PAYMENT` and excluded entirely). Keep the copy calm and accurate ("You're registered. You're also warmly invited to offer dana — a voluntary gift, received with gratitude."). The old "A spot opened up — please complete your dana offering" was waitlist-promotion language firing on the common voluntary case — confusing, since the member never waitlisted (session 137, from LoriLee).
+- **A pending-dana state is a *voluntary invitation*, not a waitlist alert.** On `/programs/[slug]/register`, `donationStatus === "PENDING"` means a voluntary registration awaiting the give/decline choice (required-payment rows are `PENDING_PAYMENT` and excluded from member-facing registration state). Keep the copy calm and accurate; do not reuse waitlist-promotion language for this common voluntary case (session 137, from LoriLee).
 
 ---
 

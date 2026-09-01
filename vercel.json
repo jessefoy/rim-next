@@ -52,7 +52,17 @@
     },
     {
       "source": "/account/dashboard-my-registrations",
-      "destination": "/account/programs",
+      "destination": "/account/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/account/programs",
+      "destination": "/account/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/account/programs/:path*",
+      "destination": "/account/dashboard",
       "permanent": true
     },
     {

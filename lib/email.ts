@@ -462,7 +462,7 @@ export interface CancellationNotificationData {
 }
 
 /**
- * Sent to the registrar when any registration is cancelled (by staff or by the member).
+ * Sent to the registrar when staff cancel a registration.
  * Managed via Email Template Manager — template: "registration-cancelled-internal"
  * Recipient is REGISTRAR_EMAIL (env var), not the registrant.
  * Fire-and-forget — errors caught inside sendTemplatedEmail.
@@ -475,7 +475,7 @@ export async function sendCancellationNotificationEmail(
     registrantName,
     registrantEmail,
     programTitle,
-    volunteerUrl: `${BASE_URL}/account/hub/registrar/programs/${programSlug}`,
+    volunteerUrl: `${BASE_URL}/tools/programs/${programSlug}`,
   });
 }
 
@@ -522,7 +522,7 @@ export async function sendResponsesUpdatedEmail(data: ResponsesUpdatedEmailData)
   await sendTemplatedEmail("responses-updated-internal", REGISTRAR_EMAIL, {
     registrantName,
     programTitle,
-    volunteerUrl: `${BASE_URL}/account/hub/registrar/programs/${programSlug}`,
+    volunteerUrl: `${BASE_URL}/tools/programs/${programSlug}`,
   });
 }
 

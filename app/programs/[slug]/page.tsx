@@ -263,11 +263,11 @@ export default async function ProgramDetailPage({
                      closes; then the program-level state (closed → full → open). */
                   existingRegistration?.status === "WAITLISTED" ? (
                     <span className="pg-detail-cta__text">
-                      You&rsquo;re on the waitlist. <Link href={`/account/programs/${slug}`} className="pg-detail-cta__inline-link">View your details →</Link>
+                      You&rsquo;re on the waitlist.
                     </span>
                   ) : existingRegistration ? (
                     <span className="pg-detail-cta__text">
-                      ✓ You&rsquo;re registered for this program. <Link href={`/account/programs/${slug}`} className="pg-detail-cta__inline-link">View your details →</Link>
+                      ✓ You&rsquo;re registered for this program.
                     </span>
                   ) : registrationClosed ? (
                     <span className="pg-detail-cta__status">Registration is closed.</span>

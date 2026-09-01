@@ -20,16 +20,15 @@ Programs are the most interconnected system. Touching a program touches almost e
 | **LiveKit video** | Virtual/hybrid programs have `livekitRoom` (set to slug). Token API checks host assignment for roomAdmin grants |
 | **ProgramTeacher** | Join table linking teacher accounts to programs. Teachers get roomAdmin in LiveKit. Display on public program page links to teacher profiles |
 | **Open Access / Guest Join** | `isOpenAccess` + `guestAccessKey` on program. Guest token API. Shareable link pattern |
-| **Member dashboard** | Dashboard shows upcoming registered programs with Join button → `/session/{slug}` |
-| **Member Program Detail** | `/account/programs/[slug]` — authenticated view with session join, dana callout, calendar links, cancel button |
-| **Public program page** | `/programs/[slug]` — Sanity content + Postgres registration data merged. CTA adapts to registration state |
+| **Member dashboard** | Dashboard shows upcoming registered programs; program titles link to `/programs/[slug]` and in-window Join actions go through `/session/{slug}/enter` |
+| **Public program page** | `/programs/[slug]` — the single program-detail surface; its CTA adapts to registration state |
 | **Program Manager tool** | `/tools/programs` — where registrars create/edit/manage programs. Linked from Registration Hub |
 | **Program categories** | `ProgramCategory` with `sortOrder`. Community programs page groups by category |
 | **Sanity CMS** | Program content (description, images, schedule fields) still in Sanity. Registration data in Postgres. Two sources merged on program pages |
 | **Host Schedule tool** | `/tools/schedule` — mini-cal + card list of upcoming programs with assignment status |
-| **CSS** | `pg-` prefix (public program page), `pe-` prefix (program editor), `mpd-` prefix (member program detail) |
+| **CSS** | `pg-` prefix (public program page), `pe-` prefix (program editor) |
 
-**If you're touching Programs, you must check:** registration flow, email templates, host assignments, LiveKit token logic, dashboard rendering, both program page variants (public + member), and the Program Manager tool.
+**If you're touching Programs, you must check:** registration flow, email templates, host assignments, session-entry logic, dashboard rendering, the public program page, and the Program Manager tool.
 
 ---
 
@@ -156,7 +155,6 @@ The canonical record of every person. ADMIN and REGISTRAR only.
 | **Guest token API** | `/api/livekit/guest-token` — validates `guestAccessKey`, mints participant JWT |
 | **Session page** | `/session/[slug]` — full-page video room. Host controls (end session, mute, remove). Disconnect screen |
 | **Dashboard** | "Join" button on registered programs links to `/session/{slug}` |
-| **Member Program Detail** | Join button also available on `/account/programs/[slug]` |
 | **Host assignments** | Token API checks `HostAssignment` for the specific program + date to determine roomAdmin |
 | **ProgramTeacher** | Teachers linked via ProgramTeacher also get roomAdmin |
 | **End session API** | `/api/livekit/end-session` — uses `RoomServiceClient.deleteRoom()`. Auth-gated |

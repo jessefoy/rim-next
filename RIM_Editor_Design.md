@@ -334,7 +334,7 @@ Every place in the system that uses an editor is registered here. **When adding 
 
 #### program-message-fields
 - **Engine:** RimProseEditor
-- **Output CSS:** varies by surface (`pg-dana__message`, `mpd-dana__text`, email HTML)
+- **Output CSS:** varies by surface (`pg-dana__message`, email HTML)
 - **Used in:** ProgramEditor — special announcement, early arrival, confirmation message, reminder message, dana message
 - **Design intent:** Short directional messages to registrants. Prose with lists.
 

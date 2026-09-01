@@ -58,7 +58,7 @@ These are the only two Page Designer placements today. The pattern will extend t
 | `SupportThread.body` (live reply draft) | `SupportInboxClient` | Transactional email | email HTML | Not a schema field — client-state reply before sending. Email-safe Message output. |
 | `Program.confirmationMessage` | `ProgramEditor` | Interactive web + transactional email | `pg-*` / email | Shown after registration and in confirmation email. |
 | `Program.reminderMessage` | `ProgramEditor` | Transactional email | email | Sent a few days before program. |
-| `Program.danaMessage` | `ProgramEditor` | Web template + transactional email | `mpd-dana__text` / `pg-dana__message` / email | **See note in Section F** — the page-rendering of this message is a candidate to become a Page Designer block (*Dana Invitation*). The email version stays Message. |
+| `Program.danaMessage` | `ProgramEditor` | Web template + transactional email | `pg-dana__message` / email | **See note in Section F** — the page-rendering of this message is a candidate to become a Page Designer block (*Dana Invitation*). The email version stays Message. |
 | `SubRequest.message` | `HubScheduleClient` | Interactive web + transactional email | inline + email | Host's context when requesting a sub. |
 | `SubClaim.message` | *(not yet editable anywhere — field is live, UI to be built)* | Transactional email | email | Claimer's optional message back to original host, embedded in the sub-claimed email. Needs a UI when the claim flow is implemented. |
 

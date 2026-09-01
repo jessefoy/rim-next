@@ -7424,457 +7424,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   margin: 0;
 }
 
-/* ═══════════════════════════════════════════════════
-   MY REGISTRATIONS PAGE  (mr- prefix)
-   /account/dashboard-my-registrations
-═══════════════════════════════════════════════════ */
-
-.mr-page {
-  padding-top: 48px;
-  padding-bottom: 80px;
-}
-
-.mr-heading {
-  font-family: var(--font-serif);
-  font-size: 32px;
-  font-weight: 400;
-  color: var(--rim-blue);
-  margin: 0 0 40px;
-  line-height: 1.2;
-}
-
-.mr-empty {
-  font-family: var(--font-sans);
-  font-size: 16px;
-  color: var(--rim-text-muted);
-  line-height: 1.6;
-}
-
-.mr-empty a {
-  color: var(--rim-mid);
-  text-decoration: underline;
-}
-
-.mr-section {
-  margin-bottom: 48px;
-}
-
-.mr-section__label {
-  font-family: var(--font-sans);
-  font-size: var(--text-xxs);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--rim-text-muted);
-  margin: 0 0 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--rim-rule);
-}
-
-.mr-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mr-card {
-  padding: 20px 24px;
-  background: #fff;
-  border: 1px solid var(--rim-rule);
-  border-radius: 8px;
-}
-
-.mr-card--muted {
-  background: var(--rim-bg-accent);
-}
-
-.mr-card__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.mr-card__title {
-  font-family: var(--font-serif);
-  font-size: var(--text-body);
-  font-weight: 400;
-  color: var(--rim-blue);
-  text-decoration: none;
-  line-height: 1.3;
-}
-
-.mr-card__title:hover {
-  text-decoration: underline;
-}
-
-.mr-badge {
-  flex-shrink: 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-xxs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 20px;
-}
-
-.mr-badge--green  { background: #d1f0e0; color: #1a6b40; }
-.mr-badge--blue   { background: #d0e8f5; color: #1a4d6b; }
-.mr-badge--amber  { background: #fef3cd; color: #856404; }
-.mr-badge--gray   { background: var(--rim-bg-accent); color: var(--rim-text-muted); }
-
-.mr-card__meta {
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--rim-text-muted);
-  margin: 0 0 4px;
-}
-
-.mr-card__waitlist {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: #856404;
-  margin: 6px 0 0;
-}
-
-.mr-card__dana {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: #fef9f0;
-  border: 1px solid #f0d8a0;
-  border-radius: 4px;
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  color: var(--rim-text);
-}
-
-.mr-card__dana-link {
-  font-weight: 600;
-  color: var(--rim-mid);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.mr-card__dana-link:hover { text-decoration: underline; }
-
-.mr-card__date {
-  font-family: var(--font-sans);
-  font-size: var(--text-label);
-  color: var(--rim-text-muted);
-  margin: 10px 0 0;
-}
-
-/* ── Cancel registration button + confirm flow ── */
-
-.mr-card__actions {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--rim-rule);
-}
-
-.mr-cancel-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  font: 13px / 1 var(--font-sans);
-  color: var(--rim-text-muted);
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  transition: color 0.15s, text-decoration-color 0.15s;
-}
-.mr-cancel-btn:hover {
-  color: #c0392b;
-  text-decoration-color: currentColor;
-}
-
-.mr-cancel-confirm {
-  padding: 14px 16px;
-  background: #fff5f5;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-}
-.mr-cancel-confirm__text {
-  font: 14px / 1.5 var(--font-sans);
-  color: var(--rim-text);
-  margin: 0 0 12px;
-}
-.mr-cancel-confirm__actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.mr-cancel-btn--yes {
-  padding: 7px 16px;
-  background: #c0392b;
-  color: #fff;
-  border: none;
-  border-radius: 3px;
-  font: 600 13px / 1 var(--font-sans);
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.mr-cancel-btn--yes:hover { opacity: 0.85; }
-
-.mr-cancel-btn--keep {
-  padding: 7px 16px;
-  background: none;
-  border: 1px solid var(--rim-rule);
-  color: var(--rim-text-muted);
-  border-radius: 3px;
-  font: 13px / 1 var(--font-sans);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-.mr-cancel-btn--keep:hover {
-  border-color: var(--rim-text-muted);
-  color: var(--rim-text);
-}
-
-.mr-cancel-done {
-  font: 13px / 1 var(--font-sans);
-  color: var(--rim-text-muted);
-  margin: 0;
-}
-
-.mr-footer-note {
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--rim-text-muted);
-  margin-top: 48px;
-  padding-top: 24px;
-  border-top: 1px solid var(--rim-rule);
-}
-
-.mr-footer-note a {
-  color: var(--rim-mid);
-}
-
-/* ═══════════════════════════════════════════════════
-   MEMBER PROGRAM DETAIL PAGE  (mpd- prefix)
-   /account/programs/[slug]
-   The "inside the building" view for members.
-═══════════════════════════════════════════════════ */
-
-.mpd-page { max-width: 700px; }
-
-/* Back link */
-.mpd-back {
-  display: inline-block;
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--rim-text-muted);
-  text-decoration: none;
-  margin-bottom: 24px;
-}
-.mpd-back:hover { color: var(--rim-blue); }
-
-/* Header */
-.mpd-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-.mpd-title {
-  font-family: var(--font-serif);
-  font-size: var(--text-h2);
-  font-weight: 400;
-  color: var(--rim-text);
-  margin: 0;
-}
-.mpd-category {
-  display: inline-block;
-  font-family: var(--font-sans);
-  font-size: var(--text-label);
-  font-weight: 600;
-  color: var(--rim-text-muted);
-  text-decoration: none;
-  margin-bottom: 24px;
-}
-.mpd-category:hover { color: var(--rim-blue); }
-
-/* Section labels */
-.mpd-label {
-  font-family: var(--font-sans);
-  font-size: var(--text-xxs);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--rim-text-muted);
-  margin: 0 0 8px;
-}
-
-/* Quick info card */
-.mpd-info {
-  background: #fff;
-  border: 1px solid var(--rim-rule);
-  border-radius: 8px;
-  padding: 4px 20px;
-  margin-bottom: 24px;
-}
-.mpd-info__row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--rim-rule);
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text);
-}
-.mpd-info__row:last-child { border-bottom: none; }
-.mpd-info__icon { flex-shrink: 0; color: var(--rim-text-muted); }
-.mpd-info__ext { color: var(--rim-mid); text-decoration: none; font-size: var(--text-xs); }
-.mpd-info__ext:hover { color: var(--rim-blue); }
-
-/* Join section */
-.mpd-join { margin-bottom: 24px; }
-.mpd-join__btn {
-  display: inline-block;
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  font-weight: 600;
-  color: #fff;
-  background: var(--rim-blue);
-  padding: 12px 24px;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: opacity 0.15s;
-}
-.mpd-join__btn:hover { opacity: 0.85; color: #fff; }
-.mpd-join__note {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text);
-  margin: 0;
-  line-height: 1.6;
-}
-.mpd-join__inline-link { color: var(--rim-blue); text-decoration: underline; }
-
-/* Pending dana callout */
-.mpd-dana {
-  background: var(--color-alert-bg);
-  border: 1px solid var(--color-alert-border);
-  border-radius: 8px;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-}
-.mpd-dana__text {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text);
-  margin: 0 0 10px;
-  line-height: 1.5;
-}
-.mpd-dana__link {
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  font-weight: 600;
-  color: var(--color-alert);
-  text-decoration: none;
-}
-.mpd-dana__link:hover { text-decoration: underline; }
-
-/* Notice cards (announcement, early arrival) */
-.mpd-notice {
-  border-left: 3px solid var(--rim-blue);
-  padding: 14px 18px;
-  margin-bottom: 24px;
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text);
-  line-height: 1.6;
-  background: var(--rim-bg-accent);
-  border-radius: 0 6px 6px 0;
-}
-.mpd-notice--soft { border-left-color: var(--rim-rule); }
-
-/* Calendar links */
-.mpd-calendar {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 28px;
-}
-.mpd-calendar__link {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  color: var(--rim-blue);
-  text-decoration: none;
-}
-.mpd-calendar__link:hover { text-decoration: underline; }
-
-/* Facilitators */
-.mpd-facilitators { margin-bottom: 28px; }
-.mpd-facilitators__names {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text);
-  margin: 0;
-}
-
-/* Registration details */
-.mpd-reg {
-  border-top: 1px solid var(--rim-rule);
-  padding-top: 24px;
-  margin-top: 12px;
-}
-.mpd-reg__date {
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--rim-text-muted);
-  margin: 0 0 8px;
-}
-.mpd-reg__waitlist {
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--color-alert);
-  margin: 0 0 8px;
-}
-.mpd-reg__dana-complete {
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--rim-text-muted);
-  margin: 0 0 8px;
-}
-.mpd-reg__fields {
-  margin: 16px 0;
-}
-.mpd-reg__field {
-  display: flex;
-  gap: 12px;
-  padding: 6px 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  border-bottom: 1px solid var(--rim-rule);
-}
-.mpd-reg__field:last-child { border-bottom: none; }
-.mpd-reg__field-label {
-  font-weight: 600;
-  color: var(--rim-text-muted);
-  min-width: 120px;
-  flex-shrink: 0;
-}
-.mpd-reg__field-value { color: var(--rim-text); }
-.mpd-reg__actions { margin-top: 16px; }
-
-/* Mobile */
-@media screen and (max-width: 700px) {
-  .mpd-title { font-size: var(--text-h3); }
-  .mpd-info { padding: 4px 16px; }
-  .mpd-reg__field { flex-direction: column; gap: 2px; }
-  .mpd-reg__field-label { min-width: 0; }
-}
-
 
 /* ═══════════════════════════════════════════════════
    MY PROFILE PAGE  (mp- prefix)
@@ -8161,18 +7710,15 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   margin-top: 8px;
 }
 
-/* ── Mobile  (shared breakpoint for all new db-/mr-/ml-/mp- blocks) ── */
+/* ── Mobile  (shared breakpoint for all new db-/ml-/mp- blocks) ── */
 @media (max-width: 768px) {
   .db-page { padding: 32px 20px 60px; }
   .db-welcome__greeting { font-size: 26px; }
   .db-nav { grid-template-columns: 1fr; gap: 12px; }
   .db-nav__card { padding: 20px 18px 16px; }
 
-  .mr-page, .ml-page { padding: 32px 20px 60px; }
-  .mr-heading, .ml-heading, .mp-heading { font-size: 26px; }
-  .mr-card { padding: 16px 18px; }
-  .mr-card__header { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .mr-card__dana { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .ml-page { padding: 32px 20px 60px; }
+  .ml-heading, .mp-heading { font-size: 26px; }
 
   .mp-field__row { grid-template-columns: 1fr; }
 
@@ -8212,17 +7758,8 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   .db-dana-reminder__item { padding: 10px 12px; min-height: 44px; display: flex; align-items: center; }
 
   /* ── My Registrations (mr-) ── */
-  .mr-page { padding: 24px 16px 48px; }
-  .mr-heading { font-size: var(--text-h3); margin-bottom: 28px; }
-  .mr-section { margin-bottom: 32px; }
-  .mr-card__title { font-size: 16px; }
 
   /* Cancel button: enlarge touch targets */
-  .mr-cancel-btn { padding: 10px 0; min-height: 44px; display: inline-flex; align-items: center; font-size: var(--text-ui); }
-  .mr-cancel-btn--yes,
-  .mr-cancel-btn--keep { padding: 12px 20px; min-height: 44px; font-size: var(--text-ui); box-sizing: border-box; }
-  .mr-cancel-confirm__actions { gap: 8px; }
-  .mr-card__dana-link { display: inline-block; padding: 8px 0; min-height: 44px; line-height: 28px; }
 
   /* ── My Library (ml-) ── */
   .ml-page { padding: 24px 16px 48px; }
@@ -16084,21 +15621,26 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 .wl-title,
 .db-nav__title,
 .db-welcome__greeting,
-.db-heading-2, .db-heading-3,
-.mr-heading,
+.db-heading-2,
+.db-heading-3,
 .ml-heading,
 .mp-heading,
 .vol-heading-2,
 .adm-header__title,
 .adm-section__title,
 .adm-import__title,
-.adm-sm-title, .adm-sm-section__title,
-.adm-fi-title, .adm-fi-area__title,
+.adm-sm-title,
+.adm-sm-section__title,
+.adm-fi-title,
+.adm-fi-area__title,
 .adm-fi-sys-section__title,
 .adm-fi-detail-header__title,
-.man-chapter__title, .man-section__title, .man-future__title,
+.man-chapter__title,
+.man-section__title,
+.man-future__title,
 .bl-header__title,
-.hs-header__title, .hs-how-to__title,
+.hs-header__title,
+.hs-how-to__title,
 .hub-sb-name,
 .hub-page__title,
 .hub-modal__title,
@@ -16107,22 +15649,27 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 .hub-conversations__title,
 .hub-add-session-form__title,
 .add-doc-form__title,
-.ps-form__title, .ps-section__title, .ps-done__title,
+.ps-form__title,
+.ps-section__title,
+.ps-done__title,
 .sh-title {
   font-family: var(--font-source-sans);
   font-weight: 700;
 }
 
 /* ── Weight 600 — sub-headings, card titles, labels ── */
-.mr-card__title,
 .adm-fi-sys-section__subtitle,
-.adm-member-name, .adm-member-field-label,
+.adm-member-name,
+.adm-member-field-label,
 .adm-list-text,
 .vol-program-card__name,
 .hs-program__name,
 .hub-subboard__title,
-.hub-program-card__name, .hub-program-detail__name,
-.hub-panel__date, .hub-panel__heading, .hub-panel__title,
+.hub-program-card__name,
+.hub-program-detail__name,
+.hub-panel__date,
+.hub-panel__heading,
+.hub-panel__title,
 .hub-thread-card__title,
 .hub-alert-item__title,
 .db2-upcoming__title,
@@ -23095,11 +22642,10 @@ input.w-button { -webkit-appearance: button; }
 
 
 /* ═══════════════════════════════════════════════════
-   ZOOM ENTRY CLARITY — dashboard, member program detail, handoff (today-,
-   db2-, mpd-, zoom-launch-)
+   ZOOM ENTRY CLARITY — dashboard and handoff (today-, db2-, zoom-launch-)
    The entry window is a real access boundary. The interface names it plainly
    instead of suggesting that a member has lost or cannot find a link.
-═══════════════════════════════════════════════════ */
+════════════════════════════════════════════════════ */
 
 .today-row__details {
   display: flex;
@@ -23145,22 +22691,6 @@ input.w-button { -webkit-appearance: button; }
   flex-direction: column;
   gap: 3px;
 }
-
-.mpd-join { margin-top: 4px; }
-.mpd-join__btn {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  background: var(--rim-blue);
-  font-size: var(--text-ui);
-}
-.mpd-join__context {
-  margin: 10px 0 0;
-  color: var(--rim-text-muted);
-  font-size: var(--text-xs);
-}
-.mpd-join__note { color: var(--rim-text-muted); font-size: var(--text-small); }
 
 .zoom-launch {
   min-height: 70vh;
@@ -23923,15 +23453,7 @@ input.w-button { -webkit-appearance: button; }
 }
 
 /* My registrations */
-.ac-member-page.mr-page {
-  padding-top: 0;
-}
 
-.ac-member-page .mr-section {
-  margin-bottom: 40px;
-}
-
-.ac-member-page .mr-section__label,
 .ac-member-page .mcl-section__title,
 .ac-member-page .docs-section__title,
 .ac-member-page .mp-section__title {
@@ -23947,135 +23469,6 @@ input.w-button { -webkit-appearance: button; }
   text-transform: none;
 }
 
-.ac-member-page .mr-card {
-  padding: 24px 26px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--rim-surface);
-}
-
-.ac-member-page .mr-card--muted {
-  background: var(--rim-bg-accent);
-}
-
-.ac-member-page .mr-card__header {
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 8px;
-}
-
-.ac-member-page .mr-card__title {
-  color: var(--rim-text);
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-.ac-member-page .mr-card__title:hover {
-  color: var(--rim-blue);
-  text-decoration: none;
-}
-
-.ac-member-page .mr-badge {
-  padding: 4px 10px;
-  font-size: var(--text-xxs);
-  font-weight: 600;
-  letter-spacing: normal;
-  text-transform: none;
-}
-
-.ac-member-page .mr-badge--green {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.ac-member-page .mr-badge--blue {
-  background: var(--rim-bg-accent);
-  color: var(--rim-blue);
-}
-
-.ac-member-page .mr-badge--amber {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.ac-member-page .mr-badge--gray {
-  background: var(--rim-bg-bright);
-  color: var(--rim-text-muted);
-}
-
-.ac-member-page .mr-card__meta,
-.ac-member-page .mr-card__date,
-.ac-member-page .mr-card__waitlist {
-  font-size: var(--text-xs);
-  line-height: 1.5;
-}
-
-.ac-member-page .mr-card__waitlist {
-  color: var(--color-warning);
-}
-
-.ac-member-page .mr-card__dana {
-  margin-top: 16px;
-  padding: 14px 16px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--color-warning-bg);
-  color: var(--rim-text);
-  line-height: 1.5;
-}
-
-.ac-member-page .mr-card__dana-link {
-  color: var(--rim-blue);
-}
-
-.ac-member-page .mr-card__actions {
-  margin-top: 16px;
-  padding-top: 10px;
-}
-
-.ac-member-page .mr-cancel-btn,
-.ac-member-page .mr-cancel-btn--yes,
-.ac-member-page .mr-cancel-btn--keep {
-  min-height: 44px;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-}
-
-.ac-member-page .mr-cancel-btn {
-  padding: 0 4px;
-  line-height: 1.4;
-}
-
-.ac-member-page .mr-cancel-confirm {
-  padding: 16px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--color-error-bg);
-}
-
-.ac-member-page .mr-cancel-confirm__text {
-  font-size: var(--text-ui);
-}
-
-.ac-member-page .mr-cancel-btn--yes {
-  padding: 0 18px;
-  border-radius: 22px;
-  background: var(--color-error);
-}
-
-.ac-member-page .mr-cancel-btn--keep {
-  padding: 0 18px;
-  border-radius: 22px;
-  background: var(--rim-surface);
-}
-
-.ac-member-page .mr-empty,
 .ac-member-page .mcl-empty,
 .ac-member-page .docs-empty {
   margin: 0;
@@ -24086,12 +23479,6 @@ input.w-button { -webkit-appearance: button; }
   font-size: var(--text-small);
   line-height: 1.6;
   text-align: left;
-}
-
-.ac-member-page .mr-footer-note {
-  margin-top: 40px;
-  padding-top: 20px;
-  font-size: var(--text-xs);
 }
 
 /* Library */
@@ -24415,15 +23802,10 @@ input.w-button { -webkit-appearance: button; }
     margin-bottom: 28px;
   }
 
-  .ac-member-page .mr-card,
   .ac-member-page .mcl-card,
   .ac-member-page .mp-header,
   .ac-member-page .mp-section {
     padding: 20px;
-  }
-
-  .ac-member-page .mr-card__header {
-    align-items: flex-start;
   }
 
   .ac-member-page .mcl-card {
@@ -24467,10 +23849,6 @@ input.w-button { -webkit-appearance: button; }
 
   .ac-member-page .mcl-continue-btn {
     width: 100%;
-  }
-
-  .ac-member-page .mr-card__header {
-    flex-direction: column;
   }
 
   .ac-member-page .docs-kind {
@@ -25036,11 +24414,7 @@ input.w-button { -webkit-appearance: button; }
 }
 
 /* Remaining personal member destinations. */
-.ac-member-page.mpd-page {
-  max-width: 760px;
-}
 
-.ac-member-page .mpd-back,
 .ac-member-page .doc-page__back {
   min-height: 44px;
   display: inline-flex;
@@ -25048,43 +24422,6 @@ input.w-button { -webkit-appearance: button; }
   margin-bottom: 20px;
   color: var(--rim-text-muted);
   font-size: var(--text-xs);
-}
-
-.ac-member-page .mpd-header {
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.ac-member-page .mpd-title {
-  color: var(--rim-text);
-  font-family: var(--font-serif);
-  font-size: var(--text-h2);
-  font-weight: 400;
-}
-
-.ac-member-page .mpd-info,
-.ac-member-page .mpd-reg {
-  border: 0;
-  border-radius: 12px;
-  background: var(--rim-surface);
-}
-
-.ac-member-page .mpd-dana,
-.ac-member-page .mpd-notice {
-  border: 0;
-  border-radius: 10px;
-  background: var(--color-warning-bg);
-}
-
-.ac-member-page .mpd-notice--soft {
-  background: var(--rim-bg-accent);
-}
-
-.ac-member-page .mpd-label {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: normal;
-  text-transform: none;
 }
 
 .ac-member-page.doc-page {
@@ -27969,17 +27306,6 @@ a.pp-card:hover .pp-card__action {
 .db2-upcoming__item:focus-visible,
 .db2-team-update:focus-visible,
 .join-btn:focus-visible,
-.mr-card__title:focus-visible,
-.mr-card__dana-link:focus-visible,
-.mr-cancel-btn:focus-visible,
-.mr-cancel-btn--yes:focus-visible,
-.mr-cancel-btn--keep:focus-visible,
-.mpd-back:focus-visible,
-.mpd-category:focus-visible,
-.mpd-info__ext:focus-visible,
-.mpd-join__btn:focus-visible,
-.mpd-dana__link:focus-visible,
-.mpd-calendar__link:focus-visible,
 .mcl-card__title:focus-visible,
 .mcl-continue-btn:focus-visible,
 .mcl-leave-link:focus-visible,
@@ -28082,29 +27408,18 @@ a.pp-card:hover .pp-card__action {
 /* ── Member personal pages ── */
 .db-section__link,
 .db2-empty-card__link,
-.mpd-dana__link,
-.mpd-calendar__link,
-.mpd-category,
-.mpd-info__ext,
 .mp-hub-link {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
 }
-.db-section__link,
-.mpd-calendar__link,
-.mpd-info__ext,
-.mpd-category { font-size: var(--text-ui); }
+.db-section__link { font-size: var(--text-ui); }
 /* Scoped: the .ac-member-page layer pins these at 13px with higher
    specificity, so the floor must match it to win. */
-.ac-member-page .mr-cancel-btn,
-.ac-member-page .mr-cancel-btn--yes,
-.ac-member-page .mr-cancel-btn--keep,
 .ac-member-page .mcl-leave-link,
 .ac-member-page .mcl-leave-confirm__yes,
 .ac-member-page .mcl-leave-confirm__cancel { font-size: var(--text-ui); }
 .ac-member-page .mp-hub-link { min-height: 44px; }
-.mr-cancel-btn:hover { color: var(--color-error); }
 /* Explicit iOS-zoom guard — it was only accidental via the shell's 16px. */
 .ac-member-page .mp-input { font-size: 16px; }
 /* Long program names shrink instead of pushing the status cell. */
@@ -28126,11 +27441,9 @@ a.pp-card:hover .pp-card__action {
 @media (max-width: 700px) {
   /* These mobile sizes existed but were dead — beaten by later same- or
      higher-specificity desktop rules. Restated here so they win. */
-  .ac-member-page .mpd-title { font-size: var(--text-h3); }
   .ac-page-title { font-size: var(--text-h3); }
 }
 @media (max-width: 430px) {
-  .mpd-calendar { flex-direction: column; align-items: flex-start; }
   .db2-chip-stack { align-items: flex-start; }
   .db2-chip-note { text-align: left; }
 }

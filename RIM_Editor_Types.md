@@ -343,7 +343,7 @@ Uses `RimTiptapEditor` with `variant="document"` — the same component and chro
 - **Schema field:** `Program.description`
 - **Output destination:** web template
 - **Output wrapper:** `rim-content rim-content--program prog-description`
-- **Routes:** `/programs/[slug]`, `/account/programs/[slug]`
+- **Route:** `/programs/[slug]`
 - **Notes:** Will absorb blocks replacing `specialNotes`, `specialAnnouncement`, `earlyArrivalMessage`, `pullQuote` pair, and on-page `danaMessage` in Stage 2d.
 
 #### `lesson`
@@ -388,7 +388,7 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 - **Component:** `components/registrar/ProgramEditor.tsx`
 - **Variant:** message
 - **Output destination:** web template + transactional email
-- **Output wrappers:** varies by surface (`pg-dana__message`, `mpd-dana__text`, email HTML)
+- **Output wrappers:** varies by surface (`pg-dana__message`, email HTML)
 - **Notes:** `danaMessage` on-page rendering will migrate to a Dana Invitation block in Stage 2d; the email version stays a Message field.
 
 #### `course-description`

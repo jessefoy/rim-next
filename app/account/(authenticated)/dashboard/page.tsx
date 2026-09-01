@@ -500,7 +500,7 @@ export default async function DashboardPage() {
                 const dateForPill = new Date(r.nextDateStr + "T12:00:00");
                 const hasPendingDana = r.donationStatus === "PENDING";
                 return (
-                  <Link key={r.id} href={`/account/programs/${r.programSlug}`} className="db2-upcoming__item">
+                  <Link key={r.id} href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
                     {(() => {
                       const mon = dateForPill.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
                       const day = dateForPill.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });

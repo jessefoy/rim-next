@@ -39,6 +39,10 @@ const DEAD_PREFIXES = [
   // in-room banners/prompts. Verified zero live classNames session 171.
   "vs-", "vre-room", "rim-spotlight-banner", "rim-reconnect-banner",
   "rim-audio-prompt", "rim-unmute-prompt", "rim-settings",
+  // The member-facing My Registrations list/detail and its self-cancel flow
+  // were removed for the simplified current release. Registration itself,
+  // registrar management, dashboard commitments, and Zoom remain live.
+  "mr-", "mpd-",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

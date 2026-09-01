@@ -1,4 +1,4 @@
-<!-- @dsCard group="Member Area" viewport="1280x820" name="Member area" subtitle="Signed-in home, registrations, profile" -->
+<!-- @dsCard group="Member Area" viewport="1280x820" name="Member area" subtitle="Signed-in home, library, profile" -->
 <!doctype html><html><head><meta charset="utf-8"><title>RIM — Member Area Kit</title>
 <link rel="stylesheet" href="../../styles.css">
 <style>body{margin:0;background:var(--rim-bg)}</style>
@@ -10,7 +10,6 @@
 </head><body>
 <div id="root"></div>
 <script type="text/babel" src="Dashboard.jsx"></script>
-<script type="text/babel" src="Registrations.jsx"></script>
 <script type="text/babel" src="Profile.jsx"></script>
 <script type="text/babel">
 const { MemberBar, AccountSidebar, SiteFooter, Card, Button, TextField } = window.RootedInMindfulnessDesignSystem_980dba;
@@ -18,7 +17,6 @@ const Icon = ({n}) => <i data-lucide={n} style={{display:"inline-flex"}}></i>;
 const NAME = "Marguerite Chen";
 const LINKS = [
   { label:"Home", href:"/account/dashboard", icon:<Icon n="home"/> },
-  { label:"My Registrations", href:"/account/programs", icon:<Icon n="calendar-check"/> },
   { label:"Library", href:"/account/courses", icon:<Icon n="book-open"/> },
   { label:"My Profile", href:"/account/dashboard-my-profile", icon:<Icon n="user-circle"/> },
 ];
@@ -52,6 +50,15 @@ function Zoom({ onBack }) {
   );
 }
 
+function Library() {
+  return (
+    <div style={{maxWidth:820}}>
+      <h1 style={{margin:"0 0 10px",fontSize:"var(--text-h1)"}}>Library</h1>
+      <p style={{color:"var(--rim-text-muted)",fontSize:"var(--text-small)"}}>Your enrolled courses and learning materials.</p>
+    </div>
+  );
+}
+
 function App(){
   const [signedIn,setSignedIn]=React.useState(true);
   const [route,setRoute]=React.useState("/account/dashboard");
@@ -66,8 +73,7 @@ function App(){
       <AccountSidebar activeHref={route} sections={[{ label:"My RIM", links:LINKS },{ label:"Your teams", links:TEAMS }]} />
       <div style={{ flex:1, padding:"56px 64px 96px" }}>
         {route==="/account/dashboard" && <Dashboard name={NAME} onJoin={()=>setRoute("/account/zoom")} />}
-        {route==="/account/programs" && <Registrations />}
-        {route==="/account/courses" && <Registrations />}
+        {route==="/account/courses" && <Library />}
         {route==="/account/dashboard-my-profile" && <Profile />}
         {route==="/account/zoom" && <Zoom onBack={()=>setRoute("/account/dashboard")} />}
         {route.startsWith("/account/hub/") && (

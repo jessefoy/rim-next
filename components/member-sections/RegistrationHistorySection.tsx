@@ -32,7 +32,7 @@ export default function RegistrationHistorySection({ registrations }: Props) {
           <div className="adm2-reg-list">
             {visible.map((r) => (
               <div key={r.id} className="adm2-reg">
-                <Link href={`/account/hub/registrar/programs/${r.programSlug}`} className="adm2-reg__title">
+                <Link href={`/tools/programs/${r.programSlug}`} className="adm2-reg__title">
                   {r.programTitle}
                 </Link>
                 <span className="adm2-reg__date">{regDate(r.createdAt)}</span>

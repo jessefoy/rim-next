@@ -34,7 +34,7 @@ No Figma file, brand book, or slide template was provided. There are therefore *
 ## Products
 
 1. **Public website** — homepage, community programs catalog, program detail, teachers, donate, diversity, kalyana mitta, volunteerism. UI kit: `ui_kits/public-website/`.
-2. **Member area** — signed-in dashboard ("today" + "coming up"), registrations, course library, profile, community care agreements, Zoom handoff. UI kit: `ui_kits/member-area/`.
+2. **Member area** — signed-in dashboard ("today" + "coming up"), course library, profile, community care agreements, Zoom handoff. UI kit: `ui_kits/member-area/`.
 3. **Internal tools** (host hub, registrar, admin, LiveKit video sessions) — large surfaces in `rim-next`, **not** recreated here. They reuse the same tokens with `hub-`, `vol-`, `adm-`, `adm2-`, `rim-` prefixes.
 
 ---

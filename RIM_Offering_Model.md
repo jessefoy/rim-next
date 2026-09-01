@@ -203,7 +203,7 @@ A bundled-Program Course's dana for the live-cohort path is the Program's regist
 | `/courses` — public catalog of on-demand offerings | Library-first: lesson count, self-paced, "Enroll" |
 | `/programs/[slug]` — program detail | Live cohort framing, schedule, register CTA |
 | `/course/[slug]` — course detail | **Needs to grow up** — currently a one-line gate for non-enrolled. Must become a real landing page with description, teacher, lesson count, dana ask, enroll CTA. This is the entry point for the dana flow. |
-| `/account/programs` — My Registrations | Live commitments |
+| `/account/dashboard` — Coming up for you | Upcoming live commitments |
 | `/account/courses` — Library | On-demand enrollments (onboarding welcome at top when relevant) |
 
 ### The "online blurring" concern
@@ -289,7 +289,7 @@ All program participation and all course enrollment require a member account. An
 
 **Schema** — `Course`, `Program`, `ProgramCourse`, `SeriesEnrollment`, `CourseAccess`, `Registration`.
 
-**Routes** — `/courses`, `/course/[slug]`, `/programs`, `/programs/[slug]`, `/account/programs`, `/account/courses`, `/tools/programs`, `/tools/learning/*`.
+**Routes** — `/courses`, `/course/[slug]`, `/programs`, `/programs/[slug]`, `/account/dashboard`, `/account/courses`, `/tools/programs`, `/tools/learning/*`.
 
 **APIs** — `/api/courses` (read), `/api/courses/[slug]/enroll` (POST for self-enroll, DELETE for leave), course CRUD under `/tools/learning`, plus a new dana/checkout path for self-enroll-with-dana.
 

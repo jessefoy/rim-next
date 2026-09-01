@@ -61,7 +61,6 @@ Designed by Jesse directly in Webflow. Populated by `rim-connect.js` from RIM Ne
 - `/login`, `/login/check-email`, `/login/error`
 - `/account/welcome`
 - `/account/dashboard`
-- `/account/dashboard-my-registrations`
 - `/account/dashboard-my-library` (overview only — individual lesson pages stay in RIM Next)
 - `/account/dashboard-my-profile`
 - `/account/dashboard-member-care-agreements`
@@ -141,7 +140,7 @@ API endpoints for Webflow-consumed surfaces should live under a clear public pat
 
 1. **Is it a page in the "moves to Webflow" list?** → Your job is typically to build or extend an API endpoint and/or `rim-connect.js` capability. Document the `data-rim-*` attribute pattern Jesse should use in Webflow. **Do not rebuild the Next.js version of the page.**
 
-2. **Is it a page in the "stays in RIM Next" list?** → Work as before. Use the existing design system CSS prefixes (`db-`, `mr-`, `vol-`, etc.) in `public/css/custom.css`. Follow existing React patterns.
+2. **Is it a page in the "stays in RIM Next" list?** → Work as before. Use the existing design system CSS prefixes (`db-`, `vol-`, etc.) in `public/css/custom.css`. Follow existing React patterns.
 
 3. **Is it a new API endpoint?** → Build it. Follow existing conventions in `app/api/`. Add CORS headers if it's public. Document it in FEATURES.md.
 

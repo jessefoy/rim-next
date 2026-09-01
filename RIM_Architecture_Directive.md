@@ -66,7 +66,6 @@ Designed by Jesse directly in Webflow. Populated by `rim-connect.js` from RIM Ne
 - `/login`, `/login/check-email`, `/login/error`
 - `/account/welcome`
 - `/account/dashboard`
-- `/account/dashboard-my-registrations`
 - `/account/dashboard-my-library` (overview — individual `/lessons/[slug]` stays in RIM Next)
 - `/account/dashboard-my-profile`
 - `/account/dashboard-member-care-agreements`

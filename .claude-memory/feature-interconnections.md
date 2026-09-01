@@ -33,11 +33,10 @@ Program (Prisma) → connects to:
 - **Dana/Donations** — four pricing modes via Stripe
 - **Automated emails** — confirmation, reminder, dana nudge templates
 - **Public page** (`/programs/[slug]`) — hero, details, CTA
-- **Member page** (`/account/programs/[slug]`) — status, join button, calendar, dana
 - **Program Manager tool** (`/tools/programs`) — registrar creates/edits programs
 - **Dashboard cards** — member sees their registered programs
 
-Changing a program touches all of these. Adding a program field may need updates in the editor, public page, member page, API, and dashboard.
+Changing a program touches all of these. Adding a program field may need updates in the editor, public page, API, and dashboard.
 
 ## Hub Ecosystem
 

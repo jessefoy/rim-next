@@ -49,25 +49,6 @@ Lists programs occurring this week by day of week. Also template-data only.
 
 **Recommendation:** The sunset targets render correctly today; migration (Stage 2d) will move them from fixed template slots into blocks inside the Page Designer output.
 
----
-
-### Program Detail — member (`/account/programs/[slug]`)
-
-**What the member sees:** Same program but with member-specific context — registration status, upcoming session info, calendar links, pending dana status, registration details, link to join.
-
-**Authored content render sites:**
-
-| Source | Rendered as | Wrapper class | Status |
-|---|---|---|---|
-| `Program.description` | `renderContentBodyAsync` | `rim-content rim-content--program prog-description` | Correct |
-| `Program.specialNotes` | same | same wrapper | Sunset target (same as public) |
-| `Program.danaMessage` | `<div class="mpd-dana__text">` | `mpd-dana__text` | Sunset target (on-page version) |
-| `Program.confirmationMessage` | rendered on-page after registration in a confirmation strip | (varies) | **Message output** — correct |
-
-**Recommendation:** Same sunset work as public program page. Confirmation message stays Message type.
-
----
-
 ### Lesson Detail (`/lessons/[slug]`)
 
 **What the member sees:** Hero with title + image + optional audio player · optional pull quote block at top · main lesson body · optional reflection questions · optional teachers block · optional resources block.

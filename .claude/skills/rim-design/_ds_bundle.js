@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"RootedInMindfulnessDesignSystem_980dba","components":[{"name":"DetailRow","sourcePath":"components/content/DetailRow.jsx"},{"name":"HeroPanel","sourcePath":"components/content/HeroPanel.jsx"},{"name":"ListRow","sourcePath":"components/content/ListRow.jsx"},{"name":"ProgramCard","sourcePath":"components/content/ProgramCard.jsx"},{"name":"PullQuote","sourcePath":"components/content/PullQuote.jsx"},{"name":"ScheduleRow","sourcePath":"components/content/ScheduleRow.jsx"},{"name":"Testimonial","sourcePath":"components/content/Testimonial.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Eyebrow","sourcePath":"components/core/Eyebrow.jsx"},{"name":"Panel","sourcePath":"components/core/Panel.jsx"},{"name":"StateMessage","sourcePath":"components/core/StateMessage.jsx"},{"name":"TextField","sourcePath":"components/core/TextField.jsx"},{"name":"AccountSidebar","sourcePath":"components/navigation/AccountSidebar.jsx"},{"name":"MemberBar","sourcePath":"components/navigation/MemberBar.jsx"},{"name":"SiteFooter","sourcePath":"components/navigation/SiteFooter.jsx"},{"name":"SiteNav","sourcePath":"components/navigation/SiteNav.jsx"}],"sourceHashes":{"components/content/DetailRow.jsx":"180aa47f9e2a","components/content/HeroPanel.jsx":"09e32d39a2a5","components/content/ListRow.jsx":"120734e3f69f","components/content/ProgramCard.jsx":"d41544a95387","components/content/PullQuote.jsx":"12fd41970273","components/content/ScheduleRow.jsx":"3a64392269a6","components/content/Testimonial.jsx":"3b78953a0ebb","components/core/Badge.jsx":"6af78884a5bc","components/core/Button.jsx":"b187b0bee2ce","components/core/Card.jsx":"518f6ac051a6","components/core/Eyebrow.jsx":"76b98c68c92e","components/core/Panel.jsx":"30556e1edb2f","components/core/StateMessage.jsx":"5782a5712202","components/core/TextField.jsx":"ddc14c1ba70e","components/navigation/AccountSidebar.jsx":"d02c232112c8","components/navigation/MemberBar.jsx":"4cf643cd8521","components/navigation/SiteFooter.jsx":"93f423e90074","components/navigation/SiteNav.jsx":"223964a2598e","ui_kits/member-area/Dashboard.jsx":"ad14c595835e","ui_kits/member-area/Profile.jsx":"c5febb194f76","ui_kits/member-area/Registrations.jsx":"39f656eae937","ui_kits/public-website/Home.jsx":"262fded654d7","ui_kits/public-website/ProgramDetail.jsx":"90f470a9da28","ui_kits/public-website/ProgramsList.jsx":"690774317878"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"RootedInMindfulnessDesignSystem_980dba","components":[{"name":"DetailRow","sourcePath":"components/content/DetailRow.jsx"},{"name":"HeroPanel","sourcePath":"components/content/HeroPanel.jsx"},{"name":"ListRow","sourcePath":"components/content/ListRow.jsx"},{"name":"ProgramCard","sourcePath":"components/content/ProgramCard.jsx"},{"name":"PullQuote","sourcePath":"components/content/PullQuote.jsx"},{"name":"ScheduleRow","sourcePath":"components/content/ScheduleRow.jsx"},{"name":"Testimonial","sourcePath":"components/content/Testimonial.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Eyebrow","sourcePath":"components/core/Eyebrow.jsx"},{"name":"Panel","sourcePath":"components/core/Panel.jsx"},{"name":"StateMessage","sourcePath":"components/core/StateMessage.jsx"},{"name":"TextField","sourcePath":"components/core/TextField.jsx"},{"name":"AccountSidebar","sourcePath":"components/navigation/AccountSidebar.jsx"},{"name":"MemberBar","sourcePath":"components/navigation/MemberBar.jsx"},{"name":"SiteFooter","sourcePath":"components/navigation/SiteFooter.jsx"},{"name":"SiteNav","sourcePath":"components/navigation/SiteNav.jsx"}],"sourceHashes":{"components/content/DetailRow.jsx":"180aa47f9e2a","components/content/HeroPanel.jsx":"09e32d39a2a5","components/content/ListRow.jsx":"120734e3f69f","components/content/ProgramCard.jsx":"d41544a95387","components/content/PullQuote.jsx":"12fd41970273","components/content/ScheduleRow.jsx":"3a64392269a6","components/content/Testimonial.jsx":"3b78953a0ebb","components/core/Badge.jsx":"6af78884a5bc","components/core/Button.jsx":"b187b0bee2ce","components/core/Card.jsx":"518f6ac051a6","components/core/Eyebrow.jsx":"76b98c68c92e","components/core/Panel.jsx":"30556e1edb2f","components/core/StateMessage.jsx":"5782a5712202","components/core/TextField.jsx":"ddc14c1ba70e","components/navigation/AccountSidebar.jsx":"d02c232112c8","components/navigation/MemberBar.jsx":"4cf643cd8521","components/navigation/SiteFooter.jsx":"93f423e90074","components/navigation/SiteNav.jsx":"223964a2598e","ui_kits/member-area/Dashboard.jsx":"ad14c595835e","ui_kits/member-area/Profile.jsx":"c5febb194f76","ui_kits/public-website/Home.jsx":"262fded654d7","ui_kits/public-website/ProgramDetail.jsx":"90f470a9da28","ui_kits/public-website/ProgramsList.jsx":"690774317878"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -1730,70 +1730,6 @@ Object.assign(window, {
   Profile
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/member-area/Profile.jsx", error: String((e && e.message) || e) }); }
-
-// ui_kits/member-area/Registrations.jsx
-try { (() => {
-const {
-  ListRow,
-  Badge
-} = window.RootedInMindfulnessDesignSystem_980dba;
-function Registrations() {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      maxWidth: 820
-    }
-  }, /*#__PURE__*/React.createElement("h1", {
-    style: {
-      margin: "0 0 10px",
-      fontSize: "var(--text-h1)"
-    }
-  }, "My Registrations"), /*#__PURE__*/React.createElement("p", {
-    style: {
-      margin: "0 0 36px",
-      color: "var(--rim-text-muted)",
-      fontSize: "var(--text-small)"
-    }
-  }, "What you've said yes to. Cancel any time \u2014 no explanation needed."), /*#__PURE__*/React.createElement(SectionLabel, null, "Active"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gap: 12,
-      marginBottom: 44
-    }
-  }, /*#__PURE__*/React.createElement(ListRow, {
-    name: "Foundations of Mindfulness",
-    badge: "Week 3 of 8",
-    schedule: "Wednesdays \xB7 6:30 PM \xB7 In person",
-    actionLabel: "Cancel"
-  }), /*#__PURE__*/React.createElement(ListRow, {
-    name: "Essential Dharma Study",
-    schedule: "Thursdays \xB7 9:30 AM \xB7 Online",
-    actionLabel: "Cancel"
-  }), /*#__PURE__*/React.createElement(ListRow, {
-    name: "Qigong at RIM",
-    schedule: "Wednesdays \xB7 10:00 AM \xB7 Online",
-    note: "Kate is covering the next two weeks.",
-    actionLabel: "Cancel"
-  })), /*#__PURE__*/React.createElement(SectionLabel, null, "Past"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement(ListRow, {
-    name: "Nature Meditation Walk",
-    schedule: "July 12 \xB7 In person",
-    actionLabel: "Registered",
-    actionDisabled: true
-  }), /*#__PURE__*/React.createElement(ListRow, {
-    name: "Half-Day Retreat",
-    schedule: "June 21 \xB7 In person",
-    actionLabel: "Registered",
-    actionDisabled: true
-  })));
-}
-Object.assign(window, {
-  Registrations
-});
-})(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/member-area/Registrations.jsx", error: String((e && e.message) || e) }); }
 
 // ui_kits/public-website/Home.jsx
 try { (() => {
