@@ -236,7 +236,7 @@ A single-class `pl-` rule loses to a single-class `pp-` rule on source order. A 
 
 `.pp-prose` centres a `--reading-width` (700px) column, so on a page whose hero copy sits at 110 the prose lands at **290** and the closing actions return to 110: three left edges. `.pp-prose--spine` sets `margin-left: 0` and leaves the measure alone, giving one left edge for the whole page.
 
-**It is opt-in, and must stay opt-in.** Centred standalone prose is the *shipped, approved* convention on the pages that were measured against the live site — `/donate` centres its statement at **348** against a hero at 110, and `/diversity` measures **290**. Changing `.pp-prose` itself would move both. Use `--spine` on pages long enough that the misalignment reads as drift; `/what-we-practice` is the first (110 across hero, prose, headings, and actions). The family is now deliberately inconsistent pending Jesse's call — backlog `2026-08-10-006`.
+**It is opt-in, and must stay opt-in.** Centred standalone prose is the *shipped, approved* convention on the pages that were measured against the live site — `/donate` centres its statement at **348** against a hero at 110, and `/diversity` measures **290**. Changing `.pp-prose` itself would move both. Use `--spine` on pages long enough that the misalignment reads as drift; `/what-we-practice` was the first (110 across hero, prose, headings, and actions). **Superseded by the next section:** session 176 settled the family and moved the mechanism to a page-level class. `/donate` is still the one page that centres, for the reason given above.
 
 The s170 **"one left edge"** rule is scoped to the two *listing* pages, exactly as written. It is not a sitewide law, and this measurement is why.
 

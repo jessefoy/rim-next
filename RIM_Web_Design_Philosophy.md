@@ -24,7 +24,7 @@ This is a working reference for design decisions made on the RIM website and pla
 
 ## The Aesthetic
 
-RIM's visual identity is warm, grounded, and unhurried. The palette is drawn from earth and stone — creamy off-whites, warm tans, muted teals and blues. Nothing is stark. Nothing is cold. The typefaces are Libre Baskerville (serif, for headings and pull quotes) and Open Sans (sans-serif, for body text and UI). Together they carry a quality of quiet attentiveness — the same quality the community itself cultivates.
+RIM's visual identity is warm, grounded, and unhurried. The palette is drawn from earth and stone — creamy off-whites, warm tans, muted teals and blues. Nothing is stark. Nothing is cold. The typefaces are **Quincy CF** (serif, self-hosted, for headings and pull quotes) and Open Sans (sans-serif, for body text and UI). *(Corrected session 176: this line said Libre Baskerville, which the site has not used for some time — `--font-heading` and `--font-serif` in `custom.css` both resolve to `Quincycf`, with `@font-face` declarations for weights 300/400/500/700. The swap itself is recorded in a `custom.css` comment; when it happened is not, so treat the CSS as authority.)* Together they carry a quality of quiet attentiveness — the same quality the community itself cultivates.
 
 The design resists the conventions of the modern web app: no drop shadows, no cards floating on gray backgrounds, no dense icon toolbars, no notification badges competing for attention. Separation between sections is achieved through color contrast and whitespace, not borders and shadows.
 
@@ -38,8 +38,8 @@ The content is the point. The design exists to serve it — not to organize it, 
 
 This means:
 - Headings are generous but not loud.
-- Body text is set at a readable size (17px) with generous line height (1.8).
-- The reading column is constrained (640px) so lines are comfortable to follow.
+- Body text is set at a readable size (18px) with generous line height (1.7).
+- The reading column is constrained (700px) so lines are comfortable to follow.
 - Pull quotes, callouts, and verse blocks are given room to breathe — they are not squeezed into sidebars or collapsed into accordions.
 
 When content needs more visual emphasis, we use typographic weight and scale — not color, not animation, not icons.
@@ -139,4 +139,4 @@ If the answer is no, the design is not finished.
 
 ---
 
-*Rooted in Mindfulness · rootedinmindfulness.org / Working document · February 2026*
+*Rooted in Mindfulness · rootedinmindfulness.org / Working document · February 2026; typeface and type-scale values corrected against `custom.css` September 2026 (session 176). **The tokens in `public/css/custom.css` are authority for any number in this document** — this is intent, not a spec.*

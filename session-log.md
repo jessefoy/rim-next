@@ -1,5 +1,71 @@
 ---
 
+## 2026-09-02 (session 176) — The public pages measured for consistency; the threshold pages joined the system; the draft shipped
+
+Jesse asked one question: *"look at our public facing pages to ensure the design is aesthetically pleasing and consistent."* He asked it through `/design`, which builds canvases — so the first call was that the deliverable is a **review**, not an artifact. Seven commits, all on `main`, all deployed and re-measured on production.
+
+### The audit, and its one sentence
+
+A dual-agent pass ran two isolated sub-agents against the live site: a design-director review and a deterministic detector plus browser measurement, both walking 16 public pages at 375 and 1280. The detector found **zero** findings in the TSX (it cannot see `custom.css`, where all RIM styling lives, so it was a weak signal); the visual overlay never ran because the browser pane blocks localhost from a remote origin. **The measurement was the signal, and the verdict fits in one sentence: the site was authored at the centre and generic at the edges.**
+
+Home, `/what-we-practice`, both listings and the program pages are unmistakably RIM. `pp-hero` measured *identical* across ten pages (eyebrow 11px/85%, title 52 at x=110, body 18/95%). But `/join`, the three `/login` pages, `/teachers`, `/teachers/[slug]` and `/courses` each wore a private class vocabulary (`jn-`, `tpr-`, `cls-`, and on login the last Webflow-era markup on the public site) with no hero at all — so **the site changed identity at the exact moment a visitor commits.** Nielsen consistency scored 1/4; the whole surface scored 18/32.
+
+Snapshot: `.impeccable/critique/2026-09-02T15-31-11Z__rim-next-vercel-app.md` (git-ignored; two local excludes added so the skill's archive stays out of the tree).
+
+### What shipped
+
+**The threshold pages, onto `pp-`** (`5babe90`). `/join` moved to `pp-hero` + `pp-prose` + `pp-form` with **every word of copy unchanged** — its body had been **15px grey**, the most consequential reading RIM asks of anyone, and the 16×16 checkbox gating its submit was the smallest target on the site. The three `/login` pages shed `.container-7-copy` / `.w-form` / `.w-input` / `.link-block-3`, a near-black `#16192c` button, a square 38px input, inline hex including a **pre-flip `#135274` teal**, and the 3rem ⚠️ on the error page; the auth server actions, the not-member soft-redirect and `prefillEmail` were untouched. `/teachers` and `/courses` gained heroes and moved their cards onto `.pp-card` (12px + `--card-shadow`, replacing 8px and 10px radii with hover-only shadows). `/courses` had been carrying its only `h1` **inside the client component**.
+
+**The spine, decided** — closes `2026-08-10-006`. Jesse's ruling: the spine everywhere except `/donate`, whose statement and note were measured against the live site. The mechanism moved from the block modifier to a **page-level `.pp-page--spine`**, because `.pp-prose--spine` alone left `.pp-intro` centred at 190 while its own prose sat at 110.
+
+**The public chrome floor.** Session 172 gave every *authenticated* surface 44px targets and a 16px input floor; the public nav and footer never got that pass, so the pages a first-time visitor meets were the only ones below it. Footer inputs were **15px**, and that newsletter form renders on every public page — under 16px iOS zooms the viewport on focus.
+
+**The Sanity rescue** — unblocks `2026-08-09-001`. Measurement found **six of twelve** public program pages still rendering their hero from `cdn.sanity.io`. Deleting that project, the last step of an otherwise-complete teardown, would have broken half the catalogue. New migration `rehost_sanity_program_images_v1` re-hosts to Vercel Blob and repoints `Program.programImage`; idempotent by its WHERE clause (like the migration above it, so no flag row), non-fatal per row, and after review it refuses a non-image content-type and bounds its fetch at 15s. **It ran clean on deploy: all six re-hosted, verified serving with correct content types, zero `cdn.sanity.io` references left anywhere public.**
+
+**Jesse's preserved draft shipped inside this work.** He chose "build on top of the draft" with its two known defects repaired (the em-dash in the agreements prose, and the stale comment claiming `lib/communityAgreements.ts` mirrors the legacy Webflow page — it no longer does). **The copy remains provisional; shipping is not ratification.**
+
+### Two findings corrected, because the audit was wrong
+
+**The 38-vs-28 heading "drift" is not a defect.** It is a two-tier system applied consistently and never written down: 38px (`--text-h1`) is a **chapter opener**, 28px (`--h2`, always paired with `.pp-intro--center`) is a **form or secondary lead**. Every `--h2` use sits on a centred intro leading a form. Flattening home's four chapter openers to 28 to make the numbers match would have destroyed the s172 composition. Now recorded in `RIM_Public_Pages.md` as **must-not-fix**, so the next audit doesn't "fix" it. Donate's `--display` h1 and 54px statement title are likewise measured, deliberate variants.
+
+The real heading defects were two **level skips**, both fixed: the program page's `.pg-section-heading` pair was styled at the h2 tier but marked `h3` under the `h1` (zero visual change to fix), and KM guidelines had ten peer sections as `h3` with no `h2`. A third skip survives and is **not code**: `"Special Notes:"` is an `h3` authored inside a program's rich text.
+
+I also suspected `/teachers/[slug]` leaked non-public profiles. **It does not** — it selects `isPublic` and 404s. Reported as clean rather than left as a plausible finding.
+
+### The lesson: three regressions, all found by measuring the deploy
+
+Every one of these passed `tsc` and `next build`, and every one was mine.
+
+1. **The nav floor grew the bar.** `min-height: 44px` on **content-box** elements *adds* to their retained `padding: 8px 12px` — `.nav__link` and `.nav__donate` measured **60px** beside `.nav__dropdown-toggle` at 44px (a `<button>`, border-box by UA default). 16px between siblings in one row, and the DONATE pill grown 36→60, against the block's own stated intent of not moving a visual edge.
+2. **An appended `display` un-hid a responsively-hidden element.** `.nav__donate { display: inline-flex }` at the end of `custom.css` **overrode the `display: none` it carries under 768px**. The un-hidden 97px button pushed the hamburger to x=340, so a 44px control ended at **384 in a 375px viewport** — 9px of the primary mobile nav control off-screen, on every public page. An appended single-class rule beats an earlier media-query rule of equal specificity.
+3. **The spine was half-applied — the bug it exists to remove.** `.pp-page--spine` listed only `.pp-intro` and `.pp-prose`, so every other centred block kept `margin: 0 auto`: `/join` measured 110 / 110 / 110 / **290** (its form), and the KM group application had **three** edges (prose 110, intro 190, notice 290). Then my own "exception" — letting `--center` keep its auto margins on a spine page — reproduced the 190-vs-110 jog a second time. **A centred block on a left-aligned page is a contradiction, not an exception:** on a spine page the spine now wins, including over `--center`, and a page wanting centred openers simply does not opt in.
+
+A reviewer sub-agent on the staged diff caught #1 and #3 (plus the missing membership CTA below); the rest came from measuring production. **`tsc` and `next build` prove a page compiles, not that it composes.**
+
+### One defect in the draft, worth naming
+
+`components/PracticeWithUs.tsx` replaced the old `.pl-membership` aside but **dropped its "Become a member" pill.** The copy says a member account is how you join on Zoom and register — and then offered no way to get one. Measured: `/community-programs` had exactly **one** `/join` link on the whole page, inside the nav's hover dropdown. Restored on both consumers.
+
+### What this connects to
+
+- **`2026-08-09-001` (Sanity teardown)** — was one step from breaking six program pages; now unblocked. Deleting the Sanity project is safe.
+- **`2026-08-10-006` (prose left edge)** — closed by Jesse's ruling.
+- **`lib/communityAgreements.ts`** — the shipped agreement rewrite propagates to `/join`, `/account/welcome`, `RegistrationForm` **and** the new `/community-care-agreements`. One text, four surfaces.
+- **`components/Nav.tsx` / `Footer.tsx`** — global, so the chrome floor reaches every public page *and* the member area's public chrome.
+- **`RegistrationForm.tsx`** — copy-standard fixes reach the program registration flow.
+- **`/programs/[slug]`** — heading levels, the eyebrow contrast floor, and the re-hosted hero images.
+- **`components/CourseBrowse.tsx`** — its `cls-header` block was removed; it is used only by `/courses`, verified.
+- **The member area** — one draft file (`dashboard-my-profile`) adds a Community Care Agreements section, the only authenticated surface this session touched.
+- **Not touched:** hubs, tools, the Scheduler, Zoom, Google Files, roles, permissions, email templates, the editor system, schema.
+
+### Verification
+
+`npx tsc --noEmit` and `npx next build` clean on every commit; CSS brace-balanced throughout; every class referenced by a rebuilt page confirmed to have a rule. Final production sweep, **19 pages at 375px: zero horizontal overflow, zero interactive targets under 24×24, zero inputs under 16px.** Left edges re-measured at 1280 on all five spine pages: one edge at 110. Non-spine pages verified *unmoved* (`/donate`, volunteer thanks still centred at 190). All six re-hosted images return 200 with image content-types. `main` and `origin/main` both at `2ac4990`.
+
+### What comes next
+
+Nothing is half-built. Four backlog items were filed **deliberately undone** because they are Jesse's content and data decisions, not code: `2026-09-02-001` (high — the live "Test Course" is opted into the public catalogue, and the one public teacher profile has no portrait or bio; both are DATA, editable in Course Manager and the Member Registry), `-002` (restore the teacher course listing that turned out to be dead code), `-003` (em-dashes and an `h3` surviving in authored program rich text), `-004` (prune the `jn-` page shell and legacy login CSS after this settles).
+
 ## 2026-09-01 (session 175) — Member registration management removed; older public-page draft identified and preserved
 
 Jesse asked to simplify the current RIM-NEXT release by removing the member-facing `/account/programs` feature. The governing product call is explicit: **members should not manually cancel registrations.** Commit `ab686b1` removed the list/detail routes, member registration APIs, cancellation button, navigation entry, and the feature-specific CSS, design-system examples, inventories, and architecture references. Old account-program URLs now permanently redirect to the member dashboard; upcoming-program links there go to the public program page.
