@@ -240,6 +240,45 @@ A single-class `pl-` rule loses to a single-class `pp-` rule on source order. A 
 
 The s170 **"one left edge"** rule is scoped to the two *listing* pages, exactly as written. It is not a sitewide law, and this measurement is why.
 
+### The spine, decided — `.pp-page--spine` (session 176, closes `2026-08-10-006`)
+
+**Jesse's ruling: prose rides the container text edge on every long-form page except `/donate`.** The centred convention survives only there, because its statement and note were measured against the live site.
+
+**The mechanism moved from the block to the page.** `.pp-prose--spine` alone was not enough: it left `.pp-intro` centred at **190** while its own prose sat at **110** — the same misalignment the spine exists to remove, one level up. `.pp-page--spine` on the page root now zeroes the left margin of both `.pp-intro` and `.pp-prose`, so an opener and its body cannot drift apart. `.pp-prose--spine` is kept (documented, and subsumed by the page class).
+
+Adopted on `/what-we-practice`, `/your-first-visit`, and the three Kalyana Mitta pages. `/diversity` was already on 110 via the draft's `dv-layout` (1060 max-width inside a 1060 container). **Measured after deploy: 110 across hero, headings, and prose on all five.**
+
+The geometry, so nobody re-derives it: `.rim-container` is 1140 with 40px padding, so at 1280 its text edge is **110** and its content box is **1060**. `.pp-intro` (900) centres to 190; `.pp-prose` (700) to 290; `.pp-intro ~ .pp-prose` (900, children capped 700) to 190. Zeroing the left margin puts all three on 110. `.pp-actions` is already there as a plain block.
+
+### The two heading tiers are a system, not drift (session 176)
+
+A measured audit flagged `.pp-intro__title` rendering at **38px** on home, volunteer, KM groups and donate but **28px** (`--h2`) on volunteer's second opener and the KM application. **This is not a defect and must not be "fixed".** It is a consistently applied two-tier system that had simply never been written down:
+
+- **38px (`--text-h1`) = a chapter opener.** Home's four section titles, "Current volunteer needs".
+- **28px (`.pp-intro__title--h2`) = a form or secondary lead**, always paired with `.pp-intro--center`. "Tell us about your interests", "Tell us about your idea".
+
+Every `--h2` use sits on a centred intro leading a form. Flattening home's chapter openers to 28 to make the numbers match would destroy the s172 composition. Donate's `--display` h1 (67.5) and 54px statement title are likewise **measured, deliberate** variants, not drift.
+
+What *were* real defects: two heading-level skips, both fixed in s176. The program page's `.pg-section-heading` pair was styled at the h2 tier but marked `h3` under the `h1` (zero visual change to fix), and KM guidelines had ten peer sections as `h3` with no `h2`.
+
+### The threshold pages joined the system (session 176)
+
+`/join`, the three `/login` pages, `/teachers`, `/teachers/[slug]` and `/courses` each carried a private vocabulary (`jn-`, `tpr-`, `cls-`, and on login the last Webflow-era markup on the public site). A measured audit put it plainly: **the site was authored at the centre and generic at the edges, and it changed identity at the exact moment a visitor commits.** All six now open on a `pp-hero` with the standard tiers, put reading copy in `.pp-prose` at 18px, forms on `.pp-form`, and cards on `.pp-card` (12px + `--card-shadow`, replacing 8px and 10px radii with hover-only shadows).
+
+`/join` is the one worth remembering: its body copy — the most consequential reading RIM asks anyone to do — had been **15px grey**, and the 16×16 checkbox that gates the submit button was the smallest target on the site. Copy unchanged; only the surfaces carrying it.
+
+The dead `jn-` page-shell rules are deliberately left in `custom.css` for one deploy so a revert is one commit. Prune with `scripts/css-prune.mjs` once settled.
+
+### The public chrome got the member area's floor (session 176)
+
+Session 172 gave every *authenticated* surface 44px targets and a 16px input floor. The public nav and footer never got that pass, so the pages a first-time visitor meets were the only ones below it. Now: nav links, dropdown toggles, DONATE and the hamburger at 44px; footer inputs at 16px (under it, **iOS zooms the page on focus** — and that newsletter form renders on every public page); footer contact and legal rows at 44px and **78% white** (was 50%, under 4.5:1 on the blue).
+
+> **The specificity trap, from the other direction.** Appending `.nav__donate { display: inline-flex }` at the end of `custom.css` **overrode the `display: none` it carries under 768px**, un-hiding the desktop DONATE button on phones. The 97px button then pushed the hamburger to x=340, so a 44px control ended at 384 in a 375px viewport — 9px of the primary mobile nav control off-screen, on every public page. An appended single-class rule beats an earlier media-query rule of equal specificity. **Any appended `display` on a responsively-hidden class must live inside the breakpoint it belongs to.** Caught by measuring the deploy, not by reasoning about it.
+
+### Inline prose links: 24×24, not 44×44 (session 176)
+
+A link inside a sentence cannot take a 44px box without breaking the leading. Public prose links get vertical padding to clear **WCAG 2.5.8 (24×24)**, which is the correct target for an inline link; 2.5.5's 44×44 is for standalone controls. And every public `mailto:`/`tel:` link carries `overflow-wrap: anywhere` — an address is one unbreakable token, so past ~34 characters at 375px it runs off the edge and `box-sizing` does nothing (session 173's distinction). The KM guidelines coordinator address measured 333px wide, 2px past the viewport.
+
 ---
 
 ## Copy and voice — the public pages (session 174)

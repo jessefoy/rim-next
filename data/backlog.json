@@ -1320,8 +1320,48 @@
     "description": "Session 174 added .pp-prose--spine (margin-left: 0, reading measure unchanged) so a long-form page has ONE left edge, and applied it only to /what-we-practice — which now measures 110 across hero, prose, headings, and actions. The other pp-prose pages still centre: /diversity sits at 290 against a hero at 110, and /donate centres its statement at 348 against a hero at 110. That centring is the shipped, Jesse-approved convention (donate was matched to the live site by measurement), which is exactly why the modifier is opt-in rather than a change to .pp-prose. But the family is now visibly inconsistent: one prose page aligns to the spine and the others do not. Decide one way for the family — either extend --spine to /diversity and the KM guidelines, or keep centring as the convention and treat /what-we-practice as the exception for long-form. This is a design call for Jesse, not a defect.",
     "category": "CSS & Design",
     "priority": "low",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-08-10",
-    "notes": "Measured session 174: hero 110 on every page; prose 290 (/diversity), 348 (/donate statement), 110 (/what-we-practice, with --spine). Related: RIM_Public_Pages.md 'The spine — one left edge' is scoped to the two listing pages."
+    "notes": "Measured session 174: hero 110 on every page; prose 290 (/diversity), 348 (/donate statement), 110 (/what-we-practice, with --spine). Related: RIM_Public_Pages.md 'The spine — one left edge' is scoped to the two listing pages. | DONE session 176 (2026-09-02): Jesse ruled the spine for the family, /donate excepted. Mechanism moved from the block modifier to a page-level .pp-page--spine, because .pp-prose--spine alone left .pp-intro centred at 190 while its own prose sat at 110. Adopted on /what-we-practice, /your-first-visit and the three KM pages; /diversity was already at 110 via dv-layout. Measured 110 across hero, headings and prose on all five after deploy. See RIM_Public_Pages.md 'The spine, decided'."
+  },
+  {
+    "id": "2026-09-02-001",
+    "title": "Unpublish the Test Course and populate the public teacher profile",
+    "description": "Two pieces of placeholder data are live on the public site, and the session-176 consistency pass made them more visible by giving both pages real heroes. (1) /courses shows exactly one course, 'Test Course / This is a subheading' — it is opted into the public catalogue via Course.publishOnPublicCatalog. Turn that off in Course Manager (/tools/learning) or rename it to something real. (2) /teachers shows one profile with no photoUrl and no bio, so it renders as an initial-letter circle, and the detail page holds only a name. Both are DATA, not code: the listing reads TeacherProfile where isPublic and slug are set, pulling photoUrl and bio straight from the record. Fix in the Member Registry (/admin/members/[id], Teacher section) by adding a portrait and bio, or set isPublic false until ready. Claude deliberately did not change either: what is public about RIM's own teacher and catalogue is Jesse's call.",
+    "category": "Admin Tools",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-09-02",
+    "notes": "Raised by the session-176 public-page audit as a P1 (placeholder content erodes trust more than an absent page would). Related: 2026-09-02-002 restores the teachings list those pages would show."
+  },
+  {
+    "id": "2026-09-02-002",
+    "title": "Restore the teacher page's course listing (it was dead code)",
+    "description": "app/teachers/[slug]/page.tsx carried a 'Teachings by …' section fed by a `uniqueCoursesWithCount` array that was initialised empty and never populated — the query that filled it had been removed, leaving roughly forty lines of card markup permanently unreachable behind a `.length > 0` guard. Session 176 deleted the unreachable markup rather than reviving it, because it needs the course -> lesson -> teacher joins rebuilt AND real public courses to list (see 2026-09-02-001). Rebuild it as a fresh query when courses are real: for a given teacher, the distinct courses whose lessons they teach, with a lesson count per course. The old markup shape is in git history at commit c9d7aea if the card design is worth reusing.",
+    "category": "Courses & Library",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-09-02",
+    "notes": "The 243px-tall teacher page Jesse saw was this: a name, and nothing else, because the only other section could never render."
+  },
+  {
+    "id": "2026-09-02-003",
+    "title": "Em-dashes in authored program rich-text content (copy standard)",
+    "description": "The house copy standard bans em-dashes in prose, and session 176 removed them from every community-visible string in CODE. But some live on in AUTHORED content stored in the database and rendered as rich text, which no code change can reach: /programs/awakening-the-heart's description opens 'Lovingkindness is a practice of deliberately offering warmth — to yourself…', and at least one program uses a 'Special Notes:' heading inside its description (which is also why that page shows an h3 the template does not control). Sweep the Program description / notes fields in Program Manager (/tools/programs) and the Course equivalents. Editorial pass for Jesse, not a code fix.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-09-02",
+    "notes": "Metadata <title> strings keep the site-wide ' — Rooted In Mindfulness' convention on purpose (17 pages); the ban is on prose. Related: RIM_Public_Pages.md 'Copy and voice'."
+  },
+  {
+    "id": "2026-09-02-004",
+    "title": "Prune the dead jn- page-shell CSS left by the /join rebuild",
+    "description": "Session 176 moved /join onto pp-hero / pp-prose / pp-form, which orphaned the jn- page shell: .jn-page, .jn-container, .jn-hero, .jn-hero__title, .jn-hero__intro, .jn-panel, .jn-panel__section, .jn-panel__heading, .jn-panel__subheading, .jn-panel__lead and .jn-panel__divider. They were left in custom.css deliberately so a revert stays a one-commit operation. The jn- FORM rules are still live (JoinForm keeps its class names and they are restyled to the pp-form floor) — do not prune those. Run scripts/css-prune.mjs with a narrowed prefix list, or cut by hand, once the rebuild has settled.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-09-02",
+    "notes": "Same treatment as the other dead-prefix items (2026-08-09-005, 2026-06-25-003). The legacy login classes (.container-7-copy, .login-box, .form-header, .link-block-3, .w-form, .w-input) are now also unreferenced by any public page and can go in the same pass."
   }
 ]
