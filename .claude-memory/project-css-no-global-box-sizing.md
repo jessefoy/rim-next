@@ -1,6 +1,6 @@
 ---
 name: project-css-no-global-box-sizing
-description: "webflow.css is no longer loaded, so there's no global `* { box-sizing: border-box }`; a width:100% form control overflows its padded container unless border-box is set — custom.css now carries an input/textarea/select reset"
+description: "No global `* { box-sizing: border-box }` (webflow.css is not loaded), so under content-box both `width: 100%` AND a target-size `min-height` stack on top of padding — the first overflows a padded container, the second grew the whole public nav bar to 60px (s176). Declare border-box in the same rule."
 metadata: 
   node_type: memory
   type: project
@@ -22,4 +22,15 @@ So form controls are safe. But **non-form elements still default to content-box*
 
 **How to apply:** any NEW `width: 100%` (or fixed-width) rule that also carries horizontal padding/border must declare `box-sizing: border-box` in the same rule, at birth — including layout containers, not just controls. Exceptions that self-rescue: flex items of a ROW container (flex-shrink absorbs the padding) and tables (cell padding is interior). When hunting a "content cut off at the right edge" report, this trap is suspect #1.
 
-Verify against `public/css/custom.css` + `app/layout.tsx` before relying on this — reflects the s172 state.
+**Fourth strike, a new shape (s176): `min-height` stacks too.** Raising a touch
+target to the 44px floor with `min-height: 44px` on an element that keeps its
+`padding: 8px 12px` produces a **60px** box under content-box. That grew the
+entire public nav bar: `.nav__link` and `.nav__donate` measured 60px beside
+`.nav__dropdown-toggle` at 44px — a `<button>`, which browsers default to
+border-box — so siblings in one row differed by 16px and the DONATE pill went
+36 → 60. It is the same root cause as `width: 100%` + padding, in a property I
+had not associated with the trap. **Any target-size `min-height` (or `min-width`)
+needs `box-sizing: border-box` in the same rule.** Buttons and form controls are
+already safe; `<a>` elements are not.
+
+Verify against `public/css/custom.css` + `app/layout.tsx` before relying on this — reflects the s176 state.

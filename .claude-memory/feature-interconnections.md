@@ -38,6 +38,8 @@ Program (Prisma) → connects to:
 
 Changing a program touches all of these. Adding a program field may need updates in the editor, public page, API, and dashboard.
 
+**Removed session 175:** the member-facing `/account/programs` list + detail pages, their two APIs, and the cancel button. Jesse's product call is explicit — **members do not cancel their own registrations.** Registrar/staff cancellation remains; dashboard upcoming-program links now point at the public program page. Don't reintroduce a member registration-management surface.
+
 ## Hub Ecosystem
 
 Hub → connects to:
