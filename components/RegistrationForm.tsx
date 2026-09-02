@@ -230,7 +230,7 @@ export default function RegistrationForm({
               <h3>One more step</h3>
               <p>
                 Complete your registration for {program.name} with your
-                contribution below — your place is confirmed once your payment
+                contribution below. Your place is confirmed once your payment
                 goes through.
               </p>
             </>
@@ -239,7 +239,7 @@ export default function RegistrationForm({
               <h3>One more step</h3>
               <p>
                 Your place is reserved. Make your dana offering below, or choose
-                &ldquo;I&rsquo;m not donating at this time&rdquo; — either one
+                &ldquo;I&rsquo;m not donating at this time&rdquo;. Either one
                 completes your registration.
               </p>
             </>
@@ -325,7 +325,7 @@ export default function RegistrationForm({
           >
             {formState === "dana_redirecting"
               ? "Redirecting to checkout…"
-              : `Continue — $${totalDollars.toFixed(2)}`}
+              : `Continue · $${totalDollars.toFixed(2)}`}
           </button>
 
           {/* Skip option for voluntary mode only */}
@@ -471,8 +471,8 @@ export default function RegistrationForm({
       {/* Capacity notices */}
       {isFull && (
         <div className="pg-form__waitlist-notice">
-          <strong>This program is full.</strong> You can still submit below to join the waitlist —
-          we&rsquo;ll contact you if a spot opens.
+          <strong>This program is full.</strong> You can still submit below to join the waitlist.
+          We&rsquo;ll contact you if a spot opens.
         </div>
       )}
       {almostFull && (
@@ -603,7 +603,7 @@ export default function RegistrationForm({
               onChange={(e) => handleCustom(field.label, e.target.value)}
               required={field.required}
             >
-              <option value="">— Select —</option>
+              <option value="">Select…</option>
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
@@ -617,7 +617,7 @@ export default function RegistrationForm({
               onChange={(e) => handleCustom(field.label, e.target.value)}
               required={field.required}
             >
-              <option value="">— Select —</option>
+              <option value="">Select…</option>
               {field.options?.map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}
@@ -632,6 +632,10 @@ export default function RegistrationForm({
       {!sessionUserId && !(emailCheckStatus === "found" && foundMember?.agreedToTerms) && (
         <div className="pg-form__agreements">
           <h4 className="pg-form__agreements-heading">Community Care Agreements</h4>
+          <p className="pg-form__agreements-text">
+            If you don&rsquo;t already have one, registering will also create your RIM
+            member account.
+          </p>
           <p className="pg-form__agreements-text">{COMMUNITY_AGREEMENTS_LEAD_IN}</p>
           <ol className="pg-form__agreements-list">
             {COMMUNITY_AGREEMENTS.map((a) => (

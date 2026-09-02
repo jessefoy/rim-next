@@ -66,7 +66,7 @@ export default function Nav() {
           <Link
             href="/account/dashboard-my-profile"
             className="member-bar__profile"
-            aria-label={`${firstName} — my profile`}
+            aria-label={`${firstName}, my profile`}
           >
             <span className="member-bar__avatar" aria-hidden="true">
               {firstName.charAt(0).toUpperCase()}

@@ -16,44 +16,27 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   // The doors into the catalog are the real, editorial taxonomy — the same
   // categories Program Manager maintains and /community-programs renders —
-  // never a hardcoded list (the previous four were stale on arrival and three
-  // pointed at the same URL; backlog 2026-08-07-001). Each door deep-links to
-  // its category's anchor on the listing page. Empty categories don't get a
-  // door: an anchor with nothing under it is a broken promise.
-  const categories = await db.programCategory.findMany({
-    where: { hideFromProgramsPage: false },
+  // never a hardcoded list. Each door deep-links to its category's anchor on
+  // the listing page. Filter empty categories in the database; the homepage
+  // needs only the identity of each door, not program rows or aggregate counts.
+  const doors = await db.programCategory.findMany({
+    where: {
+      hideFromProgramsPage: false,
+      programs: {
+        some: {
+          archivedAt: null,
+          hideFromProgramPageList: false,
+          slug: { not: "dummy-test-program" },
+        },
+      },
+    },
     orderBy: { sortOrder: "asc" },
     select: {
       id: true,
       slug: true,
       name: true,
-      kind: true,
-      _count: {
-        select: {
-          programs: {
-            where: {
-              archivedAt: null,
-              hideFromProgramPageList: false,
-              slug: { not: "dummy-test-program" },
-            },
-          },
-        },
-      },
     },
   });
-  const doors = categories.filter((c) => c._count.programs > 0);
-
-  // One public-voice line per offering KIND (the category's behavior-driving
-  // attribute, lib/programKind.ts) — real information a visitor needs before
-  // choosing a door, derived from data that already exists.
-  const KIND_LINES: Record<string, string> = {
-    DROP_IN: "Anyone can drop in — no registration needed",
-    COMMUNITY_GROUP: "Ongoing peer-led communities",
-    CLASS: "Taught classes and series",
-    EVENT: "One-time gatherings",
-    RETREAT: "Multi-day immersive practice",
-    SERVICE: "Serving the community together",
-  };
 
   return (
     <div className="pp-page">
@@ -85,13 +68,13 @@ export default async function HomePage() {
         </div>
         <div className="rim-container pp-hero__inner">
           <h1 className="pp-hero__title">
-            Awaken your Mind,
+            Awaken your <em className="home-hero__gold">Mind</em>
             <br />
-            Open your Heart,
+            Open your <em className="home-hero__gold">Heart</em>
             <br />
-            Nourish your Life,
+            Nourish your <em className="home-hero__gold">Life</em>
             <br />
-            Beautify the World.
+            Beautify the <em className="home-hero__gold">World</em>
           </h1>
           <p className="pp-hero__body">
             Rooted in Mindfulness is a Buddhist meditation community in Brookfield, Wisconsin. We
@@ -142,24 +125,24 @@ export default async function HomePage() {
               </div>
 
               <div className="pp-intro">
-                <h2 className="pp-intro__title">Timeless Wisdom for our Modern Life.</h2>
+                <h2 className="pp-intro__title">What We Learn and Practice.</h2>
                 <p className="pp-intro__body">
-                  What we practice is Buddhist wisdom, gathered from across the traditions and
-                  offered so that anyone can use it. You do not need to be Buddhist to practice
-                  here, and nobody will try to make you one. Our teachings are informed by modern
-                  science, by the mindfulness programs many of us started with, and by the
-                  world&rsquo;s wisdom traditions.
+                  At RIM, meditation is part of a larger way of learning and living. We explore
+                  Buddhist wisdom across the traditions&mdash;not as a belief system, but as
+                  practical ways to steady the mind, understand experience, meet difficulty, and
+                  bring more wisdom and compassion into everyday life. You do not need to be
+                  Buddhist to practice here, and nobody will try to make you one.
                 </p>
                 <p className="pp-intro__body">
-                  And everything we keep passes one old test: does it help a person suffer less, see
-                  more clearly, and love more capably? We call what we have gathered A Handful of
+                  Everything we keep passes one old test: does it help a person suffer less, see
+                  more clearly, and love more capably? We call this ordered path A Handful of
                   Leaves, after a story the Buddha told in a forest.
                 </p>
               </div>
 
               <div className="pp-actions">
                 <Link href="/what-we-practice" className="pp-btn pp-btn--ghost">
-                  Read the story of the name
+                  Explore what we learn and practice
                 </Link>
               </div>
             </div>
@@ -252,16 +235,7 @@ export default async function HomePage() {
                   className="pp-card pp-card--row pp-card--door"
                 >
                   <div className="pp-card__row">
-                    <div className="pp-card__main">
-                      <h3 className="pp-card__title">{categoryDisplayName(door.name)}</h3>
-                      <p className="pp-card__body pp-card__count">
-                        {door.kind && KIND_LINES[door.kind] && (
-                          <>{KIND_LINES[door.kind]} · </>
-                        )}
-                        {door._count.programs}{" "}
-                        {door._count.programs === 1 ? "offering" : "offerings"}
-                      </p>
-                    </div>
+                    <h3 className="pp-card__title">{categoryDisplayName(door.name)}</h3>
                     <span className="pp-card__action" aria-hidden="true">
                       →
                     </span>

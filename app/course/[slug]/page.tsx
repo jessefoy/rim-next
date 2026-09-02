@@ -239,7 +239,7 @@ function renderLandingView({
         {/* Dana result banners — shown after Stripe redirects back */}
         {danaResult === "success" && (
           <div className="pg-dana-result pg-dana-result--success">
-            ✓ Thank you — your dana offering has been received. You&rsquo;re enrolled.
+            ✓ Thank you. Your dana offering has been received. You&rsquo;re enrolled.
           </div>
         )}
         {danaResult === "cancelled" && (

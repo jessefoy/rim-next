@@ -29,7 +29,7 @@ export default async function KalyanaApplicationPage({
   }
 
   return (
-    <div className="pp-page">
+    <div className="pp-page pp-page--spine">
       <section className="pp-hero pp-hero--flat">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Kalyana Mitta</p>
@@ -103,8 +103,8 @@ export default async function KalyanaApplicationPage({
               <p className="pp-notice__title">You&rsquo;ll need an account for this form</p>
               <p className="pp-notice__body">
                 RIM community members are welcome to create a new Kalyana Mitta group. Membership is
-                free — create an account or sign in, then return to this page and the form will be
-                here.
+                freely offered. Create an account or sign in, then return to this page and the form
+                will be here.
               </p>
               <div className="pp-actions">
                 <Link href="/join" className="pp-btn">

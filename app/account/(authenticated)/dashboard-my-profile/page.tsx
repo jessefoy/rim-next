@@ -61,6 +61,14 @@ export default async function MyProfilePage({
     ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : null;
 
+  const agreementsSince = user?.agreedAt
+    ? new Date(user.agreedAt).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+
   const visibleRoles = roles.filter((r) => r in ROLE_LABELS);
 
   const householdMembers = household?.household.members
@@ -171,6 +179,26 @@ export default async function MyProfilePage({
               Your email is where we send your sign-in code. To change it, contact us at{" "}
               <a href="mailto:hello@rootedinmindfulness.org">hello@rootedinmindfulness.org</a>.
             </p>
+          </div>
+        </section>
+
+        {/* Membership */}
+        <section className="mp-section">
+          <p className="mp-section__title">Membership</p>
+          <div className="mp-care">
+            <div>
+              <h2 className="mp-care__title">Community Care Agreements</h2>
+              <p className="mp-care__body">
+                The shared intentions that guide how we care for ourselves, one another,
+                RIM, and our shared vision.
+              </p>
+              {agreementsSince && (
+                <p className="mp-care__date">Holding these intentions since {agreementsSince}.</p>
+              )}
+            </div>
+            <Link href="/community-care-agreements" className="mp-care__link">
+              Read our shared agreements <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </section>
 

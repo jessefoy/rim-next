@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
+import ProgramCardNotices from "@/components/ProgramCardNotices";
+import PracticeWithUs from "@/components/PracticeWithUs";
 import { formatTimeRange } from "@/lib/dateLabel";
 import { isOccurrenceOnDate, type ScheduleProgram } from "@/lib/scheduleUtils";
 
@@ -244,6 +246,10 @@ export default async function ThisWeekPage({
                                 <span className="pl-card__format">{format}</span>
                               </div>
                             )}
+                            <ProgramCardNotices
+                              announcement={program.specialAnnouncement}
+                              note={program.earlyArrivalMessage}
+                            />
                           </div>
                           <span className="pl-card__action" aria-hidden="true">→</span>
                         </div>
@@ -255,6 +261,7 @@ export default async function ThisWeekPage({
             ))
           )}
           <p className="tw-footer">Schedule is subject to change.</p>
+          <PracticeWithUs />
         </div>
       </section>
     </div>

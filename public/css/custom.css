@@ -2708,7 +2708,12 @@ h4 { font-size: var(--text-h4); }
 
 .pl-catalog { padding: 68px 0 88px; }
 
-.pl-membership__eyebrow { color: var(--rim-mid); }
+.pl-membership__label {
+  margin: 0 0 14px;
+  color: var(--rim-mid);
+  font-size: var(--text-small);
+  line-height: 1.4;
+}
 
 .pl-membership__title {
   margin: 0 0 18px;
@@ -2878,14 +2883,14 @@ h4 { font-size: var(--text-h4); }
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--rim-bg-accent);
-  color: var(--rim-blue);
+  background: var(--rim-blue);
+  color: var(--rim-surface);
   font-size: var(--text-h4);
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .pl-card:hover .pl-card__action {
-  background: var(--rim-blue);
-  color: var(--rim-surface);
+  background: var(--rim-bg-accent);
+  color: var(--rim-blue);
   transform: translateX(3px);
 }
 
@@ -2940,16 +2945,8 @@ h4 { font-size: var(--text-h4); }
   .pl-card--time .pl-card__action { grid-area: action; align-self: center; }
 }
 
-/* ── Date-led variant ────────────────────────────────────────────
-   /community-programs, one-time upcoming events (a retreat, a
-   day-long, a quarterly gathering). For a one-time event the date is
-   the decision criterion, so it leads the row — the catalog's
-   counterpart of /this-week's time-led rows and the Scheduler's
-   occurrence-first agenda. The card otherwise keeps the catalog
-   grammar: what-it-is left, when-and-how right. */
-.pl-card--date .pl-card__content {
-  grid-template-columns: 112px minmax(0, 1fr) auto auto;
-}
+/* One-time events use the same title-led catalog grammar as recurring
+   programs; this date treatment sits inside the when-and-how column. */
 
 .pl-card__date {
   color: var(--rim-blue);
@@ -2968,25 +2965,135 @@ h4 { font-size: var(--text-h4); }
   font-weight: 600;
 }
 
-/* Narrow: the date moves above the title, mirroring the time-led
-   collapse; the when/how facts follow beneath. The arrow stays put. */
+/* ── Catalog card hierarchy ─────────────────────────────────────
+   Titles always lead. Dates live with the other schedule facts instead of
+   creating a one-off leading column that shifts only two program names.
+   The surrounding card keeps the original quiet white-box treatment. */
+
+.pl-page .pl-card--catalog .pl-card__content,
+.pl-page .pl-card--catalog.pl-card--date .pl-card__content {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, auto) 40px;
+  gap: 24px 28px;
+  padding: 24px 24px 24px 26px;
+}
+
+.pl-page .pl-card--catalog .pl-card__when {
+  min-width: 220px;
+  max-width: 360px;
+  box-sizing: border-box;
+  justify-self: stretch;
+}
+
+.pl-page .pl-card--catalog .pl-card__schedule {
+  max-width: 340px;
+  color: var(--rim-text-quote);
+  font-size: var(--text-ui);
+  font-weight: 600;
+}
+
+.pl-page .pl-card--catalog .pl-card__date {
+  color: var(--rim-blue);
+  font-size: var(--text-xs);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.pl-page .pl-card--catalog .pl-card__date-year {
+  display: inline;
+  margin-left: 5px;
+  color: var(--rim-text-muted);
+  font-size: inherit;
+}
+
+.pl-page .pl-card--catalog .pl-card__format,
+.pl-page .pl-card--time .pl-card__format {
+  min-height: 0;
+  padding: 3px 8px;
+  background: color-mix(in srgb, var(--rim-blue) 7%, var(--rim-surface));
+  color: var(--rim-blue);
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.pl-page .pl-card--catalog .pl-card__action,
+.pl-page .pl-card--time .pl-card__action {
+  width: 40px;
+  min-height: 40px;
+  font-size: var(--text-small);
+}
+
+/* Optional coordinator messages sit with the program description, not in the
+   scheduling column. Their labels explain why they deserve attention without
+   turning either one into a competing headline. */
+.pl-card__notices {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.pl-card__notice {
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--rim-text-quote);
+  font-size: var(--text-label);
+  line-height: 1.45;
+}
+
+.pl-card__notice--announcement {
+  background: var(--color-alert-bg);
+  color: var(--color-warning);
+}
+
+.pl-card__notice--note {
+  background: color-mix(in srgb, var(--rim-blue) 6%, var(--rim-surface));
+}
+
+.pl-card__notice-label {
+  margin-right: 7px;
+  color: inherit;
+  font-weight: 700;
+}
+
 @media (max-width: 860px) {
-  .pl-card--date .pl-card__content {
-    grid-template-columns: minmax(0, 1fr) auto;
+  .pl-page .pl-card--catalog .pl-card__content,
+  .pl-page .pl-card--catalog.pl-card--date .pl-card__content {
+    grid-template-columns: minmax(0, 1fr) 40px;
     grid-template-areas:
-      "date  when-action"
-      "main  when-action"
-      "when  when-action";
+      "main action"
+      "when action";
+    gap: 14px 20px;
   }
-  .pl-card--date .pl-card__date { grid-area: date; }
+
+  .pl-page .pl-card--catalog .pl-card__main { grid-area: main; }
+
+  .pl-page .pl-card--catalog .pl-card__when {
+    grid-area: when;
+    min-width: 0;
+    max-width: none;
+    align-items: center;
+    justify-self: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 7px 12px;
+    padding: 0;
+    text-align: left;
+  }
+
+  .pl-page .pl-card--catalog .pl-card__action {
+    grid-area: action;
+    align-self: center;
+  }
 }
 
 .pl-membership {
   box-sizing: border-box;
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(210px, 0.5fr);
-  align-items: end;
-  gap: 56px;
   margin: 0;
   border-radius: 20px;
   padding: 40px 32px;
@@ -2994,7 +3101,7 @@ h4 { font-size: var(--text-h4); }
 }
 
 .pl-membership__title { font-size: var(--text-h2); }
-.pl-membership__body { max-width: 640px; }
+.pl-membership__body { max-width: 900px; }
 
 .pl-membership__inline-link {
   color: var(--rim-blue);
@@ -3003,26 +3110,9 @@ h4 { font-size: var(--text-h4); }
   text-underline-offset: 2px;
 }
 
-.pl-membership__link {
-  min-height: 48px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border-radius: 999px;
-  padding: 0 24px;
-  background: var(--rim-blue);
-  color: var(--rim-surface);
-  font-size: var(--text-small);
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
 @media (max-width: 768px) {
   .pl-catalog { padding: 58px 0 76px; }
-  .pl-membership { grid-template-columns: 1fr; align-items: start; gap: 28px; padding: 42px 36px; }
-  .pl-membership__link { justify-self: start; }
+  .pl-membership { padding: 42px 36px; }
 }
 
 @media (max-width: 430px) {
@@ -3037,8 +3127,16 @@ h4 { font-size: var(--text-h4); }
   .pl-card { border-radius: 10px; }
   .pl-card__content { gap: 10px; padding: 18px 20px; }
   .pl-card__title { font-size: var(--text-h4); }
+  .pl-page .pl-card--catalog .pl-card__content,
+  .pl-page .pl-card--catalog.pl-card--date .pl-card__content {
+    gap: 12px 16px;
+    padding: 19px 17px 19px 19px;
+  }
+  .pl-page .pl-card--catalog .pl-card__action {
+    width: 38px;
+    min-height: 38px;
+  }
   .pl-membership { border-radius: 14px; padding: 32px 24px; }
-  .pl-membership__link { width: 100%; box-sizing: border-box; }
 }
 
 
@@ -3141,6 +3239,8 @@ h4 { font-size: var(--text-h4); }
   font-style: italic;
   margin: 8px 0 0;
 }
+
+.tw-footer + .pl-membership { margin-top: 40px; }
 
 .tw-empty {
   font-family: var(--font-sans);
@@ -7424,7 +7524,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   margin: 0;
 }
 
-
 /* ═══════════════════════════════════════════════════
    MY PROFILE PAGE  (mp- prefix)
    /account/dashboard-my-profile
@@ -7567,6 +7666,51 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 
 .mp-note a {
   color: var(--rim-mid);
+}
+
+.mp-care {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.mp-care__title {
+  margin: 0 0 8px;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  font-weight: 500;
+  line-height: var(--lh-heading);
+}
+
+.mp-care__body,
+.mp-care__date {
+  max-width: 620px;
+  margin: 0;
+  color: var(--rim-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.mp-care__date { margin-top: 7px; }
+
+.mp-care__link {
+  flex: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rim-blue);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mp-care__link:hover { color: var(--rim-dark); }
+
+@media (max-width: 700px) {
+  .mp-care { align-items: flex-start; flex-direction: column; gap: 16px; }
 }
 
 .mp-submit {
@@ -7756,10 +7900,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 
   /* Dana reminder */
   .db-dana-reminder__item { padding: 10px 12px; min-height: 44px; display: flex; align-items: center; }
-
-  /* ── My Registrations (mr-) ── */
-
-  /* Cancel button: enlarge touch targets */
 
   /* ── My Library (ml-) ── */
   .ml-page { padding: 24px 16px 48px; }
@@ -15621,26 +15761,20 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 .wl-title,
 .db-nav__title,
 .db-welcome__greeting,
-.db-heading-2,
-.db-heading-3,
+.db-heading-2, .db-heading-3,
 .ml-heading,
 .mp-heading,
 .vol-heading-2,
 .adm-header__title,
 .adm-section__title,
 .adm-import__title,
-.adm-sm-title,
-.adm-sm-section__title,
-.adm-fi-title,
-.adm-fi-area__title,
+.adm-sm-title, .adm-sm-section__title,
+.adm-fi-title, .adm-fi-area__title,
 .adm-fi-sys-section__title,
 .adm-fi-detail-header__title,
-.man-chapter__title,
-.man-section__title,
-.man-future__title,
+.man-chapter__title, .man-section__title, .man-future__title,
 .bl-header__title,
-.hs-header__title,
-.hs-how-to__title,
+.hs-header__title, .hs-how-to__title,
 .hub-sb-name,
 .hub-page__title,
 .hub-modal__title,
@@ -15649,9 +15783,7 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 .hub-conversations__title,
 .hub-add-session-form__title,
 .add-doc-form__title,
-.ps-form__title,
-.ps-section__title,
-.ps-done__title,
+.ps-form__title, .ps-section__title, .ps-done__title,
 .sh-title {
   font-family: var(--font-source-sans);
   font-weight: 700;
@@ -15659,17 +15791,13 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 
 /* ── Weight 600 — sub-headings, card titles, labels ── */
 .adm-fi-sys-section__subtitle,
-.adm-member-name,
-.adm-member-field-label,
+.adm-member-name, .adm-member-field-label,
 .adm-list-text,
 .vol-program-card__name,
 .hs-program__name,
 .hub-subboard__title,
-.hub-program-card__name,
-.hub-program-detail__name,
-.hub-panel__date,
-.hub-panel__heading,
-.hub-panel__title,
+.hub-program-card__name, .hub-program-detail__name,
+.hub-panel__date, .hub-panel__heading, .hub-panel__title,
 .hub-thread-card__title,
 .hub-alert-item__title,
 .db2-upcoming__title,
@@ -22645,7 +22773,7 @@ input.w-button { -webkit-appearance: button; }
    ZOOM ENTRY CLARITY — dashboard and handoff (today-, db2-, zoom-launch-)
    The entry window is a real access boundary. The interface names it plainly
    instead of suggesting that a member has lost or cannot find a link.
-════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════ */
 
 .today-row__details {
   display: flex;
@@ -23451,8 +23579,6 @@ input.w-button { -webkit-appearance: button; }
   font-size: var(--text-small);
   line-height: 1.6;
 }
-
-/* My registrations */
 
 .ac-member-page .mcl-section__title,
 .ac-member-page .docs-section__title,
@@ -24413,8 +24539,7 @@ input.w-button { -webkit-appearance: button; }
   background: var(--rim-surface);
 }
 
-/* Remaining personal member destinations. */
-
+/* Document destination. */
 .ac-member-page .doc-page__back {
   min-height: 44px;
   display: inline-flex;
@@ -26064,6 +26189,25 @@ input.w-button { -webkit-appearance: button; }
 /* No photograph — the gradient has nothing to sit over, so keep it flat. */
 .pp-hero--flat::before { background: var(--rim-blue); }
 
+/* On the Diversity hero, keep the text side safely dark and let a neutral
+   overlay fall away after the copy. Neutral shadow preserves the powder's
+   actual pink, orange, yellow, teal, and blue instead of tinting them blue. */
+.pp-hero--diversity::before {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--rim-dark) 88%, transparent) 0%,
+    color-mix(in srgb, var(--rim-dark) 66%, transparent) 46%,
+    color-mix(in srgb, var(--rim-dark) 24%, transparent) 66%,
+    transparent 100%
+  );
+}
+
+.pp-hero--diversity .pp-hero__eyebrow,
+.pp-hero--diversity .pp-hero__title,
+.pp-hero--diversity .pp-hero__body {
+  text-shadow: 0 1px 12px color-mix(in srgb, var(--rim-dark) 58%, transparent);
+}
+
 .pp-hero__inner {
   position: relative;
   z-index: 1;
@@ -26128,6 +26272,23 @@ input.w-button { -webkit-appearance: button; }
 }
 .pp-hero__link span { transition: transform 0.15s ease; }
 .pp-hero__link:hover span { transform: translateX(4px); }
+
+/* A convenient secondary destination: more visible than a text link, but
+   quieter than the solid buttons used for primary actions. */
+.pp-hero__link--utility {
+  min-height: 46px;
+  border-radius: 999px;
+  padding: 0 18px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rim-surface) 75%, transparent);
+  font-size: var(--text-ui);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pp-hero__link--utility:hover {
+  background: color-mix(in srgb, var(--rim-surface) 14%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--rim-surface);
+}
 
 /* ── Sections ────────────────────────────────────────────────────
    The page rhythm. Default sits on the Pampas ground; --white is a
@@ -26307,6 +26468,180 @@ a.pp-card:focus-visible {
 }
 .pp-card__body + .pp-card__body { margin-top: 12px; }
 
+/* ── Diversity page ─────────────────────────────────────────────
+   The hero carries the visual abundance; below it, a two-part editorial
+   composition gives the short page enough shape without adding boxes or rules. */
+
+.dv-layout {
+  max-width: 1060px;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
+  align-items: start;
+  gap: 72px;
+  margin: 0 auto;
+}
+
+.dv-layout__title {
+  margin: 0 0 22px;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h1);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+  text-wrap: balance;
+}
+
+.dv-layout__title em { font-weight: inherit; }
+
+.dv-layout__statement {
+  margin: 0;
+  color: var(--rim-blue);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  line-height: 1.55;
+}
+
+.dv-layout__statement em { font-weight: inherit; }
+
+.dv-layout__body {
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+
+.dv-layout__body > p { margin: 0 0 22px; }
+
+.dv-layout__section { margin: 0 0 38px; }
+
+.dv-layout__section-title {
+  margin: 0 0 14px;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h2);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+  text-wrap: balance;
+}
+
+.dv-layout__section > p { margin: 0 0 22px; }
+.dv-layout__section > p:last-child { margin-bottom: 0; }
+
+.dv-layout__care {
+  color: var(--rim-text-muted);
+  font-size: var(--text-small);
+}
+
+.dv-layout__care a {
+  color: var(--rim-blue);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dv-layout__blessing {
+  color: var(--rim-blue);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  line-height: 1.55;
+}
+
+.dv-layout__body .pp-actions { margin-top: 30px; }
+
+@media (max-width: 768px) {
+  .pp-hero--diversity::before {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--rim-dark) 84%, transparent) 0%,
+      color-mix(in srgb, var(--rim-dark) 60%, transparent) 72%,
+      color-mix(in srgb, var(--rim-dark) 42%, transparent) 100%
+    );
+  }
+
+  .dv-layout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .dv-layout__title { font-size: var(--text-h2); }
+
+  .dv-layout__section-title { font-size: var(--text-h2); }
+}
+
+/* ── Community Care Agreements ──────────────────────────────────
+   A public reading page, distinct from the forms where someone accepts the
+   agreements. The cards use the existing surface and shadow grammar; numbers
+   orient the reader without becoming labels or competing headings. */
+
+.cc-intro { margin-left: 0; }
+
+.cc-agreements {
+  max-width: 1060px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cc-agreement {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  min-width: 0;
+  border-radius: 14px;
+  padding: 30px;
+  background: var(--rim-surface);
+  box-shadow: var(--card-shadow);
+}
+
+.cc-agreement__number {
+  width: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--rim-bg-accent);
+  color: var(--rim-blue);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  line-height: 1;
+}
+
+.cc-agreement__title {
+  margin: 2px 0 10px;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  font-weight: 500;
+  line-height: var(--lh-heading);
+}
+
+.cc-agreement__body {
+  margin: 0;
+  color: var(--rim-text);
+  font-size: var(--text-small);
+  line-height: 1.65;
+}
+
+@media (max-width: 768px) {
+  .cc-agreements { grid-template-columns: 1fr; }
+  .cc-agreement { padding: 24px; }
+}
+
+@media (max-width: 430px) {
+  .cc-agreement {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 14px;
+    padding: 22px 20px;
+  }
+  .cc-agreement__number { width: 34px; min-height: 34px; font-size: var(--text-body); }
+  .cc-agreement__title { font-size: var(--text-h4); }
+}
+
 /* Row of arrow-linked cards, as on the program catalog. */
 .pp-card__action {
   width: 44px;
@@ -26315,14 +26650,14 @@ a.pp-card:focus-visible {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--rim-bg-accent);
-  color: var(--rim-blue);
+  background: var(--rim-blue);
+  color: var(--rim-surface);
   font-size: var(--text-h4);
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 a.pp-card:hover .pp-card__action {
-  background: var(--rim-blue);
-  color: var(--rim-surface);
+  background: var(--rim-bg-accent);
+  color: var(--rim-blue);
   transform: translateX(3px);
 }
 
@@ -26949,6 +27284,40 @@ a.pp-card:hover .pp-card__action {
   line-height: 1.14;
 }
 
+/* Candlelight on gold leaf: a warm, quiet dimensional shift within the
+   homepage headline. The scrim beneath the copy provides the contrast; these
+   shadows only lend ambient radiance and should never read as an outline. */
+.home-hero__gold {
+  display: inline-block;
+  background: linear-gradient(
+    180deg,
+    #f4e4b5 0%,
+    #ead397 40%,
+    #dbbd77 74%,
+    #eedba7 100%
+  );
+  background-clip: text;
+  color: #ead397;
+  font-style: italic;
+  font-weight: inherit;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow:
+    0 0 5px rgba(238, 207, 137, 0.065),
+    0 0 12px rgba(221, 177, 83, 0.026);
+  filter: drop-shadow(0 1px 0 rgba(255, 248, 225, 0.035));
+}
+
+@media (forced-colors: active) {
+  .home-hero__gold {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+    text-shadow: none;
+    filter: none;
+  }
+}
+
 /* ── Split section ───────────────────────────────────────────────
    Image beside copy — the alternating rhythm the home page uses.
    --flip puts the image on the right. */
@@ -27516,17 +27885,13 @@ a.pp-card:hover .pp-card__action {
   text-decoration: none;
   transition: background-color 0.15s ease;
 }
-.pp-card--door:hover { background: var(--rim-bg-accent); }
+.pp-card--door:hover { background: var(--rim-bg-bright); }
 .pp-card--door:focus-visible {
   outline: 2px solid var(--rim-blue);
   outline-offset: 2px;
 }
-.pp-card--door .pp-card__row { padding: 24px 26px; }
-.pp-card__count {
-  margin: 0;
-  color: var(--rim-text-muted);
-  font-size: var(--text-small);
-}
+.pp-card--door .pp-card__row { padding: 22px 24px; }
+.pp-card--door .pp-card__title { margin: 0; }
 
 /* The 501(c)(3) line is a quiet caption, not a paragraph. */
 .pp-intro__note {
@@ -27550,4 +27915,338 @@ a.pp-card:hover .pp-card__action {
   justify-content: center;
   gap: 16px;
   min-width: 0;
+}
+
+/* ============================================================================
+   SESSION 176 — PUBLIC-PAGE CONSISTENCY PASS
+   ============================================================================
+   One measured audit of every public page produced the fixes below. Authority:
+   RIM_Public_Pages.md. Appended as one block so the pass is reviewable and
+   revertable in one piece.
+   ========================================================================= */
+
+/* ── The spine, decided (closes backlog 2026-08-10-006) ──────────────────────
+   Jesse's call: prose rides the container text edge on every long-form page
+   EXCEPT /donate, whose centred statement (348) and note (720) were measured
+   against the live site and must not move.
+
+   This is a PAGE-level opt-in, not a per-block one. The session-174 mechanism
+   (`.pp-prose--spine` on the prose div alone) left `.pp-intro` centred at 190
+   while its own prose sat at 110 — the same class of misalignment the spine
+   exists to remove, one level up. A page either rides the spine or it does
+   not, and one class on `.pp-page` decides it for every block inside.
+   `.pp-prose--spine` is kept: it is documented, and the page class subsumes it.
+
+   Geometry, so the next reader doesn't re-derive it: `.rim-container` is
+   1140 wide with 40px padding, so at 1280 its text edge is 110 and its content
+   box is 1060. `.pp-intro` (900) centres to 190; `.pp-prose` (700) centres to
+   290; `.pp-intro ~ .pp-prose` (900, children capped at 700) centres to 190.
+   Zeroing the left margin puts all three on 110. `.pp-actions` already sits at
+   110 as a plain block, which is why it needs no rule here. */
+.pp-page--spine .pp-intro,
+.pp-page--spine .pp-prose { margin-left: 0; margin-right: auto; }
+
+/* A centred opener is an explicit override and still wins inside a spine page
+   (the volunteer thanks page uses it). Text-align is not the spine's business. */
+.pp-page--spine .pp-intro--center { margin-left: auto; margin-right: auto; }
+
+/* ── Public chrome: the interaction floor the member area already has ────────
+   Session 172 gave every authenticated surface a 44px target / 16px input
+   floor. The public nav and footer never got the same pass, so the pages a
+   first-time visitor meets were the only ones below it. Measured before
+   changing: nav links 43px, dropdown toggles 38px, DONATE 36px at 12px text,
+   hamburger 40x32, footer contact rows 24px, footer inputs 15px (iOS zooms
+   under 16), footer bottom links 12px at 50% white on blue.
+
+   These raise the hit area without moving any visual edge: the nav bar's own
+   100px height absorbs the extra padding, so no hero shifts. */
+
+/* Nav: one shared floor for links, dropdown toggles, and DONATE. */
+.nav__link,
+.nav__dropdown-toggle {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.nav__donate {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  /* 12px uppercase at 0.08em was the smallest interactive text on the site,
+     and it is the one red element — it should not also be the hardest to read. */
+  font-size: var(--text-xs);
+}
+.nav__hamburger {
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+}
+
+/* Footer: the newsletter form is on every public page, so its inputs are the
+   most-rendered fields RIM has. Under 16px, iOS zooms the whole page on focus. */
+.footer-input { font-size: 16px; }
+
+/* Footer contact + legal rows: 24px and 17px tall respectively, both under the
+   floor, and the legal row sat at 50% white on the blue ground (below 4.5:1). */
+.rim-footer-contact-links a,
+.rim-footer-bottom a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.rim-footer-bottom,
+.rim-footer-bottom a { color: rgba(255, 255, 255, 0.78); }
+
+/* ── Program-detail hero eyebrow: meet the documented contrast floor ────────
+   RIM_Public_Pages.md sets the eyebrow tier at 85% white (70% measured 4.00:1
+   at 11px, under the 4.5 required). The pp- heroes honor it; pg- was written
+   before that measurement and still carried 72% at 12px. */
+.pg-hero__eyebrow {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--text-xs);
+  /* 44px hit area (CLAUDE.md's floor) without moving the title: the taller box
+     absorbs most of the old 16px gap, so the hero composition holds. */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 4px;
+}
+
+/* ── Teachers: onto the shared card + hero grammar ───────────────────────────
+   The tpr- prefix predates pp-. Its cards carried an 8px radius and a
+   hover-only shadow against the listings' 12px + always-on --card-shadow, and
+   both pages opened on a bare blue h1 with no hero. The cards now inherit
+   .pp-card (radius, surface, shadow) and tpr- keeps only what is specific to a
+   person: the circular portrait and the centred stack. */
+.tpr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+}
+a.pp-card.tpr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  text-decoration: none;
+}
+.tpr-card__name {
+  margin: 12px 0 8px;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  font-weight: 400;
+}
+.tpr-card__bio {
+  margin: 0;
+  color: var(--rim-text-muted);
+  font-size: var(--text-small);
+  line-height: 1.5;
+}
+
+/* Portrait beside the name in the hero. A normal source image, cropped by CSS
+   (RIM_Public_Pages.md: never manufacture circular image files). */
+.tpr-hero__inner {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.tpr-hero__photo {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+@media (max-width: 430px) {
+  .tpr-grid { gap: 20px; }
+  .tpr-hero__inner { gap: 20px; }
+  .tpr-hero__photo { width: 88px; height: 88px; }
+}
+
+/* ── Courses: onto the shared card grammar ───────────────────────────────────
+   .cls-page was a self-contained 960px column with its own 48px padding — it
+   now sits inside .pp-section / .rim-container, so it contributes no width or
+   padding of its own. The cards were 10px-radius with a hover-only shadow
+   (against the listings' 12px + always-on --card-shadow), and the filter pills
+   were 30px tall. */
+.cls-page { max-width: none; margin: 0; padding: 0; }
+.cls-card {
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.cls-card:hover {
+  box-shadow: 0 2px 4px rgba(45, 38, 28, 0.05), 0 8px 18px rgba(45, 38, 28, 0.06);
+}
+.cls-card__title {
+  color: var(--rim-text);
+  font-size: var(--text-h4);
+  font-weight: 400;
+}
+.cls-card__lessons { font-size: var(--text-label); }
+
+/* Filter pills carry the 44px floor like every other public control. */
+.cls-filter-pill {
+  min-height: 44px;
+  padding: 6px 18px;
+  font-size: var(--text-xs);
+}
+
+/* ── /join: the threshold, on the shared grammar ─────────────────────────────
+   The page markup moved to pp-hero / pp-prose / pp-form (session 176). The
+   JoinForm component keeps its jn- class names — restyling them here is far
+   safer than rewriting a client component's markup, and the result is the same
+   surface a visitor meets on every other RIM form.
+
+   Measured before: inputs at 15px in a 4px-radius box (iOS zooms under 16),
+   a 16x16 checkbox gating a disabled submit, a 4px-radius submit, and 15px
+   grey body copy for the most consequential reading on the site.
+
+   The jn- page shell rules (.jn-page, .jn-container, .jn-hero, .jn-panel) are
+   now unreferenced. They are left in place for one deploy so a revert is one
+   commit; prune them with scripts/css-prune.mjs once this has settled. */
+
+.jn-form__heading {
+  margin: 0 0 10px;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+}
+.jn-form__lead {
+  margin: 0 0 26px;
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+
+/* The agreements read as content, not as form furniture: full body size on the
+   spine, with room between the four so each is its own thought. */
+.jn-agreements-list {
+  max-width: var(--reading-width);
+  margin: 0;
+  padding: 0 0 0 1.25em;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.jn-agreements-list__item {
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+.jn-agreements-list__title {
+  display: block;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--text-h4);
+}
+.jn-agreements-list__summary { display: block; margin-top: 4px; }
+
+/* Form controls: the pp-form floor. */
+.jn-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 16px;
+}
+.jn-label { font-size: var(--text-xs); }
+.jn-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+/* 16x16 was the smallest target on the site, and it gates the submit button —
+   a visitor who cannot hit it cannot join. */
+.jn-checkbox {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin-top: 4px;
+}
+.jn-submit {
+  min-height: 48px;
+  border-radius: 9999px;
+  padding: 13px 30px;
+  font-size: 16px;
+  background-color: var(--rim-blue);
+}
+.jn-submit:hover:not(:disabled) { background-color: var(--rim-dark); }
+.jn-already { font-size: var(--text-body); }
+.jn-already__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* ── /login, /login/check-email, /login/error ────────────────────────────────
+   The last public pages on Webflow-era class names, now on pp-. Only the small
+   pieces the pp- kit did not already have live here, under an lg- prefix. */
+
+/* A short hero for a single-purpose page: the sign-in pages carry one field,
+   so a 380px hero would be most of the screen on a laptop. */
+.pp-hero--short { min-height: 240px; }
+
+/* Feedback inside a form surface. The success/error tokens, not raw hex —
+   the login pages had been carrying #c44, #2a7b6f and a pre-flip #135274. */
+.pp-form__error,
+.pp-form__success {
+  margin: 0 0 18px;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: var(--text-ui);
+  line-height: 1.5;
+}
+.pp-form__error {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}
+.pp-form__success {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+/* A member's own address, echoed back. User-supplied and unbreakable as a
+   single token, so it needs `anywhere` — session 173 measured a 77-character
+   address running 392px past a 375px viewport. */
+.lg-email {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.lg-lead {
+  margin: 0 0 18px;
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+
+/* The secondary path under a form. */
+.lg-alt {
+  margin: 22px 0 0;
+  color: var(--rim-text);
+  font-size: var(--text-ui);
+  line-height: 1.6;
+}
+.lg-alt--quiet { margin-top: 8px; color: var(--rim-text-muted); }
+
+/* The resend action is a one-field form, so it has to sit inside the sentence
+   without breaking the line. */
+.lg-inline-form { display: inline; }
+.lg-linkbtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
 }

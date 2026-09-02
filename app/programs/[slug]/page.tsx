@@ -179,7 +179,7 @@ export default async function ProgramDetailPage({
         {/* Dana result banners — shown after Stripe redirects back */}
         {resolvedSearch?.dana === "success" && (
           <div className="pg-dana-result pg-dana-result--success">
-            ✓ Thank you — your dana offering has been received.
+            ✓ Thank you. Your dana offering has been received.
           </div>
         )}
         {resolvedSearch?.dana === "cancelled" && (
@@ -215,7 +215,7 @@ export default async function ProgramDetailPage({
 
         {/* ── Gathering facts and one state-aware next step ── */}
         <section className="pg-details-section">
-          <h3 className="pg-section-heading">Gathering details</h3>
+          <h2 className="pg-section-heading">Gathering details</h2>
           <div className="pg-details-list">
             {(scheduleLabel || timeLabel) && (
               <div className="pg-detail-row">
@@ -317,7 +317,7 @@ export default async function ProgramDetailPage({
         {/* ── Facilitators section ── */}
         {hasFacilitators && (
           <section className="pg-facilitators-section">
-            <h3 className="pg-section-heading">Facilitators</h3>
+            <h2 className="pg-section-heading">Facilitators</h2>
             <div className="pg-facilitators">
               {teacherNames.map((t, i) => {
                 const initials = t.name

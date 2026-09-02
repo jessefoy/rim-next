@@ -125,12 +125,26 @@ export default async function CoursesPage() {
   });
 
   return (
-    <div style={{ position: "relative" }}>
-      <CourseBrowse
-        courses={serializedCourses}
-        categories={categories}
-        isLoggedIn={!!userId}
-      />
+    <div className="pp-page">
+      <section className="pp-hero pp-hero--flat">
+        <div className="rim-container pp-hero__inner">
+          <p className="pp-hero__eyebrow">Study at your own pace</p>
+          <h1 className="pp-hero__title">Courses</h1>
+          <p className="pp-hero__body">
+            Study and practice resources you can move through in your own time.
+          </p>
+        </div>
+      </section>
+
+      <section className="pp-section pp-section--last">
+        <div className="rim-container">
+          <CourseBrowse
+            courses={serializedCourses}
+            categories={categories}
+            isLoggedIn={!!userId}
+          />
+        </div>
+      </section>
     </div>
   );
 }

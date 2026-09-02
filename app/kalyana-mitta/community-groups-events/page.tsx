@@ -29,7 +29,7 @@ export default async function KalyanaGroupsPage() {
   const groups = allGroups.filter((g) => !(g.hideWhenPast && hasConcludedOneTime(g)));
 
   return (
-    <div className="pp-page">
+    <div className="pp-page pp-page--spine">
       {/* ── Hero ──────────────────────────────────────────── */}
       <section
         className="pp-hero"
@@ -43,7 +43,7 @@ export default async function KalyanaGroupsPage() {
           <h1 className="pp-hero__title">Community Groups and Activities</h1>
           <p className="pp-hero__body">
             Connect with others to deepen your learning, practice, shared interests, affinity
-            connections, and engaged mindfulness — and to grow <em>spiritual friendships</em>.
+            connections, and engaged mindfulness, and to grow <em>spiritual friendships</em>.
             Following tradition, these community-led activities are called <em>Kalyana Mitta</em>.
           </p>
           <div className="pp-hero__actions">
@@ -152,7 +152,7 @@ export default async function KalyanaGroupsPage() {
               </h2>
               <p className="pp-closing__body">
                 Any member of RIM can start a Kalyana Mitta group or community activity. Read the
-                guidelines, then tell us about your idea — we&rsquo;ll help you get it going.
+                guidelines, then tell us about your idea. We&rsquo;ll help you get it going.
               </p>
             </div>
             <Link

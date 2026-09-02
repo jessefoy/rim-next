@@ -6,7 +6,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
-import { del } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 import { seedPrograms } from "./seed-programs.mjs";
 import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
 import { seedHostHubOnboardingDocs } from "./seed-host-hub-onboarding-docs.mjs";
@@ -2723,6 +2723,86 @@ Or open it directly: {{manageUrl}}`,
       }
 
       console.log(`  ✔ Applied: ${this.name} — updated ${rows.length} template(s)`);
+    },
+  },
+  {
+    // Program hero images still served from cdn.sanity.io are re-hosted on
+    // Vercel Blob, and the Program row is repointed at the new URL.
+    //
+    // Why this is urgent rather than tidy: backlog 2026-08-09-001 deletes the
+    // Sanity project as the last step of a teardown that is otherwise complete.
+    // Six of the twelve public program pages were measured (session 176) still
+    // rendering their hero from that CDN, so deleting the project would break
+    // half the catalog's most visible surface. Sanity is not read by any code
+    // path any more; these are plain image URLs left behind in data.
+    //
+    // Idempotent by its WHERE clause, like the migration above it, so it needs
+    // no _migration_flags row: only programs still pointing at cdn.sanity.io
+    // match, and a re-run after a partial success picks up exactly the rest.
+    // That is what makes a transient fetch failure self-healing on the next
+    // deploy rather than sealed in by a flag.
+    //
+    // Non-fatal by design: an image that cannot be fetched leaves its row
+    // untouched and logs. A broken hero is a real problem, but a failed build
+    // is a worse one, and the old URL still works until the project is deleted.
+    name: "rehost_sanity_program_images_v1",
+    async run() {
+      const rows = await db.program.findMany({
+        where: { programImage: { contains: "cdn.sanity.io" } },
+        select: { id: true, slug: true, programImage: true },
+      });
+
+      if (rows.length === 0) {
+        console.log(`  ⏭ Already applied (or nothing to do): ${this.name}`);
+        return;
+      }
+
+      if (!process.env.BLOB_READ_WRITE_TOKEN) {
+        console.log(
+          `  ⚠ ${this.name}: ${rows.length} program image(s) still on cdn.sanity.io, but`,
+        );
+        console.log("     BLOB_READ_WRITE_TOKEN is not set — skipping, will retry next deploy.");
+        return;
+      }
+
+      let migrated = 0;
+      for (const row of rows) {
+        try {
+          const res = await fetch(row.programImage);
+          if (!res.ok) throw new Error(`fetch ${res.status} ${res.statusText}`);
+
+          const bytes = Buffer.from(await res.arrayBuffer());
+          // Keep the extension the source URL carries; Sanity encodes it in
+          // the asset filename (…-520x751.jpg).
+          const ext = (row.programImage.match(/\.(jpg|jpeg|png|webp|avif)(?:$|\?)/i)?.[1] ?? "jpg")
+            .toLowerCase();
+          const contentType = res.headers.get("content-type") ?? `image/${ext}`;
+
+          const blob = await put(`program-images/${row.slug}.${ext}`, bytes, {
+            access: "public",
+            contentType,
+            addRandomSuffix: true,
+          });
+
+          await db.program.update({
+            where: { id: row.id },
+            data: { programImage: blob.url },
+          });
+          migrated++;
+          console.log(`     · ${row.slug}: re-hosted (${bytes.length} bytes) → ${blob.url}`);
+        } catch (err) {
+          console.log(`     ! ${row.slug}: could not re-host — ${err?.message ?? err}`);
+        }
+      }
+
+      if (migrated === rows.length) {
+        console.log(`  ✔ Applied: ${this.name} — re-hosted ${migrated} program image(s)`);
+      } else {
+        console.log(
+          `  ⚠ ${this.name}: re-hosted ${migrated}/${rows.length}. The rest keep their`,
+        );
+        console.log("     cdn.sanity.io URL and will be retried on the next deploy.");
+      }
     },
   },
 ];

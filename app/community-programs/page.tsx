@@ -1,5 +1,8 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
+import HashTargetScroller from "@/components/HashTargetScroller";
+import ProgramCardNotices from "@/components/ProgramCardNotices";
+import PracticeWithUs from "@/components/PracticeWithUs";
 import {
   buildSubtitle,
   fmtLabel,
@@ -70,6 +73,7 @@ export default async function CommunityProgramsPage() {
 
   return (
     <div className="pl-page">
+      <HashTargetScroller />
       {/* ── Hero ─────────────────────────────────────────── */}
       <section
         className="pp-hero"
@@ -86,7 +90,7 @@ export default async function CommunityProgramsPage() {
             Join us at the center or online, whether you are beginning or have practiced for years.
           </p>
           <div className="pp-hero__actions">
-            <Link href="/this-week" className="pp-hero__link">
+            <Link href="/this-week" className="pp-hero__link pp-hero__link--utility">
               See what&rsquo;s happening this week <span aria-hidden="true">→</span>
             </Link>
           </div>
@@ -114,11 +118,10 @@ export default async function CommunityProgramsPage() {
                   {categoryPrograms.map((program) => {
                     const format = fmtLabel(program.programFormat);
 
-                    // One-time upcoming: the date is the decision criterion,
-                    // so it leads the row — the catalog's counterpart of
-                    // /this-week's time-led rows. A past-but-kept-listed
-                    // program falls through to the plain card; a stale date
-                    // isn't showcased.
+                    // One-time upcoming: keep the date prominent with the
+                    // scheduling facts, but keep every program title on the
+                    // same leading edge. A past-but-kept-listed program falls
+                    // through to the plain card; a stale date isn't showcased.
                     if (isOneTime(program) && !hasConcludedOneTime(program)) {
                       const { lead, year } = datedEventLead(
                         program.startDatetime!,
@@ -141,16 +144,9 @@ export default async function CommunityProgramsPage() {
                         <Link
                           key={program.id}
                           href={`/programs/${program.slug}`}
-                          className="pl-card pl-card--date"
+                          className="pl-card pl-card--catalog pl-card--date"
                         >
                           <div className="pl-card__content">
-                            <span className="rim-sr-only">{fullDate}, </span>
-                            <span className="pl-card__date" aria-hidden="true">
-                              {lead}
-                              {year !== currentYear && (
-                                <span className="pl-card__date-year">{year}</span>
-                              )}
-                            </span>
                             <div className="pl-card__main">
                               <div className="pl-card__title-row">
                                 <h3 className="pl-card__title">{program.name}</h3>
@@ -158,8 +154,22 @@ export default async function CommunityProgramsPage() {
                               {program.tagline && (
                                 <span className="pl-card__tagline">{program.tagline}</span>
                               )}
+                              <ProgramCardNotices
+                                announcement={program.specialAnnouncement}
+                                note={program.earlyArrivalMessage}
+                              />
                             </div>
                             <div className="pl-card__when">
+                              <time
+                                className="pl-card__date"
+                                dateTime={program.startDatetime!.toISOString()}
+                                aria-label={fullDate}
+                              >
+                                {lead}
+                                {year !== currentYear && (
+                                  <span className="pl-card__date-year">{year}</span>
+                                )}
+                              </time>
                               {time && <span className="pl-card__schedule">{time}</span>}
                               {format && <span className="pl-card__format">{format}</span>}
                             </div>
@@ -178,7 +188,7 @@ export default async function CommunityProgramsPage() {
                       <Link
                         key={program.id}
                         href={`/programs/${program.slug}`}
-                        className="pl-card"
+                        className="pl-card pl-card--catalog"
                       >
                         <div className="pl-card__content">
                           <div className="pl-card__main">
@@ -188,6 +198,10 @@ export default async function CommunityProgramsPage() {
                             {program.tagline && (
                               <span className="pl-card__tagline">{program.tagline}</span>
                             )}
+                            <ProgramCardNotices
+                              announcement={program.specialAnnouncement}
+                              note={program.earlyArrivalMessage}
+                            />
                           </div>
                           {/* What it is on the left, when and how on the right.
                               The card is 900px wide and the copy ran out around
@@ -206,23 +220,7 @@ export default async function CommunityProgramsPage() {
             );
           })}
 
-          <aside className="pl-membership">
-            <div>
-              <p className="pl-membership__eyebrow">Practice with us</p>
-              <h2 className="pl-membership__title">We don&rsquo;t charge for the teachings.</h2>
-              <p className="pl-membership__body">
-                RIM asks no fees or tuition. The center is held by the people who practice
-                here, each giving as they are able. That giving is called{" "}
-                <Link href="/donate#dana-at-rim" className="pl-membership__inline-link">
-                  dana
-                </Link>
-                . An account is how you join us on Zoom and register for what&rsquo;s coming.
-              </p>
-            </div>
-            <Link href="/join" className="pl-membership__link">
-              Become a member <span aria-hidden="true">→</span>
-            </Link>
-          </aside>
+          <PracticeWithUs />
         </div>
       </section>
     </div>

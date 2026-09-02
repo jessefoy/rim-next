@@ -3,20 +3,22 @@
  * that asks someone to commit to RIM's community ethos.
  *
  * Used by:
+ *   - /community-care-agreements (public reading page)
  *   - /join (new-member threshold)
  *   - /account/welcome (post-sign-in welcome ritual fallback)
  *   - components/RegistrationForm.tsx (program registration)
  *
- * One agreement, three surfaces. Editing the text here changes it
- * everywhere — keep it that way.
+ * One agreement, four surfaces. Editing the text here changes it
+ * everywhere, and keeping it that way is the point.
  *
- * Text mirrors the live Rooted In Mindfulness Community Membership page:
- * https://www.rootedinmindfulness.org/community-membership
+ * The text no longer mirrors the legacy Webflow Community Membership page.
+ * It was rewritten to carry the dana framing and the practice-of-returning
+ * voice; this file is now the canonical source, not a copy of that page.
  */
 
 export interface CommunityAgreement {
   title: string;
-  /** One-sentence framing. The agreement IS the sentence — keep it tight. */
+  /** Canonical community-facing agreement text. */
   summary: string;
 }
 
@@ -40,7 +42,8 @@ export const JOIN_HERO_INTRO =
  */
 export const COMMUNITY_AGREEMENTS_LEAD_IN =
   "These four intentions are all we ask of members. They are directions to " +
-  "hold, not requirements to be graded on.";
+  "hold, not requirements to be graded on. We return to them as a practice: " +
+  "honestly, and with room to begin again.";
 
 /**
  * Form-section lead rendered above the form fields on /join. Tells the
@@ -55,27 +58,27 @@ export const COMMUNITY_AGREEMENTS_CHECKBOX_LABEL =
 
 /**
  * The four agreements. Rendered as an ordered list on every surface;
- * each item carries a bold title and a one-sentence summary.
+ * each item carries a bold title and its agreement text.
  */
 export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
   {
     title: "Care for Yourself",
     summary:
-      "Take responsibility for your own path. Teachers and community offer support and friendship, but the path is yours to walk.",
+      "We care for the conditions that help us see clearly and take responsibility for our own path. Teachers and community offer support, and the walking is ours to do.",
   },
   {
     title: "Care for Others",
     summary:
-      "Show up for one another. Your presence and goodwill are gifts to every member of this community.",
+      "We care for one another through our presence, speech, and actions. Guided by goodwill, we listen deeply, speak truthfully and kindly, and seek not to cause harm.",
   },
   {
     title: "Care for RIM",
     summary:
-      "RIM is 100% community-funded. We ask that all members contribute financially in a way that feels right to them.",
+      "RIM is held through dana, the practice of mutual generosity. Financial support meets the center’s practical needs and keeps the teachings freely offered. Time, care, and sincere presence in practice and learning nourish the life of the sangha. We trust each person to discern what is possible; no one is expected to offer in every way, and belonging is never measured by what or how much one gives.",
   },
   {
     title: "Care for Our Shared Vision",
     summary:
-      "We practice to cultivate wisdom and compassion: for ourselves, each other, and all beings.",
+      "We let wisdom and compassion inform our actions, lessening suffering and nurturing well-being in ourselves, one another, those we love, and the world we share.",
   },
 ];

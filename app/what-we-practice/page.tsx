@@ -33,7 +33,7 @@ export const metadata = {
  */
 export default function WhatWePracticePage() {
   return (
-    <div className="pp-page">
+    <div className="pp-page pp-page--spine">
       <section className="pp-hero pp-hero--flat">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">What and how we practice</p>
@@ -46,7 +46,7 @@ export default function WhatWePracticePage() {
 
       <section className="pp-section pp-section--last">
         <div className="rim-container">
-          <div className="pp-prose pp-prose--spine">
+          <div className="pp-prose">
             <h2>The story of the name</h2>
             <p>
               One afternoon, some twenty-five centuries ago, the Buddha was walking with a group of

@@ -77,7 +77,7 @@ export default async function VolunteerPage({
             <p className="pp-intro__eyebrow">Where help is needed</p>
             <h2 className="pp-intro__title">Current volunteer needs</h2>
             <p className="pp-intro__body">
-              RIM runs on the generosity of the people who practice here — greeting people at the
+              RIM runs on the generosity of the people who practice here: greeting people at the
               door, hosting a Zoom room, caring for the plants, running sound. Roles open and fill
               as the community&rsquo;s needs change.
             </p>
@@ -86,7 +86,7 @@ export default async function VolunteerPage({
           <div className="pp-panel">
             <p className="pp-panel__body">
               We&rsquo;re between postings at the moment. The fastest way in is to tell us what
-              you&rsquo;d enjoy doing — we keep those notes and reach out when something fits.
+              you&rsquo;d enjoy doing. We keep those notes and reach out when something fits.
             </p>
             <div className="pp-actions">
               <a href="#share-your-talent" className="pp-btn">
@@ -129,7 +129,7 @@ export default async function VolunteerPage({
           ) : submitted ? (
             <div className="pp-form__done">
               <p>
-                <strong>Thank you.</strong> Your note has been received — someone from RIM will be
+                <strong>Thank you.</strong> Your note has been received. Someone from RIM will be
                 in touch.
               </p>
             </div>

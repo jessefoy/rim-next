@@ -60,7 +60,7 @@ export default function StyleGuidePage() {
             <article className="sg-card">
               <p className="sg-eyebrow">A white surface</p>
               <h3>A bounded piece of work</h3>
-              <p>Cards are for distinct things a person can understand or act on—not for wrapping every paragraph.</p>
+              <p>Cards are for distinct things a person can understand or act on, not for wrapping every paragraph.</p>
               <div className="sg-actions">
                 <button type="button" className="sg-button">Primary action</button>
                 <button type="button" className="sg-button sg-button--secondary">Secondary action</button>

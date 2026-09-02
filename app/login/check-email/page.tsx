@@ -81,78 +81,70 @@ export default async function CheckEmailPage({
   }
 
   return (
-    <div className="section background-white">
-      <div className="container-7-copy">
-        <div className="login-box" style={{ textAlign: "center" }}>
-          {/* The mailbox emoji is a wayfinding cue on the default
-              sign-in path. Dropped on the post-/join variant — after
-              someone has just completed an intentional threshold, the
-              joke-cue lands flat. Let the words carry the warmth. */}
-          {!isFromJoin && (
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📬</div>
-          )}
-
-          <h1 className="form-header">
+    /* Session 176: off the Webflow-era classes and onto pp-. The six-box code
+       input, the resend action, and the from-/join branching are unchanged. */
+    <div className="pp-page">
+      <section className="pp-hero pp-hero--flat pp-hero--short">
+        <div className="rim-container pp-hero__inner">
+          <p className="pp-hero__eyebrow">Members</p>
+          <h1 className="pp-hero__title">
             {isFromJoin
               ? firstName
                 ? `Almost there, ${firstName}.`
                 : "Almost there."
               : "Enter your code"}
           </h1>
-
-          <p style={{ color: "#555", lineHeight: 1.7, marginBottom: "1.5rem" }}>
+          <p className="pp-hero__body">
             {isFromJoin ? (
               <>
                 Two things just arrived in your inbox: your sign-in code, and a short
-                welcome letter. Type the code below to enter — your code expires in 30
+                welcome letter. Type the code below to enter. Your code expires in 30
                 minutes.
               </>
             ) : (
               <>
-                We sent a 6-digit code to <strong>{email}</strong>. It expires in 30
-                minutes.
+                We sent a 6-digit code to <span className="lg-email">{email}</span>. It
+                expires in 30 minutes.
               </>
             )}
           </p>
+        </div>
+      </section>
 
-          {resent && (
-            <p style={{ color: "#2a7b6f", fontSize: "0.9rem", marginBottom: "1rem" }}>
-              A new code has been sent.
+      <section className="pp-section pp-section--last">
+        <div className="rim-container">
+          <div className="pp-form">
+            {resent && <p className="pp-form__success">A new code has been sent.</p>}
+
+            {/* Six-box code input — client component. Submits a single
+                hidden `token` field via GET to /api/auth/callback/resend,
+                same NextAuth Email-provider callback that magic-link clicks
+                used to hit. */}
+            <SignInCodeForm email={email} callbackUrl="/account/dashboard" />
+
+            {/* A div, not a p: the resend action is a real <form>, and a form
+                inside a <p> is invalid HTML (the browser closes the paragraph
+                early and the sentence breaks apart). */}
+            <div className="lg-alt">
+              Didn&apos;t receive it? Check your spam folder, or{" "}
+              <form action={resendCode} className="lg-inline-form">
+                <input type="hidden" name="email" value={email} />
+                <button type="submit" className="pp-link lg-linkbtn">
+                  send a new code
+                </button>
+              </form>
+              .
+            </div>
+            <p className="lg-alt lg-alt--quiet">
+              Wrong email?{" "}
+              <a href="/login" className="pp-link">
+                Start over
+              </a>
+              .
             </p>
-          )}
-
-          {/* Six-box code input — client component. Submits a single
-              hidden `token` field via GET to /api/auth/callback/resend,
-              same NextAuth Email-provider callback that magic-link clicks
-              used to hit. */}
-          <SignInCodeForm email={email} callbackUrl="/account/dashboard" />
-
-          <div style={{ marginTop: "1.5rem", fontSize: "0.9rem", color: "#666" }}>
-            Didn&apos;t receive it? Check your spam folder, or{" "}
-            <form action={resendCode} style={{ display: "inline" }}>
-              <input type="hidden" name="email" value={email} />
-              <button
-                type="submit"
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#135274",
-                  textDecoration: "underline",
-                  cursor: "pointer",
-                  padding: 0,
-                  font: "inherit",
-                }}
-              >
-                send a new code
-              </button>
-            </form>
-            .
-          </div>
-          <div style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "#888" }}>
-            Wrong email? <a href="/login">Start over</a>.
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

@@ -27,18 +27,19 @@ export async function generateMetadata({
   };
 }
 
-interface CourseWithCount {
-  course: {
-    id: string;
-    title: string;
-    slug: string;
-    subheading: string | null;
-    allowSelfEnroll: boolean;
-    selfEnrollDanaRequired: boolean;
-  };
-  lessonCount: number;
-}
-
+/*
+ * A "Teachings by …" section used to render here from a `uniqueCoursesWithCount`
+ * array that was initialized empty and never populated — the query that filled
+ * it was removed at some point and about forty lines of card markup were left
+ * behind, permanently unreachable behind a `.length > 0` guard. That markup is
+ * gone as of the session-176 consistency pass; it was not rendering, and a
+ * reader could not tell that from looking at the file.
+ *
+ * Listing a teacher's courses is still worth having. It needs the course →
+ * lesson → teacher joins rebuilt, and it needs real public courses to list
+ * (the catalog currently holds one test row), so it is backlog, not a silent
+ * TODO. Restore it there rather than reviving this shape.
+ */
 export default async function TeacherProfilePage({
   params,
 }: {
@@ -62,54 +63,47 @@ export default async function TeacherProfilePage({
     .filter(Boolean)
     .join(" ");
 
-  const uniqueCoursesWithCount: CourseWithCount[] = [];
-
   return (
-    <div className="tpr-page">
-      <header className="tpr-header">
-        {profile.photoUrl && (
-          <img
-            src={profile.photoUrl}
-            alt={name}
-            className="tpr-photo"
-          />
-        )}
-        <h1 className="tpr-name">{name}</h1>
-        {profile.bio && (
-          <p className="tpr-bio">{profile.bio}</p>
-        )}
-      </header>
-
-      {uniqueCoursesWithCount.length > 0 && (
-        <section className="tpr-teachings">
-          <h2 className="tpr-teachings__title">Teachings by {name}</h2>
-          <div className="tpr-teachings__list">
-            {uniqueCoursesWithCount.map(({ course, lessonCount }) => (
-              <Link
-                key={course.id}
-                href={`/course/${course.slug}`}
-                className="tpr-course-card"
-              >
-                <div className="tpr-course-card__title">{course.title}</div>
-                {course.subheading && (
-                  <div className="tpr-course-card__sub">{course.subheading}</div>
-                )}
-                <div className="tpr-course-card__meta">
-                  <span>
-                    {lessonCount} lesson{lessonCount !== 1 ? "s" : ""}
-                  </span>
-                  {!course.allowSelfEnroll && (
-                    <span className="tpr-course-card__access">Live cohort</span>
-                  )}
-                  {course.allowSelfEnroll && course.selfEnrollDanaRequired && (
-                    <span className="tpr-course-card__access">Dana</span>
-                  )}
-                </div>
-              </Link>
-            ))}
+    <div className="pp-page pp-page--spine">
+      {/* The portrait belongs in the hero with the name, not stacked above a
+          bare h1 on the ground. Both this page and /teachers had no hero at
+          all, which is what made them read as a different site. */}
+      <section className="pp-hero pp-hero--flat">
+        <div className="rim-container pp-hero__inner tpr-hero__inner">
+          {profile.photoUrl && (
+            <img src={profile.photoUrl} alt={name} className="tpr-hero__photo" />
+          )}
+          <div>
+            <p className="pp-hero__eyebrow">Teacher</p>
+            <h1 className="pp-hero__title">{name}</h1>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
+
+      <section className="pp-section pp-section--last">
+        <div className="rim-container">
+          {profile.bio ? (
+            <div className="pp-prose">
+              <p>{profile.bio}</p>
+            </div>
+          ) : (
+            <div className="pp-panel">
+              <p className="pp-panel__body">
+                A fuller introduction is on its way.
+              </p>
+            </div>
+          )}
+
+          <div className="pp-actions">
+            <Link href="/this-week" className="pp-btn">
+              See this week
+            </Link>
+            <Link href="/teachers" className="pp-link">
+              All teachers <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

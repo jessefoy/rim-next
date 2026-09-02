@@ -7,7 +7,7 @@
   <title>Rooted In Mindfulness — Homepage Concept</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet">
   <style>
     @font-face {
       font-family: "Quincy";
@@ -26,22 +26,22 @@
     }
 
     :root {
-      --ink: #26312d;
-      --ink-soft: #53605b;
-      --moss: #355c4b;
-      --moss-deep: #244537;
-      --moss-pale: #dfe8df;
+      --ink: #333333;
+      --ink-soft: #676767;
+      --moss: #31576d;
+      --moss-deep: #244457;
+      --moss-pale: #e7edf0;
       --blue: #31576d;
-      --clay: #b86649;
-      --clay-pale: #ead9ce;
+      --clay: #a95e48;
+      --clay-pale: #eee5df;
       --sun: #e8b85f;
-      --pampas: #f4f1eb;
-      --paper: #fcfbf8;
+      --pampas: #f5f3f0;
+      --paper: #faf9f7;
       --white: #fff;
       --rule: rgba(38, 49, 45, 0.16);
       --serif: "Quincy", Georgia, serif;
-      --sans: "Manrope", "Open Sans", sans-serif;
-      --mono: "DM Mono", monospace;
+      --sans: "Open Sans", sans-serif;
+      --mono: "Open Sans", sans-serif;
       --container: 76rem;
       --reading: 44rem;
       --radius-sm: 0.8rem;
@@ -163,37 +163,33 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: color-mix(in srgb, var(--paper) 93%, transparent);
-      border-bottom: 1px solid var(--rule);
-      backdrop-filter: blur(1rem);
+      background: var(--white);
     }
 
     .nav {
-      min-height: 5.7rem;
+      height: 6.25rem;
       display: flex;
       align-items: center;
-      gap: 2rem;
+      gap: 0.5rem;
     }
 
     .brand {
       display: inline-flex;
       align-items: center;
-      gap: 0.8rem;
+      gap: 0.75rem;
       flex: 0 0 auto;
       color: var(--ink);
       text-decoration: none;
     }
 
-    .brand img { width: 2.7rem; height: 2.7rem; object-fit: contain; }
+    .brand img { width: auto; height: 2.8rem; object-fit: contain; }
 
     .brand-text {
       display: flex;
-      flex-direction: column;
-      line-height: 1.08;
+      line-height: 1.2;
     }
 
-    .brand-name { font-family: var(--serif); font-size: 1.1rem; }
-    .brand-place { margin-top: 0.25rem; color: var(--ink-soft); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .brand-name { font-family: var(--serif); font-size: 1.25rem; }
 
     .nav-links {
       display: flex;
@@ -202,19 +198,80 @@
       margin-left: auto;
     }
 
-    .nav-link {
+    .nav-link,
+    .nav-dropdown-toggle {
       min-height: 2.75rem;
       display: inline-flex;
       align-items: center;
-      padding: 0.7rem 0.9rem;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      font-weight: 600;
+      gap: 0.35rem;
+      padding: 0.7rem 0.75rem;
+      border: 0;
+      border-radius: 0.25rem;
+      background: none;
+      color: var(--ink);
+      font-size: 1rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .nav-link:hover,
+    .nav-dropdown-toggle:hover { background: var(--pampas); color: var(--blue); }
+
+    .nav-dropdown { position: relative; }
+
+    .nav-caret { color: var(--ink-soft); font-size: 0.68rem; }
+
+    .nav-dropdown-panel {
+      width: 15.5rem;
+      display: none;
+      position: absolute;
+      top: calc(100% - 0.1rem);
+      right: 0;
+      padding-top: 0.45rem;
+      z-index: 3;
+    }
+
+    .nav-dropdown-panel-inner {
+      padding: 0.5rem;
+      border-radius: 0.4rem;
+      background: var(--white);
+      box-shadow: 0 0.8rem 2rem rgba(34, 47, 54, 0.1);
+    }
+
+    .nav-dropdown:hover .nav-dropdown-panel,
+    .nav-dropdown:focus-within .nav-dropdown-panel { display: block; }
+
+    .nav-dropdown-link {
+      display: block;
+      padding: 0.7rem 0.75rem;
+      border-bottom: 1px solid var(--moss-pale);
+      color: var(--ink);
       text-decoration: none;
     }
 
-    .nav-link:hover { background: var(--moss-pale); }
-    .nav .button { margin-left: 0.35rem; }
+    .nav-dropdown-link:last-child { border-bottom: 0; }
+    .nav-dropdown-link:hover { background: var(--pampas); color: var(--blue); }
+    .nav-dropdown-link strong { display: block; font-size: 0.88rem; }
+    .nav-dropdown-link small { display: block; margin-top: 0.1rem; color: var(--ink-soft); font-size: 0.72rem; line-height: 1.35; }
+
+    .nav-donate {
+      min-height: 2.75rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 0.5rem;
+      padding: 0.7rem 1.15rem;
+      border-radius: 999px;
+      background: #c23b3b;
+      color: var(--white);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+    }
+
+    .nav-donate:hover { background: #a83232; }
 
     .menu-button {
       width: 3rem;
@@ -224,8 +281,8 @@
       margin-left: auto;
       padding: 0;
       border: 0;
-      border-radius: 50%;
-      background: var(--moss-pale);
+      border-radius: 0.25rem;
+      background: transparent;
       color: var(--ink);
       cursor: pointer;
     }
@@ -251,7 +308,7 @@
     /* Hero */
     .hero {
       position: relative;
-      min-height: calc(100svh - 5.7rem);
+      min-height: calc(100svh - 6.25rem);
       display: grid;
       overflow: hidden;
       background: var(--paper);
@@ -281,17 +338,21 @@
     .hero .eyebrow { color: var(--clay); }
 
     .hero h1 {
-      max-width: 10ch;
+      max-width: 13ch;
       margin: 0;
       font-family: var(--serif);
-      font-size: clamp(4rem, 8.4vw, 8.5rem);
+      font-size: clamp(3.4rem, 6.2vw, 6.4rem);
       font-weight: 400;
-      letter-spacing: -0.055em;
-      line-height: 0.84;
+      letter-spacing: -0.04em;
+      line-height: 0.94;
       text-wrap: balance;
     }
 
-    .hero h1 em { color: var(--moss); font-weight: 300; }
+    .hero-gold {
+      color: #bf9455;
+      font-weight: 300;
+      font-style: italic;
+    }
 
     .hero-intro {
       max-width: 35rem;
@@ -593,63 +654,92 @@
     /* Schedule */
     .schedule-section {
       padding: clamp(6rem, 12vw, 11rem) 0;
-      background: var(--clay-pale);
+      background: var(--pampas);
     }
 
     .schedule-head {
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 2rem;
+      grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.55fr);
+      gap: clamp(2rem, 7vw, 7rem);
       align-items: end;
-      margin-bottom: 3rem;
+      margin-bottom: 4rem;
     }
 
-    .schedule-head .eyebrow { color: #814630; }
+    .schedule-head .eyebrow { color: var(--blue); }
+    .schedule-head p { margin: 0; color: var(--ink-soft); }
+    .schedule-head .text-link { margin-top: 1rem; }
 
-    .schedule-tabs {
-      display: flex;
-      gap: 0.4rem;
-      padding: 0.3rem;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.46);
+    .week-day {
+      padding: 2.2rem 0 3.4rem;
+      border-top: 1px solid var(--rule);
     }
 
-    .schedule-tab {
-      min-height: 2.8rem;
-      padding: 0.65rem 1rem;
-      border: 0;
-      border-radius: 999px;
-      background: transparent;
-      color: var(--ink-soft);
-      font-size: 0.76rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .schedule-tab[aria-selected="true"] { background: var(--paper); color: var(--ink); }
-
-    .schedule-list { border-top: 1px solid var(--ink); }
-
-    .schedule-row {
+    .day-heading {
       display: grid;
-      grid-template-columns: 7rem minmax(0, 1.5fr) 0.7fr 0.7fr 3rem;
-      gap: 1rem;
+      grid-template-columns: 4rem 1fr;
+      gap: 1.2rem;
       align-items: center;
-      min-height: 7.4rem;
-      padding: 1rem 0;
-      border-bottom: 1px solid rgba(38, 49, 45, 0.3);
+      margin-bottom: 1.4rem;
+    }
+
+    .day-date {
+      width: 4rem;
+      height: 4rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.45rem;
+      background: var(--moss-pale);
+      line-height: 1;
+    }
+
+    .day-date-month { color: var(--blue); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; }
+    .day-date-number { margin-top: 0.25rem; color: var(--ink); font-family: var(--serif); font-size: 1.45rem; }
+    .day-heading h3 { margin: 0; font-family: var(--serif); font-size: clamp(1.7rem, 3vw, 2.5rem); font-weight: 400; }
+    .today-pill { display: inline-flex; margin-left: 0.65rem; padding: 0.28rem 0.55rem; border-radius: 999px; background: var(--blue); color: var(--white); font-family: var(--sans); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; vertical-align: middle; text-transform: uppercase; }
+
+    .program-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin-left: 5.2rem;
+    }
+
+    .program-card {
+      min-height: 8rem;
+      display: grid;
+      grid-template-columns: 7rem minmax(0, 1fr) 2.5rem;
+      gap: 1.2rem;
+      align-items: center;
+      padding: 1.25rem 1.35rem;
+      border-radius: var(--radius-sm);
+      background: var(--white);
       color: var(--ink);
       text-decoration: none;
-      transition: padding 180ms ease, background 180ms ease;
+      box-shadow: 0 0.25rem 1rem rgba(38, 49, 45, 0.035);
+      transition: transform 180ms ease, box-shadow 180ms ease;
     }
 
-    .schedule-row:hover { padding-inline: 1rem; background: rgba(255, 255, 255, 0.38); }
-    .schedule-day { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.09em; text-transform: uppercase; }
-    .schedule-program strong { display: block; font-family: var(--serif); font-size: clamp(1.3rem, 2.1vw, 2rem); font-weight: 400; line-height: 1.15; }
-    .schedule-program small { color: var(--ink-soft); font-size: 0.78rem; }
-    .schedule-time, .schedule-place { color: var(--ink-soft); font-size: 0.82rem; }
-    .schedule-arrow { width: 2.6rem; height: 2.6rem; display: grid; place-items: center; justify-self: end; border: 1px solid currentColor; border-radius: 50%; }
-    .schedule-more { margin-top: 2rem; }
+    .program-card:hover { transform: translateY(-0.18rem); box-shadow: 0 0.8rem 2rem rgba(38, 49, 45, 0.08); }
+    .program-time { align-self: start; padding-top: 0.1rem; color: var(--blue); font-size: 0.82rem; font-weight: 700; line-height: 1.45; }
+    .program-card h4 { margin: 0; font-family: var(--serif); font-size: 1.35rem; font-weight: 400; line-height: 1.25; }
+    .program-format { display: inline-flex; margin-top: 0.65rem; padding: 0.28rem 0.5rem; border-radius: 999px; background: var(--moss-pale); color: var(--blue); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .program-arrow { width: 2.4rem; height: 2.4rem; display: grid; place-items: center; justify-self: end; border-radius: 50%; background: var(--pampas); color: var(--blue); }
+
+    /* Program category doors — the current homepage taxonomy connection. */
+    .programs-section { padding: clamp(6rem, 11vw, 10rem) 0; background: var(--white); }
+    .programs-layout { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(22rem, 1.15fr); gap: clamp(3rem, 8vw, 8rem); align-items: center; }
+    .programs-copy .eyebrow { color: var(--blue); }
+    .programs-copy .section-title { max-width: 10ch; font-size: clamp(2.7rem, 4.8vw, 5rem); }
+    .programs-copy > p { max-width: 34rem; margin: 1.6rem 0 0; color: var(--ink-soft); font-size: 1.02rem; }
+    .programs-copy .button { margin-top: 1.8rem; }
+    .program-doors { display: grid; gap: 0.8rem; }
+    .program-door { min-height: 6.3rem; display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: center; padding: 1.2rem 1.4rem; border-radius: var(--radius-sm); background: var(--paper); color: var(--ink); text-decoration: none; transition: background 180ms ease, transform 180ms ease; }
+    .program-door:hover { background: var(--moss-pale); transform: translateX(0.2rem); }
+    .program-door h3 { margin: 0; font-family: var(--serif); font-size: 1.35rem; font-weight: 400; }
+    .program-door p { margin: 0.25rem 0 0; color: var(--ink-soft); font-size: 0.78rem; }
+    .program-door span { width: 2.6rem; height: 2.6rem; display: grid; place-items: center; border-radius: 50%; background: var(--white); color: var(--blue); }
 
     /* Community quote */
     .community-section {
@@ -880,16 +970,25 @@
         display: flex;
         align-items: stretch;
         position: fixed;
-        inset: 5.7rem 0 0;
+        inset: 6.25rem 0 0;
         flex-direction: column;
         gap: 0;
         margin: 0;
-        padding: 2rem 1.5rem;
+        padding: 1rem 1.5rem 2rem;
         background: var(--paper);
+        overflow-y: auto;
       }
-      .nav-links.is-open .nav-link { min-height: 4rem; justify-content: space-between; border-bottom: 1px solid var(--rule); border-radius: 0; font-family: var(--serif); font-size: 1.6rem; font-weight: 400; }
+      .nav-links.is-open .nav-link { min-height: 3.5rem; justify-content: space-between; border-bottom: 1px solid var(--rule); border-radius: 0; font-family: var(--serif); font-size: 1.35rem; font-weight: 400; }
       .nav-links.is-open .nav-link::after { content: "↗"; font-family: var(--sans); font-size: 1rem; }
-      .nav-links.is-open .button { margin: 2rem 0 0; }
+      .nav-links.is-open .nav-dropdown { border-bottom: 1px solid var(--rule); }
+      .nav-links.is-open .nav-dropdown-toggle { width: 100%; min-height: 3rem; padding: 0.85rem 0; color: var(--blue); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; pointer-events: none; }
+      .nav-links.is-open .nav-caret { display: none; }
+      .nav-links.is-open .nav-dropdown-panel { width: auto; display: block; position: static; padding: 0; }
+      .nav-links.is-open .nav-dropdown-panel-inner { padding: 0 0 0.65rem; background: transparent; box-shadow: none; }
+      .nav-links.is-open .nav-dropdown-link { min-height: 3.35rem; display: flex; flex-direction: column; justify-content: center; padding: 0.55rem 0; border: 0; }
+      .nav-links.is-open .nav-dropdown-link strong { font-family: var(--serif); font-size: 1.15rem; font-weight: 400; }
+      .nav-links.is-open .nav-dropdown-link small { font-size: 0.72rem; }
+      .nav-links.is-open .nav-donate { margin: 1.25rem 0 0; }
 
       .hero-grid { grid-template-columns: 1fr; }
       .hero-copy { padding-top: 1rem; }
@@ -910,6 +1009,9 @@
       .visit-image { min-height: 36rem; }
       .roots-visual { min-height: 36rem; }
 
+      .program-grid { grid-template-columns: 1fr; }
+      .programs-layout { grid-template-columns: 1fr; }
+
       .community-section { grid-template-columns: 1fr; }
       .community-image { min-height: 32rem; }
 
@@ -919,9 +1021,8 @@
 
     @media (max-width: 44rem) {
       .shell { width: min(calc(100% - 2rem), var(--container)); }
-      .brand-place { display: none; }
       .brand-name { font-size: 0.95rem; }
-      .nav { min-height: 4.8rem; }
+      .nav { height: 4.8rem; }
       .nav-links.is-open { top: 4.8rem; }
 
       .hero { min-height: auto; }
@@ -947,12 +1048,14 @@
       .visit-image { min-height: 30rem; }
       .visit-step { grid-template-columns: 2.6rem 1fr; gap: 0.8rem; }
 
-      .schedule-head { grid-template-columns: 1fr; }
-      .schedule-tabs { width: 100%; }
-      .schedule-tab { flex: 1; }
-      .schedule-row { grid-template-columns: 4.8rem 1fr 2.6rem; min-height: 6.5rem; }
-      .schedule-time, .schedule-place { display: none; }
-      .schedule-program strong { font-size: 1.25rem; }
+      .schedule-head { grid-template-columns: 1fr; margin-bottom: 2.5rem; }
+      .day-heading { grid-template-columns: 3.5rem 1fr; gap: 0.85rem; }
+      .day-date { width: 3.5rem; height: 3.5rem; }
+      .program-grid { margin-left: 0; }
+      .program-card { min-height: 0; grid-template-columns: 5.4rem minmax(0, 1fr) 2.4rem; gap: 0.75rem; padding: 1rem; }
+      .program-card h4 { font-size: 1.15rem; }
+      .programs-layout { gap: 2.5rem; }
+      .program-door { min-height: 5.6rem; }
 
       .community-quote { padding: 4rem 1.5rem; }
       .community-quote blockquote p { font-size: 2.3rem; }
@@ -981,22 +1084,46 @@
 
   <header class="site-header">
     <div class="shell nav">
-      <a class="brand" href="#" aria-label="Rooted In Mindfulness home">
+      <a class="brand" href="https://rim-next.vercel.app/" aria-label="Rooted In Mindfulness home">
         <img src="../public/images/Rooted-In-Mindfulness-Logo.png" alt="">
         <span class="brand-text">
           <span class="brand-name">Rooted In Mindfulness</span>
-          <span class="brand-place">Brookfield, Wisconsin · Online everywhere</span>
         </span>
       </a>
 
       <button class="menu-button" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Open navigation"><span></span></button>
 
       <nav class="nav-links" id="primary-nav" aria-label="Primary navigation">
-        <a class="nav-link" href="#first-visit">Your first visit</a>
-        <a class="nav-link" href="#practice">Ways to practice</a>
-        <a class="nav-link" href="#roots">Who we are</a>
-        <a class="nav-link" href="#give">Give</a>
-        <a class="button" href="#schedule">See this week <span aria-hidden="true">↗</span></a>
+        <a class="nav-link" href="https://rim-next.vercel.app/what-we-practice">Our Practice</a>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button">Programs <span class="nav-caret" aria-hidden="true">▾</span></button>
+          <div class="nav-dropdown-panel">
+            <div class="nav-dropdown-panel-inner">
+              <a class="nav-dropdown-link" href="https://rim-next.vercel.app/community-programs"><strong>All Programs</strong><small>Drop-ins, courses, and community groups</small></a>
+              <a class="nav-dropdown-link" href="https://rim-next.vercel.app/this-week"><strong>This Week’s Schedule</strong><small>What’s happening day by day</small></a>
+              <a class="nav-dropdown-link" href="https://rim-next.vercel.app/your-first-visit"><strong>Your First Visit</strong><small>What to expect if you’ve never been</small></a>
+            </div>
+          </div>
+        </div>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button">Get Involved <span class="nav-caret" aria-hidden="true">▾</span></button>
+          <div class="nav-dropdown-panel">
+            <div class="nav-dropdown-panel-inner">
+              <a class="nav-dropdown-link" href="https://rim-next.vercel.app/volunteerism/volunteer"><strong>Volunteer</strong><small>Help co-create refuge at RIM</small></a>
+              <a class="nav-dropdown-link" href="https://rim-next.vercel.app/kalyana-mitta/community-groups-events"><strong>Start a Community Group</strong><small>Create a community group or event</small></a>
+            </div>
+          </div>
+        </div>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button">Members <span class="nav-caret" aria-hidden="true">▾</span></button>
+          <div class="nav-dropdown-panel">
+            <div class="nav-dropdown-panel-inner">
+              <a class="nav-dropdown-link" href="https://rim-next.vercel.app/join"><strong>Become a Member</strong><small>Read our community care agreements and join</small></a>
+              <a class="nav-dropdown-link" href="https://rim-next.vercel.app/login"><strong>Sign in</strong><small>Already a member? Continue here</small></a>
+            </div>
+          </div>
+        </div>
+        <a class="nav-donate" href="https://rim-next.vercel.app/donate">DONATE</a>
       </nav>
     </div>
   </header>
@@ -1006,8 +1133,8 @@
       <div class="shell hero-grid">
         <div class="hero-copy">
           <p class="eyebrow">Meditation · Dharma · Community</p>
-          <h1>Come as you are. <em>Practice what is real.</em></h1>
-          <p class="hero-intro">A place to meditate, learn, ask honest questions, and be human together. Buddhist-rooted, open to everyone, and sustained by generosity.</p>
+          <h1>Awaken your <em class="hero-gold">Mind</em><br>Open your <em class="hero-gold">Heart</em><br>Nourish your <em class="hero-gold">Life</em><br>Beautify the <em class="hero-gold">World</em>.</h1>
+          <p class="hero-intro">A place to meditate, learn, ask honest questions, and be human together. Buddhist-rooted, open to everyone, and sustained by generosity. Come as you are.</p>
           <div class="hero-actions">
             <a class="button" href="#first-visit">Plan your first visit <span aria-hidden="true">↘</span></a>
             <a class="text-link" href="#schedule">See what’s happening this week <span aria-hidden="true">→</span></a>
@@ -1022,19 +1149,19 @@
         <div class="hero-visual" aria-label="Sunlight moving through bodhi leaves">
           <div class="hero-media">
             <video autoplay loop muted playsinline poster="../public/videos/Bodhi_Leaves-poster-00001.jpg">
-              <source src="../public/videos/Bodhi_Leaves-transcode.webm" type="video/webm">
               <source src="../public/videos/Bodhi_Leaves-transcode.mp4" type="video/mp4">
+              <source src="../public/videos/Bodhi_Leaves-transcode.webm" type="video/webm">
             </video>
           </div>
           <span class="hero-caption">A place to arrive, breathe, and begin again</span>
           <aside class="next-card" aria-label="Next recommended gathering">
             <div class="next-card-top">
               <span class="live-dot">Good first visit</span>
-              <time datetime="2026-07-25T09:30">Sat · 9:30 AM</time>
+              <time datetime="2026-09-05T09:30">Sat · 9:30 AM</time>
             </div>
             <h2>Meditation &amp; Dharma Talk</h2>
             <p>A guided sit, practical teaching, and time for questions. Join us in Brookfield or on Zoom.</p>
-            <a href="#schedule">What to expect and how to join →</a>
+            <a href="https://rim-next.vercel.app/programs/meditation-and-dharma-talk">What to expect and how to join →</a>
           </aside>
         </div>
       </div>
@@ -1115,47 +1242,83 @@
       <div class="shell">
         <div class="schedule-head">
           <div>
-            <p class="eyebrow">July 20–26 · Central time</p>
+            <p class="eyebrow">Practice this week · August 31–September 6</p>
             <h2 class="section-title" id="schedule-title">Practice with us this week.</h2>
           </div>
-          <div class="schedule-tabs" role="tablist" aria-label="Filter weekly gatherings">
-            <button class="schedule-tab" type="button" role="tab" aria-selected="true" data-filter="all">All</button>
-            <button class="schedule-tab" type="button" role="tab" aria-selected="false" data-filter="good-first">Good first visit</button>
-            <button class="schedule-tab" type="button" role="tab" aria-selected="false" data-filter="online">Online</button>
+          <div>
+            <p>The weekly schedule keeps the same clear day-and-program pattern used on RIM Next. Every card leads directly to the full program page.</p>
+            <a class="text-link" href="https://rim-next.vercel.app/this-week">View the complete live schedule <span aria-hidden="true">→</span></a>
           </div>
         </div>
 
-        <div class="schedule-list" aria-live="polite">
-          <a class="schedule-row" href="#" data-tags="online">
-            <span class="schedule-day">Monday</span>
-            <span class="schedule-program"><strong>Awakening the Heart</strong><small>Lovingkindness practice</small></span>
-            <span class="schedule-time">9:30–10:45 AM</span>
-            <span class="schedule-place">Online</span>
-            <span class="schedule-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="schedule-row" href="#" data-tags="good-first online">
-            <span class="schedule-day">Tuesday</span>
-            <span class="schedule-program"><strong>The Art of Meditation</strong><small>Guided practice &amp; teaching</small></span>
-            <span class="schedule-time">9:30–10:45 AM</span>
-            <span class="schedule-place">Brookfield + online</span>
-            <span class="schedule-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="schedule-row" href="#" data-tags="online">
-            <span class="schedule-day">Thursday</span>
-            <span class="schedule-program"><strong>Essential Dharma Study</strong><small>Teaching &amp; dialogue</small></span>
-            <span class="schedule-time">9:30–11:00 AM</span>
-            <span class="schedule-place">Online</span>
-            <span class="schedule-arrow" aria-hidden="true">↗</span>
-          </a>
-          <a class="schedule-row" href="#" data-tags="good-first online">
-            <span class="schedule-day">Saturday</span>
-            <span class="schedule-program"><strong>Meditation &amp; Dharma Talk</strong><small>Guided sit &amp; practical teaching</small></span>
-            <span class="schedule-time">9:30–11:00 AM</span>
-            <span class="schedule-place">Brookfield + online</span>
-            <span class="schedule-arrow" aria-hidden="true">↗</span>
-          </a>
+        <div class="week-day">
+          <div class="day-heading">
+            <time class="day-date" datetime="2026-09-02"><span class="day-date-month">SEP</span><span class="day-date-number">2</span></time>
+            <h3>Wednesday <span class="today-pill">Today</span></h3>
+          </div>
+          <div class="program-grid">
+            <a class="program-card" href="https://rim-next.vercel.app/programs/good-morning-silent-meditation">
+              <span class="program-time">6:30–7 AM</span>
+              <span><h4>Good Morning Silent Meditation</h4><span class="program-format">Zoom Only</span></span>
+              <span class="program-arrow" aria-hidden="true">→</span>
+            </a>
+            <a class="program-card" href="https://rim-next.vercel.app/programs/qigong-at-rim">
+              <span class="program-time">10–10:45 AM</span>
+              <span><h4>Qigong at RIM</h4><span class="program-format">Zoom Only</span></span>
+              <span class="program-arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
         </div>
-        <a class="text-link schedule-more" href="#">See the full calendar and all programs <span aria-hidden="true">→</span></a>
+
+        <div class="week-day">
+          <div class="day-heading">
+            <time class="day-date" datetime="2026-09-03"><span class="day-date-month">SEP</span><span class="day-date-number">3</span></time>
+            <h3>Thursday</h3>
+          </div>
+          <div class="program-grid">
+            <a class="program-card" href="https://rim-next.vercel.app/programs/essential-dharma-study">
+              <span class="program-time">9:30–10:30 AM</span>
+              <span><h4>Essential Dharma Study</h4><span class="program-format">Zoom Only</span></span>
+              <span class="program-arrow" aria-hidden="true">→</span>
+            </a>
+            <a class="program-card" href="https://rim-next.vercel.app/programs/good-evening-silent-meditation">
+              <span class="program-time">7:30–8 PM</span>
+              <span><h4>Good Evening Silent Meditation</h4><span class="program-format">Zoom Only</span></span>
+              <span class="program-arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="week-day">
+          <div class="day-heading">
+            <time class="day-date" datetime="2026-09-05"><span class="day-date-month">SEP</span><span class="day-date-number">5</span></time>
+            <h3>Saturday</h3>
+          </div>
+          <div class="program-grid">
+            <a class="program-card" href="https://rim-next.vercel.app/programs/meditation-and-dharma-talk">
+              <span class="program-time">9:30–10:45 AM</span>
+              <span><h4>Meditation and Dharma Talk</h4><span class="program-format">In-Person &amp; Zoom</span></span>
+              <span class="program-arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="programs-section" aria-labelledby="programs-title">
+      <div class="shell programs-layout">
+        <div class="programs-copy">
+          <p class="eyebrow">Community programs</p>
+          <h2 class="section-title" id="programs-title">Find the kind of practice you need.</h2>
+          <p>The categories remain the stable doors into the live program catalog. Begin with open practice, sit in silence, find a peer-led group, or step away for retreat.</p>
+          <a class="button" href="https://rim-next.vercel.app/community-programs">See all programs <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="program-doors">
+          <a class="program-door" href="https://rim-next.vercel.app/community-programs#drop-ins"><div><h3>Open Practice &amp; Learning</h3><p>Anyone can drop in—no registration needed</p></div><span aria-hidden="true">→</span></a>
+          <a class="program-door" href="https://rim-next.vercel.app/community-programs#silent-meditation"><div><h3>Silent Meditation Drop-Ins</h3><p>Quiet daily practice with the community</p></div><span aria-hidden="true">→</span></a>
+          <a class="program-door" href="https://rim-next.vercel.app/community-programs#community-groups-events"><div><h3>Community Groups</h3><p>Ongoing peer-led communities</p></div><span aria-hidden="true">→</span></a>
+          <a class="program-door" href="https://rim-next.vercel.app/community-programs#retreats"><div><h3>Retreats</h3><p>Multi-day immersive practice</p></div><span aria-hidden="true">→</span></a>
+        </div>
       </div>
     </section>
 
@@ -1197,7 +1360,7 @@
           <h2 class="section-title" id="roots-title">A tradition you can question.</h2>
           <p>We are rooted in the earliest Buddhist teachings and the Chan practice of Silent Illumination. We teach them as living practices—not beliefs you are asked to adopt, and not ideas that stand between you and your own experience.</p>
           <p>You do not need to be Buddhist to practice here. Curiosity, honesty, and a willingness to pay attention are enough.</p>
-          <a class="text-link" href="#">Meet Jesse and our teachers <span aria-hidden="true">→</span></a>
+          <a class="text-link" href="https://rim-next.vercel.app/teachers">Meet Jesse and our teachers <span aria-hidden="true">→</span></a>
         </div>
         <div class="roots-visual">
           <img src="../public/images/Looking-Up-Pine-Trees-unsplash.jpg" alt="Looking upward through a circle of tall trees">
@@ -1218,8 +1381,8 @@
         <div class="dana-copy">
           <p>Teachers offer the dharma freely. Those who are able help sustain the center, the teachers, and access for the next person. Give money, time, care—or simply your sincere presence.</p>
           <div class="dana-actions">
-            <a class="button button--light" href="#">Offer dana <span aria-hidden="true">↗</span></a>
-            <a class="text-link" href="#">Volunteer with RIM <span aria-hidden="true">→</span></a>
+            <a class="button button--light" href="https://rim-next.vercel.app/donate">Offer dana <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="https://rim-next.vercel.app/volunteerism/volunteer">Volunteer with RIM <span aria-hidden="true">→</span></a>
           </div>
         </div>
       </div>
@@ -1232,7 +1395,7 @@
         <p>You don’t need to decide whether RIM is “for you.” Come once. Meet the people. Try the practice. Let your own experience tell you what comes next.</p>
         <div class="closing-actions">
           <a class="button" href="#schedule">Find your first gathering <span aria-hidden="true">→</span></a>
-          <a class="text-link" href="#">Ask us a question <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="mailto:support@rootedinmindfulness.org?subject=A%20question%20about%20visiting%20RIM">Ask us a question <span aria-hidden="true">↗</span></a>
         </div>
       </div>
     </section>
@@ -1248,8 +1411,8 @@
 
         <div class="footer-links">
           <div class="footer-column"><h3>Practice</h3><a href="#schedule">This week</a><a href="#practice">All programs</a><a href="#first-visit">New here</a></div>
-          <div class="footer-column"><h3>Community</h3><a href="#roots">Our teachers</a><a href="#">Become a member</a><a href="#give">Volunteer</a></div>
-          <div class="footer-column"><h3>Connect</h3><a href="#">Contact us</a><a href="#">Instagram</a><a href="#">Member sign in</a></div>
+          <div class="footer-column"><h3>Community</h3><a href="https://rim-next.vercel.app/teachers">Our teachers</a><a href="https://rim-next.vercel.app/join">Become a member</a><a href="https://rim-next.vercel.app/volunteerism/volunteer">Volunteer</a></div>
+          <div class="footer-column"><h3>Connect</h3><a href="mailto:support@rootedinmindfulness.org">Contact us</a><a href="https://rim-next.vercel.app/diversity">Diverse together</a><a href="https://rim-next.vercel.app/login">Member sign in</a></div>
           <form class="newsletter">
             <label for="newsletter-email">A quiet note each week: gatherings, teachings, and community news.</label>
             <input id="newsletter-email" name="email" type="email" autocomplete="email" placeholder="Your email address">
@@ -1291,20 +1454,6 @@
       menuButton.setAttribute('aria-label', 'Open navigation');
       nav.classList.remove('is-open');
       document.body.classList.remove('menu-open');
-    });
-
-    const tabs = [...document.querySelectorAll('.schedule-tab')];
-    const rows = [...document.querySelectorAll('.schedule-row')];
-
-    tabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const filter = tab.dataset.filter;
-        tabs.forEach((item) => item.setAttribute('aria-selected', String(item === tab)));
-        rows.forEach((row) => {
-          const visible = filter === 'all' || row.dataset.tags.split(' ').includes(filter);
-          row.hidden = !visible;
-        });
-      });
     });
 
     document.querySelector('.newsletter').addEventListener('submit', (event) => {

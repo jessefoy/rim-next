@@ -102,13 +102,10 @@ export default function CourseBrowse({ courses, categories, isLoggedIn }: Props)
 
   return (
     <div className="cls-page">
-      <header className="cls-header">
-        <h1 className="cls-title">Courses</h1>
-        <p className="cls-subtitle">
-          Study and practice resources from Rooted in Mindfulness
-        </p>
-      </header>
-
+      {/* The page title and its lead moved to a real pp- hero on the server
+          page (session 176). This component had been carrying the only h1 on
+          /courses, which is why the page opened on a 36px blue heading with no
+          hero while every page linking to it opened on one. */}
       {categories.length > 0 && (
         <div className="cls-filter-bar">
           <button

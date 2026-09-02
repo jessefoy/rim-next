@@ -23,7 +23,7 @@ export const metadata = {
  */
 export default function YourFirstVisitPage() {
   return (
-    <div className="pp-page">
+    <div className="pp-page pp-page--spine">
       <section
         className="pp-hero"
         style={{

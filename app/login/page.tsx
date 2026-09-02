@@ -101,57 +101,58 @@ export default async function LoginPage({
   }
 
   return (
-    <div className="section background-white">
-      <div className="container-7-copy">
-        <div className="login-box">
-          <div className="w-form">
-            <form action={handleSignIn} className="form-container-4">
-              <h1 className="form-header">Sign in</h1>
-              <p style={{ marginBottom: "1.5rem", color: "#666", fontSize: "0.95rem" }}>
-                Enter your email and we&apos;ll send you a 6-digit code. No password needed.
-              </p>
-              {isNotMember ? (
-                <div
-                  style={{
-                    marginBottom: "1.25rem",
-                    padding: "12px 14px",
-                    background: "#fff8ec",
-                    border: "1px solid #f0c98a",
-                    borderRadius: "4px",
-                    color: "#7a4f00",
-                    fontSize: "0.9rem",
-                    lineHeight: 1.6,
-                  }}
-                >
+    /*
+     * Session 176: the three /login pages were the last public surface still
+     * wearing Webflow-era class names (.section, .container-7-copy, .w-form,
+     * .w-input, .link-block-3), re-implemented in custom.css long after the
+     * markup they came from stopped existing. The measured result was a
+     * near-black #16192c submit against RIM's rim-blue everywhere else, a
+     * square 38px input, an h1 at x=420, and inline hex colors — including one
+     * pre-flip #135274 teal. The auth logic above is untouched.
+     */
+    <div className="pp-page">
+      <section className="pp-hero pp-hero--flat pp-hero--short">
+        <div className="rim-container pp-hero__inner">
+          <p className="pp-hero__eyebrow">Members</p>
+          <h1 className="pp-hero__title">Sign in</h1>
+          <p className="pp-hero__body">
+            Enter your email and we&apos;ll send you a 6-digit code. No password needed.
+          </p>
+        </div>
+      </section>
+
+      <section className="pp-section pp-section--last">
+        <div className="rim-container">
+          <div className="pp-form">
+            {isNotMember ? (
+              <div className="pp-notice">
+                <p className="pp-notice__body">
                   We don&apos;t have an account for{" "}
-                  <strong>{prefillEmail || "that email"}</strong>. If you&apos;re
-                  new to RIM, you&apos;re warmly welcome —{" "}
+                  <strong className="lg-email">{prefillEmail || "that email"}</strong>. If
+                  you&apos;re new to RIM, you&apos;re warmly welcome.{" "}
                   <a
                     href={`/join${prefillEmail ? `?email=${encodeURIComponent(prefillEmail)}` : ""}`}
-                    style={{
-                      color: "#135274",
-                      textDecoration: "underline",
-                      textUnderlineOffset: "2px",
-                      fontWeight: 600,
-                    }}
+                    className="pp-link"
                   >
-                    become a member →
+                    Become a member <span aria-hidden="true">&rarr;</span>
                   </a>
-                </div>
-              ) : prefillEmail ? (
-                <p style={{ marginBottom: "1rem", color: "#666", fontSize: "0.9rem" }}>
-                  It looks like you already have an account with us. Sign in to continue.
                 </p>
-              ) : null}
-              {errorMessage && (
-                <p style={{ marginBottom: "1rem", color: "#c44", fontSize: "0.9rem" }}>
-                  {errorMessage}
-                </p>
-              )}
-              <div className="text-field-wrapper">
-                <label htmlFor="email" className="input-label-2">Email</label>
+              </div>
+            ) : prefillEmail ? (
+              <p className="pp-form__help lg-lead">
+                It looks like you already have an account with us. Sign in to continue.
+              </p>
+            ) : null}
+
+            {errorMessage && <p className="pp-form__error">{errorMessage}</p>}
+
+            <form action={handleSignIn}>
+              <div className="pp-form__field">
+                <label htmlFor="email" className="pp-form__label">
+                  Email
+                </label>
                 <input
-                  className="input w-input"
+                  className="pp-form__input"
                   maxLength={256}
                   name="email"
                   placeholder="e.g. howard.thurman@gmail.com"
@@ -161,17 +162,20 @@ export default async function LoginPage({
                   required
                 />
               </div>
-              <input type="submit" className="link-block-3 w-button" value="Send code →" />
+              <button type="submit" className="pp-btn pp-form__submit">
+                Send code <span aria-hidden="true">&rarr;</span>
+              </button>
             </form>
-          </div>
-          <div style={{ marginTop: "1.5rem", textAlign: "center", fontSize: "0.9rem", color: "#666" }}>
-            New to RIM?{" "}
-            <a href="/join" style={{ color: "#39607a", textDecoration: "underline", textUnderlineOffset: "2px" }}>
-              Become a member →
-            </a>
+
+            <p className="lg-alt">
+              New to RIM?{" "}
+              <a href="/join" className="pp-link">
+                Become a member <span aria-hidden="true">&rarr;</span>
+              </a>
+            </p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

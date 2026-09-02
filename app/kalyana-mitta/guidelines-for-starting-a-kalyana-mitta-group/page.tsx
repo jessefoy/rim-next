@@ -8,13 +8,13 @@ export const metadata = {
 
 export default function KMGuidelinesPage() {
   return (
-    <div className="pp-page">
+    <div className="pp-page pp-page--spine">
       <section className="pp-hero pp-hero--flat">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Kalyana Mitta</p>
           <h1 className="pp-hero__title">Group Guidelines</h1>
           <p className="pp-hero__body">
-            What to think through before starting a group — and what RIM asks of the people who
+            What to think through before starting a group, and what RIM asks of the people who
             facilitate one.
           </p>
         </div>
@@ -23,7 +23,7 @@ export default function KMGuidelinesPage() {
       <section className="pp-section pp-section--last">
         <div className="rim-container">
           <div className="pp-prose">
-              <h3>Group Purpose</h3>
+              <h2>Group Purpose</h2>
               <p>
                 Kalyana Mitta is a Pali term that means &quot;spiritual friend.&quot; Often used to
                 describe someone in the teacher role. However, it also refers to anyone on the Dharma
@@ -36,14 +36,14 @@ export default function KMGuidelinesPage() {
                 dharma-based activities.
               </p>
 
-              <h3>Group Size</h3>
+              <h2>Group Size</h2>
               <p>
                 A KM group varies in size, but usually consists of 5-12 members. These smaller groups
                 provide an intimate setting, making it possible for sangha bonds to grow as participants
                 explore Dharma-related interests together.
               </p>
 
-              <h3>Facilitating in Pairs</h3>
+              <h2>Facilitating in Pairs</h2>
               <p>
                 Facilitating in pairs is one important guideline for the KM groups. Co-facilitating
                 minimizes potential projections, both positive and negative, by the other group members
@@ -53,7 +53,7 @@ export default function KMGuidelinesPage() {
                 their enthusiasm benefits everyone.
               </p>
 
-              <h3>Group Focus</h3>
+              <h2>Group Focus</h2>
               <p>
                 Dharma practice is a whole-life practice. Therefore, the possible focus and intentions
                 for forming a group are countless. Some groups have a single purpose, such as right
@@ -72,7 +72,7 @@ export default function KMGuidelinesPage() {
                 will ensure the groups focus aligns with RIM&apos;s Vision and Mission.
               </p>
 
-              <h3>Experience</h3>
+              <h2>Experience</h2>
               <p>
                 The facilitators should decide what level of participants&apos; experience is fitting
                 for the group. For example, the group may be open to everyone regardless of practice
@@ -87,7 +87,7 @@ export default function KMGuidelinesPage() {
                 impact the group members&apos; resonance.
               </p>
 
-              <h3>Meeting Intervals and Commitment</h3>
+              <h2>Meeting Intervals and Commitment</h2>
               <p>Groups vary significantly in how often they meet. Some meet weekly, some every two weeks, some monthly.</p>
               <p>
                 Commitment to attend the meetings is a significant factor in the group&apos;s success.
@@ -104,7 +104,7 @@ export default function KMGuidelinesPage() {
                 practice.
               </p>
 
-              <h3>Suggested Group Length and Format</h3>
+              <h2>Suggested Group Length and Format</h2>
               <p>
                 Establishing a formal group format is very beneficial. It helps create a supportive
                 container that protects the integrity of the group. The format will be influenced by the
@@ -159,7 +159,7 @@ export default function KMGuidelinesPage() {
                 </li>
               </ol>
 
-              <h3>Practice Between Meetings</h3>
+              <h2>Practice Between Meetings</h2>
               <p>
                 KM Groups at RIM help members integrate and realize the benefits of meditation and
                 mindfulness within everyday life. In this light, KM group facilitators are encouraged to
@@ -175,7 +175,7 @@ export default function KMGuidelinesPage() {
                 participant benefits from the discoveries of all the members.
               </p>
 
-              <h3>Responsibilities of the Facilitators</h3>
+              <h2>Responsibilities of the Facilitators</h2>
               <p>
                 Participating in a KM group benefits the entire RIM community. It&apos;s also worth
                 noting that members are practicing a radical act of generosity and care by facilitating
@@ -267,7 +267,7 @@ export default function KMGuidelinesPage() {
                 </li>
               </ol>
 
-              <h3>Next Step: Kalyana Mitta Group Application</h3>
+              <h2>Next Step: Kalyana Mitta Group Application</h2>
               <p>
                 Please fill out the{" "}
                 <Link href="/kalyana-mitta/kalyana-mitta-group-application">

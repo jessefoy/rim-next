@@ -15,17 +15,30 @@ export default async function AuthErrorPage({
   }
 
   return (
-    <div className="section background-white">
-      <div className="container-7-copy">
-        <div className="login-box" style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⚠️</div>
-          <h1 className="form-header">Sign in error</h1>
-          <p style={{ color: "#555", lineHeight: "1.7", marginBottom: "1.5rem" }}>{message}</p>
-          <a href="/login" className="link-block-3 w-button" style={{ display: "inline-block" }}>
-            Try Again →
-          </a>
+    /* Session 176: off the Webflow-era classes and onto pp-. The warning emoji
+       is gone: RIM's copy standard says errors sound like a person, and a
+       3rem glyph over a calm message was the loudest thing on the page. */
+    <div className="pp-page">
+      <section className="pp-hero pp-hero--flat pp-hero--short">
+        <div className="rim-container pp-hero__inner">
+          <p className="pp-hero__eyebrow">Members</p>
+          <h1 className="pp-hero__title">We could not sign you in</h1>
+          <p className="pp-hero__body">{message}</p>
         </div>
-      </div>
+      </section>
+
+      <section className="pp-section pp-section--last">
+        <div className="rim-container">
+          <div className="pp-actions">
+            <a href="/login" className="pp-btn">
+              Try again
+            </a>
+            <a href="/join" className="pp-link">
+              Become a member <span aria-hidden="true">&rarr;</span>
+            </a>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -60,7 +60,7 @@ const CONTEMPLATIONS = [
         needs for livelihood, safety, and support as everyone else.{" "}
         <em>
           Consider the value of full-time teachers, who are safe and supported enough to share the
-          teachings freely, with skill, understanding, and care — for all who may benefit.
+          teachings freely, with skill, understanding, and care, for all who may benefit.
         </em>
       </>
     ),
@@ -71,7 +71,7 @@ const CONTEMPLATIONS = [
     body: (
       <>
         When you offer Dana at RIM, you join other kind and generous members of the community who
-        help ensure that RIM exists as a safe and supportive refuge for all who may benefit — even
+        help ensure that RIM exists as a safe and supportive refuge for all who may benefit, even
         when times are financially difficult. Your gift reaches past you. It helps hold the door open
         for people you will never meet.{" "}
         <em>
