@@ -103,7 +103,7 @@ export default async function CheckEmailPage({
               </>
             ) : (
               <>
-                We sent a 6-digit code to <span className="lg-email">{email}</span>. It
+                We sent a 6-digit code to <strong className="lg-email">{email}</strong>. It
                 expires in 30 minutes.
               </>
             )}

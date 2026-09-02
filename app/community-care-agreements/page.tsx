@@ -75,7 +75,7 @@ export default async function CommunityCareAgreementsPage() {
                   {index + 1}
                 </span>
                 <div>
-                  <h2 className="cc-agreement__title">{agreement.title}</h2>
+                  <h3 className="cc-agreement__title">{agreement.title}</h3>
                   <p className="cc-agreement__body">{agreement.summary}</p>
                 </div>
               </li>

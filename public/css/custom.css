@@ -88,6 +88,15 @@
   --rim-text-muted:  #666666;  /* labels, captions, attribution */
   --rim-rule:        #dedbd7;  /* borders, dividers — warm-neutral grey */
 
+  /* Gold leaf — the home-hero headline treatment only. Four stops of one
+     gradient, light to deep and back to light, so the words catch the light
+     like leaf rather than reading as a flat yellow. Not a general accent:
+     nothing outside .home-hero__gold should use these. */
+  --rim-gold-1:      #f4e4b5;
+  --rim-gold-2:      #ead397;
+  --rim-gold-3:      #dbbd77;
+  --rim-gold-4:      #eedba7;
+
   /* Alert / notification */
   --color-alert:        #C8821A;
   --color-alert-bg:     #FDF6EC;
@@ -27291,13 +27300,13 @@ a.pp-card:hover .pp-card__action {
   display: inline-block;
   background: linear-gradient(
     180deg,
-    #f4e4b5 0%,
-    #ead397 40%,
-    #dbbd77 74%,
-    #eedba7 100%
+    var(--rim-gold-1) 0%,
+    var(--rim-gold-2) 40%,
+    var(--rim-gold-3) 74%,
+    var(--rim-gold-4) 100%
   );
   background-clip: text;
-  color: #ead397;
+  color: var(--rim-gold-2);
   font-style: italic;
   font-weight: inherit;
   -webkit-background-clip: text;
@@ -27313,6 +27322,19 @@ a.pp-card:hover .pp-card__action {
     background: none;
     color: CanvasText;
     -webkit-text-fill-color: CanvasText;
+    text-shadow: none;
+    filter: none;
+  }
+}
+
+/* Print suppresses backgrounds, and the gradient IS the glyph fill here — so
+   without this the home headline prints as "Awaken your ___ / Open your ___".
+   Four missing words in the first line of the page. */
+@media print {
+  .home-hero__gold {
+    background: none;
+    color: var(--rim-text);
+    -webkit-text-fill-color: var(--rim-text);
     text-shadow: none;
     filter: none;
   }
@@ -27944,7 +27966,19 @@ a.pp-card:hover .pp-card__action {
    Zeroing the left margin puts all three on 110. `.pp-actions` already sits at
    110 as a plain block, which is why it needs no rule here. */
 .pp-page--spine .pp-intro,
-.pp-page--spine .pp-prose { margin-left: 0; margin-right: auto; }
+.pp-page--spine .pp-prose,
+.pp-page--spine .pp-form,
+.pp-page--spine .pp-notice,
+.pp-page--spine .pp-panel,
+.pp-page--spine .pp-closing,
+.pp-page--spine .pp-cards { margin-left: 0; margin-right: auto; }
+
+/* The first version of this rule listed only .pp-intro and .pp-prose, which
+   reproduced the very bug it was written to remove: /join measured 110 for its
+   hero, prose and agreements but 290 for its form, and the KM application had
+   THREE edges (prose 110, intro 190, notice 290). Every centred block that can
+   appear on a spine page belongs in the selector above — if a new pp- block is
+   added with `margin: 0 auto`, add it here too. */
 
 /* A centred opener is an explicit override and still wins inside a spine page
    (the volunteer thanks page uses it). Text-align is not the spine's business. */
@@ -27962,8 +27996,15 @@ a.pp-card:hover .pp-card__action {
    100px height absorbs the extra padding, so no hero shifts. */
 
 /* Nav: one shared floor for links, dropdown toggles, and DONATE. */
+/* border-box is not optional here: these are content-box elements retaining
+   `padding: 8px 12px`, so a bare min-height ADDS to it. Measured after the
+   first pass: .nav__link and .nav__donate at 60px beside .nav__dropdown-toggle
+   at 44px (a <button>, border-box by UA default) — 16px of difference between
+   siblings in one row, and the DONATE pill grown from 36px to 60px, against
+   this block's own stated intent of not moving a visual edge. */
 .nav__link,
 .nav__dropdown-toggle {
+  box-sizing: border-box;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -27973,6 +28014,7 @@ a.pp-card:hover .pp-card__action {
    un-hides the button on phones and pushes the hamburger off-screen. */
 @media (min-width: 768px) {
   .nav__donate {
+    box-sizing: border-box;
     min-height: 44px;
     display: inline-flex;
     align-items: center;
@@ -28087,11 +28129,13 @@ a.pp-card.tpr-card {
 .cls-card {
   border-radius: 12px;
   box-shadow: var(--card-shadow);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease;
 }
-.cls-card:hover {
-  box-shadow: 0 2px 4px rgba(45, 38, 28, 0.05), 0 8px 18px rgba(45, 38, 28, 0.06);
-}
+/* Match a.pp-card:hover — a background shift, not a second lift. A shadow
+   hover here would have made /courses and /teachers cards behave differently
+   on the pass whose whole point was one grammar, and it needed a raw rgba
+   literal that exists nowhere else. */
+.cls-card:hover { background: var(--rim-bg-bright); }
 .cls-card__title {
   color: var(--rim-text);
   font-size: var(--text-h4);
@@ -28139,8 +28183,10 @@ a.pp-card.tpr-card {
    spine, with room between the four so each is its own thought. */
 .jn-agreements-list {
   max-width: var(--reading-width);
-  margin: 0;
-  padding: 0 0 0 1.25em;
+  /* The marker hangs outside the text edge so the agreement text itself lands
+     on the spine (110), not 23px inside it, on the page that defines it. */
+  margin: 0 0 0 1.25em;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 22px;

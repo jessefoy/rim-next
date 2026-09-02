@@ -68,13 +68,13 @@ export default async function HomePage() {
         </div>
         <div className="rim-container pp-hero__inner">
           <h1 className="pp-hero__title">
-            Awaken your <em className="home-hero__gold">Mind</em>
+            Awaken your <span className="home-hero__gold">Mind</span>
             <br />
-            Open your <em className="home-hero__gold">Heart</em>
+            Open your <span className="home-hero__gold">Heart</span>
             <br />
-            Nourish your <em className="home-hero__gold">Life</em>
+            Nourish your <span className="home-hero__gold">Life</span>
             <br />
-            Beautify the <em className="home-hero__gold">World</em>
+            Beautify the <span className="home-hero__gold">World</span>
           </h1>
           <p className="pp-hero__body">
             Rooted in Mindfulness is a Buddhist meditation community in Brookfield, Wisconsin. We

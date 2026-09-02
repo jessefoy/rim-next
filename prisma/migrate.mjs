@@ -2768,7 +2768,11 @@ Or open it directly: {{manageUrl}}`,
       let migrated = 0;
       for (const row of rows) {
         try {
-          const res = await fetch(row.programImage);
+          // Bounded: an unbounded fetch here runs inside the Vercel build
+          // step, so a hanging CDN would hang the deploy.
+          const res = await fetch(row.programImage, {
+            signal: AbortSignal.timeout(15000),
+          });
           if (!res.ok) throw new Error(`fetch ${res.status} ${res.statusText}`);
 
           const bytes = Buffer.from(await res.arrayBuffer());
@@ -2777,6 +2781,15 @@ Or open it directly: {{manageUrl}}`,
           const ext = (row.programImage.match(/\.(jpg|jpeg|png|webp|avif)(?:$|\?)/i)?.[1] ?? "jpg")
             .toLowerCase();
           const contentType = res.headers.get("content-type") ?? `image/${ext}`;
+
+          // Refuse anything that is not actually an image. A 200 HTML error
+          // page would otherwise be uploaded verbatim and the row repointed at
+          // it — and once repointed it no longer matches the cdn.sanity.io
+          // guard, so the original URL would be unrecoverable and the failure
+          // invisible. Throwing here leaves the row on its old URL for a retry.
+          if (!/^image\//i.test(contentType)) {
+            throw new Error(`not an image (content-type: ${contentType})`);
+          }
 
           const blob = await put(`program-images/${row.slug}.${ext}`, bytes, {
             access: "public",

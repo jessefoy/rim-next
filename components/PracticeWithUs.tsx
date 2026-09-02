@@ -23,6 +23,15 @@ export default function PracticeWithUs() {
         </Link>
         .
       </p>
+      {/* The aside says a member account is how you join on Zoom and register,
+          so it has to offer one. The version this replaced ended in this exact
+          pill; dropping it left /community-programs and /this-week with no
+          route to membership outside the nav's hover dropdown. */}
+      <div className="pp-actions">
+        <Link href="/join" className="pp-btn">
+          Become a member
+        </Link>
+      </div>
     </aside>
   );
 }
