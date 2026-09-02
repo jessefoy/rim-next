@@ -27980,9 +27980,22 @@ a.pp-card:hover .pp-card__action {
    appear on a spine page belongs in the selector above — if a new pp- block is
    added with `margin: 0 auto`, add it here too. */
 
-/* A centred opener is an explicit override and still wins inside a spine page
-   (the volunteer thanks page uses it). Text-align is not the spine's business. */
-.pp-page--spine .pp-intro--center { margin-left: auto; margin-right: auto; }
+/* On a spine page the spine wins, including over `--center`. Letting the
+   centred modifier keep its auto margins put the KM group application's opener
+   at 190 while its own prose sat at 110 — a centred block on a left-aligned
+   page is a contradiction, not an exception. A page opting into the spine is
+   declaring one left edge for everything in it; a page that wants centred
+   openers simply does not opt in (/donate, the volunteer thanks page). */
+.pp-page--spine .pp-intro--center,
+.pp-page--spine .pp-actions--center {
+  margin-left: 0;
+  margin-right: auto;
+  text-align: left;
+}
+.pp-page--spine .pp-intro--center .pp-intro__body {
+  margin-left: 0;
+  margin-right: auto;
+}
 
 /* ── Public chrome: the interaction floor the member area already has ────────
    Session 172 gave every authenticated surface a 44px target / 16px input
@@ -28183,10 +28196,13 @@ a.pp-card.tpr-card {
    spine, with room between the four so each is its own thought. */
 .jn-agreements-list {
   max-width: var(--reading-width);
-  /* The marker hangs outside the text edge so the agreement text itself lands
-     on the spine (110), not 23px inside it, on the page that defines it. */
-  margin: 0 0 0 1.25em;
+  /* `outside` markers force the whole list inward to make room for them, which
+     left the agreement text 23px off the spine on the page that defines it.
+     `inside` puts the number on the spine and flows the title after it, so the
+     list has the same left edge as the prose above it. */
+  margin: 0;
   padding: 0;
+  list-style-position: inside;
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -28197,7 +28213,9 @@ a.pp-card.tpr-card {
   line-height: var(--lh-body);
 }
 .jn-agreements-list__title {
-  display: block;
+  /* inline-block, not block: an `inside` marker shares the first line box, so
+     a block-level title would push itself below its own number. */
+  display: inline-block;
   font-family: var(--font-serif);
   font-weight: 400;
   font-size: var(--text-h4);
