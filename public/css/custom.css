@@ -27968,18 +27968,29 @@ a.pp-card:hover .pp-card__action {
   display: inline-flex;
   align-items: center;
 }
-.nav__donate {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  /* 12px uppercase at 0.08em was the smallest interactive text on the site,
-     and it is the one red element — it should not also be the hardest to read. */
-  font-size: var(--text-xs);
+/* DONATE is display:none under 768px (the mobile menu carries its own), so the
+   display here MUST stay inside the desktop query — setting it unconditionally
+   un-hides the button on phones and pushes the hamburger off-screen. */
+@media (min-width: 768px) {
+  .nav__donate {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    /* 12px uppercase at 0.08em was the smallest interactive text on the site,
+       and it is the one red element — it should not also be the hardest to
+       read. */
+    font-size: var(--text-xs);
+  }
 }
-.nav__hamburger {
-  min-width: 44px;
-  min-height: 44px;
-  align-items: center;
+/* The hamburger only exists under 768px. Sized in that query for the same
+   reason: an unconditional min-width would widen a button that is display:none
+   on desktop, which is harmless but misleading to read. */
+@media (max-width: 767px) {
+  .nav__hamburger {
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
 }
 
 /* Footer: the newsletter form is on every public page, so its inputs are the
@@ -28249,4 +28260,41 @@ a.pp-card.tpr-card {
   padding: 0;
   font: inherit;
   cursor: pointer;
+}
+
+/* ── Remaining measured defects (375px, production) ─────────────────────────
+   Found by measuring the deployed pass rather than reasoning about it. */
+
+/* An email address is one unbreakable token: no space, no hyphen. Past ~34
+   characters at 375px it runs off the edge, and box-sizing does nothing
+   because the constraint is the token (session 173's rule). `anywhere`, not
+   `break-word` — anywhere also lowers min-content so a flex parent can shrink.
+   Measured: the KM guidelines coordinator address at 333px wide, 2px past the
+   viewport. Applied to every public prose link that is an address, so the next
+   one added is covered at birth. */
+.pp-prose a[href^="mailto:"],
+.pp-prose a[href^="tel:"],
+.rim-footer-contact-links a,
+.pp-give__assist a {
+  overflow-wrap: anywhere;
+}
+
+/* Inline links inside reading copy: measured 25px tall. They sit in a line of
+   text, so they cannot take a 44px box without breaking the leading — the
+   accessible target here is padding, which grows the hit area without moving
+   the line box. This clears WCAG 2.5.8 (24x24) rather than 2.5.5 (44x44),
+   which is the correct target for a link inside a sentence. */
+.pp-prose a {
+  padding: 3px 0;
+}
+
+/* 43px — one pixel under the floor, on the most-rendered button RIM has. */
+.footer-subscribe-btn { min-height: 44px; }
+
+/* The join checkbox: 22px was still under WCAG 2.5.8's 24x24 minimum. Its
+   label carries the 44px target, but the control itself should clear the
+   minimum on its own. */
+.jn-checkbox {
+  width: 24px;
+  height: 24px;
 }
