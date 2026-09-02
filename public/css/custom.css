@@ -28348,8 +28348,18 @@ a.pp-card.tpr-card {
    accessible target here is padding, which grows the hit area without moving
    the line box. This clears WCAG 2.5.8 (24x24) rather than 2.5.5 (44x44),
    which is the correct target for a link inside a sentence. */
-.pp-prose a {
+.pp-prose a,
+.pp-give__assist a {
   padding: 3px 0;
+}
+
+/* The donate page's phone/email fallback is the last remaining sub-24px target
+   on the public site, and it is the one control that matters most when the
+   Givebutter widgets are blocked — RIM_Public_Pages.md keeps it always-visible
+   for exactly that reason. It sits in a line of text, so it takes padding
+   rather than a 44px box. Measured at 18px tall before this. */
+.pp-give__assist a {
+  display: inline-block;
 }
 
 /* 43px — one pixel under the floor, on the most-rendered button RIM has. */
