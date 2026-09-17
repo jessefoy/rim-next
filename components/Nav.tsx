@@ -98,15 +98,32 @@ export default function Nav() {
         {/* Public only: member/admin/tool routes return the member-bar above,
             so this nav never renders there. */}
         <nav className="nav__desktop" aria-label="Main navigation">
-              {/* A single page, so a flat link rather than a fourth door. The
-                  page keeps its own title ("A Handful of Leaves"); the bar is
-                  tight, so the label is short. */}
-              <Link
-                href="/what-we-practice"
-                className={`nav__link${isActive("/what-we-practice")}`}
-              >
-                Our Practice
-              </Link>
+              {/* Our Practice became a door in session 177: CARE (how we
+                  practice) in front, the Handful (what we learn) behind it,
+                  and the story of where RIM came from. The bar is tight, so
+                  the label stays short. */}
+              <div className="nav__dropdown">
+                <button className="nav__dropdown-toggle">
+                  Our Practice
+                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
+                </button>
+                <div className="nav__dropdown-panel">
+                  <div className="nav__dropdown-panel-inner">
+                    <Link href="/care" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Taking Care</div>
+                      <div className="nav__dropdown-desc">How we practice, in eight plain words</div>
+                    </Link>
+                    <Link href="/what-we-practice" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">A Handful of Leaves</div>
+                      <div className="nav__dropdown-desc">What we learn, and how it is ordered</div>
+                    </Link>
+                    <Link href="/about" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Our Story</div>
+                      <div className="nav__dropdown-desc">Where RIM came from</div>
+                    </Link>
+                  </div>
+                </div>
+              </div>
               <div className="nav__dropdown">
                 <button className="nav__dropdown-toggle">
                   Programs
@@ -228,10 +245,22 @@ export default function Nav() {
                 </Link>
               )}
               <Link
+                href="/care"
+                className={`nav__mobile-link${isActive("/care")}`}
+              >
+                Taking Care
+              </Link>
+              <Link
                 href="/what-we-practice"
                 className={`nav__mobile-link${isActive("/what-we-practice")}`}
               >
-                Our Practice
+                A Handful of Leaves
+              </Link>
+              <Link
+                href="/about"
+                className={`nav__mobile-link${isActive("/about")}`}
+              >
+                Our Story
               </Link>
               <Link
                 href="/community-programs"

@@ -28372,3 +28372,36 @@ a.pp-card.tpr-card {
   width: 24px;
   height: 24px;
 }
+
+/* ============================================================================
+   SESSION 177 — CARE-FIRST HOME, /care, /about
+   ============================================================================
+   The home page re-sequenced around "our practice is taking care" (authority:
+   the CARE framework docs + RIM_Public_Pages.md). Two new static pages reuse
+   the pp- grammar unchanged. Only the pieces below were new.
+   ========================================================================= */
+
+/* A split whose card column leads on desktop. The words stay first in the DOM
+   (reading order on phones: intro, then cards), and `order` moves the cards
+   to the left on wide screens, mirroring how `.pp-split--flip` moves a photo.
+   Reset inside the same breakpoint the split collapses at, so a phone reads
+   words-then-cards — an appended `order` outside its breakpoint would beat
+   the earlier media query on source order (the session-176 trap). */
+.pp-split--doors-left .pp-doors { order: -1; }
+@media (max-width: 900px) {
+  .pp-split--doors-left .pp-doors { order: 0; }
+}
+
+/* The four CARE pairs are white lifted cards on the warm ground (the listing
+   page's card language), not the Light-Pampas door insets, which exist for
+   the white section where a white card would vanish. Title then one line. */
+.pp-doors .pp-card__main .pp-card__title { margin-bottom: 6px; }
+
+/* A title-only door (the program categories) sits directly in the row; the
+   base 10px title margin would centre its text ~5px above the arrow now that
+   `.pp-card--door`'s reset no longer matches. Caught in review, not by eye. */
+.pp-doors .pp-card__row > .pp-card__title { margin: 0; }
+
+/* A deep link into a reading page lands with its heading clear of the sticky
+   nav (100px), the same clearance the catalog's category anchors carry. */
+.pp-prose h2[id] { scroll-margin-top: 124px; }
