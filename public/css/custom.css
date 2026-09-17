@@ -8148,14 +8148,20 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 }
 .nav__mobile-donate:hover { background: var(--rim-blue); }
 
-/* Responsive */
-@media (max-width: 767px) {
+/* Responsive. The desktop bar's natural width is ~908px (brand 266 + four
+   44px dropdown toggles 482 + DONATE 96 + gaps + 40px side padding), measured
+   on the deployed page in session 177. Below that the bar overflowed the
+   viewport and `html { overflow-x: clip }` hid it: on an iPad in portrait
+   (768) DONATE sat 100px past the right edge. The hamburger therefore takes
+   over at 940, not 767. Both halves of the switch live in this one pair of
+   queries; keep them together. */
+@media (max-width: 940px) {
   .nav__desktop { display: none; }
   .nav__donate   { display: none; }
   .nav__hamburger { display: flex; }
   .nav__brand-name { font-size: var(--text-small); }
 }
-@media (min-width: 768px) {
+@media (min-width: 941px) {
   .nav__mobile { display: none !important; }
 }
 
@@ -28022,10 +28028,10 @@ a.pp-card:hover .pp-card__action {
   display: inline-flex;
   align-items: center;
 }
-/* DONATE is display:none under 768px (the mobile menu carries its own), so the
+/* DONATE is display:none up to 940px (the mobile menu carries its own), so the
    display here MUST stay inside the desktop query — setting it unconditionally
    un-hides the button on phones and pushes the hamburger off-screen. */
-@media (min-width: 768px) {
+@media (min-width: 941px) {
   .nav__donate {
     box-sizing: border-box;
     min-height: 44px;
@@ -28037,10 +28043,10 @@ a.pp-card:hover .pp-card__action {
     font-size: var(--text-xs);
   }
 }
-/* The hamburger only exists under 768px. Sized in that query for the same
+/* The hamburger only exists up to 940px. Sized in that query for the same
    reason: an unconditional min-width would widen a button that is display:none
    on desktop, which is harmless but misleading to read. */
-@media (max-width: 767px) {
+@media (max-width: 940px) {
   .nav__hamburger {
     min-width: 44px;
     min-height: 44px;
