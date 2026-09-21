@@ -4,11 +4,12 @@
  *
  * Used by:
  *   - /community-care-agreements (public reading page)
+ *   - /account/community-care (member reading page)
  *   - /join (new-member threshold)
  *   - /account/welcome (post-sign-in welcome ritual fallback)
  *   - components/RegistrationForm.tsx (program registration)
  *
- * One agreement, four surfaces. Editing the text here changes it
+ * One agreement, five surfaces. Editing the text here changes it
  * everywhere, and keeping it that way is the point.
  *
  * The text no longer mirrors the legacy Webflow Community Membership page.

@@ -72,3 +72,7 @@ The Program Manager is a compact work interface, not a public editorial page:
 ## Verification
 
 Use `npx tsc --noEmit` before pushing. The full build runs only on Vercel because the local build's migration stage cannot reach production. For a behavior change, verify the editor consequence and at least the affected public/member/operational surfaces—not merely a successful save.
+
+### Preparation-note placement (September 2026)
+
+The existing `earlyArrivalMessage` field now renders as Good to know beside the relevant Today offering in the member dashboard. Public catalog and weekly cards omit it. `specialAnnouncement` remains a visible Update both publicly and on the member session. No editor field, registration, Zoom, or scheduler behavior changed.

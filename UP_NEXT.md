@@ -6,11 +6,13 @@
 
 ## Active
 
-### 2026-09-21 — Remaining member redesign implemented; deployment review in progress
+### 2026-09-21 — Member redesign deployed; signed-in review pending
 
 Jesse explicitly authorized implementing the remaining preview changes. Production code now covers the quiet dashboard (Today + preparation notes; upcoming registrations in a separate query view), My Teams directory, header account/Manage RIM navigation, separate member Community Care page, simpler profile, compact team home destinations with existing content behind disclosures, and persisted personal file sorting/favorites/colors plus shared attributed pins. Public catalog/weekly cards retain urgent Updates and omit routine Good to know notes.
 
 File organization adds three tables and two PATCH routes; existing access gates and Drive operations remain in place. See `RIM_GoogleWorkspace.md` §11. The source preview remains a historical study, not the production implementation. No Zoom, registration, email, or third-party permission code was changed. Do not restore member self-cancellation.
+
+Deployment: `0627936` pushed to `main` and confirmed live on September 21. Both public program listings have zero Good to know notices, preserve the existing Update, and measure without horizontal overflow at 375 and 1280px. The reviewed browser reported no console errors.
 
 Validation so far: TypeScript passes; changed TypeScript files have no lint errors; 68 isolated regression checks pass, covering new preference/pin boundaries and the actual dashboard’s Zoom timing/registration gates. No live database or external writes were used in tests. Jesse was asked to sign in for deployed member/admin/app visual and interaction review; the browser remains at `/login`. Do not describe the authenticated walkthrough as complete until it occurs.
 
