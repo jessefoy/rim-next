@@ -17,7 +17,8 @@ interface PinnedThread { id: string; title: string }
 interface Props {
   slug: string;
   hubName: string;
-  stateSentence: string;
+  filesEnabled: boolean;
+  conversationsEnabled: boolean;
   apps: HubHomeApp[];
   welcomeHeadline: string | null;
   welcomeBodyHtml: string;
@@ -32,19 +33,10 @@ interface Props {
   thisMonth: ThisMonthGlance | null;
 }
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 5) return "Good evening";
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
-}
-
 export default function HubHomeClient(props: Props) {
   const {
     slug,
-    hubName,
-    stateSentence,
+    hubName, filesEnabled, conversationsEnabled,
     apps,
     welcomeHeadline,
     welcomeBodyHtml,
@@ -65,7 +57,7 @@ export default function HubHomeClient(props: Props) {
   const primaryApp = apps.find((app) => app.role === "primary") ?? null;
   const supportingApps = apps.filter((app) => app.role === "supporting");
   const connectedLinks = apps.filter((app) => app.role === "link");
-  const primaryUsesModule = primaryApp?.homeMode === "module" && thisMonth;
+
 
   async function dismissWelcome() {
     setDismissing(true);
@@ -102,13 +94,20 @@ export default function HubHomeClient(props: Props) {
   return (
     <div className="hub-home">
       <header className="hub-home__header">
-        <div className="hub-home__greeting">{greeting()}.</div>
-        <h1 className="hub-home__state">{stateSentence}</h1>
+        <h1 className="ac-page-title">{hubName}</h1>
+        <p className="ac-page-sub">Your team’s shared space.</p>
       </header>
 
+      <nav aria-label="Team destinations"><ul className="rim-destination-list">
+        {conversationsEnabled && <li><Link href={`/account/hub/${slug}/conversations`}><span>Conversations<small>Read and join team discussions</small></span><span aria-hidden="true">→</span></Link></li>}
+        {filesEnabled && <li><Link href={`/account/hub/${slug}/files`}><span>Files<small>Find documents and shared resources</small></span><span aria-hidden="true">→</span></Link></li>}
+        <li><Link href={`/account/hub/${slug}/members`}><span>Members<small>Find the people on your team</small></span><span aria-hidden="true">→</span></Link></li>
+        {[...(primaryApp ? [primaryApp] : []), ...supportingApps].map(app => <li key={app.key}><AppCard app={app} hubSlug={slug} /></li>)}
+      </ul></nav>
+
       {attention.length > 0 && (
-        <section className="hub-home__attention" aria-labelledby="hub-home-attention-heading">
-          <div className="hub-home__section-label" id="hub-home-attention-heading">Needs your attention</div>
+        <details className="rim-disclosure hub-home__attention">
+          <summary>{attention.length} {attention.length === 1 ? "item needs" : "items need"} your attention</summary>
           <div className="hub-home-attention">
             {attention.map((item) => (
               <Link key={item.id} href={item.href} className="hub-home-attention__row">
@@ -118,9 +117,10 @@ export default function HubHomeClient(props: Props) {
               </Link>
             ))}
           </div>
-        </section>
+        </details>
       )}
 
+      {(canEditContent || welcomeBodyHtml || connectedLinks.length > 0) && <details className="rim-disclosure"><summary>About this team</summary>
       <EditableContentSection
         label="Welcome"
         canEdit={canEditContent}
@@ -139,26 +139,6 @@ export default function HubHomeClient(props: Props) {
         emptyText="No welcome content yet."
       />
 
-      {primaryApp && !primaryUsesModule && (
-        <section className="hub-home__section" aria-labelledby="hub-home-apps-heading">
-          <div className="hub-home__section-label" id="hub-home-apps-heading">App</div>
-          <div className="hub-home-apps">
-            <AppCard app={primaryApp} hubSlug={slug} />
-          </div>
-        </section>
-      )}
-
-      {primaryUsesModule && <ThisMonthGlancePanel data={thisMonth} hubSlug={slug} />}
-
-      {supportingApps.length > 0 && (
-        <section className="hub-home__section" aria-labelledby="hub-home-supporting-apps-heading">
-          <div className="hub-home__section-label" id="hub-home-supporting-apps-heading">More apps</div>
-          <div className="hub-home-apps hub-home-apps--supporting">
-            {supportingApps.map((app) => <AppCard key={app.key} app={app} hubSlug={slug} />)}
-          </div>
-        </section>
-      )}
-
       {connectedLinks.length > 0 && (
         <section className="hub-home__section" aria-labelledby="hub-home-links-heading">
           <div className="hub-home__section-label" id="hub-home-links-heading">Links</div>
@@ -172,9 +152,13 @@ export default function HubHomeClient(props: Props) {
         </section>
       )}
 
+      </details>}
+
+      {thisMonth && <details className="rim-disclosure"><summary>Team schedule overview</summary><ThisMonthGlancePanel data={thisMonth} hubSlug={slug} /></details>}
+
       {pinnedThreads.length > 0 && (
-        <section className="hub-home__section">
-          <div className="hub-home__section-label">Pinned</div>
+        <details className="rim-disclosure">
+          <summary>Pinned conversations</summary>
           <ul className="hub-home__pinned">
             {pinnedThreads.map((thread) => (
               <li key={thread.id}>
@@ -184,9 +168,10 @@ export default function HubHomeClient(props: Props) {
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
 
+      {(canEditContent || homeContentHtml) && <details className="rim-disclosure"><summary>Team guidance</summary>
       <EditableContentSection
         label="Orientation"
         canEdit={canEditContent}
@@ -204,6 +189,7 @@ export default function HubHomeClient(props: Props) {
         html={homeContentHtml}
         emptyText="No orientation has been added yet."
       />
+      </details>}
     </div>
   );
 }
@@ -212,26 +198,7 @@ function AppCard({ app, hubSlug }: { app: HubHomeApp; hubSlug: string }) {
   const href = app.isRegistered
     ? `${app.path}${app.path.includes("?") ? "&" : "?"}hub=${encodeURIComponent(hubSlug)}`
     : app.path;
-  const hasCount = app.count !== null && app.count > 0;
-  return (
-    <Link href={href} className={`hub-home-card hub-home-card--${app.role}${hasCount ? " hub-home-card--active" : ""}`}>
-      <div className="hub-home-card__inner">
-        <div className="hub-home-card__label">
-          {app.role === "primary" ? "Primary app" : app.role === "supporting" ? "Supporting app" : "Connected link"}
-        </div>
-        <div className="hub-home-card__headline">{app.label}</div>
-        {hasCount ? (
-          <div className="hub-home-card__count">
-            <span className="hub-home-card__count-num">{app.count}</span>
-            <span className="hub-home-card__count-word">{app.countLabel}</span>
-          </div>
-        ) : (
-          <div className="hub-home-card__quiet">{app.quietText}</div>
-        )}
-        <div className="hub-home-card__cta">Open {app.label} →</div>
-      </div>
-    </Link>
-  );
+  return <Link href={href}><span>{app.label}<small>Open this team’s {app.label.toLowerCase()}</small></span><span aria-hidden="true">→</span></Link>;
 }
 
 function EditableContentSection({

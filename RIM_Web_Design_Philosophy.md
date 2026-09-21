@@ -85,8 +85,8 @@ The goal is for a member to feel held by the interface, not managed by it.
 
 The authenticated application has three kinds of context, and each receives one visual layer—not a stack of competing navigation systems:
 
-- The **member header** answers “who am I here?” and provides profile and sign-out.
-- The **account rail** answers “where am I in My RIM?” and holds personal destinations, teams, and administration.
+- The **member header** answers “who am I here?” and provides an account menu for profile and sign-out, plus Manage RIM for authorized staff.
+- The **account rail** answers “where am I in My RIM?” and holds My Home, Library, My Teams, and Community Care. Administrative destinations appear here only while in the administration area.
 - The **hub rail** answers “which team am I working with?” and replaces the account rail inside a hub or a hub-launched tool. It does not nest inside it.
 
 Admin pages remain inside the account shell because administration is one responsibility of the same member, not a separate website. Tools use the hub rail when launched in team context and a quiet direct-entry tool header otherwise. Focused canvases and writers may reduce the surrounding chrome, but they must retain a clear way back.
@@ -150,3 +150,13 @@ If the answer is no, the design is not finished.
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org / Working document · February 2026; typeface and type-scale values corrected against `custom.css` September 2026 (session 176). **The tokens in `public/css/custom.css` are authority for any number in this document** — this is intent, not a spec.*
+
+## Calm member and team homes (September 2026)
+
+My Home is the member’s day: available Zoom entry, later sessions, and routine preparation beside the relevant offering. Important program updates remain visible; Good to know is a disclosure. Upcoming registrations retain their own reachable view, including dana invitations, but do not compete on the default home. Team messages belong in team Conversations, not a second feed on the member home.
+
+My Teams is a directory, not an expanding sidebar list. The directory follows the canonical membership-or-guiding-teacher door; ADMIN alone does not expose private teams. Inside a team, the rail replaces the personal rail and returns explicitly to My Teams.
+
+A team home is a stable list of destinations. Its height must not grow with every conversation or file. Existing welcome/orientation content, pins, schedule overview, and personal attention remain available through clearly named disclosures; installed apps retain their team context. Personal profile editing separates contact details, sign-in email, photo/introduction, and household information. Community Care has its own member page and uses the canonical agreement text unchanged.
+
+Files stay shared; organization can be personal. Sorting, favorites, and custom colors are saved for the signed-in member. Shared pins are attributed and available to existing file writers. Color is an optional marker, never the only identification or a change to text contrast. Search and Favorites here apply to the current folder, whose visible list is paginated.

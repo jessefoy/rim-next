@@ -248,7 +248,6 @@ export default async function ThisWeekPage({
                             )}
                             <ProgramCardNotices
                               announcement={program.specialAnnouncement}
-                              note={program.earlyArrivalMessage}
                             />
                           </div>
                           <span className="pl-card__action" aria-hidden="true">→</span>

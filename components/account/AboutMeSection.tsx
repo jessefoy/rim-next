@@ -67,11 +67,12 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
   async function handleAvatarRemove() {
     setError("");
     try {
-      await fetch("/api/account/avatar", {
+      const res = await fetch("/api/account/avatar", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ avatarUrl: null }),
       });
+      if (!res.ok) throw new Error("Remove failed");
       setAvatarUrl(null);
     } catch {
       setError("Could not remove photo.");
@@ -100,7 +101,7 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
 
   return (
     <section className="mp-section mp-bio">
-      <p className="mp-section__title">About me</p>
+      <h2 className="mp-section__title">Photo and introduction</h2>
       <p className="mp-section__hint">
         Your photo appears in team member lists. The description below is shown
         on your member profile.
@@ -155,7 +156,7 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
       </div>
 
       <div className="mp-save">
-        {error && <p className="mp-save__error">{error}</p>}
+        {error && <p className="mp-save__error" role="alert">{error}</p>}
         <button
           type="button"
           className="mp-save__btn"
@@ -164,7 +165,7 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
         >
           {saving ? "Saving…" : "Save bio"}
         </button>
-        {saved && <span className="mp-save__success">Saved ✓</span>}
+        {saved && <span className="mp-save__success" role="status">Saved ✓</span>}
       </div>
     </section>
   );

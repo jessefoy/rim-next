@@ -14,34 +14,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 import { usePathname } from "next/navigation";
 import {
   Menu,
   X,
   Home,
   BookOpen,
-  UserCircle,
+  Heart,
   Users,
   HouseHeart,
   Layers,
   Mail,
-  ChevronDown,
   ShieldCheck,
   ChevronsLeft,
   ChevronsRight,
-  Settings,
   UsersRound,
 } from "lucide-react";
 
-interface HubLink {
-  slug: string;
-  name: string;
-}
-
-interface Props {
-  roles: string[];
-  hubLinks?: HubLink[];
-}
+interface Props { roles: string[]; }
 
 type LucideIcon = React.ComponentType<{
   size?: number;
@@ -60,7 +51,7 @@ const MEMBER_LINKS: NavLink[] = [
   // an unqualified "Home" would read as the public home page.
   { label: "My Home",          href: "/account/dashboard",            icon: Home          },
   { label: "Library",          href: "/account/courses",              icon: BookOpen      },
-  { label: "My Profile",       href: "/account/dashboard-my-profile", icon: UserCircle    },
+  { label: "My Teams", href: "/account/teams", icon: UsersRound },
 ];
 
 const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] = [
@@ -73,22 +64,11 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
 
 const COLLAPSE_KEY = "rim-account-sidebar-collapsed";
 
-function teamInitials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase() || "T";
-}
-
-export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
+export default function AccountSidebar({ roles }: Props) {
   const pathname = usePathname();
-  const [teamsOpen, setTeamsOpen] = useState(false);
-  const [manageOpen, setManageOpen] = useState(pathname.startsWith("/admin/"));
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const drawerRef = useNavigationDrawer(mobileOpen, () => setMobileOpen(false));
 
   useEffect(() => {
     // Route changes close the mobile drawer, including browser navigation —
@@ -129,29 +109,11 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
     if (l.registrarOk) return hasRegistrar;
     return false;
   });
-  const isHubRoute = pathname.startsWith("/account/hub/");
+  const isAdminRoute = pathname.startsWith("/admin/");
 
   function setCollapsedAndRemember(next: boolean) {
     setCollapsed(next);
     try { localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0"); } catch {}
-  }
-
-  function toggleTeams() {
-    if (collapsed) {
-      setCollapsedAndRemember(false);
-      setTeamsOpen(true);
-      return;
-    }
-    setTeamsOpen((open) => !open);
-  }
-
-  function toggleManage() {
-    if (collapsed) {
-      setCollapsedAndRemember(false);
-      setManageOpen(true);
-      return;
-    }
-    setManageOpen((open) => !open);
   }
 
   return (
@@ -180,6 +142,7 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
       )}
 
     <nav
+      ref={drawerRef}
       className={`ac-sidebar${collapsed ? " ac-sidebar--collapsed" : ""}${mobileOpen ? " ac-sidebar--open" : ""}`}
       aria-label="Account navigation"
       data-collapsed={collapsed ? "true" : "false"}
@@ -210,6 +173,7 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
           <Link
             key={l.href}
             href={l.href}
+            aria-current={pathname === l.href ? "page" : undefined}
             className={linkClass(l.href)}
             title={collapsed ? l.label : undefined}
           >
@@ -218,57 +182,17 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
           </Link>
         ))}
 
-        {hubLinks.length > 0 && (
+        <div className="ac-sidebar__divider" role="separator" />
+        <Link href="/account/community-care" className={linkClass("/account/community-care")} title={collapsed ? "Community Care" : undefined}>
+          <Heart size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+          <span className="ac-sidebar__label">Community Care</span>
+        </Link>
+        {isAdminRoute && visibleStaffLinks.length > 0 && (
           <div className="ac-sidebar__group">
             <div className="ac-sidebar__divider" role="separator" />
-            <button
-              type="button"
-              className="ac-sidebar__group-toggle"
-              onClick={toggleTeams}
-              aria-expanded={!collapsed && (teamsOpen || isHubRoute)}
-              aria-label="Your teams"
-              title={collapsed ? "Your teams" : undefined}
-            >
-              <UsersRound size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
-              <span className="ac-sidebar__label">Your teams</span>
-              <ChevronDown size={15} className={`ac-sidebar__chevron${teamsOpen ? " ac-sidebar__chevron--open" : ""}`} />
-            </button>
-            {(teamsOpen || isHubRoute) && hubLinks.map((h) => (
-              <Link
-                key={h.slug}
-                href={`/account/hub/${h.slug}`}
-                className={`${linkClass(`/account/hub/${h.slug}`)} ac-sidebar__link--nested`}
-                title={h.name}
-              >
-                <span className="ac-sidebar__team-mark" aria-hidden="true">{teamInitials(h.name)}</span>
-                <span className="ac-sidebar__label">{h.name}</span>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {visibleStaffLinks.length > 0 && (
-          <div className="ac-sidebar__group">
-            <div className="ac-sidebar__divider" role="separator" />
-            <button
-              type="button"
-              className="ac-sidebar__group-toggle"
-              onClick={toggleManage}
-              aria-expanded={!collapsed && manageOpen}
-              aria-label="Manage RIM"
-              title={collapsed ? "Manage RIM" : undefined}
-            >
-              <Settings size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
-              <span className="ac-sidebar__label">Manage RIM</span>
-              <ChevronDown size={15} className={`ac-sidebar__chevron${manageOpen ? " ac-sidebar__chevron--open" : ""}`} />
-            </button>
-            {manageOpen && visibleStaffLinks.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`${linkClass(l.href)} ac-sidebar__link--nested`}
-                title={l.label}
-              >
+            <p className="ac-sidebar__section-label">Manage RIM</p>
+            {visibleStaffLinks.map((l) => (
+              <Link key={l.href} href={l.href} className={linkClass(l.href)} title={collapsed ? l.label : undefined}>
                 <l.icon size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
                 <span className="ac-sidebar__label">{l.label}</span>
               </Link>

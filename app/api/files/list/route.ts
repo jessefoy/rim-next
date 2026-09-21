@@ -8,6 +8,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { sessionDisplayName } from "@/lib/sessionIdentity";
 import { auth } from "@/auth";
 import {
   buildFileRows,
@@ -51,9 +53,27 @@ export async function GET(req: NextRequest) {
         { status: 404 },
       );
     }
+    const rows = await buildFileRows(files, viewer);
+    // Read preferences only for files that survived the existing draft/removal
+    // visibility filter. Both the member and the resource place scope the key.
+    const ids = rows.map(row => row.id);
+    const [preferences, pins, view] = await Promise.all([
+      db.googleFilePreference.findMany({ where: { userId: viewer.userId, placeKey: place.key, googleFileId: { in: ids } } }),
+      db.googleFilePin.findMany({ where: { placeKey: place.key, googleFileId: { in: ids } } }),
+      db.googleFileViewPreference.findUnique({ where: { userId_placeKey: { userId: viewer.userId, placeKey: place.key } } }),
+    ]);
+    const people = await db.user.findMany({ where: { id: { in: [...new Set(pins.map(pin => pin.pinnedByUserId))] } }, select: { id: true, firstName: true, lastName: true, preferredName: true } });
+    const names = new Map(people.map(person => [person.id, sessionDisplayName(person, "A team member")]));
+    const preferenceById = new Map(preferences.map(pref => [pref.googleFileId, pref]));
+    const pinById = new Map(pins.map(pin => [pin.googleFileId, pin]));
     return NextResponse.json({
       folderName: resolved.name,
-      files: await buildFileRows(files, viewer),
+      sort: view?.sort ?? "name",
+      files: rows.map(row => {
+        const pref = preferenceById.get(row.id);
+        const pin = !row.held ? pinById.get(row.id) : undefined;
+        return { ...row, favorite: pref?.favorite ?? false, color: pref?.color ?? null, pinned: !!pin, pinnedBy: pin ? names.get(pin.pinnedByUserId) ?? "A team member" : null };
+      }),
     });
   } catch (e) {
     console.error("[files-list]", e instanceof Error ? e.message : e);

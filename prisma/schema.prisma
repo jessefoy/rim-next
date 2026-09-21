@@ -50,6 +50,8 @@ model VerificationToken {
 // ─── MEMBER PROFILE ──────────────────────────────────────────────────────────
 
 model User {
+  filePreferences GoogleFilePreference[]
+  fileViewPreferences GoogleFileViewPreference[]
   id            String    @id @default(cuid())
   email         String    @unique
   emailVerified DateTime?
@@ -1376,4 +1378,35 @@ model SessionBan {
 
   @@index([roomName])
   @@map("session_bans")
+}
+
+// Personal organization never changes Google's folder structure or access.
+model GoogleFilePreference {
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  placeKey     String
+  googleFileId String
+  favorite     Boolean @default(false)
+  color        String?
+  @@id([userId, placeKey, googleFileId])
+  @@map("google_file_preferences")
+}
+
+model GoogleFileViewPreference {
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  placeKey String
+  sort     String @default("name")
+  @@id([userId, placeKey])
+  @@map("google_file_view_preferences")
+}
+
+// Shared pins are scoped to a place; access is still resolved from the file.
+model GoogleFilePin {
+  placeKey       String
+  googleFileId   String
+  pinnedByUserId String
+  pinnedAt       DateTime @default(now())
+  @@id([placeKey, googleFileId])
+  @@map("google_file_pins")
 }

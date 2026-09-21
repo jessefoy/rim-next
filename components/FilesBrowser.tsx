@@ -51,11 +51,14 @@ import {
   Folder,
   MoreHorizontal,
   Plus,
+  Star,
+  Pin,
   Presentation,
   Upload as UploadIcon,
   type LucideIcon,
 } from "lucide-react";
 import { ALLOWED_UPLOAD_MIME_TYPES, GOOGLE_MIME } from "@/lib/google/mime";
+import { orderFiles, isFileSort, type FileSort } from "@/lib/fileOrganization";
 import { relativeDate } from "@/lib/relativeDate";
 
 // The exact same list the server's Blob-token scope enforces (lib/google/
@@ -83,6 +86,10 @@ interface FileRow {
   held: boolean;
   /** This viewer created it (drives the "Your drafts" grouping). */
   mine: boolean;
+  favorite?: boolean;
+  color?: string | null;
+  pinned?: boolean;
+  pinnedBy?: string | null;
 }
 
 interface Crumb {
@@ -121,7 +128,8 @@ type Dialog =
   | { mode: "create"; kind: CreateKind; title: string }
   | { mode: "rename"; row: FileRow }
   | { mode: "move"; row: FileRow }
-  | { mode: "remove"; row: FileRow };
+  | { mode: "remove"; row: FileRow }
+  | { mode: "color"; row: FileRow };
 
 const GENERIC_ERROR = "We couldn't make that change. Please try again.";
 
@@ -146,6 +154,7 @@ export default function FilesBrowser({
   basePath,
 }: Props) {
   const router = useRouter();
+  const browserRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
   // The URL is the source of truth for where we are.
@@ -154,6 +163,11 @@ export default function FilesBrowser({
     (showPlaces ? searchParams.get("place") : null) ?? initialPlaceKey ?? defaultKey;
   const folderId = searchParams.get("folder");
 
+  const [sort, setSort] = useState<FileSort>("name");
+  const [search, setSearch] = useState("");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [filePage, setFilePage] = useState(1);
+  const [preferenceNotice, setPreferenceNotice] = useState("");
   const [trail, setTrail] = useState<Crumb[]>([]);
   const [files, setFiles] = useState<FileRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -226,6 +240,7 @@ export default function FilesBrowser({
         return;
       }
       setFiles(data.files ?? []);
+      if (isFileSort(data.sort)) setSort(data.sort);
       if (!folderId) {
         setTrail([]);
       } else if (intended && intended[intended.length - 1]?.id === folderId) {
@@ -247,6 +262,8 @@ export default function FilesBrowser({
   // load, folder clicks, place switches, the sidebar Files link, and back/
   // forward. No manual load() calls in handlers; they just navigate.
   useEffect(() => {
+    setSearch(""); setFavoritesOnly(false); setFilePage(1); setPreferenceNotice("");
+    setMenuOpen(null); setDialog(null);
     load();
   }, [load]);
 
@@ -287,6 +304,27 @@ export default function FilesBrowser({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen, dialog, busy, closeDialog]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const menu = browserRef.current?.querySelector<HTMLElement>('[role="menu"]');
+    menu?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    function navigateMenu(event: KeyboardEvent) {
+      if (!menu?.contains(document.activeElement)) return;
+      const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)'));
+      const index = items.indexOf(document.activeElement as HTMLElement);
+      let next: number;
+      if (event.key === "ArrowDown") next = (index + 1) % items.length;
+      else if (event.key === "ArrowUp") next = (index - 1 + items.length) % items.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = items.length - 1;
+      else return;
+      event.preventDefault(); items[next]?.focus();
+    }
+    document.addEventListener("keydown", navigateMenu);
+    return () => { document.removeEventListener("keydown", navigateMenu); if (opener?.isConnected) opener.focus(); };
+  }, [menuOpen]);
 
   function openPlace(key: string) {
     if (key === placeKey) return;
@@ -359,6 +397,22 @@ export default function FilesBrowser({
     closeDialog();
     load({ soft: true });
     loadPending();
+  }
+
+  async function saveOrganization(row: FileRow, change: { favorite?: boolean; color?: string | null; pinned?: boolean }) {
+    setMenuOpen(null); setPreferenceNotice("");
+    const { ok } = await writeRequest(`/api/files/${encodeURIComponent(row.id)}/organization`, {
+      method: "PATCH", body: JSON.stringify({ place: placeKey, ...change }),
+    });
+    if (!ok) return;
+    closeDialog();
+    setPreferenceNotice(change.pinned !== undefined ? (change.pinned ? "Pinned for the team." : "Team pin removed.") : "Your preference is saved.");
+    load({ soft: true });
+  }
+  async function saveSort(next: string) {
+    if (!isFileSort(next)) return;
+    const { ok } = await writeRequest("/api/files/preferences", { method: "PATCH", body: JSON.stringify({ place: placeKey, sort: next }) });
+    if (ok) { setSort(next); setFilePage(1); }
   }
 
   /** Approve or cancel a pending removal (from the Pending removal section),
@@ -522,6 +576,9 @@ export default function FilesBrowser({
             aria-hidden="true"
           />
           <span className="gf-row__namecell">
+            {row.color && <span className="gf-color-mark" style={{ backgroundColor: row.color }} role="img" aria-label={`Your color: ${row.color}`} />}
+            {row.favorite && <Star size={16} aria-label="Your favorite" />}
+            {row.pinned && <Pin size={16} aria-label={`Pinned for the team by ${row.pinnedBy ?? "a team member"}`} />}
             <span className="gf-row__name">{row.name}</span>
             {othersDraft && <span className="gf-row__tag">Draft</span>}
           </span>
@@ -529,6 +586,7 @@ export default function FilesBrowser({
           <span className="gf-row__meta">
             {row.modifiedTime ? `Updated ${relativeDate(row.modifiedTime)}` : ""}
             {row.createdBy ? ` · ${row.createdBy}` : ""}
+            {row.pinned && <span className="gf-pin-credit">Pinned by {row.pinnedBy}</span>}
           </span>
         </button>
         {row.held && row.mine && (
@@ -540,11 +598,12 @@ export default function FilesBrowser({
             Share with the Space
           </button>
         )}
-        {canWrite && (
+        {(
           <div className="gf-menu-wrap">
             <button
               className="gf-item__more"
               aria-label={`Actions for ${row.name}`}
+              disabled={busy}
               aria-haspopup="menu"
               aria-expanded={menuOpen === row.id}
               onClick={() => setMenuOpen(menuOpen === row.id ? null : row.id)}
@@ -553,6 +612,10 @@ export default function FilesBrowser({
             </button>
             {menuOpen === row.id && (
               <div className="gf-menu gf-menu--row" role="menu">
+                <button className="gf-menu__item" role="menuitem" onClick={() => saveOrganization(row, { favorite: !row.favorite })}>{row.favorite ? "Remove from my favorites" : "Add to my favorites"}</button>
+                <button className="gf-menu__item" role="menuitem" onClick={() => openDialog({ mode: "color", row })}>Choose my color</button>
+                {canWrite && !row.held && <button className="gf-menu__item" role="menuitem" onClick={() => saveOrganization(row, { pinned: !row.pinned })}>{row.pinned ? "Unpin for the team" : "Pin for the team"}</button>}
+                {canWrite && <>
                 {!row.held && (
                   <button
                     className="gf-menu__item"
@@ -590,8 +653,9 @@ export default function FilesBrowser({
                   role="menuitem"
                   onClick={() => openDialog({ mode: "remove", row })}
                 >
-                  Remove
+                  Request removal
                 </button>
+                </>}
               </div>
             )}
           </div>
@@ -602,11 +666,17 @@ export default function FilesBrowser({
 
   // The viewer's own drafts float to a distinct section at the top; everything
   // else (shared files + any drafts a moderator can see) stays in the main list.
-  const myDrafts = files?.filter((f) => f.held && f.mine) ?? [];
-  const rest = files?.filter((f) => !(f.held && f.mine)) ?? [];
+  const ordered = orderFiles((files ?? []).filter(row =>
+    (!favoritesOnly || row.favorite) && row.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
+  ), sort);
+  const pageCount = Math.max(1, Math.ceil(ordered.length / 20));
+  const currentPage = Math.min(filePage, pageCount);
+  const pageRows = ordered.slice((currentPage - 1) * 20, currentPage * 20);
+  const myDrafts = pageRows.filter(f => f.held && f.mine);
+  const rest = pageRows.filter(f => !(f.held && f.mine));
 
   return (
-    <div className={`gf-browser${showPlaces ? " gf-browser--with-places" : ""}`}>
+    <div ref={browserRef} className={`gf-browser${showPlaces ? " gf-browser--with-places" : ""}`}>
       {showPlaces && places.length > 1 && (
         <nav className="gf-places" aria-label="File locations">
           {places.map((p) => (
@@ -676,6 +746,22 @@ export default function FilesBrowser({
             </div>
           )}
         </div>
+
+        <div className="gf-personal-toolbar">
+          <label className="gf-search-label">Find in this folder
+            <input type="search" value={search} placeholder="Search file names" onChange={e => { setSearch(e.target.value); setFilePage(1); }} />
+          </label>
+          <label>Sort for me
+            <select value={sort} disabled={busy || files === null} onChange={e => saveSort(e.target.value)}>
+              <option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option>
+              <option value="newest">Recently updated</option><option value="oldest">Oldest updated</option><option value="kind">File type</option>
+            </select>
+          </label>
+          <button className="gf-favorites-toggle" type="button" aria-pressed={favoritesOnly} onClick={() => { setFavoritesOnly(!favoritesOnly); setFilePage(1); }}>Favorites here</button>
+        </div>
+        <p className="gf-personal-hint">Your sort order, favorites, and colors are personal. Team pins appear first.</p>
+        <p className="gf-preference-status" role="status">{preferenceNotice}</p>
+        {files !== null && !error && ordered.length === 0 && files.length > 0 && <p className="gf-status">No files match this view. Try another name or turn off Favorites here.</p>}
 
         {canWrite && (
           <input
@@ -782,6 +868,7 @@ export default function FilesBrowser({
           </section>
         )}
 
+        {rest.length > 0 && <ul className="gf-list">{rest.map(renderRow)}</ul>}
         {myDrafts.length > 0 && (
           <section className="gf-drafts" aria-label="Your drafts">
             <div className="gf-drafts__head">
@@ -792,7 +879,11 @@ export default function FilesBrowser({
           </section>
         )}
 
-        {rest.length > 0 && <ul className="gf-list">{rest.map(renderRow)}</ul>}
+        {pageCount > 1 && <nav className="rim-pagination" aria-label="File pages">
+          <button type="button" disabled={currentPage === 1} onClick={() => setFilePage(currentPage - 1)}>Previous</button>
+          <span aria-live="polite">Page {currentPage} of {pageCount}</span>
+          <button type="button" disabled={currentPage === pageCount} onClick={() => setFilePage(currentPage + 1)}>Next</button>
+        </nav>}
       </div>
 
       {/* A quiet backdrop closes any open menu on an outside tap. */}
@@ -803,6 +894,8 @@ export default function FilesBrowser({
           onClick={() => setMenuOpen(null)}
         />
       )}
+
+      {dialog?.mode === "color" && <FileColorDialog key={dialog.row.id} row={dialog.row} busy={busy} error={actionError} onCancel={closeDialog} onSave={color => saveOrganization(dialog.row, { color })} />}
 
       {dialog?.mode === "create" && (
         <NameDialog
@@ -1040,4 +1133,23 @@ function MovePicker({
       </div>
     </div>
   );
+}
+
+function FileColorDialog({ row, busy, error, onCancel, onSave }: {
+  row: FileRow; busy: boolean; error: string | null; onCancel: () => void; onSave: (color: string | null) => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [color, setColor] = useState<string | null>(row.color ?? null);
+  useEffect(() => { const dialog = dialogRef.current; dialog?.showModal(); return () => dialog?.close(); }, []);
+  return <dialog className="gf-color-dialog" ref={dialogRef} aria-labelledby="file-color-title" onCancel={event => { event.preventDefault(); if (!busy) onCancel(); }}>
+    <form onSubmit={event => { event.preventDefault(); if (!busy) onSave(color); }}>
+      <h2 id="file-color-title">Your file color</h2>
+      <p>{row.name}</p><p className="gf-personal-hint">Only you see this color. The file stays in its shared folder.</p>
+      <label className="gf-color-picker">Choose a color <input type="color" value={color ?? "#31576d"} onChange={event => setColor(event.target.value)} disabled={busy} /></label>
+      <button type="button" className="gf-no-color" aria-pressed={color === null} onClick={() => setColor(null)} disabled={busy}>No color</button>
+      <p className="gf-personal-hint">{color ? `Selected: ${color}` : "No color selected"}</p>
+      {error && <p className="gf-dialog__error" role="alert">{error}</p>}
+      <div className="gf-dialog__actions"><button type="button" className="gf-dialog__cancel" onClick={onCancel} disabled={busy}>Cancel</button><button className="gf-dialog__submit" type="submit" disabled={busy}>{busy ? "Saving…" : "Save color"}</button></div>
+    </form>
+  </dialog>;
 }

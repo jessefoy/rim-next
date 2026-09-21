@@ -17,6 +17,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -111,6 +112,7 @@ export default function HubWorkspaceSidebar({
 }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const drawerRef = useNavigationDrawer(mobileOpen, () => setMobileOpen(false));
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -203,6 +205,7 @@ export default function HubWorkspaceSidebar({
       )}
 
       <nav
+      ref={drawerRef}
         className={[
           "hub-ws-sidebar",
           mobileOpen && "hub-ws-sidebar--open",
@@ -332,12 +335,12 @@ export default function HubWorkspaceSidebar({
               "Home" (the hub's), and two different Homes one list apart is
               exactly the ambiguity the account rail's "My Home" rename fixed. */}
           <Link
-            href="/account/dashboard"
+            href="/account/teams"
             className="hub-ws-footer__link"
-            title={collapsed ? "My RIM" : undefined}
+            title={collapsed ? "My Teams" : undefined}
           >
             <ChevronLeft size={16} strokeWidth={1.75} />
-            <span>My RIM</span>
+            <span>My Teams</span>
           </Link>
         </div>
       </nav>

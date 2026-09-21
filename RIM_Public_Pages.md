@@ -346,3 +346,7 @@ A `.pp-notice` panel was added above the program listings carrying the practical
 ---
 
 *Rooted in Mindfulness · public-page rebuild · begun session 148 (2026-06-13); the `pp-` grammar added session 169; the two listing pages unified onto one hero, one card and one spine session 170 (both 2026-08-07). Evolving — update as the system settles.*
+
+### Program notices (September 2026)
+
+The general program catalog and weekly schedule retain `specialAnnouncement` as a visible Update. They no longer render `earlyArrivalMessage` under “Good to know.” That routine preparation appears beside the relevant offering on the signed-in member’s Today view, in a disclosure. This is a placement change; authors still edit the same program field. Do not remove urgent updates or hide cancellation/time-change information with routine preparation.

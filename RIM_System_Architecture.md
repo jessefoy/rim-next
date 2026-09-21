@@ -31,7 +31,7 @@ Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. M
 
 **Current hubs:** 14 operational hubs + 2 governance hubs, all manageable from `/admin/hubs`. The four hubs with linked tools are: Hosting Hub (`host-team`), Course Hub (`courses`), Registration Hub (`registrar`), Support Hub (`support`). Support Hub has no linked tools — its Support Inbox was removed in session 100.
 
-**What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), **Files** (Google Workspace), and a Members tab. Dashboard hub cards show unread badges. (Native Documents and Mind Maps — the former "portable resources" — were both retired in session 165.)
+**What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), **Files** (Google Workspace), and a Members tab. The member dashboard has no team feed; conversations and attention remain in their team context. (Native Documents and Mind Maps — the former "portable resources" — were both retired in session 165.)
 
 **Per-hub feature switch.** `Hub.conversationsEnabled` (default true) is a per-hub Conversations toggle in hub settings; every new hub comes up fully equipped with Google Files auto-provisioned on create.
 
@@ -68,7 +68,7 @@ Hubs and Tools both provide scoped projections of member data — but they serve
 
 Session 162 unified the visual shell without changing any authority boundary:
 
-- `/account/*` uses the member header plus `AccountLayout` / `AccountSidebar` for personal destinations and team/admin entry points. On desktop the rail collapses from 220px to 64px, persists that preference, and expands when a collapsed group is chosen; long team names wrap rather than being clipped.
+- `/account/*` uses the member header plus `AccountLayout` / `AccountSidebar` for My Home, Library, My Teams, and Community Care. The header account menu holds profile/sign-out; a role-aware Manage RIM link leads to administration. On desktop the rail collapses from 220px to 64px and persists that preference. Team names live in the directory instead of a growing rail group.
 - `/admin/*` uses that same account shell. `app/admin/layout.tsx` adds `admin-ui` inside `AccountLayout`; admin content supplies the task, while the account rail supplies location.
 - `/account/hub/[slug]/*` uses the member header plus `HubWorkspaceSidebar`. The hub rail replaces the account rail so there is only one local navigation system; its desktop collapse is a true 64px icon rail, while mobile remains a full labeled drawer.
 - `/tools/*` uses `WorkspaceShell`. A hub-launched tool (`?hub=`) keeps the hub rail and hub identity; direct entry uses the quiet `ToolsNav` header. Tool access and data scope remain governed by their existing helpers—not by the visible shell.

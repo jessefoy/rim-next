@@ -348,3 +348,7 @@ When you touch a hub: derive the hub from the resource (usually a program), pass
 ---
 
 *RIM Hub Engineering · September 2026 · Written during session 128 Slice 2.5 as the institutional response to the email-URL leak.*
+
+## September 2026 home presentation
+
+The universal Home now renders the core destinations and installed apps as one compact navigation list. The Scheduler overview is retained behind its named disclosure; it is not copied into a second dashboard or reimplemented. Welcome/orientation editing, pinned conversations, and personal attention remain reachable without filling the default Home. These are presentation changes only: the exhaustive app registry, feature switches, app compatibility, source meaning, four routing layers, and access helpers remain authoritative. Home app links continue to carry `?hub=`. The team rail returns to the member’s `/account/teams` directory.

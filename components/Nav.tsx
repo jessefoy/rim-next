@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function Nav() {
   const pathname = usePathname();
@@ -17,11 +17,24 @@ export default function Nav() {
     (pathname?.startsWith("/tools") ?? false);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const accountMenu = useRef<HTMLDetailsElement>(null);
 
   // Close mobile menu on route change
   useEffect(() => {
+    // Navigation closes transient chrome after the new route commits.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuOpen(false);
+    if (accountMenu.current) accountMenu.current.open = false;
   }, [pathname]);
+
+  useEffect(() => {
+    const closeOutside = (event: PointerEvent) => {
+      const menu = accountMenu.current;
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    return () => document.removeEventListener("pointerdown", closeOutside);
+  }, []);
 
   // Close on Escape key
   useEffect(() => {
@@ -63,19 +76,23 @@ export default function Nav() {
           <Link href="/" className="member-bar__site-link">
             Main site
           </Link>
-          <Link
-            href="/account/dashboard-my-profile"
-            className="member-bar__profile"
-            aria-label={`${firstName}, my profile`}
-          >
-            <span className="member-bar__avatar" aria-hidden="true">
-              {firstName.charAt(0).toUpperCase()}
-            </span>
-            <span className="member-bar__profile-name">{firstName}</span>
-          </Link>
-          <button onClick={() => signOut({ callbackUrl: "/" })} className="member-bar__sign-out">
-            Sign out
-          </button>
+          {session?.user?.roles?.some((role: string) => ["ADMIN", "REGISTRAR"].includes(role)) && (
+            <Link href="/admin/members" className="member-bar__manage">Manage RIM</Link>
+          )}
+          <details className="member-menu" ref={accountMenu} onKeyDown={(event) => {
+            if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); }
+          }}>
+            <summary className="member-bar__profile" aria-label={`${firstName}, account menu`}>
+              <span className="member-bar__avatar" aria-hidden="true">{firstName.charAt(0).toUpperCase()}</span>
+              <span className="member-bar__profile-name">My account</span>
+            </summary>
+            <nav className="member-menu__panel" aria-label="My account">
+              <Link href="/account/dashboard-my-profile">My Profile</Link>
+              <Link href="/account/community-care">Community Care</Link>
+              <Link href="/">Main site</Link>
+              <button type="button" onClick={() => signOut({ callbackUrl: "/" })}>Sign out</button>
+            </nav>
+          </details>
         </div>
       </header>
     );

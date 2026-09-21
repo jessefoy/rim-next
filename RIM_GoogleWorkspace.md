@@ -259,3 +259,15 @@ Only an admin can delete directly in Drive (members have no Drive access — the
 ### New audit actions
 
 `hold`, `share`, `set-creator`, `request-removal`, `approve-removal`, `cancel-removal`, `comment`, `notify-shared`, plus the existing `create-*`/`upload`/`rename`/`move`/`mint-link`/`revoke-link`/`lockdown-drive`/`provision-space`.
+
+## 11. Personal organization and shared pins (September 2026)
+
+`GoogleFilePreference` stores favorite/color by `(userId, placeKey, googleFileId)`; `GoogleFileViewPreference` stores sort by `(userId, placeKey)`. These member-owned rows cascade on account deletion. `GoogleFilePin` stores a shared pin by `(placeKey, googleFileId)` with actor/time attribution. All three tables are added idempotently in `prisma/migrate.mjs`; no existing Google file, folder, grant, or metadata record is rewritten.
+
+`PATCH /api/files/[fileId]/organization` accepts personal favorite/color and, for file writers, shared pin changes. It derives identity from the session, resolves the actual file with `authorizeFileRead`, requires a matching place, rejects pending-removal files, and additionally uses `authorizeFileWrite` for pins. A held draft cannot become a shared pin. Six-digit hex colors or null only; unknown/spoofed fields are rejected. Pin and audit writes commit together. Personal organization is allowed for read-only team members because it changes no shared structure.
+
+`PATCH /api/files/preferences` persists a validated sort order after resolving the viewer’s place. The existing list endpoint first applies `buildFileRows` visibility, then attaches only this member’s preferences and same-place shared pins for those visible IDs. Removed membership, another team’s folder, private drafts, and governed deletion cannot be bypassed by these records. Pinned attribution is a RIM member name, never a Google service account.
+
+The Finder has folder-scoped search/favorites, folders-first sorting after shared pins, and 20 visible rows per page. Labels explicitly say “Find in this folder” and “Favorites here”; there is no cross-team global finder. The existing Google list loader retains its pre-existing 1,000-item per-folder fetch ceiling. Upload, create, rename, move, held drafts, file discussions, notifications, and governed deletion keep their existing endpoints. Color uses a native picker in a modal dialog and is explicitly personal. No localStorage is used for these saved preferences.
+
+Regression check: `node scripts/check-member-redesign.cjs` covers route authorization/scoping, validation, draft pin refusal, attribution, and personal sort keys with isolated fixtures. Live Google operations still require a signed-in walkthrough.

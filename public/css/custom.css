@@ -28547,3 +28547,161 @@ a.pp-card.tpr-card {
   --text-small: var(--text-app);
   font-size: var(--text-app);
 }
+
+/* MEMBER WAYFINDING — shared quiet surfaces, September 2026.
+   The same grammar serves personal pages, team homes, and working apps. */
+:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell) :is(h1, .ac-page-title) {
+  font-size: var(--text-h1);
+  line-height: var(--lh-heading);
+}
+:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell, .member-bar) :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: 3px;
+}
+:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell) :is(button, input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, summary) {
+  min-height: 44px;
+  box-sizing: border-box;
+}
+:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell) :is(input, select, textarea) {
+  max-width: 100%;
+}
+:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell) button:disabled {
+  cursor: default;
+}
+.member-bar__manage {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--rim-blue);
+  font-size: var(--text-app);
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 0 10px;
+}
+.member-menu { position: relative; }
+.member-menu > summary { cursor: pointer; min-height: 44px; list-style: none; }
+.member-menu > summary::-webkit-details-marker { display: none; }
+.member-menu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 220px;
+  padding: 8px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  background: var(--rim-surface);
+  z-index: 120;
+}
+.member-menu__panel :is(a, button) {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--rim-text);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.member-menu__panel :is(a, button):hover { background: var(--rim-bg); }
+.rim-directory, .rim-care { max-width: 800px; }
+.rim-destination-list { list-style: none; padding: 0; margin: 24px 0 32px; }
+.rim-destination-list li { margin: 0; }
+.rim-destination-list a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 4px;
+  border-bottom: 1px solid var(--rim-rule);
+  color: var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-app);
+  font-weight: 600;
+  line-height: 1.55;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.rim-destination-list a:hover { background: var(--rim-bg-bright); }
+.rim-destination-list a > span:last-child { flex-shrink: 0; }
+.rim-destination-list small {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--text-app-meta);
+  font-weight: 400;
+  color: var(--rim-text-muted);
+}
+.rim-empty { padding: 28px; background: var(--rim-surface); border-radius: 12px; }
+.rim-empty h2 { font-size: var(--text-h3); }
+.rim-empty p { margin: 8px 0 0; }
+.rim-home-links { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 24px 0; }
+.rim-home-links a, .rim-back-link { display: inline-flex; align-items: center; min-height: 44px; gap: 16px; color: var(--rim-blue); }
+.rim-disclosure { border-bottom: 1px solid var(--rim-rule); padding: 10px 0; margin: 12px 0; }
+.rim-disclosure > summary, .rim-session-notes > summary {
+  cursor: pointer; color: var(--rim-blue); padding: 10px 0; font-size: var(--text-app); line-height: 1.55;
+}
+.rim-disclosure > summary:hover, .rim-session-notes > summary:hover { text-decoration: underline; }
+.rim-disclosure[open] > summary { margin-bottom: 12px; }
+.hub-home > .rim-disclosure :is(.hub-home__orientation, .hub-home__section) { margin: 0 0 20px; }
+.hub-home__header { margin-bottom: 24px; }
+.rim-session-notes { margin-top: 8px; }
+.rim-session-notes p, .rim-session-update { max-width: 65ch; margin: 8px 0; font-size: var(--text-app); line-height: 1.55; white-space: pre-line; }
+.rim-session-update { color: var(--rim-text); }
+.rim-care__agreements { padding-left: 24px; }
+.rim-care__agreements li { padding-left: 12px; margin: 32px 0; }
+.rim-care__agreements h2 { margin: 0 0 12px; }
+.mp-page--calm { max-width: 800px; }
+.mp-page--calm .mp-header { background: transparent; padding: 0 0 24px; border-radius: 0; margin-bottom: 8px; }
+.mp-page--calm .mp-section { padding: 28px; margin: 0 0 24px; border: 0; border-radius: 12px; background: var(--rim-surface); }
+.mp-page--calm .mp-section__title { color: var(--rim-text); font-family: var(--font-serif); font-size: var(--text-h3); font-weight: 400; line-height: var(--lh-heading); margin: 0 0 20px; }
+.mp-page--calm .mp-label { margin-bottom: 8px; }
+.mp-page--calm .mp-field__row { gap: 20px; }
+.mp-page--calm .mp-input { background: var(--rim-bg-bright); border: 1px solid var(--rim-rule); border-radius: 6px; padding: 12px; }
+.mp-page--calm .mp-input--readonly { background: transparent; border: 0; padding-left: 0; overflow-wrap: anywhere; }
+.mp-page--calm .mp-note { font-size: var(--text-app); line-height: 1.55; }
+.mp-page--calm :is(.mp-submit, .mp-save__btn) { margin-top: 8px; min-height: 44px; padding: 10px 22px; border-radius: 9999px; }
+.rim-pagination { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 16px; margin: 24px 0; font-size: var(--text-app-meta); }
+.rim-pagination :is(a, button) { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 18px; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 9999px; font: inherit; font-size: var(--text-app); color: var(--rim-blue); cursor: pointer; }
+.rim-pagination button:disabled { opacity: .5; cursor: default; }
+.gf-personal-toolbar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin: 20px 0 8px; }
+.gf-personal-toolbar label { display: flex; flex-direction: column; gap: 6px; color: var(--rim-text); font-size: var(--text-app); }
+.gf-search-label { flex: 1; min-width: 180px; }
+.gf-personal-toolbar :is(input, select), .gf-favorites-toggle {
+  min-height: 44px; border: 1px solid var(--rim-rule); border-radius: 6px; padding: 10px 12px; background: var(--rim-surface); color: var(--rim-text); font: inherit;
+}
+.gf-favorites-toggle { cursor: pointer; border-radius: 9999px; color: var(--rim-blue); }
+.gf-favorites-toggle[aria-pressed="true"] { background: var(--rim-blue); color: var(--rim-surface); border-color: var(--rim-blue); }
+.gf-personal-hint { font-size: var(--text-app-meta); color: var(--rim-text-muted); line-height: 1.55; margin: 8px 0 16px; }
+.gf-preference-status { font-size: var(--text-app-meta); color: var(--rim-blue); }
+.gf-preference-status:empty { margin: 0; }
+.gf-row__namecell { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.gf-row__namecell > svg, .gf-color-mark { flex-shrink: 0; }
+.gf-color-mark { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--rim-text-muted); border-radius: 50%; }
+.gf-pin-credit { display: block; margin-top: 4px; font-size: var(--text-app-meta); }
+.gf-color-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; padding: 28px; border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); color: var(--rim-text); font-family: var(--font-sans); font-size: var(--text-app); }
+.gf-color-dialog::backdrop { background: rgb(0 0 0 / 35%); }
+.gf-color-dialog h2 { font-family: var(--font-serif); font-size: var(--text-h2); margin: 0 0 16px; }
+.gf-color-dialog p { overflow-wrap: anywhere; }
+.gf-color-picker { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 20px 0; }
+.gf-color-picker input { width: 80px; min-height: 44px; cursor: pointer; background: var(--rim-surface); border: 1px solid var(--rim-rule); }
+.gf-no-color { min-height: 44px; padding: 8px 16px; border-radius: 9999px; border: 1px solid var(--rim-rule); background: var(--rim-surface); color: var(--rim-blue); font: inherit; }
+.gf-no-color[aria-pressed="true"] { background: var(--rim-bg-accent); }
+@media (max-width: 768px) {
+  .member-bar__right { gap: 8px; }
+  .member-bar__manage { padding: 0 6px; }
+  .gf-personal-toolbar label { flex: 1 1 180px; }
+  .gf-row__name { white-space: normal; overflow-wrap: anywhere; }
+}
+@media (max-width: 430px) {
+  .member-bar__site-link { display: none; }
+  .member-bar__profile-name { display: none; }
+  .mp-page--calm .mp-section { padding: 20px; }
+  .mp-page--calm .mp-field__row { flex-direction: column; }
+  .rim-destination-list a { padding: 18px 4px; }
+  .rim-home-links { flex-direction: column; gap: 4px; }
+  .gf-color-dialog { padding: 20px; }
+}

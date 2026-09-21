@@ -156,7 +156,6 @@ export default async function CommunityProgramsPage() {
                               )}
                               <ProgramCardNotices
                                 announcement={program.specialAnnouncement}
-                                note={program.earlyArrivalMessage}
                               />
                             </div>
                             <div className="pl-card__when">
@@ -200,7 +199,6 @@ export default async function CommunityProgramsPage() {
                             )}
                             <ProgramCardNotices
                               announcement={program.specialAnnouncement}
-                              note={program.earlyArrivalMessage}
                             />
                           </div>
                           {/* What it is on the left, when and how on the right.

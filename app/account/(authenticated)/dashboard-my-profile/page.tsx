@@ -1,21 +1,11 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import AccountLayout from "@/components/AccountLayout";
 import AboutMeSection from "@/components/account/AboutMeSection";
 
 export const metadata = { title: "My Profile — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
-
-const ROLE_LABELS: Record<string, string> = {
-  HOST: "Host",
-  HOST_MANAGER: "Host Manager",
-  TEACHER: "Teacher",
-  SUPPORT: "Support",
-  REGISTRAR: "Registrar",
-  ADMIN: "Admin",
-};
 
 export default async function MyProfilePage({
   searchParams,
@@ -26,9 +16,8 @@ export default async function MyProfilePage({
   if (!session?.user?.id) redirect("/login");
 
   const userId = session.user.id;
-  const roles: string[] = session.user.roles ?? [];
 
-  const [user, household, hubMemberships] = await Promise.all([
+  const [user, household] = await Promise.all([
     db.user.findUnique({ where: { id: userId } }),
     db.householdMember.findUnique({
       where: { userId },
@@ -44,11 +33,7 @@ export default async function MyProfilePage({
         },
       },
     }),
-    db.hubMember.findMany({
-      where: { userId },
-      include: { hub: { select: { slug: true, name: true } } },
-      orderBy: { joinedAt: "asc" },
-    }),
+
   ]);
 
   const { saved } = await searchParams;
@@ -60,16 +45,6 @@ export default async function MyProfilePage({
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : null;
-
-  const agreementsSince = user?.agreedAt
-    ? new Date(user.agreedAt).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
-
-  const visibleRoles = roles.filter((r) => r in ROLE_LABELS);
 
   const householdMembers = household?.household.members
     .filter((m) => m.userId !== userId)
@@ -96,7 +71,7 @@ export default async function MyProfilePage({
 
   return (
     <AccountLayout>
-      <div className="mp-page ac-member-page">
+      <div className="mp-page ac-member-page mp-page--calm">
         <header className="ac-page-head">
           <div>
             <h1 className="mp-heading ac-page-title">My Profile</h1>
@@ -105,7 +80,7 @@ export default async function MyProfilePage({
         </header>
 
         {saved && (
-          <div className="mp-success">Profile saved successfully.</div>
+          <div className="mp-success" role="status">Profile saved successfully.</div>
         )}
 
         {/* Profile header */}
@@ -121,37 +96,22 @@ export default async function MyProfilePage({
               {memberSince && <span>Member since {memberSince}</span>}
               {user?.email && <span>{user.email}</span>}
             </div>
-            {visibleRoles.length > 0 && (
-              <div className="mp-badges">
-                {visibleRoles.map((r) => (
-                  <span key={r} className="mp-badge">{ROLE_LABELS[r]}</span>
-                ))}
-              </div>
-            )}
-            {hubMemberships.length > 0 && (
-              <div className="mp-hubs">
-                {hubMemberships.map((m) => (
-                  <Link key={m.hub.slug} href={`/account/hub/${m.hub.slug}`} className="mp-hub-link">
-                    {m.hub.name}
-                  </Link>
-                ))}
-              </div>
-            )}
+
           </div>
         </div>
 
         {/* Contact form */}
         <section className="mp-section">
-          <p className="mp-section__title">Contact details</p>
+          <h2 className="mp-section__title">Personal details</h2>
           <form action={updateProfile} className="mp-form">
             <div className="mp-field__row">
               <div className="mp-field">
                 <label htmlFor="firstName" className="mp-label">First name</label>
-                <input className="mp-input" name="firstName" type="text" id="firstName" maxLength={256} defaultValue={user?.firstName ?? ""} />
+                <input className="mp-input" name="firstName" type="text" autoComplete="given-name" id="firstName" maxLength={256} defaultValue={user?.firstName ?? ""} />
               </div>
               <div className="mp-field">
                 <label htmlFor="lastName" className="mp-label">Last name</label>
-                <input className="mp-input" name="lastName" type="text" id="lastName" maxLength={256} defaultValue={user?.lastName ?? ""} />
+                <input className="mp-input" name="lastName" type="text" autoComplete="family-name" id="lastName" maxLength={256} defaultValue={user?.lastName ?? ""} />
               </div>
             </div>
             <div className="mp-field">
@@ -160,7 +120,7 @@ export default async function MyProfilePage({
             </div>
             <div className="mp-field">
               <label htmlFor="phone" className="mp-label">Phone</label>
-              <input className="mp-input" name="phone" type="text" id="phone" maxLength={256} defaultValue={user?.phone ?? ""} />
+              <input className="mp-input" name="phone" type="tel" autoComplete="tel" id="phone" maxLength={256} defaultValue={user?.phone ?? ""} />
             </div>
             <div className="mp-field">
               <label htmlFor="title" className="mp-label">Title</label>
@@ -172,33 +132,13 @@ export default async function MyProfilePage({
 
         {/* Email */}
         <section className="mp-section">
-          <p className="mp-section__title">Email address</p>
+          <h2 className="mp-section__title">Sign-in email</h2>
           <div className="mp-field">
             <div className="mp-input mp-input--readonly">{user?.email}</div>
             <p className="mp-note">
               Your email is where we send your sign-in code. To change it, contact us at{" "}
               <a href="mailto:hello@rootedinmindfulness.org">hello@rootedinmindfulness.org</a>.
             </p>
-          </div>
-        </section>
-
-        {/* Membership */}
-        <section className="mp-section">
-          <p className="mp-section__title">Membership</p>
-          <div className="mp-care">
-            <div>
-              <h2 className="mp-care__title">Community Care Agreements</h2>
-              <p className="mp-care__body">
-                The shared intentions that guide how we care for ourselves, one another,
-                RIM, and our shared vision.
-              </p>
-              {agreementsSince && (
-                <p className="mp-care__date">Holding these intentions since {agreementsSince}.</p>
-              )}
-            </div>
-            <Link href="/community-care-agreements" className="mp-care__link">
-              Read our shared agreements <span aria-hidden="true">→</span>
-            </Link>
           </div>
         </section>
 
@@ -211,7 +151,7 @@ export default async function MyProfilePage({
         {/* Household */}
         {household && (
           <section className="mp-section">
-            <p className="mp-section__title">Household</p>
+            <h2 className="mp-section__title">Household</h2>
             <div className="mp-household">
               <div className="mp-household__name">{household.household.name}</div>
               {householdMembers.length > 0 && (

@@ -5934,6 +5934,25 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ program_hide_when_past_v1 already applied.");
   }
 
+  // Additive, idempotent organization tables. No Drive files or existing
+  // member/registration records are changed; the old app can run during build.
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "google_file_preferences" (
+      "userId" TEXT NOT NULL, "placeKey" TEXT NOT NULL, "googleFileId" TEXT NOT NULL,
+      "favorite" BOOLEAN NOT NULL DEFAULT false, "color" TEXT,
+      CONSTRAINT "google_file_preferences_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+      PRIMARY KEY ("userId", "placeKey", "googleFileId"))`),
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "google_file_view_preferences" (
+      "userId" TEXT NOT NULL, "placeKey" TEXT NOT NULL, "sort" TEXT NOT NULL DEFAULT 'name',
+      CONSTRAINT "google_file_view_preferences_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+      PRIMARY KEY ("userId", "placeKey"))`),
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "google_file_pins" (
+      "placeKey" TEXT NOT NULL, "googleFileId" TEXT NOT NULL, "pinnedByUserId" TEXT NOT NULL,
+      "pinnedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY ("placeKey", "googleFileId"))`),
+  ]);
+  console.log("  ✔ Personal file organization and shared pin tables ready.");
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

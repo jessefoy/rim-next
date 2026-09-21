@@ -13,6 +13,16 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 
 ---
 
+## September 2026 member-area update
+
+- **My Home:** today’s sessions and existing Zoom entry windows; Good to know beside the offering. Upcoming registrations/dana invitations live at `/account/dashboard?view=upcoming`. No member self-cancellation.
+- **My Teams:** membership-gated directory at `/account/teams`; replaces the growing sidebar team group.
+- **Profile and care:** account menu opens My Profile; `/account/community-care` holds the canonical agreements. Profile retains contact/photo/bio/household functionality.
+- **Manage RIM:** shared-header entry for ADMIN/REGISTRAR; contextual admin navigation remains in the account rail.
+- **Team homes:** compact core/app destinations; existing guidance, personal attention, pinned conversations, and schedule overview behind named disclosures. Tool links retain hub context.
+- **Files:** saved personal sorting, favorites, and custom colors; shared pins with attribution for existing writers; current-folder search and 20-row pages. Existing file/Google/notification/deletion workflows retained. See `RIM_GoogleWorkspace.md` §11.
+- **Shared design:** established 16/15/18px readability, consistent page headings/controls/focus, mobile drawer focus handling across personal and hub rails. Authenticated visual verification remains tracked in `UP_NEXT.md`.
+
 ## For depth, see
 
 | Topic | Authoritative doc |

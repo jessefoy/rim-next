@@ -91,13 +91,8 @@ export default async function HubHomePage({
     <HubHomeClient
       slug={slug}
       hubName={hub.name}
-      stateSentence={
-        attention.length === 0
-          ? "Nothing needs your attention right now."
-          : attention.length === 1
-            ? "One thing is ready for you."
-            : "A few things are ready for you."
-      }
+      conversationsEnabled={hub.conversationsEnabled}
+      filesEnabled={!!hub.googleFilesEnabled && !!hub.googleDriveId}
       apps={apps}
       welcomeHeadline={hub.welcomeHeadline}
       welcomeBodyHtml={welcomeBodyHtml}

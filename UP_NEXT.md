@@ -6,15 +6,13 @@
 
 ## Active
 
-### 2026-09-21 — Member redesign study and shared authenticated typography
+### 2026-09-21 — Remaining member redesign implemented; deployment review in progress
 
-Jesse asked for calmer member/team homepages, simpler navigation, personal file organization with a custom color picker, and consistent design across the member area, administration, and apps. The self-contained study is `mockups/member-area-2026-09/RIM-member-preview.html`; read its README for behavior, scope, and verification limits. The broader layout, personal file preferences, and relocation of Good to know are **still prototype work**, not implemented in production.
+Jesse explicitly authorized implementing the remaining preview changes. Production code now covers the quiet dashboard (Today + preparation notes; upcoming registrations in a separate query view), My Teams directory, header account/Manage RIM navigation, separate member Community Care page, simpler profile, compact team home destinations with existing content behind disclosures, and persisted personal file sorting/favorites/colors plus shared attributed pins. Public catalog/weekly cards retain urgent Updates and omit routine Good to know notes.
 
-The authorized production pass changes **presentation only** in `public/css/custom.css`: shared app text 16px, metadata 15px, reading 18px; matching phone sizes; wrapping controls; and legible counts/captions. It covers the account, hub, admin, tools, member-header, and welcome shells. Routes, application components, API/integration code, role checks, database, and email templates are unchanged. The shared design guidance and reference tokens were updated too.
+File organization adds three tables and two PATCH routes; existing access gates and Drive operations remain in place. See `RIM_GoogleWorkspace.md` §11. The source preview remains a historical study, not the production implementation. No Zoom, registration, email, or third-party permission code was changed. Do not restore member self-cancellation.
 
-Deployment: `b076413` pushed to `main`; the new app tokens were confirmed in the live stylesheet on September 21. The deployed public style guide was measured and visually inspected at 375 and 1280px, with no horizontal overflow and its existing 18px reading / 38px h1 scale preserved.
-
-Validation: TypeScript and diff checks passed. Synthetic browser fixtures using the production stylesheet passed 102 computed-size assertions across six surfaces at 375, 768, and 1280px, plus public-token preservation checks. This is **not** a complete authenticated visual or functional audit. The live dashboard redirected to sign-in; Jesse was asked to sign in for real-page review. Do not claim all pages or integrations have been tested. Next: review actual dashboard/profile, admin, hub Files/Conversations, and tool/editor layouts while authenticated. Preserve member self-cancellation removal and all current access boundaries during the later redesign.
+Validation so far: TypeScript passes; changed TypeScript files have no lint errors; 68 isolated regression checks pass, covering new preference/pin boundaries and the actual dashboard’s Zoom timing/registration gates. No live database or external writes were used in tests. Jesse was asked to sign in for deployed member/admin/app visual and interaction review; the browser remains at `/login`. Do not describe the authenticated walkthrough as complete until it occurs.
 
 ### Session 176 (2026-09-02) — ✅ Public-page consistency pass — on `main`, deployed, verified
 

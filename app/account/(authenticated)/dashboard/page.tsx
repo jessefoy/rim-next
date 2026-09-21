@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { activeHubThreadWhere } from "@/lib/hubQueries";
 import { ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
 import { isOpenlyDroppable } from "@/lib/programKind";
 import { getHubCoverageCopy } from "@/lib/programHub";
@@ -53,9 +52,15 @@ type TodayDisplayItem = {
   actionHref?: string;
   actionLabel?: string;
   contextText?: string;
+  note?: string | null;
+  announcement?: string | null;
 };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: {
+  searchParams: Promise<{ view?: string; page?: string }>;
+}) {
+  const query = await searchParams;
+  const upcomingView = query.view === "upcoming";
   const session = await auth();
   if (!session) redirect("/login");
 
@@ -81,7 +86,7 @@ export default async function DashboardPage() {
           startDatetime: true, endDatetime: true,
           recurrenceFreq: true, recurrenceInterval: true,
           recurrenceDays: true, recurrenceCount: true,
-          programFormat: true,
+          programFormat: true, earlyArrivalMessage: true, specialAnnouncement: true,
           // Offering kind (via category) + registration drive Today placement:
           // only openly-droppable kinds show a public Join to non-registrants.
           registrationEnabled: true,
@@ -104,7 +109,7 @@ export default async function DashboardPage() {
           donationStatus: true,
           program: {
             select: {
-              programFormat: true,
+              programFormat: true, earlyArrivalMessage: true, specialAnnouncement: true,
               startDatetime: true,
               endDatetime: true,
               recurrenceFreq: true,
@@ -115,7 +120,6 @@ export default async function DashboardPage() {
           },
         },
         orderBy: { createdAt: "desc" },
-        take: 20,
       }),
       db.hubMember.findMany({
         where: { userId },
@@ -273,6 +277,7 @@ export default async function DashboardPage() {
     .filter((s) => s.isLive || s.isSetupOpen || s.isLaterToday)
     .map((s) => ({
       key: `program-${s._id}`,
+      note: s.earlyArrivalMessage, announcement: s.specialAnnouncement,
       name: s.name,
       startTimeCT: s.startTimeCT,
       startEpoch: s.startEpoch,
@@ -309,6 +314,7 @@ export default async function DashboardPage() {
     const isHappeningNow = now >= start;
     return [{
       key: `registration-${r.id}`,
+      note: p.earlyArrivalMessage, announcement: p.specialAnnouncement,
       name: r.programTitle,
       startTimeCT: fmtTimeCT(start.toISOString()),
       startEpoch: start.getTime(),
@@ -333,28 +339,10 @@ export default async function DashboardPage() {
   const sortedRegistrations = registrationsWithNext
     .filter((r): r is typeof r & { nextDateStr: string } => r.nextDateStr !== null && r.nextDateStr !== today)
     .sort((a, b) => a.nextDateStr.localeCompare(b.nextDateStr))
-    .slice(0, 5);
-
-  // Your teams: the hubs you're actually a member of. Unread badges live here.
-  const myHubs = hubMemberships.map((m) => m.hub);
-
-  // Unread counts only for your own teams (membership-scoped — oversight
-  // hubs don't track your unread because you're stewarding, not participating).
-  const hubUnreadCounts: Record<string, number> = {};
-  for (const membership of hubMemberships) {
-    const lastVisited = membership.lastVisitedAt ?? new Date(0);
-    const unreadThreads = await db.hubConversationThread.count({
-      where: {
-        ...activeHubThreadWhere(membership.hub.id),
-        OR: [
-          { createdAt: { gt: lastVisited } },
-          { replies: { some: { createdAt: { gt: lastVisited } } } },
-        ],
-      },
-    });
-    hubUnreadCounts[membership.hub.id] = unreadThreads;
-  }
-  const hubsWithUnread = myHubs.filter((hub) => (hubUnreadCounts[hub.id] ?? 0) > 0);
+    ;
+  const pageCount = Math.max(1, Math.ceil(sortedRegistrations.length / 20));
+  const page = Math.min(pageCount, Math.max(1, Math.floor(Number(query.page) || 1)));
+  const visibleRegistrations = sortedRegistrations.slice((page - 1) * 20, page * 20);
 
   // First-login host recognition (session 143, backlog 2026-06-08-003): a host
   // can be pre-staged — role assigned, schedule built — before they ever log in.
@@ -395,21 +383,6 @@ export default async function DashboardPage() {
     session.user?.email?.split("@")[0] ??
     "there";
 
-  // Contextual greeting summary
-  const pendingDanaCount = upcomingRegistrations.filter((r) => r.donationStatus === "PENDING").length;
-  // sessionCount reflects the member's own commitments — not every community
-  // program running today. The Today card itself still shows all virtual/hybrid
-  // community programs (its job is "what you can drop into today"), but the
-  // greeting reads in first person and must mean what it says.
-  const sessionCount = [...activeTodayItems, ...laterTodayItems]
-    .filter((item) => item.isRegistered).length;
-  const summaryParts: string[] = [];
-  if (sessionCount > 0) summaryParts.push(`${sessionCount} session${sessionCount > 1 ? "s" : ""} today`);
-  if (pendingDanaCount > 0) summaryParts.push(`${pendingDanaCount} dana invitation${pendingDanaCount > 1 ? "s" : ""}`);
-  const summaryLine = summaryParts.length > 0
-    ? `You have ${summaryParts.join(" and ")}.`
-    : "You have nothing scheduled today.";
-
   return (
     <AccountLayout>
       <div className="db2-wrap">
@@ -417,19 +390,18 @@ export default async function DashboardPage() {
         {/* A personal orientation, then the day itself — not a generic dashboard. */}
         <header className="db2-greeting">
           <p className="db2-greeting__date">{fmtTodayFull()}</p>
-          <h1 className="db2-greeting__name">Good {timeOfDay()}, {firstName}.</h1>
-          <p className="db2-greeting__summary">{summaryLine}</p>
+          <h1 className="db2-greeting__name">{upcomingView ? "Your upcoming programs" : `Good ${timeOfDay()}, ${firstName}.`}</h1>
+          {upcomingView && <Link href="/account/dashboard" className="rim-back-link">Back to My Home</Link>}
         </header>
 
         {/* First-login host recognition — one-time, dismissible (session 143) */}
-        {hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} coverageNoun={hostWelcomeNoun} />}
+        {!upcomingView && hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} coverageNoun={hostWelcomeNoun} />}
 
         {/* Today groups sessions by their truthful state, then orders within it. */}
-        {showTodayCard && (
+        {!upcomingView && showTodayCard && (
           <section className="db-section db2-today">
             <div className="db-section__heading">
               <p className="db-section__label">Today</p>
-              <Link href="/this-week" className="db-section__link">Full schedule</Link>
             </div>
             <div className="today-card">
               <DashboardAutoRefresh liveStartEpochs={laterEpochs} earlyOpenEpochs={earlyEpochs} />
@@ -444,6 +416,7 @@ export default async function DashboardPage() {
                       <span>{item.formatLabel}</span>
                       {item.isRegistered && <span className="today-registered">Registered</span>}
                     </div>
+                    <SessionNotes item={item} />
                   </div>
                   <div className="today-focus__action">
                     {item.statusText && <span className="today-focus__status">{item.statusText}</span>}
@@ -470,6 +443,7 @@ export default async function DashboardPage() {
                             <span>{item.formatLabel}</span>
                             {item.isRegistered && <span className="today-registered">Registered</span>}
                           </span>
+                          <SessionNotes item={item} />
                         </div>
                         <div className="today-list__action">
                           {item.contextText && <span className="today-list__context">{item.contextText}</span>}
@@ -483,9 +457,17 @@ export default async function DashboardPage() {
           </section>
         )}
 
-        {/* Coming up for you (with inline dana status) */}
+        {!upcomingView && <>
+          {!showTodayCard && <section className="rim-empty"><h2>There are no more sessions today.</h2><p>You can find the next gathering in the full schedule.</p></section>}
+          <nav className="rim-home-links" aria-label="More programs">
+            <Link href="/account/dashboard?view=upcoming">Your upcoming programs <span aria-hidden="true">→</span></Link>
+            <Link href="/this-week">Full schedule <span aria-hidden="true">→</span></Link>
+          </nav>
+        </>}
+        {/* Existing registration information remains reachable, without self-cancellation. */}
+        {upcomingView && (
         <div className="db-section db2-coming-up">
-          <p className="db-section__label">Coming up for you</p>
+
           {sortedRegistrations.length === 0 ? (
             <div className="db2-empty-card">
               <p className="db2-empty-card__text">No upcoming programs yet.</p>
@@ -493,7 +475,7 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="db2-upcoming">
-              {sortedRegistrations.map((r) => {
+              {visibleRegistrations.map((r) => {
                 // Date pill shows the projected next-occurrence date, not the
                 // program's anchor — anchor is the first-ever occurrence, often
                 // long in the past for recurring programs.
@@ -540,25 +522,21 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        {/* Teams belong in the sidebar. Surface only work that needs attention here. */}
-        {hubsWithUnread.length > 0 && (
-          <div className="db-section">
-            <p className="db-section__label">From your teams</p>
-            <div className="db2-team-updates">
-              {hubsWithUnread.map((hub) => {
-                const unread = hubUnreadCounts[hub.id] ?? 0;
-                return (
-                  <Link key={hub.id} href={`/account/hub/${hub.slug}`} className="db2-team-update">
-                    <span>{hub.name}</span>
-                    <span>{unread > 9 ? "9+" : unread} unread</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
         )}
+        {upcomingView && pageCount > 1 && <nav className="rim-pagination" aria-label="Upcoming programs pages">
+          {page > 1 && <Link href={`/account/dashboard?view=upcoming&page=${page - 1}`}>Previous</Link>}
+          <span>Page {page} of {pageCount}</span>
+          {page < pageCount && <Link href={`/account/dashboard?view=upcoming&page=${page + 1}`}>Next</Link>}
+        </nav>}
 
       </div>
     </AccountLayout>
   );
+}
+
+function SessionNotes({ item }: { item: TodayDisplayItem }) {
+  return <>
+    {item.announcement && <p className="rim-session-update"><strong>Update:</strong> {item.announcement}</p>}
+    {item.note && <details className="rim-session-notes"><summary>Good to know</summary><p>{item.note}</p></details>}
+  </>;
 }
