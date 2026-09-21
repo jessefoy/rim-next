@@ -73,7 +73,7 @@ RIM writes like a person who has already made room for you. The prose is plain, 
 
 **Colour.** The page recedes into Pampas (`#f5f3f0`); the content people read and act on rests on white. One blue does everything — `#31576d` for actions, hero bands, and the footer, hovering to `#39607a`. `#0d2235` deep navy exists only inside hero scrims. Text is three greys used strictly by role (`#333` body, `#555` quotes, `#666` captions). The only warm accent in the entire system is the donate red `#c23b3b`. Semantic feedback colours (green/amber/red) appear as background+accent pairs and nowhere else.
 
-**Type.** Quincy CF (self-hosted, weight 400 almost always) for headings, pull quotes, program names, and card titles. Open Sans for everything else. The scale is locked at ten sizes — do not invent an eleventh. Body is 18px / 1.7 for editorial and 14px for interface density. Line height is 1.3 for headings, 1.7 for body. The one recurring exception is 17px in program detail rows, inherited from the Webflow original.
+**Type.** Quincy CF (self-hosted, weight 400 almost always) for headings, pull quotes, program names, and card titles. Open Sans for everything else. Use the established scale. Body is 18px / 1.7 for editorial reading. The September 2026 authenticated contract uses 16px / 1.55 for primary interface text and 15px for secondary metadata, with no phone shrink. See the final AUTHENTICATED READABILITY block in `public/css/custom.css`; old kit screenshots may predate this change. Line height is 1.3 for headings, 1.7 for body. The one recurring exception is 17px in program detail rows, inherited from the Webflow original.
 
 **Spacing and layout.** Sections breathe at 96px top and bottom (64px under 768px, 48px under 430px). The container is 1140px with 40px side padding; long-form prose is capped at a 700px reading column; catalogs sit at 900px. Fixed chrome: 100px public nav (sticky white), 68px member bar (sticky, `--rim-bg-bright`), 248px account rail collapsing to 64px. Tap targets are never under 44px.
 
@@ -85,7 +85,7 @@ RIM writes like a person who has already made room for you. The prose is plain, 
 
 **Borders and rules.** `#dedbd7` warm-neutral hairlines separate schedule rows, detail rows, list items, and sections. A 3px top rule sits above testimonials. A 3px **left** border appears only on inline state messages and the homepage closing quote — never as a decorative card accent.
 
-**Buttons.** Always pills (`9999px`). Primary is filled blue; secondary is white with a blue rule; ghost is a bare blue label; donate is the red pill. Minimum height 44px, 14px semibold label. The single uppercase, letter-spaced button in the system is the homepage hero CTA (32px radius, not a full pill — a Webflow inheritance).
+**Buttons.** Always pills (`9999px`). Primary is filled blue; secondary is white with a blue rule; ghost is a bare blue label; donate is the red pill. Minimum height 44px; authenticated controls use a 16px semibold label. Public controls retain their existing scale. The single uppercase, letter-spaced button in the system is the homepage hero CTA (32px radius, not a full pill — a Webflow inheritance).
 
 **Hover.** Buttons darken/shift fill to `--rim-mid`; some legacy buttons drop to `opacity: 0.85`. Links underline. Cards shift their **fill** to `--rim-bg-bright` — never their shadow, never a lift. Nav links pick up a `--rim-bg` background. Hero CTA arrows nudge 4px right.
 

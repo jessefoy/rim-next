@@ -6,6 +6,14 @@
 
 ## Active
 
+### 2026-09-21 — Member redesign study and shared authenticated typography
+
+Jesse asked for calmer member/team homepages, simpler navigation, personal file organization with a custom color picker, and consistent design across the member area, administration, and apps. The self-contained study is `mockups/member-area-2026-09/RIM-member-preview.html`; read its README for behavior, scope, and verification limits. The broader layout, personal file preferences, and relocation of Good to know are **still prototype work**, not implemented in production.
+
+The authorized production pass changes **presentation only** in `public/css/custom.css`: shared app text 16px, metadata 15px, reading 18px; matching phone sizes; wrapping controls; and legible counts/captions. It covers the account, hub, admin, tools, member-header, and welcome shells. Routes, application components, API/integration code, role checks, database, and email templates are unchanged. The shared design guidance and reference tokens were updated too.
+
+Validation: TypeScript and diff checks passed. Synthetic browser fixtures using the production stylesheet passed 102 computed-size assertions across six surfaces at 375, 768, and 1280px, plus public-token preservation checks. This is **not** a complete authenticated visual or functional audit. The live dashboard redirected to sign-in; Jesse was asked to sign in for real-page review. Do not claim all pages or integrations have been tested. Next: confirm deployment and review actual dashboard/profile, admin, hub Files/Conversations, and tool/editor layouts while authenticated. Preserve member self-cancellation removal and all current access boundaries during the later redesign.
+
 ### Session 176 (2026-09-02) — ✅ Public-page consistency pass — on `main`, deployed, verified
 
 **What Jesse asked.** *"Look at our public facing pages to ensure the design is aesthetically pleasing and consistent."* A dual-agent audit (design review + browser measurement, 16 pages at 375 and 1280) answered it in one sentence: **the site was authored at the centre and generic at the edges.** `pp-hero` measured identical across ten pages, but the five pages a visitor reaches at the moment of commitment each wore a private vocabulary with no hero, so the site changed identity exactly where trust is decided. Consistency scored 1/4; the surface 18/32.

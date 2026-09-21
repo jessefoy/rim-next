@@ -107,6 +107,16 @@ Do not turn every destination into cards. A card is earned by a coherent object 
 
 ---
 
+## Readability across the member area and apps
+
+The member area, team hubs, administration, and installed apps share one readability contract. At the default browser text size, navigation, controls, labels, names, and instructions use 16px type; secondary dates, captions, and status use 15px. Longer reading uses the same 18px scale as the public site. Heading sizes remain on RIM’s established scale. The app tokens use rem units to respect browser font preferences.
+
+Phones receive the same reading sizes. Make rows wrap, let controls grow, and use the established table scrolling containers rather than shrinking the text. Reduce competing content before reducing readability.
+
+`public/css/custom.css` owns the contract in its final **AUTHENTICATED READABILITY** block. Existing shared shells supply its context; an app must not introduce a private typography system. This is presentation only: role gates, navigation targets, data access, saved editor HTML, outgoing emails, and external Google/Zoom interfaces retain their existing contracts.
+
+---
+
 ## Designing for Real Users Under Pressure
 
 This section applies to every member-facing and volunteer-facing interface in the RIM platform — not just the public site.

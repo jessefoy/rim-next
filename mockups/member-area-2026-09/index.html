@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My RIM · Member area design study</title>
+  <link rel="stylesheet" href="prototype.css">
+  <script src="assets/icons.js" defer></script>
+  <script src="prototype.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="study-bar" aria-label="Prototype controls">
+    <span><strong>RIM / Member area</strong><span class="study-caption">Design study 3 · sample content</span></span>
+    <label>Today’s view <select id="day-state"><option value="ready">Ready to join</option><option value="later">Later today</option><option value="empty">No sessions today</option></select></label>
+  </div>
+  <header class="member-header">
+    <a href="#home" class="brand" aria-label="Rooted in Mindfulness, My Home"><img src="assets/logo.png" width="42" height="42" alt=""><span>Rooted in Mindfulness</span></a>
+    <div class="header-actions">
+      <a class="quiet public-site" href="https://www.rootedinmindfulness.org/" target="_blank" rel="noopener">Main site <span data-icon="ArrowUpRight"></span></a>
+      <a class="quiet manage-link" href="#manage"><span data-icon="LayoutGrid"></span><span>Manage RIM</span></a>
+      <div class="account-wrap">
+        <button id="account-toggle" class="account-button" aria-expanded="false" aria-controls="account-menu"><span class="avatar" aria-hidden="true">J</span><span class="account-name">Jesse</span><span data-icon="ChevronDown"></span><span class="sr-only">Account menu</span></button>
+        <div id="account-menu" class="account-menu" hidden>
+          <p>Jesse Foy<span>My account</span></p>
+          <a href="#profile"><span data-icon="UserRound"></span>My profile</a>
+          <button data-demo="Sign out"><span data-icon="LogOut"></span>Sign out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="workspace">
+    <aside class="rail" aria-label="Member navigation">
+      <div id="rail-main"></div>
+      <nav class="rail-bottom" aria-label="Community links">
+        <a href="#care" data-nav="care"><span data-icon="HeartHandshake"></span>Community care</a>
+        <button data-demo="A little help"><span data-icon="CircleHelp"></span>A little help</button>
+      </nav>
+    </aside>
+    <main id="main" tabindex="-1"></main>
+  </div>
+  <div id="status" class="status-message" role="status" aria-live="polite" hidden></div>
+  <dialog id="dialog" aria-labelledby="dialog-title"><div id="dialog-content"></div></dialog>
+</body>
+</html>

@@ -165,7 +165,9 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 - Set on `body` globally and on `.rim-content` for all editor output
 
 **Admin/CMS/account/tool interfaces** (`/admin/*`, `/account/*`, `/tools/*`): calm but compact.
-- Body: 16px / 1.55 — set on `.admin-ui` and `.ac-layout` wrappers
+- Body, navigation, controls, field labels, names, and instructions: **16px / 1.55** (`--text-app`). Applies to personal pages, hubs, administration, tool apps, member chrome, and welcome/reactivation.
+- Secondary dates, captions, and status: **15px** (`--text-app-meta`). Never shrink meaningful text on phones; wrap or reflow the layout.
+- The final `AUTHENTICATED READABILITY` block in `custom.css` owns this contract. Its shell-scoped aliases preserve the public site’s existing scale. New app interfaces must render within an existing shared shell.
 - Reading content inside admin (`.rim-content`) stays 18px — it overrides back up
 
 **Typography rules that never change regardless of context:**
@@ -173,11 +175,9 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 - `li` uses `font-family: inherit; font-size: inherit; line-height: inherit` — never set a different size on li
 - All font sizes come from tokens — never invent a raw px value per component
 - Headings use the global token scale (h1=38px, h2=28px, h3=24px, h4=20px) — context classes may adjust spacing but not size, except named exceptions (hero: clamp fluid, lp-body h2: 32px editorial)
-- Admin body text, form inputs, buttons, table cells: `var(--text-ui)` = 14px
-- Field labels, small links, section help: `var(--text-xs)` = 13px
-- Form help text, slug labels, meta captions: `var(--text-label)` = 12px
-- Badges, table headers, uppercase eyebrows: `var(--text-xxs)` = 11px
-- Captions, timestamps, helper text: `var(--text-small)` = 15px
+- Public defaults remain `--text-ui: 14px`, `--text-xs: 13px`, `--text-label: 12px`, `--text-xxs: 11px`, `--text-small: 15px`; do not use these raw numbers in new app styles.
+- Inside app shells, `--text-ui` resolves to 16px; the smaller legacy tokens resolve to 15px. Controls rebind their small-label tokens to 16px, including inline styles. Prefer `--text-app` for new task text and `--text-app-meta` for new secondary metadata.
+- Preserve 18px reading content, including team/file conversations and rich editor content. Minimal single-field editors remain 16px. Embedded third-party documents retain their provider’s rendering.
 - Error/success/warning: use `var(--color-error)`, `var(--color-success)`, `var(--color-warning)` — never raw hex
 - Monospace: use `var(--font-mono)` — never raw font stacks
 
