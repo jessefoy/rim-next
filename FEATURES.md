@@ -31,6 +31,7 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 | Roles & permissions | `RIM_Role_Design.md` |
 | Design philosophy (clear seeing, restraint) | `RIM_Web_Design_Philosophy.md` |
 | Stack, env vars, services, versions | `RIM_Stack_Reference.md` |
+| Member dashboard / profile / navigation / team directory | `RIM_Member_Area.md` |
 | Auth / sign-in / rate-limit | `RIM_Auth.md` |
 | Programs vs Courses (the offering model) | `RIM_Offering_Model.md` |
 | Registration / dana / Stripe | `RIM_Registration.md` |

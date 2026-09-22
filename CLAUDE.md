@@ -21,6 +21,7 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 | Prototype, mock, or throwaway visual artifact for any RIM surface | **`/rim-design` skill** (`.claude/skills/rim-design/`) — tokens, components, UI kits, and copied assets, extracted from `custom.css`. Reference and prototyping only: **`public/css/custom.css` stays the source of truth**, and the skill's `styles.css` is never linked into the app. Past design explorations live in `mockups/` — references, never a spec; read its README first. |
 | Design quality, accessibility, or "is this actually good" on any RIM surface | **`/impeccable` skill** — see the note below on how it fits RIM. |
 | Role, permission, or member data | `RIM_Role_Design.md` + `RIM_System_Architecture.md` |
+| Member dashboard, profile, personal navigation, team directory or member care | **`RIM_Member_Area.md`** — routes, integration boundaries, shared design contract and remaining signed-in verification |
 | Member Registry / member profile (`/admin/members`, the Teams + Roles & access sections, pre-staging, roles-vs-hub-membership) | **`RIM_MemberRegistry.md`** — the per-tool reference (section registry, system-powers vs team-membership split, role-derived locking, HOST retired, legacy pool excluded from pickers) |
 | Auth, sign-in, NextAuth callbacks, rate-limit | **`RIM_Auth.md`** — sign-in flow, code generation, error states, rate-limit thresholds, key namespacing, common pitfalls |
 | Program registration, dana, Stripe checkout/webhook, or anything that lists/counts registrations | **`RIM_Registration.md`** — completion-follows-the-choice model, the `PENDING_PAYMENT` held state, the `sendRegistrationConfirmation` choke point, visibility rules, pitfalls. Read with `RIM_Offering_Model.md`. |
@@ -52,7 +53,7 @@ Before registering or changing any app that can be installed through `HubAppLink
 
 1. Declare `multi-space` or `primary-space` compatibility, whether the app may be primary, and one distinct semantic `iconKey`.
 2. Scope every read, write, permission gate, notification recipient, and URL by the resource Space.
-3. Provide no more than one Home contribution (`summary`, `module`, or `none`); a module replaces its launcher card.
+3. Provide no more than one Home contribution (`summary`, `module`, or `none`). September 2026 presentation keeps a compact destination link for each installed app and places the primary module behind a named disclosure; do not duplicate its detailed content in another card.
 4. Emit only meaningful, visible Updates with explicit `sourceKey`, `sourceLabel`, and durable `kind`.
 5. Define personal attention separately from shared Updates; passive history is not a notification.
 6. Let the app own event meaning and detailed counts; let the Space own consistent rendering and read state.

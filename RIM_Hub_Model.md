@@ -494,13 +494,12 @@ The built-in sections are shared infrastructure. Every hub gets them for free. I
 **Route:** `/account/hub/[slug]` (page.tsx)
 
 **What it shows:**
-- A greeting and one plain-language attention sentence
+- The team name and compact destinations: Conversations/Files when enabled, Members, and installed apps
 - The first-visit welcome interstitial for genuinely new members
-- Coordinator-editable persistent welcome (where configured) and orientation content
-- A short, conditional “Needs your attention” list; passive chronological history never appears on Home
-- One primary app contribution; if it is a full module, that module replaces the launcher card
-- Compact supporting-app contributions and quiet custom links
-- Pinned conversation threads (from `HubConversationThread` where `isPinned: true`)
+- Named disclosures for About this team, Team guidance, personal attention, schedule overview and pinned conversations, when present
+- Coordinator-editable welcome/orientation inside their disclosures
+- At most one detailed app contribution, behind its named disclosure; destination links remain available
+- Pinned conversation threads (from `HubConversationThread` where `isPinned: true`); passive chronological history stays in Updates
 
 **Extension points:**
 - `welcomeBody` and `homeContent` are HTML strings stored in the existing JSON fields and edited inline or in hub admin
@@ -573,7 +572,7 @@ An app link is a record in the `hub_app_links` table:
 
 **In the sidebar:** Rendered directly below Home. Registered apps receive `?hub=<slug>`; custom links keep the exact configured href.
 
-**On the home screen:** `HubHomeClient` renders one primary app contribution, compact supporting apps, and quiet custom links. A primary module replaces its card; Home never displays both. `lib/hubApps.ts` resolves the server providers and supplies live summaries, Updates, and attention.
+**On the home screen:** `HubHomeClient` renders compact core/app destination links and quiet custom links. The primary app module is retained behind a named disclosure, with no duplicate content card (September 2026 presentation). `lib/hubApps.ts` resolves the server providers and supplies live summaries, Updates, and attention.
 
 ### Registry contract
 

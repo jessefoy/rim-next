@@ -1,3 +1,42 @@
+## 2026-09-22 — Closing the September member redesign; deployed, authenticated review still open
+
+### Built and deployed
+
+The first pass shipped shared authenticated typography (`b076413`, verification handoff `9c162fc`). Jesse then authorized the rest of the member redesign. `0627936` shipped it; `5e720a7` recorded deployment and the remaining signed-in review. Production public pages were checked September 21. The historical HTML mockup is a study, not proof of shipped behavior.
+
+- My Home now focuses on Today, preserving existing session/Zoom entry timing and registration gates. Routine Good to know preparation is beside the offering; urgent Updates remain visible. Upcoming registrations/dana are a separate dashboard query view with 20-row pages. The message feed is gone; self-cancellation remains retired.
+- My Teams is a membership-gated directory. The personal rail is flat; profile/sign-out live in the header account menu; Manage RIM is role-gated in the header. Account and hub drawers share keyboard focus/close behavior.
+- Profile retains contact, email, avatar, bio and household functionality in a calmer layout. Community Care moves to its own member reading page. Avatar removal now reports failed HTTP responses instead of appearing to succeed.
+- Team Home uses stable core/app destinations and named disclosures for attention, guidance, pinned conversations and schedule overview. Existing welcome/editing, feature switches and app registry remain in place; registered app links retain hub context.
+- File colors/favorites/sort persist per authenticated member and place. A real color picker supports personal colors. Pins are shared with attribution, using existing file-writer authority rather than a coordinator monopoly. Search/favorites are labeled as current-folder scope; 20-row display pages reduce density. Three additive tables, two new PATCH routes and scoped list augmentation implement this without Google Drive writes.
+
+### Decisions and connections
+
+Jesse emphasized that many community members are not tech-savvy and high content volume must not make homepages overwhelming. Stable destinations and optional disclosures govern the new homes; the full content stays in its destination. Personal organization belongs to each member; shared pins are the deliberate exception. One typography/control/focus contract spans member, admin and installed apps. These decisions live in `RIM_Web_Design_Philosophy.md`, `RIM_Member_Area.md`, the hub references and `RIM_GoogleWorkspace.md` §11.
+
+Connections: dashboard presentation reads Program notices, offering kinds, registrations/dana and Zoom timing; public listings share `ProgramCardNotices`. Profile retains the existing save action and bio/avatar/upload endpoints. Canonical agreements now render in five places without changing acceptance capture. Team directory/nav depend on hub membership and existing system roles. Hub Home remains connected to the exhaustive app provider registry, attention, schedule coverage and pinned conversations. File preferences layer onto existing place/file authorization, private-draft/removal visibility and file audit records. The database migration only adds tables; it does not rename, delete or rewrite existing files, registration records or provider grants.
+
+### Evidence and limits
+
+Prisma generation, TypeScript, targeted ESLint (zero errors, two warnings), migration JavaScript syntax, CSS parsing and diff whitespace checks passed during implementation. `scripts/check-member-redesign.cjs` passed **68 isolated regression assertions**, including actual route handlers/dashboard components with fixtures for session timing, registration visibility, directory reach, personal ownership and shared pin authority. These tests made no live database, Google, email or Zoom writes.
+
+Live public catalog and weekly schedule were checked at 375/1280px: routine notices absent, urgent Update retained, no horizontal overflow and no reviewed console errors. The signed-in browser remained at `/login`; **member/admin/app visual and keyboard review, actual preference saving/isolation and live file workflows are still pending.** Shared style coverage and compilation are not evidence that every screen or integration has been exercised. The existing Drive loader’s 1,000-item per-folder ceiling remains, even though the UI displays 20 rows per page.
+
+### Closing audit
+
+- Updated/reconciled: `FEATURES.md`, `RIM_Stack_Reference.md` (three new tables/routes, no dependency/service change), `RIM_System_Architecture.md`, `RIM_Editor_Types.md` (welcome/home disclosure placements and existing user-bio registration), `RIM_Hub_Model.md`, `RIM_Hub_Engineering.md`, `CLAUDE.md` Design Orientation/app presentation rule, `UP_NEXT.md`, and this log. Created the missing per-surface `RIM_Member_Area.md` engineering reference.
+- Four hub-routing layers audited for touched paths: (1) Home retains membership/access gates; file mutations derive place from the actual file and use existing read/write authorization; (2) no notification recipient/send path added or changed; (3) directory filters by member or GUIDING_TEACHER, Home by resource hub, Files by place plus visible IDs and current member; (4) no email URL variables added/changed, and app navigation retains `?hub=`. No notification or email URL helper change was needed.
+- **No email templates touched.** No new send site or template seed required. `RIM_Email_Engineering.md` needs no update.
+- Already updated during implementation and rechecked, with no further closing edits needed: `RIM_GoogleWorkspace.md`, `RIM_Public_Pages.md`, `RIM_ProgramEditor.md`, `RIM_Web_Design_Philosophy.md`. No changed contracts require edits to `RIM_Role_Design.md`, `RIM_Auth.md`, `RIM_Zoom.md`, `RIM_Registration.md`, `RIM_Scheduler.md` or `RIM_CourseEditor.md`.
+- Backlog additions: `2026-09-22-001` Claude/Codex project-local ritual discovery (the earlier request remains unimplemented); `2026-09-22-002` cursor loading beyond the existing file limit. The signed-in review remains Active in the lean handoff. Older s175/s176 narratives already exist below, so the handoff now links them instead of duplicating them.
+- Behavior audit: proposed saving one reporting preference, clearly distinguish previewed/implemented/deployed/verified and name remaining checks. Asked Jesse to confirm or discard per the closing skill. **Pending confirmation at closing; no personal memory or backup mirror changed.** Design preferences are already recorded in project authority docs.
+
+### Next
+
+Resume with Jesse signed in and review the member/admin/app surfaces at phone/desktop sizes and with the keyboard, then use designated test content for preference isolation/shared pins and existing file workflows. Never report full integration verification before that work occurs. Public copy read-aloud, first-visit logistics and diversity-image provenance remain open reminders. The email-provider assessment is parked: Jesse confirmed Flodesk costs **$418 annually** for roughly 4,500 subscribers; no migration decision was made.
+
+---
+
 ---
 
 ## 2026-09-02 (session 176) — The public pages measured for consistency; the threshold pages joined the system; the draft shipped

@@ -1,6 +1,8 @@
 # RIM Next — Stack Reference
 
-> **Current infrastructure update — sessions 167–168 (2026-07-17):** Google Workspace
+> **Current update — 2026-09-22, member redesign:** `0627936` adds three PostgreSQL/Prisma tables: `GoogleFilePreference` (`google_file_preferences`), `GoogleFileViewPreference` (`google_file_view_preferences`), and `GoogleFilePin` (`google_file_pins`). The first two are member/place scoped and cascade on user deletion; shared pins are place/file scoped with actor/time attribution. The tail of `prisma/migrate.mjs` creates all three idempotently in one transaction. No existing Drive file/grant or stored registration is rewritten. Two new PATCH endpoints: `/api/files/preferences` and `/api/files/[fileId]/organization`; existing file listing adds preferences after visibility filtering. Two new member pages: `/account/teams`, `/account/community-care`; upcoming registrations use a dashboard query view. **No new dependency, env var, service, cron, role, or email template.** Shared typography/navigation use `custom.css`; no additional stylesheet or design framework. See `RIM_Member_Area.md` and `RIM_GoogleWorkspace.md` §11. Local validation used Prisma generation/TypeScript, not the build-time production migration. Public deployment verified; signed-in persistence/visual checks remain pending.
+
+> **Prior infrastructure update — sessions 167–168 (2026-07-17):** Google Workspace
 > Files is the Space file/document system; native Documents, Mind Maps,
 > OnlyOffice, and LiveKit are retired. The universal Space Home + Updates/app
 > contract adds **no npm dependencies, environment variables, services, crons,

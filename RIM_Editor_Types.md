@@ -363,7 +363,7 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 - **Components:** `components/HubAdminForm.tsx`, inline editor on `components/HubHomeClient.tsx`
 - **Variant:** message
 - **Output destination:** web template
-- **Output wrapper:** interactively rendered in `HubHomeClient` welcome interstitial
+- **Output wrapper:** `rim-content` in the `HubHomeClient` first-visit welcome interstitial; also rendered/editable within the persistent `About this team` disclosure (September 2026)
 - **Route:** `/account/hub/[slug]` (first-visit interstitial)
 
 #### `hub-home`
@@ -371,7 +371,15 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 - **Components:** `components/HubAdminForm.tsx`, inline editor on `components/HubHomeClient.tsx`
 - **Variant:** message
 - **Output destination:** web template
-- **Output wrapper:** rendered inside the persistent orientation block near the bottom of the universal Space Home, after attention/app/pinned content
+- **Output wrapper:** the `Team guidance` disclosure near the bottom of universal Space Home (September 2026); inline editing is retained
+
+#### `user-bio`
+- **Schema field:** `User.bio`
+- **Component:** `components/account/AboutMeSection.tsx`
+- **Variant:** message (`user-bio` already registered in `lib/editorRegistry.ts`)
+- **Placement:** Photo and introduction section on `/account/dashboard-my-profile`
+- **Storage:** HTML string via `PATCH /api/account/bio`; legacy content is normalized on edit
+- **September 2026:** profile layout/heading changed; editor type, registry key and save endpoint did not
 
 #### `hub-conversation`
 - **Schema fields:** `HubConversationThread.body`, `HubConversationReply.body`

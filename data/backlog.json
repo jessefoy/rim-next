@@ -1363,5 +1363,25 @@
     "status": "open",
     "addedAt": "2026-09-02",
     "notes": "Same treatment as the other dead-prefix items (2026-08-09-005, 2026-06-25-003). The legacy login classes (.container-7-copy, .login-box, .form-header, .link-block-3, .w-form, .w-input) are now also unreferenced by any public page and can go in the same pass."
+  },
+  {
+    "id": "2026-09-22-001",
+    "title": "Make RIM opening and closing rituals discoverable in both Codex and Claude",
+    "description": "Jesse switches project folders and expects the correct project rituals in both assistants. Add a minimal project-local Codex entry point (AGENTS.md) that references the existing canonical RIM orientation and ritual files without duplicating them. Verify that opening and closing resolve RIM, not an unrelated global Steward skill. No bridge has been implemented yet.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-09-22",
+    "notes": "Explicit earlier user request, preserved at member-redesign closing. Keep one authoritative workflow and project-scoped discovery."
+  },
+  {
+    "id": "2026-09-22-002",
+    "title": "Files: cursor loading for folders beyond 1,000 items",
+    "description": "The existing Google loader caps a folder at five pages of 200 items. September personal organization adds 20-row display pages, but search/favorites/sorting still operate only on the loaded folder. Add cursor loading or a clear bounded-results experience while preserving server-side place, draft and governed-removal visibility. Do not imply current search covers the entire drive.",
+    "category": "Member Accounts",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-09-22",
+    "notes": "Follow-on from Jesse’s concern about high content volume and simple navigation; documented limitation, not changed during closing."
   }
 ]
