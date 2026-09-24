@@ -44,6 +44,10 @@ A new `RegistrationStatus` value. Only required-payment registrations use it. Se
 
 **Anything that should happen "when a registration becomes real" belongs in `sendRegistrationConfirmation` or alongside these four callers — not bolted onto one path.** That's why the support@ notification rides inside it: it can't drift.
 
+## Dana is voluntary at RIM (Jesse, 2026-09-24)
+
+RIM doesn't charge fees (`/donate`: "RIM does not charge fees"). Live programs use **voluntary** dana with a suggested amount; `fixed` and `base_plus_dana` remain in code and are handled correctly, but they aren't the practice. When a program shows a required amount, check with Jesse before assuming it's intended. The built-in "Teacher support" dana template now says the gift goes to Rooted In Mindfulness, set aside in the fund for teacher livelihood; nothing in RIM records a per-program fund, so that allocation lives in bookkeeping.
+
 ## The server decides what's charged (2026-09-24)
 
 `/api/stripe/checkout` no longer trusts the amount the browser sends. `lib/programUtils.ts::resolveDanaCharge(program, requestedCents)` is the one place a checkout amount becomes a charge:

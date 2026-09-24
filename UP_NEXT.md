@@ -1,24 +1,31 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated at closing, 2026-09-22. Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated at closing, 2026-09-24. Full history belongs in `session-log.md`.
 
-## Active — member redesign deployed; signed-in review pending
+## Active — the September 24 integrity pass (live; a few checks and decisions open)
 
-**Shipped:** `b076413` shared typography; `0627936` remaining member redesign. My Home focuses on today’s offerings with preparation beside Zoom access; upcoming registrations/dana use `?view=upcoming`. My Teams replaces the growing sidebar group. Profile is simpler, Community Care has its own page, Manage RIM is in the header. Team homes use compact destinations/disclosures. Files have persisted personal sort/favorites/custom colors and shared attributed pins. Public program lists omit routine Good to know while retaining urgent Updates. References: `RIM_Member_Area.md`, `RIM_GoogleWorkspace.md` §11.
+**Shipped and live** (`4187997`…`311d6c0`): Visibility-tab readout (Programs & Events, This Week, Member home); Dummy Test Program no longer excluded by slug; "Sign me in from this device" button in both code emails; code-verify rate limit now actually runs (GET); server-decided Stripe charges, split Registration/Dana lines, safe expiry/retry, lost-hold restore; new **dana receipt** email (legal name + EIN); **thank-you page** `/programs/[slug]/thank-you`; Zoom seat pick buffer-aware + lock-serialized, plain pages at every `/enter` stop, registration gate (no waitlist), true-peak overlap warning on first save, Record reaches existing meetings. References: `RIM_Registration.md`, `RIM_Auth.md`, `RIM_Zoom.md`, `RIM_ProgramEditor.md`.
 
-**Verified:** TypeScript; targeted lint (zero errors, two warnings); migration JavaScript syntax; CSS parse; 68 isolated regression assertions. Public deployment was confirmed September 21 at 375/1280px, no horizontal overflow or reviewed console errors. No live external writes were used in tests.
+**Verified:** full sandbox payment ($20, Dummy Test Program): server-set line + Donate button, webhook 200, confirmation and receipt both received by Jesse; thank-you page and prefilled code page at 375px; footer Flodesk subscribe 200; GiveButter widgets render. **Not verified signed-in:** the Visibility readout, the create-time conflict banner, and the `/enter` notices / registration gate.
 
-**Not yet verified:** signed-in member/admin/app visual and interaction review, real preference persistence/isolation, and existing Google file flows. Browser remained at `/login`. Code/deployment completion is not authenticated verification. Do not claim all integrations or every screen were exercised.
+**Stripe state:** sandbox only. `STRIPE_SECRET_KEY` = sandbox `sk_test_`; webhook destination `rim-site-dana-2026` (both checkout events). Live has no destination; go-live checklist is backlog `2026-09-24-001`. The Dummy Test Program still has the test registration and registration enabled.
 
-**Next concrete step:** once Jesse signs in, review phone/desktop and keyboard behavior across My Home, Profile, Community Care, My Teams, team Home/Files, Member Registry, Scheduler, Program Manager and Course Manager. Use designated test content to check personal colors/favorites/sort save/reload and shared pins, then existing create/upload/share/removal flows. Preserve existing access and Zoom/registration gates. No member self-cancellation.
+**Waiting on Jesse:**
+- **Read-aloud** of the new copy: sign-in button/code page, dana step, receipt, approval line, Stripe lines, Zoom notices, readout, overlap banner, thank-you page, and `ZOOM_COORDINATOR_GUIDE.md` (sent as Markdown/HTML for the Zoom Coordinator Google Doc).
+- **Accountant** review of the receipt's "For your records" statement (RIM is IRS-classified as a church, 170(b)(1)(A)(i)).
+- Switch **"Awakening to the Beauty of This Moment"** to Voluntary dana, $175 suggested (it's `fixed` $175 now).
+- **Flodesk design** (`2026-09-24-002`): does he send to segments or the whole list?
+- Check Flodesk for his test signup's segment and any welcome email.
 
-**Known limit:** Files search/favorites/sort cover the loaded folder; existing loader caps it at 1,000 items. Follow-on `2026-09-22-002` tracks cursor loading. No global search was built.
+**Next concrete step:** with Jesse signed in, check the Visibility readout on a few programs and one `/enter` notice; then take the read-aloud flags.
+
+**Earlier handoff still open:** the September member redesign's signed-in review (My Home, Profile, Community Care, My Teams, team Home/Files, Registry, Scheduler, Program/Course Manager; file preference persistence and shared pins). Files search covers the loaded folder only (`2026-09-22-002`).
 
 ## Pending questions / follow-ons
 
 - **Memory confirmation pending:** proposed preference: distinguish previewed, implemented, deployed and verified work, naming remaining checks. No personal memory or backup mirror changed without Jesse’s confirmation. Product/design decisions are already in project docs.
 - **Claude/Codex rituals:** Jesse requested consistent project-folder opening/closing behavior. RIM’s canonical instructions are `CLAUDE.md` and `.claude/skills/closing-ritual/SKILL.md`; a Codex `AGENTS.md` bridge is still unbuilt. Backlog `2026-09-22-001`. Use RIM’s workflow here, not Steward’s global ritual skill.
-- **Email-provider assessment parked:** Jesse reports approximately 4,500 subscribers and Flodesk **$418 annually**, not monthly. Sending frequency and automation requirements still needed for a useful cost comparison. No migration or provider decision made.
+- **Email provider decided (2026-09-24):** Jesse is staying with Flodesk (already paid, ~4,500 subscribers, $418/year). Integration design is backlog `2026-09-24-002`.
 
 ## Standing reminder — public copy still awaits Jesse
 
@@ -36,6 +43,7 @@ Other pending decisions: public Test Course/teacher profile data (`2026-09-02-00
 
 ## Recently completed / reference
 
+- September 24 integrity pass: `session-log.md` 2026-09-24; `RIM_Registration.md` (receipt, thank-you, voluntary dana), `RIM_Zoom.md` (seat pick, door permissions).
 - September member redesign: `RIM_Member_Area.md`; closing entry 2026-09-22 in `session-log.md`.
 - s176 public consistency / Sanity image rescue: `RIM_Public_Pages.md`; full session narrative already archived.
 - s175 member self-cancellation removed: `ab686b1`; retain staff registration management.

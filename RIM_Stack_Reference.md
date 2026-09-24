@@ -1,6 +1,8 @@
 # RIM Next — Stack Reference
 
-> **Current update — 2026-09-22, member redesign:** `0627936` adds three PostgreSQL/Prisma tables: `GoogleFilePreference` (`google_file_preferences`), `GoogleFileViewPreference` (`google_file_view_preferences`), and `GoogleFilePin` (`google_file_pins`). The first two are member/place scoped and cascade on user deletion; shared pins are place/file scoped with actor/time attribution. The tail of `prisma/migrate.mjs` creates all three idempotently in one transaction. No existing Drive file/grant or stored registration is rewritten. Two new PATCH endpoints: `/api/files/preferences` and `/api/files/[fileId]/organization`; existing file listing adds preferences after visibility filtering. Two new member pages: `/account/teams`, `/account/community-care`; upcoming registrations use a dashboard query view. **No new dependency, env var, service, cron, role, or email template.** Shared typography/navigation use `custom.css`; no additional stylesheet or design framework. See `RIM_Member_Area.md` and `RIM_GoogleWorkspace.md` §11. Local validation used Prisma generation/TypeScript, not the build-time production migration. Public deployment verified; signed-in persistence/visual checks remain pending.
+> **Current update — 2026-09-24, integrity pass:** No new npm dependencies, services, crons or schema. **New optional env var** `ZOOM_SEAT_EMAILS`. **Stripe:** sandbox webhook destination replaced (`rim-site-dana-2026`, both checkout events); `STRIPE_SECRET_KEY` corrected to the sandbox secret key; webhook re-retrieves sessions in the pinned API version. **New route** `/programs/[slug]/thank-you` (Stripe `success_url`; `ty-` CSS). **Email:** new template `registration-dana-receipt`; consented updates to `sign-in-code-new-user`, `sign-in-code-returning` (`sign_in_device_button_v1`) and `waitlist-approval` (`waitlist_approval_required_payment_v1`). **Auth:** code-verify rate limit now applies to GET (it never ran before) with a new per-email key `verify-email:`; per-IP raised to 60. **Legal identity constants** `RIM_LEGAL_NAME` / `RIM_EIN` in `lib/locations.ts`.
+
+> **Prior update — 2026-09-22, member redesign:** `0627936` adds three PostgreSQL/Prisma tables: `GoogleFilePreference` (`google_file_preferences`), `GoogleFileViewPreference` (`google_file_view_preferences`), and `GoogleFilePin` (`google_file_pins`). The first two are member/place scoped and cascade on user deletion; shared pins are place/file scoped with actor/time attribution. The tail of `prisma/migrate.mjs` creates all three idempotently in one transaction. No existing Drive file/grant or stored registration is rewritten. Two new PATCH endpoints: `/api/files/preferences` and `/api/files/[fileId]/organization`; existing file listing adds preferences after visibility filtering. Two new member pages: `/account/teams`, `/account/community-care`; upcoming registrations use a dashboard query view. **No new dependency, env var, service, cron, role, or email template.** Shared typography/navigation use `custom.css`; no additional stylesheet or design framework. See `RIM_Member_Area.md` and `RIM_GoogleWorkspace.md` §11. Local validation used Prisma generation/TypeScript, not the build-time production migration. Public deployment verified; signed-in persistence/visual checks remain pending.
 
 > **Prior infrastructure update — sessions 167–168 (2026-07-17):** Google Workspace
 > Files is the Space file/document system; native Documents, Mind Maps,
@@ -175,6 +177,7 @@ The "RIM orchestrates, Zoom is the room" integration. Server-to-Server OAuth (no
 | `ZOOM_ACCOUNT_ID` | The RIM Zoom org account id |
 | `ZOOM_OAUTH_CLIENT_ID` | "RIM Sessions" S2S app client id |
 | `ZOOM_OAUTH_CLIENT_SECRET` | "RIM Sessions" S2S app client secret |
+| `ZOOM_SEAT_EMAILS` | Optional (2026-09-24), comma-separated list of every pool seat in preference order; overrides the A/B pair. Adding a licensed seat = append its email here. |
 | `ZOOM_SEAT_A_EMAIL` | Pool seat A (`zoom.host@rootedinmindfulness.org`) — a licensed Pro user |
 | `ZOOM_SEAT_B_EMAIL` | Pool seat B (`zoom.host2@rootedinmindfulness.org`) — a licensed Pro user (2 seats = 2 concurrent meetings) |
 | `ZOOM_HOST_KEY` | 6-digit Claim-Host code; RIM sets it on the owning seat + shows it to hosts so they host under their own name |
@@ -234,9 +237,11 @@ API routes added: `/api/hub/[slug]/documents/[id]/{notify,archive,restore,perman
 ### Payments (Stripe — test mode)
 | Variable | Purpose |
 |---|---|
-| `STRIPE_SECRET_KEY` | `sk_test_*` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_test_*` |
-| `STRIPE_WEBHOOK_SECRET` | Registered at `https://rim-next.vercel.app/api/stripe/webhook` (event: `checkout.session.completed`) |
+| `STRIPE_SECRET_KEY` | The **sandbox** secret key `sk_test_*` (2026-09-24). Must be a *secret* key: a publishable `pk_*` here makes every checkout fail with `secret_key_required` (it happened; the checkout route's `detail` field names it). Must be from the same Stripe environment as the webhook secret. |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Not read by any code (no `@stripe/stripe-js`). Harmless if set; not needed. |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret of the **sandbox** destination `rim-site-dana-2026` → `https://rim-next.vercel.app/api/stripe/webhook`, events `checkout.session.completed` + `checkout.session.expired`, API version 2026-08-26.dahlia (2026-09-24). The old 2013-02-13 destination "RIM NEXT - Dana Integration" was retired. Live mode has **no destination yet**; go-live creates one and swaps both Stripe vars together. |
+
+The SDK is pinned to `2026-02-25.clover` (`lib/stripe.ts`, stripe 20.4.0); the webhook re-retrieves each Checkout Session so a destination's API version never changes what RIM reads.
 
 ### File Storage (Vercel Blob)
 | Variable | Purpose |

@@ -87,7 +87,7 @@
     "priority": "low",
     "status": "open",
     "addedAt": "2026-06-25",
-    "notes": "The engine (lib/sessionConflicts.ts) + capacity source (zoomSeatCount) already exist; the view is mostly a new read route + page. RIM_Zoom.md 'Scheduling integrity' lists these as deferred. Pairs with the seat-pick advisory lock (2026-06-24-008) for full runtime+predictive integrity."
+    "notes": "The engine (lib/sessionConflicts.ts) + capacity source (zoomSeatCount) already exist; the view is mostly a new read route + page. RIM_Zoom.md 'Scheduling integrity' lists these as deferred. Pairs with the seat-pick advisory lock (2026-06-24-008) for full runtime+predictive integrity. Update 2026-09-24: (2) the create-path warning is DONE (sessionStorage handoff to the edit page); the check also skips archived programs and counts true peaks. (1) the standalone view and (3) the reconciliation cron remain."
   },
   {
     "id": "2026-06-25-006",
@@ -225,9 +225,10 @@
     "description": "lib/sessionMeeting.ts getOrCreateSessionMeeting picks a free pool seat by checking which seats have an overlapping meeting, then creates on a free one. Between the check and the create there is a documented time-of-check-to-time-of-use gap: two near-simultaneous first-entries for two different programs could both pick the same 'free' seat, and the second meeting would fail to start (Pro = 1 concurrent meeting per seat). The @@unique([programSlug, sessionDate]) on SessionMeeting prevents double-booking the SAME occurrence, but not two DIFFERENT occurrences racing for the last seat. Fine at pilot scale (entries are seconds apart and there are only ~2 concurrent sessions), but before heavy concurrent use wrap the seat-pick + create in a transaction-scoped Postgres advisory lock (the same pattern as the session-room Step-In lock, STEPIN-1) so the pick is serialized. Until then, log when no seat is free (NoSeatAvailableError) so a collision is visible rather than silent.",
     "category": "Infrastructure",
     "priority": "low",
-    "status": "open",
+    "status": "closed",
     "addedAt": "2026-06-24",
-    "notes": "Hardening, not a pilot blocker. RIM_Zoom.md 'Pitfalls' documents the gap. Reuse the advisory-lock pattern from the Step-In concurrency fix (session 144)."
+    "notes": "Hardening, not a pilot blocker. RIM_Zoom.md 'Pitfalls' documents the gap. Reuse the advisory-lock pattern from the Step-In concurrency fix (session 144). Closed 2026-09-24: getOrCreateSessionMeeting now runs pick + Zoom create + insert in an interactive transaction holding pg_advisory_xact_lock(74210417), with lock_timeout 15s and a 10s Zoom fetch timeout; the seat pick also prefers seats whose entry windows are clear. See RIM_Zoom.md 'The seat pick'.",
+    "closedAt": "2026-09-24"
   },
   {
     "id": "2026-06-17-004",
@@ -631,7 +632,7 @@
     "status": "closed",
     "addedAt": "2026-05-21",
     "closedAt": "2026-05-27",
-    "notes": "Closed 2026-05-27 (session 131). Shipped as a Postgres-backed fixed-window limiter on Neon — rejected Upstash/Redis as overkill for RIM's <100 sign-ins/day. New `rate_limit_windows` table + `lib/rateLimit.ts::checkRateLimit` atomic-UPSERT helper (single statement; three CASE branches for new-row / expired-reset / increment; RETURNING the post-write count — no read-modify-write race window). Wrapper at `app/api/auth/[...nextauth]/route.ts` applies limits BOTH endpoints: signin/resend gets per-email (5/10min, defends email-bombing) + per-IP (20/10min, defends botnet hammering); callback/resend gets per-IP (20/10min, makes the 900K-code brute-force take ~350 days). Blocked → 303 redirect to `/login/error?error=RateLimit` with calm copy. Daily cleanup cron at 10:15 UTC. Migration `rate_limit_windows_v1`. Fails OPEN on DB error (User table is in same DB; DB-down already means nothing works). New per-area engineering doc `RIM_Auth.md` covers the architecture, thresholds, key namespacing convention, operational notes (clearing a stuck user, adjusting thresholds), and what-not-to-do. Commit 377d0f4."
+    "notes": "Closed 2026-05-27 (session 131). Shipped as a Postgres-backed fixed-window limiter on Neon — rejected Upstash/Redis as overkill for RIM's <100 sign-ins/day. New `rate_limit_windows` table + `lib/rateLimit.ts::checkRateLimit` atomic-UPSERT helper (single statement; three CASE branches for new-row / expired-reset / increment; RETURNING the post-write count — no read-modify-write race window). Wrapper at `app/api/auth/[...nextauth]/route.ts` applies limits BOTH endpoints: signin/resend gets per-email (5/10min, defends email-bombing) + per-IP (20/10min, defends botnet hammering); callback/resend gets per-IP (20/10min, makes the 900K-code brute-force take ~350 days). Blocked → 303 redirect to `/login/error?error=RateLimit` with calm copy. Daily cleanup cron at 10:15 UTC. Migration `rate_limit_windows_v1`. Fails OPEN on DB error (User table is in same DB; DB-down already means nothing works). New per-area engineering doc `RIM_Auth.md` covers the architecture, thresholds, key namespacing convention, operational notes (clearing a stuck user, adjusting thresholds), and what-not-to-do. Commit 377d0f4. Correction 2026-09-24: the verify limit only wrapped POST, but the code form submits by GET, so guessing was unthrottled until the GET wrapper shipped (per-IP 60 + new per-email 10 per 10 min). See RIM_Auth.md."
   },
   {
     "id": "2026-05-21-003",
@@ -1383,5 +1384,55 @@
     "status": "open",
     "addedAt": "2026-09-22",
     "notes": "Follow-on from Jesse’s concern about high content volume and simple navigation; documented limitation, not changed during closing."
+  },
+  {
+    "id": "2026-09-24-001",
+    "title": "Stripe go-live checklist (when the new site replaces the old one)",
+    "description": "In LIVE mode: add a webhook destination to https://<live domain>/api/stripe/webhook with checkout.session.completed + checkout.session.expired at the latest API version; put the live SECRET key (sk_live_, never pk_) in STRIPE_SECRET_KEY and the live destination's signing secret in STRIPE_WEBHOOK_SECRET together, then redeploy; keep Stripe's own customer receipts off so members get only RIM's dana receipt; have RIM's accountant approve the receipt's 'For your records' statement; optionally set checkout branding (Settings > Branding). Then run one real small registration end to end. Also update the domain in NEXTAUTH_URL-derived links.",
+    "category": "Registration",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-09-24",
+    "notes": "Sandbox is fully wired and verified (2026-09-24 $20 test: webhook 200, confirmation + receipt received). CLAUDE.md: keep test mode until go-live."
+  },
+  {
+    "id": "2026-09-24-002",
+    "title": "Flodesk: newsletter opt-in on registration and /join, plus per-program segments",
+    "description": "Registration and /join don't touch Flodesk today. Proposed (awaiting Jesse): an UNCHECKED 'Send me the RIM newsletter' box on the registration form and /join; only those who tick it are added to Flodesk, to the newsletter segment and to a segment for the program (created through Flodesk's POST /v1/segments when a coordinator turns it on in Program Manager, id stored on the program). People who don't opt in stay out of Flodesk entirely, because anyone in Flodesk can receive whole-list sends. Program logistics stay in RIM's own emails.",
+    "category": "Email & Notifications",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-09-24",
+    "notes": "Jesse wants to stay with Flodesk and asked for tags at program creation; Flodesk has no tags, segments are the tags. Open question to Jesse: does he send to specific segments or to all subscribers? Footer form verified live 2026-09-24."
+  },
+  {
+    "id": "2026-09-24-003",
+    "title": "Course dana receipt: add the legal 'For your records' block",
+    "description": "course-dana-receipt confirms the amount but has no legal name, EIN, date or goods-or-services statement. Add them like registration-dana-receipt, but only after deciding the statement for courses whose enrollment REQUIRES payment (selfEnrollDanaRequired / fixed), which isn't a pure gift. Needs Jesse's consent for the template body update and the accountant's wording.",
+    "category": "Courses & Library",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-09-24",
+    "notes": "Deliberately left alone 2026-09-24."
+  },
+  {
+    "id": "2026-09-24-004",
+    "title": "Record which fund a program's dana goes to (general vs teacher livelihood)",
+    "description": "The Teacher support dana template tells registrants their gift goes to RIM's fund for teacher livelihood, but nothing records that per program: the Donation ledger and the receipt treat all program dana alike. Consider a per-program dana fund setting that travels to the Donation row, the receipt and the ledger export.",
+    "category": "Registration",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-09-24",
+    "notes": "Jesse, 2026-09-24: teacher dana goes to RIM in a fund for teacher livelihood."
+  },
+  {
+    "id": "2026-09-24-005",
+    "title": "Required-payment edge cases after waitlist promotion",
+    "description": "(a) A promoted member on a program that requires payment is a real registration (roster, capacity, reminders, course access) with no payment deadline. (b) dana-reminder says 'Dana is entirely optional' even for required rows. (c) A promoted guest who isn't signed in and follows the link gets a fresh form that ends in 'Already registered'. Moot while RIM keeps dana voluntary.",
+    "category": "Registration",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-09-24",
+    "notes": "Found by the 2026-09-24 payment review; the decline bypass and auto-waive were fixed then."
   }
 ]
