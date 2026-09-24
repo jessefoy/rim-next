@@ -219,10 +219,16 @@ export default function RegistrationForm({
         <div className="pg-form__success">
           {hasPendingDana ? (
             <>
-              <h3>Your spot is confirmed!</h3>
+              {/* Reached by anyone returning with dana still open: most often a
+                  voluntary registrant who hadn't chosen yet, sometimes a
+                  waitlist promotion. Neutral wording fits both (see
+                  RIM_Registration.md, "A pending-dana state is a voluntary
+                  invitation, not a waitlist alert"). */}
+              <h3>Your place is saved</h3>
               <p>
-                A spot opened up and you&rsquo;ve been confirmed for this program.
-                Complete your dana offering below when you&rsquo;re ready.
+                {isFixed || isBasePlusDana
+                  ? "Complete the registration payment below to hold your place."
+                  : <>Make your dana offering below, or choose &ldquo;I&rsquo;m not donating at this time&rdquo;. Either one completes your registration.</>}
               </p>
             </>
           ) : isFixed || isBasePlusDana ? (

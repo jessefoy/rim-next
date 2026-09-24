@@ -35,6 +35,11 @@ interface Interval {
   end: Date;
 }
 
+/** Another program's occurrence, clipped to the occurrence being checked. */
+interface ClippedOcc extends Interval {
+  p: ProgramRow;
+}
+
 export interface SeatConflict {
   /** ISO start of the earliest conflicting occurrence in the window. */
   when: string;
@@ -87,6 +92,32 @@ function overlaps(a: Interval, b: Interval): boolean {
   return a.start < b.end && b.start < a.end;
 }
 
+/**
+ * The largest group of intervals that are all running at the same moment. An
+ * interval ending exactly when another starts doesn't count as overlapping.
+ */
+function peakConcurrent(items: ClippedOcc[]): ClippedOcc[] {
+  const events = items.flatMap((it) => [
+    { at: it.start.getTime(), delta: 1, it },
+    { at: it.end.getTime(), delta: -1, it },
+  ]);
+  // Ends before starts at the same instant.
+  events.sort((a, b) => a.at - b.at || a.delta - b.delta);
+  const active = new Set<ClippedOcc>();
+  let best: ClippedOcc[] = [];
+  for (const e of events) {
+    if (e.delta === 1) {
+      active.add(e.it);
+      if (active.size > best.length) best = [...active];
+    } else {
+      active.delete(e.it);
+    }
+  }
+  // One program can't need two rooms against itself; keep one per program.
+  const seen = new Set<string>();
+  return best.filter((b) => (seen.has(b.p.slug) ? false : (seen.add(b.p.slug), true)));
+}
+
 function joinNames(names: string[]): string {
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
@@ -110,6 +141,8 @@ export async function conflictsForProgram(
     where: {
       programFormat: { in: ["virtual", "hybrid"] },
       startDatetime: { not: null },
+      // Archived programs have no live sessions (/enter refuses them).
+      archivedAt: null,
     },
     select: {
       slug: true,
@@ -140,11 +173,24 @@ export async function conflictsForProgram(
   >();
 
   for (const t of targetOccs) {
-    const overlapping = others.filter((o) => o.occs.some((occ) => overlaps(occ, t)));
-    if (overlapping.length + 1 <= capacity) continue;
+    // Count the PEAK number of sessions running at one moment during this
+    // occurrence, not every program that touches it: two others that overlap
+    // this one at different times (one early, one late) need only one other
+    // seat between them.
+    const clipped = others.flatMap((o) =>
+      o.occs
+        .filter((occ) => overlaps(occ, t))
+        .map((occ) => ({
+          p: o.p,
+          start: occ.start > t.start ? occ.start : t.start,
+          end: occ.end < t.end ? occ.end : t.end,
+        })),
+    );
+    const peakSet = peakConcurrent(clipped);
+    if (peakSet.length + 1 <= capacity) continue;
     const progs = [
       { slug: target.slug, name: target.name },
-      ...overlapping.map((o) => ({ slug: o.p.slug, name: o.p.name })),
+      ...peakSet.map((c) => ({ slug: c.p.slug, name: c.p.name })),
     ];
     const key = progs.map((x) => x.slug).sort().join("|") + "@" + todFmt.format(t.start);
     const cur = byKey.get(key);
@@ -161,9 +207,9 @@ export async function conflictsForProgram(
       programs: c.programs,
       recurring,
       message:
-        `Around ${whenFmt.format(c.when)} CT this overlaps ${joinNames(otherNames)} — ` +
-        `that's ${c.programs.length} sessions needing a Zoom seat, but there are only ${capacity}.` +
-        (recurring ? " (repeats in the next several weeks)" : ""),
+        `Around ${whenFmt.format(c.when)} CT this overlaps ${joinNames(otherNames)}. ` +
+        `That's ${c.programs.length} sessions needing a Zoom room at once, and RIM has ${capacity}.` +
+        (recurring ? " This repeats in the coming weeks." : ""),
     };
   });
 }

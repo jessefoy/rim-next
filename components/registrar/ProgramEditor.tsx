@@ -9,11 +9,13 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
 import { isOpenlyDroppable, kindLabel } from "@/lib/programKind";
 import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
+import { categoryDisplayName } from "@/lib/programUtils";
 
 interface TeacherItem {
   id: string;
@@ -40,6 +42,8 @@ interface Category {
   slug: string;
   name: string;
   kind: string | null;
+  /** ProgramCategory.hideFromProgramsPage: the whole category is off the public listing. */
+  hidden?: boolean;
 }
 
 interface RegistrationField {
@@ -99,6 +103,8 @@ export interface ProgramData {
   hideFromProgramPageList: boolean;
   hideFromWeeklySchedule: boolean;
   hideWhenPast: boolean;
+  /** Read-only: the program is archived (archivedAt set). Edit page only. */
+  archived?: boolean;
   isOpenAccess: boolean;
   guestAccessKey: string;
   /** Which hub hosts this program. Null = "host-team" (the implicit default).
@@ -666,6 +672,21 @@ export default function ProgramEditor({
   const [recordByDefault, setRecordByDefault] = useState<boolean>(initialData?.recordByDefault ?? false);
   // Layer 2: Zoom seat conflicts returned by the save route (non-blocking warning).
   const [seatConflicts, setSeatConflicts] = useState<{ message: string; capacity: number }[]>([]);
+  // Pick up the overlap warning from a just-created program (see the create
+  // branch of save). Read once, then cleared.
+  useEffect(() => {
+    if (!isEditing || !initialData?.slug) return;
+    const key = `pe-seat-conflicts:${initialData.slug}`;
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (!raw) return;
+      sessionStorage.removeItem(key);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) setSeatConflicts(parsed);
+    } catch {
+      // Unreadable or unavailable storage: nothing to show.
+    }
+  }, [isEditing, initialData?.slug]);
 
   // Auxiliary-hub coverage. A program's primary hub (hostingHubSlug above)
   // runs the live session; auxiliary hubs schedule supporting roles —
@@ -932,6 +953,15 @@ export default function ProgramEditor({
         }
       } else {
         const created = await res.json();
+        // The create response carries the overlap check too; hand it to the
+        // edit page we're about to open, so a first save warns like later ones.
+        if (Array.isArray(created.seatConflicts) && created.seatConflicts.length > 0) {
+          try {
+            sessionStorage.setItem(`pe-seat-conflicts:${created.slug}`, JSON.stringify(created.seatConflicts));
+          } catch {
+            // Storage unavailable: the warning appears on the next save instead.
+          }
+        }
         router.push(`${basePath}/${created.slug}/edit`);
       }
     } catch {
@@ -966,6 +996,33 @@ export default function ProgramEditor({
         ? "Drop-in — visitors see how to join (in person and/or online). No registration needed."
         : "Registration isn’t open yet — visitors are told that, with no sign-up button. Turn on “Registration enabled” below when you’re ready to take sign-ups.";
   }, [offeringKind, registrationDeadline, registrationClosed, registrationEnabled]);
+
+  // ── "Where this program appears" ─────────────────────────────────────────
+  // The public listing leaves a program out for reasons that live outside the
+  // Visibility checkboxes (no category, a hidden category, a passed date,
+  // archived). Mirror the rules in app/community-programs/page.tsx and
+  // app/this-week/page.tsx so the editor says why, instead of the program
+  // silently not appearing.
+  const isArchived = initialData?.archived ?? false;
+  const listingReason = useMemo((): "archived" | "hidden" | "noCategory" | "hiddenCategory" | "past" | null => {
+    if (isArchived) return "archived";
+    if (hideFromProgramPageList) return "hidden";
+    if (!categoryId || !selectedCategory) return "noCategory";
+    if (selectedCategory.hidden) return "hiddenCategory";
+    if (hideWhenPast && !recurrenceFreq && startDatetime) {
+      // Editor datetimes are Central wall-clock strings (YYYY-MM-DDTHH:mm).
+      const lastDay = (endDatetime || startDatetime).slice(0, 10);
+      const todayCt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+      if (lastDay < todayCt) return "past";
+    }
+    return null;
+  }, [isArchived, hideFromProgramPageList, categoryId, selectedCategory, hideWhenPast, recurrenceFreq, startDatetime, endDatetime]);
+  const weeklyReason: "archived" | "hiddenListing" | "hiddenWeekly" | "noSchedule" | null =
+    isArchived ? "archived"
+      : hideFromProgramPageList ? "hiddenListing"
+      : hideFromWeeklySchedule ? "hiddenWeekly"
+      : !startDatetime ? "noSchedule"
+      : null;
 
   return (
     <div className="pe-editor" onChangeCapture={markDirty} onInputCapture={markDirty}>
@@ -1016,7 +1073,7 @@ export default function ProgramEditor({
           }}
         >
           <strong style={{ fontSize: "var(--text-ui)" }}>
-            ⚠️ Heads up — this overlaps other online sessions on Zoom
+            This overlaps other online sessions on Zoom
           </strong>
           {seatConflicts.map((c, i) => (
             <span key={i} style={{ fontSize: "var(--text-xs)", lineHeight: "var(--lh-body)" }}>
@@ -1024,8 +1081,9 @@ export default function ProgramEditor({
             </span>
           ))}
           <span style={{ fontSize: "var(--text-xs)", color: "var(--rim-mid)" }}>
-            Your change was saved. If both sessions must run live at once, move one
-            time or add a Zoom seat — otherwise the later host could find no seat free.
+            Your change was saved. If these sessions need to run at the same time,
+            move one of them, or ask an administrator about adding a Zoom room.
+            Otherwise, people joining the later one will find no room free.
           </span>
           <button
             type="button"
@@ -1177,7 +1235,7 @@ export default function ProgramEditor({
             <div className="pe-form">
               <div className="pe-field">
                 <span className="pe-field__label">Teacher / Facilitators</span>
-                <span className="pe-field__help">Search by name to link teachers to this program. Linked teachers automatically get host controls in virtual sessions.</span>
+                <span className="pe-field__help">Search by name to link teachers to this program. In online sessions, linked teachers see the Claim Host code, so they can take host controls in Zoom if needed.</span>
 
                 {selectedTeachers.length > 0 && (
                   <div className="pe-teacher-tags">
@@ -1250,7 +1308,7 @@ export default function ProgramEditor({
 
             <div className="pe-field">
               <span className="pe-field__label">Program Format</span>
-              <span className="pe-field__help">In-person, virtual, or hybrid. This controls whether a LiveKit video room or a venue address is shown.</span>
+              <span className="pe-field__help">In-person, virtual, or hybrid. Virtual and hybrid programs meet on Zoom; in-person and hybrid programs show the venue address.</span>
               <div className="pe-option-cards">
                 {[
                   { value: "in-person", label: "In-person" },
@@ -1446,13 +1504,16 @@ export default function ProgramEditor({
               )}
             </div>
 
+            {/* Recording is a Zoom setting, so it only exists for programs that
+                meet online. */}
+            {isVirtual && (
             <div className="pe-field">
               <span className="pe-field__label">Recording</span>
               <span className="pe-field__help">
                 Auto-record this program&rsquo;s sessions to the cloud for internal
                 use. Participants see Zoom&rsquo;s recording indicator. Audio-only
                 (and per-speaker tracks) depend on the Zoom account&rsquo;s
-                recording settings. Only applies to virtual / hybrid programs.
+                recording settings. A change applies to upcoming sessions.
               </span>
               <label className="pe-checkbox">
                 <input
@@ -1463,6 +1524,7 @@ export default function ProgramEditor({
                 <span>Record sessions (audio-only)</span>
               </label>
             </div>
+            )}
 
             {/* Intro: two separate sections with different semantics.
                 Spelled out at the top of the tab so coordinators have a
@@ -1812,21 +1874,11 @@ export default function ProgramEditor({
 
             {/* How this appears to visitors — reflects kind + format + registration
                 state so the volunteer sees the consequence of these toggles. */}
-            <div
-              style={{
-                marginBottom: 16,
-                padding: "12px 14px",
-                background: "#f5f1ea",
-                borderRadius: 6,
-                fontSize: "var(--text-xs)",
-                lineHeight: 1.6,
-                color: "var(--rim-text)",
-              }}
-            >
-              <strong>How this appears to visitors</strong><br />
-              {appearanceText}
+            <div className="pe-readout">
+              <p className="pe-readout__title">How this appears to visitors</p>
+              <p className="pe-readout__row">{appearanceText}</p>
               {offeringKind && (
-                <><br /><span style={{ color: "var(--rim-mid)" }}>Kind: {kindLabel(offeringKind)} (from its category)</span></>
+                <p className="pe-readout__row pe-readout__row--meta">Kind: {kindLabel(offeringKind)} (from its category)</p>
               )}
             </div>
 
@@ -2121,6 +2173,63 @@ export default function ProgramEditor({
         {tab === "Visibility" && (
           <div className="pe-card"><div className="pe-form">
 
+            {/* Where this program appears: derived from every rule the two
+                public pages apply, not only the checkboxes below. */}
+            <div className="pe-readout" aria-live="polite">
+              <p className="pe-readout__title">Where this program appears</p>
+              <p className={`pe-readout__row${listingReason ? " pe-readout__row--off" : ""}`}>
+                <span className="pe-readout__place">Programs &amp; Events page: </span>
+                {listingReason === null && (
+                  <>Listed under {categoryDisplayName(selectedCategory?.name ?? "")}.</>
+                )}
+                {listingReason === "archived" && (
+                  <><span className="pe-readout__state">Not listed.</span> Archived programs don&rsquo;t appear.</>
+                )}
+                {listingReason === "hidden" && (
+                  <><span className="pe-readout__state">Not listed.</span> The first box below is checked.</>
+                )}
+                {listingReason === "noCategory" && (
+                  <>
+                    <span className="pe-readout__state">Not listed.</span> It needs a category to appear under.{" "}
+                    {/* An inline link, not a <button>: the app shells give every
+                        button a 44px box, which would break the sentence. */}
+                    <a
+                      href="#"
+                      className="pe-readout__link"
+                      onClick={(e) => { e.preventDefault(); setTab("Categories"); }}
+                    >
+                      Choose one on the Categories tab
+                    </a>.
+                  </>
+                )}
+                {listingReason === "hiddenCategory" && (
+                  <>
+                    <span className="pe-readout__state">Not listed.</span> Its category, {selectedCategory?.name}, is hidden from the public page. You can change that on the{" "}
+                    <Link href="/tools/programs/categories" className="pe-readout__link">Program Categories</Link> page.
+                  </>
+                )}
+                {listingReason === "past" && (
+                  <><span className="pe-readout__state">Not listed.</span> Its date has passed. To keep it listed, uncheck &ldquo;Hide automatically after the date passes&rdquo; below.</>
+                )}
+              </p>
+              <p className={`pe-readout__row${weeklyReason ? " pe-readout__row--off" : ""}`}>
+                <span className="pe-readout__place">This Week&rsquo;s schedule: </span>
+                {weeklyReason === null && <>Shown in the weeks it meets.</>}
+                {weeklyReason === "archived" && (
+                  <><span className="pe-readout__state">Not shown.</span> Archived programs don&rsquo;t appear.</>
+                )}
+                {weeklyReason === "hiddenListing" && (
+                  <><span className="pe-readout__state">Not shown.</span> Hiding it from the Programs &amp; Events page hides it here too.</>
+                )}
+                {weeklyReason === "hiddenWeekly" && (
+                  <><span className="pe-readout__state">Not shown.</span> The second box below is checked.</>
+                )}
+                {weeklyReason === "noSchedule" && (
+                  <><span className="pe-readout__state">Not shown.</span> It needs a start date and time on the Schedule tab.</>
+                )}
+              </p>
+            </div>
+
             <label className="pe-field">
               <span className="pe-field__label">Sort Order</span>
               <span className="pe-field__help">Controls the display order on the public Programs page. Lower numbers appear first.</span>
@@ -2143,7 +2252,7 @@ export default function ProgramEditor({
                 />
                 <span className="pe-checkbox__label">Hide from public Programs &amp; Events page</span>
               </label>
-              <p className="pe-field__help">This program won&rsquo;t appear on the public listing. Still accessible by direct URL.</p>
+              <p className="pe-field__help">This program won&rsquo;t appear on the public listing or on This Week&rsquo;s schedule. Still accessible by direct URL.</p>
             </div>
 
             <div className="pe-visibility-option">

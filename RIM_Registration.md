@@ -44,6 +44,36 @@ A new `RegistrationStatus` value. Only required-payment registrations use it. Se
 
 **Anything that should happen "when a registration becomes real" belongs in `sendRegistrationConfirmation` or alongside these four callers — not bolted onto one path.** That's why the support@ notification rides inside it: it can't drift.
 
+## The server decides what's charged (2026-09-24)
+
+`/api/stripe/checkout` no longer trusts the amount the browser sends. `lib/programUtils.ts::resolveDanaCharge(program, requestedCents)` is the one place a checkout amount becomes a charge:
+
+| `danaMode` | Charged | Registration part (`feeCents`) | Gift part (`giftCents`) |
+|---|---|---|---|
+| `fixed` | the fixed amount, whatever was requested | all of it | 0 |
+| `base_plus_dana` | the request, which must be at least the base | the base | the rest |
+| `voluntary` | the request, at least $1 | 0 | all of it |
+| `none` | refused | | |
+
+`requiredDanaCents(program)` (same file) answers "is anything owed before a place is held?" and is shared by the decline endpoint, waitlist promotion and the cron.
+
+The checkout also: requires ownership (signed-in owner OR matching email, mirroring decline-dana); refuses rows that aren't `PENDING_PAYMENT` / `REGISTERED` / `APPROVED`; takes titles from the database; splits the Stripe line items into **"Registration for X"** and **"Dana for X"** (Stripe's button reads **Donate** for a pure gift, **Pay** otherwise); copies the metadata (incl. `feeCents`, `giftCents`, names) onto the PaymentIntent; stamps `stripeSessionId`; and **expires the checkout it replaces**, so two open tabs can't both be paid.
+
+## The dana receipt (2026-09-24)
+
+Every completed program payment sends **two** emails from the webhook, once: the registration confirmation (the choke point, unchanged) and **`registration-dana-receipt`** (`lib/email.ts::sendRegistrationDanaReceiptEmail`). The receipt is the member's record: RIM's legal name and EIN (`lib/locations.ts::RIM_LEGAL_NAME`, `RIM_EIN`, from the IRS determination letter), the gift amount, the date received (`event.created`, not the webhook's processing time), the program, and a goods-or-services statement. A registration payment is named separately from the gift; a fixed-amount payment gets a payment receipt that says it isn't a charitable gift. **The statement wording is provisional pending RIM's accountant.** RIM's public charity status is 170(b)(1)(A)(i) (church), which makes the "intangible religious benefits" wording available; that's the accountant's call, not a code default.
+
+## Nothing paid is ever dropped (2026-09-24)
+
+- **Expiry releases only its own hold.** `checkout.session.expired` deletes the held row only when the expiring session is the row's current `stripeSessionId` (or the legacy null). A member who abandons a checkout and starts another keeps their hold.
+- **The daily sweep keys on `updatedAt`**, so a retried hold (same row, newer checkout) isn't swept mid-checkout.
+- **A payment whose row is gone restores it.** If `checkout.session.completed` finds no registration, it recreates it (same id) from the checkout metadata, completes it, and leaves a note for the registrar that the questionnaire answers weren't recovered. Before this, the webhook logged and returned: money taken, no record.
+- **An additional payment on an already-paid registration** is recorded and receipted, adds to `donationAmount`, and logs for review; no second confirmation.
+
+## Waitlist promotion on a paid program (2026-09-24)
+
+Promotion derives the dana mode from the **program record**, not the request body. If the program requires an amount, the row stays `donationStatus: PENDING`, the approval email says a registration payment is needed (`paymentRequired` / `paymentUsd` in `waitlist-approval`), the decline endpoint refuses to waive it, and the cron never auto-waives it. A fixed/base program with no amount set asks for nothing and is `WAIVED`, as at registration. **Open policy question for Jesse:** a promoted-but-unpaid row is otherwise a real registration (roster, capacity, reminders, course access) with no deadline. Moot while RIM keeps dana voluntary.
+
 ## Idempotency
 
 - **Webhook**: gated on whether the `Donation` row (keyed by `payment_intent`) existed *before* this delivery → the confirmation isn't double-sent on redelivery. Status flip / account find-or-create are idempotent (same values / find-existing).
@@ -80,7 +110,9 @@ Drift here is the classic failure: session 136's reviewer pass found three sites
 - **Don't create a `User` for a new guest on a required-payment program at submit** — the webhook does it on payment, so an abandoner never becomes a member.
 - **Don't read `danaMode` from the client body** to decide required-vs-not — derive it from the program.
 - **Don't add a member/registrar-facing registration query without excluding `PENDING_PAYMENT`**, and don't add a capacity count without including it.
-- **The Stripe webhook endpoint must subscribe to `checkout.session.expired`** — otherwise abandoned holds clear only via the daily cron, not in real time.
+- **The Stripe webhook endpoint must subscribe to `checkout.session.expired`** — otherwise abandoned holds clear only via the daily cron, not in real time. (Confirm in the Stripe dashboard when switching to live keys; the live endpoint is a separate registration.)
+- **Don't read an amount from the checkout body as the charge.** Go through `resolveDanaCharge`.
+- **Don't delete a held row by registration id alone.** Match the checkout session.
 - **A pending-dana state is a *voluntary invitation*, not a waitlist alert.** On `/programs/[slug]/register`, `donationStatus === "PENDING"` means a voluntary registration awaiting the give/decline choice (required-payment rows are `PENDING_PAYMENT` and excluded from member-facing registration state). Keep the copy calm and accurate; do not reuse waitlist-promotion language for this common voluntary case (session 137, from LoriLee).
 
 ---

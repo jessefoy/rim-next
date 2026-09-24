@@ -23,6 +23,13 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Files:** saved personal sorting, favorites, and custom colors; shared pins with attribution for existing writers; current-folder search and 20-row pages. Existing file/Google/notification/deletion workflows retained. See `RIM_GoogleWorkspace.md` §11.
 - **Shared design:** established 16/15/18px readability, consistent page headings/controls/focus, mobile drawer focus handling across personal and hub rails. Authenticated visual verification remains tracked in `UP_NEXT.md`.
 
+## September 24, 2026 integrity fixes
+
+- **Program visibility is explained, not silent.** The Program Manager's Visibility tab says where the program appears and why not (no category, hidden category, date passed, archived, or a box checked). The hardcoded exclusion of the Dummy Test Program is gone; the Hide checkbox is the only control. Hiding from Programs & Events also hides from This Week (now said on the checkbox).
+- **Sign-in email button.** "Sign me in from this device" opens the code page with the code filled in; the member taps Sign in. Code checks are now rate-limited (they weren't, on GET). See `RIM_Auth.md`.
+- **Payments.** The server decides the charge; registration payments and dana are separate Stripe lines; a new **dana receipt** email (legal name, EIN, amount, date, goods-or-services statement) follows every program payment; expired or replaced checkouts can't delete a live hold or take a second payment; a payment whose hold was lost restores the registration. See `RIM_Registration.md`.
+- **Zoom.** Seat choice respects entry windows and is lock-serialized; every stop at `/session/[slug]/enter` is a plain page (never a silent bounce); registration-required programs admit registrants only; the overlap warning counts true peaks, skips archived programs, and appears on a program's first save; Record changes reach existing meetings; more seats are a settings change (`ZOOM_SEAT_EMAILS`). See `RIM_Zoom.md`.
+
 ## For depth, see
 
 | Topic | Authoritative doc |

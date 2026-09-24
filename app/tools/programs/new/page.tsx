@@ -44,7 +44,7 @@ export default async function NewProgramToolPage() {
         <ProgramEditor
           basePath="/tools/programs"
           isEditing={false}
-          categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name, kind: c.kind ?? null }))}
+          categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name, kind: c.kind ?? null, hidden: c.hideFromProgramsPage }))}
           hubs={hubs.map((h) => ({
             slug: h.slug,
             name: h.name,

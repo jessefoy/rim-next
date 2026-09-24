@@ -11,7 +11,7 @@ import { db } from "@/lib/db";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
 import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
-import { teardownProgramMeetings } from "@/lib/sessionMeeting";
+import { applyProgramRecordingSetting, teardownProgramMeetings } from "@/lib/sessionMeeting";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
 
@@ -348,10 +348,20 @@ export async function PUT(
       (data.recurrenceDays !== undefined &&
         !sameDays(data.recurrenceDays as string[], existing.recurrenceDays)));
 
+  // (c) slugChanged — meetings are keyed by slug. Move the rows to the new
+  //     slug (the Zoom meetings themselves don't use it), so a session that is
+  //     open right now keeps its one room instead of /enter opening a second.
+  const slugChanged = !!body.slug && body.slug !== slug;
+  if (slugChanged) {
+    await db.sessionMeeting
+      .updateMany({ where: { programSlug: slug }, data: { programSlug: updated.slug } })
+      .catch((e) => console.error("[programs-pg] Zoom meeting slug move failed", e));
+  }
+
   if (leftVirtual || scheduleMoved) {
     after(async () => {
       try {
-        const n = await teardownProgramMeetings(slug, {
+        const n = await teardownProgramMeetings(updated.slug, {
           futureOnly: true,
           // Don't delete a meeting whose entry window is already open — a host
           // could be staging in it. Those age out on the next save / via cleanup.
@@ -359,10 +369,31 @@ export async function PUT(
         });
         if (n > 0)
           console.log(
-            `[programs-pg] tore down ${n} future Zoom meeting(s) for ${slug} (${leftVirtual ? "left virtual/hybrid" : "schedule changed"})`,
+            `[programs-pg] tore down ${n} future Zoom meeting(s) for ${updated.slug} (${leftVirtual ? "left virtual/hybrid" : "schedule changed"})`,
           );
       } catch (e) {
         console.error("[programs-pg] Zoom teardown error:", e);
+      }
+    });
+  }
+
+  // (d) Record changed — apply it to meetings already provisioned for this
+  //     program that haven't ended (a meeting keeps the setting it was created
+  //     with otherwise). Skipped when those meetings are being torn down.
+  if (
+    stillVirtual &&
+    !scheduleMoved &&
+    data.recordByDefault !== undefined &&
+    data.recordByDefault !== existing.recordByDefault
+  ) {
+    const recordToCloud = data.recordByDefault === true;
+    after(async () => {
+      try {
+        const n = await applyProgramRecordingSetting(updated.slug, recordToCloud);
+        if (n > 0)
+          console.log(`[programs-pg] set recording ${recordToCloud ? "on" : "off"} for ${n} existing Zoom meeting(s) of ${updated.slug}`);
+      } catch (e) {
+        console.error("[programs-pg] Zoom recording update error:", e);
       }
     });
   }
@@ -443,7 +474,7 @@ export async function PUT(
   // Layer 2: surface any Zoom seat conflict this schedule creates with other
   // virtual/hybrid programs (non-blocking — the coordinator decides what to do).
   const seatConflicts = stillVirtual
-    ? await conflictsForProgram(slug).catch((e) => {
+    ? await conflictsForProgram(updated.slug).catch((e) => {
         console.error("[programs-pg] seat-conflict check failed", e);
         return [];
       })

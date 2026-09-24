@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
+import { requiredDanaCents } from "@/lib/programUtils";
 
 // POST /api/registrations/[id]/decline-dana
 //
@@ -32,6 +33,7 @@ export async function POST(
         email: true,
         status: true,
         donationStatus: true,
+        program: { select: { danaMode: true, danaFixedAmount: true, danaBaseAmount: true } },
       },
     });
     if (!registration) {
@@ -53,6 +55,17 @@ export async function POST(
     if (registration.donationStatus === "COMPLETED") {
       return NextResponse.json(
         { error: "A dana offering has already been completed for this registration" },
+        { status: 409 }
+      );
+    }
+
+    // Only optional dana can be declined. A program that asks for a
+    // registration payment (e.g. a waitlist promotion on a fixed-amount
+    // program) keeps it owed; the form never offers the skip for these, and
+    // the endpoint must not either.
+    if (registration.program && requiredDanaCents(registration.program) > 0) {
+      return NextResponse.json(
+        { error: "This program asks for a registration payment, so it can't be skipped." },
         { status: 409 }
       );
     }

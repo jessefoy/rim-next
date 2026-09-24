@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import SignInCodeForm from "@/components/login/SignInCodeForm";
 
-export const metadata = { title: "Enter Your Code — Rooted In Mindfulness" };
+// no-referrer: this page can carry a sign-in code in its URL (?code=), which
+// must not travel to third-party requests (fonts, images) as a Referer.
+export const metadata = {
+  title: "Enter Your Code — Rooted In Mindfulness",
+  referrer: "no-referrer" as const,
+};
 
 // How recently a user must have agreed (and still be unverified) for us
 // to treat this code-entry as the continuation of the /join threshold
@@ -29,9 +34,13 @@ function isInPostJoinWindow(
 export default async function CheckEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; resent?: string }>;
+  searchParams: Promise<{ email?: string; resent?: string; code?: string }>;
 }) {
-  const { email, resent } = await searchParams;
+  const { email, resent, code } = await searchParams;
+  // Arrives from the email's "Sign me in from this device" button. Only a
+  // well-formed six-digit code pre-fills the form; the member still taps
+  // Sign in, so opening the link alone never uses the code up.
+  const prefilledCode = code && /^\d{6}$/.test(code) ? code : undefined;
 
   // Stateless if a user lands here without an email (bookmark, direct nav).
   if (!email) {
@@ -88,14 +97,21 @@ export default async function CheckEmailPage({
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Members</p>
           <h1 className="pp-hero__title">
-            {isFromJoin
+            {prefilledCode
+              ? "Your code is ready"
+              : isFromJoin
               ? firstName
                 ? `Almost there, ${firstName}.`
                 : "Almost there."
               : "Enter your code"}
           </h1>
           <p className="pp-hero__body">
-            {isFromJoin ? (
+            {prefilledCode ? (
+              <>
+                We&apos;ve filled in the code we sent to{" "}
+                <strong className="lg-email">{email}</strong>. Sign in to continue.
+              </>
+            ) : isFromJoin ? (
               <>
                 Two things just arrived in your inbox: your sign-in code, and a short
                 welcome letter. Type the code below to enter. Your code expires in 30
@@ -120,7 +136,7 @@ export default async function CheckEmailPage({
                 hidden `token` field via GET to /api/auth/callback/resend,
                 same NextAuth Email-provider callback that magic-link clicks
                 used to hit. */}
-            <SignInCodeForm email={email} callbackUrl="/account/dashboard" />
+            <SignInCodeForm email={email} callbackUrl="/account/dashboard" initialCode={prefilledCode} />
 
             {/* A div, not a p: the resend action is a real <form>, and a form
                 inside a <p> is invalid HTML (the browser closes the paragraph

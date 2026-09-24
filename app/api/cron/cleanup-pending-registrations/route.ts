@@ -34,9 +34,12 @@ export async function GET(request: Request) {
   const now = Date.now();
 
   // 1. Release abandoned holds (backstop for a missed `expired` event).
+  // Keyed on updatedAt, not createdAt: a member who retries reuses the same
+  // held row, and starting a checkout stamps it (stripeSessionId), so a row
+  // with a live checkout is always younger than the 60-minute checkout window.
   const holdCutoff = new Date(now - 2 * 60 * 60 * 1000); // 2 hours ago
   const { count: holdsReleased } = await db.registration.deleteMany({
-    where: { status: "PENDING_PAYMENT", createdAt: { lt: holdCutoff } },
+    where: { status: "PENDING_PAYMENT", updatedAt: { lt: holdCutoff } },
   });
 
   // 2. Finalize voluntary registrations abandoned before the dana choice.
@@ -45,7 +48,20 @@ export async function GET(request: Request) {
     where: {
       status: "REGISTERED",
       donationStatus: "PENDING",
-      createdAt: { lt: voluntaryCutoff },
+      // updatedAt so a member promoted from the waitlist gets their full day.
+      updatedAt: { lt: voluntaryCutoff },
+      // Only VOLUNTARY dana is waived by silence. A program that requires
+      // payment (a waitlist promotion owes it) must never be auto-completed.
+      NOT: {
+        program: {
+          is: {
+            OR: [
+              { danaMode: "fixed", danaFixedAmount: { gt: 0 } },
+              { danaMode: "base_plus_dana", danaBaseAmount: { gt: 0 } },
+            ],
+          },
+        },
+      },
     },
     select: { id: true },
   });

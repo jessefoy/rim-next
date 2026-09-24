@@ -345,7 +345,7 @@ Hub thread filter: `activeHubThreadWhere(hubId)` in `lib/hubQueries.ts` (session
 | ~~Sanity~~ | Retired — all content lives in Postgres; no `@sanity` deps remain (residual `sanityNote` column rename is backlog `2026-08-08-001`) | Project `xxgvfpjf` can be deleted |
 | Zoom | Video conferencing (the room since session 159) | 2 licensed Pro pool seats, S2S OAuth; see `RIM_Zoom.md` |
 | ~~Gmail API~~ | Removed session 100 — Support Inbox deleted | OAuth env vars remain in Vercel; remove manually |
-| Flodesk | Newsletter signup | Segment ID in env vars |
+| Flodesk | Newsletter signup (footer form only) | API key in env (`FLODESK_API_KEY`); newsletter segment id is hardcoded in `app/api/subscribe/route.ts` |
 | Neon | Postgres database | ⚠️ Rotate password before go-live |
 | Vercel (Pro) | Hosting + cron jobs | Auto-deploy from `main`; Pro plan for 5-min cron interval |
 

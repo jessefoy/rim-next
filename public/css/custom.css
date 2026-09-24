@@ -16972,6 +16972,48 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 .pe-visibility-option .pe-field__help { margin: 0; }
 .pe-visibility-option .pe-checkbox { align-items: flex-start; gap: 10px; }
 
+/* ── Derived readouts: "Where this program appears" (Visibility) and
+      "How this appears to visitors" (Registration). Read-only statements of
+      what the public pages will do; a quiet inset, with the "not listed"
+      state named in words and carried in the warning ink. ── */
+.pe-readout {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  background: var(--rim-bg);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pe-readout__title {
+  margin: 0;
+  font-size: var(--text-app);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--rim-text);
+}
+.pe-readout__row {
+  margin: 0;
+  font-size: var(--text-app-meta);
+  line-height: 1.55;
+  color: var(--rim-text);
+}
+.pe-readout__row--meta { color: var(--rim-text-muted); }
+.pe-readout__place { font-weight: 600; }
+.pe-readout__row--off .pe-readout__state { font-weight: 600; color: var(--color-warning); }
+.pe-readout__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--rim-mid);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.pe-readout__link:hover { color: var(--rim-blue); }
+.pe-readout__link:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: 2px; border-radius: 2px; }
+
 /* ── Dashboard schedule reveal ── */
 .pe-visibility-schedule {
   margin-top: 16px;

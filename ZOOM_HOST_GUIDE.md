@@ -7,7 +7,7 @@ Zoom. Here's everything you need.
 ## The short version
 
 1. **Sign in to RIM** and open your **dashboard**.
-2. Find today's session and click **Enter as host** (or **Join**).
+2. Find today's session and click **Enter Zoom as host** (or **Join on Zoom**).
 3. On the next screen, note your **code**, then click **Join as host**.
 4. In Zoom, open **Participants → Claim Host**, and type the **code**.
 5. You're hosting. 🌿
@@ -23,8 +23,8 @@ Go to the RIM website and sign in the way you always do (your email and the
 **2. Find your session.**
 Under **Today**, you'll see the session you're hosting. You can open the room
 **early — about 30 minutes before it starts** — to settle in and welcome people.
-Click **Enter as host** (the button may simply say **Join** once it's session
-time). Either one takes you to the same place.
+Click **Enter Zoom as host** (the button may say **Join on Zoom** once it's
+session time). Either one takes you to the same place.
 
 **3. The "You're hosting" screen.**
 You'll see a calm little screen that says **"You're hosting today,"** the name of
@@ -70,8 +70,11 @@ host.
 
 ## If something's not working
 
-- If Zoom doesn't open on its own, there's a **"click here to join"** link right
-  on the screen — tap that.
+- If Zoom doesn't open when you click **Join as host**, click it once more. (Members
+  see an **Open Zoom manually** link for the same thing.)
+- If RIM says the session **can't open right now**, wait a minute and choose
+  **Try again**. It means Zoom was briefly unreachable, or both of RIM's Zoom rooms
+  were already in use.
 - If you don't see **Claim Host**, someone may have already claimed it (there's
   only one host at a time).
 - Anything else — reach out to Jesse or **support@rootedinmindfulness.org**, and

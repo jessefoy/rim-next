@@ -27,18 +27,33 @@
  * previous when current is already empty. Arrow keys move between boxes.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const BOX_COUNT = 6;
 
 interface Props {
   email: string;
   callbackUrl?: string;
+  /** Six digits from the email's sign-in link. Fills the boxes; never submits on its own. */
+  initialCode?: string;
 }
 
-export default function SignInCodeForm({ email, callbackUrl = "/account/dashboard" }: Props) {
+export default function SignInCodeForm({ email, callbackUrl = "/account/dashboard", initialCode }: Props) {
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-  const [boxes, setBoxes] = useState<string[]>(() => Array(BOX_COUNT).fill(""));
+  const isPrefilled = !!initialCode && /^\d{6}$/.test(initialCode);
+  const [boxes, setBoxes] = useState<string[]>(() =>
+    isPrefilled ? initialCode!.split("") : Array(BOX_COUNT).fill(""),
+  );
+
+  // The code arrived in the URL. It now lives in the form, so take it out of
+  // the address bar and history (history syncs across a member's devices).
+  useEffect(() => {
+    if (!isPrefilled) return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("code")) return;
+    url.searchParams.delete("code");
+    window.history.replaceState(window.history.state, "", url.toString());
+  }, [isPrefilled]);
   const code = boxes.join("");
   const isComplete = code.length === BOX_COUNT;
 
@@ -140,7 +155,7 @@ export default function SignInCodeForm({ email, callbackUrl = "/account/dashboar
             pattern="\d"
             maxLength={1}
             autoComplete={i === 0 ? "one-time-code" : "off"}
-            autoFocus={i === 0}
+            autoFocus={i === 0 && !isPrefilled}
             aria-label={`Digit ${i + 1} of ${BOX_COUNT}`}
             value={value}
             onChange={(e) => handleChange(e, i)}
@@ -155,6 +170,8 @@ export default function SignInCodeForm({ email, callbackUrl = "/account/dashboar
         className="sic-form__submit"
         disabled={!isComplete}
         aria-disabled={!isComplete}
+        /* A pre-filled code leaves one thing to do: this button. */
+        autoFocus={isPrefilled}
       >
         Sign in →
       </button>

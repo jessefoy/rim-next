@@ -14,6 +14,7 @@ import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
+import { requiredDanaCents } from "@/lib/programUtils";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
@@ -192,11 +193,25 @@ export async function PATCH(
       (status === "APPROVED" || status === "REGISTERED");
 
     // Auto-set donationStatus on promotion unless caller explicitly overrides it.
-    // If danaMode is provided and is not "none", the promoted member needs to complete dana.
+    // The dana shape comes from the program record, never the request body: a
+    // program that REQUIRES payment (fixed / base + dana with an amount) must
+    // leave the promoted member owing it, and the approval email must say so
+    // rather than call it optional.
+    const promotedProgram = isPromotion && current.programId
+      ? await db.program.findUnique({
+          where: { id: current.programId },
+          select: { danaMode: true, danaFixedAmount: true, danaBaseAmount: true },
+        })
+      : null;
+    const programDanaMode = promotedProgram?.danaMode ?? danaMode ?? "none";
+    const requiredCents = promotedProgram ? requiredDanaCents(promotedProgram) : 0;
     let resolvedDonationStatus: DonationStatus | undefined = donationStatus as DonationStatus | undefined;
     if (isPromotion && !donationStatus) {
+      // Owed (a required amount) or invited (voluntary) stays PENDING. A
+      // fixed/base program with no amount set asks for nothing, as at
+      // registration, so it's WAIVED rather than stuck at $0.
       resolvedDonationStatus =
-        danaMode && danaMode !== "none" ? "PENDING" : "WAIVED";
+        requiredCents > 0 || programDanaMode === "voluntary" ? "PENDING" : "WAIVED";
     }
 
     const registration = await db.registration.update({
@@ -216,7 +231,8 @@ export async function PATCH(
         firstName:    current.firstName,
         programTitle: current.programTitle,
         programSlug:  current.programSlug,
-        danaMode:     danaMode ?? null,
+        danaMode:     programDanaMode,
+        requiredCents,
       });
     }
 

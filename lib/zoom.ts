@@ -80,6 +80,10 @@ export async function zoomApi<T = unknown>(
       ...(init.headers ?? {}),
     },
     cache: "no-store",
+    // Bounded: seat provisioning calls Zoom while holding RIM's seat lock, so
+    // a stalled request must fail (and show "couldn't reach Zoom") rather than
+    // hold everyone else's entry behind it.
+    signal: init.signal ?? AbortSignal.timeout(10_000),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -138,20 +142,22 @@ export interface ZoomMeeting {
   topic: string;
   /** Host-launch link (carries a ZAK, expires ~2h from CREATION) — fetch fresh just-in-time. */
   start_url: string;
-  /** Generic join link (we prefer per-registrant links for named entry). */
+  /** The standard join link everyone uses (no per-person registration). */
   join_url: string;
   start_time?: string;
   duration?: number;
   /** Meeting settings (partial) — approval_type 2 = no registration form. */
   settings?: { approval_type?: number };
+  /** "waiting" | "started" (people are in it) | "finished". */
+  status?: string;
 }
 
 /**
  * Create a scheduled meeting on a pool seat. RIM defaults: camera off + muted on
  * entry (the greenroom feel), join-before-host on (people gather before a host
- * claims), registration auto-approved (so the registrant API returns a named
- * join link immediately), telephony + VoIP audio (enables dial-in), and
- * audio-only cloud recording when requested.
+ * claims), no registration (approval_type 2: everyone uses the standard join
+ * link and types their own name), telephony + VoIP audio (enables dial-in), and
+ * cloud recording when requested (audio-only is a seat-level Zoom setting).
  */
 export async function createMeeting(opts: CreateMeetingOptions): Promise<ZoomMeeting> {
   return zoomApi<ZoomMeeting>(
@@ -209,6 +215,17 @@ export async function addMeetingRegistrant(
       first_name: registrant.firstName,
       last_name: registrant.lastName ?? "",
     }),
+  });
+}
+
+/** Turn cloud auto-recording on or off for an existing meeting (PATCH settings only). */
+export async function setMeetingAutoRecording(
+  meetingId: number | string,
+  recordToCloud: boolean,
+): Promise<void> {
+  await zoomApi(`/meetings/${encodeURIComponent(String(meetingId))}`, {
+    method: "PATCH",
+    body: JSON.stringify({ settings: { auto_recording: recordToCloud ? "cloud" : "none" } }),
   });
 }
 

@@ -5,6 +5,7 @@ import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichCont
 import { db } from "@/lib/db";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
+import { RIM_ADDRESS, RIM_EIN, RIM_LEGAL_NAME } from "@/lib/locations";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -435,6 +436,8 @@ export interface ApprovalEmailData {
   programTitle: string;
   programSlug: string;
   danaMode?: string | null; // if set and not "none", include a dana section
+  /** Cents the program requires before the place is held (fixed / base). 0 = optional dana. */
+  requiredCents?: number;
 }
 
 /**
@@ -443,12 +446,16 @@ export interface ApprovalEmailData {
  * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendApprovalEmail(data: ApprovalEmailData): Promise<void> {
-  const { to, firstName, programTitle, programSlug, danaMode } = data;
+  const { to, firstName, programTitle, programSlug, danaMode, requiredCents = 0 } = data;
+  const paymentRequired = requiredCents > 0;
   await sendTemplatedEmail("waitlist-approval", to, {
     firstName,
     programTitle,
     programUrl: `${BASE_URL}/programs/${programSlug}/register`,
-    hasDana: !!danaMode && danaMode !== "none",
+    // Optional dana and a required payment read differently; never both.
+    hasDana: !paymentRequired && !!danaMode && danaMode !== "none",
+    paymentRequired,
+    paymentUsd: (requiredCents / 100).toFixed(2),
   });
 }
 
@@ -578,6 +585,54 @@ export async function sendCourseDanaReceiptEmail(
     courseTitle,
     amountUsd,
     courseUrl: `${BASE_URL}/course/${courseSlug}`,
+  });
+}
+
+// ─── Program registration dana receipt (2026-09-24) ─────────────────────────
+
+export interface RegistrationDanaReceiptEmailData {
+  to: string;
+  firstName: string;
+  programTitle: string;
+  totalCents: number;
+  /** The registration-payment part (fixed amount, or the base of "base + dana"). */
+  feeCents: number;
+  /** The gift part: voluntary dana, or the extra above a base. */
+  giftCents: number;
+  paidAt: Date;
+}
+
+/**
+ * Sent by the Stripe webhook alongside the registration confirmation, once per
+ * completed program payment. It is the member's record of what they gave: RIM's
+ * legal name and EIN, the gift amount and date, and a goods-or-services
+ * statement, with any registration payment named separately from the gift.
+ * Wording is provisional pending review by RIM's accountant.
+ *
+ * Managed via Email Template Manager — template: "registration-dana-receipt"
+ * (seeded in prisma/migrate.mjs, same commit).
+ */
+export async function sendRegistrationDanaReceiptEmail(
+  data: RegistrationDanaReceiptEmailData,
+): Promise<void> {
+  const usd = (cents: number) => (cents / 100).toFixed(2);
+  await sendTemplatedEmail("registration-dana-receipt", data.to, {
+    firstName: data.firstName || "friend",
+    programTitle: data.programTitle,
+    totalUsd: usd(data.totalCents),
+    feeUsd: usd(data.feeCents),
+    giftUsd: usd(data.giftCents),
+    hasFee: data.feeCents > 0,
+    hasGift: data.giftCents > 0,
+    paidDate: data.paidAt.toLocaleDateString("en-US", {
+      timeZone: "America/Chicago",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }),
+    orgLegalName: RIM_LEGAL_NAME,
+    orgEin: RIM_EIN,
+    orgAddress: RIM_ADDRESS,
   });
 }
 
@@ -1432,11 +1487,22 @@ export async function sendSignInCodeEmail({
   code: string;
   isNewUser: boolean;
 }): Promise<void> {
+  // "Sign me in from this device": opens the code page with the code already
+  // filled in. It deliberately does NOT sign in on its own. Mail security
+  // scanners open links automatically, and an auto-submitting link would use
+  // up the single-use code before the member ever clicked. The member taps
+  // Sign in on the page, so a scanner's visit changes nothing.
+  const signInUrl =
+    `${BASE_URL}/login/check-email?email=${encodeURIComponent(to)}&code=${encodeURIComponent(code)}`;
   try {
     await sendTemplatedEmail(
       isNewUser ? "sign-in-code-new-user" : "sign-in-code-returning",
       to,
-      { code },
+      {
+        code,
+        signInUrl,
+        signInButton: emailButtonHtml("Sign me in from this device", signInUrl),
+      },
       { throwOnFailure: true },
     );
   } catch (e) {

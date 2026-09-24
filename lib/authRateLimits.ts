@@ -17,8 +17,19 @@ export const EMAIL_MAX = 5;
 /** Email-send IP window — 20 per IP per 10 minutes. */
 export const IP_SEND_MAX = 20;
 
-/** Code-verify IP window — 20 per IP per 10 minutes. */
-export const IP_VERIFY_MAX = 20;
+/**
+ * Code-verify IP window — 60 per IP per 10 minutes. Successful sign-ins count
+ * too, so this is sized for a room full of members on one wifi (an in-person
+ * event). Guessing is bounded per email below, not by this number.
+ */
+export const IP_VERIFY_MAX = 60;
+
+/**
+ * Code-verify per-email window — 10 attempts per email per 10 minutes. With
+ * a 900K keyspace and a 30-minute code, this keeps guessing any one member's
+ * code hopeless regardless of how many IPs an attacker uses.
+ */
+export const EMAIL_VERIFY_MAX = 10;
 
 export const WINDOW_SECONDS = 10 * 60;
 
@@ -43,4 +54,12 @@ export function signinIpKey(ip: string): string {
  */
 export function verifyIpKey(ip: string): string {
   return `verify-ip:${ip}`;
+}
+
+/**
+ * Canonical key namespace for per-email code-verify limits. Caller lowercases
+ * + trims the email.
+ */
+export function verifyEmailKey(email: string): string {
+  return `verify-email:${email}`;
 }

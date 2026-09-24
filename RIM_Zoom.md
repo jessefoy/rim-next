@@ -65,7 +65,8 @@ models considered (links / embedded Meeting SDK / Video SDK) is in `session-log.
 |---|---|
 | `ZOOM_ACCOUNT_ID` | the RIM Zoom org account id |
 | `ZOOM_OAUTH_CLIENT_ID` / `ZOOM_OAUTH_CLIENT_SECRET` | the "RIM Sessions" S2S app creds |
-| `ZOOM_SEAT_A_EMAIL` / `ZOOM_SEAT_B_EMAIL` | `zoom.host@` / `zoom.host2@` — the pool seats |
+| `ZOOM_SEAT_EMAILS` | optional, comma-separated list of every pool seat, in preference order. Adding a licensed seat is a settings change: append its email here. When unset, the pair below is read. |
+| `ZOOM_SEAT_A_EMAIL` / `ZOOM_SEAT_B_EMAIL` | `zoom.host@` / `zoom.host2@` — the original two pool seats |
 | `ZOOM_HOST_KEY` | 6-digit Claim-Host code; RIM sets it on the owning seat + shows it to hosts |
 
 S2S scopes (granted on the app): `meeting:write:meeting:admin`,
@@ -77,8 +78,8 @@ now), `user:read:user:admin`, `user:update:user:admin` (host-key set).
 
 | File | Role |
 |---|---|
-| `lib/zoom.ts` | S2S token (cached) + `zoomApi` helper; `createMeeting` / `getMeeting` / `deleteMeeting` / `ensureSeatHostKey` (+ `addMeetingRegistrant`, now used only by the self-test); `getZoomUser` |
-| `lib/sessionMeeting.ts` | Orchestration: `getOrCreateSessionMeeting` (idempotent per occurrence, free-seat pick, race-safe), `deleteSessionMeeting`, `teardownProgramMeetings` |
+| `lib/zoom.ts` | S2S token (cached) + `zoomApi` helper; `createMeeting` / `getMeeting` / `deleteMeeting` / `setMeetingAutoRecording` / `ensureSeatHostKey`; `getZoomUser`. (`addMeetingRegistrant` remains but has no callers.) |
+| `lib/sessionMeeting.ts` | Orchestration: `zoomSeatIds` / `zoomSeatCount`, `getOrCreateSessionMeeting` (idempotent per occurrence, buffer-aware seat pick under an advisory lock), `deleteSessionMeeting`, `teardownProgramMeetings`, `applyProgramRecordingSetting` |
 | `app/session/[slug]/enter/page.tsx` | The Zoom entry (server component): gate → provision/self-heal → role-aware render. Member → `ZoomLaunch`; host-capable → `HostLanding` (+ code); admin error panel |
 | `components/session/ZoomLaunch.tsx` | "Opening Zoom…" → `window.location.replace(joinUrl)` |
 | `app/admin/zoom-test/page.tsx` + `components/admin/AdminSelfTest.tsx` (shared with `/admin/google-test`; renamed from ZoomSelfTest, session 163) | ADMIN diagnostic: connection check + provisioning round-trip + orchestration round-trip |
@@ -96,8 +97,8 @@ entry/host screens use inline styles + tokens (no new prefix).
 
 ## The entry flow (`/session/[slug]/enter`)
 
-1. The dashboard / program page / Scheduler "Join" links all point at
-   `/session/[slug]/enter`. The legacy `/session/[slug]` URL redirects there too
+1. The dashboard and Scheduler "Join" links point at `/session/[slug]/enter`
+   (the public program page tells signed-in members to join from My Home). The legacy `/session/[slug]` URL redirects there too
    (preserving an open-access `?key=`), so old bookmarks/guest links still resolve.
 2. `/enter` gates: auth (or a valid open-access guest `?key=`) → **archived
    programs bounce to the dashboard** (`archivedAt`, session 172 — an archived
@@ -105,7 +106,22 @@ entry/host screens use inline styles + tokens (no new prefix).
    could provision a meeting for a manually archived recurring program during
    its old weekly window) → in-person programs bounce to their page → time
    window (`getActiveSessionWindow`, ADMIN/GT bypass) → `SessionBan` (members
-   by id; guests have none).
+   by id; guests have none; nothing writes these rows since the LiveKit room
+   retired, so this check is inert) → **registration** (2026-09-24): a
+   registration-required program (`!isOpenlyDroppable(kind, registrationEnabled)`)
+   admits only members holding a registration that isn't CANCELLED or
+   PENDING_PAYMENT, plus anyone host-capable and ADMIN/GT. This is the same rule
+   My Home uses to show Join, so the button and the door agree. Role is resolved
+   before provisioning, so a turned-away visitor never takes a seat.
+
+   **Every stop is a page, not a bounce** (2026-09-24). Window closed, program
+   archived, not registered, or Zoom busy/unreachable each render `EnterNotice`: a
+   plain sentence and one way forward ("Try again", "Back to My Home", "See the
+   program page"). Before this, everyone but ADMIN/GT was redirected to
+   `/account/dashboard?session=error|closed`, and the dashboard never read the
+   parameter, so a member (or a host) at a busy session saw their dashboard with
+   no explanation. ADMIN/GT still see the raw error under the plain text. Guests
+   outside the window still go to the program page.
 3. Provision/reuse the occurrence's meeting + fetch its standard join link
    (`getMeeting`), with **self-heal** (see below).
 4. Resolve role (`resolveSessionRole`). `canHost = isSessionHost || isHostTeam ||
@@ -128,7 +144,8 @@ change was the link *targets*.
 ## Self-heal (why re-entry is reliable)
 
 `getMeeting` on entry both fetches the join link **and** verifies the meeting. The
-entry recreates the meeting once when it's:
+entry recreates the meeting once (deleting the stale one from its seat when it still
+exists) when it's:
 - **gone** (404 / Zoom code 3001 — a host ended/deleted it), or
 - **registration-on** (`settings.approval_type` 0/1 — a meeting made before the
   no-registration fix; it would show a registration form).
@@ -146,22 +163,40 @@ field** — it's governed by the pool seats' Zoom recording settings: in the Zoo
 console set Cloud recording to "Record an audio only file" and uncheck the video
 views. Zoom shows its native recording indicator/consent. Per-program default
 today; per-occurrence override is a noted follow-on (the `SessionMeeting`
-mechanism supports it).
+mechanism supports it). **Changing Record in the editor now reaches meetings that
+already exist** (2026-09-24): the PUT calls `applyProgramRecordingSetting`, which
+PATCHes `auto_recording` on the program's not-yet-ended meetings. The checkbox only
+renders for virtual/hybrid programs.
 
 ## Scheduling integrity (seat conflicts)
 
 The seat pool is finite (`zoomSeatCount()` = the configured seats, 2 today) and
 meetings are created just-in-time per occurrence — so the only *runtime* conflict
 check is the seat-pick in `getOrCreateSessionMeeting`, at join time, against
-meetings that already exist. Two layers (session 159) add integrity around edits
-and scheduling:
+meetings that already exist.
+
+**The seat pick (2026-09-24).** A Zoom seat runs one meeting at a time, and people
+are in a meeting from its entry window's open (start − `EARLY_OPEN_MIN`) to its close
+(end + `LATE_GRACE_MIN`). So the pick sorts seats three ways: *busy* (another
+meeting's actual times overlap this one's — never used), *tight* (only the padded
+windows touch, i.e. back-to-back — used only when no clear seat exists, and logged),
+and *clear*. Before this, the pick compared start/end only, so two back-to-back
+sessions routinely landed on one seat while their entry windows overlapped. The whole
+pick + Zoom create + row insert runs in an interactive transaction holding
+`pg_advisory_xact_lock(74210417)`, which closes the documented TOCTOU gap (two
+overlapping occurrences provisioned at once both taking one seat) and the
+same-occurrence double-create; the unique index is kept as a backstop.
+
+Two layers (session 159) add integrity around edits and scheduling:
 
 - **Layer 1 — edits self-clean (`programs-pg` PUT).** When a virtual/hybrid
   program's start/end/recurrence changes, its FUTURE meetings are torn down
   (`teardownProgramMeetings`, fire-and-forget) and recreated correctly on the next
   join — so a time change can't orphan the old meeting on its seat. The teardown
   passes `notBefore: now + EARLY_OPEN_MIN`, so it never deletes a meeting whose
-  entry window is already open (a host may be staging in it).
+  entry window is already open (a host may be staging in it). A **slug rename** now
+  triggers the same teardown (meetings are keyed by slug; the old slug's would sit
+  on their seats unused).
 - **Layer 2 — predictive warning (`lib/sessionConflicts.ts`).** On save, a
   recurrence-aware check enumerates virtual/hybrid occurrences over the next ~8
   weeks and flags any moment where more overlap than there are seats. The overlap
@@ -171,12 +206,18 @@ and scheduling:
   **non-blocking** as `seatConflicts` in the PUT/POST response; the ProgramEditor
   shows a dismissible banner — the coordinator decides (move a time, add a seat, or
   proceed). Capacity is the real seat count, so "we've outgrown 2 seats" is visible
-  rather than surfacing as `NoSeatAvailableError` at a session start.
+  rather than surfacing as `NoSeatAvailableError` at a session start. Since
+  2026-09-24: it counts the **peak** number of sessions running at one moment (a
+  sweep), not every program that touches the occurrence (which over-warned when two
+  others overlapped it at different times); it **skips archived programs**; it runs
+  against the saved slug after a rename; and the **create path shows it too** (the
+  editor hands the POST's `seatConflicts` to the edit page through `sessionStorage`).
 
-**Deferred:** a standalone coordinator integrity *view*; the create-path warning
-(POST redirects, so it surfaces on the new program's first edit); the seat-pick
-advisory lock for the TOCTOU gap (see Pitfalls, backlog `2026-06-24-008`); a
-reconciliation cron to sweep orphaned/past meeting rows.
+**Deferred:** a standalone coordinator integrity *view*; a reconciliation cron to
+sweep orphaned/past meeting rows (past meetings are scheduled meetings that simply
+lapse on their seat; they don't block anything, because the pick only looks at
+meetings near the requested time). *(Done 2026-09-24: the create-path warning and
+the seat-pick advisory lock, backlog `2026-06-24-008`.)*
 
 ## Guest (open-access) entry
 
@@ -204,10 +245,20 @@ share-link UI).
   for hosting (own-name + Claim-Host instead); only the admin self-test re-`GET`s
   it. If ever used, fetch just-in-time.
 - **Concurrency = licensed seats.** 2 Pro seats → 2 concurrent meetings. A 3rd
-  overlapping session would have no free seat (`NoSeatAvailableError`). The
-  seat-pick has a documented TOCTOU gap (not lock-serialized) — fine at pilot
-  scale; add a transaction-scoped advisory lock (like Step-In) before heavy
-  concurrent use.
+  overlapping session has no free seat (`NoSeatAvailableError` → the "can't open
+  right now" page with Try again). The pick is lock-serialized (2026-09-24). To add
+  capacity: license a seat in Zoom, then list it in `ZOOM_SEAT_EMAILS`.
+- **The host key is one static code** (`ZOOM_HOST_KEY`), shown to every
+  host-capable person (assigned host, host team, linked teachers, ADMIN/GT) and
+  never to members. Changing it means changing the env var; don't edit a seat's
+  host key by hand in Zoom (the per-instance cache won't re-apply it until a cold
+  start). A failed host-key sync no longer blocks the host (2026-09-24): it's
+  logged and the code is shown anyway.
+- **My Home's Join vs the door.** Members see Join from 10 minutes before start
+  until the scheduled end (`MEMBER_JOIN_MIN`); hosts and teachers see "Enter Zoom as
+  host" from 30 minutes before. The door itself stays open from 30 minutes before
+  to 30 minutes after the end, so a host can close the room and a straggler's saved
+  link still works.
 - **Names aren't pre-filled.** Accountless members type their name on first join
   (Zoom remembers it on that device after); signed-in members show their Zoom
   name — which RIM cannot override. We can't remotely log anyone out of their Zoom.

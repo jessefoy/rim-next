@@ -268,3 +268,76 @@ export function buildSubtitle(program: {
   if (autoLabel) return `${autoLabel} | ${fmt}`;
   return fmt || null;
 }
+
+/**
+ * What a program's dana settings make of a checkout amount: how much is a
+ * registration payment (the fixed amount, or the base of "base + dana") and how
+ * much is a gift. The server decides this from the program record; the amount a
+ * browser sends is only a request, and only voluntary dana and the extra above a
+ * base accept one. Shared by the checkout (validation + Stripe labels) and the
+ * webhook (the receipt's split), so the two can't disagree.
+ */
+export type DanaCharge =
+  | { ok: true; totalCents: number; feeCents: number; giftCents: number }
+  | { ok: false; error: string };
+
+export const DANA_MIN_CENTS = 100; // Stripe's card minimum
+
+/**
+ * Cents a program requires before a place is held: the fixed amount, or the
+ * base of "base + dana". 0 means any dana is optional (or there is none). A
+ * fixed/base program with no amount set requires nothing, matching how
+ * registration treats it.
+ */
+export function requiredDanaCents(program: {
+  danaMode: string | null;
+  danaFixedAmount: number | null;
+  danaBaseAmount: number | null;
+}): number {
+  if (program.danaMode === "fixed") return Math.max(0, Math.round((program.danaFixedAmount ?? 0) * 100));
+  if (program.danaMode === "base_plus_dana") return Math.max(0, Math.round((program.danaBaseAmount ?? 0) * 100));
+  return 0;
+}
+
+export function resolveDanaCharge(
+  program: {
+    danaMode: string | null;
+    danaFixedAmount: number | null;
+    danaBaseAmount: number | null;
+  },
+  requestedCents: number,
+): DanaCharge {
+  const mode = program.danaMode ?? "none";
+  const requested = Number.isFinite(requestedCents) ? Math.round(requestedCents) : 0;
+
+  if (mode === "fixed") {
+    const fixed = Math.round((program.danaFixedAmount ?? 0) * 100);
+    if (fixed < DANA_MIN_CENTS) {
+      return { ok: false, error: "This program doesn't have an amount set for online payment." };
+    }
+    return { ok: true, totalCents: fixed, feeCents: fixed, giftCents: 0 };
+  }
+
+  if (mode === "base_plus_dana") {
+    const base = Math.round((program.danaBaseAmount ?? 0) * 100);
+    if (requested < base) {
+      return {
+        ok: false,
+        error: `This program asks for at least $${(base / 100).toFixed(2)}.`,
+      };
+    }
+    if (requested < DANA_MIN_CENTS) {
+      return { ok: false, error: "The smallest amount we can take online is $1." };
+    }
+    return { ok: true, totalCents: requested, feeCents: base, giftCents: requested - base };
+  }
+
+  if (mode === "voluntary") {
+    if (requested < DANA_MIN_CENTS) {
+      return { ok: false, error: "The smallest offering we can take online is $1." };
+    }
+    return { ok: true, totalCents: requested, feeCents: 0, giftCents: requested };
+  }
+
+  return { ok: false, error: "This program doesn't take dana online." };
+}

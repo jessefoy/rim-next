@@ -14,6 +14,14 @@
 
 export const RIM_NAME    = "Rooted in Mindfulness";
 export const RIM_ADDRESS = "4040 N. Calhoun Rd., Brookfield, WI 53005";
+
+/**
+ * Legal identity for gift acknowledgments, exactly as the IRS determination
+ * letter (March 24, 2016) names it: 501(c)(3), contributions deductible under
+ * IRC 170, public charity status 170(b)(1)(A)(i). Used by the dana receipts.
+ */
+export const RIM_LEGAL_NAME = "Rooted In Mindfulness Corp";
+export const RIM_EIN = "81-1776523";
 export const RIM_MAPS_URL =
   "https://maps.google.com/maps?q=Rooted+in+Mindfulness+4040+N+Calhoun+Rd+Brookfield+WI+53005";
 

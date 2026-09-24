@@ -46,12 +46,15 @@ export async function POST(request: Request) {
     }
 
     const subscriber = await subRes.json().catch(() => ({}));
-    const subscriberId = subscriber.id || encodeURIComponent(email.trim().toLowerCase());
+    const subscriberId = encodeURIComponent(subscriber.id || email.trim().toLowerCase());
 
-    // Step 2: Add to segment
-    const segRes = await fetch(
-      `https://api.flodesk.com/v1/subscribers/${subscriberId}/segments`,
-      {
+    // Step 2: Add to the newsletter segment. This endpoint only ADDS segments
+    // (the create call's segment_ids isn't documented as additive for
+    // existing subscribers, so it isn't used). The visitor is on the list
+    // either way; a missing segment is ours to fix, so retry once and log it
+    // as an error where it will be seen.
+    const addToSegment = () =>
+      fetch(`https://api.flodesk.com/v1/subscribers/${subscriberId}/segments`, {
         method: "POST",
         headers: {
           Authorization: auth,
@@ -59,11 +62,16 @@ export async function POST(request: Request) {
           "User-Agent": "RIM-Website/1.0",
         },
         body: JSON.stringify({ segment_ids: [SEGMENT_ID] }),
-      }
-    );
-
+      });
+    let segRes = await addToSegment();
+    if (!segRes.ok) segRes = await addToSegment();
     if (!segRes.ok) {
-      console.warn("Segment assignment failed:", subscriberId, await segRes.text());
+      console.error(
+        "[subscribe] Subscriber added but NOT put in the newsletter segment:",
+        subscriberId,
+        segRes.status,
+        await segRes.text().catch(() => ""),
+      );
     }
 
     return Response.json({ success: true });

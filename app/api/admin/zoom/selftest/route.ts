@@ -7,6 +7,7 @@
  * is always cleaned up (finally), and no tokenized values are returned to the client.
  */
 
+import { zoomSeatIds } from "@/lib/sessionMeeting";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { createMeeting, getMeeting, deleteMeeting } from "@/lib/zoom";
@@ -25,9 +26,9 @@ export async function POST() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const seat = process.env.ZOOM_SEAT_A_EMAIL;
+  const seat = zoomSeatIds()[0];
   if (!seat) {
-    return NextResponse.json({ error: "ZOOM_SEAT_A_EMAIL not set" }, { status: 500 });
+    return NextResponse.json({ error: "No Zoom seat configured (ZOOM_SEAT_EMAILS or ZOOM_SEAT_A_EMAIL)" }, { status: 500 });
   }
   const steps: Step[] = [];
   let meetingId: number | null = null;

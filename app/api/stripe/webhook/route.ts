@@ -7,8 +7,9 @@ import {
   enrollMemberInProgramCourse,
   enrollMemberInOnboardingSeries,
 } from "@/lib/enrollment";
-import { sendCourseDanaReceiptEmail } from "@/lib/email";
+import { sendCourseDanaReceiptEmail, sendRegistrationDanaReceiptEmail } from "@/lib/email";
 import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
+import { resolveDanaCharge } from "@/lib/programUtils";
 
 // POST /api/stripe/webhook
 // Receives Stripe webhook events and updates the database.
@@ -52,8 +53,9 @@ export async function POST(request: NextRequest) {
     if (source === "course_dana") {
       await handleCourseDanaCompleted(session);
     } else {
-      // Default / legacy: registration-dana flow.
-      await handleRegistrationDanaCompleted(session);
+      // Default / legacy: registration-dana flow. event.created is when the
+      // payment completed; Stripe may deliver (or retry) this event later.
+      await handleRegistrationDanaCompleted(session, new Date(event.created * 1000));
     }
   } else if (event.type === "checkout.session.expired") {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -70,7 +72,11 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session) {
+async function handleRegistrationDanaCompleted(
+  session: Stripe.Checkout.Session,
+  paidAt: Date,
+) {
+  const meta = session.metadata ?? {};
   const {
     registrationId,
     programId,
@@ -78,7 +84,7 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
     donorName,
     donorEmail,
     source,
-  } = session.metadata ?? {};
+  } = meta;
 
   if (!registrationId) {
     console.error("[stripe/webhook] No registrationId in session metadata:", session.id);
@@ -89,24 +95,67 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
   const paymentIntentId =
     typeof session.payment_intent === "string" ? session.payment_intent : null;
 
+  const regSelect = {
+    userId: true,
+    email: true,
+    firstName: true,
+    lastName: true,
+    phone: true,
+    status: true,
+    donationStatus: true,
+    programId: true,
+    programSlug: true,
+    programTitle: true,
+  } as const;
+
   // Load the registration's pre-state. For a provisional (required-payment) row
   // this is where it becomes real; for a voluntary row it just records the gift.
-  const reg = await db.registration.findUnique({
+  let reg = await db.registration.findUnique({
     where: { id: registrationId },
-    select: {
-      userId: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      phone: true,
-      status: true,
-      donationStatus: true,
-      programId: true,
-    },
+    select: regSelect,
   });
   if (!reg) {
-    console.error("[stripe/webhook] Registration not found:", registrationId);
-    return;
+    // The money has been taken, so the person must end up registered and
+    // receipted. A held row can be cleared before payment lands (an old
+    // checkout expiring, the daily sweep); restore it from what the checkout
+    // carried rather than dropping the payment on the floor. Questionnaire
+    // answers weren't in the checkout, so the note tells the registrar to ask.
+    const email = (meta.donorEmail || session.customer_email || "").trim().toLowerCase();
+    const programSlug = meta.programSlug;
+    if (!email || !programSlug) {
+      console.error(
+        "[stripe/webhook] PAYMENT WITHOUT REGISTRATION and not enough metadata to restore it:",
+        { registrationId, sessionId: session.id, paymentIntentId },
+      );
+      return;
+    }
+    const [fallbackFirst, ...fallbackRest] = (meta.donorName || "").trim().split(/\s+/);
+    try {
+      reg = await db.registration.create({
+        data: {
+          id: registrationId,
+          programId: programId || null,
+          programSlug,
+          programTitle: programTitle || programSlug,
+          email,
+          firstName: meta.firstName || fallbackFirst || "",
+          lastName: meta.lastName || fallbackRest.join(" "),
+          status: "PENDING_PAYMENT", // promoted to REGISTERED just below
+          donationStatus: "PENDING",
+          notes:
+            "<p>Restored automatically when payment arrived: the held registration had been cleared before the payment completed. Registration questions were not recovered, so please ask the registrant for their answers.</p>",
+        },
+        select: regSelect,
+      });
+    } catch (err) {
+      // A concurrent delivery restored it first: use that row.
+      const winner = await db.registration.findUnique({ where: { id: registrationId }, select: regSelect });
+      if (!winner) throw err;
+      reg = winner;
+    }
+    console.error(
+      `[stripe/webhook] Restored a cleared registration from its payment: ${registrationId} (${email})`,
+    );
   }
 
   // Idempotency anchor: the Donation row keyed by payment_intent is the
@@ -120,6 +169,18 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
       select: { id: true },
     });
     donationAlreadyExisted = !!existing;
+  }
+
+  // A second, different payment for a registration that was already paid
+  // (e.g. two checkouts completed before the older one could be closed). The
+  // money is real, so it's recorded and receipted, but the member is already
+  // registered: no second confirmation, and the registration's amount adds up.
+  const isAdditionalPayment =
+    !donationAlreadyExisted && reg.donationStatus === "COMPLETED";
+  if (isAdditionalPayment) {
+    console.error(
+      `[stripe/webhook] Additional payment for an already-paid registration ${registrationId} (session ${session.id}); recorded and receipted, please review.`,
+    );
   }
 
   // Ensure an account exists. A brand-new guest on a required-payment program
@@ -162,7 +223,11 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
       userId,
       status: reg.status === "PENDING_PAYMENT" ? "REGISTERED" : reg.status,
       donationStatus: "COMPLETED",
-      donationAmount: amountCents,
+      donationAmount: isAdditionalPayment
+        ? { increment: amountCents }
+        : donationAlreadyExisted
+        ? undefined
+        : amountCents,
       stripeSessionId: session.id,
     },
   });
@@ -201,7 +266,7 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
         registrationId,
         stripeCheckoutSessionId: session.id,
         stripePaymentIntentId: paymentIntentId,
-        notes: `Registration dana — ${source ?? "registration_dana"}`,
+        notes: `Registration dana — ${source ?? "registration_dana"}${splitNote(meta)}`,
       },
       update: {}, // already exists — no-op
     });
@@ -219,7 +284,7 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
         programTitle: programTitle || null,
         registrationId,
         stripeCheckoutSessionId: session.id,
-        notes: `Registration dana — ${source ?? "registration_dana"}`,
+        notes: `Registration dana — ${source ?? "registration_dana"}${splitNote(meta)}`,
       },
     });
   }
@@ -227,12 +292,46 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
   // Confirmation email — only on the first completion. Now that the registration
   // is REGISTERED + paid, the "you're registered" moment lands here. Gated on the
   // donation pre-check so a redelivered webhook doesn't double-send.
+  //
+  // The dana receipt is its own email: it's the record a member files, and it
+  // separates any registration payment from the gift. The split comes from the
+  // checkout's metadata (decided server-side there); for sessions created
+  // before that metadata existed, it's recomputed from the program.
   if (!donationAlreadyExisted) {
+    let feeCents = Number(meta.feeCents);
+    let giftCents = Number(meta.giftCents);
+    if (!Number.isFinite(feeCents) || !Number.isFinite(giftCents) || feeCents + giftCents !== amountCents) {
+      const program = reg.programId
+        ? await db.program.findUnique({
+            where: { id: reg.programId },
+            select: { danaMode: true, danaFixedAmount: true, danaBaseAmount: true },
+          })
+        : null;
+      const charge = program ? resolveDanaCharge(program, amountCents) : null;
+      feeCents = charge?.ok ? Math.min(charge.feeCents, amountCents) : 0;
+      giftCents = amountCents - feeCents;
+    }
+    const receipt = {
+      to: reg.email,
+      firstName: reg.firstName,
+      programTitle: reg.programTitle,
+      totalCents: amountCents,
+      feeCents,
+      giftCents,
+      paidAt,
+    };
     after(async () => {
+      if (!isAdditionalPayment) {
+        try {
+          await sendRegistrationConfirmation(registrationId);
+        } catch (err) {
+          console.error("[stripe/webhook] registration confirmation email failed", err);
+        }
+      }
       try {
-        await sendRegistrationConfirmation(registrationId);
+        await sendRegistrationDanaReceiptEmail(receipt);
       } catch (err) {
-        console.error("[stripe/webhook] registration confirmation email failed", err);
+        console.error("[stripe/webhook] registration dana receipt email failed", err);
       }
     });
   }
@@ -253,8 +352,17 @@ async function handleRegistrationDanaExpired(session: Stripe.Checkout.Session) {
   const { registrationId } = session.metadata ?? {};
   if (!registrationId) return;
 
+  // Only release the hold if THIS checkout is the registration's current one.
+  // A member who abandons a checkout and starts another reuses the same row;
+  // when the first checkout later expires it must not delete the hold the
+  // second is paying against. (Rows from before checkouts were stamped have a
+  // null stripeSessionId and keep the old behavior.)
   const { count } = await db.registration.deleteMany({
-    where: { id: registrationId, status: "PENDING_PAYMENT" },
+    where: {
+      id: registrationId,
+      status: "PENDING_PAYMENT",
+      OR: [{ stripeSessionId: session.id }, { stripeSessionId: null }],
+    },
   });
 
   if (count > 0) {
@@ -376,4 +484,12 @@ async function handleCourseDanaCompleted(session: Stripe.Checkout.Session) {
   console.log(
     `[stripe/webhook] Course dana ${donationAlreadyExisted ? "redelivery" : "completed"}: ${courseSlug} / user ${userId} — $${(amountCents / 100).toFixed(2)}`
   );
+}
+
+/** "(registration $X, dana $Y)" for the ledger, when the checkout recorded a split. */
+function splitNote(meta: Stripe.Metadata): string {
+  const fee = Number(meta.feeCents);
+  const gift = Number(meta.giftCents);
+  if (!Number.isFinite(fee) || !Number.isFinite(gift) || fee === 0) return "";
+  return ` (registration $${(fee / 100).toFixed(2)}, dana $${(gift / 100).toFixed(2)})`;
 }

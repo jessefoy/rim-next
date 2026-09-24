@@ -154,6 +154,7 @@ export default async function EditProgramToolPage({
     hideFromProgramPageList: program.hideFromProgramPageList,
     hideFromWeeklySchedule: program.hideFromWeeklySchedule,
     hideWhenPast: program.hideWhenPast,
+    archived: program.archivedAt !== null,
     isOpenAccess: program.isOpenAccess,
     guestAccessKey: program.guestAccessKey ?? "",
     programNotes: program.programNotes ?? null,
@@ -173,7 +174,7 @@ export default async function EditProgramToolPage({
           basePath="/tools/programs"
           initialData={initialData}
           isEditing={true}
-          categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name, kind: c.kind ?? null }))}
+          categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name, kind: c.kind ?? null, hidden: c.hideFromProgramsPage }))}
           hubs={hubs.map((h) => ({
             slug: h.slug,
             name: h.name,

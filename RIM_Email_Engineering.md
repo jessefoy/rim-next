@@ -52,6 +52,8 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 
 **Registration emails — fire from the choke point.** The registrant confirmation (`registration-confirmation`) and the support@ notification (`registration-support-notification`, session 136) both fire from `lib/registrationConfirmation.ts::sendRegistrationConfirmation(id)` — the single "a registration just became real" point. Don't bolt a registration-completion email onto one path (the POST, the decline endpoint, the webhook, the cron); add it to the choke point so it covers every completion and can't drift. Full model: `RIM_Registration.md`.
 
+**The dana receipt fires from the webhook, not the choke point — deliberately.** `registration-dana-receipt` acknowledges a *payment*, not a registration becoming real: it must go out once per completed payment (including an additional payment on an already-registered row), and never for a free or declined registration. So it sits beside the confirmation in `handleRegistrationDanaCompleted`, gated on the same first-delivery check. Its "For your records" block carries RIM's legal name and EIN from `lib/locations.ts`; treat that block as a tax document (accountant review before wording changes).
+
 ---
 
 ## The pre-threshold gate (session 142) — don't email people who haven't logged in yet

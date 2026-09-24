@@ -20,15 +20,14 @@ import {
   type ZoomUser,
 } from "@/lib/zoom";
 import AdminSelfTest from "@/components/admin/AdminSelfTest";
+import { zoomSeatIds } from "@/lib/sessionMeeting";
 import { pill } from "@/components/admin/DiagPill";
 
 export const metadata = { title: "Zoom Test — Admin" };
 export const dynamic = "force-dynamic";
 
-const SEAT_EMAILS = [
-  process.env.ZOOM_SEAT_A_EMAIL,
-  process.env.ZOOM_SEAT_B_EMAIL,
-].filter(Boolean) as string[];
+// The same seat list the provisioner uses (ZOOM_SEAT_EMAILS, or the A/B pair).
+const SEAT_EMAILS = zoomSeatIds();
 
 type SeatCheck =
   | { ok: true; email: string; user: ZoomUser }
@@ -119,8 +118,8 @@ export default async function ZoomTestPage() {
         <div className="adm-diag__card">
           {pill("warning", "Not set")}
           <p className="adm-diag__help">
-            No seat emails configured. Set <code>ZOOM_SEAT_A_EMAIL</code> and{" "}
-            <code>ZOOM_SEAT_B_EMAIL</code> in Vercel.
+            No seat emails configured. Set <code>ZOOM_SEAT_EMAILS</code> (comma-separated) or{" "}
+            <code>ZOOM_SEAT_A_EMAIL</code> and <code>ZOOM_SEAT_B_EMAIL</code> in Vercel.
           </p>
         </div>
       )}
@@ -188,7 +187,7 @@ export default async function ZoomTestPage() {
           <AdminSelfTest
             endpoint="/api/admin/zoom/selftest"
             title="Provisioning round-trip"
-            blurb="Creates a throwaway meeting, mints a fresh host link, adds a named registrant, then deletes it. Nothing real is touched."
+            blurb="Creates a throwaway meeting, mints a fresh host link, then deletes it. Nothing real is touched."
           />
           <AdminSelfTest
             endpoint="/api/admin/zoom/selftest-orchestration"

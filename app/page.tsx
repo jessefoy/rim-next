@@ -61,7 +61,6 @@ export default async function HomePage() {
         some: {
           archivedAt: null,
           hideFromProgramPageList: false,
-          slug: { not: "dummy-test-program" },
         },
       },
     },

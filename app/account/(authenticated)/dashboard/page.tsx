@@ -76,6 +76,9 @@ export default async function DashboardPage({ searchParams }: {
       db.program.findMany({
         where: {
           programFormat: { in: ["virtual", "hybrid"] },
+          // An archived program has no live sessions; /enter refuses it, so a
+          // Join button for it would only lead to "This program has ended".
+          archivedAt: null,
           OR: [
             { removeFromProgramList: false },
             { dashboardShowAt: { lte: new Date() } },

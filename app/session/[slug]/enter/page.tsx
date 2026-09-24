@@ -13,8 +13,12 @@
  *     the team can step in if the designated host doesn't show). Everyone joins
  *     under their own name; whoever takes the host role types the code in Zoom.
  *
- * Registration stays UI-gated (the dashboard only surfaces Join to eligible
- * members; guests come via the shared open-access link).
+ * Registration is checked here as well as on My Home: a registration-required
+ * program admits its registrants (plus hosts, teachers, ADMIN/GT), using the
+ * same rule the dashboard uses to show Join. Guests come via the shared
+ * open-access link. Every stop on the way in (window closed, program ended,
+ * not registered, Zoom busy or unreachable) is a plain-language page with one
+ * way forward, never a silent bounce to the dashboard.
  */
 
 import { redirect } from "next/navigation";
@@ -22,10 +26,12 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getActiveSessionWindow } from "@/lib/sessionWindow";
 import { resolveSessionRole } from "@/lib/sessionAuth";
-import { getOrCreateSessionMeeting } from "@/lib/sessionMeeting";
-import { getMeeting, ensureSeatHostKey } from "@/lib/zoom";
+import { getOrCreateSessionMeeting, NoSeatAvailableError } from "@/lib/sessionMeeting";
+import { getMeeting, ensureSeatHostKey, deleteMeeting } from "@/lib/zoom";
 import { roomNameForProgram, sessionDisplayName } from "@/lib/sessionIdentity";
 import { FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
+import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
+import { isOpenlyDroppable } from "@/lib/programKind";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +72,8 @@ export default async function ZoomEnterPage({
       recurrenceDays: true,
       recurrenceCount: true,
       archivedAt: true,
+      registrationEnabled: true,
+      category: { select: { kind: true } },
     },
   });
   if (!program) redirect("/account/dashboard");
@@ -75,7 +83,16 @@ export default async function ZoomEnterPage({
   // automatically; also closes the hand-crafted-URL path for a manually
   // archived recurring program whose old weekly window would otherwise pass
   // the time gate.
-  if (program.archivedAt) redirect("/account/dashboard?session=closed");
+  if (program.archivedAt) {
+    return (
+      <EnterNotice
+        title="This program has ended"
+        body="It isn't meeting online anymore. Current programs are on the Programs and Events page."
+        primary={{ href: "/community-programs", label: "See current programs" }}
+        secondary={userId ? { href: "/account/dashboard", label: "Back to My Home" } : undefined}
+      />
+    );
+  }
 
   // Only virtual/hybrid programs have an online room — a hand-crafted /enter URL
   // for an in-person program shouldn't burn a Zoom pool seat. Send them to the page.
@@ -83,12 +100,15 @@ export default async function ZoomEnterPage({
 
   // A guest holding a valid open-access key enters without a RIM account — they're
   // forwarded straight to the Zoom join link. Everyone else must sign in.
-  const isValidGuest =
-    !userId &&
+  // The open-access link is the program saying "anyone with this link may
+  // come". It admits guests without an account, and it also lets a signed-in
+  // member through the registration check below.
+  const hasValidKey =
     !!guestKey &&
     program.isOpenAccess &&
     !!program.guestAccessKey &&
     guestKey === program.guestAccessKey;
+  const isValidGuest = !userId && hasValidKey;
   if (!userId && !isValidGuest) redirect("/login");
 
   // ── Time-window gate (ADMIN/GT bypass, mirroring the LiveKit token route).
@@ -100,12 +120,30 @@ export default async function ZoomEnterPage({
     sessionDateIso = win.sessionDate;
     endTime = win.endsAt;
   } else if (isAdminOrGT) {
+    // Early/late entry for testing: provision the NEXT occurrence with its real
+    // length, so the meeting (and its seat reservation) matches what members
+    // will get.
     sessionDateIso = win.nextSessionDate ?? new Date().toISOString();
-    endTime = new Date(new Date(sessionDateIso).getTime() + FALLBACK_DURATION_MIN * 60_000);
+    endTime =
+      win.nextSessionDate && program.endDatetime
+        ? shiftToDate(program.endDatetime.toISOString(), ctDateStr(win.nextSessionDate))
+        : new Date(new Date(sessionDateIso).getTime() + FALLBACK_DURATION_MIN * 60_000);
+    if (endTime <= new Date(sessionDateIso)) {
+      endTime = new Date(new Date(sessionDateIso).getTime() + FALLBACK_DURATION_MIN * 60_000);
+    }
+  } else if (userId) {
+    // Outside the entry window. Say so, instead of dropping the member on
+    // their dashboard with no explanation.
+    return (
+      <EnterNotice
+        title="This session isn't open right now"
+        body="Online sessions open a few minutes before they begin. When it's time, you'll find the Join button on My Home."
+        primary={{ href: "/account/dashboard", label: "Back to My Home" }}
+      />
+    );
   } else {
-    // Outside the entry window: members back to their dashboard, guests (no
-    // dashboard to land on) to the public program page.
-    redirect(userId ? "/account/dashboard?session=closed" : `/programs/${slug}`);
+    // Guests have no dashboard; the program page shows when it meets.
+    redirect(`/programs/${slug}`);
   }
   const sessionDate = new Date(sessionDateIso);
 
@@ -118,8 +156,105 @@ export default async function ZoomEnterPage({
     if (ban) redirect("/account/dashboard?session=removed");
   }
 
-  // Everything that touches Zoom is wrapped so a busy-seat, misconfig, or Zoom
-  // hiccup lands the caller calmly back on the dashboard instead of a raw 500.
+  const retryHref = `/session/${slug}/enter${hasValidKey ? `?key=${encodeURIComponent(guestKey!)}` : ""}`;
+  const cantOpen = (busy: boolean, detail: string) => (
+    <EnterNotice
+      title="This session can't open right now"
+      body={
+        busy
+          ? "All of RIM's Zoom rooms are in use at this time. Please try again in a few minutes."
+          : "We couldn't reach Zoom just now. Please try again in a moment."
+      }
+      help
+      primary={{ href: retryHref, label: "Try again" }}
+      secondary={
+        userId
+          ? { href: "/account/dashboard", label: "Back to My Home" }
+          : { href: `/programs/${slug}`, label: "Back to the program page" }
+      }
+      adminDetail={isAdminOrGT ? detail : undefined}
+    />
+  );
+
+  // ── Who is this, and may they come in? Resolved BEFORE provisioning, so a
+  // turned-away visitor never takes one of RIM's Zoom rooms.
+  let role: Awaited<ReturnType<typeof resolveSessionRole>> | null = null;
+  let mayEnter = true;
+  try {
+    role = userId ? await resolveSessionRole(userId, slug, sessionDateIso, roles) : null;
+    const canHostHere =
+      !!role &&
+      (role.isSessionHost || role.isHostTeam || role.isProgramTeacher || role.hasEndAllAuthority);
+
+    // A registration-required class, event, or retreat is for its
+    // registrants. My Home only offers them Join, and this door agrees:
+    // open drop-ins and open community groups admit any member, and so does
+    // the program's open-access link. The people who staff the session always
+    // get in, using the same reach My Home and the Scheduler give them: a
+    // host assignment for this day (any team, including standing ones), or
+    // active membership in the hosting team or a team covering the program
+    // (AV, greeters).
+    if (
+      userId &&
+      !canHostHere &&
+      !isAdminOrGT &&
+      !hasValidKey &&
+      !isOpenlyDroppable(program.category?.kind ?? null, program.registrationEnabled)
+    ) {
+      const occurrenceDay = ctDateStr(sessionDateIso);
+      const [registration, assignments, coverage] = await Promise.all([
+        db.registration.findFirst({
+          where: {
+            userId,
+            OR: [{ programSlug: slug }, { programId: program.id }],
+            status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
+          },
+          select: { id: true },
+        }),
+        db.hostAssignment.findMany({
+          where: { userId, programSlug: slug },
+          select: { sessionDate: true },
+        }),
+        db.programCoverageHub.findMany({
+          where: { programSlug: slug },
+          select: { hubSlug: true },
+        }),
+      ]);
+      const assignedToday = assignments.some(
+        (a) => !a.sessionDate || ctDateStr(a.sessionDate.toISOString()) === occurrenceDay,
+      );
+      const staffHubs = [program.hostingHubSlug ?? "host-team", ...coverage.map((c) => c.hubSlug)];
+      const onStaffTeam =
+        !registration && !assignedToday
+          ? !!(await db.hubMember.findFirst({
+              where: { userId, status: "ACTIVE", hub: { slug: { in: staffHubs } } },
+              select: { id: true },
+            }))
+          : false;
+      mayEnter = !!registration || assignedToday || onStaffTeam;
+    }
+  } catch (e) {
+    console.error("[session/enter] access check failed", { slug, userId }, e);
+    return cantOpen(false, e instanceof Error ? e.message : String(e));
+  }
+  const canHost =
+    !!role &&
+    (role.isSessionHost || role.isHostTeam || role.isProgramTeacher || role.hasEndAllAuthority);
+
+  if (!mayEnter) {
+    return (
+      <EnterNotice
+        title="This session is for registered participants"
+        body="It looks like you aren't registered for this program yet. The program page shows how to take part."
+        primary={{ href: `/programs/${slug}`, label: "See the program page" }}
+        secondary={{ href: "/account/dashboard", label: "Back to My Home" }}
+      />
+    );
+  }
+
+  // Everything that touches Zoom is wrapped so a busy seat, a misconfiguration,
+  // or a Zoom hiccup shows a plain "can't open right now" page with Try again,
+  // instead of a raw 500.
   try {
     const provision = () =>
       getOrCreateSessionMeeting({
@@ -158,6 +293,14 @@ export default async function ZoomEnterPage({
       console.warn(
         `[session/enter] recreating meeting for ${slug} (${fetched ? "registration-on" : "gone"})`,
       );
+      // A registration-style meeting still exists on its seat; remove it so it
+      // doesn't linger there, unless people are in it right now. (A gone
+      // meeting has nothing to delete.)
+      if (fetched && fetched.status !== "started") {
+        await deleteMeeting(m.zoomMeetingId).catch((err) =>
+          console.error("[session/enter] stale meeting delete failed", m.zoomMeetingId, err),
+        );
+      }
       await db.sessionMeeting.delete({ where: { id: m.id } }).catch(() => {});
       m = await provision();
       return { meeting: m, joinUrl: (await getMeeting(m.zoomMeetingId)).join_url };
@@ -170,12 +313,9 @@ export default async function ZoomEnterPage({
     }
 
     // Who can take host controls: the designated host, anyone on the host team
-    // (alternate), the teacher, or ADMIN/GT. Everyone else is a plain member.
-    const role = await resolveSessionRole(userId, slug, sessionDateIso, roles);
-    const canHost =
-      role.isSessionHost || role.isHostTeam || role.isProgramTeacher || role.hasEndAllAuthority;
-
-    if (!canHost) {
+    // (alternate), the teacher, or ADMIN/GT (resolved above). Everyone else is
+    // a plain member.
+    if (!canHost || !role) {
       return <ZoomLaunch url={joinUrl} programName={program.name} />;
     }
 
@@ -193,10 +333,16 @@ export default async function ZoomEnterPage({
         ? "teacher"
         : "alternate";
 
-    // Make Claim Host work: set the meeting's owning seat's host key.
+    // Make Claim Host work: set the meeting's owning seat's host key. A failure
+    // here must not keep the host out of the room: the seat almost always
+    // already carries this key from an earlier session, so log it and go on.
     let hostKey: string | null = null;
     if (HOST_KEY) {
-      await ensureSeatHostKey(meeting.seatUserId, HOST_KEY);
+      try {
+        await ensureSeatHostKey(meeting.seatUserId, HOST_KEY);
+      } catch (err) {
+        console.error("[session/enter] host key sync failed; showing the code anyway", meeting.seatUserId, err);
+      }
       hostKey = HOST_KEY;
     }
 
@@ -212,17 +358,33 @@ export default async function ZoomEnterPage({
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error("[session/enter] Zoom provisioning/mint failed", { slug, userId }, e);
-    // Admins/GT see the real error on screen so we can debug the pilot; everyone
-    // else gets a calm bounce to the dashboard.
-    if (isAdminOrGT) {
-      return <EnterError message={message} slug={slug} />;
-    }
-    redirect("/account/dashboard?session=error");
+    // Everyone gets a plain explanation and a way to try again, instead of
+    // being dropped on their dashboard. Admins/GT also see the raw error.
+    return cantOpen(e instanceof NoSeatAvailableError, message);
   }
 }
 
-/** Admin-only error panel — surfaces the actual failure so we can fix it precisely. */
-function EnterError({ message, slug }: { message: string; slug: string }) {
+/**
+ * A plain-language stop on the way into Zoom: what happened, and one clear way
+ * forward. Used for a closed window, an ended program, and a Zoom failure.
+ */
+function EnterNotice({
+  title,
+  body,
+  help = false,
+  primary,
+  secondary,
+  adminDetail,
+}: {
+  title: string;
+  body: string;
+  /** Add the "email support and we'll help you in" line. */
+  help?: boolean;
+  primary: { href: string; label: string };
+  secondary?: { href: string; label: string };
+  /** The raw error, shown to ADMIN / Guiding Teacher only. */
+  adminDetail?: string;
+}) {
   return (
     <div
       style={{
@@ -231,46 +393,109 @@ function EnterError({ message, slug }: { message: string; slug: string }) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: 24,
+        padding: "24px 16px",
       }}
     >
-      <div style={{ maxWidth: 560, width: "100%", textAlign: "center" }}>
+      <div
+        style={{
+          maxWidth: 520,
+          width: "100%",
+          boxSizing: "border-box",
+          textAlign: "center",
+          background: "var(--rim-surface)",
+          borderRadius: 14,
+          boxShadow: "var(--card-shadow)",
+          padding: "32px 24px",
+        }}
+      >
         <h1
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: "var(--text-h3)",
             fontWeight: 400,
-            marginBottom: 8,
+            margin: "0 0 12px",
           }}
         >
-          Couldn&rsquo;t open this session
+          {title}
         </h1>
-        <p style={{ fontSize: "var(--text-ui)", color: "var(--rim-mid)", marginBottom: 16 }}>
-          Connecting to Zoom failed. (This detail is shown to admins only, to help debug.)
+        <p style={{ fontSize: "var(--text-app)", lineHeight: 1.55, color: "var(--rim-text)", margin: "0 0 8px" }}>
+          {body}
         </p>
-        <pre
+        {help && (
+          <p style={{ fontSize: "var(--text-app)", lineHeight: 1.55, color: "var(--rim-text)", margin: "0 0 8px" }}>
+            If it still won&rsquo;t open, email{" "}
+            <a href="mailto:support@rootedinmindfulness.org" style={{ color: "var(--rim-blue)", overflowWrap: "anywhere" }}>
+              support@rootedinmindfulness.org
+            </a>{" "}
+            and we&rsquo;ll help you in.
+          </p>
+        )}
+        <div
           style={{
-            textAlign: "left",
-            fontSize: "var(--text-xs)",
-            fontFamily: "var(--font-mono)",
-            color: "var(--color-error)",
-            background: "var(--rim-bg)",
-            borderRadius: 8,
-            padding: "12px 14px",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
+            marginTop: 20,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 12,
+            justifyContent: "center",
+            alignItems: "center",
           }}
         >
-          {message}
-        </pre>
-        <div style={{ marginTop: 16, display: "flex", gap: 12, justifyContent: "center" }}>
-          <a href={`/session/${slug}/enter`} style={{ color: "var(--rim-blue)", fontWeight: 600 }}>
-            Try again
+          <a
+            href={primary.href}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              minHeight: 44,
+              boxSizing: "border-box",
+              background: "var(--rim-blue)",
+              color: "#fff",
+              fontSize: "var(--text-app)",
+              fontWeight: 600,
+              padding: "10px 24px",
+              borderRadius: 999,
+              textDecoration: "none",
+            }}
+          >
+            {primary.label}
           </a>
-          <a href="/account/dashboard" style={{ color: "var(--rim-mid)" }}>
-            Back to dashboard
-          </a>
+          {secondary && (
+            <a
+              href={secondary.href}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                minHeight: 44,
+                color: "var(--rim-blue)",
+                fontSize: "var(--text-app)",
+              }}
+            >
+              {secondary.label}
+            </a>
+          )}
         </div>
+        {adminDetail && (
+          <>
+            <p style={{ fontSize: "var(--text-app-meta)", color: "var(--rim-text-muted)", margin: "24px 0 8px" }}>
+              Shown to admins only, to help fix it:
+            </p>
+            <pre
+              style={{
+                textAlign: "left",
+                fontSize: "var(--text-app-meta)",
+                fontFamily: "var(--font-mono)",
+                color: "var(--color-error)",
+                background: "var(--rim-bg)",
+                borderRadius: 8,
+                padding: "12px 14px",
+                margin: 0,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {adminDetail}
+            </pre>
+          </>
+        )}
       </div>
     </div>
   );

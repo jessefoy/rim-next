@@ -41,6 +41,8 @@ If `/api/account/join` finds an existing User with `agreedToTerms: true` at the 
 
 **Why 6-digit codes instead of magic links.** Magic links route to the OS default browser regardless of where the user wants to be (a Safari user who prefers Chrome ends up authenticated in Safari with no way to "send to Chrome"). PWAs on iOS can't reliably receive magic-link clicks either. Codes work in every context because the user types them into the browser they're standing in. Industry-standard pattern (Slack, Apple, Mercury, Notion). Switched in session 119 (2026-05-21).
 
+**The "Sign me in from this device" button (2026-09-24).** Both sign-in emails carry a button (`{{signInButton}}`) to `/login/check-email?email=…&code=…`, which opens the code page with the code already filled in. The member still taps **Sign in**: the link must never submit on its own, because mail security scanners open links automatically and would use up the single-use code. Typing the code stays the way to sign in on a different device. The page sets `referrer: no-referrer` and removes `code` from the address bar after it loads (history syncs across devices). This is the member-friendly half of a magic link without its failure mode: the link fills in, the person decides.
+
 **Code expiry: 30 minutes.** Was 10 minutes in the first ship; bumped after users hit expiry on the walk-away-and-come-back pattern. 30 minutes is humane without expanding brute-force surface much (combined with rate-limiting, the math is fine — see below).
 
 **Multiple unconsumed codes can coexist** per user. Each `signIn` call creates a fresh `VerificationToken` row; all are independently valid until consumed (single-use) or expired. Kept intentionally — Jesse uses this himself when he requests a new code after losing track of an earlier one.
@@ -99,9 +101,11 @@ Edit messages in `app/login/error/page.tsx`. Add new branches there when a new f
 |---|---|---|---|
 | `signin/resend` (Door A — email send) | 5 | 20 | 10 min |
 | `account/join` (Door B — email send) | 5 (shared key) | 20 (shared key) | 10 min |
-| `callback/resend` (code verify) | n/a | 20 | 10 min |
+| `callback/resend` (code verify, GET and POST) | 10 | 60 | 10 min |
 
-**Why these numbers.** A real user retrying after a typo'd email triggers 2–3 sends in a session — well below 5. A botnet hammering one IP across many addresses hits the per-IP gate. For the code-verify path, 20 attempts per 10 minutes against a 900K keyspace means exhausting the space takes ~350 days at the limited rate (versus instant without limiting). Combined with the 30-minute code expiry per individual code, brute-forcing a *specific* code is also economically dead.
+**Why these numbers.** A real user retrying after a typo'd email triggers 2–3 sends in a session — well below 5. A botnet hammering one IP across many addresses hits the per-IP gate. For the code-verify path, guessing is bounded **per email**: 10 attempts per 10 minutes against a 900K keyspace (and a 30-minute code) keeps any one member's code out of reach however many IPs an attacker has. The per-IP ceiling is 60 because successful sign-ins count too, and a room of members on one wifi must not lock each other out.
+
+**Fixed 2026-09-24: the verify limit wasn't running.** The code form submits by **GET** to `/api/auth/callback/resend`, and the wrapper only limited POST (`export const GET = handlers.GET`). So from session 131 until this fix, code guessing was unthrottled. GET is now wrapped for that one path; both methods share `verifyAllowed()` and the same keys.
 
 ### Architecture
 
@@ -148,6 +152,7 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 | Sign-in email send | `signin-email:<email>` | `signin-email:foo@bar.com` |
 | Sign-in IP send | `signin-ip:<ip>` | `signin-ip:192.0.2.1` |
 | Code verify IP | `verify-ip:<ip>` | `verify-ip:192.0.2.1` |
+| Code verify email | `verify-email:<email>` | `verify-email:foo@bar.com` |
 
 **Email keys MUST be lowercased + trimmed** before calling `checkRateLimit` — the wrapper does this at the call site (`raw.toLowerCase().trim()`). Don't trust raw form input to already be normalized; a bot can send `Foo@Bar.com` and `foo@bar.com` and bypass per-email limiting without this normalization.
 

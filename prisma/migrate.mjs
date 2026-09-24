@@ -5953,6 +5953,172 @@ Rooted In Mindfulness · Brookfield, WI`,
   ]);
   console.log("  ✔ Personal file organization and shared pin tables ready.");
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Sign-in email: "Sign me in from this device" (2026-09-24). Intentional
+  // update of two EXISTING templates, with Jesse's explicit consent for this
+  // change (RIM_Email_Engineering.md). The button opens /login/check-email
+  // with the code filled in; the member still taps Sign in, so mail scanners
+  // that open links cannot use the code up. Metadata (variables) is always
+  // updated; the body is changed only where the seeded line is still present,
+  // so a coordinator's own wording is left alone and a notice is printed.
+  // ───────────────────────────────────────────────────────────────────────
+  const signInButtonFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'sign_in_device_button_v1'
+  `).catch(() => []);
+  if (signInButtonFlag.length === 0) {
+    console.log("→ Sign-in emails: add the sign-in-from-this-device button…");
+    const ANCHOR = "The code expires in 30 minutes.";
+    const INSERT =
+      "If you're reading this on the device where you want to sign in, you can use this button instead of typing the code.\n\n" +
+      "{{signInButton}}\n\n";
+    for (const slug of ["sign-in-code-new-user", "sign-in-code-returning"]) {
+      const t = await db.emailTemplate.findUnique({ where: { slug } });
+      if (!t) {
+        console.log(`  ⚠ ${slug} not found — nothing to update.`);
+        continue;
+      }
+      const variables = Array.from(new Set([...(t.variables ?? []), "signInUrl", "signInButton"]));
+      let body = t.body;
+      let bodyNote = "body unchanged (already has the button)";
+      if (!body.includes("{{signInButton}}")) {
+        if (body.includes(ANCHOR)) {
+          body = body.replace(ANCHOR, INSERT + ANCHOR);
+          bodyNote = "body updated";
+        } else {
+          bodyNote = "body customized, left as-is. Paste {{signInButton}} where the button should go (/admin/emails)";
+        }
+      }
+      const helpText = (t.helpText ?? "").includes("{{signInButton}}")
+        ? t.helpText
+        : (t.helpText ?? "") +
+          "\n\n{{signInButton}} is the \"Sign me in from this device\" button. It opens the sign-in page with the code filled in; the member still taps Sign in. Keep {{code}} too: typing the code is how someone signs in on a different device.";
+      await db.emailTemplate.update({ where: { slug }, data: { variables, body, helpText } });
+      console.log(`  ✔ ${slug}: variables + help text updated; ${bodyNote}.`);
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('sign_in_device_button_v1')`,
+    );
+  } else {
+    console.log("  ⏭ sign_in_device_button_v1 already applied.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Program dana receipt (2026-09-24). NEW template, seeded create-only.
+  // Sent by the Stripe webhook next to the registration confirmation, once per
+  // completed program payment: RIM's legal name + EIN, amount and date, and a
+  // goods-or-services statement, with any registration payment named apart
+  // from the gift. Wording provisional pending RIM's accountant.
+  // Plus an intentional, consented update to "waitlist-approval": a promoted
+  // member on a program that REQUIRES payment is told so (it had said dana was
+  // optional). Seeded block swapped only if still present.
+  // ───────────────────────────────────────────────────────────────────────
+  {
+    const receiptSlug = "registration-dana-receipt";
+    const existingReceipt = await db.emailTemplate.findUnique({ where: { slug: receiptSlug } });
+    if (existingReceipt) {
+      console.log(`  ⏭ email template "${receiptSlug}" already exists — left as-is (edits preserved).`);
+    } else {
+      const body = [
+        "## Thank you, {{firstName}}.",
+        "",
+        "{{#if hasGift}}",
+        "We received your dana of **${{giftUsd}}** for **{{programTitle}}** on {{paidDate}}.{{#if hasFee}} Your payment of ${{totalUsd}} also included ${{feeUsd}} for registration.{{/if}}",
+        "",
+        "Gifts like yours keep RIM's teachings freely offered to everyone who comes to practice.",
+        "{{else}}",
+        "We received your payment of **${{totalUsd}}** for **{{programTitle}}** on {{paidDate}}.",
+        "{{/if}}",
+        "",
+        "Your registration confirmation comes in a separate email.",
+        "",
+        "---",
+        "",
+        "**For your records**",
+        "",
+        "{{orgLegalName}} · EIN {{orgEin}} · {{orgAddress}}",
+        "",
+        "{{#if hasGift}}",
+        "Gift: ${{giftUsd}} · Received {{paidDate}} · {{programTitle}}",
+        "",
+        "{{orgLegalName}} is exempt from federal income tax under section 501(c)(3) of the Internal Revenue Code. No goods or services were provided in exchange for this gift.{{#if hasFee}} The ${{feeUsd}} registration payment was for participation in the program and is not part of the gift.{{/if}}",
+        "{{else}}",
+        "Payment: ${{totalUsd}} · Received {{paidDate}} · {{programTitle}}",
+        "",
+        "This payment was for participation in the program and is not a charitable gift.",
+        "{{/if}}",
+      ].join("\n");
+      await db.emailTemplate.create({
+        data: {
+          slug: receiptSlug,
+          name: "Program Dana — Receipt",
+          description:
+            "Sent by the Stripe webhook after a program payment completes, next to the registration confirmation. The member's record of their gift: legal name, EIN, amount, date, and the goods-or-services statement.",
+          enabled: true,
+          subject: "{{#if hasGift}}Your dana receipt for {{programTitle}}{{else}}Your payment receipt for {{programTitle}}{{/if}}",
+          variables: [
+            "firstName", "programTitle", "totalUsd", "feeUsd", "giftUsd",
+            "hasFee", "hasGift", "paidDate", "orgLegalName", "orgEin", "orgAddress",
+          ],
+          group: "02-registrations",
+          groupLabel: "Registrations",
+          helpText:
+            "Sent automatically once per completed program payment. It is the member's gift acknowledgment, so keep the 'For your records' section: the IRS expects the organization's name, the amount, and a statement about goods or services for gifts of $250 or more.\n\n" +
+            "Variables: {{giftUsd}} is the gift (voluntary dana, or the extra above a base); {{feeUsd}} is any registration payment; {{totalUsd}} is what was charged (amounts are like \"50.00\", no $ sign). {{hasGift}} / {{hasFee}} choose the wording. {{paidDate}} is the date received. {{orgLegalName}}, {{orgEin}} and {{orgAddress}} come from the IRS determination letter.\n\n" +
+            "SAFE to edit: the thank-you, the framing of dana. Check any change to the 'For your records' statement with RIM's accountant.",
+          body,
+        },
+      });
+      console.log(`  ✔ seeded email template "${receiptSlug}" (Registrations).`);
+    }
+
+    const approvalFlag = await db.$queryRawUnsafe(`
+      SELECT name FROM "_migration_flags" WHERE name = 'waitlist_approval_required_payment_v1'
+    `).catch(() => []);
+    if (approvalFlag.length === 0) {
+      const t = await db.emailTemplate.findUnique({ where: { slug: "waitlist-approval" } });
+      if (t) {
+        const SEEDED_BLOCK = [
+          "{{#if hasDana}}",
+          "---",
+          "",
+          "This program includes a dana (generosity) practice. When you're ready, you can make your offering from the program page.",
+          "",
+          "**[Complete Dana Offering →]({{programUrl}})**",
+          "{{/if}}",
+        ].join("\n");
+        const PAYMENT_BLOCK = [
+          "{{#if paymentRequired}}",
+          "---",
+          "",
+          "To hold your place, please complete the registration payment of ${{paymentUsd}} from the program page.",
+          "",
+          "**[Complete your registration →]({{programUrl}})**",
+          "{{/if}}",
+        ].join("\n");
+        const variables = Array.from(new Set([...(t.variables ?? []), "paymentRequired", "paymentUsd"]));
+        let body = t.body;
+        let note;
+        if (body.includes("{{#if paymentRequired}}")) {
+          note = "body already mentions required payment";
+        } else if (body.includes(SEEDED_BLOCK)) {
+          body = body.replace(SEEDED_BLOCK, SEEDED_BLOCK + "\n\n" + PAYMENT_BLOCK);
+          note = "required-payment block added";
+        } else {
+          note = "body customized, left as-is. Add a {{#if paymentRequired}} block mentioning ${{paymentUsd}} in /admin/emails";
+        }
+        await db.emailTemplate.update({ where: { slug: "waitlist-approval" }, data: { variables, body } });
+        console.log(`  ✔ waitlist-approval: variables updated; ${note}.`);
+      } else {
+        console.log("  ⚠ waitlist-approval not found — nothing to update.");
+      }
+      await db.$executeRawUnsafe(
+        `INSERT INTO "_migration_flags" (name) VALUES ('waitlist_approval_required_payment_v1')`,
+      );
+    } else {
+      console.log("  ⏭ waitlist_approval_required_payment_v1 already applied.");
+    }
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

@@ -4,11 +4,13 @@ import { db } from "@/lib/db";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import {
   EMAIL_MAX,
+  EMAIL_VERIFY_MAX,
   IP_SEND_MAX,
   IP_VERIFY_MAX,
   WINDOW_SECONDS,
   signinEmailKey,
   signinIpKey,
+  verifyEmailKey,
   verifyIpKey,
 } from "@/lib/authRateLimits";
 
@@ -23,8 +25,8 @@ import {
  *                                       Limited per-IP (anti-brute-force).
  *
  * Other auth paths (CSRF, session, signout, provider listing) pass through
- * untouched. GET is also untouched — its endpoints are read-only and don't
- * carry an abuse vector worth limiting.
+ * untouched. GET /callback/resend is limited too (the code form submits by
+ * GET); every other GET endpoint is read-only and passes through.
  *
  * The /join door (POST /api/account/join) also calls signIn() internally and
  * shares the same rate-limit keys via lib/authRateLimits — alternating
@@ -35,6 +37,21 @@ import {
  * external service. Sign-in volume at RIM is low enough that the ~5–10ms
  * DB round-trip is negligible. See lib/rateLimit.ts.
  */
+
+/**
+ * The code-verify limits, shared by GET and POST: per IP (bots) and per email
+ * (guessing one member's code from many IPs). Returns true when allowed.
+ */
+async function verifyAllowed(ip: string, rawEmail: string | null): Promise<boolean> {
+  const ipCheck = await checkRateLimit(verifyIpKey(ip), IP_VERIFY_MAX, WINDOW_SECONDS);
+  if (!ipCheck.allowed) return false;
+  const email = rawEmail?.toLowerCase().trim();
+  if (email) {
+    const emailCheck = await checkRateLimit(verifyEmailKey(email), EMAIL_VERIFY_MAX, WINDOW_SECONDS);
+    if (!emailCheck.allowed) return false;
+  }
+  return true;
+}
 
 /** Redirect helper — keeps the calm error page contract intact. */
 function rateLimitResponse(reqUrl: string): Response {
@@ -55,7 +72,21 @@ function notMemberResponse(reqUrl: string, email: string): Response {
   return NextResponse.redirect(url, 303);
 }
 
-export const GET = handlers.GET;
+/**
+ * GET is wrapped for one path. The six-digit code form (SignInCodeForm)
+ * submits by GET to /callback/resend, so the code check must be limited here
+ * too, not only on POST; otherwise guessing codes is unthrottled. Same key and
+ * budget as the POST verify path, so switching methods doesn't widen it.
+ */
+export async function GET(req: NextRequest): Promise<Response> {
+  const url = new URL(req.url);
+  if (url.pathname.endsWith("/callback/resend")) {
+    if (!(await verifyAllowed(getRequestIp(req), url.searchParams.get("email")))) {
+      return rateLimitResponse(req.url);
+    }
+  }
+  return handlers.GET(req);
+}
 
 export async function POST(req: NextRequest): Promise<Response> {
   const url = new URL(req.url);
@@ -136,13 +167,16 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   // ── Code-verify path (callback/resend) ─────────────────────────────────
   if (path.endsWith("/callback/resend")) {
-    const ip = getRequestIp(req);
-    const ipCheck = await checkRateLimit(
-      verifyIpKey(ip),
-      IP_VERIFY_MAX,
-      WINDOW_SECONDS,
-    );
-    if (!ipCheck.allowed) {
+    let email: string | null = url.searchParams.get("email");
+    if (!email) {
+      try {
+        const raw = (await req.clone().formData()).get("email");
+        email = typeof raw === "string" ? raw : null;
+      } catch {
+        // Not form-encoded: the IP limit still applies.
+      }
+    }
+    if (!(await verifyAllowed(getRequestIp(req), email))) {
       return rateLimitResponse(req.url);
     }
   }

@@ -54,7 +54,6 @@ export default async function CommunityProgramsPage() {
       where: {
         hideFromProgramPageList: false,
         archivedAt: null,
-        slug: { not: "dummy-test-program" },
       },
       include: { category: true },
       orderBy: { sortOrder: "asc" },
