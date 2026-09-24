@@ -206,8 +206,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: checkout.url });
   } catch (error) {
     console.error("[stripe/checkout] Error:", error);
+    // Stripe's own reason (type/code/message) travels in `detail` so a failed
+    // checkout can be diagnosed from the browser's network panel. Stripe
+    // messages mask keys and carry no card data; the form shows only `error`.
+    const e = error as { type?: string; code?: string; message?: string };
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      {
+        error: "Failed to create checkout session",
+        detail: e?.type ? `${e.type}${e.code ? `/${e.code}` : ""}: ${e.message ?? ""}` : undefined,
+      },
       { status: 500 }
     );
   }
