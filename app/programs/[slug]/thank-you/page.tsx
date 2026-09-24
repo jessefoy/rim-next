@@ -121,9 +121,11 @@ export default async function ThankYouPage({
   const inPerson = program.programFormat === "in-person" || program.programFormat === "hybrid";
   const loc = resolveLocation(program.venue, program.locationText, program.locationLink);
   const when = buildSubtitle(program)?.split(" | ")[0] ?? null;
+  // A hybrid or in-person program with no address entered still meets in
+  // person; say so rather than dropping that half.
   const where = [
-    inPerson ? loc.text : null,
-    online ? "Online on Zoom" : null,
+    inPerson ? loc.text || "In person" : null,
+    online ? (inPerson ? "online on Zoom" : "Online on Zoom") : null,
   ].filter(Boolean).join(" and ");
 
   const googleUrl = program.startDatetime
