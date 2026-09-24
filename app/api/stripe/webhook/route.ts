@@ -44,6 +44,26 @@ export async function POST(request: NextRequest) {
 
   // ── Handle events ──────────────────────────────────────────────────────────
 
+  if (event.type === "checkout.session.completed" || event.type === "checkout.session.expired") {
+    // Re-read the session from Stripe instead of trusting the event body's
+    // shape. Stripe renders an event in the API version set on the webhook
+    // destination (the old sandbox one was 2013-02-13; the new one is a
+    // 2026 "dahlia" release), while this code is typed for the SDK's pinned
+    // version. A fresh retrieve always comes back in the pinned version, so a
+    // destination's version setting can never change what RIM reads.
+    // If Stripe can't be reached, fail so Stripe retries the delivery.
+    const eventSessionId = (event.data.object as { id?: string }).id;
+    if (!eventSessionId) {
+      return NextResponse.json({ received: true });
+    }
+    try {
+      event.data.object = await stripe.checkout.sessions.retrieve(eventSessionId);
+    } catch (err) {
+      console.error("[stripe/webhook] Could not re-read checkout session; asking Stripe to retry", eventSessionId, err);
+      return NextResponse.json({ error: "Temporary failure" }, { status: 500 });
+    }
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const source = (session.metadata?.source ?? "") as string;
