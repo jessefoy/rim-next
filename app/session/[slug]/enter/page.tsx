@@ -207,7 +207,8 @@ export default async function ZoomEnterPage({
           where: {
             userId,
             OR: [{ programSlug: slug }, { programId: program.id }],
-            status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
+            // A waitlisted member has no place yet; same rule as My Home.
+            status: { notIn: ["CANCELLED", "PENDING_PAYMENT", "WAITLISTED"] },
           },
           select: { id: true },
         }),
@@ -245,7 +246,7 @@ export default async function ZoomEnterPage({
     return (
       <EnterNotice
         title="This session is for registered participants"
-        body="It looks like you aren't registered for this program yet. The program page shows how to take part."
+        body="It looks like you don't have a place in this program yet. If you're on the waitlist, we'll email you when a spot opens. The program page shows how to take part."
         primary={{ href: `/programs/${slug}`, label: "See the program page" }}
         secondary={{ href: "/account/dashboard", label: "Back to My Home" }}
       />

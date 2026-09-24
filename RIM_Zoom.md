@@ -109,9 +109,12 @@ entry/host screens use inline styles + tokens (no new prefix).
    by id; guests have none; nothing writes these rows since the LiveKit room
    retired, so this check is inert) → **registration** (2026-09-24): a
    registration-required program (`!isOpenlyDroppable(kind, registrationEnabled)`)
-   admits only members holding a registration that isn't CANCELLED or
-   PENDING_PAYMENT, plus anyone host-capable and ADMIN/GT. This is the same rule
-   My Home uses to show Join, so the button and the door agree. Role is resolved
+   admits only members holding a registration that isn't CANCELLED,
+   PENDING_PAYMENT or WAITLISTED (waitlisted members have no place yet; Jesse,
+   2026-09-24), plus anyone host-capable, anyone assigned to cover this day,
+   active members of the hosting or a covering team, ADMIN/GT, and holders of the
+   program's open-access link. My Home uses the same registration rule to show
+   Join, so the button and the door agree. Role is resolved
    before provisioning, so a turned-away visitor never takes a seat.
 
    **Every stop is a page, not a bounce** (2026-09-24). Window closed, program

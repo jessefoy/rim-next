@@ -32,9 +32,9 @@ The room stays open until **30 minutes after** the session ends, so a host can c
 
 **Drop-ins and open community groups** are open to any RIM member.
 
-**Classes, events, and retreats that take registration** are for the people registered. A member who isn't registered sees a page saying the session is for registered participants, with a link to the program page. This matches My Home, which only shows them a Join button once they're registered.
+**Classes, events, and retreats that take registration** are for the people registered. Someone on the waitlist doesn't have a place yet, so they can't join until they're moved off it. A member without a place sees a page saying the session is for registered participants, with a link to the program page. This matches My Home, which only shows them a Join button once they have a place.
 
-**Hosts, the hosting team, and teachers linked to the program** can always get in, registered or not.
+**Hosts, the hosting team, the teams covering the program (like AV), and teachers linked to the program** can always get in, registered or not. So can anyone holding the program's open-access link.
 
 **Guests** come through the open-access link, if the program has one.
 

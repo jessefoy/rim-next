@@ -109,6 +109,7 @@ export default async function DashboardPage({ searchParams }: {
           id: true,
           programTitle: true,
           programSlug: true,
+          status: true,
           donationStatus: true,
           program: {
             select: {
@@ -172,7 +173,8 @@ export default async function DashboardPage({ searchParams }: {
         where: {
           userId,
           programSlug: { in: todayProgramSlugs },
-          status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
+          // Waitlisted isn't a place in the session: no Join until promoted.
+          status: { notIn: ["CANCELLED", "PENDING_PAYMENT", "WAITLISTED"] },
         },
         select: { programSlug: true },
       })
@@ -304,6 +306,7 @@ export default async function DashboardPage({ searchParams }: {
     const p = r.program;
     if (
       r.nextDateStr !== today ||
+      r.status === "WAITLISTED" ||
       p?.programFormat !== "in-person" ||
       !p.startDatetime
     ) return [];

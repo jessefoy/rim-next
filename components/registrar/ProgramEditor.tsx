@@ -172,7 +172,7 @@ const DANA_BUILTIN: { name: string; text: string }[] = [
   },
   {
     name: "Teacher support",
-    text: "Dana offered here goes directly to support the teacher. This is an ancient practice of reciprocity — teachings are offered freely, and we give back as we are able. All amounts are welcome.",
+    text: "Dana offered here supports our teachers' livelihood. It goes to Rooted In Mindfulness and is set aside in the fund for teacher livelihood. This is an ancient practice of reciprocity: the teachings are freely offered, and we give back as we are able. All amounts are welcome.",
   },
   {
     name: "Sliding scale / no one turned away",
@@ -1017,6 +1017,32 @@ export default function ProgramEditor({
     }
     return null;
   }, [isArchived, hideFromProgramPageList, categoryId, selectedCategory, hideWhenPast, recurrenceFreq, startDatetime, endDatetime]);
+  // My Home (app/account/(authenticated)/dashboard/page.tsx): online programs
+  // appear in Today on the days they meet, unless archived or hidden from the
+  // member home (until an optional auto-show date). Who sees them follows the
+  // offering kind: open drop-ins show to everyone; registration-required ones
+  // show to registrants, hosts and teachers. In-person programs appear only for
+  // their registrants. Waitlisted members don't get a Join.
+  const homeHiddenUntilLater = useMemo(() => {
+    if (!removeFromProgramList) return false;
+    if (!dashboardShowAt) return true;
+    // Both are Central wall-clock strings, so they compare as text.
+    const nowCt = new Date()
+      .toLocaleString("sv-SE", { timeZone: "America/Chicago" })
+      .replace(" ", "T")
+      .slice(0, 16);
+    return dashboardShowAt.slice(0, 16) > nowCt;
+  }, [removeFromProgramList, dashboardShowAt]);
+  const homeState: "archived" | "hidden" | "hiddenUntil" | "noSchedule" | "inPerson" | "open" | "registrants" =
+    isArchived ? "archived"
+      : !startDatetime ? "noSchedule"
+      // The hide box filters online sessions only; in-person registrants
+      // still see their program on the day.
+      : programFormat === "in-person" ? "inPerson"
+      : homeHiddenUntilLater ? (dashboardShowAt ? "hiddenUntil" : "hidden")
+      : isOpenlyDroppable(offeringKind, registrationEnabled) ? "open"
+      : "registrants";
+
   const weeklyReason: "archived" | "hiddenListing" | "hiddenWeekly" | "noSchedule" | null =
     isArchived ? "archived"
       : hideFromProgramPageList ? "hiddenListing"
@@ -2226,6 +2252,33 @@ export default function ProgramEditor({
                 )}
                 {weeklyReason === "noSchedule" && (
                   <><span className="pe-readout__state">Not shown.</span> It needs a start date and time on the Schedule tab.</>
+                )}
+              </p>
+              <p className={`pe-readout__row${["archived", "hidden", "hiddenUntil", "noSchedule"].includes(homeState) ? " pe-readout__row--off" : ""}`}>
+                <span className="pe-readout__place">Member home: </span>
+                {homeState === "archived" && (
+                  <><span className="pe-readout__state">Not shown.</span> Archived programs don&rsquo;t appear.</>
+                )}
+                {homeState === "hidden" && (
+                  <><span className="pe-readout__state">Not shown.</span> &ldquo;Hide from member home&rdquo; is checked below, so no one sees it in Today. Registrants still see its upcoming dates.</>
+                )}
+                {homeState === "hiddenUntil" && (
+                  <><span className="pe-readout__state">Not shown yet.</span> It appears on the auto-show date set below.</>
+                )}
+                {homeState === "noSchedule" && (
+                  <><span className="pe-readout__state">Not shown.</span> It needs a start date and time on the Schedule tab.</>
+                )}
+                {homeState === "inPerson" && (
+                  <>
+                    Shown to people registered for it, on the days it meets.
+                    {removeFromProgramList && <> The &ldquo;Hide from member home&rdquo; box only affects online sessions, so it doesn&rsquo;t change this.</>}
+                  </>
+                )}
+                {homeState === "open" && (
+                  <>Shown to every member on the days it meets, with a Join button.</>
+                )}
+                {homeState === "registrants" && (
+                  <>Shown with a Join button to people registered for it (not the waitlist), and to its hosts and teachers.</>
                 )}
               </p>
             </div>
