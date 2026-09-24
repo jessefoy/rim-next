@@ -173,7 +173,9 @@ export async function POST(request: NextRequest) {
       submit_type: charge.feeCents === 0 ? "donate" : "pay",
       line_items: lineItems,
       customer_email: registration.email,
-      success_url: `${baseUrl}/programs/${programSlug}?dana=success&session_id={CHECKOUT_SESSION_ID}`,
+      // A dedicated page that confirms the payment with Stripe and says what
+      // happens next (the old ?dana=success banner sat under the quote card).
+      success_url: `${baseUrl}/programs/${programSlug}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/programs/${programSlug}?dana=cancelled`,
       metadata,
       payment_intent_data: {

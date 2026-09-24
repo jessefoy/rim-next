@@ -176,7 +176,21 @@ export default async function ProgramDetailPage({
       {/* ── Content column ── */}
       <div className="lp-content pg-content">
 
-        {/* Dana result banners — shown after Stripe redirects back */}
+        {/* ── Pull quote card — floats up into hero ── */}
+        {program.pullQuote && (
+          <figure className="pg-quote">
+            <blockquote className="pg-quote__text">{program.pullQuote}</blockquote>
+            {program.pullQuoteSource && (
+              <figcaption className="pg-quote__source">~ {program.pullQuoteSource}</figcaption>
+            )}
+          </figure>
+        )}
+
+        {/* Dana result banners — shown after Stripe redirects back. After the
+            quote card, not before it: the card floats up with a negative top
+            margin and covered them completely. (New payments return to
+            /programs/[slug]/thank-you; the success banner remains for
+            checkouts started before that page existed.) */}
         {resolvedSearch?.dana === "success" && (
           <div className="pg-dana-result pg-dana-result--success">
             ✓ Thank you. Your dana offering has been received.
@@ -190,15 +204,6 @@ export default async function ProgramDetailPage({
           </div>
         )}
 
-        {/* ── Pull quote card — floats up into hero ── */}
-        {program.pullQuote && (
-          <figure className="pg-quote">
-            <blockquote className="pg-quote__text">{program.pullQuote}</blockquote>
-            {program.pullQuoteSource && (
-              <figcaption className="pg-quote__source">~ {program.pullQuoteSource}</figcaption>
-            )}
-          </figure>
-        )}
 
         {/* ── Program description ── */}
         {hasDescription && (

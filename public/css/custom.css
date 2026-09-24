@@ -28747,3 +28747,44 @@ a.pp-card.tpr-card {
   .rim-home-links { flex-direction: column; gap: 4px; }
   .gf-color-dialog { padding: 20px; }
 }
+
+/* ============================================================================
+   THANK-YOU PAGE (/programs/[slug]/thank-you) — ty- prefix, 2026-09-24
+   ============================================================================
+   Where Stripe returns a member after a registration payment or dana gift.
+   The flat pp- hero plus one reading-width pp-card; only the facts list and
+   two inline details are new. */
+.ty-card {
+  max-width: var(--reading-width);
+  margin: 0 auto;
+}
+.ty-card .pp-card__body {
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+.ty-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 24px;
+  margin: 0 0 24px;
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+.ty-facts dt {
+  font-weight: 600;
+  color: var(--rim-text);
+}
+.ty-facts dd { margin: 0; color: var(--rim-text); }
+/* The member's own address echoed back: one unbreakable token (RIM_Auth.md,
+   pitfall 6), so it must be allowed to wrap. */
+.ty-email { overflow-wrap: anywhere; }
+.ty-inline-link {
+  color: var(--rim-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 430px) {
+  .ty-facts { grid-template-columns: minmax(0, 1fr); gap: 2px 0; }
+  .ty-facts dd + dt { margin-top: 12px; }
+}
