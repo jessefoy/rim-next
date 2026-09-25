@@ -28,8 +28,8 @@ export const dynamic = "force-dynamic";
  *
  * Grounds alternate: ground, white, ground, white, ground, white, ground.
  * The CARE doors and the pathway doors are white lifted cards, so both sit on
- * the ground; "Practice for real life" is open type on white (its six items
- * are particulars, not destinations).
+ * the ground; "Practice for real life" sits on white with its six items in
+ * borderless Pampas insets (particulars, not destinations, so no shadow).
  */
 
 // The eight lines are the program-description draft's compressions of the
