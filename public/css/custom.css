@@ -26639,7 +26639,9 @@ a.pp-card:focus-visible {
 .cc-agreements {
   max-width: 1060px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Three agreements under the shared-vision frame (2026-09-25): three
+     across where they fit, one column below 1024 (two-up would orphan one). */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
   margin: 0;
   padding: 0;
@@ -26687,6 +26689,10 @@ a.pp-card:focus-visible {
   color: var(--rim-text);
   font-size: var(--text-small);
   line-height: 1.65;
+}
+
+@media (max-width: 1024px) {
+  .cc-agreements { grid-template-columns: 1fr; max-width: var(--reading-width); }
 }
 
 @media (max-width: 768px) {
@@ -28246,7 +28252,7 @@ a.pp-card.tpr-card {
 }
 
 /* The agreements read as content, not as form furniture: full body size on the
-   spine, with room between the four so each is its own thought. */
+   spine, with room between the three so each is its own thought. */
 .jn-agreements-list {
   max-width: var(--reading-width);
   /* `outside` markers force the whole list inward to make room for them, which
@@ -28458,6 +28464,120 @@ a.pp-card.tpr-card {
 /* A deep link into a reading page lands with its heading clear of the sticky
    nav (100px), the same clearance the catalog's category anchors carry. */
 .pp-prose h2[id] { scroll-margin-top: 124px; }
+
+/* ============================================================================
+   THE CENTER, STATED — 2026-09-25
+   ============================================================================
+   The public site reorganized around RIM's stated center (Why We Practice,
+   Foundations, Outreach, the home re-sequence, the CARE circle). Copy source
+   of truth: the vault's 04-community-website-copy-2026-09-25.md. Appended as
+   one block, before the authenticated readability contract that must stay
+   last. */
+
+/* "Practice for real life": six everyday particulars. They are not actions or
+   destinations, so they stay open type on the white section instead of
+   becoming cards (a card is earned by a coherent object; white cards on the
+   white section would also vanish). */
+.pp-uses {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 36px 44px;
+  max-width: 1060px;
+  margin: 0 0 40px;
+  padding: 0;
+  list-style: none;
+}
+.pp-uses__item { min-width: 0; margin: 0; }
+/* An h3 set at the h4 size, the same named exception as .pp-card__title:
+   six small titles in a grid, under a 38px chapter opener. */
+.pp-uses__title {
+  margin: 0 0 8px;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  font-weight: 500;
+  line-height: var(--lh-heading);
+}
+.pp-uses__body {
+  margin: 0;
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+@media (max-width: 768px) {
+  .pp-uses { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 430px) {
+  .pp-uses { grid-template-columns: 1fr; gap: 28px; }
+}
+
+/* The distillation: a few set-apart italic lines after a reading page's prose
+   ends (How We Write's sanctioned close). One per page at most. */
+.pp-prose .pp-distillation {
+  margin: 44px 0 0;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  font-style: italic;
+  line-height: var(--lh-body);
+}
+
+/* /foundations: the "When and where" panel sits between two prose blocks, on
+   the reading measure so it does not run wider than the text around it. */
+.fd-page .pp-panel {
+  max-width: var(--reading-width);
+  margin-top: 36px;
+  margin-bottom: 36px;
+}
+
+/* /about: vision and mission, on the reading measure, set apart below the
+   story. */
+.ab-vision {
+  max-width: var(--reading-width);
+  margin-top: 44px;
+}
+.ab-vision__second { margin-top: 28px; }
+
+/* The CARE circle on /care, recreated from the practice handout. The SVG
+   scales with its column; its text sizes are in viewBox units. The #1f1f1f
+   ink is fixed to the handout artwork on purpose (the strokes inside the SVG
+   use the same value), not a stray hex. */
+.care-figure {
+  margin: 44px 0 48px;
+}
+.care-circle {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  margin: 0 auto;
+}
+.care-circle__word {
+  fill: #1f1f1f;
+  font-family: var(--font-heading);
+  font-size: 25px;
+  font-weight: 700;
+}
+.care-circle__ring {
+  fill: #1f1f1f;
+  font-family: var(--font-heading);
+  font-size: 20px;
+}
+.care-circle__letter {
+  fill: #1f1f1f;
+  font-family: var(--font-heading);
+  font-size: 38px;
+  font-weight: 700;
+}
+.care-figure__caption {
+  max-width: 520px;
+  margin: 18px auto 0;
+  color: var(--rim-mid);
+  font-size: var(--text-small);
+  line-height: var(--lh-body);
+  text-align: center;
+}
 
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,

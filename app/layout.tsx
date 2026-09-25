@@ -5,7 +5,7 @@ import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
   title: "Rooted In Mindfulness",
-  description: "Community Insight Meditation Center — Brookfield, WI",
+  description: "A meditation and dharma community in Brookfield, Wisconsin, in person and online.",
 };
 
 /** Viewport — required so mobile browsers render at the device's actual

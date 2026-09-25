@@ -125,8 +125,9 @@ export default function WhatWePracticePage() {
             <h2>For anyone</h2>
             <p>
               Buddhist, secular, spiritual, or undecided: the door is the same, and so is the depth.
-              This is Buddhist wisdom, rooted in the early teachings and honoring the traditions that
-              grew from them, offered without dogma. What we share is informed by modern science,
+              This is Buddhist wisdom, rooted in the silent illumination tradition of Chan and drawing
+              on the whole of the tradition, from the earliest teachings onward, offered without
+              dogma. What we share is informed by modern science,
               lived experience, and the world&rsquo;s wisdom traditions, and it will feel familiar if
               you came to meditation through a mindfulness course, a class at work, or an app. Those
               doors are real doors; they led you here. Whatever true thing you carry from elsewhere
@@ -143,10 +144,10 @@ export default function WhatWePracticePage() {
 
           <div className="pp-actions">
             <Link href="/your-first-visit" className="pp-btn">
-              Plan your first visit
+              Your first visit
             </Link>
             <Link href="/this-week" className="pp-link">
-              See what&rsquo;s happening this week <span aria-hidden="true">→</span>
+              This week&rsquo;s schedule <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>

@@ -32,6 +32,15 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Payments.** The server decides the charge; registration payments and dana are separate Stripe lines; a new **dana receipt** email (legal name, EIN, amount, date, goods-or-services statement) follows every program payment; expired or replaced checkouts can't delete a live hold or take a second payment; a payment whose hold was lost restores the registration. See `RIM_Registration.md`.
 - **Zoom.** Seat choice respects entry windows and is lock-serialized; every stop at `/session/[slug]/enter` is a plain page (never a silent bounce); registration-required programs admit registrants (**not the waitlist**, on My Home either), staff and open-access link holders; the overlap warning counts true peaks, skips archived programs, and appears on a program's first save; Record changes reach existing meetings; more seats are a settings change (`ZOOM_SEAT_EMAILS`). See `RIM_Zoom.md`.
 
+## September 25, 2026: the center, stated
+
+- **The public site now leads with what RIM is for.** Home re-sequenced: hero (headline kept, new paragraph) → What we are here for → Practice for real life (six everyday particulars, open type) → Our practice is taking care (four pair doors) → Deep roots (lineage corrected: Chan silent illumination, the whole tradition through A Handful of Leaves, not an insight/vipassana center) → Where to begin (the pathway: Foundations · Learning & Practice · Immersion · Outreach; Immersion's door finds the retreat/event category by `kind`) → Dana (as it actually works: suggested amounts, no one turned away, minimums only where RIM pays a host, program gifts split with the Teaching Fund) → It matters how we live.
+- **New pages:** `/why-we-practice` (the center at full length), `/foundations` (where to begin; dates are holding text until Jesse sets them), `/outreach` (Taking CARE for organizations; inquiries to support@).
+- **`/care`** gains the CARE circle (`components/CareCircle.tsx`), recreated from the practice handout's artwork. **`/about`** gains a vision and mission panel.
+- **Care agreements:** Our Shared Vision is now the frame, with three agreements beneath it (the fourth became the frame). Same five surfaces (`lib/communityAgreements.ts`).
+- **Nav:** Our Practice gains Why We Practice; Programs follows the pathway and gains Foundations and Outreach; Get Involved gains the agreements.
+- **Copy source of truth is the vault:** `CARE/4 Promotion/04-community-website-copy-2026-09-25.md`. All of it is provisional until Jesse's read-aloud. See `RIM_Public_Pages.md`.
+
 ## For depth, see
 
 | Topic | Authoritative doc |

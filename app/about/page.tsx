@@ -17,6 +17,11 @@ export const metadata = {
  * practice) is taken from his live team page and is not in question.
  * ─────────────────────────────────────────────────────────────────────────────
  *
+ * 2026-09-25: lineage stated as Jesse states it (Chan silent illumination,
+ * the whole tradition through A Handful of Leaves); vision and mission added
+ * as a set-apart panel. Source of truth for changed words: the vault's
+ * 04-community-website-copy-2026-09-25.md.
+ *
  * Credentials appear here once, briefly. The house guide keeps them out of
  * teaching prose; an About page is the one place they belong.
  */
@@ -52,9 +57,10 @@ export default function AboutPage() {
             <p>
               Over the years that room became a community: sittings, friendships, classes,
               retreats, and the slow exploring of a contemplative life. And our own roots became
-              more visible. The teaching here unites traditional Buddhist psychology and
-              contemporary mindfulness-based approaches, and it draws on decades of meditation
-              practice. Today RIM is a Buddhist nonprofit and a contemplative community.
+              more visible. The teaching here is rooted in silent illumination, the meditation
+              tradition of Chan Buddhism, and draws on the whole Buddhist tradition through A
+              Handful of Leaves. Mindfulness-based programs, psychology, modern science, and
+              decades of meditation practice inform it too. Today RIM is a Buddhist nonprofit and a dharma community.
             </p>
             <p>
               One thing has not changed. The teachings have to be accessible enough to meet people
@@ -68,14 +74,38 @@ export default function AboutPage() {
             </p>
             <p>
               What joins us is the practice of waking up to our lives, and learning to meet
-              ourselves, one another, and the world with more wisdom and care. We ask four things
-              of the people who join us, and every one of them begins with that word.
+              ourselves, one another, and the world with more wisdom and care. We ask the people
+              who join us to hold one shared vision and three agreements, and every one of the
+              agreements begins with that word.
+            </p>
+          </div>
+
+          {/* Vision and mission, set apart for the readers who look for them
+              (partners, funders, organizations). Master reference, Section 3. */}
+          <div className="pp-panel ab-vision">
+            <h2 className="pp-panel__title">Our vision</h2>
+            <p className="pp-panel__body">
+              People and communities living awake: less caught in the habits that cause suffering
+              and harm, more able to live from the wisdom and care already within us, and sharing
+              true well-being with those we love and the world we share.
+            </p>
+            <h2 className="pp-panel__title ab-vision__second">Our mission</h2>
+            <p className="pp-panel__body">
+              Rooted in Mindfulness is a community where people learn and practice together to
+              live awake in everyday life. Through our practice of taking care, and the support of
+              one another, we learn to see clearly, to free ourselves from harmful habits, and to
+              heal, promote, and protect well-being in ourselves, one another, and our shared
+              world. We bring this practice into our lives and our lives into our community, and we
+              carry it outward to others who can benefit.
             </p>
           </div>
 
           <div className="pp-actions">
-            <Link href="/care" className="pp-btn">
-              How we practice: Taking care
+            <Link href="/why-we-practice" className="pp-btn">
+              Why we practice
+            </Link>
+            <Link href="/care" className="pp-link">
+              How we practice: Taking Care <span aria-hidden="true">→</span>
             </Link>
             <Link href="/community-care-agreements" className="pp-link">
               Our Community Care Agreements <span aria-hidden="true">→</span>

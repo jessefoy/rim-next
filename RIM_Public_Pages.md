@@ -323,6 +323,16 @@ A `.pp-notice` panel was added above the program listings carrying the practical
 
 ---
 
+## The center, stated (2026-09-25)
+
+The public site was reorganized so RIM's stated center is the first thing a visitor meets and every page is a face of it. **Copy lives in the vault first** (`Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md`); change the words there, then in code. Teacher-side authority for the center is the vault's `1 Model/01-framework-what-rim-is.md`.
+
+- **Home grounds alternate** ground / white / ground / white / ground / white / ground. Door lists (CARE pairs, the pathway) are white lifted cards, so they sit on the ground. "Practice for real life" is open type on white (`.pp-uses`), because its six items are particulars, not destinations. Home now carries `.pp-page--spine`.
+- **Labels are named destinations** ("Your first visit," "This week's schedule," "Ways to give"), per the 2026-09-23 house rule (no imperatives on the page), on every page this pass touched. Untouched pages keep their older invitation labels until their own pass. "Come as you are" stays, as owned language.
+- **The two faces.** RIM's own pages say plainly that RIM is a dharma community rooted in Chan silent illumination. `/outreach` and `/foundations` carry the Taking CARE face: a mindfulness-based program, secular in the Dalai Lama's sense, rooted in tradition, asking no belief.
+- **The CARE circle** (`components/CareCircle.tsx`) follows the handout artwork, not the 9/23 mock: Calm and Connect upper left, Aware and Attitude upper right, Recognize and Remember lower right, Embody and Engage lower left. It is one image to assistive technology. It appears on `/care` only; whether it belongs anywhere else is Jesse's call.
+- **The distillation** (`.pp-distillation`): a few set-apart italic lines after a reading page's prose, as How We Write sanctions. `/why-we-practice` is the only use.
+
 ## The home page composition (session 172)
 
 - **Splits alternate** — image right (What we do) / left (Community) / right (Dana). Both had carried `--flip`; every image on one side was the redundancy Jesse flagged.

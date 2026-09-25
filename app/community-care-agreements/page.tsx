@@ -3,12 +3,13 @@ import Link from "next/link";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
+  COMMUNITY_SHARED_VISION_TITLE,
 } from "@/lib/communityAgreements";
 
 export const metadata = {
   title: "Community Care Agreements — Rooted In Mindfulness",
   description:
-    "The four shared intentions that guide how members of Rooted In Mindfulness care for themselves, one another, RIM, and our shared vision.",
+    "The shared vision and the care agreements that guide how members of Rooted In Mindfulness care for themselves, one another, and RIM.",
 };
 
 export const dynamic = "force-dynamic";
@@ -61,7 +62,9 @@ export default async function CommunityCareAgreementsPage() {
         <div className="rim-container">
           <div className="pp-intro cc-intro">
             <h2 className="pp-intro__title">A community we make together.</h2>
-            <p className="pp-intro__body">{COMMUNITY_AGREEMENTS_LEAD_IN}</p>
+            <p className="pp-intro__body">
+              <strong>{COMMUNITY_SHARED_VISION_TITLE}.</strong> {COMMUNITY_AGREEMENTS_LEAD_IN}
+            </p>
             <p className="pp-intro__body">
               And the care runs both ways. Held together, these intentions become the
               refuge itself: a shelter we build and rest in at the same time.

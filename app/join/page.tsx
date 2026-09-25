@@ -4,6 +4,7 @@ import JoinForm from "@/components/JoinForm";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
+  COMMUNITY_SHARED_VISION_TITLE,
   JOIN_HERO_TITLE,
   JOIN_HERO_INTRO,
   JOIN_FORM_LEAD,
@@ -12,7 +13,7 @@ import {
 export const metadata = {
   title: "Become a member — Rooted In Mindfulness",
   description:
-    "Join the Rooted In Mindfulness community. Read our four community care agreements and create your member account.",
+    "Join the Rooted In Mindfulness community. Read our shared vision and community care agreements and create your member account.",
 };
 
 export default async function JoinPage({
@@ -61,7 +62,7 @@ export default async function JoinPage({
             <h2 id="jn-meaning-heading">What membership means</h2>
             <p>
               Membership may not mean here what it has meant to you elsewhere. There are no dues;
-              like everything at RIM, membership is freely offered. There is no attendance
+              membership is freely offered. There is no attendance
               requirement and no role to fill, and nobody tracks how often you come. Joining says
               one thing: this is my practice community, and I would like a seat in it.
             </p>
@@ -97,7 +98,9 @@ export default async function JoinPage({
         <div className="rim-container">
           <div className="pp-prose">
             <h2 id="jn-agreements-heading">Community Care Agreements</h2>
-            <p>{COMMUNITY_AGREEMENTS_LEAD_IN}</p>
+            <p>
+              <strong>{COMMUNITY_SHARED_VISION_TITLE}.</strong> {COMMUNITY_AGREEMENTS_LEAD_IN}
+            </p>
           </div>
           <ol className="jn-agreements-list">
             {COMMUNITY_AGREEMENTS.map((a) => (

@@ -75,6 +75,11 @@ export default function YourFirstVisitPage() {
             </p>
 
             <p>
+              If you would like a fuller introduction, <Link href="/foundations">Foundations</Link>{" "}
+              is where we encourage everyone to begin. It is not required. Drop-in gatherings are
+              open to anyone, any week.
+            </p>
+            <p>
               And if what brings you here is a hard season, you are in good company; many of us
               arrived the same way. No explanation is owed, and none will be asked for. Come as you
               are, and let that be enough.
@@ -83,7 +88,7 @@ export default function YourFirstVisitPage() {
 
           <div className="pp-actions">
             <Link href="/this-week" className="pp-btn">
-              See what&rsquo;s happening this week
+              This week&rsquo;s schedule
             </Link>
             <Link href="/what-we-practice" className="pp-link">
               What we practice <span aria-hidden="true">→</span>

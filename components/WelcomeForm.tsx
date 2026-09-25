@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
+  COMMUNITY_SHARED_VISION_TITLE,
   COMMUNITY_AGREEMENTS_CHECKBOX_LABEL,
 } from "@/lib/communityAgreements";
 
@@ -117,7 +118,9 @@ export default function WelcomeForm({
 
       <div className="wl-agreements">
         <h3 className="wl-agreements__heading">Community Care Agreements</h3>
-        <p className="wl-agreements__text">{COMMUNITY_AGREEMENTS_LEAD_IN}</p>
+        <p className="wl-agreements__text">
+          <strong>{COMMUNITY_SHARED_VISION_TITLE}.</strong> {COMMUNITY_AGREEMENTS_LEAD_IN}
+        </p>
         <ol className="wl-agreements__list">
           {COMMUNITY_AGREEMENTS.map((a) => (
             <li key={a.title} className="wl-agreements__item">

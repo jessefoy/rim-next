@@ -115,10 +115,11 @@ export default function Nav() {
         {/* Public only: member/admin/tool routes return the member-bar above,
             so this nav never renders there. */}
         <nav className="nav__desktop" aria-label="Main navigation">
-              {/* Our Practice became a door in session 177: CARE (how we
-                  practice) in front, the Handful (what we learn) behind it,
-                  and the story of where RIM came from. The bar is tight, so
-                  the label stays short. */}
+              {/* Our Practice became a door in session 177. 2026-09-25: Why
+                  We Practice (the center, stated) leads, then CARE (how we
+                  practice), the Handful (what we learn), and the story of
+                  where RIM came from. The bar is tight, so the label stays
+                  short, and the door count stays at four plus Donate. */}
               <div className="nav__dropdown">
                 <button className="nav__dropdown-toggle">
                   Our Practice
@@ -126,6 +127,10 @@ export default function Nav() {
                 </button>
                 <div className="nav__dropdown-panel">
                   <div className="nav__dropdown-panel-inner">
+                    <Link href="/why-we-practice" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Why We Practice</div>
+                      <div className="nav__dropdown-desc">What we are here for</div>
+                    </Link>
                     <Link href="/care" className="nav__dropdown-link">
                       <div className="nav__dropdown-title">Taking Care</div>
                       <div className="nav__dropdown-desc">How we practice, in eight plain words</div>
@@ -148,17 +153,25 @@ export default function Nav() {
                 </button>
                 <div className="nav__dropdown-panel">
                   <div className="nav__dropdown-panel-inner">
-                    <Link href="/community-programs" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">All Programs</div>
-                      <div className="nav__dropdown-desc">Drop-ins, courses, and community groups</div>
+                    <Link href="/your-first-visit" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Your First Visit</div>
+                      <div className="nav__dropdown-desc">What to expect if you&apos;ve never been</div>
+                    </Link>
+                    <Link href="/foundations" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Foundations</div>
+                      <div className="nav__dropdown-desc">Where we encourage everyone to begin</div>
                     </Link>
                     <Link href="/this-week" className="nav__dropdown-link">
                       <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
                       <div className="nav__dropdown-desc">What&apos;s happening day by day</div>
                     </Link>
-                    <Link href="/your-first-visit" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Your First Visit</div>
-                      <div className="nav__dropdown-desc">What to expect if you&apos;ve never been</div>
+                    <Link href="/community-programs" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">All Programs</div>
+                      <div className="nav__dropdown-desc">Drop-ins, courses, retreats, and groups</div>
+                    </Link>
+                    <Link href="/outreach" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Outreach</div>
+                      <div className="nav__dropdown-desc">For organizations serving people in need</div>
                     </Link>
                   </div>
                 </div>
@@ -184,6 +197,10 @@ export default function Nav() {
                     >
                       <div className="nav__dropdown-title">Start a Community Group</div>
                       <div className="nav__dropdown-desc">Create a Community Group or Event</div>
+                    </Link>
+                    <Link href="/community-care-agreements" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Community Care Agreements</div>
+                      <div className="nav__dropdown-desc">Our shared vision, and what we ask of members</div>
                     </Link>
                   </div>
                 </div>
@@ -262,6 +279,12 @@ export default function Nav() {
                 </Link>
               )}
               <Link
+                href="/why-we-practice"
+                className={`nav__mobile-link${isActive("/why-we-practice")}`}
+              >
+                Why We Practice
+              </Link>
+              <Link
                 href="/care"
                 className={`nav__mobile-link${isActive("/care")}`}
               >
@@ -280,10 +303,16 @@ export default function Nav() {
                 Our Story
               </Link>
               <Link
-                href="/community-programs"
-                className={`nav__mobile-link${isActive("/community-programs")}`}
+                href="/your-first-visit"
+                className={`nav__mobile-link${isActive("/your-first-visit")}`}
               >
-                All Programs
+                Your First Visit
+              </Link>
+              <Link
+                href="/foundations"
+                className={`nav__mobile-link${isActive("/foundations")}`}
+              >
+                Foundations
               </Link>
               <Link
                 href="/this-week"
@@ -292,10 +321,16 @@ export default function Nav() {
                 This Week&apos;s Schedule
               </Link>
               <Link
-                href="/your-first-visit"
-                className={`nav__mobile-link${isActive("/your-first-visit")}`}
+                href="/community-programs"
+                className={`nav__mobile-link${isActive("/community-programs")}`}
               >
-                Your First Visit
+                All Programs
+              </Link>
+              <Link
+                href="/outreach"
+                className={`nav__mobile-link${isActive("/outreach")}`}
+              >
+                Outreach
               </Link>
               <Link
                 href="/volunteerism/volunteer"
@@ -308,6 +343,12 @@ export default function Nav() {
                 className={`nav__mobile-link${isActive("/kalyana-mitta")}`}
               >
                 Start A Community Group
+              </Link>
+              <Link
+                href="/community-care-agreements"
+                className={`nav__mobile-link${isActive("/community-care-agreements")}`}
+              >
+                Community Care Agreements
               </Link>
               {isLoggedIn && (
                 <Link href="/account/dashboard" className="nav__mobile-link">

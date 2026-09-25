@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
+  COMMUNITY_SHARED_VISION_TITLE,
   COMMUNITY_AGREEMENTS_CHECKBOX_LABEL,
 } from "@/lib/communityAgreements";
 
@@ -642,7 +643,9 @@ export default function RegistrationForm({
             If you don&rsquo;t already have one, registering will also create your RIM
             member account.
           </p>
-          <p className="pg-form__agreements-text">{COMMUNITY_AGREEMENTS_LEAD_IN}</p>
+          <p className="pg-form__agreements-text">
+            <strong>{COMMUNITY_SHARED_VISION_TITLE}.</strong> {COMMUNITY_AGREEMENTS_LEAD_IN}
+          </p>
           <ol className="pg-form__agreements-list">
             {COMMUNITY_AGREEMENTS.map((a) => (
               <li key={a.title} className="pg-form__agreements-item">

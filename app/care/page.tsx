@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CareCircle from "@/components/CareCircle";
 
 export const metadata = {
   title: "Taking Care — Rooted In Mindfulness",
@@ -27,6 +28,11 @@ export const metadata = {
  *
  * Each pair's heading carries an anchor the home page's cards deep-link to.
  * Copy is provisional until Jesse's read-aloud.
+ *
+ * 2026-09-25: the CARE circle (components/CareCircle.tsx, recreated from the
+ * practice handout's artwork) sits after the opening, with one added line on
+ * simplicity and depth. Source of truth for changed words: the vault's
+ * 04-community-website-copy-2026-09-25.md.
  */
 export default function CarePage() {
   return (
@@ -54,8 +60,17 @@ export default function CarePage() {
               Our practice is taking care: of ourselves, of the people we love, of the world, and of
               this moment. We describe it with eight words, in four pairs. They are not steps, and
               there is no order to learn them in. In any real moment all eight are there, and any
-              one of them is a door into the rest.
+              one of them is a door into the rest. They are simple to begin with, and they deepen
+              for as long as we practice.
             </p>
+
+            <figure className="care-figure">
+              <CareCircle />
+              <figcaption className="care-figure__caption">
+                The circle from our practice handout. Each word can be practiced within ourselves,
+                with others, and within interbeing, the wider web of conditions we are part of.
+              </figcaption>
+            </figure>
 
             <h2 id="calm-and-connect">Calm and Connect</h2>
             <p>
@@ -154,8 +169,11 @@ export default function CarePage() {
           </div>
 
           <div className="pp-actions">
-            <Link href="/your-first-visit" className="pp-btn">
-              Plan your first visit
+            <Link href="/foundations" className="pp-btn">
+              Foundations: where to begin
+            </Link>
+            <Link href="/your-first-visit" className="pp-link">
+              Your first visit <span aria-hidden="true">→</span>
             </Link>
             <Link href="/what-we-practice" className="pp-link">
               A Handful of Leaves <span aria-hidden="true">→</span>
