@@ -28534,6 +28534,12 @@ a.pp-card.tpr-card {
   line-height: var(--lh-body);
 }
 
+/* Home door cards (CARE pairs, the pathway) carry no arrow circle (Jesse,
+   2026-09-25: "a little too busy"). The whole card stays the link; the hover
+   cue is the existing Light Pampas background plus the title turning blue. */
+.pp-doors a.pp-card:hover .pp-card__title,
+.pp-doors a.pp-card:focus-visible .pp-card__title { color: var(--rim-blue); }
+
 /* The CARE circle on /care, recreated from the practice handout. The SVG
    scales with its column; its text sizes are in viewBox units. The #1f1f1f
    ink is fixed to the handout artwork on purpose (the strokes inside the SVG

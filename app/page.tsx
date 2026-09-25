@@ -328,9 +328,6 @@ export default async function HomePage() {
                         </p>
                       ))}
                     </div>
-                    <span className="pp-card__action" aria-hidden="true">
-                      →
-                    </span>
                   </div>
                 </Link>
               ))}
@@ -431,9 +428,6 @@ export default async function HomePage() {
                       <h3 className="pp-card__title">{route.title}</h3>
                       <p className="pp-card__body">{route.body}</p>
                     </div>
-                    <span className="pp-card__action" aria-hidden="true">
-                      →
-                    </span>
                   </div>
                 </Link>
               ))}
