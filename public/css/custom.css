@@ -26637,11 +26637,13 @@ a.pp-card:focus-visible {
 .cc-intro { margin-left: 0; }
 
 .cc-agreements {
-  max-width: 1060px;
+  /* Three agreements under the shared-vision frame (2026-09-25): one column
+     on the reading measure. Two-up orphaned the third card; three-up gave
+     each card ~215px of text, so the long Care for RIM stretched all three
+     to 474px with two of them mostly empty (measured on deploy). */
+  max-width: var(--reading-width);
   display: grid;
-  /* Three agreements under the shared-vision frame (2026-09-25): three
-     across where they fit, one column below 1024 (two-up would orphan one). */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 24px;
   margin: 0;
   padding: 0;
@@ -26689,10 +26691,6 @@ a.pp-card:focus-visible {
   color: var(--rim-text);
   font-size: var(--text-small);
   line-height: 1.65;
-}
-
-@media (max-width: 1024px) {
-  .cc-agreements { grid-template-columns: 1fr; max-width: var(--reading-width); }
 }
 
 @media (max-width: 768px) {
