@@ -183,8 +183,8 @@ export default function WhyWePracticePage() {
             <Link href="/care" className="pp-btn">
               Taking Care: how we practice
             </Link>
-            <Link href="/foundations" className="pp-link">
-              Foundations: where to begin <span aria-hidden="true">→</span>
+            <Link href="/new-to-rim" className="pp-link">
+              New to RIM <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>

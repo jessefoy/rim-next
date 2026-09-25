@@ -127,8 +127,11 @@ export default async function HomePage() {
   const PATHWAY = [
     {
       title: "Foundations",
-      body: "Finding your footing in meditation and mindful living. Where we encourage everyone to begin.",
-      href: "/foundations",
+      // Foundations will be generated from the Program Manager as a program;
+      // until it exists, the door leads to the programs list (Jesse,
+      // 2026-09-25). Point it at /programs/<slug> once the program is built.
+      body: "Finding your footing in meditation and mindful living. Where we encourage everyone to begin, first offered in November.",
+      href: "/community-programs",
     },
     {
       title: "Learning & Practice",
@@ -194,8 +197,8 @@ export default async function HomePage() {
             and protect well-being in ourselves, one another, and our shared world. Come as you are.
           </p>
           <div className="pp-hero__actions">
-            <Link href="/your-first-visit" className="pp-btn pp-btn--onblue">
-              Your first visit
+            <Link href="/new-to-rim" className="pp-btn pp-btn--onblue">
+              New to RIM
             </Link>
             <Link href="/this-week" className="pp-hero__link">
               This week&rsquo;s schedule <span aria-hidden="true">→</span>
@@ -379,10 +382,10 @@ export default async function HomePage() {
 
               <div className="pp-actions">
                 <Link href="/about" className="pp-btn pp-btn--ghost">
-                  Our story
+                  About RIM
                 </Link>
-                <Link href="/what-we-practice" className="pp-link">
-                  A Handful of Leaves <span aria-hidden="true">→</span>
+                <Link href="/our-roots" className="pp-link">
+                  Our roots <span aria-hidden="true">→</span>
                 </Link>
               </div>
             </div>
@@ -405,16 +408,17 @@ export default async function HomePage() {
                   Taking part is simple. We practice at home in whatever way a life allows, and we
                   come together to learn and practice with others. Most people move among four ways
                   of gathering, at their own pace. No experience is needed, and nobody will ask you
-                  to explain yourself.
+                  to explain yourself. Signing up as a member takes a few minutes, and it is
+                  required for our online gatherings.
                 </p>
               </div>
 
               <div className="pp-actions">
                 <Link href="/community-programs" className="pp-btn">
-                  All programs
+                  Programs &amp; events
                 </Link>
-                <Link href="/your-first-visit" className="pp-link">
-                  Your first visit <span aria-hidden="true">→</span>
+                <Link href="/new-to-rim" className="pp-link">
+                  New to RIM <span aria-hidden="true">→</span>
                 </Link>
               </div>
             </div>

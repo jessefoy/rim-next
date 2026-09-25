@@ -40,6 +40,7 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Care agreements:** Our Shared Vision is now the frame, with three agreements beneath it (the fourth became the frame). Same five surfaces (`lib/communityAgreements.ts`).
 - **Nav:** Our Practice gains Why We Practice; Programs follows the pathway and gains Foundations and Outreach; Get Involved gains the agreements.
 - **Copy source of truth is the vault:** `CARE/4 Promotion/04-community-website-copy-2026-09-25.md`. All of it is provisional until Jesse's read-aloud. See `RIM_Public_Pages.md`.
+- **Revision 2 (same evening, from Jesse's first look):** `/new-to-rim` is the newcomer's front door (a flat nav link, first, and the home hero's button), absorbing Your First Visit with Jesse's in-person logistics, the sign-up ask (required online, highly recommended in person), and community said without threat; `/our-roots` replaces A Handful of Leaves, leading with silent illumination; `/about` is mission-first. `/foundations` is gone until Foundations is generated from the Program Manager (Foundations mentions point to the programs list). The Programs menu is two items. Old addresses redirect (`vercel.json`). The nav's hamburger now takes over at 1060px (was 940) to make room for the new link.
 
 ## For depth, see
 

@@ -1,6 +1,21 @@
 {
   "redirects": [
     {
+      "source": "/your-first-visit",
+      "destination": "/new-to-rim",
+      "permanent": true
+    },
+    {
+      "source": "/what-we-practice",
+      "destination": "/our-roots",
+      "permanent": true
+    },
+    {
+      "source": "/foundations",
+      "destination": "/community-programs",
+      "permanent": false
+    },
+    {
       "source": "/account/hub/teacher",
       "destination": "/account/hub/courses",
       "permanent": true

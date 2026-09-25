@@ -6,7 +6,9 @@ Read first when opening RIM. Updated at closing, 2026-09-24. Full history belong
 
 **Shipped** (`8d3a1bf`, `86e277a`, and the agreements-column commit): the public site reorganized around RIM's stated center. Home re-sequenced (hero paragraph rewritten, headline kept); new `/why-we-practice`, `/foundations`, `/outreach`; the CARE circle on `/care`; vision and mission on `/about`; care agreements under an Our Shared Vision frame with three agreements (all five surfaces); lineage corrected sitewide (Chan silent illumination, not insight/vipassana); accurate dana statement; nav follows the pathway. **Copy source of truth is the vault:** `CARE/4 Promotion/04-community-website-copy-2026-09-25.md` (flags first, then pages in visitor order). Verified on deploy: 10 changed pages at 375px with zero overflow and zero sub-24px targets; 1280 spine at 110.
 
-**Waiting on Jesse:** the read-aloud of that document; the eight one-line word descriptions (the eight vault compressions are placeholders); Foundations format and dates (holding text on `/foundations`); whether "RIM's outreach fund" exists yet (Outreach page); the dana ask "give something, in whatever form is possible"; whether the circle belongs anywhere besides `/care`. Site goes live on the real domain **October 5**: the Webflow cutover items below (redirects, forms) are still open.
+**Revision 2, same evening:** `/new-to-rim` (absorbs Your First Visit; flat nav link, first), `/our-roots` (replaces A Handful of Leaves), `/about` mission-first, `/foundations` removed until Foundations is a Program (point the home Foundations door and New to RIM at `/programs/<slug>` once it is built), Programs menu trimmed to two, hamburger at 1060px. Old URLs redirect.
+
+**Waiting on Jesse:** the read-aloud of that document; parking and which door to use (New to RIM leaves them out rather than guessing); the eight one-line word descriptions (the eight vault compressions are placeholders); Foundations format and dates (holding text on `/foundations`); whether "RIM's outreach fund" exists yet (Outreach page); the dana ask "give something, in whatever form is possible"; whether the circle belongs anywhere besides `/care`. Site goes live on the real domain **October 5**: the Webflow cutover items below (redirects, forms) are still open.
 
 ## Active — the September 24 integrity pass (live; a few checks and decisions open)
 
@@ -35,7 +37,7 @@ Read first when opening RIM. Updated at closing, 2026-09-24. Full history belong
 
 ## Standing reminder — public copy still awaits Jesse
 
-Remind Jesse each session until resolved: `/your-first-visit` parking/entrance and practical details remain provisional (`2026-08-10-002`); the s174/s176 public copy requires his explicit read-aloud approval. Shipping is not ratification. Community Care now shares canonical text across **five** surfaces: join, welcome, registration, public agreements and member care. The live `/diversity` image `color-powder-diversity.webp` still lacks recorded provenance.
+Remind Jesse each session until resolved: parking and which entrance to use are still unwritten on `/new-to-rim` (which replaced `/your-first-visit`; Jesse supplied the other practical details 2026-09-25) (`2026-08-10-002`); the s174/s176 public copy requires his explicit read-aloud approval. Shipping is not ratification. Community Care now shares canonical text across **five** surfaces: join, welcome, registration, public agreements and member care. The live `/diversity` image `color-powder-diversity.webp` still lacks recorded provenance.
 
 Other pending decisions: public Test Course/teacher profile data (`2026-09-02-001`); whether to commit the community introduction/Copy and Voice Brief; source cleanup of `NEXTAUTH_URL`, retired service variables/Sanity project and the retired Community Drive (`2026-08-09-001`). `TEAM_EMAIL` was previously unset. These are recorded findings, not rechecked at this closing.
 

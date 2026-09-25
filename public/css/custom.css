@@ -8158,15 +8158,18 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
    on the deployed page in session 177. Below that the bar overflowed the
    viewport and `html { overflow-x: clip }` hid it: on an iPad in portrait
    (768) DONATE sat 100px past the right edge. The hamburger therefore takes
-   over at 940, not 767. Both halves of the switch live in this one pair of
-   queries; keep them together. */
-@media (max-width: 940px) {
+   over at 940, not 767. 2026-09-25: the flat "New to RIM" link (~110px) put
+   the natural width at ~1020 (measured: 56px of slack at 941 before it), so
+   the switch moved to 1060. Both halves of the switch live in this one pair
+   of queries, and the two sizing queries near the end of the file use the
+   same numbers; keep all four together. */
+@media (max-width: 1060px) {
   .nav__desktop { display: none; }
   .nav__donate   { display: none; }
   .nav__hamburger { display: flex; }
   .nav__brand-name { font-size: var(--text-small); }
 }
-@media (min-width: 941px) {
+@media (min-width: 1061px) {
   .nav__mobile { display: none !important; }
 }
 
@@ -28079,10 +28082,10 @@ a.pp-card:hover .pp-card__action {
   display: inline-flex;
   align-items: center;
 }
-/* DONATE is display:none up to 940px (the mobile menu carries its own), so the
+/* DONATE is display:none up to 1060px (the mobile menu carries its own), so the
    display here MUST stay inside the desktop query — setting it unconditionally
    un-hides the button on phones and pushes the hamburger off-screen. */
-@media (min-width: 941px) {
+@media (min-width: 1061px) {
   .nav__donate {
     box-sizing: border-box;
     min-height: 44px;
@@ -28094,10 +28097,10 @@ a.pp-card:hover .pp-card__action {
     font-size: var(--text-xs);
   }
 }
-/* The hamburger only exists up to 940px. Sized in that query for the same
+/* The hamburger only exists up to 1060px. Sized in that query for the same
    reason: an unconditional min-width would widen a button that is display:none
    on desktop, which is harmless but misleading to read. */
-@media (max-width: 940px) {
+@media (max-width: 1060px) {
   .nav__hamburger {
     min-width: 44px;
     min-height: 44px;
@@ -28520,22 +28523,6 @@ a.pp-card.tpr-card {
   font-style: italic;
   line-height: var(--lh-body);
 }
-
-/* /foundations: the "When and where" panel sits between two prose blocks, on
-   the reading measure so it does not run wider than the text around it. */
-.fd-page .pp-panel {
-  max-width: var(--reading-width);
-  margin-top: 36px;
-  margin-bottom: 36px;
-}
-
-/* /about: vision and mission, on the reading measure, set apart below the
-   story. */
-.ab-vision {
-  max-width: var(--reading-width);
-  margin-top: 44px;
-}
-.ab-vision__second { margin-top: 28px; }
 
 /* The CARE circle on /care, recreated from the practice handout. The SVG
    scales with its column; its text sizes are in viewBox units. The #1f1f1f

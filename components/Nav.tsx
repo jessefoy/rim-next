@@ -115,11 +115,14 @@ export default function Nav() {
         {/* Public only: member/admin/tool routes return the member-bar above,
             so this nav never renders there. */}
         <nav className="nav__desktop" aria-label="Main navigation">
-              {/* Our Practice became a door in session 177. 2026-09-25: Why
-                  We Practice (the center, stated) leads, then CARE (how we
-                  practice), the Handful (what we learn), and the story of
-                  where RIM came from. The bar is tight, so the label stays
-                  short, and the door count stays at four plus Donate. */}
+              {/* 2026-09-25 (revision 2): New to RIM is the newcomer's front
+                  door and gets a link of its own, first, the way most practice
+                  centers do it. The dropdowns stay short: Our Practice (why,
+                  how, roots, about), Programs (the schedule and the catalog),
+                  Get Involved (volunteering, groups, outreach). */}
+              <Link href="/new-to-rim" className={`nav__link${isActive("/new-to-rim")}`}>
+                New to RIM
+              </Link>
               <div className="nav__dropdown">
                 <button className="nav__dropdown-toggle">
                   Our Practice
@@ -135,13 +138,13 @@ export default function Nav() {
                       <div className="nav__dropdown-title">Taking Care</div>
                       <div className="nav__dropdown-desc">How we practice, in eight plain words</div>
                     </Link>
-                    <Link href="/what-we-practice" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">A Handful of Leaves</div>
-                      <div className="nav__dropdown-desc">What we learn, and how it is ordered</div>
+                    <Link href="/our-roots" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Our Roots</div>
+                      <div className="nav__dropdown-desc">The tradition we practice in</div>
                     </Link>
                     <Link href="/about" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Our Story</div>
-                      <div className="nav__dropdown-desc">Where RIM came from</div>
+                      <div className="nav__dropdown-title">About RIM</div>
+                      <div className="nav__dropdown-desc">Our mission, and how we began</div>
                     </Link>
                   </div>
                 </div>
@@ -153,25 +156,13 @@ export default function Nav() {
                 </button>
                 <div className="nav__dropdown-panel">
                   <div className="nav__dropdown-panel-inner">
-                    <Link href="/your-first-visit" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Your First Visit</div>
-                      <div className="nav__dropdown-desc">What to expect if you&apos;ve never been</div>
-                    </Link>
-                    <Link href="/foundations" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Foundations</div>
-                      <div className="nav__dropdown-desc">Where we encourage everyone to begin</div>
-                    </Link>
                     <Link href="/this-week" className="nav__dropdown-link">
                       <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
                       <div className="nav__dropdown-desc">What&apos;s happening day by day</div>
                     </Link>
                     <Link href="/community-programs" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">All Programs</div>
-                      <div className="nav__dropdown-desc">Drop-ins, courses, retreats, and groups</div>
-                    </Link>
-                    <Link href="/outreach" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Outreach</div>
-                      <div className="nav__dropdown-desc">For organizations serving people in need</div>
+                      <div className="nav__dropdown-title">Programs &amp; Events</div>
+                      <div className="nav__dropdown-desc">Drop-ins, classes, retreats, and groups</div>
                     </Link>
                   </div>
                 </div>
@@ -198,9 +189,9 @@ export default function Nav() {
                       <div className="nav__dropdown-title">Start a Community Group</div>
                       <div className="nav__dropdown-desc">Create a Community Group or Event</div>
                     </Link>
-                    <Link href="/community-care-agreements" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Community Care Agreements</div>
-                      <div className="nav__dropdown-desc">Our shared vision, and what we ask of members</div>
+                    <Link href="/outreach" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">Outreach</div>
+                      <div className="nav__dropdown-desc">For organizations serving people in need</div>
                     </Link>
                   </div>
                 </div>
@@ -222,6 +213,10 @@ export default function Nav() {
                           <div className="nav__dropdown-title">My Home</div>
                           <div className="nav__dropdown-desc">Today&apos;s Sessions &amp; Resources</div>
                         </Link>
+                        <Link href="/community-care-agreements" className="nav__dropdown-link">
+                          <div className="nav__dropdown-title">Community Care Agreements</div>
+                          <div className="nav__dropdown-desc">Our shared vision, and what we ask of members</div>
+                        </Link>
                         <button
                           onClick={() => signOut({ callbackUrl: "/" })}
                           className="nav__dropdown-link"
@@ -240,6 +235,10 @@ export default function Nav() {
                         <Link href="/login" className="nav__dropdown-link">
                           <div className="nav__dropdown-title">Sign in</div>
                           <div className="nav__dropdown-desc">Already a member? Continue here</div>
+                        </Link>
+                        <Link href="/community-care-agreements" className="nav__dropdown-link">
+                          <div className="nav__dropdown-title">Community Care Agreements</div>
+                          <div className="nav__dropdown-desc">Our shared vision, and what we ask of members</div>
                         </Link>
                       </>
                     )}
@@ -279,6 +278,12 @@ export default function Nav() {
                 </Link>
               )}
               <Link
+                href="/new-to-rim"
+                className={`nav__mobile-link${isActive("/new-to-rim")}`}
+              >
+                New to RIM
+              </Link>
+              <Link
                 href="/why-we-practice"
                 className={`nav__mobile-link${isActive("/why-we-practice")}`}
               >
@@ -291,28 +296,16 @@ export default function Nav() {
                 Taking Care
               </Link>
               <Link
-                href="/what-we-practice"
-                className={`nav__mobile-link${isActive("/what-we-practice")}`}
+                href="/our-roots"
+                className={`nav__mobile-link${isActive("/our-roots")}`}
               >
-                A Handful of Leaves
+                Our Roots
               </Link>
               <Link
                 href="/about"
                 className={`nav__mobile-link${isActive("/about")}`}
               >
-                Our Story
-              </Link>
-              <Link
-                href="/your-first-visit"
-                className={`nav__mobile-link${isActive("/your-first-visit")}`}
-              >
-                Your First Visit
-              </Link>
-              <Link
-                href="/foundations"
-                className={`nav__mobile-link${isActive("/foundations")}`}
-              >
-                Foundations
+                About RIM
               </Link>
               <Link
                 href="/this-week"
@@ -324,13 +317,7 @@ export default function Nav() {
                 href="/community-programs"
                 className={`nav__mobile-link${isActive("/community-programs")}`}
               >
-                All Programs
-              </Link>
-              <Link
-                href="/outreach"
-                className={`nav__mobile-link${isActive("/outreach")}`}
-              >
-                Outreach
+                Programs &amp; Events
               </Link>
               <Link
                 href="/volunteerism/volunteer"
@@ -343,6 +330,12 @@ export default function Nav() {
                 className={`nav__mobile-link${isActive("/kalyana-mitta")}`}
               >
                 Start A Community Group
+              </Link>
+              <Link
+                href="/outreach"
+                className={`nav__mobile-link${isActive("/outreach")}`}
+              >
+                Outreach
               </Link>
               <Link
                 href="/community-care-agreements"

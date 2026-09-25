@@ -159,7 +159,7 @@ export default function CarePage() {
               know any of this to practice; the words above are enough for years. The depth is
               there for anyone who wants it, and everyone who practices with us receives the full
               handout and, in time, the fuller map behind it,{" "}
-              <Link href="/what-we-practice">A Handful of Leaves</Link>.
+              <Link href="/our-roots">A Handful of Leaves</Link>.
             </p>
             <p>
               Practice begins in care, and it opens into care. CARE is the language we share for
@@ -169,14 +169,11 @@ export default function CarePage() {
           </div>
 
           <div className="pp-actions">
-            <Link href="/foundations" className="pp-btn">
-              Foundations: where to begin
+            <Link href="/new-to-rim" className="pp-btn">
+              New to RIM
             </Link>
-            <Link href="/your-first-visit" className="pp-link">
-              Your first visit <span aria-hidden="true">→</span>
-            </Link>
-            <Link href="/what-we-practice" className="pp-link">
-              A Handful of Leaves <span aria-hidden="true">→</span>
+            <Link href="/our-roots" className="pp-link">
+              Our roots <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>
