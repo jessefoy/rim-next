@@ -2,6 +2,12 @@
 
 Read first when opening RIM. Updated at closing, 2026-09-24. Full history belongs in `session-log.md`.
 
+## Active — the center, stated (2026-09-25, live; awaiting Jesse's read-aloud)
+
+**Shipped** (`8d3a1bf`, `86e277a`, and the agreements-column commit): the public site reorganized around RIM's stated center. Home re-sequenced (hero paragraph rewritten, headline kept); new `/why-we-practice`, `/foundations`, `/outreach`; the CARE circle on `/care`; vision and mission on `/about`; care agreements under an Our Shared Vision frame with three agreements (all five surfaces); lineage corrected sitewide (Chan silent illumination, not insight/vipassana); accurate dana statement; nav follows the pathway. **Copy source of truth is the vault:** `CARE/4 Promotion/04-community-website-copy-2026-09-25.md` (flags first, then pages in visitor order). Verified on deploy: 10 changed pages at 375px with zero overflow and zero sub-24px targets; 1280 spine at 110.
+
+**Waiting on Jesse:** the read-aloud of that document; the eight one-line word descriptions (the eight vault compressions are placeholders); Foundations format and dates (holding text on `/foundations`); whether "RIM's outreach fund" exists yet (Outreach page); the dana ask "give something, in whatever form is possible"; whether the circle belongs anywhere besides `/care`. Site goes live on the real domain **October 5**: the Webflow cutover items below (redirects, forms) are still open.
+
 ## Active — the September 24 integrity pass (live; a few checks and decisions open)
 
 **Shipped and live** (`4187997`…`311d6c0`): Visibility-tab readout (Programs & Events, This Week, Member home); Dummy Test Program no longer excluded by slug; "Sign me in from this device" button in both code emails; code-verify rate limit now actually runs (GET); server-decided Stripe charges, split Registration/Dana lines, safe expiry/retry, lost-hold restore; new **dana receipt** email (legal name + EIN); **thank-you page** `/programs/[slug]/thank-you`; Zoom seat pick buffer-aware + lock-serialized, plain pages at every `/enter` stop, registration gate (no waitlist), true-peak overlap warning on first save, Record reaches existing meetings. References: `RIM_Registration.md`, `RIM_Auth.md`, `RIM_Zoom.md`, `RIM_ProgramEditor.md`.
