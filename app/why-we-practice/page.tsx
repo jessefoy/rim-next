@@ -54,6 +54,12 @@ export default function WhyWePracticePage() {
               thoughts and moods, and our practice is learning to live from it more often. That
               takes patience and effort, and every day offers new chances to begin again.
             </p>
+            <p>
+              The same is true of our goodness. We trust in the goodness and potential we share as
+              human beings. It is part of who we are, and it is easy to lose touch with, for one
+              person and for a whole society. Long stretches of stress, loss, or hurry can cover it
+              until it seems gone. It is not gone. Practice is how we come back to it.
+            </p>
 
             <h2>Goodness and difficulty</h2>
             <p>
@@ -66,6 +72,12 @@ export default function WhyWePracticePage() {
               because they love someone and want to be there for them better. Some want a practice
               that finally lasts, and some have glimpsed a way of living that is freer and kinder
               than the one they know. Many come for more than one of these at once.
+            </p>
+            <p>
+              If this is a dark time, this practice has room for it, and so do we. Many people have
+              arrived here in the hardest season they had known. Nobody needs to feel better before
+              they come. And for anyone who wants to deepen the light already in their life, there
+              is always further to go.
             </p>
 
             <h2>What gets in the way</h2>
@@ -160,6 +172,13 @@ export default function WhyWePracticePage() {
               changed mind. Needing support is part of the path, and so is offering it. We are
               beginning to bring this practice to{" "}
               <Link href="/outreach">organizations that serve people in need</Link>.
+            </p>
+            <p>
+              Families, communities, and whole societies can lose track of their goodness and their
+              health. They can also remember it together. When one person comes back to clarity and
+              care, the people around them feel it: a calmer voice at the dinner table, a kinder
+              word at work. Showing up for ourselves, for the people we care about, and for the
+              world makes a difference. Health here promotes health there: as within, so without.
             </p>
             <p>
               All of this matters. The time we have is finite, and at heart most of us know when we
