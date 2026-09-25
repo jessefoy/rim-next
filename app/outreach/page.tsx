@@ -87,8 +87,8 @@ export default function OutreachPage() {
             <a href="mailto:support@rootedinmindfulness.org?subject=Outreach" className="pp-btn">
               Outreach inquiries
             </a>
-            <Link href="/why-we-practice" className="pp-link">
-              Why we practice <span aria-hidden="true">→</span>
+            <Link href="/why-we-practice" className="pp-btn pp-btn--ghost">
+              Why we practice
             </Link>
           </div>
         </div>

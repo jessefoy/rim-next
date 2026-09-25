@@ -87,11 +87,11 @@ export default function AboutPage() {
             <Link href="/why-we-practice" className="pp-btn">
               Why we practice
             </Link>
-            <Link href="/new-to-rim" className="pp-link">
-              New to RIM <span aria-hidden="true">→</span>
+            <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
+              New to RIM
             </Link>
-            <Link href="/community-care-agreements" className="pp-link">
-              Our Community Care Agreements <span aria-hidden="true">→</span>
+            <Link href="/community-care-agreements" className="pp-btn pp-btn--ghost">
+              Our Community Care Agreements
             </Link>
           </div>
         </div>

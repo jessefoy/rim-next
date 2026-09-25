@@ -172,8 +172,8 @@ export default function CarePage() {
             <Link href="/new-to-rim" className="pp-btn">
               New to RIM
             </Link>
-            <Link href="/our-roots" className="pp-link">
-              Our roots <span aria-hidden="true">→</span>
+            <Link href="/our-roots" className="pp-btn pp-btn--ghost">
+              Our roots
             </Link>
           </div>
         </div>

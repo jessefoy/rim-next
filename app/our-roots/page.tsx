@@ -108,8 +108,8 @@ export default function OurRootsPage() {
             <Link href="/care" className="pp-btn">
               Taking Care: how we practice
             </Link>
-            <Link href="/new-to-rim" className="pp-link">
-              New to RIM <span aria-hidden="true">→</span>
+            <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
+              New to RIM
             </Link>
           </div>
         </div>

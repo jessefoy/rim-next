@@ -200,8 +200,8 @@ export default async function HomePage() {
             <Link href="/new-to-rim" className="pp-btn pp-btn--onblue">
               New to RIM
             </Link>
-            <Link href="/this-week" className="pp-hero__link">
-              This week&rsquo;s schedule <span aria-hidden="true">→</span>
+            <Link href="/this-week" className="pp-btn pp-btn--onblue-ghost">
+              This week&rsquo;s schedule
             </Link>
           </div>
         </div>
@@ -237,8 +237,8 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="pp-actions">
-            <Link href="/why-we-practice" className="pp-link">
-              Why we practice <span aria-hidden="true">→</span>
+            <Link href="/why-we-practice" className="pp-btn">
+              Why we practice
             </Link>
           </div>
         </div>
@@ -378,11 +378,11 @@ export default async function HomePage() {
               </div>
 
               <div className="pp-actions">
+                <Link href="/our-roots" className="pp-btn">
+                  Our roots
+                </Link>
                 <Link href="/about" className="pp-btn pp-btn--ghost">
                   About RIM
-                </Link>
-                <Link href="/our-roots" className="pp-link">
-                  Our roots <span aria-hidden="true">→</span>
                 </Link>
               </div>
             </div>
@@ -414,8 +414,8 @@ export default async function HomePage() {
                 <Link href="/community-programs" className="pp-btn">
                   Programs &amp; events
                 </Link>
-                <Link href="/new-to-rim" className="pp-link">
-                  New to RIM <span aria-hidden="true">→</span>
+                <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
+                  New to RIM
                 </Link>
               </div>
             </div>
@@ -480,8 +480,8 @@ export default async function HomePage() {
                 <Link href="/donate" className="pp-btn">
                   Ways to give
                 </Link>
-                <Link href="/volunteerism/volunteer" className="pp-link">
-                  Volunteering <span aria-hidden="true">→</span>
+                <Link href="/volunteerism/volunteer" className="pp-btn pp-btn--ghost">
+                  Volunteering
                 </Link>
               </div>
             </div>
