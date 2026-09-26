@@ -6207,13 +6207,15 @@ Rooted In Mindfulness · Brookfield, WI`,
   // amended. A narrow category correction below restores the published study
   // group's one-time registration policy; financial and schedule settings stay intact.
   {
-    const flag = "newcomer_integration_2026_09_26_v1";
+    // v2 repairs a formatted nature-group paragraph skipped by v1.
+    // Already-applied text is left alone, including replacements containing their source.
+    const flag = "newcomer_integration_2026_09_26_v2";
     const applied = await db.$queryRawUnsafe('SELECT name FROM "_migration_flags" WHERE name = $1', flag);
     if (!applied.length) {
       const { readFile } = await import("node:fs/promises");
       const fixes = JSON.parse(await readFile(new URL("./newcomer-copy-integration-2026-09-26.json", import.meta.url), "utf8"));
       const replaceText = (value, from, to) => {
-        if (typeof value === "string") return value.replaceAll(from, to);
+        if (typeof value === "string") return value.includes(to) ? value : value.replaceAll(from, to);
         if (Array.isArray(value)) return value.map(v => replaceText(v, from, to));
         if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, replaceText(v, from, to)]));
         return value;

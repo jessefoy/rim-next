@@ -125,6 +125,13 @@ async function main() {
       for (const field of fix.fields) record[field] = [...(record[field] || []), { text: fix.from }];
       records.set(fix.slug, record);
     }
+    // Live nature copy separates the bold label from the sentence. Match the sentence,
+    // preserving formatting, and leave an already-published replacement untouched.
+    const nature = records.get('nature-meditation-km-group');
+    nature.description[nature.description.length - 1] = `<p><strong>Who it’s for:</strong> ${fixes.at(-1).from}</p>`;
+    const alreadyApplied = fixes.find(f => f.slug === 'good-evening-silent-meditation');
+    const evening = records.get(alreadyApplied.slug);
+    evening.description[0] = { text: alreadyApplied.to };
     // An editor has already replaced this description; it must survive.
     records.get('awakening-to-the-beauty-of-this-moment').description.push({ text: 'Lovingly offered by Pam Miller and Amy Gardner' });
     const edited = records.get('the-art-of-meditation'); edited.description = '<p>Editor revision</p>';
