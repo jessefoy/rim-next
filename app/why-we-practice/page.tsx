@@ -116,7 +116,7 @@ export default function WhyWePracticePage() {
               Our practice has a direction: to be more awake and present in our lives, and freer of
               what binds us, so that we understand with greater wisdom, care with kindness and
               compassion, and act from both. Along the way we heal, promote, and protect
-              well-being, in ourselves, in one another, and in our shared world, and we reduce
+              well-being, in ourselves, in those we care about, and in our shared world, and we reduce
               harm.
             </p>
             <p>
@@ -201,7 +201,7 @@ export default function WhyWePracticePage() {
               <br />
               and to heal, promote, and protect well-being
               <br />
-              in ourselves, one another, and our shared world.
+              for ourselves, those we care about, and our shared world.
             </p>
           </div>
 

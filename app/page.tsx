@@ -298,7 +298,7 @@ export default async function HomePage() {
                 </p>
                 <p className="pp-intro__body">
                   They are simple enough to begin with today, and there is enough in them for a
-                  lifetime of practice. Each can be practiced within ourselves, with one another,
+                  lifetime of practice. Each can be practiced within ourselves, in relation to others,
                   and in the wider world we are part of. The first letters spell the word. We call
                   it CARE.
                 </p>
