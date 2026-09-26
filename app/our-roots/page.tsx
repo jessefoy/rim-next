@@ -1,28 +1,22 @@
 import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 
-export const metadata = publicPageMetadata("Our Roots \u2014 Rooted In Mindfulness", "The tradition Rooted in Mindfulness practices in: silent illumination, from Chan Buddhism, and A Handful of Leaves, the body of Buddhist teaching we draw on, informed by mindfulness-based programs and modern science. Open to anyone.", "/our-roots");
+export const metadata = publicPageMetadata(
+  "Our Roots — Rooted In Mindfulness",
+  "How CARE, our shared practice at Rooted in Mindfulness, is nourished by silent illumination, Buddhist teachings, and modern mindfulness. Explore the roots of a lifelong practice.",
+  "/our-roots",
+);
 
 /**
- * /our-roots — where the practice comes from (2026-09-25, revision 2). It
- * replaces /what-we-practice (A Handful of Leaves), which redirects here.
+ * CARE is the shared practice that deepens; the Buddhist roots nourish it.
+ * A Handful of Leaves names the ordered body of teachings that informs CARE.
+ * This editorial order follows Jesse's approved newcomer review and his
+ * correction of the first implementation (2026-09-26).
  *
  * COPY SOURCE OF TRUTH: the Obsidian vault,
  *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md
- * Provisional until Jesse's read-aloud.
- *
- * Why the change (Jesse, 2026-09-25): the old page led with a name the
- * average reader could not place. A Handful of Leaves is the container, the
- * body of teaching RIM draws on, and it sits inside a tradition. So this page
- * leads with the tradition (silent illumination, through Chan), then tells the
- * story of the name and says plainly what the handful is. The "ordered
- * structure" point that the session-174 page protected survives in one
- * sentence: the handful is ordered by what each teaching is for, so it can be
- * walked, not a collection. The seven-gathering count and the practice-shape
- * paragraph are left to the introduction itself.
- *
- * Image discipline: one image, the hall and the orchestra (it carries the
- * anti-eclecticism point). The leaves are the story of the name.
+ * Revision 10. Provisional until Jesse's read-aloud.
+ * The CARE handout and diagram are unchanged.
  */
 export default function OurRootsPage() {
   return (
@@ -32,7 +26,7 @@ export default function OurRootsPage() {
           <p className="pp-hero__eyebrow">Where this comes from</p>
           <h1 className="pp-hero__title">Our Roots</h1>
           <p className="pp-hero__body">
-            The tradition we practice in, and the handful of teachings we draw on.
+            The Buddhist roots and teachings that nourish our practice of CARE.
           </p>
         </div>
       </section>
@@ -41,82 +35,53 @@ export default function OurRootsPage() {
         <div className="rim-container">
           <div className="pp-prose">
             <p>
-              <Link href="/care">CARE</Link> is the shared foundation of practice at RIM. The
-              Buddhist teachings described here inform it. A Handful of Leaves is our name for
-              that body of teaching, which we explore through meditation, study, and daily life.
+              <Link href="/care">CARE</Link> is the way we learn and practice together at RIM. Its eight words describe aspects of one practice: taking care of ourselves, those we care about, and our shared world. We explore their meaning through meditation and in how we live. That exploration can deepen throughout a lifetime.
+            </p>
+            <p>
+              Our practice is rooted in Buddhism. A Handful of Leaves is our name for the body of traditional teachings that informs CARE. These teachings help us understand what we encounter in practice and how to respond with wisdom and compassion.
             </p>
             <h2>Silent illumination</h2>
             <p>
-              At the heart of our practice is an old way of meditation called silent illumination:
-              an open, settled awareness that meets whatever arrives with warmth. It comes to us
-              through Chan, the Chinese meditation school also known as Zen, where a teacher
-              named Hongzhi gave it its name some nine centuries ago.
+              At the heart of our practice is silent illumination, an open, settled awareness that meets whatever arrives with warmth. It comes to us through Chan, the Chinese Buddhist meditation tradition also known as Zen.
             </p>
             <p>
-              It is less one technique than the ground under all of them. Loving-kindness, awareness
-              of breathing, and the contemplation of change are each a practice with a long history
-              of its own. They do not compete. This open awareness is not an instrument in the orchestra. It is the
-              hall the music is played in. During meditation, this means noticing sensations,
-              thoughts, and feelings without needing to follow or push away each one.
-            </p>
-
-            <h2>A handful of leaves</h2>
-            <p>
-              One afternoon, some twenty-five centuries ago, the Buddha was walking with his
-              students through a grove of trees. He gathered a few fallen leaves into his hand and
-              asked them which were more numerous, the leaves in his hand or the leaves in the
-              forest above them. The answer was obvious, and so was the point. What he had come to
-              understand was vast, like the forest. What he taught was like this handful: only what
-              helps, only what leads to peace, to clear seeing, and to lives of wisdom and
-              compassion.
+              In CARE, <Link href="/care#aware">Aware</Link> names the clarity that allows us to know our experience. <Link href="/care#attitude">Attitude</Link> names the presence with which we meet it: kindly, with curiosity, without clinging to what we like or pushing away what we find difficult. Together, clarity and presence are the heart of silent illumination.
             </p>
             <p>
-              We took the name of the teaching we draw on from that afternoon. A Handful of Leaves
-              gathers what helps from across the Buddhist traditions and orders it by what each
-              teaching is for in a life of practice: why we begin, what holds us, what we meet in
-              the mind, and what is finally seen. It replaces nothing and ranks nothing. It is
-              ordered so that a person can walk it.
+              During meditation, this means knowing sensations, thoughts, and feelings as they arise, allowing them to be present without having to follow each one. Practices such as awareness of breathing and loving-kindness support this way of being with our experience. In daily life, the same clarity and presence help us recognize a reaction and give care to how we respond.
             </p>
-
+            <h2>A Handful of Leaves</h2>
             <p>
-              There is also a written community introduction to A Handful of Leaves. It describes
-              how this body of teaching is organized. To ask about the introduction and current
-              opportunities to study, contact <a href="mailto:support@rootedinmindfulness.org?subject=A%20Handful%20of%20Leaves">support@rootedinmindfulness.org</a>.
+              The name comes from a story about the Buddha. Holding a few leaves, he compared them with the leaves in the forest: what he understood was vast, but what he taught was what helped people find peace and live with wisdom and compassion.
             </p>
-
-            <h2>Why a handful</h2>
             <p>
-              Books, retreats, and teachers offer many ways to learn. A Handful of Leaves gives
-              our community a shared orientation: what each teaching helps us understand and how
-              we practice it. People bring different histories of practice to that inquiry.
+              A Handful of Leaves brings together teachings from across Buddhist traditions, organized by what each helps us understand and practice. It gives our community a shared way to explore those teachings and their relationship to CARE.
             </p>
-
+            <p>
+              For example, teachings about change help us explore <Link href="/care#recognize">Recognize</Link>: seeing a feeling honestly and understanding that it arises through conditions and can change. Teachings on compassion inform how we <Link href="/care#engage">Engage</Link>: caring for ourselves and others through our choices and actions. Study returns us to the experience these ordinary words invite us to know.
+            </p>
+            <p>
+              There is a written community introduction that describes how A Handful of Leaves is organized. To ask for it or learn about current opportunities to study, contact <a href="mailto:support@rootedinmindfulness.org?subject=A%20Handful%20of%20Leaves">support@rootedinmindfulness.org</a>. You can practice CARE deeply without adopting a Buddhist identity or mastering traditional vocabulary; studying these roots offers further ways to explore that same practice.
+            </p>
             <h2>Informed by modern understanding</h2>
             <p>
-              Our teaching is also informed by mindfulness-based programs, psychology, and modern
-              science. Much of how we teach grew from years of teaching Mindfulness-Based Stress
-              Reduction, and it will feel familiar if you came to meditation through a course, a
-              class at work, or an app. Those doors are real doors; they led you here.
+              Our teaching is also informed by mindfulness-based programs, psychology, and modern science. Years of teaching Mindfulness-Based Stress Reduction have helped shape how we introduce meditation and connect it with everyday life. CARE brings this experience of teaching into conversation with the Buddhist roots described here.
             </p>
-
-            <h2>For anyone</h2>
+            <h2>Practicing together, living with care</h2>
             <p>
-              Buddhist, secular, spiritual, or undecided: the door is the same, and so is the depth.
-              Nothing here will ask you to believe anything. It will ask you to look.
+              People come with different interests and histories of practice. Guided meditation, teaching, reflection, and conversation help us explore CARE together. Foundations of Mindful Living is a planned introduction to this shared approach. Our ongoing gatherings offer ways to practice now and continue learning over time.
             </p>
             <p>
-              You can begin with CARE and explore these teachings through our gatherings. No
-              Buddhist vocabulary is needed before you come. Ask a teacher about further reading
-              and study as your questions develop.
+              We bring the difficulties and discoveries of daily life into our learning together, then carry what we learn back into our relationships and responsibilities. The practice continues in how we listen, the decisions we make, and the care we give to the world around us.
             </p>
           </div>
 
           <div className="pp-actions">
             <Link href="/care" className="pp-btn">
-              Taking Care: how we practice
+              Taking Care: our shared practice
             </Link>
-            <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
-              New to RIM
+            <Link href="/programs/meditation-and-dharma-talk" className="pp-btn pp-btn--ghost">
+              Come to Meditation and Dharma Talk
             </Link>
           </div>
         </div>

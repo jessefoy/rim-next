@@ -1,6 +1,6 @@
 # Newcomer review implementation — September 26, 2026
 
-Jesse requested completing everything possible and an honest accounting afterward. This is the complete disposition of the attached review, including the first pass (`369b931`, `9591026`) and this follow-through. **The review is not wholly closed:** remaining operational facts and human/end-to-end checks are listed explicitly. Copy remains provisional for Jesse's read-aloud. Exact copy changes were saved first in canonical vault revisions 8 and 9.
+Jesse requested completing everything possible and an honest accounting afterward. This is the complete disposition of the attached review, including the first pass (`369b931`, `9591026`) and this follow-through. **The review is not wholly closed:** remaining operational facts and human/end-to-end checks are listed explicitly. Copy remains provisional for Jesse's read-aloud. Exact copy changes were saved first in canonical vault revisions 8–10. Revision 10 corrects the initially superficial integration of CARE on Our Roots, which Jesse identified after the first completion report.
 
 ## Confirmed direction
 
@@ -29,10 +29,10 @@ Jesse requested completing everything possible and an honest accounting afterwar
 | 2.6 Program-dependent promises | Done | Beginner, support, and late-arrival claims scoped to known offerings. |
 | 2.7 Care guidance | Done | Concrete contact and ability to pause; no promise every peer host is a teacher or clinician. |
 | 3.1–3.6 CARE rewrite, circle, doctrine, ending | Superseded | Short everyday introduction added. All original handout teaching and diagram remain byte-identical; no new examples inserted into the handout. |
-| 4.1 CARE and tradition | Done | Relationship stated first; literal meditation explanation beside the metaphor. |
-| 4.2 A Handful of Leaves | Partial | Distinguishes teaching body from written community introduction; contact for access/study. No unverified automatic delivery or course-enrollment promise. |
+| 4.1 CARE and tradition | Done | Revised after Jesse’s correction: CARE now organizes the whole page, including the hero and metadata. Silent illumination connects explicitly with Aware and Attitude; literal meditation and daily-life explanations replace the orchestra metaphor. |
+| 4.2 A Handful of Leaves | Partial | Defines the ordered teaching body and written community introduction, with a contact for access/study. Examples connect change to Recognize and compassion to Engage. No unverified automatic delivery or course-enrollment promise. |
 | 4.3 Other paths | Done | Removed dismissive generalization. |
-| 4.4 Equal depth | Done within scope | Inclusive roots/home framing; CARE handout retained as directed. |
+| 4.4 Equal depth | Done within scope | Our Roots explicitly presents lifelong depth in the same CARE practice, regardless of Buddhist identity or vocabulary, with Foundations planned and ongoing gatherings available now. CARE handout retained as directed. |
 | 5.1 Participation labels | Done | Derived from existing program-kind/registration rules; recommended first visit marked. |
 | 5.2 Actual place | Done | Center/offsite/Zoom labels distinguished. |
 | 5.3 Next gathering | Done | Next start in selected week, excluding already-started sessions; Central Time/DST checks. |
