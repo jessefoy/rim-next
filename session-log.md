@@ -5152,3 +5152,5 @@ Revision 11 verification: `3be05e9` deployed; live checks caught one formatted n
 ## 2026-09-26 — Restore Jesse’s preferred program detail design
 
 Jesse said the newcomer review was not intended to authorize a program detail redesign, naming the quote’s original position and details at the bottom as a favorite design. Clarified scope: “Restore the original design; keep wording improvements.” Restored original template composition and CSS overlap, preserving copy and functional improvements. Updated durable guidance to prevent the broad newcomer review from overriding this specific design preference. TypeScript, focused ESLint, diff checks and newcomer regression suite pass; new render assertion checks the original content order. No database or transaction changes.
+
+Live verification: `7c80bd0` is deployed. Art of Meditation at 1280px shows the quote overlapping the hero by the original 92px, with description before details. The retreat at 360px shows the original 58px overlap and quote → description → notes → details → facilitators order. Both have zero horizontal overflow. Screenshots reviewed; browser viewport restored.

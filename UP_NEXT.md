@@ -4,7 +4,7 @@ Read first when opening RIM. Updated at closing, 2026-09-26. Full history belong
 
 ## Program layout correction — explicit direction (2026-09-26)
 
-Jesse clarified: **“Restore the original design; keep wording improvements.”** Program details restore the pre-review composition: hero-overlapping quote, description, notes, then gathering details/action and facilitators. Original responsive spacing restored. Copy improvements, program data and other public pages remain. This overrides the newcomer review’s facts-first layout recommendation. Do not redesign this favorite page composition without Jesse’s specific direction.
+Jesse clarified: **“Restore the original design; keep wording improvements.”** Program details restore the pre-review composition: hero-overlapping quote, description, notes, then gathering details/action and facilitators. Original responsive spacing restored and live in `7c80bd0`; desktop 1280px and mobile 360px verified with no overflow. Copy improvements, program data and other public pages remain. This overrides the newcomer review’s facts-first layout recommendation. Do not redesign this favorite page composition without Jesse’s specific direction.
 
 ## Newcomer review — whole-document implementation (2026-09-26)
 
