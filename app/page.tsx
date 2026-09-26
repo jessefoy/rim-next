@@ -2,7 +2,6 @@ import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { hasConcludedOneTime } from "@/lib/programUtils";
-import { categoryDisplayName } from "@/lib/programUtils";
 
 // Lineage terms live here for search, stated as RIM states them (Jesse,
 // 2026-09-25): a dharma community rooted in Chan silent illumination, not an
@@ -32,6 +31,43 @@ export const dynamic = "force-dynamic";
  * the ground; "Practice for real life" sits on white with its six items in
  * borderless Pampas insets (particulars, not destinations, so no shadow).
  */
+
+// The eight lines are the program-description draft's compressions of the
+// handout, provisional until Jesse writes his own (his critical path).
+const CARE_CARDS = [
+  {
+    slug: "calm",
+    title: "Calm and Connect",
+    lines: [
+      "Calm is an invitation to ease in body, heart, and mind.",
+      "Connect is showing up to this moment as it is, through the senses.",
+    ],
+  },
+  {
+    slug: "aware",
+    title: "Aware and Attitude",
+    lines: [
+      "Aware is the clear knowing that is always available.",
+      "Attitude is meeting experience with warmth and curiosity.",
+    ],
+  },
+  {
+    slug: "recognize",
+    title: "Recognize and Remember",
+    lines: [
+      "Recognize is knowing what is here and seeing it honestly.",
+      "Remember is reconnecting with our greater nature and what matters most.",
+    ],
+  },
+  {
+    slug: "embody",
+    title: "Embody and Engage",
+    lines: [
+      "Embody is making the practice part of who we are.",
+      "Engage is caring for ourselves, those we care about, and our shared world, and acting from that place.",
+    ],
+  },
+] as const;
 
 // What the practice helps us meet, told as particulars (Jesse, 2026-09-25:
 // "as a friend, as a truth, as a matter of fact", without dwelling).
@@ -63,16 +99,56 @@ const USES = [
 ] as const;
 
 export default async function HomePage() {
-  const categories = await db.programCategory.findMany({
-    where: { hideFromProgramsPage: false },
+  // Immersion's door leads to the catalog chapter holding retreats or events,
+  // found from the live taxonomy by kind rather than a hardcoded slug (the
+  // s170 rule: doors come from data). The catalog only renders a chapter that
+  // still has a listed program after concluded one-time programs drop out
+  // (hideWhenPast), so the same rule picks the chapter here; otherwise the
+  // anchor would point at a section that is not on the page. Falls back to the
+  // whole catalog.
+  const immersionCategories = await db.programCategory.findMany({
+    where: { kind: { in: ["RETREAT", "EVENT"] }, hideFromProgramsPage: false },
     orderBy: { sortOrder: "asc" },
-    select: { name: true, slug: true, programs: {
-      where: { archivedAt: null, hideFromProgramPageList: false },
-      select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, hideWhenPast: true },
-    } },
+    select: {
+      slug: true,
+      programs: {
+        where: { archivedAt: null, hideFromProgramPageList: false },
+        select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, hideWhenPast: true },
+      },
+    },
   });
-  const PATHWAY = categories.filter((c) => c.programs.some((p) => !(p.hideWhenPast && hasConcludedOneTime(p))))
-    .map((c) => ({ title: categoryDisplayName(c.name), href: `/community-programs#${c.slug}` }));
+  const immersion = immersionCategories.find((c) =>
+    c.programs.some((p) => !(p.hideWhenPast && hasConcludedOneTime(p)))
+  );
+  const immersionHref = immersion
+    ? `/community-programs#${immersion.slug}`
+    : "/community-programs";
+
+  const PATHWAY = [
+    {
+      title: "Foundations",
+      // Foundations will be generated from the Program Manager as a program;
+      // until it exists, the door leads to the programs list (Jesse,
+      // 2026-09-25). Point it at /programs/<slug> once the program is built.
+      body: "An introduction to CARE through meditation and mindful living. In preparation; dates will appear when scheduled.",
+      href: "/community-programs",
+    },
+    {
+      title: "Ongoing Learning and Practice",
+      body: "Drop-in gatherings and series through the week, in person and online.",
+      href: "/this-week",
+    },
+    {
+      title: "Immersion",
+      body: "Workshops, practice days, and retreats, with time to settle into the whole of practice.",
+      href: immersionHref,
+    },
+    {
+      title: "Outreach",
+      body: "Helping organizations bring mindfulness to the people they care for, and to the caregivers themselves.",
+      href: "/outreach",
+    },
+  ];
 
   return (
     <div className="pp-page pp-page--spine">
@@ -192,31 +268,61 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CARE is the shared practice; the handout carries the fuller teaching. */}
+      {/* Original CARE split restored at Jesse's direction: introduction and
+          everyday example beside the four linked cards. */}
       <section className="pp-section">
         <div className="rim-container">
-          <div className="pp-prose">
-            <h2>Our practice is taking care.</h2>
-            <p>
-              CARE gives us a shared way to explore meditation and mindful living. Its eight words
-              describe aspects of one practice: Calm, Connect, Aware, Attitude, Recognize, Remember,
-              Embody, and Engage. We learn their meaning through experience, and return to them as
-              our understanding grows.
-            </p>
-            <p>
-              In a difficult conversation, that might mean feeling our feet on the floor, recognizing
-              the urge to defend ourselves, and remembering that we want to understand the other
-              person. We can listen, ask a question, or set a boundary with care. When we lose touch
-              with the practice, recognizing that and returning is part of learning.
-            </p>
-            <p>
-              Guided meditation gives us time to explore this with support. Daily life gives us
-              opportunities to live it, for ourselves, those we care about, and our shared world.
-              The same practice can deepen throughout a lifetime.
-            </p>
-          </div>
-          <div className="pp-actions">
-            <Link href="/care" className="pp-btn">Explore CARE and its eight words</Link>
+          <div className="pp-split pp-split--doors pp-split--doors-left">
+            <div className="pp-split__body">
+              <div className="pp-intro">
+                <p className="pp-intro__eyebrow">Our practice</p>
+                <h2 className="pp-intro__title">Our practice is taking care.</h2>
+                <p className="pp-intro__body">
+                  CARE gives us a shared way to explore meditation and mindful living. Its eight words
+                  describe aspects of one practice: Calm, Connect, Aware, Attitude, Recognize, Remember,
+                  Embody, and Engage. We learn their meaning through experience, and return to them as
+                  our understanding grows.
+                </p>
+                <p className="pp-intro__body">
+                  In a difficult conversation, that might mean feeling our feet on the floor, recognizing
+                  the urge to defend ourselves, and remembering that we want to understand the other
+                  person. We can listen, ask a question, or set a boundary with care. When we lose touch
+                  with the practice, recognizing that and returning is part of learning.
+                </p>
+                <p className="pp-intro__body">
+                  Guided meditation gives us time to explore this with support. Daily life gives us
+                  opportunities to live it, for ourselves, those we care about, and our shared world.
+                  The same practice can deepen throughout a lifetime.
+                </p>
+              </div>
+
+              <div className="pp-actions">
+                <Link href="/care" className="pp-btn">
+                  Explore CARE and its eight words
+                </Link>
+              </div>
+            </div>
+
+            <div className="pp-doors">
+              {CARE_CARDS.map((card) => (
+                <Link
+                  key={card.slug}
+                  href={`/care#${card.slug}`}
+                  className="pp-card pp-card--row"
+                >
+                  <div className="pp-card__row">
+                    <div className="pp-card__main">
+                      <h3 className="pp-card__title">{card.title}</h3>
+                      {card.lines.map((line) => (
+                        <p key={line} className="pp-card__body">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -277,11 +383,9 @@ export default async function HomePage() {
                 <p className="pp-intro__eyebrow">Taking part</p>
                 <h2 className="pp-intro__title">Ways to practice together</h2>
                 <p className="pp-intro__body">
-                  Explore the current offerings in our program directory. Weekly gatherings support
-                  regular practice; longer offerings allow more time for study and meditation.
-                  Each program explains how to take part. Foundations of Mindful Living is a planned
-                  introduction to CARE; while it is being prepared, our weekly gatherings offer a
-                  place to begin and continue learning.
+                  We practice at home and come together to learn with others. These four ways of
+                  taking part support CARE in our lives and in the world. Foundations of Mindful
+                  Living is being prepared; our ongoing gatherings offer a place to begin now.
                 </p>
               </div>
 
@@ -301,7 +405,7 @@ export default async function HomePage() {
                   <div className="pp-card__row">
                     <div className="pp-card__main">
                       <h3 className="pp-card__title">{route.title}</h3>
-
+                      <p className="pp-card__body">{route.body}</p>
                     </div>
                   </div>
                 </Link>

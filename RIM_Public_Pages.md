@@ -418,3 +418,8 @@ Jesse did not intend the newcomer review to authorize redesigning program detail
 ### Homepage first-visit duplication removed — September 26, 2026
 
 Jesse explicitly removed the home “Your first gathering” section: it duplicates New to RIM. Keep the homepage hero’s New to RIM link and retain the full first-visit guidance on that page. Do not reinsert a home gathering-facts block based on the newcomer review. He also dislikes the revised homepage layout; the comparison identifies the CARE split/cards replaced by prose and the four descriptive pathways replaced by category-only links. Those other sections await his direction; this request removes only the duplicated section.
+
+
+### Homepage composition restored — Jesse’s direction, September 26, 2026
+
+Aesthetics and the established composition matter. Restore the CARE split with its four linked cards, chapter-size heading and revised body/example; restore four descriptive pathway cards: Foundations, Ongoing Learning and Practice, Immersion, Outreach. These are distinct ways of taking part in RIM and will eventually replace the current categories. On home, this explicit direction supersedes using live schedule categories as the primary doors; the catalog taxonomy remains unchanged. Immersion still resolves a valid listed retreat/event anchor from current data. Foundations is in preparation, with no invented date. Keep first-gathering logistics on New to RIM. The video, tree image and held-lotus image were not removed by the newcomer review; all references match the pre-review page. “What brings us together” dates to b9ec334, before the review, replacing “What we are here for.”

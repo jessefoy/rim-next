@@ -5161,3 +5161,8 @@ Live verification: `7c80bd0` is deployed. Art of Meditation at 1280px shows the 
 At Jesse’s explicit request, removed the complete “Your first gathering” home section; it belongs on New to RIM. Recorded in canonical vault first. Compared the full home diff against `5a2c1ee` to explain the other changes: CARE split/card removal, descriptive pathway replacement, shortened/revised copy. No other homepage redesign in this correction.
 
 Homepage correction `5e56da7` is live: first-gathering section absent, hero newcomer link retained, original following section restored. TypeScript/lint/diff checks passed.
+
+
+## 2026-09-26 — Restore homepage composition and four pathways
+
+Jesse authorized restoring the home layouts, stressing aesthetics and clarifying Foundations, Ongoing Learning and Practice, Immersion and Outreach as the distinct future framework. Restored CARE split/cards/chapter heading and four descriptive pathway cards while retaining revised body copy. Foundations remains in preparation. Current catalog data unchanged; Immersion resolves an existing visible chapter. Images match pre-review references. “What brings us together” came from b9ec334 before this review; earlier heading was “What we are here for.” Saved canonical copy first; house-style script reports zero candidates. Visual verification follows deployment.

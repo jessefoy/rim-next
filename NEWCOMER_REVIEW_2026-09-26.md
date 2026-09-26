@@ -17,9 +17,9 @@ Jesse requested completing everything possible and an honest accounting afterwar
 | --- | --- | --- |
 | 1.1 Concrete homepage introduction | Done | Meditation, mindful living, location, online participation, and direct newcomer/schedule choices. |
 | 1.2 First visit earlier | Removed from home by Jesse | Homepage first-gathering block removed as duplication; recommendation remains on New to RIM, linked from the hero. |
-| 1.3 CARE acronym/four pairs | Adapted | Homepage now names eight aspects in one shared practice and provides a lived example. Paired cards removed under Jesse’s whole-document editorial authorization; handout remains intact. |
+| 1.3 CARE acronym/four pairs | Adapted | Homepage names eight aspects and provides a lived example. Original four linked cards restored at Jesse’s explicit aesthetic direction; handout remains intact. |
 | 1.4 Homepage roots | Done | Shorter roots explanation links to full page. |
-| 1.5 Pathway categories | Done | Uses actual program categories; Foundations identified as planned, not a scheduled course. |
+| 1.5 Pathway categories | Done | Jesse restored four distinct pathways: Foundations, Ongoing Learning and Practice, Immersion, Outreach. Foundations is in preparation; catalog categories are unchanged. |
 | 1.6 Homepage closing | Done | Welcomes trying a gathering without long-term commitment. |
 | 2.1 Recommended first gathering | Done | Meditation and Dharma Talk with schedule, format, participation, giving, arrival. |
 | 2.2 Foundations delivery | Partial | Honest planned status; format, dates, and delivery need confirmation. |
@@ -157,3 +157,8 @@ Local verification: TypeScript, targeted ESLint and diff checks pass. Existing n
 Jesse requested removing the entire first-gathering section from home because it is already covered on New to RIM. Removed the section and unused GuidedPractice import, retaining the newcomer page and hero link. Other homepage changes were compared with `5a2c1ee` for his review; no additional layout or wording changes made in this correction.
 
 Live verification: `5e56da7` deployed. The home first-gathering block is absent, What brings us together again follows the hero, and the hero’s New to RIM link remains. TypeScript, focused lint and diff checks passed. New to RIM still renders GuidedPractice and its first-gathering guidance.
+
+
+## Homepage composition restoration
+
+Jesse authorized restoring the CARE and pathway layouts, clarified the future four-pathway model, and emphasized aesthetics. Restored the original split/card structures with improved body wording, reinstated short CARE card explanations and descriptive pathway cards. CARE heading returns to its 38px chapter tier. Foundations is in preparation without a date. Current category records are untouched; Immersion uses a valid catalog anchor. The original video/tree/lotus asset references remain identical to pre-review `5a2c1ee`. Heading history confirms “What brings us together” predates this review (b9ec334, September 26); previously “What we are here for.” Canonical copy saved before implementation.

@@ -2,9 +2,9 @@
 
 Read first when opening RIM. Updated at closing, 2026-09-26. Full history belongs in `session-log.md`.
 
-## Homepage correction and layout review (2026-09-26)
+## Homepage composition restored (2026-09-26)
 
-Jesse requested removing the entire home “Your first gathering” block, already covered on New to RIM. Removed from home only; New to RIM and the hero link remain. He asked what else changed and dislikes the revised layout. Remaining visual differences from pre-review `5a2c1ee`: CARE’s split composition/four cards became prose; four descriptive pathways became live category-only cards; hero, shared intention, roots, giving and closing copy changed. No broader home restoration requested yet. Canonical vault records the deletion.
+Jesse explicitly authorized restoring the homepage layouts and emphasized aesthetics. CARE returns to the split with four linked cards and full-size chapter heading; pathways are Foundations, Ongoing Learning and Practice, Immersion, and Outreach, with descriptions. These distinct pathways will eventually replace the current categories; on home they supersede the category-only links. Improved prose retained. Foundations remains in preparation without an invented date. First-gathering block stays removed. Images match the pre-review page; “What brings us together” replaced “What we are here for.” in b9ec334 before the newcomer review. Canonical vault records wording and scope first. Catalog category migration is not part of this homepage correction.
 
 ## Program layout correction — explicit direction (2026-09-26)
 
