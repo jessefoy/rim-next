@@ -5173,3 +5173,5 @@ Homepage restoration `ed0d3e2` verified live at 1280px and 360px: original split
 ### Missing homepage image recovered (September 26, 2026)
 
 Jesse’s further correction identified the Buddha-and-lotus photograph formerly beside Practice for real life. It was removed in `8d3a1bf` on September 25, before the immediate pre-review baseline; earlier image accounting was too narrow. Restored `/images/buddga-lotus-unsplash-1600.webp` in the original right-side split with `center 30%` crop, preserving current prose and the six example cards below. Existing trees, held lotus, and hero video stay present. No new imagery or wording.
+
+Verified `07f6c93` live: Buddha-and-lotus photograph renders beside Practice for real life with the original crop at 1280px. At 360px it measures 320×260, all six examples remain, and neither viewport has horizontal overflow. TypeScript, focused ESLint and diff checks passed. Browser viewport restored.
