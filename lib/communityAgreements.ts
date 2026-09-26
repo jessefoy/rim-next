@@ -47,14 +47,53 @@ export const JOIN_HERO_INTRO =
  * for the wording: the vault's 04-community-website-copy-2026-09-25.md.
  * Provisional until Jesse's read-aloud.
  */
+/**
+ * RIM's vision and mission — ONE source for every surface that states them
+ * (About, the Our Shared Vision frame below and so all five agreement
+ * surfaces; the home hero carries the triad). Jesse, 2026-09-26: "We are
+ * repeating our vision and mission and pointing to capacity" (the Flock Not
+ * Clock principle: vision is what we want to see and realize, mission the
+ * repeated actions that bring it about). The vision is Jesse's arc of the
+ * practice, near-verbatim (vault master reference, Sections 2 and 3).
+ *
+ * RIM_WHAT_BINDS is a HOLDING phrase: Jesse is still choosing the triad
+ * (he said "views, skills, and habits"; he is weighing "views, states, and
+ * habits", relatable and including actions). Change it here and every
+ * surface follows. Provisional until Jesse's read-aloud.
+ */
+export const RIM_WHAT_BINDS = "unhealthy patterns of mind and action";
+
+export const RIM_VISION =
+  "To be more awake and present in our lives, and to live with greater " +
+  "freedom from what binds us to " +
+  RIM_WHAT_BINDS +
+  ". This allows us to understand with greater wisdom, and what we " +
+  "understand allows us to care with kindness and compassion. From that " +
+  "awake, liberated wisdom and compassion we live, embody, and act: the " +
+  "great wisdom, great compassion, and great action.";
+
+export const RIM_MISSION =
+  "We practice taking care, together and in our daily lives. We gather to " +
+  "learn and practice, in person and online, and we support one another " +
+  "along the way. We bring the practice into our lives, and our lives back " +
+  "into the community. We hold our care agreements with one another. We " +
+  "share the teachings through dana, sustained by the generosity of those " +
+  "who practice here. And we carry the practice outward, to the people and " +
+  "organizations it can serve.";
+
 export const COMMUNITY_SHARED_VISION_TITLE = "Our Shared Vision";
+/** The frame is the vision, stated as why we come together. */
 export const COMMUNITY_AGREEMENTS_LEAD_IN =
   "We come together because wakefulness, wisdom, and compassion are already " +
-  "within us, and because we want to live from them: to heal, promote, and " +
-  "protect well-being in ourselves, one another, and our shared world. These " +
-  "agreements are how we care for that vision together. We ask every member " +
-  "to hold them, as directions and not as grades, and we return to them as a " +
-  "practice: honestly, and with room to begin again.";
+  "within us, and because we want to live from them: to be more awake and " +
+  "present in our lives, freer of what binds us to " +
+  RIM_WHAT_BINDS +
+  ", understanding with greater wisdom, caring with kindness and " +
+  "compassion, and acting from that wisdom and compassion in ourselves, one " +
+  "another, and our shared world. These agreements are how we care for that " +
+  "vision together. We ask every member to hold them, as directions and not " +
+  "as grades, and we return to them as a practice: honestly, and with room " +
+  "to begin again.";
 
 /**
  * Form-section lead rendered above the form fields on /join. Tells the

@@ -3,7 +3,7 @@ import Link from "next/link";
 export const metadata = {
   title: "Why We Practice — Rooted In Mindfulness",
   description:
-    "What the practice at Rooted in Mindfulness is for: becoming more awake to our lives and freer of old habits, so that we can heal, promote, and protect well-being in ourselves, one another, and our shared world.",
+    "What the practice at Rooted in Mindfulness is for: becoming more awake and present in our lives and freer of what binds us, so that we understand with greater wisdom, care with kindness and compassion, and act from both.",
 };
 
 /**
@@ -113,8 +113,11 @@ export default function WhyWePracticePage() {
 
             <h2>What we practice for</h2>
             <p>
-              Our practice has a direction. We practice to heal, promote, and protect well-being, in
-              ourselves, in one another, and in our shared world, and to reduce harm along the way.
+              Our practice has a direction: to be more awake and present in our lives, and freer of
+              what binds us, so that we understand with greater wisdom, care with kindness and
+              compassion, and act from both. Along the way we heal, promote, and protect
+              well-being, in ourselves, in one another, and in our shared world, and we reduce
+              harm.
             </p>
             <p>
               A garden makes the direction plain. What we water grows. So we stop watering what

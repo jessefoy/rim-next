@@ -144,7 +144,7 @@ export default function Nav() {
                     </Link>
                     <Link href="/about" className="nav__dropdown-link">
                       <div className="nav__dropdown-title">About RIM</div>
-                      <div className="nav__dropdown-desc">Our mission, and how we began</div>
+                      <div className="nav__dropdown-desc">Our vision and mission, and how we began</div>
                     </Link>
                   </div>
                 </div>

@@ -189,7 +189,8 @@ export default function KMGuidelinesPage() {
               <ol role="list">
                 <li>
                   <strong>Vision and Mission:</strong> Because KM Groups are a part of the Greater RIM
-                  Community, we ask that all groups reflect RIM&apos;s overarching vision and Mission.
+                  Community, we ask that all groups reflect RIM&apos;s overarching{" "}
+                  <Link href="/about#vision">vision and mission</Link>.
                   This ensures that KM groups align with everyone&apos;s intentions for learning and
                   practice. Each group is asked to create a mission statement that reflects the
                   group&apos;s focus. This will help ensure that groups keep true to their original

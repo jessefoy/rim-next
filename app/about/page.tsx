@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { RIM_MISSION, RIM_VISION } from "@/lib/communityAgreements";
 
 export const metadata = {
   title: "About RIM — Rooted In Mindfulness",
   description:
-    "The mission and vision of Rooted in Mindfulness, a dharma community rooted in traditional Buddhist wisdom, in Brookfield, Wisconsin, and held by the people who practice here.",
+    "The vision and mission of Rooted in Mindfulness, a dharma community rooted in traditional Buddhist wisdom, in Brookfield, Wisconsin, and held by the people who practice here.",
 };
 
 /**
@@ -14,10 +15,12 @@ export const metadata = {
  *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md
  * Provisional until Jesse's read-aloud.
  *
- * Mission-first at Jesse's direction ("more vision/mission-focused"), and not
- * founder-centred: he appears once, in one sentence of background, which
- * newcomers and partner organizations reasonably look for. Mission and vision
- * are the master reference's Section 3 drafts. The founding dates the earlier
+ * Vision/mission-first at Jesse's direction, and not founder-centred: he
+ * appears once, in one sentence of background. Vision before mission (Flock
+ * Not Clock, Jesse 2026-09-26: vision is what we want to see and realize, the
+ * mission is the repeated actions that bring it about); both come from ONE
+ * source, lib/communityAgreements.ts, so they read the same everywhere.
+ * "Held by a community" points to capacity: dana and volunteering. The founding dates the earlier
  * version flagged for verification are no longer stated.
  */
 export default function AboutPage() {
@@ -34,28 +37,18 @@ export default function AboutPage() {
       <section className="pp-section pp-section--last">
         <div className="rim-container">
           <div className="pp-prose">
-            <h2>Our mission</h2>
-            <p>
-              Rooted in Mindfulness is a community where people learn and practice together to live
-              awake in everyday life. Through our practice of taking care, and the support of one
-              another, we learn to see clearly, to free ourselves from harmful habits, and to heal,
-              promote, and protect well-being in ourselves, one another, and our shared world. We
-              bring this practice into our lives and our lives into our community, and we carry it
-              outward to others who can benefit.
-            </p>
+            <h2 id="vision">Our vision</h2>
+            <p>{RIM_VISION}</p>
 
-            <h2>Our vision</h2>
-            <p>
-              People and communities living awake: less caught in the habits that cause suffering
-              and harm, more able to live from the wisdom and care already within us, and sharing
-              true well-being with those we love and the world we share.
-            </p>
+            <h2 id="mission">Our mission</h2>
+            <p>{RIM_MISSION}</p>
 
             <h2>Held by a community</h2>
             <p>
               RIM is a nonprofit, and it is held by the people who practice here. Members sustain it
-              through dana. Volunteers greet newcomers, host our online gatherings, and look after
-              the center and its teams. Our teachers offer what they have learned, and all of us
+              through <Link href="/donate">dana</Link>.{" "}
+              <Link href="/volunteerism/volunteer">Volunteers</Link> greet newcomers, host our online
+              gatherings, and look after the center and its teams. Our teachers offer what they have learned, and all of us
               hold the same <Link href="/community-care-agreements">care agreements</Link>. No one
               person or building holds it up.
             </p>

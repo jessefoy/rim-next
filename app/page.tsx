@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { hasConcludedOneTime } from "@/lib/programUtils";
+import { RIM_WHAT_BINDS } from "@/lib/communityAgreements";
 
 // Lineage terms live here for search, stated as RIM states them (Jesse,
 // 2026-09-25): a dharma community rooted in Chan silent illumination, not an
@@ -196,9 +197,9 @@ export default async function HomePage() {
           <p className="pp-hero__body">
             Our practice is taking care: of ourselves, of those we love, of the world, and of this
             moment. Rooted in Mindfulness is a community that shares this intention, in Brookfield,
-            Wisconsin, and online. Together we learn to be more awake to our lives and freer of the
-            patterns that cause suffering, so that we can heal what hurts, grow what is good, and
-            protect what matters. Come as you are.
+            Wisconsin, and online. Together we learn to be more awake and present in our lives, and freer of what binds
+            us to {RIM_WHAT_BINDS}, so that we can heal what hurts, grow what is good, and protect
+            what matters. Come as you are.
           </p>
           <div className="pp-hero__actions">
             <Link href="/new-to-rim" className="pp-btn pp-btn--onblue">
@@ -223,9 +224,9 @@ export default async function HomePage() {
               People come to RIM for many reasons: a hard season, a wish to live and enjoy life more
               fully, a longing for something real, or love for someone they want to show up for
               better. What we share is one intention. Something clear and caring is already within
-              each of us, and we practice to live from it more of the time: to suffer less and cause
-              less harm, to see more clearly, and to love more capably, in our own lives and in the
-              world we share.
+              each of us, and we practice to live from it more of the time: more awake and present,
+              freer of what binds us, understanding with greater wisdom, caring with kindness and
+              compassion, and acting from both, in our own lives and in the world we share.
             </p>
             <p className="pp-intro__body">
               This is practice for real life, and it asks something real of us, because it matters.
