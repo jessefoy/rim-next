@@ -19,7 +19,8 @@ export const metadata = {
  * in hand); silent illumination is named once, in the introduction, and inside
  * the words its two halves are said as clarity (Aware) and presence (Attitude),
  * Jesse's wording; one added sentence on "great", in Jesse's words; the
- * handout's paragraph on how the words are taught moves to the close.
+ * handout's paragraph on how the words are taught moves to the close; "Buddha
+ * nature" is glossed where it appears, in the site's own center words.
  *
  * The eight words are eight headings, never four pairs: the pairs are the
  * teacher-side framework's architecture, and the register line keeps the frame
@@ -166,8 +167,9 @@ export default function CarePage() {
               fully. This is great action, great because it arises from the wakeful, liberated mind
               rather than the reactive one. In time it becomes a natural way of being: less
               contrived, more authentic and true, awake, free of the ordinary mind&rsquo;s hold, and
-              unified with our Buddha nature. And when the action is complete, it returns to
-              stillness, and we begin again from calm.
+              unified with our Buddha nature, the wakeful and caring nature already within each
+              of us. And when the action is complete, it returns to stillness, and we begin again
+              from calm.
             </p>
 
             <h2>Learning over time</h2>
