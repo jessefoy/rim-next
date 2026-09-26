@@ -4,7 +4,7 @@ Read first when opening RIM. Updated at closing, 2026-09-26. Full history belong
 
 ## Newcomer assessment implementation (2026-09-26)
 
-See `NEWCOMER_REVIEW_2026-09-26.md` for the implementation, confirmed facts, remaining decisions, and verification. Jesse chose Meditation and Dharma Talk as the first visit and supplied entrance, parking, stairs-only access, restroom, and volunteer phone details. CARE keeps the handout intact with a short introduction only. Revision 8 and addenda are appended to the canonical vault copy; still provisional for read-aloud. These decisions supersede the older arrival-information questions below.
+Live and browser-verified (`369b931`; final shared donation wording follow-up). See `NEWCOMER_REVIEW_2026-09-26.md` for the implementation, confirmed facts, remaining decisions, and verification. Jesse chose Meditation and Dharma Talk as the first visit and supplied entrance, parking, stairs-only access, restroom, and volunteer phone details. CARE keeps the handout intact with a short introduction only. Revision 8 and addenda are appended to the canonical vault copy; still provisional for read-aloud. These decisions supersede the older arrival-information questions below.
 
 ## Active — brief, handout, one vision, balanced reading pages (2026-09-26, live; awaiting Jesse's read-aloud)
 

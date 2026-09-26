@@ -39,7 +39,11 @@ Jesse approved implementing the attached newcomer assessment. Copy remains provi
 - ESLint on changed form/navigation/core public surfaces: zero errors; three existing image-element warnings.
 - `node --check prisma/migrate.mjs` and `git diff --check`: passed.
 - Focused offline regression checks: all four custom question types without legacy `_key`; unique IDs and label associations; multiple update forms; saved and removed-question answers; newsletter labels; voluntary/fixed/base donation summaries; participation and offsite venue; hostile return URL rejection; exact CARE teaching/diagram preservation. Passed.
-- Local production build intentionally not run: it executes production migrations. Build and public UI verification follow GitHub/Vercel deployment.
+- Deployed implementation commit `369b931` to GitHub main; Vercel published it successfully. Live New to RIM, program pages, registration, and teacher profile confirm the build and copy migration took effect.
+- Browser checks: desktop keyboard Enter/Escape with expanded state and focus restoration; mobile menu; persistent newsletter labels at 16px with 45.5px input height; no horizontal overflow on home/New to RIM/registration at 375px, or directory/schedule/program/join at 360px and 1280px. Desktop and phone screenshots visually inspected.
+- Live retreat form: unique IDs, matching labels, separate dietary/seating values entered and cleared without submission. Program → login → join retains the return destination. No real email/code verification or checkout performed.
+- All nine authored text corrections and the sourced Jesse biography verified by public HTTP reads. A final wording adjustment uses “no required amount” on voluntary summaries, avoiding an implication of registration on drop-in pages.
+- Local production build intentionally not run: it executes production migrations. The successful live deployment provides production build evidence.
 - The installed `/impeccable` skill was not found in available skill locations. Direct keyboard, layout, semantics, and contrast checks are used; no claim of running that skill.
 
 Known return-flow limit: signing in using the email button on a different device, a verification-error restart, or a legacy account's welcome/reactivation detour still lands on My Home. Ordinary same-browser signup/sign-in returns to the originating offering. No tokens or destinations were added to email templates.

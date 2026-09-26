@@ -384,7 +384,7 @@ export function programGivingSummary(program: {
     ? `${dollars(required / 100)} required to register`
     : `${dollars(required / 100)} minimum to register; additional giving is optional`;
   if (program.danaMode === "voluntary") return program.suggestedDana && program.suggestedDana > 0
-    ? `Voluntary donation · ${dollars(program.suggestedDana)} suggested; you may register without giving`
-    : "Voluntary donation · you may register without giving";
+    ? `Voluntary donation · ${dollars(program.suggestedDana)} suggested; no required amount`
+    : "Voluntary donation · no required amount";
   return null;
 }
