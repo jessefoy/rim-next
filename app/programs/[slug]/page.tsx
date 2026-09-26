@@ -1,3 +1,5 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
+import ProgramOrientation from "@/components/ProgramOrientation";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import Link from "next/link";
@@ -12,11 +14,10 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const program = await db.program.findUnique({ where: { slug }, select: { name: true, tagline: true, dateText: true, timeText: true, programFormat: true, startDatetime: true, endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true } });
-  return {
-    title: program ? `${program.name} — Rooted In Mindfulness` : "Program Not Found",
-    description: program ? [program.tagline || program.name, buildSubtitle(program)].filter(Boolean).join(". ") : undefined,
-  };
+  const program = await db.program.findUnique({ where: { slug }, select: { archivedAt: true, hideFromProgramPageList: true, category: { select: { hideFromProgramsPage: true, kind: true } }, name: true, tagline: true, dateText: true, timeText: true, programFormat: true, startDatetime: true, endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true } });
+  const metadata = publicPageMetadata(program ? `${program.name} — Rooted In Mindfulness` : "Program Not Found", program ? [program.tagline || program.name, buildSubtitle(program)].filter(Boolean).join(". ") : "Program information at Rooted In Mindfulness.", `/programs/${slug}`);
+  const hidden = !program || program.archivedAt || program.hideFromProgramPageList || program.category?.hideFromProgramsPage || program.category?.kind === "PRIVATE";
+  return hidden ? { ...metadata, robots: { index: false, follow: false } } : metadata;
 }
 
 export default async function ProgramDetailPage({
@@ -179,21 +180,9 @@ export default async function ProgramDetailPage({
       {/* ── Content column ── */}
       <div className="lp-content pg-content">
 
-        {/* ── Pull quote card — floats up into hero ── */}
-        {program.pullQuote && (
-          <figure className="pg-quote">
-            <blockquote className="pg-quote__text">{program.pullQuote}</blockquote>
-            {program.pullQuoteSource && (
-              <figcaption className="pg-quote__source">~ {program.pullQuoteSource}</figcaption>
-            )}
-          </figure>
-        )}
-
-        {/* Dana result banners — shown after Stripe redirects back. After the
-            quote card, not before it: the card floats up with a negative top
-            margin and covered them completely. (New payments return to
+        {/* Dana result banners — shown after Stripe redirects back. New payments return to
             /programs/[slug]/thank-you; the success banner remains for
-            checkouts started before that page existed.) */}
+            checkouts started before that page existed. */}
         {resolvedSearch?.dana === "success" && (
           <div className="pg-dana-result pg-dana-result--success">
             ✓ Thank you. Your dana offering has been received.
@@ -313,9 +302,21 @@ export default async function ProgramDetailPage({
           </div>
         </section>
 
+        <ProgramOrientation slug={program.slug} recurringRegistration={!!program.recurrenceFreq && program.registrationEnabled} />
+
         {/* ── Program description ── */}
         {hasDescription && (
           <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+        )}
+
+        {/* ── Reflection after the practical information ── */}
+        {program.pullQuote && (
+          <figure className="pg-quote pg-quote--after-description">
+            <blockquote className="pg-quote__text">{program.pullQuote}</blockquote>
+            {program.pullQuoteSource && (
+              <figcaption className="pg-quote__source">~ {program.pullQuoteSource}</figcaption>
+            )}
+          </figure>
         )}
 
         {/* ── Program notes (tan card) ──

@@ -78,7 +78,7 @@ export default async function CheckEmailPage({
     let signInResult: string | undefined;
     let signInThrew = false;
     try {
-      signInResult = await signIn("resend", { email: e, redirect: false });
+      signInResult = await signIn("resend", { email: e, redirect: false, redirectTo: authCallbackPath(returnTo) });
     } catch {
       signInThrew = true;
     }

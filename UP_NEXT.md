@@ -4,7 +4,7 @@ Read first when opening RIM. Updated at closing, 2026-09-26. Full history belong
 
 ## Newcomer assessment implementation (2026-09-26)
 
-Live and browser-verified (`369b931`; final shared donation wording follow-up). See `NEWCOMER_REVIEW_2026-09-26.md` for the implementation, confirmed facts, remaining decisions, and verification. Jesse chose Meditation and Dharma Talk as the first visit and supplied entrance, parking, stairs-only access, restroom, and volunteer phone details. CARE keeps the handout intact with a short introduction only. Revision 8 and addenda are appended to the canonical vault copy; still provisional for read-aloud. These decisions supersede the older arrival-information questions below.
+First pass live and browser-verified (`369b931`, `9591026`). Follow-through implementation now completes practical program/group guidance, auth return detours, information-use notes, newsletter handling, schedule next start, SEO launch guards, and the previously authorized voluntary $175 retreat. See `NEWCOMER_REVIEW_2026-09-26.md` for the implementation, confirmed facts, remaining decisions, and verification. Jesse chose Meditation and Dharma Talk as the first visit and supplied entrance, parking, stairs-only access, restroom, and volunteer phone details. CARE keeps the handout intact with a short introduction only. Revisions 8–9 and addenda are appended to the canonical vault copy; still provisional for read-aloud. These decisions supersede the older arrival-information questions below.
 
 ## Active — brief, handout, one vision, balanced reading pages (2026-09-26, live; awaiting Jesse's read-aloud)
 
@@ -30,7 +30,7 @@ Live and browser-verified (`369b931`; final shared donation wording follow-up). 
 **Waiting on Jesse:**
 - **Read-aloud** of the new copy: sign-in button/code page, dana step, receipt, approval line, Stripe lines, Zoom notices, readout, overlap banner, thank-you page, and `ZOOM_COORDINATOR_GUIDE.md` (sent as Markdown/HTML for the Zoom Coordinator Google Doc).
 - **Accountant** review of the receipt's "For your records" statement (RIM is IRS-classified as a church, 170(b)(1)(A)(i)).
-- Switch **"Awakening to the Beauty of This Moment"** to Voluntary dana, $175 suggested (it's `fixed` $175 now).
+- Voluntary $175 retreat instruction is implemented in the newcomer follow-through migration; verify deployment below in the review record.
 - **Flodesk design** (`2026-09-24-002`): does he send to segments or the whole list?
 - Check Flodesk for his test signup's segment and any welcome email.
 

@@ -4,13 +4,16 @@
 const SEGMENT_ID = "6340e5b00170f97cbdfc4b87";
 
 export async function POST(request: Request) {
-  const { email, first_name, last_name } = await request.json();
+  const body = await request.json().catch(() => null);
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+  const first_name = typeof body?.first_name === "string" ? body.first_name.trim() : "";
+  const last_name = typeof body?.last_name === "string" ? body.last_name.trim() : "";
 
   // These strings are rendered to the visitor in the footer form, so they are
   // written in the house voice, not as system messages.
   const FALLBACK = "Something went wrong. Try again, or email us and we'll add you ourselves.";
 
-  if (!email || !email.includes("@")) {
+  if (!email || email.length > 256 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return Response.json({ error: "That email address doesn't look right." }, { status: 400 });
   }
 
@@ -50,9 +53,8 @@ export async function POST(request: Request) {
 
     // Step 2: Add to the newsletter segment. This endpoint only ADDS segments
     // (the create call's segment_ids isn't documented as additive for
-    // existing subscribers, so it isn't used). The visitor is on the list
-    // either way; a missing segment is ours to fix, so retry once and log it
-    // as an error where it will be seen.
+    // existing subscribers, so it isn't used). Retry once; only report success
+    // when the newsletter segment assignment succeeds.
     const addToSegment = () =>
       fetch(`https://api.flodesk.com/v1/subscribers/${subscriberId}/segments`, {
         method: "POST",
@@ -66,12 +68,8 @@ export async function POST(request: Request) {
     let segRes = await addToSegment();
     if (!segRes.ok) segRes = await addToSegment();
     if (!segRes.ok) {
-      console.error(
-        "[subscribe] Subscriber added but NOT put in the newsletter segment:",
-        subscriberId,
-        segRes.status,
-        await segRes.text().catch(() => ""),
-      );
+      console.error("[subscribe] Newsletter segment assignment failed:", segRes.status);
+      return Response.json({ error: FALLBACK }, { status: 503 });
     }
 
     return Response.json({ success: true });

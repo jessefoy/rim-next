@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { hasConcludedOneTime } from "@/lib/programUtils";
@@ -7,11 +8,7 @@ import { categoryDisplayName } from "@/lib/programUtils";
 // Lineage terms live here for search, stated as RIM states them (Jesse,
 // 2026-09-25): a dharma community rooted in Chan silent illumination, not an
 // insight / vipassana center.
-export const metadata = {
-  title: "Rooted In Mindfulness - Meditation Center - Brookfield - Greater Milwaukee",
-  description:
-    "Rooted in Mindfulness is a meditation and dharma community in Brookfield, Wisconsin, near Milwaukee, rooted in the silent illumination tradition and open to everyone. Meditation, mindful living, and Buddhist teachings, in person and online, community-supported. Come as you are.",
-};
+export const metadata = publicPageMetadata("Rooted In Mindfulness \u2014 Meditation and Mindful Living in Brookfield", "Guided meditation, classes, and community in Brookfield, Wisconsin, and online. Explore CARE: learning to care for ourselves, one another, and the world, with roots in Buddhist practice.", "/");
 
 export const dynamic = "force-dynamic";
 

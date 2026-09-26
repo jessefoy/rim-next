@@ -29039,3 +29039,10 @@ a.pp-card.tpr-card {
 }
 
 .pp-hero__body a { color: inherit; text-decoration: underline; text-underline-offset: 0.15em; }
+
+/* Newcomer review: practical information precedes the reflection. */
+.pg-content { padding-top: 40px; }
+.pg-quote.pg-quote--after-description { margin-top: 40px; }
+.pg-orientation { margin: 24px 0 32px; }
+.pl-catalog > .rim-container > .pp-prose { margin-bottom: 40px; }
+.pp-guided-practice a:last-child { font-size: 16px; }

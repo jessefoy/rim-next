@@ -1,5 +1,7 @@
 "use client";
 
+import { authCallbackPath } from "@/lib/authReturn";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -20,7 +22,7 @@ export default function ReactivatePage() {
       if (!res.ok) throw new Error("Reactivation failed");
       // Refresh session so archivedAt clears
       await update();
-      router.push("/account/dashboard");
+      router.push(authCallbackPath(new URLSearchParams(window.location.search).get("returnTo")));
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
@@ -41,7 +43,7 @@ export default function ReactivatePage() {
         </div>
 
         <div className="wl-form">
-          {error && <p className="wl-error">{error}</p>}
+          {error && <p role="alert" className="wl-error">{error}</p>}
           <button
             className="wl-submit"
             onClick={handleReactivate}
@@ -51,9 +53,9 @@ export default function ReactivatePage() {
           </button>
           <p className="wl-hint">
             Changed your mind?{" "}
-            <a href="/" className="wl-link">
+            <Link href="/" className="wl-link">
               Return to the home page
-            </a>
+            </Link>
             .
           </p>
         </div>

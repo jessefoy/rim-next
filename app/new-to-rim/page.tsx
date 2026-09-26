@@ -1,12 +1,9 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import GuidedPractice from "@/components/GuidedPractice";
 import Link from "next/link";
 import { RIM_ADDRESS, RIM_MAPS_URL } from "@/lib/locations";
 
-export const metadata = {
-  title: "New to RIM — Rooted In Mindfulness",
-  description:
-    "New to Rooted in Mindfulness in Brookfield, Wisconsin? Where to begin, what to expect in person and online, how signing up works, and answers to common questions. No experience needed. Come as you are.",
-};
+export const metadata = publicPageMetadata("New to RIM \u2014 Rooted In Mindfulness", "New to Rooted in Mindfulness in Brookfield, Wisconsin? Where to begin, what to expect in person and online, how signing up works, and answers to common questions. No experience needed. Come as you are.", "/new-to-rim");
 
 /**
  * /new-to-rim — the newcomer's front door (2026-09-25, revision 2), the way
@@ -18,8 +15,8 @@ export const metadata = {
  *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md
  * The in-person details are Jesse's own (top floor, the two rooms, tea and the
  * library, shoes on the rack, the donation bowl under the Bodhi tree carving,
- * volunteers who help and respect privacy). Parking and which door to use are
- * not yet written; they are left out rather than guessed. Provisional until
+ * volunteers who help and respect privacy). Jesse confirmed the entrance,
+ * parking, stairs and restrooms on September 26, 2026. Provisional until
  * Jesse's read-aloud.
  *
  * Community is named directly here, at Jesse's direction: people want
@@ -158,6 +155,20 @@ export default function NewToRimPage() {
               <a href="mailto:support@rootedinmindfulness.org?subject=Planning%20a%20visit">support@rootedinmindfulness.org</a>{" "}
               or call <a href="tel:4148828932">(414) 882-8932</a>. The phone takes messages;
               volunteers return calls. You can also take part in our online gatherings.
+            </p>
+
+            <h2 id="first-gathering">Your first gathering</h2>
+            <p>
+              For Meditation and Dharma Talk, arrive a little early to leave your shoes and choose
+              a chair or cushion. The gathering includes guided meditation and a teaching. You can
+              keep your eyes open, change position, or step out if you need to. You do not need to
+              explain why you came. Check the <Link href="/programs/meditation-and-dharma-talk">program page</Link>{" "}
+              for the current time and any notices before setting out.
+            </p>
+            <p>
+              If you want to know about discussion, chanting, or other elements before attending,
+              <a href="mailto:support@rootedinmindfulness.org?subject=My%20first%20gathering"> ask us</a>.
+              We can help you understand what to expect at the gathering you have chosen.
             </p>
 
             <h2 id="online">Joining online</h2>

@@ -1,3 +1,4 @@
+import InformationUseNote from "@/components/InformationUseNote";
 import { authReturnPath, authCallbackPath } from "@/lib/authReturn";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -12,6 +13,7 @@ import {
 } from "@/lib/communityAgreements";
 
 export const metadata = {
+  robots: { index: false, follow: false },
   title: "Become a member — Rooted In Mindfulness",
   description:
     "Join the Rooted In Mindfulness community. Read our shared vision and community care agreements and create your member account.",
@@ -51,6 +53,7 @@ export default async function JoinPage({
           <p className="pp-hero__eyebrow">A seat in the community</p>
           <h1 className="pp-hero__title">{JOIN_HERO_TITLE}</h1>
           <p className="pp-hero__body">{JOIN_HERO_INTRO}</p>
+          <div className="pp-hero__actions"><a href="#jn-form-heading" className="pp-hero__link">Go to the account form <span aria-hidden="true">↓</span></a></div>
         </div>
       </section>
 
@@ -110,6 +113,7 @@ export default async function JoinPage({
               Create your member account
             </h2>
             <p className="jn-form__lead">{JOIN_FORM_LEAD}</p>
+            <InformationUseNote />
             <JoinForm defaultEmail={prefillEmail} returnTo={returnTo} />
           </div>
         </div>

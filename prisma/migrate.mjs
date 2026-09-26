@@ -6161,6 +6161,48 @@ Rooted In Mindfulness · Brookfield, WI`,
     }
   }
 
+  // Finish the newcomer review. Jesse's Sept 24 dana decision is recorded in
+  // session-log.md: this retreat should be voluntary, with $175 suggested.
+  // Exact old values and updatedAt guard against replacing later editor changes.
+  {
+    const flag = "newcomer_followup_2026_09_26_v1";
+    const applied = await db.$queryRawUnsafe('SELECT name FROM "_migration_flags" WHERE name = $1', flag);
+    if (!applied.length) {
+      const { readFile } = await import("node:fs/promises");
+      const fixes = JSON.parse(await readFile(new URL("./newcomer-copy-followup-2026-09-26.json", import.meta.url), "utf8"));
+      const replaceText = (value, from, to) => {
+        if (typeof value === "string") return value.replaceAll(from, to);
+        if (Array.isArray(value)) return value.map(v => replaceText(v, from, to));
+        if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, replaceText(v, from, to)]));
+        return value;
+      };
+      await db.$transaction(async tx => {
+        for (const fix of fixes) {
+          const program = await tx.program.findUnique({ where: { slug: fix.slug } });
+          if (!program) { console.log(`  Skip follow-up copy: ${fix.slug} absent.`); continue; }
+          const data = {};
+          for (const field of fix.fields) {
+            const next = replaceText(program[field], fix.from, fix.to);
+            if (JSON.stringify(next) !== JSON.stringify(program[field])) data[field] = next;
+          }
+          if (!Object.keys(data).length) { console.log(`  Skip follow-up copy: ${fix.slug}, original text absent.`); continue; }
+          const result = await tx.program.updateMany({ where: { id: program.id, updatedAt: program.updatedAt }, data });
+          if (!result.count) throw new Error(`Program changed during follow-up migration: ${fix.slug}`);
+          console.log(`  Updated follow-up copy: ${fix.slug}.`);
+        }
+        const retreat = await tx.program.findUnique({ where: { slug: "awakening-to-the-beauty-of-this-moment" } });
+        if (retreat?.danaMode === "fixed" && retreat.danaFixedAmount === 175) {
+          const result = await tx.program.updateMany({ where: { id: retreat.id, updatedAt: retreat.updatedAt }, data: { danaMode: "voluntary", suggestedDana: 175, danaFixedAmount: null, danaBaseAmount: null } });
+          if (!result.count) throw new Error("Retreat changed during voluntary dana migration");
+          console.log("  Retreat now voluntary dana, $175 suggested.");
+        } else {
+          console.log("  Retreat dana unchanged: expected fixed $175 no longer present.");
+        }
+        await tx.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+      });
+    }
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

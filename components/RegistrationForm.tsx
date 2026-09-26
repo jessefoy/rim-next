@@ -1,5 +1,6 @@
 "use client";
 
+import InformationUseNote from "@/components/InformationUseNote";
 import { useId, useState } from "react";
 import {
   COMMUNITY_AGREEMENTS,
@@ -127,7 +128,7 @@ export default function RegistrationForm({
   // ── Waitlisted ──────────────────────────────────────────────────────────────
   if (formState === "waitlisted") {
     return (
-      <div className="pg-form__success pg-form__success--waitlist">
+      <div role="status" className="pg-form__success pg-form__success--waitlist">
         <h3>You&rsquo;re on the waitlist</h3>
         <p>
           This program is currently full. We&rsquo;ll reach out to {form.email} if a spot opens up.
@@ -139,7 +140,7 @@ export default function RegistrationForm({
   // ── Done (no dana needed, or dana skipped) ──────────────────────────────────
   if (formState === "done") {
     return (
-      <div className="pg-form__success">
+      <div role="status" className="pg-form__success">
         <h3>You&rsquo;re registered!</h3>
         <p>We&rsquo;ll look forward to seeing you. A confirmation will be sent to {form.email}.</p>
       </div>
@@ -218,7 +219,7 @@ export default function RegistrationForm({
 
     return (
       <>
-        <div className="pg-form__success">
+        <div role="status" className="pg-form__success">
           {hasPendingDana ? (
             <>
               {/* Reached by anyone returning with dana still open: most often a
@@ -322,7 +323,7 @@ export default function RegistrationForm({
           )}
 
           {errorMessage && (
-            <div className="pg-form__error">{errorMessage}</div>
+            <div className="pg-form__error" role="alert">{errorMessage}</div>
           )}
 
           <button
@@ -474,7 +475,8 @@ export default function RegistrationForm({
   const almostFull = spotsRemaining !== null && spotsRemaining > 0 && spotsRemaining <= 5;
 
   return (
-    <form className="pg-form" onSubmit={handleSubmit} noValidate>
+    <form className="pg-form" onSubmit={handleSubmit}>
+      <InformationUseNote registration />
 
       {/* Capacity notices */}
       {isFull && (
@@ -669,10 +671,10 @@ export default function RegistrationForm({
 
       {/* ── Error ── */}
       {formState === "error" && (
-        <div className="pg-form__error">{errorMessage}</div>
+        <div className="pg-form__error" role="alert">{errorMessage}</div>
       )}
       {formState === "duplicate" && (
-        <div className="pg-form__error">
+        <div className="pg-form__error" role="alert">
           It looks like you&rsquo;re already registered for this program.
         </div>
       )}

@@ -1,3 +1,4 @@
+import { authCallbackPath } from "@/lib/authReturn";
 import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { signIn } from "@/auth";
@@ -165,7 +166,7 @@ export async function POST(request: Request) {
   let signInResult: unknown;
   let signInThrew = false;
   try {
-    signInResult = await signIn("resend", { email: emailRaw, redirect: false });
+    signInResult = await signIn("resend", { email: emailRaw, redirect: false, redirectTo: authCallbackPath(raw.returnTo) });
   } catch (err) {
     console.error("[account/join] signIn threw", err);
     signInThrew = true;

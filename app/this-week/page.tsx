@@ -1,3 +1,5 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
+import { nextScheduledStart } from "@/lib/nextScheduledStart";
 import { participationLabel, programLocationLabel } from "@/lib/programUtils";
 import { db } from "@/lib/db";
 import Link from "next/link";
@@ -11,7 +13,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
   const { week } = await searchParams;
   const label = week === "next" ? "Next Week" : "This Week";
-  return { title: `${label} at Rooted In Mindfulness`, description: "Weekly meditation gatherings in Brookfield and on Zoom, with times in Central Time, locations, and program registration details." };
+  return publicPageMetadata(`${label} at Rooted In Mindfulness`, "Weekly meditation gatherings in Brookfield and on Zoom, with times in Central Time, locations, and program registration details.", week === "next" ? "/this-week?week=next" : "/this-week");
 }
 
 const TZ = "America/Chicago";
@@ -137,6 +139,7 @@ export default async function ThisWeekPage({
   }
 
   const hasToday = dayGroups.some((g) => g.isToday);
+  const nextStart = nextScheduledStart(dayGroups, new Date());
 
   return (
     <div className="pl-page">
@@ -189,6 +192,10 @@ export default async function ThisWeekPage({
       {/* ── Schedule ─────────────────────────────────────── */}
       <section className="pl-catalog">
         <div className="rim-container">
+          <div className="pp-prose">
+            <h2>{isNextWeek ? "First gathering next week" : "Next start this week"}</h2>
+            {nextStart ? <p><Link href={`/programs/${nextStart.program.slug}`}>{nextStart.program.name}</Link>{" · "}<time dateTime={nextStart.dateStr}>{formatShortDate(new Date(`${nextStart.dateStr}T12:00:00`))}</time>{" · "}{buildTimeLabel(nextStart.program)} CT</p> : <p>{isNextWeek ? "No upcoming starts are scheduled in this view." : <>No more scheduled starts this week. <Link href="/this-week?week=next">See next week</Link>.</>}</p>}
+          </div>
           {dayGroups.length === 0 ? (
             <p className="tw-empty">No programs scheduled for this week.</p>
           ) : (
@@ -233,6 +240,7 @@ export default async function ThisWeekPage({
                           )}
                           <div className="pl-card__main">
                             <h3 className="pl-card__title">{program.name}</h3>
+                            {program.slug === "meditation-and-dharma-talk" && <span className="pl-card__format">Recommended first visit</span>}
                             {format && (
                               <div className="pl-card__meta">
                                 <span className="pl-card__format">{format}</span>

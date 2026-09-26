@@ -49,6 +49,7 @@ export default function JoinForm({ defaultEmail = "", returnTo = "/account/dashb
           email: email.trim(),
           phone: phone.trim(),
           agreedToTerms: true,
+          returnTo,
         }),
       });
 
@@ -57,7 +58,7 @@ export default function JoinForm({ defaultEmail = "", returnTo = "/account/dashb
       // Rate-limited — match the NextAuth /signin/resend behavior by landing
       // on the calm error page rather than showing an inline error.
       if (res.status === 429 || data?.rateLimited) {
-        router.push("/login/error?error=RateLimit");
+        router.push(`/login/error?error=RateLimit&${returnQuery}`);
         return;
       }
 

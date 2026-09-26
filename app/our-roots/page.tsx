@@ -1,10 +1,7 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Our Roots — Rooted In Mindfulness",
-  description:
-    "The tradition Rooted in Mindfulness practices in: silent illumination, from Chan Buddhism, and A Handful of Leaves, the body of Buddhist teaching we draw on, informed by mindfulness-based programs and modern science. Open to anyone.",
-};
+export const metadata = publicPageMetadata("Our Roots \u2014 Rooted In Mindfulness", "The tradition Rooted in Mindfulness practices in: silent illumination, from Chan Buddhism, and A Handful of Leaves, the body of Buddhist teaching we draw on, informed by mindfulness-based programs and modern science. Open to anyone.", "/our-roots");
 
 /**
  * /our-roots — where the practice comes from (2026-09-25, revision 2). It
@@ -59,7 +56,8 @@ export default function OurRootsPage() {
               It is less one technique than the ground under all of them. Loving-kindness, awareness
               of breathing, and the contemplation of change are each a practice with a long history
               of its own. They do not compete. This open awareness is not an instrument in the orchestra. It is the
-              hall the music is played in.
+              hall the music is played in. During meditation, this means noticing sensations,
+              thoughts, and feelings without needing to follow or push away each one.
             </p>
 
             <h2>A handful of leaves</h2>
@@ -78,6 +76,12 @@ export default function OurRootsPage() {
               teaching is for in a life of practice: why we begin, what holds us, what we meet in
               the mind, and what is finally seen. It replaces nothing and ranks nothing. It is
               ordered so that a person can walk it.
+            </p>
+
+            <p>
+              There is also a written community introduction to A Handful of Leaves. It describes
+              how this body of teaching is organized. To ask about the introduction and current
+              opportunities to study, contact <a href="mailto:support@rootedinmindfulness.org?subject=A%20Handful%20of%20Leaves">support@rootedinmindfulness.org</a>.
             </p>
 
             <h2>Why a handful</h2>

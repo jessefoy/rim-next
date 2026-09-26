@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Kalyana Mitta Group Application — Rooted In Mindfulness",
+  robots: { index: false, follow: false },
+  title: "Propose a Community Group — Rooted In Mindfulness",
   description:
-    "Any member of RIM can start a Kalyana Mitta group or community activity. Tell us about your idea and we'll help you get it going.",
+    "Propose a community group or activity at RIM. Share your idea with the coordinator and discuss the next steps.",
 };
 
 export default async function KalyanaApplicationPage({
@@ -19,6 +20,8 @@ export default async function KalyanaApplicationPage({
 
   async function handleApplication(formData: FormData) {
     "use server";
+    const member = await auth();
+    if (!member?.user?.id) redirect("/login?returnTo=%2Fkalyana-mitta%2Fkalyana-mitta-group-application");
     await sendKalyanaApplicationEmail({
       firstName: formData.get("firstName") as string,
       lastName:  formData.get("lastName") as string,
@@ -32,12 +35,12 @@ export default async function KalyanaApplicationPage({
     <div className="pp-page pp-page--spine pp-page--column">
       <section className="pp-hero pp-hero--flat">
         <div className="rim-container pp-hero__inner">
-          <p className="pp-hero__eyebrow">Kalyana Mitta</p>
+          <p className="pp-hero__eyebrow">Community groups</p>
           <h1 className="pp-hero__title">
             Interested in starting a group, event, or activity?
           </h1>
           <p className="pp-hero__body">
-            Any member of RIM can start a Kalyana Mitta group or community activity.
+            Any member of RIM can propose a community group or activity.
           </p>
         </div>
       </section>
@@ -45,37 +48,8 @@ export default async function KalyanaApplicationPage({
       <section className="pp-section pp-section--white">
         <div className="rim-container">
           <div className="pp-prose">
-            <p>
-              Dharma practice is a whole-life practice. Therefore, the possible focus and intentions
-              for forming a group or planning an event are countless. Some groups have a single
-              purpose, such as right speech, dharma study, recovery, affinity, or community service,
-              to name a few. Other KM Groups more generally address keeping the practice alive and
-              fresh in one&rsquo;s daily life and supporting each other in this intention.
-            </p>
-            <p>
-              Kalyana Mitta Groups are a wonderful way to connect with friends who share our
-              intentions to deepen meditation and mindful living practices, and to feel encouraged
-              and supported along the way.
-            </p>
-            <ul>
-              <li>
-                <strong>Do you have an idea for a KM group or event?</strong>
-              </li>
-              <li>
-                <strong>Are you interested in planning or sustaining a group?</strong>
-              </li>
-            </ul>
-            <p>
-              We are here to help you get started, stay rooted in the living Dharma, and strengthen
-              RIM&rsquo;s mission and vision. We will support you and the group as it is
-              established, grows, and meets challenges.
-            </p>
-            <p>
-              <em>
-                Starting a Kalyana Mitta Group is a true act of generosity. On behalf of everyone at
-                RIM, thank you!
-              </em>
-            </p>
+            <p>Tell us the purpose of your group, who it would serve, and who might facilitate with you. The coordinator will discuss how the idea fits RIM before you make further plans.</p>
+            <p>You do not need a finished plan to begin the conversation. For questions before using the form, email <a href="mailto:KalyanaMitta@rootedinmindfulness.org">KalyanaMitta@rootedinmindfulness.org</a>.</p>
           </div>
 
           <div className="pp-actions pp-actions--center">
@@ -102,15 +76,13 @@ export default async function KalyanaApplicationPage({
             <div className="pp-notice">
               <p className="pp-notice__title">You&rsquo;ll need an account for this form</p>
               <p className="pp-notice__body">
-                RIM community members are welcome to create a new Kalyana Mitta group. Membership is
-                freely offered. Create an account or sign in, then return to this page and the form
-                will be here.
+                Membership is freely offered. Create an account or sign in to return to this proposal form.
               </p>
               <div className="pp-actions">
-                <Link href="/join" className="pp-btn">
+                <Link href="/join?returnTo=%2Fkalyana-mitta%2Fkalyana-mitta-group-application" className="pp-btn">
                   Become a member
                 </Link>
-                <Link href="/login" className="pp-link">
+                <Link href="/login?returnTo=%2Fkalyana-mitta%2Fkalyana-mitta-group-application" className="pp-link">
                   I already have an account <span aria-hidden="true">→</span>
                 </Link>
               </div>

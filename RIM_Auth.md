@@ -238,3 +238,7 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 ## Newcomer return paths (2026-09-26)
 
 Public program and volunteer links pass `returnTo` through login/join, their soft redirects, code entry and resend. `lib/authReturn.ts` only allows program detail/registration slugs and the volunteer page; everything else becomes My Home. The code callback goes through `/account/return?to=…`, within the authenticated route group and with explicit session/agreement/archive checks before redirecting. No email templates or auth tokens changed. Email-button cross-device flows, verification-error restarts, and welcome/reactivation detours retain the existing My Home destination.
+
+### Newcomer return-flow follow-through (2026-09-26)
+
+`/account/return` now lives outside `(authenticated)` and explicitly applies all auth, agreement and archive gates while carrying the allowlisted destination. Welcome and reactivation return through that route. Login/resend/join set Auth.js `redirectTo`; the code email retains the safe destination in its existing button URL, including across devices. Error retry recovers it from the Auth.js callback cookie. No email-template body or code-consumption behavior changed. Group proposals join the narrow allowlist. Offline regression: `node scripts/check-newcomer-flow.cjs`.

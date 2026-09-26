@@ -1,3 +1,4 @@
+import { authReturnPath } from "@/lib/authReturn";
 import { Resend } from "resend";
 import { portableTextToMarkdown } from "@/lib/portableTextEmail";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
@@ -1482,10 +1483,12 @@ export async function sendSignInCodeEmail({
   to,
   code,
   isNewUser,
+  returnTo,
 }: {
   to: string;
   code: string;
   isNewUser: boolean;
+  returnTo?: string;
 }): Promise<void> {
   // "Sign me in from this device": opens the code page with the code already
   // filled in. It deliberately does NOT sign in on its own. Mail security
@@ -1493,7 +1496,7 @@ export async function sendSignInCodeEmail({
   // up the single-use code before the member ever clicked. The member taps
   // Sign in on the page, so a scanner's visit changes nothing.
   const signInUrl =
-    `${BASE_URL}/login/check-email?email=${encodeURIComponent(to)}&code=${encodeURIComponent(code)}`;
+    `${BASE_URL}/login/check-email?email=${encodeURIComponent(to)}&code=${encodeURIComponent(code)}&returnTo=${encodeURIComponent(authReturnPath(returnTo))}`;
   try {
     await sendTemplatedEmail(
       isNewUser ? "sign-in-code-new-user" : "sign-in-code-returning",

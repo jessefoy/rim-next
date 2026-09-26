@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { buildSubtitle, hasConcludedOneTime, participationLabel } from "@/lib/programUtils";
+import { buildSubtitle, hasConcludedOneTime, participationLabel, programGivingSummary } from "@/lib/programUtils";
 
 export default async function GuidedPractice() {
   const programs = await db.program.findMany({
@@ -21,6 +21,8 @@ export default async function GuidedPractice() {
           <Link href={`/programs/${program.slug}`}>{program.name}</Link>
           <span>{buildSubtitle(program)}</span>
           <span>{participationLabel(program)}</span>
+          {(programGivingSummary(program) || program.danaText) && <span>{programGivingSummary(program) || program.danaText}</span>}
+          <Link href="/new-to-rim#in-person">Arrival and access details</Link>
         </li>
       ))}
     </ul>

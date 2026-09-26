@@ -1,11 +1,17 @@
+import { cookies } from "next/headers";
+import { authReturnPath, authReturnFromCallback } from "@/lib/authReturn";
 export const metadata = { title: "Sign In Error — Rooted In Mindfulness" };
 
 export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; returnTo?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, returnTo: requestedReturn } = await searchParams;
+  const jar = await cookies();
+  const callback = jar.get("__Secure-authjs.callback-url")?.value ?? jar.get("authjs.callback-url")?.value;
+  const returnTo = requestedReturn === undefined ? authReturnFromCallback(callback) : authReturnPath(requestedReturn);
+  const query = `returnTo=${encodeURIComponent(returnTo)}`;
   let message = "An error occurred during sign in. Please try again.";
   if (error === "Verification") {
     message = "That code is invalid or has expired. Please request a new one.";
@@ -30,10 +36,10 @@ export default async function AuthErrorPage({
       <section className="pp-section pp-section--last">
         <div className="rim-container">
           <div className="pp-actions">
-            <a href="/login" className="pp-btn">
+            <a href={`/login?${query}`} className="pp-btn">
               Try again
             </a>
-            <a href="/join" className="pp-link">
+            <a href={`/join?${query}`} className="pp-link">
               Become a member <span aria-hidden="true">&rarr;</span>
             </a>
           </div>

@@ -134,3 +134,7 @@ Drift here is the classic failure: session 136's reviewer pass found three sites
 ### Custom-question labels (2026-09-26)
 
 Program Manager saves questions without the legacy Sanity `_key`. RegistrationForm and UpdateForm now derive per-instance DOM IDs with React `useId` plus question index, including removed-question answers on UpdateForm. Question labels remain the persisted `customFields` keys; no stored answers are renamed. Program and registration headers show required/voluntary giving from existing dana fields. The direct registration page also honors `registrationClosed`.
+
+### Newcomer review follow-through (2026-09-26)
+
+Recurring registration is explicitly per program, matching duplicate detection. Forms include a factual information-use note, native required/email validation, and error/status announcements. Offline tests exercise independent custom answers through the actual submit handler. The guarded `newcomer_followup_2026_09_26_v1` migration implements Jesse’s September 24 instruction: Awakening to the Beauty of This Moment, expected fixed $175 only, becomes voluntary with $175 suggested; historical transactions are unchanged. Actual payment/confirmation/Zoom journey remains an explicit live verification step.

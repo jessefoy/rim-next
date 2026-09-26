@@ -1,3 +1,4 @@
+import { authReturnPath, authCallbackPath } from "@/lib/authReturn";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -5,12 +6,13 @@ import WelcomeForm from "@/components/WelcomeForm";
 
 export const metadata = { title: "Welcome to RIM — Rooted In Mindfulness" };
 
-export default async function WelcomePage() {
+export default async function WelcomePage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
+  const returnTo = authReturnPath((await searchParams).returnTo);
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
 
   // If they've already agreed, send them on their way
-  if (session.user.agreedToTerms) redirect("/account/dashboard");
+  if (session.user.agreedToTerms) redirect(authCallbackPath(returnTo));
 
   // Pre-fill name/phone from DB in case they came through a registration
   const user = await db.user.findUnique({
@@ -45,6 +47,7 @@ export default async function WelcomePage() {
         </div>
 
         <WelcomeForm
+          returnTo={returnTo}
           isLegacy={isLegacy}
           defaultFirstName={user?.firstName ?? ""}
           defaultLastName={user?.lastName ?? ""}

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { authReturnPath, authCallbackPath } from "@/lib/authReturn";
 import { db } from "@/lib/db";
 
-export const metadata = { title: "Sign in — Rooted In Mindfulness" };
+export const metadata = { title: "Sign in — Rooted In Mindfulness", description: "Sign in to your RIM member account with a six-digit email code to find your gatherings and program registrations." };
 
 export default async function LoginPage({
   searchParams,
@@ -86,7 +86,7 @@ export default async function LoginPage({
     let signInResult: string | undefined;
     let signInThrew = false;
     try {
-      signInResult = await signIn("resend", { email: email!, redirect: false });
+      signInResult = await signIn("resend", { email: email!, redirect: false, redirectTo: authCallbackPath(returnTo) });
     } catch {
       signInThrew = true;
     }
@@ -146,7 +146,7 @@ export default async function LoginPage({
               </p>
             ) : null}
 
-            {errorMessage && <p className="pp-form__error">{errorMessage}</p>}
+            {errorMessage && <p role="alert" className="pp-form__error">{errorMessage}</p>}
 
             <form action={handleSignIn}>
               <div className="pp-form__field">
