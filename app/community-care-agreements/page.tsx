@@ -41,7 +41,7 @@ export default async function CommunityCareAgreementsPage() {
         };
 
   return (
-    <div className="pp-page cc-page">
+    <div className="pp-page pp-page--spine pp-page--column cc-page">
       <section
         className="pp-hero"
         style={{

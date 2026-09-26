@@ -34,7 +34,7 @@ export const metadata = {
  */
 export default function CarePage() {
   return (
-    <div className="pp-page pp-page--spine">
+    <div className="pp-page pp-page--spine pp-page--column">
       <section className="pp-hero pp-hero--flat">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">How we practice</p>
@@ -130,7 +130,10 @@ export default function CarePage() {
             <h2 id="remember">Remember</h2>
             <p>
               Remember is our reconnection with our greater nature. Caught in the ordinary mind, the
-              noise, we forget our wakeful nature; remembering finds it again. We also remember what
+              noise, we forget our wakeful nature; remembering finds it again.
+            </p>
+            <p>
+              We also remember what
               is important: our deeper intentions, our values, the wish to live without causing harm
               to ourselves, others, or the world, to bring benefit and well-being, and to help
               create the conditions for everyone to realize their own greater nature. We remember
@@ -161,7 +164,10 @@ export default function CarePage() {
               of our ordinary mind. It is caring for ourselves, for those we love, and for the
               world: understanding, caring, and acting from that place. It lets us meet healthy
               moments with joy, peace, love, and appreciation, and meet what challenges us in a way
-              that leaves us more awake and freer of harmful patterns. It is arranging the causes
+              that leaves us more awake and freer of harmful patterns.
+            </p>
+            <p>
+              It is arranging the causes
               and conditions, inside and out, through our speech, our actions, our lifestyle, and
               our relationships, so that this present-moment life improves and we can meet it
               fully. This is great action, great because it arises from the wakeful, liberated mind

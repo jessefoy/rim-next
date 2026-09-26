@@ -54,7 +54,7 @@ const QUESTIONS = [
 
 export default function NewToRimPage() {
   return (
-    <div className="pp-page pp-page--spine">
+    <div className="pp-page pp-page--spine pp-page--column">
       <section
         className="pp-hero"
         style={{

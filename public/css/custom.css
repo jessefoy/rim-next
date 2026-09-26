@@ -28580,6 +28580,95 @@ a.pp-card.tpr-card {
   text-align: center;
 }
 
+/* ============================================================================
+   BALANCE PASS — 2026-09-26
+   ============================================================================
+   Jesse: pages were "not balanced", boxes or sections did not "fill their
+   area", button labels wrapped awkwardly. Measured across 22 public pages at
+   375 / 768 / 1024 / 1280 / 1440 before changing anything (iframe harness,
+   getBoundingClientRect + Range line counts). Appended as one block, before
+   the authenticated readability contract that must stay last. */
+
+/* 1. Reading pages sit in ONE centred column, hero copy included.
+   The s176 spine put the 700px reading column on the container's left edge,
+   which left 360px empty on the right of every reading page at 1280 (Jesse's
+   screenshot of /new-to-rim). Centring the prose alone would bring back the
+   s174 drift (hero at 110, prose at 290, three left edges), so the hero copy
+   moves into the same column: one left edge AND a balanced page. Opt-in per
+   page with `.pp-page--column`, worn alongside `--spine`, whose margin rules
+   keep every block on the column's edge. Pages whose content genuinely fills
+   the container (home, donate, the listings, KM groups, teacher profiles)
+   stay on the full container. The column is the reading measure plus the
+   container's own 40px gutters, so its content box is exactly
+   --reading-width. */
+.pp-page--column .rim-container {
+  max-width: calc(var(--reading-width) + 80px);
+}
+
+/* A photographic hero's gradient darkens from the left for left-set copy;
+   centred copy sits over the lighter middle. Column pages take the flat 88%
+   scrim the phone layout already uses and that was measured to carry the
+   95%/85% white tiers at AA (s169/s170). */
+.pp-page--column .pp-hero::before {
+  background: color-mix(in srgb, var(--rim-blue) 88%, transparent);
+}
+
+/* In a 700px column the closing panel's two-column grid squeezed its button
+   to 210px and wrapped the label ("This week's schedule →" on two lines).
+   One column: words, then the button beneath at its natural width. */
+.pp-page--column .pp-closing {
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 26px;
+}
+.pp-page--column .pp-closing__link { width: auto; justify-self: start; }
+
+/* 2. On full-container spine pages the closing panel fills its area.
+   It was capped at 900px and left-aligned, so it stopped 160px short of the
+   container on home and the KM groups page. */
+.pp-page--spine:not(.pp-page--column) .pp-closing { max-width: none; }
+
+/* 3. Button labels stay on one line wherever there is room for them. On
+   phones a long label ("Need help determining an amount to give?") may still
+   need two lines; balance them instead of stranding a word. */
+.pp-btn { text-wrap: balance; }
+@media (min-width: 560px) {
+  .pp-btn { white-space: nowrap; }
+}
+
+/* 4. No stranded last words. `balance` for headings and short lines,
+   `pretty` for running text (progressive: ignored where unsupported). */
+.pp-hero__title,
+.pp-hero__body,
+.pp-intro__title,
+.pp-closing__title,
+.pp-card__title,
+.pl-card__title,
+.pp-prose h2,
+.pp-prose h3 { text-wrap: balance; }
+.pp-intro__body,
+.pp-closing__body,
+.pp-prose p,
+.pp-card__body { text-wrap: pretty; }
+
+/* Consecutive closing paragraphs had no space between them (margin: 0 on
+   each), so "It matters how we live" read as one block. */
+.pp-closing__body + .pp-closing__body { margin-top: 16px; }
+
+/* The question summaries on /new-to-rim were 15px under 18px prose, smaller
+   than the answers they introduce. They are reading content: 18px. */
+.pp-details__summary { font-size: var(--text-body); }
+
+/* 5. Meta labels up from 11/12px to the 13px floor. Format chips ("Zoom
+   Only") and the Today pill carried real information at 11px, smaller than
+   anything else a visitor is asked to read. Eyebrows stay at 11px: they are
+   uppercase and tracked (they read larger), and their contrast tiers were
+   measured at that size. */
+.pl-page .pl-card--catalog .pl-card__format,
+.pl-page .pl-card--time .pl-card__format,
+.tw-today-pill,
+.cls-card__lessons { font-size: var(--text-xs); }
+
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).

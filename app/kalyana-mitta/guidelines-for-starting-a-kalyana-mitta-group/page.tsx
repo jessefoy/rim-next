@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function KMGuidelinesPage() {
   return (
-    <div className="pp-page pp-page--spine">
+    <div className="pp-page pp-page--spine pp-page--column">
       <section className="pp-hero pp-hero--flat">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Kalyana Mitta</p>
