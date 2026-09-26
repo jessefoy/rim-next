@@ -23,8 +23,10 @@ export const metadata = {
  * presented as secular in the Dalai Lama's sense and rooted in tradition,
  * bringing practice, not religion, into a host organization.
  *
- * Inquiries go to support@ by Jesse's instruction. [Verify] "RIM's outreach
- * fund": confirm it exists before the read-aloud ratifies this page.
+ * Inquiries go to support@ by Jesse's instruction. Cost (Jesse, 2026-09-26):
+ * organizations give by donation, as everyone at RIM does, and the outreach
+ * fund supports each program. RIM has offered programs with organizations
+ * before, so the page does not call the work new.
  */
 export default function OutreachPage() {
   return (
@@ -44,8 +46,8 @@ export default function OutreachPage() {
               We partner with nonprofits and community organizations whose work supports the
               well-being of individuals, communities, and our shared world. Taking CARE, our program
               of meditation and mindful living, can support the people these organizations serve,
-              and the people within them who carry that work every day. This work is new for us, and
-              we are beginning with a small number of partners.
+              and the people within them who carry that work every day. RIM has offered programs
+              with organizations before, and Taking CARE now carries that work forward.
             </p>
 
             <h2>Who we partner with</h2>
@@ -100,9 +102,21 @@ export default function OutreachPage() {
               seasons and works alongside medical and mental health care, never in place of it.
             </p>
 
+            <h2>Training in Taking CARE</h2>
+            <p>
+              We also train people to share this practice. If you would like to be trained to offer
+              Taking CARE, in your own organization or alongside us, we would be glad to hear from
+              you at{" "}
+              <a href="mailto:support@rootedinmindfulness.org?subject=Taking%20CARE%20training">
+                support@rootedinmindfulness.org
+              </a>
+              .
+            </p>
+
             <h2>Cost</h2>
             <p>
-              Each program is funded by the host organization or through RIM&rsquo;s outreach fund.
+              We ask partner organizations to give by donation, in the same way everyone at RIM
+              does, and our outreach fund supports each program as well.
             </p>
 
             <h2>Start a conversation</h2>

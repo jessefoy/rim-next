@@ -169,8 +169,8 @@ export default function WhyWePracticePage() {
               Care that takes root does not stop at our own door. It shows in how we treat a
               stranger, how we do our work, and what we make of the conditions around us. Some
               suffering comes from illness, poverty, isolation, or harm, and needs more than a
-              changed mind. Needing support is part of the path, and so is offering it. We are
-              beginning to help{" "}
+              changed mind. Needing support is part of the path, and so is offering it. We also
+              help{" "}
               <Link href="/outreach">
                 organizations bring this practice to the people they care for, and to their own
                 caregivers
