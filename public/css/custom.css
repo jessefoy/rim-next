@@ -29046,3 +29046,13 @@ a.pp-card.tpr-card {
 .pg-orientation { margin: 24px 0 32px; }
 .pl-catalog > .rim-container > .pp-prose { margin-bottom: 40px; }
 .pp-guided-practice a:last-child { font-size: 16px; }
+
+/* Keep the account shortcut clear of the 100px sticky navigation. */
+.jn-form__heading { scroll-margin-top: 124px; }
+.pp-form__help.rim-information-use {
+  margin: 16px 0 24px;
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}

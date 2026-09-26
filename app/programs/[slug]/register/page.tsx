@@ -146,7 +146,7 @@ export default async function RegisterPage({
                   </p>
                 </div>
               )}
-              {pgProgram.recurrenceFreq && <p className="pp-form__help">Registration is for this program. You do not need to submit a new registration for each scheduled session.</p>}
+              {pgProgram.recurrenceFreq && <p className="pp-form__help rim-information-use">Registration is for this program. You do not need to submit a new registration for each scheduled session.</p>}
               <RegistrationForm
                 program={program}
                 spotsRemaining={spotsRemaining}
