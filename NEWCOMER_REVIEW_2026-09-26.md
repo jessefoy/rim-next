@@ -59,7 +59,7 @@ Jesse requested completing everything possible and an honest accounting afterwar
 | 9.1 Page purposes | Done within scope | Distinct entry/teaching/roots/mission/conduct roles; canonical shared vision retained. |
 | 9.2 Material hardship | Done | Social/material/professional support acknowledged near suffering discussion. |
 | 9.3 CARE mission | Done | Named in canonical mission. |
-| 9.4 People/responsibility | Partial | Sourced Jesse bio and teacher/contact links. Present governance roles and other people need verified introductions. |
+| 9.4 People/responsibility | Partial | Sourced Jesse bio and teacher/contact links. Seven offering facilitators now have sourced introductions. Present governance roles and responsibilities still need confirmation. |
 | 9.5 Concerns | Partial | Dedicated concern section with support email and volunteer phone messages; readers can ask who handles a concern before sharing details. Independent alternative and response procedure still need RIM policy. |
 | 10.1 Giving arrangements | Partial | Setting-derived amounts and authorized voluntary retreat, consistent public wording. Teacher salary/fund arrangements and any exceptions require policy confirmation. |
 | 10.2 Funds and forms | Done | Funds distinguished, recurring giving distinct from membership; existing separate forms retained. |
@@ -134,3 +134,12 @@ The existing RIM site resolves several gaps that the earlier record prematurely 
 - [Nature Meditation 2026 season](https://www.rootedinmindfulness.org/programs/nature-meditation-km-group-2024): seasonal registration and email weather-cancellation communication.
 
 The `/impeccable` skill remains unavailable in the searched skill locations; direct checks are used without claiming to have run it. Real transactions, screen-reader/real-device checks, newcomer observation, privacy-policy and independent-concern decisions remain unpassed or unconfirmed.
+
+
+### Revision 11 deployment verification
+
+Implementation `3be05e9` is live. Public HTTPS checks confirmed 18 of 19 authored replacements immediately, the study category and required registration, retreat facilitator names, and sourced biographies. The nature weather paragraph was skipped because its bold label and sentence are stored separately. Repair `c2400e4` matches the sentence independently and avoids duplicating already-applied text when replaying the guarded migration. Live browser verification confirms the weather guidance now appears exactly once; all 19 intended replacements are accounted for.
+
+Browser review at 360px covered home, newcomer, About, Why, Our Roots, agreements, outreach, community groups at their established `/kalyana-mitta/community-groups-events` route, volunteer, directory, nature detail, and study detail/registration. No horizontal overflow was found. At 1280px, reviewed full home and retreat layouts. Nature portraits load and biographies compute to 18px. Arrival, facilitator and concern anchors land about 124px below the viewport top, clearing the 100px navigation. The study form consistently explains one program registration, shows voluntary giving and conduct-before-belief framing. Public editorial canonicals and staging noindex metadata remain correct. Final presentation cleanup reuses the existing RIM inline-link style in the gathering-facts card.
+
+TypeScript, focused lint, migration syntax and diff checks passed. Expanded offline regression checks pass, including a real formatted-label fixture, preservation of already-published text/editor revisions, category/facilitator guards, and unchanged CARE handout. No real registration, account, email, payment or Zoom transaction was performed. Enlarged-text, real-device, screen-reader and observed-newcomer checks remain unpassed; they are not implied by these browser checks.

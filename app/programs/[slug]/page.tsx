@@ -231,7 +231,7 @@ export default async function ProgramDetailPage({
                   {program.venue === "at-rim" && program.programFormat !== "virtual" && (
                     <span className="pg-detail-row__secondary">
                       Upstairs by stairs only; no elevator.{" "}
-                      <Link href="/new-to-rim#in-person">Entrance, parking, and access</Link>
+                      <Link href="/new-to-rim#in-person" className="pg-detail-cta__inline-link">Entrance, parking, and access</Link>
                     </span>
                   )}
                   {location.link && program.programFormat !== "virtual" && (
@@ -254,13 +254,13 @@ export default async function ProgramDetailPage({
             )}
           </div>
 
-          {hasFacilitators && <p>With {teacherNames.map((teacher) => teacher.name).join(", ")}. <a href="#program-facilitators">Facilitator details</a></p>}
-          {requiresPaymentToRegister && <p>If this amount is a barrier, <a href="mailto:support@rootedinmindfulness.org?subject=Program%20giving">contact RIM before registering</a> to discuss what may be possible.</p>}
+          {hasFacilitators && <p>With {teacherNames.map((teacher) => teacher.name).join(", ")}. <a href="#program-facilitators" className="pg-detail-cta__inline-link">Facilitator details</a></p>}
+          {requiresPaymentToRegister && <p>If this amount is a barrier, <a href="mailto:support@rootedinmindfulness.org?subject=Program%20giving" className="pg-detail-cta__inline-link">contact RIM before registering</a> to discuss what may be possible.</p>}
           {droppable && useBuiltInForm && <p>This is a drop-in. Registration is available, but is not needed to attend.</p>}
 
           {/* ── Context-aware next step — distinct from factual details. */}
           {!session?.user && droppable && program.programFormat !== "in-person" && (
-            <p>New to RIM? <Link href={`/join?returnTo=${encodeURIComponent(`/programs/${slug}`)}`}>Create a member account</Link> for Zoom access. There are no dues.</p>
+            <p>New to RIM? <Link href={`/join?returnTo=${encodeURIComponent(`/programs/${slug}`)}`} className="pg-detail-cta__inline-link">Create a member account</Link> for Zoom access. There are no dues.</p>
           )}
           <div className="pg-details-action">
                 {useBuiltInForm ? (
