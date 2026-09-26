@@ -1,12 +1,9 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { buildSubtitle, fmtLabel, hasConcludedOneTime } from "@/lib/programUtils";
+import { buildSubtitle, fmtLabel, hasConcludedOneTime, participationLabel, programLocationLabel } from "@/lib/programUtils";
 
-export const metadata = {
-  title: "Community Groups and Activities — Rooted In Mindfulness",
-  description:
-    "Community groups at RIM: practice meditation, explore shared interests, and support one another. Find a current group or propose an idea.",
-};
+export const metadata = publicPageMetadata("Community Groups and Activities — Rooted In Mindfulness", "Find a community group for shared practice, nature, movement, or recovery at RIM. See how to participate or propose a group.", "/kalyana-mitta/community-groups-events");
 
 export const dynamic = "force-dynamic";
 
@@ -71,14 +68,14 @@ export default async function KalyanaGroupsPage() {
           </div>
           <div className="pp-prose">
             <p>
-              <strong>Kalyana Mitta (KM)</strong> is a Pali term that loosely means &ldquo;supportive
-              friend.&rdquo; It refers to fellow travelers on the Dharma path who come together to
-              support each other&rsquo;s learning, meditation, and mindful living practice.
+              A shared activity gives us a place to practice CARE with other people. We learn to
+              listen, recognize our reactions, and respond with consideration. The friendships that
+              develop can support practice between meetings as well as during them.
             </p>
             <p>
-              KM groups and events connect us. They provide opportunities to study the Dharma, share
-              mindfulness and meditation experiences, and build meaningful friendships rooted in
-              shared interests and common intentions.
+              Groups have different purposes and expectations. Read the group’s page for its
+              activity, facilitators, location, and registration details. Some groups ask for a
+              continuing commitment or particular experience; you can ask about the fit before joining.
             </p>
           </div>
         </div>
@@ -119,7 +116,8 @@ export default async function KalyanaGroupsPage() {
                         )}
                         <div className="pp-card__meta">
                           {schedule && <span className="pp-card__schedule">{schedule}</span>}
-                          <span className="pp-card__format">{format}</span>
+                          <span className="pp-card__format">{programLocationLabel(group)}</span>
+                          <span className="pp-card__format">{participationLabel(group)}</span>
                         </div>
                       </div>
                       <span className="pp-card__action" aria-hidden="true">
@@ -164,6 +162,9 @@ export default async function KalyanaGroupsPage() {
             </Link>
           </div>
 
+          <div className="pp-prose">
+            <p>For an early question, email <a href="mailto:KalyanaMitta@rootedinmindfulness.org">KalyanaMitta@rootedinmindfulness.org</a>. You do not need a finished proposal to start a conversation.</p>
+          </div>
           <div className="pp-actions pp-actions--center">
             <Link
               href="/kalyana-mitta/guidelines-for-starting-a-kalyana-mitta-group"

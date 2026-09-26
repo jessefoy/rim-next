@@ -1,13 +1,10 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import { auth } from "@/auth";
 import { sendVolunteerInterestEmail } from "@/lib/email";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Volunteer — Rooted In Mindfulness",
-  description:
-    "Offer a gift of time and talent at Rooted In Mindfulness. Browse current volunteer needs or tell us about your interests.",
-};
+export const metadata = publicPageMetadata("Volunteer — Rooted In Mindfulness", "Help sustain the RIM community. Explore volunteering, share your interests and availability, or ask about time, training, and support before committing.", "/volunteerism/volunteer");
 
 export default async function VolunteerPage({
   searchParams,
@@ -62,8 +59,8 @@ export default async function VolunteerPage({
       <section className="pp-section pp-section--tight">
         <div className="rim-container">
           <div className="pp-prose">
-            <p>Volunteering is one way we practice care together. Offer what fits your time,
-              interests, and capacity; we can talk about the work before you make a commitment.</p>
+            <p>Volunteering brings CARE into the work of sustaining a community. Offer what fits your time,
+              interests, and capacity. Ask about the time involved, training, and support before making a commitment.</p>
             <p>Questions before signing up? Email{" "}
               <a href="mailto:support@rootedinmindfulness.org?subject=Volunteering">support@rootedinmindfulness.org</a>.
             </p>
@@ -136,6 +133,7 @@ export default async function VolunteerPage({
             </div>
           ) : (
             <form action={handleVolunteerForm} className="pp-form">
+              <p className="pp-form__help rim-information-use">This form sends your contact details and interests to RIM so volunteers can follow up about helping. Phone is optional. You can ask an initial question by email instead.</p>
               <div className="pp-form__row">
                 <div className="pp-form__field">
                   <label className="pp-form__label" htmlFor="firstName">
@@ -198,7 +196,7 @@ export default async function VolunteerPage({
 
               <div className="pp-form__field">
                 <label className="pp-form__label" htmlFor="interests">
-                  My interests and talents
+                  My interests, availability, and questions
                 </label>
                 <textarea
                   name="interests"

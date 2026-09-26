@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -13,18 +14,20 @@ export async function generateMetadata({
   const profile = await db.teacherProfile.findUnique({
     where: { slug },
     select: {
+      isPublic: true,
       bio: true,
       user: { select: { firstName: true, lastName: true, preferredName: true } },
     },
   });
-  if (!profile) return { title: "Teacher Not Found" };
+  if (!profile || !profile.isPublic) return { title: "Teacher Not Found", robots: { index: false, follow: false } };
   const name = [profile.user.preferredName || profile.user.firstName, profile.user.lastName]
     .filter(Boolean)
     .join(" ");
-  return {
-    title: `${name} — Rooted In Mindfulness`,
-    description: profile.bio?.slice(0, 160) || `Teachings by ${name} at Rooted In Mindfulness.`,
-  };
+  return publicPageMetadata(
+    `${name} — Rooted In Mindfulness`,
+    profile.bio?.slice(0, 160) || `Teachings by ${name} at Rooted In Mindfulness.`,
+    `/teachers/${slug}`,
+  );
 }
 
 /*

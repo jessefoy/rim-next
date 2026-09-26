@@ -8,7 +8,7 @@ import { categoryDisplayName } from "@/lib/programUtils";
 // Lineage terms live here for search, stated as RIM states them (Jesse,
 // 2026-09-25): a dharma community rooted in Chan silent illumination, not an
 // insight / vipassana center.
-export const metadata = publicPageMetadata("Rooted In Mindfulness \u2014 Meditation and Mindful Living in Brookfield", "Guided meditation, classes, and community in Brookfield, Wisconsin, and online. Explore CARE: learning to care for ourselves, one another, and the world, with roots in Buddhist practice.", "/");
+export const metadata = publicPageMetadata("Rooted In Mindfulness \u2014 Meditation and Mindful Living in Brookfield", "Guided meditation, classes, and community in Brookfield, Wisconsin, and online. Explore CARE: learning to care for ourselves, those we care about, and our shared world, with roots in Buddhist practice.", "/");
 
 export const dynamic = "force-dynamic";
 
@@ -33,43 +33,6 @@ export const dynamic = "force-dynamic";
  * the ground; "Practice for real life" sits on white with its six items in
  * borderless Pampas insets (particulars, not destinations, so no shadow).
  */
-
-// The eight lines are the program-description draft's compressions of the
-// handout, provisional until Jesse writes his own (his critical path).
-const CARE_PAIRS = [
-  {
-    slug: "calm",
-    title: "Calm and Connect",
-    lines: [
-      "Calm is an invitation to ease in body, heart, and mind.",
-      "Connect is showing up to this moment as it is, through the senses.",
-    ],
-  },
-  {
-    slug: "aware",
-    title: "Aware and Attitude",
-    lines: [
-      "Aware is the clear knowing that is always available.",
-      "Attitude is meeting experience with warmth and curiosity.",
-    ],
-  },
-  {
-    slug: "recognize",
-    title: "Recognize and Remember",
-    lines: [
-      "Recognize is knowing what is here and seeing it honestly.",
-      "Remember is reconnecting with our greater nature and what matters most.",
-    ],
-  },
-  {
-    slug: "embody",
-    title: "Embody and Engage",
-    lines: [
-      "Embody is making the practice part of who we are.",
-      "Engage is caring for ourselves, others, and the world, and acting from that place.",
-    ],
-  },
-] as const;
 
 // What the practice helps us meet, told as particulars (Jesse, 2026-09-25:
 // "as a friend, as a truth, as a matter of fact", without dwelling).
@@ -154,8 +117,8 @@ export default async function HomePage() {
           </h1>
           <p className="pp-hero__body">
             Rooted in Mindfulness is a meditation community in Brookfield, Wisconsin, near Milwaukee,
-            with gatherings at our center and online. We practice taking care of ourselves, one
-            another, and our shared world. No meditation experience or religious belief is needed
+            with gatherings at our center and online. Through CARE, our shared approach, we learn to care for ourselves, those we care
+            about, and our shared world. No meditation experience or religious belief is needed
             to begin. Come as you are.
           </p>
           <div className="pp-hero__actions">
@@ -189,17 +152,10 @@ export default async function HomePage() {
           <div className="pp-intro">
             <h2 className="pp-intro__title">What brings us together</h2>
             <p className="pp-intro__body">
-              People come to RIM for many reasons: a hard season, a wish to live and enjoy life more
-              fully, a longing for something real, or love for someone they want to show up for
-              better. What we share is one intention. Something clear and caring is already within
-              each of us, and we practice to live from it more of the time: more awake and present,
-              freer of what binds us, understanding with greater wisdom, caring with kindness and
-              compassion, and acting from both, for the benefit of ourselves, those we care
-              about, and our shared world.
-            </p>
-            <p className="pp-intro__body">
-              This is practice for real life, and it asks something real of us, because it matters.
-              No one can do it for us, and no one has to do it alone.
+              People come for relief in a hard season, for the company of others, or to understand
+              their lives more fully. We share an intention: to see more clearly, meet life with
+              kindness, and let that understanding shape how we act. There is room to begin with
+              one visit and to keep learning through years of practice.
             </p>
           </div>
           <div className="pp-actions">
@@ -248,56 +204,31 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Our practice is taking care — words left, the circle's four quarters
-             right (never called pairs: that is teacher-side architecture).
-             The practice is shown before it is named: the acronym arrives in
-             the last line (experience before the name). ── */}
+      {/* CARE is the shared practice; the handout carries the fuller teaching. */}
       <section className="pp-section">
         <div className="rim-container">
-          <div className="pp-split pp-split--doors pp-split--doors-left">
-            <div className="pp-split__body">
-              <div className="pp-intro">
-                <p className="pp-intro__eyebrow">Our practice</p>
-                <h2 className="pp-intro__title">Our practice is taking care.</h2>
-                <p className="pp-intro__body">
-                  Eight words describe that one practice from eight sides. They are not steps, and
-                  they are not ideas to master. In any moment all eight are present, and any one
-                  of them is a way in.
-                </p>
-                <p className="pp-intro__body">
-                  They are simple enough to begin with today, and there is enough in them for a
-                  lifetime of practice. Each can be practiced within ourselves, in relation to others,
-                  and in the wider world we are part of. We call this practice CARE.
-                </p>
-              </div>
-
-              <div className="pp-actions">
-                <Link href="/care" className="pp-btn">
-                  Taking Care: the eight words
-                </Link>
-              </div>
-            </div>
-
-            <div className="pp-doors">
-              {CARE_PAIRS.map((pair) => (
-                <Link
-                  key={pair.slug}
-                  href={`/care#${pair.slug}`}
-                  className="pp-card pp-card--row"
-                >
-                  <div className="pp-card__row">
-                    <div className="pp-card__main">
-                      <h3 className="pp-card__title">{pair.title}</h3>
-                      {pair.lines.map((line) => (
-                        <p key={line} className="pp-card__body">
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+          <div className="pp-prose">
+            <h2>Our practice is taking care.</h2>
+            <p>
+              CARE gives us a shared way to explore meditation and mindful living. Its eight words
+              describe aspects of one practice: Calm, Connect, Aware, Attitude, Recognize, Remember,
+              Embody, and Engage. We learn their meaning through experience, and return to them as
+              our understanding grows.
+            </p>
+            <p>
+              In a difficult conversation, that might mean feeling our feet on the floor, recognizing
+              the urge to defend ourselves, and remembering that we want to understand the other
+              person. We can listen, ask a question, or set a boundary with care. When we lose touch
+              with the practice, recognizing that and returning is part of learning.
+            </p>
+            <p>
+              Guided meditation gives us time to explore this with support. Daily life gives us
+              opportunities to live it, for ourselves, those we care about, and our shared world.
+              The same practice can deepen throughout a lifetime.
+            </p>
+          </div>
+          <div className="pp-actions">
+            <Link href="/care" className="pp-btn">Explore CARE and its eight words</Link>
           </div>
         </div>
       </section>
@@ -323,19 +254,19 @@ export default async function HomePage() {
                 <p className="pp-intro__eyebrow">Where this comes from</p>
                 <h2 className="pp-intro__title">Deep roots. An open door.</h2>
                 <p className="pp-intro__body">
-                  RIM’s practice is rooted in Buddhist meditation, especially silent illumination
-                  from the Chan tradition. We teach through guided practice and inquiry, with
-                  psychology and mindfulness-based teaching informing how we share it.
+                  CARE draws on Buddhist meditation and wisdom. We learn through guided practice
+                  and experience, with room for questions and for people of every faith and of none.
                 </p>
                 <p className="pp-intro__body">
-                  People of every faith and of none are welcome to explore the full depth of the
-                  practice. Our Roots introduces the tradition and the teachings we draw on.
+                  A Handful of Leaves brings together the traditional teachings that inform CARE.
+                  Our Roots explains this relationship and the silent illumination tradition at the
+                  heart of our practice.
                 </p>
               </div>
 
               <div className="pp-actions">
                 <Link href="/our-roots" className="pp-btn">
-                  Our roots
+                  Explore our Buddhist roots
                 </Link>
                 <Link href="/about" className="pp-btn pp-btn--ghost">
                   About RIM
@@ -360,7 +291,9 @@ export default async function HomePage() {
                 <p className="pp-intro__body">
                   Explore the current offerings in our program directory. Weekly gatherings support
                   regular practice; longer offerings allow more time for study and meditation.
-                  Each program explains how to take part.
+                  Each program explains how to take part. Foundations of Mindful Living is a planned
+                  introduction to CARE; while it is being prepared, our weekly gatherings offer a
+                  place to begin and continue learning.
                 </p>
               </div>
 
@@ -439,7 +372,7 @@ export default async function HomePage() {
                 </p>
                 <p className="pp-intro__body">
                   The tradition calls this <em>dana</em>, generosity of heart. We ask everyone to
-                  give something, in whatever form is possible: money, time, care, or sincere
+                  offer what is possible: money, time, care, or sincere
                   presence. Generosity is a relationship. What you receive here was given by
                   someone, and what you give keeps the door open for the next person.
                 </p>

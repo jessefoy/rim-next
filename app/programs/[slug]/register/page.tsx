@@ -4,6 +4,7 @@ import Link from "next/link";
 import RegistrationForm, { RegistrationField } from "@/components/RegistrationForm";
 import { db } from "@/lib/db";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
+import { isOpenlyDroppable } from "@/lib/programKind";
 import { buildSubtitle, programGivingSummary } from "@/lib/programUtils";
 
 // Always show fresh data — this page is user-specific
@@ -13,6 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const p = await db.program.findUnique({ where: { slug }, select: { name: true } });
   return {
+    robots: { index: false, follow: false },
     title: p ? `Register — ${p.name} — Rooted In Mindfulness` : "Register",
   };
 }
@@ -25,7 +27,7 @@ export default async function RegisterPage({
   const { slug } = await params;
 
   const [pgProgram, session] = await Promise.all([
-    db.program.findUnique({ where: { slug } }),
+    db.program.findUnique({ where: { slug }, include: { category: true } }),
     auth(),
   ]);
 
@@ -105,6 +107,7 @@ export default async function RegisterPage({
     ? "Join the Waitlist"
     : "Register";
   const scheduleLabel = buildSubtitle(pgProgram);
+  const optionalRegistration = isOpenlyDroppable(pgProgram.category?.kind, pgProgram.registrationEnabled);
 
   return (
     <div className="rg-page">
@@ -128,6 +131,7 @@ export default async function RegisterPage({
       {/* ── Content ── */}
       <div className="rg-content">
         <section className="rg-card">
+          {optionalRegistration && <p>Registration is optional for this drop-in. You can also <Link href={`/programs/${slug}`}>return to the program page for ways to attend</Link>.</p>}
           {showAlreadyRegistered ? (
             <div className="rg-already">
               <h2>You&rsquo;re already registered.</h2>
@@ -146,7 +150,7 @@ export default async function RegisterPage({
                   </p>
                 </div>
               )}
-              {pgProgram.recurrenceFreq && <p className="pp-form__help rim-information-use">Registration is for this program. You do not need to submit a new registration for each scheduled session.</p>}
+              {pgProgram.recurrenceFreq && <p className="pp-form__help rim-information-use">{slug === "nature-meditation-km-group" ? "Register once for this program’s listed season. You do not need to register again for each scheduled walk." : "Registration is for this program. You do not need to submit a new registration for each scheduled session."}</p>}
               <RegistrationForm
                 program={program}
                 spotsRemaining={spotsRemaining}

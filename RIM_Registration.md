@@ -138,3 +138,7 @@ Program Manager saves questions without the legacy Sanity `_key`. RegistrationFo
 ### Newcomer review follow-through (2026-09-26)
 
 Recurring registration is explicitly per program, matching duplicate detection. Forms include a factual information-use note, native required/email validation, and error/status announcements. Offline tests exercise independent custom answers through the actual submit handler. The guarded `newcomer_followup_2026_09_26_v1` migration implements Jesse’s September 24 instruction: Awakening to the Beauty of This Moment, expected fixed $175 only, becomes voluntary with $175 suggested; historical transactions are unchanged. Actual payment/confirmation/Zoom journey remains an explicit live verification step.
+
+### Newcomer participation wording (2026-09-26)
+
+Both detail and registration pages use isOpenlyDroppable for optional-registration language. True drop-ins with registration enabled expose a direct attendance/Zoom route as well as optional registration. Essential Dharma Study was imported as DROP_IN despite the existing public RIM page explicitly requiring one registration for the ongoing group. The guarded newcomer integration migration moves only that registration-enabled DROP_IN record to the existing Community Groups category, so existing labels and Zoom gates agree with the published policy. No new access algorithm or financial rule. Nature registration copy scopes one registration to its listed season.

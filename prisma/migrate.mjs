@@ -6203,6 +6203,57 @@ Rooted In Mindfulness · Brookfield, WI`,
     }
   }
 
+  // Authorized whole-review editorial integration. Only exact known text is
+  // amended. A narrow category correction below restores the published study
+  // group's one-time registration policy; financial and schedule settings stay intact.
+  {
+    const flag = "newcomer_integration_2026_09_26_v1";
+    const applied = await db.$queryRawUnsafe('SELECT name FROM "_migration_flags" WHERE name = $1', flag);
+    if (!applied.length) {
+      const { readFile } = await import("node:fs/promises");
+      const fixes = JSON.parse(await readFile(new URL("./newcomer-copy-integration-2026-09-26.json", import.meta.url), "utf8"));
+      const replaceText = (value, from, to) => {
+        if (typeof value === "string") return value.replaceAll(from, to);
+        if (Array.isArray(value)) return value.map(v => replaceText(v, from, to));
+        if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, replaceText(v, from, to)]));
+        return value;
+      };
+      await db.$transaction(async tx => {
+        for (const fix of fixes) {
+          const program = await tx.program.findUnique({ where: { slug: fix.slug } });
+          if (!program) { console.log(`  Skip integration copy: ${fix.slug} absent.`); continue; }
+          const data = {};
+          for (const field of fix.fields) {
+            const next = replaceText(program[field], fix.from, fix.to);
+            if (JSON.stringify(next) !== JSON.stringify(program[field])) data[field] = next;
+          }
+          if (!Object.keys(data).length) { console.log(`  Skip integration copy: ${fix.slug}, original text absent.`); continue; }
+          const result = await tx.program.updateMany({ where: { id: program.id, updatedAt: program.updatedAt }, data });
+          if (!result.count) throw new Error(`Program changed during integration migration: ${fix.slug}`);
+          console.log(`  Updated integration copy: ${fix.slug}.`);
+        }
+        // Published RIM study page requires one registration for the ongoing group.
+        // Correct the imported category only while its original mismatch remains.
+        const study = await tx.program.findUnique({ where: { slug: "essential-dharma-study" }, include: { category: true } });
+        if (study?.registrationEnabled && study.category?.kind === "DROP_IN") {
+          const groupCategory = await tx.programCategory.findFirst({ where: { name: "Community Groups", kind: "COMMUNITY_GROUP", hideFromProgramsPage: false } });
+          if (!groupCategory) throw new Error("Cannot restore study registration policy: Community Groups category missing");
+          const result = await tx.program.updateMany({ where: { id: study.id, updatedAt: study.updatedAt, categoryId: study.categoryId, registrationEnabled: true }, data: { categoryId: groupCategory.id } });
+          if (!result.count) throw new Error("Study changed during category correction");
+          console.log("  Essential Dharma Study: restored one-time registration through Community Groups category.");
+        }
+        const retreat = await tx.program.findUnique({ where: { slug: "awakening-to-the-beauty-of-this-moment" }, include: { programTeachers: true } });
+        const retreatCopy = JSON.stringify(retreat?.description ?? "");
+        if (retreat && !retreat.teacherFacilitators.length && !retreat.programTeachers.length && retreatCopy.includes("Pam Miller") && retreatCopy.includes("Amy Gardner")) {
+          const result = await tx.program.updateMany({ where: { id: retreat.id, updatedAt: retreat.updatedAt }, data: { teacherFacilitators: ["Pam Miller", "Amy Gardner"] } });
+          if (!result.count) throw new Error("Retreat changed during facilitator fill");
+          console.log("  Added retreat facilitator names from its existing public description.");
+        }
+        await tx.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+      });
+    }
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

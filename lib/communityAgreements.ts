@@ -86,7 +86,9 @@ export const RIM_MISSION =
 export const COMMUNITY_SHARED_VISION_TITLE = "Our Shared Vision";
 /** The frame is the vision, stated as why we come together. */
 export const COMMUNITY_AGREEMENTS_LEAD_IN =
-  "We come together because wakefulness, wisdom, and compassion are already " +
+  "These agreements ask for care and respectful conduct. You do not need to adopt " +
+  "Buddhist beliefs or agree with every teaching. Our shared vision guides the " +
+  "practice we explore together. We come together because wakefulness, wisdom, and compassion are already " +
   "within us, and because we want to live from them: to be more awake and " +
   "present in our lives, freer of what binds us to " +
   RIM_WHAT_BINDS +
@@ -96,8 +98,7 @@ export const COMMUNITY_AGREEMENTS_LEAD_IN =
   "are how we care for that " +
   "vision together. We ask every member to hold them, as directions and not " +
   "as grades, and we return to them as a practice: honestly, and with room " +
-  "to begin again. These are commitments to care and respectful conduct. " +
-  "You do not need to adopt Buddhist beliefs or agree with every teaching.";
+  "to begin again.";
 
 /**
  * Form-section lead rendered above the form fields on /join. Tells the

@@ -1,10 +1,7 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Outreach — Rooted In Mindfulness",
-  description:
-    "Taking CARE for organizations: Rooted in Mindfulness partners with nonprofits and community organizations working for the well-being of people, communities, and our shared world, supporting the people they serve and the people who carry their work. Voluntary, and offered with care.",
-};
+export const metadata = publicPageMetadata("Outreach — Rooted In Mindfulness", "Taking CARE for organizations: guided meditation and mindful living for the people you serve and those who carry your work. Explore a partnership with RIM.", "/outreach");
 
 /**
  * /outreach — partnership with organizations working for the well-being of
@@ -45,7 +42,8 @@ export default function OutreachPage() {
             <p>
               We partner with nonprofits and community organizations whose work supports the
               well-being of individuals, communities, and our shared world. Taking CARE, our program
-              of meditation and mindful living, can support the people these organizations serve,
+              of meditation and mindful living, shares the same CARE approach we practice in our
+              community. It can support the people these organizations serve,
               and the people within them who carry that work every day. RIM has offered programs
               with organizations before, and Taking CARE now carries that work forward.
             </p>
@@ -77,7 +75,8 @@ export default function OutreachPage() {
             <p>
               We begin with a conversation about your organization, your mission, and what you hope
               for. We shape the program with you: format, length, language, and examples adapt, and
-              the heart of the practice stays whole. Facilitators who live the practice as well as
+              CARE remains the shared foundation: learning to meet experience with awareness and
+              care, and to bring that understanding into how we act with others. Facilitators who live the practice as well as
               teach it lead the sessions, in person or online. Afterward we look back together at
               what served people, and plan what comes next.
             </p>
@@ -114,14 +113,17 @@ export default function OutreachPage() {
             <h2>Cost</h2>
             <p>
               We ask partner organizations to give by donation, in the same way everyone at RIM
-              does, and our outreach fund supports each program as well.
+              does, and our outreach fund supports each program as well. Include your budget and
+              any financial constraints in the first conversation so we can discuss what is possible.
             </p>
 
             <h2>Start a conversation</h2>
             <p>
               If your organization might be a fit, we would be glad to hear from you. Tell us a
               little about your organization, your mission, and the people you hope this could
-              support.
+              support. If you have a timeframe or a preference for meeting in person or online,
+              include that too. We can discuss the teaching, practical arrangements, and donation
+              together before a program is agreed.
             </p>
           </div>
 

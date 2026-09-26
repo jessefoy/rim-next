@@ -66,6 +66,11 @@ export default function NewToRimPage() {
           <p className="pp-hero__body">
             Where to begin, what to expect, and how to take part, in person or online.
           </p>
+          <div className="pp-hero__actions">
+            <a href="#where-to-begin" className="pp-btn pp-btn--onblue">Choose a first gathering</a>
+            <a href="#in-person" className="pp-hero__link">Arrival and access</a>
+            <a href="#online" className="pp-hero__link">Joining online</a>
+          </div>
         </div>
       </section>
 
@@ -87,7 +92,7 @@ export default function NewToRimPage() {
             </p>
             <GuidedPractice />
             <p>
-              Foundations is a planned introduction to CARE through guided meditation, teaching,
+              Foundations of Mindful Living is a planned introduction to CARE through guided meditation, teaching,
               reflection, and conversation. Dates and registration will appear in our{" "}
               <Link href="/community-programs">programs</Link> when scheduled. You can begin with
               a weekly gathering now.
@@ -95,20 +100,22 @@ export default function NewToRimPage() {
 
             <h2 id="community">Practicing together</h2>
             <p>
-              RIM is a community for learning and practice. Membership is freely offered, and nobody
-              keeps track of how often you come. You are welcome to practice in whatever way feels
-              comfortable: listening in the peace and safety of a supportive space, and taking a
-              more active part whenever it feels right. Some of us are more reserved and some share
-              more readily. Both help create a healthy container for learning and practice, and
-              everyone who comes with a sincere wish to practice, for their own benefit and for one
-              another&rsquo;s, is contributing to it. That is what community means here: learning
-              and practicing with like-minded people, each in our own way.
+              At RIM we explore <Link href="/care">CARE</Link>, our shared practice of meeting life
+              with attention and care. Meditation gives us time to recognize what is happening in
+              the body and mind, and to meet it with kindness. We carry that learning into how we
+              listen, respond, and care for the people and world around us.
+            </p>
+            <p>
+              You can take your time getting to know people. Some of us enjoy conversation; others
+              prefer to sit in silence. Both belong here. Membership has no attendance requirement.
+              Individual groups explain any shared discussion or ongoing commitment before you join.
             </p>
             <p>
               We ask one thing of everyone while they are with us: to hold our{" "}
               <Link href="/community-care-agreements">Community Care Agreements</Link>, a short
               shared vision and three agreements about caring for ourselves, one another, and RIM.
-              They are directions to hold, not requirements to be graded on.
+              These are commitments to care and respectful conduct. You do not need to agree with
+              every teaching or adopt Buddhist beliefs.
             </p>
 
             <h2 id="signing-up">Signing up</h2>
@@ -124,6 +131,18 @@ export default function NewToRimPage() {
             </p>
 
             <h2 id="in-person">Coming in person</h2>
+            <p>
+              The main entrance is on the south side of the building. You may park in any of the
+              parking lots around it. The center is reached by stairs; there is no elevator.
+              Restrooms are in our main hall and elsewhere in the building.
+            </p>
+            <p>
+              To discuss access needs before visiting, email{" "}
+              <a href="mailto:support@rootedinmindfulness.org?subject=Planning%20a%20visit">support@rootedinmindfulness.org</a>{" "}
+              or call <a href="tel:4148828932">(414) 882-8932</a>. The phone takes messages;
+              volunteers return calls. You can also take part in our online gatherings.
+            </p>
+
             <p>
               We are on the top floor of the building at{" "}
               <a href={RIM_MAPS_URL} target="_blank" rel="noopener noreferrer">
@@ -143,18 +162,6 @@ export default function NewToRimPage() {
               Volunteers can help you find the rooms and answer questions. Arriving a little early
               leaves time to settle in. Check the program page for arrival instructions and any
               conversation or sharing that is part of the gathering.
-            </p>
-
-            <p>
-              The main entrance is on the south side of the building. You may park in any of the
-              parking lots around it. The center is reached by stairs; there is no elevator.
-              Restrooms are in our main hall and elsewhere in the building.
-            </p>
-            <p>
-              To discuss access needs before visiting, email{" "}
-              <a href="mailto:support@rootedinmindfulness.org?subject=Planning%20a%20visit">support@rootedinmindfulness.org</a>{" "}
-              or call <a href="tel:4148828932">(414) 882-8932</a>. The phone takes messages;
-              volunteers return calls. You can also take part in our online gatherings.
             </p>
 
             <h2 id="first-gathering">Your first gathering</h2>

@@ -1,3 +1,4 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import { auth } from "@/auth";
 import Link from "next/link";
 import {
@@ -6,11 +7,7 @@ import {
   COMMUNITY_SHARED_VISION_TITLE,
 } from "@/lib/communityAgreements";
 
-export const metadata = {
-  title: "Community Care Agreements — Rooted In Mindfulness",
-  description:
-    "The shared vision and the care agreements that guide how members of Rooted In Mindfulness care for themselves, one another, and RIM.",
-};
+export const metadata = publicPageMetadata("Community Care Agreements — Rooted In Mindfulness", "How we care for ourselves, others, and the RIM community. Read our shared commitments and find a contact for questions or concerns.", "/community-care-agreements");
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +19,7 @@ export default async function CommunityCareAgreementsPage() {
   const closing = !isLoggedIn
     ? {
         title: "A place in this community is open to you.",
-        body: "If you can hold these intentions with us, we would be honored to have you.",
+        body: "You can create a member account while you are getting to know RIM. There are no dues or attendance requirements. We ask you to take part in a spirit of care and respect.",
         href: "/join#community-care-agreements",
         action: "Become a member",
       }
@@ -66,8 +63,9 @@ export default async function CommunityCareAgreementsPage() {
               <strong>{COMMUNITY_SHARED_VISION_TITLE}.</strong> {COMMUNITY_AGREEMENTS_LEAD_IN}
             </p>
             <p className="pp-intro__body">
-              And the care runs both ways. Held together, these intentions become the
-              refuge itself: a shelter we build and rest in at the same time.
+              These agreements bring CARE into our relationships: listening when someone speaks,
+              respecting a boundary, and taking responsibility when our actions cause harm.
+              They apply to how we care for one another while learning and practicing together.
             </p>
           </div>
 
@@ -84,6 +82,20 @@ export default async function CommunityCareAgreementsPage() {
               </li>
             ))}
           </ol>
+          <div className="pp-prose">
+            <h2 id="concerns">When something needs attention</h2>
+            <p>
+              If you feel uncomfortable, excluded, or harmed at RIM, you can raise a concern at
+              <a href="mailto:support@rootedinmindfulness.org?subject=A%20community%20concern"> support@rootedinmindfulness.org</a>
+              {" "}or call <a href="tel:4148828932">(414) 882-8932</a> and leave a message.
+              This is the center’s general contact, handled by volunteers.
+            </p>
+            <p>
+              You can begin by asking who would receive your concern and how it would be handled,
+              before deciding what personal details to share. You do not have to resolve a concern
+              directly with the person involved before contacting RIM.
+            </p>
+          </div>
         </div>
       </section>
 

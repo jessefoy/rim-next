@@ -1,25 +1,19 @@
 import Link from "next/link";
 
-const GUIDANCE: Record<string, string> = {
-  "nature-meditation-km-group": "A seasonal gathering from late spring through fall at Menomonee Park: about 75 minutes, with a slow walk, guided meditation, and reflection. Expect about 45 minutes of walking on uneven terrain. Practicing outdoors connects CARE with attention to our bodies, other people, and the natural world.",
-  "qigong-at-rim": "Slow movement, breathing, and body awareness offer another way to explore CARE. No previous qigong experience is needed. Contact RIM before joining to discuss movement or access needs.",
-  "good-morning-silent-meditation": "Brief opening guidance is followed by an unguided sit. Noble silence means sharing the practice without conversation. If you would like instructions as you meditate, begin with Meditation and Dharma Talk.",
-  "good-evening-silent-meditation": "Brief opening guidance is followed by an unguided sit. Noble silence means sharing the practice without conversation. If you would like instructions as you meditate, begin with Meditation and Dharma Talk.",
-  "the-art-of-meditation": "This gathering explores meditation practice and how it develops. Through CARE, we can notice how settling, awareness, and a kind attitude support one another while we sit and in daily life.",
-  "meditation-and-dharma-talk": "Recommended for your first visit. Guided meditation and a teaching offer a way to begin practicing CARE together. No previous meditation experience is needed.",
-  "awakening-the-heart": "The Monday gathering explores heart practices through meditation and conversation. These practices support CARE by helping us meet ourselves and other people with kindness, compassion, joy, and steadiness.",
-  "our-hearts-were-made-for-this": "The Sunday gathering includes 20–30 minutes of guided heart practice and a brief teaching. Equanimity means meeting change with steadiness and care. These heart practices help bring CARE into our relationships and daily responses.",
-};
-
+/** Participation guidance; each offering's own description connects practice with CARE. */
 export default function ProgramOrientation({ slug, recurringRegistration }: { slug: string; recurringRegistration: boolean }) {
-  const text = GUIDANCE[slug];
-  if (!text && !recurringRegistration) return null;
   const silent = slug === "good-morning-silent-meditation" || slug === "good-evening-silent-meditation";
+  const firstVisit = slug === "meditation-and-dharma-talk";
+  const nature = slug === "nature-meditation-km-group";
+  const recovery = slug === "recovery-dharma";
+  if (!silent && !firstVisit && !recovery && !recurringRegistration) return null;
   return (
     <div className="pp-prose pg-orientation">
-      {text && <p>{text}</p>}
-      {recurringRegistration && <p>Registration is for this program. You do not need to submit a new registration for each scheduled session.</p>}
-      {silent ? <p><Link href="/programs/meditation-and-dharma-talk">Explore guided meditation</Link></p> : text && <p><Link href="/new-to-rim#first-gathering">Planning your first visit</Link>{" · "}<Link href="/care">About CARE</Link></p>}
+      {firstVisit && <p>Recommended for your first visit. No previous meditation experience is needed. <Link href="/new-to-rim#first-gathering">See what to expect when you arrive</Link>.</p>}
+      {silent && <p>For guidance throughout your first meditation, try <Link href="/programs/meditation-and-dharma-talk">Meditation and Dharma Talk</Link>.</p>}
+      {recurringRegistration && nature && <p>Register once for this program’s listed season. You do not need to register again for each scheduled walk. Check the program page and your email for meeting details and weather updates.</p>}
+      {recurringRegistration && !nature && <p>Registration is for this program. You do not need to submit a new registration for each scheduled session. Check the program page for meeting details and notices. For an online session, sign in and open My Home for the link.</p>}
+      {recovery && <p>Joining online uses a RIM member account with your first and last name and email. Zoom uses the name you enter there or the name on your Zoom account. For questions about sharing, confidentiality, or names in this group, <a href="mailto:support@rootedinmindfulness.org?subject=Recovery%20Dharma%20participation">contact RIM before joining</a>.</p>}
     </div>
   );
 }

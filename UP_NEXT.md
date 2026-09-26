@@ -2,11 +2,11 @@
 
 Read first when opening RIM. Updated at closing, 2026-09-26. Full history belongs in `session-log.md`.
 
-## Newcomer assessment implementation (2026-09-26)
+## Newcomer review — whole-document implementation (2026-09-26)
 
-First pass live and browser-verified (`369b931`, `9591026`). Follow-through live and verified (`74c65dd`, `3439744`) completes practical program/group guidance, auth return detours, information-use notes, newsletter handling, schedule next start, SEO launch guards, and the previously authorized voluntary $175 retreat. See `NEWCOMER_REVIEW_2026-09-26.md` for the implementation, confirmed facts, remaining decisions, and verification. Jesse chose Meditation and Dharma Talk as the first visit and supplied entrance, parking, stairs-only access, restroom, and volunteer phone details. CARE keeps the handout intact with a short introduction only. Revisions 8–10 and addenda are appended to the canonical vault copy; still provisional for read-aloud. These decisions supersede the older arrival-information questions below.
+Revisions 8–10 completed the initial practical fixes and corrected CARE integration on Our Roots. Jesse then authorized the whole review in the same spirit. Revision 11 now carries CARE through the homepage, newcomer, About, Why, agreements, outreach, groups, giving, volunteering, and authored program descriptions. Home paired cards replaced with a concise everyday example; CARE handout/diagram and canonical vision/mission remain unchanged. Seven public facilitator bios and portraits recovered from the existing RIM site. Published Essential Dharma Study policy resolves the imported category mismatch: one registration for the ongoing group; nature seasonal registration/weather communication recovered too. See `NEWCOMER_REVIEW_2026-09-26.md` for exact sources, implementation, remaining operational facts, and checks. Copy saved to canonical vault before implementation, still provisional for read-aloud.
 
-Jesse then identified that Our Roots only introduced CARE instead of integrating it. Revision 10 rewrites the whole page around CARE as the shared, lifelong practice, with explicit connections to silent illumination and the teachings in A Handful of Leaves. The handout remains unchanged; this corrects the previous overstatement of completion.
+Remaining: fundraiser format/RSVP/attendance decisions; Foundations delivery; entrance/room images; program-specific access/adaptations/park fees; privacy and independent concern procedures; actual account/email/payment/Zoom transactions, real-device/screen-reader and newcomer observation. No new account, registration, email or payment submitted during this task. Deployment verification will be appended to the review record.
 
 ## Active — brief, handout, one vision, balanced reading pages (2026-09-26, live; awaiting Jesse's read-aloud)
 
@@ -17,7 +17,7 @@ Jesse then identified that Our Roots only introduced CARE instead of integrating
 **Waiting on Jesse:**
 - **The triad** in the vision ("unhealthy views, skills, and habits" as spoken; he is weighing "views, states, and habits", relatable and including actions). Holding phrase on the site: "unhealthy patterns of mind and action" (`RIM_WHAT_BINDS`, one edit).
 - Whether the **handout** takes "clarity" and "presence" and the Buddha nature gloss, so page and handout stay identical.
-- Whether home's CARE card titles ("Calm and Connect"…) still read as pairs (eight single-word cards is the alternative).
+- Home paired CARE cards were removed under the whole-document implementation authorization; the eight words now appear within a concise explanation and lived example.
 - Carried from the brief: Taking Care vs Taking CARE; the handout promise at signup; whether teachers receive no salary from RIM; the MBSR line (now on Our Roots only).
 - Earlier: arrival and access copy is now supplied (see newcomer review); the eight one-line word descriptions; Foundations format and dates (`2026-09-25-001`); whether the circle belongs anywhere besides `/care`.
 

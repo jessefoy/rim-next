@@ -1,9 +1,7 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 
-export const metadata = {
-  title: "Starting a Community Group — Rooted In Mindfulness",
-  description: "Plan a community group at RIM: its purpose, shared responsibilities, meeting choices, and how to propose it to the coordinator.",
-};
+export const metadata = publicPageMetadata("Starting a Community Group — Rooted In Mindfulness", "Plan a community group at RIM: its purpose, shared responsibilities, meeting choices, and how to propose it to the coordinator.", "/kalyana-mitta/guidelines-for-starting-a-kalyana-mitta-group");
 
 export default function KMGuidelinesPage() {
   return (
@@ -17,7 +15,7 @@ export default function KMGuidelinesPage() {
       </section>
       <section className="pp-section pp-section--last">
         <div className="rim-container"><div className="pp-prose">
-          <p>RIM community groups bring people together around meditation, study, recovery, service, or another shared interest in mindful living. They are also called Kalyana Mitta groups, meaning spiritual friendship.</p>
+          <p>RIM community groups bring people together around meditation, study, recovery, service, or another shared interest in mindful living. They support CARE through shared activity and the way members treat one another. In Buddhist tradition, this supportive friendship is called Kalyana Mitta.</p>
           <nav aria-label="In this guide"><ul>
             <li><a href="#propose">Propose a group</a></li>
             <li><a href="#responsibilities">Shared responsibilities</a></li>
@@ -29,7 +27,7 @@ export default function KMGuidelinesPage() {
           <h2 id="propose">Propose a group</h2>
           <ol>
             <li>Describe the purpose and who the group would serve. Decide what experience, if any, participants need.</li>
-            <li>Consider who will facilitate with you. RIM encourages facilitating in pairs so responsibility and support are shared.</li>
+            <li>Consider who will facilitate with you. Discuss the facilitation arrangement with the coordinator so responsibility and support are clear before the group begins.</li>
             <li>Send your idea to the coordinator before making further plans. The coordinator will discuss how it fits RIM’s <Link href="/about#vision">vision and mission</Link>.</li>
             <li>Work with the coordinator on the meeting arrangements and listing. Submitting a proposal does not by itself establish a RIM group.</li>
           </ol>
@@ -53,7 +51,7 @@ export default function KMGuidelinesPage() {
             <li><strong>Experience:</strong> Decide whether the group welcomes beginners or needs particular practice experience, and say so in its description.</li>
             <li><strong>Frequency and length:</strong> Groups may meet weekly, every two weeks, or monthly. Meetings generally last 1–3 hours.</li>
             <li><strong>Commitment:</strong> Consider a three- or six-month period of regular attendance, with room for travel, work, and unforeseen circumstances. Revisit the arrangement together afterward.</li>
-            <li><strong>Daily life:</strong> Choose reflections or practices people can explore between meetings and bring back to the group.</li>
+            <li><strong>Daily life:</strong> Choose reflections or practices people can explore between meetings and bring back to the group. Connect them with CARE and the group’s purpose.</li>
           </ul>
 
           <h2 id="format">A suggested meeting</h2>

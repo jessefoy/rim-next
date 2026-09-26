@@ -22,6 +22,7 @@ function loader(mocks = {}) {
       if (id === 'next/link') return { __esModule: true, default: ({ children, ...props }) => React.createElement('a', props, children) };
       if (id.startsWith('@/')) {
         const stem = id.slice(2);
+        if (stem.endsWith('.json')) return req('./' + stem);
         return load(stem + (fs.existsSync(path.join(root, stem + '.ts')) ? '.ts' : '.tsx'));
       }
       return req(id);
@@ -83,6 +84,83 @@ const marker = '            <p>\n              This is an introduction';
 assert(before.includes(marker) && after.includes(marker));
 assert.equal(after.slice(after.indexOf(marker)), before.slice(before.indexOf(marker)));
 async function main() {
+  // Public participation is rendered from the same kind rules as Zoom entry.
+  for (const [kind, optional] of [['DROP_IN', true], ['COMMUNITY_GROUP', false], ['RETREAT', false]]) {
+    const fixture = {
+      id: 'fixture', slug: 'fixture', name: 'Fixture', archivedAt: null,
+      category: { kind, name: 'Practice' }, programTeachers: [], teacherFacilitators: ['A facilitator'],
+      registrationEnabled: true, registrationCapacity: null, registrationClosed: false,
+      programFormat: 'hybrid', venue: 'at-rim', danaMode: 'voluntary', suggestedDana: 15,
+      startDatetime: new Date('2026-09-27T14:30:00Z'), endDatetime: new Date('2026-09-27T15:30:00Z'),
+      recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['SU'],
+    };
+    const pageLoad = loader({
+      '@/auth': { auth: async () => null },
+      '@/lib/db': { db: { program: { findUnique: async () => fixture } } },
+      '@/lib/renderRichContentServer': { renderContentBodyAsync: async () => '', renderFormattedTextAsync: async () => '' },
+      '@/components/RegistrationForm': { __esModule: true, default: () => React.createElement('div', null, 'Form') },
+    });
+    const Detail = pageLoad('app/programs/[slug]/page.tsx').default;
+    const detail = renderToStaticMarkup(await Detail({ params: Promise.resolve({ slug: 'fixture' }) }));
+    assert.equal(detail.includes('Registration is available, but is not needed to attend.'), optional);
+    assert.equal(detail.includes('Register (optional)'), optional);
+    assert.equal(detail.includes('Sign in to join on Zoom'), optional);
+    assert(detail.includes('Upstairs by stairs only; no elevator.'));
+    assert(detail.includes('A facilitator'));
+    const Register = pageLoad('app/programs/[slug]/register/page.tsx').default;
+    const registration = renderToStaticMarkup(await Register({ params: Promise.resolve({ slug: 'fixture' }) }));
+    assert.equal(registration.includes('Registration is optional for this drop-in.'), optional);
+  }
+  // The new migration preserves editor changes and operational fields, and only runs once.
+  {
+    const source = fs.readFileSync(path.join(root, 'prisma/migrate.mjs'), 'utf8');
+    const start = source.indexOf('  // Authorized whole-review editorial integration.');
+    const end = source.indexOf('  await db.$disconnect();', start);
+    const block = source.slice(start, end).replaceAll('import.meta.url', 'migrationUrl');
+    const run = new Function('db', 'migrationUrl', `return (async () => {${block}})()`);
+    const fixes = JSON.parse(fs.readFileSync(path.join(root, 'prisma/newcomer-copy-integration-2026-09-26.json'), 'utf8'));
+    const records = new Map();
+    for (const fix of fixes) {
+      const record = records.get(fix.slug) || { id: fix.slug, updatedAt: 1, registrationEnabled: true, danaMode: 'voluntary', privateNote: 'Preserve me', categoryId: 'drop-in', category: { kind: 'DROP_IN' }, teacherFacilitators: [], programTeachers: [] };
+      for (const field of fix.fields) record[field] = [...(record[field] || []), { text: fix.from }];
+      records.set(fix.slug, record);
+    }
+    // An editor has already replaced this description; it must survive.
+    records.get('awakening-to-the-beauty-of-this-moment').description.push({ text: 'Lovingly offered by Pam Miller and Amy Gardner' });
+    const edited = records.get('the-art-of-meditation'); edited.description = '<p>Editor revision</p>';
+    let applied = false, count = 0;
+    const db = {
+      $queryRawUnsafe: async () => applied ? [{ name: 'flag' }] : [],
+      $executeRawUnsafe: async () => { applied = true; },
+      $transaction: async fn => fn(db),
+      programCategory: { findFirst: async () => ({ id: 'community-groups' }) },
+      program: {
+        findUnique: async ({ where }) => records.get(where.slug),
+        updateMany: async ({ where, data }) => {
+          const item = records.get(where.id); assert.equal(item.updatedAt, where.updatedAt);
+          if (where.categoryId) assert.equal(item.categoryId, where.categoryId);
+          assert(Object.keys(data).every(key => ['description', 'tagline', 'categoryId', 'teacherFacilitators'].includes(key)));
+          Object.assign(item, data); count++; return { count: 1 };
+        },
+      },
+    };
+    const migrationUrl = require('node:url').pathToFileURL(path.join(root, 'prisma/migrate.mjs')).href;
+    const savedLog = console.log;
+    try {
+      console.log = () => {};
+      await run(db, migrationUrl);
+      assert(applied); assert(count > 0); assert.equal(edited.description, '<p>Editor revision</p>');
+      for (const fix of fixes.filter(f => f.slug !== edited.id)) for (const field of fix.fields) {
+        assert(JSON.stringify(records.get(fix.slug)[field]).includes(fix.to));
+        if (!fix.to.includes(fix.from)) assert(!JSON.stringify(records.get(fix.slug)[field]).includes(fix.from));
+      }
+      for (const record of records.values()) { assert.equal(record.registrationEnabled, true); assert.equal(record.danaMode, 'voluntary'); assert.equal(record.privateNote, 'Preserve me'); }
+      assert.equal(records.get('essential-dharma-study').categoryId, 'community-groups');
+      assert.deepEqual(records.get('awakening-to-the-beauty-of-this-moment').teacherFacilitators, ['Pam Miller', 'Amy Gardner']);
+      const firstCount = count; await run(db, migrationUrl); assert.equal(count, firstCount);
+    } finally { console.log = savedLog; }
+  }
+
   // Real return route: unauthenticated, welcome, archived and ordinary member.
   for (const [session, expected] of [
     [null, `/login?returnTo=${encodeURIComponent(destination)}`],
@@ -133,7 +211,7 @@ async function main() {
   // Run the actual guarded migration block against an in-memory database.
   const migration = fs.readFileSync(path.join(root, 'prisma/migrate.mjs'), 'utf8');
   const start = migration.indexOf('  // Finish the newcomer review.');
-  const end = migration.indexOf('  await db.$disconnect();', start);
+  const end = migration.indexOf('  // Authorized whole-review editorial integration.', start);
   assert(start > 0 && end > start);
   const block = migration.slice(start, end).replaceAll('import.meta.url', 'migrationUrl');
   const runMigration = new Function('db', 'migrationUrl', `return (async () => {${block}})()`);
@@ -163,7 +241,7 @@ async function main() {
       await runMigration(db, require('node:url').pathToFileURL(path.join(root, 'prisma/migrate.mjs')).href);
       assert(applied); assert.equal(retreat.danaMode, initialPrice === 175 ? 'voluntary' : 'fixed');
       if (initialPrice === 175) { assert.equal(retreat.suggestedDana, 175); assert.equal(retreat.danaFixedAmount, null); }
-      for (const fix of fixes) for (const field of fix.fields) { assert(!JSON.stringify(records.get(fix.slug)[field]).includes(fix.from)); }
+      for (const fix of fixes) for (const field of fix.fields) { if (!fix.to.includes(fix.from)) assert(!JSON.stringify(records.get(fix.slug)[field]).includes(fix.from)); }
       const beforeRepeat = updates;
       await runMigration(db, require('node:url').pathToFileURL(path.join(root, 'prisma/migrate.mjs')).href);
       assert.equal(updates, beforeRepeat);
@@ -203,6 +281,6 @@ async function main() {
       assert.equal(metadata.publicPageMetadata('Title','Description','/new-to-rim').alternates.canonical, url + '/new-to-rim');
     }
   } finally { if (oldURL === undefined) delete process.env.NEXTAUTH_URL; else process.env.NEXTAUTH_URL = oldURL; if (oldEnv === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = oldEnv; if (oldIndexing === undefined) delete process.env.RIM_PUBLIC_INDEXING; else process.env.RIM_PUBLIC_INDEXING = oldIndexing; }
-  console.log('PASS: all auth return gates, join callback, hostile destinations, CT/DST next starts, voluntary vs required dana, participation/place labels, registration/update label IDs and saved values, independent submitted custom answers, announced API failure, guarded/idempotent migration, native form validation, newsletter failure/retry/success cases, preview/production indexing, byte-identical CARE handout. No external messages or transactions.');
+  console.log('PASS: all auth return gates, join callback, hostile destinations, CT/DST next starts, voluntary vs required dana, participation/place labels, registration/update label IDs and saved values, independent submitted custom answers, announced API failure, guarded/idempotent migrations preserving editor changes, optional vs required registration rendering, center access facts, native form validation, newsletter failure/retry/success cases, preview/production indexing, byte-identical CARE handout. No external messages or transactions.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

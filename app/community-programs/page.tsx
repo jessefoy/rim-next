@@ -103,7 +103,15 @@ export default async function CommunityProgramsPage() {
         <div className="rim-container">
           <div className="pp-prose">
             <h2>Choosing a gathering</h2>
-            <p>For guidance as you meditate, start with Meditation and Dharma Talk. The morning and evening silent sits are unguided. The Art of Meditation explores meditation practice; Awakening the Heart and Our Hearts Were Made for This focus on heart practices. Community groups meet around a shared interest, and classes and retreats may ask for registration or a longer commitment.</p>
+            <p>Our gatherings explore CARE through meditation, study, and shared activity. You can begin with one gathering and find a rhythm that fits your life.</p>
+            <ul>
+              <li><strong>Guided practice:</strong> <Link href="/programs/meditation-and-dharma-talk">Meditation and Dharma Talk</Link> is our first-visit recommendation. The Art of Meditation offers instruction and questions; heart practices explore kindness and compassion.</li>
+              <li><strong>Silent practice:</strong> Morning and evening sits offer brief opening guidance followed by unguided meditation.</li>
+              <li><strong>Study:</strong> Essential Dharma Study explores Buddhist teachings through discussion and practice.</li>
+              <li><strong>Community groups:</strong> Practice around a shared interest, such as nature, movement, or recovery. Each group describes its approach and expectations.</li>
+              <li><strong>Retreats and events:</strong> Set aside more time for practice or gather for a community occasion. Check each offering’s location and registration details.</li>
+            </ul>
+            <p>Foundations of Mindful Living is a planned introduction to CARE. Dates and details will be listed here when scheduled; the gatherings below are available in the meantime.</p>
           </div>
           {categories.map((category) => {
             const categoryPrograms = programs.filter(

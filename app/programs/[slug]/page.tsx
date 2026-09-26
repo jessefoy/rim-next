@@ -1,3 +1,4 @@
+import publishedFacilitators from "@/data/public-facilitator-introductions.json";
 import { publicPageMetadata } from "@/lib/publicMetadata";
 import ProgramOrientation from "@/components/ProgramOrientation";
 import { db } from "@/lib/db";
@@ -7,7 +8,7 @@ import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
-import { programGivingSummary, participationLabel, buildSubtitle } from "@/lib/programUtils";
+import { programGivingSummary, participationLabel, buildSubtitle, categoryDisplayName } from "@/lib/programUtils";
 import { isOpenlyDroppable } from "@/lib/programKind";
 
 export const dynamic = "force-dynamic";
@@ -143,13 +144,20 @@ export default async function ProgramDetailPage({
   const showLocation = !!(locationLabel);
 
   // Use programTeachers (linked accounts) first, fall back to plain text
+  const introductions: Record<string, { bio: string; photoUrl: string }> = publishedFacilitators;
   const teacherNames = program.programTeachers.length > 0
-    ? program.programTeachers.map((pt) => ({
-      name: `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim(),
+    ? program.programTeachers.map((pt) => {
+      const name = `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim();
+      // An explicit profile visibility choice outranks the older public-site copy.
+      const published = pt.user.teacherProfile ? null : introductions[name];
+      return {
+        name,
+        bio: published?.bio ?? null,
         slug: pt.user.teacherProfile?.isPublic ? pt.user.teacherProfile.slug ?? null : null,
-        photoUrl: pt.user.teacherProfile?.isPublic ? pt.user.teacherProfile.photoUrl ?? null : null,
-      }))
-    : program.teacherFacilitators.map((name) => ({ name, slug: null, photoUrl: null }));
+        photoUrl: pt.user.teacherProfile?.isPublic ? pt.user.teacherProfile.photoUrl ?? null : published?.photoUrl ?? null,
+      };
+    })
+    : program.teacherFacilitators.map((name) => ({ name, slug: null, photoUrl: introductions[name]?.photoUrl ?? null, bio: introductions[name]?.bio ?? null }));
   const hasFacilitators = teacherNames.length > 0;
   const hasDescription = !!program.description;
   const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
@@ -167,7 +175,7 @@ export default async function ProgramDetailPage({
         <div className="pg-hero__inner">
           {program.category && (
             <Link href="/community-programs" className="pg-hero__eyebrow">
-              {program.category.name}
+              {categoryDisplayName(program.category.name)}
             </Link>
           )}
           <h1 className="pg-hero__title">{program.name}</h1>
@@ -220,6 +228,12 @@ export default async function ProgramDetailPage({
                 </span>
                 <span className="pg-detail-row__text">
                   <span>{locationLabel}</span>
+                  {program.venue === "at-rim" && program.programFormat !== "virtual" && (
+                    <span className="pg-detail-row__secondary">
+                      Upstairs by stairs only; no elevator.{" "}
+                      <Link href="/new-to-rim#in-person">Entrance, parking, and access</Link>
+                    </span>
+                  )}
                   {location.link && program.programFormat !== "virtual" && (
                     <a href={location.link} target="_blank" rel="noopener noreferrer" className="pg-detail-row__link">
                       Get directions ↗
@@ -239,6 +253,10 @@ export default async function ProgramDetailPage({
               </div>
             )}
           </div>
+
+          {hasFacilitators && <p>With {teacherNames.map((teacher) => teacher.name).join(", ")}. <a href="#program-facilitators">Facilitator details</a></p>}
+          {requiresPaymentToRegister && <p>If this amount is a barrier, <a href="mailto:support@rootedinmindfulness.org?subject=Program%20giving">contact RIM before registering</a> to discuss what may be possible.</p>}
+          {droppable && useBuiltInForm && <p>This is a drop-in. Registration is available, but is not needed to attend.</p>}
 
           {/* ── Context-aware next step — distinct from factual details. */}
           {!session?.user && droppable && program.programFormat !== "in-person" && (
@@ -265,7 +283,7 @@ export default async function ProgramDetailPage({
                     </Link>
                   ) : (
                     <Link href={`/programs/${slug}/register`} className="pg-detail-cta__link">
-                      Register →
+                      {droppable ? "Register (optional) →" : "Register →"}
                     </Link>
                   )
                 ) : droppable ? (
@@ -300,6 +318,16 @@ export default async function ProgramDetailPage({
                   <span className="pg-detail-cta__status">Registration isn&rsquo;t open yet.</span>
                 )}
           </div>
+          {droppable && useBuiltInForm && (
+            <p>
+              {program.programFormat !== "virtual" && "You may arrive in person without registering. "}
+              {program.programFormat !== "in-person" && (
+                <Link href={session?.user ? "/account/dashboard" : `/login?returnTo=${encodeURIComponent(`/programs/${slug}`)}`}>
+                  {session?.user ? "Go to My Home to join on Zoom" : "Sign in to join on Zoom"}
+                </Link>
+              )}
+            </p>
+          )}
         </section>
 
         <ProgramOrientation slug={program.slug} recurringRegistration={!!program.recurrenceFreq && program.registrationEnabled} />
@@ -329,7 +357,7 @@ export default async function ProgramDetailPage({
 
         {/* ── Facilitators section ── */}
         {hasFacilitators && (
-          <section className="pg-facilitators-section">
+          <section id="program-facilitators" className="pg-facilitators-section">
             <h2 className="pg-section-heading">Facilitators</h2>
             <div className="pg-facilitators">
               {teacherNames.map((t, i) => {
@@ -359,7 +387,16 @@ export default async function ProgramDetailPage({
                     <span>{t.name}</span>
                   </Link>
                 ) : (
-                  <span key={i} className="pg-facilitator">{t.name}</span>
+                  <div key={i} className="pg-facilitator-intro">
+                    <div className="pg-facilitator pg-facilitator--profile">
+                      {t.photoUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={t.photoUrl} alt="" width={56} height={56} loading="lazy" className="pg-facilitator__photo" />
+                      )}
+                      <span>{t.name}</span>
+                    </div>
+                    {t.bio && <p>{t.bio}</p>}
+                  </div>
                 );
               })}
             </div>

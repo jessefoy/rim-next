@@ -96,6 +96,7 @@ export default async function KalyanaApplicationPage({
             </div>
           ) : (
             <form action={handleApplication} className="pp-form">
+              <p className="pp-form__help rim-information-use">Your contact details and proposal are sent to RIM for review and follow-up. Describe how the group could support practice and care in daily life; personal information about potential participants is not needed.</p>
               <div className="pp-form__row">
                 <div className="pp-form__field">
                   <label className="pp-form__label" htmlFor="firstName">

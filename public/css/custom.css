@@ -29048,7 +29048,7 @@ a.pp-card.tpr-card {
 .pp-guided-practice a:last-child { font-size: 16px; }
 
 /* Keep the account shortcut clear of the 100px sticky navigation. */
-.jn-form__heading { scroll-margin-top: 124px; }
+.jn-form__heading, #program-facilitators { scroll-margin-top: 124px; }
 .pp-form__help.rim-information-use {
   margin: 16px 0 24px;
   color: var(--rim-text);
@@ -29056,3 +29056,8 @@ a.pp-card.tpr-card {
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
+
+/* Public facilitator introductions reuse RIM’s published portraits and reading scale. */
+.pg-facilitator-intro { flex-basis: 100%; }
+.pg-page .pg-facilitator-intro .pg-facilitator--profile { font-size: var(--text-body); }
+.pg-facilitator-intro p { margin: 0.75rem 0 1rem; }

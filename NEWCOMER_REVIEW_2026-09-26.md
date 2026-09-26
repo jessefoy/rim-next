@@ -1,6 +1,6 @@
 # Newcomer review implementation — September 26, 2026
 
-Jesse requested completing everything possible and an honest accounting afterward. This is the complete disposition of the attached review, including the first pass (`369b931`, `9591026`) and this follow-through. **The review is not wholly closed:** remaining operational facts and human/end-to-end checks are listed explicitly. Copy remains provisional for Jesse's read-aloud. Exact copy changes were saved first in canonical vault revisions 8–10. Revision 10 corrects the initially superficial integration of CARE on Our Roots, which Jesse identified after the first completion report.
+Jesse requested completing everything possible and an honest accounting afterward. This is the complete disposition of the attached review, including the first pass (`369b931`, `9591026`) and this follow-through. **The review is not wholly closed:** remaining operational facts and human/end-to-end checks are listed explicitly. Copy remains provisional for Jesse's read-aloud. Exact copy changes were saved first in canonical vault revisions 8–11. Revision 10 corrects the initially superficial integration of CARE on Our Roots, which Jesse identified after the first completion report.
 
 ## Confirmed direction
 
@@ -17,7 +17,7 @@ Jesse requested completing everything possible and an honest accounting afterwar
 | --- | --- | --- |
 | 1.1 Concrete homepage introduction | Done | Meditation, mindful living, location, online participation, and direct newcomer/schedule choices. |
 | 1.2 First visit earlier | Done | Recommended gathering appears early, with live facts and arrival link. Existing everyday examples and shared vision retained. |
-| 1.3 CARE acronym/four pairs | Superseded | Removed misleading initials explanation; no new four-pair doctrine. Existing home cards retained pending separate editorial decision. |
+| 1.3 CARE acronym/four pairs | Adapted | Homepage now names eight aspects in one shared practice and provides a lived example. Paired cards removed under Jesse’s whole-document editorial authorization; handout remains intact. |
 | 1.4 Homepage roots | Done | Shorter roots explanation links to full page. |
 | 1.5 Pathway categories | Done | Uses actual program categories; Foundations identified as planned, not a scheduled course. |
 | 1.6 Homepage closing | Done | Welcomes trying a gathering without long-term commitment. |
@@ -45,12 +45,12 @@ Jesse requested completing everything possible and an honest accounting afterwar
 | 7.4 Meditation and Dharma Talk | Done within facts | Explicit first recommendation, guided practice/teaching description and first-visit walkthrough. |
 | 7.5 Awakening the Heart | Done | Practical-first layout, plain heart qualities, Zoom account distinction, repeated notes welcome removed. |
 | 7.6 Our Hearts Were Made for This | Done | Equanimity gloss, plain qualities, Sunday format and distinction from Monday. |
-| 7.7 Essential Dharma Study | Partial | Reflects current drop-in/optional-registration configuration; explains one registration per program. Desired enrollment policy, advance reading, topic independence, and facilitator role need confirmation. |
-| 7.8 Nature group | Partial | Clear name, walk/season/duration/terrain first, duplicate Buddha opening removed, story quote lower, CARE connection, recurring enrollment. Weather, park fees, access specifics, and exact seasonal scheduling need organizer facts. |
+| 7.7 Essential Dharma Study | Mostly complete | Recovered published RIM policy: register once for the ongoing group; Jesse facilitates peer discussion, members support it in his absence, and it closes with lovingkindness practice. Corrected imported DROP_IN category to Community Groups under exact guards so participation and Zoom gates agree. Advance reading/topic independence remain unconfirmed. |
+| 7.8 Nature group | Partial | Clear name, walk/season/duration/terrain first, duplicate Buddha opening removed, story quote lower, CARE connection, recurring enrollment. Published 2026 source supplies seasonal registration and email weather cancellations, now restored. Park fees, access specifics, and schedule behavior beyond this season remain to verify. |
 | 7.9 Qigong | Partial | Scoped ability claim, movement/space requirements retained, CARE connection and recurring enrollment. Specific adaptations need the facilitator. |
-| 7.10 Recovery Dharma | Partial | Clear Buddhist identity and existing participation preserved. Group-specific confidentiality, sharing, recording practices need confirmation. |
-| 7.11 October retreat | Partial | Voluntary $175 suggestion implemented from prior authorization; amount shown before form. Existing meal details retained. Venue access, terrain, seating, restroom specifics, cancellation/refund policy, and Pam/Amy introductions need organizer facts. |
-| 7.12 Fundraiser | Open decision | No invented change to RSVP/required registration, in-person vs Zoom portions/times, attendance options, or unable-to-attend response. Existing contradictions still need organizer decisions. |
+| 7.10 Recovery Dharma | Partial | Clear Buddhist identity and existing participation preserved. Explains account identity vs Zoom display name from actual entry behavior. Group-specific confidentiality, sharing, and recording practices need confirmation. |
+| 7.11 October retreat | Partial | Voluntary $175 suggestion implemented from prior authorization; amount shown before form. Existing meal details retained. Published Pam/Amy introductions and portraits recovered and added; missing facilitator names filled from the existing description only when unassigned. Venue access, terrain, seating, restrooms, and cancellation/refund policy still need facts. |
+| 7.12 Fundraiser | Partial | Removed misleading drop-in marketing from tagline/body. Actual registration settings retained. RSVP policy, in-person/Zoom portions and times, attendance choices, and unable-to-attend response still require organizer decisions. |
 | 8.1 Account commitment | Done | No dues/attendance commitment; account-form shortcut. |
 | 8.2 Conduct vs belief | Done | Canonical agreements distinguish these across public and member surfaces. |
 | 8.3 Submission and return | Done in code; live transaction check pending | Email-code next step, recurring enrollment scope, return through signup/login/resend/email button/error/welcome/reactivation. Narrow local allowlist, all gates retained. |
@@ -60,14 +60,14 @@ Jesse requested completing everything possible and an honest accounting afterwar
 | 9.2 Material hardship | Done | Social/material/professional support acknowledged near suffering discussion. |
 | 9.3 CARE mission | Done | Named in canonical mission. |
 | 9.4 People/responsibility | Partial | Sourced Jesse bio and teacher/contact links. Present governance roles and other people need verified introductions. |
-| 9.5 Concerns | Partial | General support contact provided; independent alternative and actual response procedure need RIM policy. |
+| 9.5 Concerns | Partial | Dedicated concern section with support email and volunteer phone messages; readers can ask who handles a concern before sharing details. Independent alternative and response procedure still need RIM policy. |
 | 10.1 Giving arrangements | Partial | Setting-derived amounts and authorized voluntary retreat, consistent public wording. Teacher salary/fund arrangements and any exceptions require policy confirmation. |
 | 10.2 Funds and forms | Done | Funds distinguished, recurring giving distinct from membership; existing separate forms retained. |
 | 10.3 Nonfinancial generosity | Done | Time, care, presence, volunteering remain part of invitation. |
 | 11.1 Jesse teacher page | Done | Placeholder replaced only if empty, using previously published About facts. |
-| 11.2 Other facilitators/photos | Open facts | Need verified bios and permission; no invented credentials or photos. |
+| 11.2 Other facilitators/photos | Implemented from existing RIM publication | Seven concise introductions and existing portraits recovered from RIM’s public team pages. No new credentials or account roles assigned. Legacy named facilitators receive these introductions; linked profile visibility remains authoritative. Fresh entrance/room photos are still unavailable. |
 | 12.1–12.3 Outreach | Partial | Everyday CARE, inclusive beliefs, contact/training inquiry. Actual formats, duration, fees and current training dates need facts. |
-| 13.1 Group language | Done | Familiar language across landing, proposal and guide; Kalyana Mitta explained. |
+| 13.1 Group language | Done | Removed remaining Dharma-path/KM-first body copy; CARE and shared activity organize landing/proposal/guide. Group cards now show actual place and participation. |
 | 13.2 Proposal vs establishment | Done | Coordinator discussion before further plans; proposal not automatic establishment; email alternative and sign-in return. |
 | 13.3 Group guidelines | Done | Shorter navigable guide; responsibilities vs planning choices; confidentiality, equitable speech, boundaries, feedback, quarterly contact retained. |
 | 14.1 Volunteer inquiry | Partial | Email alternative before account. Typical commitments and training need role-specific facts. |
@@ -95,8 +95,8 @@ Jesse requested completing everything possible and an honest accounting afterwar
 
 ## Remaining work needing a person or a confirmed policy
 
-1. Reconcile the fundraiser; confirm Essential Dharma Study enrollment and teaching format.
-2. Supply Foundations delivery/dates, facilitator bios/photos, and offering-specific access, confidentiality, weather/fees, cancellation and adaptation details.
+1. Reconcile fundraiser formats/times, RSVP policy and response choices; confirm any advance reading or topic sequencing for Essential Dharma Study. Published study enrollment and facilitator roles have been recovered.
+2. Supply Foundations delivery/dates, entrance/room photos, and remaining offering-specific access, confidentiality, park fees, cancellation and adaptation details. Seven facilitator bios/portraits and nature weather communication were recovered from RIM’s existing publication.
 3. Approve privacy and concern-handling policies; clarify financial/outreach/volunteer specifics listed above.
 4. Perform actual account/email/registration/payment/Zoom tests with designated accounts and safe transaction arrangements; real-device/screen-reader checks; observe newcomers using the review's six questions without coaching.
 5. At the October 5 real-domain cutover, set and verify the canonical origin, indexing and sitemap, redirect plan, real sharing previews, and Stripe live configuration. This task does not perform an early domain or payment-mode cutover.
@@ -110,3 +110,27 @@ The visual pass found the new account shortcut heading landing behind the sticky
 Final presentation fix `3439744` is live. At 1280px and 360px, the account heading lands approximately 124px from the top, below the 100px navigation; the information-use note computes to 18px; neither viewport overflows. RIM Givebutter widget loaded, opened its one-time/monthly amount chooser, and closed with focus returning to its trigger. No amount, contact information, or payment was entered. This verifies opening/closing, not donation completion or receipts. Browser viewport override reset afterward.
 
 Verification for the Our Roots correction: `dd2acdb` is live. TypeScript, focused ESLint, diff checks, and existing newcomer regression checks passed, including the byte-identical CARE handout check. Live text and metadata match Revision 10. Full-page screenshots reviewed at 375px and 1280px; no horizontal overflow, centered 700px desktop reading column, and closing actions fit. Followed the Aware handout anchor and Meditation and Dharma Talk invitation successfully. Browser viewport restored.
+
+## Whole-document editorial integration — Revision 11
+
+Jesse authorized interpreting and implementing the review as a coherent whole. Reread the entire supplied review and all public page families, including the current descriptions of all 12 listed programs. The earlier checkbox pass left CARE prefixed onto older copy, specialist language in the group landing body, an absent concern route on the agreements page, and optional-registration labels paired with only a Register action.
+
+This pass shortens and reorganizes the home CARE explanation around a worked conversation example; keeps the six everyday examples; gives About and Why clear opening purposes; connects the newcomer, outreach, groups, volunteering and giving pages with lived CARE; places stairs-only access beside center program locations; brings facilitator names into decision information; carries CARE into the actual authored program descriptions and removes repetitive prefatory summaries. Shared vision and mission remain canonical. The conduct-versus-belief distinction now precedes the vision at every agreement threshold. Public metadata uses canonical/sharing/launch guards across the remaining editorial pages; private teacher metadata is suppressed. Protected CARE copy/diagram remain byte-identical.
+
+Program amendments use exact-text replacement and updatedAt guards, one-time flags and a transaction. All financial and schedule settings are unchanged. One deliberate category correction restores the study group’s already-published one-registration policy. Generic optional-registration guidance remains available for true drop-ins, including a direct way to join and a matching explanation on the form.
+
+### Recovered primary sources
+
+The existing RIM site resolves several gaps that the earlier record prematurely deferred to Jesse. These sources were read September 26, 2026; short bios omit stale relative dates and do not appoint people to new roles. Source URLs and original CDN portrait URLs are stored with the introductions in `data/public-facilitator-introductions.json`.
+
+- [Maria Sprecher](https://www.rootedinmindfulness.org/team/maria-sprecher)
+- [Sara Neall](https://www.rootedinmindfulness.org/team/sara-neall)
+- [Pam Miller](https://www.rootedinmindfulness.org/team/pam-miller)
+- [Amy Gardner](https://www.rootedinmindfulness.org/team/amy-gardner)
+- [Sam Scherer](https://www.rootedinmindfulness.org/team/sam-scherer)
+- [Kerry Thomas](https://www.rootedinmindfulness.org/team/kerry-thomas)
+- [Christine Jacobi](https://www.rootedinmindfulness.org/team/christine-jacobi)
+- [Essential Dharma Study](https://www.rootedinmindfulness.org/programs/essential-dharma-study): one registration, facilitator/peer roles, closing practice. The imported DROP_IN category contradicted this.
+- [Nature Meditation 2026 season](https://www.rootedinmindfulness.org/programs/nature-meditation-km-group-2024): seasonal registration and email weather-cancellation communication.
+
+The `/impeccable` skill remains unavailable in the searched skill locations; direct checks are used without claiming to have run it. Real transactions, screen-reader/real-device checks, newcomer observation, privacy-policy and independent-concern decisions remain unpassed or unconfirmed.

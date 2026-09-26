@@ -1,11 +1,8 @@
+import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 import { RIM_MISSION, RIM_VISION } from "@/lib/communityAgreements";
 
-export const metadata = {
-  title: "About RIM — Rooted In Mindfulness",
-  description:
-    "The vision and mission of Rooted in Mindfulness, a dharma community rooted in traditional Buddhist wisdom, in Brookfield, Wisconsin, and held by the people who practice here.",
-};
+export const metadata = publicPageMetadata("About RIM — Rooted In Mindfulness", "Meet the community behind Rooted in Mindfulness in Brookfield and online: our shared CARE practice, purpose, teachers, volunteers, and ways to get in touch.", "/about");
 
 /**
  * /about — what RIM is for, how it is held, and how it began (2026-09-25,
@@ -37,27 +34,38 @@ export default function AboutPage() {
       <section className="pp-section pp-section--last">
         <div className="rim-container">
           <div className="pp-prose">
+            <p>
+              Rooted in Mindfulness is a meditation community in Brookfield, Wisconsin, with
+              gatherings at our center and online. <Link href="/care">CARE</Link> is our shared
+              approach to learning and practice. We gather to understand our experience and bring
+              greater care into our lives, relationships, and the world around us.
+            </p>
             <h2 id="vision">Our vision</h2>
             <p>{RIM_VISION}</p>
 
             <h2 id="mission">Our mission</h2>
             <p>{RIM_MISSION}</p>
 
-            <h2>Held by a community</h2>
+            <h2>People and responsibility</h2>
             <p>
-              RIM is a nonprofit, and it is held by the people who practice here. Members sustain it
-              through <Link href="/donate">dana</Link>.{" "}
-              <Link href="/volunteerism/volunteer">Volunteers</Link> greet newcomers, host our online
-              gatherings, and look after the center and its teams. Our teachers offer what they have learned, and all of us
-              hold the same <Link href="/community-care-agreements">care agreements</Link>. No one
-              person or building holds it up.
+              Our founding teacher, <Link href="/teachers/jesse-foy">Jesse Foy</Link>, teaches
+              meditation and mindful living. Other teachers and community facilitators lead the
+              offerings listed in our <Link href="/community-programs">program directory</Link>.
+              Each program names the people guiding it and describes the practice they offer.
             </p>
-
             <p>
-              Our <Link href="/teachers">teachers</Link> guide practice; community members volunteer
-              to host gatherings and care for the center. For questions about RIM or to raise a
-              concern, email <a href="mailto:support@rootedinmindfulness.org">support@rootedinmindfulness.org</a>{" "}
-              or call <a href="tel:4148828932">(414) 882-8932</a> and leave a message.
+              Volunteers welcome people, host online gatherings, and look after the center.
+              Members support this nonprofit through <Link href="/donate">generosity</Link>,
+              including time and care as well as financial gifts. Our
+              <Link href="/community-care-agreements"> Community Care Agreements</Link> guide
+              how we take part together.
+            </p>
+            <p>
+              For questions about the community or to raise a concern, contact
+              <a href="mailto:support@rootedinmindfulness.org"> support@rootedinmindfulness.org</a>
+              {" "}or call <a href="tel:4148828932">(414) 882-8932</a> and leave a message.
+              The center is volunteer-operated. See our
+              <Link href="/community-care-agreements#concerns"> guidance for raising a concern</Link>.
             </p>
 
             <h2>How we began</h2>
@@ -73,9 +81,9 @@ export default function AboutPage() {
               A center of our own gave people somewhere not only to learn to meditate but to keep
               practicing together. Over the years that room became a community: sittings,
               friendships, classes, retreats, and the slow exploring of a contemplative life. Our
-              roots became more visible too. Today RIM is a dharma community rooted in traditional
-              Buddhist wisdom, practicing in the silent illumination tradition of Chan and drawing
-              on the whole Buddhist tradition.
+              teaching draws on Buddhist wisdom and the silent illumination tradition of Chan.
+              A Handful of Leaves brings these traditional teachings into our exploration of CARE.
+              <Link href="/our-roots"> Our Roots</Link> explains how they inform the practice.
             </p>
             <p>
               One thing has not changed. The teachings have to be accessible enough to meet people
