@@ -47,13 +47,13 @@ export default function OurRootsPage() {
             <p>
               At the heart of our practice is an old way of meditation called silent illumination:
               an open, settled awareness that meets whatever arrives with warmth. It comes to us
-              through Chan, the Chinese meditation school that later became Zen, where a teacher
+              through Chan, the Chinese meditation school also known as Zen, where a teacher
               named Hongzhi gave it its name some nine centuries ago.
             </p>
             <p>
-              It is less one technique than the ground under all of them. Loving-kindness comes from
-              one lineage, breath awareness from another, contemplation of change from a third. They
-              do not compete. This open awareness is not an instrument in the orchestra. It is the
+              It is less one technique than the ground under all of them. Loving-kindness, awareness
+              of breathing, and the contemplation of change are each a practice with a long history
+              of its own. They do not compete. This open awareness is not an instrument in the orchestra. It is the
               hall the music is played in.
             </p>
 

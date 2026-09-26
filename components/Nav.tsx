@@ -190,8 +190,8 @@ export default function Nav() {
                       <div className="nav__dropdown-desc">Create a Community Group or Event</div>
                     </Link>
                     <Link href="/outreach" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Outreach</div>
-                      <div className="nav__dropdown-desc">For organizations serving people in need</div>
+                      <div className="nav__dropdown-title">Outreach for Organizations</div>
+                      <div className="nav__dropdown-desc">Bringing mindfulness to organizations and their communities</div>
                     </Link>
                   </div>
                 </div>
@@ -335,7 +335,7 @@ export default function Nav() {
                 href="/outreach"
                 className={`nav__mobile-link${isActive("/outreach")}`}
               >
-                Outreach
+                Outreach for Organizations
               </Link>
               <Link
                 href="/community-care-agreements"

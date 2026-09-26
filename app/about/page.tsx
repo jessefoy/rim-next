@@ -3,7 +3,7 @@ import Link from "next/link";
 export const metadata = {
   title: "About RIM — Rooted In Mindfulness",
   description:
-    "The mission and vision of Rooted in Mindfulness, a Buddhist nonprofit and dharma community in Brookfield, Wisconsin, held by the people who practice here.",
+    "The mission and vision of Rooted in Mindfulness, a dharma community rooted in traditional Buddhist wisdom, in Brookfield, Wisconsin, and held by the people who practice here.",
 };
 
 /**
@@ -73,9 +73,9 @@ export default function AboutPage() {
               A center of our own gave people somewhere not only to learn to meditate but to keep
               practicing together. Over the years that room became a community: sittings,
               friendships, classes, retreats, and the slow exploring of a contemplative life. Our
-              roots became more visible too. Today RIM is a Buddhist nonprofit and a dharma
-              community, rooted in the silent illumination tradition of Chan and drawing on the
-              whole Buddhist tradition.
+              roots became more visible too. Today RIM is a dharma community rooted in traditional
+              Buddhist wisdom, practicing in the silent illumination tradition of Chan and drawing
+              on the whole Buddhist tradition.
             </p>
             <p>
               One thing has not changed. The teachings have to be accessible enough to meet people

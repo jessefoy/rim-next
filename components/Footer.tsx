@@ -107,7 +107,8 @@ export default function Footer({ memberArea = false }: FooterProps) {
         <span>
           ©2020 Rooted In Mindfulness | 501(c)(3) Non-Profit |{" "}
           <Link href="/community-care-agreements">Community Care</Link> |{" "}
-          <Link href="/donate">Donate</Link>
+          <Link href="/donate">Donate</Link> |{" "}
+          <Link href="/outreach">For Organizations</Link>
         </span>
         <span>Powered by Kind People :) <Link href="/volunteerism/volunteer">Volunteer</Link></span>
       </div>

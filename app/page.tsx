@@ -15,10 +15,11 @@ export const dynamic = "force-dynamic";
 
 /**
  * The home page states RIM's center first (2026-09-25). A visitor meets, in
- * order: what we are here for → the practice (CARE) → what it looks like in an
- * ordinary week → where it comes from → how to take part → dana → the call.
- * Safety first, stakes late: the ground and the many reasons people come open
- * the page; "It matters how we live" closes it.
+ * order: what brings us together → what it looks like in an ordinary week →
+ * the practice (CARE) → where it comes from → how to take part → for
+ * organizations → dana → the call. Safety first, stakes late: the shared
+ * intention and the many reasons people come open the page; "It matters how
+ * we live" closes it.
  *
  * COPY SOURCE OF TRUTH: the Obsidian vault,
  *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md
@@ -26,7 +27,9 @@ export const dynamic = "force-dynamic";
  * read-aloud. Teacher-side authority for the center:
  * 1 Model/01-framework-what-rim-is.md.
  *
- * Grounds alternate: ground, white, ground, white, ground, white, ground.
+ * Grounds alternate: ground, white, ground, white, ground, white, ground,
+ * white (the organizations section, 2026-09-26, shifted Dana to ground and
+ * the closing to white).
  * The CARE doors and the pathway doors are white lifted cards, so both sit on
  * the ground; "Practice for real life" sits on white with its six items in
  * borderless Pampas insets (particulars, not destinations, so no shadow).
@@ -145,7 +148,7 @@ export default async function HomePage() {
     },
     {
       title: "Outreach",
-      body: "Bringing this practice to organizations that serve people in need.",
+      body: "Helping organizations bring mindfulness to the people they care for, and to the caregivers themselves.",
       href: "/outreach",
     },
   ];
@@ -191,10 +194,11 @@ export default async function HomePage() {
             Beautify the <span className="home-hero__gold">World</span>
           </h1>
           <p className="pp-hero__body">
-            We are a community learning to live awake: less caught in old habits of mind, and more
-            able to bring the clarity and care already within us to as many moments of our lives as
-            we can. Together, in Brookfield, Wisconsin, and online, we practice to heal, promote,
-            and protect well-being in ourselves, one another, and our shared world. Come as you are.
+            Our practice is taking care: of ourselves, of those we love, of the world, and of this
+            moment. Rooted in Mindfulness is a community that shares this intention, in Brookfield,
+            Wisconsin, and online. Together we learn to be more awake to our lives and freer of the
+            patterns that cause suffering, so that we can heal what hurts, grow what is good, and
+            protect what matters. Come as you are.
           </p>
           <div className="pp-hero__actions">
             <Link href="/new-to-rim" className="pp-btn pp-btn--onblue">
@@ -207,33 +211,25 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── What we are here for — the center, stated first. Open prose on
-             the ground: nothing competes with it. Safety before stakes: the
-             ground and the many doors, never the predicament first. ── */}
+      {/* ── What brings us together — the shared intention at the front door,
+             so the wide welcome has a clear center (site revision brief,
+             2026-09-25; replaces "What we are here for"). Open prose on the
+             ground: nothing competes with it. ── */}
       <section className="pp-section">
         <div className="rim-container">
           <div className="pp-intro">
-            <h2 className="pp-intro__title">What we are here for.</h2>
+            <h2 className="pp-intro__title">What brings us together</h2>
             <p className="pp-intro__body">
-              Something clear and warm is already here in each of us. It shows up in small ways. The
-              mind drifts into a worry or a plan, and something in us knows that it drifted. We are
-              about to say the sharp thing, and a moment of room opens where a kinder word becomes
-              possible. That clarity is not reserved for special people or distant places. Our
-              practice is learning to live from it, in the middle of an ordinary day.
+              People come to RIM for many reasons: a hard season, a wish to live and enjoy life more
+              fully, a longing for something real, or love for someone they want to show up for
+              better. What we share is one intention. Something clear and caring is already within
+              each of us, and we practice to live from it more of the time: to suffer less and cause
+              less harm, to see more clearly, and to love more capably, in our own lives and in the
+              world we share.
             </p>
             <p className="pp-intro__body">
-              People come to practice for many reasons. Some want steadier footing in a hard season.
-              Some want a practice that finally lasts. Some want to be more present with the people
-              they love, or to find more meaning in the life they already have. Some want to walk
-              the path of awakening all the way. What we share is care, for our own lives, for the
-              people close to us, and for the world, and the discovery that our old ways of chasing
-              happiness and bracing against difficulty often work against the very things we care
-              about.
-            </p>
-            <p className="pp-intro__body">
-              Practice helps us see what the mind is doing while it is doing it. In that seeing
-              there is room: to let an old reaction pass without obeying it, to remember what
-              matters, and to answer with more understanding and more care.
+              This is practice for real life, and it asks something real of us, because it matters.
+              No one can do it for us, and no one has to do it alone.
             </p>
           </div>
           <div className="pp-actions">
@@ -357,10 +353,10 @@ export default async function HomePage() {
                 <p className="pp-intro__eyebrow">Where this comes from</p>
                 <h2 className="pp-intro__title">Deep roots. An open door.</h2>
                 <p className="pp-intro__body">
-                  RIM is a dharma community and a Buddhist nonprofit. Our practice is rooted in
-                  silent illumination: an open, settled awareness that meets whatever arrives with
-                  warmth. It comes to us through Chan, the Chinese meditation school that later
-                  became Zen. We draw on the whole Buddhist tradition, gathered and ordered as A
+                  RIM is a dharma community rooted in traditional Buddhist wisdom. At the heart of
+                  our practice is silent illumination: an open, settled awareness that meets
+                  whatever arrives with warmth. It comes to us through Chan, the Chinese meditation
+                  school also known as Zen. We draw on the whole Buddhist tradition, gathered and ordered as A
                   Handful of Leaves, and we teach plainly, by experience, without dogma or
                   unnecessary ritual. Mindfulness-based programs, psychology, and modern science
                   inform how we teach.
@@ -436,12 +432,33 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── For organizations — the outreach face, stated once on the home
+             page (site revision brief, 2026-09-25). ── */}
+      <section className="pp-section pp-section--white">
+        <div className="rim-container">
+          <div className="pp-intro">
+            <p className="pp-intro__eyebrow">For organizations</p>
+            <h2 className="pp-intro__title">Taking CARE, carried into the world.</h2>
+            <p className="pp-intro__body">
+              We partner with nonprofits and community organizations working for the well-being of
+              people, communities, and our shared world, offering Taking CARE to the people they
+              serve and to the people who carry their work.
+            </p>
+          </div>
+          <div className="pp-actions">
+            <Link href="/outreach" className="pp-btn">
+              Outreach for organizations
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── Dana — image right. The held lotus (Olga Nayda, Unsplash): an
              offered flower is the dana gesture itself. Stated as dana actually
              works at RIM (Jesse, 2026-09-25): suggested amounts, no one turned
              away, minimums only where RIM pays a host, program gifts split
              with the Teaching Fund. ── */}
-      <section className="pp-section pp-section--white">
+      <section className="pp-section">
         <div className="rim-container">
           <div className="pp-split pp-split--flip">
             <div
@@ -490,7 +507,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── The call, last: stakes after safety. ── */}
-      <section className="pp-section pp-section--last">
+      <section className="pp-section pp-section--white pp-section--last">
         <div className="rim-container">
           <aside className="pp-closing">
             <div>

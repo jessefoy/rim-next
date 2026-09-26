@@ -93,17 +93,21 @@ export default function NewToRimPage() {
               with our <Link href="/community-programs">programs</Link> once it is scheduled.
             </p>
             <p>
-              Some people meet the whole practice for the first time at a day of mindfulness or a
-              longer retreat. Any of these is a fine place to begin.
+              You are welcome to join us in whatever way resonates with you, from a single sitting
+              to a day of mindfulness or a retreat. As a first step, we highly recommend a community
+              drop-in and Foundations.
             </p>
 
-            <h2 id="community">A different kind of community</h2>
+            <h2 id="community">Practicing together</h2>
             <p>
-              RIM is a community for learning and practice. There is nothing to convert to and
-              nothing strange to join, no dues and no attendance to keep. You can take part as much
-              or as little as feels right, whether that means sitting in the back row for a year or
-              joining a volunteer team next month. Nobody will ask you to share, to mingle, or to be
-              anyone other than who you are.
+              RIM is a community for learning and practice. Membership is freely offered, and nobody
+              keeps track of how often you come. You are welcome to practice in whatever way feels
+              comfortable: listening in the peace and safety of a supportive space, and taking a
+              more active part whenever it feels right. Some of us are more reserved and some share
+              more readily. Both help create a healthy container for learning and practice, and
+              everyone who comes with a sincere wish to practice, for their own benefit and for one
+              another&rsquo;s, is contributing to it. That is what community means here: learning
+              and practicing with like-minded people, each in our own way.
             </p>
             <p>
               We ask one thing of everyone while they are with us: to hold our{" "}

@@ -3,7 +3,7 @@ import Link from "next/link";
 export const metadata = {
   title: "Why We Practice — Rooted In Mindfulness",
   description:
-    "What the practice at Rooted in Mindfulness is for: living awake, less caught in old habits, so that we can heal, promote, and protect well-being in ourselves, one another, and our shared world.",
+    "What the practice at Rooted in Mindfulness is for: becoming more awake to our lives and freer of old habits, so that we can heal, promote, and protect well-being in ourselves, one another, and our shared world.",
 };
 
 /**
@@ -170,15 +170,19 @@ export default function WhyWePracticePage() {
               stranger, how we do our work, and what we make of the conditions around us. Some
               suffering comes from illness, poverty, isolation, or harm, and needs more than a
               changed mind. Needing support is part of the path, and so is offering it. We are
-              beginning to bring this practice to{" "}
-              <Link href="/outreach">organizations that serve people in need</Link>.
+              beginning to help{" "}
+              <Link href="/outreach">
+                organizations bring this practice to the people they care for, and to their own
+                caregivers
+              </Link>
+              .
             </p>
             <p>
               Families, communities, and whole societies can lose track of their goodness and their
               health. They can also remember it together. When one person comes back to clarity and
               care, the people around them feel it: a calmer voice at the dinner table, a kinder
               word at work. Showing up for ourselves, for the people we care about, and for the
-              world makes a difference. Health here promotes health there: as within, so without.
+              world makes a difference. Health in one life supports health in the lives around it.
             </p>
             <p>
               All of this matters. The time we have is finite, and at heart most of us know when we

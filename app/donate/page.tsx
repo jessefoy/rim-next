@@ -3,83 +3,49 @@ import Script from "next/script";
 export const metadata = {
   title: "Donate — Rooted In Mindfulness",
   description:
-    "RIM is 100% community funded. Give to RIM Dana for the center's operating costs, or Teacher Dana to support teacher livelihood.",
+    "Rooted in Mindfulness is supported entirely by its community's generosity. Give to RIM for the center's operating costs, or to the Teaching Fund to support teacher livelihood.",
 };
 
-/** The dana contemplations. Emphasis inside each is the reflective question. */
+/**
+ * /donate — body rewritten 2026-09-26 from the site revision brief so it says
+ * how dana actually works at RIM: suggested amounts, no one turned away,
+ * minimums only where RIM pays a host, program gifts split 50/50 with the
+ * Teaching Fund. The three Givebutter widgets and their placement are
+ * unchanged. The fund is the Teaching Fund in headings; the quoted campaign
+ * names ("RIM Dana", "Teacher Dana") stay so donors can match them to the
+ * widgets (Jesse, 2026-09-26).
+ *
+ * COPY SOURCE OF TRUTH: the Obsidian vault,
+ *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md
+ * Provisional until Jesse's read-aloud.
+ */
+
+/** The reflections on how much to give. Each title leads into its body. */
 const CONTEMPLATIONS = [
   {
     num: 1,
-    title: "Be mindful of your financial needs.",
-    body: (
-      <>
-        Avoid giving in ways that bring unnecessary financial hardship to yourself and those who may
-        depend on you. Generosity brings benefit to the giver and the receiver.{" "}
-        <em>Your presence is priceless and no person is turned away for financial reasons.</em>
-      </>
-    ),
+    title: "Care for your own needs.",
+    body: "Give in a way that does not bring hardship to you or to those who depend on you. Your presence is priceless.",
   },
   {
     num: 2,
-    title: "Dana is an integral part of traditional practice.",
-    body: (
-      <>
-        The practice of generosity challenges us to let go of attachment patterns and self-clinging,
-        helps us appreciate our interconnectedness, and is an expression of kindness and compassion
-        toward others.{" "}
-        <em>
-          When deciding how much to give, consider giving in a way that opens your heart and feels
-          truly generous.
-        </em>
-      </>
-    ),
+    title: "Let it be generous.",
+    body: "Giving is itself a practice: of letting go, and of care.",
   },
   {
     num: 3,
-    title: "RIM is a living expression of generosity and is 100% community funded.",
-    body: (
-      <>
-        Donations pay for the real operational obligations all organizations have, such as the
-        center&rsquo;s rent, utilities, supplies, materials, legal and operating fees, technology
-        expenses related to in-person and virtual offerings, community support, outreach programs,
-        and so much more.{" "}
-        <em>
-          Consider the significance of RIM. How do the teachings, practices, and community benefit
-          your life, the lives of others, and the world?
-        </em>
-      </>
-    ),
+    title: "Consider what RIM makes possible,",
+    body: "in your life and in the lives of others.",
   },
   {
     num: 4,
-    title: "Teacher livelihood is supported only through voluntary donations.",
-    body: (
-      <>
-        RIM Teachers receive no payment or compensation from RIM for offering classes, workshops,
-        drop-ins, retreats, or any other offerings to the RIM community. Teachers have the same human
-        needs for livelihood, safety, and support as everyone else.{" "}
-        <em>
-          Consider the value of full-time teachers, who are safe and supported enough to share the
-          teachings freely, with skill, understanding, and care, for all who may benefit.
-        </em>
-      </>
-    ),
+    title: "Consider your teachers,",
+    body: "and what it means for them to be supported well enough to teach freely.",
   },
   {
     num: 5,
-    title: "Dana is an altruistic practice that benefits yourself, others, and the world.",
-    body: (
-      <>
-        When you offer Dana at RIM, you join other kind and generous members of the community who
-        help ensure that RIM exists as a safe and supportive refuge for all who may benefit, even
-        when times are financially difficult. Your gift reaches past you. It helps hold the door open
-        for people you will never meet.{" "}
-        <em>
-          Consider the impact of making the teachings, practices, and community support available to
-          everyone.
-        </em>
-      </>
-    ),
+    title: "Remember who else it reaches:",
+    body: "people you will never meet, for whom the door stays open.",
   },
 ];
 
@@ -102,8 +68,13 @@ export default function DonatePage() {
           <div className="pp-donate-hero">
             <div className="pp-donate-hero__lead">
               <h1 className="pp-hero__title pp-hero__title--display">
-                Your support makes a meaningful difference.
+                Your generosity keeps the door open.
               </h1>
+              <p className="pp-hero__body">
+                Our teachings are offered through dana, the practice of generosity. RIM is supported
+                entirely by the people who practice here, and no one is ever turned away for
+                financial reasons.
+              </p>
               <a href="#dana-at-rim" className="pp-btn pp-btn--onblue">
                 Learn more about dana ↓
               </a>
@@ -112,41 +83,13 @@ export default function DonatePage() {
             <div className="pp-give">
               {/* RIM Dana */}
               <div className="pp-give__card" id="rim-dana">
-                <h2 className="pp-give__title">Donate to RIM</h2>
+                <h2 className="pp-give__title">Give to RIM</h2>
                 <p className="pp-give__name">&ldquo;RIM Dana&rdquo;</p>
                 <p className="pp-give__body">
-                  RIM is a community refuge for learning and practicing meditation and mindful
-                  living. Your caring donation makes it possible for RIM to pay its everyday
-                  operational costs.
+                  Gifts to RIM pay for everything that keeps the center open: rent, utilities,
+                  supplies, the technology behind our online gatherings, outreach, and more. Monthly
+                  gifts, as a Sustaining Member, give the center steadiness it can plan around.
                 </p>
-
-                <details className="pp-details">
-                  <summary className="pp-details__summary">More about RIM Dana</summary>
-                  <div className="pp-details__body">
-                    <p>
-                      RIM is co-created through its community&rsquo;s goodwill, appreciation, and
-                      generosity. All participants at RIM are encouraged to contribute in a way that
-                      feels appropriate for themselves and help co-create a safe and supportive
-                      refuge for all who may benefit.
-                    </p>
-                    <p>
-                      RIM is 100% supported by RIM Dana. It pays for the center&rsquo;s many
-                      operational obligations, such as rent, utilities, supplies, materials, legal
-                      and operating fees, technology expenses related to in-person and virtual
-                      offerings, and so much more.
-                    </p>
-                    <p>
-                      <strong>Consider becoming a monthly benefactor.</strong> Sustaining Members
-                      make a monthly recurring donation, which helps promote more stability and
-                      predictability for the Center.
-                    </p>
-                    <p>
-                      <strong>Important note:</strong> RIM Dana does not provide support for RIM
-                      teachers&rsquo; livelihood. If you would like to support teacher livelihood,
-                      please consider giving Teacher Dana.
-                    </p>
-                  </div>
-                </details>
 
                 <div className="pp-give__widget">
                   {/* @ts-expect-error custom element */}
@@ -158,52 +101,15 @@ export default function DonatePage() {
                 </a>
               </div>
 
-              {/* Teacher Dana */}
+              {/* Teaching Fund (Givebutter campaign "Teacher Dana") */}
               <div className="pp-give__card" id="teacher-dana">
-                <h2 className="pp-give__title">Donate to a Teacher</h2>
+                <h2 className="pp-give__title">Give to the Teaching Fund</h2>
                 <p className="pp-give__name">&ldquo;Teacher Dana&rdquo;</p>
                 <p className="pp-give__body">
-                  RIM teachers offer the teachings freely. Your donations support their livelihood
-                  and allow them the safety of dedicating themselves to living and sharing the
-                  Dharma.
+                  Our teachers offer the teachings freely and are supported by the community&rsquo;s
+                  generosity. Gifts to the Teaching Fund support their livelihood, so they can give
+                  their lives to practicing and sharing the teachings.
                 </p>
-
-                <details className="pp-details">
-                  <summary className="pp-details__summary">More about Teacher Dana</summary>
-                  <div className="pp-details__body">
-                    <p>
-                      RIM teachers are committed to sharing the teachings and practices through the
-                      traditional approach of dāna/generosity. By sharing in this way, the teacher
-                      protects the integrity of the Dharma, keeps the teachings available to
-                      everyone, and fosters space for connection, trust, and mutual care.
-                    </p>
-                    <p>
-                      <strong>RIM Teachers receive no payment or compensation from RIM</strong> for
-                      offering classes, workshops, drop-ins, retreats, or any other offerings to the
-                      RIM community. Any suggested donation to RIM, including Sustaining Member
-                      donations, pay for operational costs.
-                    </p>
-                    <p>
-                      <strong>
-                        RIM Teacher&rsquo;s livelihood is supported only through voluntary donations
-                        (<em>dāna</em>).
-                      </strong>{" "}
-                      RIM Teachers have similar financial obligations as everyone else, such as
-                      family expenses, tuition repayment, food, utilities, insurance, health care,
-                      car payments, ongoing training, retreats, etc. Voluntary Teacher Dana allows
-                      them to live and teach, knowing they are safe and supported enough to share the
-                      teachings freely.
-                    </p>
-                    <p>
-                      <strong>
-                        RIM Teachers elected to dedicate their lives to the practice and the sharing
-                        of the Dharma.
-                      </strong>{" "}
-                      Our teachers receive ongoing intensive training and are deeply committed to
-                      living a mindful life.
-                    </p>
-                  </div>
-                </details>
 
                 <div className="pp-give__widget">
                   {/* @ts-expect-error custom element */}
@@ -242,39 +148,21 @@ export default function DonatePage() {
       <section id="dana-at-rim" className="pp-section pp-section--airy">
         <div className="rim-container">
           <div className="pp-statement">
-            <h2 className="pp-statement__title">
-              The practice of generosity (Dana) is at the Heart of all we do at RIM.
-            </h2>
+            <h2 className="pp-statement__title">What is dana?</h2>
 
             <div className="pp-prose pp-statement__body">
               <p>
-                Dana (pronounced &ldquo;DAH-nuh&rdquo;) is a traditional Pali term that translates as
-                &ldquo;generosity, gift, alms, donation, etc.&rdquo; Dana is a voluntary offering of
-                materials, time, energy, or care to others. Dana is regarded as one of the most
-                potent virtues for awakening the best within ourselves while benefiting the world.
+                Dana (DAH-nuh) is a Pali word for generosity: a gift freely given. It is a
+                relationship, not a fee for a service. What you receive here was given by someone,
+                and what you give keeps the door open for the next person. Time, care, and presence
+                are gifts too.
               </p>
+              <h3>How program gifts work</h3>
               <p>
-                RIM is co-created through its community&rsquo;s generosity, goodwill, and
-                appreciation. RIM is a living expression of generosity, and it is 100% community
-                funded and entirely dependent on donations.
-              </p>
-              <p>
-                <strong>
-                  Donations pay for all operating costs, contribute to teacher livelihood, and
-                  maintain its building.
-                </strong>
-              </p>
-              <p>
-                Dana challenges the conventional fee-for-service models, and instead, strengthens our
-                intentions to give from a place of mutual understanding and care.{" "}
-                <strong>
-                  RIM does not charge fees; we ask that all members contribute an amount that feels
-                  right to them
-                </strong>.
-              </p>
-              <p>
-                It&rsquo;s beautiful to have a refuge that is co-created through the wisdom,
-                compassion, and generosity of its community. Thanks for being part of it.
+                Programs list a suggested amount so everyone can see what an offering takes to
+                sustain. You give what you can. Half of every program gift goes to the Teaching Fund
+                and half to RIM. A few offerings, such as overnight retreats, carry a minimum because
+                RIM pays the places that host us.
               </p>
             </div>
 
@@ -291,20 +179,9 @@ export default function DonatePage() {
       <section id="how-much" className="pp-section pp-section--white pp-section--airiest">
         <div className="rim-container">
           <div className="pp-timeline-intro">
-            <p className="pp-intro__eyebrow">The Practice Of Financial Dana (Generosity)</p>
-            <h2 className="pp-intro__title">How do I decide how much to give?</h2>
+            <h2 className="pp-intro__title">How much should I give?</h2>
             <div className="pp-timeline-intro__note">
-              <p>
-                Dana (Generosity) practice is deep and personal. It reflects what is alive in your
-                heart, life, and the world. Ultimately, the invitation is to give what feels suitable
-                for yourself and others rather than through pressure or obligation.
-              </p>
-              <p>
-                The practice of Dana goes against the stream of our modern, transaction-based system
-                and it can be challenging to know how much to give. While we can&rsquo;t tell you how
-                much to give because Dana is a personal practice, we can offer some mindful
-                contemplations to help you get started.
-              </p>
+              <p>Dana is personal, and nobody will tell you an amount. A few reflections can help.</p>
             </div>
           </div>
 
@@ -322,7 +199,7 @@ export default function DonatePage() {
 
               const card = (
                 <div className="pp-timeline__card">
-                  <p className="pp-timeline__eyebrow">Contemplation {item.num}</p>
+                  <p className="pp-timeline__eyebrow">Reflection {item.num}</p>
                   <h3 className="pp-timeline__title">{item.title}</h3>
                   <p className="pp-timeline__body">{item.body}</p>
                 </div>
@@ -338,6 +215,16 @@ export default function DonatePage() {
                 </div>
               );
             })}
+          </div>
+
+          <div className="pp-actions pp-actions--center">
+            <p className="pp-intro__note">
+              RIM is a 501(c)(3) nonprofit. Questions about giving? Email{" "}
+              <a href="mailto:support@rootedinmindfulness.org?subject=Donating%20to%20RIM">
+                support@rootedinmindfulness.org
+              </a>{" "}
+              or call <a href="tel:4148828932">(414) 882-8932</a>.
+            </p>
           </div>
         </div>
       </section>
