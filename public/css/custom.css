@@ -28605,12 +28605,34 @@ a.pp-card.tpr-card {
   max-width: calc(var(--reading-width) + 80px);
 }
 
-/* A photographic hero's gradient darkens from the left for left-set copy;
-   centred copy sits over the lighter middle. Column pages take the flat 88%
-   scrim the phone layout already uses and that was measured to carry the
-   95%/85% white tiers at AA (s169/s170). */
+/* The header follows the program-detail page (Jesse, 2026-09-26: "look at
+   the program detail page ... how it's balanced and centered. This is good
+   design."): eyebrow, title and line centred in the column, the program
+   hero's tiers (13px eyebrow, 20px line), and its vertical scrim. The
+   horizontal pp- gradient darkens from the left for left-set copy; centred
+   copy needs the top-to-bottom one the program pages already use, which
+   carries the 95% body and 85% eyebrow tiers at AA. */
 .pp-page--column .pp-hero::before {
-  background: color-mix(in srgb, var(--rim-blue) 88%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--rim-blue) 84%, transparent),
+    color-mix(in srgb, var(--rim-dark) 91%, transparent)
+  );
+}
+.pp-page--column .pp-hero__inner { text-align: center; }
+.pp-page--column .pp-hero__title,
+.pp-page--column .pp-hero__body { margin-left: auto; margin-right: auto; }
+.pp-page--column .pp-hero__actions { justify-content: center; }
+.pp-page--column .pp-hero__eyebrow {
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+}
+.pp-page--column .pp-hero__body {
+  font-size: var(--text-h4);
+  line-height: 1.4;
+}
+@media (max-width: 768px) {
+  .pp-page--column .pp-hero__body { font-size: var(--text-body); }
 }
 
 /* In a 700px column the closing panel's two-column grid squeezed its button
