@@ -38,10 +38,10 @@ Jesse requested completing everything possible and an honest accounting afterwar
 | 5.3 Next gathering | Done | Next start in selected week, excluding already-started sessions; Central Time/DST checks. |
 | 6.1 Help choose | Done | Direct recommendation and guided/silent/study/group/retreat comparisons. |
 | 6.2 CARE in offerings | Done | Short connections on meditation, heart-practice, movement, and nature pages; Buddhist study and Recovery identities retained. |
-| 6.3 Standard practical facts | Partial | Facts/actions/giving lead, quotes follow description, recurring enrollment clarified. Unknown program-specific access/host details cannot be standardized into invented facts. |
+| 6.3 Standard practical facts | Partial | Original quote-first composition restored at Jesse’s request; facts/actions/giving remain together below prose and notes; recurring enrollment clarified. Unknown program-specific access/host details cannot be standardized into invented facts. |
 | 7.1 Morning silent sit | Done | AM correction, brief opening guidance vs unguided sit, noble-silence explanation, guided alternative. |
 | 7.2 Evening silent sit | Done | Evening language corrected, silence explained, guided alternative. |
-| 7.3 Art of Meditation | Done | Facts and practice before quote; repaired punctuation; CARE and first-visit links. |
+| 7.3 Art of Meditation | Done | Original quote position restored at Jesse’s request; repaired punctuation, CARE wording and first-visit guidance retained. |
 | 7.4 Meditation and Dharma Talk | Done within facts | Explicit first recommendation, guided practice/teaching description and first-visit walkthrough. |
 | 7.5 Awakening the Heart | Done | Practical-first layout, plain heart qualities, Zoom account distinction, repeated notes welcome removed. |
 | 7.6 Our Hearts Were Made for This | Done | Equanimity gloss, plain qualities, Sunday format and distinction from Monday. |
@@ -143,3 +143,10 @@ Implementation `3be05e9` is live. Public HTTPS checks confirmed 18 of 19 authore
 Browser review at 360px covered home, newcomer, About, Why, Our Roots, agreements, outreach, community groups at their established `/kalyana-mitta/community-groups-events` route, volunteer, directory, nature detail, and study detail/registration. No horizontal overflow was found. At 1280px, reviewed full home and retreat layouts. Nature portraits load and biographies compute to 18px. Arrival, facilitator and concern anchors land about 124px below the viewport top, clearing the 100px navigation. The study form consistently explains one program registration, shows voluntary giving and conduct-before-belief framing. Public editorial canonicals and staging noindex metadata remain correct. Final presentation cleanup reuses the existing RIM inline-link style in the gathering-facts card.
 
 TypeScript, focused lint, migration syntax and diff checks passed. Expanded offline regression checks pass, including a real formatted-label fixture, preservation of already-published text/editor revisions, category/facilitator guards, and unchanged CARE handout. No real registration, account, email, payment or Zoom transaction was performed. Enlarged-text, real-device, screen-reader and observed-newcomer checks remain unpassed; they are not implied by these browser checks.
+
+
+## Program design correction — Jesse’s explicit scope clarification
+
+Jesse objected to changing the program-detail design, specifically moving the quote and bringing details to the top. He clarified **“Restore the original design; keep wording improvements.”** Restored the pre-review order and quote positioning from `5a2c1ee`: hero-overlapping quote, description, notes, gathering details/action, facilitators. Removed the two newcomer CSS overrides that changed content-top spacing and quote margin. Program wording, metadata, participation behavior and other pages are retained. The historical facts-first recommendations and verification above no longer prescribe the program layout.
+
+Local verification: TypeScript, targeted ESLint and diff checks pass. Existing newcomer regression checks pass, with an added rendered-order assertion protecting quote → description → notes → details → facilitators. No database, financial, registration or email changes in this correction. Live visual verification follows after deployment.

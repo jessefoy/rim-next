@@ -188,8 +188,18 @@ export default async function ProgramDetailPage({
       {/* ── Content column ── */}
       <div className="lp-content pg-content">
 
-        {/* Dana result banners — shown after Stripe redirects back. New payments return to
-            /programs/[slug]/thank-you; the success banner remains for
+        {/* ── Pull quote card — floats up into hero ── */}
+        {program.pullQuote && (
+          <figure className="pg-quote">
+            <blockquote className="pg-quote__text">{program.pullQuote}</blockquote>
+            {program.pullQuoteSource && (
+              <figcaption className="pg-quote__source">~ {program.pullQuoteSource}</figcaption>
+            )}
+          </figure>
+        )}
+
+        {/* Dana result banners follow the overlapping quote so it cannot cover them.
+            New payments return to /programs/[slug]/thank-you; these remain for
             checkouts started before that page existed. */}
         {resolvedSearch?.dana === "success" && (
           <div className="pg-dana-result pg-dana-result--success">
@@ -204,6 +214,19 @@ export default async function ProgramDetailPage({
           </div>
         )}
 
+
+        {/* ── Program description ── */}
+        {hasDescription && (
+          <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+        )}
+
+        {/* ── Program notes (tan card) ──
+            Heading is authored inside the rich text — don't add one here. */}
+        {hasProgramNotes && (
+          <section className="pg-notes">
+            <div className="rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: programNotesHtml }} />
+          </section>
+        )}
 
         {/* ── Gathering facts and one state-aware next step ── */}
         <section id="gathering-details" className="pg-details-section">
@@ -331,29 +354,6 @@ export default async function ProgramDetailPage({
         </section>
 
         <ProgramOrientation slug={program.slug} recurringRegistration={!!program.recurrenceFreq && program.registrationEnabled} />
-
-        {/* ── Program description ── */}
-        {hasDescription && (
-          <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
-        )}
-
-        {/* ── Reflection after the practical information ── */}
-        {program.pullQuote && (
-          <figure className="pg-quote pg-quote--after-description">
-            <blockquote className="pg-quote__text">{program.pullQuote}</blockquote>
-            {program.pullQuoteSource && (
-              <figcaption className="pg-quote__source">~ {program.pullQuoteSource}</figcaption>
-            )}
-          </figure>
-        )}
-
-        {/* ── Program notes (tan card) ──
-            Heading is authored inside the rich text — don't add one here. */}
-        {hasProgramNotes && (
-          <section className="pg-notes">
-            <div className="rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: programNotesHtml }} />
-          </section>
-        )}
 
         {/* ── Facilitators section ── */}
         {hasFacilitators && (

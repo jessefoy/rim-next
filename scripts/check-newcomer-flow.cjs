@@ -88,6 +88,7 @@ async function main() {
   for (const [kind, optional] of [['DROP_IN', true], ['COMMUNITY_GROUP', false], ['RETREAT', false]]) {
     const fixture = {
       id: 'fixture', slug: 'fixture', name: 'Fixture', archivedAt: null,
+      pullQuote: 'Fixture opening quotation', description: 'Fixture description', programNotes: 'Fixture notes',
       category: { kind, name: 'Practice' }, programTeachers: [], teacherFacilitators: ['A facilitator'],
       registrationEnabled: true, registrationCapacity: null, registrationClosed: false,
       programFormat: 'hybrid', venue: 'at-rim', danaMode: 'voluntary', suggestedDana: 15,
@@ -97,7 +98,7 @@ async function main() {
     const pageLoad = loader({
       '@/auth': { auth: async () => null },
       '@/lib/db': { db: { program: { findUnique: async () => fixture } } },
-      '@/lib/renderRichContentServer': { renderContentBodyAsync: async () => '', renderFormattedTextAsync: async () => '' },
+      '@/lib/renderRichContentServer': { renderContentBodyAsync: async text => `<p>${text}</p>`, renderFormattedTextAsync: async () => '' },
       '@/components/RegistrationForm': { __esModule: true, default: () => React.createElement('div', null, 'Form') },
     });
     const Detail = pageLoad('app/programs/[slug]/page.tsx').default;
@@ -107,6 +108,15 @@ async function main() {
     assert.equal(detail.includes('Sign in to join on Zoom'), optional);
     assert(detail.includes('Upstairs by stairs only; no elevator.'));
     assert(detail.includes('A facilitator'));
+    const quotePosition = detail.indexOf('Fixture opening quotation');
+    const descriptionPosition = detail.indexOf('Fixture description');
+    const notesPosition = detail.indexOf('Fixture notes');
+    const detailsPosition = detail.indexOf('Gathering details');
+    const facilitatorsPosition = detail.indexOf('id="program-facilitators"');
+    assert(quotePosition >= 0 && quotePosition < descriptionPosition);
+    assert(descriptionPosition < notesPosition && notesPosition < detailsPosition);
+    assert(detailsPosition < facilitatorsPosition);
+    assert(!detail.includes('pg-quote--after-description'));
     const Register = pageLoad('app/programs/[slug]/register/page.tsx').default;
     const registration = renderToStaticMarkup(await Register({ params: Promise.resolve({ slug: 'fixture' }) }));
     assert.equal(registration.includes('Registration is optional for this drop-in.'), optional);

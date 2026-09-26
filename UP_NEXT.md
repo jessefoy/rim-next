@@ -2,6 +2,10 @@
 
 Read first when opening RIM. Updated at closing, 2026-09-26. Full history belongs in `session-log.md`.
 
+## Program layout correction — explicit direction (2026-09-26)
+
+Jesse clarified: **“Restore the original design; keep wording improvements.”** Program details restore the pre-review composition: hero-overlapping quote, description, notes, then gathering details/action and facilitators. Original responsive spacing restored. Copy improvements, program data and other public pages remain. This overrides the newcomer review’s facts-first layout recommendation. Do not redesign this favorite page composition without Jesse’s specific direction.
+
 ## Newcomer review — whole-document implementation (2026-09-26)
 
 Revisions 8–10 completed the initial practical fixes and corrected CARE integration on Our Roots. Jesse then authorized the whole review in the same spirit. Revision 11 now carries CARE through the homepage, newcomer, About, Why, agreements, outreach, groups, giving, volunteering, and authored program descriptions. Home paired cards replaced with a concise everyday example; CARE handout/diagram and canonical vision/mission remain unchanged. Seven public facilitator bios and portraits recovered from the existing RIM site. Published Essential Dharma Study policy resolves the imported category mismatch: one registration for the ongoing group; nature seasonal registration/weather communication recovered too. See `NEWCOMER_REVIEW_2026-09-26.md` for exact sources, implementation, remaining operational facts, and checks. Copy saved to canonical vault before implementation, still provisional for read-aloud.
