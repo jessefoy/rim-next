@@ -226,7 +226,8 @@ export default async function HomePage() {
               better. What we share is one intention. Something clear and caring is already within
               each of us, and we practice to live from it more of the time: more awake and present,
               freer of what binds us, understanding with greater wisdom, caring with kindness and
-              compassion, and acting from both, in our own lives and in the world we share.
+              compassion, and acting from both, for the benefit of ourselves, those we care
+              about, and our shared world.
             </p>
             <p className="pp-intro__body">
               This is practice for real life, and it asks something real of us, because it matters.

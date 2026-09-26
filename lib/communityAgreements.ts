@@ -69,8 +69,9 @@ export const RIM_VISION =
   RIM_WHAT_BINDS +
   ". This allows us to understand with greater wisdom, and what we " +
   "understand allows us to care with kindness and compassion. From that " +
-  "awake, liberated wisdom and compassion we live, embody, and act: the " +
-  "great wisdom, great compassion, and great action.";
+  "awake, liberated wisdom and compassion we live, embody, and act, for the " +
+  "benefit of ourselves, those we care about, and our shared world. This is " +
+  "the great wisdom, great compassion, and great action.";
 
 export const RIM_MISSION =
   "We practice taking care, together and in our daily lives. We gather to " +
@@ -89,8 +90,9 @@ export const COMMUNITY_AGREEMENTS_LEAD_IN =
   "present in our lives, freer of what binds us to " +
   RIM_WHAT_BINDS +
   ", understanding with greater wisdom, caring with kindness and " +
-  "compassion, and acting from that wisdom and compassion in ourselves, one " +
-  "another, and our shared world. These agreements are how we care for that " +
+  "compassion, and acting from that wisdom and compassion for the benefit of " +
+  "ourselves, those we care about, and our shared world. These agreements " +
+  "are how we care for that " +
   "vision together. We ask every member to hold them, as directions and not " +
   "as grades, and we return to them as a practice: honestly, and with room " +
   "to begin again.";
