@@ -39,7 +39,7 @@ export const dynamic = "force-dynamic";
 // handout, provisional until Jesse writes his own (his critical path).
 const CARE_PAIRS = [
   {
-    slug: "calm-and-connect",
+    slug: "calm",
     title: "Calm and Connect",
     lines: [
       "Calm is an invitation to ease in body, heart, and mind.",
@@ -47,7 +47,7 @@ const CARE_PAIRS = [
     ],
   },
   {
-    slug: "aware-and-attitude",
+    slug: "aware",
     title: "Aware and Attitude",
     lines: [
       "Aware is the clear knowing that is always available.",
@@ -55,15 +55,15 @@ const CARE_PAIRS = [
     ],
   },
   {
-    slug: "recognize-and-remember",
+    slug: "recognize",
     title: "Recognize and Remember",
     lines: [
       "Recognize is knowing what is here and seeing it honestly.",
-      "Remember is reconnecting with our deeper nature and what matters most.",
+      "Remember is reconnecting with our greater nature and what matters most.",
     ],
   },
   {
-    slug: "embody-and-engage",
+    slug: "embody",
     title: "Embody and Engage",
     lines: [
       "Embody is making the practice part of who we are.",
@@ -278,7 +278,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Our practice is taking care — words left, the four pairs right.
+      {/* ── Our practice is taking care — words left, the circle's four quarters
+             right (never called pairs: that is teacher-side architecture).
              The practice is shown before it is named: the acronym arrives in
              the last line (experience before the name). ── */}
       <section className="pp-section">
@@ -289,8 +290,8 @@ export default async function HomePage() {
                 <p className="pp-intro__eyebrow">Our practice</p>
                 <h2 className="pp-intro__title">Our practice is taking care.</h2>
                 <p className="pp-intro__body">
-                  We describe that one practice with eight words in four pairs. They are not steps,
-                  and they are not ideas to master. In any moment all eight are present, and any one
+                  Eight words describe that one practice from eight sides. They are not steps, and
+                  they are not ideas to master. In any moment all eight are present, and any one
                   of them is a way in.
                 </p>
                 <p className="pp-intro__body">

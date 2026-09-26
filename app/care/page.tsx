@@ -8,31 +8,28 @@ export const metadata = {
 };
 
 /**
- * /care — how we practice, for a visitor who has not walked in.
+ * /care — how we practice. The page is the general practice handout
+ * ("Taking C.A.R.E.", the vault's 2 Community/04-community-handout-general.md)
+ * adapted for the web and nothing more (Jesse, 2026-09-26: "the handout and
+ * this page are probably the same"). It is a first introduction; the teachings
+ * deepen through the community introduction, Foundations, ongoing learning,
+ * and practice.
  *
- * CARE is the practice-scale face of A Handful of Leaves: eight words in four
- * pairs (Calm, Connect · Aware, Attitude · Recognize, Remember · Embody,
- * Engage), eight faces of one moment, not eight steps. Authority is the
- * teacher-side framework (care-core-framework.md) and the ratified community
- * handout (Taking C.A.R.E.). This page sits on the community side of the
- * framework's register line and one register lighter than the handout: a
- * visitor has never met "silent illumination", "luminous", or "Buddha nature",
- * so the words are met experientially and the tradition is named once, at the
- * close, as a door. Every sentence about a word descends from the handout's
- * "in our words" paragraph for that word; nothing new is claimed.
+ * Changes from the handout's text: the first sentence (a page, not a handout
+ * in hand); silent illumination is named once, in the introduction, and inside
+ * the words its two halves are said as clarity (Aware) and presence (Attitude),
+ * Jesse's wording; one added sentence on "great", in Jesse's words; the
+ * handout's paragraph on how the words are taught moves to the close.
  *
- * Image discipline: one image, the pond, recurring — the stirring is Calm's,
- * the clearness is Aware's, what shows in clear water is Recognize's, and the
- * settling again is the wrap-around from Engage back to Calm. The handout's
- * sun (light for Aware, warmth for Attitude) is deliberately not carried here.
+ * The eight words are eight headings, never four pairs: the pairs are the
+ * teacher-side framework's architecture, and the register line keeps the frame
+ * off public pages. The pond (Calm) and the sun (Aware, Attitude) are the
+ * handout's own images, kept together (Jesse: related images are fine).
  *
- * Each pair's heading carries an anchor the home page's cards deep-link to.
- * Copy is provisional until Jesse's read-aloud.
- *
- * 2026-09-25: the CARE circle (components/CareCircle.tsx, recreated from the
- * practice handout's artwork) sits after the opening, with one added line on
- * simplicity and depth. Source of truth for changed words: the vault's
- * 04-community-website-copy-2026-09-25.md.
+ * Each word's heading carries an anchor; the home page's four circle-quarter
+ * cards deep-link to the first word of their quarter. Source of truth for
+ * the words: the vault's 04-community-website-copy-2026-09-25.md.
+ * Provisional until Jesse's read-aloud.
  */
 export default function CarePage() {
   return (
@@ -49,122 +46,146 @@ export default function CarePage() {
         <div className="rim-container">
           <div className="pp-prose">
             <p>
-              Someone we love is having a hard week, and we want to help without making it worse.
-              We slow down before we speak. We take in their face, the room, the tightness in our
-              own chest. We let the tightness be there. We see it for what it is, worry, and we
-              remember what we want for this person. Then we say the thing, in a tone years of
-              caring have taught us, and we stay.
+              This is an introduction to how we practice at Rooted in Mindfulness. It is meant to be
+              practiced rather than thought about, so that we see for ourselves what each word is
+              and what we find there.
             </p>
-            <p>That is our practice. Nothing was added to the moment. Everything in it was care.</p>
             <p>
-              Our practice is taking care: of ourselves, of the people we love, of the world, and of
-              this moment. We describe it with eight words, in four pairs. They are not steps, and
-              there is no order to learn them in. In any real moment all eight are there, and any
-              one of them is a door into the rest. They are simple to begin with, and they deepen
-              for as long as we practice.
+              Our practice is taking care: of ourselves, of those we love, of the world, and of this
+              moment. It is rooted in silent illumination, an open and settled awareness that meets
+              whatever arrives with care. The eight words describe that one practice from eight
+              sides. They arise together. Sometimes one takes center stage, but they support one
+              another, and the boundaries between them are somewhat artificial: each word calls out
+              one aspect of the moment of our practice. Sometimes we will focus on one or two words,
+              sometimes on the whole. Sometimes one word will be our anchor, and later another. It
+              is a living practice, and it shows up when we embody it.
             </p>
 
             <figure className="care-figure">
               <CareCircle />
               <figcaption className="care-figure__caption">
-                The circle from our practice handout. Each word can be practiced within ourselves,
-                with others, and within interbeing, the wider web of conditions we are part of.
+                The three rings of the circle show that each word can be contemplated in three ways:
+                within ourselves, in relation to others, and within the vast web of causes and
+                conditions we are part of, which the circle calls interbeing.
               </figcaption>
             </figure>
 
-            <h2 id="calm-and-connect">Calm and Connect</h2>
+            <h2 id="calm">Calm</h2>
             <p>
-              Calm is an invitation, not a demand. Ease in the body first, and from there some
-              openness in the heart and a little less grip in the mind. Nothing is forced. What
-              cannot be calmed, we calm around. Think of a pond stirred up with mud. You cannot
-              clear it by reaching in; every grab stirs it more. Left alone, the water settles by
-              itself. Calm is learning to stop stirring, and it can be invited anywhere, in a
-              meeting or a waiting room, not only on a cushion.
-            </p>
-            <p>
-              Connect is showing up to life as it is, at the only place we can: this body, these
-              sounds, this room, and the thoughts and feelings moving through, met as part of the
-              moment rather than lived inside. It is easy to be lost in a thought and believe we
-              are present. The breath is one way back. Here is where we know our life, and here is
-              where we have a choice.
+              Calm is an invitation: ease in the body, and from there openness in the heart and a
+              letting go of constriction in the mind. Nothing is forced, and nothing has to be
+              perfect. What cannot be calmed, we calm around, inviting a little more ease. Calm
+              stops the stirring of the pond. It does not wait for the right conditions; it can be
+              invited anywhere, and that is what makes it foundational. We want to meet everything,
+              in all circumstances.
             </p>
 
-            <h2 id="aware-and-attitude">Aware and Attitude</h2>
+            <h2 id="connect">Connect</h2>
             <p>
-              Aware is the clarity that was already there. Nobody builds it. When the mind wanders
-              and something knows it has wandered, that knowing arrived on its own. It is the same
-              clearness the settled pond shows, and it was the water&rsquo;s all along. We do not
-              manufacture this awareness. We show up to it, and because of it we can see what is
-              here.
-            </p>
-            <p>
-              Attitude is how we meet what we see. We let what is here be as it is, not wanting it
-              to be better, not pushing away what we do not want, and we meet it kindly, with
-              curiosity, because we want to know ourselves and this life. That does not mean
-              agreeing with everything or never responding. It is the place we see from. Even when
-              we are caught in reactivity, something clear can see the reactivity, and that
-              difference is the whole teaching.
+              Connect is this moment as it is, our life at the six senses: the world around us, the
+              body, and the heart and mind with their memories, thoughts, and feelings. This is
+              where to pay attention. It is easy to be lost in a thought and believe we are present;
+              met in contact, the thought is part of this moment. Contact is the anchor; the breath
+              is one way to it. Here we know life and our relationship to it, and here we have
+              choice. Connect is showing up to life as it is, at the only place we can.
             </p>
 
-            <h2 id="recognize-and-remember">Recognize and Remember</h2>
+            <h2 id="aware">Aware</h2>
             <p>
-              Recognize is knowing what is here and seeing it honestly. Peace as peace, joy as joy,
-              anger as anger, worry as worry. Sometimes a plain name helps: this is here, this is
-              happening now. Seeing a state does not always release it; some have been arriving for
-              years and will come again when their conditions line up. But seen in clear water, a
-              state shows more of itself: not me, not permanent, arising out of a whole web of
-              conditions.
-            </p>
-            <p>
-              Remember is the other half of mindfulness, the half the modern word dropped. We
-              remember what matters: the people we care about, the intentions we want to live by,
-              the wish not to add harm to ourselves, to others, or to the world. We remember the
-              teachings we have met, however few. We remember to come back. And we weigh what we
-              have recognized against what we care about. That weighing is how a person chooses
-              what to grow and what to let go.
+              Aware is clarity, the illumination at the heart of our practice. This luminous
+              awareness is always available to us, always illuminating, like the sun shining on the
+              turning Earth: it shines on everything. It becomes obscured when we get caught up in
+              what covers it, attached to the content of our thoughts and feelings. We do not
+              construct this awareness. We show up to it. Everything we know arises within it, and
+              because of it we can recognize what is here. The luminous mind reveals. Together with
+              Attitude, clarity and presence are the heart of our practice.
             </p>
 
-            <h2 id="embody-and-engage">Embody and Engage</h2>
+            <h2 id="attitude">Attitude</h2>
             <p>
-              Embody is the practice becoming part of who we are. Repeated in body, heart, and
-              action, what we care about slowly becomes character, and the old conditioning that
-              keeps us from seeing is replaced, a little at a time, with a steadier way of being.
-              Any day can be lived with intention. Then the whole day is practice.
-            </p>
-            <p>
-              Engage is living as well as we can with the conditions of our life, including the
-              habits of our own minds. It is caring for ourselves, for those we love, and for the
-              world: understanding, caring, and acting from that place. It is the door held, the
-              hard email answered kindly, the salt passed, a child listened to. And when the action
-              is done, it returns to stillness. The water settles, and we begin again from calm.
+              Attitude is how we meet our experience. If Aware is the light of the sun, Attitude is
+              its warmth. We let what is here be as it is, not wanting it to be better, not pushing
+              away what we don&rsquo;t want, and we meet it kindly, with curiosity, because we want
+              to know ourselves, others, and this life, and to remove what obscures our wakeful
+              nature. This is presence: everything extra quiets, and what is here can be known
+              without our being of it. That is equanimity. It doesn&rsquo;t mean agreeing with
+              everything or never responding. It is the place we see from, clearly and whole, and
+              even when we are caught in reactivity, that clear knowing can see the reactivity.
             </p>
 
-            <h2>Not a sequence</h2>
+            <h2 id="recognize">Recognize</h2>
             <p>
-              The letters spell a word, and words need an order. Moments do not. Sometimes what a
-              day needs is calm. Sometimes it needs remembering. Sometimes the practice is to act.
-              Often all eight are present at once, in a ninety-second exchange at the kitchen sink.
-              Each of them can be practiced within ourselves, between us, and in the wider web of
-              life we are part of. Insight here comes from living it, not from understanding the
-              words, and most of the time the practice is an ordinary day: sitting, working,
-              resting, being with people, and taking care as we go.
+              Recognize is knowing what is here and seeing it honestly: peace as peace, joy as joy,
+              anger as anger, worry as worry, whatever is alive at our senses, within us and around
+              us. Awareness makes this possible, and the attitude of not clinging, not pushing away,
+              and staying curious protects it. Sometimes a simple name helps: this is here, this is
+              happening now. Recognizing does not always release what we see; some states are
+              long-standing, arising whenever their conditions come together. But seen honestly, a
+              state shows more of itself: not me, not permanent, arising within a whole web of
+              conditions. Recognizing gently, with bare knowing, we see the greater context, and
+              come to know our experience more clearly.
             </p>
 
-            <h2>Where it comes from</h2>
+            <h2 id="remember">Remember</h2>
             <p>
-              Behind these eight words is an old way of practice. It comes down through the
-              Buddhist meditation traditions, and one Chinese teacher, nine centuries ago, gave it
-              two words: silent illumination. An open, settled awareness that meets whatever
-              arrives. Around here it is the ground everything else stands on. You do not need to
-              know any of this to practice; the words above are enough for years. The depth is
-              there for anyone who wants it, and everyone who practices with us receives the full
-              handout and, in time, the fuller map behind it,{" "}
-              <Link href="/our-roots">A Handful of Leaves</Link>.
+              Remember is our reconnection with our greater nature. Caught in the ordinary mind, the
+              noise, we forget our wakeful nature; remembering finds it again. We also remember what
+              is important: our deeper intentions, our values, the wish to live without causing harm
+              to ourselves, others, or the world, to bring benefit and well-being, and to help
+              create the conditions for everyone to realize their own greater nature. We remember
+              the teachings we have met, however many or few, all of them aimed at unclouding. We
+              remember to come back and abide in the conditions of this moment, and to let our
+              greater intentions meet the intentions of this moment. We reflect on what we recognize
+              and weigh it against what matters; this is how we can choose to grow and protect what
+              is wholesome, and to see through and guard against what is not. This remembering is
+              the other half of mindfulness.
+            </p>
+
+            <h2 id="embody">Embody</h2>
+            <p>
+              Embody is making the practice part of who we are. We embody what we care about, what
+              we are cultivating, and what we see through our practice; the practice itself is a
+              form of embodiment, and so is the way we act. We do not only think about these things.
+              Over time, repeating them in heart, mind, and body, in action, they become more of who
+              we are, and the old conditioning that keeps us from seeing is slowly replaced by a way
+              of abiding that cultivates the ground for wakefulness, great wisdom, and great
+              compassion. Great here means not caught in our limited perspective. Any day can be
+              lived with intention, and then the whole day is practice. When we lose the
+              embodiment, we lose the practice.
+            </p>
+
+            <h2 id="engage">Engage</h2>
+            <p>
+              Engage is living as best we can with the conditions of our life, including the habits
+              of our ordinary mind. It is caring for ourselves, for those we love, and for the
+              world: understanding, caring, and acting from that place. It lets us meet healthy
+              moments with joy, peace, love, and appreciation, and meet what challenges us in a way
+              that leaves us more awake and freer of harmful patterns. It is arranging the causes
+              and conditions, inside and out, through our speech, our actions, our lifestyle, and
+              our relationships, so that this present-moment life improves and we can meet it
+              fully. This is great action, great because it arises from the wakeful, liberated mind
+              rather than the reactive one. In time it becomes a natural way of being: less
+              contrived, more authentic and true, awake, free of the ordinary mind&rsquo;s hold, and
+              unified with our Buddha nature. And when the action is complete, it returns to
+              stillness, and we begin again from calm.
+            </p>
+
+            <h2>Learning over time</h2>
+            <p>
+              The words are taught over time, in our sits, classes, practice discussions, and talks,
+              sometimes one at a time, sometimes several, sometimes as one unified practice. They
+              are not steps, and there is no order to learn them in. Wherever we begin, the others
+              are already there.
             </p>
             <p>
-              Practice begins in care, and it opens into care. CARE is the language we share for
-              all of this. Behind it is a deep tradition. In front of it is the life we are living
-              now, and the people in it.
+              Insight here comes from lived experience, not from an understanding of the words. Most
+              of the time the practice is our ordinary day: sitting, working, resting, being with
+              people, and taking care as we go.
+            </p>
+            <p>
+              This page is a first introduction. The teachings deepen from there: through our
+              community introduction, <Link href="/our-roots">A Handful of Leaves</Link>; through
+              Foundations; and through ongoing learning and practice together.
             </p>
           </div>
 

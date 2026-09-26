@@ -94,9 +94,9 @@ export default function CareCircle() {
     >
       <title id="care-circle-title">The CARE circle</title>
       <desc id="care-circle-desc">
-        Eight words in four pairs around a centre of the letters C, A, R, and E: Calm and
-        Connect, Aware and Attitude, Recognize and Remember, Embody and Engage. Three rings
-        run through every word: Self, Other, and Interbeing.
+        Eight words around a centre of the letters C, A, R, and E: Calm, Connect, Aware,
+        Attitude, Recognize, Remember, Embody, and Engage. Three rings run through every word:
+        Self, Other, and Interbeing.
       </desc>
 
       <circle cx={C} cy={C} r={R_OUTER} fill="#fff" />
