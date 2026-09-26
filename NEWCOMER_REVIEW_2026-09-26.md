@@ -155,3 +155,5 @@ Local verification: TypeScript, targeted ESLint and diff checks pass. Existing n
 ## Homepage first-gathering removal
 
 Jesse requested removing the entire first-gathering section from home because it is already covered on New to RIM. Removed the section and unused GuidedPractice import, retaining the newcomer page and hero link. Other homepage changes were compared with `5a2c1ee` for his review; no additional layout or wording changes made in this correction.
+
+Live verification: `5e56da7` deployed. The home first-gathering block is absent, What brings us together again follows the hero, and the hero’s New to RIM link remains. TypeScript, focused lint and diff checks passed. New to RIM still renders GuidedPractice and its first-gathering guidance.
