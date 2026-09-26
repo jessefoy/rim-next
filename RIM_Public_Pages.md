@@ -242,6 +242,8 @@ The s170 **"one left edge"** rule is scoped to the two *listing* pages, exactly 
 
 ### The spine, decided — `.pp-page--spine` (session 176, closes `2026-08-10-006`)
 
+> **Superseded for reading pages, 2026-09-26:** see "The reading column" below. The spine still governs home, KM groups and teacher profiles.
+
 **Jesse's ruling: prose rides the container text edge on every long-form page except `/donate`.** The centred convention survives only there, because its statement and note were measured against the live site.
 
 **The mechanism moved from the block to the page.** `.pp-prose--spine` alone was not enough: it left `.pp-intro` centred at **190** while its own prose sat at **110** — the same misalignment the spine exists to remove, one level up. `.pp-page--spine` on the page root now zeroes the left margin of both `.pp-intro` and `.pp-prose`, so an opener and its body cannot drift apart. `.pp-prose--spine` is kept (documented, and subsumed by the page class).
@@ -249,6 +251,24 @@ The s170 **"one left edge"** rule is scoped to the two *listing* pages, exactly 
 Adopted on `/what-we-practice`, `/your-first-visit` (now `/our-roots`, `/new-to-rim`), and the three Kalyana Mitta pages. `/diversity` was already on 110 via the draft's `dv-layout` (1060 max-width inside a 1060 container). **Measured after deploy: 110 across hero, headings, and prose on all five.**
 
 The geometry, so nobody re-derives it: `.rim-container` is 1140 with 40px padding, so at 1280 its text edge is **110** and its content box is **1060**. `.pp-intro` (900) centres to 190; `.pp-prose` (700) to 290; `.pp-intro ~ .pp-prose` (900, children capped 700) to 190. Zeroing the left margin puts all three on 110. `.pp-actions` is already there as a plain block.
+
+### The reading column — `.pp-page--column` (2026-09-26, supersedes the spine for reading pages)
+
+**Jesse's screenshot of `/new-to-rim` at ~1320px showed the problem the spine created:** the 700px reading column sat on the container's left edge with a 360px empty band to its right, on every reading page ("not balanced"). Measured across 22 pages at 375–1440 before changing anything.
+
+**Reading pages now sit in one centred column, hero copy included.** `.pp-page--column` (worn alongside `--spine`, whose margin rules keep every block on the column's edge) narrows `.rim-container` to `calc(var(--reading-width) + 80px)`, so the content box is exactly the reading measure and the page is symmetric (290/290 at 1280, 370/370 at 1440). **What is different from the pre-s176 centring:** that centred the prose alone, leaving the hero at 110 and the prose at 290 (three left edges). Here the hero copy moves into the same column, so the one-left-edge goal survives and the balance returns.
+
+**The header is the program-detail header** (Jesse: the program detail page's header and content are "balanced and centered. This is good design"): eyebrow, title and line centred in the column; the program hero's tiers (13px eyebrow, 52px title, 20px line; 34/18 on phones); and its vertical scrim (`rim-blue` 84% → `rim-dark` 91%), which suits centred copy where the horizontal `pp-hero` gradient suits left-set copy. Content below keeps left-set text in the centred column, exactly as the program pages do.
+
+**Where it applies:** `/new-to-rim`, `/care`, `/why-we-practice`, `/our-roots`, `/about`, `/outreach`, `/join`, `/community-care-agreements`, and the KM guidelines and application. **Where it does not:** home, `/donate`, the listings, KM groups and teacher profiles, whose splits and card grids genuinely fill the container. They keep `.pp-page--spine` (or their measured centring, on donate).
+
+**Also from the balance pass (one block before the authenticated readability contract):**
+- On full-container spine pages the closing panel fills its area (`max-width: none`); in a column it stacks (words, then the button).
+- `.pp-btn` never wraps above 560px (`white-space: nowrap`); on phones a long label balances. Headings, hero lines and card titles `text-wrap: balance`; running text `text-wrap: pretty`.
+- Consecutive `.pp-closing__body` paragraphs get 16px between them (they had none).
+- `.pp-details__summary` is reading content: 18px, not 15px under 18px answers.
+- Meta chips (format, Today, lesson counts) have a 13px floor; eyebrows stay 11px (uppercase and tracked, contrast measured at that size).
+- Method: measure with an iframe harness (getBoundingClientRect + Range line counts) at 375/768/1280/1440, preview new CSS by injecting it into the live pages, then re-measure after deploy.
 
 ### The two heading tiers are a system, not drift (session 176)
 
@@ -306,6 +326,15 @@ The public pages carry a **ratified copy standard**, not just a design system. T
 **What RIM is, in one line, because getting it wrong is the recurring failure:** the handful is an **ordered structure** — organized by function into seven gatherings — and it exists **as a response to** having every tradition available at once. It is not eclectic gathering and it is not picking and choosing. The authority is the community introduction (`A Handful of Leaves: An Introduction`), the document given to every new participant. See `/what-we-practice` and the session-174 log.
 
 **Updated 2026-09-25 (Jesse):** RIM is a dharma community **rooted in the silent illumination tradition of Chan**, drawing on the whole Buddhist tradition through A Handful of Leaves, in the manner of Thích Nhất Hạnh, informed by mindfulness-based programs and modern science. It is **not** a Vipassana, Theravāda, or modern insight center; never describe it as "insight meditation" in copy or metadata. A Handful of Leaves is the *container*, the body of teaching RIM draws on, not the tradition's name; public copy leads with the tradition and explains the handful after (`/our-roots`). RIM's stated center (what the practice is for) lives in the vault's `1 Model/01-framework-what-rim-is.md`; public words in `4 Promotion/04-community-website-copy-2026-09-25.md`.
+
+**Updated 2026-09-26 (Jesse), for every page:**
+- **Vision and mission are stated once and repeated.** `RIM_VISION` and `RIM_MISSION` in `lib/communityAgreements.ts` are the only source; never retype them. The vision is Jesse's arc of the practice (master reference Sections 2–3); the mission is RIM's repeated actions (*Flock Not Clock*: vision is what we want to see and realize, mission the repeated actions that bring it about). The repeating-frame tell does not apply to them. `RIM_WHAT_BINDS` is a holding phrase until Jesse names the triad.
+- **The circle of benefit** is "ourselves, those we care about, and our shared world." "One another" names the sangha's mutual support, never the middle circle. The handout's practice sentence ("of ourselves, of those we love, of the world, and of this moment") stays verbatim.
+- **"Freer of," not "free from"**: freedom grows; it is never a finished state.
+- **Universal, not scenario framing.** A page does not open on an assumed situation; it may include some readers and exclude others.
+- **The four pairs are teacher-side** (the dyad architecture; register line). Public pages present eight words; home's four cards follow the circle's quarters without naming pairs.
+- **`/care` is the handout.** Change it only with the handout, and name any web-only difference in the vault copy doc.
+- **Silent illumination** is named, then its halves are said as clarity (Aware) and presence (Attitude). "Great" (wisdom, compassion, action) is part of the teaching: not caught in our limited perspective.
 
 ### Copy — the membership block speaks dana, not "free"
 

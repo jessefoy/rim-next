@@ -1,18 +1,23 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated at closing, 2026-09-25. Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated at closing, 2026-09-26. Full history belongs in `session-log.md`.
 
-## Active — the center, stated (2026-09-25, live; awaiting Jesse's read-aloud)
+## Active — brief, handout, one vision, balanced reading pages (2026-09-26, live; awaiting Jesse's read-aloud)
 
-**Live** (`8d3a1bf` … `a28aa7e`): the public site reorganized around RIM's stated center. Home re-sequenced (headline kept, new paragraph, Practice for real life in Pampas insets, pathway, accurate dana); new `/why-we-practice`, `/new-to-rim`, `/our-roots`, `/outreach`; the CARE circle on `/care`; `/about` mission-first; care agreements as an Our Shared Vision frame plus three (five surfaces); lineage corrected sitewide (Chan silent illumination, not insight); nav New to RIM · Our Practice · Programs · Get Involved · Members · Donate, hamburger at 1060px; text links became buttons, door arrows removed. Old URLs redirect (`vercel.json`). Detail: `session-log.md` 2026-09-25.
+**Live** (`b9ec334` … `1fc597c`): the site revision brief (home hero, What brings us together, For organizations, Outreach in headed sections with a training invitation, Donate as dana works, Practicing together, lineage corrections); `/care` is the practice handout (eight words, no pairs; clarity and presence; Buddha nature glossed); one vision and one mission from `lib/communityAgreements.ts` (Jesse's arc; the agreements frame carries it); the circle of benefit said one way; reading pages in one centred column with the program-detail header. Detail: `session-log.md` 2026-09-26; rulings in the vault master reference (Sections 2, 3, 10, Appendix A 2026-09-26).
 
-**Copy source of truth is the vault:** `Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md` (flags first, then pages in visitor order). Change words there first, then in code. The teacher-side center: `1 Model/01-framework-what-rim-is.md`. The `/how-jesse-writes` skill is not installed in sessions; its files are at `~/Downloads/how-jesse-writes` (guide amended 2026-07-22).
+**Copy source of truth is the vault:** `CARE/4 Promotion/04-community-website-copy-2026-09-25.md` (revisions 4–7 at the top). Change words there first, then in code. Vision/mission: change `RIM_VISION` / `RIM_MISSION` / `RIM_WHAT_BINDS`, never retype them.
 
-**Waiting on Jesse:** the read-aloud of the vault document; parking and which door to use on New to RIM (`2026-08-10-002`); the eight one-line word descriptions (vault compressions are placeholders on home and `/care`); Foundations format and dates, then build it as a Program and repoint the home door and New to RIM (`2026-09-25-001`); whether "RIM's outreach fund" exists (`/outreach`); the dana ask "give something, in whatever form is possible"; whether the circle belongs anywhere besides `/care`.
+**Waiting on Jesse:**
+- **The triad** in the vision ("unhealthy views, skills, and habits" as spoken; he is weighing "views, states, and habits", relatable and including actions). Holding phrase on the site: "unhealthy patterns of mind and action" (`RIM_WHAT_BINDS`, one edit).
+- Whether the **handout** takes "clarity" and "presence" and the Buddha nature gloss, so page and handout stay identical.
+- Whether home's CARE card titles ("Calm and Connect"…) still read as pairs (eight single-word cards is the alternative).
+- Carried from the brief: Taking Care vs Taking CARE; the handout promise at signup; whether teachers receive no salary from RIM; the MBSR line (now on Our Roots only).
+- Earlier: parking and which door (`2026-08-10-002`); the eight one-line word descriptions; Foundations format and dates (`2026-09-25-001`); whether the circle belongs anywhere besides `/care`.
 
-**Next concrete step:** take Jesse's read-aloud flags into the vault document and flow them to the pages. With Jesse signed in, confirm the agreement frame renders on `/account/welcome`, program registration and `/account/community-care` (not yet seen signed in).
+**Next concrete step:** the read-aloud of the vault document (revisions 4–7 first), then flow his flags to the pages. With Jesse signed in, confirm the new Our Shared Vision frame on `/account/welcome` and `/account/community-care`.
 
-**Queued:** the button pass on untouched public pages (`2026-09-25-002`); First Steps (`2026-09-25-003`); the ten-minute recording (`2026-09-25-004`). **October 5** is the real-domain launch: the Webflow redirects (`2026-08-07-003`) and forms audit (`2026-08-10-003`) are still open.
+**Queued:** the button pass on untouched public pages (`2026-09-25-002`); First Steps (`2026-09-25-003`); the ten-minute recording (`2026-09-25-004`); team missions as repeated actions (`2026-09-26-001`). **October 5** is the real-domain launch: Webflow redirects (`2026-08-07-003`) and forms audit (`2026-08-10-003`) still open. The impeccable skill has an update available (v4.4.0; `npx impeccable update`), offered, not run.
 
 ## Still open from September 24 (integrity pass)
 
@@ -51,6 +56,7 @@ Other pending decisions: public Test Course/teacher profile data (`2026-09-02-00
 
 ## Recently completed / reference
 
+- Brief, handout, vision, balance (2026-09-26): `session-log.md` 2026-09-26; `RIM_Public_Pages.md` → "The reading column" and Copy and voice (2026-09-26).
 - The center, stated (2026-09-25): `session-log.md` 2026-09-25; `RIM_Public_Pages.md` → "The center, stated"; copy in the vault's `04-community-website-copy-2026-09-25.md`.
 - September 24 integrity pass: `session-log.md` 2026-09-24; `RIM_Registration.md` (receipt, thank-you, voluntary dana), `RIM_Zoom.md` (seat pick, door permissions).
 - September member redesign: `RIM_Member_Area.md`; closing entry 2026-09-22 in `session-log.md`.

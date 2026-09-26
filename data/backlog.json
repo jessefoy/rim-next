@@ -1474,5 +1474,15 @@
     "status": "open",
     "addedAt": "2026-09-25",
     "notes": "Jesse's critical path: the recording and its title."
+  },
+  {
+    "id": "2026-09-26-001",
+    "title": "Team missions as repeated actions (Flock Not Clock)",
+    "description": "Jesse adopted the Flock Not Clock principle (vision = what we want to see and realize; mission = repeated actions; capacity; learning). The care agreements already work like a flock's simple rules. Idea: each volunteer team (Space) states its own mission as a few repeated actions, visible on the team Home; the KM guidelines already ask each group for a mission statement. Needs Jesse's direction before any design.",
+    "category": "Hubs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-09-26",
+    "notes": "Master reference Section 3 marks it [Open]."
   }
 ]
