@@ -5,7 +5,7 @@ import { buildSubtitle, fmtLabel, hasConcludedOneTime } from "@/lib/programUtils
 export const metadata = {
   title: "Community Groups and Activities — Rooted In Mindfulness",
   description:
-    "Kalyana Mitta groups at RIM — connect with others to deepen your practice, share interests, and grow spiritual friendships.",
+    "Community groups at RIM: practice meditation, explore shared interests, and support one another. Find a current group or propose an idea.",
 };
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function KalyanaGroupsPage() {
     where: {
       archivedAt: null,
       hideFromProgramPageList: false,
-      category: { name: "Community Groups" },
+      category: { kind: "COMMUNITY_GROUP", hideFromProgramsPage: false },
     },
     include: { category: true },
     orderBy: { sortOrder: "asc" },
@@ -39,12 +39,12 @@ export default async function KalyanaGroupsPage() {
         }}
       >
         <div className="rim-container pp-hero__inner">
-          <p className="pp-hero__eyebrow">Kalyana Mitta</p>
+          <p className="pp-hero__eyebrow">Practice with others</p>
           <h1 className="pp-hero__title">Community Groups and Activities</h1>
           <p className="pp-hero__body">
-            Connect with others to deepen your learning, practice, shared interests, affinity
-            connections, and engaged mindfulness, and to grow <em>spiritual friendships</em>.
-            Following tradition, these community-led activities are called <em>Kalyana Mitta</em>.
+            Community groups bring people together around meditation, study, service, and shared
+            interests. We support one another in practicing care in daily life. In the Buddhist
+            tradition, this friendship is called <em>Kalyana Mitta</em>, or supportive friendship.
           </p>
           <div className="pp-hero__actions">
             <a href="#current-groups" className="pp-btn pp-btn--onblue">
@@ -54,7 +54,7 @@ export default async function KalyanaGroupsPage() {
               href="/kalyana-mitta/kalyana-mitta-group-application"
               className="pp-hero__link"
             >
-              Start a group or event <span aria-hidden="true">→</span>
+              Propose a group or event <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default async function KalyanaGroupsPage() {
           <div className="pp-intro">
             <p className="pp-intro__eyebrow">What they are</p>
             <h2 className="pp-intro__title">
-              About Kalyana Mitta groups and activities
+              About community groups and activities
             </h2>
           </div>
           <div className="pp-prose">
@@ -151,15 +151,16 @@ export default async function KalyanaGroupsPage() {
                 Don&rsquo;t see a group that fits?
               </h2>
               <p className="pp-closing__body">
-                Any member of RIM can start a Kalyana Mitta group or community activity. Read the
-                guidelines, then tell us about your idea. We&rsquo;ll help you get it going.
+                Any member can propose a community group or activity. Read the guidelines, then
+                share your idea. The community coordinator reviews proposals with you before
+                further planning.
               </p>
             </div>
             <Link
               href="/kalyana-mitta/kalyana-mitta-group-application"
               className="pp-btn pp-closing__link"
             >
-              Start a group
+              Propose a group
             </Link>
           </div>
 

@@ -53,11 +53,18 @@ export default function AboutPage() {
               person or building holds it up.
             </p>
 
+            <p>
+              Our <Link href="/teachers">teachers</Link> guide practice; community members volunteer
+              to host gatherings and care for the center. For questions about RIM or to raise a
+              concern, email <a href="mailto:support@rootedinmindfulness.org">support@rootedinmindfulness.org</a>{" "}
+              or call <a href="tel:4148828932">(414) 882-8932</a> and leave a message.
+            </p>
+
             <h2>How we began</h2>
             <p>
               Rooted in Mindfulness began with one intention: to make mindfulness and contemplative
               practice available in ways that could hold up in an ordinary life. Its founding
-              teacher, Jesse Foy, came to this work through more than fifteen years of
+              teacher, <Link href="/teachers/jesse-foy">Jesse Foy</Link>, came to this work through more than fifteen years of
               mindfulness-based work in medicine, training as a teacher of Mindfulness-Based Stress
               Reduction at UMass Medical School, and the study of Buddhism and contemplative
               psychology at Naropa University.

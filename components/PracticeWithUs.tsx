@@ -10,8 +10,7 @@ export default function PracticeWithUs() {
         Offered in mutual generosity and care.
       </h2>
       <p className="pl-membership__body">
-        We don&rsquo;t charge for the teachings, and no one carries this center alone.
-        Everything here runs on{" "}
+        Our teachings and community are supported through{" "}
         <Link href="/donate#dana-at-rim" className="pl-membership__inline-link">
           dana
         </Link>
@@ -21,7 +20,7 @@ export default function PracticeWithUs() {
         <Link href="/community-care-agreements" className="pl-membership__inline-link">
           community care agreements
         </Link>
-        .
+        . Program pages distinguish voluntary giving from any required registration payment.
       </p>
       {/* The aside says a member account is how you join on Zoom and register,
           so it has to offer one. The version this replaced ended in this exact

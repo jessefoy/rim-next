@@ -61,12 +61,13 @@ export default async function VolunteerPage({
       {/* ── Quote ─────────────────────────────────────────── */}
       <section className="pp-section pp-section--tight">
         <div className="rim-container">
-          <blockquote className="pp-quote">
-            <p className="pp-quote__text">
-              &ldquo;The best way to find yourself is to lose yourself in the service of others.&rdquo;
+          <div className="pp-prose">
+            <p>Volunteering is one way we practice care together. Offer what fits your time,
+              interests, and capacity; we can talk about the work before you make a commitment.</p>
+            <p>Questions before signing up? Email{" "}
+              <a href="mailto:support@rootedinmindfulness.org?subject=Volunteering">support@rootedinmindfulness.org</a>.
             </p>
-            <footer className="pp-quote__attr">Mahatma Gandhi</footer>
-          </blockquote>
+          </div>
         </div>
       </section>
 
@@ -114,14 +115,14 @@ export default async function VolunteerPage({
             <div className="pp-notice">
               <p className="pp-notice__title">You&rsquo;ll need an account for this form</p>
               <p className="pp-notice__body">
-                Membership is freely offered. Create an account or sign in, then come back to this
-                page and the form will be here.
+                Membership is freely offered. Create an account or sign in; you will return here
+                to complete the form.
               </p>
               <div className="pp-actions">
-                <Link href="/join" className="pp-btn">
+                <Link href="/join?returnTo=%2Fvolunteerism%2Fvolunteer" className="pp-btn">
                   Become a member
                 </Link>
-                <Link href="/login" className="pp-link">
+                <Link href="/login?returnTo=%2Fvolunteerism%2Fvolunteer" className="pp-link">
                   I already have an account <span aria-hidden="true">→</span>
                 </Link>
               </div>

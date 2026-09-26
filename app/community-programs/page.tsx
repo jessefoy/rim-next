@@ -5,6 +5,8 @@ import ProgramCardNotices from "@/components/ProgramCardNotices";
 import PracticeWithUs from "@/components/PracticeWithUs";
 import {
   buildSubtitle,
+  participationLabel,
+  programLocationLabel,
   fmtLabel,
   computeDateText,
   computeTimeText,
@@ -14,6 +16,7 @@ import {
 
 export const metadata = {
   title: "Programs and Events — Rooted In Mindfulness",
+  description: "Meditation gatherings, classes, community groups, and retreats in Brookfield and on Zoom. Find current dates, locations, and registration details.",
 };
 
 export const dynamic = "force-dynamic";
@@ -88,6 +91,7 @@ export default async function CommunityProgramsPage() {
             Sit together, study the teachings, and bring what you find into the rest of your life.
             Join us at the center or online, whether you are beginning or have practiced for years.
           </p>
+          <p className="pp-hero__body">For guided first-visit options and what to expect, see <Link href="/new-to-rim">New to RIM</Link>.</p>
           <div className="pp-hero__actions">
             <Link href="/this-week" className="pp-hero__link pp-hero__link--utility">
               See what&rsquo;s happening this week <span aria-hidden="true">→</span>
@@ -116,6 +120,7 @@ export default async function CommunityProgramsPage() {
                 <div className="pl-grid">
                   {categoryPrograms.map((program) => {
                     const format = fmtLabel(program.programFormat);
+                    const participation = participationLabel(program);
 
                     // One-time upcoming: keep the date prominent with the
                     // scheduling facts, but keep every program title on the
@@ -169,7 +174,8 @@ export default async function CommunityProgramsPage() {
                                 )}
                               </time>
                               {time && <span className="pl-card__schedule">{time}</span>}
-                              {format && <span className="pl-card__format">{format}</span>}
+                              <span className="pl-card__format">{programLocationLabel(program)}</span>
+                              <span className="pl-card__format">{participation}</span>
                             </div>
                             <span className="pl-card__action" aria-hidden="true">→</span>
                           </div>
@@ -205,7 +211,8 @@ export default async function CommunityProgramsPage() {
                               560, leaving the arrow floating alone. */}
                           <div className="pl-card__when">
                             {schedule && <span className="pl-card__schedule">{schedule}</span>}
-                            {format && <span className="pl-card__format">{format}</span>}
+                            <span className="pl-card__format">{programLocationLabel(program)}</span>
+                              <span className="pl-card__format">{participation}</span>
                           </div>
                           <span className="pl-card__action" aria-hidden="true">→</span>
                         </div>

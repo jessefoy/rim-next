@@ -393,3 +393,10 @@ The public site was reorganized so RIM's stated center is the first thing a visi
 ### Program notices (September 2026)
 
 The general program catalog and weekly schedule retain `specialAnnouncement` as a visible Update. They no longer render `earlyArrivalMessage` under “Good to know.” That routine preparation appears beside the relevant offering on the signed-in member’s Today view, in a disclosure. This is a placement change; authors still edit the same program field. Do not remove urgent updates or hide cancellation/time-change information with routine preparation.
+
+
+## Newcomer review (2026-09-26)
+
+Jesse approved the newcomer assessment, selected Meditation and Dharma Talk as the first visit, and supplied entrance/parking/stairs-only access/restroom/phone details. Home and New to RIM read that gathering’s current data through `GuidedPractice`. Home directory doors again use visible live categories. CARE gains only a short introduction; the handout and circle stay intact at Jesse’s explicit direction.
+
+Participation labels use `isOpenlyDroppable`; registration-enabled DROP_IN means optional registration under existing access code, pending any organizer policy correction. Program giving summaries use existing dana amounts; no minimum or scholarship rules invented. Details precede long authored prose. Public nav disclosures are click/keyboard controlled with actual expanded state, Escape/focus return, outside and blur dismissal. Newsletter labels remain visible. Full implementation and residual fact checks: `NEWCOMER_REVIEW_2026-09-26.md`.

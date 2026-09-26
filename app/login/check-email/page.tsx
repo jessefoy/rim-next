@@ -1,3 +1,4 @@
+import { authReturnPath, authCallbackPath } from "@/lib/authReturn";
 import { signIn } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -34,9 +35,11 @@ function isInPostJoinWindow(
 export default async function CheckEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; resent?: string; code?: string }>;
+  searchParams: Promise<{ email?: string; resent?: string; code?: string; returnTo?: string }>;
 }) {
-  const { email, resent, code } = await searchParams;
+  const { email, resent, code, returnTo: requestedReturn } = await searchParams;
+  const returnTo = authReturnPath(requestedReturn);
+  const returnQuery = `returnTo=${encodeURIComponent(returnTo)}`;
   // Arrives from the email's "Sign me in from this device" button. Only a
   // well-formed six-digit code pre-fills the form; the member still taps
   // Sign in, so opening the link alone never uses the code up.
@@ -44,7 +47,7 @@ export default async function CheckEmailPage({
 
   // Stateless if a user lands here without an email (bookmark, direct nav).
   if (!email) {
-    redirect("/login");
+    redirect(`/login?${returnQuery}`);
   }
 
   // Look up the User by email so we can (a) personalize the copy with
@@ -68,7 +71,7 @@ export default async function CheckEmailPage({
     "use server";
     const e = (formData.get("email") as string | null)?.trim();
     if (!e) {
-      redirect("/login");
+      redirect(`/login?${returnQuery}`);
     }
     // Same redirect-handling pattern as /login: signIn with redirect:false
     // does not throw on email-send failure but returns an error URL.
@@ -84,9 +87,9 @@ export default async function CheckEmailPage({
       !signInResult ||
       (typeof signInResult === "string" && /[?&]error=/.test(signInResult));
     if (sendFailed) {
-      redirect("/login?error=send-failed");
+      redirect(`/login?error=send-failed&${returnQuery}`);
     }
-    redirect(`/login/check-email?email=${encodeURIComponent(e!)}&resent=1`);
+    redirect(`/login/check-email?email=${encodeURIComponent(e!)}&resent=1&${returnQuery}`);
   }
 
   return (
@@ -136,7 +139,7 @@ export default async function CheckEmailPage({
                 hidden `token` field via GET to /api/auth/callback/resend,
                 same NextAuth Email-provider callback that magic-link clicks
                 used to hit. */}
-            <SignInCodeForm email={email} callbackUrl="/account/dashboard" initialCode={prefilledCode} />
+            <SignInCodeForm email={email} callbackUrl={authCallbackPath(returnTo)} initialCode={prefilledCode} />
 
             {/* A div, not a p: the resend action is a real <form>, and a form
                 inside a <p> is invalid HTML (the browser closes the paragraph
@@ -153,7 +156,7 @@ export default async function CheckEmailPage({
             </div>
             <p className="lg-alt lg-alt--quiet">
               Wrong email?{" "}
-              <a href="/login" className="pp-link">
+              <a href={`/login?${returnQuery}`} className="pp-link">
                 Start over
               </a>
               .

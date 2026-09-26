@@ -233,3 +233,8 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 ---
 
 *Working document. Updated 2026-09-02 (Session 176 — the three `/login` pages rebuilt onto the `pp-` grammar, auth logic untouched; pitfall 6 rewritten, pitfall 7 added). Previously 2026-08-10 (Session 173 — the legacy-class layout bugs). Previously 2026-05-27 (Session 132 — `/join` slice: two-door model, shared rate-limit module).*
+
+
+## Newcomer return paths (2026-09-26)
+
+Public program and volunteer links pass `returnTo` through login/join, their soft redirects, code entry and resend. `lib/authReturn.ts` only allows program detail/registration slugs and the volunteer page; everything else becomes My Home. The code callback goes through `/account/return?to=…`, within the authenticated route group and with explicit session/agreement/archive checks before redirecting. No email templates or auth tokens changed. Email-button cross-device flows, verification-error restarts, and welcome/reactivation detours retain the existing My Home destination.

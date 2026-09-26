@@ -80,6 +80,12 @@ export default function WhyWePracticePage() {
               is always further to go.
             </p>
 
+            <p>
+              Hardship also comes from conditions around us: discrimination, unsafe work, poverty,
+              and lack of care. Practice helps us respond to those conditions with others, as well
+              as work with our own reactions. Caring for the world includes changing what harms people.
+            </p>
+
             <h2>What gets in the way</h2>
             <p>
               We care about our lives, the people around us, and what happens in the world. And our

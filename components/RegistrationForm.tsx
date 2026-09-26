@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
@@ -18,7 +18,7 @@ function formatPhoneInput(value: string): string {
 }
 
 export interface RegistrationField {
-  _key: string;
+  _key?: string;
   label: string;
   fieldType: "shortText" | "longText" | "yesNo" | "select";
   required: boolean;
@@ -76,6 +76,7 @@ export default function RegistrationForm({
   existingRegistrationId,
   deadlinePassed,
 }: Props) {
+  const fieldIdPrefix = useId();
   // If the member was promoted from waitlist, show the dana step immediately
   const hasPendingDana = alreadyRegistered && existingDonationStatus === "PENDING";
 
@@ -556,7 +557,7 @@ export default function RegistrationForm({
 
       <div className="pg-form__field">
         <label className="pg-form__label" htmlFor="reg-phone">
-          Phone
+          Phone (optional)
         </label>
         <input
           id="reg-phone"
@@ -574,16 +575,16 @@ export default function RegistrationForm({
       </div>
 
       {/* ── Dynamic custom fields ── */}
-      {program.registrationFields?.map((field) => (
-        <div key={field._key} className="pg-form__field">
-          <label className="pg-form__label" htmlFor={`reg-custom-${field._key}`}>
+      {program.registrationFields?.map((field, index) => (
+        <div key={`${fieldIdPrefix}-${index}`} className="pg-form__field">
+          <label className="pg-form__label" htmlFor={`${fieldIdPrefix}-custom-${index}`}>
             {field.label}
             {field.required && <span className="pg-form__required"> *</span>}
           </label>
 
           {field.fieldType === "shortText" && (
             <input
-              id={`reg-custom-${field._key}`}
+              id={`${fieldIdPrefix}-custom-${index}`}
               type="text"
               className="pg-form__input"
               value={customAnswers[field.label] ?? ""}
@@ -594,7 +595,7 @@ export default function RegistrationForm({
 
           {field.fieldType === "longText" && (
             <textarea
-              id={`reg-custom-${field._key}`}
+              id={`${fieldIdPrefix}-custom-${index}`}
               className="pg-form__textarea"
               value={customAnswers[field.label] ?? ""}
               onChange={(e) => handleCustom(field.label, e.target.value)}
@@ -604,7 +605,7 @@ export default function RegistrationForm({
 
           {field.fieldType === "yesNo" && (
             <select
-              id={`reg-custom-${field._key}`}
+              id={`${fieldIdPrefix}-custom-${index}`}
               className="pg-form__select"
               value={customAnswers[field.label] ?? ""}
               onChange={(e) => handleCustom(field.label, e.target.value)}
@@ -618,7 +619,7 @@ export default function RegistrationForm({
 
           {field.fieldType === "select" && (
             <select
-              id={`reg-custom-${field._key}`}
+              id={`${fieldIdPrefix}-custom-${index}`}
               className="pg-form__select"
               value={customAnswers[field.label] ?? ""}
               onChange={(e) => handleCustom(field.label, e.target.value)}

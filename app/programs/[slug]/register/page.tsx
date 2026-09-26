@@ -4,7 +4,7 @@ import Link from "next/link";
 import RegistrationForm, { RegistrationField } from "@/components/RegistrationForm";
 import { db } from "@/lib/db";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
-import { buildSubtitle } from "@/lib/programUtils";
+import { buildSubtitle, programGivingSummary } from "@/lib/programUtils";
 
 // Always show fresh data — this page is user-specific
 export const dynamic = "force-dynamic";
@@ -88,7 +88,7 @@ export default async function RegisterPage({
     : null;
 
   const deadlinePassed = !!(
-    program.registrationDeadline && new Date(program.registrationDeadline) < new Date()
+    pgProgram.registrationClosed || (program.registrationDeadline && new Date(program.registrationDeadline) < new Date())
   );
 
   const alreadyRegistered = !!existingRegistration;
@@ -121,6 +121,7 @@ export default async function RegisterPage({
           <p className="rg-header__eyebrow">{headerTitle}</p>
           <h1 className="rg-header__title">{program.name}</h1>
           {scheduleLabel && <p className="rg-header__meta">{scheduleLabel}</p>}
+          {programGivingSummary(pgProgram) && <p className="rg-header__meta">{programGivingSummary(pgProgram)}</p>}
         </div>
       </header>
 

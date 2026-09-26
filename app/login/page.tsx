@@ -1,5 +1,6 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { authReturnPath, authCallbackPath } from "@/lib/authReturn";
 import { db } from "@/lib/db";
 
 export const metadata = { title: "Sign in — Rooted In Mindfulness" };
@@ -7,12 +8,13 @@ export const metadata = { title: "Sign in — Rooted In Mindfulness" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; email?: string; notMember?: string }>;
+  searchParams: Promise<{ error?: string; email?: string; notMember?: string; returnTo?: string }>;
 }) {
+  const { error, email: prefillEmailRaw, notMember, returnTo: requestedReturn } = await searchParams;
+  const returnTo = authReturnPath(requestedReturn);
+  const returnQuery = `returnTo=${encodeURIComponent(returnTo)}`;
   const session = await auth();
-  if (session) redirect("/account/dashboard");
-
-  const { error, email: prefillEmailRaw, notMember } = await searchParams;
+  if (session) redirect(authCallbackPath(returnTo));
   const errorMessage =
     error === "send-failed"
       ? "We couldn't send the code. Please check your email address and try again."
@@ -36,7 +38,7 @@ export default async function LoginPage({
     "use server";
     const email = (formData.get("email") as string | null)?.trim().toLowerCase();
     if (!email) {
-      redirect("/login?error=send-failed");
+      redirect(`/login?error=send-failed&${returnQuery}`);
     }
 
     // Check whether a User with this email exists BEFORE sending a code.
@@ -68,7 +70,7 @@ export default async function LoginPage({
       lookupFailed = true;
     }
     if (!existing && !lookupFailed) {
-      redirect(`/login?notMember=1&email=${encodeURIComponent(email!)}`);
+      redirect(`/login?notMember=1&email=${encodeURIComponent(email!)}&${returnQuery}`);
     }
 
     // redirect:false so we land here after the email send attempt, then route
@@ -95,9 +97,9 @@ export default async function LoginPage({
       (typeof signInResult === "string" && /[?&]error=/.test(signInResult));
 
     if (sendFailed) {
-      redirect("/login?error=send-failed");
+      redirect(`/login?error=send-failed&${returnQuery}`);
     }
-    redirect(`/login/check-email?email=${encodeURIComponent(email!)}`);
+    redirect(`/login/check-email?email=${encodeURIComponent(email!)}&${returnQuery}`);
   }
 
   return (
@@ -131,7 +133,7 @@ export default async function LoginPage({
                   <strong className="lg-email">{prefillEmail || "that email"}</strong>. If
                   you&apos;re new to RIM, you&apos;re warmly welcome.{" "}
                   <a
-                    href={`/join${prefillEmail ? `?email=${encodeURIComponent(prefillEmail)}` : ""}`}
+                    href={`/join?${returnQuery}${prefillEmail ? `&email=${encodeURIComponent(prefillEmail)}` : ""}`}
                     className="pp-link"
                   >
                     Become a member <span aria-hidden="true">&rarr;</span>
@@ -155,7 +157,8 @@ export default async function LoginPage({
                   className="pp-form__input"
                   maxLength={256}
                   name="email"
-                  placeholder="e.g. howard.thurman@gmail.com"
+                  placeholder="you@example.com"
+                  autoComplete="email"
                   type="email"
                   id="email"
                   defaultValue={prefillEmail}
@@ -169,7 +172,7 @@ export default async function LoginPage({
 
             <p className="lg-alt">
               New to RIM?{" "}
-              <a href="/join" className="pp-link">
+              <a href={`/join?${returnQuery}`} className="pp-link">
                 Become a member <span aria-hidden="true">&rarr;</span>
               </a>
             </p>

@@ -2,6 +2,10 @@
 
 Read first when opening RIM. Updated at closing, 2026-09-26. Full history belongs in `session-log.md`.
 
+## Newcomer assessment implementation (2026-09-26)
+
+See `NEWCOMER_REVIEW_2026-09-26.md` for the implementation, confirmed facts, remaining decisions, and verification. Jesse chose Meditation and Dharma Talk as the first visit and supplied entrance, parking, stairs-only access, restroom, and volunteer phone details. CARE keeps the handout intact with a short introduction only. Revision 8 and addenda are appended to the canonical vault copy; still provisional for read-aloud. These decisions supersede the older arrival-information questions below.
+
 ## Active — brief, handout, one vision, balanced reading pages (2026-09-26, live; awaiting Jesse's read-aloud)
 
 **Live** (`b9ec334` … `1fc597c`): the site revision brief (home hero, What brings us together, For organizations, Outreach in headed sections with a training invitation, Donate as dana works, Practicing together, lineage corrections); `/care` is the practice handout (eight words, no pairs; clarity and presence; Buddha nature glossed); one vision and one mission from `lib/communityAgreements.ts` (Jesse's arc; the agreements frame carries it); the circle of benefit said one way; reading pages in one centred column with the program-detail header. Detail: `session-log.md` 2026-09-26; rulings in the vault master reference (Sections 2, 3, 10, Appendix A 2026-09-26).
@@ -13,7 +17,7 @@ Read first when opening RIM. Updated at closing, 2026-09-26. Full history belong
 - Whether the **handout** takes "clarity" and "presence" and the Buddha nature gloss, so page and handout stay identical.
 - Whether home's CARE card titles ("Calm and Connect"…) still read as pairs (eight single-word cards is the alternative).
 - Carried from the brief: Taking Care vs Taking CARE; the handout promise at signup; whether teachers receive no salary from RIM; the MBSR line (now on Our Roots only).
-- Earlier: parking and which door (`2026-08-10-002`); the eight one-line word descriptions; Foundations format and dates (`2026-09-25-001`); whether the circle belongs anywhere besides `/care`.
+- Earlier: arrival and access copy is now supplied (see newcomer review); the eight one-line word descriptions; Foundations format and dates (`2026-09-25-001`); whether the circle belongs anywhere besides `/care`.
 
 **Next concrete step:** the read-aloud of the vault document (revisions 4–7 first), then flow his flags to the pages. With Jesse signed in, confirm the new Our Shared Vision frame on `/account/welcome` and `/account/community-care`.
 
@@ -42,7 +46,7 @@ Read first when opening RIM. Updated at closing, 2026-09-26. Full history belong
 
 ## Standing reminder — public copy still awaits Jesse
 
-Remind Jesse each session until resolved: parking and which entrance to use are still unwritten on `/new-to-rim` (which replaced `/your-first-visit`; Jesse supplied the other practical details 2026-09-25) (`2026-08-10-002`); the s174/s176 public copy requires his explicit read-aloud approval. Shipping is not ratification. Community Care now shares canonical text across **five** surfaces: join, welcome, registration, public agreements and member care. The live `/diversity` image `color-powder-diversity.webp` still lacks recorded provenance.
+Arrival details are now supplied and implemented in the newcomer review. The s174/s176 and revision-8 public copy still requires Jesse’s explicit read-aloud approval. Shipping is not ratification. Community Care now shares canonical text across **five** surfaces: join, welcome, registration, public agreements and member care. The live `/diversity` image `color-powder-diversity.webp` still lacks recorded provenance.
 
 Other pending decisions: public Test Course/teacher profile data (`2026-09-02-001`); whether to commit the community introduction/Copy and Voice Brief; source cleanup of `NEXTAUTH_URL`, retired service variables/Sanity project and the retired Community Drive (`2026-08-09-001`). `TEAM_EMAIL` was previously unset. These are recorded findings, not rechecked at this closing.
 

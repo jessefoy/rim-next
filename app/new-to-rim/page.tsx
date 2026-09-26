@@ -1,3 +1,4 @@
+import GuidedPractice from "@/components/GuidedPractice";
 import Link from "next/link";
 import { RIM_ADDRESS, RIM_MAPS_URL } from "@/lib/locations";
 
@@ -32,7 +33,7 @@ export const metadata = {
 const QUESTIONS = [
   {
     q: "Do I need meditation experience?",
-    a: "No. Every gathering is open to beginners, and the practice keeps deepening for people who have practiced for many years.",
+    a: "No experience is needed for our guided drop-in gatherings. Other offerings may involve longer periods of silence or a course of study; their program pages describe what to expect.",
   },
   {
     q: "Is this religious?",
@@ -44,11 +45,11 @@ const QUESTIONS = [
   },
   {
     q: "What if difficult feelings come up?",
-    a: "Meditation can bring up difficult feelings and memories. They are part of human experience, and they are met with care, at a workable pace, with a teacher available to talk with. Anyone receiving mental health care is encouraged to speak with their provider before beginning.",
+    a: "You can pause, open your eyes, or step out when you need to. Contact us before a gathering if you would like to discuss support. Meditation is not a substitute for medical or mental health care.",
   },
   {
     q: "What does it cost?",
-    a: "Our teachings are offered through dana, the practice of generosity. Programs list a suggested amount so you can see what an offering takes to sustain, and no one is turned away. A few offerings, such as overnight retreats, carry a minimum.",
+    a: "Membership has no dues. Our teachings are supported through dana, the practice of generosity. Program pages distinguish voluntary donations from any required amount. If a required amount is a barrier, contact us before registering to discuss what may be possible.",
   },
 ] as const;
 
@@ -83,19 +84,16 @@ export default function NewToRimPage() {
 
             <h2 id="where-to-begin">Where to begin</h2>
             <p>
-              A drop-in gathering is a good place to start, in person or online. Each one is
-              complete in itself, and no experience is needed.
+              We recommend Meditation and Dharma Talk for your first visit. It combines guided
+              practice with a teaching, in person or on Zoom. You can try one gathering without
+              committing to a series.
             </p>
+            <GuidedPractice />
             <p>
-              For a fuller introduction, we encourage everyone to take Foundations, a welcoming
-              introduction to our practice through guided meditation, teaching, reflection, and
-              conversation. Our first Foundations offering begins in November, and it will appear
-              with our <Link href="/community-programs">programs</Link> once it is scheduled.
-            </p>
-            <p>
-              You are welcome to join us in whatever way resonates with you, from a single sitting
-              to a day of mindfulness or a retreat. As a first step, we highly recommend a community
-              drop-in and Foundations.
+              Foundations is a planned introduction to CARE through guided meditation, teaching,
+              reflection, and conversation. Dates and registration will appear in our{" "}
+              <Link href="/community-programs">programs</Link> when scheduled. You can begin with
+              a weekly gathering now.
             </p>
 
             <h2 id="community">Practicing together</h2>
@@ -118,11 +116,14 @@ export default function NewToRimPage() {
 
             <h2 id="signing-up">Signing up</h2>
             <p>
-              We ask everyone who practices with us to{" "}
-              <Link href="/join">sign up as a member</Link>. Membership is freely offered, and it
-              takes a few minutes. For our online gatherings, signing up is required, for the
-              safety and integrity of those gatherings. If you are coming to the center, we highly
-              recommend it as well.
+              <strong>For an in-person drop-in, you can arrive without registering.</strong>{" "}
+              Creating a <Link href="/join">member account</Link> is encouraged. There are no dues
+              or attendance requirements, and you do not need to identify as Buddhist.
+            </p>
+            <p>
+              <strong>For Zoom, create an account and sign in.</strong> Your My Home page holds the
+              session links. An account is separate from program registration: when a program
+              requires registration, use its Register link as well.
             </p>
 
             <h2 id="in-person">Coming in person</h2>
@@ -142,9 +143,21 @@ export default function NewToRimPage() {
               carving.
             </p>
             <p>
-              Volunteers are there to help with anything you need. They will greet you and answer
-              your questions, and they will respect your privacy. Nobody will ask you to speak or
-              introduce yourself, and arriving late is fine.
+              Volunteers can help you find the rooms and answer questions. Arriving a little early
+              leaves time to settle in. Check the program page for arrival instructions and any
+              conversation or sharing that is part of the gathering.
+            </p>
+
+            <p>
+              The main entrance is on the south side of the building. You may park in any of the
+              parking lots around it. The center is reached by stairs; there is no elevator.
+              Restrooms are in our main hall and elsewhere in the building.
+            </p>
+            <p>
+              To discuss access needs before visiting, email{" "}
+              <a href="mailto:support@rootedinmindfulness.org?subject=Planning%20a%20visit">support@rootedinmindfulness.org</a>{" "}
+              or call <a href="tel:4148828932">(414) 882-8932</a>. The phone takes messages;
+              volunteers return calls. You can also take part in our online gatherings.
             </p>
 
             <h2 id="online">Joining online</h2>

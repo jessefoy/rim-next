@@ -10,7 +10,7 @@ export const metadata = { title: "Update Your Responses — Rooted In Mindfulnes
 // ─── Field definition ────────────────────────────────────────────────────────
 
 export interface RegistrationField {
-  _key: string;
+  _key?: string;
   label: string;
   fieldType: "shortText" | "longText" | "yesNo" | "select";
   required?: boolean;

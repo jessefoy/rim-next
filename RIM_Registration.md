@@ -129,3 +129,8 @@ Drift here is the classic failure: session 136's reviewer pass found three sites
 ---
 
 *Rooted in Mindfulness · Written session 136 (2026-06-03) as the per-tool reference for the registration-completes-after-dana rework.*
+
+
+### Custom-question labels (2026-09-26)
+
+Program Manager saves questions without the legacy Sanity `_key`. RegistrationForm and UpdateForm now derive per-instance DOM IDs with React `useId` plus question index, including removed-question answers on UpdateForm. Question labels remain the persisted `customFields` keys; no stored answers are renamed. Program and registration headers show required/voluntary giving from existing dana fields. The direct registration page also honors `registrationClosed`.

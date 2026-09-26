@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 interface FooterProps {
   memberArea?: boolean;
 }
 
 export default function Footer({ memberArea = false }: FooterProps) {
+  const newsletterId = useId();
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -56,11 +57,15 @@ export default function Footer({ memberArea = false }: FooterProps) {
                 That is all we will send.
               </p>
               {submitted ? (
-                <p className="footer-subscribe-success">Thank you. You&apos;re on the list.</p>
+                <p className="footer-subscribe-success" role="status">Thank you. You&apos;re on the list.</p>
               ) : (
-                <form className="footer-subscribe-form" onSubmit={handleSubmit} noValidate>
+                <form className="footer-subscribe-form" onSubmit={handleSubmit} aria-busy={loading}>
                   <div className="footer-subscribe-row">
+                    <div className="footer-subscribe-field">
+                    <label htmlFor={`${newsletterId}-name`}>First name (optional)</label>
                     <input
+                      id={`${newsletterId}-name`}
+                      autoComplete="given-name"
                       type="text"
                       name="first_name"
                       placeholder="First name"
@@ -68,7 +73,12 @@ export default function Footer({ memberArea = false }: FooterProps) {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                     />
+                    </div>
+                    <div className="footer-subscribe-field">
+                    <label htmlFor={`${newsletterId}-email`}>Email address</label>
                     <input
+                      id={`${newsletterId}-email`}
+                      autoComplete="email"
                       type="email"
                       name="email"
                       placeholder="Email address"
@@ -77,11 +87,12 @@ export default function Footer({ memberArea = false }: FooterProps) {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                     />
+                    </div>
                     <button type="submit" className="footer-subscribe-btn" disabled={loading}>
                       {loading ? "Subscribing…" : "Subscribe"}
                     </button>
                   </div>
-                  {message && <p className="footer-subscribe-msg">{message}</p>}
+                  {message && <p className="footer-subscribe-msg" role="alert">{message}</p>}
                 </form>
               )}
             </div>

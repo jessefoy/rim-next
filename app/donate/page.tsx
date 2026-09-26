@@ -72,8 +72,8 @@ export default function DonatePage() {
               </h1>
               <p className="pp-hero__body">
                 Our teachings are offered through dana, the practice of generosity. RIM is supported
-                entirely by the people who practice here, and no one is ever turned away for
-                financial reasons.
+                by the generosity of our community. Membership has no dues. Program pages state
+                whether giving is voluntary or an amount is required to register.
               </p>
               <a href="#dana-at-rim" className="pp-btn pp-btn--onblue">
                 Learn more about dana ↓
@@ -88,7 +88,8 @@ export default function DonatePage() {
                 <p className="pp-give__body">
                   Gifts to RIM pay for everything that keeps the center open: rent, utilities,
                   supplies, the technology behind our online gatherings, outreach, and more. Monthly
-                  gifts, as a Sustaining Member, give the center steadiness it can plan around.
+                  gifts give the center steadiness it can plan around. We call recurring donors
+                  Sustaining Members; donating is separate from creating a member account.
                 </p>
 
                 <div className="pp-give__widget">
@@ -159,10 +160,14 @@ export default function DonatePage() {
               </p>
               <h3>How program gifts work</h3>
               <p>
-                Programs list a suggested amount so everyone can see what an offering takes to
-                sustain. You give what you can. Half of every program gift goes to the Teaching Fund
-                and half to RIM. A few offerings, such as overnight retreats, carry a minimum because
-                RIM pays the places that host us.
+                Half of each program gift goes to the Teaching Fund and half to RIM. Direct gifts
+                through the forms above go to the fund you choose. Voluntary program donations may
+                include a suggested amount; some offerings require a payment to register. The
+                program page states the amount before you begin registration.
+              </p>
+              <p>
+                If a required amount is a barrier, contact us before registering to discuss what
+                may be possible. Time, care, and presence remain ways to contribute to RIM.
               </p>
             </div>
 

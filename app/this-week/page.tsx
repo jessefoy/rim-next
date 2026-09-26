@@ -1,3 +1,4 @@
+import { participationLabel, programLocationLabel } from "@/lib/programUtils";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramCardNotices from "@/components/ProgramCardNotices";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
   const { week } = await searchParams;
   const label = week === "next" ? "Next Week" : "This Week";
-  return { title: `${label} at Rooted In Mindfulness` };
+  return { title: `${label} at Rooted In Mindfulness`, description: "Weekly meditation gatherings in Brookfield and on Zoom, with times in Central Time, locations, and program registration details." };
 }
 
 const TZ = "America/Chicago";
@@ -43,15 +44,6 @@ function toDateStr(d: Date): string {
 
 function formatShortDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-}
-
-function fmtLabel(fmt: string | null): string {
-  switch (fmt) {
-    case "virtual":  return "Zoom Only";
-    case "hybrid":   return "In-Person & Zoom";
-    case "in-person": return "In-Person";
-    default:         return fmt ?? "";
-  }
 }
 
 /**
@@ -165,8 +157,8 @@ export default async function ThisWeekPage({
             {dateRange}. All times are Central&nbsp;(CT).
           </p>
           <p className="pp-hero__body">
-            New to RIM? Any session marked drop-in is open to you, no registration and no experience
-            needed.
+            Drop-in gatherings do not require program registration. An account is needed for Zoom.
+            For guided first-visit options, see <Link href="/new-to-rim">New to RIM</Link>.
           </p>
           <div className="pp-hero__actions">
             <div className="tw-weeknav">
@@ -225,7 +217,7 @@ export default async function ThisWeekPage({
                 <div className="pl-grid">
                   {dayPrograms.map((program) => {
                     const time = buildTimeLabel(program);
-                    const format = fmtLabel(program.programFormat);
+                    const format = programLocationLabel(program);
                     return (
                       <Link
                         key={program.id}
@@ -244,6 +236,7 @@ export default async function ThisWeekPage({
                             {format && (
                               <div className="pl-card__meta">
                                 <span className="pl-card__format">{format}</span>
+                                <span className="pl-card__format">{participationLabel(program)}</span>
                               </div>
                             )}
                             <ProgramCardNotices

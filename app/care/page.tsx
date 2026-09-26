@@ -47,6 +47,13 @@ export default function CarePage() {
         <div className="rim-container">
           <div className="pp-prose">
             <p>
+              CARE is our shared practice of meeting life with attention and care. You can begin
+              with an ordinary moment: feeling your feet on the floor, making room for a hard
+              feeling, or pausing before you answer someone. The eight words below offer ways to
+              explore this practice, within ourselves, with others, and in our shared world.
+              There is no need to understand them all before joining a gathering.
+            </p>
+            <p>
               This is an introduction to how we practice at Rooted in Mindfulness. It is meant to be
               practiced rather than thought about, so that we see for ourselves what each word is
               and what we find there.

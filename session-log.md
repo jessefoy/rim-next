@@ -5115,3 +5115,8 @@ Complete rewrite of the virtual session room UI and functionality:
 - Fill `dateText` / `timeText` for all live programs via Program Editor (backlog item `2026-04-15-001`)
 - Redesign remaining legacy pages (Donate, Volunteer, Community Membership, Login) — backlog item `2026-04-15-002`
 - Homepage visual review (all 10 sections)
+
+
+## 2026-09-26 — Newcomer website assessment implementation
+
+Jesse approved the supplied assessment and specified Meditation and Dharma Talk as the first visit; stairs-only access, south entrance, parking in surrounding lots, restroom locations, and volunteer phone messages; CARE handout unchanged with short intro only. Implemented the public copy and participation flow, persistent newsletter labels, keyboard nav disclosures, custom-question ID fix, safe program return through sign-in, and guarded authored-copy migration. Canonical vault copy saved first (Revision 8/addenda); read-aloud remains pending. `NEWCOMER_REVIEW_2026-09-26.md` contains the scope, unresolved operational policies, and verification record. TypeScript, targeted lint (zero errors), syntax/diff checks, and focused offline regression checks passed before deploy.

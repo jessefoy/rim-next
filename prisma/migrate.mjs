@@ -6119,6 +6119,48 @@ Rooted In Mindfulness · Brookfield, WI`,
     }
   }
 
+  // Approved newcomer copy corrections. Narrow text edits only; no schedules,
+  // access settings, payments, registration answers, or custom prose are replaced.
+  {
+    const flag = "newcomer_copy_2026_09_26_v1";
+    const applied = await db.$queryRawUnsafe('SELECT name FROM "_migration_flags" WHERE name = $1', flag);
+    if (!applied.length) {
+      const { readFile } = await import("node:fs/promises");
+      const corrections = JSON.parse(await readFile(new URL("./newcomer-copy-2026-09-26.json", import.meta.url), "utf8"));
+      // Recurse through legacy editor content without changing its storage shape.
+      const replaceText = (value, from, to) => {
+        if (typeof value === "string") return value.replaceAll(from, to);
+        if (Array.isArray(value)) return value.map((v) => replaceText(v, from, to));
+        if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, replaceText(v, from, to)]));
+        return value;
+      };
+      await db.$transaction(async (tx) => {
+        for (const fix of corrections) {
+          const program = await tx.program.findUnique({ where: { slug: fix.slug } });
+          if (!program) { console.log(`  Skip newcomer copy: ${fix.slug} not found.`); continue; }
+          const data = {};
+          for (const field of fix.fields) {
+            const next = replaceText(program[field], fix.from, fix.to);
+            if (JSON.stringify(next) !== JSON.stringify(program[field])) data[field] = next;
+          }
+          if (!Object.keys(data).length) { console.log(`  Skip newcomer copy: ${fix.slug}, original text not found.`); continue; }
+          const result = await tx.program.updateMany({ where: { id: program.id, updatedAt: program.updatedAt }, data });
+          if (!result.count) throw new Error(`Program changed during newcomer copy migration: ${fix.slug}`);
+          console.log(`  Updated newcomer copy: ${fix.slug} (${Object.keys(data).join(", ")}).`);
+        }
+        // Existing About copy is the source; fill only an empty public Jesse bio.
+        const profile = await tx.teacherProfile.findFirst({ where: { slug: "jesse-foy", isPublic: true, user: { firstName: "Jesse", lastName: "Foy" } } });
+        if (profile && !profile.bio?.trim()) {
+          await tx.teacherProfile.updateMany({ where: { id: profile.id, bio: profile.bio }, data: {
+            bio: "Jesse Foy is the founding teacher of Rooted in Mindfulness. He came to this work through more than fifteen years of mindfulness-based work in medicine. His training includes Mindfulness-Based Stress Reduction at UMass Medical School and study of Buddhism and contemplative psychology at Naropa University. At RIM, he teaches meditation and the practice of care in daily life.",
+          } });
+          console.log("  Added Jesse Foy introduction from existing About copy.");
+        }
+        await tx.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+      });
+    }
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

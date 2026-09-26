@@ -43,6 +43,11 @@ export default function OurRootsPage() {
       <section className="pp-section pp-section--last">
         <div className="rim-container">
           <div className="pp-prose">
+            <p>
+              <Link href="/care">CARE</Link> is the shared foundation of practice at RIM. The
+              Buddhist teachings described here inform it. A Handful of Leaves is our name for
+              that body of teaching, which we explore through meditation, study, and daily life.
+            </p>
             <h2>Silent illumination</h2>
             <p>
               At the heart of our practice is an old way of meditation called silent illumination:
@@ -77,12 +82,9 @@ export default function OurRootsPage() {
 
             <h2>Why a handful</h2>
             <p>
-              Every teaching of every Buddhist tradition is available to us at once: a retreat in
-              one lineage, a book from another, an app teaching something adapted from all of them.
-              That is a gift, and much of the time it is overwhelming. We meet the traditions
-              broadly rather than deeply, and breadth without roots leaves even sincere
-              practitioners holding valuable pieces with no way to put them together. Exposure
-              everywhere, orientation nowhere. The handful is our answer to that.
+              Books, retreats, and teachers offer many ways to learn. A Handful of Leaves gives
+              our community a shared orientation: what each teaching helps us understand and how
+              we practice it. People bring different histories of practice to that inquiry.
             </p>
 
             <h2>Informed by modern understanding</h2>
@@ -99,8 +101,9 @@ export default function OurRootsPage() {
               Nothing here will ask you to believe anything. It will ask you to look.
             </p>
             <p>
-              Everyone who joins us receives the full introduction to the handful and the map of its
-              teachings, and many people return to it for years.
+              You can begin with CARE and explore these teachings through our gatherings. No
+              Buddhist vocabulary is needed before you come. Ask a teacher about further reading
+              and study as your questions develop.
             </p>
           </div>
 

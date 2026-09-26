@@ -5,15 +5,17 @@ import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
+import { programGivingSummary, participationLabel, buildSubtitle } from "@/lib/programUtils";
 import { isOpenlyDroppable } from "@/lib/programKind";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const program = await db.program.findUnique({ where: { slug }, select: { name: true } });
+  const program = await db.program.findUnique({ where: { slug }, select: { name: true, tagline: true, dateText: true, timeText: true, programFormat: true, startDatetime: true, endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true } });
   return {
     title: program ? `${program.name} — Rooted In Mindfulness` : "Program Not Found",
+    description: program ? [program.tagline || program.name, buildSubtitle(program)].filter(Boolean).join(". ") : undefined,
   };
 }
 
@@ -42,6 +44,7 @@ export default async function ProgramDetailPage({
 
   if (!program || program.archivedAt) notFound();
 
+  const givingSummary = programGivingSummary(program);
   const useBuiltInForm = !!program.registrationEnabled;
   // When registration is OFF, the offering's KIND (session 137) decides what
   // "no registration" means: a drop-in / open community group is openly
@@ -205,22 +208,10 @@ export default async function ProgramDetailPage({
         )}
 
 
-        {/* ── Program description ── */}
-        {hasDescription && (
-          <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
-        )}
-
-        {/* ── Program notes (tan card) ──
-            Heading is authored inside the rich text — don't add one here. */}
-        {hasProgramNotes && (
-          <section className="pg-notes">
-            <div className="rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: programNotesHtml }} />
-          </section>
-        )}
-
         {/* ── Gathering facts and one state-aware next step ── */}
-        <section className="pg-details-section">
+        <section id="gathering-details" className="pg-details-section">
           <h2 className="pg-section-heading">Gathering details</h2>
+          <p>{participationLabel(program)}</p>
           <div className="pg-details-list">
             {(scheduleLabel || timeLabel) && (
               <div className="pg-detail-row">
@@ -240,7 +231,7 @@ export default async function ProgramDetailPage({
                 </span>
                 <span className="pg-detail-row__text">
                   <span>{locationLabel}</span>
-                  {location.link && (
+                  {location.link && program.programFormat !== "virtual" && (
                     <a href={location.link} target="_blank" rel="noopener noreferrer" className="pg-detail-row__link">
                       Get directions ↗
                     </a>
@@ -248,19 +239,22 @@ export default async function ProgramDetailPage({
                 </span>
               </div>
             )}
-            {program.danaText && (
+            {(givingSummary || program.danaText) && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </span>
                 <span className="pg-detail-row__text">
-                  <span>{program.danaText}</span>
+                  <span>{givingSummary || program.danaText}</span>
                 </span>
               </div>
             )}
           </div>
 
           {/* ── Context-aware next step — distinct from factual details. */}
+          {!session?.user && droppable && program.programFormat !== "in-person" && (
+            <p>New to RIM? <Link href={`/join?returnTo=${encodeURIComponent(`/programs/${slug}`)}`}>Create a member account</Link> for Zoom access. There are no dues.</p>
+          )}
           <div className="pg-details-action">
                 {useBuiltInForm ? (
                   /* Registration programs — the person's OWN standing comes first,
@@ -294,7 +288,7 @@ export default async function ProgramDetailPage({
                         Go to My Home to join on Zoom →
                       </Link>
                     ) : (
-                      <Link href="/login" className="pg-detail-cta__link">Sign in to find the Zoom link →</Link>
+                      <Link href={`/login?returnTo=${encodeURIComponent(`/programs/${slug}`)}`} className="pg-detail-cta__link">Sign in to find the Zoom link →</Link>
                     )
                   ) : program.programFormat === "hybrid" ? (
                     /* Hybrid — arrive in person OR join online */
@@ -304,7 +298,7 @@ export default async function ProgramDetailPage({
                       </span>
                     ) : (
                       <span className="pg-detail-cta__text">
-                        Simply arrive in person, or <Link href="/login" className="pg-detail-cta__inline-link">sign in to join online →</Link>
+                        Simply arrive in person, or <Link href={`/login?returnTo=${encodeURIComponent(`/programs/${slug}`)}`} className="pg-detail-cta__inline-link">sign in to join online →</Link>
                       </span>
                     )
                   ) : (
@@ -318,6 +312,19 @@ export default async function ProgramDetailPage({
                 )}
           </div>
         </section>
+
+        {/* ── Program description ── */}
+        {hasDescription && (
+          <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+        )}
+
+        {/* ── Program notes (tan card) ──
+            Heading is authored inside the rich text — don't add one here. */}
+        {hasProgramNotes && (
+          <section className="pg-notes">
+            <div className="rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: programNotesHtml }} />
+          </section>
+        )}
 
         {/* ── Facilitators section ── */}
         {hasFacilitators && (

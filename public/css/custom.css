@@ -8044,8 +8044,7 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   padding: 8px;
 }
 
-.nav__dropdown:hover .nav__dropdown-panel,
-.nav__dropdown:focus-within .nav__dropdown-panel {
+.nav__dropdown[data-open="true"] .nav__dropdown-panel {
   display: block;
 }
 
@@ -29020,3 +29019,23 @@ a.pp-card.tpr-card {
   .ty-facts { grid-template-columns: minmax(0, 1fr); gap: 2px 0; }
   .ty-facts dd + dt { margin-top: 12px; }
 }
+
+/* Newcomer review: persistent labels, keyboard disclosures, factual first visits. */
+.footer-subscribe-row { align-items: end; }
+.footer-subscribe-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; max-width: 240px; text-align: left; }
+.footer-subscribe-field label { color: var(--rim-surface); font-size: var(--text-app); }
+.footer-subscribe-field .footer-input { box-sizing: border-box; width: 100%; max-width: none; min-height: 44px; font-size: var(--text-app); }
+.footer-subscribe-btn, .nav__dropdown-toggle { box-sizing: border-box; min-height: 44px; }
+.footer-input:focus-visible, .footer-subscribe-btn:focus-visible { outline: 2px solid var(--rim-surface); outline-offset: 3px; }
+.nav__dropdown-toggle:focus-visible, .nav__dropdown-link:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: 2px; }
+.pp-guided-practice { padding-left: 1.25em; }
+.pp-guided-practice li { margin-bottom: 20px; }
+.pp-guided-practice a { display: inline-flex; align-items: center; min-height: 44px; }
+.pp-guided-practice span { display: block; }
+.pp-guided-practice span:last-child { color: var(--rim-mid); }
+@media (max-width: 768px) {
+  .footer-subscribe-row { flex-direction: column; align-items: stretch; }
+  .footer-subscribe-field { max-width: none; }
+}
+
+.pp-hero__body a { color: inherit; text-decoration: underline; text-underline-offset: 0.15em; }

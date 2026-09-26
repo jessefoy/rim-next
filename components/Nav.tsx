@@ -3,7 +3,39 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useId, type ReactNode } from "react";
+
+function NavDropdown({ label, children }: { label: ReactNode; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !root.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    return () => document.removeEventListener("pointerdown", closeOutside);
+  }, [open]);
+  return (
+    <div ref={root} className="nav__dropdown" data-open={open}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open) {
+          event.preventDefault();
+          setOpen(false);
+          trigger.current?.focus();
+        }
+      }}>
+      <button ref={trigger} type="button" className="nav__dropdown-toggle"
+        aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+        {label}<span className="nav__dropdown-caret" aria-hidden="true">▾</span>
+      </button>
+      <div id={id} className="nav__dropdown-panel" hidden={!open}>{children}</div>
+    </div>
+  );
+}
 
 export default function Nav() {
   const pathname = usePathname();
@@ -123,12 +155,7 @@ export default function Nav() {
               <Link href="/new-to-rim" className={`nav__link${isActive("/new-to-rim")}`}>
                 New to RIM
               </Link>
-              <div className="nav__dropdown">
-                <button className="nav__dropdown-toggle">
-                  Our Practice
-                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                </button>
-                <div className="nav__dropdown-panel">
+              <NavDropdown key={"Our Practice" + pathname} label="Our Practice">
                   <div className="nav__dropdown-panel-inner">
                     <Link href="/why-we-practice" className="nav__dropdown-link">
                       <div className="nav__dropdown-title">Why We Practice</div>
@@ -147,14 +174,8 @@ export default function Nav() {
                       <div className="nav__dropdown-desc">Our vision and mission, and how we began</div>
                     </Link>
                   </div>
-                </div>
-              </div>
-              <div className="nav__dropdown">
-                <button className="nav__dropdown-toggle">
-                  Programs
-                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                </button>
-                <div className="nav__dropdown-panel">
+              </NavDropdown>
+              <NavDropdown key={"Programs" + pathname} label="Programs">
                   <div className="nav__dropdown-panel-inner">
                     <Link href="/this-week" className="nav__dropdown-link">
                       <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
@@ -165,15 +186,9 @@ export default function Nav() {
                       <div className="nav__dropdown-desc">Drop-ins, classes, retreats, and groups</div>
                     </Link>
                   </div>
-                </div>
-              </div>
+              </NavDropdown>
               {/* Get Involved dropdown */}
-              <div className="nav__dropdown">
-                <button className="nav__dropdown-toggle">
-                  Get Involved
-                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                </button>
-                <div className="nav__dropdown-panel">
+              <NavDropdown key={"Get Involved" + pathname} label="Get Involved">
                   <div className="nav__dropdown-panel-inner">
                     <Link
                       href="/volunteerism/volunteer"
@@ -194,18 +209,12 @@ export default function Nav() {
                       <div className="nav__dropdown-desc">Bringing mindfulness to organizations and their communities</div>
                     </Link>
                   </div>
-                </div>
-              </div>
+              </NavDropdown>
 
               {/* Member Area dropdown */}
-              <div className="nav__dropdown">
-                <button className="nav__dropdown-toggle">
-                  {isLoggedIn && session.user?.name
+              <NavDropdown key={"Members" + pathname} label={isLoggedIn && session.user?.name
                     ? `Hi, ${session.user.name.split(" ")[0]}`
-                    : "Members"}
-                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                </button>
-                <div className="nav__dropdown-panel">
+                    : "Members"}>
                   <div className="nav__dropdown-panel-inner">
                     {isLoggedIn ? (
                       <>
@@ -243,8 +252,7 @@ export default function Nav() {
                       </>
                     )}
                   </div>
-                </div>
-              </div>
+              </NavDropdown>
         </nav>
 
         {/* Donate CTA */}

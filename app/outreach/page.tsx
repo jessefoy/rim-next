@@ -87,10 +87,9 @@ export default function OutreachPage() {
               <strong>Always voluntary.</strong> Each person chooses whether and how to take part.
             </p>
             <p>
-              <strong>Open to everyone.</strong> Taking CARE is secular in the sense the Dalai Lama
-              gives the word: respectful of every religious tradition and of those with no faith, and
-              grounded in common human experience. It is rooted in Buddhist meditation, above all
-              silent illumination, and it asks no belief. We bring practice, not religion.
+              <strong>Open to everyone.</strong> Taking CARE is rooted in Buddhist meditation and
+              taught through shared human experience. People of every faith and of none can take
+              part without adopting religious beliefs.
             </p>
             <p>
               <strong>Held with care.</strong> Practice is offered at a workable pace, with a choice
@@ -104,9 +103,8 @@ export default function OutreachPage() {
 
             <h2>Training in Taking CARE</h2>
             <p>
-              We also train people to share this practice. If you would like to be trained to offer
-              Taking CARE, in your own organization or alongside us, we would be glad to hear from
-              you at{" "}
+              If you are interested in learning to share Taking CARE in your organization or
+              alongside RIM, contact us to discuss current possibilities at{" "}
               <a href="mailto:support@rootedinmindfulness.org?subject=Taking%20CARE%20training">
                 support@rootedinmindfulness.org
               </a>

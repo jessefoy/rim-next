@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { hasConcludedOneTime } from "@/lib/programUtils";
-import { RIM_WHAT_BINDS } from "@/lib/communityAgreements";
+import GuidedPractice from "@/components/GuidedPractice";
+import { categoryDisplayName } from "@/lib/programUtils";
 
 // Lineage terms live here for search, stated as RIM states them (Jesse,
 // 2026-09-25): a dharma community rooted in Chan silent illumination, not an
@@ -103,56 +104,16 @@ const USES = [
 ] as const;
 
 export default async function HomePage() {
-  // Immersion's door leads to the catalog chapter holding retreats or events,
-  // found from the live taxonomy by kind rather than a hardcoded slug (the
-  // s170 rule: doors come from data). The catalog only renders a chapter that
-  // still has a listed program after concluded one-time programs drop out
-  // (hideWhenPast), so the same rule picks the chapter here; otherwise the
-  // anchor would point at a section that is not on the page. Falls back to the
-  // whole catalog.
-  const immersionCategories = await db.programCategory.findMany({
-    where: { kind: { in: ["RETREAT", "EVENT"] }, hideFromProgramsPage: false },
+  const categories = await db.programCategory.findMany({
+    where: { hideFromProgramsPage: false },
     orderBy: { sortOrder: "asc" },
-    select: {
-      slug: true,
-      programs: {
-        where: { archivedAt: null, hideFromProgramPageList: false },
-        select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, hideWhenPast: true },
-      },
-    },
+    select: { name: true, slug: true, programs: {
+      where: { archivedAt: null, hideFromProgramPageList: false },
+      select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, hideWhenPast: true },
+    } },
   });
-  const immersion = immersionCategories.find((c) =>
-    c.programs.some((p) => !(p.hideWhenPast && hasConcludedOneTime(p)))
-  );
-  const immersionHref = immersion
-    ? `/community-programs#${immersion.slug}`
-    : "/community-programs";
-
-  const PATHWAY = [
-    {
-      title: "Foundations",
-      // Foundations will be generated from the Program Manager as a program;
-      // until it exists, the door leads to the programs list (Jesse,
-      // 2026-09-25). Point it at /programs/<slug> once the program is built.
-      body: "Finding your footing in meditation and mindful living. Where we encourage everyone to begin, first offered in November.",
-      href: "/community-programs",
-    },
-    {
-      title: "Learning & Practice",
-      body: "Drop-in gatherings and series through the week, in person and online.",
-      href: "/this-week",
-    },
-    {
-      title: "Immersion",
-      body: "Workshops, practice days, and retreats, with time to settle into the whole of practice.",
-      href: immersionHref,
-    },
-    {
-      title: "Outreach",
-      body: "Helping organizations bring mindfulness to the people they care for, and to the caregivers themselves.",
-      href: "/outreach",
-    },
-  ];
+  const PATHWAY = categories.filter((c) => c.programs.some((p) => !(p.hideWhenPast && hasConcludedOneTime(p))))
+    .map((c) => ({ title: categoryDisplayName(c.name), href: `/community-programs#${c.slug}` }));
 
   return (
     <div className="pp-page pp-page--spine">
@@ -195,11 +156,10 @@ export default async function HomePage() {
             Beautify the <span className="home-hero__gold">World</span>
           </h1>
           <p className="pp-hero__body">
-            Our practice is taking care: of ourselves, of those we love, of the world, and of this
-            moment. Rooted in Mindfulness is a community that shares this intention, in Brookfield,
-            Wisconsin, and online. Together we learn to be more awake and present in our lives, and freer of what binds
-            us to {RIM_WHAT_BINDS}, so that we can heal what hurts, grow what is good, and protect
-            what matters. Come as you are.
+            Rooted in Mindfulness is a meditation community in Brookfield, Wisconsin, near Milwaukee,
+            with gatherings at our center and online. We practice taking care of ourselves, one
+            another, and our shared world. No meditation experience or religious belief is needed
+            to begin. Come as you are.
           </p>
           <div className="pp-hero__actions">
             <Link href="/new-to-rim" className="pp-btn pp-btn--onblue">
@@ -208,6 +168,17 @@ export default async function HomePage() {
             <Link href="/this-week" className="pp-btn pp-btn--onblue-ghost">
               This week&rsquo;s schedule
             </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="pp-section pp-section--white">
+        <div className="rim-container">
+          <div className="pp-prose">
+            <h2>Your first gathering</h2>
+            <p>We recommend Meditation and Dharma Talk for a first visit: guided practice and a teaching, in person or on Zoom.</p>
+            <GuidedPractice />
+            <p><Link href="/new-to-rim">New to RIM</Link> explains arrival, online access, and what membership means.</p>
           </div>
         </div>
       </section>
@@ -299,8 +270,7 @@ export default async function HomePage() {
                 <p className="pp-intro__body">
                   They are simple enough to begin with today, and there is enough in them for a
                   lifetime of practice. Each can be practiced within ourselves, in relation to others,
-                  and in the wider world we are part of. The first letters spell the word. We call
-                  it CARE.
+                  and in the wider world we are part of. We call this practice CARE.
                 </p>
               </div>
 
@@ -356,23 +326,13 @@ export default async function HomePage() {
                 <p className="pp-intro__eyebrow">Where this comes from</p>
                 <h2 className="pp-intro__title">Deep roots. An open door.</h2>
                 <p className="pp-intro__body">
-                  RIM is a dharma community rooted in traditional Buddhist wisdom. At the heart of
-                  our practice is silent illumination: an open, settled awareness that meets
-                  whatever arrives with warmth. It comes to us through Chan, the Chinese meditation
-                  school also known as Zen. We draw on the whole Buddhist tradition, gathered and ordered as A
-                  Handful of Leaves, and we teach plainly, by experience, without dogma or
-                  unnecessary ritual. Mindfulness-based programs, psychology, and modern science
-                  inform how we teach.
+                  RIM’s practice is rooted in Buddhist meditation, especially silent illumination
+                  from the Chan tradition. We teach through guided practice and inquiry, with
+                  psychology and mindfulness-based teaching informing how we share it.
                 </p>
                 <p className="pp-intro__body">
-                  You do not need to be Buddhist, or to hold any religious belief, to practice here.
-                  Secular and spiritual seekers sit side by side. Some come for a steadier way
-                  through stress, some for the meditation and the company, and some to study the
-                  Dharma, the Buddha&rsquo;s teachings, and walk that path all the way. All of these
-                  belong here, and no one is asked to choose a door before coming in.
-                </p>
-                <p className="pp-intro__body">
-                  Our roots give the practice depth. They do not determine who belongs here.
+                  People of every faith and of none are welcome to explore the full depth of the
+                  practice. Our Roots introduces the tradition and the teachings we draw on.
                 </p>
               </div>
 
@@ -399,13 +359,11 @@ export default async function HomePage() {
             <div className="pp-split__body">
               <div className="pp-intro">
                 <p className="pp-intro__eyebrow">Taking part</p>
-                <h2 className="pp-intro__title">Where to begin, and where it leads.</h2>
+                <h2 className="pp-intro__title">Ways to practice together</h2>
                 <p className="pp-intro__body">
-                  Taking part is simple. We practice at home in whatever way a life allows, and we
-                  come together to learn and practice with others. Most people move among four ways
-                  of gathering, at their own pace. No experience is needed, and nobody will ask you
-                  to explain yourself. Signing up as a member takes a few minutes, and it is
-                  required for our online gatherings.
+                  Explore the current offerings in our program directory. Weekly gatherings support
+                  regular practice; longer offerings allow more time for study and meditation.
+                  Each program explains how to take part.
                 </p>
               </div>
 
@@ -425,7 +383,7 @@ export default async function HomePage() {
                   <div className="pp-card__row">
                     <div className="pp-card__main">
                       <h3 className="pp-card__title">{route.title}</h3>
-                      <p className="pp-card__body">{route.body}</p>
+
                     </div>
                   </div>
                 </Link>
@@ -478,10 +436,9 @@ export default async function HomePage() {
                 <h2 className="pp-intro__title">A Generosity-Based Approach</h2>
                 <p className="pp-intro__body">
                   The teachings here are given as a gift, and the people who practice here sustain
-                  them. RIM could not exist without that support. Programs list a suggested amount
-                  so everyone can see what an offering takes to sustain. Each person gives what
-                  they can, and no one is turned away. A few offerings, such as overnight retreats,
-                  carry a minimum. For those, RIM pays the places that host us.
+                  them. RIM could not exist without that support. Membership has no dues. Program
+                  pages distinguish voluntary donations from any amount required to register.
+                  Contact us before registering if a required amount is a barrier.
                 </p>
                 <p className="pp-intro__body">
                   The tradition calls this <em>dana</em>, generosity of heart. We ask everyone to
@@ -522,10 +479,8 @@ export default async function HomePage() {
                 let our care reach a little further than it did before.
               </p>
               <p className="pp-closing__body">
-                Anyone can begin here. It is for people who mean to keep going, and it asks
-                something of us: patience with the long middle, honesty about our own weather, and
-                showing up on the days we would rather not. It is easier to keep going in good
-                company.
+                You can begin with one gathering. Come with your questions, try the practice,
+                and see what is useful. There is room to continue learning in good company.
               </p>
             </div>
             <Link href="/this-week" className="pp-btn pp-closing__link">

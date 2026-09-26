@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { RegistrationField } from "@/app/update/[token]/page";
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
 }
 
 export default function UpdateForm({ token, fields, currentCustomFields }: Props) {
+  const fieldIdPrefix = useId();
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>(currentCustomFields);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -59,12 +60,12 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
   return (
     <form onSubmit={handleSubmit}>
       {/* Render defined fields */}
-      {fields.map((field) => {
+      {fields.map((field, index) => {
         const value = customAnswers[field.label] ?? "";
-        const id = `field-${field._key}`;
+        const id = `${fieldIdPrefix}-field-${index}`;
 
         return (
-          <div className="ur-field" key={field._key}>
+          <div className="ur-field" key={id}>
             <label className="ur-label" htmlFor={id}>
               {field.label}
               {field.required && <span aria-hidden="true"> *</span>}
@@ -125,13 +126,13 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
       })}
 
       {/* Render orphaned fields (labels no longer in program definition) */}
-      {orphanedLabels.map((label) => (
+      {orphanedLabels.map((label, index) => (
         <div className="ur-field" key={label}>
-          <label className="ur-label" htmlFor={`orphan-${label}`}>
+          <label className="ur-label" htmlFor={`${fieldIdPrefix}-orphan-${index}`}>
             {label}
           </label>
           <input
-            id={`orphan-${label}`}
+            id={`${fieldIdPrefix}-orphan-${index}`}
             type="text"
             className="ur-input"
             value={customAnswers[label] ?? ""}
