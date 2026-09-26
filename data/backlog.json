@@ -1277,13 +1277,13 @@
   },
   {
     "id": "2026-08-10-002",
-    "title": "Your First Visit — replace the two provisional paragraphs with Jesse's own logistics",
+    "title": "New to RIM — parking and entrance details still needed from Jesse",
     "description": "/your-first-visit shipped session 174 with two placeholder paragraphs Claude wrote, marked PROVISIONAL in the source. They deliberately assert nothing unverifiable about the building: instead of inventing a parking lot, a door, or a shoe rule, they point a visitor at a person to ask. Needed from Jesse: (1) parking and entrance details for 4040 N. Calhoun Rd — where to park, which door, what a first-timer sees on arrival; (2) the practical details — shoes off at the door or not, tea, where the restrooms are, anything else worth knowing. The page is the largest gap the copy brief identified (nothing on the site told a nervous first-timer what walking in is like), and it is linked from the home hero's primary button, the nav under Programs, and What We Practice — so the placeholders are on RIM's most-trafficked path to a first visit. Replace, don't add: the paragraphs have the right shape, they need the real facts.",
     "category": "CSS & Design",
     "priority": "high",
     "status": "open",
     "addedAt": "2026-08-10",
-    "notes": "Jesse asked to be reminded each session — also carried at the top of UP_NEXT.md. Separately: the whole copy set from the Copy and Voice Brief is provisional until his read-aloud (read-aloud document produced session 174); ratification is his explicit yes, never assumed from silence."
+    "notes": "Jesse asked to be reminded each session — also carried at the top of UP_NEXT.md. Separately: the whole copy set from the Copy and Voice Brief is provisional until his read-aloud (read-aloud document produced session 174); ratification is his explicit yes, never assumed from silence. 2026-09-25: /your-first-visit became /new-to-rim. Jesse supplied the practical details (top floor, meditation and community rooms, tea and library, shoes on the rack, donation bowl under the Bodhi tree carving, volunteers who respect privacy), now live. Still open: where to park and which door to use; the page leaves them out rather than guessing."
   },
   {
     "id": "2026-08-10-003",
@@ -1434,5 +1434,45 @@
     "status": "open",
     "addedAt": "2026-09-24",
     "notes": "Found by the 2026-09-24 payment review; the decline bypass and auto-waive were fixed then."
+  },
+  {
+    "id": "2026-09-25-001",
+    "title": "Foundations: build it as a Program, then repoint the site to it",
+    "description": "Foundations will be generated from the Program Manager, not a static page. When the program exists: point the home pathway's Foundations door (app/page.tsx PATHWAY) and the Foundations paragraph on /new-to-rim at /programs/<slug>; replace the temporary /foundations → /community-programs redirect in vercel.json with /programs/<slug> (or remove it). The held page text (what it gives, the questions) is in the vault's 04-community-website-copy-2026-09-25.md under 'Held for the Foundations program'.",
+    "category": "Programs",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-09-25",
+    "notes": "First offering is November 2026; format and dates are Jesse's. The site says 'first offered in November' in two places."
+  },
+  {
+    "id": "2026-09-25-002",
+    "title": "Button pass on the public pages not touched on 2026-09-25",
+    "description": "Jesse's ruling: standalone text links ('… →') are buttons (primary for a section's one action, outline for a second). The center-stated pass converted home, Why We Practice, Taking Care, New to RIM, Our Roots, About and Outreach. Still carrying text links: /donate, /diversity, /this-week, /community-programs (hero utility link), the Kalyana Mitta pages, /volunteerism, /community-care-agreements closing, /teachers. Apply the same rule, and name labels as destinations (no imperatives).",
+    "category": "CSS & Design",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-09-25",
+    "notes": "Rule recorded in RIM_Public_Pages.md → The center, stated → Presentation rulings. Measure at 375 and 1280 after."
+  },
+  {
+    "id": "2026-09-25-003",
+    "title": "First Steps: a short online introduction for everyone who joins",
+    "description": "Jesse (2026-09-25): something a little more in-depth than a first visit, before Foundations, for people who join drop-ins without taking Foundations. Proposed in the master reference (vault 1 Model/01-framework-what-rim-is.md, Section 26): a self-paced course in four short parts (what we are here for, how we practice, how we practice together, where to go from here), recorded once. The Course Manager's self-enroll courses can carry it. Name, format and medium are Jesse's.",
+    "category": "Courses & Library",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-09-25",
+    "notes": "Not linked anywhere on the site yet, by design: nothing points at a course that does not exist."
+  },
+  {
+    "id": "2026-09-25-004",
+    "title": "Ten-minute practice recording on the site",
+    "description": "The Taking CARE mock carried a ten-minute guided practice ('a taste of it'). Held from launch because no recording exists. When Jesse supplies it: add a player (Vercel Blob audio, the existing AudioPlayer component) to /care or New to RIM.",
+    "category": "Courses & Library",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-09-25",
+    "notes": "Jesse's critical path: the recording and its title."
   }
 ]

@@ -28,7 +28,7 @@ Sign-in and sign-up are two distinct surfaces over the same passwordless 6-digit
 
 ### Door B — `/join` (new members, added session 132)
 
-1. User visits `/join` (linked from Nav as "Become a Member"), reads the four Community Care Agreements in the integrated panel, fills first name + last name + email + optional phone, ticks the agreement checkbox, submits
+1. User visits `/join` (linked from Nav as "Become a Member"), reads the Community Care Agreements (since 2026-09-25: the Our Shared Vision frame and three agreements) in the integrated panel, fills first name + last name + email + optional phone, ticks the agreement checkbox, submits
 2. Client POSTs to `/api/account/join`. Handler validates fields, applies rate-limits (same keys as Door A — see below), upserts the User with `agreedToTerms: true` + `agreedAt: now`
 3. Handler calls `signIn("resend", { email, redirect: false })` — same code-issuance path as Door A. Since `emailVerified` is still `null` at this point (the User was just upserted; no verification has completed yet), the warm `sign-in-code-new-user` template fires. The user's first code email reads "Welcome to Rooted In Mindfulness," matching the threshold tone of the page they just left. Subsequent sign-ins flip to `sign-in-code-returning` because `emailVerified` is set on first successful verification.
 4. In `after()` callbacks: a separate warm welcome letter is sent via the `join-welcome` template, and the user is enrolled in the onboarding course series via `enrollMemberInOnboardingSeries`

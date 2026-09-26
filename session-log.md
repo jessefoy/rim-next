@@ -1,3 +1,47 @@
+## 2026-09-25 — The center, stated: the public site reorganized around what RIM is for
+
+Jesse brought the master reference he developed in a parallel vault session (`CARE/1 Model/01-framework-what-rim-is.md`): RIM needs a stated center, a shared intention the way Recovery Dharma has one, not a vague "open to all." He asked for the public site to conform to it and to be written for the people who come. I read the master reference, the whole trail behind it (both pasted conversations, the 9/25 vault log, the project memory's launch plan, the participant and feedback records, the handout, the program-description draft, the mock and its `HANDOFF.md`), then built it in four rounds, each from Jesse's look at the live site. Twelve commits to `main`, `8d3a1bf` … `a28aa7e`.
+
+### Built and deployed
+
+- **Copy source of truth moved to the vault.** `CARE/4 Promotion/04-community-website-copy-2026-09-25.md` holds every word of the changed pages, flags first, then pages in visitor order; the site was built from it word for word (checked by script). `08-promotion-website.md` points to it. All copy is provisional until Jesse's read-aloud.
+- **Home re-sequenced:** hero (Jesse's four-line headline kept; new paragraph: "learning to live awake… heal, promote, and protect well-being") → What we are here for (the ground first: something clear and warm already here; the many reasons people come, including a practice that lasts) → Practice for real life (six everyday particulars from Jesse's lists, in Pampas insets) → Our practice is taking care (four pair doors) → Deep roots (lineage corrected) → Where to begin (pathway: Foundations · Learning & Practice · Immersion · Outreach; Immersion finds the retreat/event category by `kind` and honors `hideWhenPast`) → Dana (as it actually works) → It matters how we live.
+- **New pages:** `/why-we-practice` (the center at full length; one image, the garden, for the four right efforts as heal / promote / protect / reduce harm; closes on Jesse's line of intention as a distillation; revision 3 added shared goodness, a welcome for dark times, and "Health here promotes health there: as within, so without"), `/new-to-rim` (the newcomer's front door, with Jesse's in-person details, the sign-up ask, community said without threat, online entry, questions, contact), `/our-roots` (replaces A Handful of Leaves: the tradition first, then the name), `/outreach` (Taking CARE for organizations; inquiries to support@).
+- **Changed:** `/care` gains the CARE circle (`components/CareCircle.tsx`, recreated from the retreat handout's artwork, one image to assistive tech); `/about` is mission-first with one sentence of Jesse's background; the **care agreements** are now an Our Shared Vision frame plus three agreements on all five surfaces (`lib/communityAgreements.ts`, `COMMUNITY_SHARED_VISION_TITLE`); `/community-care-agreements` is one column; `/join` no longer says "like everything at RIM."
+- **Removed, with redirects** (`vercel.json`): `/your-first-visit` → `/new-to-rim`, `/what-we-practice` → `/our-roots` (both permanent), `/foundations` → `/community-programs` (temporary; Foundations will be a Program).
+- **Nav:** New to RIM (flat, first) · Our Practice (Why We Practice, Taking Care, Our Roots, About RIM) · Programs (This Week's Schedule, Programs & Events) · Get Involved (Volunteer, Community Group, Outreach) · Members (+ Care Agreements) · Donate. Hamburger breakpoint **940 → 1060px** (measured 56px of slack at 941 before the ~110px link).
+- **Presentation:** labels are named destinations; standalone text links became buttons (primary for a section's one action, outline for a second); door cards lost their arrow circles (title turns blue on hover).
+
+### Decisions and why
+
+- **The center leads every page** (Jesse's Recovery Dharma lesson: people cohere around a stated purpose *and* knowing what taking part involves). Purpose first, the moment of contact underneath it as the how: the first draft of the parallel session led with contact and Jesse pulled it back to "relatable… the why behind right effort."
+- **Lineage (Jesse):** rooted in Chan silent illumination, drawing on all the traditions through A Handful of Leaves in the manner of Thích Nhất Hạnh; *not* an insight/vipassana/Theravāda center. Every "Insight Meditation" description removed, including the site-wide metadata.
+- **Dana stated accurately:** "no fee or tuition for anything" was false for retreats; now suggested amounts, no one turned away, minimums only where RIM pays a host, program gifts split 50/50 with the Teaching Fund.
+- **Two faces, one truth:** RIM's own pages say plainly it is a dharma community; `/outreach` (and New to RIM's questions) present Taking CARE as a mindfulness-based program, secular in the Dalai Lama's sense.
+- **Foundations gets no static page** (Jesse): it will be generated from the Program Manager; mentions point to the programs list meanwhile.
+- **New to RIM** follows the common practice-center pattern (one "New here?" page, first in the bar). Community is named directly and without threat at Jesse's direction; signing up is required online and highly recommended in person.
+- **A Handful of Leaves is the container, not the tradition** (Jesse: "it might seem really confusing"). Our Roots leads with silent illumination.
+- **About is mission-first**, Jesse in one sentence (he "tends to back out of the light"; one line serves newcomers and partners who look for a founder).
+- **The circle appears on `/care` only**; Jesse was unsure about recreating it. Its layout follows the handout, not the mock.
+- **Rule conflict resolved in the open:** the 9/23 vault rule (no imperatives; labels as named destinations) superseded s174's invitation labels on the pages touched; "Come as you are" stays as owned language.
+
+### What this connects to
+
+The care agreements reach `/join`, `/account/welcome`, program registration (`RegistrationForm`), the member Community Care page and the public agreements page, so new members consent to the new wording. The pathway's Immersion door reads the `ProgramCategory.kind` taxonomy and the catalog's `hideWhenPast` rule (`lib/programUtils.ts::hasConcludedOneTime`). New to RIM's online claims were checked against `lib/sessionWindowConstants.ts` (10-minute member entry) and the Zoom door's registration gate (`RIM_Zoom.md`). The nav change affects every public page. The October 5 domain cutover (Webflow redirects `2026-08-07-003`, forms `2026-08-10-003`) is separate and still open. The vault's master reference and the program-description draft are the teacher-side sources; `ZOOM`, registration, and member-area logic are unchanged.
+
+### Evidence and limits
+
+TypeScript clean at every commit; local `next build` green; two independent reviewer passes (found the agreements grid orphaning a card and the Immersion anchor pointing at a hidden chapter; both fixed). Style-check script on all new copy: hits sorted and recorded in the vault doc. Measured on the deployed site: every changed page at 375px with zero overflow and no target under 24px; the 1280 spine at 110; the nav at 1060/1061/1100/1280 (62px slack at 1061); redirects return 308/307; the circle rendered and compared against the handout. **Not verified signed-in:** the agreement frame on `/account/welcome`, the registration form and `/account/community-care` (server-rendered from the same constant, type-checked, not seen).
+
+### Closing audit
+
+- **Updated:** `FEATURES.md`, `RIM_Public_Pages.md` (the center-stated section, presentation rulings, the lineage update to "What RIM is, in one line"), `RIM_Stack_Reference.md` (routes, redirects, component, CSS, breakpoint; no dependencies/env/services/crons/schema), `RIM_Auth.md` and `RIM_Member_Area.md` (agreement shape), `data/backlog.json` (four new items, `2026-08-10-002` updated), `UP_NEXT.md`; in the vault, the website copy document and `08-promotion-website.md`.
+- **No change needed:** `RIM_System_Architecture.md` (no hub, tool, role or permission logic changed), `RIM_Editor_Types.md` (no editor surface), `RIM_Hub_Engineering.md` / `RIM_Hub_Model.md` (no hub code touched, so the four-layer audit does not apply), `RIM_Email_Engineering.md` (**no email templates touched**; no `sendTemplatedEmail` call added or changed), `RIM_Registration.md` (the dana statement is copy; registration logic unchanged), `RIM_Role_Design.md`, `RIM_Scheduler.md`, `RIM_Zoom.md`. No new tool, so no per-tool doc.
+
+### What comes next
+
+Jesse's read-aloud of the vault document; parking and entrance for New to RIM; the eight one-line word descriptions; Foundations format and dates, then build it as a Program and repoint (`2026-09-25-001`); confirm "RIM's outreach fund" exists; the button pass on the untouched pages (`2026-09-25-002`); signed-in check of the agreement frame; and the October 5 cutover.
+
 ## 2026-09-24 — Integrity pass: program visibility, sign-in link, payments and receipts, Zoom, Flodesk check
 
 Jesse brought five concerns by dictation: a hidden program still missing from the listing, a sign-in link for less tech-savvy members, whether dana and donations actually work, whether the dana confirmation is legally sound, and how Zoom really works for coordinators (plus Flodesk). Everything shipped to `main` in seven commits (`4187997`, `aa716a8`, `0ea15b7`, `e94946b`, `af7568c`, `311d6c0` and this closing), each reviewed by a sub-agent before commit where non-trivial; three reviews found real bugs that were fixed before shipping.

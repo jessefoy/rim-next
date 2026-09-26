@@ -1,20 +1,20 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated at closing, 2026-09-24. Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated at closing, 2026-09-25. Full history belongs in `session-log.md`.
 
 ## Active — the center, stated (2026-09-25, live; awaiting Jesse's read-aloud)
 
-**Shipped** (`8d3a1bf`, `86e277a`, and the agreements-column commit): the public site reorganized around RIM's stated center. Home re-sequenced (hero paragraph rewritten, headline kept); new `/why-we-practice`, `/foundations`, `/outreach`; the CARE circle on `/care`; vision and mission on `/about`; care agreements under an Our Shared Vision frame with three agreements (all five surfaces); lineage corrected sitewide (Chan silent illumination, not insight/vipassana); accurate dana statement; nav follows the pathway. **Copy source of truth is the vault:** `CARE/4 Promotion/04-community-website-copy-2026-09-25.md` (flags first, then pages in visitor order). Verified on deploy: 10 changed pages at 375px with zero overflow and zero sub-24px targets; 1280 spine at 110.
+**Live** (`8d3a1bf` … `a28aa7e`): the public site reorganized around RIM's stated center. Home re-sequenced (headline kept, new paragraph, Practice for real life in Pampas insets, pathway, accurate dana); new `/why-we-practice`, `/new-to-rim`, `/our-roots`, `/outreach`; the CARE circle on `/care`; `/about` mission-first; care agreements as an Our Shared Vision frame plus three (five surfaces); lineage corrected sitewide (Chan silent illumination, not insight); nav New to RIM · Our Practice · Programs · Get Involved · Members · Donate, hamburger at 1060px; text links became buttons, door arrows removed. Old URLs redirect (`vercel.json`). Detail: `session-log.md` 2026-09-25.
 
-**Revision 2, same evening:** `/new-to-rim` (absorbs Your First Visit; flat nav link, first), `/our-roots` (replaces A Handful of Leaves), `/about` mission-first, `/foundations` removed until Foundations is a Program (point the home Foundations door and New to RIM at `/programs/<slug>` once it is built), Programs menu trimmed to two, hamburger at 1060px. Old URLs redirect.
+**Copy source of truth is the vault:** `Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md` (flags first, then pages in visitor order). Change words there first, then in code. The teacher-side center: `1 Model/01-framework-what-rim-is.md`. The `/how-jesse-writes` skill is not installed in sessions; its files are at `~/Downloads/how-jesse-writes` (guide amended 2026-07-22).
 
-**Waiting on Jesse:** the read-aloud of that document; parking and which door to use (New to RIM leaves them out rather than guessing); the eight one-line word descriptions (the eight vault compressions are placeholders); Foundations format and dates (holding text on `/foundations`); whether "RIM's outreach fund" exists yet (Outreach page); the dana ask "give something, in whatever form is possible"; whether the circle belongs anywhere besides `/care`. Site goes live on the real domain **October 5**: the Webflow cutover items below (redirects, forms) are still open.
+**Waiting on Jesse:** the read-aloud of the vault document; parking and which door to use on New to RIM (`2026-08-10-002`); the eight one-line word descriptions (vault compressions are placeholders on home and `/care`); Foundations format and dates, then build it as a Program and repoint the home door and New to RIM (`2026-09-25-001`); whether "RIM's outreach fund" exists (`/outreach`); the dana ask "give something, in whatever form is possible"; whether the circle belongs anywhere besides `/care`.
 
-## Active — the September 24 integrity pass (live; a few checks and decisions open)
+**Next concrete step:** take Jesse's read-aloud flags into the vault document and flow them to the pages. With Jesse signed in, confirm the agreement frame renders on `/account/welcome`, program registration and `/account/community-care` (not yet seen signed in).
 
-**Shipped and live** (`4187997`…`311d6c0`): Visibility-tab readout (Programs & Events, This Week, Member home); Dummy Test Program no longer excluded by slug; "Sign me in from this device" button in both code emails; code-verify rate limit now actually runs (GET); server-decided Stripe charges, split Registration/Dana lines, safe expiry/retry, lost-hold restore; new **dana receipt** email (legal name + EIN); **thank-you page** `/programs/[slug]/thank-you`; Zoom seat pick buffer-aware + lock-serialized, plain pages at every `/enter` stop, registration gate (no waitlist), true-peak overlap warning on first save, Record reaches existing meetings. References: `RIM_Registration.md`, `RIM_Auth.md`, `RIM_Zoom.md`, `RIM_ProgramEditor.md`.
+**Queued:** the button pass on untouched public pages (`2026-09-25-002`); First Steps (`2026-09-25-003`); the ten-minute recording (`2026-09-25-004`). **October 5** is the real-domain launch: the Webflow redirects (`2026-08-07-003`) and forms audit (`2026-08-10-003`) are still open.
 
-**Verified:** full sandbox payment ($20, Dummy Test Program): server-set line + Donate button, webhook 200, confirmation and receipt both received by Jesse; thank-you page and prefilled code page at 375px; footer Flodesk subscribe 200; GiveButter widgets render. **Not verified signed-in:** the Visibility readout, the create-time conflict banner, and the `/enter` notices / registration gate.
+## Still open from September 24 (integrity pass)
 
 **Stripe state:** sandbox only. `STRIPE_SECRET_KEY` = sandbox `sk_test_`; webhook destination `rim-site-dana-2026` (both checkout events). Live has no destination; go-live checklist is backlog `2026-09-24-001`. The Dummy Test Program still has the test registration and registration enabled.
 
@@ -51,6 +51,7 @@ Other pending decisions: public Test Course/teacher profile data (`2026-09-02-00
 
 ## Recently completed / reference
 
+- The center, stated (2026-09-25): `session-log.md` 2026-09-25; `RIM_Public_Pages.md` → "The center, stated"; copy in the vault's `04-community-website-copy-2026-09-25.md`.
 - September 24 integrity pass: `session-log.md` 2026-09-24; `RIM_Registration.md` (receipt, thank-you, voluntary dana), `RIM_Zoom.md` (seat pick, door permissions).
 - September member redesign: `RIM_Member_Area.md`; closing entry 2026-09-22 in `session-log.md`.
 - s176 public consistency / Sanity image rescue: `RIM_Public_Pages.md`; full session narrative already archived.
