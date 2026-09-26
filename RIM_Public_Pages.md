@@ -423,3 +423,8 @@ Jesse explicitly removed the home “Your first gathering” section: it duplica
 ### Homepage composition restored — Jesse’s direction, September 26, 2026
 
 Aesthetics and the established composition matter. Restore the CARE split with its four linked cards, chapter-size heading and revised body/example; restore four descriptive pathway cards: Foundations, Ongoing Learning and Practice, Immersion, Outreach. These are distinct ways of taking part in RIM and will eventually replace the current categories. On home, this explicit direction supersedes using live schedule categories as the primary doors; the catalog taxonomy remains unchanged. Immersion still resolves a valid listed retreat/event anchor from current data. Foundations is in preparation, with no invented date. Keep first-gathering logistics on New to RIM. The video, tree image and held-lotus image were not removed by the newcomer review; all references match the pre-review page. “What brings us together” dates to b9ec334, before the review, replacing “What we are here for.”
+
+
+### Missing homepage image recovered (September 26, 2026)
+
+Jesse’s further correction identified the Buddha-and-lotus photograph formerly beside Practice for real life. It was removed in `8d3a1bf` on September 25, before the immediate pre-review baseline; earlier image accounting was too narrow. Restored `/images/buddga-lotus-unsplash-1600.webp` in the original right-side split with `center 30%` crop, preserving current prose and the six example cards below. Existing trees, held lotus, and hero video stay present. No new imagery or wording.

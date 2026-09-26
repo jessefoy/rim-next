@@ -29059,3 +29059,6 @@ a.pp-card.tpr-card {
 .pg-facilitator-intro { flex-basis: 100%; }
 .pg-page .pg-facilitator-intro .pg-facilitator--profile { font-size: var(--text-body); }
 .pg-facilitator-intro p { margin: 0.75rem 0 1rem; }
+
+/* Restored home practice image: keep breathing room before the everyday examples. */
+.home-practice-intro { margin-bottom: 40px; }

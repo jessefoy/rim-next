@@ -233,13 +233,25 @@ export default async function HomePage() {
       {/* ── Practice for real life — what the practice helps us meet ── */}
       <section className="pp-section pp-section--white">
         <div className="rim-container">
-          <div className="pp-intro">
-            <h2 className="pp-intro__title">Practice for real life.</h2>
-            <p className="pp-intro__body">
-              Meditation is where the practice begins, and most of it happens everywhere else. It
-              helps us enjoy what is good while it is here, and meet what is hard with more skill
-              and less reactivity. In an ordinary week, it looks something like this.
-            </p>
+          <div className="pp-split pp-split--flip home-practice-intro">
+            <div
+              className="pp-split__media"
+              style={{
+                ["--pp-split-image" as string]: "url('/images/buddga-lotus-unsplash-1600.webp')",
+                ["--pp-split-position" as string]: "center 30%",
+              }}
+              aria-hidden="true"
+            />
+            <div className="pp-split__body">
+              <div className="pp-intro">
+                <h2 className="pp-intro__title">Practice for real life.</h2>
+                <p className="pp-intro__body">
+                  Meditation is where the practice begins, and most of it happens everywhere else. It
+                  helps us enjoy what is good while it is here, and meet what is hard with more skill
+                  and less reactivity. In an ordinary week, it looks something like this.
+                </p>
+              </div>
+            </div>
           </div>
 
           <ul className="pp-uses">
