@@ -5154,3 +5154,8 @@ Revision 11 verification: `3be05e9` deployed; live checks caught one formatted n
 Jesse said the newcomer review was not intended to authorize a program detail redesign, naming the quote’s original position and details at the bottom as a favorite design. Clarified scope: “Restore the original design; keep wording improvements.” Restored original template composition and CSS overlap, preserving copy and functional improvements. Updated durable guidance to prevent the broad newcomer review from overriding this specific design preference. TypeScript, focused ESLint, diff checks and newcomer regression suite pass; new render assertion checks the original content order. No database or transaction changes.
 
 Live verification: `7c80bd0` is deployed. Art of Meditation at 1280px shows the quote overlapping the hero by the original 92px, with description before details. The retreat at 360px shows the original 58px overlap and quote → description → notes → details → facilitators order. Both have zero horizontal overflow. Screenshots reviewed; browser viewport restored.
+
+
+## 2026-09-26 — Remove duplicated first-gathering homepage section
+
+At Jesse’s explicit request, removed the complete “Your first gathering” home section; it belongs on New to RIM. Recorded in canonical vault first. Compared the full home diff against `5a2c1ee` to explain the other changes: CARE split/card removal, descriptive pathway replacement, shortened/revised copy. No other homepage redesign in this correction.

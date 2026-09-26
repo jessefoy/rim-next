@@ -413,3 +413,8 @@ The facts-first program ordering from this pass was later reverted at Jesse’s 
 ### Program design restored — explicit Jesse correction, September 26, 2026
 
 Jesse did not intend the newcomer review to authorize redesigning program detail pages. This is one of his favorite designs. His clarification: **“Restore the original design; keep wording improvements.”** The original top-to-bottom composition in this document is authoritative: hero, overlapping quote, authored description, notes, gathering details/action, facilitators. Participation explanations stay with the lower details. Remove the review’s content-top padding and after-description quote override so the existing desktop/mobile overlap rules apply. Keep the approved wording improvements and other pages. Do not move logistics ahead of the quote/prose based on the newcomer review or a future general usability pass; changing this composition needs Jesse’s specific direction.
+
+
+### Homepage first-visit duplication removed — September 26, 2026
+
+Jesse explicitly removed the home “Your first gathering” section: it duplicates New to RIM. Keep the homepage hero’s New to RIM link and retain the full first-visit guidance on that page. Do not reinsert a home gathering-facts block based on the newcomer review. He also dislikes the revised homepage layout; the comparison identifies the CARE split/cards replaced by prose and the four descriptive pathways replaced by category-only links. Those other sections await his direction; this request removes only the duplicated section.

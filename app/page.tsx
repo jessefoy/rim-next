@@ -2,7 +2,6 @@ import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { hasConcludedOneTime } from "@/lib/programUtils";
-import GuidedPractice from "@/components/GuidedPractice";
 import { categoryDisplayName } from "@/lib/programUtils";
 
 // Lineage terms live here for search, stated as RIM states them (Jesse,
@@ -128,17 +127,6 @@ export default async function HomePage() {
             <Link href="/this-week" className="pp-btn pp-btn--onblue-ghost">
               This week&rsquo;s schedule
             </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="pp-section pp-section--white">
-        <div className="rim-container">
-          <div className="pp-prose">
-            <h2>Your first gathering</h2>
-            <p>We recommend Meditation and Dharma Talk for a first visit: guided practice and a teaching, in person or on Zoom.</p>
-            <GuidedPractice />
-            <p><Link href="/new-to-rim">New to RIM</Link> explains arrival, online access, and what membership means.</p>
           </div>
         </div>
       </section>

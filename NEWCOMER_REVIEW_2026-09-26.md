@@ -16,7 +16,7 @@ Jesse requested completing everything possible and an honest accounting afterwar
 | Review | Status | Implementation / remaining limit |
 | --- | --- | --- |
 | 1.1 Concrete homepage introduction | Done | Meditation, mindful living, location, online participation, and direct newcomer/schedule choices. |
-| 1.2 First visit earlier | Done | Recommended gathering appears early, with live facts and arrival link. Existing everyday examples and shared vision retained. |
+| 1.2 First visit earlier | Removed from home by Jesse | Homepage first-gathering block removed as duplication; recommendation remains on New to RIM, linked from the hero. |
 | 1.3 CARE acronym/four pairs | Adapted | Homepage now names eight aspects in one shared practice and provides a lived example. Paired cards removed under Jesse’s whole-document editorial authorization; handout remains intact. |
 | 1.4 Homepage roots | Done | Shorter roots explanation links to full page. |
 | 1.5 Pathway categories | Done | Uses actual program categories; Foundations identified as planned, not a scheduled course. |
@@ -150,3 +150,8 @@ TypeScript, focused lint, migration syntax and diff checks passed. Expanded offl
 Jesse objected to changing the program-detail design, specifically moving the quote and bringing details to the top. He clarified **“Restore the original design; keep wording improvements.”** Restored the pre-review order and quote positioning from `5a2c1ee`: hero-overlapping quote, description, notes, gathering details/action, facilitators. Removed the two newcomer CSS overrides that changed content-top spacing and quote margin. Program wording, metadata, participation behavior and other pages are retained. The historical facts-first recommendations and verification above no longer prescribe the program layout.
 
 Local verification: TypeScript, targeted ESLint and diff checks pass. Existing newcomer regression checks pass, with an added rendered-order assertion protecting quote → description → notes → details → facilitators. No database, financial, registration or email changes in this correction. Live verification: `7c80bd0` is deployed. Art of Meditation at 1280px shows the quote overlapping the hero by the original 92px, with description before details. The retreat at 360px shows the original 58px overlap and quote → description → notes → details → facilitators order. Both have zero horizontal overflow. Screenshots reviewed; browser viewport restored.
+
+
+## Homepage first-gathering removal
+
+Jesse requested removing the entire first-gathering section from home because it is already covered on New to RIM. Removed the section and unused GuidedPractice import, retaining the newcomer page and hero link. Other homepage changes were compared with `5a2c1ee` for his review; no additional layout or wording changes made in this correction.

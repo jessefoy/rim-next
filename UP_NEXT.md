@@ -2,6 +2,10 @@
 
 Read first when opening RIM. Updated at closing, 2026-09-26. Full history belongs in `session-log.md`.
 
+## Homepage correction and layout review (2026-09-26)
+
+Jesse requested removing the entire home “Your first gathering” block, already covered on New to RIM. Removed from home only; New to RIM and the hero link remain. He asked what else changed and dislikes the revised layout. Remaining visual differences from pre-review `5a2c1ee`: CARE’s split composition/four cards became prose; four descriptive pathways became live category-only cards; hero, shared intention, roots, giving and closing copy changed. No broader home restoration requested yet. Canonical vault records the deletion.
+
 ## Program layout correction — explicit direction (2026-09-26)
 
 Jesse clarified: **“Restore the original design; keep wording improvements.”** Program details restore the pre-review composition: hero-overlapping quote, description, notes, then gathering details/action and facilitators. Original responsive spacing restored and live in `7c80bd0`; desktop 1280px and mobile 360px verified with no overflow. Copy improvements, program data and other public pages remain. This overrides the newcomer review’s facts-first layout recommendation. Do not redesign this favorite page composition without Jesse’s specific direction.
