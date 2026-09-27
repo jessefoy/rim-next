@@ -2,26 +2,15 @@
 
 Read first when opening RIM. Updated at closing, 2026-09-26. Full history belongs in `session-log.md`.
 
-## Newcomer review withdrawn — September 26, 2026
+## Active — restored site; review set aside (2026-09-26)
 
-Jesse asked to revert the whole site and all review changes, and will reconsider the document later. Application baseline is `5a2c1ee`, before the review; homepage is the earlier complete `4187997` composition identified by its longer “Most of us are carrying more than we let on” passage and Buddha-and-lotus photograph. Only homepage anchor slugs adapt to the existing pre-review handout. No review copy, practical corrections or functional changes are retained. Program description edits and review-added teacher/facilitator fields are reversed through a guarded one-time migration, along with the study category and retreat's pre-review fixed $175 setting. No account, registration, donation or payment records are altered. Review work and audit remain recoverable in Git history (`f059fda`). Canonical vault records the withdrawal first. Do not resume the review or its blends without Jesse's new direction. Verified live in `5826f5c`. TypeScript, focused lint, migration syntax and diff checks passed; 93 inverse-edit fixtures plus chained/deleted-note recovery and preservation guards passed. Ten saved program-page snapshots match restored descriptions and notes; Saturday's original paragraph matches the recorded migration source. Complete visible retreat, study, nature and Art of Meditation pages match saved originals, confirming category, fee presentation, facilitator and quote restoration. Desktop 1280px and mobile 375px screenshots confirm the older complete homepage with its longer opening section and photograph; 1280px/375px/360px show no horizontal overflow. Browser viewport reset. Application code outside the intentionally older homepage matches `5a2c1ee` exactly. Review migrations are removed and replaced by the one-time guarded reversal; existing registrations/payments were not changed.
+**Live and verified:** rollback `5826f5c`, verification `ea1f4f5`. All application files match pre-review `5a2c1ee`, except the intentionally older complete homepage from `4187997` (longer “Most of us…” passage, Buddha-and-lotus image; CARE links adapted to existing anchors). Review copy, layout, navigation, auth/return, metadata and program-data changes are undone. Program details retain the original quote-first/details-below layout. The guarded migration also restores the study's old category and retreat's former fixed $175 setting; the earlier voluntary-dana preference needs a separate future decision. No account, registration or payment records changed.
 
-## Active — brief, handout, one vision, balanced reading pages (2026-09-26, live; awaiting Jesse's read-aloud)
+**Evidence:** TypeScript/lint/migration checks and inverse-copy tests passed. Live program text matches saved originals; homepage screenshots/measurements pass at desktop and phone widths. Detailed evidence and connections: newest `session-log.md` entry. No new signed-in or transaction testing.
 
-**Live** (`b9ec334` … `1fc597c`): the site revision brief (home hero, What brings us together, For organizations, Outreach in headed sections with a training invitation, Donate as dana works, Practicing together, lineage corrections); `/care` is the practice handout (eight words, no pairs; clarity and presence; Buddha nature glossed); one vision and one mission from `lib/communityAgreements.ts` (Jesse's arc; the agreements frame carries it); the circle of benefit said one way; reading pages in one centred column with the program-detail header. Detail: `session-log.md` 2026-09-26; rulings in the vault master reference (Sections 2, 3, 10, Appendix A 2026-09-26).
+**Next concrete step:** wait for Jesse's specific direction after he reviews the document. Do not resume the review, reapply its factual/functional fixes, or build another homepage blend automatically. Historical work remains recoverable at `f059fda`. Keep the current composition as the reference; public wording remains provisional for read-aloud.
 
-**Copy source of truth is the vault:** `CARE/4 Promotion/04-community-website-copy-2026-09-25.md` (revisions 4–7 at the top). Change words there first, then in code. Vision/mission: change `RIM_VISION` / `RIM_MISSION` / `RIM_WHAT_BINDS`, never retype them.
-
-**Waiting on Jesse:**
-- **The triad** in the vision ("unhealthy views, skills, and habits" as spoken; he is weighing "views, states, and habits", relatable and including actions). Holding phrase on the site: "unhealthy patterns of mind and action" (`RIM_WHAT_BINDS`, one edit).
-- Whether the **handout** takes "clarity" and "presence" and the Buddha nature gloss, so page and handout stay identical.
-- Whether home's CARE card titles ("Calm and Connect"…) still read as pairs (eight single-word cards is the alternative).
-- Carried from the brief: Taking Care vs Taking CARE; the handout promise at signup; whether teachers receive no salary from RIM; the MBSR line (now on Our Roots only).
-- Earlier: parking and which door (`2026-08-10-002`); the eight one-line word descriptions; Foundations format and dates (`2026-09-25-001`); whether the circle belongs anywhere besides `/care`.
-
-**Next concrete step:** the read-aloud of the vault document (revisions 4–7 first), then flow his flags to the pages. With Jesse signed in, confirm the new Our Shared Vision frame on `/account/welcome` and `/account/community-care`.
-
-**Queued:** the button pass on untouched public pages (`2026-09-25-002`); First Steps (`2026-09-25-003`); the ten-minute recording (`2026-09-25-004`); team missions as repeated actions (`2026-09-26-001`). **October 5** is the real-domain launch: Webflow redirects (`2026-08-07-003`) and forms audit (`2026-08-10-003`) still open. The impeccable skill has an update available (v4.4.0; `npx impeccable update`), offered, not run.
+**Prior decisions still parked:** vision holding phrase/triad, handout wording, Taking Care vs Taking CARE, Foundations delivery/dates, teacher-fund details, older public-copy read-aloud and signed-in vision frame verification. Canonical copy remains `CARE/4 Promotion/04-community-website-copy-2026-09-25.md`; its dated withdrawal supersedes review revisions. Arrival facts were supplied and are preserved in backlog `2026-08-10-002`, but publishing them is paused with this rollback. Earlier launch and member-area work below remains separate.
 
 ## Still open from September 24 (integrity pass)
 
@@ -46,7 +35,7 @@ Jesse asked to revert the whole site and all review changes, and will reconsider
 
 ## Standing reminder — public copy still awaits Jesse
 
-Remind Jesse each session until resolved: parking and which entrance to use are still unwritten on `/new-to-rim` (which replaced `/your-first-visit`; Jesse supplied the other practical details 2026-09-25) (`2026-08-10-002`); the s174/s176 public copy requires his explicit read-aloud approval. Shipping is not ratification. Community Care now shares canonical text across **five** surfaces: join, welcome, registration, public agreements and member care. The live `/diversity` image `color-powder-diversity.webp` still lacks recorded provenance.
+Arrival/parking facts were supplied on September 26 and recorded in `2026-08-10-002`; their publication was undone at Jesse’s request and is paused. Do not ask for the same facts again. Separately, the s174/s176 public copy requires his explicit read-aloud approval. Shipping is not ratification. Community Care now shares canonical text across **five** surfaces: join, welcome, registration, public agreements and member care. The live `/diversity` image `color-powder-diversity.webp` still lacks recorded provenance.
 
 Other pending decisions: public Test Course/teacher profile data (`2026-09-02-001`); whether to commit the community introduction/Copy and Voice Brief; source cleanup of `NEXTAUTH_URL`, retired service variables/Sanity project and the retired Community Drive (`2026-08-09-001`). `TEAM_EMAIL` was previously unset. These are recorded findings, not rechecked at this closing.
 
@@ -60,7 +49,8 @@ Other pending decisions: public Test Course/teacher profile data (`2026-09-02-00
 
 ## Recently completed / reference
 
-- Brief, handout, vision, balance (2026-09-26): `session-log.md` 2026-09-26; `RIM_Public_Pages.md` → "The reading column" and Copy and voice (2026-09-26).
+- Review rollback (2026-09-26): newest session-log entry; homepage restored to the earlier full composition.
+- Earlier brief, handout, vision, balance (homepage portions superseded): `session-log.md` 2026-09-26; `RIM_Public_Pages.md` → "The reading column" and Copy and voice (2026-09-26).
 - The center, stated (2026-09-25): `session-log.md` 2026-09-25; `RIM_Public_Pages.md` → "The center, stated"; copy in the vault's `04-community-website-copy-2026-09-25.md`.
 - September 24 integrity pass: `session-log.md` 2026-09-24; `RIM_Registration.md` (receipt, thank-you, voluntary dana), `RIM_Zoom.md` (seat pick, door permissions).
 - September member redesign: `RIM_Member_Area.md`; closing entry 2026-09-22 in `session-log.md`.

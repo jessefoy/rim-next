@@ -1277,13 +1277,13 @@
   },
   {
     "id": "2026-08-10-002",
-    "title": "New to RIM — parking and entrance details still needed from Jesse",
+    "title": "New to RIM — arrival facts supplied; publication paused after rollback",
     "description": "/your-first-visit shipped session 174 with two placeholder paragraphs Claude wrote, marked PROVISIONAL in the source. They deliberately assert nothing unverifiable about the building: instead of inventing a parking lot, a door, or a shoe rule, they point a visitor at a person to ask. Needed from Jesse: (1) parking and entrance details for 4040 N. Calhoun Rd — where to park, which door, what a first-timer sees on arrival; (2) the practical details — shoes off at the door or not, tea, where the restrooms are, anything else worth knowing. The page is the largest gap the copy brief identified (nothing on the site told a nervous first-timer what walking in is like), and it is linked from the home hero's primary button, the nav under Programs, and What We Practice — so the placeholders are on RIM's most-trafficked path to a first visit. Replace, don't add: the paragraphs have the right shape, they need the real facts.",
     "category": "CSS & Design",
     "priority": "high",
     "status": "open",
     "addedAt": "2026-08-10",
-    "notes": "Jesse asked to be reminded each session — also carried at the top of UP_NEXT.md. Separately: the whole copy set from the Copy and Voice Brief is provisional until his read-aloud (read-aloud document produced session 174); ratification is his explicit yes, never assumed from silence. 2026-09-25: /your-first-visit became /new-to-rim. Jesse supplied the practical details (top floor, meditation and community rooms, tea and library, shoes on the rack, donation bowl under the Bodhi tree carving, volunteers who respect privacy), now live. Still open: where to park and which door to use; the page leaves them out rather than guessing."
+    "notes": "Jesse asked to be reminded each session — also carried at the top of UP_NEXT.md. Separately: the whole copy set from the Copy and Voice Brief is provisional until his read-aloud (read-aloud document produced session 174); ratification is his explicit yes, never assumed from silence. 2026-09-25: /your-first-visit became /new-to-rim. Jesse supplied the practical details (top floor, meditation and community rooms, tea and library, shoes on the rack, donation bowl under the Bodhi tree carving, volunteers who respect privacy), now live. Still open: where to park and which door to use; the page leaves them out rather than guessing. 2026-09-26: Jesse supplied the south-side entrance, parking in any lot around the building, stairs only/no elevator, restrooms in the main hall and throughout the building, and support/center phone contact (volunteer-operated, voicemail). Accessible-restroom status was not confirmed. This information was implemented in the review, then removed by Jesse’s whole-site rollback. Retain the facts here; do not ask again or republish automatically. Revisit only with his next specific request."
   },
   {
     "id": "2026-08-10-003",
