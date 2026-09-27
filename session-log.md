@@ -22,6 +22,15 @@ The Buddha-and-lotus home photograph (Codex restored it at his request; not on t
 
 The home page composition, the vision constants it reads (`RIM_WHAT_BINDS`), the program records behind `/programs/*`, `/this-week` and `/community-programs`, and the vault copy doc that governs every public word.
 
+### Decision: Claude only, for now
+
+Jesse asked whether Codex is a good partner. The failure was the conditions more than the tool: Codex had no orientation (RIM has `CLAUDE.md`, not the `AGENTS.md` Codex reads), a whole-site scope in one pass, and direct access to `main`, production migrations and the vault, all unreviewed. The safe shape, if it returns: orientation plus guardrails (branch only, no migrations without Jesse's yes, vault read-only, one concern per task, review before merge), and review rather than building as its main job. Jesse chose to stay with Claude only for now; the bridge (backlog `2026-09-22-001`, ~15–20 minutes) is deferred.
+
+### Closing audit
+
+- **Updated:** this entry, `UP_NEXT.md` (recovery state, next step, the Codex line), `RIM_Stack_Reference.md` (the recovery note on the one-time revert migration), `data/backlog.json` (`2026-09-22-001` notes; `2026-08-10-002` keeps the arrival facts). `FEATURES.md` and `RIM_Public_Pages.md` restored to `5a2c1ee`: no feature changed from where the September 26 session ended.
+- **No change needed:** `RIM_System_Architecture.md`, `RIM_Editor_Types.md`, hub engineering docs (no hub code; four-layer audit not applicable), `RIM_Email_Engineering.md` (**no email templates touched**; Codex's migrations never touched template rows). No new tool.
+
 ---
 
 ## 2026-09-26 — Closing: newcomer review withdrawn, prior site restored

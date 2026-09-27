@@ -1,12 +1,14 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated at closing, 2026-09-26. Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated at closing, 2026-09-27. Full history belongs in `session-log.md`.
 
 ## Active — brief, handout, one vision, balanced reading pages (2026-09-26, live; awaiting Jesse's read-aloud)
 
 **Live** (`b9ec334` … `1fc597c`): the site revision brief (home hero, What brings us together, For organizations, Outreach in headed sections with a training invitation, Donate as dana works, Practicing together, lineage corrections); `/care` is the practice handout (eight words, no pairs; clarity and presence; Buddha nature glossed); one vision and one mission from `lib/communityAgreements.ts` (Jesse's arc; the agreements frame carries it); the circle of benefit said one way; reading pages in one centred column with the program-detail header. Detail: `session-log.md` 2026-09-26; rulings in the vault master reference (Sections 2, 3, 10, Appendix A 2026-09-26).
 
 **Recovered 2026-09-27** after a Codex "newcomer review" (23 commits, 2026-09-26 16:29–20:08) and its incomplete rollback. App code matches `5a2c1ee` again (the rollback had left the home page at its 9/24 version); program data verified restored on the live pages (31 text edits, study category, retreat facilitators, retreat fixed $175, empty teacher bio); the vault copy doc is back to 692 lines, with Codex's appended revisions 8+ archived in `CARE/Archive/04-community-website-copy-newcomer-review-withdrawn-2026-09-26.md`. The one-time `revertNewcomerReview` migration stays in `migrate.mjs` (flag-guarded no-op). Arrival facts Jesse gave Codex are kept in backlog `2026-08-10-002`. See `session-log.md` 2026-09-27.
+
+**Next concrete step:** Jesse's answers to the three recovery decisions below; then the read-aloud of the vault copy doc (revisions 4–7). ChatGPT's audit suggestions Jesse liked can return one at a time through the normal loop (vault first, his read-aloud), never as a batch.
 
 **Decisions the recovery surfaced (Jesse's):** the Buddha-and-lotus home photograph Codex restored at his request (not on the 5a2c1ee home); two real errors in program data that the rollback restored (Good Morning Silent Meditation says "6:20 PM"; Good Evening says "begin your day"), fixable in Program Manager; the retreat's voluntary-dana switch (still fixed $175, as before).
 
@@ -41,7 +43,7 @@ Read first when opening RIM. Updated at closing, 2026-09-26. Full history belong
 ## Pending questions / follow-ons
 
 - **Memory confirmation pending:** proposed preference: distinguish previewed, implemented, deployed and verified work, naming remaining checks. No personal memory or backup mirror changed without Jesse’s confirmation. Product/design decisions are already in project docs.
-- **Claude/Codex rituals:** Jesse requested consistent project-folder opening/closing behavior. RIM’s canonical instructions are `CLAUDE.md` and `.claude/skills/closing-ritual/SKILL.md`; a Codex `AGENTS.md` bridge is still unbuilt. Backlog `2026-09-22-001`. Use RIM’s workflow here, not Steward’s global ritual skill.
+- **Codex:** Jesse is working with Claude only for now (2026-09-27, after the withdrawn Codex review). The `AGENTS.md` bridge is deferred; if Codex returns it needs guardrails as well as orientation (backlog `2026-09-22-001`). Commits authored `jessefoy` may come from another agent: read the message and scope before assuming they are Jesse's hand edits.
 - **Email provider decided (2026-09-24):** Jesse is staying with Flodesk (already paid, ~4,500 subscribers, $418/year). Integration design is backlog `2026-09-24-002`.
 
 ## Standing reminder — public copy still awaits Jesse

@@ -1370,10 +1370,10 @@
     "title": "Make RIM opening and closing rituals discoverable in both Codex and Claude",
     "description": "Jesse switches project folders and expects the correct project rituals in both assistants. Add a minimal project-local Codex entry point (AGENTS.md) that references the existing canonical RIM orientation and ritual files without duplicating them. Verify that opening and closing resolve RIM, not an unrelated global Steward skill. No bridge has been implemented yet.",
     "category": "Infrastructure",
-    "priority": "medium",
+    "priority": "low",
     "status": "open",
     "addedAt": "2026-09-22",
-    "notes": "Explicit earlier user request, preserved at member-redesign closing. Keep one authoritative workflow and project-scoped discovery."
+    "notes": "Explicit earlier user request, preserved at member-redesign closing. Keep one authoritative workflow and project-scoped discovery. 2026-09-27: after the withdrawn Codex review (session-log 2026-09-27), Jesse chose to work with Claude only for now. If Codex returns, the bridge should carry guardrails as well as orientation: its own branch (never main), no migrate.mjs or database changes without Jesse's explicit yes, the vault read-only, one page or concern per task, review before merge. Best use: second-opinion review, not building. About 15-20 minutes of work."
   },
   {
     "id": "2026-09-22-002",
