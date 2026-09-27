@@ -119,7 +119,7 @@ export default async function HomePage() {
   ];
 
   return (
-    <div className="pp-page pp-page--spine">
+    <div className="pp-page pp-page--spine home-page">
       {/* ── Hero ──────────────────────────────────────────── */}
       <section
         className="pp-hero pp-hero--video"
@@ -180,49 +180,58 @@ export default async function HomePage() {
              so the wide welcome has a clear center (site revision brief,
              2026-09-25; replaces "What we are here for"). Open prose on the
              ground: nothing competes with it. ── */}
-      <section className="pp-section home-centered home-statement">
+      <section className="pp-section">
         <div className="rim-container">
-          <div className="pp-intro">
-            <h2 className="pp-intro__title">What brings us together</h2>
-            <p className="pp-intro__body home-statement__lead">
-              People come to RIM for many reasons: a hard season, a wish to live and enjoy life more
-              fully, a longing for something real, or love for someone they want to show up for
-              better. What we share is one intention. Something clear and caring is already within
-              each of us, and we practice to live from it more of the time: more awake and present,
-              freer of what binds us, understanding with greater wisdom, caring with kindness and
-              compassion, and acting from both, for the benefit of ourselves, those we care
-              about, and our shared world.
-            </p>
-            <p className="pp-intro__body">
-              This is practice for real life, and it asks something real of us, because it matters.
-              No one can do it for us, and no one has to do it alone.
-            </p>
-          </div>
-          <div className="pp-actions">
-            <Link href="/why-we-practice" className="pp-btn">
-              Why we practice
-            </Link>
+          <div className="home-chapter home-statement">
+            <div className="home-chapter__head">
+              <h2 className="pp-intro__title">What brings us together</h2>
+            </div>
+            <div className="home-chapter__body">
+              <p className="home-statement__lead">
+                People come to RIM for many reasons: a hard season, a wish to live and enjoy life more
+                fully, a longing for something real, or love for someone they want to show up for
+                better. What we share is one intention. Something clear and caring is already within
+                each of us, and we practice to live from it more of the time: more awake and present,
+                freer of what binds us, understanding with greater wisdom, caring with kindness and
+                compassion, and acting from both, for the benefit of ourselves, those we care
+                about, and our shared world.
+              </p>
+              <p className="pp-intro__body">
+                This is practice for real life, and it asks something real of us, because it matters.
+                No one can do it for us, and no one has to do it alone.
+              </p>
+              <div className="pp-actions">
+                <Link href="/why-we-practice" className="pp-btn">
+                  Why we practice
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Practice for real life — what the practice helps us meet. One
-             centred composition: opener, the six particulars, the closing line.
+      {/* ── Practice for real life — what the practice helps us meet: the
+             opener and the closing line share the chapter grid's text column,
+             above and below the six particulars.
              (The Buddha-and-lotus photo was tried beside the opener 2026-09-27
              and removed the same day: beside one short paragraph it read as an
              afterthought, Jesse.) ── */}
-      <section className="pp-section pp-section--white home-centered">
+      <section className="pp-section pp-section--white">
         <div className="rim-container">
-          <div className="pp-intro">
-            <h2 className="pp-intro__title">Practice for real life.</h2>
-            <p className="pp-intro__body">
-              Meditation is where the practice begins, and most of it happens everywhere else.
-              It helps us enjoy what is good while it is here, and meet what is hard with more
-              skill and less reactivity. In an ordinary week, it looks something like this.
-            </p>
+          <div className="home-chapter">
+            <div className="home-chapter__head">
+              <h2 className="pp-intro__title">Practice for real life.</h2>
+            </div>
+            <div className="home-chapter__body">
+              <p className="pp-intro__body">
+                Meditation is where the practice begins, and most of it happens everywhere else.
+                It helps us enjoy what is good while it is here, and meet what is hard with more
+                skill and less reactivity. In an ordinary week, it looks something like this.
+              </p>
+            </div>
           </div>
 
-          <ul className="pp-uses">
+          <ul className="pp-uses home-uses">
             {USES.map((use) => (
               <li key={use.title} className="pp-uses__item">
                 <h3 className="pp-uses__title">{use.title}</h3>
@@ -231,19 +240,20 @@ export default async function HomePage() {
             ))}
           </ul>
 
-          <div className="pp-prose">
-            <p>
-              Most of this happens between our gatherings, at home, at work, and with the people in
-              our lives. We bring the practice into our days, and we bring our days back to the
-              community, the difficulties and the successes alike. Then we go home and practice
-              again.
-            </p>
-          </div>
-
-          <div className="pp-actions">
-            <Link href="/care" className="pp-btn pp-btn--ghost">
-              How we practice
-            </Link>
+          <div className="home-chapter home-chapter--after">
+            <div className="home-chapter__body">
+              <p className="pp-intro__body">
+                Most of this happens between our gatherings, at home, at work, and with the people in
+                our lives. We bring the practice into our days, and we bring our days back to the
+                community, the difficulties and the successes alike. Then we go home and practice
+                again.
+              </p>
+              <div className="pp-actions">
+                <Link href="/care" className="pp-btn pp-btn--ghost">
+                  How we practice
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -347,20 +357,19 @@ export default async function HomePage() {
              they are here and what taking part involves. ── */}
       <section className="pp-section">
         <div className="rim-container">
-          <div className="pp-split pp-split--doors pp-split--doors-left">
-            <div className="pp-split__body">
-              <div className="pp-intro">
-                <p className="pp-intro__eyebrow">Taking part</p>
-                <h2 className="pp-intro__title">Where to begin, and where it leads.</h2>
-                <p className="pp-intro__body">
-                  Taking part is simple. We practice at home in whatever way a life allows, and we
-                  come together to learn and practice with others. Most people move among four ways
-                  of gathering, at their own pace. No experience is needed, and nobody will ask you
-                  to explain yourself. Signing up as a member takes a few minutes, and it is
-                  required for our online gatherings.
-                </p>
-              </div>
-
+          <div className="home-chapter">
+            <div className="home-chapter__head">
+              <p className="pp-intro__eyebrow">Taking part</p>
+              <h2 className="pp-intro__title">Where to begin, and where it leads.</h2>
+            </div>
+            <div className="home-chapter__body">
+              <p className="pp-intro__body">
+                Taking part is simple. We practice at home in whatever way a life allows, and we
+                come together to learn and practice with others. Most people move among four ways
+                of gathering, at their own pace. No experience is needed, and nobody will ask you
+                to explain yourself. Signing up as a member takes a few minutes, and it is
+                required for our online gatherings.
+              </p>
               <div className="pp-actions">
                 <Link href="/community-programs" className="pp-btn">
                   Programs &amp; events
@@ -370,52 +379,53 @@ export default async function HomePage() {
                 </Link>
               </div>
             </div>
+          </div>
 
-            <div className="pp-doors">
-              {PATHWAY.map((route) => (
-                <Link key={route.title} href={route.href} className="pp-card pp-card--row">
-                  <div className="pp-card__row">
-                    <div className="pp-card__main">
-                      <h3 className="pp-card__title">{route.title}</h3>
-                      <p className="pp-card__body">{route.body}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+          <div className="home-paths">
+            {PATHWAY.map((route) => (
+              <Link key={route.title} href={route.href} className="pp-card home-paths__card">
+                <h3 className="pp-card__title">{route.title}</h3>
+                <p className="pp-card__body">{route.body}</p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ── For organizations — the outreach face, stated once on the home
              page (site revision brief, 2026-09-25). ── */}
-      <section className="pp-section pp-section--white home-centered">
+      <section className="pp-section pp-section--white">
         <div className="rim-container">
-          <div className="pp-intro">
-            <p className="pp-intro__eyebrow">For organizations</p>
-            <h2 className="pp-intro__title">Taking CARE, carried into the world.</h2>
-            <p className="pp-intro__body">
-              We partner with nonprofits and community organizations working for the well-being of
-              people, communities, and our shared world, offering Taking CARE to the people they
-              serve and to the people who carry their work.
-            </p>
-          </div>
-          <div className="pp-actions">
-            <Link href="/outreach" className="pp-btn">
-              Outreach for organizations
-            </Link>
+          <div className="home-chapter">
+            <div className="home-chapter__head">
+              <p className="pp-intro__eyebrow">For organizations</p>
+              <h2 className="pp-intro__title">Taking CARE, carried into the world.</h2>
+            </div>
+            <div className="home-chapter__body">
+              <p className="pp-intro__body">
+                We partner with nonprofits and community organizations working for the well-being of
+                people, communities, and our shared world, offering Taking CARE to the people they
+                serve and to the people who carry their work.
+              </p>
+              <div className="pp-actions">
+                <Link href="/outreach" className="pp-btn">
+                  Outreach for organizations
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Dana — image right. The held lotus (Olga Nayda, Unsplash): an
+      {/* ── Dana — image left (the page's images stagger: circle left, trees
+             right, lotus left; Jesse 2026-09-27). The held lotus (Olga Nayda, Unsplash): an
              offered flower is the dana gesture itself. Stated as dana actually
              works at RIM (Jesse, 2026-09-25): suggested amounts, no one turned
              away, minimums only where RIM pays a host, program gifts split
              with the Teaching Fund. ── */}
       <section className="pp-section">
         <div className="rim-container">
-          <div className="pp-split pp-split--flip">
+          <div className="pp-split">
             <div
               className="pp-split__media"
               style={{
@@ -464,9 +474,11 @@ export default async function HomePage() {
       {/* ── The call, last: stakes after safety. ── */}
       <section className="pp-section pp-section--white pp-section--last">
         <div className="rim-container">
-          <aside className="pp-closing">
-            <div>
+          <aside className="pp-closing home-closing">
+            <div className="home-chapter__head">
               <h2 className="pp-closing__title">It matters how we live.</h2>
+            </div>
+            <div className="home-chapter__body">
               <p className="pp-closing__body">
                 This life matters, and so do the people in it and the world we share. Practice does
                 not promise a life without pain. It offers something we can learn: to stop adding
@@ -479,10 +491,12 @@ export default async function HomePage() {
                 showing up on the days we would rather not. It is easier to keep going in good
                 company.
               </p>
+              <div className="pp-actions">
+                <Link href="/this-week" className="pp-btn">
+                  This week&rsquo;s schedule
+                </Link>
+              </div>
             </div>
-            <Link href="/this-week" className="pp-btn pp-closing__link">
-              This week&rsquo;s schedule <span aria-hidden="true">→</span>
-            </Link>
           </aside>
         </div>
       </section>
