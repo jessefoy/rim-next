@@ -28759,6 +28759,13 @@ a.pp-card.home-paths__card {
     align-items: start;
   }
   .home-chapter--after .home-chapter__body { grid-column: 2; }
+  /* Inside the closing panel (48px side padding) the columns would start
+     13px right of the page's text column. Size the head column so the
+     panel's text lands exactly on the chapter grid's text edge:
+     (content + both paddings - gap) x 4/11, minus the left padding. */
+  .pp-closing.home-closing {
+    grid-template-columns: calc((100% + 96px - 64px) * 4 / 11 - 48px) minmax(0, 1fr);
+  }
   .home-chapter__head .pp-intro__title,
   .home-chapter__head .pp-closing__title,
   .home-page .pp-split__body .pp-intro__title { font-size: var(--text-h1); }
