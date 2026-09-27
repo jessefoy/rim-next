@@ -28721,6 +28721,7 @@ a.pp-card.tpr-card {
   font-family: var(--font-serif);
   font-size: var(--text-h3);
   line-height: 1.55;
+  text-wrap: pretty; /* no lone last word ("world.") */
 }
 .home-statement__lead + .pp-intro__body { margin-top: 24px; }
 
