@@ -28728,6 +28728,10 @@ a.pp-card.tpr-card {
 }
 .pp-page--spine .home-centered .pp-actions { justify-content: center; }
 .home-centered .pp-uses { margin-left: auto; margin-right: auto; }
+/* Centred lines end evenly, no stranded word (the statement's second line
+   left "No" alone on its first row). */
+.home-centered .pp-intro__body,
+.home-centered .pp-prose p { text-wrap: balance; }
 
 .home-statement__lead {
   color: var(--rim-text);
