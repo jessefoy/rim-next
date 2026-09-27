@@ -28691,6 +28691,19 @@ a.pp-card.tpr-card {
 .tw-today-pill,
 .cls-card__lessons { font-size: var(--text-xs); }
 
+/* Home, "Practice for real life": the Buddha-and-lotus photograph beside a
+   one-paragraph opener (restored 2026-09-27, Jesse). The standard split is
+   built for two paragraphs and a button; with one paragraph the 420px photo
+   left ~210px empty under the words. Centre the words against a slightly
+   shorter photo (66px above and below at desktop), then 40px before the six
+   everyday examples. Phones keep the standard 260px stacked photo. */
+.home-practice-intro { margin-bottom: 40px; }
+.home-practice-intro .pp-split__body { align-self: center; }
+.home-practice-intro .pp-intro { margin-bottom: 0; }
+@media (min-width: 901px) {
+  .home-practice-intro .pp-split__media { min-height: 340px; }
+}
+
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).

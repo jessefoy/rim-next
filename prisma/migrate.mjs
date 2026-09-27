@@ -6123,6 +6123,44 @@ Rooted In Mindfulness · Brookfield, WI`,
   const { revertNewcomerReview } = await import("./revert-newcomer-review-2026-09-26.mjs");
   await revertNewcomerReview(db);
 
+  // Two factual errors in program copy that the rollback above put back
+  // (Jesse, 2026-09-27: "we should make the changes for the two program
+  // errors"). Good Morning meets 6:30-7 AM, so its room opens at 6:20 AM, not
+  // PM; Good Evening closes the day rather than beginning it. Exact text only,
+  // guarded by updatedAt so a Program Manager edit made since is never
+  // overwritten. Never throws: a skipped fix leaves the flag unset and retries.
+  {
+    const flag = "program_copy_errors_2026_09_27_v1";
+    const applied = await db.$queryRawUnsafe('SELECT name FROM "_migration_flags" WHERE name = $1', flag);
+    if (!applied.length) {
+      const replaceText = (value, from, to) => {
+        if (typeof value === "string") return value.replaceAll(from, to);
+        if (Array.isArray(value)) return value.map((v) => replaceText(v, from, to));
+        if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, replaceText(v, from, to)]));
+        return value;
+      };
+      const fixes = [
+        { slug: "good-morning-silent-meditation", fields: ["description", "programNotes"], from: "6:20 PM", to: "6:20 AM" },
+        { slug: "good-evening-silent-meditation", fields: ["description"], from: "begin your day from a quieter place", to: "close your day from a quieter place" },
+      ];
+      let complete = true;
+      for (const fix of fixes) {
+        const program = await db.program.findUnique({ where: { slug: fix.slug } });
+        if (!program) { console.log(`  Program copy fix: ${fix.slug} not found, skipped.`); continue; }
+        const data = {};
+        for (const field of fix.fields) {
+          const next = replaceText(program[field], fix.from, fix.to);
+          if (JSON.stringify(next) !== JSON.stringify(program[field])) data[field] = next;
+        }
+        if (!Object.keys(data).length) { console.log(`  Program copy fix: ${fix.slug} already correct.`); continue; }
+        const result = await db.program.updateMany({ where: { id: program.id, updatedAt: program.updatedAt }, data });
+        if (result.count) console.log(`  Program copy fix: ${fix.slug} (${Object.keys(data).join(", ")}) "${fix.from}" -> "${fix.to}".`);
+        else { complete = false; console.log(`  Program copy fix: ${fix.slug} changed during the fix; will retry next deploy.`); }
+      }
+      if (complete) await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
