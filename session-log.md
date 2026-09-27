@@ -1,3 +1,29 @@
+## 2026-09-27 — Recovery after the withdrawn Codex review
+
+Jesse ran a ChatGPT audit of the site and had Codex implement it ("newcomer review", 23 commits, 2026-09-26 16:29–20:08, authored as jessefoy). It "really messed up a lot of the design," so he had Codex revert; the revert was incomplete. This session inventoried the damage and restored the state at the end of the September 26 Claude session (`5a2c1ee`).
+
+### What was found
+
+- **Code:** everything matched `5a2c1ee` except `app/page.tsx`, which the rollback had set to the home page from `4187997` (9/24): pre-"center, stated", "Insight meditation" in its description, "Everything here is freely offered" (untrue for retreats), a link to the retired `/your-first-visit`, and none of the September 25–26 sections or the vision in the hero.
+- **Database:** Codex's three flag-guarded migrations had rewritten 31 passages across 13 programs, moved Essential Dharma Study to Community Groups, filled the retreat's facilitators, switched the retreat to voluntary dana, and filled Jesse's teacher bio. Codex's `revertNewcomerReview` migration (one-time, flag-guarded, exact-text) undid all of it. **Verified on the live pages:** all 31 passages show the original text (chained edits resolved to the original), the study is back under Open Practice & Learning, no facilitators, the retreat is `fixed` $175 (registration page payload), the teacher bio is empty.
+- **Vault:** Codex appended ~5,000 lines (revisions 8 onward, including pasted code diffs) to `CARE/4 Promotion/04-community-website-copy-2026-09-25.md`. Lines 1–692 were our version, intact. The master reference was untouched (last modified 12:27, before Codex started).
+
+### What was restored
+
+- `app/page.tsx` back to `5a2c1ee`. App code now matches `5a2c1ee` exactly. `migrate.mjs` keeps only the one-time revert call, a no-op from now on (its flag is set).
+- The vault copy doc cut back to its 692 lines plus a recovery note. Codex's appended material moved **unchanged** to `CARE/Archive/04-community-website-copy-newcomer-review-withdrawn-2026-09-26.md` (archive, never delete), because it records things Jesse said in that session.
+- `FEATURES.md`, `RIM_Public_Pages.md`, `RIM_Stack_Reference.md`, `UP_NEXT.md` back to `5a2c1ee`, with short recovery notes. Kept: backlog `2026-08-10-002` (the arrival facts Jesse supplied: south-side entrance, parking in any lot, stairs only with no elevator, restrooms in the main hall and throughout, volunteer-operated phone with voicemail), the `RIM_Registration.md` caveat, and Codex's top session-log entry as history. Its stray duplicate at the bottom of this file was removed.
+
+### Surfaced for Jesse
+
+The Buddha-and-lotus home photograph (Codex restored it at his request; not on the `5a2c1ee` home). Two real errors in program data that the rollback put back: Good Morning Silent Meditation says "6:20 PM", and Good Evening Silent Meditation says "begin your day from a quieter place". These are editable in Program Manager. The retreat's voluntary-dana switch remains his call. Codex's review also briefly changed `app/api/subscribe/route.ts` and `app/api/account/join/route.ts` (reverted); signups made during that window were not inspected.
+
+### What this connects to
+
+The home page composition, the vision constants it reads (`RIM_WHAT_BINDS`), the program records behind `/programs/*`, `/this-week` and `/community-programs`, and the vault copy doc that governs every public word.
+
+---
+
 ## 2026-09-26 — Closing: newcomer review withdrawn, prior site restored
 
 Jesse asked to undo the whole newcomer review after successive changes weakened the homepage and a favorite program-detail composition. The final state is a deliberate restoration: application files at `5a2c1ee` before the review, with the complete older homepage from `4187997`, identified by its longer “Most of us are carrying more than we let on” passage and Buddha-and-lotus photograph. The homepage's four CARE anchors alone adapt to the existing eight-word handout. No review improvements or later blends remain active. All prior work is recoverable from Git (`f059fda`); implementation rollback `5826f5c` and verification `ea1f4f5` are pushed and live.
@@ -5129,8 +5155,3 @@ Complete rewrite of the virtual session room UI and functionality:
 - Fill `dateText` / `timeText` for all live programs via Program Editor (backlog item `2026-04-15-001`)
 - Redesign remaining legacy pages (Donate, Volunteer, Community Membership, Login) — backlog item `2026-04-15-002`
 - Homepage visual review (all 10 sections)
-
-
-## Newcomer review withdrawn — September 26, 2026
-
-Jesse asked to revert the whole site and all review changes, and will reconsider the document later. Application baseline is `5a2c1ee`, before the review; homepage is the earlier complete `4187997` composition identified by its longer “Most of us are carrying more than we let on” passage and Buddha-and-lotus photograph. Only homepage anchor slugs adapt to the existing pre-review handout. No review copy, practical corrections or functional changes are retained. Program description edits and review-added teacher/facilitator fields are reversed through a guarded one-time migration, along with the study category and retreat's pre-review fixed $175 setting. No account, registration, donation or payment records are altered. Review work and audit remain recoverable in Git history (`f059fda`). Canonical vault records the withdrawal first. Do not resume the review or its blends without Jesse's new direction. Verified live in `5826f5c`. TypeScript, focused lint, migration syntax and diff checks passed; 93 inverse-edit fixtures plus chained/deleted-note recovery and preservation guards passed. Ten saved program-page snapshots match restored descriptions and notes; Saturday's original paragraph matches the recorded migration source. Complete visible retreat, study, nature and Art of Meditation pages match saved originals, confirming category, fee presentation, facilitator and quote restoration. Desktop 1280px and mobile 375px screenshots confirm the older complete homepage with its longer opening section and photograph; 1280px/375px/360px show no horizontal overflow. Browser viewport reset. Application code outside the intentionally older homepage matches `5a2c1ee` exactly. Review migrations are removed and replaced by the one-time guarded reversal; existing registrations/payments were not changed.

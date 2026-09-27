@@ -13,10 +13,6 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 
 ---
 
-## Current public site — September 26 rollback
-
-The newcomer-review implementation and subsequent blends were withdrawn at Jesse's request. Public pages, shared navigation, program detail, joining/sign-in and registration presentation are restored to pre-review `5a2c1ee`. The homepage uses the earlier complete `4187997` composition: longer Practice for real life introduction with Buddha-and-lotus image, CARE cards, roots, category-driven participation doors, dana and closing. This supersedes the homepage-specific September 25–26 entries below. Its CARE links use the current handout anchors. Program copy and review-changed fields/settings are restored too, including the retreat's former fixed $175 setting; see `RIM_Registration.md`. No review reimplementation is queued. Details and evidence: newest `session-log.md` entry and `UP_NEXT.md`.
-
 ## September 2026 member-area update
 
 - **My Home:** today’s sessions and existing Zoom entry windows; Good to know beside the offering. Upcoming registrations/dana invitations live at `/account/dashboard?view=upcoming`. No member self-cancellation.
@@ -50,8 +46,8 @@ The newcomer-review implementation and subsequent blends were withdrawn at Jesse
 ## September 26, 2026: the brief, the handout, one vision, a balanced reading column
 
 - **Site revision brief applied:** home hero ("Our practice is taking care…"), **What brings us together** (replaces "What we are here for"), a **For organizations** home section before Dana; Outreach in eight headed sections with no list of populations, a **Training in Taking CARE** invitation, cost by donation plus the outreach fund; Donate matches how dana works (Teaching Fund, 50/50 program gifts, retreat minimums; widgets unchanged); Why We Practice without "as within, so without"; Our Roots' Chan/Zen and lineage corrections; New to RIM's **Practicing together**; nav "Outreach for Organizations", footer "For Organizations". "Buddhist nonprofit" retired for "rooted in traditional Buddhist wisdom".
-- **`/care` is the practice handout** adapted for the web: eight word headings (the handout has eight headings; the restored older homepage keeps its four paired cards linking `/care#calm` etc.), the handout's text, clarity (Aware) and presence (Attitude) for the halves of silent illumination, a gloss for Buddha nature, a closing "Learning over time".
-- **One vision, one mission:** `RIM_VISION`, `RIM_MISSION` and the holding phrase `RIM_WHAT_BINDS` live in `lib/communityAgreements.ts` and feed About (vision, then mission, then capacity links), the Our Shared Vision frame on all five agreement surfaces, and the pre-rollback home hero (the current older homepage uses its own original wording). The circle of benefit reads "ourselves, those we care about, and our shared world" everywhere.
+- **`/care` is the practice handout** adapted for the web: eight word headings (the four pairs are gone from every public page, including home's cards, which now follow the circle's quarters and link `/care#calm` etc.), the handout's text, clarity (Aware) and presence (Attitude) for the halves of silent illumination, a gloss for Buddha nature, a closing "Learning over time".
+- **One vision, one mission:** `RIM_VISION`, `RIM_MISSION` and the holding phrase `RIM_WHAT_BINDS` live in `lib/communityAgreements.ts` and feed About (vision, then mission, then capacity links), the Our Shared Vision frame on all five agreement surfaces, and the home hero. The circle of benefit reads "ourselves, those we care about, and our shared world" everywhere.
 - **Balanced reading pages:** ten reading pages (`.pp-page--column`) sit in one centred column with the program-detail header (centred eyebrow, title and line; 13px / 52px / 20px; vertical scrim). Closing panels fill their area; button labels never wrap above 560px; headings balance. See `RIM_Public_Pages.md` → "The reading column".
 - Copy source of truth: the vault's `04-community-website-copy-2026-09-25.md` (revisions 4–7). Provisional until Jesse's read-aloud.
 
