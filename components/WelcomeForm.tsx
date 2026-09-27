@@ -1,6 +1,5 @@
 "use client";
 
-import { authCallbackPath } from "@/lib/authReturn";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -11,7 +10,6 @@ import {
 } from "@/lib/communityAgreements";
 
 interface WelcomeFormProps {
-  returnTo?: string;
   defaultFirstName?: string;
   defaultLastName?: string;
   defaultPhone?: string;
@@ -23,7 +21,6 @@ export default function WelcomeForm({
   defaultLastName = "",
   defaultPhone = "",
   isLegacy = false,
-  returnTo,
 }: WelcomeFormProps) {
   const router = useRouter();
   const [firstName, setFirstName] = useState(defaultFirstName);
@@ -56,8 +53,8 @@ export default function WelcomeForm({
         const data = await res.json();
         throw new Error(data.error ?? "Something went wrong. Please try again.");
       }
-      // Refresh server-rendered session gates and continue to the chosen program.
-      router.push(authCallbackPath(returnTo));
+      // Reload session and redirect to dashboard
+      router.push("/account/dashboard");
       router.refresh();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -144,7 +141,7 @@ export default function WelcomeForm({
         </label>
       </div>
 
-      {errorMsg && <p role="alert" className="wl-error">{errorMsg}</p>}
+      {errorMsg && <p className="wl-error">{errorMsg}</p>}
 
       <button
         type="submit"

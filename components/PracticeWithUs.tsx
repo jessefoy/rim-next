@@ -10,15 +10,18 @@ export default function PracticeWithUs() {
         Offered in mutual generosity and care.
       </h2>
       <p className="pl-membership__body">
-        You can attend an in-person drop-in without an account. For Zoom and program registration,
-        create a member account; there are no dues or attendance requirements. Each program’s page
-        explains its participation and giving arrangements.
-      </p>
-      <p className="pl-membership__body">
-        RIM is supported through <Link href="/donate#dana-at-rim" className="pl-membership__inline-link">generosity</Link>:
-        {" "}financial gifts, time, care, and presence. Our
-        <Link href="/community-care-agreements" className="pl-membership__inline-link"> community care agreements</Link>
-        {" "}guide how we practice together.
+        We don&rsquo;t charge for the teachings, and no one carries this center alone.
+        Everything here runs on{" "}
+        <Link href="/donate#dana-at-rim" className="pl-membership__inline-link">
+          dana
+        </Link>
+        , generosity of heart: each of us giving what feels right and possible, caring
+        for one another, our teachers, and the center we share. A member account is how
+        you join us on Zoom and register for programs; there are no dues, only our{" "}
+        <Link href="/community-care-agreements" className="pl-membership__inline-link">
+          community care agreements
+        </Link>
+        .
       </p>
       {/* The aside says a member account is how you join on Zoom and register,
           so it has to offer one. The version this replaced ended in this exact
@@ -26,7 +29,7 @@ export default function PracticeWithUs() {
           route to membership outside the nav's hover dropdown. */}
       <div className="pp-actions">
         <Link href="/join" className="pp-btn">
-          Create a member account
+          Become a member
         </Link>
       </div>
     </aside>

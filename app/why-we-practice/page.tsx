@@ -1,7 +1,10 @@
-import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 
-export const metadata = publicPageMetadata("Why We Practice — Rooted In Mindfulness", "Explore what CARE can mean in everyday life: clearer understanding, kinder relationships, and responding to difficulty with care for ourselves and our shared world.", "/why-we-practice");
+export const metadata = {
+  title: "Why We Practice — Rooted In Mindfulness",
+  description:
+    "What the practice at Rooted in Mindfulness is for: becoming more awake and present in our lives and freer of what binds us, so that we understand with greater wisdom, care with kindness and compassion, and act from both.",
+};
 
 /**
  * /why-we-practice — RIM's center at full length (2026-09-25).
@@ -38,19 +41,12 @@ export default function WhyWePracticePage() {
       <section className="pp-section pp-section--last">
         <div className="rim-container">
           <div className="pp-prose">
-            <p>
-              We practice to meet our lives with clearer understanding and greater care. That can
-              mean enjoying what is good, responding differently when something hurts, and caring
-              for conditions that affect others. <Link href="/care">CARE</Link> is how we explore
-              this together, through meditation and the choices we make in daily life.
-            </p>
             <h2>Something already here</h2>
             <p>
-              At RIM, we trust that clarity and care are capacities we share. We explore them in an ordinary
+              Something clear and warm is already here in each of us. We can find it in an ordinary
               moment. The mind drifts into a plan or a worry, and then something knows that it
               drifted. Nobody built that knowing. It arrived on its own, and it saw the drift
-              without having to fight it. We can begin by attending to these moments of return,
-              allowing our understanding to develop through practice.
+              without having to fight it.
             </p>
             <p>
               We call this wakefulness. It is not on a mountaintop, and it is not reserved for
@@ -84,12 +80,6 @@ export default function WhyWePracticePage() {
               is always further to go.
             </p>
 
-            <p>
-              Hardship also comes from conditions around us: discrimination, unsafe work, poverty,
-              and lack of care. Practice helps us respond to those conditions with others, as well
-              as work with our own reactions. Caring for the world includes changing what harms people.
-            </p>
-
             <h2>What gets in the way</h2>
             <p>
               We care about our lives, the people around us, and what happens in the world. And our
@@ -103,7 +93,8 @@ export default function WhyWePracticePage() {
               These habits have familiar shapes: grasping at what we want, pushing away what we do
               not, and holding on to old stories about ourselves and others. There is the pain that
               comes with being alive, and there is the suffering we add in reaction to it, the
-              replaying and bracing and blaming. Practice cannot always remove the first.               Through it, we can learn to add less struggle and seek the support we need.
+              replaying and bracing and blaming. Practice cannot always remove the first. It can
+              learn to stop adding the second.
             </p>
 
             <h2>Where life happens</h2>
@@ -117,8 +108,7 @@ export default function WhyWePracticePage() {
             <p>
               In that seeing there is room. There is room to let an old reaction pass without
               obeying it, to remember what matters, and to respond with understanding instead of
-              repeating the pattern. In CARE, Recognize and Remember help us explore this meeting;
-              Embody and Engage ask how our understanding becomes the way we live with others.
+              repeating the pattern. What we choose there, again and again, becomes who we are.
             </p>
 
             <h2>What we practice for</h2>

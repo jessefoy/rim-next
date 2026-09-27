@@ -1,5 +1,3 @@
-import InformationUseNote from "@/components/InformationUseNote";
-import { authReturnPath, authCallbackPath } from "@/lib/authReturn";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import JoinForm from "@/components/JoinForm";
@@ -13,7 +11,6 @@ import {
 } from "@/lib/communityAgreements";
 
 export const metadata = {
-  robots: { index: false, follow: false },
   title: "Become a member — Rooted In Mindfulness",
   description:
     "Join the Rooted In Mindfulness community. Read our shared vision and community care agreements and create your member account.",
@@ -22,19 +19,18 @@ export const metadata = {
 export default async function JoinPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; returnTo?: string }>;
+  searchParams: Promise<{ email?: string }>;
 }) {
-  const { email: emailRaw, returnTo: requestedReturn } = await searchParams;
-  const returnTo = authReturnPath(requestedReturn);
   const session = await auth();
   if (session?.user?.id) {
-    redirect(authCallbackPath(returnTo));
+    redirect("/account/dashboard");
   }
 
   // Accept a pre-filled email from /login's not-found soft-redirect (when a
   // visitor types an unknown email at /login, we route them here with their
   // email carried across so they don't have to retype it). Trim + cap
   // defensively — value lands in a server-rendered input attribute.
+  const { email: emailRaw } = await searchParams;
   const prefillEmail =
     typeof emailRaw === "string" ? emailRaw.trim().slice(0, 256) : "";
 
@@ -53,7 +49,6 @@ export default async function JoinPage({
           <p className="pp-hero__eyebrow">A seat in the community</p>
           <h1 className="pp-hero__title">{JOIN_HERO_TITLE}</h1>
           <p className="pp-hero__body">{JOIN_HERO_INTRO}</p>
-          <div className="pp-hero__actions"><a href="#jn-form-heading" className="pp-hero__link">Go to the account form <span aria-hidden="true">↓</span></a></div>
         </div>
       </section>
 
@@ -66,18 +61,30 @@ export default async function JoinPage({
           <div className="pp-prose">
             <h2 id="jn-meaning-heading">What membership means</h2>
             <p>
-              Membership gives you an account for online gatherings and program registration.
-              There are no dues or attendance requirements. You can come for one gathering and
-              decide what feels useful. You do not need to identify as Buddhist.
+              Membership may not mean here what it has meant to you elsewhere. There are no dues;
+              membership is freely offered. There is no attendance
+              requirement and no role to fill, and nobody tracks how often you come. Joining says
+              one thing: this is my practice community, and I would like a seat in it.
             </p>
             <p>
-              Our community includes people who enjoy conversation and people who prefer to sit
-              in silence. You can take your time getting to know others. Individual programs describe
-              any discussion or sharing that is part of their practice.
+              If you are quiet by nature, you may be carrying the question many of us carried in:
+              will I have to be social? You will not. The heart of what we do together is sitting in
+              silence, side by side. Nobody will ask you to share, to mingle, or to be anyone other
+              than the person who walked in. Some of the steadiest members of this community are
+              also its quietest. Presence is enough.
             </p>
             <p>
-              We ask everyone to practice care and respect for one another. The shared vision below
-              describes what guides RIM; the agreements describe how we take part together.
+              So why practice with others at all? Because the work of this path is inward, and it
+              goes better in company. A room of settled people settles you. Other people&rsquo;s
+              honest difficulties teach as much as their calm. And over time, without anyone forcing
+              it, the people you sit beside become what the tradition warmly calls friends on the
+              path. The Buddha&rsquo;s own attendant once guessed that such friendship must be half
+              of the spiritual life. The Buddha corrected him: it is the whole of it.
+            </p>
+            <p>
+              That is what we mean by community. Friends who support one another&rsquo;s practice:
+              each of us releasing what gets in the way, each of us strengthening what serves, for
+              our own lives and for the people and the world our lives touch.
             </p>
           </div>
         </div>
@@ -113,8 +120,7 @@ export default async function JoinPage({
               Create your member account
             </h2>
             <p className="jn-form__lead">{JOIN_FORM_LEAD}</p>
-            <InformationUseNote />
-            <JoinForm defaultEmail={prefillEmail} returnTo={returnTo} />
+            <JoinForm defaultEmail={prefillEmail} />
           </div>
         </div>
       </section>

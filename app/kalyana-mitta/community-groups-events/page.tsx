@@ -1,9 +1,12 @@
-import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { buildSubtitle, fmtLabel, hasConcludedOneTime, participationLabel, programLocationLabel } from "@/lib/programUtils";
+import { buildSubtitle, fmtLabel, hasConcludedOneTime } from "@/lib/programUtils";
 
-export const metadata = publicPageMetadata("Community Groups and Activities — Rooted In Mindfulness", "Find a community group for shared practice, nature, movement, or recovery at RIM. See how to participate or propose a group.", "/kalyana-mitta/community-groups-events");
+export const metadata = {
+  title: "Community Groups and Activities — Rooted In Mindfulness",
+  description:
+    "Kalyana Mitta groups at RIM — connect with others to deepen your practice, share interests, and grow spiritual friendships.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +18,7 @@ export default async function KalyanaGroupsPage() {
     where: {
       archivedAt: null,
       hideFromProgramPageList: false,
-      category: { kind: "COMMUNITY_GROUP", hideFromProgramsPage: false },
+      category: { name: "Community Groups" },
     },
     include: { category: true },
     orderBy: { sortOrder: "asc" },
@@ -36,12 +39,12 @@ export default async function KalyanaGroupsPage() {
         }}
       >
         <div className="rim-container pp-hero__inner">
-          <p className="pp-hero__eyebrow">Practice with others</p>
+          <p className="pp-hero__eyebrow">Kalyana Mitta</p>
           <h1 className="pp-hero__title">Community Groups and Activities</h1>
           <p className="pp-hero__body">
-            Community groups bring people together around meditation, study, service, and shared
-            interests. We support one another in practicing care in daily life. In the Buddhist
-            tradition, this friendship is called <em>Kalyana Mitta</em>, or supportive friendship.
+            Connect with others to deepen your learning, practice, shared interests, affinity
+            connections, and engaged mindfulness, and to grow <em>spiritual friendships</em>.
+            Following tradition, these community-led activities are called <em>Kalyana Mitta</em>.
           </p>
           <div className="pp-hero__actions">
             <a href="#current-groups" className="pp-btn pp-btn--onblue">
@@ -51,7 +54,7 @@ export default async function KalyanaGroupsPage() {
               href="/kalyana-mitta/kalyana-mitta-group-application"
               className="pp-hero__link"
             >
-              Propose a group or event <span aria-hidden="true">→</span>
+              Start a group or event <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>
@@ -63,19 +66,19 @@ export default async function KalyanaGroupsPage() {
           <div className="pp-intro">
             <p className="pp-intro__eyebrow">What they are</p>
             <h2 className="pp-intro__title">
-              About community groups and activities
+              About Kalyana Mitta groups and activities
             </h2>
           </div>
           <div className="pp-prose">
             <p>
-              A shared activity gives us a place to practice CARE with other people. We learn to
-              listen, recognize our reactions, and respond with consideration. The friendships that
-              develop can support practice between meetings as well as during them.
+              <strong>Kalyana Mitta (KM)</strong> is a Pali term that loosely means &ldquo;supportive
+              friend.&rdquo; It refers to fellow travelers on the Dharma path who come together to
+              support each other&rsquo;s learning, meditation, and mindful living practice.
             </p>
             <p>
-              Groups have different purposes and expectations. Read the group’s page for its
-              activity, facilitators, location, and registration details. Some groups ask for a
-              continuing commitment or particular experience; you can ask about the fit before joining.
+              KM groups and events connect us. They provide opportunities to study the Dharma, share
+              mindfulness and meditation experiences, and build meaningful friendships rooted in
+              shared interests and common intentions.
             </p>
           </div>
         </div>
@@ -116,8 +119,7 @@ export default async function KalyanaGroupsPage() {
                         )}
                         <div className="pp-card__meta">
                           {schedule && <span className="pp-card__schedule">{schedule}</span>}
-                          <span className="pp-card__format">{programLocationLabel(group)}</span>
-                          <span className="pp-card__format">{participationLabel(group)}</span>
+                          <span className="pp-card__format">{format}</span>
                         </div>
                       </div>
                       <span className="pp-card__action" aria-hidden="true">
@@ -149,22 +151,18 @@ export default async function KalyanaGroupsPage() {
                 Don&rsquo;t see a group that fits?
               </h2>
               <p className="pp-closing__body">
-                Any member can propose a community group or activity. Read the guidelines, then
-                share your idea. The community coordinator reviews proposals with you before
-                further planning.
+                Any member of RIM can start a Kalyana Mitta group or community activity. Read the
+                guidelines, then tell us about your idea. We&rsquo;ll help you get it going.
               </p>
             </div>
             <Link
               href="/kalyana-mitta/kalyana-mitta-group-application"
               className="pp-btn pp-closing__link"
             >
-              Propose a group
+              Start a group
             </Link>
           </div>
 
-          <div className="pp-prose">
-            <p>For an early question, email <a href="mailto:KalyanaMitta@rootedinmindfulness.org">KalyanaMitta@rootedinmindfulness.org</a>. You do not need a finished proposal to start a conversation.</p>
-          </div>
           <div className="pp-actions pp-actions--center">
             <Link
               href="/kalyana-mitta/guidelines-for-starting-a-kalyana-mitta-group"

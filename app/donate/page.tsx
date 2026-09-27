@@ -1,7 +1,10 @@
-import { publicPageMetadata } from "@/lib/publicMetadata";
 import Script from "next/script";
 
-export const metadata = publicPageMetadata("Donate — Rooted In Mindfulness", "Support RIM through generosity. Choose a gift to the center or Teaching Fund, understand program giving, and find ways to contribute within your means.", "/donate");
+export const metadata = {
+  title: "Donate — Rooted In Mindfulness",
+  description:
+    "Rooted in Mindfulness is supported entirely by its community's generosity. Give to RIM for the center's operating costs, or to the Teaching Fund to support teacher livelihood.",
+};
 
 /**
  * /donate — body rewritten 2026-09-26 from the site revision brief so it says
@@ -69,8 +72,8 @@ export default function DonatePage() {
               </h1>
               <p className="pp-hero__body">
                 Our teachings are offered through dana, the practice of generosity. RIM is supported
-                by the generosity of our community. Membership has no dues. Program pages state
-                whether giving is voluntary or an amount is required to register.
+                entirely by the people who practice here, and no one is ever turned away for
+                financial reasons.
               </p>
               <a href="#dana-at-rim" className="pp-btn pp-btn--onblue">
                 Learn more about dana ↓
@@ -85,8 +88,7 @@ export default function DonatePage() {
                 <p className="pp-give__body">
                   Gifts to RIM pay for everything that keeps the center open: rent, utilities,
                   supplies, the technology behind our online gatherings, outreach, and more. Monthly
-                  gifts give the center steadiness it can plan around. We call recurring donors
-                  Sustaining Members; donating is separate from creating a member account.
+                  gifts, as a Sustaining Member, give the center steadiness it can plan around.
                 </p>
 
                 <div className="pp-give__widget">
@@ -106,9 +108,7 @@ export default function DonatePage() {
                 <p className="pp-give__body">
                   Our teachers offer the teachings freely and are supported by the community&rsquo;s
                   generosity. Gifts to the Teaching Fund support their livelihood, so they can give
-                  their lives to practicing and sharing the teachings. A gift here goes to the
-                  Teaching Fund; a gift through “RIM Dana” supports the center. To give to both,
-                  make a gift through each fund’s form.
+                  their lives to practicing and sharing the teachings.
                 </p>
 
                 <div className="pp-give__widget">
@@ -159,15 +159,10 @@ export default function DonatePage() {
               </p>
               <h3>How program gifts work</h3>
               <p>
-                Half of each program gift goes to the Teaching Fund and half to RIM. Direct gifts
-                through the forms above go to the fund you choose. Voluntary program donations may
-                include a suggested amount, and you may give less or nothing financially. Some
-                offerings require a payment to register. The
-                program page states the amount before you begin registration.
-              </p>
-              <p>
-                If a required amount is a barrier, contact us before registering to discuss what
-                may be possible. Time, care, and presence remain ways to contribute to RIM.
+                Programs list a suggested amount so everyone can see what an offering takes to
+                sustain. You give what you can. Half of every program gift goes to the Teaching Fund
+                and half to RIM. A few offerings, such as overnight retreats, carry a minimum because
+                RIM pays the places that host us.
               </p>
             </div>
 
@@ -186,7 +181,7 @@ export default function DonatePage() {
           <div className="pp-timeline-intro">
             <h2 className="pp-intro__title">How much should I give?</h2>
             <div className="pp-timeline-intro__note">
-              <p>For a voluntary gift, you choose the amount. Suggestions can help with that choice; time, care, and presence are contributions too.</p>
+              <p>Dana is personal, and nobody will tell you an amount. A few reflections can help.</p>
             </div>
           </div>
 

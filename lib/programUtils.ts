@@ -1,5 +1,3 @@
-import { isOpenlyDroppable } from "@/lib/programKind";
-import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel, formatTimeRange } from "@/lib/dateLabel";
 import { toCentralDatetime } from "@/lib/timezone";
 import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
@@ -342,49 +340,4 @@ export function resolveDanaCharge(
   }
 
   return { ok: false, error: "This program doesn't take dana online." };
-}
-
-/** Public facts use the same kind/registration rules as session entry. */
-export function participationLabel(program: {
-  category?: { kind: string | null } | null;
-  registrationEnabled: boolean;
-  registrationClosed?: boolean;
-  registrationDeadline?: Date | string | null;
-}): string {
-  const dropIn = isOpenlyDroppable(program.category?.kind, program.registrationEnabled);
-  if (dropIn) return program.registrationEnabled ? "Drop-in · registration available" : "Drop-in · no program registration";
-  if (!program.registrationEnabled) return "Registration not yet open";
-  if (program.registrationClosed || (program.registrationDeadline && new Date(program.registrationDeadline) < new Date())) return "Registration closed";
-  return "Registration required";
-}
-
-export function programLocationLabel(program: {
-  programFormat: string;
-  venue: string | null;
-  locationText: string | null;
-  locationLink?: string | null;
-}): string {
-  if (program.programFormat === "virtual") return "Online on Zoom";
-  const location = resolveLocation(program.venue, program.locationText, program.locationLink).text;
-  return [location || "In person", program.programFormat === "hybrid" ? "Zoom" : null].filter(Boolean).join(" + ");
-}
-
-/** Informational only: never changes the checkout amount or access rules. */
-export function programGivingSummary(program: {
-  danaMode: string | null;
-  danaFixedAmount: number | null;
-  danaBaseAmount: number | null;
-  suggestedDana: number | null;
-}): string | null {
-  const dollars = (amount: number) => new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", maximumFractionDigits: 2, minimumFractionDigits: 0,
-  }).format(amount);
-  const required = requiredDanaCents(program);
-  if (required > 0) return program.danaMode === "fixed"
-    ? `${dollars(required / 100)} required to register`
-    : `${dollars(required / 100)} minimum to register; additional giving is optional`;
-  if (program.danaMode === "voluntary") return program.suggestedDana && program.suggestedDana > 0
-    ? `Voluntary donation · ${dollars(program.suggestedDana)} suggested; no required amount`
-    : "Voluntary donation · no required amount";
-  return null;
 }

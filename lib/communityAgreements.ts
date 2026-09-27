@@ -74,8 +74,7 @@ export const RIM_VISION =
   "the great wisdom, great compassion, and great action.";
 
 export const RIM_MISSION =
-  "We practice taking care, together and in our daily lives. CARE is the shared " +
-  "foundation of our teaching, meditation, and practice in daily life. We gather to " +
+  "We practice taking care, together and in our daily lives. We gather to " +
   "learn and practice, in person and online, and we support one another " +
   "along the way. We bring the practice into our lives, and our lives back " +
   "into the community. We hold our care agreements with one another. We " +
@@ -86,9 +85,7 @@ export const RIM_MISSION =
 export const COMMUNITY_SHARED_VISION_TITLE = "Our Shared Vision";
 /** The frame is the vision, stated as why we come together. */
 export const COMMUNITY_AGREEMENTS_LEAD_IN =
-  "These agreements ask for care and respectful conduct. You do not need to adopt " +
-  "Buddhist beliefs or agree with every teaching. Our shared vision guides the " +
-  "practice we explore together. We come together because wakefulness, wisdom, and compassion are already " +
+  "We come together because wakefulness, wisdom, and compassion are already " +
   "within us, and because we want to live from them: to be more awake and " +
   "present in our lives, freer of what binds us to " +
   RIM_WHAT_BINDS +
@@ -105,9 +102,7 @@ export const COMMUNITY_AGREEMENTS_LEAD_IN =
  * reader why the form follows the agreements.
  */
 export const JOIN_FORM_LEAD =
-  "Create an account to join online gatherings and manage your program registrations. " +
-  "We ask you to enter in a spirit of care and respect. After you submit, " +
-  "we will email a six-digit code to confirm your address and sign you in.";
+  "If you can hold these intentions with us, we would be honored to have you.";
 
 /** Checkbox label next to the agreement-acceptance checkbox. */
 export const COMMUNITY_AGREEMENTS_CHECKBOX_LABEL =
@@ -132,6 +127,6 @@ export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
   {
     title: "Care for RIM",
     summary:
-      "RIM is held through dana, the practice of mutual generosity. Financial support meets the center’s practical needs and keeps the teachings freely offered. Time, care, and sincere presence in practice and learning nourish the life of the practice community. We trust each person to discern what is possible; no one is expected to offer in every way, and belonging is never measured by what or how much one gives.",
+      "RIM is held through dana, the practice of mutual generosity. Financial support meets the center’s practical needs and keeps the teachings freely offered. Time, care, and sincere presence in practice and learning nourish the life of the sangha. We trust each person to discern what is possible; no one is expected to offer in every way, and belonging is never measured by what or how much one gives.",
   },
 ];

@@ -1,20 +1,18 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { authReturnPath, authCallbackPath } from "@/lib/authReturn";
 import { db } from "@/lib/db";
 
-export const metadata = { title: "Sign in — Rooted In Mindfulness", description: "Sign in to your RIM member account with a six-digit email code to find your gatherings and program registrations." };
+export const metadata = { title: "Sign in — Rooted In Mindfulness" };
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; email?: string; notMember?: string; returnTo?: string }>;
+  searchParams: Promise<{ error?: string; email?: string; notMember?: string }>;
 }) {
-  const { error, email: prefillEmailRaw, notMember, returnTo: requestedReturn } = await searchParams;
-  const returnTo = authReturnPath(requestedReturn);
-  const returnQuery = `returnTo=${encodeURIComponent(returnTo)}`;
   const session = await auth();
-  if (session) redirect(authCallbackPath(returnTo));
+  if (session) redirect("/account/dashboard");
+
+  const { error, email: prefillEmailRaw, notMember } = await searchParams;
   const errorMessage =
     error === "send-failed"
       ? "We couldn't send the code. Please check your email address and try again."
@@ -38,7 +36,7 @@ export default async function LoginPage({
     "use server";
     const email = (formData.get("email") as string | null)?.trim().toLowerCase();
     if (!email) {
-      redirect(`/login?error=send-failed&${returnQuery}`);
+      redirect("/login?error=send-failed");
     }
 
     // Check whether a User with this email exists BEFORE sending a code.
@@ -70,7 +68,7 @@ export default async function LoginPage({
       lookupFailed = true;
     }
     if (!existing && !lookupFailed) {
-      redirect(`/login?notMember=1&email=${encodeURIComponent(email!)}&${returnQuery}`);
+      redirect(`/login?notMember=1&email=${encodeURIComponent(email!)}`);
     }
 
     // redirect:false so we land here after the email send attempt, then route
@@ -86,7 +84,7 @@ export default async function LoginPage({
     let signInResult: string | undefined;
     let signInThrew = false;
     try {
-      signInResult = await signIn("resend", { email: email!, redirect: false, redirectTo: authCallbackPath(returnTo) });
+      signInResult = await signIn("resend", { email: email!, redirect: false });
     } catch {
       signInThrew = true;
     }
@@ -97,9 +95,9 @@ export default async function LoginPage({
       (typeof signInResult === "string" && /[?&]error=/.test(signInResult));
 
     if (sendFailed) {
-      redirect(`/login?error=send-failed&${returnQuery}`);
+      redirect("/login?error=send-failed");
     }
-    redirect(`/login/check-email?email=${encodeURIComponent(email!)}&${returnQuery}`);
+    redirect(`/login/check-email?email=${encodeURIComponent(email!)}`);
   }
 
   return (
@@ -133,7 +131,7 @@ export default async function LoginPage({
                   <strong className="lg-email">{prefillEmail || "that email"}</strong>. If
                   you&apos;re new to RIM, you&apos;re warmly welcome.{" "}
                   <a
-                    href={`/join?${returnQuery}${prefillEmail ? `&email=${encodeURIComponent(prefillEmail)}` : ""}`}
+                    href={`/join${prefillEmail ? `?email=${encodeURIComponent(prefillEmail)}` : ""}`}
                     className="pp-link"
                   >
                     Become a member <span aria-hidden="true">&rarr;</span>
@@ -146,7 +144,7 @@ export default async function LoginPage({
               </p>
             ) : null}
 
-            {errorMessage && <p role="alert" className="pp-form__error">{errorMessage}</p>}
+            {errorMessage && <p className="pp-form__error">{errorMessage}</p>}
 
             <form action={handleSignIn}>
               <div className="pp-form__field">
@@ -157,8 +155,7 @@ export default async function LoginPage({
                   className="pp-form__input"
                   maxLength={256}
                   name="email"
-                  placeholder="you@example.com"
-                  autoComplete="email"
+                  placeholder="e.g. howard.thurman@gmail.com"
                   type="email"
                   id="email"
                   defaultValue={prefillEmail}
@@ -172,7 +169,7 @@ export default async function LoginPage({
 
             <p className="lg-alt">
               New to RIM?{" "}
-              <a href={`/join?${returnQuery}`} className="pp-link">
+              <a href="/join" className="pp-link">
                 Become a member <span aria-hidden="true">&rarr;</span>
               </a>
             </p>

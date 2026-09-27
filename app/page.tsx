@@ -1,158 +1,79 @@
-import { publicPageMetadata } from "@/lib/publicMetadata";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { hasConcludedOneTime } from "@/lib/programUtils";
-import { RIM_WHAT_BINDS } from "@/lib/communityAgreements";
+import { categoryDisplayName } from "@/lib/programUtils";
 
-// Lineage terms live here for search, stated as RIM states them (Jesse,
-// 2026-09-25): a dharma community rooted in Chan silent illumination, not an
-// insight / vipassana center.
-export const metadata = publicPageMetadata("Rooted In Mindfulness \u2014 Meditation and Mindful Living in Brookfield", "Guided meditation, classes, and community in Brookfield, Wisconsin, and online. Explore CARE: learning to care for ourselves, those we care about, and our shared world, with roots in Buddhist practice.", "/");
+// The searchable lineage terms ("insight meditation", "vipassana", "Buddhist")
+// live here, in metadata, and deliberately not in the hero — a seeker still
+// finds the door, and a first-time visitor isn't met with vocabulary.
+export const metadata = {
+  title: "Rooted In Mindfulness - Meditation Center - Brookfield - Greater Milwaukee",
+  description:
+    "Rooted in Mindfulness is a Buddhist meditation community in Brookfield, Wisconsin, near Milwaukee. Insight meditation, mindfulness practice, and dharma teachings, freely offered and community-supported. In person and online. Come as you are.",
+};
 
 export const dynamic = "force-dynamic";
 
 /**
- * The home page states RIM's center first (2026-09-25). A visitor meets, in
- * order: what brings us together → what it looks like in an ordinary week →
- * the practice (CARE) → where it comes from → how to take part → for
- * organizations → dana → the call. Safety first, stakes late: the shared
- * intention and the many reasons people come open the page; "It matters how
- * we live" closes it.
+ * The home page is sequenced CARE-first (session 177). The visitor meets, in
+ * order: what this has to do with a life → the practice (CARE) → where it
+ * comes from (the Buddhist roots, named plainly) → how to begin → how it is
+ * held → what we are here for. The roots are visible and unapologetic; they
+ * are not the threshold. Authority: care-core-framework.md (teacher-side) and
+ * the Taking C.A.R.E. handout; the public register lives on this side of the
+ * framework's register line. Copy is provisional until Jesse's read-aloud.
  *
- * COPY SOURCE OF TRUTH: the Obsidian vault,
- *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md
- * Change the words there first, then here. Provisional until Jesse's
- * read-aloud. Teacher-side authority for the center:
- * 1 Model/01-framework-what-rim-is.md.
- *
- * Grounds alternate: ground, white, ground, white, ground, white, ground,
- * white (the organizations section, 2026-09-26, shifted Dana to ground and
- * the closing to white).
- * The CARE doors and the pathway doors are white lifted cards, so both sit on
- * the ground; "Practice for real life" sits on white with its six items in
- * borderless Pampas insets (particulars, not destinations, so no shadow).
+ * The four pairs link to their anchors on /care. Their one-line descriptions
+ * are the only place on this page CARE is unpacked; the page stays short.
  */
-
-// The eight lines are the program-description draft's compressions of the
-// handout, provisional until Jesse writes his own (his critical path).
-const CARE_CARDS = [
+const CARE_PAIRS = [
   {
     slug: "calm",
     title: "Calm and Connect",
-    lines: [
-      "Calm is an invitation to ease in body, heart, and mind.",
-      "Connect is showing up to this moment as it is, through the senses.",
-    ],
+    line: "Settle what can be settled, and arrive where life is happening.",
   },
   {
     slug: "aware",
     title: "Aware and Attitude",
-    lines: [
-      "Aware is the clear knowing that is always available.",
-      "Attitude is meeting experience with warmth and curiosity.",
-    ],
+    line: "Let the mind’s own clarity do the seeing, and meet what it sees with kindness and curiosity.",
   },
   {
     slug: "recognize",
     title: "Recognize and Remember",
-    lines: [
-      "Recognize is knowing what is here and seeing it honestly.",
-      "Remember is reconnecting with our greater nature and what matters most.",
-    ],
+    line: "Know what is here, honestly, and remember what matters.",
   },
   {
     slug: "embody",
     title: "Embody and Engage",
-    lines: [
-      "Embody is making the practice part of who we are.",
-      "Engage is caring for ourselves, those we care about, and our shared world, and acting from that place.",
-    ],
-  },
-] as const;
-
-// What the practice helps us meet, told as particulars (Jesse, 2026-09-25:
-// "as a friend, as a truth, as a matter of fact", without dwelling).
-const USES = [
-  {
-    title: "Enjoying the life we have",
-    body: "A meal we actually taste. A walk where we see the light on the trees. Days that line up a little more with what we care about, and more room for the people and interests that make a life feel like our own.",
-  },
-  {
-    title: "Work and its pressures",
-    body: "A full inbox met one message at a time. A hard meeting where we stay steady enough to listen. A workday we can leave at work.",
-  },
-  {
-    title: "The people we love",
-    body: "Being there for a child, a partner, a parent, or a friend, and not only in the same room. A disagreement that does not have to become a fight. A repair made sooner.",
-  },
-  {
-    title: "Knowing ourselves",
-    body: "An old reaction seen while it is still happening, and met with curiosity instead of blame. Less time replaying yesterday’s conversation on the drive home.",
-  },
-  {
-    title: "Illness and hard seasons",
-    body: "Pain, a diagnosis, grief, anxiety, or depression met with more steadiness and less added struggle, alongside whatever care we need from doctors and counselors.",
-  },
-  {
-    title: "A practice that lasts",
-    body: "Sitting that stops feeling like one more thing to do. A few minutes most mornings, kept up for years, with people who keep us company in it.",
+    line: "Let the practice become who we are, and how we care for one another and the world.",
   },
 ] as const;
 
 export default async function HomePage() {
-  // Immersion's door leads to the catalog chapter holding retreats or events,
-  // found from the live taxonomy by kind rather than a hardcoded slug (the
-  // s170 rule: doors come from data). The catalog only renders a chapter that
-  // still has a listed program after concluded one-time programs drop out
-  // (hideWhenPast), so the same rule picks the chapter here; otherwise the
-  // anchor would point at a section that is not on the page. Falls back to the
-  // whole catalog.
-  const immersionCategories = await db.programCategory.findMany({
-    where: { kind: { in: ["RETREAT", "EVENT"] }, hideFromProgramsPage: false },
-    orderBy: { sortOrder: "asc" },
-    select: {
-      slug: true,
+  // The doors into the catalog are the real, editorial taxonomy — the same
+  // categories Program Manager maintains and /community-programs renders —
+  // never a hardcoded list. Each door deep-links to its category's anchor on
+  // the listing page. Filter empty categories in the database; the homepage
+  // needs only the identity of each door, not program rows or aggregate counts.
+  const doors = await db.programCategory.findMany({
+    where: {
+      hideFromProgramsPage: false,
       programs: {
-        where: { archivedAt: null, hideFromProgramPageList: false },
-        select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, hideWhenPast: true },
+        some: {
+          archivedAt: null,
+          hideFromProgramPageList: false,
+        },
       },
     },
+    orderBy: { sortOrder: "asc" },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+    },
   });
-  const immersion = immersionCategories.find((c) =>
-    c.programs.some((p) => !(p.hideWhenPast && hasConcludedOneTime(p)))
-  );
-  const immersionHref = immersion
-    ? `/community-programs#${immersion.slug}`
-    : "/community-programs";
-
-  const PATHWAY = [
-    {
-      title: "Foundations",
-      // Foundations will be generated from the Program Manager as a program;
-      // until it exists, the door leads to the programs list (Jesse,
-      // 2026-09-25). Point it at /programs/<slug> once the program is built.
-      body: "An introduction to CARE through meditation and mindful living. In preparation; dates will appear when scheduled.",
-      href: "/community-programs",
-    },
-    {
-      title: "Ongoing Learning and Practice",
-      body: "Drop-in gatherings and series through the week, in person and online.",
-      href: "/this-week",
-    },
-    {
-      title: "Immersion",
-      body: "Workshops, practice days, and retreats, with time to settle into the whole of practice.",
-      href: immersionHref,
-    },
-    {
-      title: "Outreach",
-      body: "Helping organizations bring mindfulness to the people they care for, and to the caregivers themselves.",
-      href: "/outreach",
-    },
-  ];
 
   return (
-    <div className="pp-page pp-page--spine">
+    <div className="pp-page">
       {/* ── Hero ──────────────────────────────────────────── */}
       <section
         className="pp-hero pp-hero--video"
@@ -180,8 +101,10 @@ export default async function HomePage() {
           </video>
         </div>
         <div className="rim-container pp-hero__inner">
-          {/* Jesse's headline, kept verbatim (session 177 ruling, reaffirmed
-              2026-09-25: "I do like the header"). */}
+          {/* Jesse's headline, kept verbatim (session 177 ruling). Read beside
+              CARE it already traces the model — mind and heart (Aware,
+              Attitude), life (Embody), world (Engage) — and widens from within
+              ourselves to the world, which is the three rings. */}
           <h1 className="pp-hero__title">
             Awaken your <span className="home-hero__gold">Mind</span>
             <br />
@@ -192,58 +115,30 @@ export default async function HomePage() {
             Beautify the <span className="home-hero__gold">World</span>
           </h1>
           <p className="pp-hero__body">
-            Our practice is taking care: of ourselves, of those we care about, of our shared world,
-            and of this moment. Rooted in Mindfulness is a community that shares this intention,
-            in Brookfield, Wisconsin, and online. Together we learn to be more awake and present
-            in our lives, and freer of what binds
-            us to {RIM_WHAT_BINDS}, so that we can heal what hurts, grow what is good, and protect
-            what matters. Come as you are.
+            Our practice is taking care: of ourselves, of those we love, of our shared world, and
+            of this moment. RIM is a welcoming meditation community in Brookfield, Wisconsin, in
+            person and online, where we learn and practice that care together and help one another
+            heal, grow, and live well. Everything here is freely offered and community-supported.
+            Come as you are.
           </p>
           <div className="pp-hero__actions">
-            <Link href="/new-to-rim" className="pp-btn pp-btn--onblue">
-              New to RIM
+            <Link href="/your-first-visit" className="pp-btn pp-btn--onblue">
+              Plan your first visit
             </Link>
-            <Link href="/this-week" className="pp-btn pp-btn--onblue-ghost">
-              This week&rsquo;s schedule
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── What brings us together — the shared intention at the front door,
-             so the wide welcome has a clear center (site revision brief,
-             2026-09-25; replaces "What we are here for"). Open prose on the
-             ground: nothing competes with it. ── */}
-      <section className="pp-section">
-        <div className="rim-container">
-          <div className="pp-intro">
-            <h2 className="pp-intro__title">What brings us together</h2>
-            <p className="pp-intro__body">
-              People come to RIM for many reasons: a hard season, a wish to live and enjoy life more
-              fully, a longing for something real, or love for someone they want to show up for
-              better. What we share is one intention. Something clear and caring is already within
-              each of us, and we practice to live from it more of the time: more awake and present,
-              freer of what binds us, understanding with greater wisdom, caring with kindness and
-              compassion, and acting from both, for the benefit of ourselves, those we care
-              about, and our shared world.
-            </p>
-            <p className="pp-intro__body">
-              This is practice for real life, and it asks something real of us, because it matters.
-              No one can do it for us, and no one has to do it alone.
-            </p>
-          </div>
-          <div className="pp-actions">
-            <Link href="/why-we-practice" className="pp-btn">
-              Why we practice
+            <Link href="/this-week" className="pp-hero__link">
+              See what&rsquo;s happening this week <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── Practice for real life — what the practice helps us meet ── */}
+      {/* ── Practice for real life — image right ─────────────
+             Meets the reader's actual life by naming particulars, never the
+             epoch. No "turbulent times", no "today's fast-paced world",
+             anywhere on the site. */}
       <section className="pp-section pp-section--white">
         <div className="rim-container">
-          <div className="pp-split pp-split--flip home-practice-intro">
+          <div className="pp-split pp-split--flip">
             <div
               className="pp-split__media"
               style={{
@@ -256,85 +151,72 @@ export default async function HomePage() {
               <div className="pp-intro">
                 <h2 className="pp-intro__title">Practice for real life.</h2>
                 <p className="pp-intro__body">
-                  Meditation is where the practice begins, and most of it happens everywhere else. It
-                  helps us enjoy what is good while it is here, and meet what is hard with more skill
-                  and less reactivity. In an ordinary week, it looks something like this.
+                  Most of us are carrying more than we let on. Full days that somehow do not
+                  nourish. A conversation we keep replaying on the drive home. A habit we meant to
+                  change last year. Nobody needs to be told the times are hard. What we need is
+                  somewhere to put some of it down, and a way to meet what cannot be put down.
+                </p>
+                <p className="pp-intro__body">
+                  We meditate here, and the practice is larger than meditation. Sitting still is
+                  where it starts. It becomes how we answer a hard email, how we listen to a child
+                  at bedtime, how we rest. Most of the practice happens in ordinary life, and the
+                  ordinary door opens all the way.
                 </p>
               </div>
+
+              <div className="pp-actions">
+                <Link href="/care" className="pp-btn pp-btn--ghost">
+                  Explore how we practice
+                </Link>
+              </div>
             </div>
-          </div>
-
-          <ul className="pp-uses">
-            {USES.map((use) => (
-              <li key={use.title} className="pp-uses__item">
-                <h3 className="pp-uses__title">{use.title}</h3>
-                <p className="pp-uses__body">{use.body}</p>
-              </li>
-            ))}
-          </ul>
-
-          <div className="pp-prose">
-            <p>
-              Most of this happens between our gatherings, at home, at work, and with the people in
-              our lives. We bring the practice into our days, and we bring our days back to the
-              community, the difficulties and the successes alike. Then we go home and practice
-              again.
-            </p>
-          </div>
-
-          <div className="pp-actions">
-            <Link href="/care" className="pp-btn pp-btn--ghost">
-              How we practice
-            </Link>
           </div>
         </div>
       </section>
 
-      {/* Original CARE split restored at Jesse's direction: concise introduction
-          beside the four linked cards, using the pre-review homepage as the baseline. */}
+      {/* ── Taking care — the four pairs left, words right ──
+             The practice is shown before it is named: the pairs first, the
+             acronym in the last line (experience before the name). */}
       <section className="pp-section">
         <div className="rim-container">
           <div className="pp-split pp-split--doors pp-split--doors-left">
             <div className="pp-split__body">
               <div className="pp-intro">
                 <p className="pp-intro__eyebrow">Our practice</p>
-                <h2 className="pp-intro__title">Our practice is taking care.</h2>
+                <h2 className="pp-intro__title">Taking care of this life.</h2>
                 <p className="pp-intro__body">
-                  Eight words describe that one practice from eight sides. They are not steps, and
-                  they are not ideas to master. In any moment all eight are present, and any one
-                  of them is a way in.
+                  Our practice is taking care. We describe that one practice with four pairs of
+                  words. They are not steps. In any real moment all of them are present, and any
+                  one of them is a way in.
                 </p>
                 <p className="pp-intro__body">
-                  They are simple enough to begin with today, and there is enough in them for a
-                  lifetime of practice. Each can be practiced within ourselves, in relation to others,
-                  and in the wider world we are part of. The first letters spell the word. We call
-                  it CARE.
+                  Each of these can be practiced within ourselves, between us, and in the wider
+                  world we are part of. The first letters spell the word. We call it CARE.
                 </p>
               </div>
 
               <div className="pp-actions">
                 <Link href="/care" className="pp-btn">
-                  Taking Care: the eight words
+                  Learn about CARE
                 </Link>
               </div>
             </div>
 
             <div className="pp-doors">
-              {CARE_CARDS.map((card) => (
+              {CARE_PAIRS.map((pair) => (
                 <Link
-                  key={card.slug}
-                  href={`/care#${card.slug}`}
+                  key={pair.slug}
+                  href={`/care#${pair.slug}`}
                   className="pp-card pp-card--row"
                 >
                   <div className="pp-card__row">
                     <div className="pp-card__main">
-                      <h3 className="pp-card__title">{card.title}</h3>
-                      {card.lines.map((line) => (
-                        <p key={line} className="pp-card__body">
-                          {line}
-                        </p>
-                      ))}
+                      <h3 className="pp-card__title">{pair.title}</h3>
+                      <p className="pp-card__body">{pair.line}</p>
                     </div>
+                    <span className="pp-card__action" aria-hidden="true">
+                      →
+                    </span>
                   </div>
                 </Link>
               ))}
@@ -343,10 +225,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Deep roots — image right (doors, image, doors, image alternate L/R/L/R). The lineage as Jesse states it
-             (2026-09-25): Chan silent illumination, the whole tradition through
-             A Handful of Leaves, informed by mindfulness-based programs and
-             science. Named plainly; not the threshold. ── */}
+      {/* ── Deep roots — image right ─────────────────────────
+             The first place "Buddhist" appears on the page, by design. The
+             roots are named plainly; they are not the threshold. */}
       <section className="pp-section pp-section--white">
         <div className="rim-container">
           <div className="pp-split pp-split--flip">
@@ -364,21 +245,19 @@ export default async function HomePage() {
                 <p className="pp-intro__eyebrow">Where this comes from</p>
                 <h2 className="pp-intro__title">Deep roots. An open door.</h2>
                 <p className="pp-intro__body">
-                  RIM is a dharma community rooted in traditional Buddhist wisdom. These roots
-                  nourish CARE, our shared practice. At the heart of our practice is silent illumination:
-                  an open, settled awareness that meets whatever arrives with warmth. It comes to us
-                  through Chan, the Chinese meditation school also known as Zen. We draw on the whole
-                  Buddhist tradition, with the teachings that inform CARE gathered and ordered as
-                  A Handful of Leaves, and we teach plainly, by experience, without dogma or
-                  unnecessary ritual. Mindfulness-based programs, psychology, and modern science
-                  inform how we teach.
+                  RIM is a Buddhist-rooted nonprofit and a contemplative community. What we
+                  practice comes down through the Buddhist meditation traditions, from the earliest
+                  teachings and the traditions that grew from them, and it is taught plainly and by
+                  experience, without dogma. Contemplative psychology, mindfulness-based programs,
+                  modern science, and decades of lived practice inform it too.
                 </p>
                 <p className="pp-intro__body">
-                  You do not need to be Buddhist, or to hold any religious belief, to practice here.
-                  Secular and spiritual seekers sit side by side. Some come for a steadier way
-                  through stress, some for the meditation and the company, and some to study the
-                  Dharma, the Buddha&rsquo;s teachings. All of these belong here, and no one is asked to
-                  choose a door before coming in.
+                  You do not need to be Buddhist, or to hold any religious belief, to practice
+                  here. Secular and spiritual seekers sit side by side. Some come for a steadier
+                  way through stress. Some come for the meditation and the company. Some want to
+                  study the Dharma, the Buddha&rsquo;s teachings, and walk that path all the way.
+                  All of these are real ways to be here, and no one is asked to choose a door
+                  before coming in.
                 </p>
                 <p className="pp-intro__body">
                   Our roots give the practice depth. They do not determine who belongs here.
@@ -386,11 +265,11 @@ export default async function HomePage() {
               </div>
 
               <div className="pp-actions">
-                <Link href="/our-roots" className="pp-btn">
-                  Our roots
-                </Link>
                 <Link href="/about" className="pp-btn pp-btn--ghost">
-                  About RIM
+                  Our story
+                </Link>
+                <Link href="/what-we-practice" className="pp-link">
+                  Go deeper: A Handful of Leaves <span aria-hidden="true">→</span>
                 </Link>
               </div>
             </div>
@@ -398,42 +277,61 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Where to begin — the pathway, in Jesse's route names
-             (Foundations · Learning & Practice · Immersion) plus Outreach.
-             Recovery Dharma's lesson: people cohere when they know both why
-             they are here and what taking part involves. ── */}
+      {/* ── Program doors left, words right — the live taxonomy, each
+             leading to its own chapter of the catalog. The newcomer pathway
+             lives in these words and at /your-first-visit; nothing goes above
+             the catalog itself (session 170 tombstone). */}
       <section className="pp-section">
         <div className="rim-container">
           <div className="pp-split pp-split--doors pp-split--doors-left">
             <div className="pp-split__body">
               <div className="pp-intro">
-                <p className="pp-intro__eyebrow">Taking part</p>
-                <h2 className="pp-intro__title">Ways to practice together</h2>
+                <p className="pp-intro__eyebrow">Community programs</p>
+                <h2 className="pp-intro__title">Learn, practice, and grow together.</h2>
                 <p className="pp-intro__body">
-                  We practice at home and come together to learn with others. These four ways of
-                  taking part support CARE in our lives and in the world. Foundations of Mindful
-                  Living is being prepared; our ongoing gatherings offer a place to begin now.
+                  Practice is easier to keep when we do not keep it alone. We come together to
+                  nurture what is naturally in us: wisdom, compassion, and well-being. We gather
+                  through the week, mornings and evenings,{" "}
+                  <strong>in person at the center and online</strong>: meditation sittings,
+                  classes, community groups, retreats and practice days, and time to talk about
+                  what practice meets in a life. Every session is complete in itself.
+                </p>
+                <p className="pp-intro__body">
+                  New to this? You do not need to know how to meditate, understand Buddhism, or
+                  know where any of it is going. Begin with a drop-in sitting, an introductory
+                  class, or a conversation. Nobody will ask you to explain yourself.
+                </p>
+                {/* Lifted from the membership block on /community-programs on
+                    purpose — recurrence is how a line becomes the community's
+                    own vocabulary. Keep the two in step. */}
+                <p className="pp-intro__body">
+                  RIM asks no fees or tuition; the center is held by the people who practice here,
+                  each giving as they are able.
                 </p>
               </div>
 
               <div className="pp-actions">
                 <Link href="/community-programs" className="pp-btn">
-                  Programs &amp; events
+                  See all programs
                 </Link>
-                <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
-                  New to RIM
+                <Link href="/your-first-visit" className="pp-link">
+                  Coming for the first time <span aria-hidden="true">→</span>
                 </Link>
               </div>
             </div>
 
             <div className="pp-doors">
-              {PATHWAY.map((route) => (
-                <Link key={route.title} href={route.href} className="pp-card pp-card--row">
+              {doors.map((door) => (
+                <Link
+                  key={door.id}
+                  href={`/community-programs#${door.slug}`}
+                  className="pp-card pp-card--row"
+                >
                   <div className="pp-card__row">
-                    <div className="pp-card__main">
-                      <h3 className="pp-card__title">{route.title}</h3>
-                      <p className="pp-card__body">{route.body}</p>
-                    </div>
+                    <h3 className="pp-card__title">{categoryDisplayName(door.name)}</h3>
+                    <span className="pp-card__action" aria-hidden="true">
+                      →
+                    </span>
                   </div>
                 </Link>
               ))}
@@ -442,32 +340,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── For organizations — the outreach face, stated once on the home
-             page (site revision brief, 2026-09-25). ── */}
+      {/* ── Generosity — image right. The held lotus (Olga Nayda, Unsplash):
+             an offered flower is the dana gesture itself. ── */}
       <section className="pp-section pp-section--white">
-        <div className="rim-container">
-          <div className="pp-intro">
-            <p className="pp-intro__eyebrow">For organizations</p>
-            <h2 className="pp-intro__title">Taking CARE, carried into the world.</h2>
-            <p className="pp-intro__body">
-              We partner with nonprofits and community organizations working for the well-being of
-              people, communities, and our shared world, offering Taking CARE to the people they
-              serve and to the people who carry their work.
-            </p>
-          </div>
-          <div className="pp-actions">
-            <Link href="/outreach" className="pp-btn">
-              Outreach for organizations
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Dana — image right. The held lotus (Olga Nayda, Unsplash): an
-             offered flower is the dana gesture itself. Stated as dana actually
-             works at RIM: voluntary donations distinguished from required
-             registration amounts, with program gifts shared with the Teaching Fund. ── */}
-      <section className="pp-section">
         <div className="rim-container">
           <div className="pp-split pp-split--flip">
             <div
@@ -482,31 +357,31 @@ export default async function HomePage() {
               <div className="pp-intro">
                 <p className="pp-intro__eyebrow">Dana</p>
                 <h2 className="pp-intro__title">A Generosity-Based Approach</h2>
+                {/* The giving is described before the word arrives — the
+                    experience-before-the-name rule. */}
                 <p className="pp-intro__body">
-                  The teachings here are given as a gift, and the people who practice here sustain
-                  them. RIM could not exist without that support. Membership has no dues. Program
-                  pages distinguish voluntary donations from any amount required to register.
-                  Contact us before registering if a required amount is a barrier.
+                  We follow an old practice here: the teachings are given as a gift, never sold.
+                  There is no fee or tuition for anything. The community sustains the teachers and
+                  the center, each person as they are able.
                 </p>
                 <p className="pp-intro__body">
-                  The tradition calls this <em>dana</em>, generosity of heart. We ask everyone to
-                  offer what is possible: money, time, care, or sincere
-                  presence. Generosity is a relationship. What you receive here was given by
-                  someone, and what you give keeps the door open for the next person.
+                  The tradition calls this <em>dana</em>, generosity of heart: a gift economy rather
+                  than a fee for service. What you receive here was given by someone, and what you
+                  give keeps the door open for the next person. A teaching given freely can be
+                  trusted freely.
                 </p>
                 <p className="pp-intro__body">
-                  Gifts made through program sign-ups are shared equally between RIM and the
-                  Teaching Fund, which supports our teachers&rsquo; livelihood.
+                  And the giving is itself practice. Taking care, in one of its plainest forms.
                 </p>
                 <p className="pp-intro__note">RIM is a 501(c)(3) nonprofit.</p>
               </div>
 
               <div className="pp-actions">
                 <Link href="/donate" className="pp-btn">
-                  Ways to give
+                  Give a donation
                 </Link>
-                <Link href="/volunteerism/volunteer" className="pp-btn pp-btn--ghost">
-                  Volunteering
+                <Link href="/volunteerism/volunteer" className="pp-link">
+                  Volunteer with us <span aria-hidden="true">→</span>
                 </Link>
               </div>
             </div>
@@ -514,27 +389,28 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── The call, last: stakes after safety. ── */}
-      <section className="pp-section pp-section--white pp-section--last">
+      {/* ── What we are here for — the mission, and its seriousness, last:
+             safety first, stakes late. */}
+      <section className="pp-section pp-section--last">
         <div className="rim-container">
           <aside className="pp-closing">
             <div>
-              <h2 className="pp-closing__title">It matters how we live.</h2>
+              <h2 className="pp-closing__title">What we are here for.</h2>
               <p className="pp-closing__body">
-                This life matters, and so do the people in it and the world we share. Practice does
-                not promise a life without pain. It offers something we can learn: to stop adding
-                suffering to what is already hard, to enjoy what is good while it is here, and to
-                let our care reach a little further than it did before.
+                We practice to benefit ourselves, those we care about, and our shared world: to
+                know ourselves, to cultivate what is good in us, and to wake up and free ourselves
+                from the patterns that cause harm. That is the whole of it, and it is not small.
               </p>
               <p className="pp-closing__body">
-                Anyone can begin here. It is for people who mean to keep going, and it asks
-                something of us: patience with the long middle, honesty about our own weather, and
-                showing up on the days we would rather not. It is easier to keep going in good
-                company.
+                Anyone can begin here. It is for people who mean to keep going. The practice asks
+                something real of us, patience with the long unglamorous middle, honesty about our
+                own weather, showing up on the days we would rather not, and it asks because the
+                stakes are real. Our seriousness is a kind of warmth. This is the work we share,
+                and there is room in it for you.
               </p>
             </div>
             <Link href="/this-week" className="pp-btn pp-closing__link">
-              This week&rsquo;s schedule <span aria-hidden="true">→</span>
+              Come sit with us <span aria-hidden="true">→</span>
             </Link>
           </aside>
         </div>

@@ -1,4 +1,3 @@
-import { publicPageMetadata } from "@/lib/publicMetadata";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import HashTargetScroller from "@/components/HashTargetScroller";
@@ -6,8 +5,6 @@ import ProgramCardNotices from "@/components/ProgramCardNotices";
 import PracticeWithUs from "@/components/PracticeWithUs";
 import {
   buildSubtitle,
-  participationLabel,
-  programLocationLabel,
   fmtLabel,
   computeDateText,
   computeTimeText,
@@ -15,7 +12,9 @@ import {
   categoryDisplayName,
 } from "@/lib/programUtils";
 
-export const metadata = publicPageMetadata("Programs and Events \u2014 Rooted In Mindfulness", "Meditation gatherings, classes, community groups, and retreats in Brookfield and on Zoom. Find current dates, locations, and registration details.", "/community-programs");
+export const metadata = {
+  title: "Programs and Events — Rooted In Mindfulness",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +88,6 @@ export default async function CommunityProgramsPage() {
             Sit together, study the teachings, and bring what you find into the rest of your life.
             Join us at the center or online, whether you are beginning or have practiced for years.
           </p>
-          <p className="pp-hero__body">For a first visit, we recommend <Link href="/programs/meditation-and-dharma-talk">Meditation and Dharma Talk</Link>. See <Link href="/new-to-rim">New to RIM</Link> for arrival and access details.</p>
           <div className="pp-hero__actions">
             <Link href="/this-week" className="pp-hero__link pp-hero__link--utility">
               See what&rsquo;s happening this week <span aria-hidden="true">→</span>
@@ -101,18 +99,6 @@ export default async function CommunityProgramsPage() {
       {/* ── Program Listings ─────────────────────────────── */}
       <section className="pl-catalog">
         <div className="rim-container">
-          <div className="pp-prose">
-            <h2>Choosing a gathering</h2>
-            <p>Our gatherings explore CARE through meditation, study, and shared activity. You can begin with one gathering and find a rhythm that fits your life.</p>
-            <ul>
-              <li><strong>Guided practice:</strong> <Link href="/programs/meditation-and-dharma-talk">Meditation and Dharma Talk</Link> is our first-visit recommendation. The Art of Meditation offers instruction and questions; heart practices explore kindness and compassion.</li>
-              <li><strong>Silent practice:</strong> Morning and evening sits offer brief opening guidance followed by unguided meditation.</li>
-              <li><strong>Study:</strong> Essential Dharma Study explores Buddhist teachings through discussion and practice.</li>
-              <li><strong>Community groups:</strong> Practice around a shared interest, such as nature, movement, or recovery. Each group describes its approach and expectations.</li>
-              <li><strong>Retreats and events:</strong> Set aside more time for practice or gather for a community occasion. Check each offering’s location and registration details.</li>
-            </ul>
-            <p>Foundations of Mindful Living is a planned introduction to CARE. Dates and details will be listed here when scheduled; the gatherings below are available in the meantime.</p>
-          </div>
           {categories.map((category) => {
             const categoryPrograms = programs.filter(
               (p) => p.category?.name === category.name
@@ -130,7 +116,6 @@ export default async function CommunityProgramsPage() {
                 <div className="pl-grid">
                   {categoryPrograms.map((program) => {
                     const format = fmtLabel(program.programFormat);
-                    const participation = participationLabel(program);
 
                     // One-time upcoming: keep the date prominent with the
                     // scheduling facts, but keep every program title on the
@@ -184,8 +169,7 @@ export default async function CommunityProgramsPage() {
                                 )}
                               </time>
                               {time && <span className="pl-card__schedule">{time}</span>}
-                              <span className="pl-card__format">{programLocationLabel(program)}</span>
-                              <span className="pl-card__format">{participation}</span>
+                              {format && <span className="pl-card__format">{format}</span>}
                             </div>
                             <span className="pl-card__action" aria-hidden="true">→</span>
                           </div>
@@ -221,8 +205,7 @@ export default async function CommunityProgramsPage() {
                               560, leaving the arrow floating alone. */}
                           <div className="pl-card__when">
                             {schedule && <span className="pl-card__schedule">{schedule}</span>}
-                            <span className="pl-card__format">{programLocationLabel(program)}</span>
-                              <span className="pl-card__format">{participation}</span>
+                            {format && <span className="pl-card__format">{format}</span>}
                           </div>
                           <span className="pl-card__action" aria-hidden="true">→</span>
                         </div>

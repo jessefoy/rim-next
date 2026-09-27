@@ -367,7 +367,3 @@ Hub thread filter: `activeHubThreadWhere(hubId)` in `lib/hubQueries.ts` (session
 The Webflow site at `rootedinmindfulness.org` is the live public site. This app is running in parallel at `rim-next.vercel.app` with real data and real members. The goal is a full cutover once CSS migration is complete and all member-facing flows are tested. Stripe is in test mode — switch to live keys before going public.
 
 **CSS migration status:** All three Webflow CSS files removed from `app/layout.tsx` (session 84). Quincy CF fonts self-hosted. A legacy shim at the bottom of `custom.css` preserves ~25 essential Webflow classes for ~15 unredesigned pages. Redesigned pages (homepage, community programs, program detail, lessons, dashboard, etc.) use the design system exclusively. Each remaining page will shed legacy classes during its individual design pass — then the shim gets deleted.
-
-### Search launch switch (2026-09-26)
-
-`RIM_PUBLIC_INDEXING` defaults off. Set to `true` at the real-domain cutover only after `NEXTAUTH_URL` points to rootedinmindfulness.org or www.rootedinmindfulness.org; `VERCEL_ENV` must also be production. Until then robots disallows crawling, metadata is noindex, and sitemap is empty. Utility pages remain noindex after launch. No environment values were changed in this task.

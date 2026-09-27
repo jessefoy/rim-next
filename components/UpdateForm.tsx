@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { RegistrationField } from "@/app/update/[token]/page";
 
 interface Props {
@@ -10,7 +10,6 @@ interface Props {
 }
 
 export default function UpdateForm({ token, fields, currentCustomFields }: Props) {
-  const fieldIdPrefix = useId();
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>(currentCustomFields);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -41,7 +40,7 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
 
   if (submitted) {
     return (
-      <div role="status" className="ur-success">
+      <div className="ur-success">
         <p>✓ Your responses have been updated. Thank you!</p>
         <p style={{ fontSize: "var(--text-small)", marginTop: "12px", color: "var(--rim-text-muted)" }}>
           You can close this page.
@@ -60,12 +59,12 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
   return (
     <form onSubmit={handleSubmit}>
       {/* Render defined fields */}
-      {fields.map((field, index) => {
+      {fields.map((field) => {
         const value = customAnswers[field.label] ?? "";
-        const id = `${fieldIdPrefix}-field-${index}`;
+        const id = `field-${field._key}`;
 
         return (
-          <div className="ur-field" key={id}>
+          <div className="ur-field" key={field._key}>
             <label className="ur-label" htmlFor={id}>
               {field.label}
               {field.required && <span aria-hidden="true"> *</span>}
@@ -126,13 +125,13 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
       })}
 
       {/* Render orphaned fields (labels no longer in program definition) */}
-      {orphanedLabels.map((label, index) => (
+      {orphanedLabels.map((label) => (
         <div className="ur-field" key={label}>
-          <label className="ur-label" htmlFor={`${fieldIdPrefix}-orphan-${index}`}>
+          <label className="ur-label" htmlFor={`orphan-${label}`}>
             {label}
           </label>
           <input
-            id={`${fieldIdPrefix}-orphan-${index}`}
+            id={`orphan-${label}`}
             type="text"
             className="ur-input"
             value={customAnswers[label] ?? ""}
@@ -144,7 +143,7 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
       ))}
 
       {error && (
-        <p role="alert" style={{ color: "var(--color-error)", fontSize: "var(--text-ui)", marginBottom: "16px" }}>{error}</p>
+        <p style={{ color: "var(--color-error)", fontSize: "var(--text-ui)", marginBottom: "16px" }}>{error}</p>
       )}
 
       <button type="submit" className="ur-submit" disabled={submitting}>

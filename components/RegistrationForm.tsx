@@ -1,7 +1,6 @@
 "use client";
 
-import InformationUseNote from "@/components/InformationUseNote";
-import { useId, useState } from "react";
+import { useState } from "react";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
@@ -19,7 +18,7 @@ function formatPhoneInput(value: string): string {
 }
 
 export interface RegistrationField {
-  _key?: string;
+  _key: string;
   label: string;
   fieldType: "shortText" | "longText" | "yesNo" | "select";
   required: boolean;
@@ -77,7 +76,6 @@ export default function RegistrationForm({
   existingRegistrationId,
   deadlinePassed,
 }: Props) {
-  const fieldIdPrefix = useId();
   // If the member was promoted from waitlist, show the dana step immediately
   const hasPendingDana = alreadyRegistered && existingDonationStatus === "PENDING";
 
@@ -128,7 +126,7 @@ export default function RegistrationForm({
   // ── Waitlisted ──────────────────────────────────────────────────────────────
   if (formState === "waitlisted") {
     return (
-      <div role="status" className="pg-form__success pg-form__success--waitlist">
+      <div className="pg-form__success pg-form__success--waitlist">
         <h3>You&rsquo;re on the waitlist</h3>
         <p>
           This program is currently full. We&rsquo;ll reach out to {form.email} if a spot opens up.
@@ -140,7 +138,7 @@ export default function RegistrationForm({
   // ── Done (no dana needed, or dana skipped) ──────────────────────────────────
   if (formState === "done") {
     return (
-      <div role="status" className="pg-form__success">
+      <div className="pg-form__success">
         <h3>You&rsquo;re registered!</h3>
         <p>We&rsquo;ll look forward to seeing you. A confirmation will be sent to {form.email}.</p>
       </div>
@@ -219,7 +217,7 @@ export default function RegistrationForm({
 
     return (
       <>
-        <div role="status" className="pg-form__success">
+        <div className="pg-form__success">
           {hasPendingDana ? (
             <>
               {/* Reached by anyone returning with dana still open: most often a
@@ -323,7 +321,7 @@ export default function RegistrationForm({
           )}
 
           {errorMessage && (
-            <div className="pg-form__error" role="alert">{errorMessage}</div>
+            <div className="pg-form__error">{errorMessage}</div>
           )}
 
           <button
@@ -475,8 +473,7 @@ export default function RegistrationForm({
   const almostFull = spotsRemaining !== null && spotsRemaining > 0 && spotsRemaining <= 5;
 
   return (
-    <form className="pg-form" onSubmit={handleSubmit}>
-      <InformationUseNote registration />
+    <form className="pg-form" onSubmit={handleSubmit} noValidate>
 
       {/* Capacity notices */}
       {isFull && (
@@ -559,7 +556,7 @@ export default function RegistrationForm({
 
       <div className="pg-form__field">
         <label className="pg-form__label" htmlFor="reg-phone">
-          Phone (optional)
+          Phone
         </label>
         <input
           id="reg-phone"
@@ -577,16 +574,16 @@ export default function RegistrationForm({
       </div>
 
       {/* ── Dynamic custom fields ── */}
-      {program.registrationFields?.map((field, index) => (
-        <div key={`${fieldIdPrefix}-${index}`} className="pg-form__field">
-          <label className="pg-form__label" htmlFor={`${fieldIdPrefix}-custom-${index}`}>
+      {program.registrationFields?.map((field) => (
+        <div key={field._key} className="pg-form__field">
+          <label className="pg-form__label" htmlFor={`reg-custom-${field._key}`}>
             {field.label}
             {field.required && <span className="pg-form__required"> *</span>}
           </label>
 
           {field.fieldType === "shortText" && (
             <input
-              id={`${fieldIdPrefix}-custom-${index}`}
+              id={`reg-custom-${field._key}`}
               type="text"
               className="pg-form__input"
               value={customAnswers[field.label] ?? ""}
@@ -597,7 +594,7 @@ export default function RegistrationForm({
 
           {field.fieldType === "longText" && (
             <textarea
-              id={`${fieldIdPrefix}-custom-${index}`}
+              id={`reg-custom-${field._key}`}
               className="pg-form__textarea"
               value={customAnswers[field.label] ?? ""}
               onChange={(e) => handleCustom(field.label, e.target.value)}
@@ -607,7 +604,7 @@ export default function RegistrationForm({
 
           {field.fieldType === "yesNo" && (
             <select
-              id={`${fieldIdPrefix}-custom-${index}`}
+              id={`reg-custom-${field._key}`}
               className="pg-form__select"
               value={customAnswers[field.label] ?? ""}
               onChange={(e) => handleCustom(field.label, e.target.value)}
@@ -621,7 +618,7 @@ export default function RegistrationForm({
 
           {field.fieldType === "select" && (
             <select
-              id={`${fieldIdPrefix}-custom-${index}`}
+              id={`reg-custom-${field._key}`}
               className="pg-form__select"
               value={customAnswers[field.label] ?? ""}
               onChange={(e) => handleCustom(field.label, e.target.value)}
@@ -671,10 +668,10 @@ export default function RegistrationForm({
 
       {/* ── Error ── */}
       {formState === "error" && (
-        <div className="pg-form__error" role="alert">{errorMessage}</div>
+        <div className="pg-form__error">{errorMessage}</div>
       )}
       {formState === "duplicate" && (
-        <div className="pg-form__error" role="alert">
+        <div className="pg-form__error">
           It looks like you&rsquo;re already registered for this program.
         </div>
       )}

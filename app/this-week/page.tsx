@@ -1,6 +1,3 @@
-import { publicPageMetadata } from "@/lib/publicMetadata";
-import { nextScheduledStart } from "@/lib/nextScheduledStart";
-import { participationLabel, programLocationLabel } from "@/lib/programUtils";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramCardNotices from "@/components/ProgramCardNotices";
@@ -13,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
   const { week } = await searchParams;
   const label = week === "next" ? "Next Week" : "This Week";
-  return publicPageMetadata(`${label} at Rooted In Mindfulness`, "Weekly meditation gatherings in Brookfield and on Zoom, with times in Central Time, locations, and program registration details.", week === "next" ? "/this-week?week=next" : "/this-week");
+  return { title: `${label} at Rooted In Mindfulness` };
 }
 
 const TZ = "America/Chicago";
@@ -46,6 +43,15 @@ function toDateStr(d: Date): string {
 
 function formatShortDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+}
+
+function fmtLabel(fmt: string | null): string {
+  switch (fmt) {
+    case "virtual":  return "Zoom Only";
+    case "hybrid":   return "In-Person & Zoom";
+    case "in-person": return "In-Person";
+    default:         return fmt ?? "";
+  }
 }
 
 /**
@@ -139,7 +145,6 @@ export default async function ThisWeekPage({
   }
 
   const hasToday = dayGroups.some((g) => g.isToday);
-  const nextStart = nextScheduledStart(dayGroups, new Date());
 
   return (
     <div className="pl-page">
@@ -160,8 +165,8 @@ export default async function ThisWeekPage({
             {dateRange}. All times are Central&nbsp;(CT).
           </p>
           <p className="pp-hero__body">
-            Drop-in gatherings do not require program registration. An account is needed for Zoom.
-            For guided first-visit options, see <Link href="/new-to-rim">New to RIM</Link>.
+            New to RIM? Any session marked drop-in is open to you, no registration and no experience
+            needed.
           </p>
           <div className="pp-hero__actions">
             <div className="tw-weeknav">
@@ -192,10 +197,6 @@ export default async function ThisWeekPage({
       {/* ── Schedule ─────────────────────────────────────── */}
       <section className="pl-catalog">
         <div className="rim-container">
-          <div className="pp-prose">
-            <h2>{isNextWeek ? "First gathering next week" : "Next start this week"}</h2>
-            {nextStart ? <p><Link href={`/programs/${nextStart.program.slug}`}>{nextStart.program.name}</Link>{" · "}<time dateTime={nextStart.dateStr}>{formatShortDate(new Date(`${nextStart.dateStr}T12:00:00`))}</time>{" · "}{buildTimeLabel(nextStart.program)} CT</p> : <p>{isNextWeek ? "No upcoming starts are scheduled in this view." : <>No more scheduled starts this week. <Link href="/this-week?week=next">See next week</Link>.</>}</p>}
-          </div>
           {dayGroups.length === 0 ? (
             <p className="tw-empty">No programs scheduled for this week.</p>
           ) : (
@@ -224,7 +225,7 @@ export default async function ThisWeekPage({
                 <div className="pl-grid">
                   {dayPrograms.map((program) => {
                     const time = buildTimeLabel(program);
-                    const format = programLocationLabel(program);
+                    const format = fmtLabel(program.programFormat);
                     return (
                       <Link
                         key={program.id}
@@ -240,11 +241,9 @@ export default async function ThisWeekPage({
                           )}
                           <div className="pl-card__main">
                             <h3 className="pl-card__title">{program.name}</h3>
-                            {program.slug === "meditation-and-dharma-talk" && <span className="pl-card__format">Recommended first visit</span>}
                             {format && (
                               <div className="pl-card__meta">
                                 <span className="pl-card__format">{format}</span>
-                                <span className="pl-card__format">{participationLabel(program)}</span>
                               </div>
                             )}
                             <ProgramCardNotices

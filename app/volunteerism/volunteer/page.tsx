@@ -1,10 +1,13 @@
-import { publicPageMetadata } from "@/lib/publicMetadata";
 import { auth } from "@/auth";
 import { sendVolunteerInterestEmail } from "@/lib/email";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
-export const metadata = publicPageMetadata("Volunteer — Rooted In Mindfulness", "Help sustain the RIM community. Explore volunteering, share your interests and availability, or ask about time, training, and support before committing.", "/volunteerism/volunteer");
+export const metadata = {
+  title: "Volunteer — Rooted In Mindfulness",
+  description:
+    "Offer a gift of time and talent at Rooted In Mindfulness. Browse current volunteer needs or tell us about your interests.",
+};
 
 export default async function VolunteerPage({
   searchParams,
@@ -58,13 +61,12 @@ export default async function VolunteerPage({
       {/* ── Quote ─────────────────────────────────────────── */}
       <section className="pp-section pp-section--tight">
         <div className="rim-container">
-          <div className="pp-prose">
-            <p>Volunteering brings CARE into the work of sustaining a community. Offer what fits your time,
-              interests, and capacity. Ask about the time involved, training, and support before making a commitment.</p>
-            <p>Questions before signing up? Email{" "}
-              <a href="mailto:support@rootedinmindfulness.org?subject=Volunteering">support@rootedinmindfulness.org</a>.
+          <blockquote className="pp-quote">
+            <p className="pp-quote__text">
+              &ldquo;The best way to find yourself is to lose yourself in the service of others.&rdquo;
             </p>
-          </div>
+            <footer className="pp-quote__attr">Mahatma Gandhi</footer>
+          </blockquote>
         </div>
       </section>
 
@@ -112,14 +114,14 @@ export default async function VolunteerPage({
             <div className="pp-notice">
               <p className="pp-notice__title">You&rsquo;ll need an account for this form</p>
               <p className="pp-notice__body">
-                Membership is freely offered. Create an account or sign in; you will return here
-                to complete the form.
+                Membership is freely offered. Create an account or sign in, then come back to this
+                page and the form will be here.
               </p>
               <div className="pp-actions">
-                <Link href="/join?returnTo=%2Fvolunteerism%2Fvolunteer" className="pp-btn">
+                <Link href="/join" className="pp-btn">
                   Become a member
                 </Link>
-                <Link href="/login?returnTo=%2Fvolunteerism%2Fvolunteer" className="pp-link">
+                <Link href="/login" className="pp-link">
                   I already have an account <span aria-hidden="true">→</span>
                 </Link>
               </div>
@@ -133,7 +135,6 @@ export default async function VolunteerPage({
             </div>
           ) : (
             <form action={handleVolunteerForm} className="pp-form">
-              <p className="pp-form__help rim-information-use">This form sends your contact details and interests to RIM so volunteers can follow up about helping. Phone is optional. You can ask an initial question by email instead.</p>
               <div className="pp-form__row">
                 <div className="pp-form__field">
                   <label className="pp-form__label" htmlFor="firstName">
@@ -196,7 +197,7 @@ export default async function VolunteerPage({
 
               <div className="pp-form__field">
                 <label className="pp-form__label" htmlFor="interests">
-                  My interests, availability, and questions
+                  My interests and talents
                 </label>
                 <textarea
                   name="interests"

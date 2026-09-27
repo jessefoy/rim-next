@@ -1,9 +1,11 @@
-import { publicPageMetadata } from "@/lib/publicMetadata";
-import GuidedPractice from "@/components/GuidedPractice";
 import Link from "next/link";
 import { RIM_ADDRESS, RIM_MAPS_URL } from "@/lib/locations";
 
-export const metadata = publicPageMetadata("New to RIM \u2014 Rooted In Mindfulness", "New to Rooted in Mindfulness in Brookfield, Wisconsin? Where to begin, what to expect in person and online, how signing up works, and answers to common questions. No experience needed. Come as you are.", "/new-to-rim");
+export const metadata = {
+  title: "New to RIM — Rooted In Mindfulness",
+  description:
+    "New to Rooted in Mindfulness in Brookfield, Wisconsin? Where to begin, what to expect in person and online, how signing up works, and answers to common questions. No experience needed. Come as you are.",
+};
 
 /**
  * /new-to-rim — the newcomer's front door (2026-09-25, revision 2), the way
@@ -15,8 +17,8 @@ export const metadata = publicPageMetadata("New to RIM \u2014 Rooted In Mindfuln
  *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md
  * The in-person details are Jesse's own (top floor, the two rooms, tea and the
  * library, shoes on the rack, the donation bowl under the Bodhi tree carving,
- * volunteers who help and respect privacy). Jesse confirmed the entrance,
- * parking, stairs and restrooms on September 26, 2026. Provisional until
+ * volunteers who help and respect privacy). Parking and which door to use are
+ * not yet written; they are left out rather than guessed. Provisional until
  * Jesse's read-aloud.
  *
  * Community is named directly here, at Jesse's direction: people want
@@ -30,7 +32,7 @@ export const metadata = publicPageMetadata("New to RIM \u2014 Rooted In Mindfuln
 const QUESTIONS = [
   {
     q: "Do I need meditation experience?",
-    a: "No experience is needed for our guided drop-in gatherings. Other offerings may involve longer periods of silence or a course of study; their program pages describe what to expect.",
+    a: "No. Every gathering is open to beginners, and the practice keeps deepening for people who have practiced for many years.",
   },
   {
     q: "Is this religious?",
@@ -42,11 +44,11 @@ const QUESTIONS = [
   },
   {
     q: "What if difficult feelings come up?",
-    a: "You can pause, open your eyes, or step out when you need to. Contact us before a gathering if you would like to discuss support. Meditation is not a substitute for medical or mental health care.",
+    a: "Meditation can bring up difficult feelings and memories. They are part of human experience, and they are met with care, at a workable pace, with a teacher available to talk with. Anyone receiving mental health care is encouraged to speak with their provider before beginning.",
   },
   {
     q: "What does it cost?",
-    a: "Membership has no dues. Our teachings are supported through dana, the practice of generosity. Program pages distinguish voluntary donations from any required amount. If a required amount is a barrier, contact us before registering to discuss what may be possible.",
+    a: "Our teachings are offered through dana, the practice of generosity. Programs list a suggested amount so you can see what an offering takes to sustain, and no one is turned away. A few offerings, such as overnight retreats, carry a minimum.",
   },
 ] as const;
 
@@ -66,11 +68,6 @@ export default function NewToRimPage() {
           <p className="pp-hero__body">
             Where to begin, what to expect, and how to take part, in person or online.
           </p>
-          <div className="pp-hero__actions">
-            <a href="#where-to-begin" className="pp-btn pp-btn--onblue">Choose a first gathering</a>
-            <a href="#in-person" className="pp-hero__link">Arrival and access</a>
-            <a href="#online" className="pp-hero__link">Joining online</a>
-          </div>
         </div>
       </section>
 
@@ -86,63 +83,49 @@ export default function NewToRimPage() {
 
             <h2 id="where-to-begin">Where to begin</h2>
             <p>
-              We recommend Meditation and Dharma Talk for your first visit. It combines guided
-              practice with a teaching, in person or on Zoom. You can try one gathering without
-              committing to a series.
+              A drop-in gathering is a good place to start, in person or online. Each one is
+              complete in itself, and no experience is needed.
             </p>
-            <GuidedPractice />
             <p>
-              Foundations of Mindful Living is a planned introduction to CARE through guided meditation, teaching,
-              reflection, and conversation. Dates and registration will appear in our{" "}
-              <Link href="/community-programs">programs</Link> when scheduled. You can begin with
-              a weekly gathering now.
+              For a fuller introduction, we encourage everyone to take Foundations, a welcoming
+              introduction to our practice through guided meditation, teaching, reflection, and
+              conversation. Our first Foundations offering begins in November, and it will appear
+              with our <Link href="/community-programs">programs</Link> once it is scheduled.
+            </p>
+            <p>
+              You are welcome to join us in whatever way resonates with you, from a single sitting
+              to a day of mindfulness or a retreat. As a first step, we highly recommend a community
+              drop-in and Foundations.
             </p>
 
             <h2 id="community">Practicing together</h2>
             <p>
-              At RIM we explore <Link href="/care">CARE</Link>, our shared practice of meeting life
-              with attention and care. Meditation gives us time to recognize what is happening in
-              the body and mind, and to meet it with kindness. We carry that learning into how we
-              listen, respond, and care for the people and world around us.
-            </p>
-            <p>
-              You can take your time getting to know people. Some of us enjoy conversation; others
-              prefer to sit in silence. Both belong here. Membership has no attendance requirement.
-              Individual groups explain any shared discussion or ongoing commitment before you join.
+              RIM is a community for learning and practice. Membership is freely offered, and nobody
+              keeps track of how often you come. You are welcome to practice in whatever way feels
+              comfortable: listening in the peace and safety of a supportive space, and taking a
+              more active part whenever it feels right. Some of us are more reserved and some share
+              more readily. Both help create a healthy container for learning and practice, and
+              everyone who comes with a sincere wish to practice, for their own benefit and for one
+              another&rsquo;s, is contributing to it. That is what community means here: learning
+              and practicing with like-minded people, each in our own way.
             </p>
             <p>
               We ask one thing of everyone while they are with us: to hold our{" "}
               <Link href="/community-care-agreements">Community Care Agreements</Link>, a short
               shared vision and three agreements about caring for ourselves, one another, and RIM.
-              These are commitments to care and respectful conduct. You do not need to agree with
-              every teaching or adopt Buddhist beliefs.
+              They are directions to hold, not requirements to be graded on.
             </p>
 
             <h2 id="signing-up">Signing up</h2>
             <p>
-              <strong>For an in-person drop-in, you can arrive without registering.</strong>{" "}
-              Creating a <Link href="/join">member account</Link> is encouraged. There are no dues
-              or attendance requirements, and you do not need to identify as Buddhist.
-            </p>
-            <p>
-              <strong>For Zoom, create an account and sign in.</strong> Your My Home page holds the
-              session links. An account is separate from program registration: when a program
-              requires registration, use its Register link as well.
+              We ask everyone who practices with us to{" "}
+              <Link href="/join">sign up as a member</Link>. Membership is freely offered, and it
+              takes a few minutes. For our online gatherings, signing up is required, for the
+              safety and integrity of those gatherings. If you are coming to the center, we highly
+              recommend it as well.
             </p>
 
             <h2 id="in-person">Coming in person</h2>
-            <p>
-              The main entrance is on the south side of the building. You may park in any of the
-              parking lots around it. The center is reached by stairs; there is no elevator.
-              Restrooms are in our main hall and elsewhere in the building.
-            </p>
-            <p>
-              To discuss access needs before visiting, email{" "}
-              <a href="mailto:support@rootedinmindfulness.org?subject=Planning%20a%20visit">support@rootedinmindfulness.org</a>{" "}
-              or call <a href="tel:4148828932">(414) 882-8932</a>. The phone takes messages;
-              volunteers return calls. You can also take part in our online gatherings.
-            </p>
-
             <p>
               We are on the top floor of the building at{" "}
               <a href={RIM_MAPS_URL} target="_blank" rel="noopener noreferrer">
@@ -159,23 +142,9 @@ export default function NewToRimPage() {
               carving.
             </p>
             <p>
-              Volunteers can help you find the rooms and answer questions. Arriving a little early
-              leaves time to settle in. Check the program page for arrival instructions and any
-              conversation or sharing that is part of the gathering.
-            </p>
-
-            <h2 id="first-gathering">Your first gathering</h2>
-            <p>
-              For Meditation and Dharma Talk, arrive a little early to leave your shoes and choose
-              a chair or cushion. The gathering includes guided meditation and a teaching. You can
-              keep your eyes open, change position, or step out if you need to. You do not need to
-              explain why you came. Check the <Link href="/programs/meditation-and-dharma-talk">program page</Link>{" "}
-              for the current time and any notices before setting out.
-            </p>
-            <p>
-              If you want to know about discussion, chanting, or other elements before attending,
-              <a href="mailto:support@rootedinmindfulness.org?subject=My%20first%20gathering"> ask us</a>.
-              We can help you understand what to expect at the gathering you have chosen.
+              Volunteers are there to help with anything you need. They will greet you and answer
+              your questions, and they will respect your privacy. Nobody will ask you to speak or
+              introduce yourself, and arriving late is fine.
             </p>
 
             <h2 id="online">Joining online</h2>

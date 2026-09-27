@@ -1,6 +1,3 @@
-import publishedFacilitators from "@/data/public-facilitator-introductions.json";
-import { publicPageMetadata } from "@/lib/publicMetadata";
-import ProgramOrientation from "@/components/ProgramOrientation";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import Link from "next/link";
@@ -8,17 +5,16 @@ import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
-import { programGivingSummary, participationLabel, buildSubtitle, categoryDisplayName } from "@/lib/programUtils";
 import { isOpenlyDroppable } from "@/lib/programKind";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const program = await db.program.findUnique({ where: { slug }, select: { archivedAt: true, hideFromProgramPageList: true, category: { select: { hideFromProgramsPage: true, kind: true } }, name: true, tagline: true, dateText: true, timeText: true, programFormat: true, startDatetime: true, endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true } });
-  const metadata = publicPageMetadata(program ? `${program.name} — Rooted In Mindfulness` : "Program Not Found", program ? [program.tagline || program.name, buildSubtitle(program)].filter(Boolean).join(". ") : "Program information at Rooted In Mindfulness.", `/programs/${slug}`);
-  const hidden = !program || program.archivedAt || program.hideFromProgramPageList || program.category?.hideFromProgramsPage || program.category?.kind === "PRIVATE";
-  return hidden ? { ...metadata, robots: { index: false, follow: false } } : metadata;
+  const program = await db.program.findUnique({ where: { slug }, select: { name: true } });
+  return {
+    title: program ? `${program.name} — Rooted In Mindfulness` : "Program Not Found",
+  };
 }
 
 export default async function ProgramDetailPage({
@@ -46,7 +42,6 @@ export default async function ProgramDetailPage({
 
   if (!program || program.archivedAt) notFound();
 
-  const givingSummary = programGivingSummary(program);
   const useBuiltInForm = !!program.registrationEnabled;
   // When registration is OFF, the offering's KIND (session 137) decides what
   // "no registration" means: a drop-in / open community group is openly
@@ -144,20 +139,13 @@ export default async function ProgramDetailPage({
   const showLocation = !!(locationLabel);
 
   // Use programTeachers (linked accounts) first, fall back to plain text
-  const introductions: Record<string, { bio: string; photoUrl: string }> = publishedFacilitators;
   const teacherNames = program.programTeachers.length > 0
-    ? program.programTeachers.map((pt) => {
-      const name = `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim();
-      // An explicit profile visibility choice outranks the older public-site copy.
-      const published = pt.user.teacherProfile ? null : introductions[name];
-      return {
-        name,
-        bio: published?.bio ?? null,
+    ? program.programTeachers.map((pt) => ({
+      name: `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim(),
         slug: pt.user.teacherProfile?.isPublic ? pt.user.teacherProfile.slug ?? null : null,
-        photoUrl: pt.user.teacherProfile?.isPublic ? pt.user.teacherProfile.photoUrl ?? null : published?.photoUrl ?? null,
-      };
-    })
-    : program.teacherFacilitators.map((name) => ({ name, slug: null, photoUrl: introductions[name]?.photoUrl ?? null, bio: introductions[name]?.bio ?? null }));
+        photoUrl: pt.user.teacherProfile?.isPublic ? pt.user.teacherProfile.photoUrl ?? null : null,
+      }))
+    : program.teacherFacilitators.map((name) => ({ name, slug: null, photoUrl: null }));
   const hasFacilitators = teacherNames.length > 0;
   const hasDescription = !!program.description;
   const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
@@ -175,7 +163,7 @@ export default async function ProgramDetailPage({
         <div className="pg-hero__inner">
           {program.category && (
             <Link href="/community-programs" className="pg-hero__eyebrow">
-              {categoryDisplayName(program.category.name)}
+              {program.category.name}
             </Link>
           )}
           <h1 className="pg-hero__title">{program.name}</h1>
@@ -198,9 +186,11 @@ export default async function ProgramDetailPage({
           </figure>
         )}
 
-        {/* Dana result banners follow the overlapping quote so it cannot cover them.
-            New payments return to /programs/[slug]/thank-you; these remain for
-            checkouts started before that page existed. */}
+        {/* Dana result banners — shown after Stripe redirects back. After the
+            quote card, not before it: the card floats up with a negative top
+            margin and covered them completely. (New payments return to
+            /programs/[slug]/thank-you; the success banner remains for
+            checkouts started before that page existed.) */}
         {resolvedSearch?.dana === "success" && (
           <div className="pg-dana-result pg-dana-result--success">
             ✓ Thank you. Your dana offering has been received.
@@ -229,9 +219,8 @@ export default async function ProgramDetailPage({
         )}
 
         {/* ── Gathering facts and one state-aware next step ── */}
-        <section id="gathering-details" className="pg-details-section">
+        <section className="pg-details-section">
           <h2 className="pg-section-heading">Gathering details</h2>
-          <p>{participationLabel(program)}</p>
           <div className="pg-details-list">
             {(scheduleLabel || timeLabel) && (
               <div className="pg-detail-row">
@@ -251,13 +240,7 @@ export default async function ProgramDetailPage({
                 </span>
                 <span className="pg-detail-row__text">
                   <span>{locationLabel}</span>
-                  {program.venue === "at-rim" && program.programFormat !== "virtual" && (
-                    <span className="pg-detail-row__secondary">
-                      Upstairs by stairs only; no elevator.{" "}
-                      <Link href="/new-to-rim#in-person" className="pg-detail-cta__inline-link">Entrance, parking, and access</Link>
-                    </span>
-                  )}
-                  {location.link && program.programFormat !== "virtual" && (
+                  {location.link && (
                     <a href={location.link} target="_blank" rel="noopener noreferrer" className="pg-detail-row__link">
                       Get directions ↗
                     </a>
@@ -265,26 +248,19 @@ export default async function ProgramDetailPage({
                 </span>
               </div>
             )}
-            {(givingSummary || program.danaText) && (
+            {program.danaText && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </span>
                 <span className="pg-detail-row__text">
-                  <span>{givingSummary || program.danaText}</span>
+                  <span>{program.danaText}</span>
                 </span>
               </div>
             )}
           </div>
 
-          {hasFacilitators && <p>With {teacherNames.map((teacher) => teacher.name).join(", ")}. <a href="#program-facilitators" className="pg-detail-cta__inline-link">Facilitator details</a></p>}
-          {requiresPaymentToRegister && <p>If this amount is a barrier, <a href="mailto:support@rootedinmindfulness.org?subject=Program%20giving" className="pg-detail-cta__inline-link">contact RIM before registering</a> to discuss what may be possible.</p>}
-          {droppable && useBuiltInForm && <p>This is a drop-in. Registration is available, but is not needed to attend.</p>}
-
           {/* ── Context-aware next step — distinct from factual details. */}
-          {!session?.user && droppable && program.programFormat !== "in-person" && (
-            <p>New to RIM? <Link href={`/join?returnTo=${encodeURIComponent(`/programs/${slug}`)}`} className="pg-detail-cta__inline-link">Create a member account</Link> for Zoom access. There are no dues.</p>
-          )}
           <div className="pg-details-action">
                 {useBuiltInForm ? (
                   /* Registration programs — the person's OWN standing comes first,
@@ -306,7 +282,7 @@ export default async function ProgramDetailPage({
                     </Link>
                   ) : (
                     <Link href={`/programs/${slug}/register`} className="pg-detail-cta__link">
-                      {droppable ? "Register (optional) →" : "Register →"}
+                      Register →
                     </Link>
                   )
                 ) : droppable ? (
@@ -318,7 +294,7 @@ export default async function ProgramDetailPage({
                         Go to My Home to join on Zoom →
                       </Link>
                     ) : (
-                      <Link href={`/login?returnTo=${encodeURIComponent(`/programs/${slug}`)}`} className="pg-detail-cta__link">Sign in to find the Zoom link →</Link>
+                      <Link href="/login" className="pg-detail-cta__link">Sign in to find the Zoom link →</Link>
                     )
                   ) : program.programFormat === "hybrid" ? (
                     /* Hybrid — arrive in person OR join online */
@@ -328,7 +304,7 @@ export default async function ProgramDetailPage({
                       </span>
                     ) : (
                       <span className="pg-detail-cta__text">
-                        Simply arrive in person, or <Link href={`/login?returnTo=${encodeURIComponent(`/programs/${slug}`)}`} className="pg-detail-cta__inline-link">sign in to join online →</Link>
+                        Simply arrive in person, or <Link href="/login" className="pg-detail-cta__inline-link">sign in to join online →</Link>
                       </span>
                     )
                   ) : (
@@ -341,23 +317,11 @@ export default async function ProgramDetailPage({
                   <span className="pg-detail-cta__status">Registration isn&rsquo;t open yet.</span>
                 )}
           </div>
-          {droppable && useBuiltInForm && (
-            <p>
-              {program.programFormat !== "virtual" && "You may arrive in person without registering. "}
-              {program.programFormat !== "in-person" && (
-                <Link href={session?.user ? "/account/dashboard" : `/login?returnTo=${encodeURIComponent(`/programs/${slug}`)}`}>
-                  {session?.user ? "Go to My Home to join on Zoom" : "Sign in to join on Zoom"}
-                </Link>
-              )}
-            </p>
-          )}
         </section>
-
-        <ProgramOrientation slug={program.slug} recurringRegistration={!!program.recurrenceFreq && program.registrationEnabled} />
 
         {/* ── Facilitators section ── */}
         {hasFacilitators && (
-          <section id="program-facilitators" className="pg-facilitators-section">
+          <section className="pg-facilitators-section">
             <h2 className="pg-section-heading">Facilitators</h2>
             <div className="pg-facilitators">
               {teacherNames.map((t, i) => {
@@ -387,16 +351,7 @@ export default async function ProgramDetailPage({
                     <span>{t.name}</span>
                   </Link>
                 ) : (
-                  <div key={i} className="pg-facilitator-intro">
-                    <div className="pg-facilitator pg-facilitator--profile">
-                      {t.photoUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={t.photoUrl} alt="" width={56} height={56} loading="lazy" className="pg-facilitator__photo" />
-                      )}
-                      <span>{t.name}</span>
-                    </div>
-                    {t.bio && <p>{t.bio}</p>}
-                  </div>
+                  <span key={i} className="pg-facilitator">{t.name}</span>
                 );
               })}
             </div>

@@ -8044,7 +8044,8 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   padding: 8px;
 }
 
-.nav__dropdown[data-open="true"] .nav__dropdown-panel {
+.nav__dropdown:hover .nav__dropdown-panel,
+.nav__dropdown:focus-within .nav__dropdown-panel {
   display: block;
 }
 
@@ -29019,46 +29020,3 @@ a.pp-card.tpr-card {
   .ty-facts { grid-template-columns: minmax(0, 1fr); gap: 2px 0; }
   .ty-facts dd + dt { margin-top: 12px; }
 }
-
-/* Newcomer review: persistent labels, keyboard disclosures, factual first visits. */
-.footer-subscribe-row { align-items: end; }
-.footer-subscribe-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; max-width: 240px; text-align: left; }
-.footer-subscribe-field label { color: var(--rim-surface); font-size: var(--text-app); }
-.footer-subscribe-field .footer-input { box-sizing: border-box; width: 100%; max-width: none; min-height: 44px; font-size: var(--text-app); }
-.footer-subscribe-btn, .nav__dropdown-toggle { box-sizing: border-box; min-height: 44px; }
-.footer-input:focus-visible, .footer-subscribe-btn:focus-visible { outline: 2px solid var(--rim-surface); outline-offset: 3px; }
-.nav__dropdown-toggle:focus-visible, .nav__dropdown-link:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: 2px; }
-.pp-guided-practice { padding-left: 1.25em; }
-.pp-guided-practice li { margin-bottom: 20px; }
-.pp-guided-practice a { display: inline-flex; align-items: center; min-height: 44px; }
-.pp-guided-practice span { display: block; }
-.pp-guided-practice span:last-child { color: var(--rim-mid); }
-@media (max-width: 768px) {
-  .footer-subscribe-row { flex-direction: column; align-items: stretch; }
-  .footer-subscribe-field { max-width: none; }
-}
-
-.pp-hero__body a { color: inherit; text-decoration: underline; text-underline-offset: 0.15em; }
-
-/* Participation help and directory spacing; program details retain the original layout. */
-.pg-orientation { margin: 24px 0 32px; }
-.pl-catalog > .rim-container > .pp-prose { margin-bottom: 40px; }
-.pp-guided-practice a:last-child { font-size: 16px; }
-
-/* Keep the account shortcut clear of the 100px sticky navigation. */
-.jn-form__heading, #program-facilitators { scroll-margin-top: 124px; }
-.pp-form__help.rim-information-use {
-  margin: 16px 0 24px;
-  color: var(--rim-text);
-  font-size: var(--text-body);
-  line-height: 1.65;
-  overflow-wrap: anywhere;
-}
-
-/* Public facilitator introductions reuse RIM’s published portraits and reading scale. */
-.pg-facilitator-intro { flex-basis: 100%; }
-.pg-page .pg-facilitator-intro .pg-facilitator--profile { font-size: var(--text-body); }
-.pg-facilitator-intro p { margin: 0.75rem 0 1rem; }
-
-/* Restored home practice image: keep breathing room before the everyday examples. */
-.home-practice-intro { margin-bottom: 40px; }

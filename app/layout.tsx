@@ -1,12 +1,9 @@
-import { publicOrigin, publicIndexing } from "@/lib/publicMetadata";
 import type { Metadata, Viewport } from "next";
 import Nav from "@/components/Nav";
 import FooterWrapper from "@/components/FooterWrapper";
 import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
-  metadataBase: publicOrigin,
-  robots: { index: publicIndexing, follow: publicIndexing },
   title: "Rooted In Mindfulness",
   description: "A meditation and dharma community in Brookfield, Wisconsin, in person and online.",
 };

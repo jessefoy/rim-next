@@ -1,4 +1,3 @@
-import { authReturnFromCallback } from "@/lib/authReturn";
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Resend from "next-auth/providers/resend";
@@ -30,7 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // in without re-requesting.
       maxAge: 30 * 60,
       // Custom email — code displayed prominently, no magic link.
-      sendVerificationRequest: async ({ identifier: email, token, url }) => {
+      sendVerificationRequest: async ({ identifier: email, token }) => {
         const existing = await db.user.findUnique({
           where: { email },
           select: { emailVerified: true },
@@ -45,7 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         //   - Door A first-time visitor (no /join): no User row → warm welcome variant
         //   - Door A returning member: emailVerified is set → quiet code variant
         const isNewUser = !existing || existing.emailVerified === null;
-        await sendSignInCodeEmail({ to: email, code: token, isNewUser, returnTo: authReturnFromCallback(new URL(url).searchParams.get("callbackUrl")) });
+        await sendSignInCodeEmail({ to: email, code: token, isNewUser });
       },
     }),
   ],

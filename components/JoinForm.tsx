@@ -18,12 +18,10 @@ interface JoinFormProps {
    * at /login, no reason to make them retype it here.
    */
   defaultEmail?: string;
-  returnTo?: string;
 }
 
-export default function JoinForm({ defaultEmail = "", returnTo = "/account/dashboard" }: JoinFormProps) {
+export default function JoinForm({ defaultEmail = "" }: JoinFormProps) {
   const router = useRouter();
-  const returnQuery = `returnTo=${encodeURIComponent(returnTo)}`;
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState(defaultEmail);
@@ -49,7 +47,6 @@ export default function JoinForm({ defaultEmail = "", returnTo = "/account/dashb
           email: email.trim(),
           phone: phone.trim(),
           agreedToTerms: true,
-          returnTo,
         }),
       });
 
@@ -58,7 +55,7 @@ export default function JoinForm({ defaultEmail = "", returnTo = "/account/dashb
       // Rate-limited — match the NextAuth /signin/resend behavior by landing
       // on the calm error page rather than showing an inline error.
       if (res.status === 429 || data?.rateLimited) {
-        router.push(`/login/error?error=RateLimit&${returnQuery}`);
+        router.push("/login/error?error=RateLimit");
         return;
       }
 
@@ -68,14 +65,14 @@ export default function JoinForm({ defaultEmail = "", returnTo = "/account/dashb
 
       // Returning member detected — gently route to /login instead.
       if (data.alreadyMember) {
-        router.push(`/login?email=${encodeURIComponent(email.trim())}&${returnQuery}`);
+        router.push(`/login?email=${encodeURIComponent(email.trim())}`);
         return;
       }
 
       // Code was sent; land on the existing check-email page (NextAuth's
       // verifyRequest target). The page uses the email query param to
       // construct the verification URL on code submit.
-      router.push(`/login/check-email?email=${encodeURIComponent(email.trim())}&${returnQuery}`);
+      router.push(`/login/check-email?email=${encodeURIComponent(email.trim())}`);
     } catch (err) {
       setErrorMsg(
         err instanceof Error
@@ -87,7 +84,7 @@ export default function JoinForm({ defaultEmail = "", returnTo = "/account/dashb
   }
 
   return (
-    <form onSubmit={handleSubmit} className="jn-form">
+    <form onSubmit={handleSubmit} className="jn-form" noValidate>
       <div className="jn-form__row jn-form__row--split">
         <div className="jn-field">
           <label htmlFor="jn-first" className="jn-label">
@@ -163,7 +160,7 @@ export default function JoinForm({ defaultEmail = "", returnTo = "/account/dashb
         <span>{COMMUNITY_AGREEMENTS_CHECKBOX_LABEL}</span>
       </label>
 
-      {errorMsg && <p className="jn-error" role="alert">{errorMsg}</p>}
+      {errorMsg && <p className="jn-error">{errorMsg}</p>}
 
       <button
         type="submit"
@@ -175,7 +172,7 @@ export default function JoinForm({ defaultEmail = "", returnTo = "/account/dashb
 
       <p className="jn-already">
         Already have an account?{" "}
-        <a href={`/login?${returnQuery}`} className="jn-already__link">
+        <a href="/login" className="jn-already__link">
           Sign in
         </a>
       </p>

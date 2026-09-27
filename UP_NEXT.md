@@ -2,19 +2,9 @@
 
 Read first when opening RIM. Updated at closing, 2026-09-26. Full history belongs in `session-log.md`.
 
-## Homepage blend — pre-review baseline (2026-09-26)
+## Newcomer review withdrawn — September 26, 2026
 
-Jesse selected the homepage **before the newcomer review document** (`5a2c1ee`) as the baseline and approved the proposed blend. Restored its fuller hero/shared intention, concise CARE introduction, fuller roots explanation and closing. Roots now explicitly nourish the same CARE practice, without reserving depth for traditional study. Keep the canonical circle of benefit, restored CARE split/cards, four descriptive pathways (Foundations, Ongoing Learning and Practice, Immersion, Outreach), six examples, all three photographs and hero video. Foundations stays in preparation; donation/membership corrections and valid destinations remain. “What brings us together” predates the review. First-gathering logistics belong on New to RIM. No catalog migration or other page changes. Canonical vault updated before code; wording remains provisional for Jesse’s read-aloud. Live in `fb8d1a8`; TypeScript/lint/diff checks pass. Desktop 1280px and phones 375px/360px verified without horizontal overflow; screenshots confirm the restored balance.
-
-## Program layout correction — explicit direction (2026-09-26)
-
-Jesse clarified: **“Restore the original design; keep wording improvements.”** Program details restore the pre-review composition: hero-overlapping quote, description, notes, then gathering details/action and facilitators. Original responsive spacing restored and live in `7c80bd0`; desktop 1280px and mobile 360px verified with no overflow. Copy improvements, program data and other public pages remain. This overrides the newcomer review’s facts-first layout recommendation. Do not redesign this favorite page composition without Jesse’s specific direction.
-
-## Newcomer review — whole-document implementation (2026-09-26)
-
-Revisions 8–10 completed the initial practical fixes and corrected CARE integration on Our Roots. Jesse then authorized the whole review in the same spirit. Revision 11 now carries CARE through the homepage, newcomer, About, Why, agreements, outreach, groups, giving, volunteering, and authored program descriptions. The initial home paired-card replacement is superseded by the approved homepage blend above; CARE handout/diagram and canonical vision/mission remain unchanged. Seven public facilitator bios and portraits recovered from the existing RIM site. Published Essential Dharma Study policy resolves the imported category mismatch: one registration for the ongoing group; nature seasonal registration/weather communication recovered too. See `NEWCOMER_REVIEW_2026-09-26.md` for exact sources, implementation, remaining operational facts, and checks. Copy saved to canonical vault before implementation, still provisional for read-aloud.
-
-Remaining: fundraiser format/RSVP/attendance decisions; Foundations delivery; entrance/room images; program-specific access/adaptations/park fees; privacy and independent concern procedures; actual account/email/payment/Zoom transactions, real-device/screen-reader and newcomer observation. No new account, registration, email or payment submitted during this task. Implementation `3be05e9` and formatted nature-copy repair `c2400e4` are live; all 19 authored replacements are verified. Mobile 360px and desktop 1280px review, practical anchors, study registration, sourced bios, metadata, and offline regression checks passed as detailed in the review record.
+Jesse asked to revert the whole site and all review changes, and will reconsider the document later. Application baseline is `5a2c1ee`, before the review; homepage is the earlier complete `4187997` composition identified by its longer “Most of us are carrying more than we let on” passage and Buddha-and-lotus photograph. Only homepage anchor slugs adapt to the existing pre-review handout. No review copy, practical corrections or functional changes are retained. Program description edits and review-added teacher/facilitator fields are reversed through a guarded one-time migration, along with the study category and retreat's pre-review fixed $175 setting. No account, registration, donation or payment records are altered. Review work and audit remain recoverable in Git history (`f059fda`). Canonical vault records the withdrawal first. Do not resume the review or its blends without Jesse's new direction. Deployment verification pending.
 
 ## Active — brief, handout, one vision, balanced reading pages (2026-09-26, live; awaiting Jesse's read-aloud)
 
@@ -25,9 +15,9 @@ Remaining: fundraiser format/RSVP/attendance decisions; Foundations delivery; en
 **Waiting on Jesse:**
 - **The triad** in the vision ("unhealthy views, skills, and habits" as spoken; he is weighing "views, states, and habits", relatable and including actions). Holding phrase on the site: "unhealthy patterns of mind and action" (`RIM_WHAT_BINDS`, one edit).
 - Whether the **handout** takes "clarity" and "presence" and the Buddha nature gloss, so page and handout stay identical.
-- Homepage CARE cards and concise pre-review introduction restored by explicit direction; preserve the approved blend described above.
+- Whether home's CARE card titles ("Calm and Connect"…) still read as pairs (eight single-word cards is the alternative).
 - Carried from the brief: Taking Care vs Taking CARE; the handout promise at signup; whether teachers receive no salary from RIM; the MBSR line (now on Our Roots only).
-- Earlier: arrival and access copy is now supplied (see newcomer review); the eight one-line word descriptions; Foundations format and dates (`2026-09-25-001`); whether the circle belongs anywhere besides `/care`.
+- Earlier: parking and which door (`2026-08-10-002`); the eight one-line word descriptions; Foundations format and dates (`2026-09-25-001`); whether the circle belongs anywhere besides `/care`.
 
 **Next concrete step:** the read-aloud of the vault document (revisions 4–7 first), then flow his flags to the pages. With Jesse signed in, confirm the new Our Shared Vision frame on `/account/welcome` and `/account/community-care`.
 
@@ -40,7 +30,7 @@ Remaining: fundraiser format/RSVP/attendance decisions; Foundations delivery; en
 **Waiting on Jesse:**
 - **Read-aloud** of the new copy: sign-in button/code page, dana step, receipt, approval line, Stripe lines, Zoom notices, readout, overlap banner, thank-you page, and `ZOOM_COORDINATOR_GUIDE.md` (sent as Markdown/HTML for the Zoom Coordinator Google Doc).
 - **Accountant** review of the receipt's "For your records" statement (RIM is IRS-classified as a church, 170(b)(1)(A)(i)).
-- Voluntary $175 retreat instruction is implemented in the newcomer follow-through migration; live detail and registration both verified as voluntary, $175 suggested.
+- Switch **"Awakening to the Beauty of This Moment"** to Voluntary dana, $175 suggested (it's `fixed` $175 now).
 - **Flodesk design** (`2026-09-24-002`): does he send to segments or the whole list?
 - Check Flodesk for his test signup's segment and any welcome email.
 
@@ -56,7 +46,7 @@ Remaining: fundraiser format/RSVP/attendance decisions; Foundations delivery; en
 
 ## Standing reminder — public copy still awaits Jesse
 
-Arrival details are now supplied and implemented in the newcomer review. The s174/s176 and revision-8 public copy still requires Jesse’s explicit read-aloud approval. Shipping is not ratification. Community Care now shares canonical text across **five** surfaces: join, welcome, registration, public agreements and member care. The live `/diversity` image `color-powder-diversity.webp` still lacks recorded provenance.
+Remind Jesse each session until resolved: parking and which entrance to use are still unwritten on `/new-to-rim` (which replaced `/your-first-visit`; Jesse supplied the other practical details 2026-09-25) (`2026-08-10-002`); the s174/s176 public copy requires his explicit read-aloud approval. Shipping is not ratification. Community Care now shares canonical text across **five** surfaces: join, welcome, registration, public agreements and member care. The live `/diversity` image `color-powder-diversity.webp` still lacks recorded provenance.
 
 Other pending decisions: public Test Course/teacher profile data (`2026-09-02-001`); whether to commit the community introduction/Copy and Voice Brief; source cleanup of `NEXTAUTH_URL`, retired service variables/Sanity project and the retired Community Drive (`2026-08-09-001`). `TEAM_EMAIL` was previously unset. These are recorded findings, not rechecked at this closing.
 
