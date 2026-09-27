@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { hasConcludedOneTime } from "@/lib/programUtils";
 import { RIM_WHAT_BINDS } from "@/lib/communityAgreements";
+import CareCircle from "@/components/CareCircle";
 
 // Lineage terms live here for search, stated as RIM states them (Jesse,
 // 2026-09-25): a dharma community rooted in Chan silent illumination, not an
@@ -35,43 +36,6 @@ export const dynamic = "force-dynamic";
  * the ground; "Practice for real life" sits on white with its six items in
  * borderless Pampas insets (particulars, not destinations, so no shadow).
  */
-
-// The eight lines are the program-description draft's compressions of the
-// handout, provisional until Jesse writes his own (his critical path).
-const CARE_PAIRS = [
-  {
-    slug: "calm",
-    title: "Calm and Connect",
-    lines: [
-      "Calm is an invitation to ease in body, heart, and mind.",
-      "Connect is showing up to this moment as it is, through the senses.",
-    ],
-  },
-  {
-    slug: "aware",
-    title: "Aware and Attitude",
-    lines: [
-      "Aware is the clear knowing that is always available.",
-      "Attitude is meeting experience with warmth and curiosity.",
-    ],
-  },
-  {
-    slug: "recognize",
-    title: "Recognize and Remember",
-    lines: [
-      "Recognize is knowing what is here and seeing it honestly.",
-      "Remember is reconnecting with our greater nature and what matters most.",
-    ],
-  },
-  {
-    slug: "embody",
-    title: "Embody and Engage",
-    lines: [
-      "Embody is making the practice part of who we are.",
-      "Engage is caring for ourselves, others, and the world, and acting from that place.",
-    ],
-  },
-] as const;
 
 // What the practice helps us meet, told as particulars (Jesse, 2026-09-25:
 // "as a friend, as a truth, as a matter of fact", without dwelling).
@@ -216,11 +180,11 @@ export default async function HomePage() {
              so the wide welcome has a clear center (site revision brief,
              2026-09-25; replaces "What we are here for"). Open prose on the
              ground: nothing competes with it. ── */}
-      <section className="pp-section">
+      <section className="pp-section home-centered home-statement">
         <div className="rim-container">
           <div className="pp-intro">
             <h2 className="pp-intro__title">What brings us together</h2>
-            <p className="pp-intro__body">
+            <p className="pp-intro__body home-statement__lead">
               People come to RIM for many reasons: a hard season, a wish to live and enjoy life more
               fully, a longing for something real, or love for someone they want to show up for
               better. What we share is one intention. Something clear and caring is already within
@@ -242,31 +206,20 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Practice for real life — what the practice helps us meet. The
-             Buddha-and-lotus photograph sits right of the opener, where it sat
-             from session 169 until 2026-09-25 (Jesse, 2026-09-27: "I wanted the
-             Buddha-and-lotus as it was"). ── */}
-      <section className="pp-section pp-section--white">
+      {/* ── Practice for real life — what the practice helps us meet. One
+             centred composition: opener, the six particulars, the closing line.
+             (The Buddha-and-lotus photo was tried beside the opener 2026-09-27
+             and removed the same day: beside one short paragraph it read as an
+             afterthought, Jesse.) ── */}
+      <section className="pp-section pp-section--white home-centered">
         <div className="rim-container">
-          <div className="pp-split pp-split--flip home-practice-intro">
-            <div
-              className="pp-split__media"
-              style={{
-                ["--pp-split-image" as string]: "url('/images/buddga-lotus-unsplash-1600.webp')",
-                ["--pp-split-position" as string]: "center 30%",
-              }}
-              aria-hidden="true"
-            />
-            <div className="pp-split__body">
-              <div className="pp-intro">
-                <h2 className="pp-intro__title">Practice for real life.</h2>
-                <p className="pp-intro__body">
-                  Meditation is where the practice begins, and most of it happens everywhere else.
-                  It helps us enjoy what is good while it is here, and meet what is hard with more
-                  skill and less reactivity. In an ordinary week, it looks something like this.
-                </p>
-              </div>
-            </div>
+          <div className="pp-intro">
+            <h2 className="pp-intro__title">Practice for real life.</h2>
+            <p className="pp-intro__body">
+              Meditation is where the practice begins, and most of it happens everywhere else.
+              It helps us enjoy what is good while it is here, and meet what is hard with more
+              skill and less reactivity. In an ordinary week, it looks something like this.
+            </p>
           </div>
 
           <ul className="pp-uses">
@@ -295,13 +248,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Our practice is taking care — words left, the circle's four quarters
-             right (never called pairs: that is teacher-side architecture).
+      {/* ── Our practice is taking care — the handout's CARE circle left, words
+             right (2026-09-27, Jesse: the circle replaces the four cards; it is
+             RIM's own artwork and the page's most meaningful image).
              The practice is shown before it is named: the acronym arrives in
              the last line (experience before the name). ── */}
       <section className="pp-section">
         <div className="rim-container">
-          <div className="pp-split pp-split--doors pp-split--doors-left">
+          <div className="pp-split home-care">
             <div className="pp-split__body">
               <div className="pp-intro">
                 <p className="pp-intro__eyebrow">Our practice</p>
@@ -326,26 +280,9 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="pp-doors">
-              {CARE_PAIRS.map((pair) => (
-                <Link
-                  key={pair.slug}
-                  href={`/care#${pair.slug}`}
-                  className="pp-card pp-card--row"
-                >
-                  <div className="pp-card__row">
-                    <div className="pp-card__main">
-                      <h3 className="pp-card__title">{pair.title}</h3>
-                      {pair.lines.map((line) => (
-                        <p key={line} className="pp-card__body">
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <figure className="home-care-figure">
+              <CareCircle />
+            </figure>
           </div>
         </div>
       </section>
@@ -452,7 +389,7 @@ export default async function HomePage() {
 
       {/* ── For organizations — the outreach face, stated once on the home
              page (site revision brief, 2026-09-25). ── */}
-      <section className="pp-section pp-section--white">
+      <section className="pp-section pp-section--white home-centered">
         <div className="rim-container">
           <div className="pp-intro">
             <p className="pp-intro__eyebrow">For organizations</p>

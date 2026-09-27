@@ -28691,17 +28691,68 @@ a.pp-card.tpr-card {
 .tw-today-pill,
 .cls-card__lessons { font-size: var(--text-xs); }
 
-/* Home, "Practice for real life": the Buddha-and-lotus photograph beside a
-   one-paragraph opener (restored 2026-09-27, Jesse). The standard split is
-   built for two paragraphs and a button; with one paragraph the 420px photo
-   left ~210px empty under the words. Centre the words against a slightly
-   shorter photo (66px above and below at desktop), then 40px before the six
-   everyday examples. Phones keep the standard 260px stacked photo. */
-.home-practice-intro { margin-bottom: 40px; }
-.home-practice-intro .pp-split__body { align-self: center; }
-.home-practice-intro .pp-intro { margin-bottom: 0; }
-@media (min-width: 901px) {
-  .home-practice-intro .pp-split__media { min-height: 340px; }
+/* ============================================================================
+   HOME COMPOSITION — 2026-09-27
+   ============================================================================
+   Jesse: the home page is "nice, but a little on the boring side"; make it
+   something "a designer would be pleased with." Measured first: every chapter
+   was the same left-set opener, the two text-only chapters stopped 160px short
+   of the right edge, and the practice itself had no image. Three moves, all
+   inside the committed system:
+
+   1. Centred chapters (`.home-centered`) for the text-led sections: the
+      statement, Practice for real life, For organizations. They alternate
+      with the splits, so the page changes pace instead of repeating one
+      template. Scoped under `.pp-page--spine`, whose rule otherwise forces
+      every opener to the left edge (3 classes beat its 2).
+   2. The statement (`.home-statement`): the shared intention is the page's
+      centre, so its first paragraph takes the serif reading voice of the
+      program page's quote card, one tier up (24px).
+   3. The CARE circle (`.home-care`): the handout's artwork replaces the four
+      text cards, left of the words (Jesse chose it). With the photographs it
+      gives the page image, words, image, words.
+
+   On phones every chapter returns to left-set text: a centred paragraph over
+   ~14 lines of a 335px column is harder to read, not more balanced. */
+.pp-page--spine .home-centered .pp-intro {
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.pp-page--spine .home-centered .pp-intro__body { margin-left: auto; margin-right: auto; }
+.pp-page--spine .home-centered .pp-prose {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.pp-page--spine .home-centered .pp-actions { justify-content: center; }
+.home-centered .pp-uses { margin-left: auto; margin-right: auto; }
+
+.home-statement__lead {
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  line-height: 1.55;
+}
+.home-statement .pp-intro__title { margin-bottom: 28px; }
+.home-statement .home-statement__lead + .pp-intro__body { margin-top: 24px; }
+
+.home-care { align-items: center; }
+.home-care-figure {
+  order: -1;
+  margin: 0;
+}
+.home-care-figure .care-circle { max-width: 480px; }
+
+@media (max-width: 900px) {
+  .home-care-figure .care-circle { max-width: 360px; }
+}
+@media (max-width: 600px) {
+  .pp-page--spine .home-centered .pp-intro,
+  .pp-page--spine .home-centered .pp-prose { text-align: left; }
+  .pp-page--spine .home-centered .pp-actions { justify-content: flex-start; }
+  .home-statement__lead { font-size: var(--text-h4); }
 }
 
 /* ===================================================================
