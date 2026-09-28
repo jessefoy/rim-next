@@ -110,10 +110,11 @@ export default function NewToRimPage() {
               and practicing with like-minded people, each in our own way.
             </p>
             <p>
-              We ask one thing of everyone while they are with us: to hold our{" "}
+              We ask the same of everyone who comes: to hold our{" "}
               <Link href="/community-care-agreements">Community Care Agreements</Link>, a short
-              shared vision and three agreements about caring for ourselves, one another, and RIM.
-              They are directions to hold, not requirements to be graded on.
+              shared vision and three agreements about caring for ourselves, one another, and RIM;
+              to come with a sincere wish to practice; and to help keep RIM a safe place for
+              everyone. The agreements are directions to hold, not requirements to be graded on.
             </p>
 
             <h2 id="signing-up">Signing up</h2>

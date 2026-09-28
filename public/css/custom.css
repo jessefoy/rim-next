@@ -28731,7 +28731,8 @@ a.pp-card.tpr-card {
 .home-uses { margin-bottom: 40px; }
 .home-paths {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Three ways Taking CARE is offered (2026-09-28 brief: Outreach left). */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
 }
 a.pp-card.home-paths__card {
@@ -28781,6 +28782,39 @@ a.pp-card.home-paths__card {
   .home-paths { grid-template-columns: 1fr; }
   .home-statement__lead { font-size: var(--text-h4); }
 }
+
+/* ── Home content, 2026-09-28 brief ──────────────────────────────────────────
+   Scoped to the home page. Eight particulars (was six): four columns at
+   desktop, two at the existing pp-uses tablet breakpoint (768), one on phones.
+   The eight CARE words as their own list inside the CARE chapter. The hero now
+   carries four short paragraphs, so they sit closer together than the single
+   paragraph's 34px, and the last keeps the gap before the buttons. */
+.home-uses { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 768px) {
+  .home-uses { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 430px) {
+  .home-uses { grid-template-columns: 1fr; }
+}
+
+.home-care-words {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 8px 40px;
+  margin: 18px 0;
+  padding: 0;
+  list-style: none;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  line-height: 1.4;
+}
+@media (max-width: 430px) {
+  .home-care-words { grid-template-columns: 1fr; }
+}
+
+.home-page .pp-hero__body { margin-bottom: 14px; }
+.home-page .pp-hero__body:last-of-type { margin-bottom: 34px; }
 
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
