@@ -270,6 +270,71 @@ The geometry, so nobody re-derives it: `.rim-container` is 1140 with 40px paddin
 - Meta chips (format, Today, lesson counts) have a 13px floor; eyebrows stay 11px (uppercase and tracked, contrast measured at that size).
 - Method: measure with an iframe harness (getBoundingClientRect + Range line counts) at 375/768/1280/1440, preview new CSS by injecting it into the live pages, then re-measure after deploy.
 
+### The strategic grid (2026-09-28, proposed; home first)
+
+**Why.** Jesse, reviewing the live home page: "not just a grid but a *strategic* grid, a truly solid proportional system for the site." Things "look a little wonky." The audit below shows why: the home page's sections each chose their own columns, so nothing shares an edge.
+
+#### The audit (live site, 2026-09-28, before any change)
+
+Measured with an iframe harness (`getBoundingClientRect`, Range line counts, computed padding) on `/` and `/programs/good-morning-silent-meditation`.
+
+| | Home at 1280 | Program detail at 1280 |
+|---|---|---|
+| Text-block left edges | **21 distinct.** Main ones: 110 (container), 536 (chapter body), 672 (split copy); cards at 110 / 381 / 652 / 923 (examples) and 110 / 471 / 833 (pathways); closing panel inside at 158 | **2**: 290 (everything) and 320 (inside the details card) |
+| Column widths | chapter head 362 + body 634 (4fr/7fr, 64 gap); splits 498 + 498 (64 gap); examples 4 x 247; pathways 3 x 337 | one 700 column (hero, quote, body, details) |
+| Text measure (chars per line) | body 37-73 (avg 56); card text **17-32** (avg 21) | body 63-78 (avg 72) |
+| Section padding | 68 / 68 (closing 68 / 88); 52 at 768 and below | hero 112; body sections by component margins |
+| Heading to body | 18 | 14-18 |
+| Item gaps | 24 (examples, pathways), 14 x 24 (button rows), 64 (split) | card-internal |
+
+Same pattern at 1024 and 1440 (the numbers shift with the container). At 768 the chapter already stacks (edges 20 / 46 / 48 plus card interiors); at 375 everything is at 20 except card interiors (42) and the closing panel (46).
+
+**What the audit says.** The program page works because it has *one* column; the home page fails because its chapters (4fr/7fr), splits (1fr/1fr) and card rows (4-up, 3-up) are three unrelated proportional systems. Card text at 17-32 characters per line is the "dense narrow tiles" Jesse saw.
+
+#### The system
+
+**1. One container, one 12-column grid.** The container is `.rim-container` as it is today: 1140 max with 40px margins, so a 1060px content box at 1140 and wider. Inside it, **12 columns with a 24px gutter** from 1024px up (column 66.3px at 1060), **20px** from 600 to 1023, and **a single column below 600** (a phone has room for one measure; a four-column phone grid would only fragment it). Twelve divides into halves, thirds, quarters and sixths, which is exactly what the page needs (two edges, three pathways, a reading column). Outer margins stay 40 (above 768) and 20 (768 and below) in this pass; **32 at tablet** is the target for the sitewide pass, because changing `.rim-container` now would move every page.
+
+At 1280 the column lines fall at **110, 200, 291, 381, 471, 562, 652, 742, 833, 923, 1013, 1104** (and 1170 at the right).
+
+**2. The two text edges.** On a page composed from this grid, **every block of text starts on column 1 or column 7** (110 and 652 at 1280). Card rows add their own column lines, and reading pages use one edge (column 3). No other text edges.
+
+**3. A vertical scale on an 8px base.** `--space-1` 8 · `--space-2` 16 · `--space-3` 24 · `--space-4` 32 · `--space-5` 48 · `--space-6` 64 · `--space-7` 96.
+- Section padding: **64** desktop, **48** below 1024 (was 68 / 52). The last section's bottom: 96.
+- Heading to body (when stacked): **24**. Paragraph to paragraph: **16**.
+- Chapter to its card row or group list: **48**. Group to group: **48**.
+- Items in a stack: **16**. Items in a card row: the gutter (**24**).
+- Closing panel padding below 1024: **32**.
+
+**4. The named layouts.**
+
+| Layout | Desktop (1024 and up) | Below 1024 | Below 600 |
+|---|---|---|---|
+| **Chapter** | heading and eyebrow in cols 1-5, col 6 air, body in cols 7-12 (518px at 1280, about 60 chars) | stacked: heading, then body in cols 1-10 (about 68 chars) | stacked, full width |
+| **Split** | copy 6 cols, media 5 cols, 1 col air. Image left: media 1-5, copy 7-12. Image right: copy 1-6, media 8-12. Copy starts on col 1 or col 7 | stacked: media full width, copy cols 1-10 | stacked |
+| **Card row** | items span whole column counts: 3 x 4 cols (thirds), or 2 x 6 (halves) | one card per row in cols 1-10 (no orphaned third card) | one per row |
+| **Group panels** (new, for Practice for real life; Jesse chose option C, Addendum C1) | three Pampas panels in the thirds (4 cols each), label at the top in the eyebrow style, examples stacked inside with hairline dividers; panels in a row share a height | one panel per row, cols 1-10 | stacked, in order |
+| **Closing panel** | the chapter layout on a recessed ground: the panel's background extends 48px beyond the container on each side, so its heading and body land on the same col 1 and col 7 as the page above | stacked inside a 32px-padded panel | same |
+| **Reading column** (existing) | cols 3-10: 699px, the program page's and the reading pages' 700 column | full width within margins | same |
+
+**5. Reading measures.** Body text 60-75 characters per line (chapter body 518px is about 60; reading column 699px is about 72-78 at 18px). Card and item text 40-60. In thirds (the pathway cards and the group panels) text measures about 32-36 per line at desktop (16px); that is the known cost of thirds, accepted with option C. At tablet widths, where panels run one per row in cols 1-10, examples measure about 45-71.
+
+**6. The program detail page fits already.** Its 700 column **is** cols 3-10 of this grid (290 to 990 at 1280): same container, same edges. It is the model for its type and does not change. Two small differences are noted for later, not fixed now: its phone gutter is 24 where the container's is 20, and the quote card is 720 wide against the 699 column.
+
+**What is different from the tombstones.** Nothing reverted is re-proposed. The home page keeps a left edge (col 1), not the retired session-176 spine rule as a mechanism; reading pages keep "The reading column" (cols 3-10). The group labels in Practice for real life use the eyebrow style inside a rich composition (items, insets, a closing arc), not the sparse chapter eyebrows over bare prose that the session-148 tombstone warns against.
+
+#### Migration order for the other public pages (later passes; launch is October 5)
+
+1. **`/donate`**: the most edges on the site (hero lead, give cards, a centred statement, the timeline). Map the give cards to 2 x 6, the statement to cols 3-10, and the timeline to halves.
+2. **`/community-programs` and `/this-week`**: listing rows already fill the container; set category headings on col 1, rows full width, and the 96 / 36 / 24 cadence onto the scale (96 / 32 / 24).
+3. **`/volunteerism/volunteer`** (and thanks): splits and forms onto split and reading-column layouts.
+4. **Kalyana Mitta** (groups, guidelines, application): groups page cards into a card row; the other two are reading pages (cols 3-10, already close).
+5. **`/diversity`**: its `dv-layout` (1060) becomes chapter plus reading column.
+6. **`/teachers` and `/teachers/[slug]`**: cards into a 3 x 4 or 4 x 3 card row; profile body to the reading column.
+7. **`/courses` and `/course/[slug]`**: course cards into a card row; the landing into the program-detail model.
+8. **Reading pages** (New to RIM, Taking Care, Why We Practice, Our Roots, About, Outreach, the agreements page): already on cols 3-10; confirm only, and move their section padding onto the scale.
+9. **`/programs/[slug]`, `/join`, `/login`**: already fit; align the phone gutter (24 to 20), and set the 32px tablet margin sitewide with the container.
+
 ### The two heading tiers are a system, not drift (session 176)
 
 A measured audit flagged `.pp-intro__title` rendering at **38px** on home, volunteer, KM groups and donate but **28px** (`--h2`) on volunteer's second opener and the KM application. **This is not a defect and must not be "fixed".** It is a consistently applied two-tier system that had simply never been written down:

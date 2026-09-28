@@ -33,41 +33,57 @@ export const dynamic = "force-dynamic";
  * left). Grounds alternate ground / white from the statement on.
  */
 
-// What the practice helps us meet, told as particulars. Eight, holistic:
-// body and mind, relationships, values and action, the shared world (the
-// 2026-09-28 home draft, H3).
-const USES = [
+// What the practice helps us meet, told as particulars, in three groups
+// whose order carries meaning: from what a reader feels first to what opens
+// later (the 2026-09-28 home draft, H3; Addendum C1 of the brief). The eye
+// ends on A deeper freedom, at the bottom of the third panel.
+const PRACTICE_GROUPS = [
   {
-    title: "Body, mind, and hard seasons",
-    body: "Rest that restores, and a mind that can settle when it needs to. Illness, pain, and grief met with more steadiness, supported by meditation and community, alongside whatever care we need from doctors and counselors.",
+    label: "Daily life",
+    items: [
+      {
+        title: "Body, mind, and hard seasons",
+        body: "Rest that restores, and a mind that can settle when it needs to. Illness, pain, and grief met with more steadiness, supported by meditation and community, alongside whatever care we need from doctors and counselors.",
+      },
+      {
+        title: "Enjoying the life we have",
+        body: "A meal we actually taste. More room for the people and interests we care about. Pleasures enjoyed without needing to hold on to them, and a steadier contentment beneath them.",
+      },
+      {
+        title: "Work and its pressures",
+        body: "A full inbox met one message at a time. Enough steadiness in a difficult meeting to listen and speak clearly.",
+      },
+    ],
   },
   {
-    title: "Enjoying the life we have",
-    body: "A meal we actually taste. More room for the people and interests we care about. Pleasures enjoyed without needing to hold on to them, and a steadier contentment beneath them.",
+    label: "Who we are and how we live",
+    items: [
+      {
+        title: "Knowing ourselves",
+        body: "An old reaction seen while it is still happening, and met with curiosity. As we learn how the pattern takes hold, we can discover more choice in what we do next. Views and judgments held a little more lightly.",
+      },
+      {
+        title: "The people in our lives",
+        body: "Being more available to those we care about, including when we disagree. Understanding our part in a difficulty, and recognizing when repair is needed. Friendship, and the company of others who practice.",
+      },
+      {
+        title: "Living by what matters",
+        body: "A clearer sense of what gives our lives meaning, and more of our daily choices in line with it. Words and actions we do not have to regret. Care for what supports well-being and protects what is wholesome, in ourselves and around us.",
+      },
+    ],
   },
   {
-    title: "Work and its pressures",
-    body: "A full inbox met one message at a time. Enough steadiness in a difficult meeting to listen and speak clearly.",
-  },
-  {
-    title: "Knowing ourselves",
-    body: "An old reaction seen while it is still happening, and met with curiosity. As we learn how the pattern takes hold, we can discover more choice in what we do next. Views and judgments held a little more lightly.",
-  },
-  {
-    title: "The people in our lives",
-    body: "Being more available to those we care about, including when we disagree. Understanding our part in a difficulty, and recognizing when repair is needed. Friendship, and the company of others who practice.",
-  },
-  {
-    title: "Living by what matters",
-    body: "A clearer sense of what gives our lives meaning, and more of our daily choices in line with it. Words and actions we do not have to regret. Care for what supports well-being and protects what is wholesome, in ourselves and around us.",
-  },
-  {
-    title: "Our shared world",
-    body: "Care that reaches past our own circle. Taking part in what makes our communities healthier, and looking after the living world we are part of.",
-  },
-  {
-    title: "A deeper freedom",
-    body: "For some, practice opens onto a path of awakening. As what clouds our seeing begins to clear, we come to know a clarity and warmth that do not depend on circumstances, and they gradually become the ground we live from.",
+    label: "Beyond ourselves",
+    items: [
+      {
+        title: "Our shared world",
+        body: "Care that reaches past our own circle. Taking part in what makes our communities healthier, and looking after the living world we are part of.",
+      },
+      {
+        title: "A deeper freedom",
+        body: "For some, practice opens onto a path of awakening. As what clouds our seeing begins to clear, we come to know a clarity and warmth that do not depend on circumstances, and they gradually become the ground we live from.",
+      },
+    ],
   },
 ] as const;
 
@@ -79,23 +95,35 @@ export default async function HomePage() {
   // (hideWhenPast), so the same rule picks the chapter here; otherwise the
   // anchor would point at a section that is not on the page. Falls back to the
   // whole catalog.
-  const immersionCategories = await db.programCategory.findMany({
-    where: { kind: { in: ["RETREAT", "EVENT"] }, hideFromProgramsPage: false },
+  const catalogCategories = await db.programCategory.findMany({
+    where: {
+      kind: { in: ["RETREAT", "EVENT", "DROP_IN", "CLASS"] },
+      hideFromProgramsPage: false,
+    },
     orderBy: { sortOrder: "asc" },
     select: {
       slug: true,
+      kind: true,
       programs: {
         where: { archivedAt: null, hideFromProgramPageList: false },
         select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, hideWhenPast: true },
       },
     },
   });
-  const immersion = immersionCategories.find((c) =>
-    c.programs.some((p) => !(p.hideWhenPast && hasConcludedOneTime(p)))
-  );
-  const immersionHref = immersion
-    ? `/community-programs#${immersion.slug}`
-    : "/community-programs";
+  const chapterHref = (kinds: string[]) => {
+    const chapter = catalogCategories.find(
+      (c) =>
+        c.kind !== null &&
+        kinds.includes(c.kind) &&
+        c.programs.some((p) => !(p.hideWhenPast && hasConcludedOneTime(p)))
+    );
+    return chapter ? `/community-programs#${chapter.slug}` : "/community-programs";
+  };
+  const immersionHref = chapterHref(["RETREAT", "EVENT"]);
+  // Learning & Practice leads to the catalog's drop-ins-and-series chapter
+  // (Addendum C2: the programs page first, This Week second), found the same
+  // way, never by a hardcoded slug.
+  const learningHref = chapterHref(["DROP_IN", "CLASS"]);
 
   const PATHWAY = [
     {
@@ -110,7 +138,7 @@ export default async function HomePage() {
     {
       title: "Learning & Practice",
       body: "Drop-in gatherings and series throughout the week, in person and online.",
-      href: "/this-week",
+      href: learningHref,
     },
     {
       title: "Immersion",
@@ -178,8 +206,8 @@ export default async function HomePage() {
             <Link href="/new-to-rim" className="pp-btn pp-btn--onblue">
               New to RIM
             </Link>
-            <Link href="/this-week" className="pp-btn pp-btn--onblue-ghost">
-              This week&rsquo;s schedule
+            <Link href="/community-programs" className="pp-btn pp-btn--onblue-ghost">
+              Programs &amp; events
             </Link>
           </div>
         </div>
@@ -217,20 +245,11 @@ export default async function HomePage() {
                 experience learn together, bringing the questions that arise in their own lives.
               </p>
               <p className="pp-intro__body">
-                We ask the same of everyone who comes: to hold our Community Care Agreements, a few
-                simple commitments to care for ourselves, one another, and RIM; to come with a
-                sincere wish to practice; and to help keep RIM a safe place for everyone. The
-                agreements are directions to hold, not requirements to be graded on.
-              </p>
-              <p className="pp-intro__body">
                 No one can do the practice for us, and no one has to do it alone.
               </p>
               <div className="pp-actions">
                 <Link href="/why-we-practice" className="pp-btn">
                   Why we practice
-                </Link>
-                <Link href="/community-care-agreements" className="pp-btn pp-btn--ghost">
-                  Community Care Agreements
                 </Link>
               </div>
             </div>
@@ -267,14 +286,21 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <ul className="pp-uses home-uses">
-            {USES.map((use) => (
-              <li key={use.title} className="pp-uses__item">
-                <h3 className="pp-uses__title">{use.title}</h3>
-                <p className="pp-uses__body">{use.body}</p>
-              </li>
+          <div className="home-groups">
+            {PRACTICE_GROUPS.map((group) => (
+              <div key={group.label} className="home-group">
+                <h3 className="home-group__label">{group.label}</h3>
+                <ul className="home-group__items">
+                  {group.items.map((use) => (
+                    <li key={use.title} className="home-group__item">
+                      <h4 className="home-group__title">{use.title}</h4>
+                      <p className="home-group__body">{use.body}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
 
           <div className="home-chapter home-chapter--after">
             <div className="home-chapter__body">
@@ -429,6 +455,13 @@ export default async function HomePage() {
                 Membership is freely offered, takes a few minutes, and is needed for online
                 gatherings.
               </p>
+              <p className="pp-intro__body">
+                We ask the same of everyone who comes: to hold our{" "}
+                <Link href="/community-care-agreements">Community Care Agreements</Link>, a few
+                simple commitments to care for ourselves, one another, and RIM; to come with a
+                sincere wish to practice; and to help keep RIM a safe place for everyone. The
+                agreements are directions to hold, not requirements to be graded on.
+              </p>
               <div className="pp-actions">
                 <Link href="/community-programs" className="pp-btn">
                   Programs &amp; events
@@ -571,8 +604,8 @@ export default async function HomePage() {
                 when practice becomes difficult. It is easier to keep going in good company.
               </p>
               <div className="pp-actions">
-                <Link href="/this-week" className="pp-btn">
-                  This week&rsquo;s schedule
+                <Link href="/community-programs" className="pp-btn">
+                  Programs &amp; events
                 </Link>
               </div>
             </div>

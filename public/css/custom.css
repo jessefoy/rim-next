@@ -148,6 +148,18 @@
 
   /* Layout */
   --reading-width: 700px;
+  /* The strategic grid (RIM_Public_Pages.md, 2026-09-28): 12 columns, a
+     24px gutter from 1024px up and 20px below; one column under 600px. */
+  --grid-columns: 12;
+  --grid-gutter: 24px;
+  /* Vertical scale on an 8px base. */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 48px;
+  --space-6: 64px;
+  --space-7: 96px;
 
   /* Card lift — the single reusable shadow for discrete white cards on the
      warm ground. Deliberately a whisper (matches the reference); the
@@ -28475,53 +28487,10 @@ a.pp-card.tpr-card {
    one block, before the authenticated readability contract that must stay
    last. */
 
-/* "Practice for real life": six everyday particulars, each in a borderless
-   Pampas inset on the white section (Jesse, 2026-09-25: open type with no
-   separation read as a wall of text). An inset, not a lifted card: they are
-   not links or actions, so no shadow; white cards would also vanish on white.
-   Pampas rather than Light Pampas, which is ~2% off white and barely
-   separates. Cadence: 24px between (20 on phones). */
-.pp-uses {
-  box-sizing: border-box;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-  max-width: 1060px;
-  margin: 0 0 40px;
-  padding: 0;
-  list-style: none;
-}
-.pp-uses__item {
-  box-sizing: border-box;
-  min-width: 0;
-  margin: 0;
-  border-radius: 12px;
-  padding: 28px 28px 30px;
-  background: var(--rim-bg);
-}
-/* h3 at the h3 size: at h4 (20px) Quincy's small x-height read barely
-   larger than the 18px body beneath it (measured on deploy, 2026-09-25). */
-.pp-uses__title {
-  margin: 0 0 8px;
-  color: var(--rim-text);
-  font-family: var(--font-serif);
-  font-size: var(--text-h3);
-  font-weight: 500;
-  line-height: var(--lh-heading);
-}
-.pp-uses__body {
-  margin: 0;
-  color: var(--rim-text);
-  font-size: var(--text-body);
-  line-height: var(--lh-body);
-}
-@media (max-width: 768px) {
-  .pp-uses { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 430px) {
-  .pp-uses { grid-template-columns: 1fr; gap: 20px; }
-  .pp-uses__item { padding: 24px 22px 26px; }
-}
+/* (The .pp-uses insets for the six/eight particulars were removed 2026-09-28:
+   Practice for real life now uses the .home-group panels, whose design keeps
+   the same ruling of record: short text items on white sit in a borderless
+   Pampas inset, never bare type.) */
 
 /* The distillation: a few set-apart italic lines after a reading page's prose
    ends (How We Write's sanctioned close). One per page at most. */
@@ -28692,28 +28661,53 @@ a.pp-card.tpr-card {
 .cls-card__lessons { font-size: var(--text-xs); }
 
 /* ============================================================================
-   HOME COMPOSITION — 2026-09-27 (revised the same day)
+   HOME ON THE STRATEGIC GRID — 2026-09-28
    ============================================================================
-   Jesse: images "all on one side"; paragraphs that read "somewhat randomly
-   placed" (the lines above and below the Practice grid, the centred
-   statement); the closing button "a little awkward". The first pass centred
-   the text-led chapters, which fixed the lopsided right edge but gave every
-   chapter its own alignment. The page lacked a grid.
+   The system is written up in RIM_Public_Pages.md, "The strategic grid": one
+   12-column grid inside the container, two text edges (col 1 and col 7), an
+   8px vertical scale, and named layouts. The home page is the first page on
+   it. Each layout below places its parts on whole columns; nothing else sets
+   a column width.
 
-   The system now: ONE editorial chapter grid for every text-led section.
-   The heading (and its eyebrow) sits in a narrow left column, the text,
-   buttons and follow-on lines in a wide right column at a reading measure.
-   Every paragraph and button lands on the same two edges. Images stagger
-   (CARE circle left, trees right, lotus left), and the two card sets sit
-   full-width beneath their chapter: six particulars as a 3x2 grid, four
-   pathways as one row. Section titles share one size (38px) on desktop.
+     chapter       heading 1-5, air 6, body 7-12
+     split         media 1-5 + copy 7-12 (image left), or copy 1-6 + media
+                   8-12 (image right)
+     card row      thirds (4 cols each) for the pathways
+     group panels  thirds for Practice for real life (Addendum C1)
+     closing       the chapter on a recessed ground that bleeds 32px past
+                   the container, so its text keeps col 1 and col 7
 
-   Below 769px the grid collapses: heading, then text, left-set. */
-.home-chapter__head .pp-intro__eyebrow { margin-bottom: 14px; }
+   Below 1024 everything stacks: headings full width, text and cards in cols
+   1-10 (about 68 characters), one card or panel per row. Below 600 one
+   column. */
+
+.home-page .pp-section { padding: var(--space-6) 0; }
+.home-page .pp-section--last { padding-bottom: var(--space-7); }
+
+.home-chapter,
+.home-page .pp-split,
+.home-paths,
+.home-groups,
+.pp-closing.home-closing {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+  column-gap: var(--grid-gutter);
+  row-gap: var(--space-3);
+  align-items: start;
+}
+
+/* Chapter */
+.home-chapter__head { grid-column: 1 / span 5; }
+.home-chapter__body { grid-column: 7 / span 6; }
+.home-chapter__head .pp-intro__eyebrow { margin-bottom: var(--space-2); }
 .home-chapter__head .pp-intro__title,
-.home-chapter__head .pp-closing__title { margin: 0 0 18px; }
+.home-chapter__head .pp-closing__title { margin: 0; }
 .home-chapter__body > :first-child { margin-top: 0; }
 .home-chapter__body .pp-intro__body { max-width: none; }
+.home-page .pp-intro__body + .pp-intro__body,
+.home-page .pp-closing__body + .pp-closing__body { margin-top: var(--space-2); }
+.home-page .pp-intro__body + .home-care-words,
+.home-page .home-care-words + .pp-intro__body { margin-top: var(--space-2); }
 
 .home-statement__lead {
   margin: 0;
@@ -28721,24 +28715,56 @@ a.pp-card.tpr-card {
   font-family: var(--font-serif);
   font-size: var(--text-h3);
   line-height: 1.55;
-  text-wrap: pretty; /* no lone last word ("world.") */
+  text-wrap: pretty;
 }
-.home-statement__lead + .pp-intro__body { margin-top: 24px; }
+.home-statement__lead + .pp-intro__body { margin-top: var(--space-3); }
 
-/* The card sets beneath a chapter. */
-.home-chapter + .home-uses,
-.home-chapter + .home-paths { margin-top: 48px; }
-.home-uses { margin-bottom: 40px; }
-.home-paths {
-  display: grid;
-  /* Three ways Taking CARE is offered (2026-09-28 brief: Outreach left). */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+/* Split: copy on col 1 or col 7, media on the other side, one column of air. */
+.home-page .pp-split { align-items: stretch; }
+.home-page .pp-split > .pp-split__media,
+.home-page .pp-split > .home-care-figure { grid-row: 1; grid-column: 1 / span 5; }
+.home-page .pp-split > .pp-split__body { grid-row: 1; grid-column: 7 / span 6; }
+.home-page .pp-split--flip > .pp-split__body { grid-column: 1 / span 6; }
+.home-page .pp-split--flip > .pp-split__media { grid-column: 8 / span 5; }
+.home-page .pp-split__body .pp-intro { margin-bottom: 0; }
+.home-page .pp-split__body .pp-intro__title,
+.home-chapter__head .pp-closing__title { font-size: var(--text-h1); }
+
+/* An inline link inside chapter text (the agreements, in Where to begin):
+   the reading-copy link style, with padding for a 24px target. */
+.home-chapter__body .pp-intro__body a {
+  padding: 3px 0;
+  color: var(--rim-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
+
+/* The CARE circle is the practice's own image. */
+/* Words centred against the circle (beats the split's stretch). */
+.home-page .pp-split.home-care { align-items: center; }
+.home-care-figure { margin: 0; align-self: center; }
+.home-care-figure .care-circle { max-width: 100%; }
+.home-care-words {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: var(--space-1) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  line-height: 1.4;
+}
+
+/* Card row: the three ways in, thirds of the grid. */
+.home-chapter + .home-paths,
+.home-chapter + .home-groups { margin-top: var(--space-5); }
+.home-paths > * { grid-column: span 4; }
 a.pp-card.home-paths__card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-1);
   color: inherit;
   text-decoration: none;
 }
@@ -28747,74 +28773,115 @@ a.pp-card.home-paths__card {
 .home-paths__card:hover .pp-card__title,
 .home-paths__card:focus-visible .pp-card__title { color: var(--rim-blue); }
 
-/* The CARE circle: the practice's own image, left of the words. */
-.home-care { align-items: center; }
-.home-care-figure { order: -1; margin: 0; }
-.home-care-figure .care-circle { max-width: 480px; }
-
-@media (min-width: 769px) {
-  .home-chapter,
-  .pp-closing.home-closing {
-    display: grid;
-    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
-    gap: 0 64px;
-    align-items: start;
-  }
-  .home-chapter--after .home-chapter__body { grid-column: 2; }
-  /* Inside the closing panel (48px side padding) the columns would start
-     13px right of the page's text column. Size the head column so the
-     panel's text lands exactly on the chapter grid's text edge:
-     (content + both paddings - gap) x 4/11, minus the left padding. */
-  .pp-closing.home-closing {
-    grid-template-columns: calc((100% + 96px - 64px) * 4 / 11 - 48px) minmax(0, 1fr);
-  }
-  .home-chapter__head .pp-intro__title,
-  .home-chapter__head .pp-closing__title,
-  .home-page .pp-split__body .pp-intro__title { font-size: var(--text-h1); }
+/* Practice for real life (Addendum C1, option C): three group panels in the
+   grid's thirds. One Pampas panel per group, the label at the top in the
+   eyebrow style, its examples stacked inside and separated by hairline
+   dividers, not separate boxes (the ruling of record: short text items on
+   white get borderless Pampas insets, never bare type; the panel is that
+   inset, the hairline divides within it). Panels in a row share a height
+   (grid stretch). Item text is --text-app (16px) so a third reaches ~40
+   characters per line; at 18px it measured ~33. */
+.home-groups { align-items: stretch; margin-bottom: var(--space-5); }
+.home-group {
+  grid-column: span 4;
+  box-sizing: border-box;
+  margin: 0;
+  border-radius: 12px;
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  background: var(--rim-bg);
 }
-@media (max-width: 1024px) {
-  .home-paths { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.home-group__label {
+  margin: 0 0 var(--space-2);
+  color: var(--rim-mid);
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
-@media (max-width: 900px) {
-  .home-care-figure .care-circle { max-width: 360px; }
-}
-@media (max-width: 600px) {
-  .home-paths { grid-template-columns: 1fr; }
-  .home-statement__lead { font-size: var(--text-h4); }
-}
-
-/* ── Home content, 2026-09-28 brief ──────────────────────────────────────────
-   Scoped to the home page. Eight particulars (was six): four columns at
-   desktop, two at the existing pp-uses tablet breakpoint (768), one on phones.
-   The eight CARE words as their own list inside the CARE chapter. The hero now
-   carries four short paragraphs, so they sit closer together than the single
-   paragraph's 34px, and the last keeps the gap before the buttons. */
-.home-uses { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 768px) {
-  .home-uses { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 430px) {
-  .home-uses { grid-template-columns: 1fr; }
-}
-
-.home-care-words {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, max-content));
-  gap: 8px 40px;
-  margin: 18px 0;
-  padding: 0;
-  list-style: none;
+.home-group__items { margin: 0; padding: 0; list-style: none; }
+.home-group__item { padding: var(--space-2) 0; }
+.home-group__item + .home-group__item { border-top: 1px solid var(--rim-rule); }
+.home-group__item:last-child { padding-bottom: 0; }
+.home-group__title {
+  margin: 0 0 var(--space-1);
   color: var(--rim-text);
   font-family: var(--font-serif);
   font-size: var(--text-h4);
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: var(--lh-heading);
 }
-@media (max-width: 430px) {
-  .home-care-words { grid-template-columns: 1fr; }
+.home-group__body {
+  margin: 0;
+  color: var(--rim-text);
+  font-size: var(--text-app);
+  line-height: var(--lh-body);
 }
 
+/* Closing panel: the chapter on a recessed ground. The ground bleeds 32px
+   past the container on each side and pads 32px back in, so its content box
+   IS the container's and the heading and body land on col 1 and col 7. */
+.pp-page--spine .pp-closing.home-closing {
+  max-width: none;
+  margin: 0 calc(var(--space-4) * -1);
+  padding: var(--space-5) var(--space-4);
+}
+
+/* Hero: four short paragraphs, closer than the single paragraph's 34px. */
 .home-page .pp-hero__body { margin-bottom: 14px; }
 .home-page .pp-hero__body:last-of-type { margin-bottom: 34px; }
+
+/* ── Below 1024: stack; text and cards in cols 1-10 ─────────────────────── */
+@media (max-width: 1023px) {
+  .home-page { --grid-gutter: 20px; }
+  .home-page .pp-section { padding: var(--space-5) 0; }
+  .home-page .pp-section--last { padding-bottom: var(--space-6); }
+  .home-chapter__head,
+  .home-page .pp-split > .pp-split__media,
+  .home-page .pp-split > .home-care-figure,
+  .home-page .pp-split--flip > .pp-split__media { grid-row: auto; grid-column: 1 / -1; }
+  .home-chapter__body,
+  .home-page .pp-split > .pp-split__body,
+  .home-page .pp-split--flip > .pp-split__body,
+  .home-paths > *,
+  .home-group { grid-row: auto; grid-column: 1 / span 10; }
+  .home-page .pp-split__media { min-height: 320px; }
+  .home-page .pp-split__body .pp-intro__title,
+  .home-chapter__head .pp-intro__title,
+  .home-chapter__head .pp-closing__title { font-size: var(--text-h2); }
+  /* Stacked, the image always comes first (the old --flip order: 2 still
+     applies above 900px). */
+  .home-page .pp-split--flip > .pp-split__media { order: 0; }
+  .home-care-figure .care-circle { max-width: 420px; }
+  .home-care-figure { order: -1; }
+  .home-paths, .home-groups { row-gap: var(--space-2); }
+  /* The 40px container margin still has room for the 32px bleed, so the
+     panel text stays on the page's left edge. */
+  .pp-page--spine .pp-closing.home-closing { padding: var(--space-4); }
+}
+@media (max-width: 768px) {
+  .pp-page--spine .pp-closing.home-closing { margin: 0; }
+}
+
+/* ── Below 600: one column ──────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .home-chapter,
+  .home-page .pp-split,
+  .home-paths,
+  .home-groups,
+  .pp-closing.home-closing { grid-template-columns: minmax(0, 1fr); }
+  .home-chapter__head,
+  .home-chapter__body,
+  .home-page .pp-split > *,
+  .home-page .pp-split--flip > *,
+  .home-paths > *,
+  .home-group { grid-column: 1 / -1; }
+  .home-page .pp-split__media { min-height: 260px; }
+  .home-statement__lead { font-size: var(--text-h4); }
+  .home-care-words { grid-template-columns: 1fr; }
+  .pp-page--spine .pp-closing.home-closing { padding: var(--space-3); }
+}
 
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,

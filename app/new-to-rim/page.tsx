@@ -177,14 +177,11 @@ export default function NewToRimPage() {
           </div>
 
           <div className="pp-actions">
-            <Link href="/this-week" className="pp-btn">
-              This week&rsquo;s schedule
+            <Link href="/community-programs" className="pp-btn">
+              Programs &amp; events
             </Link>
             <Link href="/join" className="pp-btn pp-btn--ghost">
               Become a member
-            </Link>
-            <Link href="/community-programs" className="pp-btn pp-btn--ghost">
-              Programs &amp; events
             </Link>
           </div>
         </div>

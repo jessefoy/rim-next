@@ -30,7 +30,7 @@ export interface CommunityAgreement {
 export const JOIN_HERO_TITLE = "Become a member";
 export const JOIN_HERO_INTRO =
   "RIM is a refuge we create together: a place for learning, practice, " +
-  "and honest friendship. Everyone is welcome, from all backgrounds and " +
+  "and fellowship. Everyone is welcome, from all backgrounds and " +
   "phases of life. Come as you are.";
 
 /**

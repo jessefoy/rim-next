@@ -118,7 +118,7 @@ export default function Nav() {
               {/* 2026-09-25 (revision 2): New to RIM is the newcomer's front
                   door and gets a link of its own, first, the way most practice
                   centers do it. The dropdowns stay short: Our Practice (why,
-                  how, roots, about), Programs (the schedule and the catalog),
+                  how, roots, about), Programs (the catalog, then the schedule; Addendum C2, 2026-09-28),
                   Get Involved (volunteering, groups, outreach). */}
               <Link href="/new-to-rim" className={`nav__link${isActive("/new-to-rim")}`}>
                 New to RIM
@@ -156,13 +156,13 @@ export default function Nav() {
                 </button>
                 <div className="nav__dropdown-panel">
                   <div className="nav__dropdown-panel-inner">
-                    <Link href="/this-week" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
-                      <div className="nav__dropdown-desc">What&apos;s happening day by day</div>
-                    </Link>
                     <Link href="/community-programs" className="nav__dropdown-link">
                       <div className="nav__dropdown-title">Programs &amp; Events</div>
                       <div className="nav__dropdown-desc">Drop-ins, classes, retreats, and groups</div>
+                    </Link>
+                    <Link href="/this-week" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
+                      <div className="nav__dropdown-desc">What&apos;s happening day by day</div>
                     </Link>
                   </div>
                 </div>
@@ -308,16 +308,16 @@ export default function Nav() {
                 About RIM
               </Link>
               <Link
-                href="/this-week"
-                className={`nav__mobile-link${isActive("/this-week")}`}
-              >
-                This Week&apos;s Schedule
-              </Link>
-              <Link
                 href="/community-programs"
                 className={`nav__mobile-link${isActive("/community-programs")}`}
               >
                 Programs &amp; Events
+              </Link>
+              <Link
+                href="/this-week"
+                className={`nav__mobile-link${isActive("/this-week")}`}
+              >
+                This Week&apos;s Schedule
               </Link>
               <Link
                 href="/volunteerism/volunteer"
