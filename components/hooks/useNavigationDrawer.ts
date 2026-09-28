@@ -10,10 +10,13 @@ export function useNavigationDrawer(open: boolean, onClose: () => void) {
     if (!open || !ref.current) return;
     const panel = ref.current;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
+    // Lock scrolling on <html>: it carries overflow-x: clip, so a body
+    // overflow never reaches the viewport (the public nav sheet, 2026-09-28).
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
     const controls = () => Array.from(panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex="0"]')).filter(el => el.getClientRects().length > 0);
     controls()[0]?.focus();
-    document.body.style.overflow = "hidden";
+    root.style.overflow = "hidden";
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") { event.preventDefault(); close.current(); return; }
       if (event.key !== "Tab") return;
@@ -25,7 +28,7 @@ export function useNavigationDrawer(open: boolean, onClose: () => void) {
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previousOverflow;
+      root.style.overflow = previousOverflow;
       if (opener?.isConnected) opener.focus();
     };
   }, [open]);
