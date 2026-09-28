@@ -433,6 +433,8 @@ The public site was reorganized so RIM's stated center is the first thing a visi
 
 ## The home page composition (session 172)
 
+> **Superseded 2026-09-28:** the home page is now composed on "The strategic grid" above. What holds today: text-led chapters use the chapter layout (heading cols 1-5, text cols 7-12); images stagger (the CARE circle left, the trees right, the lotus left); Practice for real life is three group panels in thirds; the three ways in are a card row in thirds; the closing panel keeps the page's edges. The Buddha-and-lotus photo was tried beside Practice for real life on 2026-09-27 and removed the same day (awkward beside one paragraph). The copy source for the home page is the vault's `04-community-homepage-revision-2026-09-28.md`. The notes below are the session-172 history.
+
 - **Splits alternate** — image right (What we do) / left (Community) / right (Dana). Both had carried `--flip`; every image on one side was the redundancy Jesse flagged.
 - **The doors are dynamic** — the live `ProgramCategory` taxonomy (Program Manager's rows, sortOrder), each with a kind-derived public line + offerings count (`KIND_LINES` in `app/page.tsx`), deep-linking to the listing's category anchors. Empty categories get no door; the page is `force-dynamic`. `categoryDisplayName` (lib/programUtils.ts) is shared with the listing so the one editorial rename can't drift. **Badges/doors come from data** — the s170 rule, now honored.
 - **The doors chapter uses the split grammar** — words left, doors right (Light-Pampas insets on the white section: white cards on white were invisible; an inset, not a lifted card, so no shadow).

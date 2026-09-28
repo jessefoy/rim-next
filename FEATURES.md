@@ -51,6 +51,15 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Balanced reading pages:** ten reading pages (`.pp-page--column`) sit in one centred column with the program-detail header (centred eyebrow, title and line; 13px / 52px / 20px; vertical scrim). Closing panels fill their area; button labels never wrap above 560px; headings balance. See `RIM_Public_Pages.md` → "The reading column".
 - Copy source of truth: the vault's `04-community-website-copy-2026-09-25.md` (revisions 4–7). Provisional until Jesse's read-aloud.
 
+## September 27-28, 2026: home on a strategic grid, new home copy, new agreements
+
+- **Home copy** from the vault's `04-community-homepage-revision-2026-09-28.md` (implemented from the brief `08-promotion-site-brief-home-2026-09-28.md`): a four-paragraph hero, What brings us together, Practice for real life in three group panels (Daily life / Who we are and how we live / Beyond ourselves), Taking CARE as RIM's root practice with the eight words as a list and the CARE circle as the section's image, Deep roots, three ways in (Foundations, Learning & Practice, Immersion), Taking part in something larger (Volunteering, Outreach), Dana, It matters how we live. The three asks sit in Where to begin.
+- **The programs page first:** hero and closing buttons go to `/community-programs`; the Learning & Practice card goes to the catalog's drop-ins chapter (found from the live taxonomy); the nav's Programs menu lists Programs & Events first; `/new-to-rim` closes on Programs & events.
+- **Community Care Agreements** (2026-09-28, approved by Jesse): a new Our Shared Vision frame and three agreements (sincere wish to practice; privacy, safety and repair; financial support asked plainly). One source, `lib/communityAgreements.ts`, five surfaces. `/join` says "learning, practice, and fellowship."
+- **The strategic grid:** one 12-column grid, two text edges, an 8px vertical scale (`--space-1..7`), named layouts; home is the first page on it. See `RIM_Public_Pages.md` → "The strategic grid" (with the migration order for the other pages).
+- **Program data fixes** (2026-09-27): Good Morning's room opens at 6:20 AM; Good Evening "close your day."
+- **Nav, modernized:** built from the approved proposal (`mockups/nav-2026-09-28/`) on the local branch `nav-2026-09-28`, **not yet live**: top labels as links with arrow buttons, hover-intent panels with lines under each link, Donate as a tokened pill, a labeled Menu button and a grouped modal sheet on phones.
+
 ## For depth, see
 
 | Topic | Authoritative doc |

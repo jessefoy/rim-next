@@ -1,3 +1,53 @@
+## 2026-09-28 — Home on a strategic grid, new home copy, new agreements; the nav built (not yet live)
+
+Spans 2026-09-27 (after the recovery closing) and 2026-09-28. Jesse worked in Claude chat and brought a brief in the vault (`CARE/4 Promotion/08-promotion-site-brief-home-2026-09-28.md`, Parts A-C and Addenda A, B, C), with the words sourced from `04-community-homepage-revision-2026-09-28.md` (the home draft, which wins any difference). Ten commits on `main`, `2bbbd05` … `8e406cb`; the nav on a local branch.
+
+### Built and live
+
+- **2026-09-27:** the Buddha-and-lotus photo returned beside Practice for real life, then was removed the same day (Jesse: awkward beside one paragraph). Two factual errors in program data fixed by a flag-guarded migration (`program_copy_errors_2026_09_27_v1`): Good Morning's room opens at 6:20 AM, and Good Evening "close your day". Two home layout passes (`9aad401`, `9eab272`): the CARE circle replaced the four text cards, images staggered, an editorial chapter grid.
+- **The 2026-09-28 home draft** (`0ccdd2e`): the hero in four short paragraphs ("the patterns of mind and action that cause suffering"), What brings us together, eight particulars, Taking CARE as RIM's root practice with the eight words as a list, Deep roots, three ways in, "Taking part in something larger" (Volunteering, Outreach), Dana, It matters how we live; New to RIM's three asks. Checked verbatim against the draft before building.
+- **Community Care Agreements** (`e63ef3e`, Addendum A): the new Our Shared Vision frame and three agreements, verbatim from the vault copy doc (approved by Jesse, "I do like the agreements that you wrote"). One source, five surfaces; checked live on `/community-care-agreements`, `/join` and program registration.
+- **The strategic grid** (`804b5e3`, Addendum B/C): audit first (the home page had 21 distinct left edges at 1280 and card text of 17-32 characters per line; the program detail page had 2 edges), then a written system in `RIM_Public_Pages.md` ("The strategic grid"): one 12-column grid, two text edges (col 1, col 7), an 8px vertical scale (`--space-1..7`), named layouts (chapter, split, card row, group panels, closing panel, reading column), and a migration order for the other pages. The home page is the first on it.
+- **Practice for real life** as three Pampas group panels in thirds (C1, option C): Daily life, Who we are and how we live, Beyond ourselves; hairline dividers; equal heights; the eye ends on A deeper freedom. The orphaned `.pp-uses` rules removed.
+- **The programs page first** (C2): hero and closing buttons "Programs & events" → `/community-programs`; the Learning & Practice card to the catalog's drop-ins chapter (found from the live taxonomy); the nav's Programs menu lists Programs & Events first; `/new-to-rim`'s closing button.
+- **B4:** the three asks moved to Where to begin, with an inline link to the agreements. **B1:** `/join` says "fellowship."
+- **Design detector:** a shared `.impeccable/config.json` exception for Open Sans (`8e406cb`), confirmed by Jesse.
+
+### Built, not live: the nav (Addendum C3)
+
+Audit, a written proposal and a mockup first (`mockups/nav-2026-09-28/`, `PROPOSAL.md`), then the build from Jesse's choices, committed to the **local branch `nav-2026-09-28` (`6d58ba4`), not pushed**: top labels as links (Programs → `/community-programs`) with 44px arrow buttons; panels on hover intent, arrow, or keyboard, closing on Escape or an outside click; the panel with `--card-shadow` plus a hairline edge; Donate as the site pill "Donate" from new tokens `--rim-donate` / `--rim-donate-dark`; a 72px phone bar with logo, Donate and a labeled Menu button; a full-height modal sheet grouped like the desktop, no descriptions, with focus trap, scroll lock and focus return. Screenshots sent; waiting on Jesse's go.
+
+### Decisions and why
+
+- **A strategic grid, not per-section layouts** (Jesse: "a truly solid proportional system for the site"). The program detail page is the model for its type and already sits on the grid (its 700 column is cols 3-10).
+- **Option C for the practice groups** (Jesse): thirds cap item text at about 32-36 characters per line even at 16px, below the 40-60 target; accepted and recorded.
+- **The programs page is the primary destination** (Jesse); This Week is secondary.
+- **The landlord line stays out** (Jesse); it never shipped.
+- **Nav:** "Outreach for Organizations" kept; "Community Groups" approved; the panel shadow approved as an extension of the one sanctioned card lift.
+
+### Method worth keeping
+
+Screenshots of unpushed work without a dev server: render the server component to static HTML with `tsx` and a stand-in for its database query, place it in the live page's shell (scripts stripped, local CSS inlined, `<base href>` to the live site), and shoot with headless Chrome. Headless Chrome will not lay out narrower than about 500px, so phone shots go through a 375px iframe. The render script is temporary and deleted after use.
+
+### What this connects to
+
+The agreements text reaches `/join`, `/account/welcome`, program registration, `/account/community-care` and `/community-care-agreements`. The grid tokens are new in `:root` and used only by the home page so far. The nav (on the branch) is the public header on every public page; the member-area header is unchanged. The catalog anchor for Learning & Practice depends on `ProgramCategory.kind` (DROP_IN / CLASS), like Immersion's.
+
+### Evidence and limits
+
+`tsc` clean at every commit; lint adds no new warnings on changed files (the nav branch adds one `<img>` warning, like its two siblings). A reviewer sub-agent found six real problems in the grid diff, all fixed before commit. Live checks after each deploy: edges on the grid at 1440 / 1024 / 900 / 375, no overflow, no wrapped buttons; agreements verbatim on three surfaces. Style check on the new copy: four hits, all the draft's words, defended. Not verified: the signed-in agreement surfaces, and the nav's hover and keyboard behavior (static screenshots only; to be tested live after push).
+
+### What comes next
+
+Jesse's go on the nav branch (then merge, push, and test hover, keyboard and the phone sheet live). The grid's migration order for the other pages (backlog). Held from the brief: where to begin before November, the `/care` title (Taking Care or Taking CARE), and the About page's superseded mission.
+
+### Closing audit
+
+- **Updated:** this entry, `FEATURES.md`, `RIM_Public_Pages.md` (the grid section, the home composition note), `RIM_Stack_Reference.md` (tokens, the program copy fix migration, the detector config), `UP_NEXT.md`, `data/backlog.json`.
+- **No change needed:** `RIM_System_Architecture.md` (no hub, tool, role or permission logic), `RIM_Editor_Types.md` (no editor surface), hub engineering docs (no hub code; the four-layer audit does not apply), `RIM_Email_Engineering.md` (**no email templates touched**; the one migration changed program copy, not template rows). No new tool.
+
+---
+
 ## 2026-09-27 — Recovery after the withdrawn Codex review
 
 Jesse ran a ChatGPT audit of the site and had Codex implement it ("newcomer review", 23 commits, 2026-09-26 16:29–20:08, authored as jessefoy). It "really messed up a lot of the design," so he had Codex revert; the revert was incomplete. This session inventoried the damage and restored the state at the end of the September 26 Claude session (`5a2c1ee`).

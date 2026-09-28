@@ -1,29 +1,20 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated at closing, 2026-09-27. Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated at closing, 2026-09-28. Full history belongs in `session-log.md`.
 
-## Active — brief, handout, one vision, balanced reading pages (2026-09-26, live; awaiting Jesse's read-aloud)
+## Active — home on the strategic grid, new agreements; the nav built on a branch (2026-09-28)
 
-**Live** (`b9ec334` … `1fc597c`): the site revision brief (home hero, What brings us together, For organizations, Outreach in headed sections with a training invitation, Donate as dana works, Practicing together, lineage corrections); `/care` is the practice handout (eight words, no pairs; clarity and presence; Buddha nature glossed); one vision and one mission from `lib/communityAgreements.ts` (Jesse's arc; the agreements frame carries it); the circle of benefit said one way; reading pages in one centred column with the program-detail header. Detail: `session-log.md` 2026-09-26; rulings in the vault master reference (Sections 2, 3, 10, Appendix A 2026-09-26).
+**Live** (`2bbbd05` … `8e406cb`): the 2026-09-28 home draft (hero, What brings us together, Practice for real life in three group panels, Taking CARE as root practice with the circle, three ways in, Taking part in something larger); the programs page first (hero, closing, Learning & Practice card, nav Programs order, `/new-to-rim`); the new Community Care Agreements on all five surfaces; the home page on the strategic grid (`RIM_Public_Pages.md` → "The strategic grid"); the 6:20 AM / "close your day" program fixes; the Open Sans detector exception. Detail: `session-log.md` 2026-09-28.
 
-**Recovered 2026-09-27** after a Codex "newcomer review" (23 commits, 2026-09-26 16:29–20:08) and its incomplete rollback. App code matches `5a2c1ee` again (the rollback had left the home page at its 9/24 version); program data verified restored on the live pages (31 text edits, study category, retreat facilitators, retreat fixed $175, empty teacher bio); the vault copy doc is back to 692 lines, with Codex's appended revisions 8+ archived in `CARE/Archive/04-community-website-copy-newcomer-review-withdrawn-2026-09-26.md`. The one-time `revertNewcomerReview` migration stays in `migrate.mjs` (flag-guarded no-op). Arrival facts Jesse gave Codex are kept in backlog `2026-08-10-002`. See `session-log.md` 2026-09-27.
+**Copy sources:** home = the vault's `CARE/4 Promotion/04-community-homepage-revision-2026-09-28.md` (it wins any difference with a brief); everything else and the agreements = `04-community-website-copy-2026-09-25.md`. Briefs arrive as `08-promotion-site-brief-*.md` with addenda; implement them verbatim and report as they ask.
 
-**Next concrete step:** Jesse's answers to the three recovery decisions below; then the read-aloud of the vault copy doc (revisions 4–7). ChatGPT's audit suggestions Jesse liked can return one at a time through the normal loop (vault first, his read-aloud), never as a batch.
+**The nav is built but NOT live.** It is committed on the local branch **`nav-2026-09-28` (`6d58ba4`)**, not pushed. Jesse has the screenshots (desktop panel open, phone header, phone sheet). **Next concrete step:** on Jesse's go, merge the branch into `main` (rebase if `main` moved), push, then test live: hover intent, arrow buttons, Escape and outside click, keyboard focus, the phone sheet's focus trap, scroll lock and focus return, signed in and out (Members shows "Hi, [name]").
 
-**Decisions the recovery surfaced (Jesse's):** the Buddha-and-lotus home photograph Codex restored at his request (not on the 5a2c1ee home); two real errors in program data that the rollback restored (Good Morning Silent Meditation says "6:20 PM"; Good Evening says "begin your day"), fixable in Program Manager; the retreat's voluntary-dana switch (still fixed $175, as before).
+**Waiting on Jesse:** the go on the nav; the brief's held items (where to begin before November; `/care` title Taking Care vs Taking CARE; the About page still shows the superseded mission); the vision triad (`RIM_WHAT_BINDS` holding phrase); earlier: parking and which door (`2026-08-10-002`, facts supplied, publication paused), Foundations dates (`2026-09-25-001`).
 
-**Copy source of truth is the vault:** `CARE/4 Promotion/04-community-website-copy-2026-09-25.md` (revisions 4–7 at the top). Change words there first, then in code. Vision/mission: change `RIM_VISION` / `RIM_MISSION` / `RIM_WHAT_BINDS`, never retype them.
+**Queued:** the other public pages onto the grid (`2026-09-28-001`, order in `RIM_Public_Pages.md`); the button pass on untouched pages (`2026-09-25-002`); First Steps (`2026-09-25-003`); the recording (`2026-09-25-004`). **October 5** is the real-domain launch: Webflow redirects (`2026-08-07-003`) and forms audit (`2026-08-10-003`) still open. Two primary buttons still go to `/this-week` by Jesse's choice (teacher profiles' "See this week").
 
-**Waiting on Jesse:**
-- **The triad** in the vision ("unhealthy views, skills, and habits" as spoken; he is weighing "views, states, and habits", relatable and including actions). Holding phrase on the site: "unhealthy patterns of mind and action" (`RIM_WHAT_BINDS`, one edit).
-- Whether the **handout** takes "clarity" and "presence" and the Buddha nature gloss, so page and handout stay identical.
-- Whether home's CARE card titles ("Calm and Connect"…) still read as pairs (eight single-word cards is the alternative).
-- Carried from the brief: Taking Care vs Taking CARE; the handout promise at signup; whether teachers receive no salary from RIM; the MBSR line (now on Our Roots only).
-- Earlier: parking and which door (`2026-08-10-002`); the eight one-line word descriptions; Foundations format and dates (`2026-09-25-001`); whether the circle belongs anywhere besides `/care`.
-
-**Next concrete step:** the read-aloud of the vault document (revisions 4–7 first), then flow his flags to the pages. With Jesse signed in, confirm the new Our Shared Vision frame on `/account/welcome` and `/account/community-care`.
-
-**Queued:** the button pass on untouched public pages (`2026-09-25-002`); First Steps (`2026-09-25-003`); the ten-minute recording (`2026-09-25-004`); team missions as repeated actions (`2026-09-26-001`). **October 5** is the real-domain launch: Webflow redirects (`2026-08-07-003`) and forms audit (`2026-08-10-003`) still open. The impeccable skill has an update available (v4.4.0; `npx impeccable update`), offered, not run.
+**Method (for screenshots of unpushed work):** render with `tsx` and a stand-in for the DB query, put it in the live page shell with local CSS, shoot with headless Chrome; phones through a 375px iframe (Chrome will not lay out under ~500px). Delete the temporary script after.
 
 ## Still open from September 24 (integrity pass)
 

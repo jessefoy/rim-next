@@ -1191,9 +1191,9 @@
     "description": "Measured on production: nav items Programs / Get Involved / Members are 38px tall, Donate 36px, the footer phone link 24px. RIM's own CSS rule is a 44px minimum on interactive elements. Shared by every page via components/Nav.tsx and the root layout footer.",
     "category": "Nav & Layout",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-08-07",
-    "notes": "Found during the session-170 /impeccable pass; out of scope there."
+    "notes": "Found during the session-170 /impeccable pass; out of scope there. 2026-09-28: measured, every nav and footer control is 44px (met since session 176); the nav rebuild on branch nav-2026-09-28 keeps the floor, with a 44px hit area on the new arrow buttons."
   },
   {
     "id": "2026-08-07-010",
@@ -1484,5 +1484,15 @@
     "status": "open",
     "addedAt": "2026-09-26",
     "notes": "Master reference Section 3 marks it [Open]."
+  },
+  {
+    "id": "2026-09-28-001",
+    "title": "Migrate the other public pages onto the strategic grid",
+    "description": "The home page is the first page on the strategic grid (RIM_Public_Pages.md, 'The strategic grid', 2026-09-28). Migrate the rest in the order listed there: /donate; /community-programs and /this-week; /volunteerism/volunteer; the Kalyana Mitta pages; /diversity; /teachers; /courses and /course/[slug]; confirm the reading pages; then /programs/[slug], /join, /login, and the 32px tablet margin sitewide with .rim-container. Audit each page first (edges, measures, spacing), and send before/after screenshots.",
+    "category": "CSS & Design",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-09-28",
+    "notes": "Launch is October 5; migrate in later passes. Also: .pp-btn relies on the browser's default focus ring; give it the site's focus style (3px --rim-mid) in the same pass."
   }
 ]
