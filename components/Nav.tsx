@@ -25,6 +25,9 @@ export default function Nav() {
   const closeButton = useRef<HTMLButtonElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const hoverTimer = useRef<number | null>(null);
+  // Which panel hover opened, so a click on its arrow pins it rather than
+  // closing what the pointer just revealed.
+  const hoverOpened = useRef<string | null>(null);
 
   const firstName = session?.user?.name?.split(" ")[0] ?? null;
   const menus = publicMenus(isLoggedIn, firstName);
@@ -38,14 +41,23 @@ export default function Nav() {
   const hoverMenu = (id: string | null) => {
     clearHover();
     const delay = id === null ? 300 : openMenu ? 80 : 300;
-    hoverTimer.current = window.setTimeout(() => setOpenMenu(id), delay);
+    hoverTimer.current = window.setTimeout(() => {
+      hoverOpened.current = id;
+      setOpenMenu(id);
+    }, delay);
   };
   const toggleMenu = (id: string) => {
     clearHover();
+    if (hoverOpened.current === id && openMenu === id) {
+      hoverOpened.current = null;
+      return;
+    }
+    hoverOpened.current = null;
     setOpenMenu((current) => (current === id ? null : id));
   };
   const closeMenu = (focusId?: string) => {
     clearHover();
+    hoverOpened.current = null;
     setOpenMenu(null);
     if (focusId) caretRefs.current[focusId]?.focus();
   };
@@ -53,6 +65,10 @@ export default function Nav() {
   // Close transient chrome on route change
   useEffect(() => {
     // Navigation closes transient chrome after the new route commits.
+    // A pending hover timer must not reopen a panel on the new page.
+    if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = null;
+    hoverOpened.current = null;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuOpen(false);
     setOpenMenu(null);
@@ -108,9 +124,17 @@ export default function Nav() {
       }
     };
     document.addEventListener("keydown", onKey);
+    // Widening past the phone layout (an iPad rotating) hides the Menu
+    // button, so the sheet closes rather than stranding focus on a hidden one.
+    const wide = window.matchMedia("(min-width: 1061px)");
+    const onWide = (event: MediaQueryListEvent) => {
+      if (event.matches) setMenuOpen(false);
+    };
+    wide.addEventListener("change", onWide);
     return () => {
       document.body.style.overflow = previous;
       document.removeEventListener("keydown", onKey);
+      wide.removeEventListener("change", onWide);
     };
   }, [menuOpen]);
 
@@ -224,6 +248,7 @@ export default function Nav() {
           sheetRef={sheet}
           closeRef={closeButton}
           onClose={closeSheet}
+          onNavigate={() => setMenuOpen(false)}
         />
       )}
     </header>
@@ -311,7 +336,15 @@ function CloseIcon() {
   );
 }
 
-function MenuEntry({ item, className }: { item: MenuItem; className: string }) {
+function MenuEntry({
+  item,
+  className,
+  onNavigate,
+}: {
+  item: MenuItem;
+  className: string;
+  onNavigate?: () => void;
+}) {
   if (item.action === "signout") {
     return (
       <button type="button" className={className} onClick={() => signOut({ callbackUrl: "/" })}>
@@ -321,7 +354,7 @@ function MenuEntry({ item, className }: { item: MenuItem; className: string }) {
     );
   }
   return (
-    <Link href={item.href ?? "/"} className={className}>
+    <Link href={item.href ?? "/"} className={className} onClick={onNavigate}>
       <span className="nav__panel-title">{item.title}</span>
       <span className="nav__panel-desc">{item.desc}</span>
     </Link>
@@ -361,16 +394,27 @@ export function PublicDesktopNav({
           <div
             key={menu.id}
             className={`nav__dropdown${open ? " nav__dropdown--open" : ""}`}
-            onMouseEnter={() => onHover(menu.id)}
-            onMouseLeave={() => onHover(null)}
+            // Hover intent is for a mouse only: a tap on touch sends an
+            // enter event too, and must not start a timer.
+            onPointerEnter={(event) => {
+              if (event.pointerType === "mouse") onHover(menu.id);
+            }}
+            onPointerLeave={(event) => {
+              if (event.pointerType === "mouse") onHover(null);
+            }}
             onKeyDown={(event) => {
               if (event.key === "Escape" && open) {
                 event.stopPropagation();
                 onClose(menu.id);
               }
             }}
+            // Close when focus moves to something outside. A blur with no
+            // new target is a click (Safari does not focus links on click);
+            // the outside-click listener handles that, so a mouse click on a
+            // keyboard-opened panel still reaches its link.
             onBlur={(event) => {
-              if (open && !event.currentTarget.contains(event.relatedTarget as Node | null)) onClose();
+              const next = event.relatedTarget as Node | null;
+              if (open && next && !event.currentTarget.contains(next)) onClose();
             }}
           >
             {menu.href ? (
@@ -413,7 +457,12 @@ export function PublicDesktopNav({
               hidden={!open}
             >
               {menu.items.map((item) => (
-                <MenuEntry key={item.title} item={item} className="nav__panel-link" />
+                <MenuEntry
+                  key={item.title}
+                  item={item}
+                  className="nav__panel-link"
+                  onNavigate={() => onClose()}
+                />
               ))}
             </div>
           </div>
@@ -430,6 +479,7 @@ export function PublicNavSheet({
   sheetRef,
   closeRef,
   onClose,
+  onNavigate,
 }: {
   menus: Menu[];
   isLoggedIn: boolean;
@@ -437,6 +487,7 @@ export function PublicNavSheet({
   sheetRef?: React.RefObject<HTMLDivElement | null>;
   closeRef?: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
+  onNavigate: () => void;
 }) {
   const groups = menus.filter((menu) => menu.id !== "members");
   const agreements = { title: "Community Care Agreements", href: "/community-care-agreements" };
@@ -450,7 +501,7 @@ export function PublicNavSheet({
       ref={sheetRef}
     >
       <div className="nav__sheet-top">
-        <Link href="/" className="nav__brand">
+        <Link onClick={onNavigate} href="/" className="nav__brand">
           <img src="/images/Rooted-In-Mindfulness-Logo.png" alt="Rooted In Mindfulness" height={40} />
           <span className="nav__brand-name">Rooted In Mindfulness</span>
         </Link>
@@ -460,7 +511,7 @@ export function PublicNavSheet({
         </button>
       </div>
       <nav className="nav__sheet-body" aria-label="Main navigation">
-        <Link href="/new-to-rim" className={`nav__sheet-lead${isActive("/new-to-rim")}`}>
+        <Link onClick={onNavigate} href="/new-to-rim" className={`nav__sheet-lead${isActive("/new-to-rim")}`}>
           New to RIM
         </Link>
         {groups.map((menu) => (
@@ -468,6 +519,7 @@ export function PublicNavSheet({
             <p className="nav__sheet-label">{menu.label}</p>
             {menu.items.map((item) => (
               <Link
+                onClick={onNavigate}
                 key={item.title}
                 href={item.href ?? "/"}
                 className={`nav__sheet-link${item.href ? isActive(item.href) : ""}`}
@@ -477,6 +529,7 @@ export function PublicNavSheet({
             ))}
             {menu.id === "involved" && (
               <Link
+                onClick={onNavigate}
                 href={agreements.href}
                 className={`nav__sheet-link${isActive(agreements.href)}`}
               >
@@ -490,19 +543,19 @@ export function PublicNavSheet({
         <div className="nav__sheet-pair">
           {isLoggedIn ? (
             <>
-              <Link href="/account/dashboard">My Home</Link>
+              <Link onClick={onNavigate} href="/account/dashboard">My Home</Link>
               <button type="button" onClick={() => signOut({ callbackUrl: "/" })}>
                 Sign out
               </button>
             </>
           ) : (
             <>
-              <Link href="/login">Sign in</Link>
-              <Link href="/join">Become a member</Link>
+              <Link onClick={onNavigate} href="/login">Sign in</Link>
+              <Link onClick={onNavigate} href="/join">Become a member</Link>
             </>
           )}
         </div>
-        <Link href="/donate" className="nav__donate nav__donate--block">
+        <Link onClick={onNavigate} href="/donate" className="nav__donate nav__donate--block">
           Donate
         </Link>
       </div>
