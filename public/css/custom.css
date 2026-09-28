@@ -8164,7 +8164,7 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   border-bottom: 1px solid var(--rim-bg-accent);
 }
 .nav__sheet-top .nav__menu-btn { display: inline-flex; }
-.nav__sheet-body { flex: 1; overflow-y: auto; padding: var(--space-1) 0 var(--space-3); }
+.nav__sheet-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-1) 0 var(--space-3); }
 .nav__sheet-lead {
   display: flex;
   align-items: center;

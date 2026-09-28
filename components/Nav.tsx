@@ -101,8 +101,12 @@ export default function Nav() {
   };
   useEffect(() => {
     if (!menuOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Lock on <html>, not <body>: html carries overflow-x: clip, so a body
+    // overflow never reaches the viewport and the page kept scrolling behind
+    // the sheet (measured live 2026-09-28).
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = "hidden";
     closeButton.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -132,7 +136,7 @@ export default function Nav() {
     };
     wide.addEventListener("change", onWide);
     return () => {
-      document.body.style.overflow = previous;
+      root.style.overflow = previous;
       document.removeEventListener("keydown", onKey);
       wide.removeEventListener("change", onWide);
     };
