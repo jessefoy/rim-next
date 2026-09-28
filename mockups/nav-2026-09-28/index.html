@@ -1,0 +1,195 @@
+<!doctype html>
+<!--
+  NAV PROPOSAL MOCKUP — 2026-09-28 (Addendum C3 of 08-promotion-site-brief-home-2026-09-28.md)
+  A reference for Jesse's decision, not shipped design (see mockups/README.md).
+  Uses the live stylesheet for tokens and fonts; the mock's own rules carry an
+  mk- prefix and use only :root tokens. Open with ?state=desktop, desktop-caps,
+  mobile-a, mobile-b, sheet, sheet-desc.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nav proposal — mockup</title>
+<link rel="stylesheet" href="https://rim-next.vercel.app/css/custom.css">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<style>
+  /* The grid's spacing tokens (not yet on the live stylesheet). */
+  :root { --space-1: 8px; --space-2: 16px; --space-3: 24px; --space-4: 32px; --space-5: 48px; }
+  body { margin: 0; background: var(--rim-bg); font-family: var(--font-sans); color: var(--rim-text); }
+  body [data-state] { display: none; }
+  body.s-desktop [data-state~="desktop"],
+  body.s-desktop-caps [data-state~="desktop-caps"],
+  body.s-mobile-a [data-state~="mobile-a"],
+  body.s-mobile-b [data-state~="mobile-b"],
+  body.s-sheet [data-state~="sheet"],
+  body.s-sheet-desc [data-state~="sheet-desc"] { display: block; }
+  body.s-desktop .mk-donate[data-state~="desktop"],
+  body.s-desktop-caps .mk-donate[data-state~="desktop-caps"] { display: inline-flex; }
+
+  /* ── Desktop bar: flush, full-width white (kept) ───────────────────────── */
+  .mk-bar { background: var(--rim-surface); }
+  .mk-bar__inner { max-width: 1140px; margin: 0 auto; padding: 0 40px; box-sizing: border-box;
+    height: 100px; display: flex; align-items: center; gap: var(--space-2); }
+  .mk-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--rim-text);
+    font-family: var(--font-serif); font-size: var(--text-h4); margin-right: auto; }
+  .mk-brand img { height: 45px; }
+  .mk-items { display: flex; align-items: center; gap: 4px; }
+  .mk-item { position: relative; display: flex; align-items: center; }
+  /* A top-level label is a real link; the caret beside it is the disclosure
+     button (NN/g's accessible split pattern). One 44px target each. */
+  .mk-link { display: inline-flex; align-items: center; min-height: 44px; box-sizing: border-box;
+    padding: 0 10px; border-radius: 8px; color: var(--rim-text); text-decoration: none;
+    font-size: var(--text-app); font-weight: 500; white-space: nowrap; }
+  .mk-link:hover, .mk-item--open > .mk-link { color: var(--rim-blue); background: var(--rim-bg); }
+  .mk-caret { display: inline-flex; align-items: center; justify-content: center; width: 28px; min-height: 44px;
+    margin-left: -6px; border: 0; background: none; color: var(--rim-text-muted); border-radius: 8px; cursor: pointer; }
+  .mk-caret svg { width: 12px; height: 12px; transition: transform 0.15s ease; }
+  .mk-item--open .mk-caret svg { transform: rotate(180deg); }
+  .mk-item--open .mk-caret { color: var(--rim-blue); }
+  /* The panel: a white card over the page. It takes the one sanctioned lift,
+     --card-shadow, because over a white section a shadowless white panel has
+     no edge at all (the current panel has this problem). */
+  .mk-panel { position: absolute; top: calc(100% + 8px); left: 0; width: 340px; box-sizing: border-box;
+    padding: var(--space-1); border-radius: 12px; background: var(--rim-surface); box-shadow: var(--card-shadow),
+    0 0 0 1px var(--rim-bg-accent); z-index: 5; }
+  .mk-panel a { display: block; padding: 12px 16px; border-radius: 8px; text-decoration: none; color: var(--rim-text); }
+  .mk-panel a:hover, .mk-panel a.mk-hover { background: var(--rim-bg-bright); }
+  .mk-panel a:hover .mk-panel__title, .mk-panel a.mk-hover .mk-panel__title { color: var(--rim-blue); }
+  .mk-panel__title { display: block; font-size: var(--text-app); font-weight: 600; line-height: 1.35; }
+  .mk-panel__desc { display: block; margin-top: 2px; font-size: var(--text-small); line-height: 1.45; color: var(--rim-text-muted); }
+  .mk-focus { outline: 3px solid var(--rim-mid); outline-offset: 2px; }
+
+  /* Donate: the one colored action. B is the site's pill voice; A is today's. */
+  .mk-donate { display: inline-flex; align-items: center; min-height: 44px; box-sizing: border-box; padding: 0 22px;
+    margin-left: var(--space-1); border-radius: 999px; background: #c23b3b; white-space: nowrap; color: #fff; text-decoration: none;
+    font-size: var(--text-small); font-weight: 600; }
+  .mk-donate--caps { font-size: var(--text-label); font-weight: 700; letter-spacing: 0.08em; padding: 0 18px; }
+
+  .mk-page { max-width: 1140px; margin: 0 auto; padding: 0 40px; box-sizing: border-box; }
+  .mk-hero { height: 460px; background: linear-gradient(90deg, var(--rim-dark), var(--rim-blue)); }
+  .mk-note { max-width: 1140px; margin: 0 auto; padding: 18px 40px; box-sizing: border-box; font-size: var(--text-small); color: var(--rim-text-muted); }
+
+  /* ── Mobile header ─────────────────────────────────────────────────────── */
+  .mk-mbar { background: var(--rim-surface); height: 72px; padding: 0 16px 0 20px; box-sizing: border-box;
+    display: flex; align-items: center; gap: var(--space-1); }
+  .mk-mbar .mk-brand { font-size: var(--text-app); gap: 10px; }
+  .mk-mbar .mk-brand img { height: 40px; }
+  .mk-menu-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
+    border: 0; border-radius: 999px; background: var(--rim-bg); color: var(--rim-text);
+    font: 600 var(--text-small)/1 var(--font-sans); cursor: pointer; }
+  .mk-menu-btn svg { width: 18px; height: 18px; }
+  .mk-mbar .mk-donate { min-height: 44px; padding: 0 16px; margin: 0; }
+
+  /* ── Mobile sheet: full height, grouped like the desktop panels ────────── */
+  .mk-sheet { height: 100vh; min-height: 812px; box-sizing: border-box; display: flex; flex-direction: column; background: var(--rim-surface); }
+  .mk-sheet__top { height: 72px; flex: none; padding: 0 16px 0 20px; display: flex; align-items: center; border-bottom: 1px solid var(--rim-bg-accent); }
+  .mk-sheet__body { flex: 1; overflow: auto; padding: var(--space-1) 0 var(--space-3); }
+  .mk-sheet__lead { display: flex; align-items: center; min-height: 56px; margin: var(--space-2) 20px var(--space-1);
+    padding: 0 18px; border-radius: 12px; background: var(--rim-bg); color: var(--rim-blue); text-decoration: none;
+    font: 600 var(--text-body)/1.3 var(--font-sans); }
+  .mk-sheet__group { padding: var(--space-3) 20px 0; }
+  .mk-sheet__label { margin: 0 0 4px; color: var(--rim-mid); font: 700 var(--text-xxs)/1.4 var(--font-sans);
+    letter-spacing: 0.15em; text-transform: uppercase; }
+  .mk-sheet__link { display: flex; flex-direction: column; justify-content: center; min-height: 48px; box-sizing: border-box;
+    padding: 8px 0; border-bottom: 1px solid var(--rim-bg-accent); color: var(--rim-text); text-decoration: none;
+    font-size: var(--text-body); font-weight: 500; }
+  .mk-sheet__link:last-child { border-bottom: 0; }
+  .mk-sheet__link small { font-size: var(--text-small); font-weight: 400; color: var(--rim-text-muted); margin-top: 2px; }
+  .mk-sheet__foot { flex: none; padding: var(--space-2) 20px calc(var(--space-2) + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--rim-bg-accent); background: var(--rim-surface); display: grid; gap: 10px; }
+  .mk-sheet__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mk-sheet__pair a { display: flex; align-items: center; justify-content: center; min-height: 48px; border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--rim-rule); color: var(--rim-blue); text-decoration: none; font-weight: 600; font-size: var(--text-small); }
+  .mk-sheet__foot .mk-donate { justify-content: center; min-height: 52px; margin: 0; font-size: var(--text-app); }
+</style>
+</head>
+<body>
+
+<!-- ═══ DESKTOP: proposed bar, Our Practice panel open ═══ -->
+<div data-state="desktop desktop-caps">
+  <header class="mk-bar">
+    <div class="mk-bar__inner">
+      <a class="mk-brand" href="#"><img src="https://rim-next.vercel.app/images/Rooted-In-Mindfulness-Logo.png" alt="">Rooted In Mindfulness</a>
+      <nav class="mk-items" aria-label="Main navigation">
+        <div class="mk-item"><a class="mk-link" href="#">New to RIM</a></div>
+        <div class="mk-item mk-item--open">
+          <a class="mk-link" href="#">Our Practice</a>
+          <button class="mk-caret mk-focus" aria-expanded="true" aria-label="Our Practice menu">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
+          <div class="mk-panel">
+            <a href="#" class="mk-hover"><span class="mk-panel__title">Why We Practice</span><span class="mk-panel__desc">What the practice is for</span></a>
+            <a href="#"><span class="mk-panel__title">Taking Care</span><span class="mk-panel__desc">The eight words of our practice</span></a>
+            <a href="#"><span class="mk-panel__title">Our Roots</span><span class="mk-panel__desc">Silent illumination and the Buddhist tradition</span></a>
+            <a href="#"><span class="mk-panel__title">About RIM</span><span class="mk-panel__desc">Our vision, mission, and story</span></a>
+          </div>
+        </div>
+        <div class="mk-item"><a class="mk-link" href="#">Programs</a><button class="mk-caret" aria-expanded="false" aria-label="Programs menu"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button></div>
+        <div class="mk-item"><a class="mk-link" href="#">Get Involved</a><button class="mk-caret" aria-expanded="false" aria-label="Get Involved menu"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button></div>
+        <div class="mk-item"><a class="mk-link" href="#">Members</a><button class="mk-caret" aria-expanded="false" aria-label="Members menu"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button></div>
+        <a data-state="desktop" class="mk-donate" href="#">Donate</a>
+        <a data-state="desktop-caps" class="mk-donate mk-donate--caps" href="#">DONATE</a>
+      </nav>
+    </div>
+  </header>
+  <div class="mk-hero"></div>
+</div>
+
+<!-- ═══ MOBILE HEADER A: logo + labeled Menu ═══ -->
+<div data-state="mobile-a">
+  <header class="mk-mbar">
+    <a class="mk-brand" href="#"><img src="https://rim-next.vercel.app/images/Rooted-In-Mindfulness-Logo.png" alt="">Rooted In Mindfulness</a>
+    <button class="mk-menu-btn" aria-expanded="false"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h12M3 9h12M3 13h12"/></svg>Menu</button>
+  </header>
+  <div class="mk-hero" style="height:560px"></div>
+</div>
+
+<!-- ═══ MOBILE HEADER B: logo + Donate + labeled Menu ═══ -->
+<div data-state="mobile-b">
+  <header class="mk-mbar">
+    <a class="mk-brand" href="#"><img src="https://rim-next.vercel.app/images/Rooted-In-Mindfulness-Logo.png" alt=""></a>
+    <span style="margin-right:auto"></span>
+    <a class="mk-donate" href="#">Donate</a>
+    <button class="mk-menu-btn" aria-expanded="false"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h12M3 9h12M3 13h12"/></svg>Menu</button>
+  </header>
+  <div class="mk-hero" style="height:560px"></div>
+</div>
+
+<!-- ═══ MOBILE SHEET (open) ═══ -->
+<div data-state="sheet sheet-desc">
+  <div class="mk-sheet" role="dialog" aria-modal="true" aria-label="Menu">
+    <div class="mk-sheet__top">
+      <a class="mk-brand" href="#"><img src="https://rim-next.vercel.app/images/Rooted-In-Mindfulness-Logo.png" alt="" style="height:40px">Rooted In Mindfulness</a>
+      <button class="mk-menu-btn mk-focus" aria-label="Close menu"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 4.5l9 9M13.5 4.5l-9 9"/></svg>Close</button>
+    </div>
+    <div class="mk-sheet__body">
+      <a class="mk-sheet__lead" href="#">New to RIM</a>
+      <div class="mk-sheet__group"><p class="mk-sheet__label">Our Practice</p>
+        <a class="mk-sheet__link" href="#">Why We Practice<small data-state="sheet-desc">What the practice is for</small></a>
+        <a class="mk-sheet__link" href="#">Taking Care<small data-state="sheet-desc">The eight words of our practice</small></a>
+        <a class="mk-sheet__link" href="#">Our Roots<small data-state="sheet-desc">Silent illumination and the Buddhist tradition</small></a>
+        <a class="mk-sheet__link" href="#">About RIM<small data-state="sheet-desc">Our vision, mission, and story</small></a></div>
+      <div class="mk-sheet__group"><p class="mk-sheet__label">Programs</p>
+        <a class="mk-sheet__link" href="#">Programs &amp; Events<small data-state="sheet-desc">Foundations, weekly gatherings, workshops, and retreats</small></a>
+        <a class="mk-sheet__link" href="#">This Week&rsquo;s Schedule<small data-state="sheet-desc">What is happening in the next seven days</small></a></div>
+      <div class="mk-sheet__group"><p class="mk-sheet__label">Get Involved</p>
+        <a class="mk-sheet__link" href="#">Volunteer<small data-state="sheet-desc">Help co-create RIM</small></a>
+        <a class="mk-sheet__link" href="#">Community Groups<small data-state="sheet-desc">Practice with others near you</small></a>
+        <a class="mk-sheet__link" href="#">Outreach<small data-state="sheet-desc">Taking CARE for organizations</small></a>
+        <a class="mk-sheet__link" href="#">Community Care Agreements<small data-state="sheet-desc">Our shared vision, and what we ask of everyone</small></a></div>
+    </div>
+    <div class="mk-sheet__foot">
+      <div class="mk-sheet__pair"><a href="#">Sign in</a><a href="#">Become a member</a></div>
+      <a class="mk-donate" href="#">Donate</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const s = new URLSearchParams(location.search).get("state") || "desktop";
+  document.body.classList.add("s-" + s);
+  // In sheet-desc, reveal the optional descriptions.
+  if (s === "sheet") document.querySelectorAll('[data-state="sheet-desc"]').forEach(e => e.remove());
+</script>
+</body>
+</html>
