@@ -43,9 +43,13 @@ export const JOIN_HERO_INTRO =
  * Jesse, 2026-09-25: the shared vision frames the agreements rather than
  * standing fourth among them, "both a clear request and a kind,
  * compassionate, friendly, and safe invitation." The former fourth agreement
- * (Care for Our Shared Vision) is absorbed into this frame. Source of truth
- * for the wording: the vault's 04-community-website-copy-2026-09-25.md.
- * Provisional until Jesse's read-aloud.
+ * (Care for Our Shared Vision) is absorbed into this frame.
+ *
+ * Source of truth for the frame and the three agreements: the vault's
+ * 04-community-website-copy-2026-09-25.md, section "The Community Care
+ * Agreements", revised and approved by Jesse on 2026-09-28 ("I do like the
+ * agreements that you wrote"); implemented from Addendum A of
+ * 08-promotion-site-brief-home-2026-09-28.md.
  */
 /**
  * RIM's vision and mission — ONE source for every surface that states them
@@ -86,16 +90,15 @@ export const COMMUNITY_SHARED_VISION_TITLE = "Our Shared Vision";
 /** The frame is the vision, stated as why we come together. */
 export const COMMUNITY_AGREEMENTS_LEAD_IN =
   "We come together because wakefulness, wisdom, and compassion are already " +
-  "within us, and because we want to live from them: to be more awake and " +
-  "present in our lives, freer of what binds us to " +
+  "within each of us, and we want to live from them. We practice to be more " +
+  "awake and present in our lives, freer of what binds us to " +
   RIM_WHAT_BINDS +
   ", understanding with greater wisdom, caring with kindness and " +
-  "compassion, and acting from that wisdom and compassion for the benefit of " +
-  "ourselves, those we care about, and our shared world. These agreements " +
-  "are how we care for that " +
-  "vision together. We ask every member to hold them, as directions and not " +
-  "as grades, and we return to them as a practice: honestly, and with room " +
-  "to begin again.";
+  "compassion, and acting from both, for the benefit of ourselves, those we " +
+  "care about, and our shared world. These agreements are how we care for " +
+  "that vision together. We ask everyone who takes part to hold them. They " +
+  "are directions to hold, not requirements to be graded on, and we return " +
+  "to them as a practice: honestly, and with room to begin again.";
 
 /**
  * Form-section lead rendered above the form fields on /join. Tells the
@@ -117,16 +120,16 @@ export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
   {
     title: "Care for Yourself",
     summary:
-      "We care for the conditions that help us see clearly and take responsibility for our own path. Teachers and community offer support, and the walking is ours to do.",
+      "We care for the conditions that help us see clearly and live well, and we take responsibility for our own path: coming to know ourselves, cultivating what is healthy and wholesome, and letting go of what harms. We come with a sincere wish to practice, as the practice is offered here. Teachers and community offer support, and the walking is ours to do.",
   },
   {
     title: "Care for Others",
     summary:
-      "We care for one another through our presence, speech, and actions. Guided by goodwill, we listen deeply, speak truthfully and kindly, and seek not to cause harm.",
+      "We care for one another through our presence, speech, and actions. Guided by goodwill, we listen deeply, speak truthfully and kindly, and seek not to cause harm. We respect each person’s way of taking part, their experience, and their privacy: what is shared in practice stays where it was shared. We help keep RIM a safe place for everyone, and when harm happens, we work to repair it.",
   },
   {
     title: "Care for RIM",
     summary:
-      "RIM is held through dana, the practice of mutual generosity. Financial support meets the center’s practical needs and keeps the teachings freely offered. Time, care, and sincere presence in practice and learning nourish the life of the sangha. We trust each person to discern what is possible; no one is expected to offer in every way, and belonging is never measured by what or how much one gives.",
+      "RIM is held through dana, the practice of mutual generosity. Financial support meets the center’s practical needs and keeps the teachings open to everyone. RIM could not exist without it, and we ask each member to support RIM financially as they are able. Time, care, service, and sincere presence also nourish the life of the sangha, and together we co-create RIM. We trust each person to discern what is possible; no one is expected to offer in every way, and belonging is never measured by what or how much one gives.",
   },
 ];
