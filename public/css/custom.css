@@ -26946,7 +26946,7 @@ a.pp-card:hover .pp-card__action {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px 24px;
+  gap: var(--space-2);
   margin-top: 32px;
 }
 .pp-actions--center { justify-content: center; }
@@ -27084,7 +27084,6 @@ a.pp-card:hover .pp-card__action {
     gap: 26px;
     padding: 34px 26px;
   }
-  .pp-closing__link { width: 100%; }
 
   .pp-panel  { padding: 28px 24px; }
   .pp-notice { padding: 24px 22px; }
@@ -27095,8 +27094,10 @@ a.pp-card:hover .pp-card__action {
 
 @media (max-width: 430px) {
   .pp-hero__title  { font-size: 34px; }
-  .pp-btn          { width: 100%; }
-  .pp-actions      { gap: 12px; }
+  /* The button standard (2026-09-28, RIM_Public_Pages.md): a button is as
+     wide as its label on every screen. Only a form's submit fills the
+     column on phones, where it closes a full-width form. */
+  .pp-form__submit { width: 100%; }
   .pp-actions .pp-link { min-height: 44px; }
 }
 
@@ -28727,7 +28728,7 @@ a.pp-card.tpr-card {
 .home-page :is(.pp-intro__body, .home-lead, .pp-intro__note) + :is(.pp-intro__body, .pp-intro__note) {
   margin-top: var(--space-3);
 }
-.home-page .pp-actions { gap: var(--space-2); margin-top: var(--space-4); }
+.home-page .pp-actions { margin-top: var(--space-4); }
 
 /* An inline link inside chapter text (the agreements, in Where to begin):
    the reading-copy link style, with padding for a 24px target. */
@@ -28939,11 +28940,6 @@ a.pp-card.home-paths__card {
   .home-page .pp-split--flip > .pp-split__media { aspect-ratio: 2 / 3; }
   .home-group { padding: var(--space-4) var(--space-3); }
   a.pp-card.home-paths__card { padding: var(--space-3); }
-  /* Buttons keep their own width and wrap, 16 apart (the handoff: never
-     stretched). The site-wide phone rule makes every .pp-btn full width;
-     this releases it on home only. */
-  .home-page .pp-btn { width: auto; }
-  .home-page .pp-actions { gap: var(--space-2); }
 }
 
 /* ===================================================================

@@ -351,6 +351,17 @@ Jesse chose a Claude Design layout pass for the home page (handoff `design_hando
 8. **Reading pages** (New to RIM, Taking Care, Why We Practice, Our Roots, About, Outreach, the agreements page): already on cols 3-10; confirm only, and move their section padding onto the scale.
 9. **`/programs/[slug]`, `/join`, `/login`**: already fit; align the phone gutter (24 to 20), and set the 32px tablet margin sitewide with the container.
 
+### The button standard (2026-09-28)
+
+Jesse: "We should create a best practice standard." One rule for every public `.pp-btn`:
+
+- **A button is as wide as its label, on every screen.** The pill is 48px tall (the 44px target with room), 26px of padding each side, a 15px/600 label. So "Our roots" is about 122px and "Taking CARE: the eight words" about 262px. Labels never wrap above 560px; below it a long label balances onto two lines.
+- **Buttons sit in a wrapping row, 16px apart** (`.pp-actions`, both axes), on the section's text edge (centred only inside a centred intro). A section has one primary; a second action is the outline button.
+- **The one exception is a form's submit** (`.pp-form__submit`), which fills the column on phones (430 and below): it closes a full-width form, and the thumb meets it there.
+- **Never stretch a pair or a hero's buttons.** Two full-width bars read as equal weight and blur the one-dominant-action rule, and a stretched pill reads as a banner, not a control.
+
+Until this ruling every `.pp-btn` went full width at 430 and below (and the closing-panel link at 768), which is what the phone pages showed. Measured after the change on 20 public pages at 375: zero overflow, no target under 44px, nothing stretched but form submits.
+
 ### The two heading tiers are a system, not drift (session 176)
 
 A measured audit flagged `.pp-intro__title` rendering at **38px** on home, volunteer, KM groups and donate but **28px** (`--h2`) on volunteer's second opener and the KM application. **This is not a defect and must not be "fixed".** It is a consistently applied two-tier system that had simply never been written down:
