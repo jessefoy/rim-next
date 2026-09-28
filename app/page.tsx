@@ -28,9 +28,12 @@ export const dynamic = "force-dynamic";
  * read-aloud. Teacher-side authority for the center:
  * 1 Model/01-framework-what-rim-is.md.
  *
- * Layout: one editorial chapter grid (heading left, text right) for every
- * text-led chapter; images stagger (CARE circle left, trees right, lotus
- * left). Grounds alternate ground / white from the statement on.
+ * Layout (Addendum E, the Claude Design handoff of 2026-09-28): every section
+ * sits on the strategic grid's two text edges, col 1 and col 7. Headings take
+ * cols 1-6 and text cols 7-12; images stagger (CARE circle left, trees right,
+ * lotus left) and follow their text when stacked. One size per heading tag.
+ * Grounds alternate ground / white from the statement on. See
+ * RIM_Public_Pages.md, "The strategic grid".
  */
 
 // What the practice helps us meet, told as particulars, in three groups
@@ -85,6 +88,15 @@ const PRACTICE_GROUPS = [
       },
     ],
   },
+] as const;
+
+// The eight words as the handout pairs them. Read aloud, each row is the two
+// words; the middot between them is visual only.
+const CARE_PAIRS = [
+  ["Calm", "Connect"],
+  ["Aware", "Attitude"],
+  ["Recognize", "Remember"],
+  ["Embody", "Engage"],
 ] as const;
 
 export default async function HomePage() {
@@ -224,7 +236,7 @@ export default async function HomePage() {
               <h2 className="pp-intro__title">What brings us together</h2>
             </div>
             <div className="home-chapter__body">
-              <p className="home-statement__lead">
+              <p className="home-lead">
                 People come to RIM for many reasons: a wish to enjoy life more fully, a difficult
                 season, curiosity about meditation, or love for someone they want to care for well.
               </p>
@@ -321,54 +333,66 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Our practice is taking care — the handout's CARE circle left, words
-             right (2026-09-27, Jesse: the circle replaces the four cards; it is
-             RIM's own artwork and the page's most meaningful image).
-             The eight words sit in the text as their own list (2026-09-28). ── */}
+      {/* ── Our practice is taking care: the intro on the two edges, then the
+             handout's CARE circle beside the eight words (Addendum E, option
+             2a: every word kept), then the paragraphs and the button. The
+             circle is RIM's own artwork (Jesse, 2026-09-27). Option 2c, which
+             drops the word list, waits on content sign-off. ── */}
       <section className="pp-section">
         <div className="rim-container">
-          <div className="pp-split home-care">
-            <div className="pp-split__body">
-              <div className="pp-intro">
-                <p className="pp-intro__eyebrow">Our practice</p>
-                <h2 className="pp-intro__title">Our practice is taking care.</h2>
-                <p className="pp-intro__body">
-                  Taking CARE is our approach to meditation and mindful living. It is our root
-                  practice, present in everything we offer, and it is also a program anyone can take
-                  part in, beginning with Foundations.
-                </p>
-                <p className="pp-intro__body">Eight words describe this practice:</p>
-                <ul className="home-care-words">
-                  <li>Calm · Connect</li>
-                  <li>Aware · Attitude</li>
-                  <li>Recognize · Remember</li>
-                  <li>Embody · Engage</li>
-                </ul>
-                <p className="pp-intro__body">
-                  The eight words share four letters, which spell CARE. The words mutually arise.
-                  They are not steps to complete, and any one can offer a way into the practice.
-                </p>
-                <p className="pp-intro__body">
-                  Each can be explored within ourselves, in relation to others, and within the vast
-                  web of causes and conditions we are part of. The three rings of the circle call
-                  these Self, Other, and Interbeing.
-                </p>
-                <p className="pp-intro__body">
-                  The words are simple enough to begin with today. There is enough in them for a
-                  lifetime of practice.
-                </p>
-              </div>
+          <div className="home-chapter">
+            <div className="home-chapter__head">
+              <p className="pp-intro__eyebrow">Our practice</p>
+              <h2 className="pp-intro__title">Our practice is taking care.</h2>
+            </div>
+            <div className="home-chapter__body">
+              <p className="pp-intro__body">
+                Taking CARE is our approach to meditation and mindful living. It is our root
+                practice, present in everything we offer, and it is also a program anyone can take
+                part in, beginning with Foundations.
+              </p>
+              <p className="pp-intro__body">Eight words describe this practice:</p>
+            </div>
+          </div>
 
+          <div className="home-care">
+            <figure className="home-care-figure">
+              <CareCircle />
+            </figure>
+            <ul className="home-care-words">
+              {CARE_PAIRS.map(([first, second]) => (
+                <li key={first}>
+                  <span>{first}</span>
+                  <span className="home-care-words__dot" aria-hidden="true">
+                    ·
+                  </span>
+                  <span>{second}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="home-chapter home-chapter--after">
+            <div className="home-chapter__body">
+              <p className="pp-intro__body">
+                The eight words share four letters, which spell CARE. The words mutually arise.
+                They are not steps to complete, and any one can offer a way into the practice.
+              </p>
+              <p className="pp-intro__body">
+                Each can be explored within ourselves, in relation to others, and within the vast
+                web of causes and conditions we are part of. The three rings of the circle call
+                these Self, Other, and Interbeing.
+              </p>
+              <p className="pp-intro__body">
+                The words are simple enough to begin with today. There is enough in them for a
+                lifetime of practice.
+              </p>
               <div className="pp-actions">
                 <Link href="/care" className="pp-btn">
                   Taking CARE: the eight words
                 </Link>
               </div>
             </div>
-
-            <figure className="home-care-figure">
-              <CareCircle />
-            </figure>
           </div>
         </div>
       </section>
@@ -463,14 +487,6 @@ export default async function HomePage() {
                 offered and takes a few minutes. It is required for online gatherings, and we ask
                 everyone who practices in person to sign up as well.
               </p>
-              <div className="pp-actions">
-                <Link href="/community-programs" className="pp-btn">
-                  Programs &amp; events
-                </Link>
-                <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
-                  New to RIM
-                </Link>
-              </div>
             </div>
           </div>
 
@@ -481,6 +497,17 @@ export default async function HomePage() {
                 <p className="pp-card__body">{route.body}</p>
               </Link>
             ))}
+          </div>
+
+          {/* The buttons follow the three ways in, in content order
+              (Addendum E), from col 1. */}
+          <div className="pp-actions home-paths-actions">
+            <Link href="/community-programs" className="pp-btn">
+              Programs &amp; events
+            </Link>
+            <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
+              New to RIM
+            </Link>
           </div>
         </div>
       </section>
@@ -537,7 +564,7 @@ export default async function HomePage() {
               className="pp-split__media"
               style={{
                 ["--pp-split-image" as string]: "url('/images/lotus-held-unsplash-1600.webp')",
-                ["--pp-split-position" as string]: "center 42%",
+                ["--pp-split-position" as string]: "center 40%",
               }}
               aria-hidden="true"
             />
@@ -582,18 +609,20 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── The call, last: stakes after safety. ── */}
+      {/* ── The call, last: stakes after safety. A plain chapter on white with
+             a lead paragraph, like the statement that opens the page (Addendum
+             E: the recessed closing panel retired). ── */}
       <section className="pp-section pp-section--white pp-section--last">
         <div className="rim-container">
-          <aside className="pp-closing home-closing">
+          <div className="home-chapter">
             <div className="home-chapter__head">
-              <h2 className="pp-closing__title">It matters how we live.</h2>
+              <h2 className="pp-intro__title">It matters how we live.</h2>
             </div>
             <div className="home-chapter__body">
-              <p className="pp-closing__body">
+              <p className="home-lead">
                 This life matters, and so do the people in it and the world we share.
               </p>
-              <p className="pp-closing__body">
+              <p className="pp-intro__body">
                 Practice helps us care for them in our daily choices. With patience, we come to
                 understand what causes suffering and what supports well-being, and we learn to act
                 on that understanding. Practice does not remove every difficulty from a life. It
@@ -602,7 +631,7 @@ export default async function HomePage() {
                 struggle to what is already hard, and choose more wisely what we do next. Over
                 time, our care can reach a little further than it did before.
               </p>
-              <p className="pp-closing__body">
+              <p className="pp-intro__body">
                 Anyone can begin here. Continuing asks for a willingness to learn and to return
                 when practice becomes difficult. It is easier to keep going in good company.
               </p>
@@ -612,7 +641,7 @@ export default async function HomePage() {
                 </Link>
               </div>
             </div>
-          </aside>
+          </div>
         </div>
       </section>
     </div>
