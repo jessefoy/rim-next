@@ -58,7 +58,8 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Community Care Agreements** (2026-09-28, approved by Jesse): a new Our Shared Vision frame and three agreements (sincere wish to practice; privacy, safety and repair; financial support asked plainly). One source, `lib/communityAgreements.ts`, five surfaces. `/join` says "learning, practice, and fellowship."
 - **The strategic grid:** one 12-column grid, two text edges, an 8px vertical scale (`--space-1..7`), named layouts; home is the first page on it. See `RIM_Public_Pages.md` → "The strategic grid" (with the migration order for the other pages).
 - **Program data fixes** (2026-09-27): Good Morning's room opens at 6:20 AM; Good Evening "close your day."
-- **Nav, modernized:** built from the approved proposal (`mockups/nav-2026-09-28/`) on the local branch `nav-2026-09-28`, **not yet live**: top labels as links with arrow buttons, hover-intent panels with lines under each link, Donate as a tokened pill, a labeled Menu button and a grouped modal sheet on phones.
+- **Nav, modernized** (live 2026-09-28, approved by Jesse; proposal in `mockups/nav-2026-09-28/`): top labels as links with arrow buttons, hover-intent panels (mouse only) with lines under each link, Donate as a tokened pill, a labeled Menu button and a grouped modal sheet on phones. A signed-in "Hi, [name]" caps at 7.25em so a long name cannot clip Donate at 1061px. Scroll locks (the sheet and the member drawers' `useNavigationDrawer`) sit on `<html>`, because the global `html { overflow-x: clip }` stops a body lock from reaching the viewport.
+- **Addendum D copy** (2026-09-28, evening): home Where to begin now asks everyone, in person too, to sign up; the training path on home and `/outreach`.
 
 ## For depth, see
 
