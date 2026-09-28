@@ -17,15 +17,126 @@ export default function Nav() {
     (pathname?.startsWith("/tools") ?? false);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const accountMenu = useRef<HTMLDetailsElement>(null);
+  const desktopNav = useRef<HTMLElement>(null);
+  const caretRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
+  const hoverTimer = useRef<number | null>(null);
+  // Which panel hover opened, so a click on its arrow pins it rather than
+  // closing what the pointer just revealed.
+  const hoverOpened = useRef<string | null>(null);
 
-  // Close mobile menu on route change
+  const firstName = session?.user?.name?.split(" ")[0] ?? null;
+  const menus = publicMenus(isLoggedIn, firstName);
+
+  // Desktop panels: open on hover intent (300ms; 80ms when moving from one
+  // open panel to the next), on the arrow button, or from the keyboard.
+  const clearHover = () => {
+    if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = null;
+  };
+  const hoverMenu = (id: string | null) => {
+    clearHover();
+    const delay = id === null ? 300 : openMenu ? 80 : 300;
+    hoverTimer.current = window.setTimeout(() => {
+      hoverOpened.current = id;
+      setOpenMenu(id);
+    }, delay);
+  };
+  const toggleMenu = (id: string) => {
+    clearHover();
+    if (hoverOpened.current === id && openMenu === id) {
+      hoverOpened.current = null;
+      return;
+    }
+    hoverOpened.current = null;
+    setOpenMenu((current) => (current === id ? null : id));
+  };
+  const closeMenu = (focusId?: string) => {
+    clearHover();
+    hoverOpened.current = null;
+    setOpenMenu(null);
+    if (focusId) caretRefs.current[focusId]?.focus();
+  };
+
+  // Close transient chrome on route change
   useEffect(() => {
     // Navigation closes transient chrome after the new route commits.
+    // A pending hover timer must not reopen a panel on the new page.
+    if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = null;
+    hoverOpened.current = null;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuOpen(false);
+    setOpenMenu(null);
     if (accountMenu.current) accountMenu.current.open = false;
   }, [pathname]);
+
+  // An open desktop panel closes on Escape or a click outside the nav.
+  useEffect(() => {
+    if (!openMenu) return;
+    const onPointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !desktopNav.current?.contains(event.target)) setOpenMenu(null);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenMenu(null);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [openMenu]);
+
+  // The phone sheet is modal: the page behind stops scrolling, focus moves in
+  // and is trapped, Escape and Close both close it, and focus returns to the
+  // Menu button.
+  const closeSheet = () => {
+    setMenuOpen(false);
+    window.requestAnimationFrame(() => menuButton.current?.focus());
+  };
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButton.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        window.requestAnimationFrame(() => menuButton.current?.focus());
+        return;
+      }
+      if (event.key !== "Tab" || !sheet.current) return;
+      const focusable = sheet.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])");
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    // Widening past the phone layout (an iPad rotating) hides the Menu
+    // button, so the sheet closes rather than stranding focus on a hidden one.
+    const wide = window.matchMedia("(min-width: 1061px)");
+    const onWide = (event: MediaQueryListEvent) => {
+      if (event.matches) setMenuOpen(false);
+    };
+    wide.addEventListener("change", onWide);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+      wide.removeEventListener("change", onWide);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     const closeOutside = (event: PointerEvent) => {
@@ -35,16 +146,6 @@ export default function Nav() {
     document.addEventListener("pointerdown", closeOutside);
     return () => document.removeEventListener("pointerdown", closeOutside);
   }, []);
-
-  // Close on Escape key
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [menuOpen]);
 
   const isActive = (path: string) =>
     pathname === path || pathname.startsWith(path + "/")
@@ -57,7 +158,7 @@ export default function Nav() {
   // Authenticated member, admin, and tool surfaces share one quiet identity
   // header. Their sidebars and workspace chrome carry the local navigation.
   if (isMemberArea) {
-    const firstName = session?.user?.name?.split(" ")[0] ?? "My profile";
+    const memberName = firstName ?? "My profile";
     return (
       <header className="member-bar">
         <Link href="/account/dashboard" className="member-bar__brand">
@@ -82,8 +183,8 @@ export default function Nav() {
           <details className="member-menu" ref={accountMenu} onKeyDown={(event) => {
             if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); }
           }}>
-            <summary className="member-bar__profile" aria-label={`${firstName}, account menu`}>
-              <span className="member-bar__avatar" aria-hidden="true">{firstName.charAt(0).toUpperCase()}</span>
+            <summary className="member-bar__profile" aria-label={`${memberName}, account menu`}>
+              <span className="member-bar__avatar" aria-hidden="true">{memberName.charAt(0).toUpperCase()}</span>
               <span className="member-bar__profile-name">My account</span>
             </summary>
             <nav className="member-menu__panel" aria-label="My account">
@@ -101,7 +202,6 @@ export default function Nav() {
   return (
     <header className="nav">
       <div className="nav__inner">
-        {/* Brand */}
         <Link href="/" className="nav__brand">
           <img
             src="/images/Rooted-In-Mindfulness-Logo.png"
@@ -111,256 +211,354 @@ export default function Nav() {
           <span className="nav__brand-name">Rooted In Mindfulness</span>
         </Link>
 
-        {/* ── Desktop nav ───────────────────────────────── */}
-        {/* Public only: member/admin/tool routes return the member-bar above,
-            so this nav never renders there. */}
-        <nav className="nav__desktop" aria-label="Main navigation">
-              {/* 2026-09-25 (revision 2): New to RIM is the newcomer's front
-                  door and gets a link of its own, first, the way most practice
-                  centers do it. The dropdowns stay short: Our Practice (why,
-                  how, roots, about), Programs (the catalog, then the schedule; Addendum C2, 2026-09-28),
-                  Get Involved (volunteering, groups, outreach). */}
-              <Link href="/new-to-rim" className={`nav__link${isActive("/new-to-rim")}`}>
-                New to RIM
-              </Link>
-              <div className="nav__dropdown">
-                <button className="nav__dropdown-toggle">
-                  Our Practice
-                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                </button>
-                <div className="nav__dropdown-panel">
-                  <div className="nav__dropdown-panel-inner">
-                    <Link href="/why-we-practice" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Why We Practice</div>
-                      <div className="nav__dropdown-desc">What we are here for</div>
-                    </Link>
-                    <Link href="/care" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Taking Care</div>
-                      <div className="nav__dropdown-desc">How we practice, in eight plain words</div>
-                    </Link>
-                    <Link href="/our-roots" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Our Roots</div>
-                      <div className="nav__dropdown-desc">The tradition we practice in</div>
-                    </Link>
-                    <Link href="/about" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">About RIM</div>
-                      <div className="nav__dropdown-desc">Our vision and mission, and how we began</div>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-              <div className="nav__dropdown">
-                <button className="nav__dropdown-toggle">
-                  Programs
-                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                </button>
-                <div className="nav__dropdown-panel">
-                  <div className="nav__dropdown-panel-inner">
-                    <Link href="/community-programs" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Programs &amp; Events</div>
-                      <div className="nav__dropdown-desc">Drop-ins, classes, retreats, and groups</div>
-                    </Link>
-                    <Link href="/this-week" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
-                      <div className="nav__dropdown-desc">What&apos;s happening day by day</div>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-              {/* Get Involved dropdown */}
-              <div className="nav__dropdown">
-                <button className="nav__dropdown-toggle">
-                  Get Involved
-                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                </button>
-                <div className="nav__dropdown-panel">
-                  <div className="nav__dropdown-panel-inner">
-                    <Link
-                      href="/volunteerism/volunteer"
-                      className="nav__dropdown-link"
-                    >
-                      <div className="nav__dropdown-title">Volunteer</div>
-                      <div className="nav__dropdown-desc">Help Co-Create Refuge at RIM</div>
-                    </Link>
-                    <Link
-                      href="/kalyana-mitta/community-groups-events"
-                      className="nav__dropdown-link"
-                    >
-                      <div className="nav__dropdown-title">Start a Community Group</div>
-                      <div className="nav__dropdown-desc">Create a Community Group or Event</div>
-                    </Link>
-                    <Link href="/outreach" className="nav__dropdown-link">
-                      <div className="nav__dropdown-title">Outreach for Organizations</div>
-                      <div className="nav__dropdown-desc">Bringing mindfulness to organizations and their communities</div>
-                    </Link>
-                  </div>
-                </div>
-              </div>
+        {/* Public only: member/admin/tool routes return the member-bar above. */}
+        <PublicDesktopNav
+          menus={menus}
+          openMenu={openMenu}
+          isActive={isActive}
+          onHover={hoverMenu}
+          onToggle={toggleMenu}
+          onClose={closeMenu}
+          caretRefs={caretRefs}
+          navRef={desktopNav}
+        />
 
-              {/* Member Area dropdown */}
-              <div className="nav__dropdown">
-                <button className="nav__dropdown-toggle">
-                  {isLoggedIn && session.user?.name
-                    ? `Hi, ${session.user.name.split(" ")[0]}`
-                    : "Members"}
-                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                </button>
-                <div className="nav__dropdown-panel">
-                  <div className="nav__dropdown-panel-inner">
-                    {isLoggedIn ? (
-                      <>
-                        <Link href="/account/dashboard" className="nav__dropdown-link">
-                          <div className="nav__dropdown-title">My Home</div>
-                          <div className="nav__dropdown-desc">Today&apos;s Sessions &amp; Resources</div>
-                        </Link>
-                        <Link href="/community-care-agreements" className="nav__dropdown-link">
-                          <div className="nav__dropdown-title">Community Care Agreements</div>
-                          <div className="nav__dropdown-desc">Our shared vision, and what we ask of members</div>
-                        </Link>
-                        <button
-                          onClick={() => signOut({ callbackUrl: "/" })}
-                          className="nav__dropdown-link"
-                          style={{ width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer" }}
-                        >
-                          <div className="nav__dropdown-title">Sign Out</div>
-                          <div className="nav__dropdown-desc">Log out of your account</div>
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Link href="/join" className="nav__dropdown-link">
-                          <div className="nav__dropdown-title">Become a Member</div>
-                          <div className="nav__dropdown-desc">Read our community care agreements and join</div>
-                        </Link>
-                        <Link href="/login" className="nav__dropdown-link">
-                          <div className="nav__dropdown-title">Sign in</div>
-                          <div className="nav__dropdown-desc">Already a member? Continue here</div>
-                        </Link>
-                        <Link href="/community-care-agreements" className="nav__dropdown-link">
-                          <div className="nav__dropdown-title">Community Care Agreements</div>
-                          <div className="nav__dropdown-desc">Our shared vision, and what we ask of members</div>
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-        </nav>
+        <Link href="/donate" className="nav__donate">
+          Donate
+        </Link>
 
-        {/* Donate CTA */}
-        <Link href="/donate" className="nav__donate">DONATE</Link>
-
-        {/* Hamburger */}
         <button
-          className={`nav__hamburger${menuOpen ? " nav__hamburger--open" : ""}`}
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          ref={menuButton}
+          type="button"
+          className="nav__menu-btn"
           aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((o) => !o)}
+          aria-controls="nav-sheet"
+          onClick={() => setMenuOpen(true)}
         >
-          <span />
-          <span />
-          <span />
+          <MenuIcon />
+          Menu
         </button>
       </div>
 
-      {/* ── Mobile nav — public only; member/admin/tool routes return the
-             member-bar above and never reach this. ─────── */}
       {menuOpen && (
-        <nav className="nav__mobile" aria-label="Mobile navigation">
-              {!isLoggedIn && (
-                <Link href="/join" className="nav__mobile-link">
-                  Become a Member
-                </Link>
-              )}
-              {!isLoggedIn && (
-                <Link href="/login" className="nav__mobile-link">
-                  Sign in
-                </Link>
-              )}
-              <Link
-                href="/new-to-rim"
-                className={`nav__mobile-link${isActive("/new-to-rim")}`}
-              >
-                New to RIM
-              </Link>
-              <Link
-                href="/why-we-practice"
-                className={`nav__mobile-link${isActive("/why-we-practice")}`}
-              >
-                Why We Practice
-              </Link>
-              <Link
-                href="/care"
-                className={`nav__mobile-link${isActive("/care")}`}
-              >
-                Taking Care
-              </Link>
-              <Link
-                href="/our-roots"
-                className={`nav__mobile-link${isActive("/our-roots")}`}
-              >
-                Our Roots
-              </Link>
-              <Link
-                href="/about"
-                className={`nav__mobile-link${isActive("/about")}`}
-              >
-                About RIM
-              </Link>
-              <Link
-                href="/community-programs"
-                className={`nav__mobile-link${isActive("/community-programs")}`}
-              >
-                Programs &amp; Events
-              </Link>
-              <Link
-                href="/this-week"
-                className={`nav__mobile-link${isActive("/this-week")}`}
-              >
-                This Week&apos;s Schedule
-              </Link>
-              <Link
-                href="/volunteerism/volunteer"
-                className={`nav__mobile-link${isActive("/volunteerism")}`}
-              >
-                Volunteer Opportunities
-              </Link>
-              <Link
-                href="/kalyana-mitta/community-groups-events"
-                className={`nav__mobile-link${isActive("/kalyana-mitta")}`}
-              >
-                Start A Community Group
-              </Link>
-              <Link
-                href="/outreach"
-                className={`nav__mobile-link${isActive("/outreach")}`}
-              >
-                Outreach for Organizations
-              </Link>
-              <Link
-                href="/community-care-agreements"
-                className={`nav__mobile-link${isActive("/community-care-agreements")}`}
-              >
-                Community Care Agreements
-              </Link>
-              {isLoggedIn && (
-                <Link href="/account/dashboard" className="nav__mobile-link">
-                  My Dashboard
-                </Link>
-              )}
-              {isLoggedIn && (
-                <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  className="nav__mobile-link"
-                >
-                  Sign Out
-                </button>
-              )}
-              <Link href="/donate" className="nav__mobile-donate">
-                Donate Today
-              </Link>
-        </nav>
+        <PublicNavSheet
+          menus={menus}
+          isLoggedIn={isLoggedIn}
+          isActive={isActive}
+          sheetRef={sheet}
+          closeRef={closeButton}
+          onClose={closeSheet}
+          onNavigate={() => setMenuOpen(false)}
+        />
       )}
     </header>
+  );
+}
+
+/* ── The public menu, one list for both layouts ─────────────────────────────
+   2026-09-28 (Addendum C3, Jesse's choices): each top-level label is a link
+   to a real page, with a separate 44px arrow button that opens its panel;
+   Members has no single page, so it stays a toggle. Panels carry a short line
+   under each link (information scent). The phone sheet groups the same links
+   under the same headings, without the lines. */
+type MenuItem = { title: string; desc: string; href?: string; action?: "signout" };
+type Menu = { id: string; label: string; href?: string; items: MenuItem[] };
+
+export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu[] {
+  return [
+    {
+      id: "practice",
+      label: "Our Practice",
+      href: "/why-we-practice",
+      items: [
+        { title: "Why We Practice", desc: "What the practice is for", href: "/why-we-practice" },
+        { title: "Taking Care", desc: "The eight words of our practice", href: "/care" },
+        { title: "Our Roots", desc: "Silent illumination and the Buddhist tradition", href: "/our-roots" },
+        { title: "About RIM", desc: "Our vision, mission, and story", href: "/about" },
+      ],
+    },
+    {
+      id: "programs",
+      label: "Programs",
+      href: "/community-programs",
+      items: [
+        { title: "Programs & Events", desc: "Foundations, weekly gatherings, workshops, and retreats", href: "/community-programs" },
+        { title: "This Week’s Schedule", desc: "What is happening in the next seven days", href: "/this-week" },
+      ],
+    },
+    {
+      id: "involved",
+      label: "Get Involved",
+      href: "/volunteerism/volunteer",
+      items: [
+        { title: "Volunteer", desc: "Help co-create RIM", href: "/volunteerism/volunteer" },
+        { title: "Community Groups", desc: "Practice with others near you", href: "/kalyana-mitta/community-groups-events" },
+        { title: "Outreach for Organizations", desc: "Taking CARE for organizations", href: "/outreach" },
+      ],
+    },
+    {
+      id: "members",
+      label: isLoggedIn && firstName ? `Hi, ${firstName}` : "Members",
+      items: isLoggedIn
+        ? [
+            { title: "My Home", desc: "Today’s sessions and resources", href: "/account/dashboard" },
+            { title: "Community Care Agreements", desc: "Our shared vision, and what we ask of members", href: "/community-care-agreements" },
+            { title: "Sign out", desc: "Log out of your account", action: "signout" },
+          ]
+        : [
+            { title: "Become a Member", desc: "Read our community care agreements and join", href: "/join" },
+            { title: "Sign in", desc: "Already a member? Continue here", href: "/login" },
+            { title: "Community Care Agreements", desc: "Our shared vision, and what we ask of members", href: "/community-care-agreements" },
+          ],
+    },
+  ];
+}
+
+function Caret() {
+  return (
+    <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <path d="M2.5 4.5 6 8l3.5-3.5" />
+    </svg>
+  );
+}
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M3 5h12M3 9h12M3 13h12" />
+    </svg>
+  );
+}
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4.5 4.5l9 9M13.5 4.5l-9 9" />
+    </svg>
+  );
+}
+
+function MenuEntry({
+  item,
+  className,
+  onNavigate,
+}: {
+  item: MenuItem;
+  className: string;
+  onNavigate?: () => void;
+}) {
+  if (item.action === "signout") {
+    return (
+      <button type="button" className={className} onClick={() => signOut({ callbackUrl: "/" })}>
+        <span className="nav__panel-title">{item.title}</span>
+        <span className="nav__panel-desc">{item.desc}</span>
+      </button>
+    );
+  }
+  return (
+    <Link href={item.href ?? "/"} className={className} onClick={onNavigate}>
+      <span className="nav__panel-title">{item.title}</span>
+      <span className="nav__panel-desc">{item.desc}</span>
+    </Link>
+  );
+}
+
+export function PublicDesktopNav({
+  menus,
+  openMenu,
+  isActive,
+  onHover,
+  onToggle,
+  onClose,
+  caretRefs,
+  navRef,
+}: {
+  menus: Menu[];
+  openMenu: string | null;
+  isActive: (path: string) => string;
+  onHover: (id: string | null) => void;
+  onToggle: (id: string) => void;
+  onClose: (focusCaret?: string) => void;
+  caretRefs?: React.MutableRefObject<Record<string, HTMLButtonElement | null>>;
+  navRef?: React.RefObject<HTMLElement | null>;
+}) {
+  return (
+    <nav className="nav__desktop" aria-label="Main navigation" ref={navRef}>
+      <Link href="/new-to-rim" className={`nav__link${isActive("/new-to-rim")}`}>
+        New to RIM
+      </Link>
+      {menus.map((menu, index) => {
+        const open = openMenu === menu.id;
+        const panelId = `nav-panel-${menu.id}`;
+        const last = index === menus.length - 1;
+        const current = menu.items.some((item) => item.href && isActive(item.href));
+        return (
+          <div
+            key={menu.id}
+            className={`nav__dropdown${open ? " nav__dropdown--open" : ""}`}
+            // Hover intent is for a mouse only: a tap on touch sends an
+            // enter event too, and must not start a timer.
+            onPointerEnter={(event) => {
+              if (event.pointerType === "mouse") onHover(menu.id);
+            }}
+            onPointerLeave={(event) => {
+              if (event.pointerType === "mouse") onHover(null);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && open) {
+                event.stopPropagation();
+                onClose(menu.id);
+              }
+            }}
+            // Close when focus moves to something outside. A blur with no
+            // new target is a click (Safari does not focus links on click);
+            // the outside-click listener handles that, so a mouse click on a
+            // keyboard-opened panel still reaches its link.
+            onBlur={(event) => {
+              const next = event.relatedTarget as Node | null;
+              if (open && next && !event.currentTarget.contains(next)) onClose();
+            }}
+          >
+            {menu.href ? (
+              <>
+                <Link href={menu.href} className={`nav__link${current ? " nav__link--active" : ""}`}>
+                  {menu.label}
+                </Link>
+                <button
+                  type="button"
+                  className="nav__caret"
+                  aria-expanded={open}
+                  aria-controls={panelId}
+                  aria-label={`${menu.label} menu`}
+                  onClick={() => onToggle(menu.id)}
+                  ref={(el) => {
+                    if (caretRefs) caretRefs.current[menu.id] = el;
+                  }}
+                >
+                  <Caret />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className={`nav__link nav__link--toggle${current ? " nav__link--active" : ""}`}
+                aria-expanded={open}
+                aria-controls={panelId}
+                onClick={() => onToggle(menu.id)}
+                ref={(el) => {
+                  if (caretRefs) caretRefs.current[menu.id] = el;
+                }}
+              >
+                {menu.label}
+                <Caret />
+              </button>
+            )}
+            <div
+              id={panelId}
+              className={`nav__panel${last ? " nav__panel--end" : ""}`}
+              hidden={!open}
+            >
+              {menu.items.map((item) => (
+                <MenuEntry
+                  key={item.title}
+                  item={item}
+                  className="nav__panel-link"
+                  onNavigate={() => onClose()}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function PublicNavSheet({
+  menus,
+  isLoggedIn,
+  isActive,
+  sheetRef,
+  closeRef,
+  onClose,
+  onNavigate,
+}: {
+  menus: Menu[];
+  isLoggedIn: boolean;
+  isActive: (path: string) => string;
+  sheetRef?: React.RefObject<HTMLDivElement | null>;
+  closeRef?: React.RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+  onNavigate: () => void;
+}) {
+  const groups = menus.filter((menu) => menu.id !== "members");
+  const agreements = { title: "Community Care Agreements", href: "/community-care-agreements" };
+  return (
+    <div
+      id="nav-sheet"
+      className="nav__sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Menu"
+      ref={sheetRef}
+    >
+      <div className="nav__sheet-top">
+        <Link onClick={onNavigate} href="/" className="nav__brand">
+          <img src="/images/Rooted-In-Mindfulness-Logo.png" alt="Rooted In Mindfulness" height={40} />
+          <span className="nav__brand-name">Rooted In Mindfulness</span>
+        </Link>
+        <button type="button" className="nav__menu-btn" onClick={onClose} ref={closeRef}>
+          <CloseIcon />
+          Close
+        </button>
+      </div>
+      <nav className="nav__sheet-body" aria-label="Main navigation">
+        <Link onClick={onNavigate} href="/new-to-rim" className={`nav__sheet-lead${isActive("/new-to-rim")}`}>
+          New to RIM
+        </Link>
+        {groups.map((menu) => (
+          <div key={menu.id} className="nav__sheet-group">
+            <p className="nav__sheet-label">{menu.label}</p>
+            {menu.items.map((item) => (
+              <Link
+                onClick={onNavigate}
+                key={item.title}
+                href={item.href ?? "/"}
+                className={`nav__sheet-link${item.href ? isActive(item.href) : ""}`}
+              >
+                {item.title}
+              </Link>
+            ))}
+            {menu.id === "involved" && (
+              <Link
+                onClick={onNavigate}
+                href={agreements.href}
+                className={`nav__sheet-link${isActive(agreements.href)}`}
+              >
+                {agreements.title}
+              </Link>
+            )}
+          </div>
+        ))}
+      </nav>
+      <div className="nav__sheet-foot">
+        <div className="nav__sheet-pair">
+          {isLoggedIn ? (
+            <>
+              <Link onClick={onNavigate} href="/account/dashboard">My Home</Link>
+              <button type="button" onClick={() => signOut({ callbackUrl: "/" })}>
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link onClick={onNavigate} href="/login">Sign in</Link>
+              <Link onClick={onNavigate} href="/join">Become a member</Link>
+            </>
+          )}
+        </div>
+        <Link onClick={onNavigate} href="/donate" className="nav__donate nav__donate--block">
+          Donate
+        </Link>
+      </div>
+    </div>
   );
 }
