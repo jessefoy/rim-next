@@ -104,9 +104,10 @@ export default function OutreachPage() {
 
             <h2>Training in Taking CARE</h2>
             <p>
-              We also train people to share this practice. If you would like to be trained to offer
-              Taking CARE, in your own organization or alongside us, we would be glad to hear from
-              you at{" "}
+              We also train people to share this practice: facilitating practice sessions, drop-ins,
+              and programs within RIM, and offering Taking CARE beyond it, in their own
+              organizations or alongside us. Sharing the teachings is itself a form of generosity.
+              If you would like to train, we would be glad to hear from you at{" "}
               <a href="mailto:support@rootedinmindfulness.org?subject=Taking%20CARE%20training">
                 support@rootedinmindfulness.org
               </a>

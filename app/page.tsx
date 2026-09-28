@@ -452,15 +452,16 @@ export default async function HomePage() {
                 for help getting started.
               </p>
               <p className="pp-intro__body">
-                Membership is freely offered, takes a few minutes, and is needed for online
-                gatherings.
-              </p>
-              <p className="pp-intro__body">
                 We ask the same of everyone who comes: to hold our{" "}
                 <Link href="/community-care-agreements">Community Care Agreements</Link>, a few
                 simple commitments to care for ourselves, one another, and RIM; to come with a
                 sincere wish to practice; and to help keep RIM a safe place for everyone. The
                 agreements are directions to hold, not requirements to be graded on.
+              </p>
+              <p className="pp-intro__body">
+                Signing up as a member is where each of us agrees to them. Membership is freely
+                offered and takes a few minutes. It is required for online gatherings, and we ask
+                everyone who practices in person to sign up as well.
               </p>
               <div className="pp-actions">
                 <Link href="/community-programs" className="pp-btn">
@@ -498,9 +499,11 @@ export default async function HomePage() {
               <p className="pp-intro__body">
                 RIM is co-created by the people who practice here. Volunteers host our online
                 gatherings, care for the center, and serve on our teams, and members start community
-                groups of their own. Some train to facilitate and teach, sharing the practice they
-                were given. Each of these is a way of caring for others and for our shared world,
-                and a way of practicing too.
+                groups of their own. Some take the path of training to share the practice:
+                facilitating practice sessions, drop-ins, and programs here at RIM, and offering
+                Taking CARE beyond it. Sharing the teachings is itself a form of generosity. Each of
+                these is a way of caring for others and for our shared world, and a way of
+                practicing too.
               </p>
               <p className="pp-intro__body">
                 We also carry the practice outward. We partner with nonprofits and community
