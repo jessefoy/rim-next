@@ -447,7 +447,7 @@ export function PublicDesktopNav({
                   if (caretRefs) caretRefs.current[menu.id] = el;
                 }}
               >
-                {menu.label}
+                <span className="nav__link-label">{menu.label}</span>
                 <Caret />
               </button>
             )}
