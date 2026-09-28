@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "open sans",
+        "createdAt": "2026-09-28T21:44:29.989Z",
+        "reason": "Jesse confirmed 2026-09-28: Open Sans is RIM's committed body typeface (RIM_Web_Design_Philosophy.md)"
+      }
+    ]
+  }
+}
