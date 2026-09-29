@@ -216,7 +216,7 @@ export default async function HomePage() {
           <p className="pp-hero__body">Come as you are.</p>
           <div className="pp-hero__actions">
             <Link href="/new-to-rim" className="pp-btn pp-btn--onblue">
-              New to RIM
+              New to RIM?
             </Link>
             <Link href="/community-programs" className="pp-btn pp-btn--onblue-ghost">
               Programs &amp; events

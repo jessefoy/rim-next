@@ -130,6 +130,7 @@
   --text-hero:   clamp(2.5rem, 4vw + 1rem, 3.25rem); /* ~40–52px */
   --text-h1:     38px;
   --text-h2:     28px;
+  --text-h2-lg:  32px;  /* home group labels and pathway card titles (2026-09-29) */
   --text-h3:     24px;
   --text-h4:     20px;
   --text-body:   18px;  /* p, li, td — all editorial body text */
@@ -28752,6 +28753,15 @@ a.pp-card.tpr-card {
    wrap "Beautify the World" (475 at 60px); eight hold it from 769 up. */
 @media (min-width: 769px) {
   .home-page .pp-hero__inner > .pp-hero__title { grid-column: 1 / span 8; }
+  /* The paragraphs run on to the col-7 line (one gutter past col 6), so
+     their right edge is even with the left edge of the text below
+     (Jesse, 2026-09-29). */
+  .home-page .pp-hero__inner > .pp-hero__body {
+    margin-right: calc(var(--grid-gutter) * -1);
+    /* `balance` (set for all hero copy) shortens every line to even them out,
+       so the edge never reached the line: measured 515-594 against 652. */
+    text-wrap: pretty;
+  }
 }
 
 /* ── Chapter ────────────────────────────────────────────────────────────── */
@@ -28784,7 +28794,7 @@ a.pp-card.tpr-card {
   margin: 0;
   color: var(--rim-blue);
   font-family: var(--font-serif);
-  font-size: var(--text-h2);
+  font-size: var(--text-h2-lg);
   font-weight: 400;
   line-height: var(--lh-heading);
   text-wrap: balance;
@@ -28801,7 +28811,9 @@ a.pp-card.tpr-card {
   margin: 0 0 var(--space-1);
   color: var(--rim-text);
   font-family: var(--font-serif);
-  font-size: var(--text-h4);
+  /* Quincy's x-height is small: at 20px beside 18px Open Sans a title read
+     smaller than its own text (Jesse, 2026-09-29). */
+  font-size: var(--text-h3);
   font-weight: 400;
   line-height: var(--lh-heading);
 }
@@ -28865,14 +28877,14 @@ a.pp-card.home-paths__card {
 }
 .home-paths__card .pp-card__title {
   margin: 0;
-  font-size: var(--text-h2);
+  font-size: var(--text-h2-lg);
   font-weight: 400;
   text-wrap: balance;
   transition: color 0.15s ease;
 }
 .home-paths__card .pp-card__body {
   margin: 0;
-  font-size: var(--text-small);
+  font-size: var(--text-body);
   line-height: var(--lh-body);
 }
 .home-paths__card:hover .pp-card__title,
@@ -28926,7 +28938,8 @@ a.pp-card.home-paths__card {
   .home-care-words { grid-column: 1 / -1; }
   .home-page .pp-intro__title { font-size: var(--text-h2); }
   .home-group__label,
-  .home-paths__card .pp-card__title,
+  .home-paths__card .pp-card__title { font-size: var(--text-h2); }
+  .home-group__title,
   .home-care-words { font-size: var(--text-h3); }
   .home-lead { font-size: var(--text-h4); }
   .home-chapter + .home-groups,
