@@ -61,6 +61,8 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Nav, modernized** (live 2026-09-28, approved by Jesse; proposal in `mockups/nav-2026-09-28/`): top labels as links with arrow buttons, hover-intent panels (mouse only) with lines under each link, Donate as a tokened pill, a labeled Menu button and a grouped modal sheet on phones. A signed-in "Hi, [name]" caps at 7.25em so a long name cannot clip Donate at 1061px. Scroll locks (the sheet and the member drawers' `useNavigationDrawer`) sit on `<html>`, because the global `html { overflow-x: clip }` stops a body lock from reaching the viewport.
 - **Addendum E layout** (2026-09-28, night; Claude Design handoff, options 1b and 2a): home on the two text edges with one heading size per tag and a 96/64/48 section rhythm; Practice for real life as three stacked Pampas panels (label col 1, items col 7); the CARE circle beside the eight words; 4:7 images that follow their text when stacked; Where to begin's buttons after the cards; the call as a plain chapter (closing panel retired). See `RIM_Public_Pages.md` → "Revised by Addendum E".
 - **Addendum D copy** (2026-09-28, evening): home Where to begin now asks everyone, in person too, to sign up; the training path on home and `/outreach`.
+- **The button standard** (2026-09-28, night, site-wide): every public `.pp-btn` is as wide as its label on every screen, in a wrapping row 16px apart; only a form's submit fills the column on phones. See `RIM_Public_Pages.md` → "The button standard".
+- **The pine photo re-sourced** (2026-09-28): Casey Horner's Unsplash original replaces the 534px copy on home (Deep roots, 1000w WebP) and the `/community-programs` hero (a 2:1 band, 1600w WebP).
 
 ## For depth, see
 

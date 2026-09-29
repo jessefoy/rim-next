@@ -1,3 +1,49 @@
+## 2026-09-28, evening and night — Addendum D, the nav live, Addendum E, a button standard, the pine photo
+
+Continues the same day's work. Fifteen commits on `main`, `195f8fa` … `c263479` (the nav branch merged and deleted). Words sourced from the vault brief `08-promotion-site-brief-home-2026-09-28.md` (Addendum D) and the home draft; layout from the Claude Design handoff `~/Desktop/design_handoff_home_layout/` (Addendum E).
+
+### Built and live
+
+- **Addendum D** (`195f8fa`): home Where to begin now puts the asks paragraph first, then "Signing up as a member is where each of us agrees to them… we ask everyone who practices in person to sign up as well"; the training path on home ("Some take the path of training to share the practice…") and on `/outreach` (Training in Taking CARE, `mailto:` kept). Checked verbatim against the home draft and the copy doc; verified live.
+- **The nav** (merge `f9edba0`), from the branch Jesse approved. A reviewer pass before the merge found five bugs, fixed in `d3fca00`: a click on an arrow closed the panel hover had just opened (it now pins it); a touch tap or leftover hover timer reopened a panel on the next page (hover intent is mouse-only via pointer events, and the timer clears on route change); a link to the current page left the phone sheet and its scroll lock on (every sheet and panel link now closes); a Safari blur with no new target swallowed clicks on a keyboard-opened panel; an iPad rotation stranded focus on a hidden Menu button (the sheet closes past 1060px). Live testing found two more: a long "Hi, [name]" pushed Donate 7px off the edge at 1061px (capped at 7.25em, `7305c94`), and **the sheet's scroll lock never held**: the page scrolled 600 → 2600 behind it, because the global `html { overflow-x: clip }` stops a body `overflow: hidden` reaching the viewport. Locks now sit on `<html>` (`3905b6a`), and the same fix went into `useNavigationDrawer`, the account and hub phone drawers (`c0b0791`).
+- **Addendum E** (`fdfd576`), the Claude Design layout, checked against the grid section and the tombstones before building: every section on the two text edges with headings in cols 1-6; one size per heading tag (h2 38, 28 on phones only; h3 28; h4 20; a Quincy 24/1.5 lead in H2 and H9); sections 96 / 64 / 48, paragraphs 24, blocks 64. Practice for real life as three stacked Pampas panels bleeding 32px so labels sit on col 1 and items on col 7 (option 1b, replacing C1's thirds; items ~58 characters per line, were 32-36). H4 as option 2a: the CARE circle beside the eight words as a four-row list. Splits with 4:7 images that follow their text when stacked. Where to begin's buttons after the cards. The call as a plain chapter (the recessed closing panel retired). Two edges hold down to 769 (Jesse's call); 40px margins at 431-768 on home.
+- **The button standard** (`2da93cb`), site-wide: a `.pp-btn` is as wide as its label on every screen (48px pill, 26px padding, 15px label), in a wrapping row 16px apart; only a form's submit fills the column on phones. Replaced the phone rule that stretched every button to full width.
+- **The pine photo re-sourced** (`95843ff`): Casey Horner's "Looking up" (Unsplash License), downloaded with Jesse's approval after the only copy RIM or Webflow held proved to be 534 × 800. A 1000w WebP (463KB) for Deep roots and a 2:1 band (1600w, 379KB) for the `/community-programs` hero, which had been stretched ~3x.
+
+### Decisions and why
+
+- **Departures from the handoff, said out loud and accepted by Jesse** ("the design was trying to create coherency. What do you think?"): keep the measured hero scrim (the handoff's flat 0.74 navy measures ~3.3:1 over the near-white poster); keep the live 60px headline (the handoff's "52" was not what is live), given 8 columns so its four lines hold 769-1140; keep the site's 12px radius and 3px focus ring (coherence across the site, not only the page); no "[Held: …]" note (a placeholder the brief excludes); no landlord line (B1). Stacked Deep roots text capped at cols 1-10 (the handoff's 1-12 measured 79 characters).
+- **Tablet 769-1023 keeps two edges** (Jesse: "Let's try the handoff for now. We may change our mind"). Measures ~37 characters per line at 800; stacking below 1024 is the ready alternative.
+- **2a stays over 2c** (Jesse: "use your discernment"): 2c would leave the eight words only in the circle's small curved type.
+- **The page's text is current** (Jesse): no landlord line, item and card titles without periods, though the vault draft still shows both.
+- **A button standard, not a home exception** (Jesse: "We should create a best practice standard"): two full-width bars read as equal weight and blur the one-dominant-action rule.
+
+### Method worth keeping
+
+- **Verifying unpushed layout without `tsx`:** transpile a copy of the page with the repo's own `tsc` (JSX to CommonJS, stand-ins for `@/lib/db` and helpers), render with `react-dom/server`, place it in the live shell (scripts stripped, CSS inlined, `<base href>`), and drive headless Chrome over its DevTools protocol from a small Node script (`--headless=new`, `--remote-debugging-port`, `Emulation.setDeviceMetricsOverride`, `Page.captureScreenshot` with a clip). Node 22's global `WebSocket` is enough; no puppeteer.
+- **Site-wide CSS before pushing:** load each live page, remove its `custom.css` link, inject the local file, and measure (20 public pages at 375 for the button standard).
+- **Claude Design `.dc.html` boards** load their section files by fetch, so they render blank over `file://`; serve the folder on a local port to view them, and clone one frame into a clean page to screenshot it (captures of the full 4000 × 24000 board do not paint).
+- The reviewer sub-agent found real bugs both times it ran (five in the nav, three in the home layout, including the six-column cap that would have broken the headline between 769 and ~1070px).
+
+### What this connects to
+
+The nav is the public header on every public page; the member-bar is unchanged. `useNavigationDrawer` is shared by `AccountSidebar` and `HubWorkspaceSidebar` (presentation only; no access or routing change). The button standard reaches every public page's `.pp-btn` and `.pp-actions` gap, including `/login`'s submit (full width by rule) and `/donate`. The pine photo also serves the `/community-programs` hero; the old 534px jpg stays for the legacy Webflow CSS. Addendum E's revisions to the grid (rhythm, widths, one size per tag, the panel layout) are recorded in `RIM_Public_Pages.md` and govern the later page migrations (`2026-09-28-001`).
+
+### Evidence and limits
+
+`tsc` clean at every commit; lint adds no new warnings. Verified live: Addendum D copy on `/` and `/outreach`; the nav signed out at 1280 (hover intent, arrow pinning, Enter/Tab/Escape with focus return, 3px focus rings, outside click, tab-out) and the phone sheet at 375 (dialog, focus on Close, trap both ways, Escape and Close return focus, same-page link closes, lock releases); the home layout at 1440 / 1024 / 800 / 768 / 375 (zero overflow, two edges, four-line headline, no wrapped buttons); buttons at natural width on five pages; both pine images served as WebP. **Not verified:** the phone-sheet checks after the scroll-lock fix ran with synthetic events because the browser pane was hidden (the wheel re-test is owed); everything signed in (the "Hi, [name]" panel, the sheet's signed-in foot, the member drawers' lock); Safari's keyboard-then-mouse panel click.
+
+### What comes next
+
+Jesse's look at the home page on a real tablet (the 769-1023 band). Signed-in nav and drawer checks. The grid migration of the other public pages on the revised system. Held from the brief: where to begin before November, the `/care` title, the About page's superseded mission.
+
+### Closing audit
+
+- **Updated:** this entry, `FEATURES.md`, `RIM_Public_Pages.md` ("Revised by Addendum E", "The button standard", the pine credit, the composition note), `RIM_Stack_Reference.md` (this session's preamble), `RIM_Member_Area.md` (the drawer's scroll lock), `UP_NEXT.md`, `data/backlog.json` (`2026-09-28-001` notes).
+- **No change needed:** `RIM_System_Architecture.md` (no hub, tool, role or permission logic), `RIM_Editor_Types.md` (no editor surface), `RIM_Hub_Engineering.md` (the hub drawer change is presentation only; none of the four routing layers touched), `RIM_Email_Engineering.md` (**no email templates touched**), no new tool doc.
+
+---
+
 ## 2026-09-28 — Home on a strategic grid, new home copy, new agreements; the nav built (not yet live)
 
 Spans 2026-09-27 (after the recovery closing) and 2026-09-28. Jesse worked in Claude chat and brought a brief in the vault (`CARE/4 Promotion/08-promotion-site-brief-home-2026-09-28.md`, Parts A-C and Addenda A, B, C), with the words sourced from `04-community-homepage-revision-2026-09-28.md` (the home draft, which wins any difference). Ten commits on `main`, `2bbbd05` … `8e406cb`; the nav on a local branch.

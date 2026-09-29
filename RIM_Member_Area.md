@@ -32,7 +32,7 @@ All first-party authenticated surfaces use `public/css/custom.css` as their desi
 - My Teams follows the existing status-blind read door. Paused membership visibility is distinct from write authority. Manage RIM is a header destination for ADMIN/REGISTRAR, not a new permission grant.
 - Hub queries, app installs and app links keep the resource hub context, including `?hub=`. Home rendering never switches behavior by a hardcoded hub slug.
 - Personal file favorites/colors/sort are stored by authenticated member and place; shared pins require existing file write authority. They never change Drive colors, ordering or grants.
-- `useNavigationDrawer` handles Escape, focus containment, body scroll lock and focus restoration for account/hub drawers. Header account menu also closes on Escape, outside pointer and navigation.
+- `useNavigationDrawer` handles Escape, focus containment, scroll lock and focus restoration for account/hub drawers. The lock sets `overflow: hidden` on `<html>`, not `<body>`: the global `html { overflow-x: clip }` stops a body lock from reaching the viewport (found live on the public nav sheet, 2026-09-28). Header account menu also closes on Escape, outside pointer and navigation.
 
 ## Verification and follow-up
 

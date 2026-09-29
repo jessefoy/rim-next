@@ -1493,6 +1493,6 @@
     "priority": "medium",
     "status": "open",
     "addedAt": "2026-09-28",
-    "notes": "Launch is October 5; migrate in later passes. Also: .pp-btn relies on the browser's default focus ring; give it the site's focus style (3px --rim-mid) in the same pass."
+    "notes": "Launch is October 5; migrate in later passes. Also: .pp-btn relies on the browser's default focus ring; give it the site's focus style (3px --rim-mid) in the same pass. 2026-09-28 night: Addendum E revised the system on the home page (sections 96/64/48, paragraphs 24, one size per heading tag, two edges down to 769, stacked text in cols 1-10, images after their text); migrate onto the revised version in RIM_Public_Pages.md ('Revised by Addendum E'). The button standard is already site-wide."
   }
 ]
