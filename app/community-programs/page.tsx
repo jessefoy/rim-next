@@ -77,8 +77,11 @@ export default async function CommunityProgramsPage() {
       <section
         className="pp-hero"
         style={{
-          ["--pp-hero-image" as string]: "url('/images/Looking-Up-Pine-Trees-unsplash.jpg')",
-          ["--pp-hero-position" as string]: "center 48%",
+          // A 2:1 band cut from the Unsplash original (Casey Horner,
+          // unsplash.com/photos/4rDCa5hBlCs) at the old 48% framing; the
+          // 534px file it replaces was stretched ~3x across the hero.
+          ["--pp-hero-image" as string]: "url('/images/Looking-Up-Pine-Trees-band-1600.webp')",
+          ["--pp-hero-position" as string]: "center",
         }}
       >
         <div className="rim-container pp-hero__inner">

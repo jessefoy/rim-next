@@ -408,7 +408,9 @@ export default async function HomePage() {
               className="pp-split__media"
               style={{
                 ["--pp-split-image" as string]:
-                  "url('/images/Looking-Up-Pine-Trees-unsplash.jpg')",
+                  // Casey Horner, Unsplash License (unsplash.com/photos/4rDCa5hBlCs),
+                  // re-sourced 2026-09-28: the old 534px file was soft at 4:7.
+                  "url('/images/Looking-Up-Pine-Trees-unsplash-1000.webp')",
                 ["--pp-split-position" as string]: "center bottom",
               }}
               aria-hidden="true"
