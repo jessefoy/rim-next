@@ -28763,6 +28763,16 @@ a.pp-card.tpr-card {
     text-wrap: pretty;
   }
 }
+/* Ragged text cannot sit on a line: with `pretty` the ends still stopped 10-80px
+   short and the block read as unchanged (Jesse, 2026-09-29). Justified, the
+   right edge is the col-7 line exactly. No hyphenation (it split "suffering").
+   From 1024 up only: below, the column is too narrow for even word spaces. */
+@media (min-width: 1024px) {
+  .home-page .pp-hero__inner > .pp-hero__body {
+    text-align: justify;
+    hyphens: manual;
+  }
+}
 
 /* ── Chapter ────────────────────────────────────────────────────────────── */
 .home-chapter__head { grid-column: 1 / span 6; }
