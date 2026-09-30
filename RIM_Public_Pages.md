@@ -270,6 +270,12 @@ The geometry, so nobody re-derives it: `.rim-container` is 1140 with 40px paddin
 - Meta chips (format, Today, lesson counts) have a 13px floor; eyebrows stay 11px (uppercase and tracked, contrast measured at that size).
 - Method: measure with an iframe harness (getBoundingClientRect + Range line counts) at 375/768/1280/1440, preview new CSS by injecting it into the live pages, then re-measure after deploy.
 
+**Reading aids on the longest reading page (`/why-we-practice`, 2026-09-30, Revision 8).** Three additions, each scoped so no other reading page moves (CSS block "WHY WE PRACTICE — reading aids"):
+- **"On this page"** (`.pp-toc`): a `nav` with `aria-label`, an `ol` of the section headings, two columns from 600px (four and four), one stacked list below. Links are 44px rows in `--rim-blue`, underlined (the prose-link convention); the small label is `aria-hidden` so the nav does not announce twice. One array in the page file feeds the nav and the `h2` ids, so they cannot drift. The brief said "ten sections"; the page has eight, and the nav lists eight. Jump targets clear the sticky nav through the existing `.pp-prose h2[id]` scroll margin (measured 124px from the top).
+- **Section spacing on the scale** (`.pp-prose--sections`): h2 64 above and 24 below (48 above on phones), heading size unchanged (`--text-h2`, 28; 24 on phones, the existing 768 rule). The 32px `--text-h2-lg` tier was not needed: a 28px Quincy heading over 18px text already reads larger, and eight headings at 32 would crowd the 52px hero title. Paragraph gap stays at the existing 22 (the brief's "16" was a misstatement of the current value; Jesse confirmed keeping it).
+- **The pull statement** (`.pp-quote--set`): the same white card and lift as `.pp-quote`, left-set. `.pp-quote` is centred for a short quotation; about seventy-five words centred read ragged on both edges in a left-set column. A `div` and `p`, not a `blockquote`, because it is the page's own words rather than a quotation.
+- **Page-title separator:** a spaced hyphen, as the home page uses. Seven other reading pages still carry the em-dash form ("Our Roots — Rooted In Mindfulness"); a sitewide pass is one decision for Jesse.
+
 ### The strategic grid (2026-09-28, proposed; home first)
 
 **Why.** Jesse, reviewing the live home page: "not just a grid but a *strategic* grid, a truly solid proportional system for the site." Things "look a little wonky." The audit below shows why: the home page's sections each chose their own columns, so nothing shares an edge.

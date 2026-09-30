@@ -28956,6 +28956,65 @@ a.pp-card.home-paths__card {
 }
 
 /* ===================================================================
+   WHY WE PRACTICE — reading aids (2026-09-30)
+   ===================================================================
+   Three additions for the longest reading page, all scoped so the other
+   reading pages do not move: "On this page" (.pp-toc), section spacing on the
+   8px scale (.pp-prose--sections), and the direction of the practice set
+   apart as a pull statement (.pp-quote--set). The page keeps its one centred
+   column (.pp-page--column). */
+
+.pp-toc { margin: 0 0 var(--space-6); }
+.pp-toc__label {
+  margin: 0 0 var(--space-1);
+  color: var(--rim-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.pp-toc__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pp-toc__list li { margin: 0; }
+.pp-toc__link {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  color: var(--rim-blue);
+  font-size: var(--text-body);
+  line-height: var(--lh-heading);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.pp-toc__link:hover { color: var(--rim-dark); }
+@media (min-width: 600px) {
+  /* Eight links read down then across: four and four. */
+  .pp-toc__list { column-count: 2; column-gap: var(--space-4); }
+  .pp-toc__list li { break-inside: avoid; }
+}
+
+/* Section spacing from the scale: 64 above a heading, 24 between heading and
+   text (48 above on phones). The first heading has no top margin because the
+   list above carries the gap. Paragraphs keep their 22. */
+.pp-prose.pp-prose--sections h2 { margin: var(--space-6) 0 var(--space-3); }
+.pp-prose.pp-prose--sections > h2:first-child { margin-top: 0; }
+@media (max-width: 768px) {
+  .pp-prose.pp-prose--sections h2 { margin-top: var(--space-5); }
+}
+
+/* The page's pull statement. .pp-quote is centred for a short quotation; the
+   direction of the practice is about seventy-five words, and that many
+   centred lines read ragged on both edges in a left-set column. Same white
+   card and lift, left-set. */
+.pp-prose .pp-quote--set { margin: 0 0 var(--space-4); text-align: left; }
+.pp-prose .pp-quote--set .pp-quote__text { margin: 0; text-wrap: pretty; }
+
+/* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).
    Presentation only: no route, permission, data, or integration changes.
