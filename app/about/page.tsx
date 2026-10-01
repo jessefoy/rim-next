@@ -129,9 +129,11 @@ export default function AboutPage() {
             <h2>Our teachers</h2>
             <p>
               Jesse Foy, RIM&apos;s founding and guiding teacher, came to this work through more
-              than fifteen years of mindfulness-based work in medicine, training as a teacher of
-              Mindfulness-Based Stress Reduction at UMass Medical School, and the study of Buddhism
-              and contemplative psychology at Naropa University.
+              than fifteen years of mindfulness-based work in medicine. He trained as an MBSR
+              (Mindfulness-Based Stress Reduction) teacher through the Center for Mindfulness in
+              Medicine, Health Care, and Society at the University of Massachusetts Medical School,
+              under the direction of Jon Kabat-Zinn, Saki Santorelli, and Florence Meleo-Meyer. He
+              also studied Buddhism and contemplative psychology at Naropa University.
             </p>
           </div>
           <div className="pp-actions">
