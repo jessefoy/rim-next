@@ -225,9 +225,11 @@ export default function CarePage() {
               people, and taking care as we go.
             </p>
             <p>
-              This page is a first introduction. The teachings deepen from there: through our
-              community introduction, <Link href="/our-roots">A Handful of Leaves</Link>; through
-              Foundations; and through ongoing learning and practice together.
+              This page is a first introduction to how we practice, and{" "}
+              <Link href="/why-we-practice">Why We Practice</Link> says what the practice is for.
+              The teachings deepen from there: through our community introduction,{" "}
+              <Link href="/our-roots">A Handful of Leaves</Link>; through Foundations; and through
+              ongoing learning and practice together.
             </p>
           </div>
 

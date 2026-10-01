@@ -16,11 +16,12 @@ export const metadata = {
  * 2026-09-30.md. Change the words there first, then here. Provisional until
  * Jesse's read-aloud.
  *
- * Order: the ground first (something already here), then joy and difficulty,
- * what gets in the way, the moment of choice (contact, in its "greater
- * meaning": our relationship with our life), what we practice for (the four
- * right efforts as heal / promote / protect / reduce harm), a fuller life,
- * the circulation between life and community, and the turn outward.
+ * Order, why-first (Revision 11, 2026-10-01): why people come, the ground
+ * (something already here), what gets in the way, the moment of choice
+ * (contact, in its "greater meaning": our relationship with our life), how
+ * practice benefits our lives and our world, what we practice for (the four
+ * right efforts as heal / promote / protect / reduce harm), the circulation
+ * between life and community, and the turn outward.
  *
  * Image discipline: one image, the garden, carrying the four efforts. The
  * second arrow is stated plainly, without its arrow. The close is a gathering
@@ -34,12 +35,12 @@ export const metadata = {
 
 /** One list feeds both the "On this page" nav and the h2 ids, so they cannot drift. */
 const SECTIONS = [
+  { id: "why-people-come", title: "Why people come" },
   { id: "something-already-here", title: "Something already here" },
-  { id: "joy-and-difficulty", title: "Joy and difficulty" },
   { id: "what-gets-in-the-way", title: "What gets in the way" },
   { id: "the-moment-of-choice", title: "The moment of choice" },
+  { id: "how-practice-benefits", title: "How practice benefits our lives and our world" },
   { id: "what-we-practice-for", title: "What we practice for" },
-  { id: "a-fuller-life", title: "A fuller life" },
   { id: "together-and-in-our-lives", title: "Together, and in our lives" },
   { id: "beyond-ourselves", title: "Beyond ourselves" },
 ] as const;
@@ -78,6 +79,27 @@ export default function WhyWePracticePage() {
           </nav>
 
           <div className="pp-prose pp-prose--sections">
+            <SectionHeading id="why-people-come" />
+            <p>
+              Life holds joy and difficulty, and all of it matters. A friendship, a meal, the
+              satisfaction of work done well, a child laughing in the next room. A diagnosis, a
+              loss, a job that asks too much, an argument that keeps coming back.
+            </p>
+            <p>
+              People come to practice for all of it. Some come because something hurts, and some
+              come well, wanting more of the life they already have. Some want a practice that
+              finally lasts. Some want to be there better for the people they love, or to let go of
+              old judgments and patterns. Some are looking for company on the way, and some for a
+              path that goes all the way. Many come for more than one of these at once, and the
+              reasons tend to widen the longer we stay.
+            </p>
+            <p>
+              If this is a dark time, this practice has room for it, and so do we. Many people have
+              arrived here in the hardest season they had known. Nobody needs to feel better before
+              they come. And for anyone who wants to deepen the light already in their life, there
+              is always further to go.
+            </p>
+
             <SectionHeading id="something-already-here" />
             <p>
               Something clear and caring is already here in each of us. We can find it in an
@@ -96,25 +118,6 @@ export default function WhyWePracticePage() {
               human beings. It is part of who we are, and it is easy to lose touch with, for one
               person and for a whole society. Long stretches of stress, loss, or hurry can cover it
               until it seems gone. It is not gone. Practice is how we come back to it.
-            </p>
-
-            <SectionHeading id="joy-and-difficulty" />
-            <p>
-              Life holds joy and difficulty, and all of it matters. A friendship, a meal, the
-              satisfaction of work done well, a child laughing in the next room. A diagnosis, a
-              loss, a job that asks too much, an argument that keeps coming back.
-            </p>
-            <p>
-              People come to practice for all of it. Some come because something hurts. Some come
-              because they love someone and want to be there for them better. Some want a practice
-              that finally lasts, and some have glimpsed a way of living that is freer and kinder
-              than the one they know. Many come for more than one of these at once.
-            </p>
-            <p>
-              If this is a dark time, this practice has room for it, and so do we. Many people have
-              arrived here in the hardest season they had known. Nobody needs to feel better before
-              they come. And for anyone who wants to deepen the light already in their life, there
-              is always further to go.
             </p>
 
             <SectionHeading id="what-gets-in-the-way" />
@@ -157,6 +160,50 @@ export default function WhyWePracticePage() {
               room to choose.
             </p>
 
+            <SectionHeading id="how-practice-benefits" />
+            <p>
+              None of this asks for a different life. It asks for this one, met from wakefulness
+              more often, and its benefits are for ourselves, those we care about, and our shared
+              world.
+            </p>
+            <p>
+              In our own lives, the first benefit is often steadiness. The difficulties may stay,
+              and we add less to them: less replaying, less bracing, less blaming. Rest comes more
+              easily, and a hard day becomes workable. Many people come for this, and it is already
+              the path.
+            </p>
+            <p>
+              Life also becomes more available. We taste more of what we are already living, and we
+              can delight in something without needing to hold on to it. This is health in the
+              larger sense of the word, closer to wholeness than to cure. It makes room for a
+              realistic happiness, one that does not depend on everything going well and so can
+              include difficulty.
+            </p>
+            <p>
+              Over time, something more lasting changes: our relationship with our own patterns. A
+              reaction seen early is one we do not have to obey. We respond where we used to react,
+              and more of our days line up with what matters to us.
+            </p>
+            <p>
+              With the people we care about, that steadiness gives us more to offer. We listen more
+              fully, stay present when someone is struggling, and speak clearly when something needs
+              to change. Care widens too, toward people we used to overlook and toward the
+              conditions that shape all our lives.
+            </p>
+            <p>
+              How we teach is informed by mindfulness-based programs, and we keep the practice in
+              its whole setting: with intention, with ethics, with community, and with the
+              understanding that clarity is already within us. That setting is what lets relief open
+              into a whole life.
+            </p>
+            <p>
+              For some, practice opens onto a deeper freedom: the discovery that the clarity and
+              warmth we keep returning to were never missing, and do not depend on circumstances.
+              The tradition calls their fullness great wisdom, great compassion, and great action,
+              great because they are no longer confined to our limited view of things. Nobody here
+              is keeping score.
+            </p>
+
             <SectionHeading id="what-we-practice-for" />
             <div className="pp-quote pp-quote--set">
               <p className="pp-quote__text">
@@ -183,27 +230,6 @@ export default function WhyWePracticePage() {
               What is wholesome is what makes us whole. If the trying itself turns tight or harsh,
               we have found one more thing to tend. We can be sincere about changing a harmful
               pattern while meeting the person caught in it with compassion, including ourselves.
-            </p>
-
-            <SectionHeading id="a-fuller-life" />
-            <p>
-              None of this asks for a different life. It asks for this one, met from wakefulness
-              more often. A fuller life is one where we bring clarity and care to as many moments as
-              we can: enjoying what there is to enjoy, responding to what needs us, and staying
-              connected to all of it, the healthy and the hard.
-            </p>
-            <p>
-              This is health in the larger sense of the word, closer to wholeness than to cure. It
-              makes room for a realistic happiness, one that does not depend on everything going
-              well and so can include difficulty.
-            </p>
-            <p>
-              Along the way we find that we are more than who we have become. We respond where we
-              used to react. We can stay with grief, and delight in something without needing to
-              hold on to it. Our care reaches past its usual circle. These show what greater
-              understanding and greater care look like in a life. The tradition calls their fullness
-              great wisdom, great compassion, and great action, great because they are no longer
-              confined to our limited view of things. Nobody here is keeping score.
             </p>
 
             <SectionHeading id="together-and-in-our-lives" />

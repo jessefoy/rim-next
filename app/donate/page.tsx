@@ -8,8 +8,8 @@ export const metadata = {
 
 /**
  * /donate — body rewritten 2026-09-26 from the site revision brief so it says
- * how dana actually works at RIM: suggested amounts, no one turned away,
- * minimums only where RIM pays a host, program gifts split 50/50 with the
+ * how dana actually works at RIM: suggested amounts, for most programs no one
+ * turned away for being unable to pay, minimums only where RIM pays a host, program gifts split 50/50 with the
  * Teaching Fund. The three Givebutter widgets and their placement are
  * unchanged. The fund is the Teaching Fund in headings; the quoted campaign
  * names ("RIM Dana", "Teacher Dana") stay so donors can match them to the
@@ -71,9 +71,9 @@ export default function DonatePage() {
                 Your generosity keeps the door open.
               </h1>
               <p className="pp-hero__body">
-                Our teachings are offered through dana, the practice of generosity. RIM is supported
-                entirely by the people who practice here, and no one is ever turned away for
-                financial reasons.
+                Our teachings are offered freely, through dana, the practice of generosity. RIM is
+                supported entirely by the people who practice here, and for most programs, no one is
+                turned away for being unable to pay.
               </p>
               <a href="#dana-at-rim" className="pp-btn pp-btn--onblue">
                 Learn more about dana ↓
@@ -106,9 +106,12 @@ export default function DonatePage() {
                 <h2 className="pp-give__title">Give to the Teaching Fund</h2>
                 <p className="pp-give__name">&ldquo;Teacher Dana&rdquo;</p>
                 <p className="pp-give__body">
-                  Our teachers offer the teachings freely and are supported by the community&rsquo;s
-                  generosity. Gifts to the Teaching Fund support their livelihood, so they can give
-                  their lives to practicing and sharing the teachings.
+                  Our teachers offer the teachings freely, and the community&rsquo;s generosity
+                  supports their livelihood. Gifts to the Teaching Fund support our teachers, so
+                  they can give their lives to practicing and sharing the teachings. Our guiding
+                  teacher also serves as RIM&rsquo;s executive director and receives a modest salary
+                  for that part of his role. It is not enough to live on, and like every teacher
+                  here, his teaching is supported through the Teaching Fund.
                 </p>
 
                 <div className="pp-give__widget">
@@ -160,9 +163,11 @@ export default function DonatePage() {
               <h3>How program gifts work</h3>
               <p>
                 Programs list a suggested amount so everyone can see what an offering takes to
-                sustain. You give what you can. Half of every program gift goes to the Teaching Fund
-                and half to RIM. A few offerings, such as overnight retreats, carry a minimum because
-                RIM pays the places that host us.
+                sustain. For most programs, you give what you can, and no one is turned away for
+                being unable to pay. Half of every program gift goes to the Teaching Fund and half
+                to RIM. A few offerings, such as overnight retreats, carry a minimum because RIM
+                pays the places that host us. In time, we hope to build a fund that helps people
+                with those costs.
               </p>
             </div>
 

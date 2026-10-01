@@ -290,15 +290,8 @@ export default async function HomePage() {
               <p className="pp-intro__body">
                 Meditation gives us time to settle and see our experience clearly: what is actually
                 happening in body and mind, beneath our habits of reacting to it. That clarity is
-                where choice begins. The same practice continues through the day. It helps us
-                recognize what is healthy and wholesome and let it grow, see the patterns that bind
-                us and loosen their hold, and create the conditions for well-being in our own lives
-                and in the world around us.
-              </p>
-              <p className="pp-intro__body">
-                Well-being, as we understand it, is whole: body and mind, our relationships, what we
-                value and how we act, and the world we share. In an ordinary week, practice might
-                look like this:
+                where choice begins, and the same practice continues through the day. In an
+                ordinary week, it might look like this:
               </p>
             </div>
           </div>
@@ -329,8 +322,8 @@ export default async function HomePage() {
                 again.
               </p>
               <div className="pp-actions">
-                <Link href="/care" className="pp-btn pp-btn--ghost">
-                  How we practice
+                <Link href="/why-we-practice#how-practice-benefits" className="pp-btn pp-btn--ghost">
+                  How practice benefits our lives
                 </Link>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { RIM_ADDRESS, RIM_MAPS_URL } from "@/lib/locations";
 
 export const metadata = {
@@ -29,7 +30,18 @@ export const metadata = {
  * (lib/sessionWindowConstants.ts MEMBER_JOIN_MIN) and lives on My Home;
  * registration-required online programs admit registrants only (RIM_Zoom.md).
  */
-const QUESTIONS = [
+const QUESTIONS: { q: string; a: ReactNode }[] = [
+  {
+    q: "What can practice help with?",
+    a: (
+      <>
+        People come for many reasons: to meet stress, pain, or a hard season; to enjoy life more;
+        to be there for the people they love; to live by what matters; and, for some, to walk a
+        path of awakening. There is room for all of these here, and{" "}
+        <Link href="/why-we-practice">Why We Practice</Link> describes how practice helps.
+      </>
+    ),
+  },
   {
     q: "Do I need meditation experience?",
     a: "No. Every gathering is open to beginners, and the practice keeps deepening for people who have practiced for many years.",
@@ -48,9 +60,9 @@ const QUESTIONS = [
   },
   {
     q: "What does it cost?",
-    a: "Our teachings are offered through dana, the practice of generosity. Programs list a suggested amount so you can see what an offering takes to sustain, and no one is turned away. A few offerings, such as overnight retreats, carry a minimum.",
+    a: "Our teachings are offered freely, through dana, the practice of generosity. Programs list a suggested amount so you can see what an offering takes to sustain, and for most programs, no one is turned away for being unable to pay. A few offerings, such as overnight retreats, carry a minimum.",
   },
-] as const;
+];
 
 export default function NewToRimPage() {
   return (
