@@ -15,6 +15,11 @@
 export const RIM_NAME    = "Rooted in Mindfulness";
 export const RIM_ADDRESS = "4040 N. Calhoun Rd., Brookfield, WI 53005";
 
+/** Public contact, one source for the footer and the About page. */
+export const RIM_PHONE_DISPLAY = "(414) 882-8932";
+export const RIM_PHONE_TEL = "4148828932";
+export const RIM_SUPPORT_EMAIL = "support@rootedinmindfulness.org";
+
 /**
  * Legal identity for gift acknowledgments, exactly as the IRS determination
  * letter (March 24, 2016) names it: 501(c)(3), contributions deductible under

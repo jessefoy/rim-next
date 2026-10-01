@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { RIM_ADDRESS, RIM_PHONE_DISPLAY, RIM_PHONE_TEL, RIM_SUPPORT_EMAIL } from "@/lib/locations";
 
 interface FooterProps {
   memberArea?: boolean;
@@ -92,12 +93,12 @@ export default function Footer({ memberArea = false }: FooterProps) {
         <div className="rim-footer-contact">
           <img src="/images/RIM-Website-Footer-Logo-White.png" alt="Rooted In Mindfulness" width={65} className="rim-footer-logo" />
           <div className="rim-footer-name">Rooted In Mindfulness</div>
-          <div className="rim-footer-address">4040 N. Calhoun Rd., Brookfield, WI 53005</div>
+          <div className="rim-footer-address">{RIM_ADDRESS}</div>
           <div className="rim-footer-contact-links">
-            <a href="tel:4148828932">(414) 882-8932</a>
+            <a href={`tel:${RIM_PHONE_TEL}`}>{RIM_PHONE_DISPLAY}</a>
             <span className="rim-footer-dot">·</span>
-            <a href="mailto:support@rootedinmindfulness.org?subject=Dear%20RIM%20Support">
-              support@rootedinmindfulness.org
+            <a href={`mailto:${RIM_SUPPORT_EMAIL}?subject=Dear%20RIM%20Support`}>
+              {RIM_SUPPORT_EMAIL}
             </a>
           </div>
         </div>

@@ -3,29 +3,32 @@ import Link from "next/link";
 export const metadata = {
   title: "Our Roots - Rooted In Mindfulness",
   description:
-    "The tradition Rooted in Mindfulness practices in: silent illumination, from Chan Buddhism, and A Handful of Leaves, the body of Buddhist teaching we draw on, informed by mindfulness-based programs and modern science. Open to anyone.",
+    "The Dharma as one living family, our roots in Chan, A Handful of Leaves, and Taking CARE, rooted in all of it. Taught plainly for modern lives, informed by mindfulness-based programs and science, and open to anyone.",
 };
 
 /**
- * /our-roots — where the practice comes from (2026-09-25, revision 2). It
- * replaces /what-we-practice (A Handful of Leaves), which redirects here.
+ * /our-roots — where the practice comes from (2026-09-25; rewritten
+ * 2026-09-30, Revision 10). It replaced /what-we-practice (A Handful of
+ * Leaves), which redirects here.
  *
  * COPY SOURCE OF TRUTH: the Obsidian vault,
  *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/04-community-website-copy-2026-09-25.md
- * Provisional until Jesse's read-aloud.
+ * ("Our Roots", Revision 10), carried by the brief
+ * 08-promotion-site-brief-about-roots-2026-09-30.md. Provisional until Jesse's
+ * read-aloud.
  *
- * Why the change (Jesse, 2026-09-25): the old page led with a name the
- * average reader could not place. A Handful of Leaves is the container, the
- * body of teaching RIM draws on, and it sits inside a tradition. So this page
- * leads with the tradition (silent illumination, through Chan), then tells the
- * story of the name and says plainly what the handful is. The "ordered
- * structure" point that the session-174 page protected survives in one
- * sentence: the handful is ordered by what each teaching is for, so it can be
- * walked, not a collection. The seven-gathering count and the practice-shape
- * paragraph are left to the introduction itself.
+ * Order: the shared Dharma (one living family, in the spirit of Thich Nhat
+ * Hanh and the Order of Interbeing), our own root in Chan, the Handful of
+ * Leaves (the story and what it is; "why a handful" is folded in), Taking CARE
+ * rooted in all of it, teaching for modern lives, and anyone.
  *
- * Image discipline: one image, the hall and the orchestra (it carries the
- * anti-eclecticism point). The leaves are the story of the name.
+ * Image discipline: one image, in words: the hall and the orchestra, in
+ * "Rooted in Chan" (it carries the anti-eclecticism point). The leaves are the
+ * story of the name. The Order of Interbeing's first mindfulness training is
+ * an inline quotation inside its sentence, not a pull quote.
+ *
+ * Open for Jesse's ear: keeping that quotation; the Mahayana line in "Rooted
+ * in Chan".
  */
 export default function OurRootsPage() {
   return (
@@ -35,26 +38,39 @@ export default function OurRootsPage() {
           <p className="pp-hero__eyebrow">Where this comes from</p>
           <h1 className="pp-hero__title">Our Roots</h1>
           <p className="pp-hero__body">
-            The tradition we practice in, and the handful of teachings we draw on.
+            The tradition we practice in, the teachings we draw on, and how they meet a modern life.
           </p>
         </div>
       </section>
 
       <section className="pp-section pp-section--last">
         <div className="rim-container">
-          <div className="pp-prose">
-            <h2>Silent illumination</h2>
+          <div className="pp-prose pp-prose--sections">
+            <h2>The shared Dharma</h2>
             <p>
-              At the heart of our practice is an old way of meditation called silent illumination:
-              an open, settled awareness that meets whatever arrives with warmth. It comes to us
-              through Chan, the Chinese meditation school also known as Zen, where a teacher
-              named Hongzhi gave it its name some nine centuries ago.
+              Over twenty-five centuries, the Buddha&apos;s teachings, the Dharma, have grown into
+              many traditions across Asia and now the West. We honor them as one living family. Each
+              is complete in itself, and none is diminished by being honored alongside the others.
+              Thich Nhat Hanh and the Order of Interbeing express this spirit well: the first of
+              their mindfulness trainings asks us not to be &quot;bound to any doctrine, theory, or
+              ideology, even Buddhist ones.&quot; We practice in that spirit. People from every
+              tradition, and from none, find a place here, and whatever wisdom they bring keeps its
+              honored place.
+            </p>
+
+            <h2>Rooted in Chan</h2>
+            <p>
+              Within that family, our own roots are in Chan, the Chinese meditation tradition also
+              known as Zen, part of the Mahayana stream of Buddhism, which speaks of a wakeful and
+              caring nature, Buddha nature, already present in each of us. At the heart of our
+              practice is silent illumination: an open, settled awareness that meets whatever
+              arrives with warmth. A teacher named Hongzhi gave it its name some nine centuries ago.
             </p>
             <p>
-              It is less one technique than the ground under all of them. Loving-kindness, awareness
-              of breathing, and the contemplation of change are each a practice with a long history
-              of its own. They do not compete. This open awareness is not an instrument in the orchestra. It is the
-              hall the music is played in.
+              It is less one technique than the ground under all of them. Loving-kindness,
+              awareness of breathing, and the contemplation of change each have a long history of
+              their own. They do not compete. This open awareness is not an instrument in the
+              orchestra. It is the hall the music is played in.
             </p>
 
             <h2>A handful of leaves</h2>
@@ -62,45 +78,47 @@ export default function OurRootsPage() {
               One afternoon, some twenty-five centuries ago, the Buddha was walking with his
               students through a grove of trees. He gathered a few fallen leaves into his hand and
               asked them which were more numerous, the leaves in his hand or the leaves in the
-              forest above them. The answer was obvious, and so was the point. What he had come to
-              understand was vast, like the forest. What he taught was like this handful: only what
-              helps, only what leads to peace, to clear seeing, and to lives of wisdom and
-              compassion.
+              forest above them. What he had come to understand was vast, like the forest. What he
+              taught was like this handful: only what helps, only what leads to peace, to clear
+              seeing, and to lives of wisdom and compassion.
             </p>
             <p>
-              We took the name of the teaching we draw on from that afternoon. A Handful of Leaves
-              gathers what helps from across the Buddhist traditions and orders it by what each
-              teaching is for in a life of practice: why we begin, what holds us, what we meet in
-              the mind, and what is finally seen. It replaces nothing and ranks nothing. It is
-              ordered so that a person can walk it.
-            </p>
-
-            <h2>Why a handful</h2>
-            <p>
-              Every teaching of every Buddhist tradition is available to us at once: a retreat in
-              one lineage, a book from another, an app teaching something adapted from all of them.
-              That is a gift, and much of the time it is overwhelming. We meet the traditions
-              broadly rather than deeply, and breadth without roots leaves even sincere
-              practitioners holding valuable pieces with no way to put them together. Exposure
-              everywhere, orientation nowhere. The handful is our answer to that.
+              Today every teaching of every tradition is available to us at once, and much of the
+              time it is overwhelming: exposure everywhere, orientation nowhere. A Handful of Leaves
+              is our answer. It gathers the working teachings of a practicing life from across the
+              traditions and orders them by what each is for: why we begin, what holds us, what we
+              meet in the mind, where and how we look, and what is finally seen. It replaces nothing
+              and ranks nothing. It is ordered so that a person can walk it.
             </p>
 
-            <h2>Informed by modern understanding</h2>
+            <h2>Taking CARE, rooted in all of this</h2>
             <p>
-              Our teaching is also informed by mindfulness-based programs, psychology, and modern
-              science. Much of how we teach grew from years of teaching Mindfulness-Based Stress
-              Reduction, and it will feel familiar if you came to meditation through a course, a
-              class at work, or an app. Those doors are real doors; they led you here.
+              Taking CARE, our root practice, grows from this ground. Its eight words are plain
+              enough to begin with today, and each is rooted in teachings the traditions have
+              carried for centuries, so there is enough in them for a lifetime of practice. A
+              Handful of Leaves is where we go deeper: the wider body of teaching that supports and
+              enriches the practice of CARE.
+            </p>
+
+            <h2>For modern lives</h2>
+            <p>
+              We teach for people living full lives, with work, families, and responsibilities, and
+              we teach plainly and practically. Our teaching is informed by mindfulness-based
+              programs, psychology, and modern science. Much of how we teach grew from years of
+              teaching Mindfulness-Based Stress Reduction, so it will feel familiar if you came to
+              meditation through a course, a class at work, or an app. Those doors are real doors;
+              they led you here.
             </p>
 
             <h2>For anyone</h2>
             <p>
-              Buddhist, secular, spiritual, or undecided: the door is the same, and so is the depth.
-              Nothing here will ask you to believe anything. It will ask you to look.
+              Buddhist, secular, spiritual, or undecided: people from all traditions and walks of
+              life find support here. The door is the same, and so is the depth. Nothing here will
+              ask you to believe anything. It will ask you to look.
             </p>
             <p>
-              Everyone who joins us receives the full introduction to the handful and the map of its
-              teachings, and many people return to it for years.
+              Everyone who joins us receives the full introduction to A Handful of Leaves and the
+              map of its teachings, and many people return to them for years.
             </p>
           </div>
 

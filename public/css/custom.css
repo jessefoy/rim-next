@@ -29016,6 +29016,16 @@ a.pp-card.home-paths__card {
    card and lift, left-set. */
 .pp-prose .pp-quote--set { margin: 0 0 var(--space-4); text-align: left; }
 .pp-prose .pp-quote--set .pp-quote__text { margin: 0; text-wrap: pretty; }
+/* A statement can be a jump target (/about#vision, /about#mission). */
+.pp-prose .pp-quote--set[id] { scroll-margin-top: 124px; }
+
+/* A page that closes each section with its own button row (/about) splits its
+   prose around the rows; the next section's heading keeps the same 64 / 48 gap
+   a heading has inside one block. */
+.pp-actions + .pp-prose.pp-prose--sections { margin-top: var(--space-6); }
+@media (max-width: 768px) {
+  .pp-actions + .pp-prose.pp-prose--sections { margin-top: var(--space-5); }
+}
 
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
