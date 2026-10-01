@@ -84,7 +84,13 @@ export default async function TeacherProfilePage({
         <div className="rim-container">
           {profile.bio ? (
             <div className="pp-prose">
-              <p>{profile.bio}</p>
+              {profile.bio
+                .split(/\n{2,}/)
+                .map((paragraph) => paragraph.trim())
+                .filter(Boolean)
+                .map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
             </div>
           ) : (
             <div className="pp-panel">
