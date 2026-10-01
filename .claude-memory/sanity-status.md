@@ -42,7 +42,7 @@ rich-text, or email templates — placed there by a human through a CMS, so no
 grep of the repo will find them. **Before telling Jesse an external service is
 safe to cancel or delete, check the data too**: query the columns that hold
 URLs (`programImage`, `heroImage`, `heroImageUrl`, `photoUrl`), and where the
-prod DB is unreachable ([[project-prod-db-ops]]), crawl the public pages and
+prod DB cannot be queried (it was unreachable locally when this was written; reachable from this machine since 2026-10-01, read-only and on request, see [[project-prod-db-ops]]), crawl the public pages and
 grep the rendered HTML for the vendor's host — which is exactly how these six
 were found. Applies to Captivate.fm audio, Fillout embeds, Flodesk, and the
 Webflow assets as that cutover proceeds.

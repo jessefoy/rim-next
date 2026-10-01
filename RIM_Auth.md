@@ -177,6 +177,7 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 - **Promotion = the existing agreement gate.** A returning member signs in at `/login` like anyone; the `(authenticated)` layout sends a not-yet-agreed user to `/account/welcome` → `complete-profile`, which sets `agreedToTerms:true` **and flips `isLegacyUnclaimed:false`**. The `/join` upsert flips it too. So a legacy member promotes into the active list by crossing the same Community Care Agreement everyone does — fresh consent, no separate flow — preserving any pre-staged role/hub/schedule.
 - **Welcome-back.** `/account/welcome` shows "Welcome back" copy when `isLegacyUnclaimed`; the `welcome-back` email fires on promotion (the returning counterpart of `join-welcome`).
 - **The import ran on Vercel, not locally.** Neon is unreachable from the dev sandbox even sandbox-off, so the one-time import used a temporary ADMIN browser tool (`/admin/import-legacy`) that executed server-side; removed after. Pattern for any one-time prod DB op: a `migrate.mjs` flag-guarded block, or a temporary ADMIN browser tool — the offline script's `--dry-run` validates logic with no DB.
+  - *Correction 2026-10-01: production is reachable from this machine; see `CLAUDE.md` (Workflow). The import above still ran on Vercel; the pattern for one-time writes stands.*
 
 ## "Send sign-in code" — the admin way-in helper (session 145)
 

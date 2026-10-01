@@ -43,6 +43,7 @@ What survives from the spec: server-only service layer, hub→Drive mapping, RIM
 - **Framework:** Next.js 16 App Router + TypeScript, React 19. Hosted on Vercel. `params` is a Promise; RSC serialization rules apply (no raw Dates to client components).
 - **Auth:** NextAuth v5, passwordless 6-digit codes via Resend. No OAuth providers of any kind. Route protection per-page via `auth()` + the `(authenticated)` route-group layout. **Untouched by this project.**
 - **DB:** Prisma 5 + Neon Postgres. Idempotent flag-guarded migrations in `prisma/migrate.mjs` (runs on Vercel builds; prod DB unreachable locally — `npx tsc --noEmit` is the local gate).
+  - *Correction 2026-10-01: production is reachable from this machine; see `CLAUDE.md` (Workflow). `npm run build` still must not be run locally.*
 - **Teams:** Hubs (`Hub` + `HubMember`, status ACTIVE/PAUSED/INACTIVE, `isCoordinator`). Access door: `lib/hubAuth.ts::canAccessHub`. Hub feature config lives as fields on `Hub` (e.g. `documentCategories`) — the Drive mapping follows this convention.
 - **Existing documents system:** `HubDocument` (NATIVE/LINK/UPLOAD kinds) + placements + visibility + master directory + document conversations + selective notifications. **This is what gets replaced.** Reference: `RIM_Documents.md`.
 - **Storage:** Vercel Blob (`/api/upload`) — reusable as the staging area for large uploads.

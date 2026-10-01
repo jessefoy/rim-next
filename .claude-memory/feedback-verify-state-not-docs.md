@@ -13,7 +13,7 @@ When a claim depends on **current state** — a user's roles, a feature flag, a 
 
 **How to apply:**
 - A claim about state → check the live source (Prisma/DB, the admin UI, the actual env). The `Role` enum + `User.roles` column is the truth for roles; `RIM_Role_Design.md` is not.
-- If you *can't* verify (e.g., the DB is unreachable from the sandbox — Neon was, twice this session), say so plainly and frame the claim as an assumption, never as fact.
+- If you *can't* verify (e.g., the DB was unreachable from the sandbox in sessions 135 and 145; as of 2026-10-01 production is reachable from this machine, so probe before assuming either way, see [[project-prod-db-ops]]), say so plainly and frame the claim as an assumption, never as fact.
 - High-privilege or load-bearing state should be **visible where it's managed**, not hidden in a DB console — invisible state is unverifiable and unauditable. Surfacing it is part of the fix, not a nicety.
 
 Related: [[feedback-measure-before-agreeing]] (measure before validating a framing), [[feedback-inventory-first]] (systematic check before acting).
