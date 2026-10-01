@@ -6,7 +6,7 @@ import SignInCodeForm from "@/components/login/SignInCodeForm";
 // no-referrer: this page can carry a sign-in code in its URL (?code=), which
 // must not travel to third-party requests (fonts, images) as a Referer.
 export const metadata = {
-  title: "Enter Your Code — Rooted In Mindfulness",
+  title: "Enter Your Code - Rooted In Mindfulness",
   referrer: "no-referrer" as const,
 };
 

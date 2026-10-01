@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { buildSubtitle, fmtLabel, hasConcludedOneTime } from "@/lib/programUtils";
 
 export const metadata = {
-  title: "Community Groups and Activities — Rooted In Mindfulness",
+  title: "Community Groups and Activities - Rooted In Mindfulness",
   description:
     "Kalyana Mitta groups at RIM — connect with others to deepen your practice, share interests, and grow spiritual friendships.",
 };

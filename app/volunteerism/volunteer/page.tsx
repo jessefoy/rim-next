@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Volunteer — Rooted In Mindfulness",
+  title: "Volunteer - Rooted In Mindfulness",
   description:
     "Offer a gift of time and talent at Rooted In Mindfulness. Browse current volunteer needs or tell us about your interests.",
 };

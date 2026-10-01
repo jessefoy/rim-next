@@ -22,7 +22,7 @@ export async function generateMetadata({
     .filter(Boolean)
     .join(" ");
   return {
-    title: `${name} — Rooted In Mindfulness`,
+    title: `${name} - Rooted In Mindfulness`,
     description: profile.bio?.slice(0, 160) || `Teachings by ${name} at Rooted In Mindfulness.`,
   };
 }

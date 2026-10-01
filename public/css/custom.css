@@ -28964,8 +28964,11 @@ a.pp-card.home-paths__card {
    apart as a pull statement (.pp-quote--set). The page keeps its one centred
    column (.pp-page--column). */
 
+/* The selectors carry `.pp-toc` so the list also holds inside `.pp-prose`
+   (/care places it between the circle and the first word), where
+   `.pp-prose ol`, `.pp-prose p` and `.pp-prose li` would otherwise win. */
 .pp-toc { margin: 0 0 var(--space-6); }
-.pp-toc__label {
+.pp-toc .pp-toc__label {
   margin: 0 0 var(--space-1);
   color: var(--rim-text-muted);
   font-size: var(--text-xs);
@@ -28973,13 +28976,13 @@ a.pp-card.home-paths__card {
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.pp-toc__list {
+.pp-toc .pp-toc__list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.pp-toc__list li { margin: 0; }
-.pp-toc__link {
+.pp-toc .pp-toc__list li { margin: 0; }
+.pp-toc .pp-toc__link {
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -28991,11 +28994,11 @@ a.pp-card.home-paths__card {
   text-underline-offset: 3px;
   overflow-wrap: anywhere;
 }
-.pp-toc__link:hover { color: var(--rim-dark); }
+.pp-toc .pp-toc__link:hover { color: var(--rim-dark); }
 @media (min-width: 600px) {
-  /* Eight links read down then across: four and four. */
-  .pp-toc__list { column-count: 2; column-gap: var(--space-4); }
-  .pp-toc__list li { break-inside: avoid; }
+  /* Links read down then across, in two balanced columns. */
+  .pp-toc .pp-toc__list { column-count: 2; column-gap: var(--space-4); }
+  .pp-toc .pp-toc__list li { break-inside: avoid; }
 }
 
 /* Section spacing from the scale: 64 above a heading, 24 between heading and

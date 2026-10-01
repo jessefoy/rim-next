@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Guidelines for Starting a Kalyana Mitta Group — Rooted In Mindfulness",
+  title: "Guidelines for Starting a Kalyana Mitta Group - Rooted In Mindfulness",
   description:
     "What to consider before starting a Kalyana Mitta group at RIM — purpose, size, co-facilitation, focus, commitment, and the responsibilities of facilitators.",
 };

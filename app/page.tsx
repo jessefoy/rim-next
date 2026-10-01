@@ -67,7 +67,7 @@ const PRACTICE_GROUPS = [
       },
       {
         title: "The people in our lives",
-        body: "Being more available to those we care about, including when we disagree. Understanding our part in a difficulty, and recognizing when repair is needed. Friendship, and the company of others who practice.",
+        body: "Being more available to those we care about, including when we disagree. Understanding our part in a difficulty, and recognizing when repair or a boundary is needed. Friendship, and the company of others who practice.",
       },
       {
         title: "Living by what matters",
@@ -474,8 +474,12 @@ export default async function HomePage() {
               </p>
               <p className="pp-intro__body">
                 Taking CARE is offered in three ways, and each one carries the whole practice. No
-                previous experience is needed. You can explore the options below or visit New to RIM
-                for help getting started.
+                previous experience is needed. Until Foundations begins in November, every gathering
+                is open to you, and the drop-ins are the easiest way in.{" "}
+                <Link href="/programs/meditation-and-dharma-talk">Meditation and Dharma Talk</Link>,
+                on Saturday mornings, brings guided practice and a teaching together and makes a
+                welcoming first visit. You can explore the options below or visit New to RIM for
+                help getting started.
               </p>
               <p className="pp-intro__body">
                 We ask the same of everyone who comes: to hold our{" "}

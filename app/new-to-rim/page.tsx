@@ -2,7 +2,7 @@ import Link from "next/link";
 import { RIM_ADDRESS, RIM_MAPS_URL } from "@/lib/locations";
 
 export const metadata = {
-  title: "New to RIM — Rooted In Mindfulness",
+  title: "New to RIM - Rooted In Mindfulness",
   description:
     "New to Rooted in Mindfulness in Brookfield, Wisconsin? Where to begin, what to expect in person and online, how signing up works, and answers to common questions. No experience needed. Come as you are.",
 };
@@ -84,7 +84,10 @@ export default function NewToRimPage() {
             <h2 id="where-to-begin">Where to begin</h2>
             <p>
               A drop-in gathering is a good place to start, in person or online. Each one is
-              complete in itself, and no experience is needed.
+              complete in itself, and no experience is needed.{" "}
+              <Link href="/programs/meditation-and-dharma-talk">Meditation and Dharma Talk</Link>,
+              on Saturday mornings, brings guided practice and a teaching together and makes a
+              welcoming first visit.
             </p>
             <p>
               For a fuller introduction, we encourage everyone to take Foundations, a welcoming
@@ -121,9 +124,10 @@ export default function NewToRimPage() {
             <p>
               We ask everyone who practices with us to{" "}
               <Link href="/join">sign up as a member</Link>. Membership is freely offered, and it
-              takes a few minutes. For our online gatherings, signing up is required, for the
-              safety and integrity of those gatherings. If you are coming to the center, we highly
-              recommend it as well.
+              takes a few minutes. Signing up is where each of us agrees to our{" "}
+              <Link href="/community-care-agreements">Community Care Agreements</Link>. For our
+              online gatherings, signing up is required, for the safety and integrity of those
+              gatherings, and we ask everyone who comes to the center to sign up as well.
             </p>
 
             <h2 id="in-person">Coming in person</h2>

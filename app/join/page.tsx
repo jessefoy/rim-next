@@ -11,7 +11,7 @@ import {
 } from "@/lib/communityAgreements";
 
 export const metadata = {
-  title: "Become a member — Rooted In Mindfulness",
+  title: "Become a member - Rooted In Mindfulness",
   description:
     "Join the Rooted In Mindfulness community. Read our shared vision and community care agreements and create your member account.",
 };

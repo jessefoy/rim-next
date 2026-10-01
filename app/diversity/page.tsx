@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Diverse Together — Rooted In Mindfulness",
+  title: "Diverse Together - Rooted In Mindfulness",
   description:
     "Come as you are. RIM is a sangha brought together by learning and practice, with diversity that deepens the life and understanding of the whole community.",
 };

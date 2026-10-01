@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Our Roots — Rooted In Mindfulness",
+  title: "Our Roots - Rooted In Mindfulness",
   description:
     "The tradition Rooted in Mindfulness practices in: silent illumination, from Chan Buddhism, and A Handful of Leaves, the body of Buddhist teaching we draw on, informed by mindfulness-based programs and modern science. Open to anyone.",
 };
@@ -106,7 +106,7 @@ export default function OurRootsPage() {
 
           <div className="pp-actions">
             <Link href="/care" className="pp-btn">
-              Taking Care: how we practice
+              Taking CARE: how we practice
             </Link>
             <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
               New to RIM

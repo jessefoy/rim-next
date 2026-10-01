@@ -25,7 +25,7 @@ import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Thank You — Rooted In Mindfulness",
+  title: "Thank You - Rooted In Mindfulness",
   // The URL carries a Checkout Session id.
   referrer: "no-referrer" as const,
   robots: { index: false, follow: false },

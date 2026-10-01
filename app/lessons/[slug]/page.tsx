@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const lesson = await db.lesson.findUnique({ where: { slug }, select: { titleDisplayed: true } });
-  return { title: `${lesson?.titleDisplayed ?? "Lesson"} — Rooted In Mindfulness` };
+  return { title: `${lesson?.titleDisplayed ?? "Lesson"} - Rooted In Mindfulness` };
 }
 
 type CourseContext = {

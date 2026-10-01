@@ -60,10 +60,14 @@ export const JOIN_HERO_INTRO =
  * repeated actions that bring it about). The vision is Jesse's arc of the
  * practice, near-verbatim (vault master reference, Sections 2 and 3).
  *
- * RIM_WHAT_BINDS is a HOLDING phrase: Jesse is still choosing the triad
- * (he said "views, skills, and habits"; he is weighing "views, states, and
- * habits", relatable and including actions). Change it here and every
- * surface follows. Provisional until Jesse's read-aloud.
+ * The mission is right effort in Jesse's terms (know ourselves, cultivate what
+ * is healthy and wholesome, release what binds), the repeated actions of Flock
+ * Not Clock. Jesse approved the current mission on 2026-09-30, replacing the
+ * 2026-09-26 draft.
+ *
+ * RIM_WHAT_BINDS is final: Jesse ruled on 2026-09-30 that "unhealthy patterns
+ * of mind and action" is the phrase. It is no longer a holding phrase. Change
+ * it here and every surface follows. Provisional until Jesse's read-aloud.
  */
 export const RIM_WHAT_BINDS = "unhealthy patterns of mind and action";
 
@@ -78,13 +82,12 @@ export const RIM_VISION =
   "the great wisdom, great compassion, and great action.";
 
 export const RIM_MISSION =
-  "We practice taking care, together and in our daily lives. We gather to " +
-  "learn and practice, in person and online, and we support one another " +
-  "along the way. We bring the practice into our lives, and our lives back " +
-  "into the community. We hold our care agreements with one another. We " +
-  "share the teachings through dana, sustained by the generosity of those " +
-  "who practice here. And we carry the practice outward, to the people and " +
-  "organizations it can serve.";
+  "Together and in our daily lives, we practice taking care: coming to know " +
+  "ourselves as we are, cultivating what is healthy and wholesome, and " +
+  "releasing the patterns of clinging, view, habit, and reaction that bind " +
+  "us, so that we realize the wakeful nature already within us. We carry " +
+  "this practice into every moment of contact, for the benefit of " +
+  "ourselves, those we care about, and our shared world.";
 
 export const COMMUNITY_SHARED_VISION_TITLE = "Our Shared Vision";
 /** The frame is the vision, stated as why we come together. */

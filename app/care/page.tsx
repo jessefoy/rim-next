@@ -2,7 +2,7 @@ import Link from "next/link";
 import CareCircle from "@/components/CareCircle";
 
 export const metadata = {
-  title: "Taking Care — Rooted In Mindfulness",
+  title: "Taking CARE - Rooted In Mindfulness",
   description:
     "How we practice at Rooted in Mindfulness: taking care of ourselves, the people we love, the world, and this moment, described in eight plain words. Meditation and contemplative practice in Brookfield, Wisconsin.",
 };
@@ -32,13 +32,31 @@ export const metadata = {
  * the words: the vault's 04-community-website-copy-2026-09-25.md.
  * Provisional until Jesse's read-aloud.
  */
+/** One list feeds both the "On this page" nav and the h2 ids, so they cannot drift. */
+const SECTIONS = [
+  { id: "calm", title: "Calm" },
+  { id: "connect", title: "Connect" },
+  { id: "aware", title: "Aware" },
+  { id: "attitude", title: "Attitude" },
+  { id: "recognize", title: "Recognize" },
+  { id: "remember", title: "Remember" },
+  { id: "embody", title: "Embody" },
+  { id: "engage", title: "Engage" },
+  { id: "learning-over-time", title: "Learning over time" },
+] as const;
+
+function SectionHeading({ id }: { id: (typeof SECTIONS)[number]["id"] }) {
+  const section = SECTIONS.find((s) => s.id === id)!;
+  return <h2 id={section.id}>{section.title}</h2>;
+}
+
 export default function CarePage() {
   return (
     <div className="pp-page pp-page--spine pp-page--column">
       <section className="pp-hero pp-hero--flat">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">How we practice</p>
-          <h1 className="pp-hero__title">Taking Care</h1>
+          <h1 className="pp-hero__title">Taking CARE</h1>
           <p className="pp-hero__body">Our practice, in one ordinary word and eight plain ones.</p>
         </div>
       </section>
@@ -47,9 +65,10 @@ export default function CarePage() {
         <div className="rim-container">
           <div className="pp-prose">
             <p>
-              This is an introduction to how we practice at Rooted in Mindfulness. It is meant to be
-              practiced rather than thought about, so that we see for ourselves what each word is
-              and what we find there.
+              This is an introduction to how we practice at Rooted in Mindfulness. Taking CARE is our
+              root practice, present in everything we offer, and it is also a program anyone can
+              take part in, beginning with Foundations. It is meant to be practiced rather than
+              thought about, so that we see for ourselves what each word is and what we find there.
             </p>
             <p>
               Our practice is taking care: of ourselves, of those we love, of the world, and of this
@@ -71,7 +90,22 @@ export default function CarePage() {
               </figcaption>
             </figure>
 
-            <h2 id="calm">Calm</h2>
+            <nav className="pp-toc" aria-label="On this page">
+              <p className="pp-toc__label" aria-hidden="true">
+                On this page
+              </p>
+              <ol className="pp-toc__list" role="list">
+                {SECTIONS.map((s) => (
+                  <li key={s.id}>
+                    <a className="pp-toc__link" href={`#${s.id}`}>
+                      {s.title}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+
+            <SectionHeading id="calm" />
             <p>
               Calm is an invitation: ease in the body, and from there openness in the heart and a
               letting go of constriction in the mind. Nothing is forced, and nothing has to be
@@ -81,7 +115,7 @@ export default function CarePage() {
               in all circumstances.
             </p>
 
-            <h2 id="connect">Connect</h2>
+            <SectionHeading id="connect" />
             <p>
               Connect is this moment as it is, our life at the six senses: the world around us, the
               body, and the heart and mind with their memories, thoughts, and feelings. This is
@@ -91,7 +125,7 @@ export default function CarePage() {
               choice. Connect is showing up to life as it is, at the only place we can.
             </p>
 
-            <h2 id="aware">Aware</h2>
+            <SectionHeading id="aware" />
             <p>
               Aware is clarity, the illumination at the heart of our practice. This luminous
               awareness is always available to us, always illuminating, like the sun shining on the
@@ -102,7 +136,7 @@ export default function CarePage() {
               Attitude, clarity and presence are the heart of our practice.
             </p>
 
-            <h2 id="attitude">Attitude</h2>
+            <SectionHeading id="attitude" />
             <p>
               Attitude is how we meet our experience. If Aware is the light of the sun, Attitude is
               its warmth. We let what is here be as it is, not wanting it to be better, not pushing
@@ -114,7 +148,7 @@ export default function CarePage() {
               even when we are caught in reactivity, that clear knowing can see the reactivity.
             </p>
 
-            <h2 id="recognize">Recognize</h2>
+            <SectionHeading id="recognize" />
             <p>
               Recognize is knowing what is here and seeing it honestly: peace as peace, joy as joy,
               anger as anger, worry as worry, whatever is alive at our senses, within us and around
@@ -127,7 +161,7 @@ export default function CarePage() {
               come to know our experience more clearly.
             </p>
 
-            <h2 id="remember">Remember</h2>
+            <SectionHeading id="remember" />
             <p>
               Remember is our reconnection with our greater nature. Caught in the ordinary mind, the
               noise, we forget our wakeful nature; remembering finds it again.
@@ -145,7 +179,7 @@ export default function CarePage() {
               the other half of mindfulness.
             </p>
 
-            <h2 id="embody">Embody</h2>
+            <SectionHeading id="embody" />
             <p>
               Embody is making the practice part of who we are. We embody what we care about, what
               we are cultivating, and what we see through our practice; the practice itself is a
@@ -158,7 +192,7 @@ export default function CarePage() {
               embodiment, we lose the practice.
             </p>
 
-            <h2 id="engage">Engage</h2>
+            <SectionHeading id="engage" />
             <p>
               Engage is living as best we can with the conditions of our life, including the habits
               of our ordinary mind. It is caring for ourselves, for those we love, and for the
@@ -178,7 +212,7 @@ export default function CarePage() {
               from calm.
             </p>
 
-            <h2>Learning over time</h2>
+            <SectionHeading id="learning-over-time" />
             <p>
               The words are taught over time, in our sits, classes, practice discussions, and talks,
               sometimes one at a time, sometimes several, sometimes as one unified practice. They
@@ -198,11 +232,11 @@ export default function CarePage() {
           </div>
 
           <div className="pp-actions">
-            <Link href="/new-to-rim" className="pp-btn">
-              New to RIM
+            <Link href="/community-programs" className="pp-btn">
+              Programs &amp; events
             </Link>
-            <Link href="/our-roots" className="pp-btn pp-btn--ghost">
-              Our roots
+            <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
+              New to RIM
             </Link>
           </div>
         </div>

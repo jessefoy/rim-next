@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Kalyana Mitta Group Application — Rooted In Mindfulness",
+  title: "Kalyana Mitta Group Application - Rooted In Mindfulness",
   description:
     "Any member of RIM can start a Kalyana Mitta group or community activity. Tell us about your idea and we'll help you get it going.",
 };

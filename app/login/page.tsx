@@ -2,7 +2,7 @@ import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 
-export const metadata = { title: "Sign in — Rooted In Mindfulness" };
+export const metadata = { title: "Sign in - Rooted In Mindfulness" };
 
 export default async function LoginPage({
   searchParams,

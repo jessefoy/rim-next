@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 
 export const metadata = {
-  title: "Teachers — Rooted In Mindfulness",
+  title: "Teachers - Rooted In Mindfulness",
 };
 
 export const dynamic = "force-dynamic";

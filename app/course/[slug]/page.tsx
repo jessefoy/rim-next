@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     select: { title: true, subheading: true },
   });
   return {
-    title: `${course?.title ?? "Course"} — Rooted In Mindfulness`,
+    title: `${course?.title ?? "Course"} - Rooted In Mindfulness`,
     description: course?.subheading ?? undefined,
   };
 }

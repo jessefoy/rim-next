@@ -1,7 +1,7 @@
 import Script from "next/script";
 
 export const metadata = {
-  title: "Donate — Rooted In Mindfulness",
+  title: "Donate - Rooted In Mindfulness",
   description:
     "Rooted in Mindfulness is supported entirely by its community's generosity. Give to RIM for the center's operating costs, or to the Teaching Fund to support teacher livelihood.",
 };

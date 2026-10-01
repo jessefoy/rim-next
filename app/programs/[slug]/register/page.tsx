@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const p = await db.program.findUnique({ where: { slug }, select: { name: true } });
   return {
-    title: p ? `Register — ${p.name} — Rooted In Mindfulness` : "Register",
+    title: p ? `Register - ${p.name} - Rooted In Mindfulness` : "Register",
   };
 }
 

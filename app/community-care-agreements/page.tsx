@@ -7,7 +7,7 @@ import {
 } from "@/lib/communityAgreements";
 
 export const metadata = {
-  title: "Community Care Agreements — Rooted In Mindfulness",
+  title: "Community Care Agreements - Rooted In Mindfulness",
   description:
     "The shared vision and the care agreements that guide how members of Rooted In Mindfulness care for themselves, one another, and RIM.",
 };

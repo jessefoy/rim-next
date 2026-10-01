@@ -146,8 +146,15 @@ export default function WhyWePracticePage() {
             <p>
               In that seeing there is room. There is room to let an old reaction pass without
               obeying it, to remember what matters, and to respond with understanding instead of
-              repeating the pattern. What we choose there, again and again, becomes who we are.
-              Taking CARE, our root practice, is a way of training this moment.
+              repeating the pattern. A caring response depends on understanding what the situation
+              needs: listening more closely, speaking firmly, asking for help, or making a change.
+              What we choose there, again and again, becomes who we are. Taking CARE, our root
+              practice, is a way of training this moment.
+            </p>
+            <p>
+              At first we may recognize a pattern only afterward. Looking back with honesty and care
+              is part of learning, and over time recognition can come sooner, while there is still
+              room to choose.
             </p>
 
             <SectionHeading id="what-we-practice-for" />
@@ -174,7 +181,8 @@ export default function WhyWePracticePage() {
             <p>
               The old word for this is wholesome, and it shares a root with heal, health, and whole.
               What is wholesome is what makes us whole. If the trying itself turns tight or harsh,
-              we have found one more thing to tend.
+              we have found one more thing to tend. We can be sincere about changing a harmful
+              pattern while meeting the person caught in it with compassion, including ourselves.
             </p>
 
             <SectionHeading id="a-fuller-life" />
@@ -201,9 +209,11 @@ export default function WhyWePracticePage() {
             <SectionHeading id="together-and-in-our-lives" />
             <p>
               Most of this happens away from the meditation hall, at home, at work, in our
-              relationships, and in the world. We practice together to support those lives. We bring
-              the practice into our days, and we bring our days back to the community, the
-              difficulties and the successes alike. Then we go home and practice again.
+              relationships, and in the world. We practice together to support those lives. Being
+              together also shows us habits we might not see on our own, and gives us chances to
+              practice care in our relationships. We bring the practice into our days, and we bring
+              our days back to the community, the difficulties and the successes alike. Then we go
+              home and practice again.
             </p>
             <p>
               It is the same movement as meditation itself: the mind wanders, we come back, and each
@@ -229,7 +239,7 @@ export default function WhyWePracticePage() {
               Care that takes root does not stop at our own door. It shows in how we treat a
               stranger, how we do our work, and what we make of the conditions around us. Some
               suffering comes from illness, poverty, isolation, or harm, and needs more than a
-              changed mind.
+              changed mind: practical care, and changes in the conditions that sustain it.
             </p>
             <p>
               Needing support is part of the path, and so is offering it. Many of us offer it by

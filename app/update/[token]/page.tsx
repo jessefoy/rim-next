@@ -5,7 +5,7 @@ interface PageProps {
   params: Promise<{ token: string }>;
 }
 
-export const metadata = { title: "Update Your Responses — Rooted In Mindfulness" };
+export const metadata = { title: "Update Your Responses - Rooted In Mindfulness" };
 
 // ─── Field definition ────────────────────────────────────────────────────────
 

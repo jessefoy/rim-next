@@ -1,4 +1,4 @@
-export const metadata = { title: "Sign In Error — Rooted In Mindfulness" };
+export const metadata = { title: "Sign In Error - Rooted In Mindfulness" };
 
 export default async function AuthErrorPage({
   searchParams,

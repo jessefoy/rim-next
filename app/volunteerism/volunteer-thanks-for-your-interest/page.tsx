@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 
 export const metadata = {
-  title: "Thanks for Your Interest in Volunteering — Rooted In Mindfulness",
+  title: "Thanks for Your Interest in Volunteering - Rooted In Mindfulness",
 };
 
 export default async function VolunteerThanksPage() {

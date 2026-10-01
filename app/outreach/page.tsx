@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Outreach — Rooted In Mindfulness",
+  title: "Outreach - Rooted In Mindfulness",
   description:
     "Taking CARE for organizations: Rooted in Mindfulness partners with nonprofits and community organizations working for the well-being of people, communities, and our shared world, supporting the people they serve and the people who carry their work. Voluntary, and offered with care.",
 };

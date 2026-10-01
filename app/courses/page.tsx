@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import CourseBrowse from "@/components/CourseBrowse";
 
-export const metadata = { title: "Courses — Rooted In Mindfulness" };
+export const metadata = { title: "Courses - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
 export default async function CoursesPage() {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { RIM_MISSION, RIM_VISION } from "@/lib/communityAgreements";
 
 export const metadata = {
-  title: "About RIM — Rooted In Mindfulness",
+  title: "About RIM - Rooted In Mindfulness",
   description:
     "The vision and mission of Rooted in Mindfulness, a dharma community rooted in traditional Buddhist wisdom, in Brookfield, Wisconsin, and held by the people who practice here.",
 };

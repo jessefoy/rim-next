@@ -13,7 +13,7 @@ import {
 } from "@/lib/programUtils";
 
 export const metadata = {
-  title: "Programs and Events — Rooted In Mindfulness",
+  title: "Programs and Events - Rooted In Mindfulness",
 };
 
 export const dynamic = "force-dynamic";
