@@ -1417,13 +1417,13 @@
   },
   {
     "id": "2026-09-24-004",
-    "title": "Record which fund a program's dana goes to (general vs teacher livelihood)",
+    "title": "Record the program dana split (half RIM, half Teaching Fund) on the ledger and receipt",
     "description": "The Teacher support dana template tells registrants their gift goes to RIM's fund for teacher livelihood, but nothing records that per program: the Donation ledger and the receipt treat all program dana alike. Consider a per-program dana fund setting that travels to the Donation row, the receipt and the ledger export.",
     "category": "Registration",
     "priority": "low",
     "status": "open",
     "addedAt": "2026-09-24",
-    "notes": "Jesse, 2026-09-24: teacher dana goes to RIM in a fund for teacher livelihood."
+    "notes": "Jesse, 2026-09-24: teacher dana goes to RIM in a fund for teacher livelihood. Update 2026-10-01 (Revision 12): Jesse's account is that program dana is split equally, half to RIM and half to the Teaching Fund; monthly and general dana go to RIM's operations. The program editor's built-in dana texts, the registration dana step, Donate and home now say so, so the copy mismatch is resolved. What remains: the Donation ledger and the receipt still do not record the split. With a uniform 50/50 rule a per-program fund setting may be unnecessary; decide with the accountant whether the ledger needs to show the split before closing."
   },
   {
     "id": "2026-09-24-005",

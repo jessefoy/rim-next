@@ -2556,6 +2556,20 @@ h4 { font-size: var(--text-h4); }
   margin: 0 0 20px;
 }
 
+/* Where program dana goes, one line under the program's own message (Revision
+   12, 2026-10-01); the link is the same blue as the detail-row links. */
+.pg-dana__where {
+  font-size: var(--text-small);
+  color: var(--rim-text-muted);
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+.pg-dana__where a {
+  color: var(--rim-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .pg-dana__fixed-amount {
   font-family: var(--font-serif);
   font-size: var(--text-h2);

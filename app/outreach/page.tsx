@@ -23,10 +23,11 @@ export const metadata = {
  * presented as secular in the Dalai Lama's sense and rooted in tradition,
  * bringing practice, not religion, into a host organization.
  *
- * Inquiries go to support@ by Jesse's instruction. Cost (Jesse, 2026-09-26):
- * organizations give by donation, as everyone at RIM does, and the outreach
- * fund supports each program. RIM has offered programs with organizations
- * before, so the page does not call the work new.
+ * Inquiries go to support@ by Jesse's instruction. Cost (Jesse, 2026-09-26,
+ * corrected 2026-10-01): organizations give by donation, as everyone at RIM
+ * does, and gifts to RIM support outreach as well; there is no separate
+ * outreach fund yet. RIM has offered programs with organizations before, so
+ * the page does not call the work new.
  */
 export default function OutreachPage() {
   return (
@@ -117,7 +118,7 @@ export default function OutreachPage() {
             <h2>Cost</h2>
             <p>
               We ask partner organizations to give by donation, in the same way everyone at RIM
-              does, and our outreach fund supports each program as well.
+              does, and gifts to RIM support our outreach as well.
             </p>
 
             <h2>Start a conversation</h2>

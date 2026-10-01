@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   COMMUNITY_AGREEMENTS,
@@ -257,6 +258,20 @@ export default function RegistrationForm({
           <p className="pg-dana__eyebrow">Dana</p>
           {program.danaMessageHtml && (
             <div className="pg-dana__message man-body rim-content" dangerouslySetInnerHTML={{ __html: program.danaMessageHtml }} />
+          )}
+          {(danaMode === "voluntary" || isBasePlusDana) && (
+            <p className="pg-dana__where">
+              Program dana is shared equally between RIM and the Teaching Fund, which supports our
+              teachers&rsquo; livelihood.{" "}
+              <Link
+                href="/donate#dana-at-rim"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="How dana works at RIM (opens in a new tab)"
+              >
+                How dana works at RIM
+              </Link>
+            </p>
           )}
 
           {/* Fixed mode — single set price */}

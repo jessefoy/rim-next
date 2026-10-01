@@ -87,8 +87,10 @@ export default function DonatePage() {
                 <p className="pp-give__name">&ldquo;RIM Dana&rdquo;</p>
                 <p className="pp-give__body">
                   Gifts to RIM pay for everything that keeps the center open: rent, utilities,
-                  supplies, the technology behind our online gatherings, outreach, and more. Monthly
-                  gifts, as a Sustaining Member, give the center steadiness it can plan around.
+                  supplies, the technology behind our online gatherings, outreach, and the work of
+                  leading the center. Monthly gifts, as a Sustaining Member, give the center
+                  steadiness it can plan around. One-time gifts, and what is offered in the dana
+                  bowl at the center, support RIM in the same way.
                 </p>
 
                 <div className="pp-give__widget">
@@ -106,12 +108,12 @@ export default function DonatePage() {
                 <h2 className="pp-give__title">Give to the Teaching Fund</h2>
                 <p className="pp-give__name">&ldquo;Teacher Dana&rdquo;</p>
                 <p className="pp-give__body">
-                  Our teachers offer the teachings freely, and the community&rsquo;s generosity
-                  supports their livelihood. Gifts to the Teaching Fund support our teachers, so
-                  they can give their lives to practicing and sharing the teachings. Our guiding
-                  teacher also serves as RIM&rsquo;s executive director and receives a modest salary
-                  for that part of his role. It is not enough to live on, and like every teacher
-                  here, his teaching is supported through the Teaching Fund.
+                  The community&rsquo;s generosity supports our teachers&rsquo; livelihood. Gifts to
+                  the Teaching Fund go to our teachers, so they can give their lives to practicing
+                  and sharing the teachings, and a gift can be designated for a particular teacher.
+                  Our guiding teacher receives a modest salary from RIM for leading the center. It
+                  is not enough to live on, so his teaching, like every teacher&rsquo;s, is
+                  supported through the Teaching Fund.
                 </p>
 
                 <div className="pp-give__widget">

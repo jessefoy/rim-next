@@ -255,6 +255,9 @@ export default async function ProgramDetailPage({
                 </span>
                 <span className="pg-detail-row__text">
                   <span>{program.danaText}</span>
+                  <Link href="/donate#dana-at-rim" className="pg-detail-row__link">
+                    How dana works at RIM
+                  </Link>
                 </span>
               </div>
             )}

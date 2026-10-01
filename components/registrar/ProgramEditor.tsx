@@ -168,11 +168,11 @@ function textToHtml(text: string): string {
 const DANA_BUILTIN: { name: string; text: string }[] = [
   {
     name: "General support",
-    text: "Your dana makes this program possible. RIM is supported entirely by the generosity of our community — teachers, staff, and space are sustained by your offerings. Offer whatever feels right, and know that every amount is deeply appreciated.",
+    text: "Your dana makes this program possible. RIM is supported entirely by the generosity of our community. Half of what you give here supports the center, and half goes to the Teaching Fund for our teachers' livelihood. Every amount is welcome.",
   },
   {
     name: "Teacher support",
-    text: "Dana offered here supports our teachers' livelihood. It goes to Rooted In Mindfulness and is set aside in the fund for teacher livelihood. This is an ancient practice of reciprocity: the teachings are freely offered, and we give back as we are able. All amounts are welcome.",
+    text: "Dana offered here is shared equally between Rooted In Mindfulness and the Teaching Fund, which supports our teachers' livelihood. This is an old practice of reciprocity: the teachings are offered freely, and we give back as we are able. All amounts are welcome.",
   },
   {
     name: "Sliding scale / no one turned away",

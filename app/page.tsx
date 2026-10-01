@@ -579,8 +579,9 @@ export default async function HomePage() {
                 <p className="pp-intro__body">
                   The teachings here are given as a gift, and RIM is sustained by the people who
                   practice here. That support includes financial gifts, and RIM could not exist
-                  without them. RIM pays rent for our center and supports our teachers&rsquo;
-                  livelihood. Most of this comes from members who give each month.
+                  without them. RIM pays rent for our center and the costs of running it, and our
+                  teachers&rsquo; livelihood depends on dana as well. Most of RIM&rsquo;s support
+                  comes from members who give each month.
                 </p>
                 <p className="pp-intro__body">
                   If you are able, we strongly encourage you to care for RIM with a financial gift,
