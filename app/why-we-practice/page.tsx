@@ -224,7 +224,7 @@ export default function WhyWePracticePage() {
               same of everyone who comes: to hold our{" "}
               <Link href="/community-care-agreements">care agreements</Link>, to come with a sincere
               wish to practice as the practice is offered here, and to help keep RIM a safe place
-              for everyone. The agreements are directions to hold, not requirements to be graded on.
+              for everyone. The agreements are intentions we share, and holding them is a practice.
               People practice at their own pace and depth, and the practice we share is the ground
               we stand on together.
             </p>

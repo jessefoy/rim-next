@@ -3,7 +3,7 @@ import Link from "next/link";
 export const metadata = {
   title: "Diverse Together - Rooted In Mindfulness",
   description:
-    "Come as you are. RIM is a sangha brought together by learning and practice, with diversity that deepens the life and understanding of the whole community.",
+    "Come as you are. RIM is a community for everyone who shares the intentions of learning and practice, from every walk of life, and our differences make us stronger.",
 };
 
 export default function DiversityPage() {
@@ -66,6 +66,16 @@ export default function DiversityPage() {
                   different reasons for walking in the door.
                 </p>
                 <p>
+                  Politics is one of the differences. People here vote differently, and no one is
+                  asked which way. Sitting beside someone who sees the world differently can be
+                  hard, and it is part of the practice.
+                </p>
+                <p>
+                  What holds us is what we share. Anyone who shares these intentions belongs here,
+                  wherever they come from and whoever they are. Nobody is left out, and our
+                  differences make us stronger.
+                </p>
+                <p>
                   Difference, in a room like this, works like medicine. Another life is a way of
                   seeing beyond our own, and each person who joins changes what the whole community
                   can understand. Whoever you are, you add to both: to the aspiration we share, and
@@ -110,15 +120,16 @@ export default function DiversityPage() {
                 </p>
                 <p>
                   We name these because naming matters, and because some of us have been made to
-                  feel like visitors in rooms like this one. If that has been your experience,
-                  come and see. The seat was already yours.
+                  feel like visitors in rooms like this one. If that has been your experience, you
+                  are welcome here, and we hope you will tell us when we fall short. We will work
+                  to put it right.
                 </p>
               </section>
 
               <p className="dv-layout__care">
-                Words alone do not hold a welcome. Ours is held by shared agreement: our{" "}
-                <Link href="/community-care-agreements">Community Care Agreements</Link>, the
-                intentions of care that every member keeps.
+                Words alone do not hold a welcome. Ours is held by the intentions we share, in our{" "}
+                <Link href="/community-care-agreements">Community Care Agreements</Link>, and by the
+                practice of keeping them.
               </p>
 
               <p className="dv-layout__blessing">

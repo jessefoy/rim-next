@@ -100,8 +100,9 @@ export const COMMUNITY_AGREEMENTS_LEAD_IN =
   "compassion, and acting from both, for the benefit of ourselves, those we " +
   "care about, and our shared world. These agreements are how we care for " +
   "that vision together. We ask everyone who takes part to hold them. They " +
-  "are directions to hold, not requirements to be graded on, and we return " +
-  "to them as a practice: honestly, and with room to begin again.";
+  "are intentions we share, and holding them is a practice. A community is " +
+  "a place to practice. When we fall short, we begin again, and when harm " +
+  "happens, we protect and repair.";
 
 /**
  * Form-section lead rendered above the form fields on /join. Tells the

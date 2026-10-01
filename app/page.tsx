@@ -255,6 +255,8 @@ export default async function HomePage() {
                 readily and some prefer to sit and listen, and both belong. Showing up to practice
                 alongside others is already taking part. People with different backgrounds and
                 experience learn together, bringing the questions that arise in their own lives.
+                Anyone who shares these intentions belongs here, from every walk of life, and our
+                differences make us stronger.
               </p>
               <p className="pp-intro__body">
                 No one can do the practice for us, and no one has to do it alone.
@@ -262,6 +264,9 @@ export default async function HomePage() {
               <div className="pp-actions">
                 <Link href="/why-we-practice" className="pp-btn">
                   Why we practice
+                </Link>
+                <Link href="/diversity" className="pp-btn pp-btn--ghost">
+                  Diverse Together
                 </Link>
               </div>
             </div>
@@ -486,7 +491,7 @@ export default async function HomePage() {
                 <Link href="/community-care-agreements">Community Care Agreements</Link>, a few
                 simple commitments to care for ourselves, one another, and RIM; to come with a
                 sincere wish to practice; and to help keep RIM a safe place for everyone. The
-                agreements are directions to hold, not requirements to be graded on.
+                agreements are intentions we share, and holding them is a practice.
               </p>
               <p className="pp-intro__body">
                 Signing up as a member is where each of us agrees to them. Membership is freely

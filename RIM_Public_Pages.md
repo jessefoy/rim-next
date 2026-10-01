@@ -362,6 +362,12 @@ Jesse chose a Claude Design layout pass for the home page (handoff `design_hando
 8. **Reading pages** (New to RIM, Taking Care, Why We Practice, Our Roots, About, Outreach, the agreements page): already on cols 3-10; confirm only, and move their section padding onto the scale.
 9. **`/programs/[slug]`, `/join`, `/login`**: already fit; align the phone gutter (24 to 20), and set the 32px tablet margin sitewide with the container.
 
+### The menu, restructured (2026-10-01, Jesse approved)
+
+Compared against Spirit Rock, SF Zen Center, Zen Center of Los Angeles, Insight Meditation Society, Insight Meditation Center, Insight Meditation Community of Washington, East Bay Meditation Center and Village Zendo, and against Nielsen Norman Group's menu guidance (four to six primary categories, plain words, each link once). Every peer has a top-level **About**; RIM's was buried under "Our Practice." Now: **New to RIM** (flat) · **Practice** (Why We Practice, Taking CARE) · **Programs** · **About** (About RIM, Our Roots, Diverse Together, Community Care Agreements) · **Get Involved** · **Members** (Become a Member, Sign in; My Home, Sign out) · the Donate pill. Our Roots sits in About beside the lineage-style items peers keep there; the agreements sit with values under About rather than only under Members. "Our Teachers" joins About once the teacher page is populated. The desktop bar's natural width rose from ~1038 to ~1098px, so the phone layout now takes over at **1120px** (was 1060), in the CSS and in `PublicNavSheet`'s `matchMedia`; measured, it fits at 1121 with a long signed-in name (8px to spare). Menu descriptions are provisional (Jesse's ear, tracker 7d).
+
+**Diversity is a front-door value, not an orphan.** The old Webflow home ended its hero with a "Diverse Together - Learn More" button; the rebuilt site had dropped every link to `/diversity`. It is back in the About menu, the footer, a ghost button and a sentence on home, and a sentence in New to RIM. Jesse's fuller meaning (2026-10-01): all kinds of difference, including political; anyone who shares the root intentions belongs; nobody is left out; differences make the community stronger. The waving-hands-and-rainbow row from the old site was not carried: five hands read as one kind of difference, a rainbow as another, and a screen reader announces every emoji.
+
 ### The button standard (2026-09-28)
 
 Jesse: "We should create a best practice standard." One rule for every public `.pp-btn`:

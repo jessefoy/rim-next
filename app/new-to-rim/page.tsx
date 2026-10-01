@@ -110,14 +110,17 @@ export default function NewToRimPage() {
               more readily. Both help create a healthy container for learning and practice, and
               everyone who comes with a sincere wish to practice, for their own benefit and for one
               another&rsquo;s, is contributing to it. That is what community means here: learning
-              and practicing with like-minded people, each in our own way.
+              and practicing with like-minded people, each in our own way. People from every walk
+              of life practice here, and anyone who shares these intentions belongs. Our
+              differences make us stronger, and there is more in{" "}
+              <Link href="/diversity">Diverse Together</Link>.
             </p>
             <p>
               We ask the same of everyone who comes: to hold our{" "}
               <Link href="/community-care-agreements">Community Care Agreements</Link>, a short
               shared vision and three agreements about caring for ourselves, one another, and RIM;
               to come with a sincere wish to practice; and to help keep RIM a safe place for
-              everyone. The agreements are directions to hold, not requirements to be graded on.
+              everyone. The agreements are intentions we share, and holding them is a practice.
             </p>
 
             <h2 id="signing-up">Signing up</h2>

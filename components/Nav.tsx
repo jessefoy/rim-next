@@ -130,7 +130,7 @@ export default function Nav() {
     document.addEventListener("keydown", onKey);
     // Widening past the phone layout (an iPad rotating) hides the Menu
     // button, so the sheet closes rather than stranding focus on a hidden one.
-    const wide = window.matchMedia("(min-width: 1061px)");
+    const wide = window.matchMedia("(min-width: 1121px)");
     const onWide = (event: MediaQueryListEvent) => {
       if (event.matches) setMenuOpen(false);
     };
@@ -272,13 +272,11 @@ export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu
   return [
     {
       id: "practice",
-      label: "Our Practice",
+      label: "Practice",
       href: "/why-we-practice",
       items: [
         { title: "Why We Practice", desc: "What the practice is for", href: "/why-we-practice" },
         { title: "Taking CARE", desc: "The eight words of our practice", href: "/care" },
-        { title: "Our Roots", desc: "Silent illumination and the Buddhist tradition", href: "/our-roots" },
-        { title: "About RIM", desc: "Our vision, mission, and story", href: "/about" },
       ],
     },
     {
@@ -288,6 +286,17 @@ export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu
       items: [
         { title: "Programs & Events", desc: "Foundations, weekly gatherings, workshops, and retreats", href: "/community-programs" },
         { title: "This Week’s Schedule", desc: "What is happening in the next seven days", href: "/this-week" },
+      ],
+    },
+    {
+      id: "about",
+      label: "About",
+      href: "/about",
+      items: [
+        { title: "About RIM", desc: "Who we are, our vision and mission", href: "/about" },
+        { title: "Our Roots", desc: "The shared Dharma, Chan, and A Handful of Leaves", href: "/our-roots" },
+        { title: "Diverse Together", desc: "Everyone who shares these intentions belongs", href: "/diversity" },
+        { title: "Community Care Agreements", desc: "Our shared vision, and what we ask of members", href: "/community-care-agreements" },
       ],
     },
     {
@@ -306,13 +315,11 @@ export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu
       items: isLoggedIn
         ? [
             { title: "My Home", desc: "Today’s sessions and resources", href: "/account/dashboard" },
-            { title: "Community Care Agreements", desc: "Our shared vision, and what we ask of members", href: "/community-care-agreements" },
             { title: "Sign out", desc: "Log out of your account", action: "signout" },
           ]
         : [
             { title: "Become a Member", desc: "Read our community care agreements and join", href: "/join" },
             { title: "Sign in", desc: "Already a member? Continue here", href: "/login" },
-            { title: "Community Care Agreements", desc: "Our shared vision, and what we ask of members", href: "/community-care-agreements" },
           ],
     },
   ];
@@ -494,7 +501,6 @@ export function PublicNavSheet({
   onNavigate: () => void;
 }) {
   const groups = menus.filter((menu) => menu.id !== "members");
-  const agreements = { title: "Community Care Agreements", href: "/community-care-agreements" };
   return (
     <div
       id="nav-sheet"
@@ -531,15 +537,6 @@ export function PublicNavSheet({
                 {item.title}
               </Link>
             ))}
-            {menu.id === "involved" && (
-              <Link
-                onClick={onNavigate}
-                href={agreements.href}
-                className={`nav__sheet-link${isActive(agreements.href)}`}
-              >
-                {agreements.title}
-              </Link>
-            )}
           </div>
         ))}
       </nav>

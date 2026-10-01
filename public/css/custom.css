@@ -8031,7 +8031,7 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 .nav__link--active { color: var(--rim-blue); font-weight: 600; }
 .nav__link--toggle svg { color: var(--rim-text-muted); transition: transform 0.15s ease; }
 /* A signed-in "Hi, [name]" is capped so a long first name cannot push Donate
-   past the edge at 1061px, just above the phone switch (measured 2026-09-28:
+   past the edge at 1121px, just above the phone switch (measured 2026-09-28:
    "Hi, Christopher" is 7.17em and fits). The full name stays in the DOM. */
 .nav__link-label { display: inline-block; max-width: 7.25em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav__dropdown--open > .nav__link--toggle svg { transform: rotate(180deg); color: var(--rim-blue); }
@@ -8224,10 +8224,12 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   cursor: pointer;
 }
 
-/* Responsive. The phone layout takes over at 1060px (the desktop bar's natural
-   width was measured at ~1020 before the arrow buttons; recheck after any
-   change to the bar). Below it: brand, Donate, Menu, in a 72px bar. */
-@media (max-width: 1060px) {
+/* Responsive. The phone layout takes over at 1120px. The desktop bar's natural
+   width measured ~1038 with five menus; adding About (and shortening "Our
+   Practice" to "Practice") made it ~1098 (measured 2026-10-01), leaving the
+   same ~23px of slack the 1060 breakpoint had. Recheck after any change to the
+   bar. Below it: brand, Donate, Menu, in a 72px bar. */
+@media (max-width: 1120px) {
   .nav__inner { height: 72px; }
   .nav__desktop { display: none; }
   .nav__menu-btn { display: inline-flex; }
