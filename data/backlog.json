@@ -1421,9 +1421,10 @@
     "description": "The Teacher support dana template tells registrants their gift goes to RIM's fund for teacher livelihood, but nothing records that per program: the Donation ledger and the receipt treat all program dana alike. Consider a per-program dana fund setting that travels to the Donation row, the receipt and the ledger export.",
     "category": "Registration",
     "priority": "low",
-    "status": "open",
+    "status": "closed",
     "addedAt": "2026-09-24",
-    "notes": "Jesse, 2026-09-24: teacher dana goes to RIM in a fund for teacher livelihood. Update 2026-10-01 (Revision 12): Jesse's account is that program dana is split equally, half to RIM and half to the Teaching Fund; monthly and general dana go to RIM's operations. The program editor's built-in dana texts, the registration dana step, Donate and home now say so, so the copy mismatch is resolved. What remains: the Donation ledger and the receipt still do not record the split. With a uniform 50/50 rule a per-program fund setting may be unnecessary; decide with the accountant whether the ledger needs to show the split before closing."
+    "notes": "Closed 2026-10-01 (Revision 12a). Jesse: \"for simplicity, lets keep it to RIM.\" Program gifts are recorded and receipted as gifts to Rooted In Mindfulness; the half-and-half split between RIM and the Teaching Fund is RIM's internal allocation and is not shown on receipts or recorded per gift. The copy side was resolved in Revision 12 (Donate, home, the program editor's templates, the registration dana step); Revision 12a removed the split from the templates, since the registration step states it on every program. Revisit the split and the per-teacher Givebutter forms when RIM's own donation integration replaces Givebutter after launch. Earlier notes: Jesse, 2026-09-24: teacher dana goes to RIM in a fund for teacher livelihood; 2026-10-01: program dana is split equally, half to RIM and half to the Teaching Fund.",
+    "closedAt": "2026-10-01"
   },
   {
     "id": "2026-09-24-005",

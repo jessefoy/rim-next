@@ -109,11 +109,11 @@ export default function DonatePage() {
                 <p className="pp-give__name">&ldquo;Teacher Dana&rdquo;</p>
                 <p className="pp-give__body">
                   The community&rsquo;s generosity supports our teachers&rsquo; livelihood. Gifts to
-                  the Teaching Fund go to our teachers, so they can give their lives to practicing
-                  and sharing the teachings, and a gift can be designated for a particular teacher.
-                  Our guiding teacher receives a modest salary from RIM for leading the center. It
-                  is not enough to live on, so his teaching, like every teacher&rsquo;s, is
-                  supported through the Teaching Fund.
+                  the Teaching Fund support our teachers, so they can give their lives to practicing
+                  and sharing the teachings, and each gift goes to the teacher you choose. Our
+                  guiding teacher receives a modest salary from RIM for leading the center. It is
+                  not enough to live on, so his teaching, like every teacher&rsquo;s, is supported
+                  through the Teaching Fund.
                 </p>
 
                 <div className="pp-give__widget">
