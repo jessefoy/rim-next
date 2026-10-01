@@ -64,6 +64,7 @@ export default function Footer({ memberArea = false }: FooterProps) {
                     <input
                       type="text"
                       name="first_name"
+                      aria-label="First name"
                       placeholder="First name"
                       className="footer-input"
                       value={firstName}
@@ -72,6 +73,7 @@ export default function Footer({ memberArea = false }: FooterProps) {
                     <input
                       type="email"
                       name="email"
+                      aria-label="Email address"
                       placeholder="Email address"
                       className="footer-input"
                       value={email}
@@ -96,7 +98,7 @@ export default function Footer({ memberArea = false }: FooterProps) {
           <div className="rim-footer-address">{RIM_ADDRESS}</div>
           <div className="rim-footer-contact-links">
             <a href={`tel:${RIM_PHONE_TEL}`}>{RIM_PHONE_DISPLAY}</a>
-            <span className="rim-footer-dot">·</span>
+            <span className="rim-footer-dot" aria-hidden="true">·</span>
             <a href={`mailto:${RIM_SUPPORT_EMAIL}?subject=Dear%20RIM%20Support`}>
               {RIM_SUPPORT_EMAIL}
             </a>

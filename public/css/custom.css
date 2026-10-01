@@ -1024,7 +1024,7 @@ h4 { font-size: var(--text-h4); }
   flex: 1;
   max-width: 210px;
   padding: 11px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.6);   /* 3.97:1 on the footer blue; was 35%, 2.37:1 */
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
@@ -1034,8 +1034,21 @@ h4 { font-size: var(--text-h4); }
   transition: border-color 0.2s;
 }
 
-.footer-input::placeholder { color: rgba(255, 255, 255, 0.55); }
-.footer-input:focus        { border-color: rgba(255, 255, 255, 0.75); }
+/* The placeholders are the only visible labels on these two fields, so they
+   are text and meet 4.5:1 on the field's fill (85% white is 4.64:1; 55% was
+   2.9:1). Typed text stays full white. */
+.footer-input::placeholder { color: rgba(255, 255, 255, 0.85); }
+.footer-input:focus        { border-color: var(--rim-surface); }
+
+/* Focus on the dark footer (Revision, 2026-10-01). The site's focus rings are
+   per-component and use --rim-mid, which disappears on this blue; the fields
+   hid their outline entirely. A white 3px ring is 7.7:1 on the footer. */
+.rim-footer a:focus-visible,
+.rim-footer button:focus-visible,
+.rim-footer input:focus-visible {
+  outline: 3px solid var(--rim-surface);
+  outline-offset: 2px;
+}
 
 .footer-subscribe-btn {
   padding: 11px 22px;
