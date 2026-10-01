@@ -1495,5 +1495,75 @@
     "status": "open",
     "addedAt": "2026-09-28",
     "notes": "Launch is October 5; migrate in later passes. Also: .pp-btn relies on the browser's default focus ring; give it the site's focus style (3px --rim-mid) in the same pass. 2026-09-28 night: Addendum E revised the system on the home page (sections 96/64/48, paragraphs 24, one size per heading tag, two edges down to 769, stacked text in cols 1-10, images after their text); migrate onto the revised version in RIM_Public_Pages.md ('Revised by Addendum E'). The button standard is already site-wide."
+  },
+  {
+    "id": "2026-10-01-001",
+    "title": "Launch metadata: sitemap, robots, canonical, share cards, and per-page descriptions",
+    "description": "Measured 2026-10-01 on the live site: no sitemap.xml, robots.txt, canonical tag, Open Graph or Twitter card, and no metadataBase. /community-programs, /this-week, /teachers and /courses fall back to the generic site description; the Kalyana Mitta description carries an em-dash and a Pali word. Add: app/sitemap.ts and app/robots.ts (keep /courses and test data out until the Test Course is unpublished), metadataBase and canonical for rootedinmindfulness.org, an Open Graph image (the home hero), a description on each page, and a noindex for the rim-next.vercel.app host once the real domain is live.",
+    "category": "Infrastructure",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-10-01",
+    "notes": "Pairs with the Webflow redirect map (2026-08-07-003): 17 redirects exist against 317 old pages. October 5 launch."
+  },
+  {
+    "id": "2026-10-01-002",
+    "title": "Add Our Teachers to the About menu once the teacher profiles are populated",
+    "description": "About's 'Our teachers' button links /teachers, but the page had only a stub until Jesse's bio was written on 2026-10-01; his profile still has no photo (photoUrl empty), and Amy Gardner's campaign name appears on Donate with no teacher page. When the profiles carry a photo and a bio, add 'Our Teachers' to the About menu (components/Nav.tsx publicMenus) and revisit the listing.",
+    "category": "Nav & Layout",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-01",
+    "notes": "Related: 2026-08-07-005 (only one public teacher profile), 2026-09-02-001 (unpublish the Test Course, populate the profile)."
+  },
+  {
+    "id": "2026-10-01-003",
+    "title": "RIM's own donation integration: replace Givebutter, and revisit the program dana split and the per-teacher forms",
+    "description": "Jesse (2026-10-01): 'we will be building our own donation integration after the site goes live.' Today the Teaching Fund has no general button, only two named-teacher Givebutter campaigns (Amy Gardner, Jesse Foy), and program gifts are recorded and receipted simply as gifts to Rooted In Mindfulness; the half-and-half split between RIM and the Teaching Fund is internal allocation, not recorded per gift. When RIM builds its own integration, decide whether the ledger and receipt should record the split, whether there should be a general Teaching Fund option, and how a giver designates a teacher.",
+    "category": "Registration",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-01",
+    "notes": "Closes out the thinking behind 2026-09-24-004 (closed 2026-10-01). Copy lives on /donate, home, /outreach, the program editor templates, and the registration dana step; see RIM_Public_Pages.md Revisions 12 and 12a."
+  },
+  {
+    "id": "2026-10-01-004",
+    "title": "A second 'Jesse Foy' member account (non-teacher, empty bio)",
+    "description": "A production read on 2026-10-01 found two users named Jesse Foy: the teacher account (isTeacher, with the public profile and bio) and a second, non-teacher account with an empty bio. It may be a duplicate to merge or archive in the Member Registry; check registrations, roles and hub memberships before touching it. Nothing was changed.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-01",
+    "notes": "Also an 'Erika Foy' account with an empty bio, not a concern."
+  },
+  {
+    "id": "2026-10-01-005",
+    "title": "Review older saved program dana messages, record by record",
+    "description": "The 2026-10-01 read-only listing found older dana text still saved on programs Jesse did not ask to change: the archived day-of-mindfulness (a 'General support' message with an em-dash and 'deeply appreciated', and a danaText that says donations go 'towards RIM's operations and the livelihood of our teachers') and the dummy-test-program (the same message). The two Good Morning / Good Evening messages and awakening-the-heart were replaced with Jesse's approval. Edit the rest only with his approval of specific records.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-01",
+    "notes": "See UP_NEXT.md and the session log for 2026-10-01; the pre-write snapshot is outside the repo."
+  },
+  {
+    "id": "2026-10-01-006",
+    "title": "ProgramEditor.tsx lint errors (7, existing)",
+    "description": "npx eslint components/registrar/ProgramEditor.tsx reports 14 problems (7 errors: no-explicit-any, a setState-in-effect, and an <a> that should be next/link) at HEAD before any 2026-10-01 change. Clean up when the editor is next touched.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-01",
+    "notes": ""
+  },
+  {
+    "id": "2026-10-01-007",
+    "title": "Diverse Together: bring the page onto the current grammar, and name real groups if RIM has them",
+    "description": "/diversity is still on the older dv-layout with its own hero (the color-powder photograph, provenance still unrecorded). Jesse's meaning (all kinds of difference, politics included, anyone who shares the root intentions belongs) is now in its words, but the page could move to the reading-column grammar. Other centers show inclusion as practice by naming affinity or sitting groups; add them only if RIM has any, never invent them.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-01",
+    "notes": "Peer research is in the session log for 2026-09-30 and 2026-10-01."
   }
 ]

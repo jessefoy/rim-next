@@ -48,7 +48,7 @@ A new `RegistrationStatus` value. Only required-payment registrations use it. Se
 
 **September 26 rollback:** Jesse subsequently requested all newcomer-review changes undone. The retreat returns to its pre-review fixed $175 setting as part of that full restoration. The earlier voluntary-dana preference remains historical context to revisit explicitly, not authorization to silently reapply the withdrawn migration.
 
-RIM doesn't charge fees (`/donate`: "RIM does not charge fees"). Live programs use **voluntary** dana with a suggested amount; `fixed` and `base_plus_dana` remain in code and are handled correctly, but they aren't the practice. When a program shows a required amount, check with Jesse before assuming it's intended. The built-in "Teacher support" dana template now says the gift goes to Rooted In Mindfulness, set aside in the fund for teacher livelihood; nothing in RIM records a per-program fund, so that allocation lives in bookkeeping.
+RIM doesn't charge fees (`/donate`: "RIM does not charge fees"). Live programs use **voluntary** dana with a suggested amount; `fixed` and `base_plus_dana` remain in code and are handled correctly, but they aren't the practice. When a program shows a required amount, check with Jesse before assuming it's intended. *(Updated 2026-10-01.)* The program editor's built-in dana templates no longer say where the money goes ("Teacher support" became "Reciprocity"); the registration dana step and the program page state that program dana is shared equally between RIM and the Teaching Fund, and nothing in RIM records the split per gift, so that allocation lives in bookkeeping (see the receipt section below).
 
 ## The server decides what's charged (2026-09-24)
 
