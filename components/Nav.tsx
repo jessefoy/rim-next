@@ -276,7 +276,7 @@ export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu
       href: "/why-we-practice",
       items: [
         { title: "Why We Practice", desc: "What the practice is for", href: "/why-we-practice" },
-        { title: "Taking Care", desc: "The eight words of our practice", href: "/care" },
+        { title: "Taking CARE", desc: "The eight words of our practice", href: "/care" },
         { title: "Our Roots", desc: "Silent illumination and the Buddhist tradition", href: "/our-roots" },
         { title: "About RIM", desc: "Our vision, mission, and story", href: "/about" },
       ],
