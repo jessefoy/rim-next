@@ -34,7 +34,7 @@ export type HandfulDoc = {
 };
 
 function readSource(slug: HandfulSlug): string {
-  const raw = fs.readFileSync(path.join(DIR, `${slug}.md`), "utf8");
+  const raw = fs.readFileSync(path.join(DIR, `${slug}.md`), "utf8").replace(/\r\n/g, "\n");
   // Derived-work frontmatter: a leading block between two --- lines.
   return raw.replace(/^---\n[\s\S]*?\n---\n/, "");
 }

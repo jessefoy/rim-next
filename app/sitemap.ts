@@ -38,6 +38,17 @@ const STATIC_PATHS = [
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const staticEntries = STATIC_PATHS.map((path) => ({ url: `${SITE_ORIGIN}${path === "/" ? "" : path}` }));
+  try {
+    return [...staticEntries, ...(await databaseEntries())];
+  } catch (error) {
+    // The programs and teachers need the database; the static pages do not.
+    console.error("[sitemap] database entries skipped", error);
+    return staticEntries;
+  }
+}
+
+async function databaseEntries(): Promise<MetadataRoute.Sitemap> {
   const [programs, teachers] = await Promise.all([
     db.program.findMany({
       where: { archivedAt: null, hideFromProgramPageList: false },
@@ -64,7 +75,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   return [
-    ...STATIC_PATHS.map((path) => ({ url: `${SITE_ORIGIN}${path === "/" ? "" : path}` })),
     ...listed.map((p) => ({ url: `${SITE_ORIGIN}/programs/${p.slug}`, lastModified: p.updatedAt })),
     ...teachers.map((t) => ({ url: `${SITE_ORIGIN}/teachers/${t.slug}` })),
   ];

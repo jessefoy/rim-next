@@ -29059,10 +29059,10 @@ a.pp-card.home-paths__card {
 /* ===================================================================
    PROGRAMS BY THE THREE WAYS — /community-programs (2026-10-01,
    the integration brief, A16)
-   The catalog is organized as Foundations, Learning & Practice, Immersion,
+   The catalog is organized as Foundations, Ongoing Practice, Immersion,
    Community Groups, Events. Each chapter may carry a one-sentence
-   introduction under its heading; Learning & Practice carries a subheading
-   ("Silent sits") over its second group of cards. Cadence stays 96 between
+   introduction under its heading; Ongoing Practice carries a subheading
+   ("Silent meditation") over its second group of cards. Cadence stays 96 between
    chapters, 36 under a heading, 24 between cards (the subheading splits two
    card groups, so it is smaller: 48 above, 24 below).
    =================================================================== */
@@ -29182,7 +29182,7 @@ a.pp-card.home-paths__card {
   margin: 0;
   color: var(--rim-text);
   font-size: var(--text-app);
-  line-height: var(--lh-app, 1.55);
+  line-height: 1.55;
 }
 .db-handful .rim-home-links { margin: var(--space-1) 0 0; }
 @media (max-width: 430px) {
@@ -29193,7 +29193,9 @@ a.pp-card.home-paths__card {
    and the mobile bar drop away; the page becomes black on white at a printed
    size; headings keep with the text they introduce. */
 @media print {
-  @page { margin: 18mm; }
+  /* A named page, so the 18mm margin applies to these documents only. */
+  @page hol { margin: 18mm; }
+  .hol-reading { page: hol; }
   body:has(.hol-reading) { background: #fff; }
   body:has(.hol-reading) .member-bar,
   body:has(.hol-reading) .ac-sidebar,
@@ -29203,7 +29205,7 @@ a.pp-card.home-paths__card {
   body:has(.hol-reading) .ac-content,
   body:has(.hol-reading) .ac-inner { display: block; width: auto; max-width: none; margin: 0; padding: 0; }
   .hol-reading { max-width: none; padding: 0; }
-  .hol-reading .ac-page-title { font-size: 24pt; color: #000; }
+  body:has(.hol-reading) .hol-reading .ac-page-title { font-size: 24pt; color: #000; }
   .hol-reading .hol-content { max-width: none; color: #000; }
   .hol-reading .hol-content p,
   .hol-reading .hol-content li { orphans: 3; widows: 3; margin: 0 0 0.7em; font-size: 11.5pt; line-height: 1.5; color: #000; }
