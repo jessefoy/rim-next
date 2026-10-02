@@ -7,13 +7,8 @@
     },
     {
       "source": "/what-we-practice",
-      "destination": "/our-roots",
+      "destination": "/handful-of-leaves",
       "permanent": true
-    },
-    {
-      "source": "/foundations",
-      "destination": "/community-programs",
-      "permanent": false
     },
     {
       "source": "/account/hub/teacher",

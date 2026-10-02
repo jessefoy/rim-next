@@ -276,7 +276,9 @@ export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu
       href: "/why-we-practice",
       items: [
         { title: "Why We Practice", desc: "What the practice is for", href: "/why-we-practice" },
-        { title: "Taking CARE", desc: "The eight words of our practice", href: "/care" },
+        { title: "Taking CARE", desc: "How we practice, in eight plain words", href: "/care" },
+        { title: "Our Roots", desc: "Where our practice comes from", href: "/our-roots" },
+        { title: "A Handful of Leaves", desc: "The teachings behind the practice", href: "/handful-of-leaves" },
       ],
     },
     {
@@ -284,6 +286,7 @@ export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu
       label: "Programs",
       href: "/community-programs",
       items: [
+        { title: "Foundations", desc: "Where we encourage everyone to begin", href: "/foundations" },
         { title: "Programs & Events", desc: "Foundations, weekly gatherings, workshops, and retreats", href: "/community-programs" },
         { title: "This Week’s Schedule", desc: "What is happening in the next seven days", href: "/this-week" },
       ],
@@ -294,7 +297,6 @@ export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu
       href: "/about",
       items: [
         { title: "About RIM", desc: "Who we are, our vision and mission", href: "/about" },
-        { title: "Our Roots", desc: "The shared Dharma, Chan, and A Handful of Leaves", href: "/our-roots" },
         { title: "Diverse Together", desc: "Everyone who shares these intentions belongs", href: "/diversity" },
         { title: "Community Care Agreements", desc: "Our shared vision, and what we ask of members", href: "/community-care-agreements" },
       ],

@@ -89,6 +89,10 @@ export default function CarePage() {
                 conditions we are part of, which the circle calls interbeing.
               </figcaption>
             </figure>
+            <p>
+              Each word opens onto the same luminous, wakeful nature, which our tradition calls
+              Buddha nature.
+            </p>
 
             <nav className="pp-toc" aria-label="On this page">
               <p className="pp-toc__label" aria-hidden="true">
@@ -227,9 +231,11 @@ export default function CarePage() {
             <p>
               This page is a first introduction to how we practice, and{" "}
               <Link href="/why-we-practice">Why We Practice</Link> says what the practice is for.
-              The teachings deepen from there: through our community introduction,{" "}
-              <Link href="/our-roots">A Handful of Leaves</Link>; through Foundations; and through
-              ongoing learning and practice together.
+              The teachings deepen from there: through Foundations, through ongoing learning and
+              practice together, and through{" "}
+              <Link href="/handful-of-leaves">A Handful of Leaves</Link>, the wider body of
+              teaching behind each of the eight words. <Link href="/our-roots">Our Roots</Link>{" "}
+              tells where it all comes from.
             </p>
           </div>
 

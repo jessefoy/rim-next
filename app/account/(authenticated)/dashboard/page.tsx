@@ -9,6 +9,7 @@ import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN } from "@/lib/se
 import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 import HostWelcomePanel from "@/components/HostWelcomePanel";
+import HandfulHomeCard from "@/components/HandfulHomeCard";
 
 export const metadata = { title: "My Home - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -469,6 +470,7 @@ export default async function DashboardPage({ searchParams }: {
             <Link href="/account/dashboard?view=upcoming">Your upcoming programs <span aria-hidden="true">→</span></Link>
             <Link href="/this-week">Full schedule <span aria-hidden="true">→</span></Link>
           </nav>
+          <HandfulHomeCard />
         </>}
         {/* Existing registration information remains reachable, without self-cancellation. */}
         {upcomingView && (

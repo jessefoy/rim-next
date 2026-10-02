@@ -28877,7 +28877,7 @@ a.pp-card.tpr-card {
   border-top: 1px solid var(--rim-rule);
   padding: var(--space-2) 0;
 }
-.home-care-words__dot { color: var(--rim-text-muted); }
+.home-care-words__letter { min-width: 1.1em; font-weight: 700; }
 
 /* ── Splits: Deep roots (image right) and Dana (image left) ─────────────── */
 .home-page .pp-split__body .pp-intro { margin-bottom: 0; }
@@ -29054,6 +29054,167 @@ a.pp-card.home-paths__card {
 .pp-actions + .pp-prose.pp-prose--sections { margin-top: var(--space-6); }
 @media (max-width: 768px) {
   .pp-actions + .pp-prose.pp-prose--sections { margin-top: var(--space-5); }
+}
+
+/* ===================================================================
+   PROGRAMS BY THE THREE WAYS — /community-programs (2026-10-01,
+   the integration brief, A16)
+   The catalog is organized as Foundations, Ongoing Practice, Immersion,
+   Community Groups, Events. Each chapter may carry a one-sentence
+   introduction under its heading; Ongoing Practice carries a subheading
+   ("Silent meditation") over its second group of cards. Cadence stays 96 between
+   chapters, 36 under a heading, 24 between cards (the subheading splits two
+   card groups, so it is smaller: 48 above, 24 below).
+   =================================================================== */
+.pl-cat__intro,
+.pl-cat__note {
+  max-width: var(--reading-width);
+  margin: 12px 0 0;
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  text-wrap: pretty;
+}
+/* "Upcoming dates will be listed here." stands where the cards would. */
+.pl-cat__note { margin: 0; }
+.pl-cat__subheading {
+  margin: 48px 0 24px;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+}
+/* The Foundations page's "Get the newsletter" button jumps to the footer form;
+   it lands clear of the 100px sticky nav, like every other anchored target. */
+.rim-footer-newsletter { scroll-margin-top: 124px; }
+
+/* A card with no "when" column (Foundations has no dates yet): two columns, so
+   the arrow stays on the right edge instead of floating in the middle. */
+.pl-page .pl-card--catalog.pl-card--solo .pl-card__content { grid-template-columns: minmax(0, 1fr) 40px; }
+
+/* A program with no pull quote (the integration brief, A23, removes the
+   Meditation and Dharma Talk epigraph). The hero keeps its bottom padding as
+   the quote card's landing zone, and the content has nothing to hold it off
+   the hero's edge, so both close up: a hero sized to its words, and the
+   content starting a quote card's margin below it. */
+.pg-hero.pg-hero--no-quote { padding-bottom: 96px; }
+.pg-content.pg-content--no-quote { padding-top: 56px; }
+@media (max-width: 767px) {
+  .pg-hero.pg-hero--no-quote { padding-bottom: 64px; }
+  .pg-content.pg-content--no-quote { padding-top: 40px; }
+}
+@media (max-width: 430px) {
+  .pg-hero.pg-hero--no-quote { padding-bottom: 56px; }
+}
+
+/* ── The shared program block (A17): a recede panel, the same surface as a
+   program's Notes, between "Gathering details" and "Facilitators". ───────── */
+.pg-page .pg-shared {
+  box-sizing: border-box;
+  margin: 0 0 38px;
+  padding: 26px 30px 12px;
+}
+.pg-shared__text {
+  margin: 0;
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  text-wrap: pretty;
+}
+.pg-shared__link {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  margin: 0 0 14px;
+  color: var(--rim-blue);
+  font-size: var(--text-small);
+  font-weight: 600;
+  text-decoration: none;
+}
+.pg-shared__link:hover { text-decoration: underline; }
+.pg-shared__link:focus-visible {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .pg-page .pg-shared { margin-bottom: 32px; padding: 22px 20px 10px; }
+}
+@media (max-width: 860px) {
+  .pl-page .pl-card--catalog.pl-card--solo .pl-card__content { grid-template-areas: "main action"; }
+}
+@media (max-width: 430px) {
+  .pl-cat__subheading { margin: 40px 0 20px; }
+}
+
+/* ===================================================================
+   A HANDFUL OF LEAVES — member reading pages and the My Home card
+   (the integration follow-up brief, F4)
+   Two members-only documents (/account/handful-of-leaves and its /map): the
+   introduction and the map, rendered from content/handful-of-leaves/. Reading
+   content stays at the 18px reading scale (.rim-content); only the measure and
+   the print rules are set here.
+   =================================================================== */
+.hol-content { max-width: var(--reading-width); }
+.hol-content hr { margin: var(--space-5) 0; }
+.hol-content h2 { margin-top: var(--space-6); }
+.hol-content h2:first-child { margin-top: 0; }
+
+/* My Home: one quiet white surface, like the Today card. */
+.db-handful {
+  box-sizing: border-box;
+  margin: var(--space-4) 0;
+  padding: 24px 28px;
+  border-radius: 14px;
+  background: var(--rim-surface);
+}
+.db-handful .db-handful__title {
+  margin: 0 0 var(--space-1);
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+}
+.db-handful .db-handful__text {
+  max-width: 65ch;
+  margin: 0;
+  color: var(--rim-text);
+  font-size: var(--text-app);
+  line-height: 1.55;
+}
+.db-handful .rim-home-links { margin: var(--space-1) 0 0; }
+@media (max-width: 430px) {
+  .db-handful { padding: 20px; }
+}
+
+/* Print: either document prints as a clean page. The member header, the rail
+   and the mobile bar drop away; the page becomes black on white at a printed
+   size; headings keep with the text they introduce. */
+@media print {
+  /* A named page, so the 18mm margin applies to these documents only. */
+  @page hol { margin: 18mm; }
+  .hol-reading { page: hol; }
+  body:has(.hol-reading) { background: #fff; }
+  body:has(.hol-reading) .member-bar,
+  body:has(.hol-reading) .ac-sidebar,
+  body:has(.hol-reading) .ac-mobilebar,
+  body:has(.hol-reading) .ac-backdrop { display: none !important; }
+  body:has(.hol-reading) .ac-layout { display: block; min-height: 0; background: #fff; }
+  body:has(.hol-reading) .ac-content,
+  body:has(.hol-reading) .ac-inner { display: block; width: auto; max-width: none; margin: 0; padding: 0; }
+  .hol-reading { max-width: none; padding: 0; }
+  body:has(.hol-reading) .hol-reading .ac-page-title { font-size: 24pt; color: #000; }
+  .hol-reading .hol-content { max-width: none; color: #000; }
+  .hol-reading .hol-content p,
+  .hol-reading .hol-content li { orphans: 3; widows: 3; margin: 0 0 0.7em; font-size: 11.5pt; line-height: 1.5; color: #000; }
+  .hol-reading .hol-content h2,
+  .hol-reading .hol-content h3 { color: #000; break-after: avoid; page-break-after: avoid; }
+  .hol-reading .hol-content h2 { margin: 1.5em 0 0.5em; font-size: 16pt; }
+  .hol-reading .hol-content h3 { margin: 1.2em 0 0.4em; font-size: 13pt; }
+  .hol-reading .hol-content hr { break-after: avoid; margin: 1.2em 0; }
+  .hol-content a { color: inherit; text-decoration: none; }
 }
 
 /* ===================================================================

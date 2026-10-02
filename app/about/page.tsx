@@ -5,7 +5,7 @@ import { RIM_ADDRESS, RIM_PHONE_DISPLAY, RIM_PHONE_TEL, RIM_SUPPORT_EMAIL } from
 export const metadata = {
   title: "About RIM - Rooted In Mindfulness",
   description:
-    "Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin, and a dharma community rooted in the Chan tradition. Our vision and mission, what we practice and why, and how we are held.",
+    "Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin, and a dharma community rooted in Chan, the Chinese school of Buddhism also known as Zen. Our vision and mission, what we practice and why, and how we are held.",
 };
 
 /**
@@ -45,9 +45,9 @@ export default function AboutPage() {
             <p>
               Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin,
               serving the Greater Milwaukee area and beyond, in person and online. We are a dharma
-              community rooted in the Chan tradition, and Taking CARE is our root practice: an
-              approach to meditation and mindful living plain enough to begin with and deep enough
-              for a lifetime.
+              community rooted in Chan, and Taking CARE is our root practice: an approach to
+              meditation and mindful living plain enough to begin with and deep enough for a
+              lifetime.
             </p>
 
             <h2>Our vision and mission</h2>
@@ -91,11 +91,13 @@ export default function AboutPage() {
           <div className="pp-prose pp-prose--sections">
             <h2>Where it comes from</h2>
             <p>
-              Our roots are in Chan, the Chinese school of Buddhism also known as Zen. We honor the
-              whole of the Dharma, the Buddha&apos;s teachings, as one living family, and draw on
-              it through A Handful of Leaves. We teach plainly, for people living full modern
-              lives, and our teaching is informed by mindfulness-based programs, psychology, and
-              modern science. People from every tradition, and from none, find support here.
+              Our roots are in Chan, the Chinese school of Buddhism also known as Zen, which teaches
+              that a luminous, wakeful nature is already present in each of us. We honor the whole
+              of the Dharma, the Buddha&apos;s teachings, as one living family, and draw on it
+              through <Link href="/handful-of-leaves">A Handful of Leaves</Link>. We teach plainly,
+              for people living full modern lives, and our teaching is informed by
+              mindfulness-based programs, psychology, and modern science. People from every
+              tradition, and from none, find support here.
             </p>
           </div>
           <div className="pp-actions">

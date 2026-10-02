@@ -2,13 +2,14 @@ import type { Metadata, Viewport } from "next";
 import Nav from "@/components/Nav";
 import FooterWrapper from "@/components/FooterWrapper";
 import SessionProvider from "@/components/SessionProvider";
+import { SITE_ORIGIN } from "@/lib/siteUrl";
 
 export const metadata: Metadata = {
   // rootedinmindfulness.org is the canonical address once the domain moves.
   // "./" makes every page's canonical its own path on that origin, so the
   // rim-next.vercel.app copy (which also sends noindex, see vercel.json)
   // points search engines at the real site.
-  metadataBase: new URL("https://rootedinmindfulness.org"),
+  metadataBase: new URL(SITE_ORIGIN),
   alternates: { canonical: "./" },
   title: "Rooted In Mindfulness",
   description: "A meditation and dharma community in Brookfield, Wisconsin, in person and online.",

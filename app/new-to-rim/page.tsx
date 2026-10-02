@@ -35,9 +35,9 @@ const QUESTIONS: { q: string; a: ReactNode }[] = [
     q: "What can practice help with?",
     a: (
       <>
-        People come for many reasons: to meet stress, pain, or a hard season; to enjoy life more;
-        to be there for the people they love; to live by what matters; and, for some, to walk a
-        path of awakening. There is room for all of these here, and{" "}
+        People come for many reasons: to meet stress, pain, a hard season, or the weight of what
+        is happening in the world; to enjoy life more; to be there for the people they love; to
+        live by what matters; and, for some, to walk a path of awakening. There is room for all of these here, and{" "}
         <Link href="/why-we-practice">Why We Practice</Link> describes how practice helps.
       </>
     ),
@@ -102,29 +102,18 @@ export default function NewToRimPage() {
               welcoming first visit.
             </p>
             <p>
-              For a fuller introduction, we encourage everyone to take Foundations, a welcoming
-              introduction to our practice through guided meditation, teaching, reflection, and
-              conversation. Our first Foundations offering begins in November, and it will appear
-              with our <Link href="/community-programs">programs</Link> once it is scheduled.
-            </p>
-            <p>
-              You are welcome to join us in whatever way resonates with you, from a single sitting
-              to a day of mindfulness or a retreat. As a first step, we highly recommend a community
-              drop-in and Foundations.
+              For a fuller introduction, we encourage everyone to take{" "}
+              <Link href="/foundations">Foundations</Link>, a welcoming introduction to Taking
+              CARE, our root practice, through guided meditation, teaching, reflection, and
+              conversation. Our first Foundations offering begins in November.
             </p>
 
             <h2 id="community">Practicing together</h2>
             <p>
-              RIM is a community for learning and practice. Membership is freely offered, and nobody
-              keeps track of how often you come. You are welcome to practice in whatever way feels
-              comfortable: listening in the peace and safety of a supportive space, and taking a
-              more active part whenever it feels right. Some of us are more reserved and some share
-              more readily. Both help create a healthy container for learning and practice, and
-              everyone who comes with a sincere wish to practice, for their own benefit and for one
-              another&rsquo;s, is contributing to it. That is what community means here: learning
-              and practicing with like-minded people, each in our own way. People from every walk
-              of life practice here, and anyone who shares these intentions belongs. Our
-              differences make us stronger, and there is more in{" "}
+              RIM is a community for learning and practice, and each of us takes part in our own
+              way. Some of us share readily and some prefer to sit and listen, and both help make
+              the community a healthy place to learn and practice. People from every walk of life
+              practice here, and our differences make us stronger. There is more in{" "}
               <Link href="/diversity">Diverse Together</Link>.
             </p>
             <p>

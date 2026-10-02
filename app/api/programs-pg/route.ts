@@ -40,9 +40,11 @@ export async function POST(request: NextRequest) {
   if (!name || !slug) {
     return NextResponse.json({ error: "Name and slug are required" }, { status: 400 });
   }
+  // The pull quote is optional; a source cannot stand without its quote.
   const pullQuote = typeof body.pullQuote === "string" ? body.pullQuote.trim() : "";
-  if (!pullQuote) {
-    return NextResponse.json({ error: "Every program needs a pull quote." }, { status: 422 });
+  const pullQuoteSource = typeof body.pullQuoteSource === "string" ? body.pullQuoteSource.trim() : "";
+  if (pullQuoteSource && !pullQuote) {
+    return NextResponse.json({ error: "A quote source needs its quote." }, { status: 422 });
   }
 
   const existing = await db.program.findUnique({ where: { slug } });
@@ -79,8 +81,8 @@ export async function POST(request: NextRequest) {
       tagline: body.tagline || null,
       programImage: body.programImage || null,
       description: body.description || undefined,
-      pullQuote,
-      pullQuoteSource: typeof body.pullQuoteSource === "string" ? body.pullQuoteSource.trim() || null : null,
+      pullQuote: pullQuote || null,
+      pullQuoteSource: pullQuoteSource || null,
       programNotes: body.programNotes || null,
       teacherFacilitators: body.teacherFacilitators ?? [],
       teacherLabel: sanitizeTeacherLabel(body.teacherLabel),
