@@ -31,7 +31,7 @@ import { getMeeting, ensureSeatHostKey, deleteMeeting } from "@/lib/zoom";
 import { roomNameForProgram, sessionDisplayName } from "@/lib/sessionIdentity";
 import { FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
-import { isOpenlyDroppable } from "@/lib/programKind";
+import { isProgramOpenlyDroppable } from "@/lib/programOffering";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +73,9 @@ export default async function ZoomEnterPage({
       recurrenceCount: true,
       archivedAt: true,
       registrationEnabled: true,
-      category: { select: { kind: true } },
+      offeringCategory: true,
+      offeringFormat: true,
+      category: { select: { slug: true, kind: true } },
     },
   });
   if (!program) redirect("/account/dashboard");
@@ -199,7 +201,7 @@ export default async function ZoomEnterPage({
       !canHostHere &&
       !isAdminOrGT &&
       !hasValidKey &&
-      !isOpenlyDroppable(program.category?.kind ?? null, program.registrationEnabled)
+      !isProgramOpenlyDroppable(program)
     ) {
       const occurrenceDay = ctDateStr(sessionDateIso);
       const [registration, assignments, coverage] = await Promise.all([

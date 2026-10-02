@@ -1,7 +1,16 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CHAPTERS } from "@/lib/programChapters";
+import {
+  OFFERING_CATEGORIES,
+  PUBLIC_CATEGORY_ORDER,
+  HOSTED_BY_VOLUNTEERS_LABEL,
+  SILENT_MEDITATION_LINE,
+  formatLabel,
+  isPubliclyListedCategory,
+  resolveOffering,
+  type OfferingCategoryCode,
+} from "@/lib/programOffering";
 import HashTargetScroller from "@/components/HashTargetScroller";
 import ProgramCardNotices from "@/components/ProgramCardNotices";
 import PracticeWithUs from "@/components/PracticeWithUs";
@@ -66,40 +75,40 @@ async function loadPrograms() {
 }
 
 export default async function CommunityProgramsPage() {
-  const [allPrograms, categories] = await Promise.all([
-    loadPrograms(),
-    db.programCategory.findMany({
-      where: { hideFromProgramsPage: false },
-      orderBy: { sortOrder: "asc" },
-    }),
-  ]);
+  const allPrograms = await loadPrograms();
 
   // A concluded one-time program leaves the listing on its own the day after
   // its date, unless the editor opted out (hideWhenPast, default true).
   const todayYmd = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
   const currentYear = Number(todayYmd.split("-")[0]);
   const isOneTime = (p: ListedProgram) => !p.recurrenceFreq && !!p.startDatetime;
-  const visibleSlugs = new Set(categories.map((c) => c.slug));
-  const programs = allPrograms.filter(
-    (p) =>
-      !(p.hideWhenPast && hasConcludedOneTime(p)) &&
-      !!p.category &&
-      visibleSlugs.has(p.category.slug)
-  );
-  // Programs in these categories, each category's programs kept together in the
-  // order the chapter names them (Immersion merges two), then by sortOrder.
-  const inCategories = (slugs: string[]) =>
-    programs
-      .filter((p) => !!p.category && slugs.includes(p.category.slug))
-      .sort((a, b) => slugs.indexOf(a.category!.slug) - slugs.indexOf(b.category!.slug));
 
-  const mappedSlugs = new Set(CHAPTERS.flatMap((c) => c.groups.flatMap((g) => g.slugs)));
-  const otherCategories = categories.filter((c) => !mappedSlugs.has(c.slug));
+  // Each program's Category, Format and checkboxes (its own fields, or its old
+  // category while those are empty). A program with no Category is not listed,
+  // Private is never listed, and the old category's "hide from the Programs
+  // page" flag keeps its meaning.
+  const programs = allPrograms
+    .filter((p) => !(p.hideWhenPast && hasConcludedOneTime(p)))
+    .filter((p) => !p.category?.hideFromProgramsPage)
+    .map((p) => ({ ...p, offering: resolveOffering(p) }))
+    .filter((p) => isPubliclyListedCategory(p.offering.category));
+  const inCategory = (code: OfferingCategoryCode) => programs.filter((p) => p.offering.category === code);
 
   /** One program as a card: date-led for an upcoming one-time program, the
       schedule and format held right for everything else. */
   const renderCard = (program: ListedProgram, TitleTag: "h3" | "h4" = "h3"): ReactNode => {
     const format = fmtLabel(program.programFormat);
+    // The offering's own labels: its Format ("Drop-in", "Course") and, where
+    // checked, "Hosted by volunteers". Display only.
+    const offering = resolveOffering(program);
+    const offeringFormat = formatLabel(offering.format);
+    const labels =
+      offeringFormat || offering.hostedByVolunteers ? (
+        <p className="pl-card__labels">
+          {offeringFormat && <span>{offeringFormat}</span>}
+          {offering.hostedByVolunteers && <span>{HOSTED_BY_VOLUNTEERS_LABEL}</span>}
+        </p>
+      ) : null;
 
     // One-time upcoming: keep the date prominent with the scheduling facts,
     // but keep every program title on the same leading edge. A
@@ -126,6 +135,7 @@ export default async function CommunityProgramsPage() {
               <div className="pl-card__title-row">
                 <TitleTag className="pl-card__title">{program.name}</TitleTag>
               </div>
+              {labels}
               {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
               <ProgramCardNotices announcement={program.specialAnnouncement} />
             </div>
@@ -163,6 +173,7 @@ export default async function CommunityProgramsPage() {
             <div className="pl-card__title-row">
               <TitleTag className="pl-card__title">{program.name}</TitleTag>
             </div>
+            {labels}
             {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
             <ProgramCardNotices announcement={program.specialAnnouncement} />
           </div>
@@ -211,78 +222,73 @@ export default async function CommunityProgramsPage() {
       {/* ── Program Listings, by the three ways ───────────── */}
       <section className="pl-catalog">
         <div className="rim-container">
-          {/* Foundations: one card, even with no dates set. The id is the
-              anchor other pages may link (/community-programs#foundations). */}
-          <div id="foundations" className="pl-cat">
-            <div className="pl-cat__header">
-              <h2 className="pl-cat__heading">Foundations</h2>
-              <p className="pl-cat__intro">
-                Where we encourage everyone to begin. First offered in November.
-              </p>
-            </div>
-            <div className="pl-grid">
-              <Link href="/foundations" className="pl-card pl-card--catalog pl-card--solo">
-                <div className="pl-card__content">
-                  <div className="pl-card__main">
-                    <div className="pl-card__title-row">
-                      <h3 className="pl-card__title">Foundations</h3>
-                    </div>
-                    <span className="pl-card__tagline">
-                      Finding your footing in meditation and mindful living.
-                    </span>
-                  </div>
-                  <span className="pl-card__action" aria-hidden="true">→</span>
-                </div>
-              </Link>
-            </div>
-          </div>
+          {PUBLIC_CATEGORY_ORDER.map((code) => {
+            const info = OFFERING_CATEGORIES.find((c) => c.code === code)!;
+            const inThis = inCategory(code);
+            const alwaysShown = code === "FOUNDATIONS" || code === "ONGOING_LEARNING_PRACTICE" || code === "IMMERSION";
+            if (inThis.length === 0 && !alwaysShown) return null;
 
-          {CHAPTERS.map((chapter) => {
-            const groups = chapter.groups
-              .map((g) => ({ ...g, programs: inCategories(g.slugs) }))
-              .filter((g) => g.programs.length > 0);
-            if (groups.length === 0 && !chapter.emptyNote && !chapter.alwaysShow) return null;
+            // Groups of cards within a section: Ongoing Learning & Practice
+            // shows its drop-ins first, then the silent meditation sits under
+            // their own subheading and line, then courses and classes.
+            type Group = { key: string; heading?: string; line?: string; programs: typeof inThis };
+            let groups: Group[];
+            if (code === "ONGOING_LEARNING_PRACTICE") {
+              groups = [
+                { key: "drop-ins", programs: inThis.filter((p) => p.offering.format === "DROP_IN" && !p.offering.silentMeditation) },
+                { key: "silent", heading: "Silent meditation", line: SILENT_MEDITATION_LINE, programs: inThis.filter((p) => p.offering.silentMeditation) },
+                { key: "courses", heading: "Courses and classes", programs: inThis.filter((p) => p.offering.format !== "DROP_IN" && !p.offering.silentMeditation) },
+              ].filter((g) => g.programs.length > 0);
+            } else {
+              groups = inThis.length > 0 ? [{ key: "all", programs: inThis }] : [];
+            }
 
             return (
-              // The id is the anchor the home page's doors deep-link to
-              // (/community-programs#ongoing-learning-and-practice, #immersion).
-              <div key={chapter.id} id={chapter.id} className="pl-cat">
+              // The id is the anchor other pages link to (Home's doors:
+              // #ongoing-learning-and-practice, #immersion).
+              <div key={code} id={info.anchor} className="pl-cat">
                 <div className="pl-cat__header">
-                  <h2 className="pl-cat__heading">{chapter.title}</h2>
-                  {chapter.intro && <p className="pl-cat__intro">{chapter.intro}</p>}
+                  <h2 className="pl-cat__heading">{info.sectionTitle}</h2>
+                  {info.intro && <p className="pl-cat__intro">{info.intro}</p>}
                 </div>
-                {groups.length === 0 ? (
-                  chapter.emptyNote && <p className="pl-cat__note">{chapter.emptyNote}</p>
+
+                {code === "FOUNDATIONS" && inThis.length === 0 ? (
+                  // Foundations is not a scheduled program yet: one static card.
+                  <div className="pl-grid">
+                    <Link href="/foundations" className="pl-card pl-card--catalog pl-card--solo">
+                      <div className="pl-card__content">
+                        <div className="pl-card__main">
+                          <div className="pl-card__title-row">
+                            <h3 className="pl-card__title">Foundations</h3>
+                          </div>
+                          <span className="pl-card__tagline">
+                            Finding your footing in meditation and mindful living.
+                          </span>
+                        </div>
+                        <span className="pl-card__action" aria-hidden="true">→</span>
+                      </div>
+                    </Link>
+                  </div>
+                ) : groups.length === 0 ? (
+                  code === "IMMERSION" && <p className="pl-cat__note">Upcoming dates will be listed here.</p>
                 ) : (
                   groups.map((group, i) => (
-                    <div key={group.slugs.join("+")}>
-                      {group.subheading && i > 0 && (
-                        <h3 className="pl-cat__subheading">{group.subheading}</h3>
+                    <div key={group.key}>
+                      {group.heading && (
+                        <>
+                          <h3 className={i === 0 ? "pl-cat__subheading pl-cat__subheading--first" : "pl-cat__subheading"}>
+                            {group.heading}
+                          </h3>
+                          {group.line && <p className="pl-cat__subline">{group.line}</p>}
+                        </>
                       )}
                       {/* Cards under a subheading sit one level below it. */}
                       <div className="pl-grid">
-                        {group.programs.map((p) =>
-                          renderCard(p, group.subheading && i > 0 ? "h4" : "h3")
-                        )}
+                        {group.programs.map((p) => renderCard(p, group.heading ? "h4" : "h3"))}
                       </div>
                     </div>
                   ))
                 )}
-              </div>
-            );
-          })}
-
-          {/* A category the chapters above do not name keeps its own heading
-              (a category added in Program Manager is never silently missing). */}
-          {otherCategories.map((category) => {
-            const categoryPrograms = programs.filter((p) => p.category?.slug === category.slug);
-            if (categoryPrograms.length === 0) return null;
-            return (
-              <div key={category.id} id={category.slug} className="pl-cat">
-                <div className="pl-cat__header">
-                  <h2 className="pl-cat__heading">{categoryDisplayName(category.name)}</h2>
-                </div>
-                <div className="pl-grid">{categoryPrograms.map((p) => renderCard(p))}</div>
               </div>
             );
           })}

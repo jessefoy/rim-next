@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramCardNotices from "@/components/ProgramCardNotices";
+import { formatLabel, resolveOffering } from "@/lib/programOffering";
 import PracticeWithUs from "@/components/PracticeWithUs";
 import { formatTimeRange } from "@/lib/dateLabel";
 import { isOccurrenceOnDate, type ScheduleProgram } from "@/lib/scheduleUtils";
@@ -230,6 +231,9 @@ export default async function ThisWeekPage({
                   {dayPrograms.map((program) => {
                     const time = buildTimeLabel(program);
                     const format = fmtLabel(program.programFormat);
+                    // The drop-in mark comes from the offering's Format (the
+                    // program's own, or its old category's while that is empty).
+                    const isDropIn = resolveOffering(program).format === "DROP_IN";
                     return (
                       <Link
                         key={program.id}
@@ -245,9 +249,10 @@ export default async function ThisWeekPage({
                           )}
                           <div className="pl-card__main">
                             <h3 className="pl-card__title">{program.name}</h3>
-                            {format && (
+                            {(format || isDropIn) && (
                               <div className="pl-card__meta">
-                                <span className="pl-card__format">{format}</span>
+                                {isDropIn && <span className="pl-card__mark">{formatLabel("DROP_IN")}</span>}
+                                {format && <span className="pl-card__format">{format}</span>}
                               </div>
                             )}
                             <ProgramCardNotices

@@ -13,6 +13,7 @@ import { sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
+import { cleanOffering } from "@/lib/programOffering";
 
 export async function GET() {
   const session = await auth();
@@ -45,6 +46,13 @@ export async function POST(request: NextRequest) {
   const pullQuoteSource = typeof body.pullQuoteSource === "string" ? body.pullQuoteSource.trim() : "";
   if (pullQuoteSource && !pullQuote) {
     return NextResponse.json({ error: "A quote source needs its quote." }, { status: 422 });
+  }
+
+  // Category is required; Format is required for the three ways and optional
+  // otherwise (lib/programOffering.ts). The editor sends both; so must any caller.
+  const offering = cleanOffering(body);
+  if (!offering.ok) {
+    return NextResponse.json({ error: offering.error }, { status: 422 });
   }
 
   const existing = await db.program.findUnique({ where: { slug } });
@@ -83,6 +91,7 @@ export async function POST(request: NextRequest) {
       description: body.description || undefined,
       pullQuote: pullQuote || null,
       pullQuoteSource: pullQuoteSource || null,
+      ...offering.value,
       programNotes: body.programNotes || null,
       teacherFacilitators: body.teacherFacilitators ?? [],
       teacherLabel: sanitizeTeacherLabel(body.teacherLabel),

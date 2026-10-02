@@ -293,6 +293,18 @@ model Program {
   hideWhenPast             Boolean   @default(true)  // one-time programs only (recurrenceFreq null): once the occurrence's CT day has ended, drop it from the public Programs & Events listing automatically. Editor opt-out on the Visibility tab.
   archivedAt               DateTime?
 
+  // ── Offering: Category and Format (2026-10-02, the program-categories brief) ──
+  // The three ways Taking CARE is offered, with the kind of offering beneath
+  // them, held on the program itself. Stable string CODES (labels live in
+  // lib/programOffering.ts, like ProgramCategory.kind), validated in the API.
+  // NOT `programFormat`, which means delivery (in-person / virtual / hybrid).
+  // Nullable until the migration has filled every row; the old `categoryId`
+  // stays until that is verified, and lib/programOffering.ts falls back to it.
+  offeringCategory   String?   // FOUNDATIONS | ONGOING_LEARNING_PRACTICE | IMMERSION | COMMUNITY_GROUP | SPECIAL_EVENT | SERVICE | PRIVATE
+  offeringFormat     String?   // DROP_IN | CLASS | COURSE | WORKSHOP | DAY_OF_MINDFULNESS | RETREAT. Required for the three ways; optional otherwise.
+  silentMeditation   Boolean   @default(false) // a silent-sitting drop-in: grouped under "Silent meditation" within Ongoing Learning & Practice
+  hostedByVolunteers Boolean   @default(false) // cards and pages say "Hosted by volunteers"
+
   // ── Relations ──────────────────────────────────────────
   registrations      Registration[]
   programCourses     ProgramCourse[]

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
 import { hasConcludedOneTime } from "@/lib/programUtils";
+import { isPubliclyListedCategory, resolveOffering } from "@/lib/programOffering";
 import { SITE_ORIGIN } from "@/lib/siteUrl";
 
 /**
@@ -59,7 +60,8 @@ async function databaseEntries(): Promise<MetadataRoute.Sitemap> {
         recurrenceFreq: true,
         startDatetime: true,
         endDatetime: true,
-        category: { select: { hideFromProgramsPage: true } },
+        offeringCategory: true,
+        category: { select: { slug: true, hideFromProgramsPage: true } },
       },
     }),
     db.teacherProfile.findMany({
@@ -68,10 +70,14 @@ async function databaseEntries(): Promise<MetadataRoute.Sitemap> {
     }),
   ]);
 
-  // The same rule as the listing: a program in a hidden category, or a one-time
-  // program whose day has passed (and that retires itself), is not listed.
+  // The same rule as the listing: a program with no Category, a Private one, one
+  // in an old category hidden from the Programs page, or a one-time program whose
+  // day has passed (and that retires itself) is not listed.
   const listed = programs.filter(
-    (p) => !!p.category && !p.category.hideFromProgramsPage && !(p.hideWhenPast && hasConcludedOneTime(p))
+    (p) =>
+      isPubliclyListedCategory(resolveOffering(p).category) &&
+      !p.category?.hideFromProgramsPage &&
+      !(p.hideWhenPast && hasConcludedOneTime(p))
   );
 
   return [

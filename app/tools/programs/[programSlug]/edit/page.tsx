@@ -10,6 +10,7 @@ import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
 import type { ProgramData } from "@/components/registrar/ProgramEditor";
 import { toCentralDatetime } from "@/lib/timezone";
+import { resolveOffering } from "@/lib/programOffering";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export default async function EditProgramToolPage({
     db.program.findUnique({
       where: { slug: programSlug },
       include: {
+        // The old category, for the offering's fallback while its own fields are empty.
+        category: { select: { slug: true, kind: true } },
         programTeachers: {
           orderBy: { order: "asc" },
           include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
@@ -101,6 +104,8 @@ export default async function EditProgramToolPage({
     },
   });
 
+  const offering = resolveOffering(program);
+
   const initialData: ProgramData = {
     id: program.id,
     slug: program.slug,
@@ -118,6 +123,13 @@ export default async function EditProgramToolPage({
     })) ?? [],
     teacherLabel: program.teacherLabel ?? null,
     categoryId: program.categoryId ?? "",
+    // The offering's own fields, or (until the migration has filled them) the
+    // values its old category implies, so the dropdowns open on a sensible choice.
+    offeringCategory: offering.category ?? "",
+    offeringFormat: offering.format ?? "",
+    silentMeditation: offering.silentMeditation,
+    hostedByVolunteers: offering.hostedByVolunteers,
+    offeringFromLegacy: offering.source === "legacy-category",
     dateText: program.dateText ?? "",
     timeText: program.timeText ?? "",
     programFormat: program.programFormat,

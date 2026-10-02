@@ -6,6 +6,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { resolveOffering } from "@/lib/programOffering";
 import ProgramsTableClient, {
   type ProgramRow,
 } from "@/components/registrar/ProgramsTableClient";
@@ -34,6 +35,10 @@ export default async function ProgramsToolPage() {
       registrationClosed: true,
       registrationCapacity: true,
       archivedAt: true,
+      offeringCategory: true,
+      offeringFormat: true,
+      // The old category, for the offering's fallback while its own fields are empty.
+      category: { select: { slug: true, kind: true } },
     },
   });
 
@@ -76,6 +81,8 @@ export default async function ProgramsToolPage() {
       registrationClosed: p.registrationClosed,
       registrationCapacity: p.registrationCapacity,
       archivedAt: p.archivedAt?.toISOString() ?? null,
+      offeringCategory: resolveOffering(p).category,
+      offeringFormat: resolveOffering(p).format,
       confirmedCount,
       waitlistedCount,
       pendingDanaCount,

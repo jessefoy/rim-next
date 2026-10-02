@@ -14,6 +14,7 @@ import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 import { applyProgramRecordingSetting, teardownProgramMeetings } from "@/lib/sessionMeeting";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
+import { cleanOffering } from "@/lib/programOffering";
 
 export async function GET(
   _req: NextRequest,
@@ -107,6 +108,27 @@ export async function PUT(
     return NextResponse.json({ error: "A quote source needs its quote." }, { status: 422 });
   }
 
+  // Category and Format (lib/programOffering.ts). Checked only when the request
+  // carries any of the four offering fields (the editor always does); a field
+  // the request leaves out is taken from what is stored. Category is required,
+  // and Format is required for the three ways.
+  const touchesOffering = ["offeringCategory", "offeringFormat", "silentMeditation", "hostedByVolunteers"].some(
+    (k) => body[k] !== undefined
+  );
+  let offeringData: Record<string, unknown> = {};
+  if (touchesOffering) {
+    const offering = cleanOffering({
+      offeringCategory: body.offeringCategory !== undefined ? body.offeringCategory : existing.offeringCategory,
+      offeringFormat: body.offeringFormat !== undefined ? body.offeringFormat : existing.offeringFormat,
+      silentMeditation: body.silentMeditation !== undefined ? body.silentMeditation : existing.silentMeditation,
+      hostedByVolunteers: body.hostedByVolunteers !== undefined ? body.hostedByVolunteers : existing.hostedByVolunteers,
+    });
+    if (!offering.ok) {
+      return NextResponse.json({ error: offering.error }, { status: 422 });
+    }
+    offeringData = offering.value;
+  }
+
   // If slug is changing, check uniqueness
   if (body.slug && body.slug !== slug) {
     const conflict = await db.program.findUnique({ where: { slug: body.slug } });
@@ -125,6 +147,7 @@ export async function PUT(
   if (body.description !== undefined) data.description = body.description || undefined;
   if (body.pullQuote !== undefined) data.pullQuote = resolvedPullQuote || null;
   if (body.pullQuoteSource !== undefined) data.pullQuoteSource = resolvedPullQuoteSource || null;
+  Object.assign(data, offeringData);
   if (body.programNotes !== undefined) data.programNotes = body.programNotes || null;
   if (body.teacherFacilitators !== undefined) data.teacherFacilitators = body.teacherFacilitators;
   if (body.teacherLabel !== undefined) data.teacherLabel = sanitizeTeacherLabel(body.teacherLabel);
