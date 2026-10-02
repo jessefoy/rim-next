@@ -63,12 +63,12 @@ An Esther-Perel-style **floating cream/white rounded pill** nav was built, shipp
 
 ## The program detail page (`/programs/[slug]`)
 
-Session 162 refined this template around one use: help a visitor understand the offering, then see the relevant next step without turning the page into a dashboard. It also tightened the contract with Program Manager: every Program now requires a pull quote (client and API validation), and linked public teacher profiles can supply portrait cards.
+Session 162 refined this template around one use: help a visitor understand the offering, then see the relevant next step without turning the page into a dashboard. It also tightened the contract with Program Manager: every Program required a pull quote (client and API validation; **relaxed 2026-10-02: the quote is optional, see "The integration pass"**), and linked public teacher profiles can supply portrait cards.
 
 Top to bottom:
 
 1. **Blue hero** — `#31576d` over `programImage`, with a `::before` overlay. Contains: a category **eyebrow** (`.pg-hero__eyebrow` — quiet uppercase, white at 0.72, links to `/community-programs`) · title (`.pg-hero__title`, 46px serif, `text-wrap: balance`) · subtitle (`.pg-hero__tagline`, 20px/400, `text-wrap: balance`).
-2. **Quote card** straddling the hero/ground seam — white, `--card-shadow`, `.pg-quote__text` 22px/400 serif; overlaps up `-84px` (≈ centered for a two-line quote; longer quotes grow downward keeping a constant in-hero overlap).
+2. **Quote card** (optional since 2026-10-02) straddling the hero/ground seam — white, `--card-shadow`, `.pg-quote__text` 22px/400 serif; overlaps up `-84px` (≈ centered for a two-line quote; longer quotes grow downward keeping a constant in-hero overlap).
 3. **Description prose** — open on the ground (no box).
 4. **Notes**, when authored — a recede panel (`.pg-notes`, Deeper Pampas, no shadow). The heading belongs to the authored content; the template does not inject a redundant “Notes” label.
 5. **Gathering details** white card (`.pg-details-section`, `--card-shadow`) — each fact is one aligned icon/content row. Schedule + time share a row; location + directions share a row; dana is one row. A ruled action zone follows the facts so the next step is related but not mistaken for another fact.
@@ -376,7 +376,7 @@ One account, said the same way on every surface (Jesse, 2026-10-01): monthly dan
 
 **Teachers.** `/teachers/[slug]` renders `TeacherProfile.bio` as paragraphs, splitting on blank lines (it had been one `<p>`); the listing card shows the first 120 characters. The bio is plain text. Jesse's public bio and his member-profile bio (an HTML string, the editor's current storage form) were written to production on 2026-10-01 with his approval. About carries the short MBSR line ("through the Center for Mindfulness at the University of Massachusetts Medical School", "over 25 years of studying and practicing", "mindfulness-based mind-body medical practice since 2006"); the teacher bio carries the long one (the Center for Mindfulness in Medicine, Health Care, and Society, under Kabat-Zinn, Santorelli and Meleo-Meyer). "Our Teachers" is not in the menu until the profile has a photo.
 
-### The menu, restructured (2026-10-01, Jesse approved)
+### The menu, restructured (2026-10-01, Jesse approved; the current menu is under "The integration pass", 2026-10-02)
 
 Compared against Spirit Rock, SF Zen Center, Zen Center of Los Angeles, Insight Meditation Society, Insight Meditation Center, Insight Meditation Community of Washington, East Bay Meditation Center and Village Zendo, and against Nielsen Norman Group's menu guidance (four to six primary categories, plain words, each link once). Every peer has a top-level **About**; RIM's was buried under "Our Practice." Now: **New to RIM** (flat) · **Practice** (Why We Practice, Taking CARE) · **Programs** · **About** (About RIM, Our Roots, Diverse Together, Community Care Agreements) · **Get Involved** · **Members** (Become a Member, Sign in; My Home, Sign out) · the Donate pill. Our Roots sits in About beside the lineage-style items peers keep there; the agreements sit with values under About rather than only under Members. "Our Teachers" joins About once the teacher page is populated. The desktop bar's natural width rose from ~1038 to ~1098px, so the phone layout now takes over at **1120px** (was 1060), in the CSS and in `PublicNavSheet`'s `matchMedia`; measured, it fits at 1121 with a long signed-in name (8px to spare). Menu descriptions are provisional (Jesse's ear, tracker 7d).
 
@@ -485,7 +485,7 @@ The public site was reorganized so RIM's stated center is the first thing a visi
 - **Labels are named destinations** ("Your first visit," "This week's schedule," "Ways to give"), per the 2026-09-23 house rule (no imperatives on the page), on every page this pass touched. Untouched pages keep their older invitation labels until their own pass. "Come as you are" stays, as owned language.
 - **The two faces.** RIM's own pages say plainly that RIM is a dharma community rooted in Chan silent illumination. `/outreach` and the questions on `/new-to-rim` carry the Taking CARE face: a mindfulness-based program, secular in the Dalai Lama's sense, rooted in tradition, asking no belief.
 - **The CARE circle** (`components/CareCircle.tsx`) follows the handout artwork, not the 9/23 mock: Calm and Connect upper left, Aware and Attitude upper right, Recognize and Remember lower right, Embody and Engage lower left. It is one image to assistive technology. It appears on `/care` only; whether it belongs anywhere else is Jesse's call.
-- **Revision 2 (same evening).** New to RIM is the newcomer's front door, the common practice-center pattern: one "New here?" page, a flat link first in the bar, and the home hero's primary button. The Programs dropdown is two items (schedule, catalog). **The hamburger breakpoint moved from 940 to 1060px:** the bar measured 56px of slack at 941 before the ~110px New to RIM link, so its natural width is now ~1020. All four width queries (two in the nav block near the top, two in the s176 target-size block near the end) change together. Foundations has no page of its own until it exists as a Program; do not re-add `/foundations` as a static page.
+- **Revision 2 (same evening).** New to RIM is the newcomer's front door, the common practice-center pattern: one "New here?" page, a flat link first in the bar, and the home hero's primary button. The Programs dropdown is two items (schedule, catalog). **The hamburger breakpoint moved from 940 to 1060px:** the bar measured 56px of slack at 941 before the ~110px New to RIM link, so its natural width is now ~1020. All four width queries (two in the nav block near the top, two in the s176 target-size block near the end) change together. Foundations had no page of its own at this point; **superseded 2026-10-01: `/foundations` is a static page** (what Foundations is, standing in until it exists as a Program, with the programs page's one Foundations card linking to it).
 - **Presentation rulings, same night (Jesse).** Standalone text links ("… →") are buttons: a section's one action is the primary pill, a second action an outline button (`pp-btn--ghost`, or `pp-btn--onblue-ghost` in a hero), so one dominant action per section still holds. Door cards carry no arrow circle ("a little too busy"); the whole card stays the link and the title turns blue on hover. A grid of short text items on white gets borderless Pampas insets (`.pp-uses__item`), never bare type ("just text with no separation"); Light Pampas was tried and is too faint on white. Pages this pass did not touch still carry older text links (backlog).
 - **The distillation** (`.pp-distillation`): a few set-apart italic lines after a reading page's prose, as How We Write sanctions. `/why-we-practice` is the only use.
 
@@ -499,6 +499,54 @@ The public site was reorganized so RIM's stated center is the first thing a visi
 - **Dana is the third split** — the held lotus ("Lotus flower in hand", Olga Nayda, Unsplash License; 2400w source + 1600w/62KB WebP). An offered flower is the dana gesture; the many-hands photo stays the volunteer/KM/diversity hero only.
 - **Images:** splits serve 1600w WebP (buddga-lotus went 1.6MB → 74KB). **Sharpness ceiling:** Looking-Up-Pine-Trees was 534px (re-sourced from the Unsplash original 2026-09-28) and Community-Hands is 900px — both serve full-bleed heroes and need higher-res re-downloads; no processing adds pixels.
 - **Hero video prefers MP4** — flaky VP9 hardware decode produced intermittent "dancing blocks"; both transcodes verified clean frame-by-frame and byte-identical to the live Webflow copies. Baseline 720p-on-Retina softness remains until the original clip is rescued from Webflow's Assets panel.
+
+## The integration pass: the site as one whole (2026-10-01 and 2026-10-02)
+
+Jesse's rulings, 2026-10-02: publish it ("Since the site's not live yet"; launch is Monday, October 5, when rootedinmindfulness.org moves here, and until then `rim-next.vercel.app` sends `noindex`); his read-aloud continues on the published pages, and corrections come back through the vault drafts file (`08-promotion-site-drafts-integration-2026-10-01.md`, the words authority for the pages below).
+
+### The three ways, and the program chapter map
+
+Taking CARE is offered in **three ways: Foundations, Ongoing Practice, Immersion** (the middle way was "Learning & Practice" until Jesse's 2026-10-02 ruling: that name "doesn't suggest that it's ongoing"). Wherever the ways are described: "series" is "courses" and "practice days" is "days of mindfulness". The vocabulary for a program's format is drop-in, class, course, workshop, day of mindfulness, retreat.
+
+`lib/programChapters.ts` is the one map from program categories to the Programs & Events chapters, read by `/community-programs` (which chapter lists a program) and by the program page (whether it carries the shared block):
+
+| Chapter (anchor) | Categories (by slug) | Notes |
+|---|---|---|
+| Foundations (`#foundations`) | none yet | one static card to `/foundations`; Foundations is not a Program yet |
+| Ongoing Practice (`#ongoing-practice`) | `drop-ins`, then `silent-meditation` under the subheading "Silent meditation" | `alwaysShow`: stays on the page when empty, because Home's door links the anchor |
+| Immersion (`#immersion`) | `classes-courses-workshops`, `retreats` | empty today: the introduction and "Upcoming dates will be listed here." Each category's programs stay together, then `sortOrder` |
+| Community Groups (`#community-groups`) | `community-groups-events` | member-led; no shared block |
+| Events (`#events`) | `events` | no shared block |
+
+A visible category that no chapter names still renders under its own heading after these (a category added in Program Manager is never silently missing). Mapping by category slug, not display name, is deliberate. Known misfits: `community-service` has no chapter (empty today), and a day of mindfulness lives in `events`, not Immersion (a migration put it there). The chapter introductions are the brief's Part B3 words (Ongoing Practice's: "Drop-ins, silent meditation, and courses through the week, in person and online. The drop-ins are open any week, and they are the easiest way in.").
+
+**The shared program block** (`components/ProgramSharedBlock.tsx`) sits between "Gathering details" and "Facilitators" on every program in Ongoing Practice and Immersion (and Foundations when it becomes a Program), not on Community Groups or Events: Taking CARE is present in every gathering (link `/care`), and programs list a suggested contribution so no one is turned away (link `/donate#dana-at-rim`). It is a recede panel (`.pg-notes.pg-shared`), not a lifted card: the details card above already carries the lift.
+
+**The pull quote is optional** (2026-10-02). A program may be saved without a quote or its source; a source cannot stand without its quote (422). Three live programs have a quote and no source, which is allowed. A program with no quote renders `pg-hero--no-quote` and `pg-content--no-quote` (a hero sized to its words, content starting a quote card's margin below). The Meditation and Dharma Talk epigraph was removed this way (the Sharon Salzberg wording was never checked against its source).
+
+### The Handful of Leaves
+
+- **`/handful-of-leaves`** (public, in Practice): six sections with "On this page", words verbatim from the drafts file. "Walking it" says members find the introduction and the map in their member area, and "member area" links to sign-in (or, for a signed-in member, to the introduction) via `components/MemberAreaLink.tsx`.
+- **Two members-only reading pages** in the member area: `/account/handful-of-leaves` (the introduction) and `/account/handful-of-leaves/map` (Categories & Elements, Community Edition). They sit in the `(authenticated)` route group, so the layout's gate sends a signed-out visitor to sign-in. They render `content/handful-of-leaves/introduction.md` and `map.md` (`lib/handfulContent.ts`, `marked`), with the document's own first heading as the page title, the Obsidian wikilink in the introduction's first line (`[[handful-of-leaves-categories-elements-final]]`) rendered as a link to the map page (shown as the map's title), and a print stylesheet (`@media print` in the "A HANDFUL OF LEAVES" block: the member header and rail drop away, black on white at 11.5pt). `next.config.ts` carries `outputFileTracingIncludes` so the files ship with those routes.
+- **My Home** carries one card (`components/HandfulHomeCard.tsx`): "A Handful of Leaves", "The introduction to the teachings behind our practice, and the full map of them.", links "The introduction" and "The map".
+
+> **The derived-work rule (Jesse's vault law).** The vault is canonical: `Dharma Study/10 — Dharma Canon/Handful of Leaves/A Handful of Leaves — An Introduction.md` and `… — Categories & Elements (Community Edition).md`. The repo files in `content/handful-of-leaves/` are **derived works**: each is a verbatim copy of the vault body under derived-work frontmatter (`type: website-page`, `derives_from`, `sources_as_of: 2026-10-01`, `status: living`). **Never edit a word in the repo copy.** When the vault changes, re-derive: copy the new body under the same frontmatter, update `sources_as_of`, and diff the body against the vault file (byte-identical after the frontmatter). A derived copy edited as if it were a source caused the July 2026 36-versus-34 fork (vault `Working Agreements`). The map's list uses em-dashes structurally ("Sukhāya Hitāya"), and both documents are verbatim, so the no-em-dash rule for public prose does not reach them.
+
+### Metadata and crawling
+
+One title separator, " - ", on every page (including admin and member titles). Meta descriptions for the listing, This Week, Teachers, each program (its tagline plus " at Rooted in Mindfulness in Brookfield, Wisconsin."), and the December gathering. `metadataBase` is `https://rootedinmindfulness.org` (`lib/siteUrl.ts`) with a per-page canonical (`alternates.canonical: "./"`). The `rim-next.vercel.app` host sends `X-Robots-Tag: noindex, nofollow` (a host-conditional header in `vercel.json`; Vercel adds noindex to previews itself, but not to the production alias). `app/robots.ts` allows the public pages and closes `/account/`, `/admin/`, `/tools/`, `/api/`, `/session/`, `/update/`, `/login`, `/lessons/`, a program's `/register` and `/thank-you`, and `/style-guide`, and names the sitemap. `app/sitemap.ts` (built on request) lists the public static pages, the programs a visitor can find on Programs & Events, and public teacher profiles; it leaves out the public course catalog until real courses exist. The footer year is generated.
+
+### The menu now
+
+New to RIM · **Practice** (Why We Practice, Taking CARE, Our Roots, A Handful of Leaves) · **Programs** (Foundations, Programs & Events, This Week's Schedule) · About (About RIM, Diverse Together, Community Care Agreements; Our Roots moved to Practice, 2026-10-02) · Get Involved · Members · Donate.
+
+### Dated facts: sweep on November 1
+
+"First offered in November" / "begins in November" appears on **Home** (the Foundations card and the "Where to begin" paragraph), **New to RIM** (Where to begin), **Foundations** (the page and its metadata description), and the **Programs & Events** Foundations introduction. Also the Saturday Meditation and Dharma Talk line (Home, New to RIM, Foundations) if the program changes.
+
+### Left for later (words or facts owed by Jesse)
+
+New to RIM "What a gathering is like" and parking; Meditation and Dharma Talk's one sentence on the shape of a morning; Essential Dharma Study named on the Handful page if that is where it is taught; whether the Handful introduction's promised "companion guide to the sitting itself" exists; Foundations' dates, format, and whether it can promise that no one is turned away; the other weekly program texts (launch week). The programs page's Day of Mindfulness placement (Events, not Immersion) and a possible restructure into two independent program fields (way and format) are in the backlog.
 
 ## Known follow-ons (see `data/backlog.json`)
 

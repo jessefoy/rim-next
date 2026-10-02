@@ -1501,10 +1501,10 @@
     "title": "Launch metadata: sitemap, robots, canonical, share cards, and per-page descriptions",
     "description": "Measured 2026-10-01 on the live site: no sitemap.xml, robots.txt, canonical tag, Open Graph or Twitter card, and no metadataBase. /community-programs, /this-week, /teachers and /courses fall back to the generic site description; the Kalyana Mitta description carries an em-dash and a Pali word. Add: app/sitemap.ts and app/robots.ts (keep /courses and test data out until the Test Course is unpublished), metadataBase and canonical for rootedinmindfulness.org, an Open Graph image (the home hero), a description on each page, and a noindex for the rim-next.vercel.app host once the real domain is live.",
     "category": "Infrastructure",
-    "priority": "high",
+    "priority": "medium",
     "status": "open",
     "addedAt": "2026-10-01",
-    "notes": "Pairs with the Webflow redirect map (2026-08-07-003): 17 redirects exist against 317 old pages. October 5 launch."
+    "notes": "Pairs with the Webflow redirect map (2026-08-07-003): 17 redirects exist against 317 old pages. October 5 launch. | 2026-10-02 (integration follow-up): DONE: app/robots.ts, app/sitemap.ts, metadataBase and a per-page canonical for rootedinmindfulness.org (lib/siteUrl.ts), a noindex header for the rim-next.vercel.app host (vercel.json), descriptions for the listing, This Week, Teachers, Jesse Foy, each program and the December gathering. STILL OPEN: an Open Graph / Twitter share card (the home hero), the Kalyana Mitta description's em-dash and Pali word, and a description on the remaining pages."
   },
   {
     "id": "2026-10-01-002",
@@ -1565,5 +1565,55 @@
     "status": "open",
     "addedAt": "2026-10-01",
     "notes": "Peer research is in the session log for 2026-09-30 and 2026-10-01."
+  },
+  {
+    "id": "2026-10-02-001",
+    "title": "Programs: hold way and format as two independent fields (Jesse's idea, for launch week)",
+    "description": "Today one field does both jobs: ProgramCategory (one per program) carries the public chapter AND, through ProgramCategory.kind, the behavior (isOpenlyDroppable: the Join / 'Simply arrive' line, My Home Today, Zoom entry). Jesse wants two independent fields on Program: WAY (Foundations, Ongoing Practice, Immersion, or none for community groups and events) and FORMAT (drop-in, class, course, workshop, day of mindfulness, retreat). The F11 survey (session log 2026-10-02) lists every program, every place category decides behavior, and a migration outline: two nullable Program columns backfilled by a flag-guarded migrate.mjs block from category slug; isOpenlyDroppable reading format; the programs page, shared block, sitemap and KM groups page reading way; Program Manager gets two selects and the Visibility readout is updated; categories stay for ordering and hiding or retire. The dana minimum stays its own setting (danaMode, danaBaseAmount, danaFixedAmount) and is never inferred from format. Open questions: where Community Group, Event, Service and Private kinds live once format has only six values, and where the 'Silent meditation' subgroup lives.",
+    "category": "Programs",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-02",
+    "notes": "Read-only survey done 2026-10-02; nothing changed. Related: lib/programChapters.ts, lib/programKind.ts, RIM_Offering_Model.md."
+  },
+  {
+    "id": "2026-10-02-002",
+    "title": "Kalyana Mitta groups page finds its programs by the category NAME",
+    "description": "app/kalyana-mitta/community-groups-events/page.tsx queries programs with category: { name: 'Community Groups' }. Renaming that category in Program Manager silently empties the page. lib/programUtils.ts categoryDisplayName likewise hardcodes a rename of 'Drop-Ins: Open Practice and Learning'. Match by slug (as lib/programChapters.ts does) or, after the way/format restructure, by the new field.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-02",
+    "notes": "Found in the F11 survey."
+  },
+  {
+    "id": "2026-10-02-003",
+    "title": "The join-welcome email promises a series of welcome notes that no longer exists",
+    "description": "The database-held join-welcome template says 'Over the next little while, you'll also receive a short series of welcome notes' and 'Some run as series; some are one-offs'. enrollMemberInOnboardingSeries enrolls new members in courses flagged isOnboarding, and production has none (its only course is Test Course, isOnboarding false), so nothing is delivered. The Handful introduction and map are now in the member area (2026-10-02). Rewrite the template to say what actually happens (the Handful pages in My Home) and 'courses' for 'series', with Jesse's consent for the specific change (Email Template Gate: an explicit update, per-template log).",
+    "category": "Email & Notifications",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-02",
+    "notes": "Found in the A8a survey. Template slug join-welcome; also check welcome-back."
+  },
+  {
+    "id": "2026-10-02-004",
+    "title": "Lesson pages still label themselves 'Learning & Practice'",
+    "description": "app/lessons/[slug]/page.tsx uses 'Learning & Practice' as a label (line ~104) and as the fallback eyebrow (line ~218). The middle way of Taking CARE is now 'Ongoing Practice' (2026-10-02). These are the lesson reader's own label, not the three ways, so they were left; decide whether they should read differently.",
+    "category": "Courses & Library",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-02",
+    "notes": "Also left: 'A Teaching Series', 'Start series', 'Back to series' on course and lesson pages (the course product vocabulary)."
+  },
+  {
+    "id": "2026-10-02-005",
+    "title": "Handful member pages: a way between the two pages, and a print button",
+    "description": "The introduction links to the map in its first line; the map has no link back to the introduction, and printing is Cmd+P only. Both would need small words from Jesse (the vault documents are verbatim and not edited). Optional: 'On this page' for the 6,000-word introduction.",
+    "category": "Member Accounts",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-02",
+    "notes": "The pages are in app/account/(authenticated)/handful-of-leaves/."
   }
 ]

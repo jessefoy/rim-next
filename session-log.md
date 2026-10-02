@@ -1,3 +1,90 @@
+## 2026-10-02 — the site as one whole: the integration brief, its follow-up, the Handful in the member area; two production writes; the program-categorization survey (F11)
+
+On `main`, all live: `eb99547` (Commit 1), `c8cda60` (a follow-up fix), and the merge `1d46572` of `integration-2026-10-01`, which brought in four branch commits (`9be200b`, `2ffb220`, `030c1f6`, `a6c4540`). Words came from Jesse's vault briefs (`08-promotion-site-brief-integration-2026-10-01.md` and `…-followup-2026-10-02.md`, words in `08-promotion-site-drafts-integration-2026-10-01.md`), implemented verbatim. Commit 1 (mechanical fixes) shipped first; Commit 2 (the new copy) was built on the branch and held, then Jesse ruled it should be published ("Since the site's not live yet"; launch is Monday, October 5, `rim-next.vercel.app` carries `noindex` until then) and the follow-up brief merged it. His read-aloud continues on the published pages; corrections come back through the drafts file. Two independent reviewer passes (the first read Commits 1 and 2, after Commit 1 was already live; the second read the follow-up before the merge) found one real defect in live code (a non-public teacher's name leaked into the 404's title and description; fixed in `c8cda60`) and several cheap items, all fixed.
+
+### Built and live
+
+- **Commit 1:** descriptions for Programs & Events, This Week, Teachers, Jesse Foy, every program (tagline plus " at Rooted in Mindfulness in Brookfield, Wisconsin.") and the December gathering; one title separator " - " on all 27 page titles; a generated footer year; `metadataBase` and a per-page canonical for `https://rootedinmindfulness.org` (`lib/siteUrl.ts`); a host-conditional `X-Robots-Tag: noindex` for `rim-next.vercel.app` in `vercel.json` (the production alias had none; Vercel adds it to previews itself); "the Chinese school of Buddhism also known as Zen" in place of "meditation tradition"; the CARE circle's ring initials (s, o, i) as Quincy glyph outlines instead of `<text>` (text extraction had read "ios" after every word but Connect), pixel-compared; a teacher card's excerpt ends at a word; an archived program no longer leaks its name into a 404's title.
+- **New pages:** `/handful-of-leaves` (six sections, "On this page") and `/foundations` (static, standing in for a Foundations program; the first button jumps to the footer form, now `id="newsletter"`). **Our Roots** rewritten whole with section ids. The menu: Practice = Why We Practice, Taking CARE, Our Roots, A Handful of Leaves; Programs = Foundations first; Our Roots left About. `/what-we-practice` redirects to `/handful-of-leaves`.
+- **Programs & Events by the three ways** (`lib/programChapters.ts`, the one map): Foundations (one card), **Ongoing Practice** (drop-ins, then "Silent meditation"), Immersion, Community Groups, Events; a fallback chapter for any unmapped visible category; the **shared program block** on Ongoing Practice and Immersion programs. Jesse's 2026-10-02 rename: the middle way is **Ongoing Practice** (was "Learning & Practice"), "series" became "courses", "practice days" became "days of mindfulness".
+- **Small drafts and the engaged-practice lines** (A18 to A22, E1 to E7): Taking CARE, Home, About, New to RIM, Why We Practice, Our Roots; the vision reads "freer of what binds us" on About, the agreements and Join.
+- **Pull quote optional** in Program Manager (editor and both API routes): a source cannot stand without its quote (a quote without a source stays allowed, since three live programs have that). A quote-less program closes up its hero (`pg-hero--no-quote`, `pg-content--no-quote`).
+- **The Handful in the member area:** two members-only reading pages, `/account/handful-of-leaves` and `/map`, rendered from `content/handful-of-leaves/` (verbatim derived copies of two vault files; bodies byte-identical; the introduction's wikilink becomes a link to the map page), a print stylesheet, a My Home card; "Walking it" on the public Handful page says members find both in their member area, with "member area" linking to sign-in or, for a signed-in member, to the introduction. `next.config.ts` ships the files with those routes (`outputFileTracingIncludes`, confirmed in the build's trace).
+- **`robots.txt` and `sitemap.xml`** (the sitemap lists 20 static pages, 11 programs and 1 teacher, read from the database on request, with a static fallback if the database is unreachable); the home page became static (its doors are fixed anchors).
+
+### Production writes (two, each Jesse-authorized by name; one transaction, drift guard, snapshot, whole-table diff)
+
+1. **Test program archived** (A1): `programs.archivedAt` on `dummy-test-program` (null to `2026-10-02T15:36:38Z`). Diff over all 20 rows: only that field and `updatedAt`. The program had 2 REGISTERED registrations; archived programs 404 publicly and `/session/<slug>/enter` refuses them, so testing with it means unarchiving it in Program Manager.
+2. **Meditation and Dharma Talk text** (F3, `scripts/meditation-and-dharma-talk-2026-10-01.mjs --apply`, written and dry-run on 2026-10-02, deleted after it ran; git history `a6c4540`): `tagline` ("Guided meditation and a teaching, on Saturday mornings"), `description` (three paragraphs from Drafts section 4, the bracketed sentence left for Jesse), `pullQuote` and `pullQuoteSource` set to null (the Sharon Salzberg wording was never checked against its source). Drift guard held (`updatedAt` 2026-09-27T00:23:04.861Z); snapshot to the temp directory; whole-table diff: only those four fields and `updatedAt` on that row. The sentence-case tagline beside the other Title Case taglines is expected; the other weekly program texts follow in launch week.
+
+Everything else this session read production read-only: Jesse's bio (it carries the MBSR line exactly as he ruled), program texts, 29 email templates, the courses.
+
+### Findings worth keeping
+
+- **A8a, how members receive the Handful introduction: by no mechanism**, until now. No file, link or email carried it; `enrollMemberInOnboardingSeries` enrolls members in `isOnboarding` courses and production has none; the `join-welcome` email promises "a short series of welcome notes" that do not exist (backlog `2026-10-02-003`). The member-area pages are the delivery.
+- **The MBSR brief of 10-01 was applied and then flipped** by Jesse (About short, bio long; `569946e`); the vault brief's Part B still carries the old wording. The live About is correct.
+- **The old-build report in the audit could not be reproduced** (100+ cache-busted fetches, one build). Per-deployment and branch URLs sit behind Vercel SSO and send `noindex`.
+- **`process.env.POSTGRES_PRISMA_URL` in this shell is the `.env` placeholder**: a script that reads it fails safe, but must read `.env.production.local` or a named variable (the one-time script does).
+- **A `vercel` CLI command logged the CLI in on its own** (device flow); it was used read-only and logged out. Do not run `vercel` here.
+
+### Design decisions and why
+
+- **Publish to main once Jesse said so**, not after a separate read-aloud: the site is not live and carries `noindex`; his read-aloud corrects the published pages through the drafts file (the s170 rule, push-to-see).
+- **A source needs its quote; a quote needs no source.** The brief said "both empty, or both filled"; three live programs have a quote and no source, and a strict pair rule would have blocked saving them.
+- **The Handful documents are derived works, never edited** (the vault's own derived-work law; recorded in `RIM_Public_Pages.md`). The wikilink is rendered as the map's own title, which duplicates the parenthetical that follows it in the introduction's first line; that is vault wording, so any change is a vault edit.
+- **Members-only means the `(authenticated)` group**, not new gating code. No page-level check; the layout redirects signed-out visitors to `/login` (no return target, as for every member page).
+- **The shared block, the chapter map and the Foundations card read category slugs, not names or kinds.** Slugs are stable; names are editorial.
+- **The print stylesheet is scoped to the two documents:** `body:has(.hol-reading)` scopes every print rule, and a named `@page hol` keeps the 18mm margin to them.
+
+### F11, the read-only survey: how programs are categorized today (nothing changed)
+
+**Fields.** A program has one `categoryId` (`ProgramCategory`: `slug`, `name`, `sortOrder`, `kind`, `hideFromProgramsPage`). Delivery is `programFormat` (in-person, virtual, hybrid) plus `venue` (at-rim, other). There is **no program-level format or type field**: "drop-in, class, retreat, event" lives only as `ProgramCategory.kind` (DROP_IN, COMMUNITY_GROUP, CLASS, EVENT, RETREAT, SERVICE, PRIVATE; `lib/programKind.ts`). Registration is `registrationEnabled` / `registrationClosed` / capacity / deadline; dana is `danaMode` (none, voluntary, base_plus_dana, fixed) with `suggestedDana`, `danaBaseAmount` (the minimum in base-plus-dana), `danaFixedAmount`, and a display `danaText`.
+
+| Program (live unless noted) | Category [kind] | Delivery | Recurrence | Registration | Dana |
+|---|---|---|---|---|---|
+| awakening-the-heart | drop-ins [DROP_IN] | virtual | weekly Mon | off | voluntary, $15 suggested |
+| the-art-of-meditation | drop-ins | hybrid, at RIM | weekly Tue | off | voluntary, $15 |
+| essential-dharma-study | drop-ins | virtual | weekly Thu | **on** | voluntary |
+| meditation-and-dharma-talk | drop-ins | hybrid, at RIM | weekly Sat | off | voluntary, $15 |
+| our-hearts-were-made-for-this | drop-ins | virtual | weekly Sun | off | voluntary |
+| good-morning-silent-meditation | silent-meditation [DROP_IN] | virtual | weekly Mon to Fri | off | voluntary |
+| good-evening-silent-meditation | silent-meditation | virtual | weekly Sun to Thu | off | voluntary |
+| qigong-at-rim | community-groups-events [COMMUNITY_GROUP] | virtual | weekly Wed | on | voluntary |
+| recovery-dharma | community-groups-events | virtual | weekly Sun | off | voluntary |
+| nature-meditation-km-group | community-groups-events | in person | monthly | on | voluntary |
+| rim-s-end-of-year-community-gathering-fundraiser | events [EVENT] | in person, at RIM | one-time (Dec 5) | on | none |
+| private-teacher-meetings | private-sessions [PRIVATE], category hidden | virtual, at RIM | every 20 weeks Wed | on, cap 6 | fixed (no amount) |
+| bookmarks-and-breath (archived) | community-groups-events | in person, at RIM | one-time | on | voluntary |
+| day-of-mindfulness (archived) | events [EVENT] | in person | one-time | on, cap 50 | base_plus_dana: $40 base, $150 suggested |
+| the-heart-of-wisdom (archived) | retreats [RETREAT] | in person | one-time | on, closed, cap 30 | fixed, $0 |
+| awakening-to-the-beauty-of-this-moment (archived) | retreats | in person | one-time | on, cap 40 | fixed, $175 |
+| sangha-community-service-riverkeeper… (archived) | community-service [SERVICE] | in person | none | on | none |
+| sangha-community-service-ronald-mcdonald-house (archived) | community-service | in person | none | on | none |
+| dummy-test-program (archived) | drop-ins | hybrid | daily | on, cap 100 | voluntary, $20 |
+| sacred-clarity (archived) | **none** | virtual | one-time | on, cap 30 | voluntary, $125 |
+
+Categories: drop-ins (6 programs), silent-meditation (2), classes-courses-workshops (0, kind CLASS), community-groups-events (4), community-service (2), retreats (2), events (2), private-sessions (1, hidden). The minimum is held per program (`danaBaseAmount` or `danaFixedAmount`), never by category.
+
+**Where the category decides behavior.**
+- *Kind (`isOpenlyDroppable(kind, registrationEnabled)`):* the program page's "what to do next" line ("Simply arrive in person" or the Zoom entry vs "Registration isn't open yet"), My Home's Today (`dashboard/page.tsx`: who sees a session), and Zoom entry (`session/[slug]/enter/page.tsx`: whether a non-registrant is admitted). DROP_IN is always open, COMMUNITY_GROUP only without registration, everything else is a commitment; a null kind falls back to "no registration means drop-in".
+- *Slug (`lib/programChapters.ts`, new):* which Programs & Events chapter lists a program, and whether the program page carries the shared block (Ongoing Practice and Immersion).
+- *Visibility (`ProgramCategory.hideFromProgramsPage`):* the listing, the sitemap, and the Program Manager's "Where this program appears" readout (it reports "no category" and "hidden category"). This Week ignores category entirely (`hideFromWeeklySchedule`).
+- *Name:* the Kalyana Mitta groups page queries `category: { name: "Community Groups" }` (renaming it empties the page; backlog `2026-10-02-002`), and `categoryDisplayName` renames "Drop-Ins: Open Practice and Learning" to "Open Practice & Learning".
+- *Display only:* the program hero eyebrow shows the category name.
+- *Not by category:* registration, payments and Stripe (the server decides the charge from the program's own dana fields), emails (they use `programFormat` for "Virtual / In-person"), the Scheduler and hosting (hub-driven: `hostingHubSlug`, `ProgramCoverageHub`, `hostingRequired`), Program Manager's table filters (open, waitlist, attention, archived), reminders, calendar links.
+
+**What a two-field model would need (way: Foundations, Ongoing Practice, Immersion, or none; format: drop-in, class, course, workshop, day of mindfulness, retreat).** Two nullable `Program` columns. The format list must be settled against today's seven kinds, because Community Group, Event, Service and Private have no slot in it and today they drive behavior; so either format grows (or keeps those kinds) or `kind` stays on the category for them. `isOpenlyDroppable` would read format first (drop-in always open; class, course, workshop, day of mindfulness and retreat are commitments), then fall back to category kind. The "Silent meditation" subgroup has no home in either field. Readers to move: the programs page, the shared block, the sitemap, the KM page, the hero eyebrow, the Program Manager readout and editor (two selects). **Migration:** one flag-guarded `migrate.mjs` block backfilling from category slug (drop-ins and silent-meditation to Ongoing Practice with format drop-in; retreats to Immersion and retreat; events and community groups to no way; Essential Dharma Study, the one registration-on drop-in, probably a course; Day of Mindfulness to Immersion and day of mindfulness), idempotent and never overwriting a coordinator's later edit, with the categories kept for ordering and hiding. The dana minimum stays its own setting and is never inferred from format. Backlog `2026-10-02-001`.
+
+### What this work connects to
+
+Public pages (`pp-` grammar, `RIM_Public_Pages.md`); Programs (`RIM_ProgramEditor.md`, `RIM_Offering_Model.md`, `lib/programKind.ts`, the program page, the listing, This Week); the member area (`RIM_Member_Area.md`: the `(authenticated)` gate, My Home, the account shell and its print behavior); metadata and crawling (root layout, `vercel.json`, robots, sitemap); the vault (`Handful of Leaves/` canon, the drafts file, the derived-work law); email (finding only: `join-welcome`, no template touched); Program Manager API routes (`/api/programs-pg`). No hub, role, permission, editor-type or email-template change.
+
+### What comes next
+
+Jesse's read-aloud on the published pages and the open items listed in `UP_NEXT.md`; a signed-in look at the two member pages and the My Home card (checked here only signed-out and by a stand-in render); the October 5 launch work (Webflow redirects, forms audit, Stripe go-live, unpublish the Test Course, move the domain, re-check robots and the sitemap on the real domain); the November 1 sweep of "begins in November"; the weekly program texts in launch week; the way-and-format restructure if Jesse chooses it.
+
+---
+
 ## 2026-09-30 and 2026-10-01 — the public pages as one system: Revisions 8 to 12a, the menu, Diversity, the dana account, three production write transactions, the footer
 
 Fifteen commits on `main`, `25168f1` … `a70a8b4`, all live. Words came from Jesse's vault briefs (`08-promotion-site-brief-*.md`), implemented verbatim; each brief's Part B was diffed against the rendered text (identical every time), and a reviewer sub-agent read every non-trivial diff before it was pushed (it caught one real defect, a duplicated agreements link in the phone menu sheet, and its other notes shaped follow-ups: saved program texts that may repeat the new line, and a registration link that should open in a new tab). The flow each time: read the brief and the docs, a Connections Map with decisions and flags, Jesse's "ok", build, measure in the live shell (SSR of the page, headless Chrome over CDP, the `UP_NEXT.md` method), reviewer, push, verify the deploy.
