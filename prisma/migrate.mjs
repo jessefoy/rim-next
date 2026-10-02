@@ -5936,7 +5936,7 @@ Rooted In Mindfulness · Brookfield, WI`,
 
   // ───────────────────────────────────────────────────────────────────────
   // Offering Category and Format on Program (2026-10-02, the program-categories
-  // brief). COLUMNS ONLY: four additive, nullable-or-defaulted columns, so the
+  // brief). COLUMNS ONLY: five additive, nullable-or-defaulted columns, so the
   // old app keeps running during the build. The DATA (which program is which
   // category and format) is a separate, approved step
   // (scripts/program-categories-2026-10-02.mjs); until a row is filled,
@@ -5947,11 +5947,13 @@ Rooted In Mindfulness · Brookfield, WI`,
   `).catch(() => []);
 
   if (programOfferingFlag.length === 0) {
-    console.log("→ Program offering columns (offeringCategory, offeringFormat, silentMeditation, hostedByVolunteers)…");
+    console.log("→ Program offering columns (offeringCategory, offeringFormat, silentMeditation, hostedByVolunteers, openEntry)…");
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "offeringCategory" TEXT`);
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "offeringFormat" TEXT`);
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "silentMeditation" BOOLEAN NOT NULL DEFAULT false`);
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "hostedByVolunteers" BOOLEAN NOT NULL DEFAULT false`);
+    // Open entry: access without registering, its own setting (nullable until backfilled).
+    await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "openEntry" BOOLEAN`);
     await db.$executeRawUnsafe(
       `INSERT INTO "_migration_flags" (name) VALUES ('program_offering_columns_v1')`,
     );

@@ -10,7 +10,7 @@ import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
 import type { ProgramData } from "@/components/registrar/ProgramEditor";
 import { toCentralDatetime } from "@/lib/timezone";
-import { resolveOffering } from "@/lib/programOffering";
+import { hasOpenEntry, resolveOffering } from "@/lib/programOffering";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +129,8 @@ export default async function EditProgramToolPage({
     offeringFormat: offering.format ?? "",
     silentMeditation: offering.silentMeditation,
     hostedByVolunteers: offering.hostedByVolunteers,
+    // Its own setting; while still empty, the answer the old rule gave.
+    openEntry: hasOpenEntry(program),
     offeringFromLegacy: offering.source === "legacy-category",
     dateText: program.dateText ?? "",
     timeText: program.timeText ?? "",

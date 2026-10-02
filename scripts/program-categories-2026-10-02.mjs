@@ -1,24 +1,30 @@
 #!/usr/bin/env node
 /**
- * One-time migration: fill every program's Category, Format and the two
- * checkboxes (the program-categories brief, C6). PREPARED AND DRY-RUN ONLY:
- * it writes program data to production, which Jesse approves, row by row,
- * through the mapping table in program-categories-2026-10-02.mapping.mjs.
+ * One-time migration: fill every program's Category, Format, the two
+ * checkboxes, and Open entry (the program-categories brief, C6). It writes
+ * program data to production, which Jesse approved, row by row, through the
+ * mapping table in program-categories-2026-10-02.mapping.mjs (approved
+ * 2026-10-02, with his changes).
  *
- *   node scripts/program-categories-2026-10-02.mjs            dry run: the mapping table, the before-and-after droppable proof, the checks; writes nothing
- *   node scripts/program-categories-2026-10-02.mjs --apply    writes (after the approved table)
+ *   node scripts/program-categories-2026-10-02.mjs            dry run: the mapping table, the before-and-after access proof, the checks; writes nothing
+ *   node scripts/program-categories-2026-10-02.mjs --apply    writes
+ *
+ * Open entry is each program's CURRENT access: the answer the old rule gave
+ * (the old category's kind and the program's registration). Category and
+ * Format are labels and never decide access.
  *
  * What --apply does, in order:
  *   1. Stops unless every check below passes (every program is in the table and
- *      no other; each row valid; every droppable answer unchanged).
- *   2. Makes sure the four columns exist (idempotent; the build adds them too).
+ *      no other; each row valid; every Open entry value equals the access the
+ *      program has today; no program edited since the table was prepared).
+ *   2. Makes sure the five columns exist (idempotent; the build adds them too).
  *   3. Drift guard: stops if any program's updatedAt differs from the value the
  *      table was prepared against (someone edited it since).
  *   4. Saves a snapshot of the whole programs table to the temp directory.
  *   5. One transaction: one UPDATE per row, keyed by slug AND updatedAt, setting
- *      only the four offering columns. updatedAt is NOT bumped (raw SQL), so no
+ *      only the five new columns. updatedAt is NOT bumped (raw SQL), so no
  *      program looks edited, and nothing else on a row can change.
- *   6. Whole-table diff afterward: only the four columns may differ.
+ *   6. Whole-table diff afterward: only the five columns may differ.
  *
  * It never touches ProgramCategory or `categoryId` (the old category stays
  * until the migration is verified). Reads the production URL from
@@ -40,20 +46,14 @@ const CATEGORIES = ["FOUNDATIONS", "ONGOING_LEARNING_PRACTICE", "IMMERSION", "CO
 const WAYS = ["FOUNDATIONS", "ONGOING_LEARNING_PRACTICE", "IMMERSION"];
 const FORMATS = ["DROP_IN", "CLASS", "COURSE", "WORKSHOP", "DAY_OF_MINDFULNESS", "RETREAT"];
 
-/** The old rule: the category's kind and the program's registration. */
+/** The old rule: the category's kind and the program's registration. This is
+    the access every program has TODAY; Open entry is backfilled to it. */
 function droppableBefore(kind, registrationEnabled) {
   if (kind === "DROP_IN") return true;
   if (kind === "COMMUNITY_GROUP") return !registrationEnabled;
   if (kind == null) return !registrationEnabled;
   return false;
 }
-/** The new rule: Category and Format. */
-function droppableAfter(category, format, registrationEnabled) {
-  if (category === "COMMUNITY_GROUP") return !registrationEnabled;
-  if (category === "SPECIAL_EVENT" || category === "SERVICE" || category === "PRIVATE") return false;
-  return format === "DROP_IN";
-}
-
 function productionUrl() {
   if (process.env.PRODUCTION_DATABASE_URL) return process.env.PRODUCTION_DATABASE_URL;
   const text = fs.readFileSync(new URL("../.env.production.local", import.meta.url), "utf8");
@@ -78,7 +78,7 @@ try {
   let existing = new Map();
   let columnsPresent = true;
   try {
-    const raw = await db.$queryRawUnsafe(`SELECT slug, "offeringCategory", "offeringFormat", "silentMeditation", "hostedByVolunteers" FROM "programs"`);
+    const raw = await db.$queryRawUnsafe(`SELECT slug, "offeringCategory", "offeringFormat", "silentMeditation", "hostedByVolunteers", "openEntry" FROM "programs"`);
     existing = new Map(raw.map((r) => [r.slug, r]));
   } catch {
     columnsPresent = false;
@@ -88,25 +88,26 @@ try {
   const problems = [];
   const bySlug = new Map(MAPPING.map((m) => [m.slug, m]));
   console.log(`\nProgram categories migration: ${rows.length} programs in production, ${MAPPING.length} rows in the mapping table. Offering columns present: ${columnsPresent ? "yes" : "no (the build adds them; --apply would add them)"}.\n`);
-  console.log([pad("PROGRAM", 52), pad("CURRENT CATEGORY", 24), pad("PROPOSED CATEGORY", 27), pad("PROPOSED FORMAT", 19), "SILENT", "HOSTED", "DROPPABLE BEFORE>AFTER", "?"].join(" | "));
+  console.log([pad("PROGRAM", 52), pad("CURRENT CATEGORY", 24), pad("PROPOSED CATEGORY", 27), pad("FORMAT", 19), "SILENT", "HOSTED", "OPEN ENTRY", "ACCESS BEFORE>AFTER", "?"].join(" | "));
   let unchanged = 0;
   for (const r of rows) {
     const m = bySlug.get(r.slug);
     if (!m) { problems.push(`${r.slug}: not in the mapping table`); console.log(pad(r.slug, 52), "| NOT IN THE TABLE"); continue; }
     const before = droppableBefore(r.category?.kind ?? null, r.registrationEnabled);
-    const after = droppableAfter(m.category, m.format, r.registrationEnabled);
+    const after = m.openEntry === true; // the new rule: the program's own Open entry setting
     if (before === after) unchanged++;
-    else problems.push(`${r.slug}: droppable would change from ${before} to ${after}`);
+    else problems.push(`${r.slug}: access would change from ${before} to ${after} (Open entry must equal today's access)`);
     if (!CATEGORIES.includes(m.category)) problems.push(`${r.slug}: unknown category ${m.category}`);
     if (m.format != null && !FORMATS.includes(m.format)) problems.push(`${r.slug}: unknown format ${m.format}`);
     if (WAYS.includes(m.category) && !m.format) problems.push(`${r.slug}: a way needs a format`);
     if (m.silentMeditation && m.format !== "DROP_IN") problems.push(`${r.slug}: silent meditation needs Drop-in`);
+    if (typeof m.openEntry !== "boolean") problems.push(`${r.slug}: Open entry must be set`);
+    if (r.updatedAt.toISOString() !== m.expectedUpdatedAt) problems.push(`${r.slug}: edited since the table was prepared (updatedAt ${r.updatedAt.toISOString()}, table ${m.expectedUpdatedAt})`);
     if ((m.current ?? null) !== (r.category?.slug ?? null)) problems.push(`${r.slug}: table says current category ${m.current}, production has ${r.category?.slug ?? null}`);
-    console.log([pad(r.slug + (r.archivedAt ? " (archived)" : ""), 52), pad(r.category?.slug ?? "(none)", 24), pad(m.category, 27), pad(m.format ?? "(none)", 19), pad(yn(m.silentMeditation), 6), pad(yn(m.hostedByVolunteers), 6), `${yn(before)} > ${yn(after)}${before === after ? "" : "  MISMATCH"}`, m.unsure ? "?" : ""].join(" | "));
+    console.log([pad(r.slug + (r.archivedAt ? " (archived)" : ""), 52), pad(r.category?.slug ?? "(none)", 24), pad(m.category, 27), pad(m.format ?? "(none)", 19), pad(yn(m.silentMeditation), 6), pad(yn(m.hostedByVolunteers), 6), pad(yn(m.openEntry), 10), `${yn(before)} > ${yn(after)}${before === after ? "" : "  MISMATCH"}`, m.unsure ? "?" : ""].join(" | "));
   }
   for (const m of MAPPING) if (!rows.find((r) => r.slug === m.slug)) problems.push(`${m.slug}: in the table but not in production`);
-  console.log(`\nisOpenlyDroppable unchanged for ${unchanged} of ${rows.length} programs.`);
-  console.log(`Rows marked ? (questions for Jesse): ${MAPPING.filter((m) => m.unsure).map((m) => m.slug).join(", ")}`);
+  console.log(`\nAccess (open entry) unchanged for ${unchanged} of ${rows.length} programs.`);
   const filled = [...existing.values()].filter((e) => e.offeringCategory != null).length;
   console.log(`Rows already carrying an offering Category in production: ${filled}.`);
 
@@ -118,7 +119,7 @@ try {
   }
 
   if (!apply) {
-    console.log("\nDry run. Nothing was written. Pass --apply to write, after Jesse approves the table.");
+    console.log("\nDry run. Nothing was written. Pass --apply to write.");
   } else if (problems.length) {
     throw new Error("Not applying: resolve the problems above first.");
   } else {
@@ -127,6 +128,7 @@ try {
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "offeringFormat" TEXT`);
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "silentMeditation" BOOLEAN NOT NULL DEFAULT false`);
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "hostedByVolunteers" BOOLEAN NOT NULL DEFAULT false`);
+    await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "openEntry" BOOLEAN`);
     // 3. drift guard
     for (const r of rows) {
       const m = bySlug.get(r.slug);
@@ -144,15 +146,15 @@ try {
     await db.$transaction(async (tx) => {
       for (const m of MAPPING) {
         const n = await tx.$executeRawUnsafe(
-          `UPDATE "programs" SET "offeringCategory" = $1, "offeringFormat" = $2, "silentMeditation" = $3, "hostedByVolunteers" = $4 WHERE slug = $5 AND "updatedAt" = $6`,
-          m.category, m.format, m.silentMeditation, m.hostedByVolunteers, m.slug, stamps.get(m.slug)
+          `UPDATE "programs" SET "offeringCategory" = $1, "offeringFormat" = $2, "silentMeditation" = $3, "hostedByVolunteers" = $4, "openEntry" = $5 WHERE slug = $6 AND "updatedAt" = $7`,
+          m.category, m.format, m.silentMeditation, m.hostedByVolunteers, m.openEntry, m.slug, stamps.get(m.slug)
         );
         if (n !== 1) throw new Error(`${m.slug}: expected to update exactly one row, updated ${n}. Rolled back.`);
       }
     }, { timeout: 30000, maxWait: 10000 });
     // 6. whole-table diff
     const after = await db.$queryRawUnsafe(`SELECT * FROM "programs" ORDER BY slug`);
-    const OFFERING = new Set(["offeringCategory", "offeringFormat", "silentMeditation", "hostedByVolunteers"]);
+    const OFFERING = new Set(["offeringCategory", "offeringFormat", "silentMeditation", "hostedByVolunteers", "openEntry"]);
     const stray = [];
     let offeringChanges = 0;
     for (const a of after) {

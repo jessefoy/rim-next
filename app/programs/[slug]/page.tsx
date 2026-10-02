@@ -10,7 +10,7 @@ import {
   categoryAnchor,
   categorySectionTitle,
   formatLabel,
-  isProgramOpenlyDroppable,
+  hasOpenEntry,
   resolveOffering,
   showsSharedProgramBlock,
 } from "@/lib/programOffering";
@@ -72,14 +72,12 @@ export default async function ProgramDetailPage({
   if (!program || program.archivedAt) notFound();
 
   const useBuiltInForm = !!program.registrationEnabled;
-  // When registration is OFF, the offering's KIND (session 137) decides what
-  // "no registration" means: a drop-in / open community group is openly
-  // droppable ("just come"), while a class / event / retreat is a commitment
-  // whose registration simply isn't open yet — never "just show up."
-  // The offering's own Category and Format (or, while they are empty, the old
-  // category's), and the droppable rule that now reads them.
+  // When registration is OFF, the program's Open entry setting decides what
+  // "no registration" means: with open entry it is "just come"; without it,
+  // registration simply isn't open yet, never "just show up." Category and
+  // Format are labels and take no part in it.
   const offering = resolveOffering(program);
-  const droppable = isProgramOpenlyDroppable(program);
+  const droppable = hasOpenEntry(program);
   const registrationClosed = !!(
     program.registrationClosed ||
     (program.registrationDeadline && new Date(program.registrationDeadline) < new Date())
@@ -338,8 +336,7 @@ export default async function ProgramDetailPage({
                     </Link>
                   )
                 ) : droppable ? (
-                  /* Openly droppable (drop-in / open community group) — how to join,
-                     format-aware. */
+                  /* Open entry — how to join, delivery-aware. */
                   program.programFormat === "virtual" ? (
                     session?.user ? (
                       <Link href="/account/dashboard" className="pg-detail-cta__link">

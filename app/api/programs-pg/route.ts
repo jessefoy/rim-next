@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
       pullQuote: pullQuote || null,
       pullQuoteSource: pullQuoteSource || null,
       ...offering.value,
+      // Open entry is its own setting, off unless the editor turns it on.
+      openEntry: body.openEntry === true,
       programNotes: body.programNotes || null,
       teacherFacilitators: body.teacherFacilitators ?? [],
       teacherLabel: sanitizeTeacherLabel(body.teacherLabel),

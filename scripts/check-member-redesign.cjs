@@ -197,18 +197,20 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'registration-required offering hidden from nonregistrant');
   registrations=[{id:'r1',programSlug:'morning',programTitle:'Morning practice',donationStatus:'WAIVED',program:{...programs[0]}}];
   html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'registered participant retains entry');
-  // Migrated rows (program-categories brief): Category and Format decide, whatever the old category says.
+  // Open entry (program-categories brief): access is the program's own setting. Category and Format are labels and never decide it.
   registrations=[];
-  programs[0].offeringCategory='ONGOING_LEARNING_PRACTICE';programs[0].offeringFormat='DROP_IN';
-  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'migrated Drop-in is open to a non-registrant, even with registration on (as its old kind was)');
-  programs[0].offeringFormat='COURSE';
-  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'migrated Course is not open to a non-registrant');
-  programs[0].offeringCategory='COMMUNITY_GROUP';programs[0].offeringFormat=null;programs[0].registrationEnabled=false;
-  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'migrated Community Group with registration off stays open');
-  programs[0].registrationEnabled=true;
-  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'migrated Community Group with registration on is a commitment');
-  programs[0].offeringCategory='SPECIAL_EVENT';programs[0].registrationEnabled=false;programs[0].offeringFormat='DROP_IN';
-  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'a Special Event is never open by format');
+  programs[0].offeringCategory='IMMERSION';programs[0].offeringFormat='COURSE';programs[0].openEntry=true;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'Open entry on admits a non-registrant, whatever the Category and Format');
+  programs[0].offeringCategory='ONGOING_LEARNING_PRACTICE';programs[0].offeringFormat='DROP_IN';programs[0].openEntry=false;programs[0].registrationEnabled=false;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'A Drop-in with Open entry off is not open to a non-registrant');
+  programs[0].offeringCategory='COMMUNITY_GROUP';programs[0].offeringFormat=null;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'A Community Group with registration off is not open unless Open entry is on');
+  programs[0].openEntry=true;programs[0].registrationEnabled=true;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'Open entry and registration together: still open');
+  programs[0].offeringCategory='SPECIAL_EVENT';
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'Open entry is available to any Category, a Special Event included');
+  programs[0].openEntry=null;programs[0].category.kind='CLASS';
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'Open entry still empty: the old category kind decides, as before');
   programs=[];registrations=[];
   html=await dashboardHtml();check(html.includes('There are no more sessions today.'),true,'empty day has clear state');
   html=await dashboardHtml({view:'upcoming'});check(html.includes('Your upcoming programs'),true,'separate upcoming view remains reachable');

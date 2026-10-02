@@ -304,6 +304,14 @@ model Program {
   offeringFormat     String?   // DROP_IN | CLASS | COURSE | WORKSHOP | DAY_OF_MINDFULNESS | RETREAT. Required for the three ways; optional otherwise.
   silentMeditation   Boolean   @default(false) // a silent-sitting drop-in: grouped under "Silent meditation" within Ongoing Learning & Practice
   hostedByVolunteers Boolean   @default(false) // cards and pages say "Hosted by volunteers"
+  // ── Open entry (2026-10-02, Jesse: "Format must not decide access") ──
+  // The one setting for access without registering: anyone signed in may join,
+  // in person or on Zoom, with no registration. Independent of registration
+  // (a program may have both) and of Category and Format, which are labels.
+  // Drives the "Simply arrive" line, My Home's Today, Zoom entry, and This
+  // Week's Drop-in mark. Nullable until the migration backfills every row to
+  // its old droppable answer; null falls back to that old rule.
+  openEntry          Boolean?
 
   // ── Relations ──────────────────────────────────────────
   registrations      Registration[]

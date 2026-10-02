@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
-import { isProgramOpenlyDroppable } from "@/lib/programOffering";
+import { hasOpenEntry } from "@/lib/programOffering";
 import { getHubCoverageCopy } from "@/lib/programHub";
 import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import AccountLayout from "@/components/AccountLayout";
@@ -91,12 +91,11 @@ export default async function DashboardPage({ searchParams }: {
           recurrenceFreq: true, recurrenceInterval: true,
           recurrenceDays: true, recurrenceCount: true,
           programFormat: true, earlyArrivalMessage: true, specialAnnouncement: true,
-          // The offering (Category and Format, or the old category's kind while
-          // those are empty) + registration drive Today placement: only an
-          // openly-droppable offering shows a public Join to non-registrants.
+          // Open entry drives Today placement: only a program with open entry
+          // shows a public Join to non-registrants. (registrationEnabled and
+          // the old category are read only while openEntry is still empty.)
           registrationEnabled: true,
-          offeringCategory: true,
-          offeringFormat: true,
+          openEntry: true,
           category: { select: { slug: true, kind: true } },
         },
         orderBy: { sortOrder: "asc" },
@@ -185,14 +184,13 @@ export default async function DashboardPage({ searchParams }: {
     ).map((r) => r.programSlug),
   );
 
-  // What belongs in "Today": openly-droppable offerings (drop-ins / open
-  // community groups) for everyone, PLUS anything the viewer is registered for
+  // What belongs in "Today": programs with open entry for everyone, PLUS anything the viewer is registered for
   // or hosting/teaching (ADMIN sees all as a safety override). A
   // registration-required class/event/retreat never offers a public Join to a
   // non-registrant — it surfaces in "Coming up for you" instead.
   const visibleTodayRaw = todaySessionsRaw.filter(
     (p) =>
-      isProgramOpenlyDroppable(p) ||
+      hasOpenEntry(p) ||
       todayRegSlugs.has(p.slug) ||
       isAdmin ||
       hostedSlugsToday.has(p.slug) ||

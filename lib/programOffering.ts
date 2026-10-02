@@ -21,24 +21,26 @@
  * Storage is a stable string CODE; the human LABEL lives here in code, so a
  * rename never touches the database (the same rule as lib/programKind.ts).
  *
- * WHAT FORMAT DECIDES: display only (the label on cards and pages, the drop-in
- * mark on This Week, and the "Simply arrive" line where registration is off).
- * WHAT IT NEVER CHANGES: a program's registration setting, the suggested
- * contribution, or the dana minimum (those are the program's own settings,
- * set by hand). The one rule that reads Format beyond display is
- * `isProgramOpenlyDroppable` below, which replaces the category `kind` rule
- * and gives the identical answer for every program that existed when the
- * fields were introduced.
+ * WHAT CATEGORY AND FORMAT DECIDE: labels and grouping only (the sections of
+ * Programs & Events, the label on cards and pages, the breadcrumb, the shared
+ * block). THEY NEVER DECIDE ACCESS. Who may join without registering is its own
+ * per-program setting, Open entry (`Program.openEntry`, read by `hasOpenEntry`
+ * below); they also never change a program's registration setting, the
+ * suggested contribution, or the dana minimum (settings, set by hand).
+ * The "Simply arrive" line, My Home's Today, Zoom entry and This Week's
+ * Drop-in mark all follow Open entry.
  *
  * TRANSITION: until a program's own fields are filled, `resolveOffering`
  * derives them from the old `categoryId` (the slug map below, which follows
- * the old Programs page: classes-courses-workshops sat under Immersion), so
- * the site reads the same whichever order the code and the data arrive in,
- * for every old category that exists (a slug the map does not know resolves
- * to no Category; the editor can no longer assign an old category, and the
- * migration fills every program). Once the migration is verified, that
- * fallback (LEGACY_BY_CATEGORY_SLUG and the `category` branch of
- * `resolveOffering`) is the only thing left to delete.
+ * the old Programs page: classes-courses-workshops sat under Immersion), and
+ * `hasOpenEntry` derives Open entry from the old category's kind, so the site
+ * reads the same whichever order the code and the data arrive in, for every
+ * old category that exists (a slug the map does not know resolves to no
+ * Category; the editor can no longer assign an old category, and the
+ * migration fills every program). Once the migration is verified, those
+ * fallbacks (LEGACY_BY_CATEGORY_SLUG, the `category` branch of
+ * `resolveOffering`, and the `openEntry == null` branch of `hasOpenEntry`)
+ * are the only things left to delete.
  */
 
 import { isOpenlyDroppable } from "@/lib/programKind";
@@ -235,6 +237,8 @@ export type OfferingProgramLike = {
   silentMeditation?: boolean | null;
   hostedByVolunteers?: boolean | null;
   registrationEnabled?: boolean;
+  /** Open entry: its own setting. Null until the migration has filled it. */
+  openEntry?: boolean | null;
   /** The OLD category, while it still exists. */
   category?: { slug?: string | null; kind?: string | null } | null;
 };
@@ -265,38 +269,22 @@ export function resolveOffering(p: OfferingProgramLike): Offering {
   return { category: null, format: null, silentMeditation: false, hostedByVolunteers: false, source: "none" };
 }
 
-// ── The droppable rule ───────────────────────────────────────────────────────
+// ── Open entry ───────────────────────────────────────────────────────────────
 
 /**
- * Is this offering openly droppable: shown on My Home's Today with a public
- * Join for everyone, admitted at the Zoom door without registering, and shown
- * the "Simply arrive" line where registration is off?
+ * Does this program have open entry: shown on My Home's Today with a Join for
+ * everyone, admitted at the Zoom door without registering, shown the "Simply
+ * arrive" line (where registration is off), and marked Drop-in on This Week?
  *
- * Replaces `isOpenlyDroppable(category.kind, registrationEnabled)`. For every
- * program that existed when the fields were introduced it gives the identical
- * answer (proved in the migration's before-and-after table):
- *
- *   Category Community Group  ->  open only when registration is off (an open
- *                                 circle like Recovery Dharma; a registered one
- *                                 like Qigong is a commitment)
- *   Category Special Event, Service, Private  ->  never (a commitment)
- *   Format Drop-in            ->  always open (as the old DROP_IN kind was)
- *   any other Format          ->  a commitment
- *
- * A program with nothing filled and no old category keeps the old fallback
- * ("no registration means drop-in"). A program not yet migrated is decided by
- * its old category kind, exactly as before.
+ * It is the program's own setting. Category and Format are labels and never
+ * enter into it. The migration backfilled every program to the answer the old
+ * rule (`isOpenlyDroppable(category.kind, registrationEnabled)`) gave, so no
+ * program's access changed. A program whose setting is still empty (null) is
+ * decided by that old rule, exactly as before.
  */
-export function isProgramOpenlyDroppable(p: OfferingProgramLike): boolean {
-  const registrationEnabled = !!p.registrationEnabled;
-  if (isOfferingCategory(p.offeringCategory)) {
-    if (p.offeringCategory === "COMMUNITY_GROUP") return !registrationEnabled;
-    if (p.offeringCategory === "SPECIAL_EVENT" || p.offeringCategory === "SERVICE" || p.offeringCategory === "PRIVATE") {
-      return false;
-    }
-    return p.offeringFormat === "DROP_IN";
-  }
-  return isOpenlyDroppable(p.category?.kind ?? null, registrationEnabled);
+export function hasOpenEntry(p: OfferingProgramLike): boolean {
+  if (typeof p.openEntry === "boolean") return p.openEntry;
+  return isOpenlyDroppable(p.category?.kind ?? null, !!p.registrationEnabled);
 }
 
 // ── Validation (editor and API) ──────────────────────────────────────────────

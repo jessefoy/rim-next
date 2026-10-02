@@ -153,6 +153,14 @@ export async function PUT(
   if (body.pullQuote !== undefined) data.pullQuote = resolvedPullQuote || null;
   if (body.pullQuoteSource !== undefined) data.pullQuoteSource = resolvedPullQuoteSource || null;
   Object.assign(data, offeringData);
+  // Open entry: its own setting (access without registering). Category and
+  // Format never set it. A request that leaves it out leaves it as stored.
+  if (body.openEntry !== undefined) {
+    if (typeof body.openEntry !== "boolean") {
+      return NextResponse.json({ error: "Open entry must be on or off." }, { status: 422 });
+    }
+    data.openEntry = body.openEntry;
+  }
   if (body.programNotes !== undefined) data.programNotes = body.programNotes || null;
   if (body.teacherFacilitators !== undefined) data.teacherFacilitators = body.teacherFacilitators;
   if (body.teacherLabel !== undefined) data.teacherLabel = sanitizeTeacherLabel(body.teacherLabel);

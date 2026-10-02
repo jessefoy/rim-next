@@ -20,7 +20,6 @@ import {
   categorySectionTitle,
   formatRequiredFor,
   isOfferingCategory,
-  isProgramOpenlyDroppable,
 } from "@/lib/programOffering";
 import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
 
@@ -80,6 +79,8 @@ export interface ProgramData {
   offeringFormat: string;
   silentMeditation: boolean;
   hostedByVolunteers: boolean;
+  /** Open entry: its own setting (anyone signed in may join without registering). Filled from the old rule while it is still empty. */
+  openEntry: boolean;
   /** True when the three values above were filled in from the old category rather than saved on the program. */
   offeringFromLegacy?: boolean;
   dateText: string;
@@ -613,6 +614,7 @@ export default function ProgramEditor({
   const [offeringFormat, setOfferingFormat] = useState(initialData?.offeringFormat ?? "");
   const [silentMeditation, setSilentMeditation] = useState(initialData?.silentMeditation ?? false);
   const [hostedByVolunteers, setHostedByVolunteers] = useState(initialData?.hostedByVolunteers ?? false);
+  const [openEntry, setOpenEntry] = useState(initialData?.openEntry ?? false);
   const [dateText, setDateText] = useState(initialData?.dateText ?? "");
   const [timeText, setTimeText] = useState(initialData?.timeText ?? "");
 
@@ -903,6 +905,7 @@ export default function ProgramEditor({
         offeringFormat,
         silentMeditation,
         hostedByVolunteers,
+        openEntry,
         dateText,
         timeText,
         programFormat,
@@ -1010,17 +1013,12 @@ export default function ProgramEditor({
 
   // ── "How this appears to visitors" ───────────────────────────────────────
   // Mirror the public program page's registration CTA so the volunteer sees the
-  // consequence of these toggles at edit time (kind + format + registration
-  // state). Reflects the session-137 two-axis model — see RIM_Offering_Model.md.
+  // consequence of these toggles at edit time (registration and Open entry).
+  // Category and Format are labels and never change access.
   const selectedCategory = categories.find((c) => c.id === categoryId);
-  // The droppable rule reads the offering's Category and Format (not the old
-  // category's kind), so what the volunteer sees here is what visitors get.
-  const droppableNow = isProgramOpenlyDroppable({
-    offeringCategory,
-    offeringFormat,
-    registrationEnabled,
-    category: selectedCategory ? { slug: selectedCategory.slug, kind: selectedCategory.kind } : null,
-  });
+  // Open entry is its own setting, so what the volunteer sees here is what
+  // visitors get.
+  const droppableNow = openEntry;
   // Memoized so it recomputes only when its inputs change, not on every
   // keystroke elsewhere in the editor.
   const appearanceText = useMemo(() => {
@@ -1034,7 +1032,7 @@ export default function ProgramEditor({
         ? "Registration is closed — visitors see a “Registration is closed” notice instead of the form."
         : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
       : isDroppable
-        ? "Drop-in — visitors see how to join (in person and/or online). No registration needed."
+        ? "Open entry: visitors see how to join (in person and/or online). No registration needed."
         : "Registration isn’t open yet — visitors are told that, with no sign-up button. Turn on “Registration enabled” below when you’re ready to take sign-ups.";
   }, [droppableNow, registrationDeadline, registrationClosed, registrationEnabled]);
 
@@ -1063,7 +1061,7 @@ export default function ProgramEditor({
   // My Home (app/account/(authenticated)/dashboard/page.tsx): online programs
   // appear in Today on the days they meet, unless archived or hidden from the
   // member home (until an optional auto-show date). Who sees them follows the
-  // offering kind: open drop-ins show to everyone; registration-required ones
+  // Open entry setting: programs with open entry show to everyone; the others
   // show to registrants, hosts and teachers. In-person programs appear only for
   // their registrants. Waitlisted members don't get a Join.
   const homeHiddenUntilLater = useMemo(() => {
@@ -2012,11 +2010,18 @@ export default function ProgramEditor({
           <div className="pe-card__section">
             <div className="pe-form">
 
-            {/* How this appears to visitors — reflects Category + Format + registration
-                state so the volunteer sees the consequence of these toggles. */}
+            {/* How this appears to visitors — reflects registration + Open entry
+                so the volunteer sees the consequence of these toggles. Category
+                and Format are shown as labels; they never change access. */}
             <div className="pe-readout">
               <p className="pe-readout__title">How this appears to visitors</p>
               <p className="pe-readout__row">{appearanceText}</p>
+              <p className="pe-readout__row">
+                <span className="pe-readout__state">Open entry: {openEntry ? "on" : "off"}.</span>{" "}
+                {openEntry
+                  ? "Anyone signed in may join, in person or on Zoom, without registering. It appears on My Home\u2019s Today for everyone and carries the Drop-in mark on This Week."
+                  : "Joining is for registrants, hosts, and teachers. It does not appear on My Home\u2019s Today for everyone, and carries no Drop-in mark."}
+              </p>
               {isOfferingCategory(offeringCategory) && (
                 <p className="pe-readout__row pe-readout__row--meta">
                   Category: {categorySectionTitle(offeringCategory)}
@@ -2034,7 +2039,7 @@ export default function ProgramEditor({
                 />
                 <span className="pe-checkbox__label">Registration enabled</span>
               </label>
-              <p className="pe-field__help">When checked, visitors get a registration form. When unchecked, the page reflects the offering&rsquo;s kind — a drop-in shows how to join; a class, event, or retreat shows &ldquo;Registration isn&rsquo;t open yet&rdquo; (see above).</p>
+              <p className="pe-field__help">When checked, visitors get a registration form. When unchecked, the page shows how to join if Open entry is on, and otherwise &ldquo;Registration isn&rsquo;t open yet&rdquo; (see above).</p>
             </div>
 
             <div className="pe-visibility-option">
@@ -2047,6 +2052,18 @@ export default function ProgramEditor({
                 <span className="pe-checkbox__label">Registration closed</span>
               </label>
               <p className="pe-field__help">Manually closes registration. The page shows a &lsquo;Registration is closed&rsquo; notice instead of the form.</p>
+            </div>
+
+            <div className="pe-visibility-option">
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={openEntry}
+                  onChange={(e) => setOpenEntry(e.target.checked)}
+                />
+                <span className="pe-checkbox__label">Open entry</span>
+              </label>
+              <p className="pe-field__help">Anyone signed in may join, in person or on Zoom, without registering. It appears on My Home&rsquo;s Today for everyone and carries the Drop-in mark on This Week. A program can have registration and open entry together. This is the only setting that decides access: Category and Format are labels.</p>
             </div>
 
             <hr className="pe-section-divider" />
