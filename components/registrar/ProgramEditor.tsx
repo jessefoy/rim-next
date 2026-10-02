@@ -1021,6 +1021,14 @@ export default function ProgramEditor({
   const droppableNow = openEntry;
   // Memoized so it recomputes only when its inputs change, not on every
   // keystroke elsewhere in the editor.
+  // What Open entry means for THIS program's delivery (matches the Visibility tab).
+  const openEntryText = openEntry
+    ? programFormat === "in-person"
+      ? "Anyone may simply arrive in person, without registering. It carries the Drop-in mark on This Week."
+      : programFormat === "hybrid"
+        ? "Anyone may simply arrive in person, and anyone signed in may join on Zoom, without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week."
+        : "Anyone signed in may join on Zoom without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week."
+    : "People join by registering. Hosts and teachers always have access. It carries no Drop-in mark.";
   const appearanceText = useMemo(() => {
     const deadlinePast = registrationDeadline
       ? new Date(registrationDeadline) < new Date()
@@ -1964,6 +1972,12 @@ export default function ProgramEditor({
               </select>
             </label>
 
+            {offeringFormat === "DROP_IN" && !openEntry && (
+              <div className="pe-field">
+                <span className="pe-field__help">Format is a label. For people to join this without registering, turn on Open entry on the Registration tab.</span>
+              </div>
+            )}
+
             {offeringFormat === "DROP_IN" && (
               <div className="pe-field">
                 <label className="pe-checkbox">
@@ -2018,9 +2032,7 @@ export default function ProgramEditor({
               <p className="pe-readout__row">{appearanceText}</p>
               <p className="pe-readout__row">
                 <span className="pe-readout__state">Open entry: {openEntry ? "on" : "off"}.</span>{" "}
-                {openEntry
-                  ? "Anyone signed in may join, in person or on Zoom, without registering. It appears on My Home\u2019s Today for everyone and carries the Drop-in mark on This Week."
-                  : "Joining is for registrants, hosts, and teachers. It does not appear on My Home\u2019s Today for everyone, and carries no Drop-in mark."}
+                {openEntryText}
               </p>
               {isOfferingCategory(offeringCategory) && (
                 <p className="pe-readout__row pe-readout__row--meta">
@@ -2063,7 +2075,7 @@ export default function ProgramEditor({
                 />
                 <span className="pe-checkbox__label">Open entry</span>
               </label>
-              <p className="pe-field__help">Anyone signed in may join, in person or on Zoom, without registering. It appears on My Home&rsquo;s Today for everyone and carries the Drop-in mark on This Week. A program can have registration and open entry together. This is the only setting that decides access: Category and Format are labels.</p>
+              <p className="pe-field__help">Anyone signed in may join without registering: simply arrive for an in-person program, or join on Zoom for an online one. Online programs with open entry also appear on My Home&rsquo;s Today for everyone, and every program with open entry carries the Drop-in mark on This Week. A program can have registration and open entry together. This is the only setting that decides access: Category and Format are labels.</p>
             </div>
 
             <hr className="pe-section-divider" />

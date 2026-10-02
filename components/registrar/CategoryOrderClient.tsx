@@ -160,12 +160,13 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
     <div className="catord">
       <h1 className="catord__title">Program Categories</h1>
       <p className="catord__desc">
-        Each category is a section heading on the public Programs &amp; Events page, and carries a{" "}
-        <strong>kind</strong> — what the offerings in it <em>are</em> (a drop-in, a class, a
-        retreat&hellip;). The kind decides where a program shows up: the community schedule anyone
-        can join, vs. a member&rsquo;s &ldquo;Coming up for you&rdquo; after they register. The name
-        is just the heading; the kind is the behavior. Rename, set the kind, reorder, add, or remove
-        below — changes save as you go.
+        These are the <em>old</em> categories, kept until the move to Category and Format is
+        verified. They no longer set a program&rsquo;s section on the public Programs &amp; Events
+        page: a program&rsquo;s <strong>Category</strong> and <strong>Format</strong> are set in the
+        Program Manager, and who may join without registering is its <strong>Open entry</strong>{" "}
+        setting on the Registration tab. A category&rsquo;s <strong>kind</strong> now decides access
+        only for a program whose Open entry has never been set; hiding a category still hides its
+        programs from the public page. Changes save as you go.
       </p>
 
       <div className="catord__list">

@@ -17068,7 +17068,7 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 .pe-visibility-option + .pe-visibility-option { margin-top: 0; }
 .pe-checkbox__label { font-size: var(--text-small); font-weight: 600; color: var(--rim-text); }
 .pe-visibility-option .pe-field__help { margin: 0; }
-.pe-visibility-option .pe-checkbox { align-items: flex-start; gap: 10px; }
+.pe-visibility-option .pe-checkbox { align-items: center; gap: 10px; min-height: 44px; }
 
 /* ── Derived readouts: "Where this program appears" (Visibility) and
       "How this appears to visitors" (Registration). Read-only statements of

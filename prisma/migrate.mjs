@@ -5952,8 +5952,6 @@ Rooted In Mindfulness · Brookfield, WI`,
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "offeringFormat" TEXT`);
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "silentMeditation" BOOLEAN NOT NULL DEFAULT false`);
     await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "hostedByVolunteers" BOOLEAN NOT NULL DEFAULT false`);
-    // Open entry: access without registering, its own setting (nullable until backfilled).
-    await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "openEntry" BOOLEAN`);
     await db.$executeRawUnsafe(
       `INSERT INTO "_migration_flags" (name) VALUES ('program_offering_columns_v1')`,
     );
@@ -5961,6 +5959,11 @@ Rooted In Mindfulness · Brookfield, WI`,
   } else {
     console.log("  ⏭ program_offering_columns_v1 already applied.");
   }
+  // Open entry (2026-10-02): access without registering, its own setting,
+  // nullable until the migration backfills it to each program's current answer.
+  // Outside the flag above so it lands even where that flag was set earlier;
+  // IF NOT EXISTS makes it a no-op on every later build.
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "openEntry" BOOLEAN`);
 
   // Additive, idempotent organization tables. No Drive files or existing
   // member/registration records are changed; the old app can run during build.
