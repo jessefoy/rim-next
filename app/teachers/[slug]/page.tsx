@@ -22,11 +22,13 @@ export async function generateMetadata({
   const profile = await db.teacherProfile.findUnique({
     where: { slug },
     select: {
-      bio: true,
+      isPublic: true,
       user: { select: { firstName: true, lastName: true, preferredName: true } },
     },
   });
-  if (!profile) return { title: "Teacher Not Found" };
+  // The page 404s for a profile that is not public, so its name must not
+  // reach the title or description of that response.
+  if (!profile || !profile.isPublic) return { title: "Teacher Not Found" };
   const name = [profile.user.preferredName || profile.user.firstName, profile.user.lastName]
     .filter(Boolean)
     .join(" ");
