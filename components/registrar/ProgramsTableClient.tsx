@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { OFFERING_CATEGORIES, OFFERING_FORMATS, categorySectionTitle, formatLabel } from "@/lib/programOffering";
 
 export type ProgramRow = {
   id: string;
@@ -13,6 +14,9 @@ export type ProgramRow = {
   registrationClosed: boolean;
   registrationCapacity: number | null;
   archivedAt: string | null;
+  /** The offering's Category and Format codes (lib/programOffering.ts), or null. */
+  offeringCategory: string | null;
+  offeringFormat: string | null;
   confirmedCount: number;
   waitlistedCount: number;
   pendingDanaCount: number;
@@ -44,6 +48,9 @@ export default function ProgramsTableClient({
     action: "archive" | "restore" | "delete";
   } | null>(null);
   const [rows, setRows] = useState(programs);
+  // Filters by the offering's Category and Format ("" = all).
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [formatFilter, setFormatFilter] = useState("");
 
   const searchLower = search.toLowerCase();
 
@@ -71,6 +78,10 @@ export default function ProgramsTableClient({
       filtered = filtered.filter((p) => p.needsAttention);
     }
   }
+
+  // Apply the Category and Format filters
+  if (categoryFilter) filtered = filtered.filter((p) => p.offeringCategory === categoryFilter);
+  if (formatFilter) filtered = filtered.filter((p) => p.offeringFormat === formatFilter);
 
   // Apply search
   if (searchLower) {
@@ -289,6 +300,30 @@ export default function ProgramsTableClient({
           ))}
         </div>
         <div className="vol-table-right">
+          <label className="rim-sr-only" htmlFor="vol-filter-category">Filter by category</label>
+          <select
+            id="vol-filter-category"
+            className="vol-table-select"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="">All categories</option>
+            {OFFERING_CATEGORIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.label}</option>
+            ))}
+          </select>
+          <label className="rim-sr-only" htmlFor="vol-filter-format">Filter by format</label>
+          <select
+            id="vol-filter-format"
+            className="vol-table-select"
+            value={formatFilter}
+            onChange={(e) => setFormatFilter(e.target.value)}
+          >
+            <option value="">All formats</option>
+            {OFFERING_FORMATS.map((f) => (
+              <option key={f.code} value={f.code}>{f.label}</option>
+            ))}
+          </select>
           <input
             className="vol-table-search"
             type="text"
@@ -322,7 +357,9 @@ export default function ProgramsTableClient({
           <thead>
             <tr>
               <th className="vol-table__th">Program</th>
+              <th className="vol-table__th">Category</th>
               <th className="vol-table__th">Format</th>
+              <th className="vol-table__th">Delivery</th>
               {isRegistrar && <th className="vol-table__th">Registration</th>}
               <th className="vol-table__th">Capacity</th>
               {isRegistrar && <th className="vol-table__th">Flags</th>}
@@ -356,7 +393,11 @@ export default function ProgramsTableClient({
                   )}
                 </td>
 
-                {/* Format */}
+                {/* Category and Format (the offering) */}
+                <td className="vol-table__td">{categorySectionTitle(p.offeringCategory) ?? "—"}</td>
+                <td className="vol-table__td">{formatLabel(p.offeringFormat) ?? "—"}</td>
+
+                {/* Delivery: in person, virtual, or hybrid (Program.programFormat) */}
                 <td className="vol-table__td">{formatBadge(p.programFormat)}</td>
 
                 {/* Registration (registrar only) */}

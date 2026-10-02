@@ -156,6 +156,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   let programs = [{id:'p1',slug:'morning',name:'Morning practice',programFormat:'virtual',startDatetime:new Date('2026-09-21T16:00:00Z'),endDatetime:new Date('2026-09-21T17:00:00Z'),recurrenceFreq:null,recurrenceInterval:null,recurrenceDays:[],recurrenceCount:null,registrationEnabled:false,category:{kind:'DROP_IN'},earlyArrivalMessage:'Preparation note',specialAnnouncement:'Schedule update'}];
   let assignments = [], registrations = [];
   const registrationQueries = [];
+  const programKind = load('lib/programKind.ts');
   const Dashboard = load('app/account/(authenticated)/dashboard/page.tsx', {
     '@/auth':{auth:async()=>session},'next/navigation':{redirect:()=>{throw Error('redirect')}},
     'next/link':{default:({children,href,...props})=>React.createElement('a',{href,...props},children),__esModule:true},
@@ -167,12 +168,14 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
       user:{findUnique:async()=>({hostWelcomeSeenAt:new Date()})},
     }},
     '@/lib/scheduleUtils':load('lib/scheduleUtils.ts'),
-    '@/lib/programKind':load('lib/programKind.ts'),
+    '@/lib/programKind':programKind,
+    '@/lib/programOffering':load('lib/programOffering.ts',{'@/lib/programKind':programKind}),
     '@/lib/programHub':{getHubCoverageCopy:async()=>({noun:'Host'})},
     '@/lib/sessionWindowConstants':load('lib/sessionWindowConstants.ts'),
     '@/components/AccountLayout':{default:({children})=>children,__esModule:true},
     '@/components/DashboardAutoRefresh':{default:()=>null,__esModule:true},
     '@/components/HostWelcomePanel':{default:()=>null,__esModule:true},
+    '@/components/HandfulHomeCard':{default:()=>null,__esModule:true},
   }).default;
   const dashboardHtml = async query=>renderToStaticMarkup(await Dashboard({searchParams:Promise.resolve(query??{})}));
   let html = await dashboardHtml();
@@ -194,6 +197,20 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'registration-required offering hidden from nonregistrant');
   registrations=[{id:'r1',programSlug:'morning',programTitle:'Morning practice',donationStatus:'WAIVED',program:{...programs[0]}}];
   html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'registered participant retains entry');
+  // Open entry (program-categories brief): access is the program's own setting. Category and Format are labels and never decide it.
+  registrations=[];
+  programs[0].offeringCategory='IMMERSION';programs[0].offeringFormat='COURSE';programs[0].openEntry=true;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'Open entry on admits a non-registrant, whatever the Category and Format');
+  programs[0].offeringCategory='ONGOING_LEARNING_PRACTICE';programs[0].offeringFormat='DROP_IN';programs[0].openEntry=false;programs[0].registrationEnabled=false;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'A Drop-in with Open entry off is not open to a non-registrant');
+  programs[0].offeringCategory='COMMUNITY_GROUP';programs[0].offeringFormat=null;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'A Community Group with registration off is not open unless Open entry is on');
+  programs[0].openEntry=true;programs[0].registrationEnabled=true;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'Open entry and registration together: still open');
+  programs[0].offeringCategory='SPECIAL_EVENT';
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'Open entry is available to any Category, a Special Event included');
+  programs[0].openEntry=null;programs[0].category.kind='CLASS';
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'Open entry still empty: the old category kind decides, as before');
   programs=[];registrations=[];
   html=await dashboardHtml();check(html.includes('There are no more sessions today.'),true,'empty day has clear state');
   html=await dashboardHtml({view:'upcoming'});check(html.includes('Your upcoming programs'),true,'separate upcoming view remains reachable');

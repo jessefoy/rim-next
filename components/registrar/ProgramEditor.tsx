@@ -13,9 +13,15 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
-import { isOpenlyDroppable, kindLabel } from "@/lib/programKind";
+import {
+  OFFERING_CATEGORIES,
+  OFFERING_FORMATS,
+  cleanOffering,
+  categorySectionTitle,
+  formatRequiredFor,
+  isOfferingCategory,
+} from "@/lib/programOffering";
 import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
-import { categoryDisplayName } from "@/lib/programUtils";
 
 interface TeacherItem {
   id: string;
@@ -66,7 +72,17 @@ export interface ProgramData {
   teacherFacilitators: string[];
   programTeachers: { id: string; firstName: string; lastName: string }[];
   teacherLabel: string | null;
+  /** The OLD category (ProgramCategory), kept until the migration is verified. */
   categoryId: string;
+  /** Offering Category and Format (lib/programOffering.ts), as codes. */
+  offeringCategory: string;
+  offeringFormat: string;
+  silentMeditation: boolean;
+  hostedByVolunteers: boolean;
+  /** Open entry: its own setting (anyone signed in may join without registering). Filled from the old rule while it is still empty. */
+  openEntry: boolean;
+  /** True when the three values above were filled in from the old category rather than saved on the program. */
+  offeringFromLegacy?: boolean;
   dateText: string;
   timeText: string;
   programFormat: string;
@@ -593,7 +609,12 @@ export default function ProgramEditor({
     initialChoice === "Custom" ? (initialTeacherLabel ?? "") : "",
   );
 
-  const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
+  const [categoryId] = useState(initialData?.categoryId ?? "");
+  const [offeringCategory, setOfferingCategory] = useState(initialData?.offeringCategory ?? "");
+  const [offeringFormat, setOfferingFormat] = useState(initialData?.offeringFormat ?? "");
+  const [silentMeditation, setSilentMeditation] = useState(initialData?.silentMeditation ?? false);
+  const [hostedByVolunteers, setHostedByVolunteers] = useState(initialData?.hostedByVolunteers ?? false);
+  const [openEntry, setOpenEntry] = useState(initialData?.openEntry ?? false);
   const [dateText, setDateText] = useState(initialData?.dateText ?? "");
   const [timeText, setTimeText] = useState(initialData?.timeText ?? "");
 
@@ -848,6 +869,15 @@ export default function ProgramEditor({
       return;
     }
 
+    // Category is required; Format is required for the three ways (Foundations,
+    // Ongoing Learning & Practice, Immersion) and optional otherwise.
+    const offeringCheck = cleanOffering({ offeringCategory, offeringFormat, silentMeditation, hostedByVolunteers });
+    if (!offeringCheck.ok) {
+      setTab("Categories");
+      setError(offeringCheck.error);
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -871,6 +901,11 @@ export default function ProgramEditor({
               : teacherLabelChoice,
         teacherIds: selectedTeachers.map((t) => t.id),
         categoryId: categoryId || null,
+        offeringCategory,
+        offeringFormat,
+        silentMeditation,
+        hostedByVolunteers,
+        openEntry,
         dateText,
         timeText,
         programFormat,
@@ -978,26 +1013,36 @@ export default function ProgramEditor({
 
   // ── "How this appears to visitors" ───────────────────────────────────────
   // Mirror the public program page's registration CTA so the volunteer sees the
-  // consequence of these toggles at edit time (kind + format + registration
-  // state). Reflects the session-137 two-axis model — see RIM_Offering_Model.md.
+  // consequence of these toggles at edit time (registration and Open entry).
+  // Category and Format are labels and never change access.
   const selectedCategory = categories.find((c) => c.id === categoryId);
-  const offeringKind = selectedCategory?.kind ?? null;
+  // Open entry is its own setting, so what the volunteer sees here is what
+  // visitors get.
+  const droppableNow = openEntry;
   // Memoized so it recomputes only when its inputs change, not on every
   // keystroke elsewhere in the editor.
+  // What Open entry means for THIS program's delivery (matches the Visibility tab).
+  const openEntryText = openEntry
+    ? programFormat === "in-person"
+      ? "Anyone may simply arrive in person, without registering. It carries the Drop-in mark on This Week."
+      : programFormat === "hybrid"
+        ? "Anyone may simply arrive in person, and anyone signed in may join on Zoom, without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week."
+        : "Anyone signed in may join on Zoom without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week."
+    : "People join by registering. Hosts and teachers always have access. It carries no Drop-in mark.";
   const appearanceText = useMemo(() => {
     const deadlinePast = registrationDeadline
       ? new Date(registrationDeadline) < new Date()
       : false;
     const regClosedEffective = registrationClosed || deadlinePast;
-    const isDroppable = isOpenlyDroppable(offeringKind, registrationEnabled);
+    const isDroppable = droppableNow;
     return registrationEnabled
       ? regClosedEffective
         ? "Registration is closed — visitors see a “Registration is closed” notice instead of the form."
         : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
       : isDroppable
-        ? "Drop-in — visitors see how to join (in person and/or online). No registration needed."
+        ? "Open entry: visitors see how to join (in person and/or online). No registration needed."
         : "Registration isn’t open yet — visitors are told that, with no sign-up button. Turn on “Registration enabled” below when you’re ready to take sign-ups.";
-  }, [offeringKind, registrationDeadline, registrationClosed, registrationEnabled]);
+  }, [droppableNow, registrationDeadline, registrationClosed, registrationEnabled]);
 
   // ── "Where this program appears" ─────────────────────────────────────────
   // The public listing leaves a program out for reasons that live outside the
@@ -1006,11 +1051,13 @@ export default function ProgramEditor({
   // app/this-week/page.tsx so the editor says why, instead of the program
   // silently not appearing.
   const isArchived = initialData?.archived ?? false;
-  const listingReason = useMemo((): "archived" | "hidden" | "noCategory" | "hiddenCategory" | "past" | null => {
+  const listingReason = useMemo((): "archived" | "hidden" | "noCategory" | "private" | "hiddenCategory" | "past" | null => {
     if (isArchived) return "archived";
     if (hideFromProgramPageList) return "hidden";
-    if (!categoryId || !selectedCategory) return "noCategory";
-    if (selectedCategory.hidden) return "hiddenCategory";
+    if (!isOfferingCategory(offeringCategory)) return "noCategory";
+    if (offeringCategory === "PRIVATE") return "private";
+    // The old category's "hide from the Programs page" flag keeps its meaning.
+    if (selectedCategory?.hidden) return "hiddenCategory";
     if (hideWhenPast && !recurrenceFreq && startDatetime) {
       // Editor datetimes are Central wall-clock strings (YYYY-MM-DDTHH:mm).
       const lastDay = (endDatetime || startDatetime).slice(0, 10);
@@ -1018,11 +1065,11 @@ export default function ProgramEditor({
       if (lastDay < todayCt) return "past";
     }
     return null;
-  }, [isArchived, hideFromProgramPageList, categoryId, selectedCategory, hideWhenPast, recurrenceFreq, startDatetime, endDatetime]);
+  }, [isArchived, hideFromProgramPageList, offeringCategory, selectedCategory, hideWhenPast, recurrenceFreq, startDatetime, endDatetime]);
   // My Home (app/account/(authenticated)/dashboard/page.tsx): online programs
   // appear in Today on the days they meet, unless archived or hidden from the
   // member home (until an optional auto-show date). Who sees them follows the
-  // offering kind: open drop-ins show to everyone; registration-required ones
+  // Open entry setting: programs with open entry show to everyone; the others
   // show to registrants, hosts and teachers. In-person programs appear only for
   // their registrants. Waitlisted members don't get a Join.
   const homeHiddenUntilLater = useMemo(() => {
@@ -1042,7 +1089,7 @@ export default function ProgramEditor({
       // still see their program on the day.
       : programFormat === "in-person" ? "inPerson"
       : homeHiddenUntilLater ? (dashboardShowAt ? "hiddenUntil" : "hidden")
-      : isOpenlyDroppable(offeringKind, registrationEnabled) ? "open"
+      : droppableNow ? "open"
       : "registrants";
 
   const weeklyReason: "archived" | "hiddenListing" | "hiddenWeekly" | "noSchedule" | null =
@@ -1867,28 +1914,105 @@ export default function ProgramEditor({
         {tab === "Categories" && (
           <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
-              <span className="pe-field__label">Category</span>
-              <span className="pe-field__help">Which section this program appears under on the public Programs &amp; Events page. Programs without a category won&rsquo;t appear on that page.</span>
-              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="pe-select">
-                <option value="">— None —</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+              <span className="pe-field__label">Category *</span>
+              <span className="pe-field__help">Which way this offering belongs to. Community groups and special events sit outside the three ways.</span>
+              <select
+                value={offeringCategory}
+                onChange={(e) => {
+                  setOfferingCategory(e.target.value);
+                  markDirty();
+                }}
+                className="pe-select"
+                aria-required="true"
+              >
+                <option value="">— Choose —</option>
+                <optgroup label="The three ways">
+                  {OFFERING_CATEGORIES.filter((c) => c.way).map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Outside the three ways">
+                  {OFFERING_CATEGORIES.filter((c) => c.code === "COMMUNITY_GROUP" || c.code === "SPECIAL_EVENT").map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Internal">
+                  {OFFERING_CATEGORIES.filter((c) => c.code === "SERVICE" || c.code === "PRIVATE").map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </optgroup>
               </select>
-              {selectedCategory?.kind && (
+              {initialData?.offeringFromLegacy && (
                 <span className="pe-field__help" style={{ marginTop: 6 }}>
-                  Kind: <strong>{kindLabel(selectedCategory.kind)}</strong> — drives how this program behaves and where it shows up.
+                  Filled in from this program&rsquo;s old category. Saving keeps it.
                 </span>
               )}
             </label>
 
-            <div className="pe-field">
-              <span className="pe-field__label">Manage categories</span>
-              <span className="pe-field__help">
-                Add, rename, reorder, or set each category&rsquo;s <strong>kind</strong> (drop-in, class, retreat&hellip;) on the{" "}
-                <a href="/tools/programs/categories">Program Categories</a> page. The kind decides where a program shows up.
+            <label className="pe-field">
+              <span className="pe-field__label">
+                Format{formatRequiredFor(offeringCategory) ? " *" : " (optional here)"}
               </span>
+              <span className="pe-field__help">What kind of offering it is.</span>
+              <select
+                value={offeringFormat}
+                onChange={(e) => {
+                  setOfferingFormat(e.target.value);
+                  // Silent meditation is a kind of drop-in; it only applies to one.
+                  if (e.target.value !== "DROP_IN") setSilentMeditation(false);
+                  markDirty();
+                }}
+                className="pe-select"
+                aria-required={formatRequiredFor(offeringCategory) ? "true" : undefined}
+              >
+                <option value="">— Choose —</option>
+                {OFFERING_FORMATS.map((f) => (
+                  <option key={f.code} value={f.code}>{f.label}</option>
+                ))}
+              </select>
+            </label>
+
+            {offeringFormat === "DROP_IN" && !openEntry && (
+              <div className="pe-field">
+                <span className="pe-field__help">Format is a label. For people to join this without registering, turn on Open entry on the Registration tab.</span>
+              </div>
+            )}
+
+            {offeringFormat === "DROP_IN" && (
+              <div className="pe-field">
+                <label className="pe-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={silentMeditation}
+                    onChange={(e) => { setSilentMeditation(e.target.checked); markDirty(); }}
+                  />
+                  <span>Silent meditation</span>
+                </label>
+                <span className="pe-field__help">A silent sit. The programs page groups these under &ldquo;Silent meditation&rdquo; within Ongoing Learning &amp; Practice.</span>
+              </div>
+            )}
+
+            <div className="pe-field">
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={hostedByVolunteers}
+                  onChange={(e) => { setHostedByVolunteers(e.target.checked); markDirty(); }}
+                />
+                <span>Hosted by volunteers</span>
+              </label>
+              <span className="pe-field__help">Cards and pages carry the label &ldquo;Hosted by volunteers.&rdquo; Community groups are member-led by definition and do not need it.</span>
             </div>
+
+            {categoryId && selectedCategory && (
+              <div className="pe-field">
+                <span className="pe-field__label">Old category</span>
+                <span className="pe-field__help">
+                  {selectedCategory.name}. Being retired: the public pages no longer read it (only its &ldquo;hide from the Programs page&rdquo; setting still applies).
+                  {selectedCategory.kind ? <> Its kind was {selectedCategory.kind.toLowerCase().replace(/_/g, " ")}.</> : null}
+                </span>
+              </div>
+            )}
           </div></div>
         )}
 
@@ -1900,13 +2024,21 @@ export default function ProgramEditor({
           <div className="pe-card__section">
             <div className="pe-form">
 
-            {/* How this appears to visitors — reflects kind + format + registration
-                state so the volunteer sees the consequence of these toggles. */}
+            {/* How this appears to visitors — reflects registration + Open entry
+                so the volunteer sees the consequence of these toggles. Category
+                and Format are shown as labels; they never change access. */}
             <div className="pe-readout">
               <p className="pe-readout__title">How this appears to visitors</p>
               <p className="pe-readout__row">{appearanceText}</p>
-              {offeringKind && (
-                <p className="pe-readout__row pe-readout__row--meta">Kind: {kindLabel(offeringKind)} (from its category)</p>
+              <p className="pe-readout__row">
+                <span className="pe-readout__state">Open entry: {openEntry ? "on" : "off"}.</span>{" "}
+                {openEntryText}
+              </p>
+              {isOfferingCategory(offeringCategory) && (
+                <p className="pe-readout__row pe-readout__row--meta">
+                  Category: {categorySectionTitle(offeringCategory)}
+                  {offeringFormat ? ` · Format: ${OFFERING_FORMATS.find((f) => f.code === offeringFormat)?.label ?? ""}` : ""}
+                </p>
               )}
             </div>
 
@@ -1919,7 +2051,7 @@ export default function ProgramEditor({
                 />
                 <span className="pe-checkbox__label">Registration enabled</span>
               </label>
-              <p className="pe-field__help">When checked, visitors get a registration form. When unchecked, the page reflects the offering&rsquo;s kind — a drop-in shows how to join; a class, event, or retreat shows &ldquo;Registration isn&rsquo;t open yet&rdquo; (see above).</p>
+              <p className="pe-field__help">When checked, visitors get a registration form. When unchecked, the page shows how to join if Open entry is on, and otherwise &ldquo;Registration isn&rsquo;t open yet&rdquo; (see above).</p>
             </div>
 
             <div className="pe-visibility-option">
@@ -1932,6 +2064,18 @@ export default function ProgramEditor({
                 <span className="pe-checkbox__label">Registration closed</span>
               </label>
               <p className="pe-field__help">Manually closes registration. The page shows a &lsquo;Registration is closed&rsquo; notice instead of the form.</p>
+            </div>
+
+            <div className="pe-visibility-option">
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={openEntry}
+                  onChange={(e) => setOpenEntry(e.target.checked)}
+                />
+                <span className="pe-checkbox__label">Open entry</span>
+              </label>
+              <p className="pe-field__help">Anyone signed in may join without registering: simply arrive for an in-person program, or join on Zoom for an online one. Online programs with open entry also appear on My Home&rsquo;s Today for everyone, and every program with open entry carries the Drop-in mark on This Week. A program can have registration and open entry together. This is the only setting that decides access: Category and Format are labels.</p>
             </div>
 
             <hr className="pe-section-divider" />
@@ -2208,7 +2352,7 @@ export default function ProgramEditor({
               <p className={`pe-readout__row${listingReason ? " pe-readout__row--off" : ""}`}>
                 <span className="pe-readout__place">Programs &amp; Events page: </span>
                 {listingReason === null && (
-                  <>Listed under {categoryDisplayName(selectedCategory?.name ?? "")}.</>
+                  <>Listed under {categorySectionTitle(offeringCategory)}.</>
                 )}
                 {listingReason === "archived" && (
                   <><span className="pe-readout__state">Not listed.</span> Archived programs don&rsquo;t appear.</>
@@ -2218,7 +2362,7 @@ export default function ProgramEditor({
                 )}
                 {listingReason === "noCategory" && (
                   <>
-                    <span className="pe-readout__state">Not listed.</span> It needs a category to appear under.{" "}
+                    <span className="pe-readout__state">Not listed.</span> It needs a Category to appear under.{" "}
                     {/* An inline link, not a <button>: the app shells give every
                         button a 44px box, which would break the sentence. */}
                     <a
@@ -2229,6 +2373,9 @@ export default function ProgramEditor({
                       Choose one on the Categories tab
                     </a>.
                   </>
+                )}
+                {listingReason === "private" && (
+                  <><span className="pe-readout__state">Not listed.</span> A Private program is never listed.</>
                 )}
                 {listingReason === "hiddenCategory" && (
                   <>

@@ -5934,6 +5934,37 @@ Rooted In Mindfulness · Brookfield, WI`,
     console.log("  ⏭ program_hide_when_past_v1 already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Offering Category and Format on Program (2026-10-02, the program-categories
+  // brief). COLUMNS ONLY: five additive, nullable-or-defaulted columns, so the
+  // old app keeps running during the build. The DATA (which program is which
+  // category and format) is a separate, approved step
+  // (scripts/program-categories-2026-10-02.mjs); until a row is filled,
+  // lib/programOffering.ts derives its values from the old `categoryId`.
+  // ───────────────────────────────────────────────────────────────────────
+  const programOfferingFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'program_offering_columns_v1'
+  `).catch(() => []);
+
+  if (programOfferingFlag.length === 0) {
+    console.log("→ Program offering columns (offeringCategory, offeringFormat, silentMeditation, hostedByVolunteers, openEntry)…");
+    await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "offeringCategory" TEXT`);
+    await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "offeringFormat" TEXT`);
+    await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "silentMeditation" BOOLEAN NOT NULL DEFAULT false`);
+    await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "hostedByVolunteers" BOOLEAN NOT NULL DEFAULT false`);
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('program_offering_columns_v1')`,
+    );
+    console.log("  ✔ offering columns ready (no row changed).");
+  } else {
+    console.log("  ⏭ program_offering_columns_v1 already applied.");
+  }
+  // Open entry (2026-10-02): access without registering, its own setting,
+  // nullable until the migration backfills it to each program's current answer.
+  // Outside the flag above so it lands even where that flag was set earlier;
+  // IF NOT EXISTS makes it a no-op on every later build.
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "openEntry" BOOLEAN`);
+
   // Additive, idempotent organization tables. No Drive files or existing
   // member/registration records are changed; the old app can run during build.
   await db.$transaction([

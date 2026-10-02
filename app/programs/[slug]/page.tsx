@@ -5,8 +5,15 @@ import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
-import { isOpenlyDroppable } from "@/lib/programKind";
-import { showsSharedProgramBlock } from "@/lib/programChapters";
+import {
+  HOSTED_BY_VOLUNTEERS_LABEL,
+  categoryAnchor,
+  categorySectionTitle,
+  formatLabel,
+  hasOpenEntry,
+  resolveOffering,
+  showsSharedProgramBlock,
+} from "@/lib/programOffering";
 import ProgramSharedBlock from "@/components/ProgramSharedBlock";
 
 export const dynamic = "force-dynamic";
@@ -65,11 +72,12 @@ export default async function ProgramDetailPage({
   if (!program || program.archivedAt) notFound();
 
   const useBuiltInForm = !!program.registrationEnabled;
-  // When registration is OFF, the offering's KIND (session 137) decides what
-  // "no registration" means: a drop-in / open community group is openly
-  // droppable ("just come"), while a class / event / retreat is a commitment
-  // whose registration simply isn't open yet — never "just show up."
-  const droppable = isOpenlyDroppable(program.category?.kind ?? null, useBuiltInForm);
+  // When registration is OFF, the program's Open entry setting decides what
+  // "no registration" means: with open entry it is "just come"; without it,
+  // registration simply isn't open yet, never "just show up." Category and
+  // Format are labels and take no part in it.
+  const offering = resolveOffering(program);
+  const droppable = hasOpenEntry(program);
   const registrationClosed = !!(
     program.registrationClosed ||
     (program.registrationDeadline && new Date(program.registrationDeadline) < new Date())
@@ -183,9 +191,16 @@ export default async function ProgramDetailPage({
         style={{ backgroundImage: `url(${program.programImage || "/images/Bodhi-Leaves.jpg"})` }}
       >
         <div className="pg-hero__inner">
-          {program.category && (
-            <Link href="/community-programs" className="pg-hero__eyebrow">
-              {program.category.name}
+          {/* The breadcrumb: the offering's Category (linking its section on the
+              programs page) and its Format. Service and Private have no public
+              section, so no breadcrumb. */}
+          {offering.category && offering.category !== "SERVICE" && offering.category !== "PRIVATE" && (
+            <Link
+              href={`/community-programs#${categoryAnchor(offering.category)}`}
+              className="pg-hero__eyebrow"
+            >
+              {categorySectionTitle(offering.category)}
+              {offering.format ? ` · ${formatLabel(offering.format)}` : ""}
             </Link>
           )}
           <h1 className="pg-hero__title">{program.name}</h1>
@@ -283,6 +298,16 @@ export default async function ProgramDetailPage({
                 </span>
               </div>
             )}
+            {offering.hostedByVolunteers && (
+              <div className="pg-detail-row">
+                <span className="pg-detail-row__icon" aria-hidden="true">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </span>
+                <span className="pg-detail-row__text">
+                  <span>{HOSTED_BY_VOLUNTEERS_LABEL}</span>
+                </span>
+              </div>
+            )}
           </div>
 
           {/* ── Context-aware next step — distinct from factual details. */}
@@ -311,8 +336,7 @@ export default async function ProgramDetailPage({
                     </Link>
                   )
                 ) : droppable ? (
-                  /* Openly droppable (drop-in / open community group) — how to join,
-                     format-aware. */
+                  /* Open entry — how to join, delivery-aware. */
                   program.programFormat === "virtual" ? (
                     session?.user ? (
                       <Link href="/account/dashboard" className="pg-detail-cta__link">
@@ -346,7 +370,7 @@ export default async function ProgramDetailPage({
 
         {/* ── The block every program in Foundations, Ongoing Learning & Practice and
             Immersion shares; not Community Groups or Events. ── */}
-        {showsSharedProgramBlock(program.category?.slug) && <ProgramSharedBlock />}
+        {showsSharedProgramBlock(offering.category) && <ProgramSharedBlock />}
 
         {/* ── Facilitators section ── */}
         {hasFacilitators && (

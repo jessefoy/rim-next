@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { buildSubtitle, fmtLabel, hasConcludedOneTime } from "@/lib/programUtils";
+import { whereOfferingCategory } from "@/lib/programOffering";
 
 export const metadata = {
   title: "Community Groups and Activities - Rooted In Mindfulness",
@@ -12,13 +13,15 @@ export const dynamic = "force-dynamic";
 
 export default async function KalyanaGroupsPage() {
   // The live site lists its current KM groups by hand. These are real Programs
-  // in the Community Groups category, so read them rather than hardcode a list
+  // whose Category is Community Group, so read them rather than hardcode a list
   // that drifts the moment a group starts or ends.
   const allGroups = await db.program.findMany({
     where: {
       archivedAt: null,
       hideFromProgramPageList: false,
-      category: { name: "Community Groups" },
+      // Category = Community Group (the program's own field; its old category
+      // stands in while that is empty). It matched the old category by NAME.
+      ...whereOfferingCategory("COMMUNITY_GROUP"),
     },
     include: { category: true },
     orderBy: { sortOrder: "asc" },

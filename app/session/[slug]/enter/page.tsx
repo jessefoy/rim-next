@@ -31,7 +31,7 @@ import { getMeeting, ensureSeatHostKey, deleteMeeting } from "@/lib/zoom";
 import { roomNameForProgram, sessionDisplayName } from "@/lib/sessionIdentity";
 import { FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
-import { isOpenlyDroppable } from "@/lib/programKind";
+import { hasOpenEntry } from "@/lib/programOffering";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +73,8 @@ export default async function ZoomEnterPage({
       recurrenceCount: true,
       archivedAt: true,
       registrationEnabled: true,
-      category: { select: { kind: true } },
+      openEntry: true,
+      category: { select: { slug: true, kind: true } },
     },
   });
   if (!program) redirect("/account/dashboard");
@@ -188,8 +189,8 @@ export default async function ZoomEnterPage({
 
     // A registration-required class, event, or retreat is for its
     // registrants. My Home only offers them Join, and this door agrees:
-    // open drop-ins and open community groups admit any member, and so does
-    // the program's open-access link. The people who staff the session always
+    // a program with open entry admits any member, and so does the
+    // program's open-access link. The people who staff the session always
     // get in, using the same reach My Home and the Scheduler give them: a
     // host assignment for this day (any team, including standing ones), or
     // active membership in the hosting team or a team covering the program
@@ -199,7 +200,7 @@ export default async function ZoomEnterPage({
       !canHostHere &&
       !isAdminOrGT &&
       !hasValidKey &&
-      !isOpenlyDroppable(program.category?.kind ?? null, program.registrationEnabled)
+      !hasOpenEntry(program)
     ) {
       const occurrenceDay = ctDateStr(sessionDateIso);
       const [registration, assignments, coverage] = await Promise.all([
