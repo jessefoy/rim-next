@@ -9,8 +9,12 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
   const { week } = await searchParams;
-  const label = week === "next" ? "Next Week" : "This Week";
-  return { title: `${label} at Rooted In Mindfulness` };
+  const next = week === "next";
+  const label = next ? "Next Week" : "This Week";
+  return {
+    title: `${label} at Rooted In Mindfulness`,
+    description: `${next ? "Next" : "This"} week's meditation and dharma gatherings at Rooted in Mindfulness in Brookfield, Wisconsin, in person and online. Drop-ins are open to everyone.`,
+  };
 }
 
 const TZ = "America/Chicago";

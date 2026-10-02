@@ -10,7 +10,7 @@ import LessonListClient from "@/components/LessonListClient";
 export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
-  return { title: "Course Manager — Lessons" };
+  return { title: "Course Manager - Lessons" };
 }
 
 export default async function LessonsListPage() {

@@ -9,11 +9,31 @@ import { isOpenlyDroppable } from "@/lib/programKind";
 
 export const dynamic = "force-dynamic";
 
+/** Descriptions written for a particular program. Every other program uses
+    its subtitle (tagline) plus the place line below. Program has no
+    description column for search results, so this is keyed by slug; a field
+    in Program Manager is the better home if more are needed. */
+const PROGRAM_DESCRIPTIONS: Record<string, string> = {
+  "rim-s-end-of-year-community-gathering-fundraiser":
+    "RIM's end-of-year community gathering and fundraiser: a special drop-in practice and celebration, December 5, 2026, in Brookfield, Wisconsin.",
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const program = await db.program.findUnique({ where: { slug }, select: { name: true } });
+  const program = await db.program.findUnique({
+    where: { slug },
+    select: { name: true, tagline: true, archivedAt: true },
+  });
+  // An archived program answers 404 below, so its name must not leak into the
+  // title or description of that response.
+  if (!program || program.archivedAt) return { title: "Program Not Found" };
+  const tagline = program.tagline?.trim().replace(/[.\s]+$/, "");
+  const description =
+    PROGRAM_DESCRIPTIONS[slug] ??
+    (tagline ? `${tagline} at Rooted in Mindfulness in Brookfield, Wisconsin.` : undefined);
   return {
-    title: program ? `${program.name} - Rooted In Mindfulness` : "Program Not Found",
+    title: `${program.name} - Rooted In Mindfulness`,
+    ...(description ? { description } : {}),
   };
 }
 

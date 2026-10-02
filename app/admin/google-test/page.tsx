@@ -19,7 +19,7 @@ import { listSharedDrives, type SharedDrive } from "@/lib/google/drive";
 import AdminSelfTest from "@/components/admin/AdminSelfTest";
 import { pill } from "@/components/admin/DiagPill";
 
-export const metadata = { title: "Google Test — Admin" };
+export const metadata = { title: "Google Test - Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function GoogleTestPage() {

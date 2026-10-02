@@ -10,7 +10,7 @@ import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 import HostWelcomePanel from "@/components/HostWelcomePanel";
 
-export const metadata = { title: "My Home — Rooted In Mindfulness" };
+export const metadata = { title: "My Home - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
 function todayCT(): string {

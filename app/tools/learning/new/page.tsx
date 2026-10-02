@@ -9,7 +9,7 @@ import CourseEditor from "@/components/CourseEditor";
 export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
-  return { title: "Course Manager — New Series" };
+  return { title: "Course Manager - New Series" };
 }
 
 export default async function NewCoursePage() {

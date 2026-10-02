@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import WelcomeForm from "@/components/WelcomeForm";
 
-export const metadata = { title: "Welcome to RIM — Rooted In Mindfulness" };
+export const metadata = { title: "Welcome to RIM - Rooted In Mindfulness" };
 
 export default async function WelcomePage() {
   const session = await auth();

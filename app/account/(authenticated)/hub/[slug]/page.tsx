@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const hub = await db.hub.findUnique({ where: { slug }, select: { name: true } });
-  return { title: `${hub?.name ?? "Hub"} — Home` };
+  return { title: `${hub?.name ?? "Hub"} - Home` };
 }
 
 export default async function HubHomePage({

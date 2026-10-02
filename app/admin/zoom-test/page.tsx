@@ -23,7 +23,7 @@ import AdminSelfTest from "@/components/admin/AdminSelfTest";
 import { zoomSeatIds } from "@/lib/sessionMeeting";
 import { pill } from "@/components/admin/DiagPill";
 
-export const metadata = { title: "Zoom Test — Admin" };
+export const metadata = { title: "Zoom Test - Admin" };
 export const dynamic = "force-dynamic";
 
 // The same seat list the provisioner uses (ZOOM_SEAT_EMAILS, or the A/B pair).

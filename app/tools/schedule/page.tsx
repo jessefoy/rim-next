@@ -27,7 +27,7 @@ import {
 } from "@/lib/programHub";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Scheduler — Tools" };
+export const metadata = { title: "Scheduler - Tools" };
 
 type PgProgram = ScheduleProgram;
 

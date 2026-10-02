@@ -1,6 +1,6 @@
 import AccountLayout from "@/components/AccountLayout";
 import { COMMUNITY_AGREEMENTS, COMMUNITY_AGREEMENTS_LEAD_IN, COMMUNITY_SHARED_VISION_TITLE } from "@/lib/communityAgreements";
-export const metadata = { title: "Community Care — Rooted In Mindfulness" };
+export const metadata = { title: "Community Care - Rooted In Mindfulness" };
 export default function CommunityCarePage() {
   return <AccountLayout><article className="ac-member-page rim-care">
     <header className="ac-page-head"><h1 className="ac-page-title">Community Care</h1></header>

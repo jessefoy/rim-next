@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import AccountLayout from "@/components/AccountLayout";
 import AboutMeSection from "@/components/account/AboutMeSection";
 
-export const metadata = { title: "My Profile — Rooted In Mindfulness" };
+export const metadata = { title: "My Profile - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
 export default async function MyProfilePage({

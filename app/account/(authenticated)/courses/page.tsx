@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import MyCourseLibrary from "@/components/MyCourseLibrary";
 
-export const metadata = { title: "Library — Rooted In Mindfulness" };
+export const metadata = { title: "Library - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
 export default async function MyCoursesPage() {

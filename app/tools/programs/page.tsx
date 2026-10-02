@@ -11,7 +11,7 @@ import ProgramsTableClient, {
 } from "@/components/registrar/ProgramsTableClient";
 
 
-export const metadata = { title: "Program Manager — Tools" };
+export const metadata = { title: "Program Manager - Tools" };
 export const dynamic = "force-dynamic";
 
 export default async function ProgramsToolPage() {

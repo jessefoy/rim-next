@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = await db.program.findUnique({ where: { slug }, select: { name: true } });
+  const p = await db.program.findUnique({ where: { slug }, select: { name: true, archivedAt: true } });
   return {
-    title: p ? `Register - ${p.name} - Rooted In Mindfulness` : "Register",
+    title: p && !p.archivedAt ? `Register - ${p.name} - Rooted In Mindfulness` : "Register",
   };
 }
 

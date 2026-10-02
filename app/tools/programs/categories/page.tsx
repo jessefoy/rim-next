@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import CategoryOrderClient from "@/components/registrar/CategoryOrderClient";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Program Categories — Rooted In Mindfulness" };
+export const metadata = { title: "Program Categories - Rooted In Mindfulness" };
 
 export default async function CategoriesPage() {
   const categories = await db.programCategory.findMany({

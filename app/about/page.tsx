@@ -91,12 +91,11 @@ export default function AboutPage() {
           <div className="pp-prose pp-prose--sections">
             <h2>Where it comes from</h2>
             <p>
-              Our roots are in Chan, the Chinese meditation tradition also known as Zen, within the
-              wider Mahayana stream of Buddhism. We honor the whole of the Dharma, the Buddha&apos;s
-              teachings, as one living family, and draw on it through A Handful of Leaves. We teach
-              plainly, for people living full modern lives, and our teaching is informed by
-              mindfulness-based programs, psychology, and modern science. People from every
-              tradition, and from none, find support here.
+              Our roots are in Chan, the Chinese school of Buddhism also known as Zen. We honor the
+              whole of the Dharma, the Buddha&apos;s teachings, as one living family, and draw on
+              it through A Handful of Leaves. We teach plainly, for people living full modern
+              lives, and our teaching is informed by mindfulness-based programs, psychology, and
+              modern science. People from every tradition, and from none, find support here.
             </p>
           </div>
           <div className="pp-actions">

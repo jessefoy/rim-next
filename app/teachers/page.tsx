@@ -3,7 +3,20 @@ import { db } from "@/lib/db";
 
 export const metadata = {
   title: "Teachers - Rooted In Mindfulness",
+  description:
+    "The teachers of Rooted in Mindfulness, a meditation and dharma community in Brookfield, Wisconsin.",
 };
+
+/** The first `max` characters of a bio, cut at a word and marked with an
+    ellipsis, so a card never ends mid-word. */
+function bioExcerpt(bio: string, max: number): string {
+  const text = bio.replace(/\s+/g, " ").trim();
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  const atWord = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+  return `${atWord.replace(/[\s,;:.\-]+$/, "")}\u2026`;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +68,7 @@ export default async function TeachersPage() {
                 ]
                   .filter(Boolean)
                   .join(" ");
-                const bioExcerpt = profile.bio ? profile.bio.slice(0, 120) : "";
+                const excerpt = profile.bio ? bioExcerpt(profile.bio, 120) : "";
 
                 return (
                   <Link
@@ -71,12 +84,7 @@ export default async function TeachersPage() {
                       </div>
                     )}
                     <h2 className="tpr-card__name">{name}</h2>
-                    {bioExcerpt && (
-                      <p className="tpr-card__bio">
-                        {bioExcerpt}
-                        {bioExcerpt.length >= 120 ? "…" : ""}
-                      </p>
-                    )}
+                    {excerpt && <p className="tpr-card__bio">{excerpt}</p>}
                   </Link>
                 );
               })}

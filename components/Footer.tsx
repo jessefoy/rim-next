@@ -1,14 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RIM_ADDRESS, RIM_PHONE_DISPLAY, RIM_PHONE_TEL, RIM_SUPPORT_EMAIL } from "@/lib/locations";
 
 interface FooterProps {
   memberArea?: boolean;
+  /** The year the page was rendered in. Passed from the server layout so the
+      first paint is right; the effect below keeps a long-open tab and a page
+      served from cache across New Year's honest. */
+  year?: number;
 }
 
-export default function Footer({ memberArea = false }: FooterProps) {
+export default function Footer({ memberArea = false, year: renderedYear }: FooterProps) {
+  const [year, setYear] = useState(renderedYear ?? new Date().getFullYear());
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+  }, []);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -108,7 +116,7 @@ export default function Footer({ memberArea = false }: FooterProps) {
 
       <div className="rim-footer-bottom">
         <span>
-          ©2020 Rooted In Mindfulness | 501(c)(3) Non-Profit |{" "}
+          &copy;{year} Rooted In Mindfulness | 501(c)(3) Non-Profit |{" "}
           <Link href="/community-care-agreements">Community Care</Link> |{" "}
           <Link href="/diversity">Diverse Together</Link> |{" "}
           <Link href="/donate">Donate</Link> |{" "}

@@ -9,7 +9,7 @@ import LessonEditor from "@/components/LessonEditor";
 export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
-  return { title: "Course Manager — New Lesson" };
+  return { title: "Course Manager - New Lesson" };
 }
 
 export default async function NewLessonPage() {

@@ -14,6 +14,8 @@ import {
 
 export const metadata = {
   title: "Programs and Events - Rooted In Mindfulness",
+  description:
+    "Weekly meditation and dharma gatherings, Foundations, workshops and retreats, and community groups at Rooted in Mindfulness in Brookfield, Wisconsin, in person and on Zoom.",
 };
 
 export const dynamic = "force-dynamic";

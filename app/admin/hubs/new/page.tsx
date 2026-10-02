@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import HubAdminForm from "@/components/HubAdminForm";
 
-export const metadata = { title: "Create Hub — Admin" };
+export const metadata = { title: "Create Hub - Admin" };
 
 export default async function AdminHubNewPage() {
   const session = await auth();

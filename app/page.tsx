@@ -420,7 +420,7 @@ export default async function HomePage() {
                 <p className="pp-intro__body">
                   RIM is a dharma community rooted in traditional Buddhist wisdom. At the heart of
                   our practice is silent illumination: an open, settled awareness that meets what
-                  arises with warmth. It comes to us through Chan, the Chinese meditation tradition
+                  arises with warmth. It comes to us through Chan, the Chinese school of Buddhism
                   also known as Zen. The eight words of CARE are practiced in its spirit.
                 </p>
                 <p className="pp-intro__body">

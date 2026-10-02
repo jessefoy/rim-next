@@ -2,7 +2,7 @@
 import { usePathname } from "next/navigation";
 import Footer from "@/components/Footer";
 
-export default function FooterWrapper() {
+export default function FooterWrapper({ year }: { year?: number }) {
   const pathname = usePathname();
   const suppress =
     pathname.startsWith("/admin") ||
@@ -12,5 +12,5 @@ export default function FooterWrapper() {
     pathname.startsWith("/lessons/") ||
     pathname.startsWith("/course/");
   if (suppress) return null;
-  return <Footer />;
+  return <Footer year={year} />;
 }

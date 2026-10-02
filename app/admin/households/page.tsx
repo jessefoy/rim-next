@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import Link from "next/link";
 
-export const metadata = { title: "Households — Admin" };
+export const metadata = { title: "Households - Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminHouseholdsPage() {

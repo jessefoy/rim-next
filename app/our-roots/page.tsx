@@ -60,7 +60,7 @@ export default function OurRootsPage() {
 
             <h2>Rooted in Chan</h2>
             <p>
-              Within that family, our own roots are in Chan, the Chinese meditation tradition also
+              Within that family, our own roots are in Chan, the Chinese school of Buddhism also
               known as Zen, part of the Mahayana stream of Buddhism, which speaks of a wakeful and
               caring nature, Buddha nature, already present in each of us. At the heart of our
               practice is silent illumination: an open, settled awareness that meets whatever

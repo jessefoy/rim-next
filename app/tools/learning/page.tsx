@@ -10,7 +10,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
-  return { title: "Course Manager — Series" };
+  return { title: "Course Manager - Series" };
 }
 
 export default async function SeriesListPage() {

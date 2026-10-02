@@ -10,7 +10,7 @@ import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "New Program — Tools" };
+export const metadata = { title: "New Program - Tools" };
 
 export default async function NewProgramToolPage() {
   const session = await auth();

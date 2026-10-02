@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import HubAdminList from "@/components/HubAdminList";
 
-export const metadata = { title: "Hubs — Admin" };
+export const metadata = { title: "Hubs - Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminHubsPage({

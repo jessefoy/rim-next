@@ -86,6 +86,13 @@
       "permanent": true
     }
   ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "rim-next.vercel.app" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/send-reminders",

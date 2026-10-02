@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import MembersTable, { type SerializedMember } from "@/components/MembersTable";
 
-export const metadata = { title: "Members — Admin" };
+export const metadata = { title: "Members - Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminMembersPage({

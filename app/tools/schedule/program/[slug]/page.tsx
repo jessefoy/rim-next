@@ -31,7 +31,7 @@ import {
 } from "@/lib/scheduleUtils";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Program staffing — Scheduler" };
+export const metadata = { title: "Program staffing - Scheduler" };
 
 const TZ = "America/Chicago";
 

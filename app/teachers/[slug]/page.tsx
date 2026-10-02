@@ -4,6 +4,15 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+/** Search-result descriptions for a teacher page. TeacherProfile carries no
+    role column, so a teacher's role line is kept here by slug; any teacher
+    without an entry falls back to the plain form below. When a second teacher
+    is added, a profile field is the better home for this. */
+const TEACHER_DESCRIPTIONS: Record<string, string> = {
+  "jesse-foy":
+    "Jesse Foy, founding and guiding teacher of Rooted in Mindfulness in Brookfield, Wisconsin.",
+};
+
 export async function generateMetadata({
   params,
 }: {
@@ -23,7 +32,9 @@ export async function generateMetadata({
     .join(" ");
   return {
     title: `${name} - Rooted In Mindfulness`,
-    description: profile.bio?.slice(0, 160) || `Teachings by ${name} at Rooted In Mindfulness.`,
+    description:
+      TEACHER_DESCRIPTIONS[slug] ??
+      `${name}, a teacher at Rooted in Mindfulness in Brookfield, Wisconsin.`,
   };
 }
 
