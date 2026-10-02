@@ -90,8 +90,9 @@ export default function WhyWePracticePage() {
               come well, wanting more of the life they already have. Some want a practice that
               finally lasts. Some want to be there better for the people they love, or to let go of
               old judgments and patterns. Some are looking for company on the way, and some for a
-              path that goes all the way. Many come for more than one of these at once, and the
-              reasons tend to widen the longer we stay.
+              path that goes all the way. Some come because the state of the world has left them
+              shaken, or unsure that anything they do can matter. Many come for more than one of
+              these at once, and the reasons tend to widen the longer we stay.
             </p>
             <p>
               If this is a dark time, this practice has room for it, and so do we. Many people have
@@ -134,7 +135,7 @@ export default function WhyWePracticePage() {
               These habits have familiar shapes: grasping at what we want, pushing away what we do
               not, and holding on to old stories about ourselves and others. There is the pain that
               comes with being alive, and there is the suffering we add in reaction to it, the
-              replaying and bracing and blaming. Practice cannot always remove the first. It can
+              replaying and bracing and blaming. Practice cannot always remove the first. We can
               learn to stop adding the second.
             </p>
 
@@ -189,6 +190,14 @@ export default function WhyWePracticePage() {
               fully, stay present when someone is struggling, and speak clearly when something needs
               to change. Care widens too, toward people we used to overlook and toward the
               conditions that shape all our lives.
+            </p>
+            <p>
+              Practice also changes how we meet the wider world. Hard news can leave us stirred up
+              or numb, and helplessness is often part of what we add: real conditions, met with the
+              belief that nothing we do can matter. Seen clearly, there is nearly always something
+              that is ours to do: a steadier response, a kinder word, one act of care taken up with
+              others. Small actions, repeated, change conditions, and none of us has to carry all of
+              it alone.
             </p>
             <p>
               How we teach is informed by mindfulness-based programs, and we keep the practice in
@@ -276,6 +285,11 @@ export default function WhyWePracticePage() {
                 caregivers
               </Link>
               .
+            </p>
+            <p>
+              The tradition we practice in has a name for this way of living: the bodhisattva, who
+              walks the path of awakening for the benefit of all beings, themselves included.{" "}
+              <Link href="/our-roots#for-the-benefit-of-all">Our Roots</Link> says more.
             </p>
             <p>
               Families, communities, and whole societies can lose track of their goodness and their

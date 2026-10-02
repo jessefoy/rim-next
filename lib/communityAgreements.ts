@@ -72,8 +72,8 @@ export const JOIN_HERO_INTRO =
 export const RIM_WHAT_BINDS = "unhealthy patterns of mind and action";
 
 export const RIM_VISION =
-  "To be more awake and present in our lives, and to live with greater " +
-  "freedom from what binds us to " +
+  "To be more awake and present in our lives, and to live freer of what " +
+  "binds us to " +
   RIM_WHAT_BINDS +
   ". This allows us to understand with greater wisdom, and what we " +
   "understand allows us to care with kindness and compassion. From that " +

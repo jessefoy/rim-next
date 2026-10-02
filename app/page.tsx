@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
-import { hasConcludedOneTime } from "@/lib/programUtils";
 import CareCircle from "@/components/CareCircle";
 
 // Lineage terms live here for search, stated as RIM states them (Jesse,
@@ -11,8 +9,6 @@ export const metadata = {
   description:
     "Rooted in Mindfulness is a meditation and dharma community in Brookfield, Wisconsin, near Milwaukee, rooted in the silent illumination tradition and open to everyone. Meditation, mindful living, and Buddhist teachings, in person and online, community-supported. Come as you are.",
 };
-
-export const dynamic = "force-dynamic";
 
 /**
  * The home page states RIM's center first. A visitor meets, in order: hero →
@@ -79,6 +75,10 @@ const PRACTICE_GROUPS = [
     label: "Beyond ourselves",
     items: [
       {
+        title: "Steady in unsettled times",
+        body: "Many people feel shaken, confused, or helpless before the state of the world. Practice gives us steadier ground, a clearer sense of what is ours to do, and the company of others doing it, so that care can grow where helplessness was.",
+      },
+      {
         title: "Our shared world",
         body: "Care that reaches past our own circle. Taking part in what makes our communities healthier, and looking after the living world we are part of.",
       },
@@ -90,72 +90,35 @@ const PRACTICE_GROUPS = [
   },
 ] as const;
 
-// The eight words as the handout pairs them. Read aloud, each row is the two
-// words; the middot between them is visual only.
+// The eight words as the handout pairs them, one row per letter of CARE. Read
+// aloud, each row is its two words; the bold letter is visual (it spells CARE,
+// which the text beside the list says in words).
 const CARE_PAIRS = [
-  ["Calm", "Connect"],
-  ["Aware", "Attitude"],
-  ["Recognize", "Remember"],
-  ["Embody", "Engage"],
+  ["C", "Calm", "Connect"],
+  ["A", "Aware", "Attitude"],
+  ["R", "Recognize", "Remember"],
+  ["E", "Embody", "Engage"],
 ] as const;
 
-export default async function HomePage() {
-  // Immersion's door leads to the catalog chapter holding retreats or events,
-  // found from the live taxonomy by kind rather than a hardcoded slug (the
-  // s170 rule: doors come from data). The catalog only renders a chapter that
-  // still has a listed program after concluded one-time programs drop out
-  // (hideWhenPast), so the same rule picks the chapter here; otherwise the
-  // anchor would point at a section that is not on the page. Falls back to the
-  // whole catalog.
-  const catalogCategories = await db.programCategory.findMany({
-    where: {
-      kind: { in: ["RETREAT", "EVENT", "DROP_IN", "CLASS"] },
-      hideFromProgramsPage: false,
-    },
-    orderBy: { sortOrder: "asc" },
-    select: {
-      slug: true,
-      kind: true,
-      programs: {
-        where: { archivedAt: null, hideFromProgramPageList: false },
-        select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, hideWhenPast: true },
-      },
-    },
-  });
-  const chapterHref = (kinds: string[]) => {
-    const chapter = catalogCategories.find(
-      (c) =>
-        c.kind !== null &&
-        kinds.includes(c.kind) &&
-        c.programs.some((p) => !(p.hideWhenPast && hasConcludedOneTime(p)))
-    );
-    return chapter ? `/community-programs#${chapter.slug}` : "/community-programs";
-  };
-  const immersionHref = chapterHref(["RETREAT", "EVENT"]);
-  // Learning & Practice leads to the catalog's drop-ins-and-series chapter
-  // (Addendum C2: the programs page first, This Week second), found the same
-  // way, never by a hardcoded slug.
-  const learningHref = chapterHref(["DROP_IN", "CLASS"]);
-
+export default function HomePage() {
   const PATHWAY = [
     {
       title: "Foundations",
-      // Foundations will be generated from the Program Manager as a program;
-      // until it exists, the door leads to the programs list (Jesse,
-      // 2026-09-25). Point it at /programs/<slug> once the program is built.
-      // Held in the draft: one line on where to begin before November.
+      // Its own page (2026-10-01, the integration brief, A12/A13). Foundations
+      // is not a Program yet; when it is, this page keeps its job and the
+      // dated listing lives with the program.
       body: "Finding your footing in meditation and mindful living. This is where we encourage everyone to begin. First offered in November.",
-      href: "/community-programs",
+      href: "/foundations",
     },
     {
       title: "Learning & Practice",
       body: "Drop-in gatherings and series throughout the week, in person and online.",
-      href: learningHref,
+      href: "/community-programs#learning-and-practice",
     },
     {
       title: "Immersion",
       body: "Workshops, practice days, and retreats, with time to settle more fully into the practice.",
-      href: immersionHref,
+      href: "/community-programs#immersion",
     },
   ];
 
@@ -233,7 +196,7 @@ export default async function HomePage() {
         <div className="rim-container">
           <div className="home-chapter home-statement">
             <div className="home-chapter__head">
-              <h2 className="pp-intro__title">What brings us together</h2>
+              <h2 className="pp-intro__title">What brings us together.</h2>
             </div>
             <div className="home-chapter__body">
               <p className="home-lead">
@@ -358,13 +321,14 @@ export default async function HomePage() {
               <CareCircle />
             </figure>
             <ul className="home-care-words">
-              {CARE_PAIRS.map(([first, second]) => (
-                <li key={first}>
-                  <span>{first}</span>
-                  <span className="home-care-words__dot" aria-hidden="true">
-                    ·
+              {CARE_PAIRS.map(([letter, first, second]) => (
+                <li key={letter}>
+                  <strong className="home-care-words__letter" aria-hidden="true">
+                    {letter}
+                  </strong>
+                  <span>
+                    {first}, {second}
                   </span>
-                  <span>{second}</span>
                 </li>
               ))}
             </ul>
@@ -424,8 +388,8 @@ export default async function HomePage() {
                   also known as Zen. The eight words of CARE are practiced in its spirit.
                 </p>
                 <p className="pp-intro__body">
-                  We draw on the breadth of Buddhist teachings, gathered and organized as A Handful
-                  of Leaves. We teach plainly, through practice and inquiry. Mindfulness-based
+                  We draw on the breadth of Buddhist teachings, gathered and organized as{" "}
+                  <Link href="/handful-of-leaves">A Handful of Leaves</Link>. We teach plainly, through practice and inquiry. Mindfulness-based
                   programs, psychology, and modern science also inform how we teach.
                 </p>
                 <p className="pp-intro__body">
@@ -472,12 +436,13 @@ export default async function HomePage() {
               </p>
               <p className="pp-intro__body">
                 Taking CARE is offered in three ways, and each one carries the whole practice. No
-                previous experience is needed. Until Foundations begins in November, every gathering
-                is open to you, and the drop-ins are the easiest way in.{" "}
+                previous experience is needed. Every gathering is open to you, and the drop-ins are
+                the easiest way in.{" "}
                 <Link href="/programs/meditation-and-dharma-talk">Meditation and Dharma Talk</Link>,
                 on Saturday mornings, brings guided practice and a teaching together and makes a
-                welcoming first visit. You can explore the options below or visit New to RIM for
-                help getting started.
+                welcoming first visit. Foundations, the fuller introduction, is first offered in
+                November. You can explore the options below or visit New to RIM for help getting
+                started.
               </p>
               <p className="pp-intro__body">
                 We ask the same of everyone who comes: to hold our{" "}
@@ -575,7 +540,7 @@ export default async function HomePage() {
             <div className="pp-split__body">
               <div className="pp-intro">
                 <p className="pp-intro__eyebrow">Dana</p>
-                <h2 className="pp-intro__title">A Generosity-Based Approach</h2>
+                <h2 className="pp-intro__title">A generosity-based approach.</h2>
                 <p className="pp-intro__body">
                   The teachings here are given as a gift, and RIM is sustained by the people who
                   practice here. That support includes financial gifts, and RIM could not exist

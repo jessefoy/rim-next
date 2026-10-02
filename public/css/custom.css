@@ -28877,7 +28877,7 @@ a.pp-card.tpr-card {
   border-top: 1px solid var(--rim-rule);
   padding: var(--space-2) 0;
 }
-.home-care-words__dot { color: var(--rim-text-muted); }
+.home-care-words__letter { min-width: 1.1em; font-weight: 700; }
 
 /* ── Splits: Deep roots (image right) and Dana (image left) ─────────────── */
 .home-page .pp-split__body .pp-intro { margin-bottom: 0; }
@@ -29054,6 +29054,94 @@ a.pp-card.home-paths__card {
 .pp-actions + .pp-prose.pp-prose--sections { margin-top: var(--space-6); }
 @media (max-width: 768px) {
   .pp-actions + .pp-prose.pp-prose--sections { margin-top: var(--space-5); }
+}
+
+/* ===================================================================
+   PROGRAMS BY THE THREE WAYS — /community-programs (2026-10-01,
+   the integration brief, A16)
+   The catalog is organized as Foundations, Learning & Practice, Immersion,
+   Community Groups, Events. Each chapter may carry a one-sentence
+   introduction under its heading; Learning & Practice carries a subheading
+   ("Silent sits") over its second group of cards. Cadence stays 96 between
+   chapters, 36 under a heading, 24 between cards (the subheading splits two
+   card groups, so it is smaller: 48 above, 24 below).
+   =================================================================== */
+.pl-cat__intro,
+.pl-cat__note {
+  max-width: var(--reading-width);
+  margin: 12px 0 0;
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  text-wrap: pretty;
+}
+/* "Upcoming dates will be listed here." stands where the cards would. */
+.pl-cat__note { margin: 0; }
+.pl-cat__subheading {
+  margin: 48px 0 24px;
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+}
+/* A card with no "when" column (Foundations has no dates yet): two columns, so
+   the arrow stays on the right edge instead of floating in the middle. */
+.pl-page .pl-card--catalog.pl-card--solo .pl-card__content { grid-template-columns: minmax(0, 1fr) 40px; }
+
+/* A program with no pull quote (the integration brief, A23, removes the
+   Meditation and Dharma Talk epigraph). The hero keeps its bottom padding as
+   the quote card's landing zone, and the content has nothing to hold it off
+   the hero's edge, so both close up: a hero sized to its words, and the
+   content starting a quote card's margin below it. */
+.pg-hero.pg-hero--no-quote { padding-bottom: 96px; }
+.pg-content.pg-content--no-quote { padding-top: 56px; }
+@media (max-width: 767px) {
+  .pg-hero.pg-hero--no-quote { padding-bottom: 64px; }
+  .pg-content.pg-content--no-quote { padding-top: 40px; }
+}
+@media (max-width: 430px) {
+  .pg-hero.pg-hero--no-quote { padding-bottom: 56px; }
+}
+
+/* ── The shared program block (A17): a recede panel, the same surface as a
+   program's Notes, between "Gathering details" and "Facilitators". ───────── */
+.pg-page .pg-shared {
+  box-sizing: border-box;
+  margin: 0 0 38px;
+  padding: 26px 30px 12px;
+}
+.pg-shared__text {
+  margin: 0;
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  text-wrap: pretty;
+}
+.pg-shared__link {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  margin: 0 0 14px;
+  color: var(--rim-blue);
+  font-size: var(--text-small);
+  font-weight: 600;
+  text-decoration: none;
+}
+.pg-shared__link:hover { text-decoration: underline; }
+.pg-shared__link:focus-visible {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .pg-page .pg-shared { margin-bottom: 32px; padding: 22px 20px 10px; }
+}
+@media (max-width: 860px) {
+  .pl-page .pl-card--catalog.pl-card--solo .pl-card__content { grid-template-areas: "main action"; }
+}
+@media (max-width: 430px) {
+  .pl-cat__subheading { margin: 40px 0 20px; }
 }
 
 /* ===================================================================

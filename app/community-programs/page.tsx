@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { CHAPTERS } from "@/lib/programChapters";
 import HashTargetScroller from "@/components/HashTargetScroller";
 import ProgramCardNotices from "@/components/ProgramCardNotices";
 import PracticeWithUs from "@/components/PracticeWithUs";
@@ -50,16 +52,22 @@ function datedEventLead(start: Date, end: Date | null): { lead: string; year: nu
   return { lead: `${sMonth} ${s.d}`, year: s.y };
 }
 
+type ListedProgram = Awaited<ReturnType<typeof loadPrograms>>[number];
+
+async function loadPrograms() {
+  return db.program.findMany({
+    where: {
+      hideFromProgramPageList: false,
+      archivedAt: null,
+    },
+    include: { category: true },
+    orderBy: { sortOrder: "asc" },
+  });
+}
+
 export default async function CommunityProgramsPage() {
   const [allPrograms, categories] = await Promise.all([
-    db.program.findMany({
-      where: {
-        hideFromProgramPageList: false,
-        archivedAt: null,
-      },
-      include: { category: true },
-      orderBy: { sortOrder: "asc" },
-    }),
+    loadPrograms(),
     db.programCategory.findMany({
       where: { hideFromProgramsPage: false },
       orderBy: { sortOrder: "asc" },
@@ -69,8 +77,103 @@ export default async function CommunityProgramsPage() {
   // A concluded one-time program leaves the listing on its own the day after
   // its date, unless the editor opted out (hideWhenPast, default true).
   const todayYmd = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
-  const isOneTime = (p: (typeof allPrograms)[number]) => !p.recurrenceFreq && !!p.startDatetime;
-  const programs = allPrograms.filter((p) => !(p.hideWhenPast && hasConcludedOneTime(p)));
+  const currentYear = Number(todayYmd.split("-")[0]);
+  const isOneTime = (p: ListedProgram) => !p.recurrenceFreq && !!p.startDatetime;
+  const visibleSlugs = new Set(categories.map((c) => c.slug));
+  const programs = allPrograms.filter(
+    (p) =>
+      !(p.hideWhenPast && hasConcludedOneTime(p)) &&
+      !!p.category &&
+      visibleSlugs.has(p.category.slug)
+  );
+  const inCategories = (slugs: string[]) =>
+    programs.filter((p) => !!p.category && slugs.includes(p.category.slug));
+
+  const mappedSlugs = new Set(CHAPTERS.flatMap((c) => c.groups.flatMap((g) => g.slugs)));
+  const otherCategories = categories.filter((c) => !mappedSlugs.has(c.slug));
+
+  /** One program as a card: date-led for an upcoming one-time program, the
+      schedule and format held right for everything else. */
+  const renderCard = (program: ListedProgram): ReactNode => {
+    const format = fmtLabel(program.programFormat);
+
+    // One-time upcoming: keep the date prominent with the scheduling facts,
+    // but keep every program title on the same leading edge. A
+    // past-but-kept-listed program falls through to the plain card; a stale
+    // date isn't showcased.
+    if (isOneTime(program) && !hasConcludedOneTime(program)) {
+      const { lead, year } = datedEventLead(program.startDatetime!, program.endDatetime);
+      // Prefer the coordinator's dateText (the same override order
+      // buildSubtitle uses); it's the cached computed label in practice, but
+      // an override must win here too.
+      const fullDate =
+        program.dateText ||
+        computeDateText(program.startDatetime, null, null, null, program.endDatetime);
+      const time = program.timeText || computeTimeText(program.startDatetime, program.endDatetime);
+
+      return (
+        <Link
+          key={program.id}
+          href={`/programs/${program.slug}`}
+          className="pl-card pl-card--catalog pl-card--date"
+        >
+          <div className="pl-card__content">
+            <div className="pl-card__main">
+              <div className="pl-card__title-row">
+                <h3 className="pl-card__title">{program.name}</h3>
+              </div>
+              {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
+              <ProgramCardNotices announcement={program.specialAnnouncement} />
+            </div>
+            <div className="pl-card__when">
+              <time
+                className="pl-card__date"
+                dateTime={program.startDatetime!.toISOString()}
+                aria-label={fullDate}
+              >
+                {lead}
+                {year !== currentYear && <span className="pl-card__date-year">{year}</span>}
+              </time>
+              {time && <span className="pl-card__schedule">{time}</span>}
+              {format && <span className="pl-card__format">{format}</span>}
+            </div>
+            <span className="pl-card__action" aria-hidden="true">→</span>
+          </div>
+        </Link>
+      );
+    }
+
+    const fullSubtitle = buildSubtitle(program);
+    const schedule = fullSubtitle?.endsWith(` | ${format}`)
+      ? fullSubtitle.slice(0, -(` | ${format}`).length)
+      : fullSubtitle;
+
+    return (
+      <Link
+        key={program.id}
+        href={`/programs/${program.slug}`}
+        className="pl-card pl-card--catalog"
+      >
+        <div className="pl-card__content">
+          <div className="pl-card__main">
+            <div className="pl-card__title-row">
+              <h3 className="pl-card__title">{program.name}</h3>
+            </div>
+            {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
+            <ProgramCardNotices announcement={program.specialAnnouncement} />
+          </div>
+          {/* What it is on the left, when and how on the right. The card is
+              900px wide and the copy ran out around 560, leaving the arrow
+              floating alone. */}
+          <div className="pl-card__when">
+            {schedule && <span className="pl-card__schedule">{schedule}</span>}
+            {format && <span className="pl-card__format">{format}</span>}
+          </div>
+          <span className="pl-card__action" aria-hidden="true">→</span>
+        </div>
+      </Link>
+    );
+  };
 
   return (
     <div className="pl-page">
@@ -101,123 +204,76 @@ export default async function CommunityProgramsPage() {
         </div>
       </section>
 
-      {/* ── Program Listings ─────────────────────────────── */}
+      {/* ── Program Listings, by the three ways ───────────── */}
       <section className="pl-catalog">
         <div className="rim-container">
-          {categories.map((category) => {
-            const categoryPrograms = programs.filter(
-              (p) => p.category?.name === category.name
-            );
-            if (categoryPrograms.length === 0) return null;
-            const categoryHeading = categoryDisplayName(category.name);
+          {/* Foundations: one card, even with no dates set. The id is the
+              anchor other pages may link (/community-programs#foundations). */}
+          <div id="foundations" className="pl-cat">
+            <div className="pl-cat__header">
+              <h2 className="pl-cat__heading">Foundations</h2>
+              <p className="pl-cat__intro">
+                Where we encourage everyone to begin. First offered in November.
+              </p>
+            </div>
+            <div className="pl-grid">
+              <Link href="/foundations" className="pl-card pl-card--catalog pl-card--solo">
+                <div className="pl-card__content">
+                  <div className="pl-card__main">
+                    <div className="pl-card__title-row">
+                      <h3 className="pl-card__title">Foundations</h3>
+                    </div>
+                    <span className="pl-card__tagline">
+                      Finding your footing in meditation and mindful living.
+                    </span>
+                  </div>
+                  <span className="pl-card__action" aria-hidden="true">→</span>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {CHAPTERS.map((chapter) => {
+            const groups = chapter.groups
+              .map((g) => ({ ...g, programs: inCategories(g.slugs) }))
+              .filter((g) => g.programs.length > 0);
+            if (groups.length === 0 && !chapter.emptyNote) return null;
 
             return (
-              // The id is the anchor the home page's category doors deep-link
-              // to (/community-programs#<slug>).
+              // The id is the anchor the home page's doors deep-link to
+              // (/community-programs#learning-and-practice, #immersion).
+              <div key={chapter.id} id={chapter.id} className="pl-cat">
+                <div className="pl-cat__header">
+                  <h2 className="pl-cat__heading">{chapter.title}</h2>
+                  {chapter.intro && <p className="pl-cat__intro">{chapter.intro}</p>}
+                </div>
+                {groups.length === 0 ? (
+                  <p className="pl-cat__note">{chapter.emptyNote}</p>
+                ) : (
+                  groups.map((group, i) => (
+                    <div key={group.slugs.join("+")}>
+                      {group.subheading && i > 0 && (
+                        <h3 className="pl-cat__subheading">{group.subheading}</h3>
+                      )}
+                      <div className="pl-grid">{group.programs.map(renderCard)}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            );
+          })}
+
+          {/* A category the chapters above do not name keeps its own heading
+              (a category added in Program Manager is never silently missing). */}
+          {otherCategories.map((category) => {
+            const categoryPrograms = programs.filter((p) => p.category?.slug === category.slug);
+            if (categoryPrograms.length === 0) return null;
+            return (
               <div key={category.id} id={category.slug} className="pl-cat">
                 <div className="pl-cat__header">
-                  <h2 className="pl-cat__heading">{categoryHeading}</h2>
+                  <h2 className="pl-cat__heading">{categoryDisplayName(category.name)}</h2>
                 </div>
-                <div className="pl-grid">
-                  {categoryPrograms.map((program) => {
-                    const format = fmtLabel(program.programFormat);
-
-                    // One-time upcoming: keep the date prominent with the
-                    // scheduling facts, but keep every program title on the
-                    // same leading edge. A past-but-kept-listed program falls
-                    // through to the plain card; a stale date isn't showcased.
-                    if (isOneTime(program) && !hasConcludedOneTime(program)) {
-                      const { lead, year } = datedEventLead(
-                        program.startDatetime!,
-                        program.endDatetime
-                      );
-                      const currentYear = Number(todayYmd.split("-")[0]);
-                      // Prefer the coordinator's dateText (the same override
-                      // order buildSubtitle uses); it's the cached computed
-                      // label in practice, but an override must win here too.
-                      const fullDate =
-                        program.dateText ||
-                        computeDateText(
-                          program.startDatetime, null, null, null, program.endDatetime
-                        );
-                      const time =
-                        program.timeText ||
-                        computeTimeText(program.startDatetime, program.endDatetime);
-
-                      return (
-                        <Link
-                          key={program.id}
-                          href={`/programs/${program.slug}`}
-                          className="pl-card pl-card--catalog pl-card--date"
-                        >
-                          <div className="pl-card__content">
-                            <div className="pl-card__main">
-                              <div className="pl-card__title-row">
-                                <h3 className="pl-card__title">{program.name}</h3>
-                              </div>
-                              {program.tagline && (
-                                <span className="pl-card__tagline">{program.tagline}</span>
-                              )}
-                              <ProgramCardNotices
-                                announcement={program.specialAnnouncement}
-                              />
-                            </div>
-                            <div className="pl-card__when">
-                              <time
-                                className="pl-card__date"
-                                dateTime={program.startDatetime!.toISOString()}
-                                aria-label={fullDate}
-                              >
-                                {lead}
-                                {year !== currentYear && (
-                                  <span className="pl-card__date-year">{year}</span>
-                                )}
-                              </time>
-                              {time && <span className="pl-card__schedule">{time}</span>}
-                              {format && <span className="pl-card__format">{format}</span>}
-                            </div>
-                            <span className="pl-card__action" aria-hidden="true">→</span>
-                          </div>
-                        </Link>
-                      );
-                    }
-
-                    const fullSubtitle = buildSubtitle(program);
-                    const schedule = fullSubtitle?.endsWith(` | ${format}`)
-                      ? fullSubtitle.slice(0, -(` | ${format}`).length)
-                      : fullSubtitle;
-
-                    return (
-                      <Link
-                        key={program.id}
-                        href={`/programs/${program.slug}`}
-                        className="pl-card pl-card--catalog"
-                      >
-                        <div className="pl-card__content">
-                          <div className="pl-card__main">
-                            <div className="pl-card__title-row">
-                              <h3 className="pl-card__title">{program.name}</h3>
-                            </div>
-                            {program.tagline && (
-                              <span className="pl-card__tagline">{program.tagline}</span>
-                            )}
-                            <ProgramCardNotices
-                              announcement={program.specialAnnouncement}
-                            />
-                          </div>
-                          {/* What it is on the left, when and how on the right.
-                              The card is 900px wide and the copy ran out around
-                              560, leaving the arrow floating alone. */}
-                          <div className="pl-card__when">
-                            {schedule && <span className="pl-card__schedule">{schedule}</span>}
-                            {format && <span className="pl-card__format">{format}</span>}
-                          </div>
-                          <span className="pl-card__action" aria-hidden="true">→</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
+                <div className="pl-grid">{categoryPrograms.map(renderCard)}</div>
               </div>
             );
           })}

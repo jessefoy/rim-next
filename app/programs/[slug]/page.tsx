@@ -6,6 +6,8 @@ import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import { isOpenlyDroppable } from "@/lib/programKind";
+import { showsSharedProgramBlock } from "@/lib/programChapters";
+import ProgramSharedBlock from "@/components/ProgramSharedBlock";
 
 export const dynamic = "force-dynamic";
 
@@ -177,7 +179,7 @@ export default async function ProgramDetailPage({
 
       {/* ── Hero header ── */}
       <header
-        className="pg-hero"
+        className={`pg-hero${program.pullQuote ? "" : " pg-hero--no-quote"}`}
         style={{ backgroundImage: `url(${program.programImage || "/images/Bodhi-Leaves.jpg"})` }}
       >
         <div className="pg-hero__inner">
@@ -194,7 +196,7 @@ export default async function ProgramDetailPage({
       </header>
 
       {/* ── Content column ── */}
-      <div className="lp-content pg-content">
+      <div className={`lp-content pg-content${program.pullQuote ? "" : " pg-content--no-quote"}`}>
 
         {/* ── Pull quote card — floats up into hero ── */}
         {program.pullQuote && (
@@ -341,6 +343,10 @@ export default async function ProgramDetailPage({
                 )}
           </div>
         </section>
+
+        {/* ── The block every program in Foundations, Learning & Practice and
+            Immersion shares; not Community Groups or Events. ── */}
+        {showsSharedProgramBlock(program.category?.slug) && <ProgramSharedBlock />}
 
         {/* ── Facilitators section ── */}
         {hasFacilitators && (

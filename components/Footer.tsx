@@ -58,7 +58,7 @@ export default function Footer({ memberArea = false, year: renderedYear }: Foote
       <div className="rim-footer-inner">
         {!memberArea && (
           <>
-            <div className="rim-footer-newsletter">
+            <div className="rim-footer-newsletter" id="newsletter">
               <h3 className="rim-footer-heading">Stay Connected</h3>
               <p className="rim-footer-sub">
                 Sign up for the RIM newsletter for upcoming programs, retreats, and community news.
