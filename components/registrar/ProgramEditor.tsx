@@ -841,8 +841,10 @@ export default function ProgramEditor({
     setError("");
     setSuccess(false);
 
-    if (!pullQuote.trim()) {
-      setError("Every program needs a short quote that captures its spirit.");
+    // The quote is optional (2026-10-02): a program without one renders a
+    // quote-less hero. A source cannot stand without its quote.
+    if (!pullQuote.trim() && pullQuoteSource.trim()) {
+      setError("A quote source needs its quote. Add the quote, or clear the source.");
       return;
     }
 
@@ -1229,14 +1231,14 @@ export default function ProgramEditor({
           <div className="pe-card__section">
             <div className="pe-form">
               <label className="pe-field">
-                <span className="pe-field__label">Pull Quote *</span>
-                <span className="pe-field__help">A short highlighted quote anchors the public program page. Choose a line that captures the spirit of this offering.</span>
-                <input type="text" value={pullQuote} onChange={(e) => setPullQuote(e.target.value)} className="pe-input" required />
+                <span className="pe-field__label">Pull Quote</span>
+                <span className="pe-field__help">Optional. A short highlighted quote can anchor the public program page. Leave it empty and the page opens straight onto the description.</span>
+                <input type="text" value={pullQuote} onChange={(e) => setPullQuote(e.target.value)} className="pe-input" />
               </label>
 
               <label className="pe-field">
                 <span className="pe-field__label">Pull Quote Source</span>
-                <span className="pe-field__help">Attribute the quote whenever possible. The source appears below it in smaller text.</span>
+                <span className="pe-field__help">Attribute the quote whenever possible. The source appears below it in smaller text. Needs a quote above.</span>
                 <input type="text" value={pullQuoteSource} onChange={(e) => setPullQuoteSource(e.target.value)} className="pe-input" />
               </label>
             </div>

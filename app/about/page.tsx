@@ -5,7 +5,7 @@ import { RIM_ADDRESS, RIM_PHONE_DISPLAY, RIM_PHONE_TEL, RIM_SUPPORT_EMAIL } from
 export const metadata = {
   title: "About RIM - Rooted In Mindfulness",
   description:
-    "Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin, and a dharma community rooted in the Chan tradition. Our vision and mission, what we practice and why, and how we are held.",
+    "Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin, and a dharma community rooted in Chan, the Chinese school of Buddhism also known as Zen. Our vision and mission, what we practice and why, and how we are held.",
 };
 
 /**
@@ -45,9 +45,9 @@ export default function AboutPage() {
             <p>
               Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin,
               serving the Greater Milwaukee area and beyond, in person and online. We are a dharma
-              community rooted in the Chan tradition, and Taking CARE is our root practice: an
-              approach to meditation and mindful living plain enough to begin with and deep enough
-              for a lifetime.
+              community rooted in Chan, and Taking CARE is our root practice: an approach to
+              meditation and mindful living plain enough to begin with and deep enough for a
+              lifetime.
             </p>
 
             <h2>Our vision and mission</h2>

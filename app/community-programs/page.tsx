@@ -245,7 +245,7 @@ export default async function CommunityProgramsPage() {
 
             return (
               // The id is the anchor the home page's doors deep-link to
-              // (/community-programs#learning-and-practice, #immersion).
+              // (/community-programs#ongoing-practice, #immersion).
               <div key={chapter.id} id={chapter.id} className="pl-cat">
                 <div className="pl-cat__header">
                   <h2 className="pl-cat__heading">{chapter.title}</h2>

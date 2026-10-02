@@ -297,7 +297,6 @@ export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu
       href: "/about",
       items: [
         { title: "About RIM", desc: "Who we are, our vision and mission", href: "/about" },
-        { title: "Our Roots", desc: "The shared Dharma, Chan, and A Handful of Leaves", href: "/our-roots" },
         { title: "Diverse Together", desc: "Everyone who shares these intentions belongs", href: "/diversity" },
         { title: "Community Care Agreements", desc: "Our shared vision, and what we ask of members", href: "/community-care-agreements" },
       ],

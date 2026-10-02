@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MemberAreaLink from "@/components/MemberAreaLink";
 
 export const metadata = {
   title: "A Handful of Leaves - Rooted In Mindfulness",
@@ -15,10 +16,11 @@ export const metadata = {
  * (Section 1), built from "A Handful of Leaves: An Introduction". Provisional
  * until Jesse's read-aloud.
  *
- * Two bracketed [Jesse] notes in the draft are left out of the page and listed
- * in the report: (1) confirm that new members receive the introduction and the
- * map, in "Walking it"; (2) name Essential Dharma Study where it is taught, in
- * the same section.
+ * One bracketed [Jesse] note in the draft is left out of the page: name
+ * Essential Dharma Study where it is taught, in "Walking it". The other
+ * (whether new members receive the introduction and the map) was settled
+ * 2026-10-02: they find both in their member area, and "member area" links to
+ * sign-in or, for a signed-in member, to the introduction.
  *
  * Layout is Why We Practice's: a reading column, "On this page" over the six
  * sections (one array feeds the list and the h2 ids so they cannot drift), a
@@ -203,8 +205,9 @@ export default function HandfulOfLeavesPage() {
 
             <SectionHeading id="walking-it" />
             <p>
-              Everyone who joins RIM receives <em>A Handful of Leaves: An Introduction</em> and the
-              full map of its teachings. The map is meant to be returned to, the way one returns to
+              Everyone who joins RIM finds <em>A Handful of Leaves: An Introduction</em> and the
+              full map of its teachings in their <MemberAreaLink>member area</MemberAreaLink>. The
+              map is meant to be returned to, the way one returns to
               a trusted friend with a question. Something arises in practice or in life, and
               somewhere on the map is the place where it belongs and the teachings that meet it.
               One leaf, taken up wholeheartedly, holds the spirit of the whole handful.

@@ -7,7 +7,7 @@ import CareCircle from "@/components/CareCircle";
 export const metadata = {
   title: "Rooted In Mindfulness - Meditation Center - Brookfield - Greater Milwaukee",
   description:
-    "Rooted in Mindfulness is a meditation and dharma community in Brookfield, Wisconsin, near Milwaukee, rooted in the silent illumination tradition and open to everyone. Meditation, mindful living, and Buddhist teachings, in person and online, community-supported. Come as you are.",
+    "Rooted in Mindfulness is a meditation and dharma community in Brookfield, Wisconsin, near Milwaukee, rooted in Chan and its practice of silent illumination, and open to everyone. Meditation, mindful living, and Buddhist teachings, in person and online, community-supported. Come as you are.",
 };
 
 /**
@@ -111,13 +111,13 @@ export default function HomePage() {
       href: "/foundations",
     },
     {
-      title: "Learning & Practice",
-      body: "Drop-in gatherings and series throughout the week, in person and online.",
-      href: "/community-programs#learning-and-practice",
+      title: "Ongoing Practice",
+      body: "Drop-ins, silent meditation, and courses throughout the week, in person and online.",
+      href: "/community-programs#ongoing-practice",
     },
     {
       title: "Immersion",
-      body: "Workshops, practice days, and retreats, with time to settle more fully into the practice.",
+      body: "Workshops, days of mindfulness, and retreats, with time to settle more fully into the practice.",
       href: "/community-programs#immersion",
     },
   ];
@@ -417,7 +417,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Where to begin — the pathway, in Jesse's route names: the three
-             ways Taking CARE is offered (Foundations · Learning & Practice ·
+             ways Taking CARE is offered (Foundations · Ongoing Practice ·
              Immersion), each carrying the whole practice. Outreach moved to
              "Taking part in something larger" (2026-09-28).
              Recovery Dharma's lesson: people cohere when they know both why

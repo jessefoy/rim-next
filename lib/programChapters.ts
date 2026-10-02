@@ -15,7 +15,7 @@
  * category added in Program Manager is never silently missing.
  *
  *   Foundations            no category yet: one card, linking /foundations
- *   Learning & Practice    drop-ins (the weekly gatherings), then "Silent sits"
+ *   Ongoing Practice       drop-ins (the weekly gatherings), then "Silent meditation"
  *   Immersion              classes-courses-workshops, retreats
  *   Community Groups       community-groups-events
  *   Events                 events
@@ -34,18 +34,18 @@ export type Chapter = {
 
 export const CHAPTERS: Chapter[] = [
   {
-    id: "learning-and-practice",
-    title: "Learning & Practice",
+    id: "ongoing-practice",
+    title: "Ongoing Practice",
     intro:
-      "Drop-in gatherings and series through the week, in person and online. Each is complete in itself, and Taking CARE runs through all of them.",
-    groups: [{ slugs: ["drop-ins"] }, { slugs: ["silent-meditation"], subheading: "Silent sits" }],
+      "Drop-ins, silent meditation, and courses through the week, in person and online. The drop-ins are open any week, and they are the easiest way in.",
+    groups: [{ slugs: ["drop-ins"] }, { slugs: ["silent-meditation"], subheading: "Silent meditation" }],
     alwaysShow: true,
   },
   {
     id: "immersion",
     title: "Immersion",
     intro:
-      "Workshops, practice days, and retreats, with time to settle more fully into the practice.",
+      "Workshops, days of mindfulness, and retreats, with time to settle more fully into the practice.",
     groups: [{ slugs: ["classes-courses-workshops", "retreats"] }],
     emptyNote: "Upcoming dates will be listed here.",
   },
@@ -65,9 +65,9 @@ export const CHAPTERS: Chapter[] = [
 
 /** The chapters whose programs carry the shared program block: the "three
     ways" Taking CARE is offered (Foundations, which has no category yet,
-    Learning & Practice, and Immersion). Community Groups are member-led, with
+    Ongoing Practice, and Immersion). Community Groups are member-led, with
     frames of their own, and Events stand apart. */
-const SHARED_BLOCK_CHAPTER_IDS = new Set(["learning-and-practice", "immersion"]);
+const SHARED_BLOCK_CHAPTER_IDS = new Set(["ongoing-practice", "immersion"]);
 
 export function showsSharedProgramBlock(categorySlug: string | null | undefined): boolean {
   if (!categorySlug) return false;

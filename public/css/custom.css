@@ -29149,6 +29149,73 @@ a.pp-card.home-paths__card {
 }
 
 /* ===================================================================
+   A HANDFUL OF LEAVES — member reading pages and the My Home card
+   (the integration follow-up brief, F4)
+   Two members-only documents (/account/handful-of-leaves and its /map): the
+   introduction and the map, rendered from content/handful-of-leaves/. Reading
+   content stays at the 18px reading scale (.rim-content); only the measure and
+   the print rules are set here.
+   =================================================================== */
+.hol-content { max-width: var(--reading-width); }
+.hol-content hr { margin: var(--space-5) 0; }
+.hol-content h2 { margin-top: var(--space-6); }
+.hol-content h2:first-child { margin-top: 0; }
+
+/* My Home: one quiet white surface, like the Today card. */
+.db-handful {
+  box-sizing: border-box;
+  margin: var(--space-4) 0;
+  padding: 24px 28px;
+  border-radius: 14px;
+  background: var(--rim-surface);
+}
+.db-handful .db-handful__title {
+  margin: 0 0 var(--space-1);
+  color: var(--rim-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+}
+.db-handful .db-handful__text {
+  max-width: 65ch;
+  margin: 0;
+  color: var(--rim-text);
+  font-size: var(--text-app);
+  line-height: var(--lh-app, 1.55);
+}
+.db-handful .rim-home-links { margin: var(--space-1) 0 0; }
+@media (max-width: 430px) {
+  .db-handful { padding: 20px; }
+}
+
+/* Print: either document prints as a clean page. The member header, the rail
+   and the mobile bar drop away; the page becomes black on white at a printed
+   size; headings keep with the text they introduce. */
+@media print {
+  @page { margin: 18mm; }
+  body:has(.hol-reading) { background: #fff; }
+  body:has(.hol-reading) .member-bar,
+  body:has(.hol-reading) .ac-sidebar,
+  body:has(.hol-reading) .ac-mobilebar,
+  body:has(.hol-reading) .ac-backdrop { display: none !important; }
+  body:has(.hol-reading) .ac-layout { display: block; min-height: 0; background: #fff; }
+  body:has(.hol-reading) .ac-content,
+  body:has(.hol-reading) .ac-inner { display: block; width: auto; max-width: none; margin: 0; padding: 0; }
+  .hol-reading { max-width: none; padding: 0; }
+  .hol-reading .ac-page-title { font-size: 24pt; color: #000; }
+  .hol-reading .hol-content { max-width: none; color: #000; }
+  .hol-reading .hol-content p,
+  .hol-reading .hol-content li { orphans: 3; widows: 3; margin: 0 0 0.7em; font-size: 11.5pt; line-height: 1.5; color: #000; }
+  .hol-reading .hol-content h2,
+  .hol-reading .hol-content h3 { color: #000; break-after: avoid; page-break-after: avoid; }
+  .hol-reading .hol-content h2 { margin: 1.5em 0 0.5em; font-size: 16pt; }
+  .hol-reading .hol-content h3 { margin: 1.2em 0 0.4em; font-size: 13pt; }
+  .hol-reading .hol-content hr { break-after: avoid; margin: 1.2em 0; }
+  .hol-content a { color: inherit; text-decoration: none; }
+}
+
+/* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).
    Presentation only: no route, permission, data, or integration changes.
