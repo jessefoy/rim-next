@@ -66,7 +66,7 @@ export default function CarePage() {
           <div className="pp-prose">
             <p>
               This is an introduction to how we practice at Rooted in Mindfulness. Taking CARE is our
-              root practice, present in everything we offer, and it is also a program anyone can
+              way of practice, present in everything we offer, and it is also a program anyone can
               take part in, beginning with Foundations. It is meant to be practiced rather than
               thought about, so that we see for ourselves what each word is and what we find there.
             </p>

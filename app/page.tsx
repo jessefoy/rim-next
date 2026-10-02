@@ -2,12 +2,13 @@ import Link from "next/link";
 import CareCircle from "@/components/CareCircle";
 
 // Lineage terms live here for search, stated as RIM states them (Jesse,
-// 2026-09-25): a dharma community rooted in Chan silent illumination, not an
-// insight / vipassana center.
+// 2026-10-02): a dharma community grounded in traditional Buddhist wisdom, with
+// silent illumination at the heart of its practice (RIM is not strictly Chan),
+// not an insight / vipassana center.
 export const metadata = {
   title: "Rooted In Mindfulness - Meditation Center - Brookfield - Greater Milwaukee",
   description:
-    "Rooted in Mindfulness is a meditation and dharma community in Brookfield, Wisconsin, near Milwaukee, rooted in Chan and its practice of silent illumination, and open to everyone. Meditation, mindful living, and Buddhist teachings, in person and online, community-supported. Come as you are.",
+    "Rooted in Mindfulness is a meditation and dharma community in Brookfield, Wisconsin, near Milwaukee, grounded in traditional Buddhist wisdom and open to everyone. Meditation, mindful living, and Buddhist teachings, in person and online, community-supported. Come as you are.",
 };
 
 /**
@@ -308,9 +309,10 @@ export default function HomePage() {
             </div>
             <div className="home-chapter__body">
               <p className="pp-intro__body">
-                Taking CARE is our approach to meditation and mindful living. It is our root
-                practice, present in everything we offer, and it is also a program anyone can take
-                part in, beginning with Foundations.
+                Taking CARE is our mindfulness-based approach to meditation and mindful living, true
+                to the traditional teachings that arise out of Buddhism. It is the way we practice
+                in everything we offer, and it is also a program anyone can take part in, beginning
+                with Foundations.
               </p>
               <p className="pp-intro__body">Eight words describe this practice:</p>
             </div>
@@ -395,8 +397,8 @@ export default function HomePage() {
                 <p className="pp-intro__body">
                   You do not need to be Buddhist or hold any religious belief to practice here.
                   Secular and spiritual seekers sit side by side. Some come for a steadier way
-                  through stress or for meditation and company. Others want to study the Dharma, the
-                  Buddha&rsquo;s teachings, and pursue the path in depth.
+                  through stress or for meditation and company. Others want to study the Dharma,
+                  Buddhist teachings, and pursue the path in depth.
                 </p>
                 <p className="pp-intro__body">
                   Our roots give the practice depth. They do not determine who belongs here.

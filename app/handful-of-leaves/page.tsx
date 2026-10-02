@@ -200,12 +200,13 @@ export default function HandfulOfLeavesPage() {
 
             <SectionHeading id="walking-it" />
             <p>
-              Everyone who joins RIM finds <em>A Handful of Leaves: An Introduction</em> and the
-              full map of its teachings in their <MemberAreaLink>member area</MemberAreaLink>. The
-              map is meant to be returned to, the way one returns to
-              a trusted friend with a question. Something arises in practice or in life, and
-              somewhere on the map is the place where it belongs and the teachings that meet it.
-              One leaf, taken up wholeheartedly, holds the spirit of the whole handful.
+              Members can explore the handful in their{" "}
+              <MemberAreaLink>member area</MemberAreaLink>, beginning with{" "}
+              <em>A Handful of Leaves: An Introduction</em> and the map of its teachings. The map
+              is meant to be returned to, the way one returns to a trusted friend with a question.
+              Something arises in practice or in life, and somewhere on the map is the place where
+              it belongs and the teachings that meet it. One leaf, taken up wholeheartedly, holds
+              the spirit of the whole handful.
             </p>
             <p>
               We explore the handful together in our ongoing learning and practice, and Foundations

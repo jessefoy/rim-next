@@ -42,7 +42,7 @@ export default function FoundationsPage() {
           <div className="pp-prose">
             <p>
               Foundations is where we encourage everyone to begin. It is a welcoming introduction
-              to Taking CARE, our root practice, through guided meditation, teaching, reflection,
+              to Taking CARE, our way of practice, through guided meditation, teaching, reflection,
               and conversation. No experience is needed.
             </p>
             <p>

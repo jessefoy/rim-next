@@ -5,7 +5,7 @@ import { RIM_ADDRESS, RIM_PHONE_DISPLAY, RIM_PHONE_TEL, RIM_SUPPORT_EMAIL } from
 export const metadata = {
   title: "About RIM - Rooted In Mindfulness",
   description:
-    "Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin, and a dharma community rooted in Chan, the Chinese school of Buddhism also known as Zen. Our vision and mission, what we practice and why, and how we are held.",
+    "Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin, and a dharma community grounded in traditional Buddhist wisdom, with silent illumination at the heart of its practice. Our vision and mission, our story, and how we are held.",
 };
 
 /**
@@ -20,8 +20,8 @@ export const metadata = {
  * One job per page: About says who we are and links out to the pages that
  * hold the detail (Taking CARE, Why We Practice, Our Roots, the donate and
  * volunteer pages, the teachers, New to RIM). It holds a summary, the vision
- * and mission, how RIM is held, the teachers, one short history paragraph, and
- * contact.
+ * and mission, how RIM is held, the teachers, how RIM began (four paragraphs,
+ * 2026-10-02, anchor #how-we-began), and contact.
  *
  * The vision and the mission come from ONE source, lib/communityAgreements.ts
  * (never retyped here), so they read the same everywhere; /about#vision is
@@ -45,9 +45,11 @@ export default function AboutPage() {
             <p>
               Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin,
               serving the Greater Milwaukee area and beyond, in person and online. We are a dharma
-              community rooted in Chan, and Taking CARE is our root practice: an approach to
-              meditation and mindful living plain enough to begin with and deep enough for a
-              lifetime.
+              community. At the heart of our practice is an open, settled awareness that meets
+              whatever arrives with warmth, which the tradition calls silent illumination, and we
+              draw on the breadth of traditional Buddhist wisdom and teachings. Taking CARE, our
+              mindfulness-based approach to meditation and mindful living, is how we practice:
+              plain enough to begin with, and deep enough for a lifetime.
             </p>
 
             <h2>Our vision and mission</h2>
@@ -91,11 +93,11 @@ export default function AboutPage() {
           <div className="pp-prose pp-prose--sections">
             <h2>Where it comes from</h2>
             <p>
-              Our roots are in Chan, the Chinese school of Buddhism also known as Zen, which teaches
-              that a luminous, wakeful nature is already present in each of us. We honor the whole
-              of the Dharma, the Buddha&apos;s teachings, as one living family, and draw on it
-              through <Link href="/handful-of-leaves">A Handful of Leaves</Link>. We teach plainly,
-              for people living full modern lives, and our teaching is informed by
+              Silent illumination comes to us from Chan, the Chinese school of Buddhism also known
+              as Zen, which teaches that a luminous, wakeful nature is already present in each of
+              us. We honor every Buddhist tradition as part of one living family, and draw on their
+              teachings through <Link href="/handful-of-leaves">A Handful of Leaves</Link>. We
+              teach plainly, for people living full modern lives, and our teaching is informed by
               mindfulness-based programs, psychology, and modern science. People from every
               tradition, and from none, find support here.
             </p>
@@ -143,12 +145,31 @@ export default function AboutPage() {
           </div>
 
           <div className="pp-prose pp-prose--sections">
-            <h2>How we began</h2>
+            <h2 id="how-we-began">How we began</h2>
             <p>
-              RIM began with one intention: to make mindfulness and contemplative practice available
-              in ways that hold up in an ordinary life. What started as classes became a community
-              with a center of its own, and its Buddhist roots grew more visible along the way. One
-              thing has not changed. The teachings have to be accessible enough to meet people
+              Rooted in Mindfulness began as the name under which our founder, Jesse Foy, taught
+              Mindfulness-Based Stress Reduction in medical settings and other organizations. Over
+              time he began offering these practices by donation, and then in a small practice
+              space of our own. A community formed around it, gathering week after week for
+              ongoing learning and practice.
+            </p>
+            <p>
+              The teaching grew beyond the course it started from. Jesse brought in his education
+              in Buddhism and contemplative psychology from Naropa University, and together we went
+              deeper into the Dharma. In 2016, RIM became a nonprofit dharma center, and its
+              Buddhist roots became visible in name as well as in practice. What people valued from
+              the beginning stayed: plain, welcoming language, and a refuge that asks no one to
+              believe anything.
+            </p>
+            <p>
+              Taking CARE is the next step in that story: a mindfulness-based program, true to
+              traditional Buddhist wisdom and teachings. It carries the accessibility RIM began
+              with and the depth of the Dharma it grew into, in eight plain words anyone can begin
+              with. And through our outreach, the practice goes back out to organizations, where
+              this story began.
+            </p>
+            <p>
+              One thing has not changed. The teachings have to be accessible enough to meet people
               where they are, and deep enough to accompany them for a lifetime.
             </p>
 

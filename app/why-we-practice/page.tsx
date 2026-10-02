@@ -152,8 +152,7 @@ export default function WhyWePracticePage() {
               obeying it, to remember what matters, and to respond with understanding instead of
               repeating the pattern. A caring response depends on understanding what the situation
               needs: listening more closely, speaking firmly, asking for help, or making a change.
-              What we choose there, again and again, becomes who we are. Taking CARE, our root
-              practice, is a way of training this moment.
+              What we choose there, again and again, becomes who we are. Taking CARE is how we train this moment.
             </p>
             <p>
               At first we may recognize a pattern only afterward. Looking back with honesty and care
