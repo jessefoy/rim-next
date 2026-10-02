@@ -3,31 +3,29 @@ import Link from "next/link";
 export const metadata = {
   title: "Our Roots - Rooted In Mindfulness",
   description:
-    "Our roots in Chan, the Chinese school of Buddhism also known as Zen: the luminous mind, silent illumination, and care for the benefit of all, with A Handful of Leaves and Taking CARE, taught plainly for modern lives.",
+    "Buddhist teachings as one family of traditions, silent illumination at the heart of our practice, A Handful of Leaves, and Taking CARE, which grows from all of it. Taught for modern life, and open to anyone.",
 };
 
 /**
  * /our-roots — where the practice comes from (2026-09-25; rewritten
- * 2026-09-30, Revision 10; rewritten as a whole 2026-10-01, the integration
- * brief).
+ * 2026-09-30, Revision 10; 2026-10-01, the integration brief; rewritten as a
+ * whole again 2026-10-02, the history-and-roots brief).
  *
  * COPY SOURCE OF TRUTH: the Obsidian vault,
  *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/08-promotion-site-drafts-integration-2026-10-01.md
- * (Section 3, with E5 and E6 from Section 7), carried by the brief
- * 08-promotion-site-brief-integration-2026-10-01.md (A14). Provisional until
- * Jesse's read-aloud.
+ * (Section 8.6, which supersedes Section 3), carried by the brief
+ * 08-promotion-site-brief-history-roots-2026-10-02.md (H6). Jesse approved
+ * it 2026-10-02.
  *
- * Order: the shared Dharma (one living family), our own root in Chan (the
- * luminous mind, Buddha nature, silent illumination: the hall and the
- * orchestra is this page's one image), the bodhisattva, A Handful of Leaves
- * (one paragraph and a link; its story lives on /handful-of-leaves), Taking
- * CARE rooted in all of it, teaching for modern lives, and anyone.
- *
- * The Thich Nhat Hanh quotation and the closing "everyone who joins receives"
- * line left this page: the name stays in the Handful introduction, and the
- * closing line moved to /handful-of-leaves. Chan is a school; "tradition" is
- * the word for the wider families. Section ids come from the headings so other
- * pages can link to them.
+ * Order: many traditions, one family; silent illumination at the heart of our
+ * practice (the hall and the orchestra is this page's one image); the
+ * bodhisattva; A Handful of Leaves (one paragraph and a link; its story lives
+ * on /handful-of-leaves); Taking CARE, which grows from all of this; modern
+ * life; and anyone. The vocabulary: the roots are the tradition, silent
+ * illumination is the heart of the practice, and Taking CARE grows from the
+ * roots. "Rooted in Chan" and "The shared Dharma" are retired as headings: RIM
+ * is not strictly Chan. Section ids come from the headings so other pages can
+ * link to them (Why We Practice links to #for-the-benefit-of-all).
  */
 export default function OurRootsPage() {
   return (
@@ -45,38 +43,38 @@ export default function OurRootsPage() {
       <section className="pp-section pp-section--last">
         <div className="rim-container">
           <div className="pp-prose pp-prose--sections">
-            <h2 id="the-shared-dharma">The shared Dharma</h2>
+            <h2 id="many-traditions-one-family">Many traditions, one family</h2>
             <p>
-              The Buddha&apos;s teachings, the Dharma, have been practiced for twenty-five
-              centuries. Over that time they grew into many traditions across Asia and now the
-              West, each finding its own words for what the Buddha saw. We honor them as one living
-              family. Each is complete in itself, and none is lessened by being honored alongside
-              the others. We try to hold our own views, Buddhist ones included, lightly enough to
-              keep learning and firmly enough to act on what we care about. People from every
-              tradition, and from none, practice here, and whatever wisdom they bring keeps its
-              place.
+              For twenty-five centuries, Buddhist teachings, the Dharma, have been practiced and
+              passed on. Over that time they grew into many traditions across Asia and now the
+              West, each finding its own words for the same understanding. We honor them as one
+              living family. Each is complete in itself, and none is lessened by being honored
+              alongside the others. We try to hold our own views, Buddhist ones included, lightly
+              enough to keep learning and firmly enough to act on what we care about. People from
+              every tradition, and from none, practice here, and whatever wisdom they bring keeps
+              its place.
             </p>
 
-            <h2 id="rooted-in-chan">Rooted in Chan</h2>
-            <p>
-              Within that family, our roots are in Chan, the Chinese school of Buddhism also known
-              as Zen. One of the Buddha&apos;s earliest teachings says that the mind is luminous,
-              clouded only by what passes through it. Chan understands this luminous, wakeful
-              nature as Buddha nature. It is already present in each of us, clear and free, and it
-              is the source of our capacity for wisdom and compassion. Practice is learning to
-              recognize what clouds it and let it go, and to recognize, cultivate, and protect what
-              helps us realize it, so that more and more of our life is lived from it.
-            </p>
+            <h2 id="at-the-heart-of-our-practice">At the heart of our practice</h2>
             <p>
               At the heart of our practice is silent illumination: an open, settled awareness that
-              meets whatever arrives with warmth. A Chinese teacher named Hongzhi gave it that name
-              nine centuries ago.
+              meets whatever arrives with warmth. It comes to us from Chan, the Chinese school of
+              Buddhism also known as Zen, where a teacher named Hongzhi gave it its name nine
+              centuries ago.
             </p>
             <p>
               It is less one technique than the ground under all of them. Loving-kindness,
               awareness of breathing, and the contemplation of change each have a long history of
               their own. They do not compete. This open awareness is not an instrument in the
               orchestra. It is the hall the music is played in.
+            </p>
+            <p>
+              Behind it is one of the Buddha&apos;s earliest teachings: the mind is luminous,
+              clouded only by what passes through it. Chan understands this luminous, wakeful
+              nature as Buddha nature. It is already present in each of us, clear and free, and it
+              is the source of our capacity for wisdom and compassion. Practice is learning to
+              recognize what clouds it and let it go, and to recognize, cultivate, and protect what
+              helps us realize it, so that more and more of our life is lived from it.
             </p>
 
             <h2 id="for-the-benefit-of-all">For the benefit of all</h2>
@@ -100,24 +98,26 @@ export default function OurRootsPage() {
               <Link href="/handful-of-leaves">More about A Handful of Leaves</Link>
             </p>
 
-            <h2 id="taking-care">Taking CARE, rooted in all of this</h2>
+            <h2 id="taking-care-grows-from-all-of-this">Taking CARE grows from all of this</h2>
             <p>
-              Taking CARE is how we practice all of this together. Its eight words carry the
+              Taking CARE is how we practice all of this together: a mindfulness-based program,
+              true to the traditional wisdom and teachings it grows from. Its eight words carry the
               luminous mind, silent illumination, and the care of the bodhisattva into plain
               language anyone can begin with today. Behind each word stand teachings A Handful of
               Leaves gathers from across the traditions, so there is enough in them for a lifetime.
-              Mindfulness-based programs and modern science help keep the practice practical, and
-              the Dharma keeps it deep.
+              What we learned from mindfulness-based teaching keeps the practice practical, and the
+              Dharma keeps it deep.
             </p>
 
-            <h2 id="for-modern-lives">For modern lives</h2>
+            <h2 id="for-modern-life">For modern life</h2>
             <p>
               We teach for people living full lives, with work, families, and responsibilities, and
               we teach plainly and practically. Our teaching is informed by mindfulness-based
               programs, psychology, and modern science. Much of how we teach grew from years of
-              teaching Mindfulness-Based Stress Reduction, so it will feel familiar if you came to
-              meditation through a course, a class at work, or an app. Those doors are real doors;
-              they led you here.
+              teaching Mindfulness-Based Stress Reduction,{" "}
+              <Link href="/about#how-we-began">where RIM began</Link>, so it will feel familiar if
+              you came to meditation through a course, a class at work, or an app. Those doors are
+              real doors; they led you here.
             </p>
 
             <h2 id="for-anyone">For anyone</h2>

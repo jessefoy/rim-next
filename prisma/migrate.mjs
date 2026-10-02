@@ -4776,8 +4776,6 @@ There's no rush to do anything in particular. The community is here when you're 
 
 **Questions, anytime.** If something feels confusing, or you'd just like to say hello, write to us at [{{supportEmail}}](mailto:{{supportEmail}}). A real person will write back.
 
-Over the next little while, you'll also receive a short series of welcome notes — a gentle orientation to the community and the practice. Take them at your pace.
-
 {{{dashboardButton}}}
 
 With care,

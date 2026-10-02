@@ -17,7 +17,7 @@ export default function ProgramSharedBlock() {
   return (
     <section className="pg-notes pg-shared">
       <p className="pg-shared__text">
-        Taking CARE, our root practice, is present in every RIM gathering.
+        Taking CARE, our way of practice, is present in every RIM gathering.
       </p>
       <Link href="/care" className="pg-shared__link">
         How we practice

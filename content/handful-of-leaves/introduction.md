@@ -22,7 +22,7 @@ Our way of practice takes its name from that afternoon, and it takes its promise
 
 This document introduces that handful: the understanding underneath it, the old name for its spirit, and the seven gatherings of teachings that give it shape. You will also receive the full list of its elements as a companion, the Categories & Elements reference. That list is a map to explore for years. This is the story of why the map exists, and how to walk it.
 
-At RIM, the handful stands behind Taking CARE, our root practice. Taking CARE gathers the whole of practice into eight plain words: Calm, Connect, Aware, Attitude, Recognize, Remember, Embody, and Engage. Each of them opens onto teachings you will find in this handful. The eight words are where we begin and return each day. The handful is where we go deeper, for as long as we wish to.
+At RIM, the handful stands behind Taking CARE, which is how we practice. Taking CARE gathers the whole of practice into eight plain words: Calm, Connect, Aware, Attitude, Recognize, Remember, Embody, and Engage. Each of them opens onto teachings you will find in this handful. The eight words are where we begin and return each day. The handful is where we go deeper, for as long as we wish to.
 
 Whether this is your first week of practice or your fiftieth year, whether you arrived curious, or hurting, or just tired, this introduction was written for you. Come as you are. Nothing in it requires any background. Nothing in it runs out of depth. That is the nature of what it describes.
 

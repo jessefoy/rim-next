@@ -104,7 +104,7 @@ export default function NewToRimPage() {
             <p>
               For a fuller introduction, we encourage everyone to take{" "}
               <Link href="/foundations">Foundations</Link>, a welcoming introduction to Taking
-              CARE, our root practice, through guided meditation, teaching, reflection, and
+              CARE, our way of practice, through guided meditation, teaching, reflection, and
               conversation. Our first Foundations offering begins in November.
             </p>
 

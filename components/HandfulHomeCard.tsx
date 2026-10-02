@@ -14,7 +14,8 @@ export default function HandfulHomeCard() {
         A Handful of Leaves
       </h2>
       <p className="db-handful__text">
-        The introduction to the teachings behind our practice, and the full map of them.
+        A reference for the teachings behind our practice, to return to whenever something
+        arises in practice or in life.
       </p>
       <div className="rim-home-links">
         <Link href={HANDFUL_PATHS.introduction}>
