@@ -34,7 +34,7 @@ const SECTIONS = [
   { id: "the-depth-behind-taking-care", title: "The depth behind Taking CARE" },
   { id: "why-a-handful", title: "Why a handful" },
   { id: "a-practicing-life-gathered", title: "A practicing life, gathered" },
-  { id: "many-doors-one-practice", title: "Many doors, one practice" },
+  { id: "one-practice-many-doors", title: "One practice, many doors" },
   { id: "walking-it", title: "Walking it" },
 ] as const;
 
@@ -177,30 +177,25 @@ export default function HandfulOfLeavesPage() {
               and protect what helps us live from its clarity.
             </p>
 
-            <SectionHeading id="many-doors-one-practice" />
+            <SectionHeading id="one-practice-many-doors" />
             <p>
-              Loving-kindness comes from one lineage, breath awareness from another, the
-              contemplation of change from a third. They do not compete, because they share one
-              ground. As <Link href="/our-roots">Our Roots</Link> describes, the open awareness of
-              silent illumination is the hall every practice is played in.
+              The handful holds many practices: loving-kindness, attention resting with the breath,
+              contemplation of the body and of change. All of them live inside one practice. The
+              open, settled awareness of silent illumination is not an instrument in the
+              orchestra. It is the hall the music is played in.
             </p>
             <p>
-              So the particular practices are doors, each taken up for a time, and each follows a
-              shape simple enough to remember for life: settling first, adding the practice gently,
-              recognizing that what it reveals was already ours, and letting it all return to
-              openness at the end.
+              Each particular practice is a door, taken up for a time, and each follows the same
+              simple shape: we settle first, add the practice gently, recognize that what it
+              reveals was already ours, and let it all return to openness. Whichever door we take,
+              the whole of Taking CARE is there.
             </p>
             <p>
-              The old traditions spoke of the teachings as medicines: many remedies, because there
-              are many ways a heart can ache, all in service of one health. Different seasons of a
-              life call for different doors, and over the years what we gather is a familiarity
-              with our own medicine cabinet.
-            </p>
-            <p>
-              The qualities these practices meet are both uncovered and cultivated. Kindness,
-              patience, and calm are native to the mind, revealed as the clouding thins, and they
-              are strengthened through real practice. A gardener cannot make a rose, and the rose
-              does not flourish without the gardener.
+              The old traditions called the teachings medicines: many remedies for the many ways a
+              heart can ache, all in service of one health. And the qualities they meet are both
+              uncovered and cultivated. A gardener cannot manufacture a rose, and the rose does not
+              flourish without the gardener. Our practice is this kind of work: nothing to
+              fabricate, and a garden that needs us.
             </p>
 
             <SectionHeading id="walking-it" />

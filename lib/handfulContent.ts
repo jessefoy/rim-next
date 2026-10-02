@@ -21,8 +21,14 @@ import { HANDFUL_PATHS, type HandfulSlug } from "@/lib/handfulPaths";
 
 const DIR = path.join(process.cwd(), "content", "handful-of-leaves");
 
-/** Obsidian note names the documents link to, and where each lives on the site. */
+/** Obsidian note names the documents link to, and where each lives on the site.
+    The vault's links name the note (with an alias after a pipe, as Obsidian
+    writes them); "handful-of-leaves-categories-elements-final" is the slug an
+    earlier version of the introduction used, kept so an older derived copy
+    still resolves. */
 const WIKILINK_TARGETS: Record<string, HandfulSlug> = {
+  "A Handful of Leaves — Categories & Elements (Community Edition)": "map",
+  "A Handful of Leaves — An Introduction": "introduction",
   "handful-of-leaves-categories-elements-final": "map",
 };
 
@@ -50,8 +56,9 @@ export function loadHandfulDoc(slug: HandfulSlug): HandfulDoc {
   const title = titleOf(source);
   const withoutTitle = source.replace(/^# .+\n/, "");
 
-  // [[note-name]] or [[note-name|shown text]] becomes a link to the member
-  // page for that note, shown as the note's own title unless an alias is given.
+  // [[Note name]] or [[Note name|Shown text]] becomes a link to the member page
+  // for that note: the alias is shown once, as the link text; with no alias the
+  // note's own title is shown.
   const linked = withoutTitle.replace(
     /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
     (_whole, target: string, alias?: string) => {

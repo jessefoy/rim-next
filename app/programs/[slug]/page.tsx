@@ -344,7 +344,7 @@ export default async function ProgramDetailPage({
           </div>
         </section>
 
-        {/* ── The block every program in Foundations, Ongoing Practice and
+        {/* ── The block every program in Foundations, Ongoing Learning & Practice and
             Immersion shares; not Community Groups or Events. ── */}
         {showsSharedProgramBlock(program.category?.slug) && <ProgramSharedBlock />}
 

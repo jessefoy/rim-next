@@ -47,8 +47,9 @@ export default function FoundationsPage() {
             </p>
             <p>
               Taking CARE is offered in three ways, and Foundations is the first. From there,
-              practice continues through Ongoing Practice, our drop-ins and courses through the
-              week, and deepens through Immersion: workshops, days of mindfulness, and retreats.
+              practice continues through Ongoing Learning &amp; Practice, our drop-ins and courses
+              through the week, and deepens through Immersion: workshops, days of mindfulness, and
+              retreats.
             </p>
             <p>
               Our first Foundations offering begins in November. Its dates, times, and format will

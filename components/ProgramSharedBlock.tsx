@@ -3,7 +3,7 @@ import Link from "next/link";
 /**
  * The shared block on a program's page (2026-10-01, the integration brief,
  * A17; words from the brief's Part B4). It sits after "Gathering details" and
- * before "Facilitators" on every program in Foundations, Ongoing Practice,
+ * before "Facilitators" on every program in Foundations, Ongoing Learning & Practice,
  * and Immersion, and not on Community Groups or Events (see
  * lib/programChapters.ts). It says the two things true of every such program,
  * once, so each program's own text does not have to: Taking CARE runs through

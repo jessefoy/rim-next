@@ -111,9 +111,9 @@ export default function HomePage() {
       href: "/foundations",
     },
     {
-      title: "Ongoing Practice",
+      title: "Ongoing Learning & Practice",
       body: "Drop-ins, silent meditation, and courses throughout the week, in person and online.",
-      href: "/community-programs#ongoing-practice",
+      href: "/community-programs#ongoing-learning-and-practice",
     },
     {
       title: "Immersion",
@@ -417,7 +417,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Where to begin — the pathway, in Jesse's route names: the three
-             ways Taking CARE is offered (Foundations · Ongoing Practice ·
+             ways Taking CARE is offered (Foundations · Ongoing Learning & Practice ·
              Immersion), each carrying the whole practice. Outreach moved to
              "Taking part in something larger" (2026-09-28).
              Recovery Dharma's lesson: people cohere when they know both why

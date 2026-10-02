@@ -15,7 +15,7 @@
  * category added in Program Manager is never silently missing.
  *
  *   Foundations            no category yet: one card, linking /foundations
- *   Ongoing Practice       drop-ins (the weekly gatherings), then "Silent meditation"
+ *   Ongoing Learning & Practice   drop-ins (the weekly gatherings), then "Silent meditation"
  *   Immersion              classes-courses-workshops, retreats
  *   Community Groups       community-groups-events
  *   Events                 events
@@ -34,8 +34,8 @@ export type Chapter = {
 
 export const CHAPTERS: Chapter[] = [
   {
-    id: "ongoing-practice",
-    title: "Ongoing Practice",
+    id: "ongoing-learning-and-practice",
+    title: "Ongoing Learning & Practice",
     intro:
       "Drop-ins, silent meditation, and courses through the week, in person and online. The drop-ins are open any week, and they are the easiest way in.",
     groups: [{ slugs: ["drop-ins"] }, { slugs: ["silent-meditation"], subheading: "Silent meditation" }],
@@ -65,9 +65,9 @@ export const CHAPTERS: Chapter[] = [
 
 /** The chapters whose programs carry the shared program block: the "three
     ways" Taking CARE is offered (Foundations, which has no category yet,
-    Ongoing Practice, and Immersion). Community Groups are member-led, with
+    Ongoing Learning & Practice, and Immersion). Community Groups are member-led, with
     frames of their own, and Events stand apart. */
-const SHARED_BLOCK_CHAPTER_IDS = new Set(["ongoing-practice", "immersion"]);
+const SHARED_BLOCK_CHAPTER_IDS = new Set(["ongoing-learning-and-practice", "immersion"]);
 
 export function showsSharedProgramBlock(categorySlug: string | null | undefined): boolean {
   if (!categorySlug) return false;

@@ -1,14 +1,14 @@
 ---
 type: website-page
 derives_from: ["A Handful of Leaves — An Introduction"]
-sources_as_of: 2026-10-01
+sources_as_of: 2026-10-02
 status: living
 ---
 # A Handful of Leaves: An Introduction
 
 ## What We Practice at Rooted In Mindfulness
 
-*Companion document: the full list of the seven gatherings and their elements lives in [[handful-of-leaves-categories-elements-final]] (A Handful of Leaves: Categories & Elements, Final Reference). This introduction refers to it throughout as the companion list.*
+*Companion document: the full list of the seven gatherings and their elements lives in [[A Handful of Leaves — Categories & Elements (Community Edition)|A Handful of Leaves: Categories & Elements]]. This introduction refers to it throughout as the companion list.*
 
 ---
 

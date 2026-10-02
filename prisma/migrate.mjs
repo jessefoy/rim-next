@@ -4770,7 +4770,7 @@ There's no rush to do anything in particular. The community is here when you're 
 
 **Online sessions every morning and evening.** Most of our offerings are drop-ins — no registration needed. You'll find them on your dashboard.
 
-**Programs and courses.** Structured learning, dharma study, qigong, meditation foundations. Some run as series; some are one-offs. Browse what's on at your own pace.
+**Programs and courses.** Structured learning, dharma study, qigong, meditation foundations. Some run as courses; some are one-offs. Browse what's on at your own pace.
 
 **Dana.** RIM is 100% community-funded. We don't charge fixed fees — we ask that you contribute in a way that feels right to you. That practice of generosity is part of what makes this community possible. There's no pressure and no right amount.
 
