@@ -1572,9 +1572,10 @@
     "description": "Today one field does both jobs: ProgramCategory (one per program) carries the public chapter AND, through ProgramCategory.kind, the behavior (isOpenlyDroppable: the Join / 'Simply arrive' line, My Home Today, Zoom entry). Jesse wants two independent fields on Program: WAY (Foundations, Ongoing Practice, Immersion, or none for community groups and events) and FORMAT (drop-in, class, course, workshop, day of mindfulness, retreat). The F11 survey (session log 2026-10-02) lists every program, every place category decides behavior, and a migration outline: two nullable Program columns backfilled by a flag-guarded migrate.mjs block from category slug; isOpenlyDroppable reading format; the programs page, shared block, sitemap and KM groups page reading way; Program Manager gets two selects and the Visibility readout is updated; categories stay for ordering and hiding or retire. The dana minimum stays its own setting (danaMode, danaBaseAmount, danaFixedAmount) and is never inferred from format. Open questions: where Community Group, Event, Service and Private kinds live once format has only six values, and where the 'Silent meditation' subgroup lives.",
     "category": "Programs",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-10-02",
-    "notes": "Read-only survey done 2026-10-02; nothing changed. Related: lib/programChapters.ts, lib/programKind.ts, RIM_Offering_Model.md."
+    "notes": "Read-only survey done 2026-10-02; nothing changed. Related: lib/programChapters.ts, lib/programKind.ts, RIM_Offering_Model.md. Done 2026-10-02: Category and Format on Program (migration applied to production), Open entry as the access setting; see session-log 2026-10-02 (later) and RIM_Offering_Model.md.",
+    "closedAt": "2026-10-02"
   },
   {
     "id": "2026-10-02-002",
@@ -1592,9 +1593,10 @@
     "description": "The database-held join-welcome template says 'Over the next little while, you'll also receive a short series of welcome notes' and 'Some run as series; some are one-offs'. enrollMemberInOnboardingSeries enrolls new members in courses flagged isOnboarding, and production has none (its only course is Test Course, isOnboarding false), so nothing is delivered. The Handful introduction and map are now in the member area (2026-10-02). Rewrite the template to say what actually happens (the Handful pages in My Home) and 'courses' for 'series', with Jesse's consent for the specific change (Email Template Gate: an explicit update, per-template log).",
     "category": "Email & Notifications",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-10-02",
-    "notes": "Found in the A8a survey. Template slug join-welcome; also check welcome-back."
+    "notes": "Found in the A8a survey. Template slug join-welcome; also check welcome-back. Done 2026-10-02: 'series' became 'courses' and the welcome-notes paragraph was removed from the production join-welcome row (Jesse's consent), and the seed in prisma/migrate.mjs matches. welcome-back was checked: it carries neither phrase.",
+    "closedAt": "2026-10-02"
   },
   {
     "id": "2026-10-02-004",
@@ -1615,5 +1617,35 @@
     "status": "open",
     "addedAt": "2026-10-02",
     "notes": "The pages are in app/account/(authenticated)/handful-of-leaves/."
+  },
+  {
+    "id": "2026-10-02-006",
+    "title": "Remove the old ProgramCategory kind and the legacy fallbacks",
+    "description": "Every program now carries its own Category, Format and Open entry (migration applied 2026-10-02). The old ProgramCategory and its kind (lib/programKind.ts, the /tools/programs/categories manager, the kind picker) are read only as a fallback: hasOpenEntry uses isOpenlyDroppable(category.kind, registrationEnabled) when openEntry is null, resolveOffering uses LEGACY_BY_CATEGORY_SLUG when offeringCategory is null, and the editor shows the old category as a read-only line. Verify nothing is null (SELECT count where openEntry or offeringCategory is null), delete those branches, drop Program.categoryId and ProgramCategory (keeping the 'hide from the Programs page' idea if wanted, on Category), and retire the categories manager. The home page's doors and the dashboard read the old category too; trace them first.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-02",
+    "notes": "Not urgent; it is cleanup. RIM_Offering_Model.md says what is superseded."
+  },
+  {
+    "id": "2026-10-02-007",
+    "title": "Database-held 'the Buddha's teachings' in two program descriptions",
+    "description": "The history-and-roots brief (H5/H8) searched database-held texts read-only and reported, without writing: Meditation and Dharma Talk's description says 'The talk draws on the Buddha's teachings' (a gloss for the Dharma, which the brief would change to 'Buddhist teachings') and Essential Dharma Study's says 'The Buddha's core teachings' (possibly the Buddha's own, which stays). Jesse decides per record; any write goes through a drift-guarded one-record update with his approval.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-02",
+    "notes": "No 'root practice', 'Rooted in Chan' or 'Ongoing Practice' remains in any database text (342 text columns scanned, 29 email templates checked)."
+  },
+  {
+    "id": "2026-10-02-008",
+    "title": "Essential Dharma Study: open entry with registration reads oddly on its program page",
+    "description": "Registration on and Open entry on together mean This Week marks it Drop-in while its program page offers only 'Register →' (the 'Simply arrive' line shows only where registration is off, as it did before Open entry existed). Decide whether an open-entry program with registration on should also say that no registration is needed to join, with registering as the way to receive materials.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-02",
+    "notes": "Needs Jesse's words. Same behavior as before the change; only the question is new."
   }
 ]

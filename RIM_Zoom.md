@@ -108,7 +108,7 @@ entry/host screens use inline styles + tokens (no new prefix).
    window (`getActiveSessionWindow`, ADMIN/GT bypass) → `SessionBan` (members
    by id; guests have none; nothing writes these rows since the LiveKit room
    retired, so this check is inert) → **registration** (2026-09-24): a
-   registration-required program (`!isOpenlyDroppable(kind, registrationEnabled)`)
+   program without Open entry (`!hasOpenEntry(program)`: the program's own setting, set by hand in Program Manager; Category and Format never set it; 2026-10-02)
    admits only members holding a registration that isn't CANCELLED,
    PENDING_PAYMENT or WAITLISTED (waitlisted members have no place yet; Jesse,
    2026-09-24), plus anyone host-capable, anyone assigned to cover this day,
