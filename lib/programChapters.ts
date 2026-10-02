@@ -25,9 +25,11 @@ export type Chapter = {
   title: string;
   intro?: string;
   groups: { slugs: string[]; subheading?: string }[];
-  /** Shown in place of the cards when nothing is listed. Chapters without one
-      are left out when empty. */
+  /** Shown in place of the cards when nothing is listed. */
   emptyNote?: string;
+  /** Keep the chapter (heading and introduction) when nothing is listed, because
+      a door on the home page links to its anchor. */
+  alwaysShow?: boolean;
 };
 
 export const CHAPTERS: Chapter[] = [
@@ -37,6 +39,7 @@ export const CHAPTERS: Chapter[] = [
     intro:
       "Drop-in gatherings and series through the week, in person and online. Each is complete in itself, and Taking CARE runs through all of them.",
     groups: [{ slugs: ["drop-ins"] }, { slugs: ["silent-meditation"], subheading: "Silent sits" }],
+    alwaysShow: true,
   },
   {
     id: "immersion",

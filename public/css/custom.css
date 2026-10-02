@@ -29085,6 +29085,10 @@ a.pp-card.home-paths__card {
   font-weight: 400;
   line-height: var(--lh-heading);
 }
+/* The Foundations page's "Get the newsletter" button jumps to the footer form;
+   it lands clear of the 100px sticky nav, like every other anchored target. */
+.rim-footer-newsletter { scroll-margin-top: 124px; }
+
 /* A card with no "when" column (Foundations has no dates yet): two columns, so
    the arrow stays on the right edge instead of floating in the middle. */
 .pl-page .pl-card--catalog.pl-card--solo .pl-card__content { grid-template-columns: minmax(0, 1fr) 40px; }

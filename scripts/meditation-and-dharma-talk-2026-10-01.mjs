@@ -18,6 +18,8 @@
  */
 import { createRequire } from "module";
 import fs from "fs";
+import os from "os";
+import path from "path";
 
 const require = createRequire(import.meta.url);
 const { PrismaClient } = require("@prisma/client");
@@ -67,10 +69,13 @@ try {
       throw new Error(`DRIFT: updatedAt is ${row.updatedAt.toISOString()}, expected ${EXPECTED_UPDATED_AT}. Review before applying.`);
     }
     const before = await db.program.findMany();
-    const snapshot = `meditation-and-dharma-talk-snapshot-${Date.now()}.json`;
+    // In the temp directory, not the repo, so `git add -A` can never commit a program row.
+    const snapshot = path.join(os.tmpdir(), `meditation-and-dharma-talk-snapshot-${Date.now()}.json`);
     fs.writeFileSync(snapshot, JSON.stringify(row, null, 2));
     console.log(`\nSnapshot saved to ${snapshot}`);
-    await db.$transaction([db.program.update({ where: { slug: SLUG }, data: NEW_VALUES })]);
+    // The write is conditioned on the updatedAt just checked, so an edit landing
+    // between the check and the write makes it fail instead of overwriting.
+    await db.$transaction([db.program.update({ where: { slug: SLUG, updatedAt: row.updatedAt }, data: NEW_VALUES })]);
     const after = await db.program.findMany();
     // Whole-table diff: only this row's changed fields (and updatedAt) should differ.
     const diffs = [];

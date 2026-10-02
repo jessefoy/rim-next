@@ -86,15 +86,19 @@ export default async function CommunityProgramsPage() {
       !!p.category &&
       visibleSlugs.has(p.category.slug)
   );
+  // Programs in these categories, each category's programs kept together in the
+  // order the chapter names them (Immersion merges two), then by sortOrder.
   const inCategories = (slugs: string[]) =>
-    programs.filter((p) => !!p.category && slugs.includes(p.category.slug));
+    programs
+      .filter((p) => !!p.category && slugs.includes(p.category.slug))
+      .sort((a, b) => slugs.indexOf(a.category!.slug) - slugs.indexOf(b.category!.slug));
 
   const mappedSlugs = new Set(CHAPTERS.flatMap((c) => c.groups.flatMap((g) => g.slugs)));
   const otherCategories = categories.filter((c) => !mappedSlugs.has(c.slug));
 
   /** One program as a card: date-led for an upcoming one-time program, the
       schedule and format held right for everything else. */
-  const renderCard = (program: ListedProgram): ReactNode => {
+  const renderCard = (program: ListedProgram, TitleTag: "h3" | "h4" = "h3"): ReactNode => {
     const format = fmtLabel(program.programFormat);
 
     // One-time upcoming: keep the date prominent with the scheduling facts,
@@ -120,7 +124,7 @@ export default async function CommunityProgramsPage() {
           <div className="pl-card__content">
             <div className="pl-card__main">
               <div className="pl-card__title-row">
-                <h3 className="pl-card__title">{program.name}</h3>
+                <TitleTag className="pl-card__title">{program.name}</TitleTag>
               </div>
               {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
               <ProgramCardNotices announcement={program.specialAnnouncement} />
@@ -157,7 +161,7 @@ export default async function CommunityProgramsPage() {
         <div className="pl-card__content">
           <div className="pl-card__main">
             <div className="pl-card__title-row">
-              <h3 className="pl-card__title">{program.name}</h3>
+              <TitleTag className="pl-card__title">{program.name}</TitleTag>
             </div>
             {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
             <ProgramCardNotices announcement={program.specialAnnouncement} />
@@ -237,7 +241,7 @@ export default async function CommunityProgramsPage() {
             const groups = chapter.groups
               .map((g) => ({ ...g, programs: inCategories(g.slugs) }))
               .filter((g) => g.programs.length > 0);
-            if (groups.length === 0 && !chapter.emptyNote) return null;
+            if (groups.length === 0 && !chapter.emptyNote && !chapter.alwaysShow) return null;
 
             return (
               // The id is the anchor the home page's doors deep-link to
@@ -248,14 +252,19 @@ export default async function CommunityProgramsPage() {
                   {chapter.intro && <p className="pl-cat__intro">{chapter.intro}</p>}
                 </div>
                 {groups.length === 0 ? (
-                  <p className="pl-cat__note">{chapter.emptyNote}</p>
+                  chapter.emptyNote && <p className="pl-cat__note">{chapter.emptyNote}</p>
                 ) : (
                   groups.map((group, i) => (
                     <div key={group.slugs.join("+")}>
                       {group.subheading && i > 0 && (
                         <h3 className="pl-cat__subheading">{group.subheading}</h3>
                       )}
-                      <div className="pl-grid">{group.programs.map(renderCard)}</div>
+                      {/* Cards under a subheading sit one level below it. */}
+                      <div className="pl-grid">
+                        {group.programs.map((p) =>
+                          renderCard(p, group.subheading && i > 0 ? "h4" : "h3")
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
@@ -273,7 +282,7 @@ export default async function CommunityProgramsPage() {
                 <div className="pl-cat__header">
                   <h2 className="pl-cat__heading">{categoryDisplayName(category.name)}</h2>
                 </div>
-                <div className="pl-grid">{categoryPrograms.map(renderCard)}</div>
+                <div className="pl-grid">{categoryPrograms.map((p) => renderCard(p))}</div>
               </div>
             );
           })}
