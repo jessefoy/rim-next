@@ -1045,12 +1045,11 @@ export default function ProgramEditor({
   // app/this-week/page.tsx so the editor says why, instead of the program
   // silently not appearing.
   const isArchived = initialData?.archived ?? false;
-  const listingReason = useMemo((): "archived" | "hidden" | "noCategory" | "private" | "service" | "hiddenCategory" | "past" | null => {
+  const listingReason = useMemo((): "archived" | "hidden" | "noCategory" | "private" | "hiddenCategory" | "past" | null => {
     if (isArchived) return "archived";
     if (hideFromProgramPageList) return "hidden";
     if (!isOfferingCategory(offeringCategory)) return "noCategory";
     if (offeringCategory === "PRIVATE") return "private";
-    if (offeringCategory === "SERVICE") return "service";
     // The old category's "hide from the Programs page" flag keeps its meaning.
     if (selectedCategory?.hidden) return "hiddenCategory";
     if (hideWhenPast && !recurrenceFreq && startDatetime) {
@@ -1931,7 +1930,7 @@ export default function ProgramEditor({
                     <option key={c.code} value={c.code}>{c.label}</option>
                   ))}
                 </optgroup>
-                <optgroup label="Internal, not on the public page">
+                <optgroup label="Internal">
                   {OFFERING_CATEGORIES.filter((c) => c.code === "SERVICE" || c.code === "PRIVATE").map((c) => (
                     <option key={c.code} value={c.code}>{c.label}</option>
                   ))}
@@ -2022,7 +2021,6 @@ export default function ProgramEditor({
                 <p className="pe-readout__row pe-readout__row--meta">
                   Category: {categorySectionTitle(offeringCategory)}
                   {offeringFormat ? ` · Format: ${OFFERING_FORMATS.find((f) => f.code === offeringFormat)?.label ?? ""}` : ""}
-                  {" "}(a drop-in is open to anyone; any other format follows its registration setting)
                 </p>
               )}
             </div>
@@ -2349,9 +2347,6 @@ export default function ProgramEditor({
                 )}
                 {listingReason === "private" && (
                   <><span className="pe-readout__state">Not listed.</span> A Private program is never listed.</>
-                )}
-                {listingReason === "service" && (
-                  <><span className="pe-readout__state">Not listed.</span> A Service program has no public section yet.</>
                 )}
                 {listingReason === "hiddenCategory" && (
                   <>

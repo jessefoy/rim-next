@@ -156,6 +156,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   let programs = [{id:'p1',slug:'morning',name:'Morning practice',programFormat:'virtual',startDatetime:new Date('2026-09-21T16:00:00Z'),endDatetime:new Date('2026-09-21T17:00:00Z'),recurrenceFreq:null,recurrenceInterval:null,recurrenceDays:[],recurrenceCount:null,registrationEnabled:false,category:{kind:'DROP_IN'},earlyArrivalMessage:'Preparation note',specialAnnouncement:'Schedule update'}];
   let assignments = [], registrations = [];
   const registrationQueries = [];
+  const programKind = load('lib/programKind.ts');
   const Dashboard = load('app/account/(authenticated)/dashboard/page.tsx', {
     '@/auth':{auth:async()=>session},'next/navigation':{redirect:()=>{throw Error('redirect')}},
     'next/link':{default:({children,href,...props})=>React.createElement('a',{href,...props},children),__esModule:true},
@@ -167,12 +168,14 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
       user:{findUnique:async()=>({hostWelcomeSeenAt:new Date()})},
     }},
     '@/lib/scheduleUtils':load('lib/scheduleUtils.ts'),
-    '@/lib/programKind':load('lib/programKind.ts'),
+    '@/lib/programKind':programKind,
+    '@/lib/programOffering':load('lib/programOffering.ts',{'@/lib/programKind':programKind}),
     '@/lib/programHub':{getHubCoverageCopy:async()=>({noun:'Host'})},
     '@/lib/sessionWindowConstants':load('lib/sessionWindowConstants.ts'),
     '@/components/AccountLayout':{default:({children})=>children,__esModule:true},
     '@/components/DashboardAutoRefresh':{default:()=>null,__esModule:true},
     '@/components/HostWelcomePanel':{default:()=>null,__esModule:true},
+    '@/components/HandfulHomeCard':{default:()=>null,__esModule:true},
   }).default;
   const dashboardHtml = async query=>renderToStaticMarkup(await Dashboard({searchParams:Promise.resolve(query??{})}));
   let html = await dashboardHtml();
@@ -194,6 +197,18 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'registration-required offering hidden from nonregistrant');
   registrations=[{id:'r1',programSlug:'morning',programTitle:'Morning practice',donationStatus:'WAIVED',program:{...programs[0]}}];
   html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'registered participant retains entry');
+  // Migrated rows (program-categories brief): Category and Format decide, whatever the old category says.
+  registrations=[];
+  programs[0].offeringCategory='ONGOING_LEARNING_PRACTICE';programs[0].offeringFormat='DROP_IN';
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'migrated Drop-in is open to a non-registrant, even with registration on (as its old kind was)');
+  programs[0].offeringFormat='COURSE';
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'migrated Course is not open to a non-registrant');
+  programs[0].offeringCategory='COMMUNITY_GROUP';programs[0].offeringFormat=null;programs[0].registrationEnabled=false;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'migrated Community Group with registration off stays open');
+  programs[0].registrationEnabled=true;
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'migrated Community Group with registration on is a commitment');
+  programs[0].offeringCategory='SPECIAL_EVENT';programs[0].registrationEnabled=false;programs[0].offeringFormat='DROP_IN';
+  html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'a Special Event is never open by format');
   programs=[];registrations=[];
   html=await dashboardHtml();check(html.includes('There are no more sessions today.'),true,'empty day has clear state');
   html=await dashboardHtml({view:'upcoming'});check(html.includes('Your upcoming programs'),true,'separate upcoming view remains reachable');

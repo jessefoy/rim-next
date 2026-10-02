@@ -29197,10 +29197,10 @@ a.pp-card.home-paths__card {
   padding: 6px 12px;
   border: 1px solid var(--rim-rule);
   border-radius: 4px;
-  background: #fff;
+  background: var(--rim-surface);
   color: var(--rim-text);
-  font-family: 'Open Sans', sans-serif;
-  font-size: 16px;
+  font-family: var(--font-sans);
+  font-size: var(--text-app);
 }
 .vol-table-select:focus-visible { outline: 2px solid var(--rim-mid); outline-offset: 2px; }
 @media (max-width: 768px) {

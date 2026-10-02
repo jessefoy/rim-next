@@ -20,7 +20,6 @@ import {
   computeDateText,
   computeTimeText,
   hasConcludedOneTime,
-  categoryDisplayName,
 } from "@/lib/programUtils";
 
 export const metadata = {

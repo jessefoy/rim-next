@@ -14,7 +14,7 @@ import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 import { applyProgramRecordingSetting, teardownProgramMeetings } from "@/lib/sessionMeeting";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
-import { cleanOffering } from "@/lib/programOffering";
+import { cleanOffering, resolveOffering } from "@/lib/programOffering";
 
 export async function GET(
   _req: NextRequest,
@@ -110,18 +110,23 @@ export async function PUT(
 
   // Category and Format (lib/programOffering.ts). Checked only when the request
   // carries any of the four offering fields (the editor always does); a field
-  // the request leaves out is taken from what is stored. Category is required,
-  // and Format is required for the three ways.
+  // the request leaves out is taken from what is stored (or, for a program not
+  // yet migrated, from what its old category means). Category is required, and
+  // Format is required for the three ways.
   const touchesOffering = ["offeringCategory", "offeringFormat", "silentMeditation", "hostedByVolunteers"].some(
     (k) => body[k] !== undefined
   );
   let offeringData: Record<string, unknown> = {};
   if (touchesOffering) {
+    const oldCategory = existing.categoryId
+      ? await db.programCategory.findUnique({ where: { id: existing.categoryId }, select: { slug: true, kind: true } })
+      : null;
+    const stored = resolveOffering({ ...existing, category: oldCategory });
     const offering = cleanOffering({
-      offeringCategory: body.offeringCategory !== undefined ? body.offeringCategory : existing.offeringCategory,
-      offeringFormat: body.offeringFormat !== undefined ? body.offeringFormat : existing.offeringFormat,
-      silentMeditation: body.silentMeditation !== undefined ? body.silentMeditation : existing.silentMeditation,
-      hostedByVolunteers: body.hostedByVolunteers !== undefined ? body.hostedByVolunteers : existing.hostedByVolunteers,
+      offeringCategory: body.offeringCategory !== undefined ? body.offeringCategory : stored.category,
+      offeringFormat: body.offeringFormat !== undefined ? body.offeringFormat : stored.format,
+      silentMeditation: body.silentMeditation !== undefined ? body.silentMeditation : stored.silentMeditation,
+      hostedByVolunteers: body.hostedByVolunteers !== undefined ? body.hostedByVolunteers : stored.hostedByVolunteers,
     });
     if (!offering.ok) {
       return NextResponse.json({ error: offering.error }, { status: 422 });

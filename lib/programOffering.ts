@@ -31,10 +31,14 @@
  * fields were introduced.
  *
  * TRANSITION: until a program's own fields are filled, `resolveOffering`
- * derives them from the old `categoryId` (the slug map below), so the site
- * reads the same whichever order the code and the data arrive in. Once the
- * migration is verified, that fallback (LEGACY_BY_CATEGORY_SLUG and the
- * `category` branch of `resolveOffering`) is the only thing left to delete.
+ * derives them from the old `categoryId` (the slug map below, which follows
+ * the old Programs page: classes-courses-workshops sat under Immersion), so
+ * the site reads the same whichever order the code and the data arrive in,
+ * for every old category that exists (a slug the map does not know resolves
+ * to no Category; the editor can no longer assign an old category, and the
+ * migration fills every program). Once the migration is verified, that
+ * fallback (LEGACY_BY_CATEGORY_SLUG and the `category` branch of
+ * `resolveOffering`) is the only thing left to delete.
  */
 
 import { isOpenlyDroppable } from "@/lib/programKind";
@@ -194,7 +198,7 @@ type Derived = {
 const LEGACY_BY_CATEGORY_SLUG: Record<string, Derived> = {
   "drop-ins": { category: "ONGOING_LEARNING_PRACTICE", format: "DROP_IN", silentMeditation: false, hostedByVolunteers: false },
   "silent-meditation": { category: "ONGOING_LEARNING_PRACTICE", format: "DROP_IN", silentMeditation: true, hostedByVolunteers: true },
-  "classes-courses-workshops": { category: "ONGOING_LEARNING_PRACTICE", format: "COURSE", silentMeditation: false, hostedByVolunteers: false },
+  "classes-courses-workshops": { category: "IMMERSION", format: "WORKSHOP", silentMeditation: false, hostedByVolunteers: false },
   "retreats": { category: "IMMERSION", format: "RETREAT", silentMeditation: false, hostedByVolunteers: false },
   "community-groups-events": { category: "COMMUNITY_GROUP", format: null, silentMeditation: false, hostedByVolunteers: false },
   "events": { category: "SPECIAL_EVENT", format: null, silentMeditation: false, hostedByVolunteers: false },

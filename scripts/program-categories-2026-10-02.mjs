@@ -149,7 +149,7 @@ try {
         );
         if (n !== 1) throw new Error(`${m.slug}: expected to update exactly one row, updated ${n}. Rolled back.`);
       }
-    });
+    }, { timeout: 30000, maxWait: 10000 });
     // 6. whole-table diff
     const after = await db.$queryRawUnsafe(`SELECT * FROM "programs" ORDER BY slug`);
     const OFFERING = new Set(["offeringCategory", "offeringFormat", "silentMeditation", "hostedByVolunteers"]);
