@@ -28723,7 +28723,8 @@ a.pp-card.tpr-card {
                  (image left); images 4:7, and follow their text when stacked
      panels      Practice for real life: three stacked Pampas panels that
                  bleed 32px so their label lands on col 1 and items on col 7
-     card row    the three ways in, thirds
+     card rows   the three ways, one full-width card each: title and body on
+                 col 1, the way's programs on col 7 (2026-10-08)
      rhythm      sections 96 / 64 / 48 · blocks 64 (48 phone) · heading to
                  text 24 · paragraphs 24 · text to buttons 32 · buttons 16 */
 
@@ -28733,7 +28734,7 @@ a.pp-card.tpr-card {
 .home-page .pp-split,
 .home-group,
 .home-care,
-.home-paths,
+.home-paths__card,
 .home-page .pp-hero__inner {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
@@ -28893,19 +28894,35 @@ a.pp-card.tpr-card {
 .home-page .pp-split--flip > .pp-split__body { grid-column: 1 / span 6; }
 .home-page .pp-split--flip > .pp-split__media { grid-column: 8 / span 5; }
 
-/* ── Where to begin: the three ways in, thirds ──────────────────────────── */
-.home-paths { align-items: stretch; }
-.home-paths > * { grid-column: span 4; }
+/* ── Our programs: the three ways as stacked card rows ──────────────────── */
+/* Three full-width white cards, one per way (2026-10-08). Each is its own
+   12-column grid on the page's two text edges: title and body on col 1, the
+   way's live programs on col 7, so the body keeps a reading measure and the
+   names read as a list of programs. Like the Practice for real life panels,
+   the card bleeds 32px past the content box and pads 32px back in, so its
+   columns land on the page's. Thirds were measured at 1280 on 2026-10-08:
+   the Ongoing card ran 886px and stretched the other two to match, with the
+   body at ~32 characters a line. */
+.home-paths { display: flex; flex-direction: column; gap: var(--space-2); }
 /* The card is a div; the title's link stretches over it (::after), so the
-   whole card is clickable and the link's accessible name is the title alone
-   (2026-10-08). Hover and focus read on the card like the a.pp-card rules. */
+   whole card is clickable and the link's accessible name is the title alone.
+   Hover and focus read on the card like the a.pp-card rules. */
 .pp-card.home-paths__card {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  margin: 0 calc(var(--space-4) * -1);
   padding: var(--space-4);
+  row-gap: var(--space-1);
   transition: background-color 0.15s ease;
+}
+.home-paths__card .pp-card__title { grid-column: 1 / span 6; grid-row: 1; }
+.home-paths__card .pp-card__body { grid-column: 1 / span 6; grid-row: 2; }
+.home-paths__list,
+.home-paths__note { grid-column: 7 / span 6; grid-row: 1 / span 2; }
+.home-paths__note {
+  margin: 0;
+  color: var(--rim-text-muted);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
 }
 .home-paths__card:hover { background: var(--rim-bg-bright); }
 .home-paths__card:has(.home-paths__link:focus-visible) {
@@ -28942,7 +28959,7 @@ a.pp-card.tpr-card {
    the CARE word list, at the card's own text size (li matches p). The whole
    card stays one link, so the names are plain text. */
 .home-paths__list {
-  margin: var(--space-1) 0 0;
+  margin: 0;
   border-bottom: 1px solid var(--rim-rule);
   padding: 0;
   list-style: none;
@@ -28970,8 +28987,13 @@ a.pp-card.tpr-card {
   .home-care-words { grid-column: 1 / span 10; }
   .home-chapter__head,
   .home-group__label,
-  .home-care-figure,
-  .home-paths > * { grid-column: 1 / -1; }
+  .home-care-figure { grid-column: 1 / -1; }
+  /* The program cards stack their title, body and list, like the panels. */
+  .pp-card.home-paths__card { margin: 0; padding: var(--space-4); }
+  .home-paths__card .pp-card__title,
+  .home-paths__card .pp-card__body,
+  .home-paths__list,
+  .home-paths__note { grid-column: 1 / -1; grid-row: auto; }
   /* Stacked, an image follows its text: full content width, centred. */
   .home-page .pp-split { row-gap: var(--space-5); }
   .home-page .pp-split > .pp-split__body { grid-row: 1; }

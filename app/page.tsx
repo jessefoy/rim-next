@@ -502,12 +502,18 @@ export default async function HomePage() {
                   </Link>
                 </h3>
                 <p className="pp-card__body">{way.body}</p>
-                {way.programs.length > 0 && (
+                {way.programs.length > 0 ? (
                   <ul className="home-paths__list">
                     {way.programs.map((name, i) => (
                       <li key={`${name}-${i}`}>{name}</li>
                     ))}
                   </ul>
+                ) : (
+                  // Nothing scheduled in this way today (the catalog says the
+                  // same): say where the dates will appear, not an empty column.
+                  <p className="home-paths__note">
+                    Upcoming dates will be listed on Programs &amp; Events.
+                  </p>
                 )}
               </div>
             ))}
