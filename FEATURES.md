@@ -75,6 +75,12 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Page titles** on public pages use the home page's hyphen; the approved `RIM_MISSION` and the final `RIM_WHAT_BINDS` are live.
 - **All of this copy is provisional until Jesse's read-aloud.**
 
+## October 8, 2026: the home page in Jesse's words
+
+- **Home is Jesse's own reading of the page**, polished for the ear with his words kept, and ruled flag by flag in session (see `RIM_Public_Pages.md`, "The home page in Jesse's words"). The programs section is now **"Our programs, and where to begin"**: his intro, then the three cards (Foundations · Ongoing Learning & Practice · Immersion), **each listing its live programs by name** from Program Manager through the one listing rule shared with Programs & Events (`lib/publicPrograms.ts`); then the agreements and membership; home rebuilds every five minutes from the database. The silent-illumination paragraph left home (Our Roots and About keep it); the close is shorter, its explanation moved up into Practice for real life.
+- **Rulings that reach other pages:** what binds us is "unhealthy patterns of heart, mind, and action" everywhere (`RIM_WHAT_BINDS`); **courses are Immersion** (a drop-in offered as a series stays a drop-in); the **Foundations program is named**, "Taking CARE: Foundations of Meditation and Mindful Living," from one constant on home, the catalog's standing card and `/foundations`.
+- Provisional until Jesse reads the published page.
+
 ## October 2, 2026 (later): Category and Format, Open entry, history and roots
 
 - **Category and Format on every program**, with Silent meditation and Hosted by volunteers: the Program Manager's two required dropdowns (with helper lines), admin list filters, and Programs & Events, the shared block, breadcrumbs and the Kalyana Mitta page reading them. The migration was applied to production 2026-10-02 (20 programs, approved mapping, drift guard, snapshot, whole-table diff). `lib/programChapters.ts` is retired.

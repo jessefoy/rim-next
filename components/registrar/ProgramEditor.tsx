@@ -1915,7 +1915,7 @@ export default function ProgramEditor({
           <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Category *</span>
-              <span className="pe-field__help">Which way this offering belongs to. Community groups and special events sit outside the three ways.</span>
+              <span className="pe-field__help">Which way this offering belongs to. Courses belong to Immersion; a drop-in offered as a series stays in Ongoing Learning &amp; Practice. Community groups and special events sit outside the three ways.</span>
               <select
                 value={offeringCategory}
                 onChange={(e) => {

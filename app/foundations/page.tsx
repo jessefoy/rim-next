@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FOUNDATIONS_PROGRAM_NAME } from "@/lib/programOffering";
 
 export const metadata = {
   title: "Foundations - Rooted In Mindfulness",
@@ -33,7 +34,9 @@ export default function FoundationsPage() {
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Where to begin</p>
           <h1 className="pp-hero__title">Foundations</h1>
-          <p className="pp-hero__body">Finding your footing in meditation and mindful living.</p>
+          {/* The program's name (Jesse, 2026-10-08), from the one constant the
+              home card and the catalog's standing card also read. */}
+          <p className="pp-hero__body">{FOUNDATIONS_PROGRAM_NAME}</p>
         </div>
       </section>
 
@@ -47,13 +50,14 @@ export default function FoundationsPage() {
             </p>
             <p>
               Taking CARE is offered in three ways, and Foundations is the first. From there,
-              practice continues through Ongoing Learning &amp; Practice, our drop-ins and courses
-              through the week, and deepens through Immersion: workshops, days of mindfulness, and
-              retreats.
+              practice continues through Ongoing Learning &amp; Practice, our drop-ins and silent
+              meditation through the week, and deepens through Immersion: workshops, courses, days
+              of mindfulness, and retreats.
             </p>
             <p>
-              Our first Foundations offering begins in November. Its dates, times, and format will
-              be listed here and in our newsletter as soon as they are set.
+              Foundations is offered in a variety of formats, usually as a course or workshop, and,
+              in time, as a self-paced online option. Our first offering begins in November. Its
+              dates and times will be listed here and in our newsletter as soon as they are set.
             </p>
             <p>
               Until then, every gathering is open to you.{" "}

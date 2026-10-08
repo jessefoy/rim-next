@@ -65,11 +65,12 @@ export const JOIN_HERO_INTRO =
  * Not Clock. Jesse approved the current mission on 2026-09-30, replacing the
  * 2026-09-26 draft.
  *
- * RIM_WHAT_BINDS is final: Jesse ruled on 2026-09-30 that "unhealthy patterns
- * of mind and action" is the phrase. It is no longer a holding phrase. Change
- * it here and every surface follows. Provisional until Jesse's read-aloud.
+ * RIM_WHAT_BINDS: Jesse ruled on 2026-09-30 that "unhealthy patterns of mind
+ * and action" was the phrase; reading the home page aloud on 2026-10-08 he
+ * said "heart, mind, and action," and ruled it for every surface. Change it
+ * here and every surface follows.
  */
-export const RIM_WHAT_BINDS = "unhealthy patterns of mind and action";
+export const RIM_WHAT_BINDS = "unhealthy patterns of heart, mind, and action";
 
 export const RIM_VISION =
   "To be more awake and present in our lives, and to live freer of what " +

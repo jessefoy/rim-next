@@ -28802,10 +28802,10 @@ a.pp-card.tpr-card {
 /* Blocks inside a section: 64 apart. */
 .home-chapter + .home-groups,
 .home-groups + .home-chapter--after,
-.home-chapter + .home-paths { margin-top: var(--space-6); }
+.home-chapter + .home-paths,
+.home-paths + .home-chapter--after { margin-top: var(--space-6); }
 .home-chapter + .home-care,
 .home-care + .home-chapter--after { margin-top: var(--space-5); }
-.home-paths-actions { margin-top: var(--space-4); }
 
 /* ── Practice for real life: three stacked panels ───────────────────────── */
 /* The panel ground bleeds 32px past the content box and pads 32px back in,
@@ -28896,28 +28896,65 @@ a.pp-card.tpr-card {
 /* ── Where to begin: the three ways in, thirds ──────────────────────────── */
 .home-paths { align-items: stretch; }
 .home-paths > * { grid-column: span 4; }
-a.pp-card.home-paths__card {
+/* The card is a div; the title's link stretches over it (::after), so the
+   whole card is clickable and the link's accessible name is the title alone
+   (2026-10-08). Hover and focus read on the card like the a.pp-card rules. */
+.pp-card.home-paths__card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-4);
-  color: inherit;
-  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+.home-paths__card:hover { background: var(--rim-bg-bright); }
+.home-paths__card:has(.home-paths__link:focus-visible) {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: 2px;
 }
 .home-paths__card .pp-card__title {
   margin: 0;
   font-size: var(--text-h2-lg);
   font-weight: 400;
   text-wrap: balance;
+}
+.home-paths__link {
+  color: inherit;
+  text-decoration: none;
   transition: color 0.15s ease;
+}
+.home-paths__link:focus-visible { outline: none; }
+.home-paths__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
 }
 .home-paths__card .pp-card__body {
   margin: 0;
   font-size: var(--text-body);
   line-height: var(--lh-body);
 }
-.home-paths__card:hover .pp-card__title,
-.home-paths__card:focus-visible .pp-card__title { color: var(--rim-blue); }
+.home-paths__card:hover .home-paths__link,
+.home-paths__link:focus-visible { color: var(--rim-blue); }
+/* The card's program list: that way's live programs by name (Jesse,
+   2026-10-08: the cards must read as programs, not ideas). Hairline rows like
+   the CARE word list, at the card's own text size (li matches p). The whole
+   card stays one link, so the names are plain text. */
+.home-paths__list {
+  margin: var(--space-1) 0 0;
+  border-bottom: 1px solid var(--rim-rule);
+  padding: 0;
+  list-style: none;
+  color: var(--rim-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+.home-paths__list li {
+  margin: 0;
+  border-top: 1px solid var(--rim-rule);
+  padding: var(--space-1) 0;
+}
 
 /* ── 768 and below: one column; text in cols 1-10 ───────────────────────── */
 @media (max-width: 768px) {

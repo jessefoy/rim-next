@@ -10,6 +10,10 @@
  *             day of mindfulness, retreat. A Foundations workshop and an
  *             Immersion workshop are both workshops, so format is its own
  *             field, not a child of category. Required for the three ways.
+ *             Courses belong to Immersion (Jesse, 2026-10-08: "sometimes
+ *             drop-ins are offered as a series, but courses are something
+ *             that you register for separately"); a drop-in offered as a
+ *             series stays a drop-in in Ongoing Learning & Practice.
  *   Silent meditation     (checkbox, drop-ins) the silent-sitting drop-ins, grouped
  *                         under "Silent meditation" within Ongoing Learning & Practice.
  *   Hosted by volunteers  (checkbox, any category) the label on cards and pages.
@@ -63,7 +67,7 @@ export const OFFERING_CATEGORIES = [
     anchor: "ongoing-learning-and-practice",
     way: true,
     intro:
-      "Drop-ins, silent meditation, and courses through the week, in person and online. The drop-ins are open any week, and they are the easiest way in.",
+      "Drop-ins and silent meditation through the week, in person and online. The drop-ins are open any week, and they are the easiest way in.",
   },
   {
     code: "IMMERSION",
@@ -72,7 +76,7 @@ export const OFFERING_CATEGORIES = [
     anchor: "immersion",
     way: true,
     intro:
-      "Workshops, days of mindfulness, and retreats, with time to settle more fully into the practice.",
+      "Workshops, courses, days of mindfulness, and retreats, with time to settle more fully into the practice.",
   },
   {
     code: "COMMUNITY_GROUP",
@@ -141,6 +145,17 @@ export const SILENT_MEDITATION_LINE =
   "Silent sitting together on Zoom, mornings and evenings, hosted by volunteers from our community.";
 
 export const HOSTED_BY_VOLUNTEERS_LABEL = "Hosted by volunteers";
+
+/**
+ * Foundations as a named program, until one exists in Program Manager (then
+ * the scheduled programs carry their own names and dates). One source for the
+ * home card, the catalog's standing card and the Foundations page. The name
+ * and the formats line are Jesse's (2026-10-08); "in time" is his "soon,"
+ * since the self-paced online option is still a proposal.
+ */
+export const FOUNDATIONS_PROGRAM_NAME = "Taking CARE: Foundations of Meditation and Mindful Living";
+export const FOUNDATIONS_FORMATS_LINE =
+  "Offered in a variety of formats, usually as a course or workshop, and, in time, as a self-paced online option.";
 
 const CATEGORY_CODES: readonly string[] = OFFERING_CATEGORIES.map((c) => c.code);
 const FORMAT_CODES: readonly string[] = OFFERING_FORMATS.map((f) => f.code);

@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -6,11 +5,12 @@ import {
   PUBLIC_CATEGORY_ORDER,
   HOSTED_BY_VOLUNTEERS_LABEL,
   SILENT_MEDITATION_LINE,
+  FOUNDATIONS_FORMATS_LINE,
+  FOUNDATIONS_PROGRAM_NAME,
   formatLabel,
-  isPubliclyListedCategory,
-  resolveOffering,
   type OfferingCategoryCode,
 } from "@/lib/programOffering";
+import { loadPublicPrograms, programsInCategory, type PublicProgram } from "@/lib/publicPrograms";
 import HashTargetScroller from "@/components/HashTargetScroller";
 import ProgramCardNotices from "@/components/ProgramCardNotices";
 import PracticeWithUs from "@/components/PracticeWithUs";
@@ -60,46 +60,24 @@ function datedEventLead(start: Date, end: Date | null): { lead: string; year: nu
   return { lead: `${sMonth} ${s.d}`, year: s.y };
 }
 
-type ListedProgram = Awaited<ReturnType<typeof loadPrograms>>[number];
-
-async function loadPrograms() {
-  return db.program.findMany({
-    where: {
-      hideFromProgramPageList: false,
-      archivedAt: null,
-    },
-    include: { category: true },
-    orderBy: { sortOrder: "asc" },
-  });
-}
-
 export default async function CommunityProgramsPage() {
-  const allPrograms = await loadPrograms();
+  // The listing rule (what is listed, with each program's Category, Format and
+  // checkboxes resolved) lives in lib/publicPrograms.ts, shared with the home
+  // page's three cards.
+  const programs = await loadPublicPrograms();
 
-  // A concluded one-time program leaves the listing on its own the day after
-  // its date, unless the editor opted out (hideWhenPast, default true).
   const todayYmd = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
   const currentYear = Number(todayYmd.split("-")[0]);
-  const isOneTime = (p: ListedProgram) => !p.recurrenceFreq && !!p.startDatetime;
-
-  // Each program's Category, Format and checkboxes (its own fields, or its old
-  // category while those are empty). A program with no Category is not listed,
-  // Private is never listed, and the old category's "hide from the Programs
-  // page" flag keeps its meaning.
-  const programs = allPrograms
-    .filter((p) => !(p.hideWhenPast && hasConcludedOneTime(p)))
-    .filter((p) => !p.category?.hideFromProgramsPage)
-    .map((p) => ({ ...p, offering: resolveOffering(p) }))
-    .filter((p) => isPubliclyListedCategory(p.offering.category));
-  const inCategory = (code: OfferingCategoryCode) => programs.filter((p) => p.offering.category === code);
+  const isOneTime = (p: PublicProgram) => !p.recurrenceFreq && !!p.startDatetime;
+  const inCategory = (code: OfferingCategoryCode) => programsInCategory(programs, code);
 
   /** One program as a card: date-led for an upcoming one-time program, the
       schedule and format held right for everything else. */
-  const renderCard = (program: ListedProgram, TitleTag: "h3" | "h4" = "h3"): ReactNode => {
+  const renderCard = (program: PublicProgram, TitleTag: "h3" | "h4" = "h3"): ReactNode => {
     const format = fmtLabel(program.programFormat);
     // The offering's own labels: its Format ("Drop-in", "Course") and, where
     // checked, "Hosted by volunteers". Display only.
-    const offering = resolveOffering(program);
+    const offering = program.offering;
     const offeringFormat = formatLabel(offering.format);
     const labels =
       offeringFormat || offering.hostedByVolunteers ? (
@@ -229,14 +207,16 @@ export default async function CommunityProgramsPage() {
 
             // Groups of cards within a section: Ongoing Learning & Practice
             // shows its drop-ins first, then the silent meditation sits under
-            // their own subheading and line, then courses and classes.
+            // their own subheading and line, then any classes. Courses belong
+            // to Immersion (Jesse, 2026-10-08), so a course placed here shows
+            // under "Classes" until its Category is corrected.
             type Group = { key: string; heading?: string; line?: string; programs: typeof inThis };
             let groups: Group[];
             if (code === "ONGOING_LEARNING_PRACTICE") {
               groups = [
                 { key: "drop-ins", programs: inThis.filter((p) => p.offering.format === "DROP_IN" && !p.offering.silentMeditation) },
                 { key: "silent", heading: "Silent meditation", line: SILENT_MEDITATION_LINE, programs: inThis.filter((p) => p.offering.silentMeditation) },
-                { key: "courses", heading: "Courses and classes", programs: inThis.filter((p) => p.offering.format !== "DROP_IN" && !p.offering.silentMeditation) },
+                { key: "classes", heading: "Classes", programs: inThis.filter((p) => p.offering.format !== "DROP_IN" && !p.offering.silentMeditation) },
               ].filter((g) => g.programs.length > 0);
             } else {
               groups = inThis.length > 0 ? [{ key: "all", programs: inThis }] : [];
@@ -252,17 +232,16 @@ export default async function CommunityProgramsPage() {
                 </div>
 
                 {code === "FOUNDATIONS" && inThis.length === 0 ? (
-                  // Foundations is not a scheduled program yet: one static card.
+                  // Foundations is not a scheduled program yet: one standing
+                  // card carrying the program's name (2026-10-08).
                   <div className="pl-grid">
                     <Link href="/foundations" className="pl-card pl-card--catalog pl-card--solo">
                       <div className="pl-card__content">
                         <div className="pl-card__main">
                           <div className="pl-card__title-row">
-                            <h3 className="pl-card__title">Foundations</h3>
+                            <h3 className="pl-card__title">{FOUNDATIONS_PROGRAM_NAME}</h3>
                           </div>
-                          <span className="pl-card__tagline">
-                            Finding your footing in meditation and mindful living.
-                          </span>
+                          <span className="pl-card__tagline">{FOUNDATIONS_FORMATS_LINE}</span>
                         </div>
                         <span className="pl-card__action" aria-hidden="true">→</span>
                       </div>

@@ -1,8 +1,14 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated at closing, 2026-10-02 (later). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-08 (mid-session). Full history belongs in `session-log.md`.
 
-## Active — categories, Open entry, and history and roots are live; the pages await Jesse's read-aloud (2026-10-02)
+## Active — the home page in Jesse's words (2026-10-08)
+
+Jesse read the live home page aloud and reworded it; the polished reading is live on `main` with his rulings on twelve flags (the record: `RIM_Public_Pages.md`, "The home page in Jesse's words"; the words: the vault's `04-community-homepage-revision-2026-09-28.md`, Part One; his verbatim lines: the master reference's Appendix A, 2026-10-08). The programs section is restructured so the three ways read as programs: each card lists its live programs by name (`lib/publicPrograms.ts`, shared with the catalog; home rebuilds every five minutes, `revalidate = 300`, with a fallback if the query fails). Rulings that reached other surfaces: `RIM_WHAT_BINDS` is "unhealthy patterns of heart, mind, and action" (five agreement surfaces, About, the vision); courses are Immersion (catalog intros, the Ongoing subheading "Classes", the Foundations page, the editor's Category help); the Foundations program is named from one constant (home card, catalog standing card, `/foundations`).
+
+**Next concrete step:** Jesse reads the published home page; the polish is provisional until then. Then the remaining read-alouds below. **If he renames drop-ins** (he said he might), the home cards follow on their own; the Saturday program's name is still static on New to RIM and the Foundations page.
+
+## Still open from October 2 — categories, Open entry, and history and roots are live; the pages await Jesse's read-aloud
 
 **Live on `main`** (`a481eb4` the categories merge, `3b2ed9e` the history-and-roots merge; the narrative is in `session-log.md`, 2026-10-02 (later); the design record is `RIM_Public_Pages.md`, "The three ways, Category and Format, and Open entry" and "Our way of practice, and our roots"):
 - **Category and Format on every program**, with Silent meditation and Hosted by volunteers: the Program Manager's two required dropdowns and the admin list filters, and Programs & Events, the shared block, breadcrumbs, This Week and the Kalyana Mitta page reading them. **The migration was applied to production** (20 programs, Jesse's approved mapping with his changes; snapshot, drift guard, one transaction, whole-table diff: only the five new columns changed; `updatedAt` untouched). `lib/programChapters.ts` is gone.
