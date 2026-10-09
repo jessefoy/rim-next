@@ -28085,10 +28085,12 @@ a.pp-card:hover .pp-card__action {
 /* In the reading column the quotation fills the column like everything else
    (680 inside 700 left it 20px short; the volunteer page, 2026-10-09). */
 .pp-page--column .pp-quote { max-width: none; }
-.pp-page--spine .tpr-grid,
 .pp-page--spine .ty-card { margin-left: 0; margin-right: auto; }
-.pp-page--column .tpr-grid,
 .pp-page--column .ty-card { max-width: none; }
+/* The refresh's `.pp-page .tpr-grid` (680, centred) comes later with the same
+   weight, so the column override carries the page class twice. */
+.pp-page.pp-page--spine .tpr-grid { margin-left: 0; margin-right: auto; }
+.pp-page.pp-page--column .tpr-grid { max-width: none; }
 
 /* The first version of this rule listed only .pp-intro and .pp-prose, which
    reproduced the very bug it was written to remove: /join measured 110 for its
