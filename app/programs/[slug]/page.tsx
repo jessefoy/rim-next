@@ -278,8 +278,8 @@ export default async function ProgramDetailPage({
                 <span className="pg-detail-row__text">
                   <span>{locationLabel}</span>
                   {location.link && (
-                    <a href={location.link} target="_blank" rel="noopener noreferrer" className="pg-detail-row__link">
-                      Get directions ↗
+                    <a href={location.link} target="_blank" rel="noopener noreferrer" className="pp-btn pp-btn--ghost pg-detail-row__btn">
+                      Get directions <span aria-hidden="true">↗</span>
                     </a>
                   )}
                 </span>
@@ -292,7 +292,7 @@ export default async function ProgramDetailPage({
                 </span>
                 <span className="pg-detail-row__text">
                   <span>{program.danaText}</span>
-                  <Link href="/donate#dana-at-rim" className="pg-detail-row__link">
+                  <Link href="/donate#dana-at-rim" className="pp-btn pp-btn--ghost pg-detail-row__btn">
                     How dana works at RIM
                   </Link>
                 </span>
@@ -412,10 +412,10 @@ export default async function ProgramDetailPage({
         )}
 
         <nav className="pg-page-end" aria-label="Program navigation">
-          <Link href="/community-programs" className="pg-page-end__link">
+          <Link href="/community-programs" className="pp-btn pp-btn--ghost">
             <span aria-hidden="true">←</span> Explore all programs
           </Link>
-          <Link href="/this-week" className="pg-page-end__link">
+          <Link href="/this-week" className="pp-btn pp-btn--ghost">
             See this week&rsquo;s schedule <span aria-hidden="true">→</span>
           </Link>
         </nav>

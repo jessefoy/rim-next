@@ -130,7 +130,7 @@ export default function NewToRimPage() {
                 teaching, reflection, and conversation. It is usually offered as a course or
                 workshop, and our first offering begins in November.
               </p>
-              <Link href="/foundations" className="nt-text-link">
+              <Link href="/foundations" className="pp-btn">
                 About Foundations <span aria-hidden="true">→</span>
               </Link>
             </div>
@@ -262,7 +262,7 @@ export default function NewToRimPage() {
                   <dd>Cameras are welcome and never required.</dd>
                 </div>
               </dl>
-              <Link href="/account/dashboard" className="nt-text-link nt-account-link">
+              <Link href="/account/dashboard" className="pp-btn nt-account-link">
                 Open My Home <span aria-hidden="true">→</span>
               </Link>
               <p className="nt-link-note">Sign in to find your Zoom link.</p>
@@ -299,7 +299,7 @@ export default function NewToRimPage() {
               If what brings you is a hard season, you are in good company; many of us arrived the
               same way. No explanation is owed, and none will be asked for.
             </p>
-            <Link href="/diversity" className="nt-text-link">
+            <Link href="/diversity" className="pp-btn pp-btn--ghost">
               Diverse Together <span aria-hidden="true">→</span>
             </Link>
           </div>

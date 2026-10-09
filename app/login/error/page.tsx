@@ -33,7 +33,7 @@ export default async function AuthErrorPage({
             <a href="/login" className="pp-btn">
               Try again
             </a>
-            <a href="/join" className="pp-link">
+            <a href="/join" className="pp-btn pp-btn--ghost">
               Become a member <span aria-hidden="true">&rarr;</span>
             </a>
           </div>

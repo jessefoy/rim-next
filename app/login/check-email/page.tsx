@@ -145,7 +145,7 @@ export default async function CheckEmailPage({
               Didn&apos;t receive it? Check your spam folder, or{" "}
               <form action={resendCode} className="lg-inline-form">
                 <input type="hidden" name="email" value={email} />
-                <button type="submit" className="pp-link lg-linkbtn">
+                <button type="submit" className="lg-linkbtn">
                   send a new code
                 </button>
               </form>
@@ -153,7 +153,7 @@ export default async function CheckEmailPage({
             </div>
             <p className="lg-alt lg-alt--quiet">
               Wrong email?{" "}
-              <a href="/login" className="pp-link">
+              <a href="/login">
                 Start over
               </a>
               .

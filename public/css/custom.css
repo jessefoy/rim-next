@@ -2245,13 +2245,7 @@ h4 { font-size: var(--text-h4); }
   line-height: 177%;
 }
 
-.pg-detail-row__link {
-  color: var(--rim-mid);
-  text-decoration: none;
-  font-size: var(--text-ui);
-}
 
-.pg-detail-row__link:hover { color: var(--rim-blue); }
 
 /* CTA row in details — the action sits below the facts (no leading icon). */
 .pg-detail-row--cta { border-bottom: none; padding-top: 22px; }
@@ -2287,11 +2281,6 @@ h4 { font-size: var(--text-h4); }
   color: var(--rim-text);
 }
 
-.pg-detail-cta__inline-link {
-  color: var(--rim-blue);
-  text-decoration: underline;
-}
-.pg-detail-cta__inline-link:hover { color: var(--rim-mid); }
 
 /* ── Facilitators section ── */
 
@@ -4444,13 +4433,6 @@ h4 { font-size: var(--text-h4); }
   font-size: var(--text-small);
   line-height: var(--lh-body);
 }
-.rg-already a {
-  font-size: var(--text-small);
-  color: var(--rim-blue);
-  font-weight: 600;
-  text-decoration: none;
-}
-.rg-already a:hover { text-decoration: underline; }
 
 /* ── Program page CTA buttons (replaces embedded form) ─────────────────── */
 
@@ -21274,8 +21256,6 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   font-size: 16px; color: var(--rim-text-muted, #777);
   margin: 0 0 32px; max-width: 400px; line-height: 1.5;
 }
-.nf-link { font-size: var(--text-small); color: var(--rim-mid, #39607a); text-decoration: underline; }
-.nf-link:hover { color: var(--rim-blue, #135274); }
 
 /* ── Shared empty state (rim-empty) ── */
 .rim-empty { text-align: center; padding: 40px 24px; color: var(--rim-text-muted, #777); font-size: var(--text-small); }
@@ -23554,15 +23534,6 @@ input.w-button { -webkit-appearance: button; }
   color: var(--rim-text-muted);
   font-size: var(--text-small);
 }
-.pg-page .pg-detail-row__link {
-  display: inline-block;
-  width: fit-content;
-  color: var(--rim-blue);
-  font-size: var(--text-small);
-  font-weight: 600;
-  text-decoration: none;
-}
-.pg-page .pg-detail-row__link:hover { text-decoration: underline; }
 .pg-details-action {
   box-sizing: border-box;
   display: flex;
@@ -23630,17 +23601,6 @@ input.w-button { -webkit-appearance: button; }
   border-top: 1px solid var(--rim-rule);
 }
 
-.pg-page-end__link {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--rim-blue);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  text-decoration: none;
-}
-.pg-page-end__link:hover { text-decoration: underline; }
 
 /* ── Member Registry teacher portrait upload (adm2-) ─────────── */
 .adm2-teacher-photo {
@@ -26974,19 +26934,6 @@ a.pp-card:hover .pp-card__action {
   box-shadow: inset 0 0 0 1px var(--rim-surface);
 }
 
-.pp-link {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--rim-blue);
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  font-weight: 600;
-  text-decoration: none;
-}
-.pp-link span { transition: transform 0.15s ease; }
-.pp-link:hover span { transform: translateX(4px); }
 
 .pp-actions {
   display: flex;
@@ -27145,7 +27092,6 @@ a.pp-card:hover .pp-card__action {
      wide as its label on every screen. Only a form's submit fills the
      column on phones, where it closes a full-width form. */
   .pp-form__submit { width: 100%; }
-  .pp-actions .pp-link { min-height: 44px; }
 }
 
 /* ── Pull quote ──────────────────────────────────────────────────
@@ -27341,17 +27287,7 @@ a.pp-card:hover .pp-card__action {
 
 .pp-give__widget + .pp-give__widget { margin-top: 12px; }
 
-.pp-give__help {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  margin-top: 6px;
-  color: var(--rim-blue);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
+.pp-give__help { margin-top: 6px; }
 
 /* ── Numbered steps ──────────────────────────────────────────────
    The dana contemplations. A single readable column of numbered
@@ -29288,22 +29224,7 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   line-height: var(--lh-body);
   text-wrap: pretty;
 }
-.pg-shared__link {
-  display: inline-flex;
-  align-items: center;
-  box-sizing: border-box;
-  min-height: 44px;
-  margin: 0 0 14px;
-  color: var(--rim-blue);
-  font-size: var(--text-small);
-  font-weight: 600;
-  text-decoration: none;
-}
-.pg-shared__link:hover { text-decoration: underline; }
-.pg-shared__link:focus-visible {
-  outline: 2px solid var(--rim-blue);
-  outline-offset: 2px;
-}
+.pg-shared__link { margin: 0 0 14px; }
 @media (max-width: 767px) {
   .pg-page .pg-shared { margin-bottom: 32px; padding: 22px 20px 10px; }
 }
@@ -29581,16 +29502,6 @@ html { scroll-padding-top: 88px; }
   font-size: var(--text-action);
   font-weight: 600;
 }
-.pl-community-links a {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  color: var(--rim-blue);
-  font-size: var(--text-action);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 
 /* Each listing section is a bordered box with its heading on a blue bar,
    labelled as one of the three ways or a community offering, with the count
@@ -29726,12 +29637,6 @@ html { scroll-padding-top: 88px; }
 .nt-copy { font-size: var(--text-body); line-height: var(--lh-body); }
 .nt-copy p { margin: 0 0 16px; }
 .nt-copy p:last-child { margin-bottom: 0; }
-.nt-copy a:not(.pp-btn):not(.nt-text-link),
-.nt-facts a {
-  color: var(--rim-blue);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 .nt-copy .pp-btn { margin-top: var(--space-1); }
 .nt-start-heading {
   display: flex;
@@ -29761,17 +29666,6 @@ html { scroll-padding-top: 88px; }
 }
 .nt-option > p:not(.nt-eyebrow) { margin: 0 0 var(--space-3); font-size: var(--text-card); line-height: 1.7; }
 .nt-option > a { margin-top: auto; }
-.nt-text-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 16px;
-  min-height: 44px;
-  color: var(--rim-blue);
-  font-size: var(--text-small);
-  font-weight: 600;
-  text-decoration: none;
-}
-.nt-text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
 .nt-cost {
   max-width: 920px;
   margin: 22px 0 0;
@@ -29829,9 +29723,6 @@ html { scroll-padding-top: 88px; }
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: var(--rim-blue);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 .nt-page a:focus-visible,
 .nt-page summary:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 5px; }
@@ -30055,6 +29946,102 @@ a.pp-card:hover .pp-card__action--named {
 @media (max-width: 700px) {
   .nt-split > .nt-copy,
   .nt-split > .nt-faq { padding-top: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LINKS ON THE PUBLIC PAGES — 2026-10-09 (Jesse)
+   Two kinds, and only two. A link that stands on its own is a button:
+   .pp-btn for the one action, .pp-btn--ghost beside it or for a
+   secondary door (the text-only standalone links are gone: .pp-link,
+   .nt-text-link, .pg-page-end__link, .pg-detail-row__link). A link
+   inside a sentence is a little heavier than its sentence, with a thin
+   underline set below the baseline. Inside a card that is itself the
+   link (the catalog cards, the home category cards, the teachers, the
+   groups), the action label stays text and arrow: the card is the button.
+   Contact data (an email address, a phone number, the street address) is
+   information, not an action, and takes the sentence style even when it
+   stands alone, as the footer does.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Inside a sentence. */
+.pp-prose a,
+.pp-intro__body a,
+.pp-panel__body a,
+.pp-notice__body a,
+.pp-card__body a,
+.pp-reading__article a:not(.pp-btn),
+.home-chapter__body .pp-intro__body a,
+.nt-copy a:not(.pp-btn),
+.nt-cost a,
+.nt-facts a,
+.nt-contact-links a,
+.nt-access-note a,
+.lg-alt a,
+.lg-alt .lg-linkbtn,
+.pg-detail-cta__inline-link,
+.ty-inline-link,
+.jn-already__link,
+.pl-membership__inline-link,
+.pg-dana__where a,
+.pp-page .rim-content a,
+.pg-page .rim-content a {
+  color: var(--rim-blue);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--rim-blue) 45%, transparent);
+  transition: text-decoration-color 0.15s ease, color 0.15s ease;
+}
+.pp-prose a:hover,
+.pp-intro__body a:hover,
+.pp-panel__body a:hover,
+.pp-notice__body a:hover,
+.pp-card__body a:hover,
+.pp-reading__article a:not(.pp-btn):hover,
+.home-chapter__body .pp-intro__body a:hover,
+.nt-copy a:not(.pp-btn):hover,
+.nt-cost a:hover,
+.nt-facts a:hover,
+.nt-contact-links a:hover,
+.nt-access-note a:hover,
+.lg-alt a:hover,
+.lg-alt .lg-linkbtn:hover,
+.pg-detail-cta__inline-link:hover,
+.ty-inline-link:hover,
+.jn-already__link:hover,
+.pl-membership__inline-link:hover,
+.pg-dana__where a:hover,
+.pp-page .rim-content a:hover,
+.pg-page .rim-content a:hover {
+  color: var(--rim-dark);
+  text-decoration-color: currentColor;
+}
+/* The same weight and line on the donate hero, where the links are white. */
+.pp-give__assist a {
+  font-weight: 600;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--rim-surface) 55%, transparent);
+}
+.pp-give__assist a:hover { text-decoration-color: currentColor; }
+
+/* Standing on its own, in the places that used to carry a text link. */
+.pg-detail-row__text .pg-detail-row__btn {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  margin-top: 10px;
+}
+.ty-facts .ty-facts__btn {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  margin-top: 8px;
+}
+.pg-page .pg-page-end { flex-wrap: wrap; padding: 16px 0; }
+@media (max-width: 430px) {
+  .pg-page .pg-page-end { gap: 12px; }
 }
 
 /* ===================================================================
@@ -30376,12 +30363,7 @@ a.pp-card:hover .pp-card__action--named {
 /* The member's own address echoed back: one unbreakable token (RIM_Auth.md,
    pitfall 6), so it must be allowed to wrap. */
 .ty-email { overflow-wrap: anywhere; }
-.ty-inline-link {
-  color: var(--rim-blue);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  overflow-wrap: anywhere;
-}
+.ty-inline-link { overflow-wrap: anywhere; }
 @media (max-width: 430px) {
   .ty-facts { grid-template-columns: minmax(0, 1fr); gap: 2px 0; }
   .ty-facts dd + dt { margin-top: 12px; }

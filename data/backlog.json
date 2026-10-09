@@ -1452,9 +1452,9 @@
     "description": "Jesse's ruling: standalone text links ('… →') are buttons (primary for a section's one action, outline for a second). The center-stated pass converted home, Why We Practice, Taking Care, New to RIM, Our Roots, About and Outreach. Still carrying text links: /donate, /diversity, /this-week, /community-programs (hero utility link), the Kalyana Mitta pages, /volunteerism, /community-care-agreements closing, /teachers. Apply the same rule, and name labels as destinations (no imperatives).",
     "category": "CSS & Design",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-09-25",
-    "notes": "Rule recorded in RIM_Public_Pages.md → The center, stated → Presentation rulings. Measure at 375 and 1280 after."
+    "notes": "Rule recorded in RIM_Public_Pages.md → The center, stated → Presentation rulings. Measure at 375 and 1280 after.\n\nDONE 2026-10-09 — the whole site, in one pass (Jesse: \"I don't like the text-only links. When they're not in paragraphs… go through the whole site\"): every standalone text link is a pp-btn (filled for the one action, ghost beside it); the four text-link classes (.pp-link, .nt-text-link, .pg-page-end__link, .pg-detail-row__link) are retired; sentence links share one rule (600 weight, 1px underline offset 3px, tinted). Card-internal labels stay text + arrow because the card is the link. Record: RIM_Public_Pages.md → \"Links, two kinds (2026-10-09)\"."
   },
   {
     "id": "2026-09-25-003",

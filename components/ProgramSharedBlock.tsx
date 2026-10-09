@@ -19,14 +19,14 @@ export default function ProgramSharedBlock() {
       <p className="pg-shared__text">
         Taking CARE, our way of practice, is present in every RIM gathering.
       </p>
-      <Link href="/care" className="pg-shared__link">
+      <Link href="/care" className="pp-btn pp-btn--ghost pg-shared__link">
         How we practice
       </Link>
       <p className="pg-shared__text">
         Programs list a suggested contribution so everyone can see what an offering takes to
         sustain. For most programs, no one is turned away for being unable to pay.
       </p>
-      <Link href="/donate#dana-at-rim" className="pg-shared__link">
+      <Link href="/donate#dana-at-rim" className="pp-btn pp-btn--ghost pg-shared__link">
         How dana works
       </Link>
     </section>

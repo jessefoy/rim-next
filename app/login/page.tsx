@@ -132,7 +132,6 @@ export default async function LoginPage({
                   you&apos;re new to RIM, you&apos;re warmly welcome.{" "}
                   <a
                     href={`/join${prefillEmail ? `?email=${encodeURIComponent(prefillEmail)}` : ""}`}
-                    className="pp-link"
                   >
                     Become a member <span aria-hidden="true">&rarr;</span>
                   </a>
@@ -169,7 +168,7 @@ export default async function LoginPage({
 
             <p className="lg-alt">
               New to RIM?{" "}
-              <a href="/join" className="pp-link">
+              <a href="/join">
                 Become a member <span aria-hidden="true">&rarr;</span>
               </a>
             </p>

@@ -33,7 +33,7 @@ export default async function VolunteerThanksPage() {
             <Link href="/community-programs" className="pp-btn">
               See our programs
             </Link>
-            <Link href="/" className="pp-link">
+            <Link href="/" className="pp-btn pp-btn--ghost">
               Back to home <span aria-hidden="true">→</span>
             </Link>
           </div>

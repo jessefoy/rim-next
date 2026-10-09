@@ -53,7 +53,7 @@ export default async function TeachersPage() {
             <div className="pp-panel">
               <p className="pp-panel__body">
                 Teacher profiles are on their way. In the meantime,{" "}
-                <Link href="/this-week" className="pp-link">
+                <Link href="/this-week">
                   see what is happening this week
                 </Link>
                 .

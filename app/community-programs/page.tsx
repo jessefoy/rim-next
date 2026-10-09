@@ -249,12 +249,12 @@ export default async function CommunityProgramsPage() {
             <div className="pl-community-links">
               <p>Also in our community</p>
               {inCategory("COMMUNITY_GROUP").length > 0 && (
-                <a href="#community-groups">
+                <a href="#community-groups" className="pp-btn pp-btn--ghost">
                   Community groups <span aria-hidden="true">→</span>
                 </a>
               )}
               {inCategory("SPECIAL_EVENT").length > 0 && (
-                <a href="#special-events">
+                <a href="#special-events" className="pp-btn pp-btn--ghost">
                   Special events <span aria-hidden="true">→</span>
                 </a>
               )}

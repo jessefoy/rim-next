@@ -136,7 +136,7 @@ export default function DiversityPage() {
                 <Link href="/join" className="pp-btn">
                   Join us
                 </Link>
-                <Link href="/community-programs" className="pp-link">
+                <Link href="/community-programs" className="pp-btn pp-btn--ghost">
                   See our programs <span aria-hidden="true">→</span>
                 </Link>
               </div>

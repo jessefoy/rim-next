@@ -115,7 +115,7 @@ export default async function VolunteerPage({
                 <Link href="/join" className="pp-btn">
                   Become a member
                 </Link>
-                <Link href="/login" className="pp-link">
+                <Link href="/login" className="pp-btn pp-btn--ghost">
                   I already have an account <span aria-hidden="true">→</span>
                 </Link>
               </div>

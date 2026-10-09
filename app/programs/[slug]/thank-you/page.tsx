@@ -178,12 +178,9 @@ export default async function ThankYouPage({
               <dd>
                 {where}
                 {inPerson && loc.link && (
-                  <>
-                    {" "}
-                    <a href={loc.link} target="_blank" rel="noopener noreferrer" className="ty-inline-link">
-                      Directions
-                    </a>
-                  </>
+                  <a href={loc.link} target="_blank" rel="noopener noreferrer" className="pp-btn pp-btn--ghost ty-facts__btn">
+                    Get directions <span aria-hidden="true">↗</span>
+                  </a>
                 )}
               </dd>
             </>
@@ -212,14 +209,14 @@ export default async function ThankYouPage({
           </a>
         ) : null}
         {online && googleUrl && (
-          <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="pp-link">
+          <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="pp-btn pp-btn--ghost">
             Add to Google Calendar
           </a>
         )}
         {icsUrl && (
-          <a href={icsUrl} className="pp-link">Apple or Outlook calendar</a>
+          <a href={icsUrl} className="pp-btn pp-btn--ghost">Apple or Outlook calendar</a>
         )}
-        <Link href={`/programs/${program.slug}`} className="pp-link">Back to the program page</Link>
+        <Link href={`/programs/${program.slug}`} className="pp-btn pp-btn--ghost">Back to the program page</Link>
       </div>
     </Shell>
   );

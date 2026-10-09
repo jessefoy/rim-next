@@ -98,7 +98,7 @@ export default function DonatePage() {
                   <givebutter-widget id="gBBMYg"></givebutter-widget>
                 </div>
 
-                <a href="#how-much" className="pp-give__help">
+                <a href="#how-much" className="pp-btn pp-btn--ghost pp-give__help">
                   Need help determining an amount to give?
                 </a>
               </div>
@@ -125,7 +125,7 @@ export default function DonatePage() {
                   <givebutter-widget id="j2WG2L"></givebutter-widget>
                 </div>
 
-                <a href="#how-much" className="pp-give__help">
+                <a href="#how-much" className="pp-btn pp-btn--ghost pp-give__help">
                   Need help determining an amount to give?
                 </a>
               </div>

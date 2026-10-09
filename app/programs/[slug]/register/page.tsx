@@ -131,7 +131,7 @@ export default async function RegisterPage({
             <div className="rg-already">
               <h2>You&rsquo;re already registered.</h2>
               <p>Your place in this program is confirmed.</p>
-              <Link href={`/programs/${slug}`}>Return to the program →</Link>
+              <Link href={`/programs/${slug}`} className="pp-btn pp-btn--ghost">Return to the program <span aria-hidden="true">→</span></Link>
             </div>
           ) : (
             <>

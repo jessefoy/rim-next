@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="nf-text">
         The page you are looking for does not exist or has been moved.
       </p>
-      <Link href="/" className="nf-link">
+      <Link href="/" className="pp-btn pp-btn--ghost">
         Return home
       </Link>
     </div>
