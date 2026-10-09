@@ -399,7 +399,7 @@ export default async function DashboardPage({ searchParams }: {
         <header className="db2-greeting">
           <p className="db2-greeting__date">{fmtTodayFull()}</p>
           <h1 className="db2-greeting__name">{upcomingView ? "Your upcoming programs" : `Good ${timeOfDay()}, ${firstName}.`}</h1>
-          {upcomingView && <Link href="/account/dashboard" className="rim-back-link">Back to My Home</Link>}
+          {upcomingView && <Link href="/account/dashboard" className="pp-btn pp-btn--ghost">Back to My Home</Link>}
         </header>
 
         {/* First-login host recognition — one-time, dismissible (session 143) */}
@@ -468,8 +468,8 @@ export default async function DashboardPage({ searchParams }: {
         {!upcomingView && <>
           {!showTodayCard && <section className="rim-empty"><h2>There are no more sessions today.</h2><p>You can find the next gathering in the full schedule.</p></section>}
           <nav className="rim-home-links" aria-label="More programs">
-            <Link href="/account/dashboard?view=upcoming">Your upcoming programs <span aria-hidden="true">→</span></Link>
-            <Link href="/this-week">Full schedule <span aria-hidden="true">→</span></Link>
+            <Link href="/account/dashboard?view=upcoming" className="pp-btn pp-btn--ghost">Your upcoming programs <span aria-hidden="true">→</span></Link>
+            <Link href="/this-week" className="pp-btn pp-btn--ghost">Full schedule <span aria-hidden="true">→</span></Link>
           </nav>
           <HandfulHomeCard />
         </>}
@@ -480,7 +480,7 @@ export default async function DashboardPage({ searchParams }: {
           {sortedRegistrations.length === 0 ? (
             <div className="db2-empty-card">
               <p className="db2-empty-card__text">No upcoming programs yet.</p>
-              <Link href="/community-programs" className="db2-empty-card__link">Browse programs →</Link>
+              <Link href="/community-programs" className="pp-btn pp-btn--ghost">Browse programs <span aria-hidden="true">→</span></Link>
             </div>
           ) : (
             <div className="db2-upcoming">

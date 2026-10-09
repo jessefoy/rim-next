@@ -18,10 +18,10 @@ export default function HandfulHomeCard() {
         arises in practice or in life.
       </p>
       <div className="rim-home-links">
-        <Link href={HANDFUL_PATHS.introduction}>
+        <Link href={HANDFUL_PATHS.introduction} className="pp-btn">
           The introduction <span aria-hidden="true">→</span>
         </Link>
-        <Link href={HANDFUL_PATHS.map}>
+        <Link href={HANDFUL_PATHS.map} className="pp-btn pp-btn--ghost">
           The map <span aria-hidden="true">→</span>
         </Link>
       </div>
