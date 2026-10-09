@@ -183,7 +183,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(html.includes('/session/morning/enter'),true,'Zoom handoff unchanged');
   check(html.includes('Preparation note'),true,'preparation reaches member home');
   check(html.includes('Schedule update'),true,'important update reaches member home');
-  check(html.includes('<summary>Good to know</summary>'),true,'routine preparation is a disclosure');
+  check(html.includes('class="rim-session-note">Preparation note'),true,'the session note is a quiet line with the session');
   programs[0].announcementUntil=new Date('2026-09-20T12:00:00Z');html=await dashboardHtml();
   check(html.includes('Schedule update'),false,'an Update past its clear-by day clears itself');
   programs[0].announcementUntil=new Date('2026-09-21T12:00:00Z');html=await dashboardHtml();

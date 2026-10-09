@@ -1304,7 +1304,7 @@ export default function ProgramEditor({
             <div className="pe-form">
               <div className="pe-field">
                 <span className="pe-field__label">Program Notes</span>
-                <span className="pe-field__help">Additional notes shown on the program&rsquo;s page: scheduling context, accessibility, background. The one practical line before coming belongs in Good to know, on the Schedule tab.</span>
+                <span className="pe-field__help">Additional notes shown on the program&rsquo;s page: scheduling context, accessibility, background. The quiet line shown with a session on the day belongs in Session note, on the Schedule tab.</span>
                 <RimTiptapEditor
                   value={programNotes}
                   onChange={(v) => { setProgramNotes(v); markDirty(); }}
@@ -1443,8 +1443,8 @@ export default function ProgramEditor({
             )}
 
             <label className="pe-field">
-              <span className="pe-field__label">Good to know</span>
-              <span className="pe-field__help">One practical line for someone before they come: &ldquo;Doors open ten minutes before.&rdquo; &ldquo;Bring a cushion.&rdquo; &ldquo;Park in the rear lot.&rdquo; Shown on the program&rsquo;s page beside the gathering details, and on My Home before a session.</span>
+              <span className="pe-field__label">Session note</span>
+              <span className="pe-field__help">One quiet line shown with the session on My Home on the day: &ldquo;Held in noble silence before and during the session.&rdquo; &ldquo;Doors open ten minutes before.&rdquo; &ldquo;Bring a cushion.&rdquo;</span>
               <textarea
                 value={earlyArrivalMessage}
                 onChange={(e) => setEarlyArrivalMessage(e.target.value)}
@@ -1538,8 +1538,8 @@ export default function ProgramEditor({
             )}
 
             <label className="pe-field">
-              <span className="pe-field__label">Update</span>
-              <span className="pe-field__help">A notice about a change: a cancellation, a different time, a different room. Shown wherever the program is listed: Programs &amp; Events, This Week, the program&rsquo;s page, and My Home.</span>
+              <span className="pe-field__label">Notice</span>
+              <span className="pe-field__help">A change: &ldquo;Cancelled this week.&rdquo; &ldquo;Starting at 7:15 tonight.&rdquo; &ldquo;We are in the community room.&rdquo; Shown wherever the program is listed: Programs &amp; Events, This Week, the program&rsquo;s page, and My Home.</span>
               <textarea
                 value={specialAnnouncement}
                 onChange={(e) => { setSpecialAnnouncement(e.target.value); markDirty(); }}
@@ -1550,7 +1550,7 @@ export default function ProgramEditor({
 
             <label className="pe-field">
               <span className="pe-field__label">Show until</span>
-              <span className="pe-field__help">The last day the Update shows; it clears itself the next morning. Leave empty and it stays until you clear the text.</span>
+              <span className="pe-field__help">The last day the notice shows; it clears itself the next morning. Leave empty and it stays until you clear the text.</span>
               <input
                 type="date"
                 value={announcementUntil}

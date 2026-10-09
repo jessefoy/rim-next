@@ -635,6 +635,6 @@ Jesse, reading New to RIM after the refresh: *"we need to be consistent with but
 
 ### Program notices (September 2026)
 
-**2026-10-09:** the program's own page now carries both: the Update as a notice above the gathering details (`.pg-notice`), and Good to know as a detail row beside Where and When. The editor names them for their purpose (`RIM_ProgramEditor.md`, "The two notices, named for their purpose").
+**2026-10-09:** the program's own page carries the Notice above the gathering details (`.pg-notice`): one line with a blue edge, no label, the same treatment as the cards and My Home (the amber "Update" pill is gone). The session note stays on My Home only. The editor names them Notice and Session note (`RIM_ProgramEditor.md`, "The two notices, named for their purpose").
 
 The general program catalog and weekly schedule retain `specialAnnouncement` as a visible Update. They no longer render `earlyArrivalMessage` under “Good to know.” That routine preparation appears beside the relevant offering on the signed-in member’s Today view, in a disclosure. This is a placement change; authors still edit the same program field. Do not remove urgent updates or hide cancellation/time-change information with routine preparation.

@@ -569,7 +569,7 @@ function UpcomingRow({ r }: { r: UpcomingRowData }) {
 
 function SessionNotes({ item }: { item: TodayDisplayItem }) {
   return <>
-    {item.announcement && <p className="rim-session-update"><span className="rim-session-update__label">Update</span>{item.announcement}</p>}
-    {item.note && <details className="rim-session-notes"><summary>Good to know</summary><p>{item.note}</p></details>}
+    {item.announcement && <p className="rim-session-notice">{item.announcement}</p>}
+    {item.note && <p className="rim-session-note">{item.note}</p>}
   </>;
 }

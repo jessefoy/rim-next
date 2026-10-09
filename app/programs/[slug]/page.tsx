@@ -260,12 +260,10 @@ export default async function ProgramDetailPage({
         <section className="pg-details-section">
           <h2 className="pg-section-heading">Gathering details</h2>
           {/* A change to this program (a cancellation, a different time or
-              room): the same notice the catalog cards and My Home carry. */}
+              room): the same line the catalog cards and My Home carry. The
+              session note stays on My Home; it is for the day someone comes. */}
           {activeAnnouncement(program) && (
-            <p className="pg-notice">
-              <span className="pg-notice__label">Update</span>
-              {activeAnnouncement(program)}
-            </p>
+            <p className="pg-notice">{activeAnnouncement(program)}</p>
           )}
           <div className="pg-details-list">
             {(scheduleLabel || timeLabel) && (
@@ -304,17 +302,6 @@ export default async function ProgramDetailPage({
                   <Link href="/donate#dana-at-rim" className="pp-btn pp-btn--ghost pg-detail-row__btn">
                     How dana works at RIM
                   </Link>
-                </span>
-              </div>
-            )}
-            {program.earlyArrivalMessage && (
-              <div className="pg-detail-row">
-                <span className="pg-detail-row__icon" aria-hidden="true">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                </span>
-                <span className="pg-detail-row__text">
-                  <span className="pg-detail-row__secondary">Good to know</span>
-                  <span>{program.earlyArrivalMessage}</span>
                 </span>
               </div>
             )}
