@@ -984,6 +984,12 @@ export default function ProgramEditor({
         setDirty(false);
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
+        // The save went through this fetch, not through the router, so the
+        // Next.js client router cache still holds the list page and this
+        // edit page as they were rendered before it. Without a refresh,
+        // "← Programs" or browser back shows the old values (Jesse saw a
+        // program saved to Foundations listed as Immersion, 2026-10-09).
+        router.refresh();
         // If slug changed, redirect to new URL
         if (slug !== initialData?.slug) {
           router.push(`${basePath}/${slug}/edit`);
