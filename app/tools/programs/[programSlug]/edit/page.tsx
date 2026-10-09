@@ -159,6 +159,9 @@ export default async function EditProgramToolPage({
     danaMessage: program.danaMessage ?? null,
     danaText: program.danaText ?? "",
     specialAnnouncement: program.specialAnnouncement ?? "",
+    announcementUntil: program.announcementUntil
+      ? program.announcementUntil.toLocaleDateString("en-CA", { timeZone: "America/Chicago" })
+      : "",
     earlyArrivalMessage: program.earlyArrivalMessage ?? "",
     hideFromDashboard: program.hideFromDashboard,
     dayOfWeek: program.dayOfWeek,

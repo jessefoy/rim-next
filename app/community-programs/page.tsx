@@ -21,6 +21,7 @@ import {
   computeTimeText,
   hasConcludedOneTime,
 } from "@/lib/programUtils";
+import { activeAnnouncement } from "@/lib/scheduleUtils";
 
 export const metadata = {
   title: "Programs and Events - Rooted In Mindfulness",
@@ -137,7 +138,7 @@ export default async function CommunityProgramsPage() {
               </div>
               {labels}
               {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
-              <ProgramCardNotices announcement={program.specialAnnouncement} />
+              <ProgramCardNotices announcement={activeAnnouncement(program)} />
               {/* On phones the trailing arrow is hidden; this names the action. */}
               <span className="pl-card__link">
                 View program <span aria-hidden="true">→</span>
@@ -179,7 +180,7 @@ export default async function CommunityProgramsPage() {
             </div>
             {labels}
             {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
-            <ProgramCardNotices announcement={program.specialAnnouncement} />
+            <ProgramCardNotices announcement={activeAnnouncement(program)} />
             {/* On phones the trailing arrow is hidden; this names the action. */}
             <span className="pl-card__link">
               View program <span aria-hidden="true">→</span>

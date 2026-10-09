@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
+import { activeAnnouncement, ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
 import { hasOpenEntry } from "@/lib/programOffering";
 import { getHubCoverageCopy } from "@/lib/programHub";
 import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
@@ -91,7 +91,7 @@ export default async function DashboardPage({ searchParams }: {
           startDatetime: true, endDatetime: true,
           recurrenceFreq: true, recurrenceInterval: true,
           recurrenceDays: true, recurrenceCount: true,
-          programFormat: true, earlyArrivalMessage: true, specialAnnouncement: true,
+          programFormat: true, earlyArrivalMessage: true, specialAnnouncement: true, announcementUntil: true,
           // Open entry drives Today placement: only a program with open entry
           // shows a public Join to non-registrants. (registrationEnabled and
           // the old category are read only while openEntry is still empty.)
@@ -117,7 +117,7 @@ export default async function DashboardPage({ searchParams }: {
           donationStatus: true,
           program: {
             select: {
-              programFormat: true, earlyArrivalMessage: true, specialAnnouncement: true,
+              programFormat: true, earlyArrivalMessage: true, specialAnnouncement: true, announcementUntil: true,
               startDatetime: true,
               endDatetime: true,
               recurrenceFreq: true,
@@ -286,7 +286,7 @@ export default async function DashboardPage({ searchParams }: {
     .filter((s) => s.isLive || s.isSetupOpen || s.isLaterToday)
     .map((s) => ({
       key: `program-${s._id}`,
-      note: s.earlyArrivalMessage, announcement: s.specialAnnouncement,
+      note: s.earlyArrivalMessage, announcement: activeAnnouncement(s, now),
       name: s.name,
       startTimeCT: s.startTimeCT,
       endTimeCT: s.endTimeCT,
@@ -325,7 +325,7 @@ export default async function DashboardPage({ searchParams }: {
     const isHappeningNow = now >= start;
     return [{
       key: `registration-${r.id}`,
-      note: p.earlyArrivalMessage, announcement: p.specialAnnouncement,
+      note: p.earlyArrivalMessage, announcement: activeAnnouncement(p, now),
       name: r.programTitle,
       startTimeCT: fmtTimeCT(start.toISOString()),
       endTimeCT: p.endDatetime ? fmtTimeCT(end.toISOString()) : null,

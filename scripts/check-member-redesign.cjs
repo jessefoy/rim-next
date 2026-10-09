@@ -184,6 +184,11 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(html.includes('Preparation note'),true,'preparation reaches member home');
   check(html.includes('Schedule update'),true,'important update reaches member home');
   check(html.includes('<summary>Good to know</summary>'),true,'routine preparation is a disclosure');
+  programs[0].announcementUntil=new Date('2026-09-20T12:00:00Z');html=await dashboardHtml();
+  check(html.includes('Schedule update'),false,'an Update past its clear-by day clears itself');
+  programs[0].announcementUntil=new Date('2026-09-21T12:00:00Z');html=await dashboardHtml();
+  check(html.includes('Schedule update'),true,'an Update shows through its clear-by day');
+  programs[0].announcementUntil=null;html=await dashboardHtml();
   check(html.includes('From your teams'),false,'home has no message feed');
   check(registrationQueries.every(q=>q.where.status.notIn.includes('PENDING_PAYMENT')&&q.where.status.notIn.includes('CANCELLED')),true,'held and cancelled registrations remain excluded');
   now='2026-09-21T15:35:00Z';

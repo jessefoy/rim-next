@@ -15,6 +15,7 @@ import { applyProgramRecordingSetting, teardownProgramMeetings } from "@/lib/ses
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
 import { cleanOffering, resolveOffering } from "@/lib/programOffering";
+import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
 
 export async function GET(
   _req: NextRequest,
@@ -225,6 +226,13 @@ export async function PUT(
   if (body.danaMessage !== undefined) data.danaMessage = body.danaMessage || null;
   if (body.danaText !== undefined) data.danaText = body.danaText || null;
   if (body.specialAnnouncement !== undefined) data.specialAnnouncement = body.specialAnnouncement || null;
+  if (body.announcementUntil !== undefined) {
+    const until = parseAnnouncementUntil(body.announcementUntil);
+    if (until === undefined) {
+      return NextResponse.json({ error: "Show until needs a date, or leave it empty." }, { status: 422 });
+    }
+    data.announcementUntil = until;
+  }
   if (body.earlyArrivalMessage !== undefined) data.earlyArrivalMessage = body.earlyArrivalMessage || null;
   if (body.hideFromDashboard !== undefined) data.hideFromDashboard = body.hideFromDashboard;
   if (body.dayOfWeek !== undefined) data.dayOfWeek = body.dayOfWeek;

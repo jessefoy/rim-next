@@ -5962,6 +5962,10 @@ Rooted In Mindfulness · Brookfield, WI`,
   // Outside the flag above so it lands even where that flag was set earlier;
   // IF NOT EXISTS makes it a no-op on every later build.
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "openEntry" BOOLEAN`);
+  // The Update's clear-by day (2026-10-09): nullable, no backfill; null keeps
+  // the old behaviour (the notice stays until cleared). IF NOT EXISTS: a no-op
+  // on every later build.
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "announcementUntil" TIMESTAMP(3)`);
 
   // Additive, idempotent organization tables. No Drive files or existing
   // member/registration records are changed; the old app can run during build.

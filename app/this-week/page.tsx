@@ -4,7 +4,7 @@ import ProgramCardNotices from "@/components/ProgramCardNotices";
 import { hasOpenEntry } from "@/lib/programOffering";
 import PracticeWithUs from "@/components/PracticeWithUs";
 import { formatTimeRange } from "@/lib/dateLabel";
-import { isOccurrenceOnDate, type ScheduleProgram } from "@/lib/scheduleUtils";
+import { activeAnnouncement, isOccurrenceOnDate, type ScheduleProgram } from "@/lib/scheduleUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -251,7 +251,7 @@ export default async function ThisWeekPage({
                               </div>
                             )}
                             <ProgramCardNotices
-                              announcement={program.specialAnnouncement}
+                              announcement={activeAnnouncement(program)}
                             />
                           </div>
                           <span className="pl-card__action" aria-hidden="true">→</span>

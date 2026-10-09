@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
+import { activeAnnouncement } from "@/lib/scheduleUtils";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import {
   HOSTED_BY_VOLUNTEERS_LABEL,
@@ -260,10 +261,10 @@ export default async function ProgramDetailPage({
           <h2 className="pg-section-heading">Gathering details</h2>
           {/* A change to this program (a cancellation, a different time or
               room): the same notice the catalog cards and My Home carry. */}
-          {program.specialAnnouncement && (
+          {activeAnnouncement(program) && (
             <p className="pg-notice">
               <span className="pg-notice__label">Update</span>
-              {program.specialAnnouncement}
+              {activeAnnouncement(program)}
             </p>
           )}
           <div className="pg-details-list">

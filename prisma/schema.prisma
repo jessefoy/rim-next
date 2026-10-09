@@ -280,6 +280,8 @@ model Program {
 
   // ── Dashboard ──────────────────────────────────────────
   specialAnnouncement  String?
+  /// The Update shows through this CT day, then clears itself (2026-10-09). Null: until cleared.
+  announcementUntil    DateTime?
   earlyArrivalMessage  String?
   hideFromDashboard    Boolean  @default(false)
   dayOfWeek            String[] // ["MO","TH"] — drives "Today" badge + listing day group

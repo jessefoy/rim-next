@@ -110,6 +110,8 @@ export interface ProgramData {
   danaMessage: any;
   danaText: string;
   specialAnnouncement: string;
+  /** "YYYY-MM-DD" (a CT day) or "". */
+  announcementUntil: string;
   earlyArrivalMessage: string;
   hideFromDashboard: boolean;
   dayOfWeek: string[];
@@ -654,6 +656,7 @@ export default function ProgramEditor({
   const [danaText, setDanaText] = useState(initialData?.danaText ?? "");
 
   const [specialAnnouncement, setSpecialAnnouncement] = useState(initialData?.specialAnnouncement ?? "");
+  const [announcementUntil, setAnnouncementUntil] = useState(initialData?.announcementUntil ?? "");
   const [earlyArrivalMessage, setEarlyArrivalMessage] = useState(initialData?.earlyArrivalMessage ?? "");
   const [hideFromDashboard, setHideFromDashboard] = useState(initialData?.hideFromDashboard ?? false);
   const [dayOfWeek, setDayOfWeek] = useState<string[]>(initialData?.dayOfWeek ?? []);
@@ -932,6 +935,7 @@ export default function ProgramEditor({
         danaMessage,
         danaText,
         specialAnnouncement,
+        announcementUntil: announcementUntil || null,
         earlyArrivalMessage,
         hideFromDashboard,
         dayOfWeek: deriveDayOfWeek(recurrenceFreq, recurrenceDays, startDatetime),
@@ -1535,12 +1539,23 @@ export default function ProgramEditor({
 
             <label className="pe-field">
               <span className="pe-field__label">Update</span>
-              <span className="pe-field__help">A notice about a change: a cancellation, a different time, a different room. Shown wherever the program is listed: Programs &amp; Events, This Week, the program&rsquo;s page, and My Home. It stays until you clear it.</span>
+              <span className="pe-field__help">A notice about a change: a cancellation, a different time, a different room. Shown wherever the program is listed: Programs &amp; Events, This Week, the program&rsquo;s page, and My Home.</span>
               <textarea
                 value={specialAnnouncement}
-                onChange={(e) => setSpecialAnnouncement(e.target.value)}
+                onChange={(e) => { setSpecialAnnouncement(e.target.value); markDirty(); }}
                 className="pe-textarea"
                 rows={2}
+              />
+            </label>
+
+            <label className="pe-field">
+              <span className="pe-field__label">Show until</span>
+              <span className="pe-field__help">The last day the Update shows; it clears itself the next morning. Leave empty and it stays until you clear the text.</span>
+              <input
+                type="date"
+                value={announcementUntil}
+                onChange={(e) => { setAnnouncementUntil(e.target.value); markDirty(); }}
+                className="pe-input pe-input--narrow"
               />
             </label>
 

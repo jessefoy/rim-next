@@ -20,6 +20,36 @@ export function ctDateStr(iso: string): string {
   }).replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
 }
 
+/**
+ * The program's Update, if it is still current. The editor's "Show until" is a
+ * CT day: the notice shows through that day and clears itself the next
+ * morning. No date (the old behaviour, and every program before 2026-10-09)
+ * means it stays until someone clears the text. Every renderer of the Update
+ * goes through here, so a stale notice can never outlive its day.
+ */
+export function activeAnnouncement(p: {
+  specialAnnouncement?: string | null;
+  announcementUntil?: Date | string | null;
+}, now: Date = new Date()): string | null {
+  const text = p.specialAnnouncement?.trim();
+  if (!text) return null;
+  if (!p.announcementUntil) return text;
+  const until = typeof p.announcementUntil === "string" ? new Date(p.announcementUntil) : p.announcementUntil;
+  if (isNaN(until.getTime())) return text;
+  const untilYmd = until.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  const todayYmd = now.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  return todayYmd <= untilYmd ? text : null;
+}
+
+/** "YYYY-MM-DD" from the editor → the stored day (noon UTC, so its CT date is
+    that day whatever the offset); anything else → null; a bad string → undefined. */
+export function parseAnnouncementUntil(input: unknown): Date | null | undefined {
+  if (input == null || input === "") return null;
+  if (typeof input !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input)) return undefined;
+  const d = new Date(input + "T12:00:00Z");
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
 /** iCal day codes indexed by JS getDay() (0=Sunday) */
 export const ICAL_DAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 

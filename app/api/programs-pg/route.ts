@@ -14,6 +14,7 @@ import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { cleanOffering } from "@/lib/programOffering";
+import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
 
 export async function GET() {
   const session = await auth();
@@ -53,6 +54,12 @@ export async function POST(request: NextRequest) {
   const offering = cleanOffering(body);
   if (!offering.ok) {
     return NextResponse.json({ error: offering.error }, { status: 422 });
+  }
+
+  // The Update's clear-by day: a "YYYY-MM-DD" or nothing.
+  const announcementUntil = parseAnnouncementUntil(body.announcementUntil);
+  if (announcementUntil === undefined) {
+    return NextResponse.json({ error: "Show until needs a date, or leave it empty." }, { status: 422 });
   }
 
   const existing = await db.program.findUnique({ where: { slug } });
@@ -142,6 +149,7 @@ export async function POST(request: NextRequest) {
       danaMessage: body.danaMessage || null,
       danaText: body.danaText || null,
       specialAnnouncement: body.specialAnnouncement || null,
+      announcementUntil,
       earlyArrivalMessage: body.earlyArrivalMessage || null,
       hideFromDashboard: body.hideFromDashboard ?? false,
       dayOfWeek: body.dayOfWeek ?? [],
