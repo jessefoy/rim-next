@@ -29300,34 +29300,6 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
 .hol-content h2 { margin-top: var(--space-6); }
 .hol-content h2:first-child { margin-top: 0; }
 
-/* My Home: one quiet white surface, like the Today card. */
-.db-handful {
-  box-sizing: border-box;
-  margin: var(--space-4) 0;
-  padding: 24px 28px;
-  border-radius: 14px;
-  background: var(--rim-surface);
-}
-.db-handful .db-handful__title {
-  margin: 0 0 var(--space-1);
-  color: var(--rim-text);
-  font-family: var(--font-serif);
-  font-size: var(--text-h3);
-  font-weight: 400;
-  line-height: var(--lh-heading);
-}
-.db-handful .db-handful__text {
-  max-width: 65ch;
-  margin: 0;
-  color: var(--rim-text);
-  font-size: var(--text-app);
-  line-height: 1.55;
-}
-.db-handful .rim-home-links { margin: var(--space-1) 0 0; }
-@media (max-width: 430px) {
-  .db-handful { padding: 20px; }
-}
-
 /* Print: either document prints as a clean page. The member header, the rail
    and the mobile bar drop away; the page becomes black on white at a printed
    size; headings keep with the text they introduce. */
@@ -30105,7 +30077,6 @@ a.pp-card:hover .pp-card__action--named {
 /* Surfaces: white, one hairline, 12px, no shadow. */
 .ac-layout .today-focus,
 .ac-layout .today-list,
-.ac-layout .db-handful,
 .ac-layout .db2-empty-card,
 .ac-layout .db2-upcoming,
 .ac-layout .db-host-welcome,
@@ -30174,7 +30145,6 @@ a.pp-card:hover .pp-card__action--named {
 /* Sentence links in member reading: the public rule. */
 .ac-layout .rim-content a,
 .ac-layout .ac-page-sub a,
-.ac-layout .db-handful__text a,
 .wl-page .wl-subtitle a,
 .wl-page .wl-hint a {
   color: var(--rim-blue);
@@ -30186,7 +30156,6 @@ a.pp-card:hover .pp-card__action--named {
 }
 .ac-layout .rim-content a:hover,
 .ac-layout .ac-page-sub a:hover,
-.ac-layout .db-handful__text a:hover,
 .wl-page .wl-subtitle a:hover,
 .wl-page .wl-hint a:hover { color: var(--rim-dark); text-decoration-color: currentColor; }
 
@@ -30285,16 +30254,64 @@ a.pp-card:hover .pp-card__action--named {
   line-height: 1.25;
 }
 .ac-layout .today-card .today-focus__meta { display: block; margin: 6px 0 0; color: var(--rim-text-soft); font-size: var(--text-app); }
-.ac-layout .today-focus .rim-session-update {
+.ac-layout .today-card .rim-session-update {
   max-width: none;
   margin: 14px 0 0;
-  padding: 10px 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--rim-rule);
   border-left: 3px solid var(--rim-blue);
-  border-radius: 0;
+  border-radius: 0 8px 8px 0;
   background: var(--rim-bg-bright);
   color: var(--rim-text);
+  font-size: var(--text-app);
+  line-height: 1.55;
 }
-.ac-layout .today-focus .rim-session-notes { margin-top: 10px; }
+.ac-layout .today-card .rim-session-update__label {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--rim-label);
+  font-size: var(--text-app-meta);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.ac-layout .today-card .rim-session-notes { margin: 6px 0 0; }
+.ac-layout .today-card .rim-session-notes > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  list-style: none;
+  color: var(--rim-blue);
+  font-size: var(--text-app);
+  font-weight: 600;
+  cursor: pointer;
+}
+.ac-layout .today-card .rim-session-notes > summary::-webkit-details-marker { display: none; }
+.ac-layout .today-card .rim-session-notes > summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-left: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.ac-layout .today-card .rim-session-notes[open] > summary::before { transform: rotate(45deg); }
+.ac-layout .today-card .rim-session-notes > summary:hover { text-decoration: none; color: var(--rim-dark); }
+.ac-layout .today-card .rim-session-notes > p {
+  max-width: none;
+  margin: 4px 0 0;
+  padding: 12px 16px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  background: var(--rim-bg-bright);
+  color: var(--rim-text);
+  font-size: var(--text-app);
+  line-height: 1.55;
+}
 .ac-layout .today-card .today-focus__action {
   display: flex;
   flex-direction: column;
@@ -30320,7 +30337,7 @@ a.pp-card:hover .pp-card__action--named {
 .ac-layout .today-card .today-list__title { color: var(--rim-heading); font-size: var(--text-app); font-weight: 600; }
 .ac-layout .today-card .today-list__meta { display: block; margin: 2px 0 0; color: var(--rim-text-soft); font-size: var(--text-app-meta); }
 .ac-layout .today-card .today-list__context { color: var(--rim-text-soft); font-size: var(--text-app-meta); white-space: nowrap; }
-.ac-layout .today-list .rim-session-update { margin: 8px 0 0; }
+.ac-layout .today-list .rim-session-update { margin: 10px 0 0; }
 
 /* Coming up: rows in one bordered surface. */
 .ac-layout .db2-upcoming { overflow: hidden; border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); }

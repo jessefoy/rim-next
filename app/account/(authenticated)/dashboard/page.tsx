@@ -9,7 +9,6 @@ import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN } from "@/lib/se
 import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 import HostWelcomePanel from "@/components/HostWelcomePanel";
-import HandfulHomeCard from "@/components/HandfulHomeCard";
 
 export const metadata = { title: "My Home - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -487,7 +486,6 @@ export default async function DashboardPage({ searchParams }: {
             )}
             <Link href="/this-week" className="pp-btn pp-btn--ghost">This week&rsquo;s schedule <span aria-hidden="true">→</span></Link>
           </nav>
-          <HandfulHomeCard />
         </>}
         {/* Existing registration information remains reachable, without self-cancellation. */}
         {upcomingView && (
@@ -571,7 +569,7 @@ function UpcomingRow({ r }: { r: UpcomingRowData }) {
 
 function SessionNotes({ item }: { item: TodayDisplayItem }) {
   return <>
-    {item.announcement && <p className="rim-session-update"><strong>Update:</strong> {item.announcement}</p>}
+    {item.announcement && <p className="rim-session-update"><span className="rim-session-update__label">Update</span>{item.announcement}</p>}
     {item.note && <details className="rim-session-notes"><summary>Good to know</summary><p>{item.note}</p></details>}
   </>;
 }

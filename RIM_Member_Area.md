@@ -12,7 +12,7 @@ Updated 2026-10-02 (the Handful of Leaves pages and My Home card). Production im
 | My Profile | `/account/dashboard-my-profile`; `dashboard-my-profile/page.tsx`, `AboutMeSection` | Personal/contact details, sign-in email, photo/introduction, household |
 | Community Care | `/account/community-care` | Canonical `lib/communityAgreements.ts`; reading page, no acceptance mutation |
 | A Handful of Leaves | `/account/handful-of-leaves` (the introduction) and `/account/handful-of-leaves/map`; `HandfulReading`, `lib/handfulContent.ts`, `content/handful-of-leaves/` | Members-only reading pages in the `(authenticated)` group (a signed-out visitor goes to sign-in). Verbatim derived copies of two vault documents; the vault is canonical and the repo copy is re-derived, never edited (see `RIM_Public_Pages.md`, "The Handful of Leaves"). Print stylesheet. No rail entry: My Home's card is the door |
-| My Home card | `HandfulHomeCard`, after the My Home link row | One white surface: title, one sentence, "The introduction" and "The map". Shown on My Home only, not on `?view=upcoming` |
+| ~~My Home card~~ | retired 2026-10-09 (`HandfulHomeCard` deleted) | Jesse: the Handful will be a course in the Library ("a free program that everyone has"), not a card on My Home. The two reading pages remain at their routes until the course exists |
 | Shared navigation | `AccountLayout`, `AccountSidebar`, `Nav` | Flat personal rail; account menu; role-gated Manage RIM; contextual admin rail |
 | Team Home | `/account/hub/[slug]`; `HubHomeClient` | Stable destinations and named disclosures; see hub engineering/model references |
 | Team Files | `/account/hub/[slug]/files`; `FilesBrowser` | Member-owned organization, shared pins; see `RIM_GoogleWorkspace.md` §11 |
