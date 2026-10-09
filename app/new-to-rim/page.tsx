@@ -94,18 +94,19 @@ export default function NewToRimPage() {
             </p>
 
             <h2 id="where-to-begin">Where to begin</h2>
+            {/* No drop-in is named here (Jesse, 2026-10-08: some may be
+                renamed); the schedule carries the names. */}
             <p>
               A drop-in gathering is a good place to start, in person or online. Each one is
               complete in itself, and no experience is needed.{" "}
-              <Link href="/programs/meditation-and-dharma-talk">Meditation and Dharma Talk</Link>,
-              on Saturday mornings, brings guided practice and a teaching together and makes a
-              welcoming first visit.
+              <Link href="/this-week">This week&rsquo;s schedule</Link> shows what is coming up.
             </p>
             <p>
               For a fuller introduction, we encourage everyone to take{" "}
-              <Link href="/foundations">Foundations</Link>, a welcoming introduction to Taking
-              CARE, our way of practice, through guided meditation, teaching, reflection, and
-              conversation. Our first Foundations offering begins in November.
+              <Link href="/foundations">Foundations</Link>, our introduction to Taking CARE, our
+              way of practice, through guided meditation, teaching, reflection, and conversation.
+              It is usually offered as a course or workshop, and our first offering begins in
+              November.
             </p>
 
             <h2 id="community">Practicing together</h2>
@@ -144,6 +145,16 @@ export default function NewToRimPage() {
               the community room with a cup of tea and browse our library, and if you arrive early,
               to find a cushion or a chair in the meditation room. Sit however your body is
               comfortable.
+            </p>
+            {/* The stairs, said plainly (Jesse, 2026-10-08): an older building
+                with no elevator; online is a full way in, and some gatherings
+                happen elsewhere. Parking and which door are still unwritten. */}
+            <p>
+              Our rooms are reached by stairs; the building is an older one and has no elevator.
+              If stairs are not possible for you, you are warmly welcome at our online gatherings,
+              which are a full way to practice with us, and some of our gatherings, including days
+              of mindfulness and retreats, take place in other settings; the schedule and our
+              newsletter say where.
             </p>
             <p>
               We ask everyone to take off their shoes and leave them on or under the shoe rack. If

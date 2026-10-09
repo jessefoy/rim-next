@@ -204,6 +204,19 @@ export default function WhyWePracticePage() {
               understanding that clarity is already within us. That setting is what lets relief open
               into a whole life.
             </p>
+            {/* What well-being means here, in the whole sense the frames give
+                it (WHO, flourishing, the tradition's lay welfare and the path
+                beyond it), and the research said honestly: support, not
+                proof. Jesse, 2026-10-08. */}
+            <p>
+              Well-being, as we mean it, is the whole of a life: a body and mind that can rest and
+              recover; attention we can give to work, learning, and the people in front of us;
+              relationships that hold, and a place to belong; meaning, and a way of living we do not
+              have to regret; a part in the life of our community; and, in the tradition&rsquo;s
+              words, a happiness that does not depend on circumstances. Research on mindfulness
+              programs supports much of this, and no practice helps everyone. What matters here is
+              what you can check for yourself.
+            </p>
             <p>
               For some, practice opens onto a deeper freedom: the discovery that the clarity and
               warmth we keep returning to were never missing, and do not depend on circumstances.

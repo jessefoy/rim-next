@@ -1,11 +1,5 @@
 import Link from "next/link";
 import CareCircle from "@/components/CareCircle";
-import {
-  FOUNDATIONS_FORMATS_LINE,
-  FOUNDATIONS_PROGRAM_NAME,
-  type OfferingCategoryCode,
-} from "@/lib/programOffering";
-import { loadPublicPrograms, programsInCategory } from "@/lib/publicPrograms";
 
 // Lineage terms live in the description for search, stated as RIM states
 // them (Jesse, 2026-10-02): a dharma community grounded in traditional
@@ -18,12 +12,10 @@ export const metadata = {
     "Rooted in Mindfulness is a meditation and dharma community in Brookfield, Wisconsin, near Milwaukee, grounded in traditional Buddhist wisdom and open to everyone. Meditation, mindful living, and Buddhist teachings, in person and online, community-supported. Come as you are.",
 };
 
-// The three program cards read Program Manager (2026-10-08). The page is
-// rebuilt at most every five minutes, so the front door serves from cache
-// (and keeps serving the last good page if a rebuild's query fails) instead
-// of querying on every visit; a Program Manager change reaches home within
-// that window. Programs & Events itself renders on request.
-export const revalidate = 300;
+// The page is static. The three program cards name what each way contains
+// (its kinds), not the scheduled programs, so nothing here reads the
+// database (2026-10-08, later; the live-names version lasted one afternoon,
+// see RIM_Public_Pages.md, "The home page in Jesse's words").
 
 /**
  * The home page states RIM's center first. A visitor meets, in order: hero →
@@ -67,8 +59,8 @@ const PRACTICE_GROUPS = [
         body: "There is so much beauty and goodness in our life, and so much to appreciate in the simple things we often overlook: a meal we actually taste, the company of those we care about, the pleasures of a beautiful day. Awe and gratitude are possible in the moments that make up a life. We can meet them without grasping or getting caught up, and live with greater steadiness and joy, even among what distracts us.",
       },
       {
-        title: "Work and its pressures",
-        body: "Sometimes life is full: a busy to-do list, time pressures, responsibilities. Meditation and mindful living help us meet these moments with greater ease and composure, without losing ourselves, and sometimes to recognize when we are doing too much.",
+        title: "The pressures of life and work",
+        body: "Sometimes life is full: a busy to-do list, time pressures, responsibilities at work and at home, money worries, someone who needs our care. Meditation and mindful living help us meet these moments with greater ease and composure, to give one thing our attention, without losing ourselves, and sometimes to recognize when we are doing too much.",
       },
     ],
   },
@@ -77,11 +69,11 @@ const PRACTICE_GROUPS = [
     items: [
       {
         title: "Knowing ourselves",
-        body: "We have been cultivating ourselves, and being cultivated, our whole lives. When we meet a moment, we are not always aware of the views and reactions we carry into it. We can come to know an old reaction while it is happening, and hold it with more understanding and care. We can see how we are viewing things, and as we learn the patterns of our heart and mind, we also learn that we are not bound by them. We discover more choice in how to respond rather than react. Views and judgments are held a little more lightly, and we are more able to meet ourselves and our life with understanding.",
+        body: "We have been cultivating ourselves, and being cultivated, our whole lives. When we meet a moment, we are not always aware of the views and reactions we carry into it. We can come to know an old reaction while it is happening, and hold it with more understanding and care, including the habits we reach for when we are tired or hurting. We can see how we are viewing things, and as we learn the patterns of our heart and mind, we also learn that we are not bound by them. We discover more choice in how to respond rather than react. Views and judgments are held a little more lightly, and we are more able to meet ourselves and our life with understanding.",
       },
       {
         title: "The people in our lives",
-        body: "Being more available to those we care about. Even when we disagree or are in difficulty, we can better understand our part in it, and recognize when there is a chance to repair what has been broken, or when a boundary is needed. We can deepen our friendships and our love for one another, and live in the company of others in ways that benefit them as well as ourselves.",
+        body: "Being more available to those we care about. Even when we disagree or are in difficulty, we can better understand our part in it, and recognize when there is a chance to repair what has been broken, or when a boundary is needed. We can deepen our friendships and our love for one another, and live in the company of others in ways that benefit them as well as ourselves. For many of us, that company becomes a place to belong.",
       },
       {
         title: "Living by what matters",
@@ -118,40 +110,29 @@ const CARE_PAIRS = [
   ["E", "Embody", "Engage"],
 ] as const;
 
-export default async function HomePage() {
-  // The front door must not fall with the database: if the query fails the
-  // cards still render their words, and Foundations its standing name.
-  const programs = await loadPublicPrograms().catch((err: unknown) => {
-    console.error("[home] program list unavailable", err);
-    return [];
-  });
-
-  // The three ways RIM's programs are offered, each card naming its live
-  // programs (Jesse, 2026-10-08: the cards must read as programs, not as
-  // ideas). Names only, in listing order; the schedule stays on Programs &
-  // Events. Foundations names its program until one is scheduled, the rule
-  // the catalog's standing card follows.
-  const named = (code: OfferingCategoryCode) =>
-    programsInCategory(programs, code).map((p) => p.name);
-  const foundations = named("FOUNDATIONS");
+export default function HomePage() {
+  // The three ways RIM's programs are offered, each card naming what the way
+  // contains (Jesse, 2026-10-08, later: a visitor must know what kinds of
+  // programs RIM has; the scheduled programs live on Programs & Events and
+  // This Week). The kinds are stable, so the page stays static.
   const WAYS = [
     {
       title: "Foundations",
-      body: FOUNDATIONS_FORMATS_LINE,
-      href: foundations.length > 0 ? "/community-programs#foundations" : "/foundations",
-      programs: foundations.length > 0 ? foundations : [FOUNDATIONS_PROGRAM_NAME],
+      body: "Our introduction to Taking CARE, our way of practice. We encourage everyone to begin here.",
+      href: "/foundations",
+      kinds: ["Course or workshop", "Self-paced online, in time"],
     },
     {
       title: "Ongoing Learning & Practice",
-      body: "These offerings are the heart of our shared practice: a continuity of learning and practice through teacher-led drop-ins, where we deepen our understanding of the teachings and of formal practice; community-led silent meditations; and community groups. There is something special about having a place to go, week after week, with the support of others. It is where people of every level of experience come together.",
+      body: "The heart of our shared practice, week after week. Any of our drop-ins makes a welcoming first visit.",
       href: "/community-programs#ongoing-learning-and-practice",
-      programs: named("ONGOING_LEARNING_PRACTICE"),
+      kinds: ["Drop-ins, teacher-led", "Silent meditation, hosted by volunteers", "Community groups"],
     },
     {
       title: "Immersion",
-      body: "These programs let us go deeper into particular aspects of practice and learning: workshops, courses, days of mindfulness, and extended retreats.",
+      body: "Time to go deeper into particular aspects of practice and learning.",
       href: "/community-programs#immersion",
-      programs: named("IMMERSION"),
+      kinds: ["Workshops", "Courses", "Days of mindfulness", "Retreats"],
     },
   ];
 
@@ -464,28 +445,23 @@ export default async function HomePage() {
 
       {/* ── Our programs, and where to begin — the three ways RIM's programs
              are offered (Foundations · Ongoing Learning & Practice ·
-             Immersion), each card naming its live programs so the ways read
-             as programs (Jesse, 2026-10-08). The cards follow the sentence
-             that introduces them; the agreements and membership follow the
-             cards, at the moment of taking part. ── */}
+             Immersion), each card naming what the way contains, so a visitor
+             learns the kinds of programs in a glance (Jesse, 2026-10-08,
+             later, after the critique: the live-names rows "blended into the
+             rest of the site" and were busy). One sentence in, the three
+             cards, one sentence on membership, the buttons: the programs
+             page first, then this week's schedule for a time. ── */}
       <section className="pp-section">
         <div className="rim-container">
           <div className="home-chapter">
             <div className="home-chapter__head">
-              <p className="pp-intro__eyebrow">Taking part</p>
+              <p className="pp-intro__eyebrow">Programs</p>
               <h2 className="pp-intro__title">Our programs, and where to begin.</h2>
             </div>
             <div className="home-chapter__body">
               <p className="pp-intro__body">
-                Meditation and mindful living are a life practice. Most of it happens at home and in
-                our daily life, in whatever way our lives allow, and we come together at RIM to
-                learn and to deepen our practice with others.
-              </p>
-              <p className="pp-intro__body">
-                RIM&rsquo;s programs are offered in three ways: Foundations, Ongoing Learning &amp;
-                Practice, and Immersion. No experience is needed for any of them. Every gathering is
-                open to you, and we strongly recommend that everyone take part in Foundations when
-                it is offered. Until then, any of our drop-ins makes a welcoming first visit.
+                RIM&rsquo;s programs are offered in three ways. No experience is needed for any of
+                them, and every gathering is open to you.
               </p>
             </div>
           </div>
@@ -493,7 +469,7 @@ export default async function HomePage() {
           <div className="home-paths">
             {/* The title is the link and its ::after covers the card, so the
                 whole card is clickable while the link's accessible name stays
-                the way's title, not the body and every program name. */}
+                the way's title. */}
             {WAYS.map((way) => (
               <div key={way.title} className="pp-card home-paths__card">
                 <h3 className="pp-card__title">
@@ -502,19 +478,11 @@ export default async function HomePage() {
                   </Link>
                 </h3>
                 <p className="pp-card__body">{way.body}</p>
-                {way.programs.length > 0 ? (
-                  <ul className="home-paths__list">
-                    {way.programs.map((name, i) => (
-                      <li key={`${name}-${i}`}>{name}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  // Nothing scheduled in this way today (the catalog says the
-                  // same): say where the dates will appear, not an empty column.
-                  <p className="home-paths__note">
-                    Upcoming dates will be listed on Programs &amp; Events.
-                  </p>
-                )}
+                <ul className="home-paths__list">
+                  {way.kinds.map((kind) => (
+                    <li key={kind}>{kind}</li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
@@ -522,24 +490,16 @@ export default async function HomePage() {
           <div className="home-chapter home-chapter--after">
             <div className="home-chapter__body">
               <p className="pp-intro__body">
-                We ask the same of everyone who comes: to hold our{" "}
-                <Link href="/community-care-agreements">Community Care Agreements</Link>, a few
-                simple commitments to care for ourselves, one another, and RIM; to come with a
-                sincere wish to practice; and to help keep RIM a safe place for everyone. The
-                agreements are intentions we share, and we hold them as a practice.
-              </p>
-              <p className="pp-intro__body">
-                Signing up as a member is where each of us agrees to them. Membership is freely
-                offered and takes a few minutes. It is required for online gatherings, and we ask
-                everyone who practices in person to sign up as well. This is not about joining
-                something; it is about keeping RIM a safe and intentional community for everyone.
+                Everyone who practices with us holds our{" "}
+                <Link href="/community-care-agreements">Community Care Agreements</Link> and signs
+                up as a member. Membership is freely offered and takes a few minutes.
               </p>
               <div className="pp-actions">
                 <Link href="/community-programs" className="pp-btn">
                   Programs &amp; events
                 </Link>
-                <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
-                  New to RIM
+                <Link href="/this-week" className="pp-btn pp-btn--ghost">
+                  This week&rsquo;s schedule
                 </Link>
               </div>
             </div>
