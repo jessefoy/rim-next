@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
 import { FOUNDATIONS_PROGRAM_NAME } from "@/lib/programOffering";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Foundations - Rooted In Mindfulness",
@@ -27,7 +31,37 @@ export const metadata = {
  * The first button jumps to the footer's newsletter form (id="newsletter" in
  * components/Footer.tsx); the second goes to Taking CARE.
  */
-export default function FoundationsPage() {
+/**
+ * The current Foundations program, derived from the data (2026-10-09, Jesse:
+ * "wherever it references it and links to it… link to the program"). The
+ * primary Foundations program is the one filed under Foundations that is not
+ * archived; among several, the one with the soonest date, dated ones before
+ * undated. No editor flag: the category already says it. Hidden from the
+ * Programs page is not hidden from the site, so a program still being set up
+ * resolves here too once it exists.
+ */
+async function currentFoundationsSlug(): Promise<string | null> {
+  const rows = await db.program.findMany({
+    where: { offeringCategory: "FOUNDATIONS", archivedAt: null },
+    select: { slug: true, startDatetime: true, hideFromProgramPageList: true },
+  });
+  if (rows.length === 0) return null;
+  const now = Date.now();
+  const score = (r: typeof rows[number]) => {
+    const t = r.startDatetime?.getTime();
+    if (t == null) return Number.MAX_SAFE_INTEGER - 1;
+    return t >= now ? t : Number.MAX_SAFE_INTEGER - 2; // upcoming first, then undated, then past
+  };
+  rows.sort((a, b) => score(a) - score(b) || Number(a.hideFromProgramPageList) - Number(b.hideFromProgramPageList));
+  return rows[0].slug;
+}
+
+export default async function FoundationsPage() {
+  // /foundations stays the permanent address, linked from Home, New to RIM,
+  // the catalog's standing card and the nav; it resolves to the program.
+  const slug = await currentFoundationsSlug();
+  if (slug) redirect(`/programs/${slug}`);
+
   return (
     <div className="pp-page pp-page--spine pp-page--column">
       <section className="pp-hero pp-hero--quiet">
