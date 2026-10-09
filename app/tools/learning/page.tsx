@@ -82,7 +82,7 @@ export default async function SeriesListPage() {
                   </span>
                 </td>
                 <td>
-                  <Link href={`/tools/learning/${course.slug}`} className="th-link">
+                  <Link href={`/tools/learning/${course.slug}`} className="th-link th-link--edit">
                     Edit
                   </Link>
                 </td>
