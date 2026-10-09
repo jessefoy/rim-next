@@ -30352,6 +30352,222 @@ a.pp-card:hover .pp-card__action--named {
   white-space: pre-line;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   THE MEMBER AREA JOINS THE PUBLIC SYSTEM — 2026-10-09, phase 2:
+   the team side (Team Home, Conversations and a thread, Members,
+   Activity, the trash, Files) and the team rail; a file's own page,
+   which renders under the personal layout, at the end of the block.
+   The same vocabulary as phase 1, scoped to the team layout: the
+   quiet-hero tier for a page header, label eyebrows, bordered 12px
+   white surfaces with no shadow, the one button family (filled, ghost,
+   danger), sentence links. The September wayfinding layer above set the
+   sizes and the 22px pills; this block sets colour, surface, border and
+   the 48px pill, and still defers to the readability contract for type.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* The rail. */
+.hub-ws-layout .hub-ws-link--active,
+.hub-ws-layout .hub-ws-link--active:hover { background: var(--rim-bg-bright); color: var(--rim-blue); }
+.hub-ws-layout .hub-ws-badge { background: var(--rim-bg-accent); color: var(--rim-blue); }
+.hub-ws-layout .hub-ws-identity__type { color: var(--rim-label); letter-spacing: 0.16em; }
+.hub-ws-layout .hub-ws-identity__name,
+.hub-ws-layout .hub-ws-mobilebar__name,
+.hub-ws-layout .hub-ws-toolhead__name { color: var(--rim-heading); font-weight: 400; }
+.hub-ws-layout .hub-ws-mobilebar,
+.hub-ws-layout .hub-ws-toolhead,
+.hub-ws-layout .hub-ws-subnav { background: var(--rim-surface); }
+
+/* Page headers: the quiet hero's tier. */
+.hub-ws-layout .hub-ws-content :is(.hub-home__header, .hub-section-header, .hub-act__header, .hub-conv__head, .ac-page-head) {
+  margin: 0 0 var(--space-5);
+  padding: 0 0 var(--space-4);
+  border-bottom: 1px solid var(--rim-rule);
+}
+.hub-ws-layout .hub-ws-content :is(.hub-act__title, .hub-conv__title, .hub-conv-thread__title, .hub-page__title, .ac-page-title, .hub-welcome__title) {
+  margin: 0;
+  color: var(--rim-heading);
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+}
+.hub-ws-layout .hub-ws-content :is(.ac-page-sub, .hub-act__intro, .hub-welcome__headline) {
+  max-width: 760px;
+  margin: var(--space-2) 0 0;
+  color: var(--rim-text-soft);
+  line-height: 1.7;
+}
+.hub-ws-layout .hub-ws-content :is(.hub-home__section-label, .hub-mem-section__label, .hub-trash__section-title, .gf-drafts__title, .hub-conv-compose__label, .hub-conv-manage__title, .hub-act__group-count) {
+  color: var(--rim-label);
+  font-family: var(--font-sans);
+  font-size: var(--text-app-meta);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.hub-ws-layout .hub-act__group-title,
+.hub-ws-layout .hub-conv-row__title,
+.hub-ws-layout .hub-conv__empty-title { color: var(--rim-heading); }
+
+/* Surfaces: white, one hairline, 12px, no shadow. */
+.hub-ws-layout :is(.hub-home-attention, .hub-home-links, .hub-conv-row, .hub-conv-compose, .hub-conv-manage, .hub-conv-post--op, .hub-conv-menu, .hub-conv__empty, .hub-empty, .hub-mem-list, .hub-act__list, .hub-trash__row, .gf-list, .gf-dialog, .gf-menu, .hub-mem-dialog__panel, .hub-mem-editor) {
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  background: var(--rim-surface);
+  box-shadow: none;
+}
+.hub-ws-layout .hub-conv-row:hover { border-color: var(--rim-blue); }
+.hub-ws-layout .hub-conv-row--unread { background: var(--rim-bg-bright); }
+.hub-ws-layout .hub-conv-row--pinned { border-left: 3px solid var(--rim-blue); }
+.hub-ws-layout .hub-conv-post--op::before { background: var(--rim-surface); color: var(--rim-label); letter-spacing: 0.16em; }
+.hub-ws-layout .hub-home__pinned-link { border: 1px solid var(--rim-rule); border-radius: 8px; background: var(--rim-surface); color: var(--rim-heading); }
+.hub-ws-layout .hub-home__pinned-link:hover { background: var(--rim-bg-bright); }
+.hub-ws-layout .gf-list li + li { border-top-color: var(--rim-rule); }
+.hub-ws-layout .gf-item:first-child .gf-row { border-top-left-radius: 11px; }
+.hub-ws-layout .gf-item:last-child .gf-row { border-bottom-left-radius: 11px; }
+.hub-ws-layout :is(.gf-dialog__input, .hub-conv-manage__input, .hub-mem-editor__field input, .hub-mem-editor__field select, .hub-mem-editor__field textarea) {
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  background: var(--rim-surface);
+}
+.hub-ws-layout :is(.gf-dialog__input, .hub-conv-manage__input):focus { border-color: var(--rim-blue); outline: 2px solid var(--rim-blue); outline-offset: 2px; }
+/* Team Home's Links: a bordered list of rows; the row is the link. */
+.hub-ws-layout .hub-home-links { gap: 0; overflow: hidden; }
+.hub-ws-layout .hub-home-links__link { min-height: 56px; padding: 14px 20px; border-bottom: 1px solid var(--rim-rule); color: var(--rim-heading); font-size: var(--text-app); font-weight: 600; }
+.hub-ws-layout .hub-home-links__link:last-child { border-bottom: 0; }
+.hub-ws-layout .hub-home-links__link:hover { background: var(--rim-bg-bright); text-decoration: none; }
+/* Chips and badges: tokens, pills. */
+.hub-ws-layout .hub-conv-post__you,
+.hub-ws-layout .hub-conv-row__cat,
+.hub-ws-layout .hub-conv-thread__closed { background: var(--rim-bg-accent); color: var(--rim-blue); }
+.hub-ws-layout .hub-mem-badge { border-radius: 999px; }
+.hub-ws-layout .hub-mem-badge--inactive { background: var(--rim-bg-bright); color: var(--rim-text-muted); }
+.hub-ws-layout .hub-mem-item.hub-mem-status--paused { background: var(--rim-bg-bright); }
+
+/* Buttons: the one family. */
+.hub-ws-layout :is(.btn:not(.btn--ghost):not(.btn--danger), .hub-welcome__btn, .hub-conv-newbtn, .gf-new-btn, .gf-row__share, .gf-dialog__submit, .hub-home__editor-save, .gf-pending__approve) {
+  min-height: 48px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  background: var(--rim-blue);
+  color: var(--rim-surface);
+  font-family: var(--font-sans);
+  font-size: var(--text-action);
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  cursor: pointer;
+  opacity: 1;
+  transition: background-color 0.15s ease;
+}
+.hub-ws-layout :is(.btn:not(.btn--ghost):not(.btn--danger), .hub-welcome__btn, .hub-conv-newbtn, .gf-new-btn, .gf-row__share, .gf-dialog__submit, .hub-home__editor-save, .gf-pending__approve):hover:not(:disabled) { background: var(--rim-dark); color: var(--rim-surface); opacity: 1; }
+.hub-ws-layout :is(.btn--ghost, .hub-action-btn, .gf-dialog__cancel, .hub-home__editor-cancel, .hub-act__load-more, .hub-act__view-button, .hub-conv-thread__back, .hub-mem-item__edit-btn, .gf-pending__keep, .hub-conv-iconbtn--text) {
+  min-height: 48px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--rim-blue);
+  box-shadow: inset 0 0 0 1px var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-action);
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  cursor: pointer;
+  opacity: 1;
+}
+.hub-ws-layout :is(.btn--ghost, .hub-action-btn, .gf-dialog__cancel, .hub-home__editor-cancel, .hub-act__load-more, .hub-act__view-button, .hub-conv-thread__back, .hub-mem-item__edit-btn, .gf-pending__keep, .hub-conv-iconbtn--text):hover:not(:disabled) { background: var(--rim-surface); color: var(--rim-dark); opacity: 1; }
+.hub-ws-layout :is(.btn--danger, .gf-dialog__danger) {
+  min-height: 48px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  background: var(--color-error);
+  color: var(--rim-surface);
+  font-family: var(--font-sans);
+  font-size: var(--text-action);
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.hub-ws-layout .hub-action-btn--del { color: var(--color-error); box-shadow: inset 0 0 0 1px var(--color-error); }
+.hub-ws-layout .hub-action-btn--del:hover:not(:disabled) { background: var(--color-error-bg); color: var(--color-error); }
+.hub-ws-layout :is(.btn, .hub-action-btn, .gf-dialog__cancel, .gf-dialog__submit, .gf-dialog__danger, .hub-home__editor-save, .hub-home__editor-cancel):disabled { opacity: 0.5; cursor: not-allowed; }
+/* Row actions stay small enough to sit beside a name: the pill shape, a tighter pad. */
+.hub-ws-layout .btn.btn--sm:not(.btn--ghost),
+.hub-ws-layout .btn.btn--sm,
+.hub-ws-layout :is(.hub-action-btn, .hub-mem-item__edit-btn, .hub-conv-iconbtn--text) { min-height: 44px; padding: 8px 18px; }
+/* The readability contract (later, (0,2,1)) gives dialog buttons 44px; the
+   three in a Files dialog must match each other. */
+.hub-ws-layout .gf-dialog__actions :is(.gf-dialog__cancel, .gf-dialog__submit, .gf-dialog__danger) { height: auto; min-height: 48px; }
+.hub-ws-layout .hub-conv-segment { border-color: var(--rim-rule); }
+.hub-ws-layout .hub-conv-segment__btn--active { background: var(--rim-blue); }
+.hub-ws-layout .hub-conv-chip--active { background: var(--rim-blue); border-color: var(--rim-blue); }
+
+/* Sentence links: the public rule. */
+.hub-ws-layout :is(.hub-welcome__body, .hub-home__orientation-body, .hub-conv-post__body, .rim-content, .hub-home__empty-content) a:not(.pp-btn):not(.btn) {
+  color: var(--rim-blue);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--rim-blue) 45%, transparent);
+}
+.hub-ws-layout :is(.hub-welcome__body, .hub-home__orientation-body, .hub-conv-post__body, .rim-content, .hub-home__empty-content) a:not(.pp-btn):not(.btn):hover { color: var(--rim-dark); text-decoration-color: currentColor; }
+
+/* A file's own page (/account/files/[fileId]) renders under the personal
+   layout, not the team one; the same vocabulary, scoped there. */
+.ac-layout :is(.gf-detail__head, .gf-detail__doc, .gf-detail__panel, .gf-comment) {
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  background: var(--rim-surface);
+  box-shadow: none;
+}
+.ac-layout .gf-detail__frame { border-color: var(--rim-rule); }
+.ac-layout :is(.gf-detail__select, .gf-detail__note) { border: 1px solid var(--rim-rule); border-radius: 8px; background: var(--rim-surface); }
+.ac-layout :is(.gf-detail__select, .gf-detail__note):focus { border-color: var(--rim-blue); outline: 2px solid var(--rim-blue); outline-offset: 2px; }
+.ac-layout .gf-detail__btn--primary {
+  min-height: 48px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 999px; padding: 12px 24px; background: var(--rim-blue); color: var(--rim-surface);
+  font-family: var(--font-sans); font-size: var(--text-action); font-weight: 600; line-height: 1.5; text-decoration: none; cursor: pointer;
+}
+.ac-layout .gf-detail__btn--primary:hover:not(:disabled) { background: var(--rim-dark); color: var(--rim-surface); }
+.ac-layout :is(.gf-detail__btn--ghost, .gf-detail__back) {
+  min-height: 48px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  border: none; border-radius: 999px; padding: 12px 24px; background: transparent; color: var(--rim-blue); box-shadow: inset 0 0 0 1px var(--rim-blue);
+  font-family: var(--font-sans); font-size: var(--text-action); font-weight: 600; line-height: 1.5; text-decoration: none; cursor: pointer;
+}
+.ac-layout :is(.gf-detail__btn--ghost, .gf-detail__back):hover:not(:disabled) { background: var(--rim-surface); color: var(--rim-dark); }
+.ac-layout .gf-detail__btn--danger {
+  min-height: 48px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 999px; padding: 12px 24px; background: var(--color-error); color: var(--rim-surface);
+  font-family: var(--font-sans); font-size: var(--text-action); font-weight: 600; line-height: 1.5; cursor: pointer;
+}
+.ac-layout .gf-comment__body a {
+  color: var(--rim-blue); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--rim-blue) 45%, transparent);
+}
+.ac-layout .gf-comment__body a:hover { color: var(--rim-dark); text-decoration-color: currentColor; }
+
+@media (max-width: 700px) {
+  .hub-ws-layout .hub-ws-content :is(.hub-home__header, .hub-section-header, .hub-act__header, .hub-conv__head, .ac-page-head) { margin-bottom: var(--space-4); padding-bottom: var(--space-3); }
+}
+
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).
