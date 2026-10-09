@@ -30,7 +30,7 @@ export default async function VolunteerPage({
   }
 
   return (
-    <div className="pp-page">
+    <div className="pp-page pp-page--spine pp-page--column">
       {/* ── Hero ──────────────────────────────────────────── */}
       <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
