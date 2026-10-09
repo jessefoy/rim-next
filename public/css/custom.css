@@ -30578,6 +30578,228 @@ a.pp-card:hover .pp-card__action--named {
   .hub-ws-layout .hub-ws-content :is(.hub-home__header, .hub-section-header, .hub-act__header, .hub-conv__head, .ac-page-head) { margin-bottom: var(--space-4); padding-bottom: var(--space-3); }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   THE MEMBER AREA JOINS THE PUBLIC SYSTEM — 2026-10-09, phase 3:
+   the tools (Program Manager and its editor, Course Manager, the
+   Scheduler) and administration (the registry, households, hubs,
+   emails). Same vocabulary, scoped to the tool shell and the admin
+   layer; tables and forms keep their density. The September wayfinding
+   layers above set sizes and 22px pills; this block sets colour,
+   surface, border and the one button family. Type stays with the
+   readability contract that follows.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Tools ───────────────────────────────────────────────────────── */
+/* Page headers: the quiet hero's tier. */
+.tools-shell :is(.vol-header, .pe-editor__header, .th-list__header, .th-editor__header, .hs-header, .ps-page__header) {
+  margin: 0 0 var(--space-4);
+  padding: 0 0 var(--space-3);
+  border-bottom: 1px solid var(--rim-rule);
+}
+.tools-shell :is(.vol-header__title, .pe-editor__title, .th-list__title, .th-editor__title, .hs-header__title, .hs-title, .ps-page__subtitle) {
+  margin: 0;
+  color: var(--rim-heading);
+  font-family: var(--font-serif);
+  font-size: var(--text-h1);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+}
+.tools-shell :is(.vol-header__sub, .hs-header__intro, .th-list-section__desc, .hs-rot__intro) { max-width: 760px; margin: var(--space-2) 0 0; color: var(--rim-text-soft); line-height: 1.7; }
+.tools-shell .pe-editor__header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+/* Eyebrows and table heads. */
+.tools-shell :is(.vol-table__th, .th-table th, .ps-grid__table th, .pe-card__section-title, .th-section__title, .th-list-section__title, .hs-rot__grid-head, .hs-rot__preview-label, .hs-rot__saved-caption, .hs-row__status-label, .pe-template-bar__label) {
+  color: var(--rim-label);
+  font-family: var(--font-sans);
+  font-size: var(--text-app-meta);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.tools-shell .vol-table__th { border-bottom: 1px solid var(--rim-rule); padding: 14px 16px; }
+.tools-shell .vol-table__td { padding: 14px 16px; border-bottom: 1px solid var(--rim-rule); font-size: var(--text-app); }
+.tools-shell .vol-table__row:hover { background: var(--rim-bg-bright); }
+.tools-shell :is(.vol-table__name, .hs-row__name, .hs-rot__prog-name, .hs-modal__title, .th-link) { color: var(--rim-heading); }
+/* Surfaces: white, one hairline, 12px, no shadow. */
+.tools-shell :is(.vol-table-wrap, .th-table-wrap, .th-card, .th-actions, .hs-row, .hs-allset, .hs-modal, .pe-dialog, .vol-dialog, .ps-hub, .vol-stat-bar, .pe-template-bar, .th-lessons__results, .hs-rot__end-opt) {
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  background: var(--rim-surface);
+  box-shadow: none;
+}
+.tools-shell .pe-tabs { border: 1px solid var(--rim-rule); border-bottom: 0; border-radius: 12px 12px 0 0; background: var(--rim-bg-bright); box-shadow: none; }
+.tools-shell .pe-card { border: 1px solid var(--rim-rule); border-radius: 0 0 12px 12px; background: var(--rim-surface); box-shadow: none; }
+.tools-shell .pe-card:first-child, .tools-shell .pe-editor > .pe-card { border-radius: 12px; }
+.tools-shell :is(.pe-tabs__tab--active, .pe-tabs__tab--active:hover) { background: var(--rim-surface); color: var(--rim-blue); box-shadow: none; }
+.tools-shell .pe-actions { border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); box-shadow: none; }
+.tools-shell :is(.pe-readout, .hs-rot__form.pe-form, .hs-rot__preview, .hs-row__manage[open]) { border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-bg-bright); }
+.tools-shell .hs-rot__form.pe-form { border-left: 3px solid var(--rim-blue); }
+.tools-shell .hs-row { overflow: hidden; }
+.tools-shell .hs-row--past { background: var(--rim-bg-bright); }
+.tools-shell :is(.vol-table, .th-table) { border-radius: 0; background: transparent; }
+/* Inputs at the public form's shape. */
+.tools-shell :is(.pe-input, .pe-textarea, .pe-select, .pe-datetime__date, .pe-datetime__select, .th-input, .th-textarea, .th-select, .vol-table-search, .vol-table-select, .vol-field-edit__input, .vol-field-edit__select, .vol-field-edit__textarea, .hs-row__assign-select, .hs-modal input, .hs-modal select, .pe-template-bar__name-input) {
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  background: var(--rim-surface);
+}
+.tools-shell :is(.pe-input, .pe-textarea, .pe-select, .th-input, .th-textarea, .th-select, .vol-table-search, .vol-table-select):focus { border-color: var(--rim-blue); outline: 2px solid var(--rim-blue); outline-offset: 2px; box-shadow: none; }
+.tools-shell :is(.pe-input--readonly, .pe-input[readonly], .pe-input:disabled) { background: var(--rim-bg-bright); }
+.tools-shell .pe-card .rim-block-editor, .tools-shell .pe-card .rim-prose-editor { border-color: var(--rim-rule); border-radius: 8px; }
+/* Badges and chips: pills on tokens. */
+.tools-shell :is(.vol-badge, .th-badge, .hs-row__new-badge, .hs-row__paused-badge, .vol-flag, .vol-reminder-sent-badge, .pe-template-chip) { border-radius: 999px; }
+.tools-shell :is(.vol-pill, .vol-filter, .hs-filter, .hs-monthnav__today, .hs-row__quiet, .hs-row__manager) { border-color: var(--rim-rule); background: var(--rim-surface); color: var(--rim-text); }
+.tools-shell :is(.vol-pill--active, .vol-filter--active, .hs-filter--active) { background: var(--rim-blue); border-color: var(--rim-blue); color: var(--rim-surface); }
+/* Buttons: the one family. */
+.tools-shell :is(.pe-btn--primary, .th-btn--primary, .vol-add-btn, .vol-save-btn, .vol-confirm-btn--primary, .hs-modal__primary, .hs-rot__add, .hs-rot__form-save, .hs-row__do .lr-btn, .catord__add-btn, .vol-reminder-bulk-btn) {
+  min-height: 48px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px !important;
+  background: var(--rim-blue);
+  color: var(--rim-surface);
+  font-family: var(--font-sans);
+  font-size: var(--text-action) !important;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+  transition: background-color 0.15s ease;
+}
+.tools-shell :is(.pe-btn--primary, .th-btn--primary, .vol-add-btn, .vol-save-btn, .vol-confirm-btn--primary, .hs-modal__primary, .hs-rot__add, .hs-rot__form-save, .hs-row__do .lr-btn, .catord__add-btn, .vol-reminder-bulk-btn):hover:not(:disabled) { background: var(--rim-dark); color: var(--rim-surface); box-shadow: none; transform: none; }
+.tools-shell :is(.pe-btn:not(.pe-btn--primary):not(.pe-btn--danger), .th-btn:not(.th-btn--primary):not(.th-btn--danger), .vol-back, .pe-link--view, .vol-header__edit-link, .vol-table__action, .vol-action-btn, .vol-confirm-btn:not(.vol-confirm-btn--primary), .vol-csv-btn, .vol-edit-fields-btn, .hs-monthnav__today, .hs-rot__action, .hs-rot__form-cancel, .hs-modal__cancel, .th-link--view, .pe-template-bar__restore, .pe-template-bar__save-btn, .ps-page__back, .ps-hub__edit-link, .hs-rot__prog-staffing-link) {
+  min-height: 48px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--rim-blue);
+  box-shadow: inset 0 0 0 1px var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-action);
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  cursor: pointer;
+  opacity: 1;
+}
+.tools-shell :is(.pe-btn:not(.pe-btn--primary):not(.pe-btn--danger), .th-btn:not(.th-btn--primary):not(.th-btn--danger), .vol-back, .pe-link--view, .vol-header__edit-link, .vol-table__action, .vol-action-btn, .vol-confirm-btn:not(.vol-confirm-btn--primary), .vol-csv-btn, .vol-edit-fields-btn, .hs-monthnav__today, .hs-rot__action, .hs-rot__form-cancel, .hs-modal__cancel, .th-link--view, .pe-template-bar__restore, .pe-template-bar__save-btn, .ps-page__back, .ps-hub__edit-link, .hs-rot__prog-staffing-link):hover:not(:disabled) { background: var(--rim-surface); color: var(--rim-dark); text-decoration: none; }
+.tools-shell :is(.pe-btn--danger, .th-btn--danger, .vol-action-btn--danger, .vol-action-btn--delete, .vol-table__action--danger, .hs-rot__action--end) { color: var(--color-error); box-shadow: inset 0 0 0 1px var(--color-error); background: transparent; }
+.tools-shell :is(.pe-btn--danger, .th-btn--danger, .vol-action-btn--danger, .vol-action-btn--delete, .vol-table__action--danger, .hs-rot__action--end):hover:not(:disabled) { background: var(--color-error-bg); color: var(--color-error); }
+/* Row actions and small buttons: the pill, a tighter pad. */
+.tools-shell :is(.vol-table__action, .vol-action-btn, .pe-btn--small, .th-btn--small, .hs-rot__action, .hs-rot__form-cancel, .hs-rot__form-save, .hs-row__do .lr-btn, .th-link--sm, .pe-template-bar__save-btn, .pe-template-bar__restore, .hs-rot__prog-staffing-link) { min-height: 40px; padding: 6px 16px !important; font-size: var(--text-app-meta) !important; }
+.tools-shell :is(.vol-table__action--disabled, .pe-btn:disabled, .th-btn:disabled, .vol-action-btn:disabled) { opacity: 0.5; cursor: not-allowed; }
+.tools-shell .vol-table__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.tools-shell .vol-back { margin-bottom: var(--space-3); }
+/* The tools nav. */
+.tools-shell .tools-nav { background: var(--rim-surface); border-bottom: 1px solid var(--rim-rule); }
+.tools-shell .tools-nav__name { color: var(--rim-heading); font-weight: 400; }
+.tools-shell .tools-nav__subnav-link--active { background: var(--rim-bg-bright); color: var(--rim-blue); }
+/* Sentence links in tool help. */
+.tools-shell :is(.pe-field__help, .pe-card__help, .th-section__help, .pe-readout__row, .hs-rot__intro, .hs-header__intro) a:not(.pp-btn) { color: var(--rim-blue); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--rim-blue) 45%, transparent); }
+.tools-shell .pe-readout__link { color: var(--rim-blue); font-weight: 600; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+/* ── Administration ─────────────────────────────────────────────── */
+/* Page headers (adm-header already wears ac-page-head; the rest join). */
+.admin-ui :is(.em-list__hdr, .adm-hubs-header, .hh-header, .em-editor__hdr) { margin: 0 0 var(--space-4); padding: 0 0 var(--space-3); border-bottom: 1px solid var(--rim-rule); }
+.admin-ui :is(.em-list__title, .em-editor__title, .adm-hubs-title, .hh-title, .adm2-title) { margin: 0; color: var(--rim-heading); font-family: var(--font-serif); font-size: var(--text-h1); font-weight: 400; line-height: var(--lh-heading); }
+.admin-ui :is(.adm-section__title, .adm2-section__title, .hh-section__title, .em-list__group-label, .hh-custom-labels__title, .adm-diag__title) { color: var(--rim-heading); font-family: var(--font-serif); font-weight: 400; }
+.admin-ui :is(.adm-form__label, .adm2-form__label, .adm-table__sort-btn, .adm-table th, .em-list__table th, .adm-hubs-table th, .hh-table th) {
+  color: var(--rim-label);
+  font-family: var(--font-sans);
+  font-size: var(--text-app-meta);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.admin-ui .adm-table__sort-btn:hover { color: var(--rim-blue); }
+.admin-ui .adm-table td { border-bottom: 1px solid var(--rim-rule); }
+.admin-ui .adm-table__row:hover { background: var(--rim-bg-bright); }
+/* Surfaces. */
+.admin-ui :is(.adm-table-wrap, .adm-section, .adm2-section, .adm2-card, .adm-hubs-table-wrap, .em-list__table-wrap, .em-list__group, .em-editor__card, .adm-diag__card, .hh-card, .adm-file-worklist, .em-preview-modal, .adm-sm-section, .adm-fi-area) {
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  background: var(--rim-surface);
+  box-shadow: none;
+}
+/* Inputs. */
+.admin-ui :is(.adm-search__input, .adm-search__filter, .adm-form__input, .adm-form__select, .adm-form__textarea, .adm2-form__input, .adm2-form__select, .adm2-form__textarea, .adm-hubs-input, .adm-hubs-select, .adm-hubs-textarea, .em-editor__input, .catord__name-input, .catord__add-input, .catord__kind-select, .hh-input, .hh-select) {
+  min-height: 48px;
+  box-sizing: border-box;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  background: var(--rim-surface);
+}
+.admin-ui :is(.adm-search__input, .adm-form__input, .adm-form__select, .adm-form__textarea, .adm-hubs-input, .em-editor__input):focus { border-color: var(--rim-blue); outline: 2px solid var(--rim-blue); outline-offset: 2px; }
+/* Badges. */
+.admin-ui :is(.adm-badge, .adm-status, .adm-badge--archived, .em-list__badge, .hh-badge) { border-radius: 999px; }
+.admin-ui .adm-status--active { background: var(--color-success-bg); color: var(--color-success); }
+/* Buttons. */
+.admin-ui :is(.adm-btn--primary, .adm-btn--restore, .adm-hubs-btn-create, .adm-hubs-btn-save, .adm-hubs-btn-add, .em-editor__btn--primary, .hh-btn--primary, .adm2-btn--primary) {
+  min-height: 48px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  background: var(--rim-blue);
+  color: var(--rim-surface);
+  font-family: var(--font-sans);
+  font-size: var(--text-action);
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  cursor: pointer;
+  opacity: 1;
+}
+.admin-ui :is(.adm-btn--primary, .adm-btn--restore, .adm-hubs-btn-create, .adm-hubs-btn-save, .adm-hubs-btn-add, .em-editor__btn--primary, .hh-btn--primary, .adm2-btn--primary):hover:not(:disabled) { background: var(--rim-dark); color: var(--rim-surface); opacity: 1; }
+.admin-ui :is(.adm-btn--neutral, .adm-btn--cancel, .adm-hubs-btn-cancel, .adm-hubs-btn-edit, .adm-hubs-btn-toggle, .em-editor__btn:not(.em-editor__btn--primary), .em-editor__back, .em-list__edit-link, .hh-btn:not(.hh-btn--primary), .adm2-btn:not(.adm2-btn--primary):not(.adm2-btn--danger)) {
+  min-height: 48px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--rim-blue);
+  box-shadow: inset 0 0 0 1px var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-action);
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  cursor: pointer;
+}
+.admin-ui :is(.adm-btn--neutral, .adm-btn--cancel, .adm-hubs-btn-cancel, .adm-hubs-btn-edit, .adm-hubs-btn-toggle, .em-editor__btn:not(.em-editor__btn--primary), .em-editor__back, .em-list__edit-link, .hh-btn:not(.hh-btn--primary), .adm2-btn:not(.adm2-btn--primary):not(.adm2-btn--danger)):hover:not(:disabled) { background: var(--rim-surface); color: var(--rim-dark); text-decoration: none; }
+.admin-ui .adm-btn--danger { min-height: 48px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 999px; padding: 12px 24px; background: var(--color-error); color: var(--rim-surface); font-family: var(--font-sans); font-size: var(--text-action); font-weight: 600; line-height: 1.5; cursor: pointer; }
+.admin-ui .adm-btn--danger:hover:not(:disabled) { background: var(--color-error); opacity: 0.9; }
+.admin-ui .adm-btn--danger.adm-btn--outline { background: transparent; color: var(--color-error); box-shadow: inset 0 0 0 1px var(--color-error); }
+.admin-ui .adm-btn--danger.adm-btn--outline:hover:not(:disabled) { background: var(--color-error-bg); opacity: 1; }
+.admin-ui :is(.adm-btn--sm, .adm-hubs-btn-edit, .em-list__edit-link, .adm-hubs-btn-toggle) { min-height: 40px; padding: 6px 16px; font-size: var(--text-app-meta); }
+.admin-ui :is(.adm-btn:disabled, .em-editor__btn:disabled) { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 700px) {
+  .tools-shell :is(.vol-header, .pe-editor__header, .th-list__header, .th-editor__header, .hs-header) { margin-bottom: var(--space-3); padding-bottom: var(--space-2); }
+}
+
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).

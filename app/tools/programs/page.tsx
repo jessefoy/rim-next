@@ -94,6 +94,10 @@ export default async function ProgramsToolPage() {
   return (
     <div className="vol-page">
       <div className="vol-content">
+        <header className="vol-header">
+          <h1 className="vol-header__title">Programs</h1>
+          <p className="vol-header__sub">Every program, with its category, format, delivery and registration.</p>
+        </header>
         <ProgramsTableClient
           programs={programRows}
           basePath="/tools/programs"
