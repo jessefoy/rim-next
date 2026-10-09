@@ -390,7 +390,6 @@ const TABS = [
   "Categories",
   "Registration",
   "Dana",
-  "Home Card",
   "Visibility",
 ] as const;
 type Tab = (typeof TABS)[number];
@@ -1301,7 +1300,7 @@ export default function ProgramEditor({
             <div className="pe-form">
               <div className="pe-field">
                 <span className="pe-field__label">Program Notes</span>
-                <span className="pe-field__help">Additional notes shown on the public program detail page — scheduling context, accessibility info, what to bring, etc.</span>
+                <span className="pe-field__help">Additional notes shown on the program&rsquo;s page: scheduling context, accessibility, background. The one practical line before coming belongs in Good to know, on the Schedule tab.</span>
                 <RimTiptapEditor
                   value={programNotes}
                   onChange={(v) => { setProgramNotes(v); markDirty(); }}
@@ -1439,6 +1438,17 @@ export default function ProgramEditor({
               </>
             )}
 
+            <label className="pe-field">
+              <span className="pe-field__label">Good to know</span>
+              <span className="pe-field__help">One practical line for someone before they come: &ldquo;Doors open ten minutes before.&rdquo; &ldquo;Bring a cushion.&rdquo; &ldquo;Park in the rear lot.&rdquo; Shown on the program&rsquo;s page beside the gathering details, and on My Home before a session.</span>
+              <textarea
+                value={earlyArrivalMessage}
+                onChange={(e) => setEarlyArrivalMessage(e.target.value)}
+                className="pe-textarea"
+                rows={2}
+              />
+            </label>
+
             {/* Open Access (guest link) moved to the "Hosting & Access" tab —
                 it controls who can join a live session, not when/where the
                 program runs. See RIM_System_Architecture.md "Hosting & Access
@@ -1522,6 +1532,17 @@ export default function ProgramEditor({
                 />
               </label>
             )}
+
+            <label className="pe-field">
+              <span className="pe-field__label">Update</span>
+              <span className="pe-field__help">A notice about a change: a cancellation, a different time, a different room. Shown wherever the program is listed: Programs &amp; Events, This Week, the program&rsquo;s page, and My Home. It stays until you clear it.</span>
+              <textarea
+                value={specialAnnouncement}
+                onChange={(e) => setSpecialAnnouncement(e.target.value)}
+                className="pe-textarea"
+                rows={2}
+              />
+            </label>
 
           </div></div>
         )}
@@ -2309,40 +2330,6 @@ export default function ProgramEditor({
               </>
             )}
           </div></div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 7 — Home Card
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Home Card" && (
-          <div className="pe-card">
-            <div className="pe-card__section">
-              <p className="pe-tab-intro">These fields control what appears on program cards on the member home screen. Both are optional — leave blank if not needed.</p>
-              <div className="pe-form">
-                <label className="pe-field">
-                  <span className="pe-field__label">Special Announcement</span>
-                  <span className="pe-field__help">A bold notice shown on this program&rsquo;s home card. Use for urgent or time-sensitive info like a schedule change or room reassignment.</span>
-                  <textarea
-                    value={specialAnnouncement}
-                    onChange={(e) => setSpecialAnnouncement(e.target.value)}
-                    className="pe-textarea"
-                    rows={2}
-                  />
-                </label>
-
-                <label className="pe-field">
-                  <span className="pe-field__label">Early Arrival Message</span>
-                  <span className="pe-field__help">A quieter message shown on the home card — things like &lsquo;Please arrive 10 minutes early&rsquo; or &lsquo;Bring a cushion.&rsquo;</span>
-                  <textarea
-                    value={earlyArrivalMessage}
-                    onChange={(e) => setEarlyArrivalMessage(e.target.value)}
-                    className="pe-textarea"
-                    rows={2}
-                  />
-                </label>
-              </div>
-            </div>
-          </div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
