@@ -154,13 +154,8 @@ export default async function ThisWeekPage({
   return (
     <div className="pl-page">
       {/* ── Hero ────────────────────────────────────────── */}
-      <section
-        className="pp-hero"
-        style={{
-          ["--pp-hero-image" as string]: "url('/images/Bodhi-Leaves.jpg')",
-          ["--pp-hero-position" as string]: "center 40%",
-        }}
-      >
+      {/* Quiet, on the ground (the 2026-10-09 refresh). */}
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Weekly schedule</p>
           <h1 className="pp-hero__title">
@@ -177,21 +172,21 @@ export default async function ThisWeekPage({
             <div className="tw-weeknav">
               <Link
                 href="/this-week"
-                className={`pp-btn ${isNextWeek ? "pp-btn--onblue-ghost" : "pp-btn--onblue"}`}
+                className={`pp-btn ${isNextWeek ? "pp-btn--ghost" : ""}`}
                 aria-current={!isNextWeek ? "page" : undefined}
               >
                 This week
               </Link>
               <Link
                 href="/this-week?week=next"
-                className={`pp-btn ${isNextWeek ? "pp-btn--onblue" : "pp-btn--onblue-ghost"}`}
+                className={`pp-btn ${isNextWeek ? "" : "pp-btn--ghost"}`}
                 aria-current={isNextWeek ? "page" : undefined}
               >
                 Next week
               </Link>
             </div>
             {hasToday && (
-              <a href="#today" className="pp-hero__link">
+              <a href="#today" className="pp-btn pp-btn--ghost">
                 Jump to today <span aria-hidden="true">↓</span>
               </a>
             )}

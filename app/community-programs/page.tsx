@@ -30,6 +30,29 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+// The three doors above the listings (the 2026-10-09 refresh), one line each,
+// house-voiced from the reviewed design; provisional until Jesse's read.
+const DOORS = [
+  {
+    anchor: "foundations",
+    title: "Foundations",
+    line: "A foundation in meditation and mindful living, where we encourage everyone to begin.",
+    cta: "View Foundations programs",
+  },
+  {
+    anchor: "ongoing-learning-and-practice",
+    title: "Ongoing Learning & Practice",
+    line: "Regular gatherings for meditation, Dharma teachings, and learning in community.",
+    cta: "View ongoing programs",
+  },
+  {
+    anchor: "immersion",
+    title: "Immersion",
+    line: "Courses, workshops, days of mindfulness, and retreats, with time to settle more deeply.",
+    cta: "View Immersion programs",
+  },
+] as const;
+
 const TZ = "America/Chicago";
 
 /** CT calendar parts for a date. */
@@ -115,6 +138,10 @@ export default async function CommunityProgramsPage() {
               {labels}
               {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
               <ProgramCardNotices announcement={program.specialAnnouncement} />
+              {/* On phones the trailing arrow is hidden; this names the action. */}
+              <span className="pl-card__link">
+                View program <span aria-hidden="true">→</span>
+              </span>
             </div>
             <div className="pl-card__when">
               <time
@@ -153,6 +180,10 @@ export default async function CommunityProgramsPage() {
             {labels}
             {program.tagline && <span className="pl-card__tagline">{program.tagline}</span>}
             <ProgramCardNotices announcement={program.specialAnnouncement} />
+            {/* On phones the trailing arrow is hidden; this names the action. */}
+            <span className="pl-card__link">
+              View program <span aria-hidden="true">→</span>
+            </span>
           </div>
           {/* What it is on the left, when and how on the right. The card is
               900px wide and the copy ran out around 560, leaving the arrow
@@ -170,17 +201,9 @@ export default async function CommunityProgramsPage() {
   return (
     <div className="pl-page">
       <HashTargetScroller />
-      {/* ── Hero ─────────────────────────────────────────── */}
-      <section
-        className="pp-hero"
-        style={{
-          // A 2:1 band cut from the Unsplash original (Casey Horner,
-          // unsplash.com/photos/4rDCa5hBlCs) at the old 48% framing; the
-          // 534px file it replaces was stretched ~3x across the hero.
-          ["--pp-hero-image" as string]: "url('/images/Looking-Up-Pine-Trees-band-1600.webp')",
-          ["--pp-hero-position" as string]: "center",
-        }}
-      >
+      {/* ── Hero: quiet, on the ground (the 2026-10-09 refresh; the pine band
+             left with it). ── */}
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Practice in community</p>
           <h1 className="pp-hero__title">Programs and Events</h1>
@@ -189,10 +212,54 @@ export default async function CommunityProgramsPage() {
             Join us at the center or online, whether you are beginning or have practiced for years.
           </p>
           <div className="pp-hero__actions">
-            <Link href="/this-week" className="pp-hero__link pp-hero__link--utility">
-              See what&rsquo;s happening this week <span aria-hidden="true">→</span>
+            <Link href="/this-week" className="pp-btn">
+              This week&rsquo;s schedule <span aria-hidden="true">→</span>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* ── The categories, before the listings: three doors to the three
+             ways, and the community offerings named beside them. The session
+             170 tombstone keeps a standing explanatory panel off this page;
+             these are navigation to the sections below, reviewed by Jesse in
+             the 2026-10-09 design. ── */}
+      <section className="pl-overview" aria-labelledby="program-categories-title">
+        <div className="rim-container">
+          <p className="pp-intro__eyebrow">Program categories</p>
+          <h2 className="pl-overview__title" id="program-categories-title">
+            Our program categories
+          </h2>
+          <p className="pl-overview__context">
+            Taking CARE, our way of practice, is offered through three program categories.
+            Community groups and special events have their own place below.
+          </p>
+          <nav className="pl-doors" aria-label="Program categories">
+            {DOORS.map((d) => (
+              <a key={d.anchor} href={`#${d.anchor}`} className="pl-door">
+                <h3 className="pl-door__title">{d.title}</h3>
+                <p className="pl-door__line">{d.line}</p>
+                <span className="pl-door__cta">
+                  {d.cta} <span aria-hidden="true">→</span>
+                </span>
+              </a>
+            ))}
+          </nav>
+          {(inCategory("COMMUNITY_GROUP").length > 0 || inCategory("SPECIAL_EVENT").length > 0) && (
+            <div className="pl-community-links">
+              <p>Also in our community</p>
+              {inCategory("COMMUNITY_GROUP").length > 0 && (
+                <a href="#community-groups">
+                  Community groups <span aria-hidden="true">→</span>
+                </a>
+              )}
+              {inCategory("SPECIAL_EVENT").length > 0 && (
+                <a href="#special-events">
+                  Special events <span aria-hidden="true">→</span>
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -227,8 +294,18 @@ export default async function CommunityProgramsPage() {
               // #ongoing-learning-and-practice, #immersion).
               <div key={code} id={info.anchor} className="pl-cat">
                 <div className="pl-cat__header">
+                  {/* Which kind of section this is: one of the three ways, or
+                      a community offering (the refresh keeps them distinct). */}
+                  <p className="pl-cat__label">
+                    {info.way ? "Taking CARE program category" : "Community offerings"}
+                  </p>
                   <h2 className="pl-cat__heading">{info.sectionTitle}</h2>
                   {info.intro && <p className="pl-cat__intro">{info.intro}</p>}
+                  {inThis.length > 0 && (
+                    <span className="pl-cat__count">
+                      {inThis.length} {inThis.length === 1 ? "program" : "programs"}
+                    </span>
+                  )}
                 </div>
 
                 {code === "FOUNDATIONS" && inThis.length === 0 ? (
@@ -242,6 +319,9 @@ export default async function CommunityProgramsPage() {
                             <h3 className="pl-card__title">{FOUNDATIONS_PROGRAM_NAME}</h3>
                           </div>
                           <span className="pl-card__tagline">{FOUNDATIONS_FORMATS_LINE}</span>
+                          <span className="pl-card__link">
+                            About Foundations <span aria-hidden="true">→</span>
+                          </span>
                         </div>
                         <span className="pl-card__action" aria-hidden="true">→</span>
                       </div>
