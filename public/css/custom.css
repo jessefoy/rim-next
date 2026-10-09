@@ -29669,6 +29669,194 @@ html { scroll-padding-top: 88px; }
   }
 }
 
+/* ── New to RIM (nt-): the newcomer's page on the refresh ────────────────── */
+/* A compact photo hero, then sections of a 5/7 split (the eyebrow and heading
+   left, the words right) separated by hairlines; bordered white cards for the
+   two entry choices and the two ways of attending; fact lists; the questions
+   as hairline rows. From newcomer.css in the handoff, on the tokens. */
+.nt-page { color: var(--rim-text); }
+.nt-page .nt-hero { min-height: 240px; }
+.nt-page .nt-hero::before {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--rim-dark) 85%, transparent),
+    color-mix(in srgb, var(--rim-blue) 72%, transparent)
+  );
+}
+.nt-page .nt-hero .pp-hero__inner { padding-top: 44px; padding-bottom: 44px; text-align: center; }
+.nt-page .nt-hero .pp-hero__eyebrow { margin-bottom: 12px; }
+.nt-page .nt-hero .pp-hero__title { max-width: none; margin: 0 auto 16px; font-size: 46px; }
+.nt-page .nt-hero .pp-hero__body { max-width: 650px; margin: 0 auto; }
+.nt-section { padding: calc(var(--space-1) * 7) 0 0; }
+.nt-start { padding-top: var(--space-5); }
+.nt-contact { padding-bottom: var(--space-6); }
+.nt-ruled { border-top: 1px solid var(--rim-rule); padding-top: var(--space-5); }
+.nt-split {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  column-gap: 56px;
+  align-items: start;
+}
+.nt-eyebrow {
+  margin: 0 0 12px;
+  color: var(--rim-label);
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.nt-page h2 {
+  margin: 0;
+  color: var(--rim-heading);
+  font-family: var(--font-serif);
+  font-size: var(--text-h2-lg);
+  font-weight: 400;
+  line-height: 1.25;
+}
+.nt-page h3 {
+  margin: 0 0 16px;
+  color: var(--rim-heading);
+  font-family: var(--font-serif);
+  font-size: var(--text-h2);
+  font-weight: 400;
+  line-height: 1.25;
+}
+.nt-copy { font-size: var(--text-body); line-height: var(--lh-body); }
+.nt-copy p { margin: 0 0 16px; }
+.nt-copy p:last-child { margin-bottom: 0; }
+.nt-copy a:not(.pp-btn):not(.nt-text-link),
+.nt-facts a {
+  color: var(--rim-blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.nt-copy .pp-btn { margin-top: var(--space-1); }
+.nt-start-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 36px 0 var(--space-3);
+}
+.nt-start-heading h2 { font-size: var(--text-h2); }
+.nt-start-heading > p,
+.nt-section-heading > p:not(.nt-eyebrow) {
+  margin: 0;
+  color: var(--rim-text-muted);
+  font-size: var(--text-card);
+  line-height: 1.7;
+}
+.nt-options { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.nt-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-sizing: border-box;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  padding: 28px 30px;
+  background: var(--rim-surface);
+}
+.nt-option > p:not(.nt-eyebrow) { margin: 0 0 var(--space-3); font-size: var(--text-card); line-height: 1.7; }
+.nt-option > a { margin-top: auto; }
+.nt-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 44px;
+  color: var(--rim-blue);
+  font-size: var(--text-small);
+  font-weight: 600;
+  text-decoration: none;
+}
+.nt-text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.nt-cost {
+  max-width: 920px;
+  margin: 22px 0 0;
+  color: var(--rim-text-muted);
+  font-size: var(--text-small);
+  line-height: 1.7;
+}
+.nt-cost strong { color: var(--rim-text); font-weight: 600; }
+.nt-section-heading { margin-bottom: 28px; }
+.nt-section-heading h2 { margin-bottom: 12px; }
+.nt-attendance { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.nt-visit {
+  box-sizing: border-box;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  padding: 30px;
+  background: var(--rim-surface);
+}
+.nt-visit h3 { margin-bottom: var(--space-3); }
+.nt-facts { margin: 0; }
+.nt-facts > div { margin: 0; border-top: 1px solid var(--rim-rule); padding: 18px 0; }
+.nt-facts dt {
+  margin-bottom: 6px;
+  color: var(--rim-text-muted);
+  font-size: var(--text-label);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.nt-facts dd { margin: 0; color: var(--rim-text); font-size: var(--text-card); line-height: 1.7; }
+.nt-visit-note { border-top: 1px solid var(--rim-rule); padding-top: 18px; }
+.nt-visit-note p { margin: 0 0 12px; color: var(--rim-text-muted); font-size: var(--text-small); line-height: 1.7; }
+.nt-visit-note p:last-child { margin-bottom: 0; }
+.nt-account-link { margin-top: 12px; }
+.nt-link-note { margin: 0; color: var(--rim-text-muted); font-size: var(--text-xs); line-height: 1.7; }
+.nt-access-note {
+  max-width: 940px;
+  margin: 22px 0 0;
+  color: var(--rim-text-soft);
+  font-size: var(--text-small);
+  line-height: 1.7;
+}
+.nt-faq .pp-details { margin: 0; border-top: 1px solid var(--rim-rule); padding-top: 0; }
+.nt-faq .pp-details:first-child { border-top: 0; }
+.nt-faq .pp-details__summary { padding: 20px 30px 20px 0; font-size: var(--text-card); }
+.nt-faq .pp-details__body { padding: 0 0 20px; font-size: var(--text-card); line-height: 1.7; }
+.nt-faq .pp-details__body p { margin: 0; }
+.nt-contact-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: var(--text-action);
+  overflow-wrap: anywhere;
+}
+.nt-contact-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--rim-blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.nt-page a:focus-visible,
+.nt-page summary:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 5px; }
+@media (max-width: 900px) {
+  .nt-split { grid-template-columns: 1fr 1.4fr; column-gap: 30px; }
+  .nt-option, .nt-visit { padding: var(--space-3); }
+  .nt-attendance { gap: 20px; }
+}
+@media (max-width: 700px) {
+  .nt-split, .nt-options, .nt-attendance { grid-template-columns: 1fr; row-gap: var(--space-3); }
+  .nt-split > div:first-child { margin-bottom: 0; }
+  .nt-page h2 br { display: none; }
+  .nt-page .nt-hero .pp-hero__title { font-size: 40px; }
+  .nt-section { padding-top: var(--space-5); }
+  .nt-ruled { padding-top: var(--space-4); }
+  .nt-start-heading { margin-top: var(--space-4); }
+}
+@media (max-width: 430px) {
+  .nt-page .nt-hero .pp-hero__title { font-size: 34px; }
+  .nt-page h2 { font-size: var(--text-h2); }
+  .nt-page h3 { font-size: var(--text-h3); }
+  .nt-option, .nt-visit { padding: 22px 20px; }
+  .nt-contact { padding-bottom: var(--space-5); }
+}
+
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).
