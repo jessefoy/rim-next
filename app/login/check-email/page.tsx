@@ -92,8 +92,8 @@ export default async function CheckEmailPage({
   return (
     /* Session 176: off the Webflow-era classes and onto pp-. The six-box code
        input, the resend action, and the from-/join branching are unchanged. */
-    <div className="pp-page">
-      <section className="pp-hero pp-hero--flat pp-hero--short">
+    <div className="pp-page pp-page--spine pp-page--column">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Members</p>
           <h1 className="pp-hero__title">

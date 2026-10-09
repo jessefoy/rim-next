@@ -33,7 +33,7 @@ export default async function TeachersPage() {
   });
 
   return (
-    <div className="pp-page">
+    <div className="pp-page pp-page--spine pp-page--column">
       {/* Flat blue hero, the same tier every other static page carries. This
           page had no hero at all and opened on a 32px blue h1 at x=160, which
           made it read as a different site from the one that linked to it. */}

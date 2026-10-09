@@ -18,8 +18,8 @@ export default async function AuthErrorPage({
     /* Session 176: off the Webflow-era classes and onto pp-. The warning emoji
        is gone: RIM's copy standard says errors sound like a person, and a
        3rem glyph over a calm message was the loudest thing on the page. */
-    <div className="pp-page">
-      <section className="pp-hero pp-hero--flat pp-hero--short">
+    <div className="pp-page pp-page--spine pp-page--column">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Members</p>
           <h1 className="pp-hero__title">We could not sign you in</h1>

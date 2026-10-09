@@ -235,8 +235,8 @@ function Shell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="pp-page">
-      <section className="pp-hero pp-hero--flat pp-hero--short">
+    <div className="pp-page pp-page--spine pp-page--column">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">{eyebrow}</p>
           <h1 className="pp-hero__title">{title}</h1>

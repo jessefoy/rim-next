@@ -110,8 +110,8 @@ export default async function LoginPage({
      * square 38px input, an h1 at x=420, and inline hex colors — including one
      * pre-flip #135274 teal. The auth logic above is untouched.
      */
-    <div className="pp-page">
-      <section className="pp-hero pp-hero--flat pp-hero--short">
+    <div className="pp-page pp-page--spine pp-page--column">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Members</p>
           <h1 className="pp-hero__title">Sign in</h1>
