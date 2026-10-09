@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ReadingToc from "@/components/ReadingToc";
 import { RIM_MISSION, RIM_VISION } from "@/lib/communityAgreements";
 import { RIM_ADDRESS, RIM_PHONE_DISPLAY, RIM_PHONE_TEL, RIM_SUPPORT_EMAIL } from "@/lib/locations";
 
@@ -28,10 +29,22 @@ export const metadata = {
  * linked from the Kalyana Mitta guidelines. The address, phone and email come
  * from lib/locations.ts, the same constants the footer reads.
  */
+
+/** One list feeds "On this page" and the h2 ids, so they cannot drift. */
+const SECTIONS = [
+  { id: "our-vision-and-mission", title: "Our vision and mission" },
+  { id: "what-we-practice-and-why", title: "What we practice, and why" },
+  { id: "where-it-comes-from", title: "Where it comes from" },
+  { id: "held-by-a-community", title: "Held by a community" },
+  { id: "our-teachers", title: "Our teachers" },
+  { id: "how-we-began", title: "How we began" },
+  { id: "visit-or-reach-us", title: "Visit or reach us" },
+] as const;
+
 export default function AboutPage() {
   return (
-    <div className="pp-page pp-page--spine pp-page--column">
-      <section className="pp-hero pp-hero--flat">
+    <div className="pp-page pp-page--spine pp-page--reading">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">About RIM</p>
           <h1 className="pp-hero__title">Rooted in practice. Grown by community.</h1>
@@ -40,7 +53,9 @@ export default function AboutPage() {
       </section>
 
       <section className="pp-section pp-section--last">
-        <div className="rim-container">
+        <div className="rim-container pp-reading">
+          <ReadingToc sections={SECTIONS} />
+          <div className="pp-reading__article">
           <div className="pp-prose pp-prose--sections">
             <p>
               Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin,
@@ -52,7 +67,7 @@ export default function AboutPage() {
               plain enough to begin with, and deep enough for a lifetime.
             </p>
 
-            <h2>Our vision and mission</h2>
+            <h2 id="our-vision-and-mission">Our vision and mission</h2>
             <p>
               Our vision is what we hope to see realized in our lives and in the world. Our mission
               is what we do, again and again, to bring it about.
@@ -68,7 +83,7 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <h2>What we practice, and why</h2>
+            <h2 id="what-we-practice-and-why">What we practice, and why</h2>
             <p>
               We practice Taking CARE: eight words that describe one practice from eight sides,
               Calm, Connect, Aware, Attitude, Recognize, Remember, Embody, and Engage, practiced in
@@ -91,7 +106,7 @@ export default function AboutPage() {
           </div>
 
           <div className="pp-prose pp-prose--sections">
-            <h2>Where it comes from</h2>
+            <h2 id="where-it-comes-from">Where it comes from</h2>
             <p>
               Silent illumination comes to us from Chan, the Chinese school of Buddhism also known
               as Zen, which teaches that a luminous, wakeful nature is already present in each of
@@ -109,7 +124,7 @@ export default function AboutPage() {
           </div>
 
           <div className="pp-prose pp-prose--sections">
-            <h2>Held by a community</h2>
+            <h2 id="held-by-a-community">Held by a community</h2>
             <p>
               RIM is a nonprofit, and it is held by the people who practice here. Members sustain it
               through dana, the practice of generosity. Volunteers host our online gatherings, care
@@ -129,7 +144,7 @@ export default function AboutPage() {
           </div>
 
           <div className="pp-prose pp-prose--sections">
-            <h2>Our teachers</h2>
+            <h2 id="our-teachers">Our teachers</h2>
             <p>
               Jesse Foy, RIM&apos;s founding and guiding teacher, has been studying and practicing
               for over 25 years, with a mindfulness-based mind-body medical practice since 2006. He
@@ -173,7 +188,7 @@ export default function AboutPage() {
               where they are, and deep enough to accompany them for a lifetime.
             </p>
 
-            <h2>Visit or reach us</h2>
+            <h2 id="visit-or-reach-us">Visit or reach us</h2>
             <p>
               Our center is at {RIM_ADDRESS}, and many of our gatherings also meet online. You can
               reach us at <a href={`mailto:${RIM_SUPPORT_EMAIL}`}>{RIM_SUPPORT_EMAIL}</a> or{" "}
@@ -187,6 +202,7 @@ export default function AboutPage() {
             <Link href="/community-programs" className="pp-btn pp-btn--ghost">
               Programs &amp; events
             </Link>
+          </div>
           </div>
         </div>
       </section>

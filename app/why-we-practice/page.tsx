@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ReadingToc from "@/components/ReadingToc";
 
 export const metadata = {
   title: "Why We Practice - Rooted In Mindfulness",
@@ -52,8 +53,8 @@ function SectionHeading({ id }: { id: (typeof SECTIONS)[number]["id"] }) {
 
 export default function WhyWePracticePage() {
   return (
-    <div className="pp-page pp-page--spine pp-page--column">
-      <section className="pp-hero pp-hero--flat">
+    <div className="pp-page pp-page--spine pp-page--reading">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">What we are here for</p>
           <h1 className="pp-hero__title">Why We Practice</h1>
@@ -62,22 +63,9 @@ export default function WhyWePracticePage() {
       </section>
 
       <section className="pp-section pp-section--last">
-        <div className="rim-container">
-          <nav className="pp-toc" aria-label="On this page">
-            <p className="pp-toc__label" aria-hidden="true">
-              On this page
-            </p>
-            <ol className="pp-toc__list" role="list">
-              {SECTIONS.map((s) => (
-                <li key={s.id}>
-                  <a className="pp-toc__link" href={`#${s.id}`}>
-                    {s.title}
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </nav>
-
+        <div className="rim-container pp-reading">
+          <ReadingToc sections={SECTIONS} />
+          <div className="pp-reading__article">
           <div className="pp-prose pp-prose--sections">
             <SectionHeading id="why-people-come" />
             <p>
@@ -166,6 +154,10 @@ export default function WhyWePracticePage() {
               more often, and its benefits are for ourselves, those we care about, and our shared
               world.
             </p>
+            {/* The benefits as three panels (the 2026-10-09 refresh); the headings are the reviewed design's. */}
+            <div className="pp-benefits">
+            <div className="pp-benefit">
+              <h3>In our own lives</h3>
             <p>
               In our own lives, the first benefit is often steadiness. The difficulties may stay,
               and we add less to them: less replaying, less bracing, less blaming. Rest comes more
@@ -184,6 +176,9 @@ export default function WhyWePracticePage() {
               reaction seen early is one we do not have to obey. We respond where we used to react,
               and more of our days line up with what matters to us.
             </p>
+            </div>
+            <div className="pp-benefit">
+              <h3>With others, and in our world</h3>
             <p>
               With the people we care about, that steadiness gives us more to offer. We listen more
               fully, stay present when someone is struggling, and speak clearly when something needs
@@ -198,16 +193,15 @@ export default function WhyWePracticePage() {
               others. Small actions, repeated, change conditions, and none of us has to carry all of
               it alone.
             </p>
+            </div>
+            <div className="pp-benefit">
+              <h3>A whole-life practice</h3>
             <p>
               How we teach is informed by mindfulness-based programs, and we keep the practice in
               its whole setting: with intention, with ethics, with community, and with the
               understanding that clarity is already within us. That setting is what lets relief open
               into a whole life.
             </p>
-            {/* What well-being means here, in the whole sense the frames give
-                it (WHO, flourishing, the tradition's lay welfare and the path
-                beyond it), and the research said honestly: support, not
-                proof. Jesse, 2026-10-08. */}
             <p>
               Well-being, as we mean it, is the whole of a life: a body and mind that can rest and
               recover; attention we can give to work, learning, and the people in front of us;
@@ -224,6 +218,8 @@ export default function WhyWePracticePage() {
               great because they are no longer confined to our limited view of things. Nobody here
               is keeping score.
             </p>
+            </div>
+            </div>
 
             <SectionHeading id="what-we-practice-for" />
             <div className="pp-quote pp-quote--set">
@@ -328,13 +324,23 @@ export default function WhyWePracticePage() {
             </p>
           </div>
 
-          <div className="pp-actions">
-            <Link href="/care" className="pp-btn">
-              Taking CARE: how we practice
-            </Link>
-            <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
-              New to RIM
-            </Link>
+          {/* Where to go from here (the refresh): the practice, and a first visit. */}
+          <section className="pp-reading__next" aria-labelledby="why-next-title">
+            <p className="pp-intro__eyebrow">How we practice</p>
+            <h2 id="why-next-title">Learning to take CARE.</h2>
+            <p>
+              Taking CARE is our way of practice, a mindfulness-based framework for meditation and
+              mindful living, and a program through which we learn and practice together.
+            </p>
+            <div className="pp-actions">
+              <Link href="/care" className="pp-btn">
+                Taking CARE: the eight words
+              </Link>
+              <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
+                Plan your first visit
+              </Link>
+            </div>
+          </section>
           </div>
         </div>
       </section>

@@ -32,13 +32,7 @@ export default async function VolunteerPage({
   return (
     <div className="pp-page">
       {/* ── Hero ──────────────────────────────────────────── */}
-      <section
-        className="pp-hero"
-        style={{
-          ["--pp-hero-image" as string]: "url('/images/Community-Hands-on-Tree.jpg')",
-          ["--pp-hero-position" as string]: "center 55%",
-        }}
-      >
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Embodied generosity</p>
           <h1 className="pp-hero__title">Become a Volunteer</h1>
@@ -48,32 +42,20 @@ export default async function VolunteerPage({
             tell us about your interests and talents and we&rsquo;ll reach out if something opens up.
           </p>
           <div className="pp-hero__actions">
-            <a href="#current-openings" className="pp-btn pp-btn--onblue">
+            <a href="#current-openings" className="pp-btn">
               Current needs
             </a>
-            <a href="#share-your-talent" className="pp-hero__link">
-              Share your talent <span aria-hidden="true">→</span>
+            <a href="#share-your-talent" className="pp-btn pp-btn--ghost">
+              Share your talent
             </a>
           </div>
-        </div>
-      </section>
-
-      {/* ── Quote ─────────────────────────────────────────── */}
-      <section className="pp-section pp-section--tight">
-        <div className="rim-container">
-          <blockquote className="pp-quote">
-            <p className="pp-quote__text">
-              &ldquo;The best way to find yourself is to lose yourself in the service of others.&rdquo;
-            </p>
-            <footer className="pp-quote__attr">Mahatma Gandhi</footer>
-          </blockquote>
         </div>
       </section>
 
       {/* ── Current needs ─────────────────────────────────── */}
       <section id="current-openings" className="pp-section pp-section--white">
         <div className="rim-container">
-          <div className="pp-intro pp-intro--center">
+          <div className="pp-intro">
             <p className="pp-intro__eyebrow">Where help is needed</p>
             <h2 className="pp-intro__title">Current volunteer needs</h2>
             <p className="pp-intro__body">
@@ -97,10 +79,22 @@ export default async function VolunteerPage({
         </div>
       </section>
 
+      {/* ── Quote ─────────────────────────────────────────── */}
+      <section className="pp-section pp-section--tight">
+        <div className="rim-container">
+          <blockquote className="pp-quote">
+            <p className="pp-quote__text">
+              &ldquo;The best way to find yourself is to lose yourself in the service of others.&rdquo;
+            </p>
+            <footer className="pp-quote__attr">Mahatma Gandhi</footer>
+          </blockquote>
+        </div>
+      </section>
+
       {/* ── Share your talent ─────────────────────────────── */}
       <section id="share-your-talent" className="pp-section pp-section--last">
         <div className="rim-container">
-          <div className="pp-intro pp-intro--center">
+          <div className="pp-intro">
             <p className="pp-intro__eyebrow">Share your talent</p>
             <h2 className="pp-intro__title pp-intro__title--h2">
               Tell us about your interests

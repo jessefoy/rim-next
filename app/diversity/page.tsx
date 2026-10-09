@@ -9,13 +9,7 @@ export const metadata = {
 export default function DiversityPage() {
   return (
     <div className="pp-page">
-      <section
-        className="pp-hero pp-hero--diversity"
-        style={{
-          ["--pp-hero-image" as string]: "url('/images/color-powder-diversity.webp')",
-          ["--pp-hero-position" as string]: "center 52%",
-        }}
-      >
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Our community</p>
           <h1 className="pp-hero__title">Diverse Together</h1>

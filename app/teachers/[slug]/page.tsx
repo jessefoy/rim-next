@@ -81,7 +81,7 @@ export default async function TeacherProfilePage({
       {/* The portrait belongs in the hero with the name, not stacked above a
           bare h1 on the ground. Both this page and /teachers had no hero at
           all, which is what made them read as a different site. */}
-      <section className="pp-hero pp-hero--flat">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner tpr-hero__inner">
           {profile.photoUrl && (
             <img src={profile.photoUrl} alt={name} className="tpr-hero__photo" />
@@ -117,8 +117,8 @@ export default async function TeacherProfilePage({
             <Link href="/this-week" className="pp-btn">
               See this week
             </Link>
-            <Link href="/teachers" className="pp-link">
-              All teachers <span aria-hidden="true">→</span>
+            <Link href="/teachers" className="pp-btn pp-btn--ghost">
+              All teachers
             </Link>
           </div>
         </div>

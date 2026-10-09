@@ -30,7 +30,7 @@ export default async function KalyanaApplicationPage({
 
   return (
     <div className="pp-page pp-page--spine pp-page--column">
-      <section className="pp-hero pp-hero--flat">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Kalyana Mitta</p>
           <h1 className="pp-hero__title">
@@ -78,12 +78,12 @@ export default async function KalyanaApplicationPage({
             </p>
           </div>
 
-          <div className="pp-actions pp-actions--center">
+          <div className="pp-actions">
             <Link
               href="/kalyana-mitta/guidelines-for-starting-a-kalyana-mitta-group"
-              className="pp-link"
+              className="pp-btn pp-btn--ghost"
             >
-              Read the group guidelines first <span aria-hidden="true">→</span>
+              The group guidelines
             </Link>
           </div>
         </div>
@@ -91,7 +91,7 @@ export default async function KalyanaApplicationPage({
 
       <section className="pp-section pp-section--last">
         <div className="rim-container">
-          <div className="pp-intro pp-intro--center">
+          <div className="pp-intro">
             <p className="pp-intro__eyebrow">The application</p>
             <h2 className="pp-intro__title pp-intro__title--h2">
               Tell us about your idea

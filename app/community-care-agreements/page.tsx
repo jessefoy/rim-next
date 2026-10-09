@@ -42,13 +42,7 @@ export default async function CommunityCareAgreementsPage() {
 
   return (
     <div className="pp-page pp-page--spine pp-page--column cc-page">
-      <section
-        className="pp-hero"
-        style={{
-          ["--pp-hero-image" as string]: "url('/images/Community-Hands-on-Tree.jpg')",
-          ["--pp-hero-position" as string]: "center 48%",
-        }}
-      >
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <h1 className="pp-hero__title">Community Care Agreements</h1>
           <p className="pp-hero__body">

@@ -34,13 +34,7 @@ export default async function KalyanaGroupsPage() {
   return (
     <div className="pp-page pp-page--spine">
       {/* ── Hero ──────────────────────────────────────────── */}
-      <section
-        className="pp-hero"
-        style={{
-          ["--pp-hero-image" as string]: "url('/images/Community-Hands-on-Tree.jpg')",
-          ["--pp-hero-position" as string]: "center 45%",
-        }}
-      >
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Kalyana Mitta</p>
           <h1 className="pp-hero__title">Community Groups and Activities</h1>
@@ -50,14 +44,14 @@ export default async function KalyanaGroupsPage() {
             Following tradition, these community-led activities are called <em>Kalyana Mitta</em>.
           </p>
           <div className="pp-hero__actions">
-            <a href="#current-groups" className="pp-btn pp-btn--onblue">
-              Find a group
+            <a href="#current-groups" className="pp-btn">
+              Current groups
             </a>
             <Link
               href="/kalyana-mitta/kalyana-mitta-group-application"
-              className="pp-hero__link"
+              className="pp-btn pp-btn--ghost"
             >
-              Start a group or event <span aria-hidden="true">→</span>
+              Start a group or event
             </Link>
           </div>
         </div>
@@ -125,8 +119,8 @@ export default async function KalyanaGroupsPage() {
                           <span className="pp-card__format">{format}</span>
                         </div>
                       </div>
-                      <span className="pp-card__action" aria-hidden="true">
-                        →
+                      <span className="pp-card__action pp-card__action--named" aria-hidden="true">
+                        View group <span>→</span>
                       </span>
                     </div>
                   </Link>
@@ -147,7 +141,9 @@ export default async function KalyanaGroupsPage() {
       {/* ── Start one ─────────────────────────────────────── */}
       <section className="pp-section pp-section--last">
         <div className="rim-container">
-          <div className="pp-closing">
+          {/* Start a group and its guidelines belong together in the panel
+              (the refresh), not as a lone centred link beneath it. */}
+          <div className="pp-closing pp-closing--stack">
             <div>
               <p className="pp-closing__eyebrow">Start something</p>
               <h2 className="pp-closing__title">
@@ -158,21 +154,17 @@ export default async function KalyanaGroupsPage() {
                 guidelines, then tell us about your idea. We&rsquo;ll help you get it going.
               </p>
             </div>
-            <Link
-              href="/kalyana-mitta/kalyana-mitta-group-application"
-              className="pp-btn pp-closing__link"
-            >
-              Start a group
-            </Link>
-          </div>
-
-          <div className="pp-actions pp-actions--center">
-            <Link
-              href="/kalyana-mitta/guidelines-for-starting-a-kalyana-mitta-group"
-              className="pp-link"
-            >
-              Read the group guidelines <span aria-hidden="true">→</span>
-            </Link>
+            <div className="pp-actions">
+              <Link href="/kalyana-mitta/kalyana-mitta-group-application" className="pp-btn">
+                Start a group
+              </Link>
+              <Link
+                href="/kalyana-mitta/guidelines-for-starting-a-kalyana-mitta-group"
+                className="pp-btn pp-btn--ghost"
+              >
+                The group guidelines
+              </Link>
+            </div>
           </div>
         </div>
       </section>

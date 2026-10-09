@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ReadingToc from "@/components/ReadingToc";
 
 export const metadata = {
   title: "Guidelines for Starting a Kalyana Mitta Group - Rooted In Mindfulness",
@@ -6,10 +7,25 @@ export const metadata = {
     "What to consider before starting a Kalyana Mitta group at RIM — purpose, size, co-facilitation, focus, commitment, and the responsibilities of facilitators.",
 };
 
+
+/** One list feeds "On this page" and the h2 ids, so they cannot drift. */
+const SECTIONS = [
+  { id: "group-purpose", title: "Group Purpose" },
+  { id: "group-size", title: "Group Size" },
+  { id: "facilitating-in-pairs", title: "Facilitating in Pairs" },
+  { id: "group-focus", title: "Group Focus" },
+  { id: "experience", title: "Experience" },
+  { id: "meeting-intervals-and-commitment", title: "Meeting Intervals and Commitment" },
+  { id: "suggested-group-length-and-format", title: "Suggested Group Length and Format" },
+  { id: "practice-between-meetings", title: "Practice Between Meetings" },
+  { id: "responsibilities-of-the-facilitators", title: "Responsibilities of the Facilitators" },
+  { id: "next-step-kalyana-mitta-group-application", title: "Next Step: Kalyana Mitta Group Application" },
+] as const;
+
 export default function KMGuidelinesPage() {
   return (
-    <div className="pp-page pp-page--spine pp-page--column">
-      <section className="pp-hero pp-hero--flat">
+    <div className="pp-page pp-page--spine pp-page--reading">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Kalyana Mitta</p>
           <h1 className="pp-hero__title">Group Guidelines</h1>
@@ -21,9 +37,11 @@ export default function KMGuidelinesPage() {
       </section>
 
       <section className="pp-section pp-section--last">
-        <div className="rim-container">
-          <div className="pp-prose">
-              <h2>Group Purpose</h2>
+        <div className="rim-container pp-reading">
+          <ReadingToc sections={SECTIONS} />
+          <div className="pp-reading__article">
+          <div className="pp-prose pp-prose--sections">
+              <h2 id="group-purpose">Group Purpose</h2>
               <p>
                 Kalyana Mitta is a Pali term that means &quot;spiritual friend.&quot; Often used to
                 describe someone in the teacher role. However, it also refers to anyone on the Dharma
@@ -36,14 +54,14 @@ export default function KMGuidelinesPage() {
                 dharma-based activities.
               </p>
 
-              <h2>Group Size</h2>
+              <h2 id="group-size">Group Size</h2>
               <p>
                 A KM group varies in size, but usually consists of 5-12 members. These smaller groups
                 provide an intimate setting, making it possible for sangha bonds to grow as participants
                 explore Dharma-related interests together.
               </p>
 
-              <h2>Facilitating in Pairs</h2>
+              <h2 id="facilitating-in-pairs">Facilitating in Pairs</h2>
               <p>
                 Facilitating in pairs is one important guideline for the KM groups. Co-facilitating
                 minimizes potential projections, both positive and negative, by the other group members
@@ -53,7 +71,7 @@ export default function KMGuidelinesPage() {
                 their enthusiasm benefits everyone.
               </p>
 
-              <h2>Group Focus</h2>
+              <h2 id="group-focus">Group Focus</h2>
               <p>
                 Dharma practice is a whole-life practice. Therefore, the possible focus and intentions
                 for forming a group are countless. Some groups have a single purpose, such as right
@@ -72,7 +90,7 @@ export default function KMGuidelinesPage() {
                 will ensure the groups focus aligns with RIM&apos;s Vision and Mission.
               </p>
 
-              <h2>Experience</h2>
+              <h2 id="experience">Experience</h2>
               <p>
                 The facilitators should decide what level of participants&apos; experience is fitting
                 for the group. For example, the group may be open to everyone regardless of practice
@@ -87,7 +105,7 @@ export default function KMGuidelinesPage() {
                 impact the group members&apos; resonance.
               </p>
 
-              <h2>Meeting Intervals and Commitment</h2>
+              <h2 id="meeting-intervals-and-commitment">Meeting Intervals and Commitment</h2>
               <p>Groups vary significantly in how often they meet. Some meet weekly, some every two weeks, some monthly.</p>
               <p>
                 Commitment to attend the meetings is a significant factor in the group&apos;s success.
@@ -104,7 +122,7 @@ export default function KMGuidelinesPage() {
                 practice.
               </p>
 
-              <h2>Suggested Group Length and Format</h2>
+              <h2 id="suggested-group-length-and-format">Suggested Group Length and Format</h2>
               <p>
                 Establishing a formal group format is very beneficial. It helps create a supportive
                 container that protects the integrity of the group. The format will be influenced by the
@@ -159,7 +177,7 @@ export default function KMGuidelinesPage() {
                 </li>
               </ol>
 
-              <h2>Practice Between Meetings</h2>
+              <h2 id="practice-between-meetings">Practice Between Meetings</h2>
               <p>
                 KM Groups at RIM help members integrate and realize the benefits of meditation and
                 mindfulness within everyday life. In this light, KM group facilitators are encouraged to
@@ -175,7 +193,7 @@ export default function KMGuidelinesPage() {
                 participant benefits from the discoveries of all the members.
               </p>
 
-              <h2>Responsibilities of the Facilitators</h2>
+              <h2 id="responsibilities-of-the-facilitators">Responsibilities of the Facilitators</h2>
               <p>
                 Participating in a KM group benefits the entire RIM community. It&apos;s also worth
                 noting that members are practicing a radical act of generosity and care by facilitating
@@ -268,7 +286,7 @@ export default function KMGuidelinesPage() {
                 </li>
               </ol>
 
-              <h2>Next Step: Kalyana Mitta Group Application</h2>
+              <h2 id="next-step-kalyana-mitta-group-application">Next Step: Kalyana Mitta Group Application</h2>
               <p>
                 Please fill out the{" "}
                 <Link href="/kalyana-mitta/kalyana-mitta-group-application">
@@ -283,16 +301,17 @@ export default function KMGuidelinesPage() {
               </p>
           </div>
 
-          <div className="pp-actions pp-actions--center">
+          <div className="pp-actions">
             <Link
               href="/kalyana-mitta/kalyana-mitta-group-application"
               className="pp-btn"
             >
               Start a group
             </Link>
-            <Link href="/kalyana-mitta/community-groups-events" className="pp-link">
-              See current groups <span aria-hidden="true">→</span>
+            <Link href="/kalyana-mitta/community-groups-events" className="pp-btn pp-btn--ghost">
+              Current groups
             </Link>
+          </div>
           </div>
         </div>
       </section>

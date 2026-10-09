@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ReadingToc from "@/components/ReadingToc";
 
 export const metadata = {
   title: "Outreach - Rooted In Mindfulness",
@@ -29,10 +30,23 @@ export const metadata = {
  * outreach fund yet. RIM has offered programs with organizations before, so
  * the page does not call the work new.
  */
+
+/** One list feeds "On this page" and the h2 ids, so they cannot drift. */
+const SECTIONS = [
+  { id: "who-we-partner-with", title: "Who we partner with" },
+  { id: "who-it-supports", title: "Who it supports" },
+  { id: "what-participants-practice", title: "What participants practice" },
+  { id: "how-a-partnership-works", title: "How a partnership works" },
+  { id: "our-commitments", title: "Our commitments" },
+  { id: "training-in-taking-care", title: "Training in Taking CARE" },
+  { id: "cost", title: "Cost" },
+  { id: "start-a-conversation", title: "Start a conversation" },
+] as const;
+
 export default function OutreachPage() {
   return (
-    <div className="pp-page pp-page--spine pp-page--column">
-      <section className="pp-hero pp-hero--flat">
+    <div className="pp-page pp-page--spine pp-page--reading">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">For organizations</p>
           <h1 className="pp-hero__title">Outreach</h1>
@@ -41,8 +55,10 @@ export default function OutreachPage() {
       </section>
 
       <section className="pp-section pp-section--last">
-        <div className="rim-container">
-          <div className="pp-prose">
+        <div className="rim-container pp-reading">
+          <ReadingToc sections={SECTIONS} />
+          <div className="pp-reading__article">
+          <div className="pp-prose pp-prose--sections">
             <p>
               We partner with nonprofits and community organizations whose work supports the
               well-being of individuals, communities, and our shared world. Taking CARE, our program
@@ -51,21 +67,21 @@ export default function OutreachPage() {
               with organizations before, and Taking CARE now carries that work forward.
             </p>
 
-            <h2>Who we partner with</h2>
+            <h2 id="who-we-partner-with">Who we partner with</h2>
             <p>
               Organizations working for well-being, in whatever form their work takes. If your
               mission is to help people, communities, or the world we share to be healthier and more
               whole, we would be glad to talk.
             </p>
 
-            <h2>Who it supports</h2>
+            <h2 id="who-it-supports">Who it supports</h2>
             <p>
               The people your organization serves, and your own people: the staff, volunteers, and
               leaders who carry your mission. Caring for others is demanding work. The practice helps
               people meet it with clarity and steadiness, and in a way that can last.
             </p>
 
-            <h2>What participants practice</h2>
+            <h2 id="what-participants-practice">What participants practice</h2>
             <p>
               Taking CARE teaches a few simple, connected skills through guided practice and
               conversation, so they can be used in the middle of real life: settling the body and
@@ -74,7 +90,7 @@ export default function OutreachPage() {
               ourselves while we look after others.
             </p>
 
-            <h2>How a partnership works</h2>
+            <h2 id="how-a-partnership-works">How a partnership works</h2>
             <p>
               We begin with a conversation about your organization, your mission, and what you hope
               for. We shape the program with you: format, length, language, and examples adapt, and
@@ -83,7 +99,7 @@ export default function OutreachPage() {
               what served people, and plan what comes next.
             </p>
 
-            <h2>Our commitments</h2>
+            <h2 id="our-commitments">Our commitments</h2>
             <p>
               <strong>Always voluntary.</strong> Each person chooses whether and how to take part.
             </p>
@@ -103,7 +119,7 @@ export default function OutreachPage() {
               seasons and works alongside medical and mental health care, never in place of it.
             </p>
 
-            <h2>Training in Taking CARE</h2>
+            <h2 id="training-in-taking-care">Training in Taking CARE</h2>
             <p>
               We also train people to share this practice: facilitating practice sessions, drop-ins,
               and programs within RIM, and offering Taking CARE beyond it, in their own
@@ -115,13 +131,13 @@ export default function OutreachPage() {
               .
             </p>
 
-            <h2>Cost</h2>
+            <h2 id="cost">Cost</h2>
             <p>
               We ask partner organizations to give by donation, in the same way everyone at RIM
               does, and gifts to RIM support our outreach as well.
             </p>
 
-            <h2>Start a conversation</h2>
+            <h2 id="start-a-conversation">Start a conversation</h2>
             <p>
               If your organization might be a fit, we would be glad to hear from you. Tell us a
               little about your organization, your mission, and the people you hope this could
@@ -136,6 +152,7 @@ export default function OutreachPage() {
             <Link href="/why-we-practice" className="pp-btn pp-btn--ghost">
               Why we practice
             </Link>
+          </div>
           </div>
         </div>
       </section>

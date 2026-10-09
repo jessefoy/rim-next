@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ReadingToc from "@/components/ReadingToc";
 import CareCircle from "@/components/CareCircle";
 
 export const metadata = {
@@ -52,8 +53,8 @@ function SectionHeading({ id }: { id: (typeof SECTIONS)[number]["id"] }) {
 
 export default function CarePage() {
   return (
-    <div className="pp-page pp-page--spine pp-page--column">
-      <section className="pp-hero pp-hero--flat">
+    <div className="pp-page pp-page--spine pp-page--reading">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">How we practice</p>
           <h1 className="pp-hero__title">Taking CARE</h1>
@@ -62,7 +63,9 @@ export default function CarePage() {
       </section>
 
       <section className="pp-section pp-section--last">
-        <div className="rim-container">
+        <div className="rim-container pp-reading">
+          <ReadingToc sections={SECTIONS} />
+          <div className="pp-reading__article">
           <div className="pp-prose">
             <p>
               This is an introduction to how we practice at Rooted in Mindfulness. Taking CARE is our
@@ -93,21 +96,6 @@ export default function CarePage() {
               Each word opens onto the same luminous, wakeful nature, which our tradition calls
               Buddha nature.
             </p>
-
-            <nav className="pp-toc" aria-label="On this page">
-              <p className="pp-toc__label" aria-hidden="true">
-                On this page
-              </p>
-              <ol className="pp-toc__list" role="list">
-                {SECTIONS.map((s) => (
-                  <li key={s.id}>
-                    <a className="pp-toc__link" href={`#${s.id}`}>
-                      {s.title}
-                    </a>
-                  </li>
-                ))}
-              </ol>
-            </nav>
 
             <SectionHeading id="calm" />
             <p>
@@ -246,6 +234,7 @@ export default function CarePage() {
             <Link href="/new-to-rim" className="pp-btn pp-btn--ghost">
               New to RIM
             </Link>
+          </div>
           </div>
         </div>
       </section>

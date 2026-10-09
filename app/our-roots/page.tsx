@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ReadingToc from "@/components/ReadingToc";
 
 export const metadata = {
   title: "Our Roots - Rooted In Mindfulness",
@@ -27,10 +28,22 @@ export const metadata = {
  * is not strictly Chan. Section ids come from the headings so other pages can
  * link to them (Why We Practice links to #for-the-benefit-of-all).
  */
+
+/** One list feeds "On this page" and the h2 ids, so they cannot drift. */
+const SECTIONS = [
+  { id: "many-traditions-one-family", title: "Many traditions, one family" },
+  { id: "at-the-heart-of-our-practice", title: "At the heart of our practice" },
+  { id: "for-the-benefit-of-all", title: "For the benefit of all" },
+  { id: "a-handful-of-leaves", title: "A Handful of Leaves" },
+  { id: "taking-care-grows-from-all-of-this", title: "Taking CARE grows from all of this" },
+  { id: "for-modern-life", title: "For modern life" },
+  { id: "for-anyone", title: "For anyone" },
+] as const;
+
 export default function OurRootsPage() {
   return (
-    <div className="pp-page pp-page--spine pp-page--column">
-      <section className="pp-hero pp-hero--flat">
+    <div className="pp-page pp-page--spine pp-page--reading">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Where this comes from</p>
           <h1 className="pp-hero__title">Our Roots</h1>
@@ -41,7 +54,9 @@ export default function OurRootsPage() {
       </section>
 
       <section className="pp-section pp-section--last">
-        <div className="rim-container">
+        <div className="rim-container pp-reading">
+          <ReadingToc sections={SECTIONS} />
+          <div className="pp-reading__article">
           <div className="pp-prose pp-prose--sections">
             <h2 id="many-traditions-one-family">Many traditions, one family</h2>
             <p>
@@ -135,6 +150,7 @@ export default function OurRootsPage() {
             <Link href="/care" className="pp-btn pp-btn--ghost">
               Taking CARE: how we practice
             </Link>
+          </div>
           </div>
         </div>
       </section>

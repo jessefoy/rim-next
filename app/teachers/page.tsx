@@ -37,7 +37,7 @@ export default async function TeachersPage() {
       {/* Flat blue hero, the same tier every other static page carries. This
           page had no hero at all and opened on a 32px blue h1 at x=160, which
           made it read as a different site from the one that linked to it. */}
-      <section className="pp-hero pp-hero--flat">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Who teaches here</p>
           <h1 className="pp-hero__title">Teachers</h1>
@@ -85,6 +85,9 @@ export default async function TeachersPage() {
                     )}
                     <h2 className="tpr-card__name">{name}</h2>
                     {excerpt && <p className="tpr-card__bio">{excerpt}</p>}
+                    <span className="tpr-card__cta">
+                      Read biography <span aria-hidden="true">→</span>
+                    </span>
                   </Link>
                 );
               })}

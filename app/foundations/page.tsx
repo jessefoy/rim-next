@@ -30,7 +30,7 @@ export const metadata = {
 export default function FoundationsPage() {
   return (
     <div className="pp-page pp-page--spine pp-page--column">
-      <section className="pp-hero pp-hero--flat">
+      <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Where to begin</p>
           <h1 className="pp-hero__title">Foundations</h1>

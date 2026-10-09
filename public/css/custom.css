@@ -29857,6 +29857,192 @@ html { scroll-padding-top: 88px; }
   .nt-contact { padding-bottom: var(--space-5); }
 }
 
+/* ── The reading layout: chapter navigation beside the article ──────────── */
+/* The long reading pages (Why We Practice, About, Taking CARE, Our Roots, the
+   Handful, Outreach, the Guidelines): a 240px "On this page" column that
+   sticks below the nav, a 680px article, chapters divided by hairlines.
+   Below 901 the list becomes a disclosure above the article. */
+.pp-reading {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 72px;
+  align-items: start;
+}
+.pp-reading__toc {
+  position: sticky;
+  top: 104px;
+  max-height: calc(100vh - 128px);
+  overflow-y: auto;
+}
+.pp-reading__toc-desktop > p {
+  margin: 0 0 var(--space-2);
+  color: var(--rim-label);
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.pp-reading__toc ol { margin: 0; padding: 0; list-style: none; }
+.pp-reading__toc li { margin: 0; font-family: var(--font-sans); }
+.pp-reading__toc a {
+  display: block;
+  box-sizing: border-box;
+  min-height: 44px;
+  border-left: 2px solid transparent;
+  padding: 10px 12px;
+  color: var(--rim-text-soft);
+  font-size: var(--text-ui);
+  line-height: 1.6;
+  text-decoration: none;
+}
+.pp-reading__toc a:hover { color: var(--rim-heading); background: color-mix(in srgb, var(--rim-surface) 55%, transparent); }
+.pp-reading__toc a:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: 2px; }
+.pp-reading__toc-mobile { display: none; }
+.pp-reading__article { min-width: 0; max-width: 680px; }
+/* Chapters: 48 above a hairline, 48 below it, 24 to the first paragraph. */
+.pp-reading__article .pp-prose h2 {
+  margin: var(--space-5) 0 var(--space-3);
+  border-top: 1px solid var(--rim-rule);
+  padding-top: var(--space-5);
+  scroll-margin-top: 104px;
+}
+.pp-reading__article .pp-prose > h2:first-child,
+.pp-reading__article .pp-prose > :first-child + h2 { border-top: 0; padding-top: 0; }
+.pp-reading__article .pp-prose > h2:first-child { margin-top: 0; }
+.pp-reading__article .pp-prose p { margin: 0 0 var(--space-3); line-height: 1.8; }
+.pp-reading__article .pp-prose .pp-quote { margin: 0 0 var(--space-4); }
+.pp-reading__article .pp-prose .pp-quote + p { margin-top: var(--space-4); }
+.pp-reading__article .pp-actions { margin-top: var(--space-4); }
+/* The benefits on Why We Practice, as three panels with a heading each. */
+.pp-benefits { display: grid; gap: var(--space-3); margin: var(--space-4) 0; }
+.pp-benefit {
+  box-sizing: border-box;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  padding: 28px;
+  background: var(--rim-surface);
+}
+.pp-benefit h3 {
+  margin: 0 0 var(--space-3);
+  color: var(--rim-label);
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+.pp-benefit p { margin: 0; font-size: var(--text-body); line-height: 1.8; }
+.pp-benefit p + p { margin-top: var(--space-3); }
+/* The reading page's closing block: where to go from here. */
+.pp-reading__next {
+  margin-top: var(--space-5);
+  border-top: 1px solid var(--rim-rule);
+  padding-top: var(--space-5);
+}
+.pp-reading__next .pp-intro__eyebrow { margin-bottom: 12px; }
+.pp-reading__next h2 {
+  margin: 0 0 var(--space-3);
+  color: var(--rim-heading);
+  font-family: var(--font-serif);
+  font-size: var(--text-h2-lg);
+  font-weight: 400;
+  line-height: 1.25;
+}
+.pp-reading__next > p { margin: 0; font-size: var(--text-body); line-height: 1.8; }
+@media (min-width: 901px) and (max-width: 1100px) {
+  .pp-reading { grid-template-columns: 210px minmax(0, 1fr); gap: 40px; }
+}
+@media (max-width: 900px) {
+  .pp-reading { display: block; }
+  .pp-reading__toc { position: static; max-height: none; overflow: visible; margin-bottom: var(--space-4); }
+  .pp-reading__toc-desktop { display: none; }
+  .pp-reading__toc-mobile {
+    display: block;
+    border: 1px solid var(--rim-rule);
+    border-radius: 12px;
+    background: var(--rim-surface);
+  }
+  .pp-reading__toc-mobile summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 48px;
+    padding: 14px 18px;
+    color: var(--rim-blue);
+    font-family: var(--font-sans);
+    font-size: var(--text-action);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+  .pp-reading__toc-mobile summary::-webkit-details-marker { display: none; }
+  .pp-reading__toc-mobile summary span { font-size: var(--text-h4); line-height: 1; transition: transform 0.15s ease; }
+  .pp-reading__toc-mobile[open] summary span { transform: rotate(45deg); }
+  .pp-reading__toc-mobile ol { padding: 0 12px 12px; }
+  .pp-reading__toc-mobile a { font-size: var(--text-small); padding: 10px 8px; }
+  .pp-reading__article { max-width: 680px; margin: 0 auto; }
+  .pp-reading__article .pp-prose h2 { margin-top: var(--space-4); padding-top: var(--space-4); }
+}
+
+/* ── Get Involved and the teachers ──────────────────────────────────────── */
+/* A named action on a row card, in place of the bare arrow. */
+.pp-card__action--named {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-action);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* A closing panel that stacks its words and a row of actions. */
+.pp-closing--stack { display: block; }
+.pp-closing--stack .pp-actions { margin-top: var(--space-3); }
+/* The teacher cards: one column at reading width, portrait beside the name. */
+.pp-page .tpr-grid { grid-template-columns: 1fr; max-width: 680px; margin: 0 auto; gap: var(--space-3); }
+.pp-page a.tpr-card {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 0 28px;
+  align-items: start;
+  box-sizing: border-box;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  padding: 28px;
+  background: var(--rim-surface);
+  box-shadow: none;
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+.pp-page a.tpr-card:hover { border-color: var(--rim-blue); box-shadow: none; }
+.pp-page .tpr-card__photo,
+.pp-page .tpr-card__photo-placeholder { grid-row: 1 / span 3; width: 88px; height: 88px; margin: 0; }
+.pp-page .tpr-card__name { grid-column: 2; margin: 0 0 var(--space-2); color: var(--rim-heading); }
+.pp-page .tpr-card__bio { grid-column: 2; margin: 0; font-size: var(--text-card); line-height: 1.8; }
+.pp-page .tpr-card__cta {
+  grid-column: 2;
+  margin-top: var(--space-3);
+  color: var(--rim-blue);
+  font-size: var(--text-action);
+  font-weight: 600;
+}
+.pp-page .tpr-card__cta > span { margin-left: 12px; }
+@media (max-width: 430px) {
+  .pp-page a.tpr-card { grid-template-columns: 56px minmax(0, 1fr); column-gap: 20px; padding: 22px 20px; }
+  .pp-page .tpr-card__photo,
+  .pp-page .tpr-card__photo-placeholder { width: 56px; height: 56px; font-size: 28px; }
+}
+
+/* New to RIM: the copy column starts level with the heading, not the eyebrow
+   above it (the refresh's alignment rule; the reference itself slipped here). */
+.nt-split > .nt-copy,
+.nt-split > .nt-faq { padding-top: calc(var(--text-xxs) * 1.5 + 12px); }
+@media (max-width: 700px) {
+  .nt-split > .nt-copy,
+  .nt-split > .nt-faq { padding-top: 0; }
+}
+
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).
