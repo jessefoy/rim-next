@@ -1647,5 +1647,15 @@
     "status": "open",
     "addedAt": "2026-10-02",
     "notes": "Needs Jesse's words. Same behavior as before the change; only the question is new."
+  },
+  {
+    "id": "2026-10-09-001",
+    "title": "A Handful of Leaves as a course in the Library",
+    "description": "Jesse (2026-10-09) retired the My Home card for the Handful: it \"will become a free program that everyone has, or a program that people have, in the course and lessons section.\" Build it as a Course Manager course carrying the introduction and the map (the verbatim derived copies in content/handful-of-leaves/, rendered by HandfulReading), either self-enrol or granted to every member; then retire the standalone /account/handful-of-leaves and /account/handful-of-leaves/map reading pages or point them at the course. The vault stays canonical for the text (RIM_Public_Pages.md, 'The derived-work rule').",
+    "category": "Courses & Library",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-09",
+    "notes": "Whether it is granted to everyone at sign-up or self-enrolled is Jesse's call; 'freely offered' is the price word on the public side. Related: 2026-09-25-003 (First Steps, a short online introduction for everyone who joins) may share the same self-enrol mechanism."
   }
 ]
