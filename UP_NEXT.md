@@ -2,7 +2,13 @@
 
 Read first when opening RIM. Updated 2026-10-08 (mid-session). Full history belongs in `session-log.md`.
 
-## Active — the home page in Jesse's words (2026-10-08)
+## Active — the public refresh is live; Jesse's read of the published pages is next (2026-10-09)
+
+Jesse handed over a redesign of the public site reviewed in ChatGPT's web designer (`rim-development-handoff.zip`, in his Downloads; not in the repo). It shipped on `main` in six measured phases on 2026-10-09 (`462c4bd` the shared vocabulary and home, `a16d6c5` the catalog and This Week, `76924b3` New to RIM, `aeec924` the reading layout, Get Involved and the teachers, then the fixes): the design record is `RIM_Public_Pages.md`, "The public refresh"; the words are in the vault (the home working draft's Part One and 2026-10-09 log; the copy doc's Revision 13; Appendix A). **Surfaces are bordered now, not lifted** (CLAUDE.md). Every refreshed page measured at 1280, 900, 390 and 320 with zero overflow; a 46-check iframe sweep of all twenty routes plus donate, join and login found no overflow.
+
+**Next concrete step:** Jesse reads the published pages against `refresh-read-aloud-2026-10-09.md` (given in chat; every new or changed line with the reference's original beside it) and rules; corrections come back through the vault. Open from the brief: the `.impeccable/` folder is committed (add to `.gitignore` if unwanted); the Impeccable skill update still fails to download. Parking and which door are still unwritten.
+
+## Earlier on 2026-10-08 — the home page in Jesse's words
 
 Jesse read the live home page aloud and reworded it; the polished reading is live on `main` with his rulings on twelve flags (the record: `RIM_Public_Pages.md`, "The home page in Jesse's words"; the words: the vault's `04-community-homepage-revision-2026-09-28.md`, Part One; his verbatim lines: the master reference's Appendix A, 2026-10-08). The programs section was rebuilt twice: first with each way's live program names (rows on the two text edges), then, after Jesse's "blends into the rest of the site... a little busy" and a measured critique (19/32), as **three static cards in thirds naming what each way contains** (types, not a schedule; buttons Programs & events · This week's schedule; home static again). Practice for real life was re-tested against his four frames and widened (life and work; the habits we reach for; belonging); Why We Practice §5 gained the well-being paragraph; New to RIM says the stairs and no longer names a drop-in. Rulings that reached other surfaces: `RIM_WHAT_BINDS` is "unhealthy patterns of heart, mind, and action" (five agreement surfaces, About, the vision); courses are Immersion (catalog intros, the Ongoing subheading "Classes", the Foundations page, the editor's Category help); the Foundations program is named from one constant (home card, catalog standing card, `/foundations`).
 

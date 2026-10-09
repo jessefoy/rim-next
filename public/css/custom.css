@@ -29986,15 +29986,22 @@ html { scroll-padding-top: 88px; }
 
 /* ── Get Involved and the teachers ──────────────────────────────────────── */
 /* A named action on a row card, in place of the bare arrow. */
-.pp-card__action--named {
+.pp-card__action--named,
+a.pp-card:hover .pp-card__action--named {
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  width: auto;
+  min-height: 44px;
+  border-radius: 0;
+  padding: 0;
+  background: none;
   color: var(--rim-blue);
   font-family: var(--font-sans);
   font-size: var(--text-action);
   font-weight: 600;
   white-space: nowrap;
+  transform: none;
 }
 /* A closing panel that stacks its words and a row of actions. */
 .pp-closing--stack { display: block; }
@@ -30018,8 +30025,15 @@ html { scroll-padding-top: 88px; }
 .pp-page a.tpr-card:hover { border-color: var(--rim-blue); box-shadow: none; }
 .pp-page .tpr-card__photo,
 .pp-page .tpr-card__photo-placeholder { grid-row: 1 / span 3; width: 88px; height: 88px; margin: 0; }
-.pp-page .tpr-card__name { grid-column: 2; margin: 0 0 var(--space-2); color: var(--rim-heading); }
-.pp-page .tpr-card__bio { grid-column: 2; margin: 0; font-size: var(--text-card); line-height: 1.8; }
+.pp-page .tpr-card__name {
+  grid-column: 2;
+  margin: 0 0 var(--space-2);
+  color: var(--rim-heading);
+  font-size: var(--text-h3);
+  font-weight: 400;
+  line-height: 1.3;
+}
+.pp-page .tpr-card__bio { grid-column: 2; margin: 0; color: var(--rim-text); font-size: var(--text-card); line-height: 1.8; }
 .pp-page .tpr-card__cta {
   grid-column: 2;
   margin-top: var(--space-3);
