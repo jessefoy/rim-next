@@ -45,6 +45,8 @@ type TodayDisplayItem = {
   key: string;
   name: string;
   startTimeCT: string;
+  /** The session's end, when the program has one. */
+  endTimeCT?: string | null;
   startEpoch: number;
   formatLabel: string;
   isRegistered: boolean;
@@ -222,13 +224,14 @@ export default async function DashboardPage({ searchParams }: {
         if (isHostOrTeacher && minsUntilEarly > 0 && minsUntilEarly <= 60) {
           countdownText = `Host entry opens in ${minsUntilEarly} min`;
         } else {
-          countdownText = `Zoom opens at ${fmtTimeCT(liveStart.toISOString())}`;
+          countdownText = `Opens at ${fmtTimeCT(liveStart.toISOString())}`;
         }
       }
 
       return {
         ...p, _id: p.id, isLive, isSetupOpen, isLaterToday, isHostOrTeacher, isRegistered,
         startTimeCT: fmtTimeCT(start.toISOString()),
+        endTimeCT: endIso ? fmtTimeCT(liveEnd.toISOString()) : null,
         liveStartEpoch: liveStart.getTime(),
         liveStartTimeCT: fmtTimeCT(liveStart.toISOString()),
         earlyOpenEpoch: earlyOpenStart.getTime(),
@@ -287,6 +290,7 @@ export default async function DashboardPage({ searchParams }: {
       note: s.earlyArrivalMessage, announcement: s.specialAnnouncement,
       name: s.name,
       startTimeCT: s.startTimeCT,
+      endTimeCT: s.endTimeCT,
       startEpoch: s.startEpoch,
       formatLabel: "Online on Zoom",
       isRegistered: s.isRegistered,
@@ -325,6 +329,7 @@ export default async function DashboardPage({ searchParams }: {
       note: p.earlyArrivalMessage, announcement: p.specialAnnouncement,
       name: r.programTitle,
       startTimeCT: fmtTimeCT(start.toISOString()),
+      endTimeCT: p.endDatetime ? fmtTimeCT(end.toISOString()) : null,
       startEpoch: start.getTime(),
       formatLabel: "In person",
       isRegistered: true,
@@ -417,22 +422,21 @@ export default async function DashboardPage({ searchParams }: {
                 <article key={item.key} className={`today-focus today-focus--${item.stage}`}>
                   <div className="today-focus__time">
                     <time>{item.startTimeCT}</time>
+                    {item.endTimeCT && <span className="today-focus__until">until {item.endTimeCT}</span>}
+                    <span className={`today-state today-state--${item.stage}`}>{stateLabel(item)}</span>
                   </div>
                   <div className="today-focus__details">
                     <h2>{item.name}</h2>
-                    <div className="today-focus__meta">
-                      <span>{item.formatLabel}</span>
-                      {item.isRegistered && <span className="today-registered">Registered</span>}
-                    </div>
+                    <p className="today-focus__meta">{item.formatLabel}</p>
                     <SessionNotes item={item} />
                   </div>
                   <div className="today-focus__action">
-                    {item.statusText && <span className="today-focus__status">{item.statusText}</span>}
                     {item.actionHref && item.actionLabel && (
                       <a href={item.actionHref} className={`join-btn${item.stage === "setup" ? " join-btn--setup" : ""}`}>
                         {item.actionLabel}
                       </a>
                     )}
+                    {item.isRegistered && <span className="today-focus__context">You&rsquo;re registered</span>}
                     {item.contextText && <span className="today-focus__context">{item.contextText}</span>}
                   </div>
                 </article>
@@ -440,25 +444,22 @@ export default async function DashboardPage({ searchParams }: {
 
               {laterTodayItems.length > 0 && (
                 <div className="today-later">
-                  <p className="today-later__heading">Later today</p>
-                  <div className="today-list">
-                    {laterTodayItems.map((item) => (
-                      <div key={item.key} className="today-list__item">
+                  {laterTodayItems.map((item) => (
+                    <div key={item.key} className="today-list__item">
+                      <div className="today-list__time">
                         <time>{item.startTimeCT}</time>
-                        <div>
-                          <span className="today-list__title">{item.name}</span>
-                          <span className="today-list__meta">
-                            <span>{item.formatLabel}</span>
-                            {item.isRegistered && <span className="today-registered">Registered</span>}
-                          </span>
-                          <SessionNotes item={item} />
-                        </div>
-                        <div className="today-list__action">
-                          {item.contextText && <span className="today-list__context">{item.contextText}</span>}
-                        </div>
+                        <span>Later today</span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="today-list__details">
+                        <span className="today-list__title">{item.name}</span>
+                        <span className="today-list__meta">{item.formatLabel}{item.isRegistered && <> · Registered</>}</span>
+                        <SessionNotes item={item} />
+                      </div>
+                      <div className="today-list__action">
+                        {item.contextText && <span className="today-list__context">{item.contextText}</span>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -467,9 +468,24 @@ export default async function DashboardPage({ searchParams }: {
 
         {!upcomingView && <>
           {!showTodayCard && <section className="rim-empty"><h2>There are no more sessions today.</h2><p>You can find the next gathering in the full schedule.</p></section>}
+          {/* The next three registrations, as rows: the next useful thing,
+              not a feed (RIM_Member_Area.md, design decisions). The full list
+              is a destination. */}
+          {sortedRegistrations.length > 0 && (
+            <section className="db-section db2-coming-up">
+              <div className="db-section__heading">
+                <p className="db-section__label">Coming up</p>
+              </div>
+              <div className="db2-upcoming">
+                {sortedRegistrations.slice(0, 3).map((r) => <UpcomingRow key={r.id} r={r} />)}
+              </div>
+            </section>
+          )}
           <nav className="rim-home-links" aria-label="More programs">
-            <Link href="/account/dashboard?view=upcoming" className="pp-btn pp-btn--ghost">Your upcoming programs <span aria-hidden="true">→</span></Link>
-            <Link href="/this-week" className="pp-btn pp-btn--ghost">Full schedule <span aria-hidden="true">→</span></Link>
+            {sortedRegistrations.length > 0 && (
+              <Link href="/account/dashboard?view=upcoming" className="pp-btn pp-btn--ghost">All upcoming programs <span aria-hidden="true">→</span></Link>
+            )}
+            <Link href="/this-week" className="pp-btn pp-btn--ghost">This week&rsquo;s schedule <span aria-hidden="true">→</span></Link>
           </nav>
           <HandfulHomeCard />
         </>}
@@ -484,49 +500,7 @@ export default async function DashboardPage({ searchParams }: {
             </div>
           ) : (
             <div className="db2-upcoming">
-              {visibleRegistrations.map((r) => {
-                // Date pill shows the projected next-occurrence date, not the
-                // program's anchor — anchor is the first-ever occurrence, often
-                // long in the past for recurring programs.
-                const dateForPill = new Date(r.nextDateStr + "T12:00:00");
-                const hasPendingDana = r.donationStatus === "PENDING";
-                return (
-                  <Link key={r.id} href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
-                    {(() => {
-                      const mon = dateForPill.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
-                      const day = dateForPill.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
-                      return (
-                        <span className="db2-upcoming__date-block">
-                          <span className="db2-upcoming__date-month">{mon}</span>
-                          <span className="db2-upcoming__date-day">{day}</span>
-                        </span>
-                      );
-                    })()}
-                    <span className="db2-upcoming__title">
-                      <span>{r.programTitle}</span>
-                      <span className="db2-upcoming__meta">
-                        {r.nextTimeCT && <span>{r.nextTimeCT}</span>}
-                        {(r.program?.programFormat === "virtual" || r.program?.programFormat === "hybrid") && <span>Online on Zoom</span>}
-                      </span>
-                    </span>
-                    <span className="db2-upcoming__status">
-                      {hasPendingDana
-                        ? <span className="db2-chip-stack">
-                            {/* Visible words, not a title tooltip — touch
-                                devices and screen readers never saw it. */}
-                            <span className="db2-chip db2-chip--dana">
-                              Dana invitation
-                            </span>
-                            <span className="db2-chip-note">
-                              A voluntary gift — never required
-                            </span>
-                          </span>
-                        : <span className="db2-chip db2-chip--registered">Registered</span>
-                      }
-                    </span>
-                  </Link>
-                );
-              })}
+              {visibleRegistrations.map((r) => <UpcomingRow key={r.id} r={r} />)}
             </div>
           )}
         </div>
@@ -540,6 +514,58 @@ export default async function DashboardPage({ searchParams }: {
 
       </div>
     </AccountLayout>
+  );
+}
+
+/** The state a member reads at the left edge of a Today row (Jesse, 2026-10-09:
+    "Open now" and "Opens at 5:50" as written). */
+function stateLabel(item: TodayDisplayItem): string {
+  if (item.stage === "open") return "Open now";
+  if (item.stage === "in-person") return "Happening now";
+  if (item.stage === "setup") return "Host entry open";
+  return "Later today";
+}
+
+type UpcomingRowData = {
+  id: string;
+  programSlug: string;
+  programTitle: string;
+  nextDateStr: string;
+  nextTimeCT: string | null;
+  donationStatus: string | null;
+  program: { programFormat: string | null } | null;
+};
+
+/** One upcoming registration as a row: date and time, title and place, the
+    chip. Shared by My Home's "Coming up" and the full upcoming view. The
+    date is the projected next occurrence, not the program's anchor. */
+function UpcomingRow({ r }: { r: UpcomingRowData }) {
+  const d = new Date(r.nextDateStr + "T12:00:00");
+  const dateLabel = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
+  const fmt = r.program?.programFormat;
+  const place = fmt === "virtual" ? "Online on Zoom" : fmt === "hybrid" ? "In person and on Zoom" : fmt === "in-person" ? "In person" : null;
+  const hasPendingDana = r.donationStatus === "PENDING";
+  return (
+    <Link href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
+      <span className="db2-upcoming__when">
+        <span className="db2-upcoming__date">{dateLabel}</span>
+        {r.nextTimeCT && <span className="db2-upcoming__time">{r.nextTimeCT}</span>}
+      </span>
+      <span className="db2-upcoming__title">
+        <span>{r.programTitle}</span>
+        {place && <span className="db2-upcoming__meta">{place}</span>}
+      </span>
+      <span className="db2-upcoming__status">
+        {hasPendingDana
+          ? <span className="db2-chip-stack">
+              {/* Visible words, not a title tooltip — touch devices and
+                  screen readers never saw it. */}
+              <span className="db2-chip db2-chip--dana">Dana invitation</span>
+              <span className="db2-chip-note">A voluntary gift, never required</span>
+            </span>
+          : <span className="db2-chip db2-chip--registered">Registered</span>}
+      </span>
+    </Link>
   );
 }
 

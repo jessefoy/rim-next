@@ -189,7 +189,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   now='2026-09-21T15:35:00Z';
   html=await dashboardHtml();
   check(html.includes('Join on Zoom'),false,'members cannot join during host-only setup');
-  check(html.includes('Zoom opens at'),true,'later session explains availability');
+  check(html.includes('Opens at'),true,'later session explains availability');
   assignments=[{programSlug:'morning',sessionDate:new Date('2026-09-21T16:00:00Z')}];
   html=await dashboardHtml();check(html.includes('Enter Zoom as host'),true,'host early-entry preserved');
   assignments=[];now='2026-09-21T15:55:00Z';
