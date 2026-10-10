@@ -1,3 +1,33 @@
+## 2026-10-09 — the public refresh, the member area joins the public system (three phases, measured signed in), My Home rebuilt, the two program notes, Taking CARE Foundations set up
+
+On `main`, every step its own commit (`462c4bd` … `eba5103`), each measured on the deploy before the next.
+
+### Built and live
+
+- **The public refresh** (Jesse's reviewed design, the ChatGPT handoff): twenty public routes re-skinned in six phases; surfaces bordered, not lifted (`CLAUDE.md`); four colour tokens and two text tokens; quiet heroes; home with the programs third; New to RIM restructured; the reading layout with `components/ReadingToc.tsx`. Then his rulings from reading the result: **standalone links are buttons, sentence links are heavier with a thin underline** (`.pp-link`, `.nt-text-link`, `.pg-page-end__link`, `.pg-detail-row__link` retired; `RIM_Public_Pages.md` → "Links, two kinds"), and **the last plain pages on the spine** (volunteer, teachers, the volunteer thanks page, the three sign-in pages, the program thank-you page).
+- **The member area joins the public system**, three phases, scoped blocks before the readability contract: phase 1 the personal pages, phase 2 the team side, phase 3 the tools and admin (the Program Manager list gained a page header). The rail and shells stay structural; the vocabulary is the public one. **Measured signed in through Jesse's Chrome** (Claude in Chrome): twenty signed-in routes at 1500 and in a 390px same-origin iframe, no overflow, every button at 44px or more; eight small things caught and fixed. Record: `RIM_Member_Area.md` → Design decisions.
+- **My Home rebuilt** around the day: Today as one surface, the time column carrying the state (Open now, Happening now, Host entry open, Later today; "Opens at" in his words), the title at the card tier, the Notice as a line with a blue edge, the Session note as a quiet italic line (the old site's register, which he pointed at); Coming up as the next three registrations with the two doors beneath; the Handful card retired (it will be a course, backlog `2026-10-09-001`).
+- **The two program notes, named for their purpose:** Notice (`specialAnnouncement`, with **Show until**, a new nullable `announcementUntil` column added by `migrate.mjs`, `activeAnnouncement` and `parseAnnouncementUntil` in `lib/scheduleUtils.ts`, every renderer through the helper, harness checks both sides of the day) and Session note (`earlyArrivalMessage`, My Home only). Both on the Schedule tab; the "Home Card" tab retired; the program page carries the Notice. `RIM_ProgramEditor.md` → "The two notices".
+- **The Program Editor refreshes the router after a save** (Jesse saw a saved category "revert"; it was the client router cache).
+- **Taking CARE Foundations** created in production through Jesse's session (`/programs/taking-care-foundations`): Foundations · Workshop, the portable description (workshop-alone version), the RIM setting paragraph in Program Notes, Jesse as teacher, the William James line as a placeholder quote, hidden from the Programs page until dated. **`/foundations` now resolves to the current Foundations program** (derived: filed under Foundations, not archived, soonest-dated first; the evergreen page is the fallback). Sacred Clarity returned to Immersion.
+
+### Design decisions and why
+
+- **Bordered, not lifted** was Jesse's ruling on the reference ("Borders, as reviewed"); it supersedes the session-148 card lift for public surfaces, and the member area followed.
+- **"Card is the link" is the one exception to "standalone links are buttons":** a label inside a linked card stays text and arrow, because a pill inside a pill is two controls for one action. Contact details stay sentence-styled.
+- **The member area keeps its rails and shells** (members need a stable personal rail) and takes the public vocabulary; sizes stay with the readability contract, the phase blocks set colour, surface, border and weight.
+- **A clear-by day on the Notice** rather than per-occurrence modelling: one nullable column, data first, null keeps the old behaviour.
+- **The Session note is not on the public program page:** it is for the day someone comes, not a reason to come.
+- **`/foundations` derives the program from the category** rather than adding a "primary Foundations" flag (derive from existing data before adding a field).
+
+### What this work connects to
+
+Public catalog and This Week (`ProgramCardNotices`), the program page (`.pg-notice`), My Home (`SessionNotes`, `UpcomingRow`), the Program Editor's Schedule tab and both API routes (`announcementUntil`), the migration, the member harness (76 checks), the Foundations links on Home, New to RIM, the catalog's standing card and the nav (all via `/foundations`), the vault (home working draft, copy doc Revision 13, Appendix A, the read-aloud file), and `CLAUDE.md`'s CSS rule.
+
+### What comes next
+
+Jesse's read of the published pages against `04-refresh-read-aloud-2026-10-09.md`; the Thich Nhat Hanh quote, dates, contribution and visibility on Taking CARE Foundations; his own pass through the tools as he uses them.
+
 ## 2026-10-02 (later) — program categories and formats, Open entry as the access setting, history and roots, the Handful as a members' reference; three production writes
 
 On `main`, all live and verified with cache-busting fetches: Part 0 and Part 1 of the program-categories brief (`697926b`, earlier in the day), the categories merge `a481eb4` (branch `program-categories-2026-10-02`, four commits), and the history-and-roots merge `3b2ed9e` (branch `history-roots-2026-10-02`). Both branches are merged and deleted. Words came from Jesse's vault briefs (`08-promotion-site-brief-program-categories-2026-10-02.md`, `08-promotion-site-brief-history-roots-2026-10-02.md`) and the drafts file `08-promotion-site-drafts-integration-2026-10-01.md` (§1a, §8, §9).

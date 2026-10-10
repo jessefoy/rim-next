@@ -88,6 +88,10 @@ Jesse asked what the two fields were for and whether they could be optimized, th
 
 Both live on the Schedule tab: Session note with the place, Notice and Show until with the dates. The "Home Card" tab is gone, and Program Notes' help no longer invites "what to bring", so each field has one job (Program Notes for context and accessibility; Session note for the line on the day; Confirmation Message for the registrant's email).
 
+### Foundations is derived, not flagged (2026-10-09)
+
+`/foundations` redirects to the current Foundations program (`RIM_System_Architecture.md`, "/foundations resolves to the program"). The editor has no "primary Foundations" setting: a program filed under Foundations and not archived is the one the address lands on, soonest-dated first. Pitfall: filing a test program under Foundations moves the public address (Sacred Clarity did, during the 2026-10-09 category test, until it went back to Immersion).
+
 ### Preparation-note placement (September 2026)
 
 The existing `earlyArrivalMessage` field now renders as Good to know beside the relevant Today offering in the member dashboard. Public catalog and weekly cards omit it. `specialAnnouncement` remains a visible Update both publicly and on the member session. No editor field, registration, Zoom, or scheduler behavior changed.

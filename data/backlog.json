@@ -1657,5 +1657,45 @@
     "status": "open",
     "addedAt": "2026-10-09",
     "notes": "Whether it is granted to everyone at sign-up or self-enrolled is Jesse's call; 'freely offered' is the price word on the public side. Related: 2026-09-25-003 (First Steps, a short online introduction for everyone who joins) may share the same self-enrol mechanism."
+  },
+  {
+    "id": "2026-10-09-002",
+    "title": "Program page: structured fields for How it unfolds, Questions and Setting",
+    "description": "Jesse's Foundations draft (vault, 2026-10-09) proposes optional structured fields on the Program Manager, shown only when filled: 'How it unfolds' (a short list of sessions rendered as a numbered sequence), 'Questions' (question-and-answer pairs rendered as an accordion below the body; for Foundations: Do I need experience? What if I miss a meeting? Is this therapy? What does it cost?), and 'Setting' (the setting paragraph, rendered after the body, so the portable description is entered once and each offering carries its own setting). Today the setting paragraph lives in Program Notes. Also the template's flat body: a lead paragraph treatment, section heads with real spacing, quieter list markers.",
+    "category": "Programs",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-09",
+    "notes": "The description is already HTML with h3 sections (the sanitizer allows h2–h4). Step 1 (typography) is CSS only; step 2 (fields) is schema + editor + page, additive columns."
+  },
+  {
+    "id": "2026-10-09-003",
+    "title": "Program page: three defects seen on Sacred Clarity",
+    "description": "From Jesse's draft (2026-10-09, 'Seen on the program pages'): (1) three paragraphs appear twice on Sacred Clarity (the C.A.R.E. framework line, 'This is not a course…', 'For your own wellbeing…'): check whether the body data is duplicated or the renderer is; (2) the dana line shows the literal placeholder 'PROGRAM PAGE DANA NOTE' when a program has no suggested amount: needs a fallback ('Offered through dana') or to hide; (3) 'Get directions' appears for a Zoom-only program: show it only when the program meets in person.",
+    "category": "Programs",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-10-09",
+    "notes": "Measure each on the live page before fixing; (2) and (3) are one-condition fixes in app/programs/[slug]/page.tsx."
+  },
+  {
+    "id": "2026-10-09-004",
+    "title": "Jesse's rootedinmindfulness.org account carries no roles and no teacher profile",
+    "description": "Found 2026-10-09 while attaching the teacher to Taking CARE Foundations: jesse@rootedinmindfulness.org exists as a member with roles [] and no teacher profile; the admin, registrar, support, guiding-teacher roles and the public teacher profile are on jessefoy@icloud.com. Decide whether the org address should be the admin identity (and merge or re-point), or stay a plain member.",
+    "category": "Member Accounts",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-09",
+    "notes": "No action taken; a decision for Jesse. Any merge is a production write with a snapshot."
+  },
+  {
+    "id": "2026-10-09-005",
+    "title": "CSS: prune the member-area rules the three phase blocks superseded",
+    "description": "The phase-1/2/3 blocks (before the AUTHENTICATED READABILITY banner) override many earlier member rules in place rather than editing them (the September wayfinding layers at ~22734, ~23080, ~24113–24640, ~25037–25215, the db2/today/mp/wl blocks). custom.css carries the history twice now. Once Jesse has lived with the member area for a week, fold the overrides into the originals and delete the dead ones with scripts/css-prune.mjs; dead selectors the 2026-10-09 reviews named: .db2-hub-card*, .today-row*, .hub-home-card*, .hub-home__inline-editor*, .hub-conversations__*.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-09",
+    "notes": "Measure the twenty signed-in routes again after the prune (the Chrome extension + 390px iframe method)."
   }
 ]
