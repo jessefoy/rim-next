@@ -16,4 +16,6 @@ When a claim depends on **current state** — a user's roles, a feature flag, a 
 - If you *can't* verify (e.g., the DB was unreachable from the sandbox in sessions 135 and 145; as of 2026-10-01 production is reachable from this machine, so probe before assuming either way, see [[project-prod-db-ops]]), say so plainly and frame the claim as an assumption, never as fact.
 - High-privilege or load-bearing state should be **visible where it's managed**, not hidden in a DB console — invisible state is unverifiable and unauditable. Surfacing it is part of the fix, not a nicety.
 
+- **A partial read of the code is not the state either (2026-10-12).** Before correcting a doc from code, read the whole component, not the first list that matches. I "corrected" three docs to say Community Care was not in the account rail after reading only `MEMBER_LINKS` in `AccountSidebar.tsx`; it is rendered separately below a divider. A reviewer agent agreed with the wrong correction, and I had to reverse it. Jesse confirmed this lesson for memory.
+
 Related: [[feedback-measure-before-agreeing]] (measure before validating a framing), [[feedback-inventory-first]] (systematic check before acting).
