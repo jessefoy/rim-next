@@ -1,6 +1,10 @@
 import { auth } from "@/auth";
 import Link from "next/link";
 import {
+  CARE_REPAIR_ACTION,
+  CARE_REPAIR_BODY,
+  CARE_REPAIR_HREF,
+  CARE_REPAIR_TITLE,
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
   COMMUNITY_SHARED_VISION_TITLE,
@@ -37,7 +41,7 @@ export default async function CommunityCareAgreementsPage() {
           title: "These are the intentions we share.",
           body: "They are not a promise of perfection. They are a way to return to ourselves, to one another, and to the community we keep together.",
           href: "/account/dashboard",
-          action: "Return to My RIM",
+          action: "Back to My Home",
         };
 
   return (
@@ -46,8 +50,8 @@ export default async function CommunityCareAgreementsPage() {
         <div className="rim-container pp-hero__inner">
           <h1 className="pp-hero__title">Community Care Agreements</h1>
           <p className="pp-hero__body">
-            RIM is not held by one person or a building. It is held by how we care for
-            ourselves, one another, this community, and the life our practice touches.
+            A shared vision, and three agreements about how we care for ourselves, one
+            another, and RIM. Everyone who practices here holds them.
           </p>
         </div>
       </section>
@@ -58,10 +62,6 @@ export default async function CommunityCareAgreementsPage() {
             <h2 className="pp-intro__title">A community we make together.</h2>
             <p className="pp-intro__body">
               <strong>{COMMUNITY_SHARED_VISION_TITLE}.</strong> {COMMUNITY_AGREEMENTS_LEAD_IN}
-            </p>
-            <p className="pp-intro__body">
-              And the care runs both ways. Held together, these intentions become the
-              refuge itself: a shelter we build and rest in at the same time.
             </p>
           </div>
 
@@ -78,6 +78,16 @@ export default async function CommunityCareAgreementsPage() {
               </li>
             ))}
           </ol>
+
+          <section className="cc-repair" aria-labelledby="cc-repair-title">
+            <h2 id="cc-repair-title" className="cc-repair__title">{CARE_REPAIR_TITLE}</h2>
+            <p className="cc-repair__body">{CARE_REPAIR_BODY}</p>
+            <div className="pp-actions">
+              <Link href={CARE_REPAIR_HREF} className="pp-btn pp-btn--ghost">
+                {CARE_REPAIR_ACTION} <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+          </section>
         </div>
       </section>
 

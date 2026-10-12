@@ -4,6 +4,7 @@
  *
  * Used by:
  *   - /community-care-agreements (public reading page)
+ *   - /community-care-agreements/concern (the "If harm happens" form)
  *   - /account/community-care (member reading page)
  *   - /join (new-member threshold)
  *   - /account/welcome (post-sign-in welcome ritual fallback)
@@ -112,15 +113,22 @@ export const COMMUNITY_AGREEMENTS_LEAD_IN =
 export const JOIN_FORM_LEAD =
   "If you can hold these intentions with us, we would be honored to have you.";
 
-/** Checkbox label next to the agreement-acceptance checkbox. */
+/**
+ * Checkbox label next to the agreement-acceptance checkbox (/join, the
+ * welcome, program registration). Names what is agreed to (Jesse,
+ * 2026-10-12); the agreements sit directly above it on every form.
+ */
 export const COMMUNITY_AGREEMENTS_CHECKBOX_LABEL =
-  "I'm entering this community in a spirit of care and respect.";
+  "I will hold these Community Care Agreements, in a spirit of care and respect.";
 
 /**
  * The three agreements, held inside the shared-vision frame above. Rendered
  * as an ordered list on every surface; each item carries a bold title and
  * its agreement text.
  */
+// Care for Others gained "We are diverse together: we welcome one another
+// across our differences" (Jesse, 2026-10-12), so the welcome the Diverse
+// Together page says these agreements hold is in their words.
 export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
   {
     title: "Care for Yourself",
@@ -130,7 +138,7 @@ export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
   {
     title: "Care for Others",
     summary:
-      "We care for one another through our presence, speech, and actions. Guided by goodwill, we listen deeply, speak truthfully and kindly, and seek not to cause harm. We respect each person’s way of taking part, their experience, and their privacy: what is shared in practice stays where it was shared. We help keep RIM a safe place for everyone, and when harm happens, we work to repair it.",
+      "We care for one another through our presence, speech, and actions. Guided by goodwill, we listen deeply, speak truthfully and kindly, and seek not to cause harm. We are diverse together: we welcome one another across our differences, and we respect each person’s way of taking part, their experience, and their privacy: what is shared in practice stays where it was shared. We help keep RIM a safe place for everyone, and when harm happens, we work to repair it.",
   },
   {
     title: "Care for RIM",
@@ -138,3 +146,18 @@ export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
       "RIM is held through dana, the practice of mutual generosity. Financial support meets the center’s practical needs and keeps the teachings open to everyone. RIM could not exist without it, and we ask each member to support RIM financially as they are able. Time, care, service, and sincere presence also nourish the life of the sangha, and together we co-create RIM. We trust each person to discern what is possible; no one is expected to offer in every way, and belonging is never measured by what or how much one gives.",
   },
 ];
+
+/**
+ * "If harm happens": the door the agreements' repair sentence needs (Jesse,
+ * 2026-10-12: a private form that reaches the guiding teacher without
+ * showing an address). Rendered beneath the agreements on the public and
+ * member pages; the form itself is /community-care-agreements/concern.
+ */
+export const CARE_REPAIR_TITLE = "If harm happens";
+export const CARE_REPAIR_BODY =
+  "If something here has caused harm, or you are worried about someone, " +
+  "please tell us. You can speak with a teacher after any gathering, or " +
+  "write to our guiding teacher privately. We will listen, keep what you " +
+  "share private, and work toward repair.";
+export const CARE_REPAIR_ACTION = "Write privately";
+export const CARE_REPAIR_HREF = "/community-care-agreements/concern";

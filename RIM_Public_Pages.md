@@ -618,6 +618,17 @@ Jesse, reading New to RIM after the refresh: *"we need to be consistent with but
 - **Inside a card that is itself the link, the label stays text and an arrow.** The catalog cards ("View program"), home's category cards ("View Foundations programs"), the doors, the teachers ("Read biography"), the groups ("View group"): the card is the button, and a pill inside a pill would be two controls for one action. Teacher names in a program's facilitator row and the "On this page" lists are navigation, not actions, and stay as they are.
 
 
+## The Community Care Agreements, placed (2026-10-12)
+
+Jesse: *"This is a really meaningful part of our community, and it should be well placed and fully articulated."* Review and rulings: the vault's `CARE/4 Promotion/04-care-agreements-placement-review-2026-10-12.md`. Jesse also ruled that **the live site is the current version of public copy** where it and the vault differ.
+
+- **Consent names what is agreed.** The checkbox on `/join`, the welcome and registration reads "I will hold these Community Care Agreements, in a spirit of care and respect." (`COMMUNITY_AGREEMENTS_CHECKBOX_LABEL`).
+- **Care for Others carries difference:** "We are diverse together: we welcome one another across our differences, and we respect each person's way of taking part…" The Diverse Together page says the agreements hold the welcome; now their words do. Every member who agrees from now on agrees to this wording.
+- **The public page's framing matches the agreements it frames.** The hero is "A shared vision, and three agreements about how we care for ourselves, one another, and RIM. Everyone who practices here holds them." The September 2 lines ("not held by one person or a building", "the care runs both ways") are gone. Signed in, the closing button reads "Back to My Home."
+- **Repair has a door.** "If harm happens" sits beneath the agreements on the public and member pages (copy constants `CARE_REPAIR_*`) and links to `/community-care-agreements/concern`: a private form whose message is emailed to the guiding teacher (`sendCareConcernEmail`), never stored, never showing his address. A signed-in member writes only the message. Rate-limited (5 an hour by IP and by email), a hidden field for automated sends, `noindex`, not in the sitemap, a line to call 911 if anyone is in danger. Diverse Together's "tell us when we fall short" links to it.
+- **The member page follows the public page,** with the date the member agreed.
+- **The agreement cards are bordered, not lifted.** `.cc-agreement` had kept the old `--card-shadow` through the October 9 refresh; it now has the 1px rule border and 12px radius, and its text is `--text-card` (17px), up from 15px.
+
 ## Known follow-ons (see `data/backlog.json`)
 
 - **`2026-06-13-001`** — member/hub/admin internal UI still holds hardcoded old teal the token flip didn't reach; sweep.

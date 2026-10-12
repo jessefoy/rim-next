@@ -75,6 +75,12 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Page titles** on public pages use the home page's hyphen; the approved `RIM_MISSION` and the final `RIM_WHAT_BINDS` are live.
 - **All of this copy is provisional until Jesse's read-aloud.**
 
+## October 12, 2026: before go-live, the member area's edges and the care agreements
+
+- **Library, in preparation:** `/account/courses` is a hopeful static page saying what the Library will hold and how members will hear when it opens.
+- **My Teams, for team members:** the rail entry shows only for people on a team (and the guiding teacher); archived teams are hidden from members; **Coordinator** is marked; the guiding teacher's list splits into Your teams and Teams you oversee; a volunteer door for anyone without a team.
+- **The Community Care Agreements, placed:** consent names the agreements; Care for Others carries "We are diverse together"; the public page's framing matches the agreements; a new private **"If harm happens"** form (`/community-care-agreements/concern`) reaches the guiding teacher by email; the member page follows the public page with the date the member agreed. See `RIM_Public_Pages.md`.
+
 ## October 9, 2026: the member area joins the public system
 
 - **Every signed-in surface on the public vocabulary**, in three measured phases on `main`: the personal pages (My Home, Upcoming, My Profile, My Teams, Community Care, welcome and reactivation), the team side (Team Home, Conversations, Members, Updates, trash, Files and a file's page) and the tools and administration (Program Manager and its editor, Course Manager, Scheduler, the registry, households, hubs, emails). The quiet-hero tier for page headers, label eyebrows, bordered 12px surfaces with no shadow, the one button family, sentence links. **My Home rebuilt** around the day: Today as one surface whose time column carries the state (Open now, Opens at, Later today), the title at the card tier, a program Notice with a blue edge and the Session note as a quiet italic line; Coming up as the next three registrations; the Handful card retired (it will be a course). **The two program notes renamed for their purpose**: Notice (a change, with Show until, a clear-by day on a new nullable `announcementUntil` column) and Session note. Record: `RIM_Member_Area.md` → Design decisions; `RIM_ProgramEditor.md` → "The two notices".

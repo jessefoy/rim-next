@@ -1461,6 +1461,70 @@ export async function sendKalyanaApplicationEmail(data: KalyanaApplicationEmailD
   });
 }
 
+// ─── Community care: "If harm happens" ────────────────────────────────────────
+
+export interface CareConcernEmailData {
+  name: string;
+  email: string;
+  message: string;
+  /** True when the sender was signed in (name and email come from their record). */
+  isMember: boolean;
+}
+
+function escapeEmailHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Sends a message from /community-care-agreements/concern to the guiding
+ * teacher, with Reply-To set to the sender so the reply goes straight back.
+ * Hardcoded, not in the template manager, on purpose: it carries someone's
+ * private account of harm, and a disabled or edited template would silently
+ * drop it. It is also awaited (not fire-and-forget) and returns whether
+ * Resend accepted it, so the page can tell the sender truthfully.
+ * Recipient: CARE_CONCERN_EMAIL, else jesse@rootedinmindfulness.org (never
+ * shown on the page; Jesse, 2026-10-12).
+ */
+export async function sendCareConcernEmail(data: CareConcernEmailData): Promise<boolean> {
+  const to =
+    process.env.CARE_CONCERN_EMAIL?.trim() || "jesse@rootedinmindfulness.org";
+  const who = `${data.name} <${data.email}>`;
+  const status = data.isMember ? "a signed-in member" : "a visitor (not signed in)";
+  const text =
+    `A message from the "If harm happens" form.\n\n` +
+    `From: ${who}, ${status}\n` +
+    `Reply to this email to answer them directly.\n\n` +
+    `${data.message}\n`;
+  const html = wrapInEmailChrome(
+    `<p>A message from the &ldquo;If harm happens&rdquo; form.</p>` +
+      `<p><strong>From:</strong> ${escapeEmailHtml(who)}, ${status}<br>` +
+      `Reply to this email to answer them directly.</p>` +
+      `<p style="white-space:pre-wrap">${escapeEmailHtml(data.message)}</p>`
+  );
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM,
+      to,
+      replyTo: data.email,
+      subject: `Community care: a message from ${data.name}`,
+      text,
+      html,
+    });
+    if (error) {
+      console.error("[care-concern] Resend refused the message:", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[care-concern] send failed:", err);
+    return false;
+  }
+}
+
 // ─── Sign-in code email (authentication) ──────────────────────────────────────
 
 /**

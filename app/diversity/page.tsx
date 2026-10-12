@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CARE_REPAIR_HREF } from "@/lib/communityAgreements";
 
 export const metadata = {
   title: "Diverse Together - Rooted In Mindfulness",
@@ -115,7 +116,8 @@ export default function DiversityPage() {
                 <p>
                   We name these because naming matters, and because some of us have been made to
                   feel like visitors in rooms like this one. If that has been your experience, you
-                  are welcome here, and we hope you will tell us when we fall short. We will work
+                  are welcome here, and we hope you will{" "}
+                  <Link href={CARE_REPAIR_HREF}>tell us when we fall short</Link>. We will work
                   to put it right.
                 </p>
               </section>
