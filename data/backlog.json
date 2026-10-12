@@ -1400,10 +1400,10 @@
     "title": "Flodesk: newsletter opt-in on registration and /join, plus per-program segments",
     "description": "Registration and /join don't touch Flodesk today. Proposed (awaiting Jesse): an UNCHECKED 'Send me the RIM newsletter' box on the registration form and /join; only those who tick it are added to Flodesk, to the newsletter segment and to a segment for the program (created through Flodesk's POST /v1/segments when a coordinator turns it on in Program Manager, id stored on the program). People who don't opt in stay out of Flodesk entirely, because anyone in Flodesk can receive whole-list sends. Program logistics stay in RIM's own emails.",
     "category": "Email & Notifications",
-    "priority": "medium",
+    "priority": "high",
     "status": "open",
     "addedAt": "2026-09-24",
-    "notes": "Jesse wants to stay with Flodesk and asked for tags at program creation; Flodesk has no tags, segments are the tags. Open question to Jesse: does he send to specific segments or to all subscribers? Footer form verified live 2026-09-24."
+    "notes": "Jesse wants to stay with Flodesk and asked for tags at program creation; Flodesk has no tags, segments are the tags. Open question to Jesse: does he send to specific segments or to all subscribers? Footer form verified live 2026-09-24. | 2026-10-12, Jesse, the channel split (\"That's important\"): \"We do most of our bulk email through Flodesk and our transactional emails through our app. And we'll probably manage automated emails through Flodesk, part of onboarding, etc.\" Its own conversation, with the newsletter signup. Decide there: (1) consent: opt-in box vs every member added; (2) who owns the first welcome letter (the app's join-welcome / welcome-back, or a Flodesk sequence), so no one gets two; (3) member-service announcements that every member must receive (the Library opening, an agreements update) cannot depend on newsletter consent, so they stay in the app or go to a members segment everyone is in; (4) an email change in RIM must update the Flodesk subscriber (2026-10-12-003); check Flodesk's API for changing a subscriber's address before designing it."
   },
   {
     "id": "2026-09-24-003",
@@ -1717,5 +1717,15 @@
     "status": "open",
     "addedAt": "2026-10-12",
     "notes": "If the glossary is built, the Webflow /glossary/* redirects could point at it instead of a general page. The copy lives in app/account/(authenticated)/courses/page.tsx."
+  },
+  {
+    "id": "2026-10-12-003",
+    "title": "Self-service sign-in email change, with verification, notice and history",
+    "description": "My Profile shows the sign-in email read-only and asks members to write to support. Only an admin can change it (PATCH /api/admin/members/[id]), and that change is silent: the old address is not told and nothing records what it was. Proposed (2026-10-12): (1) a member changes their own email by confirming a 6-digit code sent to the new address; (2) the old address is told (\"Your sign-in email was changed. If this wasn't you, reply to this email.\"); (3) a small history of changes (old, new, when, member or which admin), visible to ADMIN and REGISTRAR in the Member Registry, so support can find someone writing from an old address and the sign-in page can say \"That address belonged to an account; sign in with your current email or contact us\" without revealing the new one; an old address never signs in; (4) the admin path records and notifies the same way; (5) upcoming registrations take the new address, past ones keep theirs.",
+    "category": "Member Accounts",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-10-12",
+    "notes": "Jesse, 2026-10-12: \"Do you think they should be able to update their email? Just with a double-check, I am sure. For administration and their security, should we store their past emails?\" Recommended before launch. New schema (an email-history table) means the additive-column/data-first rules apply. Email Template Gate for the two new emails (code to the new address can reuse the sign-in code mechanism; the notice to the old address is a new template). Connects to the Flodesk integration (2026-09-24-002)."
   }
 ]

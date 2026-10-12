@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import AccountLayout from "@/components/AccountLayout";
 import AboutMeSection from "@/components/account/AboutMeSection";
+import { RIM_SUPPORT_EMAIL } from "@/lib/locations";
 
 export const metadata = { title: "My Profile - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -137,7 +138,7 @@ export default async function MyProfilePage({
             <div className="mp-input mp-input--readonly">{user?.email}</div>
             <p className="mp-note">
               Your email is where we send your sign-in code. To change it, contact us at{" "}
-              <a href="mailto:hello@rootedinmindfulness.org">hello@rootedinmindfulness.org</a>.
+              <a href={`mailto:${RIM_SUPPORT_EMAIL}`}>{RIM_SUPPORT_EMAIL}</a>.
             </p>
           </div>
         </section>
