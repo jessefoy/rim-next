@@ -1697,5 +1697,25 @@
     "status": "open",
     "addedAt": "2026-10-09",
     "notes": "Measure the twenty signed-in routes again after the prune (the Chrome extension + 390px iframe method)."
+  },
+  {
+    "id": "2026-10-12-001",
+    "title": "A member-area announcement surface, before the Library opens",
+    "description": "The Library page (/account/courses, in preparation since 2026-10-12) promises members \"When it opens, we will let you know here in your member area and by email.\" No member-area announcement surface exists: the site-wide banner was removed in session 100, and the program Notice (announcementUntil) is per program. Before the Library opens, decide where a community-wide announcement lives in the member area (most likely a dated notice on My Home that clears itself, like the program Notice) and how the email goes out (Resend through a seeded template, or a Flodesk send to the member list). The promise on the Library page must be kept the day it opens.",
+    "category": "Dashboard",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-12",
+    "notes": "Keep it to one quiet surface on My Home; no badges or bell (the Alerts module and the site banner are both tombstones). If email goes through Resend, the Email Template Gate applies (seed in prisma/migrate.mjs in the same commit)."
+  },
+  {
+    "id": "2026-10-12-002",
+    "title": "Decide whether the Library will have a glossary",
+    "description": "The Library page now names \"a glossary of the words we use in practice\" among what it will hold (Jesse's list, 2026-10-12). The old Webflow glossary (109 pages) is set to redirect, not migrate (backlog 2026-08-07-003), and the older Sanity-glossary migration item is open. Decide: build a glossary for the Library (new, in RIM's own words, or migrated from the Webflow archive at ~/Sites/rim-site-archive/), or remove the phrase from the Library page so it promises only what is planned.",
+    "category": "Courses & Library",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-12",
+    "notes": "If the glossary is built, the Webflow /glossary/* redirects could point at it instead of a general page. The copy lives in app/account/(authenticated)/courses/page.tsx."
   }
 ]
