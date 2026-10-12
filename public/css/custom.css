@@ -23113,6 +23113,8 @@ input.w-button { -webkit-appearance: button; }
   font-weight: 600;
 }
 .ac-sidebar__icon { color: currentColor; }
+/* Community Care's heart: filled, in the site's warm red (Jesse, 2026-10-12). */
+.ac-sidebar .ac-sidebar__icon--care { color: var(--rim-donate); }
 .ac-sidebar__divider { margin: 14px 8px 10px; }
 .ac-sidebar__chevron { margin-left: auto; }
 .ac-sidebar__link--nested {

@@ -187,7 +187,7 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
 
         <div className="ac-sidebar__divider" role="separator" />
         <Link href="/account/community-care" className={linkClass("/account/community-care")} title={collapsed ? "Community Care" : undefined}>
-          <Heart size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+          <Heart size={17} strokeWidth={1.75} fill="currentColor" className="ac-sidebar__icon ac-sidebar__icon--care" />
           <span className="ac-sidebar__label">Community Care</span>
         </Link>
         {isAdminRoute && visibleStaffLinks.length > 0 && (
