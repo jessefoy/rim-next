@@ -25,7 +25,8 @@ export default function LibraryPage() {
             The Library is being prepared.
           </h2>
           <p>
-            It will be a place to keep learning between gatherings, with courses you
+            It will be a place to keep learning between gatherings. You will find home
+            practice and learning to support the courses you register for, courses you
             can take at your own pace, dharma teachings to return to, A Handful of
             Leaves, and a glossary of the words we use in practice.
           </p>
