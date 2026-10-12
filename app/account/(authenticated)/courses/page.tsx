@@ -1,94 +1,49 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
+import Link from "next/link";
 import AccountLayout from "@/components/AccountLayout";
-import MyCourseLibrary from "@/components/MyCourseLibrary";
 
 export const metadata = { title: "Library - Rooted In Mindfulness" };
-export const dynamic = "force-dynamic";
 
-export default async function MyCoursesPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-
-  // All enrollments power the in-progress / not-started / completed sections.
-  // Onboarding enrollments are also surfaced separately as the welcome card at
-  // the top of the Library (moved here from the dashboard).
-  const [enrollments, onboardingEnrollmentsRaw] = await Promise.all([
-    db.seriesEnrollment.findMany({
-      where: { userId, course: { isActive: true } },
-      include: {
-        course: {
-          include: {
-            lessons: {
-              include: { lesson: { select: { slug: true } } },
-              orderBy: { sortOrder: "asc" },
-            },
-          },
-        },
-      },
-      orderBy: { enrolledAt: "desc" },
-    }),
-    db.seriesEnrollment.findMany({
-      where: {
-        userId,
-        enrollmentSource: "ONBOARDING",
-        completedAt: null,
-        course: { isActive: true },
-      },
-      select: {
-        courseId: true,
-        course: { select: { slug: true, title: true } },
-      },
-    }),
-  ]);
-
-  // Fetch progress for all lessons across all enrollments
-  const allLessonIds = enrollments.flatMap((e) => e.course.lessons.map((cl) => cl.lessonId));
-  const progressRecords =
-    allLessonIds.length > 0
-      ? await db.lessonProgress.findMany({
-          where: { userId, lessonId: { in: allLessonIds } },
-          select: { lessonId: true },
-        })
-      : [];
-  const completedSet = new Set(progressRecords.map((p) => p.lessonId));
-
-  // Serialize — never spread Prisma includes; always build explicitly
-  const serialized = enrollments.map((e) => {
-    const lessonIds = e.course.lessons.map((cl) => cl.lessonId);
-    const completedCount = lessonIds.filter((id) => completedSet.has(id)).length;
-    const firstLesson = e.course.lessons[0]?.lesson ?? null;
-    const firstIncomplete = e.course.lessons.find((cl) => !completedSet.has(cl.lessonId));
-
-    return {
-      courseId: e.courseId,
-      courseSlug: e.course.slug,
-      courseTitle: e.course.title,
-      courseSubheading: e.course.subheading ?? null,
-      enrolledAt: e.enrolledAt.toISOString(),
-      completedAt: e.completedAt?.toISOString() ?? null,
-      enrollmentSource: e.enrollmentSource as string,
-      totalLessons: lessonIds.length,
-      completedLessons: completedCount,
-      firstLessonSlug: firstLesson?.slug ?? null,
-      nextLessonSlug: firstIncomplete?.lesson?.slug ?? null,
-    };
-  });
-
-  const onboardingCourses = onboardingEnrollmentsRaw.map((e) => ({
-    courseId: e.courseId,
-    slug: e.course.slug,
-    title: e.course.title,
-  }));
-
+// The Library is in preparation (Jesse, 2026-10-12): no courses are offered
+// yet, so the page says what the Library will hold and how members will hear
+// when it opens. The enrollment list (components/MyCourseLibrary.tsx) is kept
+// for the day it opens; this page's earlier query that fed it is in git history.
+// The (authenticated) layout already gates the session and agreement.
+export default function LibraryPage() {
   return (
     <AccountLayout>
-      <MyCourseLibrary
-        enrollments={serialized}
-        onboardingCourses={onboardingCourses}
-      />
+      <div className="ac-member-page lib-page">
+        <header className="ac-page-head">
+          <div>
+            <h1 className="ac-page-title">Library</h1>
+            <p className="ac-page-sub">Teachings to study and return to, at your own pace.</p>
+          </div>
+        </header>
+
+        <section className="lib-soon" aria-labelledby="lib-soon-title">
+          <p className="lib-soon__eyebrow">In preparation</p>
+          <h2 id="lib-soon-title" className="lib-soon__title">
+            The Library is being prepared.
+          </h2>
+          <p>
+            It will be a place to keep learning between gatherings, with courses you
+            can take at your own pace, dharma teachings to return to, A Handful of
+            Leaves, and a glossary of the words we use in practice.
+          </p>
+          <p>
+            We are building it with care, and it will grow over time. When it opens,
+            we will let you know here in your member area and by email.
+          </p>
+          <p className="lib-soon__meanwhile">Until then, the practice continues in our gatherings.</p>
+          <div className="pp-actions">
+            <Link href="/this-week" className="pp-btn">
+              This week&rsquo;s schedule <span aria-hidden="true">→</span>
+            </Link>
+            <Link href="/account/dashboard" className="pp-btn pp-btn--ghost">
+              Back to My Home
+            </Link>
+          </div>
+        </section>
+      </div>
     </AccountLayout>
   );
 }

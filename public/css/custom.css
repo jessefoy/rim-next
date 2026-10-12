@@ -30085,6 +30085,47 @@ a.pp-card:hover .pp-card__action--named {
 .ac-layout .db2-chip { border-radius: 999px; }
 .ac-layout .rim-empty h2 { margin: 0; color: var(--rim-heading); font-family: var(--font-serif); font-weight: 400; line-height: var(--lh-heading); }
 
+/* The Library, in preparation (2026-10-12, Jesse: "a hopeful page").
+   One bordered surface: a label eyebrow, a sentence that says the state,
+   what the Library will hold, how members will hear, and one action
+   for today. No countdown, no sign-up, no placeholder list. */
+.ac-layout .lib-page { max-width: 760px; }
+.ac-layout .lib-soon {
+  box-sizing: border-box;
+  padding: var(--space-4);
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  background: var(--rim-surface);
+}
+.ac-layout .lib-soon__eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--rim-label);
+  font-family: var(--font-sans);
+  font-size: var(--text-app-meta);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.ac-layout .lib-soon__title {
+  margin: 0 0 var(--space-3);
+  color: var(--rim-heading);
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+}
+.ac-layout .lib-soon p:not(.lib-soon__eyebrow) {
+  max-width: 62ch;
+  margin: 0 0 var(--space-2);
+  color: var(--rim-text);
+  font-size: var(--text-app);
+  line-height: var(--lh-body);
+}
+.ac-layout .lib-soon .lib-soon__meanwhile { margin-top: var(--space-3); color: var(--rim-text-soft); }
+.ac-layout .lib-soon .pp-actions { margin-top: var(--space-4); }
+@media (max-width: 430px) {
+  .ac-layout .lib-soon { padding: var(--space-4) var(--space-3); }
+}
+
 /* Buttons: the one family (pp-btn's metrics on the member controls whose
    markup lives in client components). */
 .ac-layout .join-btn,

@@ -201,7 +201,7 @@ The authenticated experience uses one quiet member header and a role-aware accou
 - **Dashboard** — `/account/dashboard`. Today shows all currently usable sessions plus later offerings with truthful join/host-entry windows. Routine preparation appears in Good to know disclosures; special program Updates remain visible. Upcoming registrations and dana invitations live in the separate `?view=upcoming` view, with 20 entries per page. There is no team-message feed on My Home. Offering-kind, registration, and timed refresh behavior remain. The existing one-time host-welcome panel is retained for pre-staged hosts.
 
 - **My Profile** — `/account/dashboard-my-profile`. Name, contact, preferences; avatar + bio.
-- **My Courses** — `/account/courses`. Enrolled courses + access.
+- **Library** — `/account/courses`. **In preparation** (2026-10-12): a static page saying what the Library will hold and that members will hear when it opens. The enrollment list (`MyCourseLibrary`) returns when courses are offered. See `RIM_Member_Area.md`.
 - **Account lifecycle** — `/account/welcome` (Community Care Agreements for first-time members), `/account/reactivate` (archived-member reactivation). Both sit *outside* the `(authenticated)` gate so its redirects can't loop.
 
 ### Administration surfaces
