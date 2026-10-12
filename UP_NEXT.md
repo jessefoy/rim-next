@@ -1,17 +1,26 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-08 (mid-session). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-12 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-09 closed: the public refresh, the member area on the public system, Taking CARE Foundations exists
+## Active — 2026-10-12 closed: getting ready to go live (the member area's edges, the care agreements, the Zapier audit)
 
-Everything is on `main` and measured (public pages in the built-in browser; the member area, tools and admin through Jesse's Chrome via the Claude in Chrome extension, with a 390px same-origin iframe for the phone pass). Narrative: `session-log.md` (2026-10-09). Design records: `RIM_Public_Pages.md` ("The public refresh", "Links, two kinds", "The spine, applied to the last plain pages"), `RIM_Member_Area.md` (Design decisions, three phases), `RIM_ProgramEditor.md` ("The two notices", "Foundations is derived"), `RIM_System_Architecture.md` ("/foundations resolves to the program").
+Everything is on `main`. Narrative: `session-log.md` (2026-10-12). Public pages measured on the deploy; member pages measured by stand-in markup under the live stylesheet (Jesse's Chrome is not signed in to rim-next).
 
-**Open, waiting on Jesse (what's next to go live):**
-1. **Taking CARE Foundations** (`/programs/taking-care-foundations`, hidden from the Programs page): the Thich Nhat Hanh quote pasted from his copy (the James line is a placeholder), the dates and place on Schedule, the suggested contribution on Dana, capacity on Registration, then the Visibility tab to show it. Once dated and shown, it replaces the catalog's standing Foundations card and every Foundations link already lands on it.
-2. **The read-aloud** of the refreshed public pages against the vault's `04-refresh-read-aloud-2026-10-09.md` (every new or changed line with the reference's original beside it); corrections come back through the vault.
-3. **His own pass through the tools and admin** as he uses them; any page still carrying an old pattern is a one-rule fix in the phase block it belongs to.
+**Live today:** the Library "in preparation" page; My Teams only for team members (Coordinator marked, archived hidden, the guiding teacher's two groups, a volunteer door); the Community Care Agreements placed (consent names the agreements, "We are diverse together", the public page reframed, "If harm happens" with a private form to the guiding teacher, the member page following the public page); the red heart; My Profile pointing to support@.
 
-**Queued (backlog):** `2026-10-09-001` the Handful as a Library course; `-002` the program page's structured fields and the flat-body typography; `-003` three Sacred Clarity page defects (duplicate paragraphs, the literal dana placeholder, Get directions on a Zoom-only program); `-004` the org-address account question; `-005` the member-CSS prune. Parking and which door on New to RIM are still unwritten. The Impeccable skill update still fails to download; `.impeccable/` is committed.
+**Before launch (in order):**
+1. **The Flodesk integration**, its own conversation (backlog `2026-09-24-002`, high). Jesse's split: bulk and automated sequences in Flodesk, transactional in the app. It must take over what Zapier does today: new members into "Members", registrations into per-program segments. Four questions are in the item (consent, who sends the first welcome, notices every member must receive, email changes).
+2. **The two app form addresses** (`2026-10-12-004`): Kalyana Mitta to jesse@ + KalyanaMitta@; volunteer interest to volunteer@ (and whether a Basecamp to-do is still wanted).
+3. **Self-service email change** with verification, notice and history (`2026-10-12-003`, high).
+4. **Launch configuration:** Stripe live (`2026-09-24-001`); with the domain move, change `NEXTAUTH_URL` in Vercel in the same step (every email link, the sign-in button, calendar links and the Stripe return read it); rotate the database password; keep every Zap on until the domain moves.
+
+**Waiting on Jesse:**
+- **One signed-in walkthrough** (about 20 minutes in the Chrome Claude can drive): the Library, My Teams, Community Care, a returning legacy member's welcome, the Handful pages, the phone drawers.
+- **One test message** through `/community-care-agreements/concern` to confirm it reaches jesse@.
+- **The read-aloud** of today's new lines (the vault's `04-care-agreements-placement-review-2026-10-12.md` carries them) and the October 9 refresh (`04-refresh-read-aloud-2026-10-09.md`).
+- **Rulings still open:** one name for the agreements in the footer and the "Practice with us" panel; whether the Library names Taking CARE among what's coming (Jesse: the Handful "will be part of the library. Same with care"); a cancellation line in the registration confirmation ("If you can no longer attend, reply to this email and our registrar will take care of it"; needs his consent to edit the live template, check `/admin/emails` first); whether the glossary is planned (`2026-10-12-002`); softer wording or closing archived teams for the rare member whose only team was archived.
+- **A one-time "agreements updated" notice** on My Home for members who joined before today, once the announcement surface exists (`2026-10-12-001`).
+- From October 9: **Taking CARE Foundations** (the quote, dates and place, contribution, capacity, then Visibility).
 
 ## Still open from October 2 — categories, Open entry, and history and roots are live; the pages await Jesse's read-aloud
 

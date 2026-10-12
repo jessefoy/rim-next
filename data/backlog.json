@@ -1706,7 +1706,7 @@
     "priority": "medium",
     "status": "open",
     "addedAt": "2026-10-12",
-    "notes": "Keep it to one quiet surface on My Home; no badges or bell (the Alerts module and the site banner are both tombstones). If email goes through Resend, the Email Template Gate applies (seed in prisma/migrate.mjs in the same commit)."
+    "notes": "Keep it to one quiet surface on My Home; no badges or bell (the Alerts module and the site banner are both tombstones). If email goes through Resend, the Email Template Gate applies (seed in prisma/migrate.mjs in the same commit). | 2026-10-12: also the one-time 'Our Community Care Agreements have been updated' notice for members who agreed before today (Care for Others gained 'We are diverse together')."
   },
   {
     "id": "2026-10-12-002",
@@ -1727,5 +1727,25 @@
     "status": "open",
     "addedAt": "2026-10-12",
     "notes": "Jesse, 2026-10-12: \"Do you think they should be able to update their email? Just with a double-check, I am sure. For administration and their security, should we store their past emails?\" Recommended before launch. New schema (an email-history table) means the additive-column/data-first rules apply. Email Template Gate for the two new emails (code to the new address can reuse the sign-in code mechanism; the notice to the old address is a new template). Connects to the Flodesk integration (2026-09-24-002)."
+  },
+  {
+    "id": "2026-10-12-004",
+    "title": "App form notifications reach the right people: Kalyana Mitta and volunteer interest",
+    "description": "The app's Kalyana Mitta application and volunteer interest forms email TEAM_EMAIL (fallback hello@rootedinmindfulness.org). The old site's Zaps send the Kalyana Mitta application to jesse@ and KalyanaMitta@, and volunteer interest to volunteer@ plus a Basecamp to-do in 'Volunteer Coordination'. Before launch, route each to the right inbox (per-form recipients, not one team address) and decide whether volunteer interest should still create a Basecamp to-do.",
+    "category": "Email & Notifications",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-10-12",
+    "notes": "From the 2026-10-12 Zapier audit (2026-08-10-003). The two sends use templates kalyana-application-internal and the volunteer template; changing recipients is code, not a template edit."
+  },
+  {
+    "id": "2026-10-12-005",
+    "title": "Public forms: bordered, not lifted (.pp-form still carries --card-shadow)",
+    "description": "The shared public form card (.pp-form: sign-in, /join, the Kalyana Mitta and volunteer applications, the new 'If harm happens' form) still has the old --card-shadow, against the October 9 rule that public surfaces are bordered with a 1px --rim-rule and a 12px radius. One rule; it changes every public form, so measure each after.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-12",
+    "notes": "Found while measuring the new form, 2026-10-12."
   }
 ]

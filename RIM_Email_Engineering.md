@@ -19,6 +19,11 @@ When you write an email feature you write code that supplies variables to a temp
 
 ---
 
+
+## Channels: the app and Flodesk (Jesse, 2026-10-12)
+
+"We do most of our bulk email through Flodesk and our transactional emails through our app. And we'll probably manage automated emails through Flodesk, part of onboarding." The app (Resend) keeps what must reach one person, once, tied to an account or registration: sign-in codes, registration confirmations and reminders, receipts, waitlist news, team notices, the "If harm happens" message. Flodesk carries the newsletter, announcements, program promotion and automated sequences. Notices every member must receive (an agreements update, the Library opening) cannot depend on newsletter consent: they stay in the app or go to a Flodesk segment every member is in. The integration design is backlog `2026-09-24-002`.
+
 ## The Email Template Gate (from CLAUDE.md, repeated here)
 
 > Every `sendTemplatedEmail("slug", …)` call site MUST have a corresponding seed entry in `prisma/migrate.mjs` in the same commit. The template manager at `/admin/emails` is the source of truth — if the row doesn't exist in DB, `sendTemplatedEmail` silently no-ops and the recipient gets nothing. The compiler can't catch this; only discipline can.

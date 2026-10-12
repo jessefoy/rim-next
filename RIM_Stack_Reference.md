@@ -378,7 +378,9 @@ Hub thread filter: `activeHubThreadWhere(hubId)` in `lib/hubQueries.ts` (session
 | ~~Sanity~~ | Retired — all content lives in Postgres; no `@sanity` deps remain (residual `sanityNote` column rename is backlog `2026-08-08-001`) | Project `xxgvfpjf` can be deleted |
 | Zoom | Video conferencing (the room since session 159) | 2 licensed Pro pool seats, S2S OAuth; see `RIM_Zoom.md` |
 | ~~Gmail API~~ | Removed session 100 — Support Inbox deleted | OAuth env vars remain in Vercel; remove manually |
-| Flodesk | Newsletter signup (footer form only) | API key in env (`FLODESK_API_KEY`); newsletter segment id is hardcoded in `app/api/subscribe/route.ts` |
+| Flodesk | Newsletter signup (footer form only); bulk and automated email (Jesse, 2026-10-12) | API key in env (`FLODESK_API_KEY`); newsletter segment id is hardcoded in `app/api/subscribe/route.ts` (`6340e5b00170f97cbdfc4b87` = "Master List"). Also fed today by Zapier from the old site ("Members", per-program segments); see backlog `2026-08-10-003` |
+| Zapier (old site) | Six Zaps from Memberstack, SmartSuite and Webflow forms into Flodesk, MailerSend, Gmail and Basecamp | Audited 2026-10-12 (backlog `2026-08-10-003`). Not used by this app; they stop with the old site. Keep them on until the domain moves |
+| MailerSend, SmartSuite, Basecamp | Used by those Zaps (old welcome email and Kalyana Mitta notice; old registrations table; volunteer to-dos) | Not used by this app. Whether they stay is Jesse's call |
 | Neon | Postgres database | ⚠️ Rotate password before go-live |
 | Vercel (Pro) | Hosting + cron jobs | Auto-deploy from `main`; Pro plan for 5-min cron interval |
 

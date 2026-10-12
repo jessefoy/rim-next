@@ -1,3 +1,36 @@
+## 2026-10-12 — before go-live: the Library in preparation, My Teams for team members, the Community Care Agreements placed with a door for repair, the Zapier audit
+
+On `main`, every step its own commit (`cc13b18` … `c56c1fd`). Public pages measured on the deploy in the built-in browser at 1280 and 375; member pages measured by rebuilding their markup inside the account shell on the production origin under the live stylesheet (Jesse's Chrome is not signed in to rim-next, so no signed-in view was possible).
+
+### Built and live
+
+- **The Library, in preparation** (`/account/courses`): a static, hopeful page in place of the empty course list (Jesse: "a hopeful page"; no courses are offered yet). It names what the Library will hold (home practice and learning for the courses a member registers for, self-paced courses, dharma teachings, A Handful of Leaves, a glossary) and that members will hear "here in your member area and by email" when it opens; one action, This week's schedule. `MyCourseLibrary` is kept unused for the opening. New `lib-soon` styles in the member-area phase 1 block.
+- **My Teams for those who belong to a team** (Jesse: "The team should be only for those who belong to a team"): `AccountLayout` decides `showTeams` (a membership in a non-archived hub, or GUIDING_TEACHER) and the rail hides My Teams otherwise; members no longer see archived teams; **Coordinator** is marked on each row (the registry's own word); the guiding teacher's list splits into Your teams and Teams you oversee; a volunteer door for anyone without a team. The door into a team is unchanged. Harness: 83 checks (seven new).
+- **The Community Care Agreements, placed** (Jesse: "This is a really meaningful part of our community, and it should be well placed and fully articulated"): the checkbox on `/join`, the welcome and registration now names what is agreed ("I will hold these Community Care Agreements, in a spirit of care and respect"); Care for Others gains "We are diverse together: we welcome one another across our differences"; the public page's September 2 framing replaced ("A shared vision, and three agreements about how we care for ourselves, one another, and RIM. Everyone who practices here holds them."), "the care runs both ways" removed, "Back to My Home"; **"If harm happens"** beneath the agreements on the public and member pages, linking to a new private form, `/community-care-agreements/concern`, that emails the guiding teacher (`sendCareConcernEmail`, hardcoded, awaited, Reply-To the sender; never stored; his address never shown; rate-limited; a hidden field for automated sends; `noindex`; a 911 line) through `components/CareConcernForm.tsx`, which keeps what was written if a send fails; the member page follows the public page with "You agreed to hold them on [date]"; Diverse Together's "tell us when we fall short" links to the form; the agreement cards are bordered (they had kept the old shadow) and 17px.
+- **The Community Care heart** in the rail is filled, in the site's warm red (`--rim-donate`).
+- **My Profile** points to support@ (it said hello@) for an email change.
+- **Docs corrected:** Community Care is in the account rail and the account menu (an earlier edit this session had wrongly removed it from the rail's description).
+
+### Design decisions and why
+
+- **Prominence is a moment, not a fixture.** Jesse asked whether the agreements should be a coloured box at the top of My Home. Recommended against: My Home is the member's day, and a standing box becomes wallpaper; the agreements appear in full at every threshold. A one-time "updated" notice is the right use of prominence (needs the announcement surface, backlog `2026-10-12-001`).
+- **The title stays "Community Care Agreements"**, not "Our Shared Community Care Agreements" ("Shared" sits directly beneath in "Our Shared Vision"; the name matches the menu, links and the checkbox).
+- **The live site is the current version of public copy** (Jesse: "The current web content has the most recent on the public facing pages"). Vault records are brought up to the site, never the reverse.
+- **The repair door is a form, not an address** (Jesse: "an online form that goes directly to jesse@... But I don't necessarily want to give my email directly"), on its own quiet page.
+- **Email channels** (Jesse): "We do most of our bulk email through Flodesk and our transactional emails through our app. And we'll probably manage automated emails through Flodesk, part of onboarding." Recorded in `RIM_Email_Engineering.md`.
+- **Self-service email change: yes, with a double check and a history** (Jesse's questions; recommendation recorded as backlog `2026-10-12-003`, high).
+- **Members cannot cancel registrations themselves** (reaffirmed); they reach the registrar.
+
+### What this work connects to
+
+`lib/communityAgreements.ts` (five agreement surfaces: public page, member page, `/join`, the welcome, `RegistrationForm`), `lib/email.ts` (a new hardcoded send), `lib/rateLimit.ts` (new keys), `AccountLayout` / `AccountSidebar` (every account page), the member harness, the Diverse Together page, the vault (`04-care-agreements-placement-review-2026-10-12.md` with Jesse's rulings verbatim; a dated note in `04-community-website-copy-2026-09-25.md`), the backlog (announcement surface, glossary, email change, Flodesk, the Zapier audit).
+
+**The Zapier audit** (read-only, Jesse signed in): six Zaps, all on, all fed by the old site (Memberstack, SmartSuite, Webflow forms). Two do work the app does not yet do: new members into Flodesk's "Members" segment, and registrations into per-program Flodesk segments. The app's Kalyana Mitta and volunteer forms send to `TEAM_EMAIL` (fallback hello@), not jesse@ + KalyanaMitta@ and volunteer@ + a Basecamp to-do. The app's footer feeds the same "Master List" (confirmed by a read-only Flodesk API call). MailerSend, SmartSuite and Basecamp were not in any RIM doc. Keep every Zap on until the domain moves. Detail: backlog `2026-08-10-003`.
+
+### What comes next
+
+The Flodesk integration as its own conversation (backlog `2026-09-24-002`, now high, with Jesse's channel split and four open questions); the two app form addresses; the self-service email change; one signed-in walkthrough of today's pages; one test message through "If harm happens"; the launch configuration (Stripe live keys, the site-address setting with the domain move, the database password).
+
 ## 2026-10-09 — the public refresh, the member area joins the public system (three phases, measured signed in), My Home rebuilt, the two program notes, Taking CARE Foundations set up
 
 On `main`, every step its own commit (`462c4bd` … `eba5103`), each measured on the deploy before the next.
