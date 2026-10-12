@@ -86,7 +86,7 @@ The goal is for a member to feel held by the interface, not managed by it.
 The authenticated application has three kinds of context, and each receives one visual layer—not a stack of competing navigation systems:
 
 - The **member header** answers “who am I here?” and provides an account menu for profile and sign-out, plus Manage RIM for authorized staff.
-- The **account rail** answers “where am I in My RIM?” and holds My Home and Library, and My Teams for anyone who belongs to a team. Community Care sits in the account menu. Administrative destinations appear here only while in the administration area.
+- The **account rail** answers “where am I in My RIM?” and holds My Home and Library, My Teams for anyone who belongs to a team, and Community Care. Administrative destinations appear here only while in the administration area.
 - The **hub rail** answers “which team am I working with?” and replaces the account rail inside a hub or a hub-launched tool. It does not nest inside it.
 
 Admin pages remain inside the account shell because administration is one responsibility of the same member, not a separate website. Tools use the hub rail when launched in team context and a quiet direct-entry tool header otherwise. Focused canvases and writers may reduce the surrounding chrome, but they must retain a clear way back.
