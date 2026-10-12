@@ -148,6 +148,33 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(teamQuery.where.members.some.userId,'member-a','ADMIN directory still requires membership');
   session.user.roles=['GUIDING_TEACHER'];await Teams();
   check(Object.keys(teamQuery.where).length,0,'guiding teacher retains existing reach');
+  // 2026-10-12: members never see archived teams; Coordinator is marked; a
+  // guiding teacher's own teams are separated from the ones they oversee; a
+  // member with no team gets the volunteer empty state.
+  const teamHubs=[
+    {slug:'host-team',name:'Host Team',status:'ACTIVE',members:[{isCoordinator:true}]},
+    {slug:'greeter',name:'Greeters',status:'ACTIVE',members:[{isCoordinator:false}]},
+    {slug:'old-team',name:'Old Team',status:'ARCHIVED',members:[{isCoordinator:false}]},
+    {slug:'av',name:'Audio Visual',status:'ACTIVE',members:[]},
+  ];
+  const TeamsWith=hubs=>load('app/account/(authenticated)/teams/page.tsx',{
+    '@/auth':{auth:async()=>session},'next/navigation':{redirect:()=>{throw Error('redirect')}},
+    'next/link':{default:({children,href})=>React.createElement('a',{href},children),__esModule:true},
+    '@/lib/db':{db:{hub:{findMany:async query=>{teamQuery=query;return hubs}}}},
+    '@/components/AccountLayout':{default:({children})=>children,__esModule:true},
+  }).default;
+  session={user:{id:'member-a',roles:[]}};
+  let teamsHtml=renderToStaticMarkup(await TeamsWith([])());
+  check(teamQuery.where.status,'ACTIVE','member directory excludes archived teams');
+  check(teamsHtml.includes('/volunteerism/volunteer'),true,'no-team member sees the volunteer door');
+  teamsHtml=renderToStaticMarkup(await TeamsWith(teamHubs.slice(0,2))());
+  check(teamsHtml.includes('Coordinator'),true,'coordinator role is marked');
+  check((teamsHtml.match(/Coordinator/g)||[]).length,1,'only the coordinated team is marked');
+  session={user:{id:'member-a',roles:['GUIDING_TEACHER']}};
+  teamsHtml=renderToStaticMarkup(await TeamsWith(teamHubs)());
+  check(teamsHtml.includes('Your teams')&&teamsHtml.includes('Teams you oversee'),true,'guiding teacher sees two groups');
+  check(teamsHtml.indexOf('Audio Visual')>teamsHtml.indexOf('Teams you oversee'),true,'non-member team is under oversight');
+  check(teamsHtml.indexOf('Old Team')>teamsHtml.indexOf('Audio Visual'),true,'archived team sorts last under oversight');
   // Render the real dashboard under a fixed clock with fixture records.
   // Timing and offering-kind helpers are production code, not test copies.
   let now = '2026-09-21T15:55:00Z';

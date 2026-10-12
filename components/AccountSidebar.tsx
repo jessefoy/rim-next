@@ -32,7 +32,7 @@ import {
   UsersRound,
 } from "lucide-react";
 
-interface Props { roles: string[]; }
+interface Props { roles: string[]; showTeams: boolean; }
 
 type LucideIcon = React.ComponentType<{
   size?: number;
@@ -64,7 +64,7 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
 
 const COLLAPSE_KEY = "rim-account-sidebar-collapsed";
 
-export default function AccountSidebar({ roles }: Props) {
+export default function AccountSidebar({ roles, showTeams }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -95,7 +95,10 @@ export default function AccountSidebar({ roles }: Props) {
   // Files live per-Space (each hub's Files tab + the Community Space); the
   // global finder and the native Documents system were both retired (session
   // 165 — Google Workspace is the document/file system now).
-  const memberLinks: NavLink[] = MEMBER_LINKS;
+  // My Teams only for someone who belongs to a team (AccountLayout decides).
+  const memberLinks: NavLink[] = showTeams
+    ? MEMBER_LINKS
+    : MEMBER_LINKS.filter((l) => l.href !== "/account/teams");
 
   function linkClass(href: string) {
     const active =

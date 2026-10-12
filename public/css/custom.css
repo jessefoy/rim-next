@@ -31084,6 +31084,39 @@ a.pp-card:hover .pp-card__action--named {
 .rim-empty { padding: 28px; border: 1px solid var(--rim-rule); background: var(--rim-surface); border-radius: 12px; }
 .rim-empty h2 { font-size: var(--text-h3); }
 .rim-empty p { margin: 8px 0 0; }
+/* My Teams (2026-10-12, Jesse): the guiding teacher's two groups, the
+   Coordinator mark, and the empty state for someone with no team. */
+.rim-teams__label {
+  margin: var(--space-4) 0 0;
+  color: var(--rim-label);
+  font-family: var(--font-sans);
+  font-size: var(--text-app-meta);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.rim-teams__label + .rim-destination-list { margin-top: var(--space-2); }
+.rim-team-role {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 1px 10px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 999px;
+  color: var(--rim-label);
+  font-size: var(--text-app-meta);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.ac-layout .rim-teams-empty { box-sizing: border-box; text-align: left; padding: var(--space-4); }
+.ac-layout .rim-teams-empty h2 { margin: 0 0 var(--space-2); }
+.ac-layout .rim-teams-empty p { max-width: 62ch; margin: 0 0 var(--space-2); color: var(--rim-text); font-size: var(--text-app); line-height: var(--lh-body); }
+.ac-layout .rim-teams-empty .pp-actions { margin-top: var(--space-4); }
+@media (max-width: 430px) {
+  .ac-layout .rim-teams-empty { padding: var(--space-4) var(--space-3); }
+}
 /* A row of buttons (the standalone links became pp-btn, 2026-10-09). */
 .rim-home-links { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin: 24px 0; }
 .rim-disclosure { border-bottom: 1px solid var(--rim-rule); padding: 10px 0; margin: 12px 0; }
