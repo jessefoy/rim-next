@@ -1,28 +1,29 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-13 (second closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-13 (third closing ritual, evening). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-13 closed: the Memberstack members are in, Flodesk's Members is exact, one header everywhere
+## Active — 2026-10-13 evening closed: form inboxes, every submit answered, team Home simplified, Leads only in Files
 
-Everything is on `main` (`9bfc008`, `04c4517`, `f01964e`, then the docs). Narrative: `session-log.md` (2026-10-13, later). Signed-in pages were measured with the live stylesheet in headless Chrome, not in a signed-in session.
+Everything is on `main` (`0518915` … the docs). Narrative: `session-log.md` (2026-10-13, evening). Production changes this evening, each approved: three team renames (Hosting Team, Course Team, Support); stored email wording "team" not "hub" (and Zoom, not Google Meet, in `host-role-assigned`); team Home's old text archived to `~/Sites/rim-next-archive/` and its columns dropped; every team's files moved into Leads only (79 items, 12 teams); 11 duplicate copies to Drive's trash (recoverable until about November 12); the leads were emailed (once).
 
-**Live from today:** **Import members** (`/admin/import-legacy`, ADMIN, temporary; reads Memberstack's API with `MEMBERSTACK_SECRET_KEY` in Vercel): run 1 imported 56, quiet pool 1,555 (verified read-only). **Flodesk's Members** holds only members (1,561; 178 non-members removed from the segment, nobody unsubscribed). **Every page wears the site header** (team spaces, Files, tools, admin; no footer on working pages; Sign out and My Profile in each rail; member-bar retired). Also from earlier today and October 12: the personal pages in the site header, Flodesk segments, the system emails' new look, the invisible bot check, registration from the session, home in Jesse's words.
+**Live from this evening:** the form inboxes (volunteer@ with Jesse's blind copy; jesse@ + KalyanaMitta@; "RIM form · Kind · Name"; every submission saved at `/admin/form-submissions`). The answer rule everywhere (`components/FormDone.tsx`; `RIM_Web_Design_Philosophy.md`). Team Home: the team's line (leads edit it), its tool in one card, then destinations (`RIM_Hub_Engineering.md`, "Team Home, 2026-10-13"). Leads only in every team's Files (`RIM_GoogleWorkspace.md` §12). Duplicate files review (Manage RIM → Google Files; keep it, it only lists until confirmed).
 
 **Jesse's steps:**
-- **Flodesk:** the 934 active suspected bots were **unsubscribed** (2026-10-13, Jesse's choice over deleting now: an unsubscribed record can't come back as active through the old site's form). All active subscribers is **2,218**, the weekly letter's audience. **After the domain move**, delete the "Suspected bots: review" segment's 1,355 contacts (no member among them). **Keep all Zaps on until the domain moves** (this replaces the October 13 advice to turn off the Memberstack → Flodesk Zap: Memberstack has no bots, and the Zap still brings new members in). Link programs already taking registrations to their existing segments in Program Manager → Registration; build any onboarding series in Flodesk (triggered by joining Members, with a delay).
-- **Send the volunteer note** ([Member List Cleanup](https://claude.ai/artifact/XsbNosdwgMutzK3ZtFDxzf): private until shared; copy button for email).
-- **A signed-in look** at the new header: Manage RIM, a team space, the Program Manager (desktop and phone); plus the walkthrough from earlier (personal pages, Library, My Teams, Community Care, a returning legacy member's welcome, the Handful pages, a sign-in email).
-- **The read-aloud** of the new lines: "My Home" in the header, the community-emails line (/join and registration), the bot check's error line; plus the October 12 lines (`04-care-agreements-placement-review-2026-10-12.md`) and the October 9 refresh (`04-refresh-read-aloud-2026-10-09.md`).
-- **One test message** through `/community-care-agreements/concern` to confirm it reaches jesse@.
-- **Open offers:** a read-only count of registrations detached by the old sweep, then a relink (`2026-10-13-003`); the registration route's misleading comment; whether the home eyebrows were meant to go (kept).
-- **Rulings still open from October 12:** one name for the agreements in the footer and "Practice with us"; whether the Library names Taking CARE; the cancellation line in the registration confirmation (needs consent to edit the live template); the glossary (`2026-10-12-002`); archived teams for the rare member; the one-time "agreements updated" notice (`2026-10-12-001`); Taking CARE Foundations' details.
+- **A signed-in look:** a team Home (write its line), and Files as a lead: Leads only, a move each way, and a member's view of Team files. Then a form send and a profile save, to see the answers.
+- **The leads sort their files** before launch (the note asked them). If one reports something missing, the duplicates are in Drive's trash until about November 12.
+- **The read-aloud** of this evening's lines: "You don't need to do anything else", the welcome lines on My Home, the "Saved…" and error lines, the leads note (`leads-files-update` in Emails); plus the earlier ones below.
+- **Flodesk:** keep all Zaps on until the domain moves. After the move, delete the "Suspected bots: review" contacts (1,355). Link programs already taking registrations to their segments in Program Manager → Registration.
+- **Send the volunteer note** ([Member List Cleanup](https://claude.ai/artifact/XsbNosdwgMutzK3ZtFDxzf)); **one test message** through `/community-care-agreements/concern`.
+- **Open offers:** a read-only count of registrations detached by the old sweep, then a relink (`2026-10-13-003`).
+- **Rulings still open from October 12:** one name for the agreements in the footer and "Practice with us"; whether the Library names Taking CARE; the cancellation line in the registration confirmation; the glossary (`2026-10-12-002`); archived teams for the rare member; the "agreements updated" notice (`2026-10-12-001`); Taking CARE Foundations' details.
 
 **Before launch (in order):**
-1. ~~**The two app form addresses**~~ **Done 2026-10-13** (`2026-10-12-004`, `2026-08-10-004`): Kalyana Mitta to jesse@ + KalyanaMitta@, volunteer interest to volunteer@ with a blind copy to Jesse, subject "RIM form · Kind · Name"; every submission saved first and listed at `/admin/form-submissions`. No Basecamp (retired).
-2. **Self-service email change** with verification, notice and history (`2026-10-12-003`, high); Flodesk can't change an address through its API.
-3. **Launch configuration:** Stripe live (`2026-09-24-001`); with the domain move, change `NEXTAUTH_URL` in Vercel in the same step; rotate the database password.
-4. **On the day the domain moves:** delete the "Suspected bots: review" contacts in Flodesk (Jesse); run Import members once more (it only considers people who joined after October 7, the latest imported); then remove the tool, its "Import members" rail link (`components/AccountSidebar.tsx`) and `lib/legacyImport.ts`, delete `MEMBERSTACK_SECRET_KEY` in Vercel and the key in Memberstack (backlog `2026-10-13-001`); then cancel Zapier: all six Zaps are replaced in the app (not before this day: the old site and Memberstack still feed them). Before cancelling Webflow, export its Forms history (Kalyana Mitta and volunteer submissions).
-5. **Watch the first real registration** create its Flodesk segment (`[flodesk] created segment` in the Vercel log) and the first member sign-in join Members (`[flodesk] member`).
+1. **Self-service email change** with verification, notice and history (`2026-10-12-003`, high); Flodesk can't change an address through its API.
+2. **Launch configuration:** Stripe live (`2026-09-24-001`); with the domain move, change `NEXTAUTH_URL` in Vercel in the same step; rotate the database password.
+3. **On the day the domain moves:** delete the bot contacts in Flodesk (Jesse); run Import members once more, then remove the tool, its rail link and `lib/legacyImport.ts`, delete `MEMBERSTACK_SECRET_KEY` in Vercel and the key in Memberstack (`2026-10-13-001`); export Webflow's Forms history; then cancel Zapier (all six Zaps are replaced in the app).
+4. **Watch the first real registration** create its Flodesk segment and the first member sign-in join Members (Vercel log).
+
+**Queued (backlog):** `2026-10-13-008` send a one-off email to a chosen group (Jesse wants it); `2026-10-13-005` a true "needs help" count on the Scheduler card. **Deploy watch:** if a push doesn't show in Vercel's Deployments within a few minutes, deploy it from the dashboard (Create Deployment → main); it happened once this evening.
 
 ## Still open from October 2 — categories, Open entry, and history and roots are live; the pages await Jesse's read-aloud
 

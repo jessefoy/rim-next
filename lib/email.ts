@@ -853,8 +853,8 @@ export async function sendHostManagerRoleAssignmentEmail(
     return;
   }
   const firstName = data.firstName ?? "there";
-  const hostHubUrl  = `${BASE_URL}/account/hub/host-team`;
-  const scheduleUrl = `${BASE_URL}/tools/schedule?hub=host-team`;
+  const hostHubUrl  = hubHomeUrl(DEFAULT_HOSTING_HUB_SLUG);
+  const scheduleUrl = hubScopedUrl("/tools/schedule", DEFAULT_HOSTING_HUB_SLUG);
 
   const markdown = `Hi ${firstName},
 

@@ -198,6 +198,10 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 
 ---
 
+## First arrival (2026-10-13)
+
+`/login/check-email` sets the code form's `callbackUrl` to `/account/dashboard?welcome=new` when the account has agreed (`agreedAt`) and has never verified an email: a member's first sign-in after /join or a guest registration. My Home greets them once ("You're all set. Welcome to RIM."). NextAuth has no custom redirect callback, so the query survives. Members who haven't agreed still go through `/account/welcome`, which sends them to `?welcome=new|back` itself.
+
 ## Key files
 
 | File | Role |
