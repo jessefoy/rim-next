@@ -75,6 +75,12 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Page titles** on public pages use the home page's hyphen; the approved `RIM_MISSION` and the final `RIM_WHAT_BINDS` are live.
 - **All of this copy is provisional until Jesse's read-aloud.**
 
+## October 13, 2026 (later): the Memberstack members, Flodesk's Members, one header
+
+- **Import members** (`/admin/import-legacy`, ADMIN, temporary): brings people who joined the old site since the last import into the quiet pool, read straight from Memberstack's API; preview first; never re-creates anyone removed; bots listed for review. 56 imported (quiet pool 1,555). Runs once more on the day the domain moves, then is removed. See `RIM_Auth.md`.
+- **Flodesk's Members segment holds only members** (1,561): 178 non-members taken out, nobody unsubscribed or emailed. See `RIM_Email_Engineering.md`.
+- **Every page wears the site's header**: team spaces, Files, tools and administration too (no footer on those working pages); the member bar is retired; Sign out and My Profile live in each rail. See `RIM_Member_Area.md`.
+
 ## October 13, 2026: one site for members, Flodesk, the system emails, the bots
 
 - **The personal pages wear the site's header** and the Flodesk integration: see October 12 below (both shipped across the two days).

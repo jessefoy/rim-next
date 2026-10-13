@@ -1754,9 +1754,9 @@
     "description": "Members who joined on the old site after the session-145 import are not in the app and would vanish at the domain move. Jesse asked Memberstack support for a full member CSV (2026-10-13). When it arrives: read it on this machine only (never commit it), compare with the app's users by email, flag bots with the Flodesk rule (a name of 12+ letters with 2+ inner capitals, or a Gmail address with 3+ dots), report counts, and with Jesse's OK on the numbers import the real new members into the quiet pool exactly as session 145 did (isLegacyUnclaimed, agreedToTerms false, emailVerified null, silent). Then delete the file. Also count the bots that came in with the June import (inert in the quiet pool); removing them is Jesse's call.",
     "category": "Member Accounts",
     "priority": "high",
-    "status": "open",
+    "status": "in-progress",
     "addedAt": "2026-10-13",
-    "notes": "Waiting on Memberstack support for the CSV. No Memberstack connector or API key is used (Jesse: a CSV is enough; Memberstack retires at the domain move)."
+    "notes": "Waiting on Memberstack support for the CSV. No Memberstack connector or API key is used (Jesse: a CSV is enough; Memberstack retires at the domain move). 2026-10-13 (later): Memberstack sent no CSV; pulled through its Admin REST API instead (1,572 members, no bots). /admin/import-legacy restored (reads the API with MEMBERSTACK_SECRET_KEY in Vercel; create-only after the latest imported join date). Run 1: 56 imported, quiet pool 1,555. The June import held 1 bot-rule match (a real-looking 2023 member, kept). Remaining: run 2 on the day the domain moves, then remove the tool, its admin-rail link and lib/legacyImport, and delete the key in Vercel and Memberstack."
   },
   {
     "id": "2026-10-13-002",

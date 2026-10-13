@@ -1,3 +1,31 @@
+## 2026-10-13 (later) — the Memberstack members brought in, Flodesk's Members made exact, one site header everywhere
+
+On `main`: `9bfc008` (the import tool), `04c4517` (its admin link), `f01964e` (the header). Reviewer sub-agents gated the import tool twice and the header once; every finding was fixed before commit. Signed-in pages were measured with the live stylesheet in headless Chrome (the built-in browser is not signed in). Production: one read-only comparison, one read-only count, and the import Jesse ran himself from the admin page; Flodesk: 180 segment changes Jesse approved by number.
+
+### Built and live
+
+- **Members who joined the old site since June are in the app.** Memberstack support never sent a CSV; its AI agent pointed to the Admin REST API. A local read-only pull (with the live key in a git-ignored file, deleted after) found **1,572 members and no bots**; 56 had joined since the June import. The session-145 tool is back at **`/admin/import-legacy`** (ADMIN; "Import members" in the admin rail), now reading Memberstack directly (`MEMBERSTACK_SECRET_KEY` in Vercel, `lib/legacyImport.ts`) with a preview that writes nothing. **Create-only, and only for people who joined after the latest join date already imported**, so anyone removed in between (declined the agreements, or removed by an admin) is never re-created; suspected bots are listed for review, not silently dropped. The June tool's "Clear legacy pool" is gone (it would have deleted the whole pool). Jesse previewed (1,572 / 1,515 here / 56 / cutoff June 7 / 1 earlier not brought back) and imported 56; a read-only count confirmed the quiet pool went from 1,499 to **1,555**, all 56 silent (unverified, no agreement, not in Flodesk).
+- **Flodesk's Members segment now holds only members.** A read-only comparison of Flodesk (4,765 subscribers), Memberstack and the app found the 1,356 bots came through the newsletter form, not Memberstack, and that Members held 178 non-members (119 bots, 59 former members or old addresses). With Jesse's OK: 178 removed from Members (segment only: no one unsubscribed or emailed), the one signed-in member missing from it added, and the one real member in "Suspected bots: review" taken out so the bulk delete can't catch them. A full re-pull showed exactly those 180 changes. Members is 1,561; 13 members stay out of it until their first sign-in, by the October 12 ruling.
+- **Every page wears the site's header** (backlog `2026-10-13-002`, Jesse's three rulings): Manage RIM, team spaces, Files and the tools took the public header the personal pages took on October 12; working pages keep no footer; the member-bar is retired and its CSS pruned. Sign out and My Profile live in each rail (the team rail's foot; the account rail everywhere, with Manage RIM for staff outside administration; a tool reached without a team carries them in its bar on desktop). One token, `--site-header-h` (100px; 72px at 1120px and below), puts every rail, phone bar, drawer and backdrop under the header. The account rail's height now leaves room for its own padding (its foot had run 80px past the screen, 64px on phones).
+- **A note for the Flodesk and Memberstack volunteer**, as a private page with a copy button ([Member List Cleanup](https://claude.ai/artifact/XsbNosdwgMutzK3ZtFDxzf)); Jesse sends it.
+
+### Design decisions and why
+
+- **The API, not a CSV** (reverses the morning's "a CSV export and a one-time import"): Memberstack never answered, and the API made the import repeatable without any member file on a laptop. The import must run twice, so it is a tool, not a script.
+- **Never re-create someone removed.** The cutoff is derived from the data (the latest `legacyMemberSince`), not a hard-coded date (reviewer finding, twice).
+- **The weekly letter keeps going to All active subscribers** (Jesse asked): right list, once the 934 active bots are deleted (then about 2,218: 1,041 members, 1,177 newsletter subscribers). Mail to bots harms deliverability.
+- **Keep the Zaps on until the domain moves** (corrects the October 13 advice to turn off the Memberstack → Flodesk Zap): Memberstack has no bots, and the Zap is what still brings new members into Flodesk until then.
+- **One header everywhere, header only on working pages, Sign out in each rail** (Jesse chose the three recommendations). Recorded in `RIM_Web_Design_Philosophy.md`, "Authenticated Spatial Hierarchy".
+- **Kept:** the quiet-pool account no longer in Memberstack (Jesse).
+
+### What this work connects to
+
+The quiet pool (`isLegacyUnclaimed`: registry filter, cleanup-cron exemption, promotion at `/join` and `complete-profile`, the welcome-back email, the pre-threshold email gate, Flodesk's Members at first sign-in); `AccountSidebar` (admin links); Flodesk's Members segment, which `lib/flodesk.ts` feeds at sign-in. The header reaches every page: `components/Nav.tsx`, `AccountSidebar`, `HubWorkspaceSidebar`, `WorkspaceShell` / `ToolsNav`, `lib/personalNav.ts`, the shell geometry in `custom.css`. No hub gate, recipient pool, query or email changed (the hub rail change is presentation only).
+
+### What comes next
+
+Jesse: delete the "Suspected bots: review" contacts in Flodesk before the next weekly letter; a signed-in look at Manage RIM, a team space and the Program Manager (desktop and phone); send the volunteer note. On the day the domain moves: run Import members once more, then remove the tool and its rail link, delete the key in Vercel and Memberstack, and turn off the Zaps. The rest of the launch list in `UP_NEXT.md`.
+
 ## 2026-10-13 — one site for members, Flodesk connected, the system emails redesigned, a year of bots found, the home page in Jesse's words
 
 On `main`, each step its own commit (`1a00d50` … `9cd1dcf`). Reviewer sub-agents gated the header change, the Flodesk integration and the registration fixes; their findings were fixed before or right after shipping. Signed-in surfaces were measured by stand-in markup and the real rendered component under the live stylesheet (Claude in Chrome was not connected); public pages on the deploy.
