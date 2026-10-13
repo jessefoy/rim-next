@@ -1521,36 +1521,6 @@ export async function sendKalyanaApplicationEmail(data: KalyanaApplicationEmailD
   });
 }
 
-// ─── Team leads: the Leads only note (2026-10-13, one-time) ──────────────────
-
-/**
- * The note to one team lead about Leads only and tidying files before launch.
- * Managed via Email Template Manager — template: "leads-files-update".
- * Throws on failure so the one-time sender can count what went out.
- */
-export async function sendLeadsFilesUpdateEmail(data: {
-  to: string;
-  firstName: string | null;
-  teamNames: string[];
-}): Promise<void> {
-  const names = data.teamNames;
-  const list =
-    names.length <= 1
-      ? names[0] ?? ""
-      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-  const teamsLine = names.length === 1 ? `Your team: ${list}.` : `The teams you lead: ${list}.`;
-  await sendTemplatedEmail(
-    "leads-files-update",
-    data.to,
-    {
-      firstName: data.firstName || "there",
-      teamsLine,
-      teamsButton: emailButtonHtml("Open My Teams", `${BASE_URL}/account/teams`),
-    },
-    { throwOnFailure: true },
-  );
-}
-
 // ─── Community care: "If harm happens" ────────────────────────────────────────
 
 export interface CareConcernEmailData {

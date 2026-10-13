@@ -1821,5 +1821,15 @@
     "addedAt": "2026-10-13",
     "notes": " | Done 2026-10-13 with Jesse’s permission: email_templates_team_not_hub_v1 (host-role-assigned also says Zoom, not Google Meet; names, descriptions, group \"Teams & Onboarding\"); the hard-coded coordinator welcome rewritten. A read of every template afterward found no \"hub\".",
     "closedAt": "2026-10-13"
+  },
+  {
+    "id": "2026-10-13-008",
+    "title": "Send a one-off email to a chosen group (team leads, a team, several teams)",
+    "description": "Jesse wants to send emails like the 2026-10-13 note to team leads himself, whenever needed: compose a message, pick a group (all team leads, one team’s members, everyone on several teams), see the recipients before sending, send one email per person (de-duplicated across teams) in the system email look, with merge fields (first name, the teams they’re on), a confirm step, and a record of what was sent and to whom. Internal team and leads messages; Flodesk stays the tool for mass email to members and program segments.",
+    "category": "Email & Notifications",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-13",
+    "notes": "Jesse: “For future reference, for a to-do, I would like the ability to send out emails like this. But we can figure that out later.” Precedent: the one-time panel (git 4111666, removed after it ran): recipients = ACTIVE coordinators of ACTIVE teams with verified, unarchived accounts, grouped per person; sender left out; send-once flag; template leads-files-update (still in /admin/emails as the record). Respect the pre-threshold gate and communicationsEnabled; send via sendTemplatedEmail with a stored or ad-hoc body."
   }
 ]
