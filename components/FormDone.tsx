@@ -11,7 +11,7 @@
  * for every public and member form's success state. CSS: .pp-form__done.
  */
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 /**
  * Brings an answer to the person: when `key` changes while `active`, the
@@ -45,9 +45,12 @@ export default function FormDone({
   title,
   children,
   clearParam,
+  app = false,
 }: {
   title: string;
   children?: ReactNode;
+  /** Inside the member, team and tool pages: 16px text, left-aligned. */
+  app?: boolean;
   /** A query parameter that brought this answer (My Home's ?welcome): removed
       from the address once shown, so a reload or Back doesn't repeat it. */
   clearParam?: string;
@@ -63,7 +66,13 @@ export default function FormDone({
   }, [clearParam]);
 
   return (
-    <div ref={ref} className="pp-form__done" role="status" tabIndex={-1} aria-labelledby={titleId}>
+    <div
+      ref={ref}
+      className={`pp-form__done${app ? " pp-form__done--app" : ""}`}
+      role="status"
+      tabIndex={-1}
+      aria-labelledby={titleId}
+    >
       <p className="pp-form__done-title" id={titleId}>{title}</p>
       {children}
     </div>
@@ -129,6 +138,45 @@ export function SaveNote({
           {problem}
         </p>
       )}
+    </>
+  );
+}
+
+/**
+ * The answer to an action taken on a row or a menu (Scheduler, conversations,
+ * files, members, trash): fixed to the bottom of the screen so it is in view
+ * wherever the person has scrolled, kept until closed or the next action
+ * (never a few-second flash), announced, and a problem in the error colour.
+ * State: `useActionNotice()`. CSS: .hub-toast.
+ */
+export type ActionNoticeState = { msg: string; tone: "ok" | "error"; n: number } | null;
+
+export function useActionNotice() {
+  const [notice, setNotice] = useState<ActionNoticeState>(null);
+  // n changes with every answer, so the same words said twice still show
+  // and are announced again.
+  const say = (msg: string | null, tone: "ok" | "error" = "ok") =>
+    setNotice((prev) => (msg ? { msg, tone, n: (prev?.n ?? 0) + 1 } : null));
+  return { notice, say };
+}
+
+export function ActionNotice({ notice, onClose }: { notice: ActionNoticeState; onClose: () => void }) {
+  const box = (error: boolean) =>
+    notice && (
+      <div key={notice.n} className={`hub-toast${error ? " hub-toast--error" : ""}`}>
+        <span className="hub-toast__msg">{notice.msg}</span>
+        <button type="button" className="hub-toast__close" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    );
+  return (
+    <>
+      {/* Always present, so screen readers are listening before the answer
+          comes; a problem is a newly inserted alert. The boxes are fixed to
+          the bottom of the screen; these wrappers take no space. */}
+      <div role="status">{notice?.tone === "ok" && box(false)}</div>
+      {notice?.tone === "error" && <div role="alert">{box(true)}</div>}
     </>
   );
 }

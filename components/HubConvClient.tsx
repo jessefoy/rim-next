@@ -28,6 +28,7 @@ const RimTiptapEditor = dynamic(
 );
 import { avatarColorFor } from "@/lib/avatarColor";
 import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
+import FormDone, { ActionNotice, useActionNotice } from "@/components/FormDone";
 
 interface ThreadAuthor {
   firstName: string | null;
@@ -162,6 +163,10 @@ export default function HubConvClient({
   const [composeCategory, setComposeCategory] = useState(categories[0] ?? "General");
   const [composeNotifyIds, setComposeNotifyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  // Every action is answered (FormDone / ActionNotice, 2026-10-13).
+  const [postError, setPostError] = useState<string | null>(null);
+  const [posted, setPosted] = useState<{ id: string; title: string } | null>(null);
+  const { notice, say } = useActionNotice();
   const postingRef = useRef(false); // synchronous double-submit guard for postThread
 
   // Filter coordinators out of the picker — they're auto-subscribed at thread
@@ -305,6 +310,7 @@ export default function HubConvClient({
     if (!title.trim() || !hasContent(body) || postingRef.current) return;
     postingRef.current = true;
     setSaving(true);
+    setPostError(null);
     try {
       const res = await fetch(`/api/hub/${hubSlug}/conversations`, {
         method:  "POST",
@@ -338,7 +344,12 @@ export default function HubConvClient({
         setThreads((prev) => [thread, ...prev]);
         setTitle(""); setBody(""); setShowCompose(false);
         setComposeNotifyIds([]);
+        setPosted({ id: thread.id, title: thread.title });
+      } else {
+        setPostError("Your topic was not posted. What you wrote is still here. Please try again.");
       }
+    } catch {
+      setPostError("Your topic was not posted. What you wrote is still here. Please try again.");
     } finally {
       setSaving(false);
       postingRef.current = false;
@@ -346,49 +357,57 @@ export default function HubConvClient({
   }
 
   async function setStatus(id: string, status: string) {
+    say(null);
     const res = await fetch(`/api/hub/${hubSlug}/conversations/${id}`, {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ status }),
-    });
-    if (res.ok) {
-      if (status === "OPEN") {
-        const updated = await res.json();
-        const thread: Thread = {
-          id:         updated.id,
-          title:      updated.title,
-          body:       updated.body,
-          category:   updated.category ?? "General",
-          status:     updated.status,
-          isPinned:   updated.isPinned ?? false,
-          authorId:   updated.authorId,
-          author:     updated.author,
-          replyCount: updated._count?.replies ?? 0,
-          createdAt:  updated.createdAt,
-          updatedAt:  updated.updatedAt,
-        };
-        setThreads((prev) => [thread, ...prev]);
-        setClosedThreads((prev) => prev ? prev.filter((t) => t.id !== id) : null);
-      } else {
-        setThreads((prev) => prev.filter((t) => t.id !== id));
-        setClosedThreads(null);
-      }
+    }).catch(() => null);
+    if (!res?.ok) {
+      say("That didn\u2019t go through. Please try again.", "error");
+      return;
     }
+    if (status === "OPEN") {
+      const updated = await res.json();
+      const thread: Thread = {
+        id:         updated.id,
+        title:      updated.title,
+        body:       updated.body,
+        category:   updated.category ?? "General",
+        status:     updated.status,
+        isPinned:   updated.isPinned ?? false,
+        authorId:   updated.authorId,
+        author:     updated.author,
+        replyCount: updated._count?.replies ?? 0,
+        createdAt:  updated.createdAt,
+        updatedAt:  updated.updatedAt,
+      };
+      setThreads((prev) => [thread, ...prev]);
+      setClosedThreads((prev) => prev ? prev.filter((t) => t.id !== id) : null);
+    } else {
+      setThreads((prev) => prev.filter((t) => t.id !== id));
+      setClosedThreads(null);
+    }
+    say(status === "OPEN" ? "Moved back to open conversations." : "Archived. You\u2019ll find it under Archived.");
   }
 
   async function togglePin(id: string, currentlyPinned: boolean) {
     const action = currentlyPinned ? "unpin" : "pin";
+    say(null);
     const res = await fetch(`/api/hub/${hubSlug}/conversations/${id}`, {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ action }),
-    });
-    if (res.ok) {
-      const updateFn = (prev: Thread[]) =>
-        prev.map((t) => t.id === id ? { ...t, isPinned: !currentlyPinned } : t);
-      setThreads(updateFn);
-      if (closedThreads) setClosedThreads((prev) => prev ? updateFn(prev) : null);
+    }).catch(() => null);
+    if (!res?.ok) {
+      say("That didn\u2019t go through. Please try again.", "error");
+      return;
     }
+    const updateFn = (prev: Thread[]) =>
+      prev.map((t) => t.id === id ? { ...t, isPinned: !currentlyPinned } : t);
+    setThreads(updateFn);
+    if (closedThreads) setClosedThreads((prev) => prev ? updateFn(prev) : null);
+    say(currentlyPinned ? "Unpinned." : "Pinned to the top of the list.");
   }
 
   function ThreadRow({ thread }: { thread: Thread }) {
@@ -492,7 +511,7 @@ export default function HubConvClient({
           </div>
           <button
             className="hub-conv-newbtn"
-            onClick={() => setShowCompose((v) => !v)}
+            onClick={() => { setShowCompose((v) => !v); setPosted(null); }}
           >
             <Plus size={16} strokeWidth={2} />
             <span>New topic</span>
@@ -681,10 +700,18 @@ export default function HubConvClient({
             selectedIds={composeNotifyIds}
             onChange={setComposeNotifyIds}
           />
+          {/* A category added from this menu reports its problem here, where
+              the person is, not only in the Manage panel. */}
+          {catError && !showManage && (
+            <p className="save-note save-note--error" role="alert">{catError}</p>
+          )}
+          {postError && (
+            <p className="save-note save-note--error" role="alert">{postError}</p>
+          )}
           <div className="hub-conv-compose__actions">
             <button
               className="btn--ghost"
-              onClick={() => { setShowCompose(false); setTitle(""); setBody(""); }}
+              onClick={() => { setShowCompose(false); setTitle(""); setBody(""); setPostError(null); }}
             >
               Cancel
             </button>
@@ -697,6 +724,16 @@ export default function HubConvClient({
             </button>
           </div>
         </div>
+      )}
+
+      {/* The answer to posting, where the compose card was (FormDone). */}
+      {posted && !showCompose && (
+        <FormDone app title="Your topic is posted.">
+          <p>
+            It is at the top of the list.{" "}
+            <Link href={`/account/hub/${hubSlug}/conversations/${posted.id}`}>Open &ldquo;{posted.title}&rdquo;</Link>
+          </p>
+        </FormDone>
       )}
 
       {/* List */}
@@ -718,6 +755,8 @@ export default function HubConvClient({
           {regularThreads.map((t) => <ThreadRow key={t.id} thread={t} />)}
         </div>
       )}
+
+      <ActionNotice notice={notice} onClose={() => say(null)} />
     </div>
   );
 }

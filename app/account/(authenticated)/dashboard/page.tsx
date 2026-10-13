@@ -411,6 +411,7 @@ export default async function DashboardPage({ searchParams }: {
             /account/reactivate; FormDone, 2026-10-13). */}
         {!upcomingView && (query.welcome === "new" || query.welcome === "back") && (
           <FormDone
+            app
             clearParam="welcome"
             title={query.welcome === "new" ? "You\u2019re all set. Welcome to RIM." : "Welcome back. You\u2019re all set."}
           >

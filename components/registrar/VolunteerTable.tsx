@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Fragment } from "react";
+import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import dynamic from "next/dynamic";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
 
@@ -91,6 +92,9 @@ export default function VolunteerTable({
   reminderDate,
 }: Props) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
+  // Every action is answered and the answer kept until closed; the buttons'
+  // brief "Sent ✓" labels are extra (ActionNotice, 2026-10-13).
+  const { notice, say } = useActionNotice();
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -192,11 +196,12 @@ export default function VolunteerTable({
         body: JSON.stringify({ status: "REGISTERED", danaMode: danaMode ?? "none" }),
       });
       if (!res.ok) throw new Error();
+      say("Moved from the waitlist to registered.");
     } catch {
       setRegistrations((rs) =>
         rs.map((r) => (r.id === id ? { ...r, status: prevStatus! } : r))
       );
-      alert("Failed to promote. Please try again.");
+      say("Failed to promote. Please try again.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -216,11 +221,12 @@ export default function VolunteerTable({
         body: JSON.stringify({ status: "CANCELLED" }),
       });
       if (!res.ok) throw new Error();
+      say("Registration cancelled.");
     } catch {
       setRegistrations((rs) =>
         rs.map((r) => (r.id === id ? { ...r, status: prevStatus! } : r))
       );
-      alert("Failed to cancel. Please try again.");
+      say("Failed to cancel. Please try again.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -240,11 +246,12 @@ export default function VolunteerTable({
         body: JSON.stringify({ status: "REGISTERED" }),
       });
       if (!res.ok) throw new Error();
+      say("Registration restored.");
     } catch {
       setRegistrations((rs) =>
         rs.map((r) => (r.id === id ? { ...r, status: prevStatus! } : r))
       );
-      alert("Failed to restore. Please try again.");
+      say("Failed to restore. Please try again.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -259,8 +266,9 @@ export default function VolunteerTable({
       setRegistrations((rs) => rs.filter((r) => r.id !== id));
       setExpandedId(null);
       setConfirmDeleteId(null);
+      say("Registration deleted.");
     } catch {
-      alert("Failed to delete. Please try again.");
+      say("Failed to delete. Please try again.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -277,9 +285,10 @@ export default function VolunteerTable({
       });
       if (!res.ok) throw new Error();
       setReminderSent(id);
+      say("Dana reminder sent.");
       setTimeout(() => setReminderSent(null), 3000);
     } catch {
-      alert("Failed to send reminder. Please try again.");
+      say("Failed to send reminder. Please try again.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -296,9 +305,10 @@ export default function VolunteerTable({
       });
       if (!res.ok) throw new Error();
       setEditRequestSent(id);
+      say("Edit link sent. They can update their answers from the email.");
       setTimeout(() => setEditRequestSent(null), 4000);
     } catch {
-      alert("Failed to send edit request. Please try again.");
+      say("Failed to send edit request. Please try again.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -317,9 +327,10 @@ export default function VolunteerTable({
       if (!res.ok) throw new Error();
       setLocalReminderSentAt((prev) => ({ ...prev, [id]: json.reminderSentAt ?? new Date().toISOString() }));
       setProgReminderSent(id);
+      say("Reminder sent.");
       setTimeout(() => setProgReminderSent(null), 4000);
     } catch {
-      alert("Failed to send reminder. Please try again.");
+      say("Failed to send reminder. Please try again.", "error");
     } finally {
       setSendingProgReminder(null);
     }
@@ -339,8 +350,9 @@ export default function VolunteerTable({
         .forEach((r) => { updates[r.id] = now; });
       setLocalReminderSentAt((prev) => ({ ...prev, ...updates }));
       setBulkReminderSent(json.sent ?? 0);
+      say(`Reminders sent to ${json.sent ?? 0} ${(json.sent ?? 0) === 1 ? "person" : "people"}.`);
     } catch {
-      alert("Failed to send reminders. Please try again.");
+      say("Failed to send reminders. Please try again.", "error");
     } finally {
       setBulkReminderSending(false);
     }
@@ -357,9 +369,10 @@ export default function VolunteerTable({
       });
       if (!res.ok) throw new Error();
       setResendSent(id);
+      say("Confirmation sent again.");
       setTimeout(() => setResendSent(null), 4000);
     } catch {
-      alert("Failed to resend confirmation. Please try again.");
+      say("Failed to resend confirmation. Please try again.", "error");
     } finally {
       setSendingResend(null);
     }
@@ -381,10 +394,11 @@ export default function VolunteerTable({
         rs.map((r) => (r.id === id ? { ...r, customFields: fields } : r))
       );
       setSavedFields(id);
+      say("Saved. Their answers are updated.");
       setEditFieldsOpen(null);
       setTimeout(() => setSavedFields(null), 2500);
     } catch {
-      alert("Failed to save responses. Please try again.");
+      say("Failed to save responses. Please try again.", "error");
     } finally {
       setSavingFields(null);
     }
@@ -405,9 +419,10 @@ export default function VolunteerTable({
 
       setRegistrations((rs) => rs.map((r) => (r.id === id ? { ...r, notes } : r)));
       setSavedNotes(id);
+      say("Notes saved.");
       setTimeout(() => setSavedNotes(null), 2000);
     } catch {
-      alert("Failed to save notes. Please try again.");
+      say("Failed to save notes. Please try again.", "error");
     } finally {
       setSavingNotes(null);
     }
@@ -1057,6 +1072,7 @@ export default function VolunteerTable({
           </tbody>
         </table>
       )}
+      <ActionNotice notice={notice} onClose={() => say(null)} />
     </div>
   );
 }

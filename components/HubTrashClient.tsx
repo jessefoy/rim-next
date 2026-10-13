@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { ActionNotice, useActionNotice } from "@/components/FormDone";
 
 interface Person {
   firstName: string | null;
@@ -49,19 +50,34 @@ function fmtDate(iso: string) {
 export default function HubTrashClient({ hubSlug, hubName, initialThreads }: Props) {
   const [threads, setThreads] = useState<TrashedThread[]>(initialThreads);
   const [busyId, setBusyId]   = useState<string | null>(null);
+  // Every action is answered, success or not (ActionNotice, 2026-10-13).
+  const { notice, say } = useActionNotice();
 
   async function restoreThread(id: string) {
+    const title = threads.find((t) => t.id === id)?.title ?? "The conversation";
     setBusyId(id);
-    const res = await fetch(`/api/hub/${hubSlug}/conversations/${id}/restore`, { method: "POST" });
-    if (res.ok) setThreads((prev) => prev.filter((t) => t.id !== id));
+    say(null);
+    const res = await fetch(`/api/hub/${hubSlug}/conversations/${id}/restore`, { method: "POST" }).catch(() => null);
+    if (res?.ok) {
+      setThreads((prev) => prev.filter((t) => t.id !== id));
+      say(`\u201c${title}\u201d is restored. It is back in Conversations, under Archived.`);
+    } else {
+      say("That conversation was not restored. Please try again.", "error");
+    }
     setBusyId(null);
   }
 
   async function permaDeleteThread(id: string, title: string) {
     if (!window.confirm(`Permanently delete the thread "${title}" and all its replies? This cannot be undone.`)) return;
     setBusyId(id);
-    const res = await fetch(`/api/hub/${hubSlug}/conversations/${id}/permanent-delete`, { method: "POST" });
-    if (res.ok) setThreads((prev) => prev.filter((t) => t.id !== id));
+    say(null);
+    const res = await fetch(`/api/hub/${hubSlug}/conversations/${id}/permanent-delete`, { method: "POST" }).catch(() => null);
+    if (res?.ok) {
+      setThreads((prev) => prev.filter((t) => t.id !== id));
+      say(`\u201c${title}\u201d is permanently deleted.`);
+    } else {
+      say("That conversation was not deleted. Please try again.", "error");
+    }
     setBusyId(null);
   }
 
@@ -118,6 +134,7 @@ export default function HubTrashClient({ hubSlug, hubName, initialThreads }: Pro
           </div>
         </section>
       )}
+      <ActionNotice notice={notice} onClose={() => say(null)} />
     </div>
   );
 }

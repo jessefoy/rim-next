@@ -14,6 +14,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
@@ -252,11 +253,6 @@ function bucketByWeek(sessions: Session[], isCurrentMonth: boolean): Bucket[] {
     }));
 }
 
-function Toast({ msg }: { msg: string | null }) {
-  if (!msg) return null;
-  return <div className="hub-toast">{msg}</div>;
-}
-
 // ── Modal ───────────────────────────────────────────────────
 
 type ModalKind = "take" | "cover" | "ask-cover" | "ask-cover-for" | "cancel-request" | "clear-request" | "reassign" | "unassign" | null;
@@ -267,9 +263,11 @@ interface ModalProps {
   onConfirm: (extra?: any) => Promise<void> | void;
   onCancel: () => void;
   submitting: boolean;
+  /** A failed confirm, said beside the button inside the modal. */
+  error?: string | null;
 }
 
-function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps) {
+function HsModal({ kind, session, onConfirm, onCancel, submitting, error }: ModalProps) {
   const [coverNote, setCoverNote] = useState<string>("");
 
   useEffect(() => {
@@ -395,6 +393,11 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
         <h2 className="hs-modal__title">{title}</h2>
         <div className="hs-modal__body">{body}</div>
         {extraInput}
+        {error && (
+          <p className="save-note save-note--error hs-modal__error" role="alert">
+            {error}
+          </p>
+        )}
         <div className="hs-modal__actions">
           <button
             className="lr-btn lr-btn--host hs-modal__primary"
@@ -823,7 +826,9 @@ export default function HubScheduleClient({
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  // Each action's answer stays until closed or the next action (ActionNotice).
+  const { notice: toast, say: setToast } = useActionNotice();
+  const [modalError, setModalError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string>(currentUserId);
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
@@ -843,10 +848,7 @@ export default function HubScheduleClient({
     return () => document.removeEventListener("mousedown", handler);
   }, [memberDropdownOpen]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  };
+  const showToast = setToast;
 
   const loadMonth = useCallback(async (y: number, m: number) => {
     setLoading(true);
@@ -854,11 +856,14 @@ export default function HubScheduleClient({
       const monthStr = `${y}-${String(m + 1).padStart(2, "0")}`;
       const hubQuery = hubSlug ? `&hub=${encodeURIComponent(hubSlug)}` : "";
       const res = await fetch(`${apiBase}/assignments?month=${monthStr}${hubQuery}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        showToast("Couldn't load this month. Please try again.", "error");
+        return;
+      }
       const data: Session[] = await res.json();
       setSessions(data);
     } catch {
-      showToast("Couldn't load this month.");
+      showToast("Couldn't load this month. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -880,25 +885,25 @@ export default function HubScheduleClient({
       const s = sessions.find(x => x.id === id);
       if (s) {
         if (s.hostUserId === currentUserId) {
-          showToast("You're already hosting this session.");
+          showToast("You're already hosting this session.", "error");
         } else if (s.status === "claimed" && !s.subRequestId) {
-          showToast("This session already has a host.");
+          showToast("This session already has a host.", "error");
         } else {
           setModal({ kind: "take", session: s });
         }
       } else {
-        showToast("We couldn't find that session.");
+        showToast("We couldn't find that session.", "error");
       }
     } else if (action === "cover") {
       const s = sessions.find(x => x.subRequestId === id);
       if (s) setModal({ kind: "cover", session: s });
-      else showToast("This request is no longer open.");
+      else showToast("This request is no longer open.", "error");
     } else if (action === "cancel") {
       const s = sessions.find(x => x.subRequestId === id);
       if (s && s.hostUserId === currentUserId) {
         setModal({ kind: "cancel-request", session: s });
       } else {
-        showToast("That request is no longer active.");
+        showToast("That request is no longer active.", "error");
       }
     }
   }, [searchParams, sessions, currentUserId]);
@@ -1084,7 +1089,7 @@ export default function HubScheduleClient({
       const who = teamMembers.find(m => m.id === userId)?.displayName ?? data.hostName ?? "host";
       showToast(`Assigned ${who} · ${s.programName} · ${fmtDateShort(s.sessionDate)}`);
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "Couldn't assign. Please try again.");
+      showToast(e instanceof Error ? e.message : "Couldn't assign. Please try again.", "error");
     }
   }
 
@@ -1105,7 +1110,7 @@ export default function HubScheduleClient({
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
-      setToast(d.error ?? "Couldn't sign up. Try again.");
+      setToast(d.error ?? "Couldn't sign up. Try again.", "error");
       return;
     }
     setToast("Signed up. Thank you!");
@@ -1118,7 +1123,7 @@ export default function HubScheduleClient({
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
-      setToast(d.error ?? "Couldn't cancel. Try again.");
+      setToast(d.error ?? "Couldn't cancel. Try again.", "error");
       return;
     }
     setToast("Signup cancelled.");
@@ -1136,7 +1141,7 @@ export default function HubScheduleClient({
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
-      setToast(d.error ?? "Couldn't remove the signup. Try again.");
+      setToast(d.error ?? "Couldn't remove the signup. Try again.", "error");
       return;
     }
     setToast(userName ? `Removed ${userName}'s signup.` : "Signup removed.");
@@ -1156,6 +1161,7 @@ export default function HubScheduleClient({
 
   function closeModal() {
     if (modalSubmitting) return;
+    setModalError(null);
     setModal({ kind: null, session: null });
     clearDeepLinkParams();
   }
@@ -1163,6 +1169,8 @@ export default function HubScheduleClient({
   async function handleConfirm(extra?: any) {
     if (!modal.session) return;
     setModalSubmitting(true);
+    setModalError(null);
+    setToast(null);
     try {
       if (modal.kind === "take") {
         await takeSession(modal.session);
@@ -1195,7 +1203,8 @@ export default function HubScheduleClient({
       setModal({ kind: null, session: null });
       clearDeepLinkParams();
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "Something went wrong.");
+      // The modal stays open, so the problem is said there, beside its button.
+      setModalError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
     } finally {
       setModalSubmitting(false);
     }
@@ -1572,9 +1581,10 @@ export default function HubScheduleClient({
         onConfirm={handleConfirm}
         onCancel={closeModal}
         submitting={modalSubmitting}
+        error={modalError}
       />
 
-      <Toast msg={toast} />
+      <ActionNotice notice={toast} onClose={() => setToast(null)} />
 
       </> /* end schedule view */}
     </div>

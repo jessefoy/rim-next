@@ -23,6 +23,7 @@ const RimTiptapEditor = dynamic(
 import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 import { avatarColorFor } from "@/lib/avatarColor";
 import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
+import { ActionNotice, useActionNotice } from "@/components/FormDone";
 
 interface PersonName {
   firstName: string | null;
@@ -141,6 +142,8 @@ export default function HubConvThreadClient({
   // and an inline error — together they kill the double-post (session 141).
   const [replyEditorKey, setReplyEditorKey] = useState(0);
   const [replyError, setReplyError] = useState<string | null>(null);
+  // Every action is answered, success or not (ActionNotice, 2026-10-13).
+  const { notice, say } = useActionNotice();
   const sendingReplyRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
@@ -156,12 +159,15 @@ export default function HubConvThreadClient({
 
   async function toggleFollow() {
     setFollowBusy(true);
+    say(null);
     const willSubscribe = !currentUserSubscribed;
     const res = await fetch(
       `/api/hub/${hubSlug}/conversations/${thread.id}/subscribe`,
       { method: willSubscribe ? "POST" : "DELETE" }
-    );
-    if (res.ok) {
+    ).catch(() => null);
+    if (!res?.ok) say("That didn\u2019t go through. Please try again.", "error");
+    else say(willSubscribe ? "You\u2019re following this conversation. You\u2019ll get an email for each reply." : "You\u2019ve stopped following this conversation.");
+    if (res?.ok) {
       setCurrentUserSubscribed(willSubscribe);
       if (willSubscribe) {
         setSubscriptions((prev) =>
@@ -232,6 +238,7 @@ export default function HubConvThreadClient({
     sendingReplyRef.current = true;
     setSaving(true);
     setReplyError(null);
+    say(null);
     try {
       const res = await fetch(
         `/api/hub/${hubSlug}/conversations/${thread.id}/replies`,
@@ -281,6 +288,7 @@ export default function HubConvThreadClient({
       // content otherwise, which made a successful post look unsent and
       // invited a duplicate submit.
       setReplyEditorKey((k) => k + 1);
+      say("Your reply is posted.");
     } catch {
       setReplyError("Your reply didn't post. Please try again.");
     } finally {
@@ -294,11 +302,12 @@ export default function HubConvThreadClient({
     const res = await fetch(
       `/api/hub/${hubSlug}/conversations/${thread.id}/replies/${replyId}`,
       { method: "DELETE" },
-    );
-    if (res.ok) {
+    ).catch(() => null);
+    if (res?.ok) {
       setThread((prev) => ({ ...prev, replies: prev.replies.filter((r) => r.id !== replyId) }));
+      say("Reply deleted.");
     } else {
-      setReplyError("Couldn't delete that reply. Please try again.");
+      say("That reply was not deleted. Please try again.", "error");
     }
   }
 
@@ -327,8 +336,9 @@ export default function HubConvThreadClient({
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ action: "edit", title: editTitle.trim(), body: editBody }),
-    });
-    if (res.ok) {
+    }).catch(() => null);
+    if (!res?.ok) say("Your changes were not saved. They are still here. Please try again.", "error");
+    if (res?.ok) {
       const updated = await res.json();
       setThread((prev) => ({
         ...prev,
@@ -339,6 +349,7 @@ export default function HubConvThreadClient({
         editedAt: updated.editedAt,
       }));
       cancelEdit();
+      say("Saved. Your changes are posted.");
     }
     setSavingEdit(false);
   }
@@ -353,8 +364,9 @@ export default function HubConvThreadClient({
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ body: editBody }),
       }
-    );
-    if (res.ok) {
+    ).catch(() => null);
+    if (!res?.ok) say("Your changes were not saved. They are still here. Please try again.", "error");
+    if (res?.ok) {
       const updated = await res.json();
       setThread((prev) => ({
         ...prev,
@@ -365,6 +377,7 @@ export default function HubConvThreadClient({
         ),
       }));
       cancelEdit();
+      say("Saved. Your changes are posted.");
     }
     setSavingEdit(false);
   }
@@ -378,8 +391,9 @@ export default function HubConvThreadClient({
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ emoji }),
       }
-    );
-    if (res.ok) {
+    ).catch(() => null);
+    if (!res?.ok) say("That didn\u2019t go through. Please try again.", "error");
+    if (res?.ok) {
       const { reactions } = await res.json();
       setThread((prev) => ({
         ...prev,
@@ -396,8 +410,13 @@ export default function HubConvThreadClient({
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ status }),
-    });
-    if (res.ok) setThread((prev) => ({ ...prev, status }));
+    }).catch(() => null);
+    if (!res?.ok) {
+      say("That didn\u2019t go through. Please try again.", "error");
+      return;
+    }
+    setThread((prev) => ({ ...prev, status }));
+    say(status === "OPEN" ? "Reopened." : "Archived. It has moved to the Archived list.");
   }
 
   async function togglePin() {
@@ -407,8 +426,13 @@ export default function HubConvThreadClient({
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ action }),
-    });
-    if (res.ok) setThread((prev) => ({ ...prev, isPinned: !prev.isPinned }));
+    }).catch(() => null);
+    if (!res?.ok) {
+      say("That didn\u2019t go through. Please try again.", "error");
+      return;
+    }
+    setThread((prev) => ({ ...prev, isPinned: !prev.isPinned }));
+    say(action === "pin" ? "Pinned to the top of the list." : "Unpinned.");
   }
 
   async function softDeleteThread() {
@@ -416,8 +440,9 @@ export default function HubConvThreadClient({
     if (!window.confirm("Delete this archived thread? It will move to the trash, where admins or coordinators can restore or permanently delete it.")) return;
     const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
       method: "DELETE",
-    });
-    if (res.ok) {
+    }).catch(() => null);
+    if (!res?.ok) say("This conversation was not deleted. Please try again.", "error");
+    if (res?.ok) {
       // Navigate back to the list — the thread is no longer visible to this user.
       window.location.href = `/account/hub/${hubSlug}/conversations`;
     }
@@ -745,7 +770,7 @@ export default function HubConvThreadClient({
                 + Notify someone new…
               </button>
             )}
-            {replyError && <p className="hub-conv-replybox__error">{replyError}</p>}
+            {replyError && <p className="hub-conv-replybox__error" role="alert">{replyError}</p>}
             <div className="hub-conv-replybox__actions">
               <button
                 className="btn"
@@ -762,6 +787,8 @@ export default function HubConvThreadClient({
           This conversation is archived — no new replies can be added.
         </p>
       )}
+
+      <ActionNotice notice={notice} onClose={() => say(null)} />
     </div>
   );
 }

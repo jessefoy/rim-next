@@ -19,9 +19,11 @@ export default function MarkCompleteButton({
   const [loading, setLoading] = useState(false);
   const [seriesCompleted, setSeriesCompleted] = useState(false);
   const [completionNote, setCompletionNote] = useState<string | null>(courseCompletionNote ?? null);
+  const [failed, setFailed] = useState(false);
 
   async function toggle() {
     setLoading(true);
+    setFailed(false);
     try {
       const res = await fetch(`/api/lessons/${lessonSlug}/complete`, {
         method: "POST",
@@ -35,7 +37,11 @@ export default function MarkCompleteButton({
           setSeriesCompleted(true);
           if (data.completionNote) setCompletionNote(data.completionNote);
         }
+      } else {
+        setFailed(true);
       }
+    } catch {
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -43,7 +49,7 @@ export default function MarkCompleteButton({
 
   if (seriesCompleted) {
     return (
-      <div className="lp-series-complete">
+      <div className="lp-series-complete" role="status">
         <p className="lp-series-complete__msg">
           You&apos;ve completed this series. Take a moment to let that land.
         </p>
@@ -55,14 +61,21 @@ export default function MarkCompleteButton({
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      disabled={loading}
-      className={`lp-complete-btn${completed ? " lp-complete-btn--done" : ""}`}
-      aria-pressed={completed}
-    >
-      {completed ? "✓ Marked complete" : "Mark as complete"}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={loading}
+        className={`lp-complete-btn${completed ? " lp-complete-btn--done" : ""}`}
+        aria-pressed={completed}
+      >
+        {loading ? "Saving…" : completed ? "✓ Marked complete" : "Mark as complete"}
+      </button>
+      {failed && (
+        <p className="save-note save-note--error" role="alert">
+          That didn&rsquo;t go through. Please try again.
+        </p>
+      )}
+    </>
   );
 }

@@ -60,6 +60,7 @@ import {
 import { ALLOWED_UPLOAD_MIME_TYPES, GOOGLE_MIME } from "@/lib/google/mime";
 import { orderFiles, isFileSort, type FileSort } from "@/lib/fileOrganization";
 import { relativeDate } from "@/lib/relativeDate";
+import { ActionNotice, useActionNotice } from "@/components/FormDone";
 
 // The exact same list the server's Blob-token scope enforces (lib/google/
 // mime.ts) — the picker can never offer a type the server would reject.
@@ -183,6 +184,7 @@ export default function FilesBrowser({
   const [actionError, setActionError] = useState<string | null>(null);
   // Upload progress/status, shown as a slim line under the toolbar rather
   // than a modal — it runs alongside browsing, not blocking it.
+  const { notice, say } = useActionNotice();
   const [uploadStatus, setUploadStatus] = useState<
     | { name: string; percentage: number; phase: "sending" | "finishing" }
     | { name: string; error: string }
@@ -496,6 +498,7 @@ export default function FilesBrowser({
     const controller = new AbortController();
     uploadAbort.current = controller;
     setUploadStatus({ name: file.name, percentage: 0, phase: "sending" });
+    say(null);
     // Capture where this upload started — the destination it should land in
     // and reload, regardless of where the member browses to afterward.
     const origin = { placeKey, folderId };
@@ -545,14 +548,16 @@ export default function FilesBrowser({
       // the daily cron backstop + a later refresh cover an unusually slow move).
       if (stillAtOrigin()) load({ soft: true });
       setUploadStatus(null);
+      // Answered, and kept until closed (ActionNotice, 2026-10-13).
+      say(`\u201c${file.name}\u201d is uploaded.`);
     } catch (err) {
       if (controller.signal.aborted) {
         setUploadStatus(null);
         return;
       }
       const message = err instanceof Error ? err.message : "The upload didn't go through.";
-      setUploadStatus({ name: file.name, error: message });
-      window.setTimeout(() => setUploadStatus(null), 4000);
+      setUploadStatus(null);
+      say(`\u201c${file.name}\u201d was not uploaded. ${message} Please try again.`, "error");
     } finally {
       uploadAbort.current = null;
     }
@@ -802,6 +807,8 @@ export default function FilesBrowser({
           </div>
         )}
 
+        <ActionNotice notice={notice} onClose={() => say(null)} />
+
         {actionError && !dialog && (
           <p className="gf-notice" role="alert">
             {actionError}
@@ -943,7 +950,7 @@ export default function FilesBrowser({
               Nothing is deleted yet — it stays recoverable, and a lead (or you) can keep
               it instead.
             </p>
-            {actionError && <p className="gf-dialog__error">{actionError}</p>}
+            {actionError && <p className="gf-dialog__error" role="alert">{actionError}</p>}
             <div className="gf-dialog__actions">
               <button className="gf-dialog__cancel" onClick={closeDialog} disabled={busy}>
                 Cancel
@@ -1001,7 +1008,7 @@ function NameDialog({
           autoFocus
           maxLength={150}
         />
-        {error && <p className="gf-dialog__error">{error}</p>}
+        {error && <p className="gf-dialog__error" role="alert">{error}</p>}
         <div className="gf-dialog__actions">
           <button type="button" className="gf-dialog__cancel" onClick={onCancel} disabled={busy}>
             Cancel
@@ -1117,7 +1124,7 @@ function MovePicker({
               </button>
             ))}
         </div>
-        {error && <p className="gf-dialog__error">{error}</p>}
+        {error && <p className="gf-dialog__error" role="alert">{error}</p>}
         <div className="gf-dialog__actions">
           <button className="gf-dialog__cancel" onClick={onCancel} disabled={busy}>
             Cancel

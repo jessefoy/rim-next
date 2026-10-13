@@ -30922,9 +30922,11 @@ a.pp-card:hover .pp-card__action--named {
 .save-note--saved { color: var(--color-success); font-weight: 600; }
 .save-note--error { color: var(--color-error); }
 .mp-save { flex-wrap: wrap; }
-/* On My Home the welcome answer sits on the page's left edge, under the greeting. */
-.db2-wrap > .pp-form__done { margin: 0 0 var(--space-3); }
-.db2-wrap > .pp-form__done p:not(.pp-form__done-title) { font-size: var(--text-app); line-height: 1.55; }
+/* The app-sized answer (member, team and tool pages): the app's 16px text,
+   on the page's left edge. */
+.pp-form__done--app { max-width: none; margin: 0 0 var(--space-3); padding: 20px 24px; }
+.pp-form__done--app p:not(.pp-form__done-title) { font-size: var(--text-app); line-height: 1.55; }
+.pp-form__done--app .pp-form__done-title { font-size: var(--text-h4); }
 .pg-form__success:focus { outline: none; }
 /* The Scheduler's answer stays until closed (HubScheduleClient Toast). It
    wraps instead of running off a phone, and its Close is a real target. */

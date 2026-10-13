@@ -13,6 +13,7 @@
  */
 
 import { useState } from "react";
+import { ActionNotice, useActionNotice } from "@/components/FormDone";
 
 type HubMemberStatus = "ACTIVE" | "PAUSED" | "INACTIVE";
 
@@ -106,6 +107,9 @@ export default function HubMembersClient({
     pendingPayload: Record<string, unknown>;
   }>(null);
 
+  // Every change is answered, success or not (ActionNotice, 2026-10-13).
+  const { notice, say } = useActionNotice();
+
   const isHostingHub = hasSchedule;
   const canEdit = isCoordinator;
 
@@ -115,11 +119,16 @@ export default function HubMembersClient({
     force = false,
     releaseAssignments = false
   ): Promise<{ ok: boolean; confirmed?: boolean }> {
+    say(null);
     const res = await fetch(`/api/hub/${hubSlug}/members/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...payload, force, releaseAssignments }),
-    });
+    }).catch(() => null);
+    if (!res) {
+      say("Those changes were not saved. Please try again.", "error");
+      return { ok: false };
+    }
     if (res.status === 409) {
       const j = await res.json().catch(() => ({}));
       if (j?.requiresConfirmation) {
@@ -136,8 +145,10 @@ export default function HubMembersClient({
     if (res.ok) {
       const updated: HubMemberRow = { ...(await res.json()), user: members.find((m) => m.userId === userId)!.user };
       setMembers((prev) => prev.map((m) => (m.userId === userId ? { ...m, ...updated } : m)));
+      say(`Saved. ${displayName(updated.user)}\u2019s details are updated.`);
       return { ok: true };
     }
+    say("Those changes were not saved. Please try again.", "error");
     return { ok: false };
   }
 
@@ -149,9 +160,13 @@ export default function HubMembersClient({
   }
 
   async function hardRemove(userId: string) {
-    const res = await fetch(`/api/hub/${hubSlug}/members/${userId}`, { method: "DELETE" });
-    if (res.ok) {
+    const row = members.find((m) => m.userId === userId);
+    const res = await fetch(`/api/hub/${hubSlug}/members/${userId}`, { method: "DELETE" }).catch(() => null);
+    if (res?.ok) {
       setMembers((prev) => prev.filter((m) => m.userId !== userId));
+      say(row ? `${displayName(row.user)} is removed from this team.` : "Removed from this team.");
+    } else {
+      say("That person was not removed. Please try again.", "error");
     }
     setConfirmHardRemove(null);
   }
@@ -160,24 +175,30 @@ export default function HubMembersClient({
     setSearchQuery(query);
     if (query.trim().length < 3) { setSearchResults([]); return; }
     setSearching(true);
-    const res = await fetch(`/api/hub/${hubSlug}/members/search?q=${encodeURIComponent(query.trim())}`);
-    if (res.ok) setSearchResults(await res.json());
+    const res = await fetch(`/api/hub/${hubSlug}/members/search?q=${encodeURIComponent(query.trim())}`).catch(() => null);
+    if (res?.ok) setSearchResults(await res.json());
+    else say("The search didn\u2019t work. Please try again.", "error");
     setSearching(false);
   }
 
   async function addMember(userId: string) {
     setAdding(true);
+    say(null);
     const res = await fetch(`/api/hub/${hubSlug}/members`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId }),
-    });
-    if (res.ok) {
+    }).catch(() => null);
+    if (res?.ok) {
       const newMember = await res.json();
       setMembers((prev) => [...prev, newMember]);
       setSearchQuery("");
       setSearchResults([]);
       setShowAddForm(false);
+      say(newMember?.user ? `${displayName(newMember.user)} is added to this team.` : "Added to this team.");
+    } else {
+      const d = await res?.json().catch(() => null);
+      say(d?.error ?? "That person was not added. Please try again.", "error");
     }
     setAdding(false);
   }
@@ -379,6 +400,7 @@ export default function HubMembersClient({
           </div>
         </div>
       )}
+      <ActionNotice notice={notice} onClose={() => say(null)} />
     </div>
   );
 }
