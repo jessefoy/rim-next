@@ -1806,9 +1806,10 @@
     "description": "Team Home no longer reads Hub.welcomeHeadline, welcomeBody, homeContent or HubMember.firstVisitedAt (2026-10-13). Jesse was given each team’s welcome and guidance text (team-home-text-for-leads.md, not committed) to pass to its leads. When he says so, drop the columns in a flag-guarded migrate.mjs block (two-phase: code already ignores them).",
     "category": "Hubs",
     "priority": "low",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-10-13",
-    "notes": "Seven teams had text: Belonging, Course Team, Hosting Team, Program Central, Registration, Support, Volunteer Coordination."
+    "notes": "Seven teams had text: Belonging, Course Team, Hosting Team, Program Central, Registration, Support, Volunteer Coordination. | Done 2026-10-13: Jesse said delete it and keep an archive. Archived to ~/Sites/rim-next-archive/team-home-text-2026-10-13 (readable .md and raw JSON; not in the public repo); fields left the schema (0772f30), the always-run convert_hub_content_to_html and three seeds were retired (9b9ed5b), columns dropped by drop_team_home_text_v1. HubMember.firstVisitedAt kept (harmless, unread).",
+    "closedAt": "2026-10-13"
   },
   {
     "id": "2026-10-13-007",
@@ -1816,8 +1817,9 @@
     "description": "The visible UI says \"team\" since 2026-10-13, and the two hard-coded team emails were changed. Database-held templates (hub-welcome, hub-conv-new-thread, hub-conv-new-reply, and any others; the /admin/emails group label \"Hubs & Onboarding\") may still say hub. Inventory them and change each with Jesse’s consent for that template (Email Template Gate).",
     "category": "Email & Notifications",
     "priority": "low",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-10-13",
-    "notes": ""
+    "notes": " | Done 2026-10-13 with Jesse’s permission: email_templates_team_not_hub_v1 (host-role-assigned also says Zoom, not Google Meet; names, descriptions, group \"Teams & Onboarding\"); the hard-coded coordinator welcome rewritten. A read of every template afterward found no \"hub\".",
+    "closedAt": "2026-10-13"
   }
 ]

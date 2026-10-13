@@ -6140,6 +6140,23 @@ Rooted In Mindfulness · Brookfield, WI`,
     );
   }
 
+  // Team Home's retired text (Jesse, 2026-10-13: "You can delete the other
+  // text… keep it as an archive"). Step 2 of two: the code stopped reading
+  // these columns in 0772f30/9b9ed5b (live before this runs); the text is
+  // archived outside the public repo (~/Sites/rim-next-archive). Idempotent.
+  const dropTeamHomeTextFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'drop_team_home_text_v1'
+  `).catch(() => []);
+  if (dropTeamHomeTextFlag.length === 0) {
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" DROP COLUMN IF EXISTS "welcomeHeadline", DROP COLUMN IF EXISTS "welcomeBody", DROP COLUMN IF EXISTS "homeContent"`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('drop_team_home_text_v1') ON CONFLICT DO NOTHING`,
+    );
+    console.log("  ✔ Dropped hubs.welcomeHeadline, welcomeBody, homeContent (archived).");
+  }
+
   // ───────────────────────────────────────────────────────────────────────
   // Sign-in email: "Sign me in from this device" (2026-09-24). Intentional
   // update of two EXISTING templates, with Jesse's explicit consent for this
