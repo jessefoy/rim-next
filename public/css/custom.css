@@ -22673,45 +22673,6 @@ input.w-button { -webkit-appearance: button; }
    navigation. White is reserved for a relevant action or bounded work.
 ═══════════════════════════════════════════════════ */
 
-.member-bar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  height: 68px;
-  padding: 0 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--rim-rule);
-  background: var(--rim-surface);
-}
-.member-bar__brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--rim-text);
-  font-family: var(--font-serif);
-  font-size: var(--text-h4);
-  text-decoration: none;
-}
-.member-bar__brand img { display: block; width: auto; }
-.member-bar__right { display: flex; align-items: center; gap: 18px; }
-.member-bar__label {
-  color: var(--rim-text-muted);
-  font-size: var(--text-xs);
-}
-.member-bar__sign-out {
-  min-height: 44px;
-  padding: 8px 0;
-  border: none;
-  background: transparent;
-  color: var(--rim-text-muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--text-xs);
-}
-.member-bar__sign-out:hover { color: var(--rim-text); }
-
 .ac-layout { background: var(--rim-bg); }
 .ac-sidebar {
   width: 248px;
@@ -22879,10 +22840,6 @@ input.w-button { -webkit-appearance: button; }
   .ac-content { padding: 40px 36px 72px; }
 }
 @media (max-width: 700px) {
-  .member-bar { height: 60px; padding: 0 16px; }
-  .member-bar__brand { font-size: var(--text-small); }
-  .member-bar__brand img { height: 32px; }
-  .member-bar__label { display: none; }
   .ac-content { padding: 36px 20px 64px; }
   .db2-greeting__name { font-size: var(--text-h2); }
   .db2-hub-grid { grid-template-columns: 1fr; }
@@ -23008,47 +22965,6 @@ input.w-button { -webkit-appearance: button; }
    Navigation names stable destinations; the home page names what needs
    attention now. No visual emphasis is assigned merely by list position.
 ═══════════════════════════════════════════════════ */
-.member-bar {
-  height: 68px;
-  padding: 0 32px;
-  background: var(--rim-bg-bright);
-}
-.member-bar__brand {
-  gap: 10px;
-  font-size: var(--text-small);
-}
-.member-bar__brand img { height: 36px; }
-.member-bar__right { gap: 20px; }
-.member-bar__profile,
-.member-bar__sign-out,
-.member-bar__site-link {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  color: var(--rim-text-muted);
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  text-decoration: none;
-}
-.member-bar__site-link:hover { color: var(--rim-blue); }
-.member-bar__profile {
-  gap: 8px;
-  color: var(--rim-text);
-  font-weight: 600;
-}
-.member-bar__avatar {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--rim-bg-accent);
-  color: var(--rim-blue);
-  font-size: var(--text-xs);
-}
-.member-bar__profile:hover,
-.member-bar__sign-out:hover { color: var(--rim-blue); }
 
 .ac-layout { min-height: calc(100vh - 68px); }
 .ac-sidebar {
@@ -23126,11 +23042,7 @@ input.w-button { -webkit-appearance: button; }
    member header or rail had a focus style. Matches .pl-card:focus-visible. */
 .ac-sidebar__link:focus-visible,
 .ac-sidebar__group-toggle:focus-visible,
-.ac-sidebar__toggle:focus-visible,
-.member-bar__brand:focus-visible,
-.member-bar__profile:focus-visible,
-.member-bar__site-link:focus-visible,
-.member-bar__sign-out:focus-visible {
+.ac-sidebar__toggle:focus-visible {
   outline: 2px solid var(--rim-blue);
   outline-offset: 2px;
 }
@@ -23321,16 +23233,6 @@ input.w-button { -webkit-appearance: button; }
 .db2-team-update:hover { color: var(--rim-blue); }
 
 @media (max-width: 700px) {
-  .member-bar { height: 60px; padding: 0 16px; }
-  .member-bar__brand { font-size: var(--text-small); }
-  .member-bar__brand img { height: 30px; }
-  /* The 60px bar keeps all three right-side affordances at every width by
-     shedding the wordmark and the profile name — the logo and the avatar
-     carry those identities alone on phones. "Main site" must stay in the
-     bar: tool and hub pages have no account rail to move it into. */
-  .member-bar__brand span { display: none; }
-  .member-bar__profile-name { display: none; }
-  .member-bar__right { gap: 14px; }
   .ac-layout { min-height: calc(100vh - 60px); }
   .ac-content { padding: 32px 20px 64px; }
   .db2-wrap { margin: 0; }
@@ -23373,7 +23275,7 @@ input.w-button { -webkit-appearance: button; }
     background: var(--rim-bg-bright); /* matches the hub mobilebar */
     border-bottom: 1px solid var(--rim-rule);
     position: sticky;
-    top: 60px; /* rides directly under the 60px member-bar */
+    top: 60px; /* under the site header: see ONE SITE HEADER ON EVERY PAGE */
     z-index: 40;
   }
   .ac-mobilebar__btn {
@@ -23400,8 +23302,8 @@ input.w-button { -webkit-appearance: button; }
     color: var(--rim-text);
   }
 
-  /* Under the 60px member-bar, exactly like the shipped hub drawer — the
-     bar (with its Main site link) stays visible while the drawer is open. */
+  /* Under the site header, exactly like the hub drawer: the header stays
+     visible while the drawer is open (offsets: ONE SITE HEADER ON EVERY PAGE). */
   .ac-backdrop {
     display: block;
     position: fixed;
@@ -24102,11 +24004,12 @@ input.w-button { -webkit-appearance: button; }
 
 /* ===================================================================
    AUTHENTICATED SYSTEM COHERENCE — hubs, admin, remaining account,
-   and hub-launched tools. The shared member header establishes RIM;
-   each nested shell then identifies the person, team, or task context.
+   and hub-launched tools. The site header establishes RIM (since
+   2026-10-13; see ONE SITE HEADER ON EVERY PAGE); each nested shell then
+   identifies the person, team, or task context.
    =================================================================== */
 
-/* Shared shell geometry beneath the authenticated member header. */
+/* Shared shell geometry beneath the site header (offsets: ONE SITE HEADER). */
 .admin-ui {
   width: 100%;
 }
@@ -29352,7 +29255,6 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   @page hol { margin: 18mm; }
   .hol-reading { page: hol; }
   body:has(.hol-reading) { background: #fff; }
-  body:has(.hol-reading) .member-bar,
   body:has(.hol-reading) .ac-sidebar,
   body:has(.hol-reading) .ac-mobilebar,
   body:has(.hol-reading) .ac-backdrop { display: none !important; }
@@ -30909,20 +30811,64 @@ a.pp-card:hover .pp-card__action--named {
 }
 
 /* ===================================================================
-   THE PERSONAL PAGES WEAR THE SITE'S HEADER — 2026-10-12
-   Testers: "I couldn't get back to the site, I was somewhere else." My Home,
-   Library, My Teams, Community Care, My Profile (and welcome/reactivate) now
-   keep the public .nav and the footer (lib/personalNav.ts). The account rail
-   sits under the taller header on desktop; on phones the header's Menu lists
-   the member's pages, so the rail and its drawer handle are not shown.
-   Team, admin and tool pages keep the member-bar and its 68px offsets.
+   ONE SITE HEADER ON EVERY PAGE — 2026-10-12, widened 2026-10-13
+   Testers: "I couldn't get back to the site, I was somewhere else." The
+   personal pages took the public .nav and footer first (lib/personalNav.ts);
+   on 2026-10-13 Jesse gave team spaces, Files, tools and administration the
+   same header, without the footer, and retired the member-bar. Every rail,
+   drawer, phone bar and backdrop sits under the header by one token, the
+   header's own height (.nav__inner: 100px, 72px at 1120px and below).
+   Declared after the older 68px/60px shell rules so it wins them all.
    =================================================================== */
-.ac-sidebar.ac-sidebar--site { top: 100px; height: calc(100vh - 100px); }
+:root { --site-header-h: 100px; }
 @media (max-width: 1120px) {
-  .ac-sidebar.ac-sidebar--site { top: 72px; height: calc(100vh - 72px); }
+  :root { --site-header-h: 72px; }
 }
+.ac-layout,
+.hub-ws-layout,
+.tools-shell { min-height: calc(100vh - var(--site-header-h)); }
+.ac-sidebar,
+.hub-ws-sidebar,
+.hub-ws-sidebar--collapsed {
+  top: var(--site-header-h);
+  height: calc(100vh - var(--site-header-h));
+}
+/* The account rail is content-box (its width is set without its padding), so
+   its height leaves room for that padding, or its foot (Sign out) runs past
+   the bottom of the screen: 32px + 48px on desktop, 16px + 48px as the phone
+   drawer. The hub rail is border-box and needs no adjustment. */
+.ac-sidebar { height: calc(100vh - var(--site-header-h) - 80px); }
+@media (max-width: 700px) {
+  .ac-sidebar { height: calc(100vh - var(--site-header-h) - 64px); }
+}
+.ac-mobilebar,
+.ac-backdrop,
+.hub-ws-mobilebar,
+.hub-ws-backdrop { top: var(--site-header-h); }
+/* On phones the header's Menu lists the personal pages, so their rail is
+   not shown there; administration keeps its drawer. */
 @media (max-width: 700px) {
   .ac-sidebar.ac-sidebar--site { display: none; }
+}
+/* Sign out in the team rail's foot and the tool bar: a button among links,
+   without button chrome; size and spacing come from the link class beside it. */
+.tools-nav__signout {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+@media (max-width: 767px) {
+  .tools-nav__account { display: none; }
+}
+.hub-ws-footer__signout {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 /* Sign out is a button in a list of links: it takes .ac-sidebar__link's
    type and spacing, without button chrome. Content-box like the links beside
@@ -30960,7 +30906,7 @@ a.pp-card:hover .pp-card__action--named {
    Keep this after page and phone rules so later legacy styles cannot
    shrink a control. Public/editorial typography retains its own tokens.
    =================================================================== */
-:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell, .member-bar, .wl-page) {
+:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell, .wl-page) {
   --text-ui: var(--text-app);
   --text-xs: var(--text-app-meta);
   --text-label: var(--text-app-meta);
@@ -30974,7 +30920,7 @@ a.pp-card:hover .pp-card__action--named {
 /* Existing controls use several legacy tokens, including inline styles.
    Rebind them at the control rather than fight each page's specificity.
    Headings and authored inline prose links retain their existing size. */
-:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell, .member-bar, .wl-page)
+:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell, .wl-page)
 :is(button, input, select, textarea, label, summary, a[class], [role="tab"]) {
   --text-ui: var(--text-app);
   --text-xs: var(--text-app);
@@ -31090,7 +31036,7 @@ a.pp-card:hover .pp-card__action--named {
   font-size: var(--text-h1);
   line-height: var(--lh-heading);
 }
-:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell, .member-bar) :is(button, a, input, select, textarea, summary):focus-visible {
+:is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell) :is(button, a, input, select, textarea, summary):focus-visible {
   outline: 2px solid var(--rim-blue);
   outline-offset: 3px;
 }
@@ -31104,46 +31050,6 @@ a.pp-card:hover .pp-card__action--named {
 :is(.ac-layout, .admin-ui, .hub-ws-layout, .tools-shell) button:disabled {
   cursor: default;
 }
-.member-bar__manage {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--rim-blue);
-  font-size: var(--text-app);
-  font-weight: 600;
-  white-space: nowrap;
-  padding: 0 10px;
-}
-.member-menu { position: relative; }
-.member-menu > summary { cursor: pointer; min-height: 44px; list-style: none; }
-.member-menu > summary::-webkit-details-marker { display: none; }
-.member-menu__panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 220px;
-  padding: 8px;
-  border: 1px solid var(--rim-rule);
-  border-radius: 12px;
-  background: var(--rim-surface);
-  z-index: 120;
-}
-.member-menu__panel :is(a, button) {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 10px 14px;
-  width: 100%;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--rim-text);
-  font: inherit;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-}
-.member-menu__panel :is(a, button):hover { background: var(--rim-bg); }
 .rim-directory, .rim-care { max-width: 800px; }
 /* A bordered list, like the catalog's upcoming list: the row is the link. */
 .rim-destination-list {
@@ -31264,14 +31170,10 @@ a.pp-card:hover .pp-card__action--named {
 .gf-no-color { min-height: 44px; padding: 8px 16px; border-radius: 9999px; border: 1px solid var(--rim-rule); background: var(--rim-surface); color: var(--rim-blue); font: inherit; }
 .gf-no-color[aria-pressed="true"] { background: var(--rim-bg-accent); }
 @media (max-width: 768px) {
-  .member-bar__right { gap: 8px; }
-  .member-bar__manage { padding: 0 6px; }
   .gf-personal-toolbar label { flex: 1 1 180px; }
   .gf-row__name { white-space: normal; overflow-wrap: anywhere; }
 }
 @media (max-width: 430px) {
-  .member-bar__site-link { display: none; }
-  .member-bar__profile-name { display: none; }
   .mp-page--calm .mp-section { padding: 20px; }
   .mp-page--calm .mp-field__row { flex-direction: column; }
   .rim-destination-list a { padding: 18px 20px; }

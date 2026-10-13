@@ -99,17 +99,16 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
   const hasRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin      = roles.includes("ADMIN");
 
-  // On the personal pages the site's own header sits above this rail (see
-  // lib/personalNav.ts). There the header's Menu carries these links on
-  // phones, so the rail and its drawer handle are desktop only, and the rail
-  // holds what the member header's account menu used to: My Profile, Manage
-  // RIM for staff, and Sign out.
+  // The site's own header sits above this rail on every page (see
+  // lib/personalNav.ts), and the rail holds what the old member header's
+  // account menu did: My Profile and Sign out, plus Manage RIM for staff
+  // outside administration (where its own group shows instead). On phones the header's Menu lists the personal pages,
+  // so there the rail and its drawer handle appear only in administration.
   const personal = isPersonalAccountPath(pathname);
   useEffect(() => {
-    if (!personal) return;
     setPersonalNav({ showTeams, canManage: hasRegistrar });
     return () => setPersonalNav(null);
-  }, [personal, showTeams, hasRegistrar]);
+  }, [showTeams, hasRegistrar]);
 
   // Files live per-Space (each hub's Files tab + the Community Space); the
   // global finder and the native Documents system were both retired (session
@@ -216,7 +215,7 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
           <UserRound size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
           <span className="ac-sidebar__label">My Profile</span>
         </Link>
-        {personal && hasRegistrar && (
+        {!isAdminRoute && hasRegistrar && (
           <Link href="/admin/members" className="ac-sidebar__link" title={collapsed ? "Manage RIM" : undefined}>
             <SlidersHorizontal size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
             <span className="ac-sidebar__label">Manage RIM</span>
@@ -235,20 +234,16 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
           </div>
         )}
 
-        {personal && (
-          <>
-            <div className="ac-sidebar__divider" role="separator" />
-            <button
-              type="button"
-              className="ac-sidebar__link ac-sidebar__signout"
-              onClick={() => signOut({ callbackUrl: "/" })}
-              title={collapsed ? "Sign out" : undefined}
-            >
-              <LogOut size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
-              <span className="ac-sidebar__label">Sign out</span>
-            </button>
-          </>
-        )}
+        <div className="ac-sidebar__divider" role="separator" />
+        <button
+          type="button"
+          className="ac-sidebar__link ac-sidebar__signout"
+          onClick={() => signOut({ callbackUrl: "/" })}
+          title={collapsed ? "Sign out" : undefined}
+        >
+          <LogOut size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+          <span className="ac-sidebar__label">Sign out</span>
+        </button>
       </div>
     </nav>
     </>

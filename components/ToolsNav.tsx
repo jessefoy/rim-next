@@ -8,20 +8,17 @@
  * user (admin bookmark, /admin link, etc.) still has a back link.
  *
  * Sub-nav tabs are rendered in the content area by WorkspaceShell, not here.
+ * It sits under the site header, which carries My Home (2026-10-13).
  *
  * CSS prefix: tools-nav-
  */
 
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { useToolsContext } from "@/components/ToolsContext";
 
 export default function ToolsNav() {
   const { toolName, backHref, backLabel } = useToolsContext();
-
-  // For a hub member the back link goes to their hub, so "My RIM" is a
-  // second, distinct destination worth its own link. When the back link
-  // already IS the dashboard, a duplicate would just be noise.
-  const showHomeLink = backHref !== "/account/dashboard";
 
   return (
     <header className="tools-nav">
@@ -30,11 +27,18 @@ export default function ToolsNav() {
           <Link href={backHref} className="tools-nav__back">
             &larr; {backLabel}
           </Link>
-          {showHomeLink && (
-            <Link href="/account/dashboard" className="tools-nav__back tools-nav__home">
-              My RIM
-            </Link>
-          )}
+          {/* No rail here, so the bar carries what a rail's foot would (on
+              phones the site header's Menu has both instead). */}
+          <Link href="/account/dashboard-my-profile" className="tools-nav__back tools-nav__account">
+            My Profile
+          </Link>
+          <button
+            type="button"
+            className="tools-nav__back tools-nav__account tools-nav__signout"
+            onClick={() => signOut({ callbackUrl: "/" })}
+          >
+            Sign out
+          </button>
         </div>
         <div className="tools-nav__right">
           <span className="tools-nav__name">{toolName}</span>

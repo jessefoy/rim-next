@@ -1,14 +1,16 @@
 /**
- * The member's personal pages wear the public site's header (2026-10-12).
+ * Every page wears the public site's header (personal pages 2026-10-12; team
+ * spaces, Files, tools and administration 2026-10-13, when the separate
+ * member header retired).
  *
  * Testers said of the member area: "I couldn't get back to the site, I was
  * somewhere else." The separate member header made My Home feel like a second
- * website, so the personal pages now keep the site's own header, logo and
- * footer, and the member rail sits inside the page as local navigation.
- * Team spaces, tools and administration keep the work header for now.
+ * website, so the site's own header and logo stay put everywhere, and each
+ * area's rail sits beneath it as local navigation.
  *
- * Read by Nav (which header), AccountSidebar (rail placement) and
- * FooterWrapper (the footer shows on these pages).
+ * The personal pages below differ in three ways: they also keep the site's
+ * footer (FooterWrapper), the header marks My Home as current (Nav), and on
+ * phones the header's Menu lists them instead of the rail (AccountSidebar).
  */
 const PERSONAL_PATHS = [
   "/account/dashboard",
@@ -28,8 +30,9 @@ export function isPersonalAccountPath(pathname: string | null | undefined): bool
 
 /*
  * What the phone Menu sheet needs to list the member's own pages. Nav lives in
- * the root layout and cannot see the account layout's data, so the rail
- * publishes it here while a personal page is mounted (and clears it after).
+ * the root layout and cannot see the account layout's data, so the account
+ * rail publishes it here while mounted (and clears it after); team and tool
+ * pages, which have no account rail, fall back to a default in Nav.
  * My Teams shows only for someone on a team (Jesse, 2026-10-12), which only
  * the account layout knows.
  */

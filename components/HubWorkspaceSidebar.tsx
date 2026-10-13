@@ -19,6 +19,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   Home,
   MessagesSquare,
@@ -36,6 +37,8 @@ import {
   ClipboardList,
   GraduationCap,
   Link2,
+  UserRound,
+  LogOut,
 } from "lucide-react";
 import type { ToolIconKey } from "@/lib/toolRegistry";
 
@@ -342,6 +345,25 @@ export default function HubWorkspaceSidebar({
             <ChevronLeft size={16} strokeWidth={1.75} />
             <span>My Teams</span>
           </Link>
+          {/* The site header above carries My Home; the account menu the old
+              member header held lives here now (2026-10-13). */}
+          <Link
+            href="/account/dashboard-my-profile"
+            className="hub-ws-footer__link"
+            title={collapsed ? "My Profile" : undefined}
+          >
+            <UserRound size={16} strokeWidth={1.75} />
+            <span>My Profile</span>
+          </Link>
+          <button
+            type="button"
+            className="hub-ws-footer__link hub-ws-footer__signout"
+            onClick={() => signOut({ callbackUrl: "/" })}
+            title={collapsed ? "Sign out" : undefined}
+          >
+            <LogOut size={16} strokeWidth={1.75} />
+            <span>Sign out</span>
+          </button>
         </div>
       </nav>
     </>

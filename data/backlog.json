@@ -1764,9 +1764,9 @@
     "description": "Since 2026-10-13 the member's personal pages wear the public header (testers: 'I couldn't get back to the site, I was somewhere else'). Team spaces, /account/files, tools and admin keep the member bar (logo to My Home, 'Main site' link). Decide after the personal pages have been lived with; volunteers who are also older members may feel the same switch inside a team.",
     "category": "Nav & Layout",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-10-13",
-    "notes": "Recorded as open in RIM_Web_Design_Philosophy.md, 'Authenticated Spatial Hierarchy'."
+    "notes": "Recorded as open in RIM_Web_Design_Philosophy.md, 'Authenticated Spatial Hierarchy'. Decided and built 2026-10-13 (Jesse): all of them take the site header, without the footer; Sign out and My Profile in each rail; the member-bar retired."
   },
   {
     "id": "2026-10-13-003",

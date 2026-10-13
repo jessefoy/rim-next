@@ -5,7 +5,7 @@ import { toProperName } from "@/lib/nameCase";
 /**
  * Memberstack → RIM quiet-pool import.
  *
- * Restored 2026-10-14 from the session-145 tool (git 3c543da^) to bring in the
+ * Restored 2026-10-13 from the session-145 tool (git 3c543da^) to bring in the
  * members who joined the old site after the June import, and run once more on
  * the day the domain moves. It now reads Memberstack's Admin REST API directly
  * (`MEMBERSTACK_SECRET_KEY`, server-only) instead of an uploaded CSV, so no

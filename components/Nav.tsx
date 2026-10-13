@@ -15,30 +15,39 @@ import {
 
 export default function Nav() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const isSessionArea = pathname?.startsWith("/session") ?? false;
-  const isAccountArea = pathname?.startsWith("/account") ?? false;
-  // The personal pages (My Home, Library, My Teams, Community Care, My
-  // Profile) keep the public header; see lib/personalNav.ts for why.
+  // Every page wears this header (2026-10-13; see lib/personalNav.ts). The
+  // personal pages mark My Home as current; team spaces, tools and
+  // administration carry their own rail beneath it.
   const isPersonalArea = isPersonalAccountPath(pathname);
-  // The session loads on the client after first paint; every personal page
-  // already requires one, so treat it as signed in there and the header never
-  // flashes "Members" on the member's own home.
-  const isLoggedIn = !!session || isPersonalArea;
+  const isSignedInArea =
+    (pathname?.startsWith("/account") ?? false) ||
+    (pathname?.startsWith("/admin") ?? false) ||
+    (pathname?.startsWith("/tools") ?? false);
+  // The session loads on the client after first paint; every signed-in page
+  // already requires one, so while it loads treat it as signed in there and
+  // the header never flashes "Members" on the member's own pages.
+  const isLoggedIn = !!session || (status === "loading" && isSignedInArea);
   // Welcome and reactivate come before My Home is open to this member (the
   // account layout sends them back here), so the header offers Sign out.
   const atThreshold =
     (pathname?.startsWith("/account/welcome") ?? false) ||
     (pathname?.startsWith("/account/reactivate") ?? false);
-  const isMemberArea =
-    (isAccountArea && !isPersonalArea) ||
-    (pathname?.startsWith("/admin") ?? false) ||
-    (pathname?.startsWith("/tools") ?? false);
-  const personalNav = useSyncExternalStore(subscribePersonalNav, getPersonalNav, getServerPersonalNav);
+  const publishedNav = useSyncExternalStore(subscribePersonalNav, getPersonalNav, getServerPersonalNav);
+  // The account rail publishes what the phone Menu needs. Team and tool pages
+  // have no account rail: anyone in a team space belongs to a team, and on a
+  // tool the team's own rail carries My Teams.
+  const personalNav: PersonalNav | null =
+    isSignedInArea && isLoggedIn && !atThreshold
+      ? publishedNav ?? {
+          showTeams: pathname?.startsWith("/account/hub/") ?? false,
+          canManage: session?.user?.roles?.some((role: string) => role === "ADMIN" || role === "REGISTRAR") ?? false,
+        }
+      : null;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const accountMenu = useRef<HTMLDetailsElement>(null);
   const desktopNav = useRef<HTMLElement>(null);
   const caretRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -49,7 +58,6 @@ export default function Nav() {
   // closing what the pointer just revealed.
   const hoverOpened = useRef<string | null>(null);
 
-  const firstName = session?.user?.name?.split(" ")[0] ?? null;
   const menus = publicMenus(isLoggedIn);
 
   // Desktop panels: open on hover intent (300ms; 80ms when moving from one
@@ -92,7 +100,6 @@ export default function Nav() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuOpen(false);
     setOpenMenu(null);
-    if (accountMenu.current) accountMenu.current.open = false;
   }, [pathname]);
 
   // An open desktop panel closes on Escape or a click outside the nav.
@@ -162,15 +169,6 @@ export default function Nav() {
     };
   }, [menuOpen]);
 
-  useEffect(() => {
-    const closeOutside = (event: PointerEvent) => {
-      const menu = accountMenu.current;
-      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
-    };
-    document.addEventListener("pointerdown", closeOutside);
-    return () => document.removeEventListener("pointerdown", closeOutside);
-  }, []);
-
   const isActive = (path: string) =>
     pathname === path || pathname.startsWith(path + "/")
       ? " nav__link--active"
@@ -178,50 +176,6 @@ export default function Nav() {
 
   // Video session pages are full-screen — hide the site nav
   if (isSessionArea) return null;
-
-  // Authenticated member, admin, and tool surfaces share one quiet identity
-  // header. Their sidebars and workspace chrome carry the local navigation.
-  if (isMemberArea) {
-    const memberName = firstName ?? "My profile";
-    return (
-      <header className="member-bar">
-        <Link href="/account/dashboard" className="member-bar__brand">
-          <img
-            src="/images/Rooted-In-Mindfulness-Logo.png"
-            alt="Rooted In Mindfulness"
-            height={38}
-          />
-          <span>Rooted In Mindfulness</span>
-        </Link>
-        <div className="member-bar__right">
-          {/* The one path back to the public site, on every member/admin/tool
-              surface at every viewport — tool and hub pages render this bar
-              without the account rail, so the link must live here. On phones
-              the bar makes room by dropping the wordmark and profile name. */}
-          <Link href="/" className="member-bar__site-link">
-            Main site
-          </Link>
-          {session?.user?.roles?.some((role: string) => ["ADMIN", "REGISTRAR"].includes(role)) && (
-            <Link href="/admin/members" className="member-bar__manage">Manage RIM</Link>
-          )}
-          <details className="member-menu" ref={accountMenu} onKeyDown={(event) => {
-            if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); }
-          }}>
-            <summary className="member-bar__profile" aria-label={`${memberName}, account menu`}>
-              <span className="member-bar__avatar" aria-hidden="true">{memberName.charAt(0).toUpperCase()}</span>
-              <span className="member-bar__profile-name">My account</span>
-            </summary>
-            <nav className="member-menu__panel" aria-label="My account">
-              <Link href="/account/dashboard-my-profile">My Profile</Link>
-              <Link href="/account/community-care">Community Care</Link>
-              <Link href="/">Main site</Link>
-              <button type="button" onClick={() => signOut({ callbackUrl: "/" })}>Sign out</button>
-            </nav>
-          </details>
-        </div>
-      </header>
-    );
-  }
 
   return (
     <header className="nav">
@@ -235,8 +189,8 @@ export default function Nav() {
           <span className="nav__brand-name">Rooted In Mindfulness</span>
         </Link>
 
-        {/* Public pages and the member's personal pages; team, admin and tool
-            routes return the member-bar above. */}
+        {/* Every page but the Zoom entry: public, personal, team, tool and
+            admin. Signed in, Members becomes My Home. */}
         <PublicDesktopNav
           menus={menus}
           isLoggedIn={isLoggedIn}
@@ -272,7 +226,7 @@ export default function Nav() {
         <PublicNavSheet
           menus={menus}
           isLoggedIn={isLoggedIn}
-          personalNav={isPersonalArea && isLoggedIn ? personalNav : null}
+          personalNav={personalNav}
           atThreshold={atThreshold}
           isActive={isActive}
           sheetRef={sheet}

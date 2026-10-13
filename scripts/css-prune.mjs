@@ -43,6 +43,8 @@ const DEAD_PREFIXES = [
   // were removed for the simplified current release. Registration itself,
   // registrar management, dashboard commitments, and Zoom remain live.
   "mr-", "mpd-",
+  // 2026-10-13: the member header retired; every page wears the site's .nav.
+  "member-bar", "member-menu",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;
