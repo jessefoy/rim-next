@@ -78,17 +78,18 @@ export function hubHomeUrl(hubSlug: string): string {
  * rather than building the markup themselves, so the visual style stays
  * consistent across every email and updates here propagate automatically.
  *
- * Per RIM_Email_Engineering.md.  Color tokens chosen to render correctly in
- * Gmail / Outlook / Apple Mail — `--rim-blue` (#135274) at full opacity.
+ * Per RIM_Email_Engineering.md.  The site's own button: a pill in
+ * `--rim-blue` (#31576D), 16px semibold (2026-10-13; was the pre-flip
+ * teal #135274 with 6px corners).
  */
 export function emailButtonHtml(label: string, url: string): string {
   // Outer table is the Outlook-safe centering trick — div text-align fails
   // there.  Padded anchor is the button itself; bgcolor mirrors the CSS bg
   // for clients that strip CSS.
-  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:24px auto;">
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:28px auto;">
   <tr>
-    <td bgcolor="#135274" style="border-radius:6px;background-color:#135274;">
-      <a href="${url}" style="display:inline-block;padding:14px 32px;font-family:'Open Sans',Arial,sans-serif;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:6px;letter-spacing:0.2px;">${label}</a>
+    <td bgcolor="#31576D" style="border-radius:999px;background-color:#31576D;">
+      <a href="${url}" style="display:inline-block;padding:14px 32px;font-family:'Open Sans',Arial,sans-serif;font-size:16px;font-weight:600;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:999px;">${label}</a>
     </td>
   </tr>
 </table>`;
@@ -108,47 +109,72 @@ const TEAM_EMAIL = process.env.TEAM_EMAIL ?? "hello@rootedinmindfulness.org";
  * The same CSS is applied in the admin preview modal for pixel-identical rendering.
  */
 export const EMAIL_BASE_CSS = `
-body { font-family: 'Open Sans', Arial, sans-serif; font-size: 16px; line-height: 1.75; color: #333333; }
-p { margin: 0 0 16px; font-size: 16px; line-height: 1.75; color: #333333; }
-h2 { font-family: Georgia, 'Times New Roman', serif; font-size: 22px; font-weight: 400; line-height: 1.3; margin: 28px 0 12px; color: #135274; }
-h3 { font-family: Georgia, 'Times New Roman', serif; font-size: 18px; font-weight: 400; line-height: 1.3; margin: 20px 0 8px; color: #135274; }
-ul, ol { margin: 0 0 16px; padding-left: 24px; }
-li { margin: 4px 0; font-size: 16px; line-height: 1.75; color: #333333; }
-blockquote { border-left: 3px solid #d5d5d5; margin: 16px 0; padding: 12px 16px; color: #666; }
-blockquote p { color: #666; margin: 0; }
-a { color: #135274; text-decoration: none; }
-a:hover { text-decoration: underline; }
-hr { border: none; border-top: 1px solid #eee; margin: 24px 0; }
+body { margin: 0; padding: 0; background: #F6F3F0; font-family: 'Open Sans', Arial, sans-serif; font-size: 17px; line-height: 1.8; color: #333333; }
+p { margin: 0 0 30px; font-size: 17px; line-height: 1.8; color: #333333; }
+h2 { font-family: Baskerville, 'Baskerville Old Face', 'Libre Baskerville', Georgia, serif; font-size: 24px; font-weight: 400; line-height: 1.3; margin: 8px 0 16px; color: #333333; }
+h3 { font-family: Baskerville, 'Baskerville Old Face', 'Libre Baskerville', Georgia, serif; font-size: 20px; font-weight: 400; line-height: 1.3; margin: 8px 0 12px; color: #333333; }
+ul, ol { margin: 0 0 30px; padding-left: 24px; }
+li { margin: 4px 0; font-size: 17px; line-height: 1.8; color: #333333; }
+blockquote { border-left: 3px solid #D7D7D7; margin: 0 0 30px; padding: 4px 18px; color: #555555; }
+blockquote p { color: #555555; margin: 0; }
+a { color: #31576D; text-decoration: underline; }
+hr { border: none; border-top: 1px solid #E6E1DB; margin: 30px 0; }
 strong { font-weight: 700; }
 em { font-style: italic; }
 `;
 
 /**
- * Wrap rendered markdown body HTML in RIM's standard email chrome:
- * dark-blue header stripe, white card, 600px max-width, footer.
- * Used by both sendTemplatedEmail (actual send) and the admin preview modal.
+ * Wrap rendered body HTML in RIM's email chrome, matching Jesse's Flodesk
+ * template (2026-10-13, measured from the shared template): a warm off-white
+ * page (#F6F3F0), the lotus logo (90px; 56px on phones) and "Rooted In
+ * Mindfulness" in Baskerville centered on it, the message on a white 600px
+ * panel with 40px padding (Open Sans 17px / 1.8, #333), and below it a short
+ * rule and the address in small Baskerville. No unsubscribe line: these are
+ * system emails (Jesse); Flodesk carries the mass email that needs one.
+ * Tables for Outlook. Used by every email the app sends and by the admin
+ * preview, so what /admin/emails shows is what members receive.
  */
 export function wrapInEmailChrome(bodyHtml: string): string {
+  const serif = "Baskerville,'Baskerville Old Face','Libre Baskerville',Georgia,serif";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <style>
+    @media only screen and (max-width: 480px) {
+      .rim-email-logo { width: 56px !important; height: 56px !important; }
+    }
+  </style>
 </head>
-<body>
-  <div style="background:#f5f5f5;padding:40px 16px;">
-    <div style="max-width:600px;margin:0 auto;">
-      <div style="background:#135274;padding:24px 36px;border-radius:4px 4px 0 0;">
-        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.8);">Rooted In Mindfulness</p>
-      </div>
-      <div style="background:#ffffff;padding:36px 36px 28px;">
-        ${bodyHtml}
-      </div>
-      <div style="background:#ffffff;padding:16px 36px 28px;border-top:1px solid #eee;border-radius:0 0 4px 4px;">
-        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">Rooted In Mindfulness &middot; Brookfield, WI &middot; <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">rootedinmindfulness.org</a></p>
-      </div>
-    </div>
-  </div>
+<body style="margin:0;padding:0;background:#F6F3F0;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F6F3F0" style="background:#F6F3F0;">
+    <tr>
+      <td align="center" style="padding:45px 0 0;">
+        <img src="${BASE_URL}/images/email-logo.png" width="90" height="90" alt="Rooted In Mindfulness" class="rim-email-logo" style="display:block;width:90px;height:90px;border:0;">
+        <p style="margin:20px 10px 45px;font-family:${serif};font-size:28px;line-height:1.3;font-weight:400;color:#333333;text-align:center;">Rooted In Mindfulness</p>
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="max-width:600px;background:#ffffff;">
+          <tr>
+            <td style="padding:40px 40px 10px;text-align:left;">
+              ${bodyHtml}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding:70px 10px 50px;">
+        <table role="presentation" width="150" cellspacing="0" cellpadding="0" border="0"><tr><td style="border-top:1px solid #D7D7D7;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+        <p style="margin:30px 0 0;font-family:${serif};font-size:12px;line-height:1.8;color:#6E6E6E;text-align:center;">Rooted In Mindfulness &middot; ${RIM_ADDRESS}</p>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 }
@@ -1160,7 +1186,7 @@ export async function sendStandingAssignmentReplacedEmail(
 <p>Hi ${data.firstName ?? "there"},</p>
 <p>Your coordinator has updated the standing rotation. You're no longer scheduled to be ${copy.verb} the following ${count === 1 ? "session" : "sessions"}:</p>
 <ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
-<p>If you have questions about this change, please reach out to your coordinator. You can see your current schedule any time on the <a href="${scheduleUrl}" style="color:#135274;">Schedule</a>.</p>
+<p>If you have questions about this change, please reach out to your coordinator. You can see your current schedule any time on the <a href="${scheduleUrl}" style="color:#31576D;">Schedule</a>.</p>
 <p style="color:#666;font-size:14px;">This is an automated message from your standing rotation.</p>`;
 
   try {
@@ -1240,7 +1266,7 @@ ${listHtml}
 <p>A coordinator has removed you from the standing rotation as <strong>${copy.noun}</strong> for <strong>${programName}</strong>.</p>
 ${datesIntro}
 <p>If this was unexpected or you'd like to talk about it, please reach out to your coordinator.</p>
-<p style="color:#666;font-size:14px;"><a href="${scheduleUrl}" style="color:#135274;">View the Schedule</a> &middot; This is an automated message from your standing rotation.</p>`;
+<p style="color:#666;font-size:14px;"><a href="${scheduleUrl}" style="color:#31576D;">View the Schedule</a> &middot; This is an automated message from your standing rotation.</p>`;
 
   try {
     await resend.emails.send({ from: FROM, to: data.to, subject, html });

@@ -15,6 +15,7 @@ Read that sentence twice before borrowing anything from here. In session 169 a d
 | `… /rim-homepage-v2-refined/` | Refinement of v2 |
 | `… /rim-homepage-v2-balanced/` | Balance pass, with responsive screenshots |
 | `… /rim-homepage-v2-calibrated/` | Calibration pass, with screenshots and PDFs; carries `CALIBRATION-NOTES.md` |
+| `email-2026-10-13/preview.html` | The system-email design (registration confirmation, sign-in code) rendered from the app's own wrapper on 2026-10-13, matched to Jesse's Flodesk template. `lib/email.ts` is the source of truth |
 | `… /rim-homepage-v3-calm/` | The quiet direction, most complete — desktop and mobile screenshots for every page, plus `CALM-SYSTEM-REVIEW.md`, `DESIGN-REVIEW.md`, `PROGRAMS-BALANCE-REVIEW.md` |
 
 Several carry their own review notes. Those are worth reading — they record what each pass was trying to solve.
