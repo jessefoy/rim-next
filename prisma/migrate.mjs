@@ -8,12 +8,9 @@
 import { PrismaClient } from "@prisma/client";
 import { del, put } from "@vercel/blob";
 import { seedPrograms } from "./seed-programs.mjs";
-import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
 import { seedHostHubOnboardingDocs } from "./seed-host-hub-onboarding-docs.mjs";
 import { seedHostHubTeamDocs } from "./seed-host-hub-team-docs.mjs";
-import { updateHostHubWelcomeBody } from "./update-host-hub-welcome-body.mjs";
 import { seedHostHubTrainingDoc } from "./seed-host-hub-training-doc.mjs";
-import { seedNonHostHubHomeContent } from "./seed-non-host-hub-home-content.mjs";
 
 const db = new PrismaClient();
 
@@ -1248,33 +1245,11 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
     // Idempotent: rows already holding HTML strings (typeof === "string") are skipped.
     // Rows with null/undefined are left as null.
     name: "convert_hub_content_to_html",
+    // Retired 2026-10-13: Hub.welcomeBody and homeContent left the schema
+    // with team Home's welcome and guidance (dropped by drop_team_home_text_v1;
+    // archived). This ran on every deploy and would now fail the build.
     async run() {
-      const hubs = await db.hub.findMany({
-        select: { id: true, welcomeBody: true, homeContent: true },
-      });
-
-      let converted = 0;
-
-      for (const hub of hubs) {
-        const updates = {};
-        if (isBlockNoteArray(hub.welcomeBody)) {
-          updates.welcomeBody = blockNoteToHtml(hub.welcomeBody);
-          converted++;
-        }
-        if (isBlockNoteArray(hub.homeContent)) {
-          updates.homeContent = blockNoteToHtml(hub.homeContent);
-          converted++;
-        }
-        if (Object.keys(updates).length > 0) {
-          await db.hub.update({ where: { id: hub.id }, data: updates });
-        }
-      }
-
-      if (converted > 0) {
-        console.log(`  ✔ Applied: ${this.name} — converted ${converted} field(s) across ${hubs.length} hub(s)`);
-      } else {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-      }
+      console.log(`  ⏭ Retired: ${this.name}`);
     },
   },
   {
@@ -3179,7 +3154,8 @@ async function main() {
   `).catch(() => []);
 
   if (hostHubHomeFlag.length === 0) {
-    await seedHostHubHomeContent(db);
+    // Retired 2026-10-13: team Home's welcome and guidance columns were dropped.
+    console.log("  ⏭ Retired: team Home text seed");
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_home_content_v1')`);
   } else {
     console.log("  ⏭ Host Hub home content already seeded.");
@@ -3543,7 +3519,8 @@ async function main() {
   `).catch(() => []);
 
   if (updateWelcomeBodyFlag.length === 0) {
-    await updateHostHubWelcomeBody(db);
+    // Retired 2026-10-13: team Home's welcome and guidance columns were dropped.
+    console.log("  ⏭ Retired: team Home text seed");
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_host_hub_welcome_body_v1')`);
   } else {
     console.log("  ⏭ Host Hub welcome body already updated.");
@@ -3676,7 +3653,8 @@ async function main() {
   `).catch(() => []);
 
   if (seedNonHostWelcomesFlag.length === 0) {
-    await seedNonHostHubHomeContent(db);
+    // Retired 2026-10-13: team Home's welcome and guidance columns were dropped.
+    console.log("  ⏭ Retired: team Home text seed");
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_non_host_hub_home_content_v1')`);
   } else {
     console.log("  ⏭ Non-host hub welcomes already seeded.");
