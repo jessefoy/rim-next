@@ -854,7 +854,7 @@ export async function sendHostManagerRoleAssignmentEmail(
   }
   const firstName = data.firstName ?? "there";
   const hostHubUrl  = `${BASE_URL}/account/hub/host-team`;
-  const scheduleUrl = `${BASE_URL}/tools/schedule`;
+  const scheduleUrl = `${BASE_URL}/tools/schedule?hub=host-team`;
 
   const markdown = `Hi ${firstName},
 
@@ -866,12 +866,12 @@ The coordinator is the team's main point of contact — not Jesse. You train new
 
 ## Where to start
 
-**The Host Hub** — your team's home. Conversations, documents, the full member list. There's a welcome message there that hosts see when they arrive; it's yours to write.
+**The Hosting Team** — your team's home: conversations, files and the full member list. Under the team's name is one line about the team; as coordinator, it's yours to write.
 
-**The Host Schedule** — where you manage coverage. You can view any host's assignments (not just your own), create and manage standing rotations, and reassign sessions when someone is unavailable.
+**The Scheduler** — where you manage coverage. You can view any host's assignments (not just your own), create and manage standing rotations, and reassign sessions when someone is unavailable.
 
-[Open the Host Hub](${hostHubUrl})
-[View the Host Schedule](${scheduleUrl})`;
+[Open the Hosting Team](${hostHubUrl})
+[Open the Scheduler](${scheduleUrl})`;
 
   const { marked } = await import("marked");
   const juice = (await import("juice")).default;

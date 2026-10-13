@@ -981,9 +981,9 @@ model Hub {
   description            String?
   status                 HubStatus     @default(ACTIVE)
   hasSchedule            Boolean       @default(false)
-  welcomeHeadline        String?
-  welcomeBody            Json?
-  homeContent            Json?
+  // welcomeHeadline, welcomeBody and homeContent were retired with team
+  // Home's welcome and guidance (2026-10-13); dropped by migrate.mjs
+  // (drop_team_home_text_v1). Archive: ~/Sites/rim-next-archive.
   conversationCategories String[]      @default(["General"])
   // Hub-as-authority for programs (session 128 — Silent Meditation Hub).
   // When `assignmentGrantsTeacher` is true, an active HostAssignment for a

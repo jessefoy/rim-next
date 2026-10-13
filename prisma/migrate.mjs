@@ -734,8 +734,8 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
         },
         {
           slug: "hub-conv-new-thread",
-          name: "Hub Conversation: New Thread",
-          description: "Sent to hub coordinators when a new conversation thread is created.",
+          name: "Team Conversation: New Thread",
+          description: "Sent to team coordinators when a new conversation thread is created.",
           enabled: true,
           subject: "New conversation in {{hubName}}: {{threadTitle}}",
           variables: ["firstName", "authorName", "hubName", "threadTitle", "threadUrl"],
@@ -750,7 +750,7 @@ Rooted In Mindfulness · Brookfield, WI`,
         },
         {
           slug: "hub-conv-new-reply",
-          name: "Hub Conversation: New Reply",
+          name: "Team Conversation: New Reply",
           description: "Sent to thread participants when a new reply is posted.",
           enabled: true,
           subject: "New reply in {{hubName}}: {{threadTitle}}",
@@ -766,8 +766,8 @@ Rooted In Mindfulness · Brookfield, WI`,
         },
         {
           slug: "hub-welcome",
-          name: "Hub Welcome",
-          description: "Sent when a member is added to a hub (by a coordinator or via syncHubMembership).",
+          name: "Team Welcome",
+          description: "Sent when a member is added to a team (by a coordinator or via syncHubMembership).",
           enabled: true,
           subject: "Welcome to {{hubName}}",
           variables: ["firstName", "hubName", "hubUrl"],
@@ -1021,11 +1021,11 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
         { slug: "sub-request-posted",               group: "04-hosts",         groupLabel: "Host Team" },
         { slug: "sub-request-claimed",              group: "04-hosts",         groupLabel: "Host Team" },
 
-        // ─── 05 · Hubs & Onboarding ─────────────────────────────────────
-        { slug: "registrar-role-assigned",          group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
-        { slug: "hub-welcome",                      group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
-        { slug: "hub-conv-new-thread",              group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
-        { slug: "hub-conv-new-reply",               group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
+        // ─── 05 · Teams & Onboarding ────────────────────────────────────
+        { slug: "registrar-role-assigned",          group: "05-hubs",          groupLabel: "Teams & Onboarding" },
+        { slug: "hub-welcome",                      group: "05-hubs",          groupLabel: "Teams & Onboarding" },
+        { slug: "hub-conv-new-thread",              group: "05-hubs",          groupLabel: "Teams & Onboarding" },
+        { slug: "hub-conv-new-reply",               group: "05-hubs",          groupLabel: "Teams & Onboarding" },
 
         // ─── 07 · Public Forms ──────────────────────────────────────────
         { slug: "volunteer-interest-internal",      group: "07-forms",         groupLabel: "Public Forms" },
@@ -6092,6 +6092,73 @@ Rooted In Mindfulness · Brookfield, WI`,
     }
     await db.$executeRawUnsafe(
       `INSERT INTO "_migration_flags" (name) VALUES ('form_notification_label_v1') ON CONFLICT DO NOTHING`,
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // "Team", not "hub", in the stored emails (2026-10-13). Intentional update
+  // of existing templates with Jesse's consent ("We should make the emails
+  // match. I give you my permission."). Each change is an exact find and
+  // replace on the seeded wording; a template whose text was customized is
+  // left alone and named in the log. host-role-assigned also loses "Google
+  // Meet" (sessions are on Zoom). Template slugs and {{variables}} unchanged.
+  // ───────────────────────────────────────────────────────────────────────
+  const teamWordsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'email_templates_team_not_hub_v1'
+  `).catch(() => []);
+  if (teamWordsFlag.length === 0) {
+    console.log("→ Email templates: \"team\", not \"hub\"…");
+    const edits = {
+      "host-role-assigned": {
+        body: [
+          ["will open the Google Meet space for participants. Your assignments, sub requests, and host conversations all live in the Host Hub.",
+           "will open the Zoom room for participants. Your assignments, cover requests, and team conversations all live in the Hosting Team."],
+          ["**[Go to your Host Hub →]({{hostAreaUrl}})**", "**[Go to the Hosting Team →]({{hostAreaUrl}})**"],
+        ],
+        helpText: [["The hub URL and manual URL", "The team URL and manual URL"]],
+      },
+      "hub-conv-new-reply": {
+        name: [["Hub Conversation: New Reply", "Team Conversation: New Reply"]],
+        groupLabel: [["Hubs & Onboarding", "Teams & Onboarding"]],
+      },
+      "hub-conv-new-thread": {
+        name: [["Hub Conversation: New Thread", "Team Conversation: New Thread"]],
+        description: [["Sent to hub coordinators", "Sent to team coordinators"]],
+        groupLabel: [["Hubs & Onboarding", "Teams & Onboarding"]],
+      },
+      "hub-welcome": {
+        name: [["Hub Welcome", "Team Welcome"]],
+        description: [["added to a hub", "added to a team"]],
+        groupLabel: [["Hubs & Onboarding", "Teams & Onboarding"]],
+      },
+      "registrar-role-assigned": {
+        groupLabel: [["Hubs & Onboarding", "Teams & Onboarding"]],
+      },
+    };
+    for (const [slug, fields] of Object.entries(edits)) {
+      const t = await db.emailTemplate.findUnique({ where: { slug } });
+      if (!t) {
+        console.log(`  ⚠ ${slug} not found — nothing to update.`);
+        continue;
+      }
+      const data = {};
+      for (const [field, pairs] of Object.entries(fields)) {
+        let value = t[field] ?? "";
+        for (const [from, to] of pairs) {
+          if (value.includes(from)) value = value.replace(from, to);
+          else if (!value.includes(to)) console.log(`  ⚠ ${slug}.${field}: wording customized, left as-is ("${from.slice(0, 40)}…")`);
+        }
+        if (value !== (t[field] ?? "")) data[field] = value;
+      }
+      if (Object.keys(data).length) {
+        await db.emailTemplate.update({ where: { slug }, data });
+        console.log(`  ✔ ${slug}: ${Object.keys(data).join(", ")} updated`);
+      } else {
+        console.log(`  ⏭ ${slug}: nothing to change`);
+      }
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('email_templates_team_not_hub_v1') ON CONFLICT DO NOTHING`,
     );
   }
 
