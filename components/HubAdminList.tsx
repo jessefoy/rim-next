@@ -120,7 +120,7 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
 
   return (
     <>
-      {showCreated && <div className="adm-hubs-success">Hub created successfully.</div>}
+      {showCreated && <div className="adm-hubs-success">Team created.</div>}
 
       <div className="adm-hubs-bulk">
         <button
@@ -163,7 +163,7 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
       </div>
 
       {hubs.length === 0 && (
-        <p className="adm-hubs-empty">No hubs found.</p>
+        <p className="adm-hubs-empty">No teams yet.</p>
       )}
     </>
   );

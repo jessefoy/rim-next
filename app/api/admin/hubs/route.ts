@@ -119,7 +119,8 @@ export async function POST(req: Request) {
     data: {
       name,
       slug,
-      description: description || null,
+      // The one line under the team's name on its Home (as on edit).
+      description: typeof description === "string" ? description.replace(/\s+/g, " ").trim().slice(0, 200) || null : null,
       type: type || "OPERATIONAL",
       status: status || "ACTIVE",
       hasSchedule: !!hasSchedule,

@@ -31,7 +31,10 @@ export interface ToolDefinition {
   canBePrimary: boolean;
   /** Product-level contract. Server providers live in lib/hubApps.ts. */
   spaceContributions: {
-    home: "summary" | "module" | "none";
+    /** "summary": one line in the highlighted tool card on team Home (the
+     *  primary app) — no app adds a module, disclosure or second card to Home
+     *  (Jesse, 2026-10-13). */
+    home: "summary" | "none";
     updates: boolean;
     attention: boolean;
   };
@@ -46,7 +49,9 @@ export const TOOL_REGISTRY = [
     description: "Session calendar, assignments, sub requests — scoped per hub",
     spaceMode: "multi-space",
     canBePrimary: true,
-    spaceContributions: { home: "module", updates: true, attention: true },
+    // One summary line in the highlighted tool card on team Home (2026-10-13;
+    // the month overview module was retired).
+    spaceContributions: { home: "summary", updates: true, attention: true },
   },
   {
     slug: "programs",

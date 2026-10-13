@@ -66,7 +66,7 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
   { label: "Form submissions", href: "/admin/form-submissions", icon: Inbox, adminOnly: true },
   // Temporary: remove with /admin/import-legacy after the domain move.
   { label: "Import members", href: "/admin/import-legacy", icon: UserPlus,  adminOnly: true   },
-  { label: "Hubs",         href: "/admin/hubs",          icon: Layers,      adminOnly: true   },
+  { label: "Teams",        href: "/admin/hubs",          icon: Layers,      adminOnly: true   },
   { label: "Emails",       href: "/admin/emails",        icon: Mail,        adminOnly: true   },
   { label: "Google Files", href: "/admin/google-files",  icon: ShieldCheck, adminOnly: true   },
 ];

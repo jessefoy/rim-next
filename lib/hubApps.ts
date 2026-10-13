@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { getHubCoverageCopy } from "@/lib/programHub";
 import {
   getToolBySlug,
   TOOL_REGISTRY,
@@ -26,7 +25,7 @@ export interface HubHomeApp {
   quietText: string;
   isRegistered: boolean;
   role: "primary" | "supporting" | "link";
-  homeMode: "summary" | "module" | "none";
+  homeMode: "summary" | "none";
 }
 
 export interface HubAppAttentionItem {
@@ -99,32 +98,16 @@ function createdAtWindow(query: HubAppUpdateQuery) {
   return gt || lt ? { ...(gt ? { gt } : {}), ...(lt ? { lt } : {}) } : undefined;
 }
 
-async function scheduleHome(hubSlug: string): Promise<HomeContribution> {
-  const hub = await db.hub.findUnique({
-    where: { slug: hubSlug },
-    select: { allowsMultipleAssignments: true },
-  });
-  if (hub?.allowsMultipleAssignments) {
-    return {
-      count: null,
-      countLabel: null,
-      quietText: "Open the Scheduler to see this Space’s upcoming coverage.",
-    };
-  }
-  const [count, copy] = await Promise.all([
-    db.hostAssignment.count({
-      where: {
-        hubSlug,
-        userId: null,
-        sessionDate: { gte: new Date(), lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) },
-      },
-    }),
-    getHubCoverageCopy(hubSlug),
-  ]);
+// The line in the highlighted tool card on team Home. No count: open
+// sessions often have no HostAssignment row yet (the Scheduler builds them
+// from each program's recurrence), so counting rows would tell a team it is
+// covered when it isn't. A true "needs help" count must reuse the Scheduler's
+// own session builder (backlog 2026-10-13-005).
+async function scheduleHome(_hubSlug: string): Promise<HomeContribution> {
   return {
-    count,
-    countLabel: plural(count, `open ${copy.noun} slot`, `open ${copy.noun} slots`),
-    quietText: `No open ${copy.noun.toLowerCase()} slots in the next two weeks.`,
+    count: null,
+    countLabel: null,
+    quietText: "See the sessions ahead, who\u2019s covering them, and where help is needed.",
   };
 }
 
@@ -267,7 +250,7 @@ const HUB_APP_PROVIDERS: Record<ToolSlug, HubAppProvider> = {
       });
       return {
         count,
-        countLabel: plural(count, "new registration", "new registrations"),
+        countLabel: plural(count, "new registration in the last seven days", "new registrations in the last seven days"),
         quietText: "No new registrations in the last seven days.",
       };
     },
@@ -309,7 +292,7 @@ export async function getHubHomeApps(hubSlug: string, links: HubAppLinkInput[]):
           toolSlug: null,
           label: link.label,
           path: link.href,
-          description: "A link connected to this Space.",
+          description: "A link this team uses.",
           count: null,
           countLabel: null,
           quietText: "Open this connected resource.",
@@ -318,7 +301,11 @@ export async function getHubHomeApps(hubSlug: string, links: HubAppLinkInput[]):
           homeMode: "none" as const,
         };
       }
-      const contribution = await HUB_APP_PROVIDERS[tool.slug].home(hubSlug);
+      // Only the primary app's summary is shown (team Home's tool card), so
+      // only it is asked for one.
+      const contribution = link.isPrimary
+        ? await HUB_APP_PROVIDERS[tool.slug].home(hubSlug)
+        : { count: null, countLabel: null, quietText: "" };
       return {
         key: `app-${tool.slug}`,
         toolSlug: tool.slug,

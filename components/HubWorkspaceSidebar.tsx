@@ -80,8 +80,9 @@ interface Props {
 }
 
 const TYPE_LABEL: Record<string, string> = {
-  OPERATIONAL: "Operational Hub",
-  GOVERNANCE: "Governance Hub",
+  // "Team", not "hub" (Jesse, 2026-10-13).
+  OPERATIONAL: "Team",
+  GOVERNANCE: "Governance team",
   COMMUNITY_GROUP: "Community Group",
 };
 
@@ -214,7 +215,7 @@ export default function HubWorkspaceSidebar({
           mobileOpen && "hub-ws-sidebar--open",
           collapsed && "hub-ws-sidebar--collapsed",
         ].filter(Boolean).join(" ")}
-        aria-label="Hub navigation"
+        aria-label="Team navigation"
         data-collapsed={collapsed ? "true" : "false"}
       >
         {/* Identity */}
@@ -328,10 +329,10 @@ export default function HubWorkspaceSidebar({
             <Link
               href={`/admin/hubs/${hub.slug}/edit`}
               className="hub-ws-footer__link"
-              title={collapsed ? "Hub settings" : undefined}
+              title={collapsed ? "Team settings" : undefined}
             >
               <Settings size={16} strokeWidth={1.75} />
-              <span>Hub settings</span>
+              <span>Team settings</span>
             </Link>
           )}
           {/* "My RIM", not "Back to Home" — the rail's first item is already

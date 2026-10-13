@@ -1789,5 +1789,35 @@
     "status": "open",
     "addedAt": "2026-10-13",
     "notes": "Found 2026-10-13 when Jesse asked for the document."
+  },
+  {
+    "id": "2026-10-13-005",
+    "title": "Team Home: a true \"needs help\" count for the Scheduler card",
+    "description": "The highlighted tool card on team Home shows the Scheduler with a plain line and no count, because the old provider counted HostAssignment rows with no user, and open sessions usually have no row at all (the Scheduler builds sessions from each program’s recurrence). A truthful count (open sessions in the next two weeks) must reuse the Scheduler’s own session builder, respecting appliesToFormats, hostingRequired (primary host only) and multi-claim hubs, across all four teams that share the Scheduler.",
+    "category": "Hubs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-13",
+    "notes": "lib/hubApps.ts scheduleHome. The retired month overview (loadHostHubThisMonth, in git history before this commit) had the right occurrence walk for the primary host team."
+  },
+  {
+    "id": "2026-10-13-006",
+    "title": "Drop the retired team Home columns once the leads have their text",
+    "description": "Team Home no longer reads Hub.welcomeHeadline, welcomeBody, homeContent or HubMember.firstVisitedAt (2026-10-13). Jesse was given each team’s welcome and guidance text (team-home-text-for-leads.md, not committed) to pass to its leads. When he says so, drop the columns in a flag-guarded migrate.mjs block (two-phase: code already ignores them).",
+    "category": "Hubs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-13",
+    "notes": "Seven teams had text: Belonging, Course Team, Hosting Team, Program Central, Registration, Support, Volunteer Coordination."
+  },
+  {
+    "id": "2026-10-13-007",
+    "title": "Email templates that still say \"hub\"",
+    "description": "The visible UI says \"team\" since 2026-10-13, and the two hard-coded team emails were changed. Database-held templates (hub-welcome, hub-conv-new-thread, hub-conv-new-reply, and any others; the /admin/emails group label \"Hubs & Onboarding\") may still say hub. Inventory them and change each with Jesse’s consent for that template (Email Template Gate).",
+    "category": "Email & Notifications",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-13",
+    "notes": ""
   }
 ]

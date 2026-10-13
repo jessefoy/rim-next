@@ -455,7 +455,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
     // context is missing (session 146 fallback hardening). Refuse instead, so
     // a "reset" can't nuke the wrong team's data.
     if (!hubSlug) {
-      setError("Missing hub context — please refresh and try again.");
+      setError("Missing team context — please refresh and try again.");
       return;
     }
     setClearing(true);
@@ -1066,7 +1066,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
             <div className="hs-rot__danger-confirm">
               <p className="hs-rot__danger-q">
                 <strong>Reset everything for this team?</strong><br />
-                Deletes <em>every</em> assignment in this hub (past and
+                Deletes <em>every</em> assignment in this team (past and
                 future) AND deletes <em>every</em> standing rotation
                 rule in this hub. This hub&rsquo;s schedule and Rotations
                 grid become empty. Other hubs are unaffected. Cannot be

@@ -690,8 +690,8 @@ export default function HubConvClient({
           {coordinatorCount > 0 && (
             <p className="hub-conv-compose__notify-note">
               {coordinatorCount === 1
-                ? "Coordinators of this hub are automatically notified."
-                : `${coordinatorCount} coordinators of this hub are automatically notified.`}{" "}
+                ? "Coordinators of this team are automatically notified."
+                : `${coordinatorCount} coordinators of this team are automatically notified.`}{" "}
               You can add anyone else who should see this:
             </p>
           )}

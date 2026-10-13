@@ -182,7 +182,7 @@ After session 130's final commits, six hub-config fields drive every per-hub beh
 
 | Field | Drives |
 |---|---|
-| `hasSchedule` | Scheduler month contribution on the universal Home + Hosting team dropdown eligibility |
+| `hasSchedule` | Hosting team dropdown eligibility (the Home month overview it once drove was retired 2026-10-13) |
 | `allowsMultipleAssignments` | Single-slot vs open-signup Schedule UX |
 | `appliesToFormats` | Which programs surface (virtual/hybrid vs in-person/hybrid) |
 | `assignmentGrantsTeacher` + `teacherLabel` | Session-room pill semantics |
@@ -205,7 +205,7 @@ Current safety rules:
 - Hub config + app replacement commit in one `$transaction`; never delete all links before a possibly-failing hub update.
 - `hasToolAccess()` grants the app-link pathway only to ACTIVE members of an ACTIVE hub. Custom links never grant access.
 - When a Space has enabled registered apps, one is primary (`HubAppLink.isPrimary`); a partial unique index enforces at most one primary per Space. Other registered apps are supporting. Custom links can never be primary.
-- Home renders at most one content contribution per app. Since September 2026, every installed app keeps a compact destination link; a primary module appears behind a named disclosure rather than in a duplicate content card. Custom links remain quiet navigation.
+- Home renders at most one contribution per app, and only the primary app's: one summary line in the highlighted tool card at the top of team Home (2026-10-13). Supporting apps and custom links are quiet destination rows. No app adds a module, disclosure or second card, and a summary never states a count it cannot compute truthfully (the Scheduler's row count would have; see "Team Home, 2026-10-13").
 - Updates adapters emit only meaningful, visible events (never held Google-file draft activity) and every item names `sourceKey`, `sourceLabel`, and `kind`.
 - The Updates View menu derives exact categories from enabled core features plus installed apps whose registry contract promises Updates. Exact-source filtering happens in `listHubActivity()` before the merged stream is paginated; never filter only the already-loaded client page.
 - Personal attention is separate from shared Updates. An app owns the meaning and recipients; the Space owns the consistent Home rendering. Passive history must not become an attention badge.
@@ -257,7 +257,7 @@ These are distinct concerns. Conflating them in session 129's first ship caused 
 
 | Signal | Storage | Means | Drives |
 |---|---|---|---|
-| `Hub.hasSchedule` | column on Hub (boolean) | "this hub runs live sessions" and holds primary hosting authority | Scheduler month module on the universal Home, ProgramEditor's Hosting team dropdown eligibility |
+| `Hub.hasSchedule` | column on Hub (boolean) | "this hub runs live sessions" and holds primary hosting authority | ProgramEditor's Hosting team dropdown eligibility (the Home month module was retired 2026-10-13) |
 | `usesScheduler` | derived (`HubAppLink` with `toolSlug = "schedule"` exists on the hub) | "this hub uses the Scheduler tool to staff roles" | ProgramEditor's Auxiliary coverage eligibility, Members tab hosting affordances, destructive-action warning |
 
 Rule of thumb when adding a hub-aware feature:
@@ -349,6 +349,18 @@ When you touch a hub: derive the hub from the resource (usually a program), pass
 
 *RIM Hub Engineering · September 2026 · Written during session 128 Slice 2.5 as the institutional response to the email-URL leak.*
 
-## September 2026 home presentation
+## Team Home, 2026-10-13 (supersedes the September presentation below)
+
+Jesse: "I would like to simplify this page… if there is a tool associated with the Team Hub, that should be highlighted… Let's get rid of the 'About this team', team schedule overview and team guidance… out of the system altogether… we should have an editable text underneath the hub name… This should be a standard across all of these teams."
+
+Every team's Home is now, in order: the team's name; **its own line** (`Hub.description`, one sentence, at most 200 characters, edited in place by the team's leads, `effectiveCoordinator`, through `PATCH /api/hubs/[slug]/home`; empty shows "Your team's shared space."); **the team's tool** when it has a primary registered app (one bordered card: "This team's tool", the app's name, its one summary line, one button "Open the …"); personal attention ("N items need your attention", unchanged); then the destination list (Conversations, Files, Members, supporting apps, custom links).
+
+Retired, from the code and the UI: the first-visit welcome screen (and `PATCH /api/hubs/[slug]/membership/visited`), "About this team" (welcome text and the custom-links block, whose links moved into the destination list), the Scheduler's month overview ("Team schedule overview"; the registry's `module` home mode is gone), pinned conversations on Home (pinned topics lead the Conversations list), and "Team guidance". The `welcomeHeadline`, `welcomeBody`, `homeContent` and `firstVisitedAt` columns stay, unread, until Jesse decides to drop them; each team's text was given to Jesse for its leads (backlog 2026-10-13-006).
+
+The Scheduler's summary states no count: open sessions usually have no `HostAssignment` row (the Scheduler builds them from recurrence), so a row count would tell a team it is covered when it isn't. A true count must reuse the Scheduler's own session builder (backlog 2026-10-13-005).
+
+Words: "team", not "hub", wherever people read (rail type label "Team", "Team settings", page titles, admin "Teams", the two hard-coded team emails). Routes keep `/account/hub/…` and `?hub=`. Three teams renamed in production with Jesse's approval: Hosting Team, Course Team, Support.
+
+## September 2026 home presentation (superseded 2026-10-13)
 
 The universal Home now renders the core destinations and installed apps as one compact navigation list. The Scheduler overview is retained behind its named disclosure; it is not copied into a second dashboard or reimplemented. Welcome/orientation editing, pinned conversations, and personal attention remain reachable without filling the default Home. These are presentation changes only: the exhaustive app registry, feature switches, app compatibility, source meaning, four routing layers, and access helpers remain authoritative. Home app links continue to carry `?hub=`. The team rail returns to the member’s `/account/teams` directory.

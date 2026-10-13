@@ -358,20 +358,9 @@ Uses `RimTiptapEditor` with `variant="document"` — the same component and chro
 
 Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-toolbar in some surfaces (display purpose only) but the selection bubble menu is always available. For short / single-line fields, use `variant="minimal"` (Form Field type).
 
-#### `hub-welcome`
-- **Schema field:** `Hub.welcomeBody`
-- **Components:** `components/HubAdminForm.tsx`, inline editor on `components/HubHomeClient.tsx`
-- **Variant:** message
-- **Output destination:** web template
-- **Output wrapper:** `rim-content` in the `HubHomeClient` first-visit welcome interstitial; also rendered/editable within the persistent `About this team` disclosure (September 2026)
-- **Route:** `/account/hub/[slug]` (first-visit interstitial)
-
-#### `hub-home`
-- **Schema field:** `Hub.homeContent`
-- **Components:** `components/HubAdminForm.tsx`, inline editor on `components/HubHomeClient.tsx`
-- **Variant:** message
-- **Output destination:** web template
-- **Output wrapper:** the `Team guidance` disclosure near the bottom of universal Space Home (September 2026); inline editing is retained
+#### `hub-welcome` and `hub-home` (retired 2026-10-13)
+- **Were:** `Hub.welcomeBody` (the first-visit welcome screen and "About this team") and `Hub.homeContent` ("Team guidance") on team Home, editable inline and in `HubAdminForm`.
+- **Now:** both placements are gone from the code and the UI (Jesse simplified team Home). The columns stay, unread, until he decides to drop them; each team's text was handed to him for its leads. Team Home's only editable text is the team's one line, `Hub.description`, a plain single-line input (not this editor). See `RIM_Hub_Engineering.md`, "Team Home, 2026-10-13".
 
 #### `user-bio`
 - **Schema field:** `User.bio`

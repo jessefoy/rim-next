@@ -36,7 +36,7 @@ export async function GET(
     },
   });
 
-  if (!hub) return NextResponse.json({ error: "Hub not found" }, { status: 404 });
+  if (!hub) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");

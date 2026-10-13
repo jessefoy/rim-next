@@ -4,10 +4,13 @@ import { db } from "@/lib/db";
 import { effectiveCoordinator } from "@/lib/hubAuth";
 
 /**
- * PATCH /api/hubs/[slug]/home — update hub home content (coordinator or admin).
+ * PATCH /api/hubs/[slug]/home — the team's own line under its name on Home
+ * (Hub.description), edited by the team's leads: a coordinator, the guiding
+ * teacher or an admin (effectiveCoordinator). One line, at most 200
+ * characters; empty clears it and Home shows "Your team's shared space."
  *
- * Accepts `welcomeBody` and/or `homeContent` (BlockNote JSON). Each is optional;
- * only present keys are written. Passing `null` explicitly clears a field.
+ * The welcome and guidance sections this route used to save were retired
+ * from team Home (Jesse, 2026-10-13); their columns stay until dropped.
  */
 export async function PATCH(
   req: Request,
@@ -23,35 +26,24 @@ export async function PATCH(
     where: { slug },
     include: { members: { where: { userId: session.user.id } } },
   });
-
-  if (!hub) return NextResponse.json({ error: "Hub not found" }, { status: 404 });
+  if (!hub) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const member = hub.members[0] ?? null;
   if (!effectiveCoordinator(member, roles)) {
-    return NextResponse.json({ error: "Only coordinators can edit hub home content." }, { status: 403 });
+    return NextResponse.json({ error: "Only this team's leads can change this line." }, { status: 403 });
   }
 
-  const body = await req.json();
-
-  // Build update data with only the fields the caller sent. Fields are Prisma
-  // Json? — mirrors the original homeContent-only write shape.
-  const hasWelcome = Object.prototype.hasOwnProperty.call(body, "welcomeBody");
-  const hasHome = Object.prototype.hasOwnProperty.call(body, "homeContent");
-  if (!hasWelcome && !hasHome) {
-    return NextResponse.json({ error: "No fields to update." }, { status: 400 });
+  const body = await req.json().catch(() => ({}));
+  if (typeof body.description !== "string") {
+    return NextResponse.json({ error: "No line to save." }, { status: 400 });
   }
+  const description = body.description.replace(/\s+/g, " ").trim().slice(0, 200) || null;
 
   const updated = await db.hub.update({
     where: { slug },
-    data: {
-      ...(hasWelcome ? { welcomeBody: body.welcomeBody ?? null } : {}),
-      ...(hasHome ? { homeContent: body.homeContent ?? null } : {}),
-    },
+    data: { description },
+    select: { description: true },
   });
 
-  return NextResponse.json({
-    ok: true,
-    welcomeBody: updated.welcomeBody,
-    homeContent: updated.homeContent,
-  });
+  return NextResponse.json({ ok: true, description: updated.description });
 }

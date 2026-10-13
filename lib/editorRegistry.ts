@@ -38,8 +38,6 @@ export type EditorPlacement =
   | "program-description"
   | "lesson"
   // Message type — hub surfaces
-  | "hub-welcome"
-  | "hub-home"
   | "hub-conversation"
   // Message type — email-bound / support
   | "support-reply"
@@ -78,8 +76,6 @@ export const PLACEMENT_TYPE: Record<EditorPlacement, EditorType> = {
   "program-description": "page-designer",
   "lesson": "page-designer",
   // Message — hub
-  "hub-welcome": "message",
-  "hub-home": "message",
   "hub-conversation": "message",
   // Message — email-bound / support
   "support-reply": "message",
@@ -149,8 +145,6 @@ const PAGE_DESIGNER_PLACEMENTS: EditorPlacement[] = [
 ];
 
 const MESSAGE_PLACEMENTS: EditorPlacement[] = [
-  "hub-welcome",
-  "hub-home",
   "hub-conversation",
   "support-reply",
   "support-note",

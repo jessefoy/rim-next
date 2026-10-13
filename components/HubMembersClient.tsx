@@ -478,7 +478,7 @@ function MemberEditor({
             checked={communicationsEnabled}
             onChange={(e) => setCommunicationsEnabled(e.target.checked)}
           />
-          <span>Receives hub notifications</span>
+          <span>Receives team notifications</span>
         </label>
       </div>
       <label className="hub-mem-editor__field">

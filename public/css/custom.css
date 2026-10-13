@@ -9867,134 +9867,17 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 }
 
 /* Generic section scaffolding */
-.hub-home__section { display: flex; flex-direction: column; gap: 10px; }
-.hub-home__section-label {
-  font-size: var(--text-xxs); font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.12em; color: var(--rim-text-muted);
-}
 
 /* ── "Our offerings this month" panel (hh-month) ──────────────────────────
    Sangha-friendly visibility into team contribution. Shown above both
    coordinator and host views on the host hub home. Tone: collective,
    warm, no leaderboard energy. */
-.hh-month {
-  background: #fff;
-  border: 1px solid var(--rim-rule);
-  border-radius: 10px;
-  padding: 22px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.hh-month__heading {
-  font-family: var(--font-serif);
-  font-size: var(--text-h4);
-  font-weight: 500;
-  color: var(--rim-text);
-  line-height: var(--lh-heading);
-}
-.hh-month__summary {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-mid);
-  line-height: 1.6;
-  margin: 0;
-}
-.hh-month__summary strong { color: var(--rim-text); font-weight: 600; }
-
-.hh-month__group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #f0ede8;
-}
-.hh-month__group:first-of-type { border-top: none; padding-top: 0; }
-.hh-month__group-label {
-  font-family: var(--font-sans);
-  font-size: var(--text-xxs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--rim-text-muted);
-}
-.hh-month__pills {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.hh-month__pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px 5px 12px;
-  border-radius: 20px;
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  background: rgba(19, 82, 116, 0.08);
-  color: var(--rim-text);
-}
-.hh-month__pill-name { font-weight: 500; }
-.hh-month__pill-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  padding: 0 7px;
-  background: #fff;
-  border-radius: 12px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--rim-blue);
-}
-.hh-month__pill--coord .hh-month__pill-name::after {
-  content: " ★";
-  color: #d9840f;
-  font-size: var(--text-xs);
-}
 /* Quiet pills — for "Available, not yet on the schedule." Lighter tone so
    that being on this list never reads as a callout, just context. */
-.hh-month__pills--quiet { gap: 5px; }
-.hh-month__pill--quiet {
-  background: transparent;
-  border: 1px solid #ebe8e3;
-  color: var(--rim-mid);
-  padding: 4px 12px;
-}
-
-.hh-month__cta {
-  align-self: flex-start;
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  font-weight: 600;
-  color: var(--rim-blue);
-  text-decoration: none;
-  padding-top: 4px;
-}
-.hh-month__cta:hover { text-decoration: underline; }
-
-@media (max-width: 480px) {
-  .hh-month { padding: 18px 18px; }
-  .hh-month__pill { font-size: var(--text-xs); }
-}
 
 /* Pinned threads list */
-.hub-home__pinned { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.hub-home__pinned-link {
-  display: block; padding: 10px 14px; font-size: var(--text-small);
-  color: var(--rim-blue); text-decoration: none; font-weight: 600;
-  background: #fafaf9; border-radius: 6px; transition: background 0.12s;
-}
-.hub-home__pinned-link:hover { background: #f0efed; }
 
 /* Orientation block (coordinator home content) */
-.hub-home__orientation { display: flex; flex-direction: column; gap: 10px; }
-.hub-home__orientation-body { font-size: var(--text-small); line-height: 1.65; color: var(--rim-text); }
-.hub-home__orientation-body p { margin: 0 0 12px; }
-.hub-home__orientation-body a { color: var(--rim-blue); }
 
 /* ── Primary tool card — visually dominant ── */
 .hub-home-card {
@@ -10087,18 +9970,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   font-size: var(--text-xs);
   font-weight: 600;
 }
-.hub-home-links { gap: 8px; }
-.hub-home-links__link {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 4px;
-  color: var(--rim-blue);
-  font-size: var(--text-small);
-  text-decoration: none;
-}
-.hub-home-links__link:hover { text-decoration: underline; }
 
 /* ── Hub Home role toggle (coordinator-only preview-as-host) — Phase 5 ── */
 .hub-home-toggle {
@@ -10264,21 +10135,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
    Subtle "Edit" link beside section labels, a paneled editor surface, and a
    compact footer with Cancel / Save. Avoids decoration per design philosophy:
    the affordance reads as a text link, not a button competing for attention. */
-.hub-home__section-label--with-action {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-}
-.hub-home__section-action {
-  appearance: none;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 0;
-  background: transparent;
-  color: var(--rim-blue);
-  font: inherit;
-  cursor: pointer;
-}
-.hub-home__section-action:hover,
-.hub-home__section-action:focus-visible { text-decoration: underline; }
 .hub-home__edit-link {
   appearance: none; background: transparent; border: 0; padding: 0;
   font-family: var(--font-sans);
@@ -10290,35 +10146,6 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 }
 .hub-home__edit-link:hover,
 .hub-home__edit-link:focus-visible { color: var(--rim-blue); outline: none; }
-
-.hub-home__empty-content {
-  font-size: var(--text-small); color: var(--rim-text-muted);
-  font-style: italic;
-}
-.hub-home__empty-action {
-  appearance: none; display: inline-flex; align-items: center; min-height: 44px;
-  background: transparent; border: 0; padding: 0;
-  font: inherit; color: var(--rim-blue); cursor: pointer;
-  text-decoration: underline; font-style: normal;
-}
-
-.hub-home__editor { display: flex; flex-direction: column; gap: 12px; }
-.hub-home__editor-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.hub-home__editor-cancel,
-.hub-home__editor-save {
-  min-height: 44px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 6px;
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  font-weight: 600;
-  cursor: pointer;
-}
-.hub-home__editor-cancel { background: var(--rim-bg-accent); color: var(--rim-text); }
-.hub-home__editor-save { background: var(--rim-blue); color: var(--rim-surface); }
-.hub-home__editor-cancel:disabled,
-.hub-home__editor-save:disabled { opacity: 0.6; cursor: default; }
 
 .hub-home__inline-editor {
   display: flex; flex-direction: column; gap: 10px;
@@ -10359,48 +10186,13 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   opacity: 0.55; cursor: not-allowed;
 }
 
-.hub-home__editor-loading {
-  font-size: var(--text-small); color: var(--rim-text-muted);
-  padding: 24px; text-align: center;
-}
-
 /* ── Hub Welcome Interstitial (hub-welcome-) ── */
-.hub-welcome {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 400px; padding: 40px 24px;
-}
-.hub-welcome__card {
-  max-width: 560px; width: 100%; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 20px;
-}
-.hub-welcome__title {
-  font-family: var(--font-serif); font-size: var(--text-h2); font-weight: 400;
-  color: var(--rim-text); margin: 0;
-}
-.hub-welcome__headline {
-  font-size: 17px; color: var(--rim-text-muted); margin: 0; line-height: 1.5;
-}
-.hub-welcome__body {
-  font-size: 16px; line-height: 1.7; color: var(--rim-text); text-align: left; width: 100%;
-}
-.hub-welcome__body p { margin: 0 0 12px; }
-.hub-welcome__body a { color: var(--rim-blue); }
-.hub-welcome__btn {
-  display: inline-block; min-height: 48px; padding: 12px 32px;
-  background: var(--rim-blue); color: #fff; border: none; border-radius: 8px;
-  font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px;
-}
-.hub-welcome__btn:hover { opacity: 0.9; }
-.hub-welcome__btn:disabled { opacity: 0.5; cursor: default; }
 
 @media (max-width: 767px) {
   .hub-home { gap: 24px; padding: 4px 0 32px; }
   .hub-home__state { font-size: var(--text-h3); }
   .hub-home-card__inner { padding: 18px 20px; }
   .hub-home-card__count-num { font-size: 36px; }
-  .hub-welcome { padding: 32px 16px; min-height: 300px; }
-  .hub-welcome__title { font-size: var(--text-h3); }
-  .hub-welcome__btn { width: 100%; }
 }
 
 /* ── Hub Tasks (hub-tasks-) — redesigned session 73 ── */
@@ -30909,6 +30701,59 @@ a.pp-card:hover .pp-card__action--named {
 @media print {
   body:has(.hol-reading) .nav,
   body:has(.hol-reading) .rim-footer { display: none !important; }
+}
+
+/* ── Team Home (2026-10-13, Jesse: the standard for every team) ──────
+   The team's own line under its name, with a plain edit for its leads;
+   the team's tool, highlighted above the destinations by size and its one
+   button, not by colour. */
+.hub-line { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.hub-line__text { margin: 0; }
+.hub-line__edit {
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px 0;
+  border: 0;
+  background: none;
+  color: var(--rim-blue);
+  font: inherit;
+  font-size: var(--text-app);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.hub-line__form { display: grid; gap: 8px; max-width: 640px; margin-top: 8px; }
+.hub-line__form .pp-form__help { margin: 0; }
+.hub-line__form .pp-actions { margin: 4px 0 0; }
+.hub-line__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.hub-tool {
+  padding: 24px 28px 28px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  background: var(--rim-surface);
+}
+.hub-tool__label {
+  margin: 0;
+  font-size: var(--text-app-meta);
+  color: var(--rim-text-muted);
+}
+.hub-tool__title {
+  margin: 4px 0 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-h3);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+  color: var(--rim-heading);
+}
+.hub-tool__summary {
+  margin: 8px 0 20px;
+  font-size: var(--text-app);
+  line-height: 1.55;
+  color: var(--rim-text);
+}
+@media (max-width: 430px) {
+  .hub-tool { padding: 20px; }
 }
 
 /* ── Save answers (components/FormDone.tsx SaveNote, 2026-10-13) ─────

@@ -45,6 +45,10 @@ const DEAD_PREFIXES = [
   "mr-", "mpd-",
   // 2026-10-13: the member header retired; every page wears the site's .nav.
   "member-bar", "member-menu",
+  // 2026-10-13: team Home simplified (the welcome screen, About this team, the
+  // month overview, pinned conversations and Team guidance retired).
+  "hh-month", "hub-welcome", "hub-home__orientation", "hub-home__section",
+  "hub-home-links", "hub-home__pinned", "hub-home__editor", "hub-home__empty",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

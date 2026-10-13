@@ -9,11 +9,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SlugField from "@/components/SlugField";
-import dynamic from "next/dynamic";
-const RimTiptapEditor = dynamic(
-  () => import("@/components/rim-tiptap/RimTiptapEditor"),
-  { ssr: false, loading: () => <div style={{ height: 120 }} /> },
-);
 import Link from "next/link";
 import {
   TOOL_REGISTRY,
@@ -80,9 +75,6 @@ interface HubData {
   coverageAction: string;
   appLinks: AppLink[];
   coordinators: CoordinatorInfo[];
-  welcomeHeadline: string;
-  welcomeBody: unknown;
-  homeContent: unknown;
 }
 
 interface Props {
@@ -177,13 +169,6 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
     Boolean(initialData?.googleDriveId && initialData?.googleRootFolderId),
   );
   const [appLinks, setAppLinks] = useState<AppLink[]>(initialData?.appLinks ?? []);
-  const [welcomeHeadline, setWelcomeHeadline] = useState(initialData?.welcomeHeadline ?? "");
-  const [welcomeBody, setWelcomeBody] = useState<string>(
-    typeof initialData?.welcomeBody === "string" ? initialData.welcomeBody : "",
-  );
-  const [homeContent, setHomeContent] = useState<string>(
-    typeof initialData?.homeContent === "string" ? initialData.homeContent : "",
-  );
   const coordinators = initialData?.coordinators ?? [];
 
   // Load the drive list for the picker (edit mode only — mapping is an
@@ -251,7 +236,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
         throw new Error(data.error || "Failed to add yourself as coordinator.");
       }
       setIAmCoordinator(true);
-      setSuccess("You're now a coordinator of this hub.");
+      setSuccess("You're now a coordinator of this team.");
       // Refresh to repopulate the coordinator list display.
       router.refresh();
     } catch (err) {
@@ -271,7 +256,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "Couldn't set up files for this hub.");
+        throw new Error(data.error || "Couldn't set up files for this team.");
       }
       // Reflect the new mapping in the form so the picker + toggle update
       // without a reload; the drive now lives in the shared container.
@@ -283,7 +268,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       }
       setProvisionNote(
         data.alreadyMapped
-          ? "This hub already had files set up."
+          ? "This team already had files set up."
           : "Files are set up — a folder for this team was created and the Files area is on.",
       );
     } catch (err) {
@@ -408,9 +393,6 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       // select's onChange reset below are affordances, not enforcement.
       googleFilesEnabled,
       appLinks: appLinks.filter((l) => l.label && (l.toolSlug || l.href)),
-      welcomeHeadline: welcomeHeadline || null,
-      welcomeBody: welcomeBody,
-      homeContent: homeContent,
     };
 
     try {
@@ -425,11 +407,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to save hub.");
+        throw new Error(data.error || "The team was not saved. Please try again.");
       }
 
       if (isEditing) {
-        setSuccess("Hub updated.");
+        setSuccess("Saved. The team is updated.");
         // If slug changed, redirect to new edit URL
         if (slug !== hubSlug) {
           router.replace(`/admin/hubs/${slug}/edit`);
@@ -470,7 +452,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
             setSlugTouched(true);
           }}
           isEditing={isEditing}
-          warnText="Changing the slug will break existing hub links and bookmarks."
+          warnText="Changing the slug will break existing links and bookmarks to this team."
           hintText={`/account/hub/${slug}`}
         />
       </div>
@@ -478,13 +460,17 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       {/* Description */}
       <div className="adm-hubs-field">
         <label className="adm-hubs-label">Description</label>
-        <textarea
-          className="adm-hubs-textarea"
+        <input
+          type="text"
+          className="adm-hubs-input"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          placeholder="Short description of this hub's purpose."
+          maxLength={200}
+          placeholder="Your team’s shared space."
         />
+        <span className="adm-hubs-hint">
+          One line under the team&rsquo;s name on its Home. The team&rsquo;s leads can change it there too.
+        </span>
       </div>
 
       {/* Type */}
@@ -849,48 +835,6 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
         </div>
       )}
 
-      {/* Welcome (newcomer interstitial) */}
-      <div className="adm-hubs-field">
-        <label className="adm-hubs-label">Welcome Headline</label>
-        <input
-          type="text"
-          className="adm-hubs-input"
-          value={welcomeHeadline}
-          onChange={(e) => setWelcomeHeadline(e.target.value)}
-          placeholder="e.g. Welcome to the Host Team"
-        />
-        <span className="adm-hubs-hint">
-          Shown on the newcomer welcome screen. Leave blank to skip the interstitial.
-        </span>
-      </div>
-
-      <div className="adm-hubs-field">
-        <label className="adm-hubs-label">Welcome Body</label>
-        <RimTiptapEditor
-          value={welcomeBody}
-          onChange={setWelcomeBody}
-          variant="message"
-          placeholder="Orientation content for new hub members..."
-        />
-        <span className="adm-hubs-hint">
-          Orientation text shown once to new members on first visit.
-        </span>
-      </div>
-
-      {/* Hub Home orientation (shown on every visit, bottom of Home) */}
-      <div className="adm-hubs-field">
-        <label className="adm-hubs-label">Hub Home Orientation</label>
-        <RimTiptapEditor
-          value={homeContent}
-          onChange={setHomeContent}
-          variant="message"
-          placeholder="Optional orientation block shown at the bottom of this hub's Home..."
-        />
-        <span className="adm-hubs-hint">
-          Long-lived context for this Space — shown near the bottom of Home. Leave blank to hide.
-        </span>
-      </div>
-
       {/* Apps and navigation links */}
       <div className="adm-hubs-field">
         <label className="adm-hubs-label">Apps &amp; links</label>
@@ -1010,7 +954,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       {/* Submit */}
       <div className="adm-hubs-actions">
         <button type="submit" className="adm-hubs-btn-save" disabled={saving}>
-          {saving ? "Saving..." : isEditing ? "Save Changes" : "Create Hub"}
+          {saving ? "Saving..." : isEditing ? "Save Changes" : "Create Team"}
         </button>
         <Link href="/admin/hubs" className="adm-hubs-btn-cancel">
           Cancel

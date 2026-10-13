@@ -53,7 +53,7 @@ Before registering or changing any app that can be installed through `HubAppLink
 
 1. Declare `multi-space` or `primary-space` compatibility, whether the app may be primary, and one distinct semantic `iconKey`.
 2. Scope every read, write, permission gate, notification recipient, and URL by the resource Space.
-3. Provide no more than one Home contribution (`summary`, `module`, or `none`). September 2026 presentation keeps a compact destination link for each installed app and places the primary module behind a named disclosure; do not duplicate its detailed content in another card.
+3. Provide no more than one Home contribution (`summary` or `none`). Team Home (Jesse, 2026-10-13, the standard for every team) highlights the primary app in one card at the top (its name, its one summary line, one button) and lists supporting apps and custom links as quiet destinations. No app adds a module, a disclosure, or a second card to Home, and a summary never states a count it cannot compute truthfully.
 4. Emit only meaningful, visible Updates with explicit `sourceKey`, `sourceLabel`, and durable `kind`.
 5. Define personal attention separately from shared Updates; passive history is not a notification.
 6. Let the app own event meaning and detailed counts; let the Space own consistent rendering and read state.

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import HubAdminForm from "@/components/HubAdminForm";
 import { googleConfigured } from "@/lib/google/auth";
 
-export const metadata = { title: "Edit Hub - Admin" };
+export const metadata = { title: "Edit Team - Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminHubEditPage({
@@ -81,9 +81,6 @@ export default async function AdminHubEditPage({
       lastName: m.user.lastName,
       email: m.user.email!,
     })),
-    welcomeHeadline: hub.welcomeHeadline ?? "",
-    welcomeBody: hub.welcomeBody,
-    homeContent: hub.homeContent,
   };
 
   return (

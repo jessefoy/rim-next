@@ -883,7 +883,7 @@ The coordinator is the team's main point of contact — not Jesse. You train new
     await resend.emails.send({
       from: FROM,
       to: data.to,
-      subject: "Welcome, host coordinator — your hub is ready",
+      subject: "Welcome, host coordinator — your team is ready",
       html,
     });
   } catch (e) {
@@ -1456,7 +1456,7 @@ export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<vo
     firstName: data.firstName,
     hubName:   data.hubName,
     hubUrl:    data.hubUrl,
-    hubButton: emailButtonHtml("Open your hub", data.hubUrl),
+    hubButton: emailButtonHtml("Open your team", data.hubUrl),
   });
 }
 

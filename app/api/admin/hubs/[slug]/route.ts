@@ -58,7 +58,7 @@ export async function PATCH(
 
   const { slug } = await params;
   const body = await req.json();
-  const { name, slug: newSlug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, googleDriveId, googleFilesEnabled, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
+  const { name, slug: newSlug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, googleDriveId, googleFilesEnabled, appLinks } = body;
 
   // Coverage strings: trim, cap at 40. Empty input falls through to the
   // host-team default for that field — clearing an input in the form
@@ -190,7 +190,10 @@ export async function PATCH(
   const updateData: Prisma.HubUpdateInput = {
       ...(name !== undefined && { name }),
       ...(newSlug && newSlug !== slug && { slug: newSlug }),
-      ...(description !== undefined && { description: description || null }),
+      // The one line under the team's name on its Home (2026-10-13).
+      ...(description !== undefined && {
+        description: typeof description === "string" ? description.replace(/\s+/g, " ").trim().slice(0, 200) || null : null,
+      }),
       ...(type !== undefined && { type }),
       ...(status !== undefined && { status }),
       ...(hasSchedule !== undefined && { hasSchedule: !!hasSchedule }),
@@ -229,9 +232,6 @@ export async function PATCH(
       }),
       ...(googleDriveId !== undefined &&
         nextGoogleDriveId !== hub.googleDriveId && { googleRootFolderId: null }),
-      ...(welcomeHeadline !== undefined && { welcomeHeadline: welcomeHeadline || null }),
-      ...(welcomeBody !== undefined && { welcomeBody }),
-      ...(homeContent !== undefined && { homeContent }),
   };
 
   // App replacement and hub config are one unit. A failed create can no

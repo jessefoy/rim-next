@@ -1,170 +1,142 @@
 "use client";
 
-/** Shared schedule and editing modules for the universal Space Home. */
+/**
+ * The team's own line under its name on Home (Hub.description), and its
+ * editor for the team's leads (Jesse, 2026-10-13): plainly offered, one line,
+ * answered beside its button (SaveNote, one status region that stays mounted
+ * so the answer is announced). Focus returns to the edit button after saving
+ * or cancelling. Saved by PATCH /api/hubs/[slug]/home.
+ */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import dynamic from "next/dynamic";
+import { SaveNote } from "@/components/FormDone";
 
-const RimTiptapEditor = dynamic(
-  () => import("@/components/rim-tiptap/RimTiptapEditor"),
-  { ssr: false, loading: () => <div className="hub-home__editor-loading">Loading editor…</div> },
-);
+export const TEAM_LINE_FALLBACK = "Your team’s shared space.";
 
-export interface ThisMonthGlance {
-  monthLabel: string;
-  coverageNoun: string;
-  totalSessions: number;
-  openSessions: number;
-  hostingMembers: Array<{ userId: string; name: string; count: number; isCoordinator: boolean }>;
-  availableMembers: Array<{ userId: string; name: string; count: number; isCoordinator: boolean }>;
-}
-
-/* ─────────────────  Our offerings this month panel  ─────────────────────────
-   Shown to everyone. Sangha-friendly framing: work is collective, members
-   not yet on the schedule are described as "available" — not absent. */
-
-export function ThisMonthGlancePanel({ data, hubSlug }: { data: ThisMonthGlance; hubSlug: string }) {
-  if (data.totalSessions === 0 && data.hostingMembers.length === 0 && data.availableMembers.length === 0) {
-    return null;
-  }
-
-  const hostingCount = data.hostingMembers.length;
-  const sessionsLabel = data.totalSessions === 1 ? "session" : "sessions";
-  const role = data.coverageNoun.toLowerCase();
-  const rolesLabel = hostingCount === 1 ? role : `${role}s`;
-
-  return (
-    <section className="hh-month">
-      <div className="hh-month__heading">Our offerings this month</div>
-
-      <p className="hh-month__summary">
-        <strong>{data.totalSessions}</strong>{" "}
-        {data.totalSessions === 1 ? "session" : "sessions"} in {data.monthLabel} ·{" "}
-        <strong>{hostingCount}</strong> {rolesLabel} contributing
-        {data.openSessions > 0 && (
-          <>
-            {" "}· <strong>{data.openSessions}</strong> still {data.openSessions === 1 ? "needs" : "need"} {role === "av" ? "AV" : `a ${role}`}
-          </>
-        )}
-        .
-      </p>
-
-      {data.hostingMembers.length > 0 && (
-        <div className="hh-month__group">
-          <div className="hh-month__group-label">{data.coverageNoun === "Host" ? "Hosting" : `${data.coverageNoun} coverage`}</div>
-          <ul className="hh-month__pills">
-            {data.hostingMembers.map((m) => (
-              <li
-                key={m.userId}
-                className={`hh-month__pill${m.isCoordinator ? " hh-month__pill--coord" : ""}`}
-              >
-                <span className="hh-month__pill-name">{m.name}</span>
-                <span
-                  className="hh-month__pill-count"
-                  aria-label={`${m.count} ${m.count === 1 ? sessionsLabel : "sessions"}`}
-                >
-                  {m.count}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {data.availableMembers.length > 0 && (
-        <div className="hh-month__group">
-          <div className="hh-month__group-label">Available, not yet on the schedule</div>
-          <ul className="hh-month__pills hh-month__pills--quiet">
-            {data.availableMembers.map((m) => (
-              <li
-                key={m.userId}
-                className={`hh-month__pill hh-month__pill--quiet${m.isCoordinator ? " hh-month__pill--coord" : ""}`}
-              >
-                <span className="hh-month__pill-name">{m.name}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {data.openSessions > 0 && (
-        <Link
-          href={`/tools/schedule?hub=${encodeURIComponent(hubSlug)}`}
-          className="hh-month__cta"
-        >
-          See the schedule →
-        </Link>
-      )}
-    </section>
-  );
-}
-
-export function InlineBlockEditor({
+export function TeamLine({
   slug,
-  field,
-  initialValue,
-  placeholder,
-  onDone,
+  line,
+  canEdit,
 }: {
   slug: string;
-  field: "welcomeBody" | "homeContent";
-  initialValue: string;
-  placeholder: string;
-  onDone: () => void;
+  line: string | null;
+  canEdit: boolean;
 }) {
   const router = useRouter();
-  const [value, setValue] = useState<string>(initialValue ?? "");
+  // What is shown: the saved line, updated from the response at once (the
+  // page refresh catches up after).
+  const [shown, setShown] = useState<string | null>(line);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(line ?? "");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
+  const editButton = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
 
-  async function save() {
+  useEffect(() => {
+    if (!editing && returnFocus.current) {
+      returnFocus.current = false;
+      editButton.current?.focus();
+    }
+  }, [editing]);
+
+  function close() {
+    returnFocus.current = true;
+    setEditing(false);
+  }
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
     setSaving(true);
-    setError("");
+    setStatus("idle");
     try {
       const res = await fetch(`/api/hubs/${slug}/home`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value }),
+        body: JSON.stringify({ description: value }),
       });
       if (!res.ok) throw new Error();
-      onDone();
+      const data = await res.json().catch(() => ({}));
+      const saved = typeof data.description === "string" ? data.description : null;
+      setShown(saved);
+      setValue(saved ?? "");
+      setStatus("saved");
+      close();
       router.refresh();
     } catch {
-      setError("That change couldn’t be saved. Please try again.");
+      setStatus("error");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="hub-home__editor">
-      <RimTiptapEditor
-        value={value}
-        onChange={setValue}
-        placeholder={placeholder}
-        variant="message"
-      />
-      {error && <div className="hub-home__editor-error" role="alert">{error}</div>}
-      <div className="hub-home__editor-actions">
-        <button
-          type="button"
-          className="hub-home__editor-cancel"
-          onClick={onDone}
-          disabled={saving}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="hub-home__editor-save"
-          onClick={save}
-          disabled={saving}
-        >
-          {saving ? "Saving…" : "Save"}
-        </button>
-      </div>
+    <div className="hub-line">
+      {editing ? (
+        <form className="hub-line__form" onSubmit={save}>
+          <label className="pp-form__label" htmlFor="hub-line-input">
+            The line under your team&rsquo;s name
+          </label>
+          <input
+            id="hub-line-input"
+            className="pp-form__input"
+            type="text"
+            maxLength={200}
+            value={value}
+            placeholder={TEAM_LINE_FALLBACK}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setStatus("idle");
+            }}
+            autoFocus
+          />
+          <p className="pp-form__help">
+            One sentence about this team, for everyone on it. Leave it empty to show &ldquo;{TEAM_LINE_FALLBACK}&rdquo;
+          </p>
+          <div className="hub-line__actions">
+            <button type="submit" className="pp-btn" disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              className="pp-btn pp-btn--ghost"
+              disabled={saving}
+              onClick={() => {
+                setValue(shown ?? "");
+                setStatus("idle");
+                close();
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <p className="ac-page-sub hub-line__text">{shown || TEAM_LINE_FALLBACK}</p>
+          {canEdit && (
+            <button
+              ref={editButton}
+              type="button"
+              className="hub-line__edit"
+              onClick={() => {
+                setStatus("idle");
+                setEditing(true);
+              }}
+            >
+              {shown ? "Edit this line" : "Write this team’s line"}
+            </button>
+          )}
+        </>
+      )}
+      {canEdit && (
+        <SaveNote
+          status={saving ? "saving" : status}
+          saved="Saved. Everyone on this team sees the new line."
+          problem="Your line was not saved. It is still here. Please try again."
+        />
+      )}
     </div>
   );
 }
