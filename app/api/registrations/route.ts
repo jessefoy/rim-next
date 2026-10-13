@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { auth } from "@/auth";
 import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
 import {
   enrollMemberInOnboardingSeries,
@@ -74,8 +75,13 @@ export async function POST(request: NextRequest) {
     // program that's FULL takes the normal waitlist path instead.
     const isProvisional = requiresPayment && hasCapacity;
 
-    // Resolve user — use provided userId (logged-in) or find by email.
-    const normalizedEmail = email.trim().toLowerCase();
+    // Resolve the person: the signed-in member from the session, never from
+    // the request (a userId in the body was trusted until 2026-10-13, which let
+    // an unauthenticated request attach a registration to any account and
+    // fill its blank profile fields). Anyone not signed in is a guest by email.
+    const session = await auth();
+    const sessionUserId = session?.user?.id ?? null;
+    let normalizedEmail = email.trim().toLowerCase();
     const now = new Date();
     // null for a brand-new guest on the provisional path: we DON'T create an
     // account until they actually pay (the Stripe webhook creates it). Existing
@@ -87,20 +93,23 @@ export async function POST(request: NextRequest) {
     let resolvedLastName = lastName.trim();
     let resolvedPhone = phone?.trim() ?? null;
 
-    if (body.userId) {
-      // Logged-in member: backfill any blank profile fields from registration data
-      resolvedUserId = body.userId;
+    if (sessionUserId) {
+      // Signed-in member: backfill any blank profile fields from registration data
+      resolvedUserId = sessionUserId;
       const existing = await db.user.findUnique({
-        where: { id: body.userId },
-        select: { firstName: true, lastName: true, phone: true },
+        where: { id: sessionUserId },
+        select: { email: true, firstName: true, lastName: true, phone: true },
       });
       if (existing) {
+        // The registration carries the account's own address (the form shows
+        // it read-only), so its emails go to the member who registered.
+        if (existing.email) normalizedEmail = existing.email.trim().toLowerCase();
         const updates: Record<string, unknown> = {};
         if (!existing.firstName && firstName?.trim()) updates.firstName = firstName.trim();
         if (!existing.lastName && lastName?.trim()) updates.lastName = lastName.trim();
         if (!existing.phone && phone?.trim()) updates.phone = phone.trim();
         if (Object.keys(updates).length > 0) {
-          await db.user.update({ where: { id: body.userId }, data: updates });
+          await db.user.update({ where: { id: sessionUserId }, data: updates });
         }
       }
     } else {
@@ -295,6 +304,9 @@ export async function POST(request: NextRequest) {
       success: true,
       status,
       registrationId: registration.id,
+      // The address the confirmation goes to (a signed-in member's own), so
+      // the form never names a different one.
+      email: normalizedEmail,
       requiresPayment,
       // After this registration, spots remaining (for client feedback)
       spotsRemaining: spotsRemaining !== null ? Math.max(0, spotsRemaining - 1) : null,

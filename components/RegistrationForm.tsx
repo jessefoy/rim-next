@@ -430,7 +430,6 @@ export default function RegistrationForm({
           programId: program._id,
           programSlug: program.slug.current,
           programTitle: program.name,
-          userId: sessionUserId ?? undefined,
           // Logged-in members already agreed; guests agree via checkbox on this form
           agreedToTerms: sessionUserId ? true : agreedToTerms,
           ...form,
@@ -458,6 +457,7 @@ export default function RegistrationForm({
       // Registration confirmed — check if dana step is needed.
       // Skip if: no mode, mode is "none", or fixed mode with no amount configured.
       setRegistrationId(data.registrationId ?? null);
+      if (typeof data.email === "string" && data.email) setForm((f) => ({ ...f, email: data.email }));
 
       const hasConfiguredAmount =
         program.danaMode === "fixed"

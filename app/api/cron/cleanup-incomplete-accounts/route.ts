@@ -29,6 +29,11 @@ import { NextResponse } from "next/server";
 // The Memberstack migration adds a third exemption: imported legacy accounts
 // (isLegacyUnclaimed = true) sit in the quiet pool with no role/hub by design
 // and must survive until their owner logs in and is promoted.
+// A fourth (2026-10-13): anyone who has registered for a program. Registering
+// as a guest creates an agreed, unverified account (the form carries the
+// agreements), which looked exactly like an abandoned /join and was deleted
+// after 48h, detaching the person from their registrations. Kept whatever the
+// registration's status: it is their history with RIM.
 // (Relation filters like `hubMemberships: { none }` aren't supported in
 // deleteMany, so we resolve ids with findMany first, then delete by id.)
 //
@@ -49,6 +54,7 @@ export async function GET(request: Request) {
       roles: { isEmpty: true },          // never GC someone an admin gave a role
       hubMemberships: { none: {} },      // …or added to a hub (staged volunteers)
       isLegacyUnclaimed: false,          // …or imported from Memberstack (quiet pool)
+      registrations: { none: {} },       // …or registered for any program
       OR: [
         // Path 1 — never agreed
         { agreedToTerms: false },

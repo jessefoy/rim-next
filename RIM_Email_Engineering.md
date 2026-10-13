@@ -79,7 +79,7 @@ This is enforced in **two layers**, because RIM has two recipient shapes:
 
 **NEVER gate** the sign-in code emails (`sign-in-code-*`) or the join-welcome letter (`join-welcome`) — those *must* reach a mid-signup person whose `emailVerified` is still null. They're deliberately absent from the slug set and have no inline gate. Gating `sendTemplatedEmail` globally (instead of by slug) would break sign-in — don't.
 
-The cleanup-cron staged-account guard is the other half of staging (so staged accounts survive the 48h sweep): `cleanup-incomplete-accounts` only deletes accounts with no role AND no hub membership. See `RIM_Auth.md`.
+The cleanup-cron staged-account guard is the other half of staging (so staged accounts survive the 48h sweep): `cleanup-incomplete-accounts` only deletes accounts with no role, no hub membership, no legacy flag and no registration. See `RIM_Auth.md`.
 
 ---
 
