@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { looksAutomated, BOT_RETRY_MESSAGE } from "@/lib/botCheck";
 import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
 import {
   enrollMemberInOnboardingSeries,
@@ -81,6 +82,13 @@ export async function POST(request: NextRequest) {
     // fill its blank profile fields). Anyone not signed in is a guest by email.
     const session = await auth();
     const sessionUserId = session?.user?.id ?? null;
+    // A guest registration creates a member account and sends email, so a bot
+    // is refused before anything is written (lib/botCheck.ts). Signed-in
+    // members proved who they are and are not checked.
+    if (!sessionUserId && looksAutomated(body)) {
+      console.warn("[registrations POST] automated registration refused");
+      return NextResponse.json({ error: BOT_RETRY_MESSAGE }, { status: 400 });
+    }
     let normalizedEmail = email.trim().toLowerCase();
     const now = new Date();
     // null for a brand-new guest on the provisional path: we DON'T create an

@@ -30935,6 +30935,9 @@ a.pp-card:hover .pp-card__action--named {
   cursor: pointer;
 }
 .nav__sheet-heart { flex: none; margin-right: 10px; color: var(--rim-donate); }
+/* The invisible bot check on public forms (components/BotTrap.tsx): off
+   screen, out of the tab order and hidden from screen readers. */
+.bot-trap { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 /* /join: the plain line about community email, under the agreement (Flodesk,
    2026-10-12). Indented to the checkbox label's text edge. */
 .jn-email-note {

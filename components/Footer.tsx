@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useBotTrap } from "@/components/BotTrap";
 import { RIM_ADDRESS, RIM_PHONE_DISPLAY, RIM_PHONE_TEL, RIM_SUPPORT_EMAIL } from "@/lib/locations";
 
 interface FooterProps {
@@ -22,6 +23,7 @@ export default function Footer({ memberArea = false, year: renderedYear }: Foote
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { trap, botFields } = useBotTrap();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +37,7 @@ export default function Footer({ memberArea = false, year: renderedYear }: Foote
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, first_name: firstName }),
+        body: JSON.stringify({ email, first_name: firstName, ...botFields() }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -68,6 +70,7 @@ export default function Footer({ memberArea = false, year: renderedYear }: Foote
                 <p className="footer-subscribe-success">Thank you. You&apos;re on the list.</p>
               ) : (
                 <form className="footer-subscribe-form" onSubmit={handleSubmit} noValidate>
+                  {trap}
                   <div className="footer-subscribe-row">
                     <input
                       type="text"

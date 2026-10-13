@@ -4,6 +4,7 @@ import { signIn } from "@/auth";
 import { sendJoinWelcomeEmail, sendLegacyWelcomeBackEmail } from "@/lib/email";
 import { toProperName } from "@/lib/nameCase";
 import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
+import { looksAutomated, BOT_RETRY_MESSAGE } from "@/lib/botCheck";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import {
   EMAIL_MAX,
@@ -46,6 +47,13 @@ export async function POST(request: Request) {
   }
 
   const raw = (body ?? {}) as Record<string, unknown>;
+  // Before anything is written or sent: a bot would get a code email and a
+  // welcome letter at a fake address (lib/botCheck.ts). A person caught by
+  // mistake is asked to try again.
+  if (looksAutomated(raw)) {
+    console.warn("[account/join] automated sign-up refused");
+    return NextResponse.json({ error: BOT_RETRY_MESSAGE }, { status: 400 });
+  }
   const firstName = toProperName(typeof raw.firstName === "string" ? raw.firstName : "");
   const lastName = toProperName(typeof raw.lastName === "string" ? raw.lastName : "");
   const phone = typeof raw.phone === "string" ? raw.phone.trim() : "";

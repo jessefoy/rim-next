@@ -1,10 +1,26 @@
 // Adds a subscriber to Flodesk and assigns them to the configured segment.
 // Requires FLODESK_API_KEY environment variable.
 
+import { looksAutomated } from "@/lib/botCheck";
+import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
+
 const SEGMENT_ID = "6340e5b00170f97cbdfc4b87";
 
 export async function POST(request: Request) {
-  const { email, first_name, last_name } = await request.json();
+  const body = await request.json().catch(() => ({}));
+  const { email, first_name, last_name } = body as { email?: string; first_name?: string; last_name?: string };
+
+  // Bots filled this list for a year (2026-10-13). A bot is told it worked
+  // and nothing is sent to Flodesk, so it learns nothing (lib/botCheck.ts).
+  if (looksAutomated(body as Record<string, unknown>)) {
+    console.warn("[subscribe] automated sign-up ignored");
+    return Response.json({ success: true });
+  }
+  // Five sign-ups an hour from one connection is more than any household.
+  const ipCheck = await checkRateLimit(`subscribe-ip:${getRequestIp(request)}`, 5, 60 * 60);
+  if (!ipCheck.allowed) {
+    return Response.json({ error: "Please try again in a little while." }, { status: 429 });
+  }
 
   // These strings are rendered to the visitor in the footer form, so they are
   // written in the house voice, not as system messages.

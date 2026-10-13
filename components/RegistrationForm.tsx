@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useBotTrap } from "@/components/BotTrap";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
@@ -92,6 +93,7 @@ export default function RegistrationForm({
   const [errorMessage, setErrorMessage] = useState("");
   // Non-logged-in users must agree to community terms before registering
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const { trap, botFields } = useBotTrap();
 
   // Email recognition — pre-fill returning members' info on blur
   const [emailCheckStatus, setEmailCheckStatus] = useState<"idle" | "checking" | "found" | "not_found">("idle");
@@ -434,6 +436,7 @@ export default function RegistrationForm({
           agreedToTerms: sessionUserId ? true : agreedToTerms,
           ...form,
           customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
+          ...botFields(),
         }),
       });
 
@@ -682,6 +685,8 @@ export default function RegistrationForm({
           </label>
         </div>
       )}
+
+      {trap}
 
       {/* ── Error ── */}
       {formState === "error" && (

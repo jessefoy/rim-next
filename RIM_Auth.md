@@ -51,6 +51,10 @@ If `/api/account/join` finds an existing User with `agreedToTerms: true` at the 
 
 ---
 
+## The invisible bot check (2026-10-13)
+
+`/join`, the registration form (guests only) and the footer newsletter carry `lib/botCheck.ts` through `components/BotTrap.tsx`: a hidden "leave this empty" field no person sees or tabs to, and the time since the form appeared (under two seconds, or missing, is a bot). Jesse ruled out puzzle captchas. Bots had filled RIM's lists for a year (1,356 in Flodesk on 2026-10-13). `/join` and registration answer a caught request with a kind "please try again" (`BOT_RETRY_MESSAGE`, provisional copy) before anything is written or sent; the newsletter pretends to succeed and sends nothing to Flodesk, and also limits one connection to five sign-ups an hour (`subscribe-ip:`). The sign-in code itself still proves an address: bots never reach Flodesk's Members segment.
+
 ## The sign-in event: Flodesk's Members segment (2026-10-12)
 
 `auth.ts` has one NextAuth event, `events.signIn`, which calls `addVerifiedMemberToFlodesk(user.id)` (`lib/flodesk.ts`). A sign-in with a code proves the address, so this is where a member who has accepted the agreements joins Flodesk's Members segment: once, recorded in `User.flodeskMemberAt`, after the response, never blocking the sign-in. Someone who agrees while already signed in (the welcome page, `complete-profile`) is added there. Unsubscribed people in Flodesk are left alone. See `RIM_Email_Engineering.md`, "Channels".

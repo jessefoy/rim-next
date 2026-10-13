@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { COMMUNITY_AGREEMENTS_CHECKBOX_LABEL, MEMBER_EMAIL_NOTE } from "@/lib/communityAgreements";
+import { useBotTrap } from "@/components/BotTrap";
 
 function formatPhone(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -29,6 +30,7 @@ export default function JoinForm({ defaultEmail = "" }: JoinFormProps) {
   const [agreed, setAgreed] = useState(false);
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const { trap, botFields } = useBotTrap();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +49,7 @@ export default function JoinForm({ defaultEmail = "" }: JoinFormProps) {
           email: email.trim(),
           phone: phone.trim(),
           agreedToTerms: true,
+          ...botFields(),
         }),
       });
 
@@ -149,6 +152,7 @@ export default function JoinForm({ defaultEmail = "" }: JoinFormProps) {
         />
       </div>
 
+      {trap}
       <label className="jn-checkbox-label">
         <input
           type="checkbox"
