@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { sendKalyanaApplicationEmail } from "@/lib/email";
-import { FORM_KIND, formField, formLine, isPlainEmail } from "@/lib/formSubmissions";
-import { redirect } from "next/navigation";
+import { FORM_KIND, formField, formLine, isPlainEmail, type FormSendState } from "@/lib/formSubmissions";
 import { after } from "next/server";
 import Link from "next/link";
+import KalyanaApplicationForm from "@/components/KalyanaApplicationForm";
 
 export const metadata = {
   title: "Kalyana Mitta Group Application - Rooted In Mindfulness",
@@ -12,43 +12,53 @@ export const metadata = {
     "Any member of RIM can start a Kalyana Mitta group or community activity. Tell us about your idea and we'll help you get it going.",
 };
 
-export default async function KalyanaApplicationPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ submitted?: string }>;
-}) {
-  const [session, { submitted }] = await Promise.all([auth(), searchParams]);
-  const isLoggedIn = !!session;
+export const dynamic = "force-dynamic";
 
-  async function handleApplication(formData: FormData) {
+export default async function KalyanaApplicationPage() {
+  const session = await auth();
+  // What RIM already knows is filled in (Jesse, 2026-10-13).
+  const member = session?.user?.id
+    ? await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { firstName: true, lastName: true, email: true, phone: true },
+      })
+    : null;
+
+  // Returns a status instead of redirecting, so the page never reloads: what
+  // someone wrote survives an error and the confirmation comes to them.
+  async function handleApplication(_prev: FormSendState, formData: FormData): Promise<FormSendState> {
     "use server";
     // The form is for members; the page shows it only when signed in, and
     // the action checks again (it can be posted without the page).
     const current = await auth();
-    if (!current?.user?.id) redirect("/kalyana-mitta/kalyana-mitta-group-application");
+    if (!current?.user?.id) return { status: "signin" };
     const data = {
       firstName: formLine(formData, "firstName", 256),
       lastName:  formLine(formData, "lastName", 256),
       email:     formLine(formData, "email", 256),
       idea:      formField(formData, "idea", 5000),
     };
-    if (!isPlainEmail(data.email) || !data.idea) {
-      redirect("/kalyana-mitta/kalyana-mitta-group-application");
-    }
+    if (!isPlainEmail(data.email)) return { status: "email" };
+    if (!data.idea) return { status: "error" };
     // Saved before the email, so a failed send never loses it; the notice
     // goes from after() (lib/formSubmissions.ts, /admin/form-submissions).
-    await db.formSubmission.create({
-      data: {
-        kind: FORM_KIND.kalyanaMitta,
-        userId: current.user.id,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        message: data.idea,
-      },
-    });
+    try {
+      await db.formSubmission.create({
+        data: {
+          kind: FORM_KIND.kalyanaMitta,
+          userId: current.user.id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          message: data.idea,
+        },
+      });
+    } catch (e) {
+      console.error("[kalyana-mitta-form] save failed:", e);
+      return { status: "error" };
+    }
     after(() => sendKalyanaApplicationEmail(data));
-    redirect("/kalyana-mitta/kalyana-mitta-group-application?submitted=true");
+    return { status: "sent", firstName: data.firstName };
   }
 
   return (
@@ -121,7 +131,7 @@ export default async function KalyanaApplicationPage({
             </h2>
           </div>
 
-          {!isLoggedIn ? (
+          {!member ? (
             <div className="pp-notice">
               <p className="pp-notice__title">You&rsquo;ll need an account for this form</p>
               <p className="pp-notice__body">
@@ -138,75 +148,16 @@ export default async function KalyanaApplicationPage({
                 </Link>
               </div>
             </div>
-          ) : submitted ? (
-            <div className="pp-form__done">
-              <p>
-                <strong>Thank you for your application.</strong> The Kalyana Mitta Coordinator will
-                be in touch soon.
-              </p>
-            </div>
           ) : (
-            <form action={handleApplication} className="pp-form">
-              <div className="pp-form__row">
-                <div className="pp-form__field">
-                  <label className="pp-form__label" htmlFor="firstName">
-                    First name
-                  </label>
-                  <input
-                    className="pp-form__input"
-                    maxLength={256}
-                    name="firstName"
-                    type="text"
-                    id="firstName"
-                    defaultValue={session.user?.name?.split(" ")[0] ?? ""}
-                  />
-                </div>
-                <div className="pp-form__field">
-                  <label className="pp-form__label" htmlFor="lastName">
-                    Last name
-                  </label>
-                  <input
-                    className="pp-form__input"
-                    maxLength={256}
-                    name="lastName"
-                    type="text"
-                    id="lastName"
-                  />
-                </div>
-              </div>
-
-              <div className="pp-form__field">
-                <label className="pp-form__label" htmlFor="email">
-                  Email address
-                </label>
-                <input
-                  className="pp-form__input"
-                  maxLength={256}
-                  name="email"
-                  type="email"
-                  id="email"
-                  defaultValue={session.user?.email ?? ""}
-                  required
-                />
-              </div>
-
-              <div className="pp-form__field">
-                <label className="pp-form__label" htmlFor="idea">
-                  Tell us about your idea for a Kalyana Mitta group at RIM
-                </label>
-                <textarea
-                  id="idea"
-                  name="idea"
-                  maxLength={5000}
-                  required
-                  className="pp-form__textarea"
-                />
-              </div>
-
-              <button type="submit" className="pp-btn pp-form__submit">
-                Send application
-              </button>
-            </form>
+            <KalyanaApplicationForm
+              action={handleApplication}
+              member={{
+                firstName: member.firstName ?? "",
+                lastName: member.lastName ?? "",
+                email: member.email,
+                phone: member.phone ?? "",
+              }}
+            />
           )}
         </div>
       </section>

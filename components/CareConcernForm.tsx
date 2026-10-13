@@ -10,6 +10,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
+import FormDone from "@/components/FormDone";
 
 export type CareConcernStatus = "idle" | "sent" | "error" | "wait";
 export type CareConcernState = { status: CareConcernStatus };
@@ -28,36 +29,22 @@ export default function CareConcernForm({
 
   if (state.status === "sent") {
     return (
-      <div className="pp-form__done" role="status">
+      <FormDone title="Thank you for writing. Your message has been sent.">
         <p>
-          <strong>Thank you for writing.</strong> Your message has reached Jesse, who will reply
-          to you.
+          It has reached Jesse, who will reply to you. You don&rsquo;t need to do anything else.
         </p>
         <div className="pp-actions">
           <Link href="/community-care-agreements" className="pp-btn pp-btn--ghost">
             Back to the Community Care Agreements
           </Link>
         </div>
-      </div>
+      </FormDone>
     );
   }
 
   return (
     <form action={formAction} className="pp-form cc-concern__form">
       <p className="cc-concern__safety">If anyone is in danger right now, call 911.</p>
-
-      {state.status === "error" && (
-        <p className="pp-form__error" role="alert">
-          Something went wrong, and your message was not sent. What you wrote is still here.
-          Please try again, or speak with a teacher after any gathering.
-        </p>
-      )}
-      {state.status === "wait" && (
-        <p className="pp-form__error" role="alert">
-          Several messages have been sent from here in a short time. What you wrote is still
-          here. Please wait a little and try again, or speak with a teacher after any gathering.
-        </p>
-      )}
 
       {member ? (
         <>
@@ -123,6 +110,20 @@ export default function CareConcernForm({
         <label htmlFor="cc-leave-blank">Leave this empty</label>
         <input id="cc-leave-blank" name="cc_leave_blank" type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
       </div>
+
+      {/* Beside the button, where the person is looking (FormDone, 2026-10-13). */}
+      {state.status === "error" && (
+        <p className="pp-form__error" role="alert">
+          Something went wrong, and your message was not sent. What you wrote is still here.
+          Please try again, or speak with a teacher after any gathering.
+        </p>
+      )}
+      {state.status === "wait" && (
+        <p className="pp-form__error" role="alert">
+          Several messages have been sent from here in a short time. What you wrote is still
+          here. Please wait a little and try again, or speak with a teacher after any gathering.
+        </p>
+      )}
 
       <button type="submit" className="pp-btn pp-form__submit" disabled={pending}>
         {pending ? "Sending…" : "Send privately"}

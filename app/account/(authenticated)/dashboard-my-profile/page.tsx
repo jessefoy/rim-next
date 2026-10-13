@@ -1,18 +1,16 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import AccountLayout from "@/components/AccountLayout";
 import AboutMeSection from "@/components/account/AboutMeSection";
+import ProfileDetailsForm, { type ProfileSaveState } from "@/components/account/ProfileDetailsForm";
 import { RIM_SUPPORT_EMAIL } from "@/lib/locations";
 
 export const metadata = { title: "My Profile - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
-export default async function MyProfilePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ saved?: string }>;
-}) {
+export default async function MyProfilePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
@@ -37,8 +35,6 @@ export default async function MyProfilePage({
 
   ]);
 
-  const { saved } = await searchParams;
-
   const displayName = user?.preferredName
     || [user?.firstName, user?.lastName].filter(Boolean).join(" ")
     || "Member";
@@ -54,20 +50,29 @@ export default async function MyProfilePage({
       return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "—";
     }) ?? [];
 
-  async function updateProfile(formData: FormData) {
+  // Returns a status instead of redirecting: the answer appears beside the
+  // Save button (ProfileDetailsForm), where the person is looking.
+  async function updateProfile(_prev: ProfileSaveState, formData: FormData): Promise<ProfileSaveState> {
     "use server";
     const sess = await auth();
-    if (!sess?.user?.id) return;
+    if (!sess?.user?.id) return { status: "error" };
     const firstName = (formData.get("firstName") as string)?.trim() ?? "";
     const lastName = (formData.get("lastName") as string)?.trim() ?? "";
     const preferredName = (formData.get("preferredName") as string)?.trim() || null;
     const phone = (formData.get("phone") as string)?.trim() ?? "";
     const title = (formData.get("title") as string)?.trim() || null;
-    await db.user.update({
-      where: { id: sess.user.id },
-      data: { firstName, lastName, preferredName, phone, title },
-    });
-    redirect("/account/dashboard-my-profile?saved=true");
+    try {
+      await db.user.update({
+        where: { id: sess.user.id },
+        data: { firstName, lastName, preferredName, phone, title },
+      });
+    } catch (e) {
+      console.error("[my-profile] save failed:", e);
+      return { status: "error" };
+    }
+    // The header above the form shows the name; refresh it.
+    revalidatePath("/account/dashboard-my-profile");
+    return { status: "saved" };
   }
 
   return (
@@ -79,10 +84,6 @@ export default async function MyProfilePage({
             <p className="ac-page-sub">Manage your contact information and how you appear in the RIM community.</p>
           </div>
         </header>
-
-        {saved && (
-          <div className="mp-success" role="status">Profile saved successfully.</div>
-        )}
 
         {/* Profile header */}
         <div className="mp-header">
@@ -104,31 +105,16 @@ export default async function MyProfilePage({
         {/* Contact form */}
         <section className="mp-section">
           <h2 className="mp-section__title">Personal details</h2>
-          <form action={updateProfile} className="mp-form">
-            <div className="mp-field__row">
-              <div className="mp-field">
-                <label htmlFor="firstName" className="mp-label">First name</label>
-                <input className="mp-input" name="firstName" type="text" autoComplete="given-name" id="firstName" maxLength={256} defaultValue={user?.firstName ?? ""} />
-              </div>
-              <div className="mp-field">
-                <label htmlFor="lastName" className="mp-label">Last name</label>
-                <input className="mp-input" name="lastName" type="text" autoComplete="family-name" id="lastName" maxLength={256} defaultValue={user?.lastName ?? ""} />
-              </div>
-            </div>
-            <div className="mp-field">
-              <label htmlFor="preferredName" className="mp-label">Preferred name</label>
-              <input className="mp-input" name="preferredName" type="text" id="preferredName" maxLength={256} placeholder="How you'd like to be addressed" defaultValue={user?.preferredName ?? ""} />
-            </div>
-            <div className="mp-field">
-              <label htmlFor="phone" className="mp-label">Phone</label>
-              <input className="mp-input" name="phone" type="tel" autoComplete="tel" id="phone" maxLength={256} defaultValue={user?.phone ?? ""} />
-            </div>
-            <div className="mp-field">
-              <label htmlFor="title" className="mp-label">Title</label>
-              <input className="mp-input" name="title" type="text" id="title" maxLength={256} placeholder="e.g. Guiding Teacher, Program Registrar" defaultValue={user?.title ?? ""} />
-            </div>
-            <input type="submit" className="mp-submit" value="Save profile" />
-          </form>
+          <ProfileDetailsForm
+            action={updateProfile}
+            initial={{
+              firstName: user?.firstName ?? "",
+              lastName: user?.lastName ?? "",
+              preferredName: user?.preferredName ?? "",
+              phone: user?.phone ?? "",
+              title: user?.title ?? "",
+            }}
+          />
         </section>
 
         {/* Email */}

@@ -38,3 +38,11 @@ export function formLine(formData: FormData, name: string, max: number): string 
 export function isPlainEmail(email: string): boolean {
   return /^[^\s@,;?&<>"]+@[^\s@,;?&<>"]+\.[^\s@,;?&<>"]+$/.test(email);
 }
+
+/**
+ * What a form's server action returns, so the page never reloads: what the
+ * person wrote stays on screen through an error, and success shows FormDone.
+ * "email": the address doesn't look right; "signin": the session lapsed.
+ */
+export type FormSendStatus = "idle" | "sent" | "error" | "email" | "signin";
+export type FormSendState = { status: FormSendStatus; firstName?: string };

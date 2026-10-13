@@ -26982,9 +26982,21 @@ a.pp-card:hover .pp-card__action {
   border-radius: 16px;
   padding: 32px 36px;
   background: var(--rim-surface);
-  box-shadow: var(--card-shadow);
+  /* Bordered, not lifted (2026-10-09); the green edge says "done" at a
+     glance (FormDone, 2026-10-13). */
+  border: 1px solid var(--rim-rule);
+  border-left: 4px solid var(--color-success);
 }
 .pp-form__done p { margin: 0; font-size: var(--text-body); line-height: var(--lh-body); }
+.pp-form__done p + p { margin-top: 12px; }
+.pp-form__done .pp-form__done-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-h4);
+  line-height: var(--lh-heading);
+  color: var(--rim-heading);
+}
+.pp-form__done .pp-actions { margin-top: 24px; }
+.pp-form__done:focus { outline: none; }
 
 /* ── Mobile ──────────────────────────────────────────────────────
    360px floor, 390px primary target. Touch targets stay 44px. */
@@ -30898,6 +30910,18 @@ a.pp-card:hover .pp-card__action--named {
   body:has(.hol-reading) .nav,
   body:has(.hol-reading) .rim-footer { display: none !important; }
 }
+
+/* ── Save answers (components/FormDone.tsx SaveNote, 2026-10-13) ─────
+   The answer to an in-place save, beside its button, kept until the next
+   edit. Words carry the meaning; colour only supports them. */
+.save-note {
+  margin: 0;
+  font-size: var(--text-app);
+  line-height: 1.45;
+}
+.save-note--saved { color: var(--color-success); font-weight: 600; }
+.save-note--error { color: var(--color-error); }
+.mp-save { flex-wrap: wrap; }
 
 /* ── Form submissions (/admin/form-submissions, 2026-10-13) ─────────
    One bordered entry per submission; the message keeps its line breaks. */

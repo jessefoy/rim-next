@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { sendVolunteerInterestEmail } from "@/lib/email";
-import { FORM_KIND, formField, formLine, isPlainEmail } from "@/lib/formSubmissions";
-import { redirect } from "next/navigation";
+import { FORM_KIND, formField, formLine, isPlainEmail, type FormSendState } from "@/lib/formSubmissions";
 import { after } from "next/server";
 import Link from "next/link";
+import VolunteerInterestForm from "@/components/VolunteerInterestForm";
 
 export const metadata = {
   title: "Volunteer - Rooted In Mindfulness",
@@ -12,20 +12,26 @@ export const metadata = {
     "Offer a gift of time and talent at Rooted In Mindfulness. Browse current volunteer needs or tell us about your interests.",
 };
 
-export default async function VolunteerPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ submitted?: string }>;
-}) {
-  const [session, { submitted }] = await Promise.all([auth(), searchParams]);
-  const isLoggedIn = !!session;
+export const dynamic = "force-dynamic";
 
-  async function handleVolunteerForm(formData: FormData) {
+export default async function VolunteerPage() {
+  const session = await auth();
+  // What RIM already knows is filled in (Jesse, 2026-10-13).
+  const member = session?.user?.id
+    ? await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { firstName: true, lastName: true, email: true, phone: true },
+      })
+    : null;
+
+  // Returns a status instead of redirecting, so the page never reloads: what
+  // someone wrote survives an error and the confirmation comes to them.
+  async function handleVolunteerForm(_prev: FormSendState, formData: FormData): Promise<FormSendState> {
     "use server";
     // The form is for members; the page shows it only when signed in, and
     // the action checks again (it can be posted without the page).
     const current = await auth();
-    if (!current?.user?.id) redirect("/volunteerism/volunteer#share-your-talent");
+    if (!current?.user?.id) return { status: "signin" };
     const data = {
       firstName: formLine(formData, "firstName", 256),
       lastName:  formLine(formData, "lastName", 256),
@@ -33,22 +39,27 @@ export default async function VolunteerPage({
       phone:     formLine(formData, "phone", 256) || null,
       interests: formField(formData, "interests", 5000),
     };
-    if (!isPlainEmail(data.email)) redirect("/volunteerism/volunteer#share-your-talent");
+    if (!isPlainEmail(data.email)) return { status: "email" };
     // Saved before the email, so a failed send never loses it; the notice
     // goes from after() (lib/formSubmissions.ts, /admin/form-submissions).
-    await db.formSubmission.create({
-      data: {
-        kind: FORM_KIND.volunteer,
-        userId: current.user.id,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        message: data.interests,
-      },
-    });
+    try {
+      await db.formSubmission.create({
+        data: {
+          kind: FORM_KIND.volunteer,
+          userId: current.user.id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          message: data.interests,
+        },
+      });
+    } catch (e) {
+      console.error("[volunteer-form] save failed:", e);
+      return { status: "error" };
+    }
     after(() => sendVolunteerInterestEmail(data));
-    redirect("/volunteerism/volunteer?submitted=true");
+    return { status: "sent", firstName: data.firstName };
   }
 
   return (
@@ -126,7 +137,7 @@ export default async function VolunteerPage({
             </p>
           </div>
 
-          {!isLoggedIn ? (
+          {!member ? (
             <div className="pp-notice">
               <p className="pp-notice__title">You&rsquo;ll need an account for this form</p>
               <p className="pp-notice__body">
@@ -142,91 +153,16 @@ export default async function VolunteerPage({
                 </Link>
               </div>
             </div>
-          ) : submitted ? (
-            <div className="pp-form__done">
-              <p>
-                <strong>Thank you.</strong> Your note has been received. Someone from RIM will be
-                in touch.
-              </p>
-            </div>
           ) : (
-            <form action={handleVolunteerForm} className="pp-form">
-              <div className="pp-form__row">
-                <div className="pp-form__field">
-                  <label className="pp-form__label" htmlFor="firstName">
-                    First name
-                  </label>
-                  <input
-                    className="pp-form__input"
-                    maxLength={256}
-                    name="firstName"
-                    type="text"
-                    id="firstName"
-                    defaultValue={session.user?.name?.split(" ")[0] ?? ""}
-                    required
-                  />
-                </div>
-                <div className="pp-form__field">
-                  <label className="pp-form__label" htmlFor="lastName">
-                    Last name
-                  </label>
-                  <input
-                    className="pp-form__input"
-                    maxLength={256}
-                    name="lastName"
-                    type="text"
-                    id="lastName"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="pp-form__row">
-                <div className="pp-form__field">
-                  <label className="pp-form__label" htmlFor="email">
-                    Email address
-                  </label>
-                  <input
-                    className="pp-form__input"
-                    maxLength={256}
-                    name="email"
-                    type="email"
-                    id="email"
-                    defaultValue={session.user?.email ?? ""}
-                    required
-                  />
-                </div>
-                <div className="pp-form__field">
-                  <label className="pp-form__label" htmlFor="phone">
-                    Phone number
-                  </label>
-                  <input
-                    className="pp-form__input"
-                    maxLength={256}
-                    name="phone"
-                    type="tel"
-                    id="phone"
-                  />
-                  <p className="pp-form__help">Optional.</p>
-                </div>
-              </div>
-
-              <div className="pp-form__field">
-                <label className="pp-form__label" htmlFor="interests">
-                  My interests and talents
-                </label>
-                <textarea
-                  name="interests"
-                  maxLength={5000}
-                  id="interests"
-                  className="pp-form__textarea"
-                />
-              </div>
-
-              <button type="submit" className="pp-btn pp-form__submit">
-                Send
-              </button>
-            </form>
+            <VolunteerInterestForm
+              action={handleVolunteerForm}
+              member={{
+                firstName: member.firstName ?? "",
+                lastName: member.lastName ?? "",
+                email: member.email,
+                phone: member.phone ?? "",
+              }}
+            />
           )}
         </div>
       </section>

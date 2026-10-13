@@ -69,6 +69,17 @@ This means:
 - The number of fields should be the minimum necessary.
 - The experience of completing the form should feel like being welcomed, not processed.
 
+### Every submit is answered where the person is looking (2026-10-13)
+
+Jesse, after sending the volunteer form: *"it wasn't clear that it was filled out or submitted… Once I scrolled down, I saw that it happened, but we have to remember that we're designing for non-tech-savvy folks. This rule should apply across the board."* The page had reloaded at the top while its thank-you sat at the bottom. A person who can't see that it worked sends it again, or leaves believing it failed.
+
+So, on every public, member, team and tool surface:
+- **Success comes to the person.** The confirmation appears where they are, scrolled into view and announced (`components/FormDone.tsx`: role=status, focus, scroll), and never as a flash that vanishes after a few seconds. Its first line says plainly what happened ("Your note has been sent"); the next says what happens now, and, when nothing more is needed, "You don't need to do anything else."
+- **A problem appears beside the button they pressed**, announced (role=alert), never at the top of a long form or only in a console. What they wrote stays.
+- **The button shows the work** ("Sending…", "Saving…") and can't be pressed twice.
+- **What RIM already knows is filled in** for a signed-in member: name, email, phone.
+- **Nothing fails silently.** Every save has a visible answer, success or not.
+
 ---
 
 ## The Member Experience
