@@ -1,6 +1,9 @@
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import { sendKalyanaApplicationEmail } from "@/lib/email";
+import { FORM_KIND, formField, formLine, isPlainEmail } from "@/lib/formSubmissions";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import Link from "next/link";
 
 export const metadata = {
@@ -19,12 +22,32 @@ export default async function KalyanaApplicationPage({
 
   async function handleApplication(formData: FormData) {
     "use server";
-    await sendKalyanaApplicationEmail({
-      firstName: formData.get("firstName") as string,
-      lastName:  formData.get("lastName") as string,
-      email:     formData.get("email") as string,
-      idea:      formData.get("idea") as string,
+    // The form is for members; the page shows it only when signed in, and
+    // the action checks again (it can be posted without the page).
+    const current = await auth();
+    if (!current?.user?.id) redirect("/kalyana-mitta/kalyana-mitta-group-application");
+    const data = {
+      firstName: formLine(formData, "firstName", 256),
+      lastName:  formLine(formData, "lastName", 256),
+      email:     formLine(formData, "email", 256),
+      idea:      formField(formData, "idea", 5000),
+    };
+    if (!isPlainEmail(data.email) || !data.idea) {
+      redirect("/kalyana-mitta/kalyana-mitta-group-application");
+    }
+    // Saved before the email, so a failed send never loses it; the notice
+    // goes from after() (lib/formSubmissions.ts, /admin/form-submissions).
+    await db.formSubmission.create({
+      data: {
+        kind: FORM_KIND.kalyanaMitta,
+        userId: current.user.id,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        message: data.idea,
+      },
     });
+    after(() => sendKalyanaApplicationEmail(data));
     redirect("/kalyana-mitta/kalyana-mitta-group-application?submitted=true");
   }
 

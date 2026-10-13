@@ -822,9 +822,9 @@ Rooted In Mindfulness · Brookfield, WI`,
         {
           slug: "volunteer-interest-internal",
           name: "Volunteer Interest Submission (internal)",
-          description: "Sent to the team inbox when a member submits the volunteer interest form at /volunteerism/volunteer.",
+          description: "Sent to volunteer@ (blind copy to Jesse) when a member submits the volunteer interest form at /volunteerism/volunteer.",
           enabled: true,
-          subject: "New volunteer interest submission",
+          subject: "RIM form · Volunteer interest · {{firstName}} {{lastName}}",
           variables: ["firstName", "lastName", "email", "phone", "interests"],
           body: `## New volunteer interest
 
@@ -842,9 +842,9 @@ Submitted via /volunteerism/volunteer`,
         {
           slug: "kalyana-application-internal",
           name: "Kalyana Mitta Application (internal)",
-          description: "Sent to the team inbox when a member applies to start a Kalyana Mitta group at /kalyana-mitta/kalyana-mitta-group-application.",
+          description: "Sent to Jesse and KalyanaMitta@ when a member applies to start a Kalyana Mitta group at /kalyana-mitta/kalyana-mitta-group-application.",
           enabled: true,
-          subject: "New Kalyana Mitta Group Application",
+          subject: "RIM form · Kalyana Mitta application · {{firstName}} {{lastName}}",
           variables: ["firstName", "lastName", "email", "idea"],
           body: `## New Kalyana Mitta Group Application
 
@@ -6040,6 +6040,60 @@ Rooted In Mindfulness · Brookfield, WI`,
       PRIMARY KEY ("placeKey", "googleFileId"))`),
   ]);
   console.log("  ✔ Personal file organization and shared pin tables ready.");
+
+  // Public form submissions (2026-10-13): additive and idempotent, no
+  // backfill. The volunteer and Kalyana Mitta forms save here before they
+  // email, so a failed send never loses a submission. Old code ignores it.
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "form_submissions" (
+      "id" TEXT NOT NULL PRIMARY KEY, "kind" TEXT NOT NULL, "userId" TEXT,
+      "firstName" TEXT NOT NULL, "lastName" TEXT NOT NULL, "email" TEXT NOT NULL,
+      "phone" TEXT, "message" TEXT NOT NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "form_submissions_createdAt_idx" ON "form_submissions"("createdAt")`),
+  ]);
+  console.log("  ✔ Form submissions table ready.");
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Form notifications (2026-10-13). Intentional update of two EXISTING
+  // templates, with Jesse's consent for this change (RIM_Email_Engineering.md):
+  // the subject takes the one label every form notice uses, "RIM form · Kind ·
+  // Name" (the code sets the same subject, lib/email.ts, so the label cannot
+  // drift), and the descriptions name the real recipients. Bodies untouched.
+  // ───────────────────────────────────────────────────────────────────────
+  const formNoticeFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'form_notification_label_v1'
+  `).catch(() => []);
+  if (formNoticeFlag.length === 0) {
+    console.log("→ Form notifications: one subject label, real recipients…");
+    const updates = [
+      {
+        slug: "volunteer-interest-internal",
+        subject: "RIM form · Volunteer interest · {{firstName}} {{lastName}}",
+        description: "Sent to volunteer@ (blind copy to Jesse) when a member submits the volunteer interest form at /volunteerism/volunteer. The subject is set in code (lib/email.ts) so every form notice carries the same label. Every submission is also saved at /admin/form-submissions.",
+      },
+      {
+        slug: "kalyana-application-internal",
+        subject: "RIM form · Kalyana Mitta application · {{firstName}} {{lastName}}",
+        description: "Sent to Jesse and KalyanaMitta@ when a member applies to start a Kalyana Mitta group at /kalyana-mitta/kalyana-mitta-group-application. The subject is set in code (lib/email.ts) so every form notice carries the same label. Every submission is also saved at /admin/form-submissions.",
+      },
+    ];
+    for (const u of updates) {
+      const t = await db.emailTemplate.findUnique({ where: { slug: u.slug } });
+      if (!t) {
+        console.log(`  ⚠ ${u.slug} not found — nothing to update.`);
+        continue;
+      }
+      await db.emailTemplate.update({
+        where: { slug: u.slug },
+        data: { subject: u.subject, description: u.description },
+      });
+      console.log(`  ✔ ${u.slug}: subject "${t.subject}" → "${u.subject}"`);
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('form_notification_label_v1') ON CONFLICT DO NOTHING`,
+    );
+  }
 
   // ───────────────────────────────────────────────────────────────────────
   // Sign-in email: "Sign me in from this device" (2026-09-24). Intentional

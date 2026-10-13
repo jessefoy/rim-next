@@ -1446,3 +1446,22 @@ model GoogleFilePin {
   @@id([placeKey, googleFileId])
   @@map("google_file_pins")
 }
+
+// Public form submissions (2026-10-13): the volunteer interest form and the
+// Kalyana Mitta group application. Saved before the notification email is
+// sent, so a failed send never loses one. Read at /admin/form-submissions
+// (ADMIN). userId is the signed-in sender (both forms require sign-in); no
+// foreign key, so the record outlives an account. kind: lib/formSubmissions.ts.
+model FormSubmission {
+  id        String   @id @default(cuid())
+  kind      String
+  userId    String?
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  message   String
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+  @@map("form_submissions")
+}

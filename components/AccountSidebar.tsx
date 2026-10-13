@@ -36,6 +36,7 @@ import {
   SlidersHorizontal,
   LogOut,
   UserPlus,
+  Inbox,
 } from "lucide-react";
 
 interface Props { roles: string[]; showTeams: boolean; }
@@ -62,6 +63,7 @@ const MEMBER_LINKS: NavLink[] = [
 const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] = [
   { label: "Members",      href: "/admin/members",      icon: Users,       registrarOk: true },
   { label: "Households",   href: "/admin/households",   icon: HouseHeart,  registrarOk: true },
+  { label: "Form submissions", href: "/admin/form-submissions", icon: Inbox, adminOnly: true },
   // Temporary: remove with /admin/import-legacy after the domain move.
   { label: "Import members", href: "/admin/import-legacy", icon: UserPlus,  adminOnly: true   },
   { label: "Hubs",         href: "/admin/hubs",          icon: Layers,      adminOnly: true   },

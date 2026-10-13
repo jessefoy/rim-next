@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { RIM_ADDRESS, RIM_EIN, RIM_LEGAL_NAME } from "@/lib/locations";
+import { FORM_KIND, formNoticeSubject } from "@/lib/formSubmissions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -95,9 +96,11 @@ export function emailButtonHtml(label: string, url: string): string {
 </table>`;
 }
 
-// TEAM_EMAIL — the general team inbox. Used by public-form submission notifications
-// (volunteer interest, Kalyana Mitta application, etc.). Configurable via env var.
-const TEAM_EMAIL = process.env.TEAM_EMAIL ?? "hello@rootedinmindfulness.org";
+// Public form notices (2026-10-13): each form goes to the people who act on it,
+// as the old site's Zaps did, and Jesse gets every one to keep track.
+const VOLUNTEER_FORM_TO = "volunteer@rootedinmindfulness.org";
+const KALYANA_MITTA_FORM_TO = ["jesse@rootedinmindfulness.org", "KalyanaMitta@rootedinmindfulness.org"];
+const FORM_COPY_TO = "jesse@rootedinmindfulness.org";
 
 // (JESSE_EMAIL + HOST_COORDINATOR_EMAIL removed — post-session feature removed)
 
@@ -248,6 +251,18 @@ export interface TemplatedEmailOptions {
    * (e.g., for .ics calendar files) or a Buffer.
    */
   attachments?: { filename: string; content: string | Buffer }[];
+
+  /** Blind copy (the form notices copy Jesse). */
+  bcc?: string;
+
+  /** Reply-To, so a staff notice can be answered straight to the sender. */
+  replyTo?: string;
+
+  /**
+   * Replaces the template's subject. Only for a label code must keep
+   * consistent (the form notices' "RIM form · Kind · Name").
+   */
+  subject?: string;
 }
 
 // ─── Pre-threshold notification gate ─────────────────────────────────────────
@@ -317,7 +332,7 @@ const PRE_THRESHOLD_GATED_SLUGS = new Set<string>([
 
 export async function sendTemplatedEmail(
   slug: string,
-  to: string,
+  to: string | string[],
   variables: Record<string, unknown>,
   options: TemplatedEmailOptions = {},
 ): Promise<void> {
@@ -339,13 +354,17 @@ export async function sendTemplatedEmail(
 
     // Pre-threshold gate: don't send a member-directed team notification to a
     // staged account that hasn't logged in yet. See recipientHasOnboarded.
-    if (PRE_THRESHOLD_GATED_SLUGS.has(slug) && !(await recipientHasOnboarded(to))) {
+    // Gated sends go to one member; a list is never checked, so it is held.
+    if (
+      PRE_THRESHOLD_GATED_SLUGS.has(slug) &&
+      (Array.isArray(to) || !(await recipientHasOnboarded(to)))
+    ) {
       console.log(`[email] suppressed "${slug}" to pre-threshold account ${to}`);
       return;
     }
 
     const Handlebars = (await import("handlebars")).default;
-    const subject = Handlebars.compile(template.subject, { noEscape: true })(variables);
+    const subject = options.subject ?? Handlebars.compile(template.subject, { noEscape: true })(variables);
     const html    = await renderTemplateToHtml(template.body, variables);
     const text    = await renderTemplateToText(template.body, template.textBody, variables);
 
@@ -355,6 +374,8 @@ export async function sendTemplatedEmail(
       subject,
       html,
       text,
+      ...(options.bcc ? { bcc: options.bcc } : {}),
+      ...(options.replyTo ? { replyTo: options.replyTo } : {}),
       ...(options.attachments && options.attachments.length > 0
         ? { attachments: options.attachments }
         : {}),
@@ -1441,7 +1462,11 @@ export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<vo
 
 // ─── Hub document notifications ──────────────────────────────────────────────
 
-// ─── Public form submission notifications (to TEAM_EMAIL) ────────────────────
+// ─── Public form submission notifications ────────────────────────────────────
+// Both forms save a FormSubmission first (lib/formSubmissions.ts) and send
+// these from after(), so a failed send never loses a submission. The subject
+// is set here, "RIM form · Kind · Name", so the label never drifts; Reply-To
+// is the sender, so the recipient can answer straight back.
 
 export interface VolunteerInterestEmailData {
   firstName: string;
@@ -1452,17 +1477,22 @@ export interface VolunteerInterestEmailData {
 }
 
 /**
- * Sent to TEAM_EMAIL when a member submits the volunteer interest form.
+ * Sent to volunteer@ (blind copy to Jesse) when a member submits the
+ * volunteer interest form.
  * Managed via Email Template Manager — template: "volunteer-interest-internal"
- * Fire-and-forget — errors caught inside sendTemplatedEmail.
+ * Errors are caught inside sendTemplatedEmail.
  */
 export async function sendVolunteerInterestEmail(data: VolunteerInterestEmailData): Promise<void> {
-  await sendTemplatedEmail("volunteer-interest-internal", TEAM_EMAIL, {
+  await sendTemplatedEmail("volunteer-interest-internal", VOLUNTEER_FORM_TO, {
     firstName: data.firstName,
     lastName:  data.lastName,
     email:     data.email,
     phone:     data.phone ?? "",
     interests: data.interests,
+  }, {
+    subject: formNoticeSubject(FORM_KIND.volunteer, data.firstName, data.lastName),
+    bcc:     FORM_COPY_TO,
+    replyTo: data.email,
   });
 }
 
@@ -1474,16 +1504,20 @@ export interface KalyanaApplicationEmailData {
 }
 
 /**
- * Sent to TEAM_EMAIL when a member submits the Kalyana Mitta group application.
+ * Sent to Jesse and KalyanaMitta@ when a member applies to start a Kalyana
+ * Mitta group (Jesse is already a recipient, so no blind copy).
  * Managed via Email Template Manager — template: "kalyana-application-internal"
- * Fire-and-forget — errors caught inside sendTemplatedEmail.
+ * Errors are caught inside sendTemplatedEmail.
  */
 export async function sendKalyanaApplicationEmail(data: KalyanaApplicationEmailData): Promise<void> {
-  await sendTemplatedEmail("kalyana-application-internal", TEAM_EMAIL, {
+  await sendTemplatedEmail("kalyana-application-internal", KALYANA_MITTA_FORM_TO, {
     firstName: data.firstName,
     lastName:  data.lastName,
     email:     data.email,
     idea:      data.idea,
+  }, {
+    subject: formNoticeSubject(FORM_KIND.kalyanaMitta, data.firstName, data.lastName),
+    replyTo: data.email,
   });
 }
 

@@ -30899,6 +30899,45 @@ a.pp-card:hover .pp-card__action--named {
   body:has(.hol-reading) .rim-footer { display: none !important; }
 }
 
+/* ── Form submissions (/admin/form-submissions, 2026-10-13) ─────────
+   One bordered entry per submission; the message keeps its line breaks. */
+.adm-forms {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.adm-forms__item {
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  padding: var(--space-3);
+}
+.adm-forms__meta {
+  margin: 0;
+  font-size: var(--text-app-meta);
+  color: var(--rim-text-muted);
+}
+.adm-forms__name {
+  margin: 4px 0 0;
+  font-size: var(--text-app);
+  font-weight: 600;
+  color: var(--rim-text);
+}
+.adm-forms__contact {
+  margin: 4px 0 0;
+  font-size: var(--text-app);
+  overflow-wrap: anywhere;
+}
+.adm-forms__message {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-app);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).

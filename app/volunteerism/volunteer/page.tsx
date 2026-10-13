@@ -1,6 +1,9 @@
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import { sendVolunteerInterestEmail } from "@/lib/email";
+import { FORM_KIND, formField, formLine, isPlainEmail } from "@/lib/formSubmissions";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import Link from "next/link";
 
 export const metadata = {
@@ -19,13 +22,32 @@ export default async function VolunteerPage({
 
   async function handleVolunteerForm(formData: FormData) {
     "use server";
-    await sendVolunteerInterestEmail({
-      firstName: formData.get("firstName") as string,
-      lastName:  formData.get("lastName") as string,
-      email:     formData.get("email") as string,
-      phone:     formData.get("phone") as string | null,
-      interests: formData.get("interests") as string,
+    // The form is for members; the page shows it only when signed in, and
+    // the action checks again (it can be posted without the page).
+    const current = await auth();
+    if (!current?.user?.id) redirect("/volunteerism/volunteer#share-your-talent");
+    const data = {
+      firstName: formLine(formData, "firstName", 256),
+      lastName:  formLine(formData, "lastName", 256),
+      email:     formLine(formData, "email", 256),
+      phone:     formLine(formData, "phone", 256) || null,
+      interests: formField(formData, "interests", 5000),
+    };
+    if (!isPlainEmail(data.email)) redirect("/volunteerism/volunteer#share-your-talent");
+    // Saved before the email, so a failed send never loses it; the notice
+    // goes from after() (lib/formSubmissions.ts, /admin/form-submissions).
+    await db.formSubmission.create({
+      data: {
+        kind: FORM_KIND.volunteer,
+        userId: current.user.id,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        message: data.interests,
+      },
     });
+    after(() => sendVolunteerInterestEmail(data));
     redirect("/volunteerism/volunteer?submitted=true");
   }
 
