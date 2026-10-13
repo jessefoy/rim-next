@@ -549,59 +549,6 @@ export async function settleLeadsArea(opts: {
   return { items: ids.length, revoked };
 }
 
-/**
- * One-time (Jesse, 2026-10-13: "Do it now for every team"): move everything
- * at the top of a team's Team files into its "Leads only" folder, so the
- * team's leads decide what to move back for everyone. A folder carries its
- * contents (one Drive move each); every moved item is settled (marker set,
- * old links cut off, contents included). `dryRun` only counts. ADMIN-only
- * (the route checks). Returns per-team counts; a failure on one item is
- * logged and counted, never thrown, so one bad file can't stop the rest.
- */
-export async function moveTeamFilesToLeads(
-  hubId: string,
-  actorUserId: string,
-  opts: { dryRun: boolean },
-): Promise<{ team: string; items: number; moved: number; failed: number; revoked: number }> {
-  const h = await db.hub.findUnique({ where: { id: hubId }, select: HUB_PLACE_SELECT });
-  if (!h || !h.googleDriveId) return { team: h?.name ?? hubId, items: 0, moved: 0, failed: 0, revoked: 0 };
-  // The admin acts as a lead here (the route allows ADMIN only).
-  let place = hubPlace(h, true, true);
-  const top = (await listFiles(place.driveId, place.rootId)).filter(
-    (f) => f.id !== place.leadsRootId, // listFiles already excludes trashed items
-  );
-  const result = { team: h.name, items: top.length, moved: 0, failed: 0, revoked: 0 };
-  if (opts.dryRun || top.length === 0) return result;
-  const leadsId = await ensureLeadsFolder(place, actorUserId);
-  place = { ...place, leadsRootId: leadsId };
-  for (const f of top) {
-    if (f.id === leadsId) continue;
-    try {
-      await moveFile(f.id, { addParent: leadsId, removeParent: place.rootId });
-      result.moved++;
-      await logFileAction({
-        leadsOnly: true,
-        userId: actorUserId,
-        action: "move-to-leads",
-        googleFileId: f.id,
-        hubId: place.hubId,
-        detail: { place: place.key, name: f.name, from: place.rootId, to: leadsId, bulk: true },
-      });
-      const settled = await settleLeadsArea({
-        place,
-        file: { id: f.id, mimeType: f.mimeType },
-        leadsOnly: true,
-        revokeLinks: true,
-      });
-      result.revoked += settled.revoked;
-    } catch (e) {
-      result.failed++;
-      console.error("[files-leads] bulk move failed", h.slug, f.id, e instanceof Error ? e.message : e);
-    }
-  }
-  return result;
-}
-
 export interface DuplicateFile {
   id: string;
   name: string;
