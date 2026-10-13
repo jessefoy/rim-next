@@ -19,6 +19,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getAllFilesPlaces, getMintedFileWorklist } from "@/lib/googleFileAdmin";
 import GoogleFileAdminClient from "@/components/admin/GoogleFileAdminClient";
+import LeadsMoveAll from "@/components/admin/LeadsMoveAll";
 
 export const metadata = { title: "Google Files Admin" };
 export const dynamic = "force-dynamic";
@@ -61,6 +62,9 @@ export default async function GoogleFilesAdminPage({
           </p>
         </div>
       </header>
+
+      {/* One-time (2026-10-13): remove with app/api/admin/files-leads. */}
+      <LeadsMoveAll />
 
       {places.length === 0 ? (
         <div className="adm-diag__card">

@@ -30793,6 +30793,12 @@ a.pp-card:hover .pp-card__action--named {
   color: var(--rim-text-muted);
 }
 
+/* One-time admin panel: every team's files into Leads only (remove with it). */
+.adm-leads-move { margin: 0 0 var(--space-3); }
+.adm-leads-move__title { margin: 0 0 8px; font-size: var(--text-h4); }
+.adm-leads-move__list { margin: 12px 0; padding-left: 1.2em; font-size: var(--text-app); }
+.adm-leads-move__confirm { margin-top: 12px; }
+
 /* ── Save answers (components/FormDone.tsx SaveNote, 2026-10-13) ─────
    The answer to an in-place save, beside its button, kept until the next
    edit. Words carry the meaning; colour only supports them. */
