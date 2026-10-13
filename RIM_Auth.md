@@ -51,6 +51,10 @@ If `/api/account/join` finds an existing User with `agreedToTerms: true` at the 
 
 ---
 
+## The sign-in event: Flodesk's Members segment (2026-10-12)
+
+`auth.ts` has one NextAuth event, `events.signIn`, which calls `addVerifiedMemberToFlodesk(user.id)` (`lib/flodesk.ts`). A sign-in with a code proves the address, so this is where a member who has accepted the agreements joins Flodesk's Members segment: once, recorded in `User.flodeskMemberAt`, after the response, never blocking the sign-in. Someone who agrees while already signed in (the welcome page, `complete-profile`) is added there. Unsubscribed people in Flodesk are left alone. See `RIM_Email_Engineering.md`, "Channels".
+
 ## The 5 sign-in error states
 
 When sign-in fails, NextAuth redirects to `/login/error?error=<code>`. The error codes the app renders calm copy for:

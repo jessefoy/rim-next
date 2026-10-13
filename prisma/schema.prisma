@@ -65,6 +65,10 @@ model User {
   // Community membership threshold
   agreedToTerms Boolean   @default(false)
   agreedAt      DateTime?
+  // When this member was added to (or found unsubscribed in) Flodesk's
+  // Members segment, at their first verified sign-in after agreeing. Null =
+  // not yet; lib/flodesk.ts. Once only, so a deliberate removal in Flodesk holds.
+  flodeskMemberAt DateTime?
 
   // Soft-delete: archived members cannot log in but their records are preserved
   archivedAt    DateTime?
@@ -314,6 +318,16 @@ model Program {
   // Week's Drop-in mark. Nullable until the migration backfills every row to
   // its old droppable answer; null falls back to that old rule.
   openEntry          Boolean?
+  // ── Flodesk (2026-10-12, Jesse) ──
+  // Confirmed registrants join a Flodesk segment for the program, for mass
+  // email only (program logistics stay in RIM's own emails). flodeskSync null
+  // = the default rule (on for registration programs, off for Private and
+  // Service); true/false = the coordinator's override. The segment is created
+  // at the first registration ("Name MM/DD/YY") or linked to an existing one;
+  // Flodesk cannot rename segments, so the name is kept as created.
+  flodeskSync        Boolean?
+  flodeskSegmentId   String?
+  flodeskSegmentName String?
 
   // ── Relations ──────────────────────────────────────────
   registrations      Registration[]

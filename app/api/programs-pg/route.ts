@@ -13,6 +13,7 @@ import { sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
+import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOffering } from "@/lib/programOffering";
 import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
 
@@ -89,8 +90,28 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Flodesk (mass email), as on the PUT: null = the default rule; a linked
+  // segment is verified with Flodesk and named from it, never the request.
+  if (body.flodeskSync != null && typeof body.flodeskSync !== "boolean") {
+    return NextResponse.json({ error: "The Flodesk setting must be default, on or off." }, { status: 422 });
+  }
+  let flodeskSegment: { id: string; name: string } | null = null;
+  if (body.flodeskSegmentId) {
+    try {
+      flodeskSegment = await getFlodeskSegment(String(body.flodeskSegmentId));
+    } catch {
+      return NextResponse.json({ error: "Flodesk didn't answer, so the program wasn't saved. Try again in a moment." }, { status: 503 });
+    }
+    if (!flodeskSegment) {
+      return NextResponse.json({ error: "That Flodesk segment couldn't be found. Choose it again from the list." }, { status: 422 });
+    }
+  }
+
   const program = await db.program.create({
     data: {
+      flodeskSync: typeof body.flodeskSync === "boolean" ? body.flodeskSync : null,
+      flodeskSegmentId: flodeskSegment?.id ?? null,
+      flodeskSegmentName: flodeskSegment?.name ?? null,
       name,
       slug,
       tagline: body.tagline || null,

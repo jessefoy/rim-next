@@ -4,6 +4,7 @@ import { NextResponse, after } from "next/server";
 import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
 import { sendLegacyWelcomeBackEmail } from "@/lib/email";
 import { toProperName } from "@/lib/nameCase";
+import { addVerifiedMemberToFlodesk } from "@/lib/flodesk";
 
 // POST — save name/phone and mark community agreements accepted
 export async function POST(request: Request) {
@@ -41,6 +42,10 @@ export async function POST(request: Request) {
       isLegacyUnclaimed: false,
     },
   });
+
+  // Crossing the agreements, signed in (so the address is proven), makes a
+  // member: Flodesk's Members segment, once.
+  await addVerifiedMemberToFlodesk(session.user.id);
 
   // Auto-enroll in onboarding series. `after()` keeps the work alive past
   // the response (session 96 — Vercel tears the function down otherwise).

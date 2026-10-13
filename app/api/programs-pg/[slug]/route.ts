@@ -16,6 +16,7 @@ import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
 import { cleanOffering, resolveOffering } from "@/lib/programOffering";
 import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
+import { getFlodeskSegment } from "@/lib/flodesk";
 
 export async function GET(
   _req: NextRequest,
@@ -161,6 +162,34 @@ export async function PUT(
       return NextResponse.json({ error: "Open entry must be on or off." }, { status: 422 });
     }
     data.openEntry = body.openEntry;
+  }
+  // Flodesk (mass email). flodeskSync: null = the default rule, true/false =
+  // override. The segment link is sent only when the coordinator changed it
+  // (so a save can't erase a segment created by a registration meanwhile);
+  // its name is read from Flodesk, never from the request.
+  if (body.flodeskSync !== undefined) {
+    if (body.flodeskSync !== null && typeof body.flodeskSync !== "boolean") {
+      return NextResponse.json({ error: "The Flodesk setting must be default, on or off." }, { status: 422 });
+    }
+    data.flodeskSync = body.flodeskSync;
+  }
+  if (body.flodeskSegmentId !== undefined) {
+    if (body.flodeskSegmentId === null || body.flodeskSegmentId === "") {
+      data.flodeskSegmentId = null;
+      data.flodeskSegmentName = null;
+    } else {
+      let segment: { id: string; name: string } | null;
+      try {
+        segment = await getFlodeskSegment(String(body.flodeskSegmentId));
+      } catch {
+        return NextResponse.json({ error: "Flodesk didn't answer, so the changes weren't saved. Try again in a moment." }, { status: 503 });
+      }
+      if (!segment) {
+        return NextResponse.json({ error: "That Flodesk segment couldn't be found. Choose it again from the list." }, { status: 422 });
+      }
+      data.flodeskSegmentId = segment.id;
+      data.flodeskSegmentName = segment.name;
+    }
   }
   if (body.programNotes !== undefined) data.programNotes = body.programNotes || null;
   if (body.teacherFacilitators !== undefined) data.teacherFacilitators = body.teacherFacilitators;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { COMMUNITY_AGREEMENTS_CHECKBOX_LABEL } from "@/lib/communityAgreements";
+import { COMMUNITY_AGREEMENTS_CHECKBOX_LABEL, MEMBER_EMAIL_NOTE } from "@/lib/communityAgreements";
 
 function formatPhone(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -159,6 +159,7 @@ export default function JoinForm({ defaultEmail = "" }: JoinFormProps) {
         />
         <span>{COMMUNITY_AGREEMENTS_CHECKBOX_LABEL}</span>
       </label>
+      <p className="jn-email-note">{MEMBER_EMAIL_NOTE}</p>
 
       {errorMsg && <p className="jn-error">{errorMsg}</p>}
 

@@ -4,6 +4,7 @@ import Resend from "next-auth/providers/resend";
 import { randomInt } from "node:crypto";
 import { db } from "@/lib/db";
 import { sendSignInCodeEmail } from "@/lib/email";
+import { addVerifiedMemberToFlodesk } from "@/lib/flodesk";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
@@ -52,6 +53,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
     verifyRequest: "/login/check-email",
     error: "/login/error",
+  },
+  events: {
+    // A sign-in with a code proves the address. A member who has agreed joins
+    // Flodesk's Members segment then, once (lib/flodesk.ts); after that this
+    // is one indexed read. Best-effort, never blocks the sign-in.
+    async signIn({ user }) {
+      if (user?.id) await addVerifiedMemberToFlodesk(user.id);
+    },
   },
   callbacks: {
     async session({ session, user }) {

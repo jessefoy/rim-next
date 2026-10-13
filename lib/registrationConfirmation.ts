@@ -7,6 +7,7 @@ import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
+import { addRegistrationToFlodesk } from "@/lib/flodesk";
 
 /**
  * Send the registration confirmation (or waitlist) email for one registration.
@@ -157,4 +158,10 @@ export async function sendRegistrationConfirmation(
     status: registration.status,
     donationStatus: registration.donationStatus,
   });
+
+  // The program's Flodesk segment (mass email only). Every way a registration
+  // becomes real passes here, including giving nothing (decline, or the cron
+  // after 24h). A waitlisted registration is skipped inside: it joins on
+  // promotion. Best-effort and after the response; never fails this.
+  await addRegistrationToFlodesk(registrationId);
 }

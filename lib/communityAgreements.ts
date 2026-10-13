@@ -122,6 +122,14 @@ export const COMMUNITY_AGREEMENTS_CHECKBOX_LABEL =
   "I will hold these Community Care Agreements, in a spirit of care and respect.";
 
 /**
+ * Said plainly wherever someone becomes a member (/join and the registration
+ * form): every member joins RIM's community email (Flodesk), and can leave it.
+ * Jesse's ruling, 2026-10-12. Provisional until his read-aloud.
+ */
+export const MEMBER_EMAIL_NOTE =
+  "As a member, you’ll also receive community emails from RIM. You can unsubscribe from them at any time.";
+
+/**
  * The three agreements, held inside the shared-vision frame above. Rendered
  * as an ordered list on every surface; each item carries a bold title and
  * its agreement text.

@@ -7,6 +7,7 @@ import {
   COMMUNITY_AGREEMENTS_LEAD_IN,
   COMMUNITY_SHARED_VISION_TITLE,
   COMMUNITY_AGREEMENTS_CHECKBOX_LABEL,
+  MEMBER_EMAIL_NOTE,
 } from "@/lib/communityAgreements";
 
 // Auto-formats digits into (XXX) XXX-XXXX as the user types
@@ -658,6 +659,7 @@ export default function RegistrationForm({
             If you don&rsquo;t already have one, registering will also create your RIM
             member account.
           </p>
+          <p className="pg-form__agreements-text">{MEMBER_EMAIL_NOTE}</p>
           <p className="pg-form__agreements-text">
             <strong>{COMMUNITY_SHARED_VISION_TITLE}.</strong> {COMMUNITY_AGREEMENTS_LEAD_IN}
           </p>

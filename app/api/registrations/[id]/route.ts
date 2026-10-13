@@ -15,6 +15,7 @@ import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { requiredDanaCents } from "@/lib/programUtils";
+import { addRegistrationToFlodesk, removeRegistrationFromFlodesk } from "@/lib/flodesk";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
@@ -236,8 +237,16 @@ export async function PATCH(
       });
     }
 
+    // The program's Flodesk segment. A registrar's change into a confirmed
+    // status (waitlist promotion, or restoring a cancelled registration)
+    // bypasses the confirmation choke point, so it joins here; a cancellation
+    // leaves the segment. Best-effort, after the response.
+    const confirmed = (s: string) => s === "REGISTERED" || s === "APPROVED";
+    if (status && confirmed(status) && !confirmed(current.status)) await addRegistrationToFlodesk(id);
+
     // Notify registrar when any registration is cancelled
     const isCancellation = status === "CANCELLED" && current.status !== "CANCELLED";
+    if (isCancellation) await removeRegistrationFromFlodesk(id, current.status);
     if (isCancellation) {
       await sendCancellationNotificationEmail({
         registrantName:  `${current.firstName} ${current.lastName}`,

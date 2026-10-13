@@ -5966,6 +5966,12 @@ Rooted In Mindfulness · Brookfield, WI`,
   // the old behaviour (the notice stays until cleared). IF NOT EXISTS: a no-op
   // on every later build.
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "announcementUntil" TIMESTAMP(3)`);
+  // Flodesk program segments (2026-10-12): nullable, no backfill; null means the
+  // default rule and "no segment yet". IF NOT EXISTS: a no-op on later builds.
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "flodeskSync" BOOLEAN`);
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "flodeskSegmentId" TEXT`);
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "flodeskSegmentName" TEXT`);
+  await db.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "flodeskMemberAt" TIMESTAMP(3)`);
 
   // Additive, idempotent organization tables. No Drive files or existing
   // member/registration records are changed; the old app can run during build.

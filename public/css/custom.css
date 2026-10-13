@@ -30935,6 +30935,14 @@ a.pp-card:hover .pp-card__action--named {
   cursor: pointer;
 }
 .nav__sheet-heart { flex: none; margin-right: 10px; color: var(--rim-donate); }
+/* /join: the plain line about community email, under the agreement (Flodesk,
+   2026-10-12). Indented to the checkbox label's text edge. */
+.jn-email-note {
+  margin: 4px 0 20px 36px;
+  color: var(--rim-text-soft);
+  font-size: var(--text-small);
+  line-height: 1.5;
+}
 /* The phone sheet's foot holds only Sign out when My RIM leads the sheet. */
 .nav__sheet-pair--single { grid-template-columns: 1fr; }
 @media print {

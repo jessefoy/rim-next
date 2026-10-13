@@ -131,6 +131,9 @@ export default async function EditProgramToolPage({
     hostedByVolunteers: offering.hostedByVolunteers,
     // Its own setting; while still empty, the answer the old rule gave.
     openEntry: hasOpenEntry(program),
+    flodeskSync: program.flodeskSync ?? null,
+    flodeskSegmentId: program.flodeskSegmentId ?? null,
+    flodeskSegmentName: program.flodeskSegmentName ?? null,
     offeringFromLegacy: offering.source === "legacy-category",
     dateText: program.dateText ?? "",
     timeText: program.timeText ?? "",

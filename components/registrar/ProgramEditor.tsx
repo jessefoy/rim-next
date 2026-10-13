@@ -22,6 +22,7 @@ import {
   isOfferingCategory,
 } from "@/lib/programOffering";
 import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
+import { programUsesFlodesk } from "@/lib/flodeskRules";
 
 interface TeacherItem {
   id: string;
@@ -83,6 +84,10 @@ export interface ProgramData {
   openEntry: boolean;
   /** True when the three values above were filled in from the old category rather than saved on the program. */
   offeringFromLegacy?: boolean;
+  /** Flodesk (mass email): null = the default rule; the program's segment once linked or created. */
+  flodeskSync?: boolean | null;
+  flodeskSegmentId?: string | null;
+  flodeskSegmentName?: string | null;
   dateText: string;
   timeText: string;
   programFormat: string;
@@ -636,6 +641,18 @@ export default function ProgramEditor({
 
   const [registrationEnabled, setRegistrationEnabled] = useState(initialData?.registrationEnabled ?? false);
   const [registrationClosed, setRegistrationClosed] = useState(initialData?.registrationClosed ?? false);
+  // Flodesk: "auto" follows the default rule (lib/flodeskRules.ts).
+  const [flodeskChoice, setFlodeskChoice] = useState<"auto" | "on" | "off">(
+    initialData?.flodeskSync == null ? "auto" : initialData.flodeskSync ? "on" : "off",
+  );
+  const [flodeskSegment, setFlodeskSegment] = useState<{ id: string; name: string } | null>(
+    initialData?.flodeskSegmentId ? { id: initialData.flodeskSegmentId, name: initialData.flodeskSegmentName ?? "" } : null,
+  );
+  // Sent only when changed here, so saving can't erase a segment that a first
+  // registration created while this editor was open.
+  const [flodeskSegmentChanged, setFlodeskSegmentChanged] = useState(false);
+  const [flodeskSegments, setFlodeskSegments] = useState<{ id: string; name: string }[] | null>(null);
+  const [flodeskSegmentsError, setFlodeskSegmentsError] = useState("");
   const [registrationCapacity, setRegistrationCapacity] = useState(initialData?.registrationCapacity ?? "");
   const [registrationDeadline, setRegistrationDeadline] = useState(initialData?.registrationDeadline ?? "");
   const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>(
@@ -908,6 +925,8 @@ export default function ProgramEditor({
         silentMeditation,
         hostedByVolunteers,
         openEntry,
+        flodeskSync: flodeskChoice === "auto" ? null : flodeskChoice === "on",
+        ...(flodeskSegmentChanged ? { flodeskSegmentId: flodeskSegment?.id ?? null } : {}),
         dateText,
         timeText,
         programFormat,
@@ -985,6 +1004,7 @@ export default function ProgramEditor({
           setGuestAccessKey("");
         }
         setDirty(false);
+        setFlodeskSegmentChanged(false);
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
         // The save went through this fetch, not through the router, so the
@@ -1038,6 +1058,31 @@ export default function ProgramEditor({
         ? "Anyone may simply arrive in person, and anyone signed in may join on Zoom, without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week."
         : "Anyone signed in may join on Zoom without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week."
     : "People join by registering. Hosts and teachers always have access. It carries no Drop-in mark.";
+  // Flodesk: the same rule the server applies (lib/flodeskRules.ts), and the
+  // name a new segment would take ("Name MM/DD/YY"; an ongoing program, name only).
+  const flodeskDefaultOn = programUsesFlodesk({
+    registrationEnabled,
+    offeringCategory: offeringCategory || null,
+    flodeskSync: null,
+  });
+  const flodeskOn = flodeskChoice === "auto" ? flodeskDefaultOn : flodeskChoice === "on";
+  const flodeskNamePreview = (() => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(startDatetime || "");
+    const ongoing = !!recurrenceFreq && !recurrenceCount;
+    return !m || ongoing ? name.trim() : `${name.trim()} ${m[2]}/${m[3]}/${m[1].slice(2)}`;
+  })();
+  async function loadFlodeskSegments() {
+    setFlodeskSegmentsError("");
+    try {
+      const res = await fetch("/api/flodesk/segments");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Flodesk didn't answer.");
+      setFlodeskSegments(data.segments);
+    } catch (err) {
+      setFlodeskSegmentsError(err instanceof Error ? err.message : "Flodesk didn't answer.");
+    }
+  }
+
   const appearanceText = useMemo(() => {
     const deadlinePast = registrationDeadline
       ? new Date(registrationDeadline) < new Date()
@@ -2235,6 +2280,75 @@ export default function ProgramEditor({
                 variant="message"
               />
             </div>
+
+            <hr className="pe-section-divider" />
+
+            {/* Flodesk (2026-10-12): confirmed registrants join a segment for
+                mass email; program details still come from RIM's own emails. */}
+            <div className="pe-field">
+              <span className="pe-field__label">Mailing list (Flodesk)</span>
+              <span className="pe-field__help">For mass email only: program details still come from RIM&rsquo;s own emails. Confirmed registrants join the program&rsquo;s segment; the waitlist joins only when approved, and a cancellation removes them. Anyone who has unsubscribed in Flodesk is never added back.</span>
+              <select
+                value={flodeskChoice}
+                onChange={(e) => { setFlodeskChoice(e.target.value as "auto" | "on" | "off"); markDirty(); }}
+                className="pe-select pe-select--narrow"
+              >
+                <option value="auto">Automatic ({flodeskDefaultOn ? "on" : "off"} for this program)</option>
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+            </div>
+
+            <div className="pe-readout">
+              <p className="pe-readout__row">
+                {!flodeskOn
+                  ? "Registrants are not added to Flodesk."
+                  : flodeskSegment
+                    ? <>Confirmed registrants join the Flodesk segment &ldquo;{flodeskSegment.name}&rdquo;.</>
+                    : <>Confirmed registrants will join a new Flodesk segment named &ldquo;{flodeskNamePreview || "this program"}&rdquo;, created at the first registration.</>}
+              </p>
+              {flodeskChoice === "auto" && !flodeskDefaultOn && (
+                <p className="pe-readout__row pe-readout__row--meta">
+                  Automatic is off when registration is off, and for Private and Service programs.
+                </p>
+              )}
+            </div>
+
+            {flodeskOn && (
+              <div className="pe-field">
+                {flodeskSegments === null ? (
+                  <button type="button" className="pe-btn pe-btn--small" onClick={loadFlodeskSegments}>
+                    {flodeskSegment ? "Choose a different segment" : "Use an existing segment instead"}
+                  </button>
+                ) : (
+                  <label className="pe-field">
+                    <span className="pe-field__label">Flodesk segment</span>
+                    <span className="pe-field__help">For a program that already has a segment in Flodesk, so its registrants keep filling the same one.</span>
+                    <select
+                      value={flodeskSegment?.id ?? ""}
+                      onChange={(e) => {
+                        const chosen = flodeskSegments.find((s) => s.id === e.target.value) ?? null;
+                        setFlodeskSegment(chosen);
+                        setFlodeskSegmentChanged(true);
+                        markDirty();
+                      }}
+                      className="pe-select"
+                    >
+                      {!initialData?.flodeskSegmentId && (
+                        <option value="">Create a new segment at the first registration</option>
+                      )}
+                      {flodeskSegment && !flodeskSegments.some((s) => s.id === flodeskSegment.id) && (
+                        <option value={flodeskSegment.id}>{flodeskSegment.name || "The linked segment"}</option>
+                      )}
+                      {flodeskSegments.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {flodeskSegmentsError && <p className="pe-field__help" role="alert">{flodeskSegmentsError}</p>}
+              </div>
+            )}
 
           </div>
           </div>
