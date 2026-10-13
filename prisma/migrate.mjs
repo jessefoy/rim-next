@@ -5999,6 +5999,61 @@ Rooted In Mindfulness · Brookfield, WI`,
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "flodeskSegmentId" TEXT`);
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "flodeskSegmentName" TEXT`);
   await db.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "flodeskMemberAt" TIMESTAMP(3)`);
+  // Seed: the note to team leads about Leads only (2026-10-13). findUnique →
+  // create, so edits made at /admin/emails survive later deploys.
+  {
+    const slug = "leads-files-update";
+    const exists = await db.emailTemplate.findUnique({ where: { slug } });
+    if (!exists) {
+      await db.emailTemplate.create({
+        data: {
+          slug,
+          name: "Team Leads: Leads only and tidying files",
+          description: "Sent once to every team's active leads (2026-10-13): the new Leads only area in Files, and a kind ask to tidy files before the new site goes live.",
+          group: "05-hubs",
+          groupLabel: "Teams & Onboarding",
+          enabled: true,
+          subject: "Your team's files: a new Leads only area, and a small ask before we go live",
+          variables: ["firstName", "teamsLine", "teamsButton"],
+          body: `Hi {{firstName}},
+
+We've made a change to Files in your team's space, and we'd love your help with one more step as we get ready to open the new site to everyone.
+
+**What changed**
+
+Each team's Files now has two areas:
+
+- **Team files:** everyone on your team can see these.
+- **Leads only:** only you and the other team leads, the guiding teacher, and the site admin can see these.
+
+To start fresh, we moved everything from your team's files into Leads only. Until you share things back, your team members will see an empty Team files.
+
+**A small ask before we go live**
+
+When you have a few minutes, please look through your team's files:
+
+1. Open your team's Files and choose **Leads only** at the top.
+2. For anything your team uses, open the menu (⋯) beside it and choose **Move to Team files**. A folder moves with everything in it.
+3. For anything no longer needed, choose **Request removal**, then approve it under **Pending removal**.
+
+It doesn't need to be perfect. A little tidying now will make things easier for everyone when the new site opens.
+
+{{teamsLine}}
+
+We also removed some duplicate copies left over from last summer's move to Google Docs. If something you need seems to be missing, let me know and we'll bring it back.
+
+One more thing: on your team's Home page you can now write a short line under your team's name. Click **Edit this line**.
+
+{{teamsButton}}
+
+With gratitude,
+Jesse`,
+        },
+      });
+      console.log("  ✔ Seeded leads-files-update");
+    }
+  }
+
   // Leads-only files (2026-10-13): additive, no backfill. Old code ignores them.
   await db.$executeRawUnsafe(`ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "googleLeadsFolderId" TEXT`);
   await db.$executeRawUnsafe(`ALTER TABLE "google_file_meta" ADD COLUMN IF NOT EXISTS "leadsOnly" BOOLEAN NOT NULL DEFAULT false`);
