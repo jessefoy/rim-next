@@ -15,6 +15,7 @@ import {
   revokeAnyonePermission,
   trashFile,
   moveFile,
+  exportDocHtml,
 } from "@/lib/google/drive";
 
 /**
@@ -599,6 +600,148 @@ export async function moveTeamFilesToLeads(
     }
   }
   return result;
+}
+
+export interface DuplicateFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime: string | null;
+  folder: string;
+  leadsOnly: boolean;
+  comments: number;
+  pinned: boolean;
+}
+export interface DuplicateGroup {
+  team: string;
+  hubId: string;
+  name: string;
+  /** Same content (Docs by their text, uploads by checksum)? null = can't tell. */
+  identical: boolean | null;
+  /** The copy we'd keep: one with comments or a pin, else the latest edited. */
+  keepId: string;
+  files: DuplicateFile[];
+}
+
+/**
+ * Find files with the same name and type within one team's files (Team files
+ * and Leads only), for the admin clean-up (Jesse, 2026-10-13: "some
+ * duplicates, especially in the hosting hub"). Most came from the July 16
+ * move of the old in-app documents, which made one copy per team a document
+ * appeared in. Read-only; walks up to `cap` items.
+ */
+export async function findTeamDuplicates(hubId: string, cap = 1500): Promise<DuplicateGroup[]> {
+  const h = await db.hub.findUnique({ where: { id: hubId }, select: HUB_PLACE_SELECT });
+  if (!h || !h.googleDriveId) return [];
+  const place = hubPlace(h, true, true);
+  const found: { f: DriveFile; folder: string; leadsOnly: boolean }[] = [];
+  const queue: { id: string; name: string; leadsOnly: boolean }[] = [{ id: place.rootId, name: "Team files", leadsOnly: false }];
+  let seen = 0;
+  while (queue.length && seen < cap) {
+    const folder = queue.shift()!;
+    for (const f of await listFiles(place.driveId, folder.id)) {
+      seen++;
+      const inLeads = folder.leadsOnly || f.id === place.leadsRootId;
+      if (f.mimeType === GOOGLE_MIME.folder) {
+        queue.push({ id: f.id, name: f.id === place.leadsRootId ? "Leads only" : f.name, leadsOnly: inLeads });
+      } else {
+        found.push({ f, folder: folder.name, leadsOnly: folder.leadsOnly });
+      }
+    }
+  }
+  const groups = new Map<string, typeof found>();
+  for (const x of found) {
+    const key = `${x.f.mimeType}\u0000${x.f.name.trim().toLowerCase()}`;
+    groups.set(key, [...(groups.get(key) ?? []), x]);
+  }
+  const dupes = [...groups.values()].filter((g) => g.length > 1);
+  if (dupes.length === 0) return [];
+  const ids = dupes.flat().map((x) => x.f.id);
+  const [commentRows, pins] = await Promise.all([
+    db.fileComment.groupBy({ by: ["googleFileId"], where: { googleFileId: { in: ids } }, _count: { _all: true } }),
+    db.googleFilePin.findMany({ where: { googleFileId: { in: ids } }, select: { googleFileId: true } }),
+  ]);
+  const commentsById = new Map(commentRows.map((c) => [c.googleFileId, c._count._all]));
+  const pinned = new Set(pins.map((p) => p.googleFileId));
+  const out: DuplicateGroup[] = [];
+  for (const g of dupes) {
+    // Content check: Docs by their exported text, uploads by checksum.
+    let identical: boolean | null = null;
+    try {
+      if (g[0].f.mimeType === GOOGLE_MIME.doc) {
+        const texts = await Promise.all(
+          g.map(async (x) => (await exportDocHtml(x.f.id)).replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()),
+        );
+        identical = texts.every((t) => t === texts[0]);
+      } else if (g.every((x) => x.f.md5Checksum)) {
+        identical = g.every((x) => x.f.md5Checksum === g[0].f.md5Checksum);
+      }
+    } catch (e) {
+      console.error("[files-duplicates] compare failed", g[0].f.name, e instanceof Error ? e.message : e);
+    }
+    const files = g.map((x) => ({
+      id: x.f.id,
+      name: x.f.name,
+      mimeType: x.f.mimeType,
+      modifiedTime: x.f.modifiedTime ?? null,
+      folder: x.folder,
+      leadsOnly: x.leadsOnly,
+      comments: commentsById.get(x.f.id) ?? 0,
+      pinned: pinned.has(x.f.id),
+    }));
+    const ranked = [...files].sort(
+      (a, b) =>
+        Number(b.pinned) - Number(a.pinned) ||
+        b.comments - a.comments ||
+        (b.modifiedTime ?? "").localeCompare(a.modifiedTime ?? ""),
+    );
+    out.push({ team: h.name, hubId: h.id, name: g[0].f.name, identical, keepId: ranked[0].id, files });
+  }
+  return out;
+}
+
+/**
+ * Move chosen duplicate copies to Drive's trash (30-day recovery), after the
+ * admin has reviewed them. Each id must be a file inside some team's folder
+ * (never a folder, never a team's root or Leads only folder). Audit
+ * `trash-duplicate`. Returns how many went.
+ */
+export async function trashDuplicateCopies(ids: string[], actorUserId: string): Promise<{ trashed: number; refused: number }> {
+  const hubs = await db.hub.findMany({
+    where: { googleFilesEnabled: true, googleDriveId: { not: null } },
+    select: HUB_PLACE_SELECT,
+  });
+  const places = hubs.map((h) => hubPlace(h, true, true));
+  let trashed = 0;
+  let refused = 0;
+  for (const id of ids) {
+    try {
+      const f = await getFileOrNull(id);
+      if (!f || f.trashed || f.mimeType === GOOGLE_MIME.folder) { refused++; continue; }
+      const place = await resolvePlaceForFile(places, f);
+      if (!place || id === place.rootId || id === place.leadsRootId) { refused++; continue; }
+      await trashFile(id);
+      trashed++;
+      let leadsOnly = false;
+      try {
+        leadsOnly = await isInLeadsArea(place, f);
+      } catch {
+        leadsOnly = true; // unknown: keep it out of members' Updates
+      }
+      await logFileAction({
+        userId: actorUserId,
+        action: "trash-duplicate",
+        googleFileId: id,
+        hubId: place.hubId,
+        leadsOnly,
+        detail: { place: place.key, name: f.name },
+      });
+    } catch (e) {
+      refused++;
+      console.error("[files-duplicates] trash failed", id, e instanceof Error ? e.message : e);
+    }
+  }
+  return { trashed, refused };
 }
 
 /**

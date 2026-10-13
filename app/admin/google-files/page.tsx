@@ -20,6 +20,7 @@ import { redirect } from "next/navigation";
 import { getAllFilesPlaces, getMintedFileWorklist } from "@/lib/googleFileAdmin";
 import GoogleFileAdminClient from "@/components/admin/GoogleFileAdminClient";
 import LeadsMoveAll from "@/components/admin/LeadsMoveAll";
+import DuplicateFiles from "@/components/admin/DuplicateFiles";
 
 export const metadata = { title: "Google Files Admin" };
 export const dynamic = "force-dynamic";
@@ -64,6 +65,8 @@ export default async function GoogleFilesAdminPage({
       </header>
 
       {/* One-time (2026-10-13): remove with app/api/admin/files-leads. */}
+      {/* Clean up duplicates first, then move everything into Leads only. */}
+      <DuplicateFiles />
       <LeadsMoveAll />
 
       {places.length === 0 ? (

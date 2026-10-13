@@ -132,11 +132,13 @@ export interface DriveFile {
   /** Opens the file in Google's own UI (editor for Docs/Sheets/Slides). */
   webViewLink?: string;
   size?: string;
+  /** Content checksum for uploaded (non-Google) files; absent for Docs. */
+  md5Checksum?: string;
 }
 
 /** The file fields every listing/read surface needs — keep in one place. */
 export const FILE_FIELDS =
-  "id,name,mimeType,modifiedTime,lastModifyingUser(displayName),webViewLink,size";
+  "id,name,mimeType,modifiedTime,lastModifyingUser(displayName),webViewLink,size,md5Checksum";
 
 /**
  * Escape a value for a single-quoted Drive query literal. Backslashes first,
