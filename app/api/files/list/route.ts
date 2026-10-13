@@ -53,7 +53,11 @@ export async function GET(req: NextRequest) {
         { status: 404 },
       );
     }
-    const rows = await buildFileRows(files, viewer);
+    // The team's "Leads only" folder is reached by its own switch, never as a
+    // row in Team files (and resolveParentFolder has already refused its
+    // contents to anyone who isn't a lead).
+    const visible = place.leadsRootId ? files.filter((f) => f.id !== place.leadsRootId) : files;
+    const rows = await buildFileRows(visible, viewer);
     // Read preferences only for files that survived the existing draft/removal
     // visibility filter. Both the member and the resource place scope the key.
     const ids = rows.map(row => row.id);
@@ -68,6 +72,8 @@ export async function GET(req: NextRequest) {
     const pinById = new Map(pins.map(pin => [pin.googleFileId, pin]));
     return NextResponse.json({
       folderName: resolved.name,
+      // Which area this folder is in, so the Finder can show it plainly.
+      leadsOnly: resolved.leadsOnly,
       sort: view?.sort ?? "name",
       files: rows.map(row => {
         const pref = preferenceById.get(row.id);

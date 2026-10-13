@@ -26,11 +26,15 @@ export default function NotifyPicker({
   value,
   onChange,
   disabled,
+  leadsOnly = false,
 }: {
   members: Member[];
   value: NotifyValue;
   onChange: (v: NotifyValue) => void;
   disabled?: boolean;
+  /** A Leads only file: "everyone" means the team's leads (the server
+   *  enforces the same limit). */
+  leadsOnly?: boolean;
 }) {
   function toggle(id: string) {
     const has = value.userIds.includes(id);
@@ -54,7 +58,7 @@ export default function NotifyPicker({
           }}
         >
           <option value="none">No one</option>
-          <option value="everyone">Everyone in the Space</option>
+          <option value="everyone">{leadsOnly ? "All of this team\u2019s leads" : "Everyone on this team"}</option>
           <option value="people">Choose people…</option>
         </select>
       </label>
@@ -62,7 +66,7 @@ export default function NotifyPicker({
       {value.mode === "people" && (
         <ul className="gf-notify__people" role="group" aria-label="Choose who to notify">
           {members.length === 0 ? (
-            <li className="gf-notify__empty">No one else is in this Space yet.</li>
+            <li className="gf-notify__empty">No one else is on this team yet.</li>
           ) : (
             members.map((m) => (
               <li key={m.id}>

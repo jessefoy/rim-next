@@ -53,12 +53,13 @@ export async function POST(
   try {
     const gate = await authorizeFileRead(await auth(), fileId);
     if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
-    const { viewer, file, place } = gate.data;
+    const { viewer, file, place, leadsOnly } = gate.data;
 
     await db.fileComment.create({
       data: { googleFileId: fileId, authorId: viewer.userId, body: text },
     });
     await logFileAction({
+      leadsOnly,
       userId: viewer.userId,
       action: "comment",
       googleFileId: fileId,
@@ -67,7 +68,9 @@ export async function POST(
     });
 
     // Basecamp-style: notify only the people the commenter chose (default none).
-    const recipients = await resolveNotifyRecipients(place, body.notify, viewer.userId);
+    const recipients = await resolveNotifyRecipients(place, body.notify, viewer.userId, {
+      leadsOnly,
+    });
     if (recipients.length > 0) {
       const actor = await db.user.findUnique({
         where: { id: viewer.userId },

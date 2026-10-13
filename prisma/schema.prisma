@@ -1020,6 +1020,10 @@ model Hub {
   // per-hub rollout switch (default off).
   googleDriveId      String?
   googleRootFolderId String?
+  // The team's "Leads only" folder inside its Space folder (2026-10-13):
+  // readable and writable only by the team's leads (an ACTIVE coordinator,
+  // GUIDING_TEACHER or ADMIN). Created the first time a lead opens it.
+  googleLeadsFolderId String?
   googleFilesEnabled Boolean @default(false)
   // Open-to-all-members access primitive (session 165 — the Community Space).
   // When true, EVERY signed-in member reaches this Space's participation
@@ -1200,6 +1204,11 @@ model GoogleFileMeta {
   // The owning place, for scoping/attribution queries.
   hubId    String?
   placeKey String?
+  // In the team's "Leads only" area (set when RIM creates, uploads or moves
+  // a file there; cleared on a move back). Keeps leads-only activity out of
+  // the team's Updates for everyone else. Authorization never trusts it: the
+  // read and write gates walk the file's folders.
+  leadsOnly Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

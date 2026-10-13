@@ -119,7 +119,7 @@ export default async function FileDetailPage({
     );
   }
 
-  const { viewer, file, place, meta } = gate.data;
+  const { viewer, file, place, meta, leadsOnly } = gate.data;
 
   // Folders have no detail page — send them back to the Finder, opened to that
   // folder. (The Finder itself drills down; this is the direct-URL fallback.)
@@ -175,6 +175,19 @@ export default async function FileDetailPage({
   }
   members.sort((a, b) => a.name.localeCompare(b.name));
 
+  // A file in the team's "Leads only" area (only leads reach this page for
+  // one): say so plainly, and offer only the team's leads to notify.
+  const leadsFile = leadsOnly;
+  let notifyMembers = members;
+  if (leadsFile && place.hubId) {
+    const leads = await db.hubMember.findMany({
+      where: { hubId: place.hubId, isCoordinator: true, status: "ACTIVE" },
+      select: { userId: true },
+    });
+    const leadIds = new Set(leads.map((l) => l.userId));
+    notifyMembers = members.filter((m) => leadIds.has(m.id));
+  }
+
   // Decide how to render the body. Drive-touching work (mint, export) is
   // wrapped so a failure degrades to a panel, never a 500.
   const crossSite = (await headers()).get("sec-fetch-site") === "cross-site";
@@ -184,13 +197,16 @@ export default async function FileDetailPage({
   let exportHtml: string | null = null;
 
   if (isGoogleEditorMime(mime)) {
-    if (!held) {
+    // A Leads only file is shown like a draft: no "anyone with the link"
+    // permission is created just to preview it (2026-10-13).
+    if (!held && !leadsFile) {
       // Shared Google-native → Google's own high-fidelity preview iframe.
       try {
         if (!crossSite) {
           const minted = await ensureAnyoneWithLink(fileId, "reader");
           if (minted) {
             await logFileAction({
+              leadsOnly,
               userId: viewer.userId,
               action: "mint-link",
               googleFileId: fileId,
@@ -210,7 +226,7 @@ export default async function FileDetailPage({
       }
       bodyMode = previewUrl ? "iframe" : "google";
     } else if (mime === GOOGLE_MIME.doc) {
-      // Draft Doc → RIM's calm export reader (no link minted; stays private).
+      // Draft or Leads only Doc → RIM's calm export reader (no link minted).
       try {
         exportHtml = googleDocHtmlToRimHtml(await exportDocHtml(fileId));
       } catch (e) {
@@ -252,6 +268,9 @@ export default async function FileDetailPage({
           &larr; Back to files
         </a>
         <h1 className="ac-page-title gf-detail__title">{file.name}</h1>
+        {leadsFile && (
+          <p className="gf-leads-note">Leads only: visible to this team&rsquo;s leads.</p>
+        )}
 
         <FileDetailActions
           fileId={fileId}
@@ -265,6 +284,8 @@ export default async function FileDetailPage({
           createdByUserId={createdByUserId}
           modifiedLabel={file.modifiedTime ? relativeDate(file.modifiedTime) : null}
           members={members}
+          notifyMembers={notifyMembers}
+          leadsOnly={leadsFile}
           pendingRemoval={!!meta?.pendingDeleteAt}
           isRemovalRequester={
             !!meta?.pendingDeleteById && meta.pendingDeleteById === viewer.userId
@@ -323,7 +344,8 @@ export default async function FileDetailPage({
           viewerId={viewer.userId}
           canModerate={canModerate}
           initialComments={conversationComments}
-          members={members}
+          members={notifyMembers}
+          leadsOnly={leadsFile}
         />
       </div>
     </AccountLayout>

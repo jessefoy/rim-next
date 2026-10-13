@@ -38,9 +38,11 @@ export async function POST(
   try {
     const gate = await authorizeFileWrite(await auth(), req, fileId);
     if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
-    const { viewer, file, place } = gate.data;
+    const { viewer, file, place, leadsOnly } = gate.data;
 
-    const recipients = await resolveNotifyRecipients(place, body.notify, viewer.userId);
+    const recipients = await resolveNotifyRecipients(place, body.notify, viewer.userId, {
+      leadsOnly,
+    });
     if (recipients.length === 0) {
       return NextResponse.json({ ok: true, notified: 0 });
     }
@@ -66,6 +68,7 @@ export async function POST(
       }
     });
     await logFileAction({
+      leadsOnly,
       userId: viewer.userId,
       action: "notify-shared",
       googleFileId: fileId,

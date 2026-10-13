@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { hubLeadAllowed } from "@/lib/googleFiles";
 import { NextResponse } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import {
@@ -29,6 +30,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     hubSlug: slug,
     userId: session.user.id,
     conversationsEnabled: hub.conversationsEnabled,
+    isLead: hubLeadAllowed(session.user.roles ?? [], member),
     filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
     source,
     filter,

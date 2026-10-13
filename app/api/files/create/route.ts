@@ -83,9 +83,11 @@ export async function POST(req: NextRequest) {
         heldAt: kind === "folder" ? null : new Date(),
         hubId: place.hubId,
         placeKey: place.key,
+        leadsOnly: parent.leadsOnly,
       },
     });
     await logFileAction({
+      leadsOnly: parent.leadsOnly,
       userId: viewer.userId,
       action: `create-${kind}`,
       googleFileId: file.id,

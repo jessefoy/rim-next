@@ -15,7 +15,7 @@
  * own 30-day trash; RIM exposes no permanent delete to members.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import {
@@ -26,6 +26,7 @@ import {
   logFileAction,
   resolveParentFolder,
   sanitizeFileName,
+  settleLeadsArea,
 } from "@/lib/googleFiles";
 import { moveFile, renameFile, trashFile } from "@/lib/google/drive";
 
@@ -49,7 +50,7 @@ export async function PATCH(
     if (!gate.ok) {
       return NextResponse.json({ error: gate.error }, { status: gate.status });
     }
-    const { viewer, file, place } = gate.data;
+    const { viewer, file, place, leadsOnly } = gate.data;
 
     if (body.action === "rename") {
       const name = sanitizeFileName(body.name);
@@ -59,6 +60,7 @@ export async function PATCH(
       if (name === file.name) return NextResponse.json({ file: fileRowJson(file) });
       const updated = await renameFile(fileId, name);
       await logFileAction({
+        leadsOnly,
         userId: viewer.userId,
         action: "rename",
         googleFileId: fileId,
@@ -85,18 +87,35 @@ export async function PATCH(
       }
       const currentParent = file.parents?.[0];
       if (target.id === currentParent) return NextResponse.json({ file: fileRowJson(file) });
+      // Which area it leaves (only a lead can reach a leads file here, since
+      // authorizeFileWrite already ran the leads gate).
+      const wasLeadsOnly = leadsOnly;
       try {
         const updated = await moveFile(fileId, {
           addParent: target.id,
           removeParent: currentParent,
         });
+        const areaChanged = wasLeadsOnly !== target.leadsOnly;
         await logFileAction({
+          leadsOnly: target.leadsOnly,
           userId: viewer.userId,
-          action: "move",
+          action: areaChanged ? (target.leadsOnly ? "move-to-leads" : "move-to-team") : "move",
           googleFileId: fileId,
           hubId: place.hubId,
           detail: { place: place.key, name: file.name, from: currentParent, to: target.id },
         });
+        // Bring RIM's marker along (the folder's contents too) and, moving
+        // INTO Leads only, cut off links already handed out (Jesse, 2026-10-13).
+        if (areaChanged) {
+          after(() =>
+            settleLeadsArea({
+              place,
+              file: { id: fileId, mimeType: file.mimeType },
+              leadsOnly: target.leadsOnly,
+              revokeLinks: target.leadsOnly,
+            }),
+          );
+        }
         return NextResponse.json({ file: fileRowJson(updated) });
       } catch (e) {
         // Drive refuses invalid moves (e.g. a folder into its own subtree)
@@ -129,9 +148,11 @@ export async function PATCH(
           creatorUserId: meta?.creatorUserId ?? null,
           hubId: place.hubId,
           placeKey: place.key,
+          leadsOnly,
         },
       });
       await logFileAction({
+        leadsOnly,
         userId: viewer.userId,
         action: "request-removal",
         googleFileId: fileId,
@@ -154,6 +175,7 @@ export async function PATCH(
         data: { pendingDeleteAt: null, pendingDeleteById: null },
       });
       await logFileAction({
+        leadsOnly,
         userId: viewer.userId,
         action: "approve-removal",
         googleFileId: fileId,
@@ -177,6 +199,7 @@ export async function PATCH(
         data: { pendingDeleteAt: null, pendingDeleteById: null },
       });
       await logFileAction({
+        leadsOnly,
         userId: viewer.userId,
         action: "cancel-removal",
         googleFileId: fileId,
@@ -208,9 +231,11 @@ export async function PATCH(
           creatorUserId: meta?.creatorUserId ?? null,
           hubId: place.hubId,
           placeKey: place.key,
+          leadsOnly,
         },
       });
       await logFileAction({
+        leadsOnly,
         userId: viewer.userId,
         action: body.action,
         googleFileId: fileId,
@@ -252,9 +277,11 @@ export async function PATCH(
           heldAt: meta?.heldAt ?? null,
           hubId: place.hubId,
           placeKey: place.key,
+          leadsOnly,
         },
       });
       await logFileAction({
+        leadsOnly,
         userId: viewer.userId,
         action: "set-creator",
         googleFileId: fileId,

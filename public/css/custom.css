@@ -30756,6 +30756,43 @@ a.pp-card:hover .pp-card__action--named {
   .hub-tool { padding: 20px; }
 }
 
+/* ── Leads only (Files, 2026-10-13) ──────────────────────────────────
+   The two areas leads switch between, and the plain line that says which
+   one they are in. A segmented pair: the current area is white and bold. */
+.gf-area {
+  display: inline-flex;
+  margin: 0 0 16px;
+  padding: 3px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 10px;
+  background: var(--rim-bg-bright);
+}
+.gf-area__btn {
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--rim-text-muted);
+  font: inherit;
+  font-size: var(--text-app);
+  font-weight: 600;
+  cursor: pointer;
+}
+.gf-area__btn[aria-pressed="true"] {
+  background: var(--rim-surface);
+  color: var(--rim-blue);
+  box-shadow: 0 0 0 1px var(--rim-rule);
+}
+.gf-area__btn:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: 2px; }
+.gf-leads-note {
+  margin: 0 0 12px;
+  font-size: var(--text-app-meta);
+  line-height: 1.5;
+  color: var(--rim-text-muted);
+}
+
 /* ── Save answers (components/FormDone.tsx SaveNote, 2026-10-13) ─────
    The answer to an in-place save, beside its button, kept until the next
    edit. Words carry the meaning; colour only supports them. */

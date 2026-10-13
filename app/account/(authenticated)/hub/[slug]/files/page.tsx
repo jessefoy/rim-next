@@ -10,7 +10,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
-import { hubWriteAllowed } from "@/lib/googleFiles";
+import { hubLeadAllowed, hubWriteAllowed } from "@/lib/googleFiles";
 import FilesBrowser from "@/components/FilesBrowser";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +43,8 @@ export default async function HubFilesPage({
   }
   const placeKey = `hub:${slug}`;
   const canWrite = hubWriteAllowed(roles, member?.status);
+  // The team's leads also see "Leads only" (2026-10-13).
+  const isLead = hubLeadAllowed(roles, member);
 
   return (
     <div>
@@ -56,7 +58,7 @@ export default async function HubFilesPage({
         </div>
       </header>
       <FilesBrowser
-        places={[{ key: placeKey, name: hub.name, canWrite }]}
+        places={[{ key: placeKey, name: hub.name, canWrite, isLead, leadsFolderId: isLead ? hub.googleLeadsFolderId ?? null : null }]}
         initialPlaceKey={placeKey}
         showPlaces={false}
         basePath={`/account/hub/${slug}/files`}

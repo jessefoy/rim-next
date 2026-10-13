@@ -11,6 +11,9 @@ import {
   getFileOrNull,
   listSharedDrives,
   type DriveFile,
+  listFiles,
+  revokeAnyonePermission,
+  trashFile,
 } from "@/lib/google/drive";
 
 /**
@@ -68,6 +71,28 @@ export interface FilesPlace {
    * model. Reads never depend on this flag.
    */
   canWrite: boolean;
+  /**
+   * The team's "Leads only" folder (2026-10-13), or null until a lead first
+   * opens it. Everything inside it is for the team's leads alone.
+   */
+  leadsRootId: string | null;
+  /** Is this viewer one of the team's leads (an ACTIVE coordinator,
+   *  GUIDING_TEACHER or ADMIN)? The same set as isSpaceLead. */
+  isLead: boolean;
+}
+
+/** The "Leads only" folder's name in Drive. */
+export const LEADS_FOLDER_NAME = "Leads only";
+
+/** May this viewer use the team's "Leads only" area? An ACTIVE coordinator of
+ *  the team, a GUIDING_TEACHER or an ADMIN (isSpaceLead's set, computed from
+ *  the membership row already loaded with the place). */
+export function hubLeadAllowed(
+  roles: string[],
+  member: { status: string; isCoordinator: boolean } | null | undefined,
+): boolean {
+  if (roles.includes("GUIDING_TEACHER") || roles.includes("ADMIN")) return true;
+  return !!member && member.isCoordinator && member.status === "ACTIVE";
 }
 
 /**
@@ -209,8 +234,10 @@ function hubPlace(
     name: string;
     googleDriveId: string | null;
     googleRootFolderId: string | null;
+    googleLeadsFolderId: string | null;
   },
   canWrite: boolean,
+  isLead: boolean,
 ): FilesPlace {
   return {
     key: `hub:${h.slug}`,
@@ -221,6 +248,8 @@ function hubPlace(
     driveId: h.googleDriveId!,
     rootId: h.googleRootFolderId ?? h.googleDriveId!,
     canWrite,
+    leadsRootId: h.googleLeadsFolderId ?? null,
+    isLead,
   };
 }
 
@@ -230,6 +259,7 @@ const HUB_PLACE_SELECT = {
   name: true,
   googleDriveId: true,
   googleRootFolderId: true,
+  googleLeadsFolderId: true,
 } as const;
 
 /** Every Space this member can open — their team drives (Community retired). */
@@ -250,13 +280,14 @@ export async function getAccessiblePlaces(
       ...HUB_PLACE_SELECT,
       // The viewer's own membership row (empty for a GT browsing a hub
       // they haven't joined) — feeds the write gate, never the read gate.
-      members: { where: { userId }, select: { status: true } },
+      members: { where: { userId }, select: { status: true, isCoordinator: true } },
     },
     orderBy: { name: "asc" },
   });
   const places: FilesPlace[] = [];
   for (const h of hubs) {
-    places.push(hubPlace(h, hubWriteAllowed(roles, h.members[0]?.status)));
+    const member = h.members[0];
+    places.push(hubPlace(h, hubWriteAllowed(roles, member?.status), hubLeadAllowed(roles, member)));
   }
   return places;
 }
@@ -385,6 +416,9 @@ export type AuthorizedFile = {
   viewer: { userId: string; roles: string[] };
   file: DriveFile & { parents?: string[]; driveId?: string };
   place: FilesPlace;
+  /** Is the file in the team's "Leads only" area? (Only leads get this far
+   *  for one.) Stamped on audit rows and meta so Updates can leave it out. */
+  leadsOnly: boolean;
 };
 
 export async function authorizeFileRequest(
@@ -413,7 +447,143 @@ export async function authorizeFileRequest(
   if (!place) {
     return { ok: false, status: 404, error: "You don't have access to this file." };
   }
-  return { ok: true, data: { viewer, file, place } };
+  // The team's "Leads only" area: anything inside it exists only for the
+  // team's leads. Walks the file's folders (never trusts a stored flag), so
+  // a file moved straight in Drive is still protected.
+  const leadsOnly = await isInLeadsArea(place, file);
+  if (leadsOnly && !place.isLead) {
+    return { ok: false, status: 404, error: "You don't have access to this file." };
+  }
+  return { ok: true, data: { viewer, file, place, leadsOnly } };
+}
+
+/** Is this file (or folder) the team's "Leads only" folder or inside it?
+ *  False when the team has no leads folder yet. Fails closed like
+ *  fileWithinFolderRoot (an unreachable chain reads as "not inside", which is
+ *  why callers deny on TRUE for non-leads and never grant on FALSE alone). */
+export async function isInLeadsArea(
+  place: FilesPlace,
+  file: { id: string; parents?: string[] },
+): Promise<boolean> {
+  if (!place.leadsRootId) return false;
+  if (file.id === place.leadsRootId) return true;
+  return fileWithinFolderRoot({
+    fileId: file.id,
+    fileParents: file.parents,
+    rootId: place.leadsRootId,
+    driveId: place.driveId,
+    parentsOf: async (id) => (await getFile(id)).parents,
+  });
+}
+
+/**
+ * After a file or folder lands in (or leaves) the "Leads only" area, bring
+ * RIM's marker along with it: the item itself (upserted) and, for a folder,
+ * everything inside it (up to `cap` items; the gates never depend on this
+ * marker, only Updates does). Moving INTO the area also cuts off any
+ * "anyone with the link" permission already handed out (Jesse, 2026-10-13).
+ * A Google file's address never changes, so when a lead later opens it in
+ * Google the same address works again for whoever kept it: the accepted
+ * trade (RIM_GoogleWorkspace.md §12). Previews of leads files don't mint.
+ * Runs from after(); each failure is logged, never thrown.
+ */
+export async function settleLeadsArea(opts: {
+  place: FilesPlace;
+  file: { id: string; mimeType: string };
+  leadsOnly: boolean;
+  revokeLinks: boolean;
+  cap?: number;
+}): Promise<{ items: number; revoked: number }> {
+  const { place, file, leadsOnly, revokeLinks } = opts;
+  const cap = opts.cap ?? 500;
+  const ids = [file.id];
+  if (file.mimeType === GOOGLE_MIME.folder) {
+    const queue = [file.id];
+    while (queue.length && ids.length < cap) {
+      const folderId = queue.shift()!;
+      try {
+        for (const child of await listFiles(place.driveId, folderId)) {
+          if (ids.length >= cap) break;
+          ids.push(child.id);
+          if (child.mimeType === GOOGLE_MIME.folder) queue.push(child.id);
+        }
+      } catch (e) {
+        console.error("[files-leads] listing failed", folderId, e instanceof Error ? e.message : e);
+      }
+    }
+    if (ids.length >= cap) console.warn("[files-leads] capped at", cap, "items under", file.id);
+  }
+  try {
+    await db.googleFileMeta.upsert({
+      where: { googleFileId: file.id },
+      update: { leadsOnly },
+      create: { googleFileId: file.id, leadsOnly, hubId: place.hubId, placeKey: place.key },
+    });
+    if (ids.length > 1) {
+      // Contents with no RIM record yet (added straight in Drive) get one, so
+      // the marker covers them too.
+      await db.googleFileMeta.createMany({
+        data: ids.slice(1).map((id) => ({ googleFileId: id, leadsOnly, hubId: place.hubId, placeKey: place.key })),
+        skipDuplicates: true,
+      });
+      await db.googleFileMeta.updateMany({
+        where: { googleFileId: { in: ids.slice(1) } },
+        data: { leadsOnly },
+      });
+    }
+  } catch (e) {
+    console.error("[files-leads] marker update failed", file.id, e instanceof Error ? e.message : e);
+  }
+  let revoked = 0;
+  if (revokeLinks) {
+    for (const id of ids) {
+      try {
+        if (await revokeAnyonePermission(id)) revoked++;
+      } catch (e) {
+        console.error("[files-leads] link revoke failed", id, e instanceof Error ? e.message : e);
+      }
+    }
+  }
+  return { items: ids.length, revoked };
+}
+
+/**
+ * Create the team's "Leads only" folder inside its Space folder, the first
+ * time a lead opens it, and record it on the hub. Idempotent: an existing
+ * folder is returned. Only a lead may call this (the route checks isLead).
+ */
+export async function ensureLeadsFolder(place: FilesPlace, actorUserId: string): Promise<string> {
+  if (place.leadsRootId) return place.leadsRootId;
+  if (!place.hubId) throw new Error("No team for this place.");
+  const folder = await createFile({
+    name: LEADS_FOLDER_NAME,
+    mimeType: GOOGLE_MIME.folder,
+    parentId: place.rootId,
+  });
+  // Another lead may have created one at the same moment: keep the first.
+  const updated = await db.hub.updateMany({
+    where: { id: place.hubId, googleLeadsFolderId: null },
+    data: { googleLeadsFolderId: folder.id },
+  });
+  if (updated.count === 0) {
+    // Another lead's folder won: put this one in Drive's trash, so a stray
+    // "Leads only" folder never sits in Team files where everyone sees it.
+    try {
+      await trashFile(folder.id);
+    } catch (e) {
+      console.error("[files-leads] stray folder not trashed", folder.id, e instanceof Error ? e.message : e);
+    }
+    const hub = await db.hub.findUnique({ where: { id: place.hubId }, select: { googleLeadsFolderId: true } });
+    return hub?.googleLeadsFolderId ?? folder.id;
+  }
+  await logFileAction({
+    userId: actorUserId,
+    action: "provision-leads",
+    hubId: place.hubId,
+    googleFileId: folder.id,
+    detail: { place: place.key, folderId: folder.id },
+  });
+  return folder.id;
 }
 
 export type FileMetaLite = {
@@ -497,8 +667,8 @@ export function isCrossSiteRequest(req: Request): boolean {
 export async function resolveParentFolder(
   place: FilesPlace,
   folder: string | null | undefined,
-): Promise<{ id: string; name: string | null } | null> {
-  if (!folder || folder === place.rootId) return { id: place.rootId, name: null };
+): Promise<{ id: string; name: string | null; leadsOnly: boolean } | null> {
+  if (!folder || folder === place.rootId) return { id: place.rootId, name: null, leadsOnly: false };
   const f = await getFileOrNull(folder);
   if (
     !f ||
@@ -522,7 +692,10 @@ export async function resolveParentFolder(
     });
     if (!within) return null;
   }
-  return { id: folder, name: f.name };
+  // The "Leads only" area: a destination (or listing) there is for leads.
+  const leadsOnly = await isInLeadsArea(place, f);
+  if (leadsOnly && !place.isLead) return null;
+  return { id: folder, name: f.name, leadsOnly };
 }
 
 /**
@@ -734,10 +907,21 @@ export async function resolveNotifyRecipients(
   place: FilesPlace,
   notify: { mode?: unknown; userIds?: unknown } | null | undefined,
   excludeUserId: string,
+  opts?: { leadsOnly?: boolean },
 ): Promise<NotifyRecipient[]> {
   const mode = notify && typeof notify.mode === "string" ? notify.mode : "none";
   if (mode === "none" || !place.hubSlug) return [];
-  const members = await getHubNotificationRecipients(place.hubSlug, { excludeUserId });
+  let members = await getHubNotificationRecipients(place.hubSlug, { excludeUserId });
+  // A Leads only file: whoever was chosen, only the team's leads (ACTIVE
+  // coordinators) are told about it.
+  if (opts?.leadsOnly && place.hubId) {
+    const leads = await db.hubMember.findMany({
+      where: { hubId: place.hubId, isCoordinator: true, status: "ACTIVE" },
+      select: { userId: true },
+    });
+    const leadIds = new Set(leads.map((l) => l.userId));
+    members = members.filter((m) => leadIds.has(m.id));
+  }
   if (mode === "everyone") {
     return members.map((m) => ({ id: m.id, email: m.email, firstName: m.firstName }));
   }
@@ -775,7 +959,7 @@ export async function listPendingRemovals(
     where: {
       placeKey: place.key,
       pendingDeleteAt: { not: null },
-      ...(isLead ? {} : { pendingDeleteById: viewer.userId }),
+      ...(isLead ? {} : { pendingDeleteById: viewer.userId, leadsOnly: false }),
     },
     orderBy: { pendingDeleteAt: "asc" },
     select: { googleFileId: true, pendingDeleteById: true, pendingDeleteAt: true },
@@ -838,7 +1022,7 @@ export async function authorizeFileWrite(
   // The place's own root (the drive root, or a hub's scoped root folder) is
   // RIM's browse anchor — renaming/moving/trashing it would break the whole
   // Files view. Members never see it as a row; refuse crafted requests.
-  if (fileId === place.rootId || fileId === place.driveId) {
+  if (fileId === place.rootId || fileId === place.driveId || fileId === place.leadsRootId) {
     return { ok: false, status: 400, error: "This folder can't be changed." };
   }
   return gate;
@@ -934,7 +1118,11 @@ export async function logFileAction(opts: {
   googleFileId?: string;
   hubId?: string | null;
   detail?: Record<string, unknown>;
+  /** The file is in the team's "Leads only" area: stamped on the row so the
+   *  team's Updates leave it out for non-leads (lib/hubActivity.ts). */
+  leadsOnly?: boolean;
 }): Promise<void> {
+  const detail = opts.leadsOnly ? { ...(opts.detail ?? {}), leadsOnly: true } : opts.detail;
   try {
     await db.googleFileAudit.create({
       data: {
@@ -942,7 +1130,7 @@ export async function logFileAction(opts: {
         action: opts.action,
         googleFileId: opts.googleFileId ?? null,
         hubId: opts.hubId ?? null,
-        detail: opts.detail ? JSON.parse(JSON.stringify(opts.detail)) : undefined,
+        detail: detail ? JSON.parse(JSON.stringify(detail)) : undefined,
       },
     });
   } catch (e) {

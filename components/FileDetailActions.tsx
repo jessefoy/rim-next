@@ -44,6 +44,10 @@ interface Props {
   modifiedLabel: string | null;
   /** The Space's members, for the "Change creator" picker. */
   members: Member[];
+  /** Who "Notify the Space" may reach (only the leads for a Leads only file). */
+  notifyMembers?: Member[];
+  /** In the team's Leads only area. */
+  leadsOnly?: boolean;
   /** This file is proposed for removal, awaiting a lead's decision. */
   pendingRemoval: boolean;
   /** The viewer requested the removal (so may cancel their own request). */
@@ -70,6 +74,8 @@ export default function FileDetailActions({
   createdByUserId,
   modifiedLabel,
   members,
+  notifyMembers,
+  leadsOnly = false,
   pendingRemoval,
   isRemovalRequester,
   canApproveRemoval,
@@ -223,8 +229,8 @@ export default function FileDetailActions({
               Pending removal
             </span>
             {canApproveRemoval
-              ? "Approve to remove this, or keep it in the Space."
-              : "Held for a Space lead to approve — you can cancel your request."}
+              ? "Approve to remove this, or keep it for the team."
+              : "Held for a team lead to approve. You can cancel your request."}
           </p>
           <div className="gf-detail__actions">
             {canApproveRemoval && (
@@ -242,7 +248,7 @@ export default function FileDetailActions({
                 onClick={cancelRemoval}
                 disabled={busy}
               >
-                {canApproveRemoval ? "Keep in the Space" : "Cancel request"}
+                {canApproveRemoval ? "Keep it" : "Cancel request"}
               </button>
             )}
             <a
@@ -261,8 +267,8 @@ export default function FileDetailActions({
             <p className="gf-detail__draft-note">
               <span className="gf-detail__draft-pill">Draft</span>
               {mine
-                ? "Only you can see this until you share it with the Space."
-                : "A draft — not yet shared with the Space by its creator."}
+                ? "Only you can see this until you share it with the team."
+                : "A draft, not yet shared with the team by its creator."}
             </p>
           )}
 
@@ -274,7 +280,7 @@ export default function FileDetailActions({
                 onClick={() => toggleDraft("share")}
                 disabled={busy}
               >
-                Share with the Space
+                Share with the team
               </button>
             )}
 
@@ -325,7 +331,8 @@ export default function FileDetailActions({
             (notifying ? (
               <div className="gf-detail__notify">
                 <NotifyPicker
-                  members={members}
+                  members={notifyMembers ?? members}
+                  leadsOnly={leadsOnly}
                   value={notifyValue}
                   onChange={setNotifyValue}
                   disabled={busy}
@@ -367,7 +374,7 @@ export default function FileDetailActions({
                   setNotifyDone(null);
                 }}
               >
-                Notify the Space about this
+                Notify the team about this
               </button>
             ))}
           {notifyDone && <p className="gf-detail__notify-done">{notifyDone}</p>}

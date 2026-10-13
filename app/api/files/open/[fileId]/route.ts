@@ -43,7 +43,7 @@ export async function GET(
     if (!gate.ok) {
       return NextResponse.json({ error: gate.error }, { status: gate.status });
     }
-    const { viewer, file, place } = gate.data;
+    const { viewer, file, place, leadsOnly } = gate.data;
 
     // Google doesn't support anyone-with-link on Shared Drive folders, and a
     // folder has no meaningful "open in Google" destination for members.
@@ -67,6 +67,7 @@ export async function GET(
     // attribute it to the origin hub (null for Community) so the audit trail
     // can answer "when did this file first become link-editable, and where."
     await logFileAction({
+      leadsOnly,
       userId: viewer.userId,
       action: minted ? "mint-link" : "open",
       googleFileId: fileId,

@@ -155,6 +155,7 @@ export async function processFileTransfer(id: string): Promise<void> {
     });
 
     await logFileAction({
+      leadsOnly: parent.leadsOnly,
       userId: transfer.userId,
       action: "upload",
       googleFileId: file.id,
@@ -178,6 +179,7 @@ export async function processFileTransfer(id: string): Promise<void> {
           heldAt: null,
           hubId: place.hubId,
           placeKey: place.key,
+          leadsOnly: parent.leadsOnly,
         },
       });
     } catch (metaErr) {

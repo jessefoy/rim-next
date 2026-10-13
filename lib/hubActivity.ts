@@ -152,6 +152,9 @@ export async function listHubActivity(options: {
   filter?: HubActivityFilter;
   cursor?: string | null;
   limit?: number;
+  /** Is the viewer one of the team's leads? Only leads see activity on files
+   *  in the team's "Leads only" area (2026-10-13). */
+  isLead?: boolean;
 }): Promise<{ items: HubActivityItem[]; nextCursor: string | null }> {
   const limit = Math.max(1, Math.min(options.limit ?? 30, 60));
   const filter = options.filter ?? "all";
@@ -259,7 +262,7 @@ export async function listHubActivity(options: {
   const fileMetas = auditedFileIds.length
     ? await db.googleFileMeta.findMany({
         where: { googleFileId: { in: auditedFileIds } },
-        select: { googleFileId: true, heldAt: true, creatorUserId: true },
+        select: { googleFileId: true, heldAt: true, creatorUserId: true, leadsOnly: true },
       })
     : [];
   const fileMetaById = new Map(fileMetas.map((meta) => [meta.googleFileId, meta]));
@@ -267,6 +270,10 @@ export async function listHubActivity(options: {
     if (!audit.googleFileId) return !forUser;
     const meta = fileMetaById.get(audit.googleFileId);
     if (meta?.heldAt) return false;
+    // Leads-only files: by the file's marker, or the stamp on the row itself
+    // (which also covers a file with no RIM record).
+    const stamped = !!(audit.detail && typeof audit.detail === "object" && (audit.detail as Record<string, unknown>).leadsOnly === true);
+    if ((meta?.leadsOnly || stamped) && !options.isLead) return false;
     return !forUser || meta?.creatorUserId === options.userId;
   });
   const fileUserIds = [...new Set(visibleFileAudits.flatMap((audit) => audit.userId ? [audit.userId] : []))];

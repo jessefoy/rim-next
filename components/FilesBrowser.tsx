@@ -71,6 +71,10 @@ export interface FilesPlaceLink {
   name: string;
   /** Server-decided: may this viewer create/organize in this place? */
   canWrite: boolean;
+  /** Is this viewer one of the team's leads (sees "Leads only")? */
+  isLead?: boolean;
+  /** The team's "Leads only" folder, once a lead has opened it. */
+  leadsFolderId?: string | null;
 }
 
 interface FileRow {
@@ -185,6 +189,12 @@ export default function FilesBrowser({
   // Upload progress/status, shown as a slim line under the toolbar rather
   // than a modal — it runs alongside browsing, not blocking it.
   const { notice, say } = useActionNotice();
+  // The team's "Leads only" area (2026-10-13): its folder (created the first
+  // time a lead opens it) and whether the folder on screen is inside it.
+  const [leadsFolderId, setLeadsFolderId] = useState<string | null>(
+    places.find((p) => p.key === initialPlaceKey)?.leadsFolderId ?? null,
+  );
+  const [inLeads, setInLeads] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<
     | { name: string; percentage: number; phase: "sending" | "finishing" }
     | { name: string; error: string }
@@ -208,6 +218,7 @@ export default function FilesBrowser({
 
   const activePlace = places.find((p) => p.key === placeKey) ?? places[0];
   const canWrite = activePlace?.canWrite ?? false;
+  const isLead = activePlace?.isLead ?? false;
 
   function buildUrl(nextPlaceKey: string, nextFolderId: string | null): string {
     const params = new URLSearchParams();
@@ -242,6 +253,7 @@ export default function FilesBrowser({
         return;
       }
       setFiles(data.files ?? []);
+      setInLeads(!!data.leadsOnly);
       if (isFileSort(data.sort)) setSort(data.sort);
       if (!folderId) {
         setTrail([]);
@@ -345,6 +357,64 @@ export default function FilesBrowser({
     pendingTrail.current = nextTrail;
     const nextFolder = nextTrail.length ? nextTrail[nextTrail.length - 1].id : null;
     router.replace(buildUrl(placeKey, nextFolder), { scroll: false });
+  }
+
+  /** The "Leads only" folder's id, creating it the first time (leads only). */
+  async function leadsRoot(): Promise<string | null> {
+    if (leadsFolderId) return leadsFolderId;
+    try {
+      const res = await fetch("/api/files/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ place: placeKey }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || typeof data.folderId !== "string") {
+        say(data.error ?? "We couldn\u2019t open Leads only. Please try again.", "error");
+        return null;
+      }
+      setLeadsFolderId(data.folderId);
+      return data.folderId;
+    } catch {
+      say("We couldn\u2019t open Leads only. Please try again.", "error");
+      return null;
+    }
+  }
+
+  /** Switch between Team files and Leads only (leads see the switch). */
+  async function openArea(area: "team" | "leads") {
+    if (area === "team") {
+      pendingTrail.current = [];
+      router.replace(buildUrl(placeKey, null), { scroll: false });
+      return;
+    }
+    const id = await leadsRoot();
+    if (!id) return;
+    pendingTrail.current = [{ id, name: "Leads only" }];
+    router.replace(buildUrl(placeKey, id), { scroll: false });
+  }
+
+  /** Move a file or folder (with everything in it) between the two areas. */
+  async function moveToArea(row: FileRow, area: "team" | "leads") {
+    setMenuOpen(null);
+    say(null);
+    const target = area === "leads" ? await leadsRoot() : null;
+    if (area === "leads" && !target) return;
+    const { ok, data } = await writeRequest(`/api/files/${encodeURIComponent(row.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ action: "move", folder: target }),
+    });
+    if (!ok) {
+      say(data.error ?? GENERIC_ERROR, "error");
+      return;
+    }
+    say(
+      area === "leads"
+        ? `\u201c${row.name}\u201d moved to Leads only. Only this team\u2019s leads can see it now.`
+        : `\u201c${row.name}\u201d moved to Team files. Everyone on the team can see it now.`,
+    );
+    load({ soft: true });
+    loadPending();
   }
 
   function openFile(row: FileRow) {
@@ -600,7 +670,7 @@ export default function FilesBrowser({
             onClick={() => toggleDraft(row.id, "share")}
             disabled={busy}
           >
-            Share with the Space
+            Share with the team
           </button>
         )}
         {(
@@ -636,7 +706,7 @@ export default function FilesBrowser({
                     role="menuitem"
                     onClick={() => toggleDraft(row.id, "share")}
                   >
-                    Share with the Space
+                    Share with the team
                   </button>
                 )}
                 <button
@@ -653,6 +723,15 @@ export default function FilesBrowser({
                 >
                   Move…
                 </button>
+                {isLead && (
+                  <button
+                    className="gf-menu__item"
+                    role="menuitem"
+                    onClick={() => moveToArea(row, inLeads ? "team" : "leads")}
+                  >
+                    {inLeads ? "Move to Team files" : "Move to Leads only"}
+                  </button>
+                )}
                 <button
                   className="gf-menu__item gf-menu__item--danger"
                   role="menuitem"
@@ -697,6 +776,32 @@ export default function FilesBrowser({
       )}
 
       <div className="gf-pane">
+        {isLead && (
+          <div className="gf-area" role="group" aria-label="Which files">
+            <button
+              type="button"
+              className="gf-area__btn"
+              aria-pressed={!inLeads}
+              onClick={() => openArea("team")}
+            >
+              Team files
+            </button>
+            <button
+              type="button"
+              className="gf-area__btn"
+              aria-pressed={inLeads}
+              onClick={() => openArea("leads")}
+            >
+              Leads only
+            </button>
+          </div>
+        )}
+        {inLeads && (
+          <p className="gf-leads-note">
+            Leads only: visible to this team&rsquo;s leads. To share something with everyone,
+            use &ldquo;Move to Team files&rdquo; in its menu.
+          </p>
+        )}
         <div className="gf-bar">
           <nav className="gf-crumbs" aria-label="Folder path">
             <button className="gf-crumbs__item" onClick={() => openCrumb(-1)}>
@@ -838,8 +943,8 @@ export default function FilesBrowser({
               <h2 className="gf-pending__title">Pending removal</h2>
               <p className="gf-pending__sub">
                 {canApprovePending
-                  ? "Approve to remove these, or keep them in the Space."
-                  : "Waiting for a Space lead to review."}
+                  ? "Approve to remove these, or keep them for the team."
+                  : "Waiting for a team lead to review."}
               </p>
             </div>
             <ul className="gf-list">
@@ -934,6 +1039,7 @@ export default function FilesBrowser({
           placeName={activePlace?.name ?? "Files"}
           row={dialog.row}
           currentFolderId={folderId}
+          base={inLeads && leadsFolderId ? { id: leadsFolderId, name: "Leads only" } : null}
           busy={busy}
           error={actionError}
           onCancel={closeDialog}
@@ -946,7 +1052,7 @@ export default function FilesBrowser({
           <div className="gf-dialog">
             <h2 className="gf-dialog__title">Remove this file?</h2>
             <p className="gf-dialog__text">
-              &ldquo;{dialog.row.name}&rdquo; will be held for a Space lead to approve.
+              &ldquo;{dialog.row.name}&rdquo; will be held for a team lead to approve.
               Nothing is deleted yet — it stays recoverable, and a lead (or you) can keep
               it instead.
             </p>
@@ -1033,6 +1139,7 @@ function MovePicker({
   placeName,
   row,
   currentFolderId,
+  base,
   busy,
   error,
   onCancel,
@@ -1042,6 +1149,8 @@ function MovePicker({
   placeName: string;
   row: FileRow;
   currentFolderId: string | null;
+  /** Where the picker starts and stops: "Leads only" while in that area. */
+  base?: { id: string; name: string } | null;
   busy: boolean;
   error: string | null;
   onCancel: () => void;
@@ -1052,7 +1161,7 @@ function MovePicker({
   const [loadError, setLoadError] = useState<string | null>(null);
   const seq = useRef(0);
 
-  const pickFolderId = pickTrail.length ? pickTrail[pickTrail.length - 1].id : null;
+  const pickFolderId = pickTrail.length ? pickTrail[pickTrail.length - 1].id : base?.id ?? null;
   // Disabled when the destination is where the item already lives.
   const sameLocation = (pickFolderId ?? null) === (currentFolderId ?? null);
 
@@ -1092,7 +1201,7 @@ function MovePicker({
         <h2 className="gf-dialog__title">Move &ldquo;{row.name}&rdquo;</h2>
         <nav className="gf-crumbs gf-crumbs--picker" aria-label="Destination path">
           <button className="gf-crumbs__item" onClick={() => setPickTrail([])}>
-            {placeName}
+            {base?.name ?? placeName}
           </button>
           {pickTrail.map((t, i) => (
             <span key={t.id} className="gf-crumbs__seg">

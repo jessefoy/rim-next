@@ -1,6 +1,7 @@
 /** /account/hub/[slug]/activity — source-aware Space Updates. */
 
 import { auth } from "@/auth";
+import { hubLeadAllowed } from "@/lib/googleFiles";
 import { redirect } from "next/navigation";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import { listHubActivity, listHubActivitySources } from "@/lib/hubActivity";
@@ -31,6 +32,7 @@ export default async function HubActivityPage({
       hubSlug: slug,
       userId: session.user.id,
       conversationsEnabled: hub.conversationsEnabled,
+      isLead: hubLeadAllowed(session.user.roles ?? [], member),
       filesEnabled,
       filter: initialFilter,
       limit: 30,

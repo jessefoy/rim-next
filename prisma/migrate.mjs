@@ -5999,6 +5999,9 @@ Rooted In Mindfulness · Brookfield, WI`,
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "flodeskSegmentId" TEXT`);
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "flodeskSegmentName" TEXT`);
   await db.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "flodeskMemberAt" TIMESTAMP(3)`);
+  // Leads-only files (2026-10-13): additive, no backfill. Old code ignores them.
+  await db.$executeRawUnsafe(`ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "googleLeadsFolderId" TEXT`);
+  await db.$executeRawUnsafe(`ALTER TABLE "google_file_meta" ADD COLUMN IF NOT EXISTS "leadsOnly" BOOLEAN NOT NULL DEFAULT false`);
 
   // Additive, idempotent organization tables. No Drive files or existing
   // member/registration records are changed; the old app can run during build.

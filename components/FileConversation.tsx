@@ -37,6 +37,8 @@ interface Props {
   initialComments: Comment[];
   /** The Space's members, for the "Notify → Choose people" picker. */
   members: { id: string; name: string }[];
+  /** In the team's Leads only area: notify reaches the leads alone. */
+  leadsOnly?: boolean;
 }
 
 export default function FileConversation({
@@ -45,6 +47,7 @@ export default function FileConversation({
   canModerate,
   initialComments,
   members,
+  leadsOnly = false,
 }: Props) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [draft, setDraft] = useState("");
@@ -176,7 +179,7 @@ export default function FileConversation({
           rows={3}
           disabled={busy}
         />
-        <NotifyPicker members={members} value={notify} onChange={setNotify} disabled={busy} />
+        <NotifyPicker members={members} value={notify} onChange={setNotify} disabled={busy} leadsOnly={leadsOnly} />
         <div className="gf-conv__compose-actions">
           {error && (
             <span className="gf-conv__error" role="alert">
