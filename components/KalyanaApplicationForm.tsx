@@ -30,11 +30,9 @@ export default function KalyanaApplicationForm({
 
   if (state.status === "sent") {
     return (
-      <FormDone title={`Thank you${state.firstName ? `, ${state.firstName}` : ""}. Your application has been sent.`}>
-        <p>
-          The Kalyana Mitta Coordinator will be in touch soon. You don&rsquo;t need to do anything
-          else.
-        </p>
+      <FormDone title={`Thanks so much${state.firstName ? `, ${state.firstName}` : ""}. Your application has been sent.`}>
+        {/* Matches the volunteer form, in Jesse's wording (2026-10-13). */}
+        <p>RIM&rsquo;s Kalyana Mitta coordinator will be in touch with you soon.</p>
         <div className="pp-actions">
           <Link href="/account/dashboard" className="pp-btn pp-btn--ghost">
             Go to My Home
