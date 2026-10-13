@@ -53,7 +53,7 @@ An unlinked, no-indexed visual calibration page. It is not public navigation or 
 
 ## Navigation — flush bar (NOT a floating pill)
 
-A **flush, full-width white bar** (`.nav` `#fff`, sticky, `100px` inner); heroes start beneath it. Slimmed to three dropdown doors + Donate: **Programs ▾ · Get Involved ▾ · Members ▾ · Donate** (Courses + Teachers removed from the bar; "Member Area" → "Members"). Lives in `components/Nav.tsx` (global, all pages).
+A **flush, full-width white bar** (`.nav` `#fff`, sticky, `100px` inner); heroes start beneath it. Slimmed to three dropdown doors + Donate: **Programs ▾ · Get Involved ▾ · Members ▾ · Donate** (Courses + Teachers removed from the bar; "Member Area" → "Members"). Lives in `components/Nav.tsx` (global, all pages). **2026-10-12:** signed in, Members is a plain **My Home** link, and the member's personal pages wear this header too (testers: "I couldn't get back to the site, I was somewhere else"; see `RIM_Member_Area.md`).
 
 ### TOMBSTONE — the floating nav pill (tried & reverted, session 148)
 

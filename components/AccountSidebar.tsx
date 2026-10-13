@@ -16,6 +16,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { isPersonalAccountPath, setPersonalNav } from "@/lib/personalNav";
 import {
   Menu,
   X,
@@ -30,6 +32,9 @@ import {
   ChevronsLeft,
   ChevronsRight,
   UsersRound,
+  UserRound,
+  SlidersHorizontal,
+  LogOut,
 } from "lucide-react";
 
 interface Props { roles: string[]; showTeams: boolean; }
@@ -47,8 +52,7 @@ interface NavLink {
 }
 
 const MEMBER_LINKS: NavLink[] = [
-  // "My Home", not "Home" — the member-bar now carries a "Main site" link, so
-  // an unqualified "Home" would read as the public home page.
+  // "My Home", not "Home": the site header's logo is the public home page.
   { label: "My Home",          href: "/account/dashboard",            icon: Home          },
   { label: "Library",          href: "/account/courses",              icon: BookOpen      },
   { label: "My Teams", href: "/account/teams", icon: UsersRound },
@@ -92,6 +96,18 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
   const hasRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin      = roles.includes("ADMIN");
 
+  // On the personal pages the site's own header sits above this rail (see
+  // lib/personalNav.ts). There the header's Menu carries these links on
+  // phones, so the rail and its drawer handle are desktop only, and the rail
+  // holds what the member header's account menu used to: My Profile, Manage
+  // RIM for staff, and Sign out.
+  const personal = isPersonalAccountPath(pathname);
+  useEffect(() => {
+    if (!personal) return;
+    setPersonalNav({ showTeams, canManage: hasRegistrar });
+    return () => setPersonalNav(null);
+  }, [personal, showTeams, hasRegistrar]);
+
   // Files live per-Space (each hub's Files tab + the Community Space); the
   // global finder and the native Documents system were both retired (session
   // 165 — Google Workspace is the document/file system now).
@@ -121,7 +137,9 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
 
   return (
     <>
-      {/* Mobile top bar — the drawer's handle. Hidden on desktop. */}
+      {/* Mobile top bar — the drawer's handle. Hidden on desktop, and absent
+          on the personal pages (the site header's Menu lists them). */}
+      {!personal && (
       <div className="ac-mobilebar">
         <button
           type="button"
@@ -134,9 +152,10 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
         </button>
         <div className="ac-mobilebar__name">My RIM</div>
       </div>
+      )}
 
       {/* Backdrop (mobile only) */}
-      {mobileOpen && (
+      {mobileOpen && !personal && (
         <div
           className="ac-backdrop"
           onClick={() => setMobileOpen(false)}
@@ -146,7 +165,7 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
 
     <nav
       ref={drawerRef}
-      className={`ac-sidebar${collapsed ? " ac-sidebar--collapsed" : ""}${mobileOpen ? " ac-sidebar--open" : ""}`}
+      className={`ac-sidebar${collapsed ? " ac-sidebar--collapsed" : ""}${mobileOpen ? " ac-sidebar--open" : ""}${personal ? " ac-sidebar--site" : ""}`}
       aria-label="Account navigation"
       data-collapsed={collapsed ? "true" : "false"}
     >
@@ -186,10 +205,20 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
         ))}
 
         <div className="ac-sidebar__divider" role="separator" />
-        <Link href="/account/community-care" className={linkClass("/account/community-care")} title={collapsed ? "Community Care" : undefined}>
+        <Link href="/account/community-care" aria-current={pathname === "/account/community-care" ? "page" : undefined} className={linkClass("/account/community-care")} title={collapsed ? "Community Care" : undefined}>
           <Heart size={17} strokeWidth={1.75} fill="currentColor" className="ac-sidebar__icon ac-sidebar__icon--care" />
           <span className="ac-sidebar__label">Community Care</span>
         </Link>
+        <Link href="/account/dashboard-my-profile" aria-current={pathname === "/account/dashboard-my-profile" ? "page" : undefined} className={linkClass("/account/dashboard-my-profile")} title={collapsed ? "My Profile" : undefined}>
+          <UserRound size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+          <span className="ac-sidebar__label">My Profile</span>
+        </Link>
+        {personal && hasRegistrar && (
+          <Link href="/admin/members" className="ac-sidebar__link" title={collapsed ? "Manage RIM" : undefined}>
+            <SlidersHorizontal size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+            <span className="ac-sidebar__label">Manage RIM</span>
+          </Link>
+        )}
         {isAdminRoute && visibleStaffLinks.length > 0 && (
           <div className="ac-sidebar__group">
             <div className="ac-sidebar__divider" role="separator" />
@@ -203,6 +232,20 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
           </div>
         )}
 
+        {personal && (
+          <>
+            <div className="ac-sidebar__divider" role="separator" />
+            <button
+              type="button"
+              className="ac-sidebar__link ac-sidebar__signout"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              title={collapsed ? "Sign out" : undefined}
+            >
+              <LogOut size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
+              <span className="ac-sidebar__label">Sign out</span>
+            </button>
+          </>
+        )}
       </div>
     </nav>
     </>

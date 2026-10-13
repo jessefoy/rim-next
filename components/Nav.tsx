@@ -3,18 +3,37 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useSyncExternalStore } from "react";
+import {
+  isPersonalAccountPath,
+  subscribePersonalNav,
+  getPersonalNav,
+  getServerPersonalNav,
+  type PersonalNav,
+} from "@/lib/personalNav";
 
 export default function Nav() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isLoggedIn = !!session;
   const isSessionArea = pathname?.startsWith("/session") ?? false;
   const isAccountArea = pathname?.startsWith("/account") ?? false;
+  // The personal pages (My Home, Library, My Teams, Community Care, My
+  // Profile) keep the public header; see lib/personalNav.ts for why.
+  const isPersonalArea = isPersonalAccountPath(pathname);
+  // The session loads on the client after first paint; every personal page
+  // already requires one, so treat it as signed in there and the header never
+  // flashes "Members" on the member's own home.
+  const isLoggedIn = !!session || isPersonalArea;
+  // Welcome and reactivate come before My Home is open to this member (the
+  // account layout sends them back here), so the header offers Sign out.
+  const atThreshold =
+    (pathname?.startsWith("/account/welcome") ?? false) ||
+    (pathname?.startsWith("/account/reactivate") ?? false);
   const isMemberArea =
-    isAccountArea ||
+    (isAccountArea && !isPersonalArea) ||
     (pathname?.startsWith("/admin") ?? false) ||
     (pathname?.startsWith("/tools") ?? false);
+  const personalNav = useSyncExternalStore(subscribePersonalNav, getPersonalNav, getServerPersonalNav);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -30,7 +49,7 @@ export default function Nav() {
   const hoverOpened = useRef<string | null>(null);
 
   const firstName = session?.user?.name?.split(" ")[0] ?? null;
-  const menus = publicMenus(isLoggedIn, firstName);
+  const menus = publicMenus(isLoggedIn);
 
   // Desktop panels: open on hover intent (300ms; 80ms when moving from one
   // open panel to the next), on the arrow button, or from the keyboard.
@@ -215,9 +234,13 @@ export default function Nav() {
           <span className="nav__brand-name">Rooted In Mindfulness</span>
         </Link>
 
-        {/* Public only: member/admin/tool routes return the member-bar above. */}
+        {/* Public pages and the member's personal pages; team, admin and tool
+            routes return the member-bar above. */}
         <PublicDesktopNav
           menus={menus}
+          isLoggedIn={isLoggedIn}
+          isPersonalArea={isPersonalArea}
+          atThreshold={atThreshold}
           openMenu={openMenu}
           isActive={isActive}
           onHover={hoverMenu}
@@ -248,6 +271,8 @@ export default function Nav() {
         <PublicNavSheet
           menus={menus}
           isLoggedIn={isLoggedIn}
+          personalNav={isPersonalArea && isLoggedIn ? personalNav : null}
+          atThreshold={atThreshold}
           isActive={isActive}
           sheetRef={sheet}
           closeRef={closeButton}
@@ -264,11 +289,19 @@ export default function Nav() {
    to a real page, with a separate 44px arrow button that opens its panel;
    Members has no single page, so it stays a toggle. Panels carry a short line
    under each link (information scent). The phone sheet groups the same links
-   under the same headings, without the lines. */
-type MenuItem = { title: string; desc: string; href?: string; action?: "signout" };
+   under the same headings, without the lines.
+   2026-10-12: signed in, the Members menu is replaced by a plain "My Home"
+   link in the same place (testers could not find their way between the site
+   and the member area; a visible link, not a dropdown named after them). */
+type MenuItem = { title: string; desc: string; href: string };
 type Menu = { id: string; label: string; href?: string; items: MenuItem[] };
 
-export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu[] {
+export function publicMenus(isLoggedIn: boolean): Menu[] {
+  const menus = allMenus();
+  return isLoggedIn ? menus.filter((menu) => menu.id !== "members") : menus;
+}
+
+function allMenus(): Menu[] {
   return [
     {
       id: "practice",
@@ -313,16 +346,11 @@ export function publicMenus(isLoggedIn: boolean, firstName: string | null): Menu
     },
     {
       id: "members",
-      label: isLoggedIn && firstName ? `Hi, ${firstName}` : "Members",
-      items: isLoggedIn
-        ? [
-            { title: "My Home", desc: "Today’s sessions and resources", href: "/account/dashboard" },
-            { title: "Sign out", desc: "Log out of your account", action: "signout" },
-          ]
-        : [
-            { title: "Become a Member", desc: "Read our community care agreements and join", href: "/join" },
-            { title: "Sign in", desc: "Already a member? Continue here", href: "/login" },
-          ],
+      label: "Members",
+      items: [
+        { title: "Become a Member", desc: "Read our community care agreements and join", href: "/join" },
+        { title: "Sign in", desc: "Already a member? Continue here", href: "/login" },
+      ],
     },
   ];
 }
@@ -358,16 +386,8 @@ function MenuEntry({
   className: string;
   onNavigate?: () => void;
 }) {
-  if (item.action === "signout") {
-    return (
-      <button type="button" className={className} onClick={() => signOut({ callbackUrl: "/" })}>
-        <span className="nav__panel-title">{item.title}</span>
-        <span className="nav__panel-desc">{item.desc}</span>
-      </button>
-    );
-  }
   return (
-    <Link href={item.href ?? "/"} className={className} onClick={onNavigate}>
+    <Link href={item.href} className={className} onClick={onNavigate}>
       <span className="nav__panel-title">{item.title}</span>
       <span className="nav__panel-desc">{item.desc}</span>
     </Link>
@@ -376,6 +396,9 @@ function MenuEntry({
 
 export function PublicDesktopNav({
   menus,
+  isLoggedIn,
+  isPersonalArea,
+  atThreshold = false,
   openMenu,
   isActive,
   onHover,
@@ -385,6 +408,9 @@ export function PublicDesktopNav({
   navRef,
 }: {
   menus: Menu[];
+  isLoggedIn: boolean;
+  isPersonalArea: boolean;
+  atThreshold?: boolean;
   openMenu: string | null;
   isActive: (path: string) => string;
   onHover: (id: string | null) => void;
@@ -401,7 +427,9 @@ export function PublicDesktopNav({
       {menus.map((menu, index) => {
         const open = openMenu === menu.id;
         const panelId = `nav-panel-${menu.id}`;
-        const last = index === menus.length - 1;
+        // The last panel opens toward the left edge; signed in, My Home
+        // follows the menus, so none of them is last.
+        const last = !isLoggedIn && index === menus.length - 1;
         const current = menu.items.some((item) => item.href && isActive(item.href));
         return (
           <div
@@ -481,6 +509,23 @@ export function PublicDesktopNav({
           </div>
         );
       })}
+      {isLoggedIn && atThreshold && (
+        <button
+          type="button"
+          className="nav__link nav__link--toggle"
+          onClick={() => signOut({ callbackUrl: "/" })}
+        >
+          Sign out
+        </button>
+      )}
+      {isLoggedIn && !atThreshold && (
+        <Link
+          href="/account/dashboard"
+          className={`nav__link${isPersonalArea ? " nav__link--active" : ""}`}
+        >
+          My Home
+        </Link>
+      )}
     </nav>
   );
 }
@@ -488,6 +533,8 @@ export function PublicDesktopNav({
 export function PublicNavSheet({
   menus,
   isLoggedIn,
+  personalNav = null,
+  atThreshold = false,
   isActive,
   sheetRef,
   closeRef,
@@ -496,6 +543,10 @@ export function PublicNavSheet({
 }: {
   menus: Menu[];
   isLoggedIn: boolean;
+  /** On the personal pages, the member's own pages lead the sheet (the rail
+      is not shown on phones there). */
+  personalNav?: PersonalNav | null;
+  atThreshold?: boolean;
   isActive: (path: string) => string;
   sheetRef?: React.RefObject<HTMLDivElement | null>;
   closeRef?: React.RefObject<HTMLButtonElement | null>;
@@ -503,6 +554,16 @@ export function PublicNavSheet({
   onNavigate: () => void;
 }) {
   const groups = menus.filter((menu) => menu.id !== "members");
+  const personalLinks = personalNav
+    ? [
+        { title: "My Home", href: "/account/dashboard" },
+        { title: "Library", href: "/account/courses" },
+        ...(personalNav.showTeams ? [{ title: "My Teams", href: "/account/teams" }] : []),
+        { title: "Community Care", href: "/account/community-care" },
+        { title: "My Profile", href: "/account/dashboard-my-profile" },
+        ...(personalNav.canManage ? [{ title: "Manage RIM", href: "/admin/members" }] : []),
+      ]
+    : null;
   return (
     <div
       id="nav-sheet"
@@ -523,6 +584,21 @@ export function PublicNavSheet({
         </button>
       </div>
       <nav className="nav__sheet-body" aria-label="Main navigation">
+        {personalLinks && (
+          <div className="nav__sheet-group nav__sheet-group--mine">
+            <p className="nav__sheet-label">My RIM</p>
+            {personalLinks.map((item) => (
+              <Link
+                onClick={onNavigate}
+                key={item.href}
+                href={item.href}
+                className={`nav__sheet-link${isActive(item.href)}`}
+              >
+                {item.title}
+              </Link>
+            ))}
+          </div>
+        )}
         <Link onClick={onNavigate} href="/new-to-rim" className={`nav__sheet-lead${isActive("/new-to-rim")}`}>
           New to RIM
         </Link>
@@ -533,7 +609,7 @@ export function PublicNavSheet({
               <Link
                 onClick={onNavigate}
                 key={item.title}
-                href={item.href ?? "/"}
+                href={item.href}
                 className={`nav__sheet-link${item.href ? isActive(item.href) : ""}`}
               >
                 {item.title}
@@ -543,10 +619,12 @@ export function PublicNavSheet({
         ))}
       </nav>
       <div className="nav__sheet-foot">
-        <div className="nav__sheet-pair">
+        <div className={`nav__sheet-pair${personalLinks || atThreshold ? " nav__sheet-pair--single" : ""}`}>
           {isLoggedIn ? (
             <>
-              <Link onClick={onNavigate} href="/account/dashboard">My Home</Link>
+              {/* Already listed under My RIM on the personal pages, and not
+                  yet open on welcome and reactivate. */}
+              {!personalLinks && !atThreshold && <Link onClick={onNavigate} href="/account/dashboard">My Home</Link>}
               <button type="button" onClick={() => signOut({ callbackUrl: "/" })}>
                 Sign out
               </button>
