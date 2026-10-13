@@ -47,11 +47,11 @@ const PRACTICE_THEMES = [
       },
       {
         title: "Enjoying the life we have",
-        body: "So much to appreciate in the simple things we often overlook: a meal we actually taste, the company of those we care about, the pleasures of a beautiful day. We can meet them without grasping, and live with greater steadiness and joy.",
+        body: "There is so much to appreciate in the simple things we often overlook: a meal we actually taste, the company of those we care about, the pleasures of a beautiful day. We can meet them without grasping, and live with greater steadiness and joy.",
       },
       {
         title: "The pressures of life and work",
-        body: "A busy to-do list, responsibilities at work and at home, money worries, someone who needs our care. Meeting these moments with greater ease, giving one thing our attention, and recognizing when we are doing too much.",
+        body: "A busy to-do list, responsibilities at work and at home, money worries, someone who needs our care. We practice meeting these moments with greater ease, giving one thing our attention, and recognizing when we are doing too much.",
       },
     ],
   },
@@ -60,15 +60,15 @@ const PRACTICE_THEMES = [
     items: [
       {
         title: "Knowing ourselves",
-        body: "Coming to know an old reaction while it is happening, including the habits we reach for when we are tired or hurting, and holding it with more understanding and care. As we learn the patterns of our heart and mind, we learn that we are not bound by them.",
+        body: "We come to know our old reactions while they are happening, including the habits we reach for when we are tired or hurting. We learn to hold them with more understanding and care. As we learn the patterns of our heart and mind, we learn that we are not bound by them.",
       },
       {
         title: "The people in our lives",
-        body: "Being more available to those we care about, even when we disagree. Understanding our part in a difficulty, and recognizing when there is a chance to repair, or when a boundary is needed. For many of us, that company becomes a place to belong.",
+        body: "Being more available to those we care about, even when we disagree. Understanding our part in a difficulty, and recognizing when there is a chance to repair, or when a boundary is needed. For many of us, these relationships become a place to belong.",
       },
       {
         title: "Living by what matters",
-        body: "A clearer sense of what gives our lives meaning and purpose, and more of our moments lived in line with it. Words and actions that bring less regret, and care for what supports well-being in ourselves, for others, and for the world.",
+        body: "A clearer sense of what gives our lives meaning and purpose, and more of our moments lived in line with it. Words and actions that bring less regret, and care for what supports well-being for ourselves, for others, and for the world.",
       },
     ],
   },
@@ -77,7 +77,7 @@ const PRACTICE_THEMES = [
     items: [
       {
         title: "Steady in unsettled times",
-        body: "Many people feel shaken, confused, and even helpless by the state of the world. Practice gives us greater steadiness, a clearer sense of what is ours to do, and the company of others where helplessness might have seemed the only option.",
+        body: "Many people feel shaken, confused, and even helpless about the state of the world. Practice gives us greater steadiness, a clearer sense of what is ours to do, and the company of others when helplessness might otherwise have seemed the only option.",
       },
       {
         title: "Our shared world",
@@ -85,7 +85,7 @@ const PRACTICE_THEMES = [
       },
       {
         title: "A deeper freedom",
-        body: "For some, practice opens into a spiritual urgency, and onto a path of awakening. As what clouds our seeing begins to clear, we come to know a clarity and warmth that do not depend on circumstances.",
+        body: "For some, practice opens into a spiritual urgency and onto a path of awakening. As what clouds our seeing begins to clear, we come to know a clarity and warmth that do not depend on circumstances.",
       },
     ],
   },
@@ -115,7 +115,7 @@ const CATEGORIES = [
   {
     tag: "Time to go deeper",
     title: "Immersion",
-    body: "Programs with more time for sustained meditation and a deeper exploration of the teachings, and space to settle more fully into practice.",
+    body: "Programs with more time for sustained meditation, a deeper exploration of the teachings, and space to settle more fully into practice.",
     href: "/community-programs#immersion",
     cta: "View Immersion programs",
     foundation: false,
@@ -182,10 +182,10 @@ export default function HomePage() {
           </p>
           <p className="pp-hero__body">
             Rooted in Mindfulness is a community mindfulness and meditation center in Brookfield,
-            Wisconsin, serving the Greater Milwaukee area and beyond through in-person and online
-            programs. It is a place where people come to learn how to be more awake and present to
-            their lives, and to live in ways that are freer of the patterns of heart, mind, and
-            action that can cause difficulty and even suffering.
+            Wisconsin. Through in-person and online programs, we serve the Greater Milwaukee area
+            and beyond. People come here to learn how to be more awake and present to their lives,
+            and to live with greater freedom from the patterns of heart, mind, and action that can
+            cause difficulty and even suffering.
           </p>
           <p className="pp-hero__body">
             We practice to understand and live with greater wisdom and compassion, and to act from
@@ -221,26 +221,25 @@ export default function HomePage() {
                 many others.
               </p>
               <p className="pp-intro__body">
-                As diverse as these reasons are, they are rooted in a common intention: to meet our
-                life with greater authenticity and basic human goodness, and to realize the wakeful
-                nature already within each and every one of us. We find it whenever we notice what
-                the mind is doing and are no longer only caught in it, and whenever care for someone
-                arises without being asked. We practice to live from this more often. This means
-                learning to recognize what gets in the way and cultivating the understanding that
-                allows us to respond from this place.
+                These diverse reasons are rooted in a common intention: to meet our lives with greater
+                authenticity and basic human goodness, and to realize the wakeful nature already
+                within each and every one of us. We find it whenever we notice what the mind is doing
+                and are no longer only caught in it, and whenever care for someone arises without
+                being asked. We practice to live from this wakeful nature more often, learning to
+                recognize what gets in the way and cultivating the understanding that allows us to
+                respond from it.
               </p>
               <p className="pp-intro__body">
                 At RIM, meditation, teachings, and community are all part of one practice. We gather
-                for learning, practice, and fellowship, and the community is here to support one
-                another. We do this by practicing together and by being part of something larger
-                than ourselves. Everyone takes part in their own way. Some share readily, and some
+                for learning, practice, and fellowship. We support one another by practicing together
+                and being part of something larger than ourselves. Everyone takes part in their own way. Some share readily, and some
                 prefer to sit and listen, and both belong.
               </p>
               <p className="pp-intro__body">
                 Showing up to practice alongside others is already a support, for ourselves and for
                 others. People with different backgrounds and experiences come to learn and practice
-                together. They bring their own lives and their differences with them, and anyone who
-                comes belongs here, from every walk of life. Our similarities and our differences let
+                together, bringing their own lives and their differences with them. Anyone who comes
+                belongs here, from every walk of life. Our similarities and our differences let
                 us grow stronger together. No one can do this practice for us, but no one has to do
                 it alone.
               </p>
@@ -330,8 +329,8 @@ export default function HomePage() {
             <p className="pp-intro__body">
               Mindfulness and meditation give us time to settle and see our experience more
               clearly, beneath our habits and reactivity. That clarity is where we have a choice.
-              Practice does not remove every difficulty from life; it clears away much of what keeps
-              us from seeing clearly, and it meets our life just as it is.
+              Practice does not remove every difficulty from life. It clears away much of what keeps
+              us from seeing clearly and meets our lives just as they are.
             </p>
           </div>
 
@@ -354,7 +353,7 @@ export default function HomePage() {
           <div className="home-practice__closing">
             <p>
               This is a whole-life practice, rooted in mindfulness. RIM is where we gather to
-              practice and learn together, and the rest happens between our gatherings, in everyday
+              practice and learn together. The rest happens between our gatherings, in everyday
               life. We bring all of it back to the community, and then we go home and practice
               again.
             </p>
@@ -385,7 +384,7 @@ export default function HomePage() {
               also a program anyone can take part in.
             </p>
             <p className="pp-intro__body">
-              Eight words describe this practice. They share four letters, which spell CARE:
+              Eight words describe this practice, arranged in pairs under the four letters of CARE:
             </p>
           </div>
 
@@ -412,11 +411,12 @@ export default function HomePage() {
           <div className="home-care-explanation">
             <p className="pp-intro__body">
               As simple as these eight words are, they are infinitely deep. In four letters they
-              hold a complete practice. They co-arise together. They are not steps to complete;
-              they are how we meet each moment. We separate them so that we can explore each one
-              in ourselves, in relationship to others, and in the vast web of causes and
-              conditions we are part of. The three rings of the circle call these Self, Others,
-              and Interbeing.
+              hold a complete practice. They co-arise. They are not steps to complete; they are how we meet each moment.
+            </p>
+            <p className="pp-intro__body">
+              We separate them so that we can explore each one in ourselves, in relationship to
+              others, and in the vast web of causes and conditions we are part of. The circle&rsquo;s
+              three rings represent Self, Others, and Interbeing.
             </p>
             <p className="pp-intro__body">
               Taking CARE is simple enough to begin with today, and there is enough in it for a
@@ -492,8 +492,11 @@ export default function HomePage() {
             <div className="home-chapter__body">
               <p className="pp-intro__body">
                 RIM is co-created by the people who practice here. Volunteers host some of our
-                gatherings, care for the center, and serve on our teams, and members start
-                community groups to support themselves and others. Some take the path of training
+                gatherings, care for the center, and serve on our teams. Members start community groups to support
+                themselves and others.
+              </p>
+              <p className="pp-intro__body">
+                Some take the path of training
                 to share the practice: facilitating practice sessions, drop-ins, and programs here
                 at RIM, and offering the Taking CARE program at RIM and beyond.
               </p>
@@ -505,9 +508,9 @@ export default function HomePage() {
               <p className="pp-intro__body">
                 We also carry the practice outward. RIM is part of a larger community. We partner
                 with other nonprofits and community organizations working for the well-being of
-                people, communities, and our shared world, and through the Taking CARE program we
-                offer mindfulness-based training to the people they serve and to the people who
-                carry their work.
+                people, communities, and our shared world. Through the Taking CARE program, we offer
+                mindfulness-based training to the people they serve and to the people who carry out
+                their work.
               </p>
               <div className="pp-actions">
                 <Link href="/volunteerism/volunteer" className="pp-btn">
@@ -543,22 +546,27 @@ export default function HomePage() {
                 <p className="pp-intro__body">
                   Everything offered at RIM is given as a gift, and RIM is sustained by the people
                   who learn and practice here. That support includes financial gifts, and RIM could
-                  not exist without them. RIM pays for our center and the costs of running it, and
-                  our teachers&rsquo; livelihood depends on dana as well.
+                  not exist without them. RIM pays for our center and its operating costs. Our teachers&rsquo; livelihood depends
+                  on dana as well.
                 </p>
                 <p className="pp-intro__body">
                   Most of RIM&rsquo;s support comes from the members who give each month. If you are
                   able, we strongly encourage you to care for RIM with a financial gift, monthly or
-                  when you take part in a program. Programs list a suggested contribution so
-                  everyone can see what an offering takes to sustain. For most programs, each person
+                  when you take part in a program. Programs list a suggested contribution so everyone can see what an offering takes to sustain.
+                </p>
+                <p className="pp-intro__body">
+                  For most programs, each person
                   gives what they can, and no one is turned away for not being able to pay. A few
                   offerings, such as overnight retreats, require a minimum contribution to cover the
                   charges from the place that hosts us.
                 </p>
                 <p className="pp-intro__body">
                   The tradition calls this <em>dana</em>, generosity of heart. Time, care, and
-                  sincere presence are gifts too, offered alongside financial support, and so is the
-                  practice itself. All of these matter. Dana is an old practice living in a modern
+                  sincere presence are gifts too, offered alongside financial support. The practice itself is also a gift. All of these
+                  matter.
+                </p>
+                <p className="pp-intro__body">
+                  Dana is an old practice living in a modern
                   economy, and we try to be clear about both: what you receive here was given by
                   someone, and what you give helps keep the door open for the next person.
                 </p>
@@ -589,8 +597,8 @@ export default function HomePage() {
             </div>
             <div className="home-chapter__body">
               <p className="home-lead">
-                This life is precious, and how we live matters, and so do the people in it and the
-                world we share.
+                This life is precious. How we live matters, and so do the people in it and the world we
+                share.
               </p>
               <p className="pp-intro__body">
                 With patience, we come to understand what causes suffering and what supports
