@@ -17,6 +17,7 @@ This file is the **index** — one line per memory file. Detail lives in the top
 - [Working Together on Design Systems](working-together-design-systems.md) — Design decisions live in project docs; memory holds collaboration standards; CLAUDE.md is the gate; code-level gates are terminal enforcement
 - [Plain-English Explanations](feedback-explanation-style.md) — For any design decision: what it is, where it shows up, the decision, the recommendation — in user terms, not schema terms
 - [Clear Seeing Is Correctness](feedback-clear-seeing-is-correctness.md) — Hierarchy/state/self-recognition aren't "polish for later" — RIM's philosophy makes them correctness criteria
+- [Submit is answered where they look](feedback-submit-answered-where-looking.md) — every save/submit: confirmation scrolled into view (FormDone), errors beside the button, nothing silent, prefill known member data; across the board (Jesse 2026-10-13)
 - [Visual Design Standards](feedback-visual-design.md) — Compare against the reference in-browser, use tokens, check specificity, verify alignment
 - [Community not anonymous](feedback-community-not-anonymous.md) — A community isn't a community if it's anonymous. RIM community surfaces require real names.
 - [Honor the reference](feedback-honor-the-reference.md) — When Jesse points at a specific reference (live page, draft, screenshot), match what it shows; don't blend in content from elsewhere
