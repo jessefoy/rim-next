@@ -3040,6 +3040,55 @@ function blockNoteToHtml(blocks) {
   return html;
 }
 
+// ── Email look, 2026-10-13 (used by the block near the end of main) ─────────
+// The footer line each template carried after its last divider, exactly as
+// read from production that day.
+const EMAIL_LOOK_FOOTERS_2026_10_13 = {
+  "course-dana-receipt": "Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org",
+  "dana-reminder": "Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org",
+  "edit-request": "Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org",
+  "file-comment": "Rooted In Mindfulness · Brookfield, WI",
+  "file-shared": "Rooted In Mindfulness · Brookfield, WI",
+  "host-assignment-confirmation": "Rooted In Mindfulness · Brookfield, WI",
+  "host-assignment-removed": "Rooted In Mindfulness · Brookfield, WI",
+  "host-role-assigned": "Rooted In Mindfulness · rootedinmindfulness.org",
+  "hub-conv-new-reply": "Rooted In Mindfulness · Brookfield, WI",
+  "hub-conv-new-thread": "Rooted In Mindfulness · Brookfield, WI",
+  "hub-welcome": "Rooted In Mindfulness · Brookfield, WI",
+  "new-program-needs-host": "Rooted In Mindfulness · Brookfield, WI",
+  "registrar-role-assigned": "Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org",
+  "registration-cancelled-internal": "Rooted In Mindfulness · Brookfield, WI",
+  "registration-confirmation": "Rooted In Mindfulness · rootedinmindfulness.org",
+  "responses-updated-internal": "Rooted In Mindfulness · Brookfield, WI",
+  "session-reminder": "Rooted In Mindfulness · rootedinmindfulness.org",
+  "sign-in-code-new-user": "Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org",
+  "sign-in-code-returning": "Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org",
+  "sub-request-claimed": "Rooted In Mindfulness · Brookfield, WI",
+  "sub-request-posted": "Rooted In Mindfulness · rootedinmindfulness.org",
+  "waitlist-approval": "Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org",
+};
+
+function emailLookTransform20261013(slug, original) {
+  const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  let body = original;
+  const done = [];
+  const footer = EMAIL_LOOK_FOOTERS_2026_10_13[slug];
+  if (footer) {
+    const tail = new RegExp(`\\n-{3}[ \\t]*\\n+[ \\t]*${esc(footer)}\\s*$`);
+    if (tail.test(body)) { body = body.replace(tail, "\n"); done.push("footer line removed"); }
+  }
+  if ((slug === "sign-in-code-new-user" || slug === "sign-in-code-returning") && body.includes("color:#135274;")) {
+    body = body.replace("color:#135274;", "color:#31576D;");
+    done.push("code in the site's blue");
+  }
+  const apart = {
+    "registration-confirmation": ["{{#if dateText}}📅 {{dateText}}{{/if}}\n{{#if locationText}}📍 {{locationText}}{{/if}}", "{{#if dateText}}📅 {{dateText}}{{/if}}\n\n{{#if locationText}}📍 {{locationText}}{{/if}}"],
+    "session-reminder": ["{{dateText}}\n{{locationText}}", "{{dateText}}\n\n{{locationText}}"],
+  }[slug];
+  if (apart && body.includes(apart[0])) { body = body.replace(apart[0], apart[1]); done.push("date and place apart"); }
+  return { body, done };
+}
+
 async function main() {
   // Skip cleanly when there's no DB env (Vercel preview builds, local builds
   // without env). Production deploys always set POSTGRES_PRISMA_URL.
@@ -6197,6 +6246,36 @@ Rooted In Mindfulness · Brookfield, WI`,
         else { complete = false; console.log(`  Program copy fix: ${fix.slug} changed during the fix; will retry next deploy.`); }
       }
       if (complete) await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  }
+
+  // Email templates take the new wrapper's look (2026-10-13; Jesse approved
+  // each group after a read-only review of all 29 live templates, snapshot
+  // kept): (A) the trailing divider + "Rooted In Mindfulness ·" footer line,
+  // which the wrapper now carries, removed from 22 templates; (B) the
+  // sign-in code in the site's blue (#31576D), not the pre-flip teal;
+  // (C) the date and the place on their own lines in two templates. Each edit
+  // applies only on an exact match of the text read that day, and a row is
+  // written only if unchanged since this run read it, so anything edited in
+  // /admin/emails is left alone. Logs each template; never throws.
+  {
+    const flag = "email_templates_new_look_2026_10_13_v1";
+    try {
+      const applied = await db.$queryRawUnsafe('SELECT name FROM "_migration_flags" WHERE name = $1', flag);
+      if (!applied.length) {
+        console.log("→ Email templates: the new look (footer lines, code colour, date and place)…");
+        for (const slug of Object.keys(EMAIL_LOOK_FOOTERS_2026_10_13)) {
+          const row = await db.emailTemplate.findUnique({ where: { slug }, select: { body: true } });
+          if (!row) { console.log(`  Email look: ${slug} not found, skipped.`); continue; }
+          const { body, done } = emailLookTransform20261013(slug, row.body);
+          if (!done.length) { console.log(`  Email look: ${slug} already changed or edited, left alone.`); continue; }
+          const res = await db.emailTemplate.updateMany({ where: { slug, body: row.body }, data: { body } });
+          console.log(res.count ? `  Email look: ${slug}: ${done.join(", ")}.` : `  Email look: ${slug} changed during the update, left alone.`);
+        }
+        await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+      }
+    } catch (err) {
+      console.error("  Email look: failed (templates unchanged where not logged):", err?.message ?? err);
     }
   }
 
