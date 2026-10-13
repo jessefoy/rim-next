@@ -78,7 +78,7 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 ## October 13, 2026 (later): the Memberstack members, Flodesk's Members, one header
 
 - **Import members** (`/admin/import-legacy`, ADMIN, temporary): brings people who joined the old site since the last import into the quiet pool, read straight from Memberstack's API; preview first; never re-creates anyone removed; bots listed for review. 56 imported (quiet pool 1,555). Runs once more on the day the domain moves, then is removed. See `RIM_Auth.md`.
-- **Flodesk's Members segment holds only members** (1,561): 178 non-members taken out, nobody unsubscribed or emailed. See `RIM_Email_Engineering.md`.
+- **Flodesk's Members segment holds only members** (1,561): 178 non-members taken out, nobody unsubscribed or emailed. The 934 active suspected bots are unsubscribed, so All active subscribers (the weekly letter) is 2,218; the bot segment is deleted after the domain move. See `RIM_Email_Engineering.md`.
 - **Every page wears the site's header**: team spaces, Files, tools and administration too (no footer on those working pages); the member bar is retired; Sign out and My Profile live in each rail. See `RIM_Member_Area.md`.
 
 ## October 13, 2026: one site for members, Flodesk, the system emails, the bots
