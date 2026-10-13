@@ -36,6 +36,7 @@ import {
   canModerateFileConversation,
   listFileComments,
   logFileAction,
+  teamLeadRecipients,
 } from "@/lib/googleFiles";
 import { sessionDisplayName } from "@/lib/sessionIdentity";
 import { ensureAnyoneWithLink, exportDocHtml, getAnyonePermission } from "@/lib/google/drive";
@@ -178,15 +179,11 @@ export default async function FileDetailPage({
   // A file in the team's "Leads only" area (only leads reach this page for
   // one): say so plainly, and offer only the team's leads to notify.
   const leadsFile = leadsOnly;
-  let notifyMembers = members;
-  if (leadsFile && place.hubId) {
-    const leads = await db.hubMember.findMany({
-      where: { hubId: place.hubId, isCoordinator: true, status: "ACTIVE" },
-      select: { userId: true },
-    });
-    const leadIds = new Set(leads.map((l) => l.userId));
-    notifyMembers = members.filter((m) => leadIds.has(m.id));
-  }
+  // The leads include the guiding teacher and any admin on the team, not
+  // only its coordinators (teamLeadRecipients).
+  const notifyMembers = leadsFile
+    ? (await teamLeadRecipients(place)).map((u) => ({ id: u.id, name: sessionDisplayName(u, "A member") }))
+    : members;
 
   // Decide how to render the body. Drive-touching work (mint, export) is
   // wrapped so a failure degrades to a panel, never a 500.

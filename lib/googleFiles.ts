@@ -903,6 +903,46 @@ export interface NotifyRecipient {
  * a picked individual who shouldn't be emailed still won't be. The actor is
  * always excluded (you don't notify yourself).
  */
+/**
+ * The people a Leads only file's notifications may reach (2026-10-13): the
+ * team's ACTIVE coordinators, any ADMIN on the team, and the guiding teacher
+ * (who oversees every team, member or not). The same set that can see Leads
+ * only, under the usual email rules: signed in at least once, not archived,
+ * and (for team members) communications on. The actor is left out.
+ */
+export async function teamLeadRecipients(
+  place: FilesPlace,
+  excludeUserId?: string,
+): Promise<{ id: string; email: string; firstName: string | null; lastName: string | null; preferredName: string | null }[]> {
+  if (!place.hubSlug) return [];
+  const opts = excludeUserId ? { excludeUserId } : {};
+  const [coordinators, pool, teachers] = await Promise.all([
+    getHubNotificationRecipients(place.hubSlug, { ...opts, coordinatorsOnly: true }),
+    getHubNotificationRecipients(place.hubSlug, opts),
+    db.user.findMany({
+      where: {
+        roles: { has: "GUIDING_TEACHER" },
+        archivedAt: null,
+        emailVerified: { not: null },
+        ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+      },
+      select: { id: true, email: true, firstName: true, lastName: true, preferredName: true },
+    }),
+  ]);
+  const admins = pool.length
+    ? await db.user.findMany({
+        where: { id: { in: pool.map((m) => m.id) }, roles: { has: "ADMIN" } },
+        select: { id: true },
+      })
+    : [];
+  const adminIds = new Set(admins.map((a) => a.id));
+  const byId = new Map<string, { id: string; email: string; firstName: string | null; lastName: string | null; preferredName: string | null }>();
+  for (const u of [...coordinators, ...pool.filter((m) => adminIds.has(m.id)), ...teachers]) {
+    if (u.email) byId.set(u.id, { id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, preferredName: u.preferredName });
+  }
+  return [...byId.values()];
+}
+
 export async function resolveNotifyRecipients(
   place: FilesPlace,
   notify: { mode?: unknown; userIds?: unknown } | null | undefined,
@@ -911,17 +951,11 @@ export async function resolveNotifyRecipients(
 ): Promise<NotifyRecipient[]> {
   const mode = notify && typeof notify.mode === "string" ? notify.mode : "none";
   if (mode === "none" || !place.hubSlug) return [];
-  let members = await getHubNotificationRecipients(place.hubSlug, { excludeUserId });
-  // A Leads only file: whoever was chosen, only the team's leads (ACTIVE
-  // coordinators) are told about it.
-  if (opts?.leadsOnly && place.hubId) {
-    const leads = await db.hubMember.findMany({
-      where: { hubId: place.hubId, isCoordinator: true, status: "ACTIVE" },
-      select: { userId: true },
-    });
-    const leadIds = new Set(leads.map((l) => l.userId));
-    members = members.filter((m) => leadIds.has(m.id));
-  }
+  // A Leads only file: whoever was chosen, only the team's leads (its
+  // coordinators, an admin on the team, the guiding teacher) are told.
+  const members = opts?.leadsOnly
+    ? await teamLeadRecipients(place, excludeUserId)
+    : await getHubNotificationRecipients(place.hubSlug, { excludeUserId });
   if (mode === "everyone") {
     return members.map((m) => ({ id: m.id, email: m.email, firstName: m.firstName }));
   }
