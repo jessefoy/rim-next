@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState, useRef, useSyncExternalStore } from "react";
+import { Heart } from "lucide-react";
 import {
   isPersonalAccountPath,
   subscribePersonalNav,
@@ -594,6 +595,10 @@ export function PublicNavSheet({
                 href={item.href}
                 className={`nav__sheet-link${isActive(item.href)}`}
               >
+                {/* The same red heart Community Care carries in the rail. */}
+                {item.href === "/account/community-care" && (
+                  <Heart size={17} strokeWidth={1.75} fill="currentColor" className="nav__sheet-heart" aria-hidden="true" />
+                )}
                 {item.title}
               </Link>
             ))}

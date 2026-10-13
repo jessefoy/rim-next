@@ -23,6 +23,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+/** Changes on every Vercel deploy; a local build keeps one fixed value. */
+const CSS_VERSION = (process.env.VERCEL_GIT_COMMIT_SHA ?? "local").slice(0, 8);
+
 export default function RootLayout({
   children,
 }: {
@@ -31,7 +34,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="stylesheet" href="/css/custom.css" />
+        {/* The deploy's commit in the address, so a browser never keeps last
+            deploy's stylesheet (2026-10-12: Safari showed new markup with an
+            old custom.css, the rail heart grey and Sign out unstyled). */}
+        <link rel="stylesheet" href={`/css/custom.css?v=${CSS_VERSION}`} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet" />
