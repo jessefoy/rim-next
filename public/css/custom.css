@@ -30925,10 +30925,10 @@ a.pp-card:hover .pp-card__action--named {
   .ac-sidebar.ac-sidebar--site { display: none; }
 }
 /* Sign out is a button in a list of links: it takes .ac-sidebar__link's
-   type and spacing, without button chrome. */
+   type and spacing, without button chrome. Content-box like the links beside
+   it (measured: border-box made it 44px against their 64px rows). */
 .ac-sidebar__signout {
-  box-sizing: border-box;
-  width: 100%;
+  box-sizing: content-box;
   border: 0;
   background: transparent;
   text-align: left;
