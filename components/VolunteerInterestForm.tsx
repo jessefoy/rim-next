@@ -40,11 +40,9 @@ export default function VolunteerInterestForm({
 
   if (state.status === "sent") {
     return (
-      <FormDone title={`Thank you${state.firstName ? `, ${state.firstName}` : ""}. Your note has been sent.`}>
-        <p>
-          Someone from RIM will be in touch when something fits what you enjoy. You don&rsquo;t
-          need to do anything else.
-        </p>
+      <FormDone title={`Thanks so much${state.firstName ? `, ${state.firstName}` : ""}. Your message has been sent.`}>
+        {/* Jesse's wording, 2026-10-13. */}
+        <p>RIM&rsquo;s volunteer coordinator will be in touch with you soon.</p>
         <div className="pp-actions">
           <Link href="/account/dashboard" className="pp-btn pp-btn--ghost">
             Go to My Home

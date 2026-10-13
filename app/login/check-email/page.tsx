@@ -64,6 +64,13 @@ export default async function CheckEmailPage({
 
   const firstName = user?.firstName?.trim() || null;
 
+  // A member's first verified sign-in (they agreed on /join or when they
+  // registered, and have never entered a code) lands on My Home with "You're
+  // all set. Welcome to RIM." (Jesse, 2026-10-13). Members who haven't agreed
+  // yet go through /account/welcome, which greets them itself.
+  const firstArrival = !!user?.agreedAt && user.emailVerified === null;
+  const callbackUrl = firstArrival ? "/account/dashboard?welcome=new" : "/account/dashboard";
+
   async function resendCode(formData: FormData) {
     "use server";
     const e = (formData.get("email") as string | null)?.trim();
@@ -136,7 +143,7 @@ export default async function CheckEmailPage({
                 hidden `token` field via GET to /api/auth/callback/resend,
                 same NextAuth Email-provider callback that magic-link clicks
                 used to hit. */}
-            <SignInCodeForm email={email} callbackUrl="/account/dashboard" initialCode={prefilledCode} />
+            <SignInCodeForm email={email} callbackUrl={callbackUrl} initialCode={prefilledCode} />
 
             {/* A div, not a p: the resend action is a real <form>, and a form
                 inside a <p> is invalid HTML (the browser closes the paragraph
