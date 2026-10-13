@@ -13,21 +13,54 @@
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
-export default function FormDone({ title, children }: { title: string; children?: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-
+/**
+ * Brings an answer to the person: when `key` changes while `active`, the
+ * element scrolls into view and takes focus (give it tabIndex={-1}). For a
+ * form whose own success block replaces it (RegistrationForm), pass the
+ * result phase as the key and active only once the person has submitted.
+ */
+export function useArrival<T extends HTMLElement>(key: unknown = null, active = true) {
+  const ref = useRef<T>(null);
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!active || !el) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    // After the frame, so it wins over any scroll the navigation itself does.
+    // After the frame, so it wins over any scroll the page itself does.
     const id = requestAnimationFrame(() => {
-      el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      // Scroll only when its top isn't comfortably in view (hidden under the
+      // header, above the screen, or low on it); the page's scroll-padding
+      // keeps the header from covering it.
+      const top = el.getBoundingClientRect().top;
+      if (top < 96 || top > window.innerHeight * 0.6) {
+        el.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+      }
       el.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(id);
-  }, []);
+  }, [key, active]);
+  return ref;
+}
+
+export default function FormDone({
+  title,
+  children,
+  clearParam,
+}: {
+  title: string;
+  children?: ReactNode;
+  /** A query parameter that brought this answer (My Home's ?welcome): removed
+      from the address once shown, so a reload or Back doesn't repeat it. */
+  clearParam?: string;
+}) {
+  const ref = useArrival<HTMLDivElement>();
+  const titleId = useId();
+  useEffect(() => {
+    if (!clearParam) return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(clearParam)) return;
+    url.searchParams.delete(clearParam);
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [clearParam]);
 
   return (
     <div ref={ref} className="pp-form__done" role="status" tabIndex={-1} aria-labelledby={titleId}>
@@ -83,20 +116,19 @@ export function SaveNote({
   saved: string;
   problem: string;
 }) {
-  if (status === "saved") {
-    return (
-      <p className="save-note save-note--saved" role="status">
-        {saved}
+  // The status region is always present (so screen readers are listening
+  // before the answer comes); a problem is a separate alert, newly inserted,
+  // which is what reliably gets announced.
+  return (
+    <>
+      <p className={`save-note${status === "saved" ? " save-note--saved" : ""}`} role="status">
+        {status === "saved" ? saved : ""}
       </p>
-    );
-  }
-  if (status === "error") {
-    return (
-      <p className="save-note save-note--error" role="alert">
-        {problem}
-      </p>
-    );
-  }
-  // Present but empty, so screen readers are listening before the answer comes.
-  return <p className="save-note" role="status" aria-live="polite" />;
+      {status === "error" && (
+        <p className="save-note save-note--error" role="alert">
+          {problem}
+        </p>
+      )}
+    </>
+  );
 }

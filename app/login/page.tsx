@@ -143,7 +143,7 @@ export default async function LoginPage({
               </p>
             ) : null}
 
-            {errorMessage && <p className="pp-form__error">{errorMessage}</p>}
+            {errorMessage && <p className="pp-form__error" role="alert">{errorMessage}</p>}
 
             <form action={handleSignIn}>
               <div className="pp-form__field">

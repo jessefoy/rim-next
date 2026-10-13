@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { RegistrationField } from "@/app/update/[token]/page";
+import FormDone from "@/components/FormDone";
 
 interface Props {
   token: string;
@@ -40,12 +41,9 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
 
   if (submitted) {
     return (
-      <div className="ur-success">
-        <p>✓ Your responses have been updated. Thank you!</p>
-        <p style={{ fontSize: "var(--text-small)", marginTop: "12px", color: "var(--rim-text-muted)" }}>
-          You can close this page.
-        </p>
-      </div>
+      <FormDone title="Thank you. Your answers have been saved.">
+        <p>You don&rsquo;t need to do anything else. You can close this page.</p>
+      </FormDone>
     );
   }
 
@@ -143,7 +141,7 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
       ))}
 
       {error && (
-        <p style={{ color: "var(--color-error)", fontSize: "var(--text-ui)", marginBottom: "16px" }}>{error}</p>
+        <p role="alert" style={{ color: "var(--color-error)", fontSize: "var(--text-ui)", marginBottom: "16px" }}>{error}</p>
       )}
 
       <button type="submit" className="ur-submit" disabled={submitting}>

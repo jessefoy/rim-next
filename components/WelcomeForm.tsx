@@ -53,8 +53,8 @@ export default function WelcomeForm({
         const data = await res.json();
         throw new Error(data.error ?? "Something went wrong. Please try again.");
       }
-      // Reload session and redirect to dashboard
-      router.push("/account/dashboard");
+      // Reload session and land on My Home, which says they're all set.
+      router.push(isLegacy ? "/account/dashboard?welcome=back" : "/account/dashboard?welcome=new");
       router.refresh();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -141,7 +141,7 @@ export default function WelcomeForm({
         </label>
       </div>
 
-      {errorMsg && <p className="wl-error">{errorMsg}</p>}
+      {errorMsg && <p className="wl-error" role="alert">{errorMsg}</p>}
 
       <button
         type="submit"

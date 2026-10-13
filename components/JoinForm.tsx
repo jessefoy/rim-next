@@ -165,7 +165,7 @@ export default function JoinForm({ defaultEmail = "" }: JoinFormProps) {
       </label>
       <p className="jn-email-note">{MEMBER_EMAIL_NOTE}</p>
 
-      {errorMsg && <p className="jn-error">{errorMsg}</p>}
+      {errorMsg && <p className="jn-error" role="alert">{errorMsg}</p>}
 
       <button
         type="submit"

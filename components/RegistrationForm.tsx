@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useBotTrap } from "@/components/BotTrap";
+import { useArrival } from "@/components/FormDone";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
@@ -109,6 +110,17 @@ export default function RegistrationForm({
     String(program.suggestedDana ?? "")
   );
 
+  // The result replaces the form in place, and a long form leaves it off
+  // screen: bring it to the person once they have submitted (FormDone,
+  // 2026-10-13). "dana_redirecting" counts as "dana", so a checkout error
+  // doesn't scroll them away from the message beside the button.
+  const [submitted, setSubmitted] = useState(false);
+  const phase = formState === "dana_redirecting" ? "dana" : formState;
+  const arrivalRef = useArrival<HTMLDivElement>(
+    phase,
+    submitted && (phase === "done" || phase === "waitlisted" || phase === "dana"),
+  );
+
   // ── Already registered (and NOT in pending-dana state) ───────────────────────
   if (alreadyRegistered && !hasPendingDana) {
     return (
@@ -130,7 +142,7 @@ export default function RegistrationForm({
   // ── Waitlisted ──────────────────────────────────────────────────────────────
   if (formState === "waitlisted") {
     return (
-      <div className="pg-form__success pg-form__success--waitlist">
+      <div ref={arrivalRef} tabIndex={-1} role="status" className="pg-form__success pg-form__success--waitlist">
         <h3>You&rsquo;re on the waitlist</h3>
         <p>
           This program is currently full. We&rsquo;ll reach out to {form.email} if a spot opens up.
@@ -142,9 +154,12 @@ export default function RegistrationForm({
   // ── Done (no dana needed, or dana skipped) ──────────────────────────────────
   if (formState === "done") {
     return (
-      <div className="pg-form__success">
+      <div ref={arrivalRef} tabIndex={-1} role="status" className="pg-form__success">
         <h3>You&rsquo;re registered!</h3>
-        <p>We&rsquo;ll look forward to seeing you. A confirmation will be sent to {form.email}.</p>
+        <p>
+          We&rsquo;ll look forward to seeing you. A confirmation will be sent to {form.email}.
+          You don&rsquo;t need to do anything else.
+        </p>
       </div>
     );
   }
@@ -221,7 +236,7 @@ export default function RegistrationForm({
 
     return (
       <>
-        <div className="pg-form__success">
+        <div ref={arrivalRef} tabIndex={-1} className="pg-form__success">
           {hasPendingDana ? (
             <>
               {/* Reached by anyone returning with dana still open: most often a
@@ -339,7 +354,7 @@ export default function RegistrationForm({
           )}
 
           {errorMessage && (
-            <div className="pg-form__error">{errorMessage}</div>
+            <div className="pg-form__error" role="alert">{errorMessage}</div>
           )}
 
           <button
@@ -411,6 +426,7 @@ export default function RegistrationForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitted(true);
     setFormState("submitting");
     setErrorMessage("");
 
@@ -690,10 +706,10 @@ export default function RegistrationForm({
 
       {/* ── Error ── */}
       {formState === "error" && (
-        <div className="pg-form__error">{errorMessage}</div>
+        <div className="pg-form__error" role="alert">{errorMessage}</div>
       )}
       {formState === "duplicate" && (
-        <div className="pg-form__error">
+        <div className="pg-form__error" role="alert">
           It looks like you&rsquo;re already registered for this program.
         </div>
       )}

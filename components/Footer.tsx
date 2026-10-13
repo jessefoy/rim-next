@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useBotTrap } from "@/components/BotTrap";
 import { RIM_ADDRESS, RIM_PHONE_DISPLAY, RIM_PHONE_TEL, RIM_SUPPORT_EMAIL } from "@/lib/locations";
 
@@ -24,6 +25,16 @@ export default function Footer({ memberArea = false, year: renderedYear }: Foote
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const { trap, botFields } = useBotTrap();
+  // A signed-in member's name and email are filled in (2026-10-13), unless
+  // they have already typed something.
+  const { data: session } = useSession();
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || !session?.user) return;
+    prefilled.current = true;
+    setFirstName((f) => f || session.user?.name || "");
+    setEmail((e) => e || session.user?.email || "");
+  }, [session]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,7 +78,7 @@ export default function Footer({ memberArea = false, year: renderedYear }: Foote
                 That is all we will send.
               </p>
               {submitted ? (
-                <p className="footer-subscribe-success">Thank you. You&apos;re on the list.</p>
+                <p className="footer-subscribe-success" role="status">Thank you. You&apos;re on the list.</p>
               ) : (
                 <form className="footer-subscribe-form" onSubmit={handleSubmit} noValidate>
                   {trap}
@@ -95,7 +106,7 @@ export default function Footer({ memberArea = false, year: renderedYear }: Foote
                       {loading ? "Subscribing…" : "Subscribe"}
                     </button>
                   </div>
-                  {message && <p className="footer-subscribe-msg">{message}</p>}
+                  {message && <p className="footer-subscribe-msg" role="alert">{message}</p>}
                 </form>
               )}
             </div>

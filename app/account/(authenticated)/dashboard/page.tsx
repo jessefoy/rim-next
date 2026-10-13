@@ -7,6 +7,7 @@ import { hasOpenEntry } from "@/lib/programOffering";
 import { getHubCoverageCopy } from "@/lib/programHub";
 import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import AccountLayout from "@/components/AccountLayout";
+import FormDone from "@/components/FormDone";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 import HostWelcomePanel from "@/components/HostWelcomePanel";
 
@@ -59,7 +60,7 @@ type TodayDisplayItem = {
 };
 
 export default async function DashboardPage({ searchParams }: {
-  searchParams: Promise<{ view?: string; page?: string }>;
+  searchParams: Promise<{ view?: string; page?: string; welcome?: string }>;
 }) {
   const query = await searchParams;
   const upcomingView = query.view === "upcoming";
@@ -405,6 +406,17 @@ export default async function DashboardPage({ searchParams }: {
           <h1 className="db2-greeting__name">{upcomingView ? "Your upcoming programs" : `Good ${timeOfDay()}, ${firstName}.`}</h1>
           {upcomingView && <Link href="/account/dashboard" className="pp-btn pp-btn--ghost">Back to My Home</Link>}
         </header>
+
+        {/* Joining or returning is answered here, where they land (WelcomeForm,
+            /account/reactivate; FormDone, 2026-10-13). */}
+        {!upcomingView && (query.welcome === "new" || query.welcome === "back") && (
+          <FormDone
+            clearParam="welcome"
+            title={query.welcome === "new" ? "You\u2019re all set. Welcome to RIM." : "Welcome back. You\u2019re all set."}
+          >
+            <p>This is My Home: your gatherings for today and what&rsquo;s coming up are here.</p>
+          </FormDone>
+        )}
 
         {/* First-login host recognition — one-time, dismissible (session 143) */}
         {!upcomingView && hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} coverageNoun={hostWelcomeNoun} />}

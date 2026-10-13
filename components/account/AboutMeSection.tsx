@@ -16,6 +16,7 @@ import { useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import dynamic from "next/dynamic";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+import { SaveNote } from "@/components/FormDone";
 
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -35,15 +36,21 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState("");
+  // Each save is answered beside its own button and the answer stays until
+  // the next change (SaveNote; Jesse, 2026-10-13), never a 3-second flash.
+  const [bioStatus, setBioStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [photo, setPhoto] = useState<{ status: "idle" | "saved" | "error"; saved: string; problem: string }>({
+    status: "idle",
+    saved: "",
+    problem: "",
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    setError("");
+    setPhoto({ status: "idle", saved: "", problem: "" });
     try {
       const blob = await upload(file.name, file, {
         access: "public",
@@ -56,8 +63,9 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
       });
       if (!res.ok) throw new Error("Failed to save");
       setAvatarUrl(blob.url);
+      setPhoto({ status: "saved", saved: "Saved. Your new photo is on your profile.", problem: "" });
     } catch {
-      setError("Photo upload failed. Please try again.");
+      setPhoto({ status: "error", saved: "", problem: "Your photo was not saved. Please try again." });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -65,7 +73,7 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
   }
 
   async function handleAvatarRemove() {
-    setError("");
+    setPhoto({ status: "idle", saved: "", problem: "" });
     try {
       const res = await fetch("/api/account/avatar", {
         method: "PATCH",
@@ -74,15 +82,15 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
       });
       if (!res.ok) throw new Error("Remove failed");
       setAvatarUrl(null);
+      setPhoto({ status: "saved", saved: "Removed. Your profile has no photo now.", problem: "" });
     } catch {
-      setError("Could not remove photo.");
+      setPhoto({ status: "error", saved: "", problem: "Your photo was not removed. Please try again." });
     }
   }
 
   async function handleBioSave() {
     setSaving(true);
-    setSaved(false);
-    setError("");
+    setBioStatus("idle");
     try {
       const res = await fetch("/api/account/bio", {
         method: "PATCH",
@@ -90,10 +98,9 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
         body: JSON.stringify({ bio: bio || null }),
       });
       if (!res.ok) throw new Error("Save failed");
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setBioStatus("saved");
     } catch {
-      setError("Could not save bio.");
+      setBioStatus("error");
     } finally {
       setSaving(false);
     }
@@ -143,29 +150,36 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
             className="mp-bio__file-input"
             onChange={handleAvatarUpload}
           />
+          <SaveNote status={uploading ? "saving" : photo.status} saved={photo.saved} problem={photo.problem} />
         </div>
       </div>
 
       <div className="mp-bio__editor">
         <RimTiptapEditor
           value={bio}
-          onChange={setBio}
+          onChange={(html: string) => {
+            setBio(html);
+            setBioStatus("idle");
+          }}
           placeholder="Share a bit about yourself…"
           variant="message"
         />
       </div>
 
       <div className="mp-save">
-        {error && <p className="mp-save__error" role="alert">{error}</p>}
         <button
           type="button"
           className="mp-save__btn"
           onClick={handleBioSave}
           disabled={saving}
         >
-          {saving ? "Saving…" : "Save bio"}
+          {saving ? "Saving…" : "Save introduction"}
         </button>
-        {saved && <span className="mp-save__success" role="status">Saved ✓</span>}
+        <SaveNote
+          status={saving ? "saving" : bioStatus}
+          saved="Saved. Your introduction is up to date."
+          problem="Your introduction was not saved. What you wrote is still here. Please try again."
+        />
       </div>
     </section>
   );

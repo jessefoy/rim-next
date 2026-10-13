@@ -202,6 +202,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
     '@/components/AccountLayout':{default:({children})=>children,__esModule:true},
     '@/components/DashboardAutoRefresh':{default:()=>null,__esModule:true},
     '@/components/HostWelcomePanel':{default:()=>null,__esModule:true},
+    '@/components/FormDone':{default:({children})=>children,__esModule:true},
     '@/components/HandfulHomeCard':{default:()=>null,__esModule:true},
   }).default;
   const dashboardHtml = async query=>renderToStaticMarkup(await Dashboard({searchParams:Promise.resolve(query??{})}));

@@ -20,7 +20,7 @@ export default function ReactivatePage() {
       if (!res.ok) throw new Error("Reactivation failed");
       // Refresh session so archivedAt clears
       await update();
-      router.push("/account/dashboard");
+      router.push("/account/dashboard?welcome=back");
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
@@ -41,7 +41,7 @@ export default function ReactivatePage() {
         </div>
 
         <div className="wl-form">
-          {error && <p className="wl-error">{error}</p>}
+          {error && <p className="wl-error" role="alert">{error}</p>}
           <button
             className="wl-submit"
             onClick={handleReactivate}
