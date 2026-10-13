@@ -75,6 +75,14 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Page titles** on public pages use the home page's hyphen; the approved `RIM_MISSION` and the final `RIM_WHAT_BINDS` are live.
 - **All of this copy is provisional until Jesse's read-aloud.**
 
+## October 13, 2026: one site for members, Flodesk, the system emails, the bots
+
+- **The personal pages wear the site's header** and the Flodesk integration: see October 12 below (both shipped across the two days).
+- **System emails take Jesse's Flodesk template's look:** off-white page, the lotus and the name in Baskerville, the message on a white panel, the address below; no unsubscribe line. One wrapper serves every email and the `/admin/emails` preview. 22 live templates lost their repeated footer line (approved). See `RIM_Email_Engineering.md`, "The look".
+- **An invisible bot check** on `/join`, guest registration and the newsletter: a hidden field and a two-second timing, no puzzles. 1,356 bot subscribers gathered in Flodesk's "Suspected bots: review" segment for Jesse to delete.
+- **Registration takes the member from the session** (it trusted a request field), and **guest registrants keep their accounts** (the 48h sweep had deleted them).
+- **Home in Jesse's words:** his line edit of the page applied as given.
+
 ## October 12, 2026: before go-live, the member area's edges and the care agreements
 
 - **Library, in preparation:** `/account/courses` is a hopeful static page saying what the Library will hold and how members will hear when it opens.

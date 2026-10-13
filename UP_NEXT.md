@@ -1,26 +1,29 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-12 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-13 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-12 closed: getting ready to go live (the member area's edges, the care agreements, the Zapier audit)
+## Active — 2026-10-13 closed: waiting on Memberstack for the member CSV
 
-Everything is on `main`. Narrative: `session-log.md` (2026-10-12). Public pages measured on the deploy; member pages measured by stand-in markup under the live stylesheet (Jesse's Chrome is not signed in to rim-next).
+Everything is on `main`. Narrative: `session-log.md` (2026-10-13). Claude in Chrome was not connected, so signed-in pages were checked by rebuilding their real markup under the live stylesheet, not in a signed-in session.
 
-**Live today:** the Library "in preparation" page; My Teams only for team members (Coordinator marked, archived hidden, the guiding teacher's two groups, a volunteer door); the Community Care Agreements placed (consent names the agreements, "We are diverse together", the public page reframed, "If harm happens" with a private form to the guiding teacher, the member page following the public page); the red heart; My Profile pointing to support@.
+**Waiting on Memberstack (the open thread).** Jesse asked Memberstack support for a full member CSV. When it arrives (backlog `2026-10-13-001`, high): read it on this machine only, never commit it; compare with the app's users by email; flag bots with the Flodesk rule (a name of 12+ letters with 2+ inner capitals, or a Gmail address with 3+ dots); report counts only; with Jesse's OK on the numbers, import the real members who joined since the June import into the quiet pool exactly as session 145 did; count the June import's bots (removal is his call); delete the file.
+
+**Live from 2026-10-12/13:** the personal pages in the site header (My Home link; My RIM in the phone Menu; Sign out, My Profile, Manage RIM in the rail); the stylesheet versioned per deploy; Flodesk (Members at the first code sign-in; program segments "Name MM/DD/YY", Program Manager's Registration tab; unsubscribed never re-added); registration takes the member from the session; guest registrants keep their accounts; the system emails in the Flodesk template's look and 22 templates cleaned; the invisible bot check on /join, guest registration and the newsletter; home in Jesse's words (vault matched).
+
+**Jesse's steps:**
+- **Flodesk:** review the "Suspected bots: review" segment (1,356) and delete them there; turn off the Memberstack → Flodesk Zap (or switch on double opt-in in it); link programs already taking registrations to their existing segments in Program Manager → Registration (their names won't match the new "Name MM/DD/YY"); build any onboarding series as a Flodesk workflow triggered by joining Members, with a delay.
+- **The read-aloud** of the new lines: "My Home" in the header, "As a member, you'll also receive community emails from RIM. You can unsubscribe from them at any time." (/join and registration), "Something didn't go through. Please wait a moment and try again." (the bot check); plus the October 12 lines (`04-care-agreements-placement-review-2026-10-12.md`) and the October 9 refresh (`04-refresh-read-aloud-2026-10-09.md`).
+- **One signed-in walkthrough** (about 20 minutes, in the Chrome Claude can drive): the personal pages in the site header (desktop and phone), the Library, My Teams, Community Care, a returning legacy member's welcome, the Handful pages, a sign-in email in the new design.
+- **One test message** through `/community-care-agreements/concern` to confirm it reaches jesse@.
+- **Open offers:** a read-only count of registrations detached by the old sweep, then a relink (`2026-10-13-003`); the registration route's misleading comment (signed-in members keep what they type; guests matched by email keep the account's details: principled, comment only); whether team spaces, tools and admin take the site header too (`2026-10-13-002`); whether the home eyebrows were meant to go (they were absent from his paste; kept).
+- **Rulings still open from October 12:** one name for the agreements in the footer and "Practice with us"; whether the Library names Taking CARE; the cancellation line in the registration confirmation (needs consent to edit the live template); the glossary (`2026-10-12-002`); archived teams for the rare member; the one-time "agreements updated" notice (`2026-10-12-001`); Taking CARE Foundations' details.
 
 **Before launch (in order):**
-1. **The Flodesk integration: built 2026-10-12** (backlog `2026-09-24-002`, rulings recorded there). Members join Members at their first sign-in with a code (existing members as they next sign in; most are already there from Memberstack); confirmed registrants join "Name MM/DD/YY" program segments (an existing segment with exactly that name is reused); every program with registration is on from this deploy; unsubscribed people are never added back; mass email only. **Still to do:** (a) watch the first real registration create its segment (the Vercel log says `[flodesk] created segment`); (b) Jesse links programs already open to their existing segments in Program Manager → Registration; (c) Jesse builds any onboarding series in Flodesk, triggered by joining Members with a delay; (d) the read-aloud of the new line on /join and the registration form; (e) at the domain move, turn off the three Zaps it replaces.
+1. **The Memberstack import** above.
 2. **The two app form addresses** (`2026-10-12-004`): Kalyana Mitta to jesse@ + KalyanaMitta@; volunteer interest to volunteer@ (and whether a Basecamp to-do is still wanted).
-3. **Self-service email change** with verification, notice and history (`2026-10-12-003`, high).
-4. **Launch configuration:** Stripe live (`2026-09-24-001`); with the domain move, change `NEXTAUTH_URL` in Vercel in the same step (every email link, the sign-in button, calendar links and the Stripe return read it); rotate the database password; keep every Zap on until the domain moves.
-
-**Waiting on Jesse:**
-- **One signed-in walkthrough** (about 20 minutes in the Chrome Claude can drive): **the personal pages in the site header** (`1a00d50`, 2026-10-12: My Home link, rail Sign out and My Profile, the phone Menu's My RIM group, welcome's Sign out; measured only by stand-in markup), the Library, My Teams, Community Care, a returning legacy member's welcome, the Handful pages, the phone drawers.
-- **One test message** through `/community-care-agreements/concern` to confirm it reaches jesse@.
-- **The read-aloud** of today's new lines (the vault's `04-care-agreements-placement-review-2026-10-12.md` carries them) and the October 9 refresh (`04-refresh-read-aloud-2026-10-09.md`).
-- **Rulings still open:** one name for the agreements in the footer and the "Practice with us" panel; whether the Library names Taking CARE among what's coming (Jesse: the Handful "will be part of the library. Same with care"); a cancellation line in the registration confirmation ("If you can no longer attend, reply to this email and our registrar will take care of it"; needs his consent to edit the live template, check `/admin/emails` first); whether the glossary is planned (`2026-10-12-002`); softer wording or closing archived teams for the rare member whose only team was archived.
-- **A one-time "agreements updated" notice** on My Home for members who joined before today, once the announcement surface exists (`2026-10-12-001`).
-- From October 9: **Taking CARE Foundations** (the quote, dates and place, contribution, capacity, then Visibility).
+3. **Self-service email change** with verification, notice and history (`2026-10-12-003`, high); Flodesk can't change an address through its API (noted in the item).
+4. **Launch configuration:** Stripe live (`2026-09-24-001`); with the domain move, change `NEXTAUTH_URL` in Vercel in the same step (every email link and the email logo, the sign-in button, calendar links and the Stripe return read it); rotate the database password; then turn off the three Zaps Flodesk replaces (Memberstack → Members, SmartSuite → program segments, the Webflow newsletter).
+5. **Watch the first real registration** create its Flodesk segment (the Vercel log says `[flodesk] created segment`) and the first member sign-in join Members (`[flodesk] member`).
 
 ## Still open from October 2 — categories, Open entry, and history and roots are live; the pages await Jesse's read-aloud
 

@@ -1293,7 +1293,7 @@
     "priority": "high",
     "status": "open",
     "addedAt": "2026-08-10",
-    "notes": "Jesse: 'Let's hold off. I need to give it some thought.' Recorded so the audit work isn't lost — delete if he decides against it. Prerequisite for cancelling Webflow, alongside 2026-08-07-003 (redirect map) and 2026-08-09-006 (asset rescue). The durable-record defect in it is tracked separately as 2026-08-10-004. | AUDITED 2026-10-12 (read-only, Jesse signed in to Zapier). Six Zaps, all ON, owned by Jesse (the list was filtered to 'Owner is Me'; Zaps owned by others were not checked). (1) New Member Flow: Memberstack new member -> Flodesk create/update subscriber in segment 'Members' (no double opt-in) -> MailerSend template email 'New Member Onboarding Email #1' from support@. Ran 3x on 2026-10-06. At launch: Memberstack stops, so 'Members' (1,136) is no longer fed; the app's own join-welcome replaces the MailerSend letter. (2) 2024 Program Registration Flow: SmartSuite 'Registrations' table new record -> Flodesk 'Add Member to Segment' with the segment ID taken from the record (per-program segments: Heart of Wisdom, Awakening to the Beauty of this Moment, Day of Mindfulness, End of Year Gathering, ...). Ran 2026-10-06. At launch: app registrations do not write to SmartSuite, so per-program Flodesk segments stop filling. (3) Kalyana Mitta Group Application: Webflow form -> MailerSend notification to jesse@ and KalyanaMitta@. The app's version (/kalyana-mitta/kalyana-mitta-group-application) emails TEAM_EMAIL (fallback hello@) instead. (4) Website Newsletter Sign-Up: Webflow newsletter form -> Flodesk 'Master List'. Ran 6x 2026-10-06..12. The app's footer posts to the same segment (6340e5b00170f97cbdfc4b87 = 'Master List', 2,624, confirmed via the Flodesk API). Safe to retire with Webflow. (5) Volunteer Interest (Specific Position) and (6) (General): Webflow forms -> Gmail from automation@ to volunteer@ + Basecamp to-do in project 'Volunteer Coordination', list 'Volunteer Interest Form Submissions'. The app's volunteer form emails TEAM_EMAIL (fallback hello@): no volunteer@, no Basecamp to-do. Services in use that no RIM doc records: MailerSend, SmartSuite, Basecamp (plus Memberstack, retiring). Do not turn any Zap off before the domain moves: the Webflow site is still collecting sign-ups."
+    "notes": "Jesse: 'Let's hold off. I need to give it some thought.' Recorded so the audit work isn't lost — delete if he decides against it. Prerequisite for cancelling Webflow, alongside 2026-08-07-003 (redirect map) and 2026-08-09-006 (asset rescue). The durable-record defect in it is tracked separately as 2026-08-10-004. | AUDITED 2026-10-12 (read-only, Jesse signed in to Zapier). Six Zaps, all ON, owned by Jesse (the list was filtered to 'Owner is Me'; Zaps owned by others were not checked). (1) New Member Flow: Memberstack new member -> Flodesk create/update subscriber in segment 'Members' (no double opt-in) -> MailerSend template email 'New Member Onboarding Email #1' from support@. Ran 3x on 2026-10-06. At launch: Memberstack stops, so 'Members' (1,136) is no longer fed; the app's own join-welcome replaces the MailerSend letter. (2) 2024 Program Registration Flow: SmartSuite 'Registrations' table new record -> Flodesk 'Add Member to Segment' with the segment ID taken from the record (per-program segments: Heart of Wisdom, Awakening to the Beauty of this Moment, Day of Mindfulness, End of Year Gathering, ...). Ran 2026-10-06. At launch: app registrations do not write to SmartSuite, so per-program Flodesk segments stop filling. (3) Kalyana Mitta Group Application: Webflow form -> MailerSend notification to jesse@ and KalyanaMitta@. The app's version (/kalyana-mitta/kalyana-mitta-group-application) emails TEAM_EMAIL (fallback hello@) instead. (4) Website Newsletter Sign-Up: Webflow newsletter form -> Flodesk 'Master List'. Ran 6x 2026-10-06..12. The app's footer posts to the same segment (6340e5b00170f97cbdfc4b87 = 'Master List', 2,624, confirmed via the Flodesk API). Safe to retire with Webflow. (5) Volunteer Interest (Specific Position) and (6) (General): Webflow forms -> Gmail from automation@ to volunteer@ + Basecamp to-do in project 'Volunteer Coordination', list 'Volunteer Interest Form Submissions'. The app's volunteer form emails TEAM_EMAIL (fallback hello@): no volunteer@, no Basecamp to-do. Services in use that no RIM doc records: MailerSend, SmartSuite, Basecamp (plus Memberstack, retiring). Do not turn any Zap off before the domain moves: the Webflow site is still collecting sign-ups. | 2026-10-13: the bots are proven. Since October 2025 almost every new Flodesk subscriber from the old site's forms has been a bot (random-capital names; from August 2026 many-dotted Gmail): 1,356 gathered in Flodesk's 'Suspected bots: review' segment for Jesse to delete. Recommended to Jesse: turn off the Memberstack -> Flodesk Zap now (or switch on Flodesk double opt-in in the Zaps). The new site's forms carry an invisible bot check."
   },
   {
     "id": "2026-08-10-004",
@@ -1726,7 +1726,7 @@
     "priority": "high",
     "status": "open",
     "addedAt": "2026-10-12",
-    "notes": "Jesse, 2026-10-12: \"Do you think they should be able to update their email? Just with a double-check, I am sure. For administration and their security, should we store their past emails?\" Recommended before launch. New schema (an email-history table) means the additive-column/data-first rules apply. Email Template Gate for the two new emails (code to the new address can reuse the sign-in code mechanism; the notice to the old address is a new template). Connects to the Flodesk integration (2026-09-24-002)."
+    "notes": "Jesse, 2026-10-12: \"Do you think they should be able to update their email? Just with a double-check, I am sure. For administration and their security, should we store their past emails?\" Recommended before launch. New schema (an email-history table) means the additive-column/data-first rules apply. Email Template Gate for the two new emails (code to the new address can reuse the sign-in code mechanism; the notice to the old address is a new template). Connects to the Flodesk integration (2026-09-24-002). | 2026-10-13: Flodesk's API has no way to change a subscriber's address; an email change must handle the Members segment (and program segments) another way, e.g. add the new address to the same segments and unsubscribe the old one, or leave Flodesk to the person."
   },
   {
     "id": "2026-10-12-004",
@@ -1747,5 +1747,45 @@
     "status": "open",
     "addedAt": "2026-10-12",
     "notes": "Found while measuring the new form, 2026-10-12."
+  },
+  {
+    "id": "2026-10-13-001",
+    "title": "Memberstack: bring over the real members who joined since the June import, leave the bots",
+    "description": "Members who joined on the old site after the session-145 import are not in the app and would vanish at the domain move. Jesse asked Memberstack support for a full member CSV (2026-10-13). When it arrives: read it on this machine only (never commit it), compare with the app's users by email, flag bots with the Flodesk rule (a name of 12+ letters with 2+ inner capitals, or a Gmail address with 3+ dots), report counts, and with Jesse's OK on the numbers import the real new members into the quiet pool exactly as session 145 did (isLegacyUnclaimed, agreedToTerms false, emailVerified null, silent). Then delete the file. Also count the bots that came in with the June import (inert in the quiet pool); removing them is Jesse's call.",
+    "category": "Member Accounts",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-10-13",
+    "notes": "Waiting on Memberstack support for the CSV. No Memberstack connector or API key is used (Jesse: a CSV is enough; Memberstack retires at the domain move)."
+  },
+  {
+    "id": "2026-10-13-002",
+    "title": "Decide whether team spaces, tools and admin take the site header too",
+    "description": "Since 2026-10-13 the member's personal pages wear the public header (testers: 'I couldn't get back to the site, I was somewhere else'). Team spaces, /account/files, tools and admin keep the member bar (logo to My Home, 'Main site' link). Decide after the personal pages have been lived with; volunteers who are also older members may feel the same switch inside a team.",
+    "category": "Nav & Layout",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-13",
+    "notes": "Recorded as open in RIM_Web_Design_Philosophy.md, 'Authenticated Spatial Hierarchy'."
+  },
+  {
+    "id": "2026-10-13-003",
+    "title": "Reconnect registrations detached by the old 48h sweep",
+    "description": "Before 2026-10-13 the incomplete-account sweep deleted guest registrants' accounts, leaving their registrations with userId null. New losses are stopped; past ones are not repaired. A read-only count first (registrations with userId null whose email has no account), then, with Jesse's approval of the list, a one-time relink by email. Without it, such a guest who registers again for the same program can end up with a duplicate registration.",
+    "category": "Registration",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-13",
+    "notes": "Offered to Jesse 2026-10-13; awaiting his go-ahead for the read-only count."
+  },
+  {
+    "id": "2026-10-13-004",
+    "title": "Refresh the how-jesse-writes skill's copy of How We Write from the vault",
+    "description": "The vault's How We Write (Dharma Study/10 — Dharma Canon/Handful of Leaves/How We Write.md, changed 2026-09-23) adds 'the repeating frame' to the Deeper Tells and a matching editing-pass step; the copy in ~/Downloads/how-jesse-writes/references/how-we-write.md (2026-07-22) lacks them. CLAUDE.md says to read the skill's copy fresh, so it should match the vault.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-13",
+    "notes": "Found 2026-10-13 when Jesse asked for the document."
   }
 ]

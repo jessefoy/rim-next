@@ -1,3 +1,37 @@
+## 2026-10-13 — one site for members, Flodesk connected, the system emails redesigned, a year of bots found, the home page in Jesse's words
+
+On `main`, each step its own commit (`1a00d50` … `9cd1dcf`). Reviewer sub-agents gated the header change, the Flodesk integration and the registration fixes; their findings were fixed before or right after shipping. Signed-in surfaces were measured by stand-in markup and the real rendered component under the live stylesheet (Claude in Chrome was not connected); public pages on the deploy.
+
+### Built and live
+
+- **The member's personal pages wear the site's header** (testers: *"I couldn't get back to the site, I was somewhere else"*). My Home, Library, My Teams, Community Care, My Profile, the Handful pages, welcome and reactivate render the public `Nav` and footer (`lib/personalNav.ts`); signed in, Members becomes a plain **My Home** link; the phone Menu leads with My RIM (Community Care with its red heart); the rail holds My Profile, Manage RIM for staff and Sign out. Team spaces, files, tools and admin keep the member bar for now. The welcome pages show Sign out instead of My Home. No "Members" flash before the session loads.
+- **The stylesheet's address changes with each deploy** (`/css/custom.css?v=<commit>`): Jesse saw new markup under an old custom.css (Safari kept its copy), the rail heart grey and Sign out unstyled.
+- **Flodesk, connected** (backlog `2026-09-24-002`, rulings recorded there). Members join Flodesk's Members segment at their first sign-in with a code (`auth.ts` `events.signIn`, once, `User.flodeskMemberAt`), so an unproven address never gets mass email. Confirmed registrants join a program segment, "Name MM/DD/YY", created at the first registration or linked in Program Manager (Registration tab, Automatic / On / Off). Every give-nothing path is covered through the confirmation choke point; waitlist promotion and restores join through the registrar PATCH; cancellation removes only a confirmed registrant with no other registration sharing the segment. Anyone not active in Flodesk is never added back (943 unsubscribed). A new segment reuses one with exactly its name. A line on /join and the registration form says members receive community emails (`MEMBER_EMAIL_NOTE`).
+- **Registration ownership** (`a1fbab4`): `POST /api/registrations` took a `userId` from the request with no session check; it now reads the signed-in member from `auth()`. The only such route (the others that accept a user id gate on role first).
+- **Guest registrants keep their accounts**: the 48h incomplete-account sweep deleted them (registering creates an agreed, unverified account); accounts with any registration are now exempt.
+- **System emails take the Flodesk template's look** (Jesse's template, measured): off-white page, lotus and name in Baskerville at the top, the message on a white 600px panel, a short rule and the address; no unsubscribe line (system emails). One wrapper serves every email and the `/admin/emails` preview. The button is the site's blue pill.
+- **Email templates cleaned** (approved by group after a read-only review of all 29, snapshot kept): the repeated footer line removed from 22, the sign-in code in the site's blue, date and place apart in two. A flag-guarded `migrate.mjs` block; whole-table diff after deploy: exactly the 22 predicted rows changed.
+- **The invisible bot check** on /join, guest registration and the newsletter (`lib/botCheck.ts`, `components/BotTrap.tsx`): a hidden field and a two-second timing; no puzzles (Jesse). The newsletter pretends to succeed for a bot and limits one connection to five an hour.
+- **A year of bots in Flodesk, gathered for review**: 1,356 subscribers (random-capital names, or many-dotted Gmail) in the new segment "Suspected bots: review". Nothing deleted or unsubscribed.
+- **Home in Jesse's words**: his line edit applied as given, with his paragraph breaks (all 47 paragraphs verified on the published page), and the vault's working draft brought into line.
+
+### Design decisions and why
+
+- **One site, one header** for the member's own pages: older, less technical members read the header as where they are; a changed header felt like leaving RIM, and a visible "Main site" link did not undo that. Recorded in `RIM_Web_Design_Philosophy.md` ("Authenticated Spatial Hierarchy").
+- **Flodesk rulings** (Jesse): every member in Members, said plainly; the app's welcome first, any Flodesk series later; member notices stay in the app; every registration program feeds a segment, named as he already names them; no waitlist segment. Unsubscribe checks are for mass email only (Jesse confirmed).
+- **Members waits for proof of address** (a refinement within his ruling, raised by review): the code sign-in, not the /join submission.
+- **No puzzle captchas** (Jesse): invisible checks only.
+- **Deleting people stays Jesse's step**: Claude finds and gathers; the permanent delete is his.
+- **Memberstack is not worth an integration** (it retires at the domain move): a CSV export and a one-time import of the real members who joined since June, leaving the bots behind.
+
+### What this work connects to
+
+`components/Nav.tsx`, `AccountSidebar`, `FooterWrapper`, `app/layout.tsx` (every page); `lib/flodesk.ts` touches `auth.ts`, `/api/account/join` and `complete-profile`, `POST /api/registrations`, `PATCH /api/registrations/[id]`, the confirmation choke point (`lib/registrationConfirmation.ts`), the Stripe webhook, the decline endpoint and the 24h cron through it, Program Manager's editor and both `programs-pg` routes; `lib/email.ts`'s wrapper reaches every email the app sends; the bot check reaches `/join`, `RegistrationForm` and the footer. Schema: `programs.flodeskSync|flodeskSegmentId|flodeskSegmentName`, `users.flodeskMemberAt`.
+
+### What comes next
+
+Waiting on Memberstack support for the member CSV (then: compare with the app, flag bots, import the real new members into the quiet pool with Jesse's OK on the numbers, delete the file). Jesse: review and delete the "Suspected bots: review" segment in Flodesk; turn off the Memberstack → Flodesk Zap; link programs already open to their segments; the read-aloud of the new lines; the signed-in walkthrough. Then the rest of the launch list in `UP_NEXT.md`.
+
 ## 2026-10-12 — before go-live: the Library in preparation, My Teams for team members, the Community Care Agreements placed with a door for repair, the Zapier audit
 
 On `main`, every step its own commit (`cc13b18` … `c56c1fd`). Public pages measured on the deploy in the built-in browser at 1280 and 375; member pages measured by rebuilding their markup inside the account shell on the production origin under the live stylesheet (Jesse's Chrome is not signed in to rim-next, so no signed-in view was possible).
