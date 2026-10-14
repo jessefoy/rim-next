@@ -35,6 +35,10 @@ Sign-in and sign-up are two distinct surfaces over the same passwordless 6-digit
 5. Client navigates to `/login/check-email?email=<encoded>` to type the code — same code-entry surface as Door A
 6. NextAuth verifies, redirects to `/account/dashboard`. The `(authenticated)/` layout's agreement gate passes immediately (`agreedToTerms` is already `true` from the `/join` POST), the archive gate passes (`archivedAt` is null on a brand-new account), and the dashboard renders.
 
+### A signed-in member at `/join` (2026-10-14)
+
+A member who is already signed in and opens `/join` (every "Become a member" button points there) sees a short page in place of the form: "You're already a member" / "You're signed in as [name], so you don't need to do anything else. My Home has today's gatherings and what's coming up." / **Go to My Home** (ratified by Jesse's read-aloud). It used to redirect to `/account/dashboard` without a word, which a volunteer reported as a broken link. Only a member who has agreed and isn't archived sees it; anyone mid-threshold still redirects through My Home's gate to `/account/welcome` or `/account/reactivate`. `/login` still redirects a signed-in visitor to My Home silently, deliberately: someone opening sign-in wants their account, and My Home is that answer.
+
 ### Already-member soft-redirect
 
 If `/api/account/join` finds an existing User with `agreedToTerms: true` at the submitted email, it returns `{ alreadyMember: true }` instead of duplicating the threshold ritual. The client navigates to `/login?email=...`; `/login` reads the `?email=` query param, pre-fills the input via `defaultValue`, and renders a calm one-liner ("It looks like you already have an account with us. Sign in to continue.") above the form.

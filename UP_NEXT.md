@@ -1,29 +1,33 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-14 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-14 (later, closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-14 closed: every email in one look; Programs & Events studied and parked
+## Active — 2026-10-14 closed: LoriLee's review ruled and live; every email in one look
 
-Everything is on `main` (`671ca9d` … the docs). Narrative: `session-log.md` (2026-10-14). No production reads or writes.
+Everything is on `main` (`6063bf5` … the closing docs). Narrative: `session-log.md`, 2026-10-14 (later) and 2026-10-14.
 
-**Live from today:** every email goes through one renderer (`renderEmailHtml`, `lib/email.ts`): the care notice and the four rotation emails now have the frame, Open Sans and the form-notice shape like the rest. A single Return is a new line in every template, in the `/admin/emails` editor, the preview and the inbox. `RIM_Email_Engineering.md` holds both rules.
+**Live from today:** teacher support said once (`TEACHER_SUPPORT`, `PROGRAM_DANA_SHARE`) on Donate, Home and registration; `/join` tells a signed-in member "You're already a member"; the agreements' "traditionally called sangha"; Diverse Together's and New to RIM's lines; "Who may benefit" and four new program lines in production; all ratified by Jesse. Earlier: every email through one renderer, and a single Return is a new line in templates.
 
 **Waiting on Jesse:**
-- **Two programs showing publicly that shouldn't** (production writes, his approval first): **Dummy Test Program** (archived 10-02, back on Programs & Events and every day of This Week, "TEST HERE"), and **Sacred Clarity**, dated March 16, 2026, still the only Immersion program (wrong date, or hide-when-past off). Next step: read both rows, find what brought the test program back, propose the fix.
-- **A skim of long templates in `/admin/emails`** for a line now breaking mid-sentence (the seeds were checked; the edited production bodies were not, because the read was blocked by Claude Code's auto-mode check). Or allow that read.
-- **Programs & Events and section differentiation: parked by Jesse** ("I'll think more about it and come back to it"). Mockup `mockups/programs-2026-10-14/`; backlog `2026-10-14-001` and `-002`. His sentence about the circled header ended at "The way that these are": ask.
-- **"Their message"** (the care notice's new heading) for his read-aloud.
+- **Teams before the sign-in note.** Only 13 people are on the 15 teams (Peer-Led Silent Meditation has two; Course Team none). LoriLee and Cindy gather who serves on each team; I add them in one approved batch (Member Registry → Hub memberships; silent until they sign in); then the drafted note goes out (address: rim-next.vercel.app until launch, help at support@). Not signed in yet: Stacy Isaacson, Daniela Oliveira, Wendy Peche. Program Central has no apps installed, so adding leads (Maria, Marne) gives no editing power.
+- **Which of his two addresses stays on teams** (iCloud on most; rootedinmindfulness.org on Dharma Lessons).
+- **Look at `/join` signed in** (the built-in browser here is signed out).
+- **The fundraiser's donation link** (December 5 gathering): waiting on the fundraising team.
+- **Sacred Clarity**, dated March 16, 2026, still the only Immersion program (wrong date, or hide-when-past off): read its row, propose the fix.
+- **A skim of long templates in `/admin/emails`** for a line now breaking mid-sentence (the edited production bodies weren't read), or allow that read.
+- **Programs & Events and section differentiation: parked** (mockup `mockups/programs-2026-10-14/`; backlog `2026-10-14-001`, `-002`). His sentence about the circled header ended at "The way that these are": ask.
+- **"Their message"** (the care notice's heading) for his read-aloud. Optional: Good Evening now says "close your day" twice.
 
 **Still open from October 13 (evening):** the signed-in look (a team Home's line; Files as a lead, Leads only, a move each way, a member's view; a form send and a profile save); the leads sort their files before launch (duplicates in Drive's trash until about November 12); the read-aloud of that evening's lines ("You don't need to do anything else", My Home's welcome, the Saved and error lines, `leads-files-update`); Flodesk (Zaps on until the domain moves, then delete the bot contacts; link programs already taking registrations to their segments); send the volunteer note ([Member List Cleanup](https://claude.ai/artifact/XsbNosdwgMutzK3ZtFDxzf)) and one test message through `/community-care-agreements/concern`; the open offer of a read-only count of registrations detached by the old sweep (`2026-10-13-003`); the October 12 rulings (one name for the agreements in the footer and "Practice with us"; whether the Library names Taking CARE; the cancellation line; the glossary `2026-10-12-002`; archived teams for the rare member; the "agreements updated" notice `2026-10-12-001`; Taking CARE Foundations' details).
 
 **Before launch (in order):**
 1. **Self-service email change** with verification, notice and history (`2026-10-12-003`, high); Flodesk can't change an address through its API.
 2. **Launch configuration:** Stripe live (`2026-09-24-001`); with the domain move, change `NEXTAUTH_URL` in Vercel in the same step; rotate the database password.
-3. **On the day the domain moves:** delete the bot contacts in Flodesk (Jesse); run Import members once more, then remove the tool, its rail link and `lib/legacyImport.ts`, delete `MEMBERSTACK_SECRET_KEY` in Vercel and the key in Memberstack (`2026-10-13-001`); export Webflow's Forms history; then cancel Zapier.
-4. **Delete the Dummy Test Program** and its test registrations (Jesse, 2026-10-14). Until then it is restored for Nancy and Maria's Zoom testing, hidden: off Programs & Events, This Week and the sitemap, Open entry off (so it shows on My Home only to its registrants, hosts and admins); the guest link still admits testers.
+3. **On the day the domain moves:** delete the bot contacts in Flodesk (Jesse); run Import members once more, then remove the tool, its rail link and `lib/legacyImport.ts`, delete `MEMBERSTACK_SECRET_KEY` in Vercel and the key in Memberstack (`2026-10-13-001`); export Webflow's Forms history; then cancel Zapier. (The old Webflow Donate page's "Teachers receive no payment or compensation" goes with it.)
+4. **Delete the Dummy Test Program** and its test registrations (Jesse, 2026-10-14). Until then it is restored for Nancy and Maria's Zoom testing, hidden: off Programs & Events, This Week and the sitemap, Open entry off (it shows on My Home only to its registrants, hosts and admins); the guest link still admits testers.
 5. **Watch the first real registration** create its Flodesk segment and the first member sign-in join Members (Vercel log).
 
-**Queued (backlog):** `2026-10-13-008` send a one-off email to a chosen group; `2026-10-13-005` a true "needs help" count on the Scheduler card; `2026-10-14-001`/`-002` (parked design). **Deploy watch:** if a push doesn't show in Vercel's Deployments within a few minutes, deploy it from the dashboard (Create Deployment → main).
+**Queued (backlog):** `2026-10-14-003` community calendars (high, right after launch); `2026-07-15-001` collaboration between teams (high, after launch; LoriLee's #11 and #15 folded in); `2026-10-13-008` a one-off email to a chosen group; `2026-10-13-005` a true "needs help" count on the Scheduler card. **Deploy watch:** if a push doesn't show in Vercel's Deployments within a few minutes, deploy it from the dashboard (Create Deployment → main).
 
 ## Still open from October 2 — categories, Open entry, and history and roots are live; the pages await Jesse's read-aloud
 
@@ -91,6 +95,7 @@ Other pending decisions: public Test Course/teacher profile data (`2026-09-02-00
 
 ## Recently completed / reference
 
+- LoriLee's review, teacher support stated once, `/join` for members, the teams read (2026-10-14, later): `session-log.md` 2026-10-14 (later); `RIM_Public_Pages.md` Copy and voice; `RIM_Auth.md`; `RIM_ProgramEditor.md`.
 - One email renderer, form-notice shape, template line breaks (2026-10-14): `session-log.md` 2026-10-14; `RIM_Email_Engineering.md` ("The look").
 - Form inboxes, the answer rule, team Home simplified, Leads only (2026-10-13 evening): `session-log.md` 2026-10-13 (evening); `RIM_Hub_Engineering.md`; `RIM_GoogleWorkspace.md` §12.
 - Category and Format, Open entry, history and roots (2026-10-02, later): `session-log.md` 2026-10-02 (later); `RIM_Public_Pages.md` ("The three ways, Category and Format, and Open entry"; "Our way of practice, and our roots"); `RIM_Offering_Model.md`; `RIM_ProgramEditor.md`.

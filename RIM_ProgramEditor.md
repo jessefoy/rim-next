@@ -94,6 +94,8 @@ Both live on the Schedule tab: Session note with the place, Notice and Show unti
 
 `/foundations` redirects to the current Foundations program (`RIM_System_Architecture.md`, "/foundations resolves to the program"). The editor has no "primary Foundations" setting: a program filed under Foundations and not archived is the one the address lands on, soonest-dated first. Pitfall: filing a test program under Foundations moves the public address (Sacred Clarity did, during the 2026-10-09 category test, until it went back to Immersion).
 
+**A test program kept out of sight (2026-10-14).** Restore on the Archived tab (`POST action: "restore"`, `app/api/programs-pg/[slug]/route.ts`) is the only thing that clears `archivedAt`; saving from the editor never does. An archived program can't be tested (the Zoom entry refuses it), so a program kept for testing is restored and hidden instead: "Hide from public Programs & Events page" (which also removes it from This Week and the sitemap), and **Open entry off**, because open entry puts it in every member's Today on My Home; with it off, Today shows it only to its registrants, hosts, teachers and admins. Open access (the guest link) can stay on for testers. The Dummy Test Program is kept this way for Zoom testing until it is deleted before launch.
+
 ### Preparation-note placement (September 2026)
 
 The existing `earlyArrivalMessage` field now renders as Good to know beside the relevant Today offering in the member dashboard. Public catalog and weekly cards omit it. `specialAnnouncement` remains a visible Update both publicly and on the member session. No editor field, registration, Zoom, or scheduler behavior changed.

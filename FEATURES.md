@@ -75,6 +75,14 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Page titles** on public pages use the home page's hyphen; the approved `RIM_MISSION` and the final `RIM_WHAT_BINDS` are live.
 - **All of this copy is provisional until Jesse's read-aloud.**
 
+## October 14, 2026 (later): a volunteer's review, ruled
+
+- **Teacher support is stated once** (`TEACHER_SUPPORT`, `PROGRAM_DANA_SHARE` in `lib/communityAgreements.ts`) and read by Donate, Home's Dana section and the registration dana step: the guiding teacher's modest salary for leading the center, all teaching supported through the Teaching Fund, program dana shared equally between RIM and the fund.
+- **`/join` tells a signed-in member** "You're already a member" with Go to My Home, instead of redirecting silently (it read as a broken "Become a member" link). See `RIM_Auth.md`.
+- **Copy:** the agreements say "the life of our community, traditionally called sangha"; Diverse Together closes "help us become that community"; New to RIM places the donation bowl in the entryway to the community room. Program descriptions (data): "Who may benefit" on every live program, and new lines for Essential Dharma Study, Good Morning, Good Evening and The Art of Meditation. All ratified by Jesse's read-aloud or his own wording.
+- **The Dummy Test Program** is kept for Zoom testing, hidden from Programs & Events, This Week, the sitemap and other members' My Home (Open entry off); it is deleted before launch.
+- **Queued:** community calendars (high, after launch); collaboration between teams (shared files and places, high, after launch). See `data/backlog.json`.
+
 ## October 14, 2026: every email in one look
 
 - **One renderer for every email** (`renderEmailHtml` in `lib/email.ts`): templated and hand-written sends, and the `/admin/emails` preview, all get the Flodesk-matched frame and the Open Sans text style together. The "If harm happens" notice (which showed in the mail app's default font) and the four standing-rotation emails (which had no frame at all) now match the rest. Open Sans is linked as a web font and set on each paragraph, so Apple Mail and iPhone show it and Gmail keeps the size and spacing.

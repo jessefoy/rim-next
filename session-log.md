@@ -1,3 +1,44 @@
+## 2026-10-14 (later) — LoriLee's review, ruled item by item: teacher support said once, a member at /join is told so, program text, the teams on record
+
+On `main`: `6063bf5` (code and copy), `bd73e7b` (backlog), `e0bf9e4` and `810a2a8` (Copy and voice rulings), `36a3ad4` (UP_NEXT), and this closing. Production: reads on Jesse's request (the dummy program, every program's text, every team's roster with emails); writes, each approved by Jesse, each with a snapshot, a drift check, one transaction and a whole-table diff: 11 programs (the dummy archived, ten descriptions), then the dummy restored hidden (four fields), then The Art of Meditation's line. Snapshots are in the session scratchpad; the one-time scripts were deleted after they ran.
+
+### The review
+
+LoriLee (a volunteer) sent "Vercel Questions for Jesse v.0.14.26" (PDF, 18 notes, with screenshots). Each note was checked against the live site, the code and the docs before it was rated, and four came out differently from how she read them: the "Become a member" link was not broken (a signed-in member was silently redirected); "Teachers receive no compensation" is not on the new site (it is on the old Webflow Donate page, still live at rootedinmindfulness.org: "RIM Teachers receive no payment or compensation from RIM for offering classes…"; the three Givebutter campaigns carry no description at all); the Awakening Retreat page 404s (archived, past); and adding leads to Program Central looked like it could grant Program Manager editing (`hasToolAccess` gives every ACTIVE member a team's installed tools) until the roster read showed Program Central has **no apps installed**, so adding leads is safe. Jesse then ruled every item one at a time (his request: "Go through these one by one"), and sent LoriLee his own version of the drafted reply.
+
+### Built and live
+
+- **Teacher support is said once** (Jesse: *"It's accurate, but this needs to be consistent on the website."*). `TEACHER_SUPPORT` and `PROGRAM_DANA_SHARE` in `lib/communityAgreements.ts`, read by Donate (the Teaching Fund card; "How program gifts work", which said "Half of every program gift goes to the Teaching Fund and half to RIM"), Home's Dana section (which said "RIM pays for our center and its operating costs. Our teachers' livelihood depends on dana as well."; now "Gifts to RIM pay for the center and its operating costs." and the shared sentences) and the registration dana step.
+- **`/join` for a signed-in member** says "You're already a member" with Go to My Home, instead of redirecting silently (*nothing fails silently*). Mid-threshold accounts still redirect. `/login`'s silent redirect is kept on purpose. See `RIM_Auth.md`.
+- **Care for RIM** (the agreements, five surfaces): "the life of our community, traditionally called sangha." Jesse's phrasing becomes a pattern: *"when we use common terms like this, 'common to the center,' we can say stuff like 'the life of our community, traditionally called sangha.'"* LoriLee's "without donations" was declined ("it" already points to financial support; "donations" makes dana a transaction). Other uses of "sangha" are already glossed in place.
+- **Diverse Together**: "Come as you are, and help us become that community." (her rewrite declined: it dropped "on this path that is good news" and said "becoming" twice). **New to RIM**: the bowl is "in the entryway to the community room."
+- **Program text (production)**: "Who may benefit" heads every live program (it was "Who it's for", and LoriLee's own "Who this class is for" on Awakening the Heart; Taking CARE Foundations' "Who it is for"); Essential Dharma Study, her wording, "Build meaningful connections with fellow practitioners (kalyana mitta, spiritual friendship)"; Good Morning "Ease into your day with thirty minutes of quiet meditation."; Good Evening "Close your day with thirty minutes of quiet meditation and reflection." (its later "close your day from a quieter place" now repeats the phrase; Jesse approved as is); The Art of Meditation "Learn how meditation and mindful living support each other, and what each offers on its own" (by read-aloud, on Jesse's teaching: *"there are two things: there's meditation and mindful living practice. They both support one another, and they both have their own benefits."*).
+- **Ratified by read-aloud** the same afternoon: Home's sentence, Donate's sentence, the `/join` page, the Art of Meditation line.
+- **Declined**: "only" in "it takes a few minutes"; "CARE" capitalized in the home hero (the handout's sentence stays verbatim; "care" is the verb).
+
+### The Dummy Test Program
+
+It had been archived on October 2 and was back on Programs & Events, every day of This Week and everyone's My Home. The record showed `archivedAt` empty; only Program Manager's **Restore** button clears it (`app/api/programs-pg/[slug]/route.ts:71`), not an editor save, so no code bug: Nancy and Maria had asked Jesse to restore it on October 9 to test Zoom. It was archived this afternoon, which stopped their Zoom entry (`/enter` refuses archived programs), so it was **restored hidden**: Hide from Programs & Events and from This Week on, **Open entry off** (My Home's Today shows it only to its registrants, hosts and admins), open access (the guest link) still on. It is gone from the catalog, both weeks and the sitemap; its own page answers. **Jesse: delete it before launch** (on the launch list).
+
+### The teams, read
+
+Every team's roster was read for Jesse (file in the session scratchpad, with emails for pasting): **13 people across 15 teams**; Peer-Led Silent Meditation (Good Morning and Good Evening) has two (Jesse, Nancy); Course Team none. Not signed in: Stacy Isaacson, Daniela Oliveira, Wendy Peche. Jesse has two accounts on teams (iCloud on most; rootedinmindfulness.org on Dharma Lessons). The sign-in note to the teams is drafted; the order matters: people go onto their teams first (Member Registry → Hub memberships; silent until they sign in), then the note.
+
+### Decisions and why
+
+- **One source for teacher support**, like `RIM_VISION`: three pages had drifted into three accounts of the same fact.
+- **Collaboration between teams is one design question, after launch** (Jesse: *"I don't want the teams to get too messy, but it's also good for teams to have places to work and share together… Needs to be thoughtfully done."*). LoriLee's #11 (share documents) and #15 (Program Central) fold into backlog `2026-07-15-001`, now high. Seeing what's coming (read-only) is a different need from working together.
+- **Community calendars, several, high priority right after launch** (backlog `2026-10-14-003`).
+- **The fundraiser's donation link waits on the fundraising team.**
+
+### What this connects to
+
+`lib/communityAgreements.ts` (now also the teacher-support source; five agreement surfaces), Donate and its Givebutter widgets, the registration form's dana step, Home's Dana section, the `/join` door and the `(authenticated)` gate (`RIM_Auth.md`), Program Manager's Archived tab and Restore action, Open entry and My Home's Today rule, the Zoom entry gate, the hide flags and the sitemap, `hasToolAccess` and hub app links (`lib/toolAuth.ts`), the Member Registry's Hub memberships and the pre-threshold email gate, and `RIM_Public_Pages.md` → Copy and voice.
+
+### Next
+
+Jesse: look at `/join` signed in; send the teams note once LoriLee and Cindy have sent names and they are on their teams (one approved batch); choose which of his two addresses stays on teams; the fundraiser link when the team answers. Before launch: delete the Dummy Test Program.
+
 ## 2026-10-14 — every email in one look, line breaks in templates, and a Programs & Events study (parked)
 
 On `main`: `671ca9d` (one renderer, the care notice's shape), `7d8d8bc` (a single Return is a new line), `4884514` and `e87faee` (the programs mockup). A reviewer sub-agent gated the email change (no correctness findings; its one note, juice loading on every `auth()` route, was taken: juice is loaded on send again). Production: no reads, no writes (a read-only look at the template bodies was blocked by Claude Code's auto-mode safety check; not retried another way).
