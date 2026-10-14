@@ -1,3 +1,49 @@
+## 2026-10-14 (evening) — Outside meeting rooms: a program can meet in someone else's Zoom; LoriLee's guide
+
+On `main`: `41e305e` (the feature, with the review's fixes), `fedbecd` (backlog `2026-10-14-004` and a date correction), and this closing. Production: one read-only look, on Jesse's approval (a `SELECT 1` probe, then the old `zoomLink`/`meetHostAccount` values across all programs and the two programs' settings). No production writes. Deployed and checked: This Week, Programs & Events and both program pages answer 200 with the new columns in place (the migration ran).
+
+### The question
+
+Jesse: *"do we have the ability to add an outside Zoom link? … Our Hearts Were Made For This, Recovery Dharma, etc. Have external links. Are not part of our system … the code to claim host would not be applicable."* There was no such ability. `Program.zoomLink` existed but nothing read it, and every virtual program got a RIM-made meeting on a pool seat with the Claim-Host code. Neither program had ever opened a RIM meeting (0 `SessionMeeting` rows), so their people were joining from links shared elsewhere.
+
+### What the read found
+
+`zoomLink` holds old-site links on **9** programs, five of them RIM's own Zoom programs today (The Art of Meditation, Meditation and Dharma Talk, Qigong, Awakening the Heart, Essential Dharma Study) and two old Google Meet links (Private Teacher Meetings, Sacred Clarity). Reusing it as the switch would have sent those members into dead rooms on deploy, so the outside link got its own empty column. The old site's archive showed Recovery Dharma's link sat behind the member dashboard (a "waiting room" page), never on a public page.
+
+### Built and live
+
+- **`Program.outsideMeetingUrl`** (null = RIM's Zoom) and **`outsideMeetingPublic`**, additive in `prisma/migrate.mjs` (no backfill, no flag). **`lib/outsideMeeting.ts`**: https-only validation shared by the editor, both save routes and the door (re-checked at read time), the service name from the address (Zoom, Google Meet, Teams, or "Online"), and the labels.
+- **The door** (`/session/[slug]/enter`): every gate as before (sign-in or guest key, archived, in-person, the session window, registration or Open entry), then everyone, hosts too, goes to the outside link through `ZoomLaunch`. No meeting, no seat, no host code, no recording. A signed-out visitor outside the window now sees "You can join from 9:00 AM on Sunday, …" instead of a silent bounce to the program page (guest links too).
+- **The public option goes through the door.** Jesse, mid-build: *"It still follows the schedule availability, correct? … if they get there early, they can't log in."* So "Anyone may join from the public program page" adds a Join button to the program page that admits visitors without an account, still only in the window, and the outside link is never printed. Never on a program that takes registrations (editor, PUT/POST, the page and the door agree).
+- **Program Manager, Hosting & Access:** "Where it meets online" (RIM's Zoom / An outside meeting link), the link field with its error beside it, the public checkbox (greyed out with registration on), and a live **Who can get in** readout (members, people without an account, the program page, the timing from the shared constants, and a nudge to No host needed). Recording hidden for outside rooms; the guest link's help now says it leads into whichever room the program uses (and its checkbox now marks the editor unsaved, which it didn't).
+- **Seats:** saving a program into an outside room tears down its future RIM meetings; the seat-conflict check leaves outside rooms out.
+- **Labels everywhere name the service:** My Home (Today and Coming up), the program page, This Week, Programs & Events, the Kalyana Mitta groups page, the register and thank-you pages ("Zoom Only" becomes "Google Meet Only" or "Online Only" as the link says).
+- **Harness:** `scripts/check-member-redesign.cjs` loads the new helper and checks it (unsafe links refused, lookalike domains, My Home's label and door link, the link never printed): 100 pass.
+
+### Review
+
+A reviewer sub-agent found no blocking bugs and ten findings; fixed before the push: the listings' "Zoom" labels, the hybrid public button promising "Simply arrive" without Open entry, the readout wrong when public was on without Open entry, an in-person save failing on an unseen invalid link, the server not enforcing "no public with registration", two comments saying the link is printed, the door not re-checking a stored link, and the disabled checkbox's reason not tied to it. Left as is: a meeting already open when a program moves outside keeps its seat until it ends (deleting it could cut off a host); a banned member could come in signed out through a public or guest link (already true of guest links; nothing writes bans since LiveKit).
+
+### For LoriLee
+
+A registrar's guide was published as a private page ([Outside Meeting Links](https://claude.ai/artifact/XyEZPshu1FSxDRJ2SDhjTT)), then, at Jesse's request (*"it'll be easier to share"*), a five-page letter-size PDF addressed to LoriLee in his voice: a note asking her to add the links, a checklist per program (Recovery Dharma: members only through RIM, guest link off; Our Hearts: guest link stays on, public box unchecked unless Jesse and Sara decide), then the how-to. Made by printing HTML with headless Chrome and checked page by page (a Swift/PDFKit render, since poppler isn't installed). Jesse, seeing it: *"this would be nice to have in the app if people have questions"*: backlog `2026-10-14-004`, in-app help guides.
+
+### Decisions and why
+
+- **RIM is the door, the outside meeting is the room.** "RIM orchestrates" holds even when the room isn't ours: the same gates, the same window, one Join path for members.
+- **A new column, not `zoomLink`**: measured before reused (9 stale values).
+- **The public option is a door, not a printed link**, so the schedule holds (Jesse's question). The honest limit, said in the editor and the guide: whoever already has the outside link can use it whenever its owner allows.
+- **The choice is derived from the stored link**, so nothing can disagree with it; an in-person program keeps its link (readers ignore it) so switching back loses nothing.
+- **Nothing changes for current attendees** (Jesse: *"I don't really talk to these members much, so I don't want to mess anything up"*): RIM adds a door; the outside room and its link are untouched.
+
+### What this connects to
+
+The Zoom entry and its gates (`RIM_Zoom.md`, "Outside rooms"), the seat pool and `lib/sessionConflicts.ts`, `lib/sessionMeeting.ts` teardown, the guest link (`isOpenAccess`), Open entry and registration, No host needed and the Scheduler, the Program Manager's Hosting & Access tab and its readouts (`RIM_ProgramEditor.md`), My Home's Today and Coming up, the program page's next-step block, the listing label `fmtLabel` / `buildSubtitle` (catalog, This Week, KM groups, register, thank-you), the member harness.
+
+### Next
+
+LoriLee adds the two programs' current links (the PDF). Jesse reads the PDF's note before sending, and looks at the new Hosting & Access section signed in when the first link goes in. New public words for his ear: "Join on Zoom →" on a public program page, "You can join from [time] on [day], Central Time.", "Sign in to find the meeting link →".
+
 ## 2026-10-14 (later) — LoriLee's review, ruled item by item: teacher support said once, a member at /join is told so, program text, the teams on record
 
 On `main`: `6063bf5` (code and copy), `bd73e7b` (backlog), `e0bf9e4` and `810a2a8` (Copy and voice rulings), `36a3ad4` (UP_NEXT), and this closing. Production: reads on Jesse's request (the dummy program, every program's text, every team's roster with emails); writes, each approved by Jesse, each with a snapshot, a drift check, one transaction and a whole-table diff: 11 programs (the dummy archived, ten descriptions), then the dummy restored hidden (four fields), then The Art of Meditation's line. Snapshots are in the session scratchpad; the one-time scripts were deleted after they ran.

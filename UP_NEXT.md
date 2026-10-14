@@ -1,10 +1,18 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-14 (later, closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-14 (evening, closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-14 closed: LoriLee's review ruled and live; every email in one look
+## Active — 2026-10-14 closed: outside meeting rooms live; LoriLee's review ruled and live; every email in one look
 
-Everything is on `main` (`6063bf5` … the closing docs). Narrative: `session-log.md`, 2026-10-14 (later) and 2026-10-14.
+Everything is on `main` (`6063bf5` … `41e305e`, `fedbecd`, the closing docs). Narrative: `session-log.md`, 2026-10-14 (evening), (later) and 2026-10-14.
+
+**Live from this evening: outside meeting rooms.** Program Manager → Hosting & Access → "Where it meets online": RIM's Zoom, or an outside link (`Program.outsideMeetingUrl`), with the public Join option and a "Who can get in" readout. The door keeps every gate and the window, then forwards; no seat, no host code. `RIM_Zoom.md` → "Outside rooms". **No program uses it yet.**
+
+**Waiting from this evening:**
+- **LoriLee adds the two links** (Recovery Dharma: members only, guest link off; Our Hearts Were Made for This: guest link stays on, public box unchecked unless Jesse and Sara decide). Jesse has the five-page PDF for her (in the session scratchpad, not the repo); **read its note before sending**, it is in his voice. The same guide is a private page: [Outside Meeting Links](https://claude.ai/artifact/XyEZPshu1FSxDRJ2SDhjTT) (its "Ready to set up" table predates the LoriLee note).
+- **Look at the new Hosting & Access section signed in** when the first link goes in (never seen signed in; verified by tsc, the harness and review). Then press Join at the next Sunday session to see the forward.
+- **Read-aloud, the new public lines:** "Join on Zoom →" (a public program page), "You can join from [time] on [day], Central Time." (the door, early), "Sign in to find the meeting link →".
+- **Queued:** in-app help guides (`2026-10-14-004`, from this guide); drop the old `zoomLink` / `meetHostAccount` columns (`2026-10-14-005`).
 
 **Live from today:** teacher support said once (`TEACHER_SUPPORT`, `PROGRAM_DANA_SHARE`) on Donate, Home and registration; `/join` tells a signed-in member "You're already a member"; the agreements' "traditionally called sangha"; Diverse Together's and New to RIM's lines; "Who may benefit" and four new program lines in production; all ratified by Jesse. Earlier: every email through one renderer, and a single Return is a new line in templates.
 

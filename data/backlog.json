@@ -1871,5 +1871,15 @@
     "status": "open",
     "addedAt": "2026-10-14",
     "notes": "Jesse, 2026-10-14, looking at the registrar's guide: \"this would be nice to have in the app if people have questions, stuff like this. Let's put this on our to-do.\" Open questions for the build: where guides live (a help panel per tool, or a Help page in the account rail), who edits them (in code, or an editable admin surface), and keeping them in step with the per-tool docs (RIM_ProgramEditor.md, RIM_Zoom.md)."
+  },
+  {
+    "id": "2026-10-14-005",
+    "title": "Drop the old-site zoomLink and meetHostAccount columns",
+    "description": "Program.zoomLink and Program.meetHostAccount came from the old site and nothing reads them. zoomLink still holds links on 9 programs, some with passcodes, five of them RIM's own Zoom programs today; keeping stale meeting links (and passcodes) in the database invites someone to reuse them. Remove them two-phase: code and schema first, then the column drop in a flag-guarded migrate.mjs block once the deploy is verified.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-14",
+    "notes": "Found 2026-10-14 (evening) while building outside meeting rooms, which use their own column (outsideMeetingUrl) for exactly this reason. Check first that nothing outside the app (an export, a report) still reads them."
   }
 ]

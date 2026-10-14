@@ -75,6 +75,14 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Page titles** on public pages use the home page's hyphen; the approved `RIM_MISSION` and the final `RIM_WHAT_BINDS` are live.
 - **All of this copy is provisional until Jesse's read-aloud.**
 
+## October 14, 2026 (evening): outside meeting rooms
+
+- **A program can meet in someone else's room** (Recovery Dharma's national room, a facilitator's own Zoom). Program Manager → Hosting & Access → **Where it meets online**: RIM's Zoom (the default) or **An outside meeting link** (`Program.outsideMeetingUrl`, https only, `lib/outsideMeeting.ts`). Join still goes through `/session/[slug]/enter` with every gate (sign-in or guest link, the session window, registration or Open entry), then forwards to the link: no RIM meeting, no seat, no host code, no recording. Saving into an outside room frees the program's future seats; the seat-conflict warning leaves it out.
+- **Who gets in** is three settings, described live in the editor's **Who can get in** box: members through My Home; the guest link; and **Anyone may join from the public program page** (`outsideMeetingPublic`), a Join button through the door, so session times hold and the link is never printed. Not for programs that take registrations.
+- **Labels name the service** on My Home, the program page, This Week, Programs & Events, the KM groups page and the register and thank-you pages ("Join on Google Meet", "Online Only").
+- A signed-out visitor who arrives early now sees when the room opens, instead of being sent back to the program page.
+- Set up for Recovery Dharma and Our Hearts Were Made for This once LoriLee adds their current links. See `RIM_Zoom.md`, "Outside rooms"; `RIM_ProgramEditor.md`.
+
 ## October 14, 2026 (later): a volunteer's review, ruled
 
 - **Teacher support is stated once** (`TEACHER_SUPPORT`, `PROGRAM_DANA_SHARE` in `lib/communityAgreements.ts`) and read by Donate, Home's Dana section and the registration dana step: the guiding teacher's modest salary for leading the center, all teaching supported through the Teaching Fund, program dana shared equally between RIM and the fund.
