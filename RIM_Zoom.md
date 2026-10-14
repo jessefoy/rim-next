@@ -144,6 +144,34 @@ Host identity comes from the **same `HostAssignment` / `resolveSessionRole`** th
 LiveKit room used — the Hosting Hub/Scheduler is unchanged. The only Zoom-specific
 change was the link *targets*.
 
+## Outside rooms (2026-10-15)
+
+Some programs meet in someone else's room: Recovery Dharma's national room, or a
+facilitator's own Zoom that she also shares with another group. `Program.outsideMeetingUrl`
+holds that link (null = RIM's Zoom; https only, validated by `cleanOutsideMeetingUrl` in
+`lib/outsideMeeting.ts`, which the editor and both save routes share). It is **not** the
+old-site `zoomLink` column, which still holds stale links on 9 programs (five of them RIM's
+own Zoom programs today) and is read by nothing.
+
+For a virtual/hybrid program with an outside link, `/enter` runs **every gate as usual**
+(sign-in or guest key, archived, the time window, registration or Open entry), then forwards
+everyone, hosts and teachers included, to the link through `ZoomLaunch` (which names the
+service: Zoom, Google Meet, Teams, or "the meeting"). No `SessionMeeting`, no seat, no
+Claim-Host code, no recording. The seat-conflict check (`lib/sessionConflicts.ts`) leaves
+these programs out, and saving a program into an outside room tears down its future RIM
+meetings so the seats come free.
+
+Who gets in is three settings together, explained live in the editor's "Who can get in"
+readout: members through My Home (by Open entry or registration); the guest link
+(`isOpenAccess`), a RIM address to share; and **`outsideMeetingPublic`**, a Join button on the
+public program page for anyone without an account. That button goes **through the door**, so
+the session window still holds and the outside link is never printed by RIM (Jesse,
+2026-10-15: "if they get there early, they can't log in"). It is never offered on a program
+that takes registrations (editor, PUT/POST and `/enter` all agree). A signed-out guest outside
+the window now sees a page saying when the room opens, instead of a silent bounce to the
+program page. The honest limit, said in the editor: someone who already has the outside link
+itself can use it whenever its owner allows.
+
 ## Self-heal (why re-entry is reliable)
 
 `getMeeting` on entry both fetches the join link **and** verifies the meeting. The

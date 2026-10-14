@@ -250,8 +250,15 @@ model Program {
   venue               String           @default("at-rim")    // "at-rim" | "other"
   locationText        String?
   locationLink        String?
-  zoomLink            String?
-  meetHostAccount     String?
+  zoomLink            String?          // OLD SITE, unread: stale links on 9 programs. Not the outside room; see outsideMeetingUrl.
+  meetHostAccount     String?          // OLD SITE, unread.
+  // Outside room (2026-10-15): the program meets in someone else's meeting
+  // (Recovery Dharma's, a facilitator's own Zoom). Null = RIM's Zoom. When set
+  // (and the program is virtual/hybrid), /session/[slug]/enter forwards to it
+  // after its usual gates, and RIM creates no meeting, uses no seat and shows
+  // no host code. lib/outsideMeeting.ts validates it (https only).
+  outsideMeetingUrl    String?
+  outsideMeetingPublic Boolean @default(false) // a Join button on the public program page for anyone, through the door (session times hold; the link is never printed). Never with registration.
   calendarEventId     String?
   livekitRoom         String?   // session-room marker: set to the slug for virtual/hybrid programs. Vestigial name from the retired in-browser LiveKit room (session 159) — now just signals "this program has a session." Rename pending (backlog).
   recordByDefault     Boolean   @default(false) // Zoom: auto-record this program's sessions to the cloud. Audio-only / per-speaker tracks depend on the pool seats' cloud-recording settings in Zoom (set once in the Zoom console).

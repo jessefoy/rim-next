@@ -17,6 +17,7 @@ import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
 import { cleanOffering, resolveOffering } from "@/lib/programOffering";
 import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
 import { getFlodeskSegment } from "@/lib/flodesk";
+import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 
 export async function GET(
   _req: NextRequest,
@@ -231,6 +232,25 @@ export async function PUT(
     }
   }
   if (body.recordByDefault !== undefined) data.recordByDefault = body.recordByDefault !== false;
+  // Outside room: https only, or empty for RIM's Zoom. A request that leaves
+  // it out leaves it as stored. "Anyone may join from the public page" means
+  // nothing without a link, so it is cleared with the link.
+  if (body.outsideMeetingUrl !== undefined) {
+    const outside = cleanOutsideMeetingUrl(body.outsideMeetingUrl);
+    if (!outside.ok) {
+      return NextResponse.json({ error: outside.error }, { status: 422 });
+    }
+    data.outsideMeetingUrl = outside.value;
+    if (!outside.value) data.outsideMeetingPublic = false;
+  }
+  if (body.outsideMeetingPublic !== undefined && data.outsideMeetingPublic === undefined) {
+    if (typeof body.outsideMeetingPublic !== "boolean") {
+      return NextResponse.json({ error: "Public joining must be on or off." }, { status: 422 });
+    }
+    data.outsideMeetingPublic =
+      body.outsideMeetingPublic &&
+      !!(data.outsideMeetingUrl !== undefined ? data.outsideMeetingUrl : existing.outsideMeetingUrl);
+  }
   if (body.venue !== undefined) data.venue = body.venue;
   if (body.locationText !== undefined) data.locationText = body.locationText || null;
   if (body.locationLink !== undefined) data.locationLink = body.locationLink || null;
@@ -244,6 +264,11 @@ export async function PUT(
   if (body.registrationClosed !== undefined) data.registrationClosed = body.registrationClosed;
   if (body.registrationCapacity !== undefined) data.registrationCapacity = body.registrationCapacity != null ? Number(body.registrationCapacity) : null;
   if (body.registrationDeadline !== undefined) data.registrationDeadline = centralToUtc(body.registrationDeadline);
+  // "Anyone may join from the public page" is never kept on a program that
+  // takes registrations (the editor, this route, the page and /enter agree).
+  if ((data.registrationEnabled ?? existing.registrationEnabled) === true) {
+    data.outsideMeetingPublic = false;
+  }
   if (body.registrationFields !== undefined) data.registrationFields = body.registrationFields || undefined;
   if (body.confirmationMessage !== undefined) data.confirmationMessage = body.confirmationMessage || undefined;
   if (body.reminderDate !== undefined) data.reminderDate = centralToUtc(body.reminderDate);
@@ -435,7 +460,12 @@ export async function PUT(
       .catch((e) => console.error("[programs-pg] Zoom meeting slug move failed", e));
   }
 
-  if (leftVirtual || scheduleMoved) {
+  // (e) movedOutside — the program now meets in someone else's room, so the
+  //     RIM meetings already made for it would only hold seats. Same teardown.
+  const movedOutside =
+    stillVirtual && !!data.outsideMeetingUrl && !existing.outsideMeetingUrl;
+
+  if (leftVirtual || scheduleMoved || movedOutside) {
     after(async () => {
       try {
         const n = await teardownProgramMeetings(updated.slug, {
@@ -446,7 +476,7 @@ export async function PUT(
         });
         if (n > 0)
           console.log(
-            `[programs-pg] tore down ${n} future Zoom meeting(s) for ${updated.slug} (${leftVirtual ? "left virtual/hybrid" : "schedule changed"})`,
+            `[programs-pg] tore down ${n} future Zoom meeting(s) for ${updated.slug} (${leftVirtual ? "left virtual/hybrid" : movedOutside ? "moved to an outside room" : "schedule changed"})`,
           );
       } catch (e) {
         console.error("[programs-pg] Zoom teardown error:", e);

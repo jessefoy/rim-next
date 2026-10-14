@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramCardNotices from "@/components/ProgramCardNotices";
 import { hasOpenEntry } from "@/lib/programOffering";
+import { fmtLabel } from "@/lib/programUtils";
 import PracticeWithUs from "@/components/PracticeWithUs";
 import { formatTimeRange } from "@/lib/dateLabel";
 import { activeAnnouncement, isOccurrenceOnDate, type ScheduleProgram } from "@/lib/scheduleUtils";
@@ -48,15 +49,6 @@ function toDateStr(d: Date): string {
 
 function formatShortDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-}
-
-function fmtLabel(fmt: string | null): string {
-  switch (fmt) {
-    case "virtual":  return "Zoom Only";
-    case "hybrid":   return "In-Person & Zoom";
-    case "in-person": return "In-Person";
-    default:         return fmt ?? "";
-  }
 }
 
 /**
@@ -225,7 +217,7 @@ export default async function ThisWeekPage({
                 <div className="pl-grid">
                   {dayPrograms.map((program) => {
                     const time = buildTimeLabel(program);
-                    const format = fmtLabel(program.programFormat);
+                    const format = fmtLabel(program.programFormat, program.outsideMeetingUrl);
                     // The Drop-in mark follows the program's Open entry setting
                     // (access), not its Format, which is only a label.
                     const isDropIn = hasOpenEntry(program);

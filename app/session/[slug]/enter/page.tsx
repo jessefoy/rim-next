@@ -13,6 +13,13 @@
  *     the team can step in if the designated host doesn't show). Everyone joins
  *     under their own name; whoever takes the host role types the code in Zoom.
  *
+ * An outside room (Program.outsideMeetingUrl: Recovery Dharma's, a
+ * facilitator's own Zoom) passes the same gates, then forwards everyone,
+ * hosts included, to that link: RIM creates no meeting, takes no seat and
+ * shows no host code. When its program also chose "anyone may join from the
+ * public page" (outsideMeetingPublic), the door admits visitors without an
+ * account, still only during the session window. See lib/outsideMeeting.ts.
+ *
  * Registration is checked here as well as on My Home: a registration-required
  * program admits its registrants (plus hosts, teachers, ADMIN/GT), using the
  * same rule the dashboard uses to show Join. Guests come via the shared
@@ -32,6 +39,7 @@ import { roomNameForProgram, sessionDisplayName } from "@/lib/sessionIdentity";
 import { FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
 import { hasOpenEntry } from "@/lib/programOffering";
+import { meetingServiceName, outsideRoomUrl } from "@/lib/outsideMeeting";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +82,8 @@ export default async function ZoomEnterPage({
       archivedAt: true,
       registrationEnabled: true,
       openEntry: true,
+      outsideMeetingUrl: true,
+      outsideMeetingPublic: true,
       category: { select: { slug: true, kind: true } },
     },
   });
@@ -109,7 +119,13 @@ export default async function ZoomEnterPage({
     program.isOpenAccess &&
     !!program.guestAccessKey &&
     guestKey === program.guestAccessKey;
-  const isValidGuest = !userId && hasValidKey;
+  // An outside room whose program chose "anyone may join from the public
+  // page" is open the same way, without a key. Never for a program that takes
+  // registrations (the editor offers it only without registration).
+  const outsideUrl = outsideRoomUrl(program);
+  const publicDoor = !!outsideUrl && program.outsideMeetingPublic && !program.registrationEnabled;
+  const hasPass = hasValidKey || publicDoor;
+  const isValidGuest = !userId && hasPass;
   if (!userId && !isValidGuest) redirect("/login");
 
   // ── Time-window gate (ADMIN/GT bypass, mirroring the LiveKit token route).
@@ -143,8 +159,19 @@ export default async function ZoomEnterPage({
       />
     );
   } else {
-    // Guests have no dashboard; the program page shows when it meets.
-    redirect(`/programs/${slug}`);
+    // Guests have no dashboard: say when the room opens, and point to the
+    // program page, rather than bouncing them there without a word.
+    return (
+      <EnterNotice
+        title="This session isn't open right now"
+        body={
+          win.nextOpensAt
+            ? `You can join from ${fmtOpensAt(win.nextOpensAt)}, Central Time.`
+            : "It has no upcoming sessions. The program page has the details."
+        }
+        primary={{ href: `/programs/${slug}`, label: "See the program page" }}
+      />
+    );
   }
   const sessionDate = new Date(sessionDateIso);
 
@@ -199,7 +226,7 @@ export default async function ZoomEnterPage({
       userId &&
       !canHostHere &&
       !isAdminOrGT &&
-      !hasValidKey &&
+      !hasPass &&
       !hasOpenEntry(program)
     ) {
       const occurrenceDay = ctDateStr(sessionDateIso);
@@ -251,6 +278,14 @@ export default async function ZoomEnterPage({
         primary={{ href: `/programs/${slug}`, label: "See the program page" }}
         secondary={{ href: "/account/dashboard", label: "Back to My Home" }}
       />
+    );
+  }
+
+  // An outside room: everyone who passed the gates goes straight to it. No RIM
+  // meeting, no seat, no host code: the room is someone else's.
+  if (outsideUrl) {
+    return (
+      <ZoomLaunch url={outsideUrl} programName={program.name} service={meetingServiceName(program)} />
     );
   }
 
@@ -501,6 +536,13 @@ function EnterNotice({
       </div>
     </div>
   );
+}
+
+/** "9:00 AM on Sunday, October 19", in Central Time. */
+function fmtOpensAt(d: Date): string {
+  const time = d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "long", month: "long", day: "numeric" });
+  return `${time} on ${day}`;
 }
 
 /**

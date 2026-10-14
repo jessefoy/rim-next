@@ -10,6 +10,7 @@ import AccountLayout from "@/components/AccountLayout";
 import FormDone from "@/components/FormDone";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 import HostWelcomePanel from "@/components/HostWelcomePanel";
+import { joinOnlineLabel, onlinePhrase, onlinePlaceLabel, outsideRoomUrl } from "@/lib/outsideMeeting";
 
 export const metadata = { title: "My Home - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -92,7 +93,7 @@ export default async function DashboardPage({ searchParams }: {
           startDatetime: true, endDatetime: true,
           recurrenceFreq: true, recurrenceInterval: true,
           recurrenceDays: true, recurrenceCount: true,
-          programFormat: true, earlyArrivalMessage: true, specialAnnouncement: true, announcementUntil: true,
+          programFormat: true, outsideMeetingUrl: true, earlyArrivalMessage: true, specialAnnouncement: true, announcementUntil: true,
           // Open entry drives Today placement: only a program with open entry
           // shows a public Join to non-registrants. (registrationEnabled and
           // the old category are read only while openEntry is still empty.)
@@ -118,7 +119,7 @@ export default async function DashboardPage({ searchParams }: {
           donationStatus: true,
           program: {
             select: {
-              programFormat: true, earlyArrivalMessage: true, specialAnnouncement: true, announcementUntil: true,
+              programFormat: true, outsideMeetingUrl: true, earlyArrivalMessage: true, specialAnnouncement: true, announcementUntil: true,
               startDatetime: true,
               endDatetime: true,
               recurrenceFreq: true,
@@ -292,12 +293,17 @@ export default async function DashboardPage({ searchParams }: {
       startTimeCT: s.startTimeCT,
       endTimeCT: s.endTimeCT,
       startEpoch: s.startEpoch,
-      formatLabel: "Online on Zoom",
+      formatLabel: onlinePlaceLabel(s),
       isRegistered: s.isRegistered,
       stage: s.isLive ? "open" : s.isSetupOpen ? "setup" : "later",
       statusText: s.isSetupOpen ? "Host entry is open" : undefined,
       actionHref: s.isLive || s.isSetupOpen ? `/session/${s.slug}/enter` : undefined,
-      actionLabel: s.isLive ? "Join on Zoom" : s.isSetupOpen ? "Enter Zoom as host" : undefined,
+      // An outside room has no host code, so hosts simply join it early.
+      actionLabel: s.isLive
+        ? joinOnlineLabel(s)
+        : s.isSetupOpen
+          ? outsideRoomUrl(s) ? joinOnlineLabel(s) : "Enter Zoom as host"
+          : undefined,
       contextText: s.isSetupOpen
         ? `Member entry opens at ${s.liveStartTimeCT}`
         : s.isLaterToday
@@ -544,7 +550,7 @@ type UpcomingRowData = {
   nextDateStr: string;
   nextTimeCT: string | null;
   donationStatus: string | null;
-  program: { programFormat: string | null } | null;
+  program: { programFormat: string | null; outsideMeetingUrl?: string | null } | null;
 };
 
 /** One upcoming registration as a row: date and time, title and place, the
@@ -554,7 +560,11 @@ function UpcomingRow({ r }: { r: UpcomingRowData }) {
   const d = new Date(r.nextDateStr + "T12:00:00");
   const dateLabel = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
   const fmt = r.program?.programFormat;
-  const place = fmt === "virtual" ? "Online on Zoom" : fmt === "hybrid" ? "In person and on Zoom" : fmt === "in-person" ? "In person" : null;
+  const place = r.program && fmt === "virtual"
+    ? onlinePlaceLabel(r.program)
+    : r.program && fmt === "hybrid"
+      ? `In person and ${onlinePhrase(r.program)}`
+      : fmt === "in-person" ? "In person" : null;
   const hasPendingDana = r.donationStatus === "PENDING";
   return (
     <Link href={`/programs/${r.programSlug}`} className="db2-upcoming__item">

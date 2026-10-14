@@ -16,6 +16,7 @@ import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOffering } from "@/lib/programOffering";
 import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
+import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 
 export async function GET() {
   const session = await auth();
@@ -61,6 +62,12 @@ export async function POST(request: NextRequest) {
   const announcementUntil = parseAnnouncementUntil(body.announcementUntil);
   if (announcementUntil === undefined) {
     return NextResponse.json({ error: "Show until needs a date, or leave it empty." }, { status: 422 });
+  }
+
+  // An outside room's link: https only, or empty for RIM's Zoom.
+  const outsideMeeting = cleanOutsideMeetingUrl(body.outsideMeetingUrl);
+  if (!outsideMeeting.ok) {
+    return NextResponse.json({ error: outsideMeeting.error }, { status: 422 });
   }
 
   const existing = await db.program.findUnique({ where: { slug } });
@@ -184,6 +191,10 @@ export async function POST(request: NextRequest) {
       guestAccessKey: body.isOpenAccess ? randomBytes(6).toString("hex") : null,
       livekitRoom: (body.programFormat === "virtual" || body.programFormat === "hybrid") ? slug : null,
       recordByDefault: body.recordByDefault ?? false,
+      outsideMeetingUrl: outsideMeeting.value,
+      // Never on a program that takes registrations.
+      outsideMeetingPublic:
+        !!outsideMeeting.value && body.outsideMeetingPublic === true && body.registrationEnabled !== true,
     },
   });
 

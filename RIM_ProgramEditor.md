@@ -90,6 +90,10 @@ Jesse asked what the two fields were for and whether they could be optimized, th
 
 Both live on the Schedule tab: Session note with the place, Notice and Show until with the dates. The "Home Card" tab is gone, and Program Notes' help no longer invites "what to bring", so each field has one job (Program Notes for context and accessibility; Session note for the line on the day; Confirmation Message for the registrant's email).
 
+### Where it meets online: RIM's Zoom or an outside room (2026-10-15)
+
+The Hosting & Access tab opens (for virtual/hybrid) with **Where it meets online**: *RIM's Zoom* or *An outside meeting link*. Only the link is stored (`Program.outsideMeetingUrl`; the choice is derived from it), with **Anyone may join from the public program page** (`outsideMeetingPublic`, disabled while registration is on). A **Who can get in** readout states, for the settings chosen, who reaches the room and how (members, people without an account, the program page, the session-time window), and suggests No host needed. Recording is hidden for an outside room; the guest link's help says it leads into whichever room the program uses. Save refuses an empty or non-https link beside the field and in the save error. Mechanics: `RIM_Zoom.md`, "Outside rooms". Labels on My Home, the program page and the thank-you page name the outside room's service (`lib/outsideMeeting.ts`).
+
 ### Foundations is derived, not flagged (2026-10-09)
 
 `/foundations` redirects to the current Foundations program (`RIM_System_Architecture.md`, "/foundations resolves to the program"). The editor has no "primary Foundations" setting: a program filed under Foundations and not archived is the one the address lands on, soonest-dated first. Pitfall: filing a test program under Foundations moves the public address (Sacred Clarity did, during the 2026-10-09 category test, until it went back to Immersion).

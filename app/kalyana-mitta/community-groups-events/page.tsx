@@ -97,7 +97,7 @@ export default async function KalyanaGroupsPage() {
             <div className="pp-cards">
               {groups.map((group) => {
                 const fullSubtitle = buildSubtitle(group);
-                const format = fmtLabel(group.programFormat);
+                const format = fmtLabel(group.programFormat, group.outsideMeetingUrl);
                 const schedule = fullSubtitle?.endsWith(` | ${format}`)
                   ? fullSubtitle.slice(0, -(` | ${format}`).length)
                   : fullSubtitle;

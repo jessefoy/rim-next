@@ -199,6 +199,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
     '@/lib/programOffering':load('lib/programOffering.ts',{'@/lib/programKind':programKind}),
     '@/lib/programHub':{getHubCoverageCopy:async()=>({noun:'Host'})},
     '@/lib/sessionWindowConstants':load('lib/sessionWindowConstants.ts'),
+    '@/lib/outsideMeeting':load('lib/outsideMeeting.ts'),
     '@/components/AccountLayout':{default:({children})=>children,__esModule:true},
     '@/components/DashboardAutoRefresh':{default:()=>null,__esModule:true},
     '@/components/HostWelcomePanel':{default:()=>null,__esModule:true},
@@ -244,6 +245,24 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'Open entry is available to any Category, a Special Event included');
   programs[0].openEntry=null;programs[0].category.kind='CLASS';
   html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'Open entry still empty: the old category kind decides, as before');
+  // Outside rooms (2026-10-15): Join still goes through RIM's door; the label
+  // names the room's service, and an outside room gives hosts no Zoom code.
+  programs[0].openEntry=true;programs[0].registrationEnabled=false;programs[0].outsideMeetingUrl='https://meet.google.com/abc-defg-hij';
+  html=await dashboardHtml();
+  check(html.includes('Join on Google Meet'),true,'an outside Google Meet room says so on My Home');
+  check(html.includes('/session/morning/enter'),true,'an outside room still joins through the door');
+  check(html.includes('https://meet.google.com'),false,'My Home never prints the outside link');
+  programs[0].outsideMeetingUrl='https://example.org/room/7';
+  html=await dashboardHtml();check(html.includes('Join online'),true,'an unnamed service reads Join online');
+  programs[0].outsideMeetingUrl=null;
+  const outside = load('lib/outsideMeeting.ts');
+  check(outside.cleanOutsideMeetingUrl('').ok && outside.cleanOutsideMeetingUrl('').value,null,'empty link means RIM\'s Zoom');
+  check(outside.cleanOutsideMeetingUrl('  https://us06web.zoom.us/j/123?pwd=x  ').value,'https://us06web.zoom.us/j/123?pwd=x','a pasted Zoom link is trimmed and kept');
+  for (const bad of ['http://zoom.us/j/1','javascript:alert(1)','zoom.us/j/1','https://zoom.us/j/1 extra','https://user:pw@zoom.us/j/1','https://localhost/x',42]) check(outside.cleanOutsideMeetingUrl(bad).ok,false,`reject unsafe link ${bad}`);
+  check(outside.providerForUrl('https://us06web.zoom.us/j/1'),'zoom','zoom subdomain');
+  check(outside.providerForUrl('https://notzoom.us/j/1'),'other','a lookalike domain is not Zoom');
+  check(outside.outsideRoomUrl({programFormat:'in-person',outsideMeetingUrl:'https://zoom.us/j/1'}),null,'an in-person program has no outside room');
+  check(outside.joinOnlineLabel({programFormat:'virtual',outsideMeetingUrl:null}),'Join on Zoom','RIM\'s own room is Zoom');
   programs=[];registrations=[];
   html=await dashboardHtml();check(html.includes('There are no more sessions today.'),true,'empty day has clear state');
   html=await dashboardHtml({view:'upcoming'});check(html.includes('Your upcoming programs'),true,'separate upcoming view remains reachable');

@@ -181,6 +181,8 @@ export default async function EditProgramToolPage({
     hostingHubSlug: program.hostingHubSlug ?? null,
     hostingRequired: program.hostingRequired ?? true,
     recordByDefault: program.recordByDefault ?? false,
+    outsideMeetingUrl: program.outsideMeetingUrl ?? "",
+    outsideMeetingPublic: program.outsideMeetingPublic,
     coverageHubSlugs: coverageRows.map((r) => r.hubSlug),
   };
 

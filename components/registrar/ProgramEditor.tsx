@@ -23,6 +23,8 @@ import {
 } from "@/lib/programOffering";
 import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
 import { programUsesFlodesk } from "@/lib/flodeskRules";
+import { cleanOutsideMeetingUrl, onlinePhrase } from "@/lib/outsideMeeting";
+import { EARLY_OPEN_MIN, LATE_GRACE_MIN, MEMBER_JOIN_MIN } from "@/lib/sessionWindowConstants";
 
 interface TeacherItem {
   id: string;
@@ -138,6 +140,10 @@ export interface ProgramData {
    *  rotation generation, and the new-program-needs-host email. Default true. */
   hostingRequired?: boolean;
   recordByDefault?: boolean;
+  /** The outside room's link (2026-10-15): empty = RIM's Zoom. lib/outsideMeeting.ts. */
+  outsideMeetingUrl?: string;
+  /** Anyone may join from the public program page, through RIM's door. */
+  outsideMeetingPublic?: boolean;
   /** Auxiliary hubs providing supporting-role coverage for this program
    *  (session 129 — AV + Greeter). Empty array is the default; each slug
    *  here gets a row in program_coverage_hubs on save. Primary hub
@@ -710,6 +716,14 @@ export default function ProgramEditor({
   const noHostNeeded = !hostingRequired;
   const hostingRequiredChanged = hostingRequired !== (initialData?.hostingRequired ?? true);
   const [recordByDefault, setRecordByDefault] = useState<boolean>(initialData?.recordByDefault ?? false);
+  // Where it meets online (2026-10-15): RIM's Zoom, or someone else's room. Only
+  // the link is stored; the choice is derived from it.
+  const [roomChoice, setRoomChoice] = useState<"rim" | "outside">(
+    initialData?.outsideMeetingUrl ? "outside" : "rim",
+  );
+  const [outsideUrl, setOutsideUrl] = useState(initialData?.outsideMeetingUrl ?? "");
+  const [outsidePublic, setOutsidePublic] = useState(initialData?.outsideMeetingPublic ?? false);
+  const [outsideUrlError, setOutsideUrlError] = useState("");
   // Layer 2: Zoom seat conflicts returned by the save route (non-blocking warning).
   const [seatConflicts, setSeatConflicts] = useState<{ message: string; capacity: number }[]>([]);
   // Pick up the overlap warning from a just-created program (see the create
@@ -897,6 +911,24 @@ export default function ProgramEditor({
       return;
     }
 
+    // An outside room needs its link, and only an https link is kept.
+    const outsideOnline =
+      roomChoice === "outside" && (programFormat === "virtual" || programFormat === "hybrid");
+    if (outsideOnline) {
+      const check = cleanOutsideMeetingUrl(outsideUrl);
+      const problem = !check.ok
+        ? check.error
+        : !check.value
+          ? "Paste the outside meeting link, or choose RIM\u2019s Zoom."
+          : "";
+      if (problem) {
+        setOutsideUrlError(problem);
+        setTab("Hosting & Access");
+        setError(problem);
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {
@@ -972,6 +1004,20 @@ export default function ProgramEditor({
         // program is self-led and excluded from the Scheduler + rotations.
         hostingRequired,
         recordByDefault,
+        // The outside room: empty means RIM's Zoom. Kept as stored for an
+        // in-person program (readers ignore it there), so switching the format
+        // back doesn't lose the link.
+        // An in-person program keeps an unfinished link out of the save
+        // (undefined leaves what is stored) rather than failing on a field
+        // that isn't on screen.
+        outsideMeetingUrl:
+          roomChoice === "outside"
+            ? (() => {
+                const check = cleanOutsideMeetingUrl(outsideUrl);
+                return check.ok ? check.value : undefined;
+              })()
+            : null,
+        outsideMeetingPublic: roomChoice === "outside" && outsidePublic && !registrationEnabled,
         // Auxiliary hubs providing role coverage. Empty array means no
         // additional coverage. Server replaces the full set on each save.
         coverageHubSlugs,
@@ -1051,12 +1097,20 @@ export default function ProgramEditor({
   // Memoized so it recomputes only when its inputs change, not on every
   // keystroke elsewhere in the editor.
   // What Open entry means for THIS program's delivery (matches the Visibility tab).
+  const outsideActive = isVirtual && roomChoice === "outside";
+  // The program page offers its own Join (same rule as the page and /enter).
+  const publicJoinOn = outsideActive && outsidePublic && !registrationEnabled;
+  // "on Zoom" / "on Google Meet" / "online": what this program meets on.
+  const onlineWords = onlinePhrase({
+    programFormat,
+    outsideMeetingUrl: outsideActive ? outsideUrl.trim() || null : null,
+  });
   const openEntryText = openEntry
     ? programFormat === "in-person"
       ? "Anyone may simply arrive in person, without registering. It carries the Drop-in mark on This Week."
       : programFormat === "hybrid"
-        ? "Anyone may simply arrive in person, and anyone signed in may join on Zoom, without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week."
-        : "Anyone signed in may join on Zoom without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week."
+        ? `Anyone may simply arrive in person, and anyone signed in may join ${onlineWords}, without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week.`
+        : `Anyone signed in may join ${onlineWords} without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week.`
     : "People join by registering. Hosts and teachers always have access. It carries no Drop-in mark.";
   // Flodesk: the same rule the server applies (lib/flodeskRules.ts), and the
   // name a new segment would take ("Name MM/DD/YY"; an ongoing program, name only).
@@ -1437,7 +1491,7 @@ export default function ProgramEditor({
 
             <div className="pe-field">
               <span className="pe-field__label">Program Format</span>
-              <span className="pe-field__help">In-person, virtual, or hybrid. Virtual and hybrid programs meet on Zoom; in-person and hybrid programs show the venue address.</span>
+              <span className="pe-field__help">In-person, virtual, or hybrid. Virtual and hybrid programs meet on RIM&rsquo;s Zoom, or in an outside meeting set on the Hosting &amp; Access tab; in-person and hybrid programs show the venue address.</span>
               <div className="pe-option-cards">
                 {[
                   { value: "in-person", label: "In-person" },
@@ -1666,9 +1720,150 @@ export default function ProgramEditor({
               )}
             </div>
 
-            {/* Recording is a Zoom setting, so it only exists for programs that
-                meet online. */}
+            {/* ── Where it meets online (2026-10-15) ────────────────────────
+                RIM's Zoom, or someone else's room. The readout beneath says,
+                for the settings chosen, who can get in and how. */}
             {isVirtual && (
+              <fieldset className="pe-field">
+                <legend className="pe-field__label">Where it meets online</legend>
+                <span className="pe-field__help">
+                  Most programs meet in RIM&rsquo;s Zoom: RIM opens the meeting for
+                  each session and gives hosts the code to take host controls.
+                  Choose an outside meeting when the program meets in someone
+                  else&rsquo;s room, such as Recovery Dharma&rsquo;s or a
+                  facilitator&rsquo;s own Zoom. RIM then sends people to that
+                  link instead. It opens no meeting of its own, uses none of
+                  RIM&rsquo;s Zoom rooms, and shows no host code.
+                </span>
+                <div className="pe-option-cards">
+                  {([
+                    { value: "rim", label: "RIM\u2019s Zoom" },
+                    { value: "outside", label: "An outside meeting link" },
+                  ] as const).map((opt) => (
+                    <label key={opt.value} className={`pe-option-card${roomChoice === opt.value ? " pe-option-card--active" : ""}`}>
+                      <input
+                        type="radio"
+                        name="roomChoice"
+                        checked={roomChoice === opt.value}
+                        onChange={() => { setRoomChoice(opt.value); setOutsideUrlError(""); markDirty(); }}
+                      />
+                      <span className="pe-option-card__mark" />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+
+                {roomChoice === "outside" && (
+                  <div style={{ marginTop: 16 }}>
+                    <label htmlFor="pe-outside-url" className="pe-field__label">Meeting link</label>
+                    <span className="pe-field__help" id="pe-outside-url-help">
+                      Paste the whole invite link, starting with https://. If the
+                      link carries a passcode, keep it, so people go straight in.
+                    </span>
+                    <input
+                      id="pe-outside-url"
+                      type="url"
+                      inputMode="url"
+                      autoComplete="off"
+                      className="pe-input"
+                      placeholder="https://us06web.zoom.us/j/…"
+                      value={outsideUrl}
+                      aria-invalid={outsideUrlError ? true : undefined}
+                      aria-describedby={outsideUrlError ? "pe-outside-url-help pe-outside-url-error" : "pe-outside-url-help"}
+                      onChange={(e) => { setOutsideUrl(e.target.value); if (outsideUrlError) setOutsideUrlError(""); markDirty(); }}
+                      onBlur={() => {
+                        const check = cleanOutsideMeetingUrl(outsideUrl);
+                        setOutsideUrlError(check.ok ? "" : check.error);
+                      }}
+                    />
+                    {outsideUrlError && (
+                      <p className="pe-field__error" id="pe-outside-url-error" role="alert">{outsideUrlError}</p>
+                    )}
+
+                    <label className="pe-checkbox" style={{ marginTop: 16 }}>
+                      <input
+                        type="checkbox"
+                        checked={outsidePublic && !registrationEnabled}
+                        disabled={registrationEnabled}
+                        aria-describedby="pe-outside-public-help"
+                        onChange={(e) => { setOutsidePublic(e.target.checked); markDirty(); }}
+                      />
+                      <span>Anyone may join from the public program page</span>
+                    </label>
+                    <span className="pe-field__help" id="pe-outside-public-help">
+                      {registrationEnabled
+                        ? "Not for a program that takes registrations: turn registration off on the Registration tab to use this."
+                        : "Adds a Join button to the program page that works without a RIM account. It goes through RIM, so it opens only around session times, and the link itself never appears on the page."}
+                    </span>
+                  </div>
+                )}
+
+                <div className="pe-readout" aria-live="polite" style={{ marginTop: 16 }}>
+                  <p className="pe-readout__title">Who can get in</p>
+                  {roomChoice === "rim" ? (
+                    <p className="pe-readout__row">
+                      RIM opens a Zoom meeting for each session. Members join
+                      from My Home; hosts and teachers also see the code to take
+                      host controls.
+                    </p>
+                  ) : (
+                    <p className="pe-readout__row">
+                      RIM sends everyone to the outside link: members, hosts and
+                      teachers alike. Whoever owns that room runs it.
+                    </p>
+                  )}
+                  <p className="pe-readout__row">
+                    <span className="pe-readout__place">Members: </span>
+                    {openEntry
+                      ? "anyone signed in, with the Join button on My Home."
+                      : registrationEnabled
+                        ? "registered members, with the Join button on My Home."
+                        : publicJoinOn
+                          ? "anyone, with the Join button on the program page. (My Home shows it only with Open entry.)"
+                          : "only the people who staff it, until registration or Open entry is turned on (Registration tab)."}
+                  </p>
+                  <p className="pe-readout__row">
+                    <span className="pe-readout__place">People without a RIM account: </span>
+                    {publicJoinOn
+                      ? isOpenAccess
+                        ? "anyone, from the program page or the guest link (below)."
+                        : "anyone, from the program page."
+                      : isOpenAccess
+                        ? "anyone you give the guest link to (below)."
+                        : "no one, unless you turn on the guest link below."}
+                  </p>
+                  {roomChoice === "outside" && (
+                    <p className="pe-readout__row">
+                      <span className="pe-readout__place">Program page: </span>
+                      {publicJoinOn
+                        ? "a Join button anyone may use."
+                        : registrationEnabled
+                          ? "the registration button; registered members join from My Home."
+                          : openEntry
+                            ? "no Join button; it sends members to My Home and visitors to sign in."
+                            : "no way in yet; it says registration isn\u2019t open."}
+                    </p>
+                  )}
+                  <p className="pe-readout__row pe-readout__row--meta">
+                    Every way in through RIM is open from {EARLY_OPEN_MIN} minutes
+                    before a session (My Home shows Join from {MEMBER_JOIN_MIN}{" "}
+                    minutes before) until {LATE_GRACE_MIN} minutes after it ends.
+                    {roomChoice === "outside" &&
+                      " Someone who already has the outside link itself can use it whenever its owner allows."}
+                  </p>
+                  {roomChoice === "outside" && !noHostNeeded && (
+                    <p className="pe-readout__row pe-readout__row--meta">
+                      An outside room usually needs no RIM host. If so, check
+                      &ldquo;No host needed&rdquo; above.
+                    </p>
+                  )}
+                </div>
+              </fieldset>
+            )}
+
+            {/* Recording is a setting on RIM's own Zoom meetings, so it only
+                exists for programs that meet online in RIM's Zoom. */}
+            {isVirtual && roomChoice === "rim" && (
             <div className="pe-field">
               <span className="pe-field__label">Recording</span>
               <span className="pe-field__help">
@@ -1888,12 +2083,12 @@ export default function ProgramEditor({
             {isVirtual && (
               <fieldset className="pe-field">
                 <legend className="pe-field__label">Open Access</legend>
-                <span className="pe-field__help">Virtual/hybrid only. When enabled, generates a guest link that lets anyone join without registering or logging in. Good for drop-in sessions.</span>
+                <span className="pe-field__help">Virtual/hybrid only. A RIM link you can share with people who have no RIM account: it takes anyone who holds it into this program&rsquo;s meeting (RIM&rsquo;s Zoom or the outside room) without registering or signing in, around session times only. Good for drop-in sessions, or a group the facilitator also serves.</span>
                 <label className="pe-checkbox">
                   <input
                     type="checkbox"
                     checked={isOpenAccess}
-                    onChange={(e) => setIsOpenAccess(e.target.checked)}
+                    onChange={(e) => { setIsOpenAccess(e.target.checked); markDirty(); }}
                   />
                   <span>Enable guest access link</span>
                 </label>

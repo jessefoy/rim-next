@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { activeAnnouncement } from "@/lib/scheduleUtils";
+import { joinOnlineLabel, meetingServiceName, onlinePhrase, outsideRoomUrl } from "@/lib/outsideMeeting";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import {
   HOSTED_BY_VOLUNTEERS_LABEL,
@@ -161,12 +162,19 @@ export default async function ProgramDetailPage({
   })();
 
   // ── Location label ──
+  // "on Zoom", or the outside room's service (lib/outsideMeeting.ts).
+  const onlineWords = onlinePhrase(program);
   const locationLabel =
     program.programFormat === "virtual"
-      ? "Online on Zoom"
+      ? onlineWords === "online" ? "Online" : `Online ${onlineWords}`
       : program.programFormat === "hybrid"
-        ? `${location.text || "In person"} + online on Zoom`
+        ? `${location.text || "In person"} + ${onlineWords === "online" ? "online" : `online ${onlineWords}`}`
         : location.text;
+  // An outside room whose program lets anyone join from this page: a Join
+  // button through RIM's door, which keeps the session times and never shows
+  // the link itself. Programs that take registrations never offer it.
+  const publicJoin = !!outsideRoomUrl(program) && program.outsideMeetingPublic;
+  const serviceName = meetingServiceName(program);
   const showLocation = !!(locationLabel);
 
   // Use programTeachers (linked accounts) first, fall back to plain text
@@ -342,15 +350,29 @@ export default async function ProgramDetailPage({
                       Register →
                     </Link>
                   )
+                ) : publicJoin ? (
+                  /* An outside room open to anyone: the door admits visitors
+                     without an account, around session times. */
+                  /* "Simply arrive" only where Open entry says so: access is
+                     Open entry's to decide, never this button's. */
+                  program.programFormat === "hybrid" && droppable ? (
+                    <span className="pg-detail-cta__text">
+                      Simply arrive in person, or <a href={`/session/${slug}/enter`} className="pg-detail-cta__inline-link">{joinOnlineLabel(program).replace(/^Join/, "join")} →</a>
+                    </span>
+                  ) : (
+                    <a href={`/session/${slug}/enter`} className="pg-detail-cta__link">
+                      {joinOnlineLabel(program)} →
+                    </a>
+                  )
                 ) : droppable ? (
                   /* Open entry — how to join, delivery-aware. */
                   program.programFormat === "virtual" ? (
                     session?.user ? (
                       <Link href="/account/dashboard" className="pg-detail-cta__link">
-                        Go to My Home to join on Zoom →
+                        Go to My Home to join {onlineWords} →
                       </Link>
                     ) : (
-                      <Link href="/login" className="pg-detail-cta__link">Sign in to find the Zoom link →</Link>
+                      <Link href="/login" className="pg-detail-cta__link">Sign in to find the {serviceName ? `${serviceName} link` : "meeting link"} →</Link>
                     )
                   ) : program.programFormat === "hybrid" ? (
                     /* Hybrid — arrive in person OR join online */

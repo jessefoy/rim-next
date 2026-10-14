@@ -126,8 +126,8 @@ function joinNames(names: string[]): string {
 
 /**
  * Seat conflicts that INVOLVE the given program, over the look-ahead window.
- * Empty when the program isn't virtual/hybrid, has no schedule, no seats are
- * configured, or nothing overlaps beyond capacity.
+ * Empty when the program isn't virtual/hybrid, meets in an outside room, has no
+ * schedule, no seats are configured, or nothing overlaps beyond capacity.
  */
 export async function conflictsForProgram(
   slug: string,
@@ -143,6 +143,8 @@ export async function conflictsForProgram(
       startDatetime: { not: null },
       // Archived programs have no live sessions (/enter refuses them).
       archivedAt: null,
+      // A program in an outside room (lib/outsideMeeting.ts) never takes a seat.
+      outsideMeetingUrl: null,
     },
     select: {
       slug: true,

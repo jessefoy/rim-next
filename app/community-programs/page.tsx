@@ -98,7 +98,7 @@ export default async function CommunityProgramsPage() {
   /** One program as a card: date-led for an upcoming one-time program, the
       schedule and format held right for everything else. */
   const renderCard = (program: PublicProgram, TitleTag: "h3" | "h4" = "h3"): ReactNode => {
-    const format = fmtLabel(program.programFormat);
+    const format = fmtLabel(program.programFormat, program.outsideMeetingUrl);
     // The offering's own labels: its Format ("Drop-in", "Course") and, where
     // checked, "Hosted by volunteers". Display only.
     const offering = program.offering;

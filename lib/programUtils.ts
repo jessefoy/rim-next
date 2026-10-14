@@ -1,6 +1,7 @@
 import { buildDateLabel, formatTimeRange } from "@/lib/dateLabel";
 import { toCentralDatetime } from "@/lib/timezone";
 import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
+import { meetingServiceName } from "@/lib/outsideMeeting";
 
 const DAY_FULL: Record<string, string> = {
   SU: "Sundays", MO: "Mondays", TU: "Tuesdays", WE: "Wednesdays",
@@ -213,16 +214,20 @@ export function categoryDisplayName(name: string): string {
     : name;
 }
 
-export function fmtLabel(fmt: string): string {
+/** The listing's delivery label. Online programs name their service: RIM's own
+ *  rooms are Zoom; an outside room names its own (or just "Online"). */
+export function fmtLabel(fmt: string | null, outsideMeetingUrl?: string | null): string {
+  const service = meetingServiceName({ programFormat: fmt, outsideMeetingUrl }) ?? "Online";
   switch (fmt) {
-    case "virtual":   return "Zoom Only";
-    case "hybrid":    return "In-Person & Zoom";
+    case "virtual":   return `${service} Only`;
+    case "hybrid":    return `In-Person & ${service}`;
     case "in-person": return "In-Person";
-    default:          return fmt;
+    default:          return fmt ?? "";
   }
 }
 
 export function buildSubtitle(program: {
+  outsideMeetingUrl?: string | null;
   dateText: string | null;
   timeText: string | null;
   programFormat: string;
@@ -232,7 +237,7 @@ export function buildSubtitle(program: {
   recurrenceInterval: number | null;
   recurrenceDays: string[];
 }): string | null {
-  const fmt = fmtLabel(program.programFormat);
+  const fmt = fmtLabel(program.programFormat, program.outsideMeetingUrl);
 
   const startDatetime = program.startDatetime
     ? typeof program.startDatetime === "string"

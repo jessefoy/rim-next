@@ -5,6 +5,7 @@ import stripe from "@/lib/stripe";
 import { buildSubtitle } from "@/lib/programUtils";
 import { resolveLocation } from "@/lib/locations";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
+import { onlinePhrase } from "@/lib/outsideMeeting";
 
 /**
  * /programs/[slug]/thank-you — where Stripe returns a member after a
@@ -51,6 +52,7 @@ export default async function ThankYouPage({
         name: true,
         slug: true,
         programFormat: true,
+        outsideMeetingUrl: true,
         venue: true,
         locationText: true,
         locationLink: true,
@@ -125,7 +127,11 @@ export default async function ThankYouPage({
   // person; say so rather than dropping that half.
   const where = [
     inPerson ? loc.text || "In person" : null,
-    online ? (inPerson ? "online on Zoom" : "Online on Zoom") : null,
+    online
+      ? onlinePhrase(program) === "online"
+        ? inPerson ? "online" : "Online"
+        : `${inPerson ? "online" : "Online"} ${onlinePhrase(program)}`
+      : null,
   ].filter(Boolean).join(" and ");
 
   const googleUrl = program.startDatetime
