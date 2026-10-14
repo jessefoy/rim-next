@@ -1087,13 +1087,13 @@
   },
   {
     "id": "2026-07-15-001",
-    "title": "Cross-Space file sharing (Google Files) — share one file into other Spaces",
+    "title": "Collaboration between teams: shared files, shared places, task tools (includes cross-Space file sharing)",
     "description": "Strict per-Space isolation (the folder gate) means a Google file lives in exactly one Space and isn't visible elsewhere. Add a deliberate sharing layer on TOP of the gate so a file managed in one Space (e.g. a registration spreadsheet in Hosting Hub) can be shared into other Spaces / Community as ONE source of truth (not a divergent copy). Model mirrors the retired native-Documents placements+visibility: a GoogleFileShare grant {googleFileId, sharedIntoHubId, sharedBy, permission}; resolvePlaceForFile/access checks allow a file if it's inside the viewer's Space OR explicitly shared into it; shared-in files surface in the target Space's Files list badged 'Shared from [Space]'; origin owns the lifecycle. Principle: isolation by default, sharing as an explicit, visible act (guards against the community's 'files everywhere' problem). Additive on the gate — no rework. Deferred from session 164 per Jesse ('okay if it's not right now'). Note: at native-docs cutover, docs shared across hubs collapse to their home Space until this ships.",
     "category": "Admin Tools",
-    "priority": "medium",
+    "priority": "high",
     "status": "open",
     "addedAt": "2026-07-15",
-    "notes": "Also consider: cross-Space MOVE and a copy/duplicate action (Drive files.copy) — smaller adjacent asks raised in the same conversation. Move-between-Spaces and duplicate are simpler than share and could ship first."
+    "notes": "Also consider: cross-Space MOVE and a copy/duplicate action (Drive files.copy) — smaller adjacent asks raised in the same conversation. Move-between-Spaces and duplicate are simpler than share and could ship first. | 2026-10-14, widened from LoriLee's review (#11 'SHARE DOCUMENTS between Hubs'; #15 'Program Central: who should belong to this team?', where she proposed adding leads of teams that respond to programming decisions, e.g. Maria (Zoom) and Marne (Housekeeping)). Jesse: \"One of the main things that I want to figure out is how to have a collaboration between teams, whether this is creating tools that are relevant to the tasks, shared hubs, etc. I don't want the teams to get too messy, but it's also good for teams to have places to work and share together. Registration and setup and all that stuff: it does have multiple teams. I'm not sure how to go about this yet.\" And: \"This is another one of those features for team collaboration that we need to figure out. Needs to be thoughtfully done.\" Design notes: separate SEEING what's coming (a read-only view; much of it already public on This Week and Programs & Events) from WORKING together (shared files, conversations). Caution: lib/toolAuth.ts::hasToolAccess grants a hub's installed tools to every ACTIVE member, so adding people to a hub with Program Manager installed gives them program editing; check Program Central's installed apps before adding anyone. After launch; not decided."
   },
   {
     "id": "2026-07-16-003",
@@ -1851,5 +1851,15 @@
     "status": "open",
     "addedAt": "2026-10-14",
     "notes": "Parked with 2026-10-14-001. The reading-page recommendation is untested judgment. Jesse's sentence about the circled programs header ended at 'The way that these are'; ask what he meant."
+  },
+  {
+    "id": "2026-10-14-003",
+    "title": "Community calendars (several), right after launch",
+    "description": "Jesse wants community calendars, more than one, as a high-value, pressing feature to build right after launch. Today the community calendar is /this-week (seven days, next week a click away) plus add-to-calendar links (Google, .ics) in registration emails; there is no subscribable calendar feed and no month view. LoriLee is gathering what the community needs (her review, 2026-10-14, #8: 'Calendar: Visibility? How do I access this? Looking to address your request to explore what is needed for a community calendar'). Start from her findings: which calendars (whole community, per team, per program category?), for whom, and whether people want to subscribe in their own calendar app or browse on the site.",
+    "category": "Programs",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-10-14",
+    "notes": "Jesse, 2026-10-14: \"I definitely want community calendars, a variety of them, actually. This is something that we do want to build. It's a high-value and pressing feature, but we're not quite ready for it before the launch.\" Builds on the shared occurrence logic (lib/scheduleUtils.ts::isOccurrenceOnDate) that /this-week, My Home and the Scheduler already share. The .ics export still recurs monthly programs by date-of-month (backlog 2026-06-17-004); fix that first if a feed is built."
   }
 ]
