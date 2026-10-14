@@ -28838,10 +28838,25 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
    inside a section looks like the line between sections. Practice for real life sits on Deeper Pampas in the markup
    (pp-section--accent), so no two neighbouring sections share a ground.
    When approved, fold into the home rules above and delete this block. */
+/* Where to begin: one panel under the category cards, at their width and in
+   their surface (white, the rule, 12px), its two halves divided by a rule,
+   headings at the card size below the card titles so the row reads as part
+   of this section and second to the cards (Jesse, 2026-10-14: "a little
+   awkward" loose under the cards, larger than their titles, in halves under
+   thirds). */
 .home-page--rooms .home-begin {
-  margin-top: var(--space-5);
-  border-top: 0;
-  padding-top: 0;
+  margin-top: var(--space-3);
+  column-gap: var(--space-5);
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  padding: 28px 32px;
+  background: var(--rim-surface);
+}
+.home-page--rooms .home-begin h3 { margin-bottom: var(--space-1); font-size: var(--text-h3); }
+.home-page--rooms .home-begin > div + div {
+  margin-left: calc(var(--space-5) / -2);
+  border-left: 1px solid var(--rim-rule);
+  padding-left: calc(var(--space-5) / 2);
 }
 .home-page--rooms .home-theme { border-top: 0; padding-top: 0; }
 .home-page--rooms .home-practice__closing { border-top: 0; padding-top: 0; }
@@ -28858,7 +28873,14 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   }
 }
 @media (max-width: 768px) {
-  .home-page--rooms .home-begin > div + div { border-top: 0; padding-top: var(--space-3); }
+  .home-page--rooms .home-begin { row-gap: var(--space-3); padding: 24px; }
+  .home-page--rooms .home-begin > div + div {
+    margin-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--rim-rule);
+    padding-left: 0;
+    padding-top: var(--space-3);
+  }
 }
 
 /* ===================================================================
