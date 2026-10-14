@@ -221,7 +221,10 @@ export async function renderTemplateToHtml(
   const { marked } = await import("marked");
   const Handlebars = (await import("handlebars")).default;
   const compiled = Handlebars.compile(markdown, { noEscape: true })(variables);
-  const bodyHtml = await marked(compiled);
+  // A single Return is a new line, as an author typing in /admin/emails
+  // expects (2026-10-14; it had joined "Name:" and "Email:" into one line).
+  // MarkdownEditor shows lines the same way.
+  const bodyHtml = await marked(compiled, { breaks: true });
   return await renderEmailHtml(bodyHtml);
 }
 
@@ -888,7 +891,7 @@ The coordinator is the team's main point of contact — not Jesse. You train new
 [Open the Scheduler](${scheduleUrl})`;
 
   const { marked } = await import("marked");
-  const html = await renderEmailHtml(await marked(markdown));
+  const html = await renderEmailHtml(await marked(markdown, { breaks: true }));
 
   try {
     await resend.emails.send({

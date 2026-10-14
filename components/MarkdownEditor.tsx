@@ -118,6 +118,9 @@ export default function MarkdownEditor({
       }),
       Markdown.configure({
         html: false,
+        // A single Return is a new line, as in the sent email
+        // (lib/email.ts renderTemplateToHtml).
+        breaks: true,
         transformPastedText: true,
         transformCopiedText: false,
       }),
