@@ -107,17 +107,20 @@ const FORM_COPY_TO = "jesse@rootedinmindfulness.org";
 // ─── Email template system ───────────────────────────────────────────────────
 
 /**
- * Base CSS applied to every templated email via juice (CSS inlining).
+ * Base CSS inlined into every email by `renderEmailHtml` (juice).
  * Targets standard HTML tags produced by marked so styles survive email clients.
+ * Text tags carry the font themselves because Gmail drops the body's style.
  * The same CSS is applied in the admin preview modal for pixel-identical rendering.
  */
+const EMAIL_SANS = "'Open Sans', Arial, sans-serif";
+
 export const EMAIL_BASE_CSS = `
 body { margin: 0; padding: 0; background: #F6F3F0; font-family: 'Open Sans', Arial, sans-serif; font-size: 17px; line-height: 1.8; color: #333333; }
-p { margin: 0 0 30px; font-size: 17px; line-height: 1.8; color: #333333; }
+p { margin: 0 0 30px; font-family: 'Open Sans', Arial, sans-serif; font-size: 17px; line-height: 1.8; color: #333333; }
 h2 { font-family: Baskerville, 'Baskerville Old Face', 'Libre Baskerville', Georgia, serif; font-size: 24px; font-weight: 400; line-height: 1.3; margin: 8px 0 16px; color: #333333; }
 h3 { font-family: Baskerville, 'Baskerville Old Face', 'Libre Baskerville', Georgia, serif; font-size: 20px; font-weight: 400; line-height: 1.3; margin: 8px 0 12px; color: #333333; }
 ul, ol { margin: 0 0 30px; padding-left: 24px; }
-li { margin: 4px 0; font-size: 17px; line-height: 1.8; color: #333333; }
+li { margin: 4px 0; font-family: 'Open Sans', Arial, sans-serif; font-size: 17px; line-height: 1.8; color: #333333; }
 blockquote { border-left: 3px solid #D7D7D7; margin: 0 0 30px; padding: 4px 18px; color: #555555; }
 blockquote p { color: #555555; margin: 0; }
 a { color: #31576D; text-decoration: underline; }
@@ -146,6 +149,7 @@ export function wrapInEmailChrome(bodyHtml: string): string {
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <style>
     @media only screen and (max-width: 480px) {
       .rim-email-logo { width: 56px !important; height: 56px !important; }
@@ -164,7 +168,7 @@ export function wrapInEmailChrome(bodyHtml: string): string {
       <td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="max-width:600px;background:#ffffff;">
           <tr>
-            <td style="padding:40px 40px 10px;text-align:left;">
+            <td style="padding:40px 40px 10px;text-align:left;font-family:${EMAIL_SANS};font-size:17px;line-height:1.8;color:#333333;">
               ${bodyHtml}
             </td>
           </tr>
@@ -180,6 +184,18 @@ export function wrapInEmailChrome(bodyHtml: string): string {
   </table>
 </body>
 </html>`;
+}
+
+/**
+ * The one way an email's HTML is made: RIM's chrome around the body, then the
+ * base CSS inlined. Every send (templated or hand-written) and the admin
+ * preview go through here, so no email can carry the frame without the text
+ * style, or neither (2026-10-14: the care-concern and rotation emails had).
+ */
+export async function renderEmailHtml(bodyHtml: string): Promise<string> {
+  // Loaded on send, not with the module: auth.ts imports this file.
+  const juice = (await import("juice")).default;
+  return juice(wrapInEmailChrome(bodyHtml), { extraCss: EMAIL_BASE_CSS, removeStyleTags: true });
 }
 
 /**
@@ -203,12 +219,10 @@ export async function renderTemplateToHtml(
   variables: Record<string, unknown> = {},
 ): Promise<string> {
   const { marked } = await import("marked");
-  const juice = (await import("juice")).default;
   const Handlebars = (await import("handlebars")).default;
   const compiled = Handlebars.compile(markdown, { noEscape: true })(variables);
   const bodyHtml = await marked(compiled);
-  const wrapped = wrapInEmailChrome(bodyHtml);
-  return juice(wrapped, { extraCss: EMAIL_BASE_CSS, removeStyleTags: true });
+  return await renderEmailHtml(bodyHtml);
 }
 
 /**
@@ -874,10 +888,7 @@ The coordinator is the team's main point of contact — not Jesse. You train new
 [Open the Scheduler](${scheduleUrl})`;
 
   const { marked } = await import("marked");
-  const juice = (await import("juice")).default;
-  const bodyHtml = await marked(markdown);
-  const wrapped = wrapInEmailChrome(bodyHtml);
-  const html = juice(wrapped, { extraCss: EMAIL_BASE_CSS });
+  const html = await renderEmailHtml(await marked(markdown));
 
   try {
     await resend.emails.send({
@@ -1150,7 +1161,7 @@ export async function sendStandingAssignmentScheduledEmail(
   }
   const count = data.sessions.length;
   const listHtml = data.sessions
-    .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
+    .map((s) => `<li>${s.programName} &mdash; ${s.dateLabel}</li>`)
     .join("");
   // Role-aware copy: "hosting" → "covering AV" / "greeting" / "facilitating"
   // when the rotation is on a non-host-team hub. Defaults to host language.
@@ -1167,13 +1178,13 @@ export async function sendStandingAssignmentScheduledEmail(
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
 <p>Your standing rotation has been applied. You're scheduled to be ${copy.verb} the following ${count === 1 ? "session" : "sessions"}:</p>
-<ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
-<p>${emailButtonHtml("Open the Schedule", scheduleUrl)}</p>
+<ul>${listHtml}</ul>
+${emailButtonHtml("Open the Schedule", scheduleUrl)}
 <p>If you can't make any of these dates, open the Schedule and use <strong>Ask the team to cover</strong> on that session's row.</p>
-<p style="color:#666;font-size:14px;">This is an automated message from your standing rotation.</p>`;
+<p>This is an automated message from your standing rotation.</p>`;
 
   try {
-    await resend.emails.send({ from: FROM, to: data.to, subject, html });
+    await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
   } catch (e) {
     console.error("[email] sendStandingAssignmentScheduledEmail failed:", e);
   }
@@ -1195,7 +1206,7 @@ export async function sendStandingAssignmentReplacedEmail(
   }
   const count = data.sessions.length;
   const listHtml = data.sessions
-    .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
+    .map((s) => `<li>${s.programName} &mdash; ${s.dateLabel}</li>`)
     .join("");
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const subject =
@@ -1206,12 +1217,12 @@ export async function sendStandingAssignmentReplacedEmail(
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
 <p>Your coordinator has updated the standing rotation. You're no longer scheduled to be ${copy.verb} the following ${count === 1 ? "session" : "sessions"}:</p>
-<ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
-<p>If you have questions about this change, please reach out to your coordinator. You can see your current schedule any time on the <a href="${scheduleUrl}" style="color:#31576D;">Schedule</a>.</p>
-<p style="color:#666;font-size:14px;">This is an automated message from your standing rotation.</p>`;
+<ul>${listHtml}</ul>
+<p>If you have questions about this change, please reach out to your coordinator. You can see your current schedule any time on the <a href="${scheduleUrl}">Schedule</a>.</p>
+<p>This is an automated message from your standing rotation.</p>`;
 
   try {
-    await resend.emails.send({ from: FROM, to: data.to, subject, html });
+    await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
   } catch (e) {
     console.error("[email] sendStandingAssignmentReplacedEmail failed:", e);
   }
@@ -1271,8 +1282,8 @@ export async function sendStandingAssignmentReleasedEmail(
   // user still hears about the removal instead of being silently dropped.
   const listHtml = count === 0
     ? ""
-    : `<ul style="font-size:16px;line-height:1.7;padding-left:20px;">${data.sessions
-        .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
+    : `<ul>${data.sessions
+        .map((s) => `<li>${s.programName} &mdash; ${s.dateLabel}</li>`)
         .join("")}</ul>`;
   const datesIntro = count === 0
     ? `<p>You won't be scheduled for upcoming sessions of this program through this rotation.</p>`
@@ -1287,10 +1298,10 @@ ${listHtml}
 <p>A coordinator has removed you from the standing rotation as <strong>${copy.noun}</strong> for <strong>${programName}</strong>.</p>
 ${datesIntro}
 <p>If this was unexpected or you'd like to talk about it, please reach out to your coordinator.</p>
-<p style="color:#666;font-size:14px;"><a href="${scheduleUrl}" style="color:#31576D;">View the Schedule</a> &middot; This is an automated message from your standing rotation.</p>`;
+<p><a href="${scheduleUrl}">View the Schedule</a> &middot; This is an automated message from your standing rotation.</p>`;
 
   try {
-    await resend.emails.send({ from: FROM, to: data.to, subject, html });
+    await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
   } catch (e) {
     console.error("[email] sendStandingAssignmentReleasedEmail failed:", e);
   }
@@ -1316,7 +1327,7 @@ export async function sendStandingAssignmentEndedEmail(
   }
   const count = data.sessions.length;
   const listHtml = data.sessions
-    .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
+    .map((s) => `<li>${s.programName} &mdash; ${s.dateLabel}</li>`)
     .join("");
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const subject =
@@ -1326,12 +1337,12 @@ export async function sendStandingAssignmentEndedEmail(
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
 <p>Your standing rotation has been ended. The following upcoming ${count === 1 ? "session has" : "sessions have"} been cleared from your schedule:</p>
-<ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
+<ul>${listHtml}</ul>
 <p>Thank you for the time you've contributed. If this was unexpected or you'd like to talk about it, please reach out to your coordinator.</p>
-<p style="color:#666;font-size:14px;">This is an automated message from your standing rotation.</p>`;
+<p>This is an automated message from your standing rotation.</p>`;
 
   try {
-    await resend.emails.send({ from: FROM, to: data.to, subject, html });
+    await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
   } catch (e) {
     console.error("[email] sendStandingAssignmentEndedEmail failed:", e);
   }
@@ -1559,11 +1570,19 @@ export async function sendCareConcernEmail(data: CareConcernEmailData): Promise<
     `From: ${who}, ${status}\n` +
     `Reply to this email to answer them directly.\n\n` +
     `${data.message}\n`;
-  const html = wrapInEmailChrome(
-    `<p>A message from the &ldquo;If harm happens&rdquo; form.</p>` +
-      `<p><strong>From:</strong> ${escapeEmailHtml(who)}, ${status}<br>` +
-      `Reply to this email to answer them directly.</p>` +
-      `<p style="white-space:pre-wrap">${escapeEmailHtml(data.message)}</p>`
+  // The form-notice shape (as the volunteer and Kalyana Mitta notices): the
+  // form as a heading, who sent it in a quiet block, their words under their
+  // own heading, and what to do after a rule.
+  const email = escapeEmailHtml(data.email);
+  const html = await renderEmailHtml(
+    `<h2>A message from the &ldquo;If harm happens&rdquo; form</h2>` +
+      `<blockquote><p><strong>Name:</strong> ${escapeEmailHtml(data.name)}<br>` +
+      `<strong>Email:</strong> <a href="mailto:${email}">${email}</a><br>` +
+      `${data.isMember ? "A signed-in member" : "A visitor (not signed in)"}</p></blockquote>` +
+      `<h3>Their message</h3>` +
+      `<p style="white-space:pre-wrap">${escapeEmailHtml(data.message)}</p>` +
+      `<hr>` +
+      `<p>Reply to this email to answer them directly.</p>`
   );
   try {
     const { error } = await resend.emails.send({
