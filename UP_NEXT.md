@@ -1,12 +1,14 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-14 (evening, closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-14 (night, closing ritual). Full history belongs in `session-log.md`.
 
 ## Active — 2026-10-14 closed: outside meeting rooms live; LoriLee's review ruled and live; every email in one look
 
 Everything is on `main` (`6063bf5` … `41e305e`, `fedbecd`, the closing docs). Narrative: `session-log.md`, 2026-10-14 (evening), (later) and 2026-10-14.
 
 **Live from this evening: outside meeting rooms.** Program Manager → Hosting & Access → "Where it meets online": RIM's Zoom, or an outside link (`Program.outsideMeetingUrl`), with the public Join option and a "Who can get in" readout. The door keeps every gate and the window, then forwards; no seat, no host code. `RIM_Zoom.md` → "Outside rooms". **No program uses it yet.**
+
+**Live from tonight: confirmation emails and links** (`734b16b`): the Confirmation Message help (how to add a link), "Map and directions" for another venue, one link tidy-up for every link box. **Waiting:** Jesse checks `registration-confirmation` in `/admin/emails` still holds `{{confirmationMessageHtml}}`, then sends LoriLee the four-page PDF (session scratchpad; his voice, read the note first); LoriLee adds Qigong's handout link and uses **Resend Confirmation** for earlier registrants; read-aloud of the two help lines and "Map and directions". Queued: `2026-10-14-006` (absolute links in program emails; check saved links).
 
 **Waiting from this evening:**
 - **LoriLee adds the two links** (Recovery Dharma: members only, guest link off; Our Hearts Were Made for This: guest link stays on, public box unchecked unless Jesse and Sara decide). Jesse has the five-page PDF for her (in the session scratchpad, not the repo); **read its note before sending**, it is in his voice. The same guide is a private page: [Outside Meeting Links](https://claude.ai/artifact/XyEZPshu1FSxDRJ2SDhjTT) (its "Ready to set up" table predates the LoriLee note).

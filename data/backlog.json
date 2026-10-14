@@ -1881,5 +1881,15 @@
     "status": "open",
     "addedAt": "2026-10-14",
     "notes": "Found 2026-10-14 (evening) while building outside meeting rooms, which use their own column (outsideMeetingUrl) for exactly this reason. Check first that nothing outside the app (an export, a report) still reads them."
+  },
+  {
+    "id": "2026-10-14-006",
+    "title": "Links in program email messages: absolute, and a check of saved ones",
+    "description": "Confirmation and reminder messages are written in the rich text editor and sent by email, where an in-site link (\"/programs/x\") goes nowhere. Make relative links absolute (the site's base URL) when a program message is rendered for email. And read the saved Confirmation and Reminder messages once (read-only) for links that were saved broken before the link box was fixed on 2026-10-14 (\"https://https://…\", no scheme), and list them for the registrar to correct.",
+    "category": "Email & Notifications",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-14",
+    "notes": "From the 2026-10-14 (night) review of the link-box fix (lib/linkInput.ts). The read needs Jesse's go-ahead (production data)."
   }
 ]

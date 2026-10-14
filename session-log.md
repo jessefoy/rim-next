@@ -1,3 +1,37 @@
+## 2026-10-14 (night) — Confirmation emails: the handout link and the lakehouse; links that work wherever they're typed
+
+On `main`: `734b16b`, and this closing. No production reads or writes by hand; one template change ran through `migrate.mjs` on deploy (below). Deployed and checked (This Week and Qigong's page answer 200).
+
+### The question
+
+LoriLee to Jesse: Qigong's registration confirmation needs a link to the Google Doc the class uses, and some programs need special directions (Pam's lakehouse). *"The registration confirmations are somewhat standardized, right? I don't remember if I can make changes to individual programs."* Jesse: make it clear *"how she adds the Google link. I know people have had a problem with this in the past."*
+
+### What was already there
+
+Every program has a **Confirmation Message** (Registration tab), rendered into `registration-confirmation` through `{{confirmationMessageHtml}}` (Handlebars `noEscape`, so links survive). A venue's Location Text already showed in the email; its Location Link did not. There is a **Resend Confirmation** button per registration (the program's operational page), so people who registered earlier can get a new message.
+
+### Built and live
+
+- **The link box** (every Tiptap variant's link button, the `doc` toolbar, the email template editor): one helper, `lib/linkInput.ts::normalizeLinkInput` (drops a doubled "https://https://", adds https:// to a bare address, bare email to `mailto:`, leaves in-site links). The prompt was "URL" prefilled with "https://", the likely source of the past trouble (a pasted link became "https://https://…"); it now reads "Paste the link (web address). Leave it empty to remove a link." and starts empty; a link Tiptap refuses gets an alert instead of nothing.
+- **Program Manager help:** the Confirmation Message says how to add a link (select, chain button, paste, OK) and to share a Google Doc as "Anyone with the link"; Location Link says it appears in the email.
+- **Map and directions:** `registration-confirmation` shows "📍 Place · Map and directions" for a venue other than RIM with a Location Link (`locationUrl`; seed updated; flag `registration_confirmation_map_link_v1`, an exact swap of the live line, with Jesse's consent, written only if the row is unchanged; the variable is declared either way).
+- **From the review (same defect class, fixed):** online-only programs show no place in program emails (`emailLocationFor`, matching the thank-you page; a virtual program could carry an old address); the reminder email's `[place](link)` is made safe (`emailSafeLink`, `markdownLinkText`; it was built raw); saved Location Links are tidied on save.
+- **For LoriLee:** a four-page PDF in Jesse's voice (how the email is put together, sharing the Doc with an incognito check, adding the link, Resend Confirmation for earlier registrants, a different venue, a troubleshooting table, good to know). The lakehouse's address is a placeholder.
+
+### Decisions and why
+
+- **No new feature for per-program content:** it existed; the work was making it findable and making links reliable (restraint over new surfaces).
+- **The link fix is shared, not local:** a link means the same in every box (the documented-class rule).
+- **The map link is limited to venues other than RIM** (what Jesse approved); reminders keep linking RIM's map as before.
+
+### What this connects to
+
+`lib/registrationConfirmation.ts` (the confirmation choke point, `RIM_Registration.md`), the resend and reminder routes and the reminder cron, `lib/locations.ts`, `RimTiptapEditor` and `MarkdownEditor` (every rich text and template link), the email template manager and its preview, the Program Manager's Registration and Schedule tabs, `RIM_Email_Engineering.md` ("Places and links in program emails"), `RIM_Editor_Types.md` (the link box).
+
+### Next
+
+Jesse: check `registration-confirmation` in `/admin/emails` still holds `{{confirmationMessageHtml}}`, then send LoriLee the PDF. LoriLee adds Qigong's handout link and resends to earlier registrants. Read-aloud: the two help lines and "Map and directions".
+
 ## 2026-10-14 (evening) — Outside meeting rooms: a program can meet in someone else's Zoom; LoriLee's guide
 
 On `main`: `41e305e` (the feature, with the review's fixes), `fedbecd` (backlog `2026-10-14-004` and a date correction), and this closing. Production: one read-only look, on Jesse's approval (a `SELECT 1` probe, then the old `zoomLink`/`meetHostAccount` values across all programs and the two programs' settings). No production writes. Deployed and checked: This Week, Programs & Events and both program pages answer 200 with the new columns in place (the migration ran).

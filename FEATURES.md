@@ -75,6 +75,13 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Page titles** on public pages use the home page's hyphen; the approved `RIM_MISSION` and the final `RIM_WHAT_BINDS` are live.
 - **All of this copy is provisional until Jesse's read-aloud.**
 
+## October 14, 2026 (night): confirmation emails and links
+
+- **Per-program confirmation content, made findable:** the Confirmation Message (Registration tab) help says how to add a link and to share a Google Doc as "Anyone with the link". Registrants who signed up earlier get it through **Resend Confirmation**.
+- **Map and directions** in the registration confirmation for a venue other than RIM with a Location Link.
+- **Links work wherever they're typed:** one tidy-up (`lib/linkInput.ts`) for every link box and saved Location Links; a clearer link prompt that starts empty.
+- Online-only programs no longer show an old street address in program emails; reminder place links are made safe. See `RIM_Email_Engineering.md`, "Places and links in program emails".
+
 ## October 14, 2026 (evening): outside meeting rooms
 
 - **A program can meet in someone else's room** (Recovery Dharma's national room, a facilitator's own Zoom). Program Manager → Hosting & Access → **Where it meets online**: RIM's Zoom (the default) or **An outside meeting link** (`Program.outsideMeetingUrl`, https only, `lib/outsideMeeting.ts`). Join still goes through `/session/[slug]/enter` with every gate (sign-in or guest link, the session window, registration or Open entry), then forwards to the link: no RIM meeting, no seat, no host code, no recording. Saving into an outside room frees the program's future seats; the seat-conflict warning leaves it out.
