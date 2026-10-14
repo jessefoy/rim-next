@@ -28830,6 +28830,37 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   .home-page .pp-split--flip > .pp-split__media { aspect-ratio: 2 / 3; }
 }
 
+/* ── HOME PREVIEW — sections as rooms (2026-10-14) ───────────────────────
+   Only on /home-preview (`.home-page--rooms`), for Jesse to compare with the
+   live home. Each section is its own room: a change of ground marks its edge
+   (RIM_Web_Design_Philosophy.md: separation by colour and whitespace), the
+   hairline stays only at a section edge (the refresh rule), and no line
+   inside a section looks like the line between sections. Practice for real life sits on Deeper Pampas in the markup
+   (pp-section--accent), so no two neighbouring sections share a ground.
+   When approved, fold into the home rules above and delete this block. */
+.home-page--rooms .home-begin {
+  margin-top: var(--space-5);
+  border-top: 0;
+  padding-top: 0;
+}
+.home-page--rooms .home-theme { border-top: 0; padding-top: 0; }
+.home-page--rooms .home-practice__closing { border-top: 0; padding-top: 0; }
+/* The eyebrow is each section's first signpost: 13px, not 11. */
+.home-page--rooms .home-eyebrow,
+.home-page--rooms .pp-intro__eyebrow { font-size: var(--text-xs); }
+/* Side by side, a split's photo stays beside its text as the text scrolls
+   (Dana's text runs far past its image). Not on short windows, where the
+   held photo would be cut off at the bottom. */
+@media (min-width: 769px) and (min-height: 700px) {
+  .home-page--rooms .pp-split > .pp-split__media {
+    position: sticky;
+    top: calc(var(--site-header-h) + var(--space-4));
+  }
+}
+@media (max-width: 768px) {
+  .home-page--rooms .home-begin > div + div { border-top: 0; padding-top: var(--space-3); }
+}
+
 /* ===================================================================
    WHY WE PRACTICE — reading aids (2026-09-30)
    ===================================================================
