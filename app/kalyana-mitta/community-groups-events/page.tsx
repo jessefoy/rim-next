@@ -2,6 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { buildSubtitle, fmtLabel, hasConcludedOneTime } from "@/lib/programUtils";
 import { whereOfferingCategory } from "@/lib/programOffering";
+import { activeAnnouncement } from "@/lib/scheduleUtils";
+import ProgramRow from "@/components/ProgramRow";
 
 export const metadata = {
   title: "Community Groups and Activities - Rooted In Mindfulness",
@@ -94,39 +96,28 @@ export default async function KalyanaGroupsPage() {
           </div>
 
           {groups.length > 0 ? (
-            <div className="pp-cards">
+            // The same list and rows as Programs & Events (2026-10-14), so a
+            // group reads the same wherever it is listed.
+            <ul className="pl-list">
               {groups.map((group) => {
                 const fullSubtitle = buildSubtitle(group);
-                const format = fmtLabel(group.programFormat, group.outsideMeetingUrl);
-                const schedule = fullSubtitle?.endsWith(` | ${format}`)
-                  ? fullSubtitle.slice(0, -(` | ${format}`).length)
+                const where = fmtLabel(group.programFormat, group.outsideMeetingUrl);
+                const schedule = fullSubtitle?.endsWith(` | ${where}`)
+                  ? fullSubtitle.slice(0, -(` | ${where}`).length)
                   : fullSubtitle;
-
+                const line = [schedule !== where ? schedule : null, where].filter(Boolean).join(" · ");
                 return (
-                  <Link
+                  <ProgramRow
                     key={group.id}
                     href={`/programs/${group.slug}`}
-                    className="pp-card pp-card--row"
-                  >
-                    <div className="pp-card__row">
-                      <div className="pp-card__main">
-                        <h3 className="pp-card__title">{group.name}</h3>
-                        {group.tagline && (
-                          <p className="pp-card__body">{group.tagline}</p>
-                        )}
-                        <div className="pp-card__meta">
-                          {schedule && <span className="pp-card__schedule">{schedule}</span>}
-                          <span className="pp-card__format">{format}</span>
-                        </div>
-                      </div>
-                      <span className="pp-card__action pp-card__action--named" aria-hidden="true">
-                        View group <span>→</span>
-                      </span>
-                    </div>
-                  </Link>
+                    title={group.name}
+                    line={line}
+                    tagline={group.tagline}
+                    announcement={activeAnnouncement(group)}
+                  />
                 );
               })}
-            </div>
+            </ul>
           ) : (
             <div className="pp-panel">
               <p className="pp-panel__body">
@@ -138,8 +129,8 @@ export default async function KalyanaGroupsPage() {
         </div>
       </section>
 
-      {/* ── Start one ─────────────────────────────────────── */}
-      <section className="pp-section pp-section--last">
+      {/* ── Start one: its own room on white, after the groups on Pampas. ── */}
+      <section className="pp-section pp-section--white pp-section--last">
         <div className="rim-container">
           {/* Start a group and its guidelines belong together in the panel
               (the refresh), not as a lone centred link beneath it. */}

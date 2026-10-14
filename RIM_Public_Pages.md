@@ -650,6 +650,17 @@ Jesse, comparing the live page with the old Webflow one: the new page is *"overl
 
 Measured on the mockup against the live page: desktop 5,900 to about 4,950px, phone 8,837 to about 6,050px. Owed to the data, not the design: program taglines are Title Case (sentence case reads calmer; Program Manager edits, with Jesse's approval), and Sacred Clarity (March 16, 2026) still lists under Immersion.
 
+### Each section a room, across the public pages (2026-10-14)
+
+After home and Programs & Events, Jesse asked for every non-member page to be checked against the same principle. All 25 public routes were measured on the live site at 1280 (each top-level section's ground, its separator, the boxes inside it and their nesting, full-width lines inside it, its small uppercase labels). **The principle, as now applied:** on a page built from separate sections, each section is a room: a change of ground marks its edge (white and Pampas alternating; a hairline may sit at the edge, never inside); no line inside a section looks like the line between sections; one container level (a list or panel inside a band, not a box in a box in a band); a surface on a white section takes the Pampas ground (`.pp-section--white :is(.pp-panel, .pp-closing, .pp-form)`), as the Programs & Events lists do.
+
+- **Conformed:** New to RIM (six sections on one ground divided by `.nt-ruled` hairlines; now Pampas and white alternating, `.nt-section--white`, the hairline at each edge, the inner rules gone), Join (white, Pampas, white), Volunteer (the form on white after the Pampas quote), the Kalyana Mitta groups page (the same `.pl-list` rows as Programs & Events through the shared `components/ProgramRow.tsx`, and its closing on white), Diverse Together (the hairline chapter breaks the other reading pages have; it had none).
+- **Forms are bordered, not lifted:** `.pp-form` loses `--card-shadow` for the 1px rule and 12px radius (closes backlog `2026-10-12-005`).
+- **Already conforming:** Home, Programs & Events, Donate, the group application, the teacher pages, sign-in, the thank-you and harm forms, and the program pages (their own grammar).
+- **Reading pages are one room, by decision:** Why We Practice, Taking CARE, Our Roots, A Handful of Leaves, About, Outreach and the Group Guidelines are one article on one ground with hairline chapter breaks and the sticky "On this page" list. A long read is one conversation; alternating grounds would cut across the sticky list. The chapter hairline is the section edge there.
+- **Next:** This Week (each day a bordered box of bordered cards, 24 boxes two deep) onto the Programs & Events list grammar, mocked first.
+- Retired with the change and pruned: `pp-cards`, `pp-card--row` and its parts, `pp-card__action--named`, and the already-dead `pp-card--door` / `pp-doors`.
+
 ## The Community Care Agreements, placed (2026-10-12)
 
 Jesse: *"This is a really meaningful part of our community, and it should be well placed and fully articulated."* Review and rulings: the vault's `CARE/4 Promotion/04-care-agreements-placement-review-2026-10-12.md`. Jesse also ruled that **the live site is the current version of public copy** where it and the vault differ.

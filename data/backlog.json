@@ -1746,9 +1746,9 @@
     "description": "The shared public form card (.pp-form: sign-in, /join, the Kalyana Mitta and volunteer applications, the new 'If harm happens' form) still has the old --card-shadow, against the October 9 rule that public surfaces are bordered with a 1px --rim-rule and a 12px radius. One rule; it changes every public form, so measure each after.",
     "category": "CSS & Design",
     "priority": "low",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-10-12",
-    "notes": "Found while measuring the new form, 2026-10-12."
+    "notes": "Found while measuring the new form, 2026-10-12. Done 2026-10-14: .pp-form bordered (1px --rim-rule, 12px), no shadow; on a white section it takes the Pampas ground."
   },
   {
     "id": "2026-10-13-001",
@@ -1850,7 +1850,7 @@
     "priority": "medium",
     "status": "open",
     "addedAt": "2026-10-14",
-    "notes": "Parked with 2026-10-14-001. The reading-page recommendation is untested judgment. Jesse's sentence about the circled programs header ended at 'The way that these are'; ask what he meant. 2026-10-14: home done first and is the reference (each section a room: a ground change at each edge, no in-section lines that mimic section lines; RIM_Public_Pages.md, \"Home: each section a room\"). Programs & Events done the same day."
+    "notes": "Parked with 2026-10-14-001. The reading-page recommendation is untested judgment. Jesse's sentence about the circled programs header ended at 'The way that these are'; ask what he meant. 2026-10-14: home done first and is the reference (each section a room: a ground change at each edge, no in-section lines that mimic section lines; RIM_Public_Pages.md, \"Home: each section a room\"). Programs & Events done the same day. 2026-10-14 (night): the composed pages conformed (New to RIM, Join, Volunteer, the KM groups page, Diverse Together's chapter breaks); the reading pages stay one room by decision; This Week remains (mock first). RIM_Public_Pages.md, \"Each section a room, across the public pages\"."
   },
   {
     "id": "2026-10-14-003",

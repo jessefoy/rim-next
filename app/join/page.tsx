@@ -61,7 +61,7 @@ export default async function JoinPage({
         </div>
       </section>
 
-      <section className="pp-section" aria-labelledby="jn-meaning-heading">
+      <section className="pp-section pp-section--white" aria-labelledby="jn-meaning-heading">
         <div className="rim-container">
           {/* Membership and the word "community" are themselves intimidating;
               this section disarms that before the agreements teach anything.
@@ -100,7 +100,7 @@ export default async function JoinPage({
       </section>
 
       <section
-        className="pp-section pp-section--tight"
+        className="pp-section"
         id="community-care-agreements"
         aria-labelledby="jn-agreements-heading"
       >
@@ -122,7 +122,7 @@ export default async function JoinPage({
         </div>
       </section>
 
-      <section className="pp-section pp-section--last" aria-labelledby="jn-form-heading">
+      <section className="pp-section pp-section--white pp-section--last" aria-labelledby="jn-form-heading">
         <div className="rim-container">
           <div className="pp-form">
             <h2 id="jn-form-heading" className="jn-form__heading">

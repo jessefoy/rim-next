@@ -12,7 +12,7 @@ import {
 } from "@/lib/programOffering";
 import { loadPublicPrograms, programsInCategory, type PublicProgram } from "@/lib/publicPrograms";
 import HashTargetScroller from "@/components/HashTargetScroller";
-import ProgramCardNotices from "@/components/ProgramCardNotices";
+import ProgramRow, { dropCt } from "@/components/ProgramRow";
 import PracticeWithUs from "@/components/PracticeWithUs";
 import { buildSubtitle, fmtLabel, computeDateText, computeTimeText, hasConcludedOneTime } from "@/lib/programUtils";
 import { activeAnnouncement } from "@/lib/scheduleUtils";
@@ -56,8 +56,6 @@ function longDate(d: Date, currentYear: number): string {
 /** The CT calendar day of a date, as YYYY-MM-DD. */
 const ctDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: TZ });
 
-/** The hero says "All times are Central" once, so rows drop the trailing CT. */
-const dropCt = (s: string | null | undefined) => (s ? s.replace(/\s+CT$/, "") : s);
 
 export default async function CommunityProgramsPage() {
   // The listing rule (what is listed, with each program's Category, Format and
@@ -110,19 +108,15 @@ export default async function CommunityProgramsPage() {
     const line = [kind, when, where, hosted].filter(Boolean).join(" · ");
 
     return (
-      <li key={program.id}>
-        <Link href={`/programs/${program.slug}`} className="pl-row">
-          <div className="pl-row__main">
-            <TitleTag className="pl-row__title">{program.name}</TitleTag>
-            {line && <span className="pl-row__when">{line}</span>}
-            {program.tagline && <span className="pl-row__line">{program.tagline}</span>}
-            <ProgramCardNotices announcement={activeAnnouncement(program)} />
-          </div>
-          <div className="pl-row__go" aria-hidden="true">
-            View <span className="pl-row__arrow">→</span>
-          </div>
-        </Link>
-      </li>
+      <ProgramRow
+        key={program.id}
+        href={`/programs/${program.slug}`}
+        title={program.name}
+        line={line}
+        tagline={program.tagline}
+        announcement={activeAnnouncement(program)}
+        titleTag={TitleTag}
+      />
     );
   };
 
@@ -208,18 +202,12 @@ export default async function CommunityProgramsPage() {
                 // Foundations is hidden until it is dated): one standing row
                 // carrying the program's name, to the Foundations page.
                 <ul className="pl-list">
-                  <li>
-                    <Link href="/foundations" className="pl-row">
-                      <div className="pl-row__main">
-                        <h3 className="pl-row__title">{FOUNDATIONS_PROGRAM_NAME}</h3>
-                        <span className="pl-row__when">Dates to come</span>
-                        <span className="pl-row__line">{FOUNDATIONS_FORMATS_LINE}</span>
-                      </div>
-                      <div className="pl-row__go" aria-hidden="true">
-                        View <span className="pl-row__arrow">→</span>
-                      </div>
-                    </Link>
-                  </li>
+                  <ProgramRow
+                    href="/foundations"
+                    title={FOUNDATIONS_PROGRAM_NAME}
+                    line="Dates to come"
+                    tagline={FOUNDATIONS_FORMATS_LINE}
+                  />
                 </ul>
               ) : groups.length === 0 ? (
                 // Only Immersion promises dates; another empty section shows

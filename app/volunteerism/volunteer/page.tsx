@@ -125,7 +125,7 @@ export default async function VolunteerPage() {
       </section>
 
       {/* ── Share your talent ─────────────────────────────── */}
-      <section id="share-your-talent" className="pp-section pp-section--last">
+      <section id="share-your-talent" className="pp-section pp-section--white pp-section--last">
         <div className="rim-container">
           <div className="pp-intro">
             <p className="pp-intro__eyebrow">Share your talent</p>

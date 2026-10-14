@@ -58,6 +58,10 @@ const DEAD_PREFIXES = [
   "pl-card--catalog", "pl-card--date", "pl-card--solo", "pl-card__labels",
   "pl-card__link", "pl-card__date", "pl-card__when", "pl-card__schedule",
   "pl-card__tagline",
+  // 2026-10-14: the Kalyana Mitta groups page moved onto the same rows; its
+  // row cards were the last users of these.
+  "pp-cards", "pp-card--row", "pp-card__row", "pp-card__meta", "pp-card__schedule",
+  "pp-card__format", "pp-card__action--named", "pp-card__main", "pp-split--doors",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

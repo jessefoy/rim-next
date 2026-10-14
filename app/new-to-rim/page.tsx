@@ -88,7 +88,7 @@ export default function NewToRimPage() {
       </section>
 
       {/* ── A place for you, and where to begin ── */}
-      <section className="nt-section nt-start" aria-labelledby="welcome-title">
+      <section className="nt-section" aria-labelledby="welcome-title">
         <div className="rim-container">
           <div className="nt-split">
             <div>
@@ -144,8 +144,8 @@ export default function NewToRimPage() {
       </section>
 
       {/* ── Signing up: the membership step, with the three asks (Jesse's) ── */}
-      <section className="nt-section" aria-labelledby="signing-up">
-        <div className="rim-container nt-ruled">
+      <section className="nt-section nt-section--white" aria-labelledby="signing-up">
+        <div className="rim-container">
           <div className="nt-split">
             <div>
               <p className="nt-eyebrow">Before you join us</p>
@@ -179,7 +179,7 @@ export default function NewToRimPage() {
 
       {/* ── Your first visit: in person and online, side by side ── */}
       <section className="nt-section" aria-labelledby="attending-title">
-        <div className="rim-container nt-ruled">
+        <div className="rim-container">
           <div className="nt-section-heading">
             <p className="nt-eyebrow">Your first visit</p>
             <h2 id="attending-title">What to expect.</h2>
@@ -278,8 +278,8 @@ export default function NewToRimPage() {
       </section>
 
       {/* ── Practicing together ── */}
-      <section className="nt-section" aria-labelledby="community">
-        <div className="rim-container nt-ruled nt-split">
+      <section className="nt-section nt-section--white" aria-labelledby="community">
+        <div className="rim-container nt-split">
           <div>
             <p className="nt-eyebrow">Practicing together</p>
             <h2 id="community">
@@ -308,7 +308,7 @@ export default function NewToRimPage() {
 
       {/* ── Questions ── */}
       <section className="nt-section" aria-labelledby="questions">
-        <div className="rim-container nt-ruled nt-split">
+        <div className="rim-container nt-split">
           <div>
             <p className="nt-eyebrow">A little more reassurance</p>
             <h2 id="questions">
@@ -331,8 +331,8 @@ export default function NewToRimPage() {
       </section>
 
       {/* ── Contact ── */}
-      <section className="nt-section nt-contact" aria-labelledby="contact">
-        <div className="rim-container nt-ruled nt-split">
+      <section className="nt-section nt-section--white" aria-labelledby="contact">
+        <div className="rim-container nt-split">
           <div>
             <p className="nt-eyebrow">We are here to help</p>
             <h2 id="contact">
