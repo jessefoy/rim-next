@@ -26,6 +26,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
+import { normalizeLinkInput } from "@/lib/linkInput";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
@@ -374,11 +375,7 @@ function DocToolbar({ editor }: { editor: Editor }) {
     }
   }
   function setLink() {
-    const previous = editor.getAttributes("link").href;
-    const url = window.prompt("URL", previous ?? "https://");
-    if (url === null) return;
-    if (url === "") { editor.chain().focus().extendMarkRange("link").unsetLink().run(); return; }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    promptForLink(editor);
   }
 
   const headingLabel =
@@ -615,16 +612,32 @@ function Btn({
   );
 }
 
+/**
+ * Ask for a link and apply it to the selection (every variant's link button).
+ * The address is tidied first (lib/linkInput.ts), and a link Tiptap refuses
+ * is said out loud rather than closing with nothing changed.
+ */
+function promptForLink(editor: Editor) {
+  const previous = editor.getAttributes("link").href;
+  const answer = window.prompt(
+    "Paste the link (web address). Leave it empty to remove a link.",
+    previous ?? "",
+  );
+  if (answer === null) return;
+  const url = normalizeLinkInput(answer);
+  if (url === "") {
+    editor.chain().focus().extendMarkRange("link").unsetLink().run();
+    return;
+  }
+  const applied = editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  if (!applied) {
+    window.alert("That link can't be used. Paste a web address that starts with https://");
+  }
+}
+
 function LinkBtn({ editor }: { editor: Editor }) {
   function onClick() {
-    const previous = editor.getAttributes("link").href;
-    const url = window.prompt("URL", previous ?? "https://");
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    promptForLink(editor);
   }
   return (
     <button

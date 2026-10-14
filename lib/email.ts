@@ -5,7 +5,7 @@ import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichCont
 import { db } from "@/lib/db";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
-import { RIM_ADDRESS, RIM_EIN, RIM_LEGAL_NAME } from "@/lib/locations";
+import { RIM_ADDRESS, RIM_EIN, RIM_LEGAL_NAME, emailSafeLink, markdownLinkText } from "@/lib/locations";
 import { FORM_KIND, formNoticeSubject } from "@/lib/formSubmissions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -420,6 +420,8 @@ export interface RegistrationEmailData {
   waitlistPosition?: number | null;
   dateText?: string | null;
   locationText?: string | null;
+  /** Map and directions for a venue other than RIM (lib/locations.ts emailLink). */
+  locationUrl?: string | null;
   // Program-specific confirmation copy from Sanity (rendered from Portable Text)
   confirmationMessageHtml?: string;
   confirmationMessageText?: string;
@@ -444,6 +446,7 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
     waitlistPosition: waitlistPosition ?? null,
     dateText: dateText ?? "",
     locationText: locationText ?? "",
+    locationUrl: data.locationUrl ?? "",
     confirmationMessageHtml: data.confirmationMessageHtml ?? "",
     googleCalendarUrl: data.googleCalendarUrl ?? "",
     icsUrl: data.icsUrl ?? "",
@@ -789,8 +792,11 @@ export interface ReminderEmailData {
  * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendReminderEmail(data: ReminderEmailData): Promise<void> {
-  const locationText = data.locationLink
-    ? `[${data.locationText}](${data.locationLink})`
+  // A link only when it is safe in markdown (lib/locations.ts emailSafeLink),
+  // with the text escaped so a "]" in a venue name can't end it early.
+  const safeLink = emailSafeLink(data.locationLink);
+  const locationText = safeLink && data.locationText
+    ? `[${markdownLinkText(data.locationText)}](${safeLink})`
     : (data.locationText ?? "");
 
   // Render reminder message — detect BlockNote JSON vs Portable Text

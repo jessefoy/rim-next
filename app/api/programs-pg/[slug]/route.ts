@@ -18,6 +18,7 @@ import { cleanOffering, resolveOffering } from "@/lib/programOffering";
 import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
 import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
+import { normalizeLinkInput } from "@/lib/linkInput";
 
 export async function GET(
   _req: NextRequest,
@@ -253,7 +254,8 @@ export async function PUT(
   }
   if (body.venue !== undefined) data.venue = body.venue;
   if (body.locationText !== undefined) data.locationText = body.locationText || null;
-  if (body.locationLink !== undefined) data.locationLink = body.locationLink || null;
+  // Tidied like every link box: a bare "www.google.com/maps/…" gets https://.
+  if (body.locationLink !== undefined) data.locationLink = normalizeLinkInput(body.locationLink ?? "") || null;
   if (body.startDatetime !== undefined) data.startDatetime = centralToUtc(body.startDatetime);
   if (body.endDatetime !== undefined) data.endDatetime = centralToUtc(body.endDatetime);
   if (body.recurrenceFreq !== undefined) data.recurrenceFreq = body.recurrenceFreq || null;

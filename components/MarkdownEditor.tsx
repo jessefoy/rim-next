@@ -25,6 +25,7 @@
  * CSS prefix: re-
  */
 
+import { normalizeLinkInput } from "@/lib/linkInput";
 import { useEffect, useCallback, useRef, useState } from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -186,7 +187,7 @@ export default function MarkdownEditor({
     if (!trimmed) {
       editor.chain().focus().unsetLink().run();
     } else {
-      const href = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
+      const href = normalizeLinkInput(trimmed);
       editor.chain().focus().setLink({ href }).run();
     }
     setLinkPopoverOpen(false);

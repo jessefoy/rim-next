@@ -1535,7 +1535,7 @@ export default function ProgramEditor({
                 </label>
                 <label className="pe-field">
                   <span className="pe-field__label">Location Link</span>
-                  <span className="pe-field__help">A link to the venue — Google Maps, a website, or directions. Shown as a clickable link on the program page.</span>
+                  <span className="pe-field__help">A link to the venue: Google Maps, a website, or directions. Shown as a clickable link on the program page, and as &ldquo;Map and directions&rdquo; in the confirmation email.</span>
                   <input type="url" value={locationLink} onChange={(e) => setLocationLink(e.target.value)} className="pe-input" placeholder="https://…" />
                 </label>
               </>
@@ -2450,7 +2450,16 @@ export default function ProgramEditor({
 
             <div className="pe-field">
               <span className="pe-field__label">Confirmation Message</span>
-              <span className="pe-field__help">Shown in the confirmation email after someone registers. Good for logistics like what to bring or how to prepare.</span>
+              <span className="pe-field__help">
+                Shown in the confirmation email after someone registers: what to
+                bring, how to prepare, directions, or a link to a class handout.
+                <strong> To add a link:</strong> type the words people will
+                click (such as &ldquo;Our class handout&rdquo;), select them, then
+                click the chain button in the small bar that appears above them.
+                Paste the address and click OK. For a Google Doc, first set its
+                sharing to &ldquo;Anyone with the link&rdquo; can view, or
+                registrants will be asked to request access.
+              </span>
               <RimTiptapEditor
                 value={confirmationMessage}
                 onChange={(v) => { setConfirmationMessage(v); markDirty(); }}

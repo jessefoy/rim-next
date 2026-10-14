@@ -539,7 +539,7 @@ const migrations = [
           description: "Sent when a member registers for a program (confirmed or waitlisted).",
           enabled: true,
           subject: "{{#if isWaitlisted}}You're on the waitlist — {{programTitle}}{{else}}You're registered — {{programTitle}}{{/if}}",
-          variables: ["firstName", "programTitle", "programUrl", "isWaitlisted", "waitlistPosition", "dateText", "locationText", "confirmationMessageHtml", "googleCalendarUrl", "icsUrl"],
+          variables: ["firstName", "programTitle", "programUrl", "isWaitlisted", "waitlistPosition", "dateText", "locationText", "locationUrl", "confirmationMessageHtml", "googleCalendarUrl", "icsUrl"],
           body: `Hi {{firstName}},
 
 {{#if isWaitlisted}}
@@ -550,7 +550,7 @@ If a spot opens up, we'll email you right away.
 You're registered for **{{programTitle}}**. We look forward to practicing together.
 
 {{#if dateText}}📅 {{dateText}}{{/if}}
-{{#if locationText}}📍 {{locationText}}{{/if}}
+{{#if locationText}}📍 {{locationText}}{{#if locationUrl}} · [Map and directions]({{locationUrl}}){{/if}}{{/if}}
 
 {{#if confirmationMessageHtml}}
 {{confirmationMessageHtml}}
@@ -6456,6 +6456,45 @@ Jesse`,
       }
     } catch (err) {
       console.error("  Email look: failed (templates unchanged where not logged):", err?.message ?? err);
+    }
+  }
+
+  // Registration confirmation: a map link for a venue other than RIM
+  // (2026-10-14, with Jesse's consent for this change). One exact text swap
+  // on the live row, written only if the row is unchanged since read, so any
+  // other edit made in /admin/emails survives; if the location line was
+  // edited by hand, it is left alone and logged. Never throws.
+  {
+    const flag = "registration_confirmation_map_link_v1";
+    try {
+      const applied = await db.$queryRawUnsafe('SELECT name FROM "_migration_flags" WHERE name = $1', flag);
+      if (!applied.length) {
+        const slug = "registration-confirmation";
+        const from = "{{#if locationText}}📍 {{locationText}}{{/if}}";
+        const to = "{{#if locationText}}📍 {{locationText}}{{#if locationUrl}} · [Map and directions]({{locationUrl}}){{/if}}{{/if}}";
+        const row = await db.emailTemplate.findUnique({ where: { slug }, select: { body: true, variables: true } });
+        // Declare the variable whatever the body holds, so the /admin/emails
+        // preview fills it if the line is ever written by hand.
+        if (row && !row.variables.includes("locationUrl")) {
+          await db.emailTemplate.update({ where: { slug }, data: { variables: { push: "locationUrl" } } });
+          row.variables = [...row.variables, "locationUrl"];
+        }
+        if (!row) {
+          console.log(`  Map link: ${slug} not found, skipped.`);
+        } else if (!row.body.includes(from)) {
+          console.log(`  Map link: ${slug}'s location line was edited or already changed, left alone.`);
+        } else {
+          const variables = row.variables.includes("locationUrl") ? row.variables : [...row.variables, "locationUrl"];
+          const res = await db.emailTemplate.updateMany({
+            where: { slug, body: row.body },
+            data: { body: row.body.replace(from, to), variables },
+          });
+          console.log(res.count ? `  Map link: ${slug} now adds "Map and directions" for a venue with a Location Link.` : `  Map link: ${slug} changed during the update, left alone.`);
+        }
+        await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+      }
+    } catch (err) {
+      console.error("  Map link: failed (template unchanged):", err?.message ?? err);
     }
   }
 

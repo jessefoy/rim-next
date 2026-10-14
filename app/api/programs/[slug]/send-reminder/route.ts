@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { sendReminderEmail } from "@/lib/email";
-import { resolveLocation } from "@/lib/locations";
+import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 
 // ─── POST /api/programs/[slug]/send-reminder ──────────────────────────────────
@@ -34,7 +34,7 @@ export async function POST(
   });
 
   const now = new Date();
-  const loc = resolveLocation(pgProgram?.venue, pgProgram?.locationText, pgProgram?.locationLink);
+  const loc = emailLocationFor(pgProgram ?? {});
   const startIso = pgProgram?.startDatetime?.toISOString() ?? null;
   const endIso = pgProgram?.endDatetime?.toISOString() ?? null;
 

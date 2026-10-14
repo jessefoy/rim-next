@@ -222,6 +222,13 @@ An email that can reach a scheduler-hub member must speak that hub's coverage ro
 
 ---
 
+## Places and links in program emails (2026-10-14)
+
+- **`lib/locations.ts::emailLocationFor(program)`** is the place for every program email (registration confirmation, resend, reminders, the reminder cron): `resolveLocation`, except an **online-only program shows no place** (its venue fields can keep an old address; the editor hides them, it doesn't clear them). The thank-you page already did this.
+- **Map and directions.** A venue other than RIM with a Location Link adds `locationUrl` to `registration-confirmation` ("📍 Place · Map and directions"; flag `registration_confirmation_map_link_v1`, an exact swap of the live location line with Jesse's consent, written only if the row is unchanged; the variable is declared even when the line was edited by hand).
+- **A link in markdown must be made safe:** `emailSafeLink` (tidied by `lib/linkInput.ts`, http(s) only, parentheses encoded) and `markdownLinkText` (escapes `[`, `]`, `\`). The reminder's `[place](link)` uses both; it built the link raw before.
+- **Saved Location Links are tidied** on save (`normalizeLinkInput` in both program routes), so a bare "www.google.com/maps/…" works on the program page too.
+
 ## Engineering rules in one paragraph
 
 When you send an email: write the slug into both the code and a `prisma/migrate.mjs` seed entry; use `findUnique → create` (never `upsert`); never overwrite an existing template body; build URLs via `hubScopedUrl` / `hubHomeUrl` / `BASE_URL` (never inline `https://`); derive `hubSlug` from the resource (program), not the actor; pass a `{{*Button}}` variable for every CTA URL using `emailButtonHtml(label, url)`; wrap fire-and-forget sends in `after()` from `next/server` (or await them if the caller is a route handler that already awaits); `console.error` on failure (never silent `.catch`); add a one-line JSDoc justification on any hardcoded-HTML email that bypasses the template manager.

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendReminderEmail } from "@/lib/email";
-import { resolveLocation } from "@/lib/locations";
+import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 
 // ─── GET /api/cron/send-reminders ─────────────────────────────────────────────
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const loc = resolveLocation(program.venue, program.locationText, program.locationLink);
+    const loc = emailLocationFor(program);
     const startIso = program.startDatetime?.toISOString() ?? null;
     const endIso = program.endDatetime?.toISOString() ?? null;
 

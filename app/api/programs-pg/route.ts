@@ -17,6 +17,7 @@ import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOffering } from "@/lib/programOffering";
 import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
+import { normalizeLinkInput } from "@/lib/linkInput";
 
 export async function GET() {
   const session = await auth();
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
       programFormat: body.programFormat || "in-person",
       venue: body.venue || "at-rim",
       locationText: body.locationText || null,
-      locationLink: body.locationLink || null,
+      locationLink: normalizeLinkInput(body.locationLink ?? "") || null,
       startDatetime: centralToUtc(body.startDatetime),
       endDatetime: centralToUtc(body.endDatetime),
       recurrenceFreq: body.recurrenceFreq || null,

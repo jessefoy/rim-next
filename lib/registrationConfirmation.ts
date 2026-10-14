@@ -5,7 +5,7 @@ import {
 } from "@/lib/email";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
-import { resolveLocation } from "@/lib/locations";
+import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { addRegistrationToFlodesk } from "@/lib/flodesk";
 
@@ -46,6 +46,7 @@ export async function sendRegistrationConfirmation(
           startDatetime: true,
           endDatetime: true,
           venue: true,
+          programFormat: true,
           locationText: true,
           locationLink: true,
           dateText: true,
@@ -73,6 +74,7 @@ export async function sendRegistrationConfirmation(
   let googleCalendarUrl: string | undefined;
   let icsUrl: string | undefined;
   let resolvedLocationText: string | null = null;
+  let resolvedLocationUrl: string | null = null;
   let resolvedDateText: string | null = null;
 
   try {
@@ -88,12 +90,9 @@ export async function sendRegistrationConfirmation(
       }
 
       // Resolve location (venue → RIM defaults, or custom text/link)
-      const loc = resolveLocation(
-        program.venue,
-        program.locationText,
-        program.locationLink,
-      );
+      const loc = emailLocationFor(program);
       resolvedLocationText = loc.emailText;
+      resolvedLocationUrl = loc.emailLink;
 
       // Prefer the program's cached display label; fall back to computing it.
       resolvedDateText = program.dateText?.trim()
@@ -138,6 +137,7 @@ export async function sendRegistrationConfirmation(
     waitlistPosition: registration.waitlistPosition,
     dateText: resolvedDateText,
     locationText: resolvedLocationText,
+    locationUrl: resolvedLocationUrl,
     confirmationMessageHtml,
     confirmationMessageText,
     googleCalendarUrl,

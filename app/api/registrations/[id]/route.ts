@@ -12,7 +12,7 @@ import {
 } from "@/lib/email";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
-import { resolveLocation } from "@/lib/locations";
+import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { requiredDanaCents } from "@/lib/programUtils";
 import { addRegistrationToFlodesk, removeRegistrationFromFlodesk } from "@/lib/flodesk";
@@ -61,7 +61,7 @@ export async function PATCH(
         return NextResponse.json({ error: "Invalid registration" }, { status: 400 });
       }
       const pgProgram = await db.program.findUnique({ where: { slug: reg.programSlug } });
-      const loc = resolveLocation(pgProgram?.venue, pgProgram?.locationText, pgProgram?.locationLink);
+      const loc = emailLocationFor(pgProgram ?? {});
       const startIso = pgProgram?.startDatetime?.toISOString() ?? null;
       const endIso = pgProgram?.endDatetime?.toISOString() ?? null;
       await sendReminderEmail({
@@ -127,7 +127,7 @@ export async function PATCH(
         }
       }
 
-      const loc = resolveLocation(pgProgram?.venue, pgProgram?.locationText, pgProgram?.locationLink);
+      const loc = emailLocationFor(pgProgram ?? {});
       const startIso = pgProgram?.startDatetime?.toISOString() ?? null;
       const endIso = pgProgram?.endDatetime?.toISOString() ?? null;
 
@@ -163,6 +163,7 @@ export async function PATCH(
           recurrenceDays: pgProgram?.recurrenceDays ?? null,
         }) || undefined,
         locationText:  loc.emailText,
+        locationUrl:   loc.emailLink,
         confirmationMessageHtml,
         confirmationMessageText,
         googleCalendarUrl,
