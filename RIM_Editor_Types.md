@@ -461,7 +461,8 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 - **Component:** `EmailTemplateEditor.tsx`
 - **Schema field:** `EmailTemplate.body`
 - **Storage:** Markdown (not HTML and not BlockNote JSON — different pipeline)
-- **Output destination:** transactional email (via `marked` → `juice` → Resend)
+- **Output destination:** transactional email (via `marked` → `juice` → Resend, through `renderEmailHtml` in `lib/email.ts`)
+- **Line breaks (2026-10-14):** a single Return is a new line. The editor (`tiptap-markdown`) and the renderer (`marked`) both use `breaks: true`, so the editor, the preview and the inbox agree; change one only with the other.
 - **Notes:** Outside the four-type model. Will fold into Document or Message when a BlockNote-to-email-safe renderer is built.
 
 ---

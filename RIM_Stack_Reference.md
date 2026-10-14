@@ -1,5 +1,7 @@
 # RIM Next — Stack Reference
 
+> **2026-10-14:** **Email:** `renderEmailHtml(bodyHtml)` (async; `wrapInEmailChrome` + `EMAIL_BASE_CSS` inlined by juice, which stays dynamically imported because `auth.ts` imports `lib/email.ts`) is the one render path for every send and the `/admin/emails` preview. The email head links Open Sans from Google Fonts (`fonts.googleapis.com`; juice keeps the link). Email markdown renders with `marked`'s `breaks: true`, and `components/MarkdownEditor.tsx` configures `tiptap-markdown` with `breaks: true` to match. New in the repo: `mockups/programs-2026-10-14/` (a reference only). No new dependencies, env vars, services, crons, schema, migrations, routes or email templates.
+
 > **2026-10-13 (evening):** **Schema:** new table `form_submissions` (`FormSubmission`); `hubs.googleLeadsFolderId` and `google_file_meta.leadsOnly` (additive, `ADD COLUMN IF NOT EXISTS`); `hubs.welcomeHeadline`, `welcomeBody`, `homeContent` **dropped** (`drop_team_home_text_v1`, after the code stopped reading them; text archived off-repo in `~/Sites/rim-next-archive/`). **Migration flags:** `form_notification_label_v1`, `email_templates_team_not_hub_v1`, `drop_team_home_text_v1`; the always-run `convert_hub_content_to_html` and three content seeds retired (their files deleted) because Prisma rejects a removed field. **New routes:** `/admin/form-submissions`, `POST /api/files/leads`, `/api/admin/files-duplicates` (GET review, POST trash); removed: `PATCH /api/hubs/[slug]/membership/visited`; `PATCH /api/hubs/[slug]/home` now saves only `Hub.description`. **Drive:** `FILE_FIELDS` also asks for `md5Checksum`. **Email:** `sendTemplatedEmail` takes `bcc`, `replyTo`, `subject`, and a list of recipients; `TEAM_EMAIL` retired. **New shared UI:** `components/FormDone.tsx` (`FormDone`, `FormProblem`, `SaveNote`, `useArrival`, `ActionNotice`/`useActionNotice`). **Deploy note:** one push (`0518915`) never reached Vercel (no deployment, no status on GitHub); it was deployed from the dashboard's Create Deployment. If a push doesn't appear in Deployments within a few minutes, check there. No new dependencies, env vars, services or crons.
 
 > **2026-10-13 (later):** **New env var** `MEMBERSTACK_SECRET_KEY` (Production; the live Memberstack secret key, server-only), read by **`lib/legacyImport.ts`** for the restored, temporary **`/admin/import-legacy`** tool (`POST /api/admin/import-legacy`, ADMIN; Memberstack Admin REST API `GET https://admin.memberstack.com/members`, header `X-API-KEY`, 100 a page, 25 requests a second). Remove the tool, its rail link and the key (Vercel and Memberstack) after the domain move. **CSS:** the member-bar is retired (pruned; `scripts/css-prune.mjs` lists `member-bar`, `member-menu`) and one token, `--site-header-h`, sets every shell offset. No new dependencies, services, crons, schema, migrations or email templates.
@@ -149,7 +151,7 @@ The Webflow-built site at `rootedinmindfulness.org` is the live public-facing do
 ## Workflow
 
 - **Never run a local dev server.** Push to `main` → Vercel auto-deploys in ~1–2 min.
-- `npm run build` = `prisma generate && node prisma/migrate.mjs && next build` — run locally to catch TypeScript errors before pushing. Note: locally the full build will fail at `migrate.mjs` unless `.env.local` is loaded, because it needs `POSTGRES_PRISMA_URL`. To type-check without DB: `npx tsc --noEmit`.
+- `npm run build` = `prisma generate && node prisma/migrate.mjs && next build` — **never run it locally**: its `migrate.mjs` step runs migrations against whatever database the environment points to, and production is reachable from this machine (see `CLAUDE.md`, Workflow). The local gate is `npx tsc --noEmit`; `npx next build` also works (it skips migrations but reads production at prerender).
 - **`prisma/migrate.mjs` skips cleanly when DB env is missing.** Top-of-`main()` guard: if `POSTGRES_PRISMA_URL` is absent, log a friendly note and return. Production deploys always set the env and run migrations. Vercel preview deploys (which don't inherit production env vars by default) complete `next build` without DB access. Established session 116 after the first non-main branch push surfaced the pre-existing fragility.
 - To pull env vars: `npx vercel env pull .env.local`
 - To run DB migration: `set -a && source .env.local && set +a && npx prisma db push`
@@ -300,6 +302,8 @@ Sanity is fully retired — no `@sanity` dependencies, no query code, no live co
 
 ## Key Directories
 
+*An early sketch, not maintained route by route (some paths below, such as `account/programs`, hub documents and the manual, are retired). The current route list is in `FEATURES.md`.*
+
 ```
 app/
   account/
@@ -354,7 +358,7 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 
 | Role | Access |
 |---|---|
-| `HOST` | Host Community Hub, sub board, conversations |
+| ~~`HOST`~~ | Retired session 153: being a host is host-team membership (`HubMember`), not a role. See `RIM_Role_Design.md` |
 | `HOST_MANAGER` | All HOST access + assignment management + Standing Rotations editor |
 | `TEACHER` | Teacher Hub — course and lesson management |
 | ~~`SUPPORT`~~ | Removed session 100 — Support Inbox deleted |

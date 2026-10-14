@@ -1,29 +1,28 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-13 (third closing ritual, evening). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-14 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-13 evening closed: form inboxes, every submit answered, team Home simplified, Leads only in Files
+## Active — 2026-10-14 closed: every email in one look; Programs & Events studied and parked
 
-Everything is on `main` (`0518915` … the docs). Narrative: `session-log.md` (2026-10-13, evening). Production changes this evening, each approved: three team renames (Hosting Team, Course Team, Support); stored email wording "team" not "hub" (and Zoom, not Google Meet, in `host-role-assigned`); team Home's old text archived to `~/Sites/rim-next-archive/` and its columns dropped; every team's files moved into Leads only (79 items, 12 teams); 11 duplicate copies to Drive's trash (recoverable until about November 12); the leads were emailed (once).
+Everything is on `main` (`671ca9d` … the docs). Narrative: `session-log.md` (2026-10-14). No production reads or writes.
 
-**Live from this evening:** the form inboxes (volunteer@ with Jesse's blind copy; jesse@ + KalyanaMitta@; "RIM form · Kind · Name"; every submission saved at `/admin/form-submissions`). The answer rule everywhere (`components/FormDone.tsx`; `RIM_Web_Design_Philosophy.md`). Team Home: the team's line (leads edit it), its tool in one card, then destinations (`RIM_Hub_Engineering.md`, "Team Home, 2026-10-13"). Leads only in every team's Files (`RIM_GoogleWorkspace.md` §12). Duplicate files review (Manage RIM → Google Files; keep it, it only lists until confirmed).
+**Live from today:** every email goes through one renderer (`renderEmailHtml`, `lib/email.ts`): the care notice and the four rotation emails now have the frame, Open Sans and the form-notice shape like the rest. A single Return is a new line in every template, in the `/admin/emails` editor, the preview and the inbox. `RIM_Email_Engineering.md` holds both rules.
 
-**Jesse's steps:**
-- **A signed-in look:** a team Home (write its line), and Files as a lead: Leads only, a move each way, and a member's view of Team files. Then a form send and a profile save, to see the answers.
-- **The leads sort their files** before launch (the note asked them). If one reports something missing, the duplicates are in Drive's trash until about November 12.
-- **The read-aloud** of this evening's lines: "You don't need to do anything else", the welcome lines on My Home, the "Saved…" and error lines, the leads note (`leads-files-update` in Emails); plus the earlier ones below.
-- **Flodesk:** keep all Zaps on until the domain moves. After the move, delete the "Suspected bots: review" contacts (1,355). Link programs already taking registrations to their segments in Program Manager → Registration.
-- **Send the volunteer note** ([Member List Cleanup](https://claude.ai/artifact/XsbNosdwgMutzK3ZtFDxzf)); **one test message** through `/community-care-agreements/concern`.
-- **Open offers:** a read-only count of registrations detached by the old sweep, then a relink (`2026-10-13-003`).
-- **Rulings still open from October 12:** one name for the agreements in the footer and "Practice with us"; whether the Library names Taking CARE; the cancellation line in the registration confirmation; the glossary (`2026-10-12-002`); archived teams for the rare member; the "agreements updated" notice (`2026-10-12-001`); Taking CARE Foundations' details.
+**Waiting on Jesse:**
+- **Two programs showing publicly that shouldn't** (production writes, his approval first): **Dummy Test Program** (archived 10-02, back on Programs & Events and every day of This Week, "TEST HERE"), and **Sacred Clarity**, dated March 16, 2026, still the only Immersion program (wrong date, or hide-when-past off). Next step: read both rows, find what brought the test program back, propose the fix.
+- **A skim of long templates in `/admin/emails`** for a line now breaking mid-sentence (the seeds were checked; the edited production bodies were not, because the read was blocked by Claude Code's auto-mode check). Or allow that read.
+- **Programs & Events and section differentiation: parked by Jesse** ("I'll think more about it and come back to it"). Mockup `mockups/programs-2026-10-14/`; backlog `2026-10-14-001` and `-002`. His sentence about the circled header ended at "The way that these are": ask.
+- **"Their message"** (the care notice's new heading) for his read-aloud.
+
+**Still open from October 13 (evening):** the signed-in look (a team Home's line; Files as a lead, Leads only, a move each way, a member's view; a form send and a profile save); the leads sort their files before launch (duplicates in Drive's trash until about November 12); the read-aloud of that evening's lines ("You don't need to do anything else", My Home's welcome, the Saved and error lines, `leads-files-update`); Flodesk (Zaps on until the domain moves, then delete the bot contacts; link programs already taking registrations to their segments); send the volunteer note ([Member List Cleanup](https://claude.ai/artifact/XsbNosdwgMutzK3ZtFDxzf)) and one test message through `/community-care-agreements/concern`; the open offer of a read-only count of registrations detached by the old sweep (`2026-10-13-003`); the October 12 rulings (one name for the agreements in the footer and "Practice with us"; whether the Library names Taking CARE; the cancellation line; the glossary `2026-10-12-002`; archived teams for the rare member; the "agreements updated" notice `2026-10-12-001`; Taking CARE Foundations' details).
 
 **Before launch (in order):**
 1. **Self-service email change** with verification, notice and history (`2026-10-12-003`, high); Flodesk can't change an address through its API.
 2. **Launch configuration:** Stripe live (`2026-09-24-001`); with the domain move, change `NEXTAUTH_URL` in Vercel in the same step; rotate the database password.
-3. **On the day the domain moves:** delete the bot contacts in Flodesk (Jesse); run Import members once more, then remove the tool, its rail link and `lib/legacyImport.ts`, delete `MEMBERSTACK_SECRET_KEY` in Vercel and the key in Memberstack (`2026-10-13-001`); export Webflow's Forms history; then cancel Zapier (all six Zaps are replaced in the app).
+3. **On the day the domain moves:** delete the bot contacts in Flodesk (Jesse); run Import members once more, then remove the tool, its rail link and `lib/legacyImport.ts`, delete `MEMBERSTACK_SECRET_KEY` in Vercel and the key in Memberstack (`2026-10-13-001`); export Webflow's Forms history; then cancel Zapier.
 4. **Watch the first real registration** create its Flodesk segment and the first member sign-in join Members (Vercel log).
 
-**Queued (backlog):** `2026-10-13-008` send a one-off email to a chosen group (Jesse wants it); `2026-10-13-005` a true "needs help" count on the Scheduler card. **Deploy watch:** if a push doesn't show in Vercel's Deployments within a few minutes, deploy it from the dashboard (Create Deployment → main); it happened once this evening.
+**Queued (backlog):** `2026-10-13-008` send a one-off email to a chosen group; `2026-10-13-005` a true "needs help" count on the Scheduler card; `2026-10-14-001`/`-002` (parked design). **Deploy watch:** if a push doesn't show in Vercel's Deployments within a few minutes, deploy it from the dashboard (Create Deployment → main).
 
 ## Still open from October 2 — categories, Open entry, and history and roots are live; the pages await Jesse's read-aloud
 
@@ -91,6 +90,8 @@ Other pending decisions: public Test Course/teacher profile data (`2026-09-02-00
 
 ## Recently completed / reference
 
+- One email renderer, form-notice shape, template line breaks (2026-10-14): `session-log.md` 2026-10-14; `RIM_Email_Engineering.md` ("The look").
+- Form inboxes, the answer rule, team Home simplified, Leads only (2026-10-13 evening): `session-log.md` 2026-10-13 (evening); `RIM_Hub_Engineering.md`; `RIM_GoogleWorkspace.md` §12.
 - Category and Format, Open entry, history and roots (2026-10-02, later): `session-log.md` 2026-10-02 (later); `RIM_Public_Pages.md` ("The three ways, Category and Format, and Open entry"; "Our way of practice, and our roots"); `RIM_Offering_Model.md`; `RIM_ProgramEditor.md`.
 - The integration pass and its follow-up (2026-10-01 to 10-02): `session-log.md` 2026-10-02 (includes the F11 categorization survey); `RIM_Public_Pages.md` ("The integration pass"); `RIM_ProgramEditor.md` (optional pull quote); `RIM_Member_Area.md` (the Handful pages, My Home card).
 - Revisions 8 to 12a, the menu, Diversity, the dana account, the MBSR line and bios, the footer (2026-09-30 to 2026-10-01): `session-log.md` 2026-09-30 and 2026-10-01; `RIM_Public_Pages.md` (Revisions 11, 12, 12a, the menu, the footer and teacher page); `RIM_Registration.md` (receipts to RIM); `RIM_ProgramEditor.md` (dana templates); `CLAUDE.md` (production reachable).

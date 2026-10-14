@@ -75,6 +75,13 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Page titles** on public pages use the home page's hyphen; the approved `RIM_MISSION` and the final `RIM_WHAT_BINDS` are live.
 - **All of this copy is provisional until Jesse's read-aloud.**
 
+## October 14, 2026: every email in one look
+
+- **One renderer for every email** (`renderEmailHtml` in `lib/email.ts`): templated and hand-written sends, and the `/admin/emails` preview, all get the Flodesk-matched frame and the Open Sans text style together. The "If harm happens" notice (which showed in the mail app's default font) and the four standing-rotation emails (which had no frame at all) now match the rest. Open Sans is linked as a web font and set on each paragraph, so Apple Mail and iPhone show it and Gmail keeps the size and spacing.
+- **The form notices share one shape:** the form as a heading, the sender's details one per line in a quiet block, their words under their own heading, then a rule and the next step. The care notice now has it.
+- **A single Return is a new line** in every template, in the `/admin/emails` editor, the preview and the inbox alike (the form notices' Name, Email and Phone had run together). See `RIM_Email_Engineering.md`.
+- **Studied, not built:** a reshaped Programs & Events (regular gatherings and Coming up, in home's alternating bands) is a mockup at `mockups/programs-2026-10-14/`, parked for Jesse.
+
 ## October 13, 2026 (evening): every submit answered; the form inboxes; team Home simplified
 
 - **Every submit is answered where the person is looking** (Jesse's rule, now in `RIM_Web_Design_Philosophy.md`): `components/FormDone.tsx` brings a confirmation into view and announces it; `FormProblem` puts an error beside the button; `SaveNote` answers an in-place save and keeps the answer; `ActionNotice` answers row and menu actions at the bottom of the screen until closed. Applied across the public forms, registration, welcome and reactivate (My Home says "You're all set. Welcome to RIM." on a first arrival), My Profile, the newsletter, team Conversations, Files, Members, Trash, the Scheduler, the Program Manager roster and lessons.
@@ -169,7 +176,7 @@ RIM Next is a **single, integrated Next.js 16 (App Router) application**. Public
 - **Hubs** (`/account/hub/[slug]`) — team workspaces for volunteer groups.
 - **Tools** (`/tools/*`) — full operational applications (Scheduler, Program Manager, Course Manager).
 
-**Live at** `rim-next.vercel.app`. The legacy Webflow public site at `rootedinmindfulness.org` is being **retired and rebuilt natively in this app** — the April-2026 Webflow-primary pivot was reversed (May 2026). The public-facing pages here exist but are early/rough; they are the next major build area.
+**Live at** `rim-next.vercel.app` (reachable, `noindex`, not yet announced). The legacy Webflow site at `rootedinmindfulness.org` is being **retired**: every public page has been rebuilt natively in this app (the April-2026 Webflow-primary pivot was reversed in May 2026), and the domain moves here at launch. The public copy stays provisional until Jesse's read-aloud.
 
 **Verified surface (session 139):** 63 page routes · 106 API routes · 5 crons · 54 Prisma models/enums · 3 tools.
 

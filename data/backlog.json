@@ -1831,5 +1831,25 @@
     "status": "open",
     "addedAt": "2026-10-13",
     "notes": "Jesse: “For future reference, for a to-do, I would like the ability to send out emails like this. But we can figure that out later.” Precedent: the one-time panel (git 4111666, removed after it ran): recipients = ACTIVE coordinators of ACTIVE teams with verified, unarchived accounts, grouped per person; sender left out; send-once flag; template leads-files-update (still in /admin/emails as the record). Respect the pre-threshold gate and communicationsEnabled; send via sendTemplatedEmail with a stored or ad-hoc body."
+  },
+  {
+    "id": "2026-10-14-001",
+    "title": "Programs & Events: reshape as regular gatherings and Coming up (mockup parked)",
+    "description": "Replace the category-sectioned catalog at /community-programs with two plain lists in home's alternating bands: Regular gatherings (one row per gathering: day and time, name, one short line, where; a tag only for Silent meditation · Hosted by volunteers or Community group; 'All times are Central' once) and Coming up (dated offerings, soonest first). Drop the category doors, the blue-bar section headers and their all-caps labels, nested boxes, pills and arrow circles. Give /this-week the same row grammar.",
+    "category": "Programs",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-14",
+    "notes": "Jesse: the page is 'logical… but a little overwhelming and confusing'; parked 2026-10-14 ('I'll think more about it and come back to it'). Mockup and before/after screenshots: mockups/programs-2026-10-14/. Research and measurements: session-log.md 2026-10-14 (desktop 6.8 to 4.1 screens, phone 10.2 to 5.6). Reverses the 2026-10-02 sections-from-Category and the 2026-10-09 category doors (RIM_Public_Pages.md). Taglines are Title Case in the data; the mockup's sentence case would be Program Manager edits. Don't claim drop-in access per row: Open entry is per program."
+  },
+  {
+    "id": "2026-10-14-002",
+    "title": "Section differentiation across the public pages",
+    "description": "Jesse: 'the homepage has separations of background color… a lot of the web pages, other than that, are lacking differentiation.' Only home, Donate, Volunteer, the two Kalyana Mitta pages and the agreements page use alternating white/Pampas bands. Proposal: bands (pp-section / pp-section--white with a hairline between, as home) on the composed pages (Programs, New to RIM, Foundations, Outreach, Teachers, Diverse Together); for the long reading pages with the sticky 'On this page' list (About, Our Roots, Why We Practice, Taking CARE), one ground with stronger chapter breaks, decided by mocking About both ways first.",
+    "category": "CSS & Design",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-14",
+    "notes": "Parked with 2026-10-14-001. The reading-page recommendation is untested judgment. Jesse's sentence about the circled programs header ended at 'The way that these are'; ask what he meant."
   }
 ]
