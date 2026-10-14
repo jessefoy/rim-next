@@ -5999,7 +5999,7 @@ Rooted In Mindfulness · Brookfield, WI`,
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "flodeskSegmentId" TEXT`);
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "flodeskSegmentName" TEXT`);
   await db.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "flodeskMemberAt" TIMESTAMP(3)`);
-  // Outside meeting rooms (2026-10-15): a program that meets in someone else's
+  // Outside meeting rooms (2026-10-14): a program that meets in someone else's
   // room (Recovery Dharma's, a facilitator's own Zoom). Additive, no backfill:
   // null keeps RIM's Zoom, so nothing changes until a link is entered. Not the
   // old-site `zoomLink` column, which still holds stale links on 9 programs.

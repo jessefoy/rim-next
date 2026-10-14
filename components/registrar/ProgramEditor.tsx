@@ -140,7 +140,7 @@ export interface ProgramData {
    *  rotation generation, and the new-program-needs-host email. Default true. */
   hostingRequired?: boolean;
   recordByDefault?: boolean;
-  /** The outside room's link (2026-10-15): empty = RIM's Zoom. lib/outsideMeeting.ts. */
+  /** The outside room's link (2026-10-14): empty = RIM's Zoom. lib/outsideMeeting.ts. */
   outsideMeetingUrl?: string;
   /** Anyone may join from the public program page, through RIM's door. */
   outsideMeetingPublic?: boolean;
@@ -716,7 +716,7 @@ export default function ProgramEditor({
   const noHostNeeded = !hostingRequired;
   const hostingRequiredChanged = hostingRequired !== (initialData?.hostingRequired ?? true);
   const [recordByDefault, setRecordByDefault] = useState<boolean>(initialData?.recordByDefault ?? false);
-  // Where it meets online (2026-10-15): RIM's Zoom, or someone else's room. Only
+  // Where it meets online (2026-10-14): RIM's Zoom, or someone else's room. Only
   // the link is stored; the choice is derived from it.
   const [roomChoice, setRoomChoice] = useState<"rim" | "outside">(
     initialData?.outsideMeetingUrl ? "outside" : "rim",
@@ -1720,7 +1720,7 @@ export default function ProgramEditor({
               )}
             </div>
 
-            {/* ── Where it meets online (2026-10-15) ────────────────────────
+            {/* ── Where it meets online (2026-10-14) ────────────────────────
                 RIM's Zoom, or someone else's room. The readout beneath says,
                 for the settings chosen, who can get in and how. */}
             {isVirtual && (

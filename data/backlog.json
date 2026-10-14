@@ -1861,5 +1861,15 @@
     "status": "open",
     "addedAt": "2026-10-14",
     "notes": "Jesse, 2026-10-14: \"I definitely want community calendars, a variety of them, actually. This is something that we do want to build. It's a high-value and pressing feature, but we're not quite ready for it before the launch.\" Builds on the shared occurrence logic (lib/scheduleUtils.ts::isOccurrenceOnDate) that /this-week, My Home and the Scheduler already share. The .ics export still recurs monthly programs by date-of-month (backlog 2026-06-17-004); fix that first if a feed is built."
+  },
+  {
+    "id": "2026-10-14-004",
+    "title": "In-app help guides for staff and volunteers",
+    "description": "Plain-English guides inside the app, where people have questions: what a setting does, why it exists, and how to set it up, with real examples. The model is the Outside Meeting Links guide written for the registrar on 2026-10-14 (what's new, why, how it works, step-by-step setup, the ways to configure it, timing, good to know). Start with the Program Manager (beside settings such as Where it meets online, Open entry, the guest link), then other tools volunteers use. Help should open from the place it explains, read calmly on a phone, and never replace the editor's own live readouts.",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-14",
+    "notes": "Jesse, 2026-10-14, looking at the registrar's guide: \"this would be nice to have in the app if people have questions, stuff like this. Let's put this on our to-do.\" Open questions for the build: where guides live (a help panel per tool, or a Help page in the account rail), who edits them (in code, or an editable admin surface), and keeping them in step with the per-tool docs (RIM_ProgramEditor.md, RIM_Zoom.md)."
   }
 ]

@@ -144,7 +144,7 @@ Host identity comes from the **same `HostAssignment` / `resolveSessionRole`** th
 LiveKit room used — the Hosting Hub/Scheduler is unchanged. The only Zoom-specific
 change was the link *targets*.
 
-## Outside rooms (2026-10-15)
+## Outside rooms (2026-10-14)
 
 Some programs meet in someone else's room: Recovery Dharma's national room, or a
 facilitator's own Zoom that she also shares with another group. `Program.outsideMeetingUrl`
@@ -166,7 +166,7 @@ readout: members through My Home (by Open entry or registration); the guest link
 (`isOpenAccess`), a RIM address to share; and **`outsideMeetingPublic`**, a Join button on the
 public program page for anyone without an account. That button goes **through the door**, so
 the session window still holds and the outside link is never printed by RIM (Jesse,
-2026-10-15: "if they get there early, they can't log in"). It is never offered on a program
+2026-10-14: "if they get there early, they can't log in"). It is never offered on a program
 that takes registrations (editor, PUT/POST and `/enter` all agree). A signed-out guest outside
 the window now sees a page saying when the room opens, instead of a silent bounce to the
 program page. The honest limit, said in the editor: someone who already has the outside link

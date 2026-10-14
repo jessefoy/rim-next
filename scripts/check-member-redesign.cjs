@@ -245,7 +245,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   html=await dashboardHtml();check(html.includes('Join on Zoom'),true,'Open entry is available to any Category, a Special Event included');
   programs[0].openEntry=null;programs[0].category.kind='CLASS';
   html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'Open entry still empty: the old category kind decides, as before');
-  // Outside rooms (2026-10-15): Join still goes through RIM's door; the label
+  // Outside rooms (2026-10-14): Join still goes through RIM's door; the label
   // names the room's service, and an outside room gives hosts no Zoom code.
   programs[0].openEntry=true;programs[0].registrationEnabled=false;programs[0].outsideMeetingUrl='https://meet.google.com/abc-defg-hij';
   html=await dashboardHtml();

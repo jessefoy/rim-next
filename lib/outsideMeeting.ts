@@ -1,5 +1,5 @@
 /**
- * Outside meeting rooms (2026-10-15, Jesse).
+ * Outside meeting rooms (2026-10-14, Jesse).
  *
  * Most online programs meet in RIM's Zoom: /session/[slug]/enter creates the
  * occurrence's meeting on a pool seat and shows hosts the Claim-Host code. A

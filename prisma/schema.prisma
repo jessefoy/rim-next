@@ -252,7 +252,7 @@ model Program {
   locationLink        String?
   zoomLink            String?          // OLD SITE, unread: stale links on 9 programs. Not the outside room; see outsideMeetingUrl.
   meetHostAccount     String?          // OLD SITE, unread.
-  // Outside room (2026-10-15): the program meets in someone else's meeting
+  // Outside room (2026-10-14): the program meets in someone else's meeting
   // (Recovery Dharma's, a facilitator's own Zoom). Null = RIM's Zoom. When set
   // (and the program is virtual/hybrid), /session/[slug]/enter forwards to it
   // after its usual gates, and RIM creates no meeting, uses no seat and shows
