@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import JoinForm from "@/components/JoinForm";
 import {
   COMMUNITY_AGREEMENTS,
@@ -23,6 +24,14 @@ export default async function JoinPage({
 }) {
   const session = await auth();
   if (session?.user?.id) {
+    // A member who follows a "Become a member" button while signed in is told
+    // so where they are looking, rather than sent to My Home without a word
+    // (LoriLee's review, 2026-10-14: the silent redirect read as a broken
+    // link). Anyone mid-threshold (no agreement yet, or archived) still goes
+    // through My Home's gate to welcome or reactivate, as before.
+    if (session.user.agreedToTerms && !session.user.archivedAt) {
+      return <AlreadyMember name={session.user.name ?? null} />;
+    }
     redirect("/account/dashboard");
   }
 
@@ -121,6 +130,28 @@ export default async function JoinPage({
             </h2>
             <p className="jn-form__lead">{JOIN_FORM_LEAD}</p>
             <JoinForm defaultEmail={prefillEmail} />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AlreadyMember({ name }: { name: string | null }) {
+  return (
+    <div className="pp-page pp-page--spine pp-page--column">
+      <section className="pp-hero pp-hero--quiet">
+        <div className="rim-container pp-hero__inner">
+          <p className="pp-hero__eyebrow">Members</p>
+          <h1 className="pp-hero__title">You&rsquo;re already a member</h1>
+          <p className="pp-hero__body">
+            You&rsquo;re signed in{name ? ` as ${name}` : ""}, so you don&rsquo;t need to do
+            anything else. My Home has today&rsquo;s gatherings and what&rsquo;s coming up.
+          </p>
+          <div className="pp-hero__actions">
+            <Link href="/account/dashboard" className="pp-btn">
+              Go to My Home
+            </Link>
           </div>
         </div>
       </section>

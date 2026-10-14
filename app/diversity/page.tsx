@@ -102,7 +102,7 @@ export default function DiversityPage() {
                 <p>
                   Everything alive keeps changing, and on this path that is good news. So we are
                   always becoming a community where more people can feel fully at home. Come as
-                  you are, and help us become it.
+                  you are, and help us become that community.
                 </p>
               </section>
 

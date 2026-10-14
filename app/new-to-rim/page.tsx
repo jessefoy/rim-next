@@ -231,7 +231,7 @@ export default function NewToRimPage() {
                 </p>
                 <p>
                   If you would like to offer a donation, there is a bowl beneath the Bodhi tree wood
-                  carving.
+                  carving, in the entryway to the community room.
                 </p>
               </div>
             </article>

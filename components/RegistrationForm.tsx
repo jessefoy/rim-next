@@ -9,6 +9,7 @@ import {
   COMMUNITY_AGREEMENTS_LEAD_IN,
   COMMUNITY_SHARED_VISION_TITLE,
   COMMUNITY_AGREEMENTS_CHECKBOX_LABEL,
+  PROGRAM_DANA_SHARE,
   MEMBER_EMAIL_NOTE,
 } from "@/lib/communityAgreements";
 
@@ -279,8 +280,7 @@ export default function RegistrationForm({
           )}
           {(danaMode === "voluntary" || isBasePlusDana) && (
             <p className="pg-dana__where">
-              Program dana is shared equally between RIM and the Teaching Fund, which supports our
-              teachers&rsquo; livelihood.{" "}
+              {PROGRAM_DANA_SHARE}{" "}
               <Link
                 href="/donate#dana-at-rim"
                 target="_blank"

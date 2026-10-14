@@ -1,4 +1,5 @@
 import Script from "next/script";
+import { PROGRAM_DANA_SHARE, TEACHER_SUPPORT } from "@/lib/communityAgreements";
 
 export const metadata = {
   title: "Donate - Rooted In Mindfulness",
@@ -110,10 +111,8 @@ export default function DonatePage() {
                 <p className="pp-give__body">
                   The community&rsquo;s generosity supports our teachers&rsquo; livelihood. Gifts to
                   the Teaching Fund support our teachers, so they can give their lives to practicing
-                  and sharing the teachings, and each gift goes to the teacher you choose. Our
-                  guiding teacher receives a modest salary from RIM for leading the center. It is
-                  not enough to live on, so his teaching, like every teacher&rsquo;s, is supported
-                  through the Teaching Fund.
+                  and sharing the teachings, and each gift goes to the teacher you choose.{" "}
+                  {TEACHER_SUPPORT}
                 </p>
 
                 <div className="pp-give__widget">
@@ -166,8 +165,7 @@ export default function DonatePage() {
               <p>
                 Programs list a suggested amount so everyone can see what an offering takes to
                 sustain. For most programs, you give what you can, and no one is turned away for
-                being unable to pay. Half of every program gift goes to the Teaching Fund and half
-                to RIM. A few offerings, such as overnight retreats, carry a minimum because RIM
+                being unable to pay. {PROGRAM_DANA_SHARE} A few offerings, such as overnight retreats, carry a minimum because RIM
                 pays the places that host us. In time, we hope to build a fund that helps people
                 with those costs.
               </p>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CareCircle from "@/components/CareCircle";
+import { TEACHER_SUPPORT } from "@/lib/communityAgreements";
 
 // Lineage terms live in the description for search, stated as RIM states
 // them (Jesse, 2026-10-02): a dharma community grounded in traditional
@@ -546,8 +547,8 @@ export default function HomePage() {
                 <p className="pp-intro__body">
                   Everything offered at RIM is given as a gift, and RIM is sustained by the people
                   who learn and practice here. That support includes financial gifts, and RIM could
-                  not exist without them. RIM pays for our center and its operating costs. Our teachers&rsquo; livelihood depends
-                  on dana as well.
+                  not exist without them. Gifts to RIM pay for the center and its operating costs.{" "}
+                  {TEACHER_SUPPORT}
                 </p>
                 <p className="pp-intro__body">
                   Most of RIM&rsquo;s support comes from the members who give each month. If you are

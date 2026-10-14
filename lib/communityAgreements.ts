@@ -91,6 +91,21 @@ export const RIM_MISSION =
   "this practice into every moment of contact, for the benefit of " +
   "ourselves, those we care about, and our shared world.";
 
+/**
+ * How RIM's teachers are supported, stated once (Jesse, 2026-10-14, after
+ * LoriLee's review asked whether teachers are paid: "It's accurate, but this
+ * needs to be consistent on the website"). Donate, Home and the registration
+ * dana step all read these; never retype them on a page.
+ */
+export const TEACHER_SUPPORT =
+  "Our guiding teacher receives a modest salary from RIM for leading the " +
+  "center. It is not enough to live on, so his teaching, like every " +
+  "teacher’s, is supported through the Teaching Fund.";
+
+export const PROGRAM_DANA_SHARE =
+  "Program dana is shared equally between RIM and the Teaching Fund, which " +
+  "supports our teachers’ livelihood.";
+
 export const COMMUNITY_SHARED_VISION_TITLE = "Our Shared Vision";
 /** The frame is the vision, stated as why we come together. */
 export const COMMUNITY_AGREEMENTS_LEAD_IN =
@@ -151,7 +166,7 @@ export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
   {
     title: "Care for RIM",
     summary:
-      "RIM is held through dana, the practice of mutual generosity. Financial support meets the center’s practical needs and keeps the teachings open to everyone. RIM could not exist without it, and we ask each member to support RIM financially as they are able. Time, care, service, and sincere presence also nourish the life of the sangha, and together we co-create RIM. We trust each person to discern what is possible; no one is expected to offer in every way, and belonging is never measured by what or how much one gives.",
+      "RIM is held through dana, the practice of mutual generosity. Financial support meets the center’s practical needs and keeps the teachings open to everyone. RIM could not exist without it, and we ask each member to support RIM financially as they are able. Time, care, service, and sincere presence also nourish the life of our community, traditionally called sangha, and together we co-create RIM. We trust each person to discern what is possible; no one is expected to offer in every way, and belonging is never measured by what or how much one gives.",
   },
 ];
 
