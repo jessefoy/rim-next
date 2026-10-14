@@ -20,7 +20,8 @@ Everything is on `main` (`671ca9d` … the docs). Narrative: `session-log.md` (2
 1. **Self-service email change** with verification, notice and history (`2026-10-12-003`, high); Flodesk can't change an address through its API.
 2. **Launch configuration:** Stripe live (`2026-09-24-001`); with the domain move, change `NEXTAUTH_URL` in Vercel in the same step; rotate the database password.
 3. **On the day the domain moves:** delete the bot contacts in Flodesk (Jesse); run Import members once more, then remove the tool, its rail link and `lib/legacyImport.ts`, delete `MEMBERSTACK_SECRET_KEY` in Vercel and the key in Memberstack (`2026-10-13-001`); export Webflow's Forms history; then cancel Zapier.
-4. **Watch the first real registration** create its Flodesk segment and the first member sign-in join Members (Vercel log).
+4. **Delete the Dummy Test Program** and its test registrations (Jesse, 2026-10-14). Until then it is restored for Nancy and Maria's Zoom testing, hidden: off Programs & Events, This Week and the sitemap, Open entry off (so it shows on My Home only to its registrants, hosts and admins); the guest link still admits testers.
+5. **Watch the first real registration** create its Flodesk segment and the first member sign-in join Members (Vercel log).
 
 **Queued (backlog):** `2026-10-13-008` send a one-off email to a chosen group; `2026-10-13-005` a true "needs help" count on the Scheduler card; `2026-10-14-001`/`-002` (parked design). **Deploy watch:** if a push doesn't show in Vercel's Deployments within a few minutes, deploy it from the dashboard (Create Deployment → main).
 
