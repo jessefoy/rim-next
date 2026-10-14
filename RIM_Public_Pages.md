@@ -637,6 +637,19 @@ Jesse: *"Each section should speak for itself and be clearly differentiated and 
 
 Measured on the deployed page at 1280 and 390: grounds as above, no overflow, the panel at the cards' width (110 to 1170 at 1280). The other public pages are backlog `2026-10-14-002`, with home as the reference.
 
+### Programs & Events: the three ways, said once (2026-10-14)
+
+Jesse, comparing the live page with the old Webflow one: the new page is *"overly complicated"*; *"we need to do the same treatment with this page as we did with the homepage."* The three ways stay, because they are why the page changed: he named them as the reason it was rebuilt. This sets aside the morning's study (`mockups/programs-2026-10-14/`, regular gatherings and Coming up), which dropped them. Approved from `mockups/programs-2026-10-14b/`, then built.
+
+- **The structure is said once.** The sections are the categories (`PUBLIC_CATEGORY_ORDER`, read from each program's Category, so every section still fills itself from the Program Manager). Gone: the category doors and "Also in our community" (a second statement of the same structure), the "Taking CARE program category" / "Community offerings" labels, the boxed sections with a blue bar, the counts.
+- **Each section a room,** as on home: alternating white and Pampas bands with a hairline at the edge (`.pl-band`). **Every section's programs are the same list** (`.pl-list`, bordered, 12px), in the opposite ground (white on Pampas, Pampas on white), at Jesse's ruling that Foundations and Immersion must look like the others. Immersion's "Upcoming dates will be listed here" and the Foundations standing row (shown while no Foundations program is listed) sit in the same list.
+- **One plain row per program** (`.pl-row`): the name; one line of day · time · where (the Format named only where the kinds vary, outside Ongoing and Community groups; "Hosted by volunteers" only where the silent meditation line doesn't say it); its line; "View →". Gone: the per-row Drop-in label, the delivery pills, the arrow circles, "CT" on every row ("All times are Central" is said once, in the hero).
+- **The hero keeps the quiet header** (home, New to RIM and Donate are the only image heads; this is a page for finding a time, and a photo would push the first program down by a screen) and gains a line of jump links to the sections. The overview sentence "Taking CARE, our way of practice, is offered through three program categories" is gone; home and Taking CARE carry it.
+- **Where, in plain words, site-wide:** `fmtLabel` now says "On Zoom", "In person and on Zoom", "In person" ("Online" for an unrecognized outside room), on this page, This Week, the Kalyana Mitta groups page and the register page.
+- **This Week keeps its day boxes** (`.pl-page .pl-cat`, its own now). The retired catalog CSS was pruned (`scripts/css-prune.mjs` entries, then the selectors that named a retired class beside a live one).
+
+Measured on the mockup against the live page: desktop 5,900 to about 4,950px, phone 8,837 to about 6,050px. Owed to the data, not the design: program taglines are Title Case (sentence case reads calmer; Program Manager edits, with Jesse's approval), and Sacred Clarity (March 16, 2026) still lists under Immersion.
+
 ## The Community Care Agreements, placed (2026-10-12)
 
 Jesse: *"This is a really meaningful part of our community, and it should be well placed and fully articulated."* Review and rulings: the vault's `CARE/4 Promotion/04-care-agreements-placement-review-2026-10-12.md`. Jesse also ruled that **the live site is the current version of public copy** where it and the vault differ.

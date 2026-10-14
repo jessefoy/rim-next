@@ -216,12 +216,16 @@ export function categoryDisplayName(name: string): string {
 
 /** The listing's delivery label. Online programs name their service: RIM's own
  *  rooms are Zoom; an outside room names its own (or just "Online"). */
+// Where a program meets, in plain words (2026-10-14, Jesse's approved Programs
+// & Events mockup): "On Zoom", "In person and on Zoom", "In person"; "Online"
+// when an outside room's service isn't recognized. Was "Zoom Only",
+// "In-Person & Zoom", "In-Person".
 export function fmtLabel(fmt: string | null, outsideMeetingUrl?: string | null): string {
-  const service = meetingServiceName({ programFormat: fmt, outsideMeetingUrl }) ?? "Online";
+  const service = meetingServiceName({ programFormat: fmt, outsideMeetingUrl });
   switch (fmt) {
-    case "virtual":   return `${service} Only`;
-    case "hybrid":    return `In-Person & ${service}`;
-    case "in-person": return "In-Person";
+    case "virtual":   return service ? `On ${service}` : "Online";
+    case "hybrid":    return service ? `In person and on ${service}` : "In person and online";
+    case "in-person": return "In person";
     default:          return fmt ?? "";
   }
 }

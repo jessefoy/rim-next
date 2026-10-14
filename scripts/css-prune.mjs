@@ -49,6 +49,15 @@ const DEAD_PREFIXES = [
   // month overview, pinned conversations and Team guidance retired).
   "hh-month", "hub-welcome", "hub-home__orientation", "hub-home__section",
   "hub-home-links", "hub-home__pinned", "hub-home__editor", "hub-home__empty",
+  // 2026-10-14: Programs & Events rebuilt as plain lists (pl-band / pl-list /
+  // pl-row). The category doors, the boxed sections' labels and counts and the
+  // catalog card retired; This Week keeps pl-catalog, pl-cat, pl-cat__header,
+  // pl-cat__heading, pl-grid and pl-card--time with its own card parts.
+  "pl-overview", "pl-door", "pl-community-links", "pl-cat__label", "pl-cat__count",
+  "pl-cat__intro", "pl-cat__note", "pl-cat__subheading", "pl-cat__subline",
+  "pl-card--catalog", "pl-card--date", "pl-card--solo", "pl-card__labels",
+  "pl-card__link", "pl-card__date", "pl-card__when", "pl-card__schedule",
+  "pl-card__tagline",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

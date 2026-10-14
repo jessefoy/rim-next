@@ -2841,17 +2841,6 @@ h4 { font-size: var(--text-h4); }
   padding: 21px 24px;
 }
 
-/* When + how, held right. Splits the row into what-it-is / when-it-is
-   so the card carries its two decision facts on separate axes instead
-   of stacking everything left and leaving 400px of dead width. */
-.pl-card__when {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  text-align: right;
-}
-
 /* Below this the two columns can't both hold their content, so the
    right column drops under the title and returns to the left edge. */
 @media (max-width: 860px) {
@@ -2863,14 +2852,6 @@ h4 { font-size: var(--text-h4); }
     gap: 10px 20px;
   }
   .pl-card__main   { grid-area: main; }
-  .pl-card__when   {
-    grid-area: when;
-    align-items: flex-start;
-    text-align: left;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-  }
   .pl-card__action { grid-area: when-action; align-self: center; }
 }
 
@@ -2906,13 +2887,6 @@ h4 { font-size: var(--text-h4); }
   text-transform: uppercase;
 }
 
-.pl-card__schedule {
-  color: var(--rim-text);
-  font-size: var(--text-small);
-  font-weight: 600;
-  line-height: 1.5;
-}
-
 .pl-card__title {
   margin: 0 0 6px;
   color: var(--rim-text);
@@ -2920,14 +2894,6 @@ h4 { font-size: var(--text-h4); }
   font-size: var(--text-h4);
   font-weight: 500;
   line-height: var(--lh-heading);
-}
-
-
-.pl-card__tagline {
-  margin: 0;
-  color: var(--rim-text-muted);
-  font-size: var(--text-small);
-  line-height: 1.55;
 }
 
 .pl-card__action {
@@ -2999,67 +2965,11 @@ h4 { font-size: var(--text-h4); }
   .pl-card--time .pl-card__action { grid-area: action; align-self: center; }
 }
 
-/* One-time events use the same title-led catalog grammar as recurring
-   programs; this date treatment sits inside the when-and-how column. */
-
-.pl-card__date {
-  color: var(--rim-blue);
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  font-weight: 700;
-  line-height: 1.4;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Only renders when the event isn't in the current year. */
-.pl-card__date-year {
-  display: block;
-  color: var(--rim-text-muted);
-  font-size: var(--text-label);
-  font-weight: 600;
-}
-
 /* ── Catalog card hierarchy ─────────────────────────────────────
    Titles always lead. Dates live with the other schedule facts instead of
    creating a one-off leading column that shifts only two program names.
    The surrounding card keeps the original quiet white-box treatment. */
 
-.pl-page .pl-card--catalog .pl-card__content,
-.pl-page .pl-card--catalog.pl-card--date .pl-card__content {
-  grid-template-columns: minmax(0, 1fr) minmax(220px, auto) 40px;
-  gap: 24px 28px;
-  padding: 24px 24px 24px 26px;
-}
-
-.pl-page .pl-card--catalog .pl-card__when {
-  min-width: 220px;
-  max-width: 360px;
-  box-sizing: border-box;
-  justify-self: stretch;
-}
-
-.pl-page .pl-card--catalog .pl-card__schedule {
-  max-width: 340px;
-  color: var(--rim-text-quote);
-  font-size: var(--text-ui);
-  font-weight: 600;
-}
-
-.pl-page .pl-card--catalog .pl-card__date {
-  color: var(--rim-blue);
-  font-size: var(--text-xs);
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
-}
-
-.pl-page .pl-card--catalog .pl-card__date-year {
-  display: inline;
-  margin-left: 5px;
-  color: var(--rim-text-muted);
-  font-size: inherit;
-}
-
-.pl-page .pl-card--catalog .pl-card__format,
 .pl-page .pl-card--time .pl-card__format {
   min-height: 0;
   padding: 3px 8px;
@@ -3072,7 +2982,6 @@ h4 { font-size: var(--text-h4); }
   text-transform: none;
 }
 
-.pl-page .pl-card--catalog .pl-card__action,
 .pl-page .pl-card--time .pl-card__action {
   width: 40px;
   min-height: 40px;
@@ -3101,37 +3010,6 @@ h4 { font-size: var(--text-h4); }
   font-weight: 600;
   line-height: 1.5;
   white-space: pre-line;
-}
-
-@media (max-width: 860px) {
-  .pl-page .pl-card--catalog .pl-card__content,
-  .pl-page .pl-card--catalog.pl-card--date .pl-card__content {
-    grid-template-columns: minmax(0, 1fr) 40px;
-    grid-template-areas:
-      "main action"
-      "when action";
-    gap: 14px 20px;
-  }
-
-  .pl-page .pl-card--catalog .pl-card__main { grid-area: main; }
-
-  .pl-page .pl-card--catalog .pl-card__when {
-    grid-area: when;
-    min-width: 0;
-    max-width: none;
-    align-items: center;
-    justify-self: stretch;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 7px 12px;
-    padding: 0;
-    text-align: left;
-  }
-
-  .pl-page .pl-card--catalog .pl-card__action {
-    grid-area: action;
-    align-self: center;
-  }
 }
 
 .pl-membership {
@@ -3170,15 +3048,6 @@ h4 { font-size: var(--text-h4); }
   .pl-card { border-radius: 10px; }
   .pl-card__content { gap: 10px; padding: 18px 20px; }
   .pl-card__title { font-size: var(--text-h4); }
-  .pl-page .pl-card--catalog .pl-card__content,
-  .pl-page .pl-card--catalog.pl-card--date .pl-card__content {
-    gap: 12px 16px;
-    padding: 19px 17px 19px 19px;
-  }
-  .pl-page .pl-card--catalog .pl-card__action {
-    width: 38px;
-    min-height: 38px;
-  }
   .pl-membership { border-radius: 14px; padding: 32px 24px; }
 }
 
@@ -28398,7 +28267,6 @@ a.pp-card.tpr-card {
    anything else a visitor is asked to read. Eyebrows stay at 11px: they are
    uppercase and tracked (they read larger), and their contrast tiers were
    measured at that size. */
-.pl-page .pl-card--catalog .pl-card__format,
 .pl-page .pl-card--time .pl-card__format,
 .tw-today-pill,
 .cls-card__lessons { font-size: var(--text-xs); }
@@ -28928,42 +28796,9 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   .pp-actions + .pp-prose.pp-prose--sections { margin-top: var(--space-5); }
 }
 
-/* ===================================================================
-   PROGRAMS BY THE THREE WAYS — /community-programs (2026-10-01,
-   the integration brief, A16)
-   The catalog is organized as Foundations, Ongoing Learning & Practice, Immersion,
-   Community Groups, Events. Each chapter may carry a one-sentence
-   introduction under its heading; Ongoing Learning & Practice carries a subheading
-   ("Silent meditation") over its second group of cards. Cadence stays 96 between
-   chapters, 36 under a heading, 24 between cards (the subheading splits two
-   card groups, so it is smaller: 48 above, 24 below).
-   =================================================================== */
-.pl-cat__intro,
-.pl-cat__note {
-  max-width: var(--reading-width);
-  margin: 12px 0 0;
-  color: var(--rim-text);
-  font-size: var(--text-body);
-  line-height: var(--lh-body);
-  text-wrap: pretty;
-}
-/* "Upcoming dates will be listed here." stands where the cards would. */
-.pl-cat__note { margin: 0; }
-.pl-cat__subheading {
-  margin: 48px 0 24px;
-  color: var(--rim-text);
-  font-family: var(--font-serif);
-  font-size: var(--text-h3);
-  font-weight: 400;
-  line-height: var(--lh-heading);
-}
 /* The Foundations page's "Get the newsletter" button jumps to the footer form;
    it lands clear of the 100px sticky nav, like every other anchored target. */
 .rim-footer-newsletter { scroll-margin-top: 124px; }
-
-/* A card with no "when" column (Foundations has no dates yet): two columns, so
-   the arrow stays on the right edge instead of floating in the middle. */
-.pl-page .pl-card--catalog.pl-card--solo .pl-card__content { grid-template-columns: minmax(0, 1fr) 40px; }
 
 /* A program with no pull quote (the integration brief, A23, removes the
    Meditation and Dharma Talk epigraph). The hero keeps its bottom padding as
@@ -28998,12 +28833,6 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
 @media (max-width: 767px) {
   .pg-page .pg-shared { margin-bottom: 32px; padding: 22px 20px 10px; }
 }
-@media (max-width: 860px) {
-  .pl-page .pl-card--catalog.pl-card--solo .pl-card__content { grid-template-areas: "main action"; }
-}
-@media (max-width: 430px) {
-  .pl-cat__subheading { margin: 40px 0 20px; }
-}
 
 /* ===================================================================
    PROGRAM OFFERING: Category and Format labels (2026-10-02, the
@@ -29013,26 +28842,7 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
    marks a drop-in with the same words. The "Silent meditation" subheading
    within Ongoing Learning & Practice carries a one-line description.
    =================================================================== */
-.pl-card__labels {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 12px;
-  margin: 0 0 4px;
-  color: var(--rim-blue);
-  font-size: var(--text-small);
-  font-weight: 600;
-  line-height: 1.5;
-}
-.pl-cat__subline {
-  max-width: var(--reading-width);
-  margin: -8px 0 24px;
-  color: var(--rim-text);
-  font-size: var(--text-body);
-  line-height: var(--lh-body);
-  text-wrap: pretty;
-}
 /* A subheading that opens its chapter (no cards above it) sits where the cards would. */
-.pl-cat__subheading.pl-cat__subheading--first { margin-top: 0; }
 /* This Week's drop-in mark: sentence case, quieter than the delivery chip. */
 .pl-card__mark {
   display: inline-flex;
@@ -29167,86 +28977,156 @@ html { scroll-padding-top: 88px; }
   .pp-hero--quiet .pp-hero__body { font-size: var(--text-body); }
 }
 
-/* ── Programs & Events: the categories before the listings ──────────────── */
-.pl-overview {
-  border-bottom: 1px solid var(--rim-rule);
-  padding: var(--space-5) 0;
-}
-.pl-overview .pp-intro__eyebrow { margin-bottom: 12px; }
-.pl-overview__title {
-  margin: 0;
-  color: var(--rim-heading);
-  font-family: var(--font-serif);
-  font-size: var(--text-h2-lg);
-  font-weight: 400;
-  line-height: 1.25;
-}
-.pl-overview__context {
-  max-width: 760px;
-  margin: var(--space-3) 0 0;
-  color: var(--rim-text);
-  font-size: var(--text-body);
-  line-height: 1.8;
-}
-.pl-doors {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-}
-.pl-door {
+/* ── Programs & Events: the three ways, said once (2026-10-14) ───────────────
+   Jesse's approved mockup (mockups/programs-2026-10-14b/). Each section is a
+   room on alternating white and Pampas, as on home; every section's programs
+   are the same list, in the opposite ground (white on Pampas, Pampas on
+   white); one plain row per program. The sections are named once, as links
+   in the hero. See RIM_Public_Pages.md, "Programs & Events: the three ways,
+   said once". */
+.pl-jump {
   display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  border: 1px solid var(--rim-rule);
-  border-top: 3px solid var(--rim-blue);
-  border-radius: 12px;
-  padding: 28px;
-  background: var(--rim-surface);
-  color: var(--rim-text);
-  text-decoration: none;
-  transition: border-color 0.15s ease;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-action);
+  line-height: 1.6;
 }
-.pl-door:hover { border-color: var(--rim-blue); }
-.pl-door:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 4px; }
-.pl-door__title {
+.pl-jump a {
+  color: var(--rim-blue);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--rim-blue) 35%, transparent);
+  text-underline-offset: 4px;
+}
+.pl-jump a:hover { text-decoration-color: currentColor; }
+.pl-jump span { color: var(--rim-text-soft); }
+
+.pl-band {
+  padding: calc(var(--space-1) * 9) 0;
+  border-top: 1px solid var(--rim-rule);
+}
+.pl-band--white { background: var(--rim-surface); }
+
+.pl-head { max-width: var(--reading-width); margin-bottom: var(--space-4); }
+.pl-head h2 {
   margin: 0 0 var(--space-2);
   color: var(--rim-heading);
-  font-family: var(--font-serif);
+  font-family: var(--font-heading);
+  font-size: var(--text-h1);
+  font-weight: 400;
+  line-height: 1.2;
+}
+.pl-head p {
+  margin: 0;
+  color: var(--rim-text-soft);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+.pl-sub { max-width: var(--reading-width); margin: var(--space-6) 0 var(--space-3); }
+.pl-sub h3 {
+  margin: 0 0 var(--space-1);
+  color: var(--rim-heading);
+  font-family: var(--font-heading);
   font-size: var(--text-h3);
   font-weight: 400;
   line-height: 1.3;
 }
-.pl-door__line {
-  margin: 0 0 var(--space-3);
-  color: var(--rim-text);
-  font-size: var(--text-card);
-  line-height: 1.8;
+.pl-sub p {
+  margin: 0;
+  color: var(--rim-text-soft);
+  font-size: var(--text-action);
+  line-height: 1.7;
 }
-.pl-door__cta {
-  margin-top: auto;
+
+.pl-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  background: var(--rim-surface);
+  overflow: hidden;
+}
+.pl-band--white .pl-list { background: var(--rim-bg); }
+.pl-list > li { margin: 0; }
+.pl-list > li + li { border-top: 1px solid var(--rim-rule); }
+.pl-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: center;
+  padding: 22px var(--space-4);
+  color: inherit;
+  text-decoration: none;
+}
+.pl-row:hover { background: var(--rim-bg-bright); }
+.pl-row:hover .pl-row__title {
+  color: var(--rim-blue);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.pl-row:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: -3px; }
+.pl-row__main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pl-row__title {
+  margin: 0;
+  color: var(--rim-heading);
+  font-family: var(--font-heading);
+  font-size: var(--text-h3);
+  font-weight: 400;
+  line-height: 1.3;
+}
+.pl-row__when {
+  color: var(--rim-text);
+  font-size: var(--text-action);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.pl-row__line {
+  color: var(--rim-text-soft);
+  font-size: var(--text-action);
+  line-height: 1.6;
+}
+.pl-row .pl-card__notices { margin-top: var(--space-1); }
+.pl-row__go {
   color: var(--rim-blue);
   font-size: var(--text-action);
   font-weight: 600;
+  white-space: nowrap;
 }
-.pl-door__cta > span { margin-left: 12px; }
-.pl-community-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) 28px;
-  margin-top: var(--space-4);
-}
-.pl-community-links p {
+.pl-row__arrow { display: inline-block; margin-left: 4px; }
+.pl-empty {
   margin: 0;
-  color: var(--rim-text);
+  padding: 22px var(--space-4);
+  color: var(--rim-text-soft);
   font-size: var(--text-action);
-  font-weight: 600;
+  line-height: 1.6;
+}
+/* The closing sits open in its own room here (This Week keeps its box). */
+.pl-band .pl-membership {
+  max-width: 900px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: none;
+}
+@media (max-width: 768px) {
+  .pl-band { padding: calc(var(--space-1) * 7) 0; }
+  .pl-head h2 { font-size: var(--text-h2-lg); }
+  .pl-sub { margin-top: var(--space-5); }
+  .pl-row { grid-template-columns: 1fr; gap: var(--space-1); padding: 20px var(--space-3); }
+  .pl-empty { padding: 20px var(--space-3); }
+}
+@media (max-width: 430px) {
+  .pl-band { padding: var(--space-5) 0; }
+  .pl-head h2 { font-size: var(--text-h2); }
+  .pl-row__title { font-size: var(--text-h4); }
 }
 
-/* Each listing section is a bordered box with its heading on a blue bar,
-   labelled as one of the three ways or a community offering, with the count
-   from the data. */
+/* ── This Week: each day a bordered box with its heading on a blue bar ───────
+   (Programs & Events used the same boxes until 2026-10-14, when it moved to
+   the plain lists above; This Week keeps them.) */
 .pl-page .pl-cat {
   box-sizing: border-box;
   margin: 0 0 var(--space-5);
@@ -29260,65 +29140,18 @@ html { scroll-padding-top: 88px; }
   border-left: 3px solid var(--rim-blue);
   padding-left: var(--space-3);
 }
-.pl-page .pl-cat__label {
-  margin: 0 0 12px;
-  color: var(--rim-blue);
-  font-family: var(--font-sans);
-  font-size: var(--text-label);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  line-height: 1.5;
-  text-transform: uppercase;
-}
 .pl-page .pl-cat__heading {
   margin: 0 0 var(--space-2);
   color: var(--rim-heading);
   font-size: var(--text-h2-lg);
   line-height: 1.25;
 }
-.pl-page .pl-cat__count {
-  display: inline-block;
-  margin-top: var(--space-2);
-  color: var(--rim-text-soft);
-  font-size: var(--text-small);
-  line-height: 1.6;
-}
-.pl-page .pl-cat__note {
-  border: 1px solid var(--rim-rule);
-  border-radius: 12px;
-  padding: var(--space-3);
-  background: var(--rim-surface);
-}
-/* The phone affordance inside a card: hidden where the arrow shows. */
-.pl-card__link { display: none; }
-@media (max-width: 900px) {
-  .pl-doors { gap: var(--space-2); }
-  .pl-door { padding: var(--space-3); }
-}
 @media (max-width: 700px) {
-  .pl-overview { padding: var(--space-4) 0; }
-  .pl-doors { grid-template-columns: 1fr; margin-top: var(--space-3); }
-  .pl-door { padding: 22px 20px; }
-  .pl-community-links { gap: var(--space-1) 20px; margin-top: var(--space-3); }
-  .pl-community-links p { width: 100%; }
   .pl-page .pl-cat { padding: 22px 16px; margin-bottom: var(--space-4); }
   .pl-page .pl-cat__header { padding-left: var(--space-2); margin-bottom: var(--space-3); }
   .pl-page .pl-cat__heading { font-size: var(--text-h2); }
-  .pl-page .pl-card--catalog .pl-card__content,
   .pl-page .pl-card--time .pl-card__content { display: block; padding: 22px 20px; }
-  .pl-page .pl-card--catalog .pl-card__when,
-  .pl-page .pl-card--time .pl-card__when { margin-top: var(--space-2); }
-  .pl-page .pl-card--catalog .pl-card__action,
   .pl-page .pl-card--time .pl-card__action { display: none; }
-  .pl-card__link {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-top: var(--space-3);
-    color: var(--rim-blue);
-    font-size: var(--text-action);
-    font-weight: 600;
-  }
 }
 
 /* ── New to RIM (nt-): the newcomer's page on the refresh ────────────────── */

@@ -1838,9 +1838,9 @@
     "description": "Replace the category-sectioned catalog at /community-programs with two plain lists in home's alternating bands: Regular gatherings (one row per gathering: day and time, name, one short line, where; a tag only for Silent meditation · Hosted by volunteers or Community group; 'All times are Central' once) and Coming up (dated offerings, soonest first). Drop the category doors, the blue-bar section headers and their all-caps labels, nested boxes, pills and arrow circles. Give /this-week the same row grammar.",
     "category": "Programs",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-10-14",
-    "notes": "Jesse: the page is 'logical… but a little overwhelming and confusing'; parked 2026-10-14 ('I'll think more about it and come back to it'). Mockup and before/after screenshots: mockups/programs-2026-10-14/. Research and measurements: session-log.md 2026-10-14 (desktop 6.8 to 4.1 screens, phone 10.2 to 5.6). Reverses the 2026-10-02 sections-from-Category and the 2026-10-09 category doors (RIM_Public_Pages.md). Taglines are Title Case in the data; the mockup's sentence case would be Program Manager edits. Don't claim drop-in access per row: Open entry is per program."
+    "notes": "Jesse: the page is 'logical… but a little overwhelming and confusing'; parked 2026-10-14 ('I'll think more about it and come back to it'). Mockup and before/after screenshots: mockups/programs-2026-10-14/. Research and measurements: session-log.md 2026-10-14 (desktop 6.8 to 4.1 screens, phone 10.2 to 5.6). Reverses the 2026-10-02 sections-from-Category and the 2026-10-09 category doors (RIM_Public_Pages.md). Taglines are Title Case in the data; the mockup's sentence case would be Program Manager edits. Don't claim drop-in access per row: Open entry is per program. Done 2026-10-14 (evening) in a different shape: Jesse kept the three ways as the sections (they are why the page changed) and took home's treatment, from mockups/programs-2026-10-14b/. RIM_Public_Pages.md, \"Programs & Events: the three ways, said once\"."
   },
   {
     "id": "2026-10-14-002",
@@ -1850,7 +1850,7 @@
     "priority": "medium",
     "status": "open",
     "addedAt": "2026-10-14",
-    "notes": "Parked with 2026-10-14-001. The reading-page recommendation is untested judgment. Jesse's sentence about the circled programs header ended at 'The way that these are'; ask what he meant. 2026-10-14: home done first and is the reference (each section a room: a ground change at each edge, no in-section lines that mimic section lines; RIM_Public_Pages.md, \"Home: each section a room\")."
+    "notes": "Parked with 2026-10-14-001. The reading-page recommendation is untested judgment. Jesse's sentence about the circled programs header ended at 'The way that these are'; ask what he meant. 2026-10-14: home done first and is the reference (each section a room: a ground change at each edge, no in-section lines that mimic section lines; RIM_Public_Pages.md, \"Home: each section a room\"). Programs & Events done the same day."
   },
   {
     "id": "2026-10-14-003",
