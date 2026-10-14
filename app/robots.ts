@@ -26,7 +26,6 @@ export default function robots(): MetadataRoute.Robots {
           "/programs/*/register",
           "/programs/*/thank-you",
           "/style-guide",
-          "/home-preview",
         ],
       },
     ],

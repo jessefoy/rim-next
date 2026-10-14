@@ -295,7 +295,6 @@ export default function HomePage() {
 
           <div className="home-begin">
             <div>
-              <p className="home-eyebrow">New to RIM?</p>
               <h3>Planning your first visit?</h3>
               <p>Find out what to expect, how to join, and where to begin.</p>
               <Link href="/new-to-rim" className="pp-btn">
@@ -303,7 +302,6 @@ export default function HomePage() {
               </Link>
             </div>
             <div>
-              <p className="home-eyebrow">Returning to practice?</p>
               <h3>Join us this week.</h3>
               <p>Find your next gathering in the weekly schedule.</p>
               <Link href="/this-week" className="pp-btn pp-btn--ghost">
@@ -315,9 +313,11 @@ export default function HomePage() {
       </section>
 
       {/* ── Practice for real life — what the practice helps us meet, as
-             three theme columns of three panelled items (the refresh). ── */}
+             three theme columns of three panelled items (the refresh), on
+             Deeper Pampas so no two neighbouring sections share a ground
+             (2026-10-14, "each section a room"). ── */}
       <section
-        className="pp-section home-practice"
+        className="pp-section pp-section--accent home-practice"
         id="practice-for-real-life"
         aria-labelledby="practice-title"
       >

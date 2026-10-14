@@ -951,9 +951,9 @@
     "description": "Session 148 made the page ground Dawn Pink (#f4efe8) via --rim-bg. The home page alternates .rim-section--grey (uses var(--rim-bg)) with .rim-section--white (#fff) - which now render cream-on-cream / barely distinct, so the section rhythm flattened. Repoint .rim-section--grey (or add a section-alt class) to --rim-bg-accent (Pearl Bush #e7e0d7) so alternation is visible again, OR define the site-wide section-rhythm rule (Dawn Pink ground, white/Bridal Heath bands, Pearl Bush recede, blue statement). Part of the home-page pass.",
     "category": "CSS & Design",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-13",
-    "notes": "Surfaced when the ground warmed (session 148). The home page is the next major public surface after the program page."
+    "notes": "Surfaced when the ground warmed (session 148). The home page is the next major public surface after the program page. Done 2026-10-14 for home: Practice for real life on Deeper Pampas so no two neighbouring sections share a ground (RIM_Public_Pages.md, \"Home: each section a room\")."
   },
   {
     "id": "2026-06-13-003",
@@ -1850,7 +1850,7 @@
     "priority": "medium",
     "status": "open",
     "addedAt": "2026-10-14",
-    "notes": "Parked with 2026-10-14-001. The reading-page recommendation is untested judgment. Jesse's sentence about the circled programs header ended at 'The way that these are'; ask what he meant."
+    "notes": "Parked with 2026-10-14-001. The reading-page recommendation is untested judgment. Jesse's sentence about the circled programs header ended at 'The way that these are'; ask what he meant. 2026-10-14: home done first and is the reference (each section a room: a ground change at each edge, no in-section lines that mimic section lines; RIM_Public_Pages.md, \"Home: each section a room\")."
   },
   {
     "id": "2026-10-14-003",
