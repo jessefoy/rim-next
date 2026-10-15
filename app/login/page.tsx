@@ -207,8 +207,10 @@ export default async function LoginPage({
                   </button>
                 </form>
                 <p className="lg-alt">
+                  {/* Named by where it goes, not by a guess at why someone
+                      presses it (Jesse, 2026-10-15). */}
                   <a href="/login">
-                    Sign in with a different email <span aria-hidden="true">&rarr;</span>
+                    <span aria-hidden="true">&larr;</span> Back to sign in
                   </a>
                 </p>
               </>
