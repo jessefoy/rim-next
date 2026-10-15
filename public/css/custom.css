@@ -4809,7 +4809,7 @@ h4 { font-size: var(--text-h4); }
 .adm-table__email { color: var(--rim-text-muted); }
 
 .adm-table__col--roles { min-width: 9em; }
-.adm-table__col--teams { min-width: 11em; }
+.adm-table__col--teams { min-width: 10em; }
 .adm-table__sort-pair { display: inline-flex; align-items: center; }
 .adm-table__sort-pair .adm-table__sort-btn { width: auto; padding-inline: 4px; }
 .adm-table__sort-pair .adm-table__sort-btn:first-child { padding-left: 16px; }
@@ -4827,6 +4827,14 @@ h4 { font-size: var(--text-h4); }
   font-size: var(--text-app-meta);
   font-weight: 400;
   color: var(--rim-text-muted);
+}
+.adm-member-email {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-app-meta);
+  font-weight: 400;
+  color: var(--rim-text-muted);
+  overflow-wrap: break-word;
 }
 .adm-member-teams { font-size: var(--text-app-meta); color: var(--rim-text); }
 .adm-member-teams__more { color: var(--rim-text-muted); }

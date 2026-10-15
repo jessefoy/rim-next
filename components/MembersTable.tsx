@@ -33,7 +33,7 @@ export interface MemberTeam {
 
 type RoleFilter = "ALL" | "ADMIN" | "REGISTRAR" | "TEACHER" | "HOST_MANAGER" | "GUIDING_TEACHER" | "NOROLES";
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE" | "VISITOR" | "STUDENT" | "VOLUNTEER" | "DUPLICATE";
-type SortField = "firstName" | "lastName" | "email" | "createdAt" | "registrations";
+type SortField = "firstName" | "lastName" | "createdAt" | "registrations";
 type SortDir = "asc" | "desc";
 
 // Teams named in a row before the rest are summed up; the profile lists them all.
@@ -73,9 +73,6 @@ function sortMembers(members: SerializedMember[], field: SortField, dir: SortDir
     } else if (field === "lastName") {
       aVal = (a.lastName ?? "").toLowerCase();
       bVal = (b.lastName ?? "").toLowerCase();
-    } else if (field === "email") {
-      aVal = a.email.toLowerCase();
-      bVal = b.email.toLowerCase();
     } else if (field === "createdAt") {
       aVal = a.createdAt;
       bVal = b.createdAt;
@@ -321,11 +318,6 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
                     </button>
                   </span>
                 </th>
-                <th>
-                  <button className="adm-table__sort-btn" onClick={() => handleSort("email")}>
-                    Email {sortIndicator("email")}
-                  </button>
-                </th>
                 <th className="adm-table__col--teams">Teams</th>
                 <th className="adm-table__col--roles">Roles</th>
                 <th className="adm-table__col--num">
@@ -357,9 +349,14 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
                     {m.preferredName && m.preferredName !== m.firstName && (
                       <span className="adm-table__preferred"> ({m.preferredName})</span>
                     )}
+                    {/* The email sits under the name, as in a directory, so the
+                        table fits its frame (an address alone was ~270px). */}
+                    <span className="adm-member-email">
+                      {/* May wrap after the @, never mid-word. */}
+                      {m.email.split("@")[0]}@<wbr />{m.email.split("@").slice(1).join("@")}
+                    </span>
                     {memberState(m) && <span className="adm-member-state">{memberState(m)}</span>}
                   </td>
-                  <td className="adm-table__email">{m.email}</td>
                   <td className="adm-table__col--teams">
                     {m.teams.length > 0 && (
                       <span className="adm-member-teams">
