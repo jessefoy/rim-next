@@ -1727,7 +1727,7 @@
     "priority": "high",
     "status": "open",
     "addedAt": "2026-10-12",
-    "notes": "Jesse, 2026-10-12: \"Do you think they should be able to update their email? Just with a double-check, I am sure. For administration and their security, should we store their past emails?\" Recommended before launch. New schema (an email-history table) means the additive-column/data-first rules apply. Email Template Gate for the two new emails (code to the new address can reuse the sign-in code mechanism; the notice to the old address is a new template). Connects to the Flodesk integration (2026-09-24-002). | 2026-10-13: Flodesk's API has no way to change a subscriber's address; an email change must handle the Members segment (and program segments) another way, e.g. add the new address to the same segments and unsubscribe the old one, or leave Flodesk to the person."
+    "notes": "Jesse, 2026-10-12: \"Do you think they should be able to update their email? Just with a double-check, I am sure. For administration and their security, should we store their past emails?\" Recommended before launch. New schema (an email-history table) means the additive-column/data-first rules apply. Email Template Gate for the two new emails (code to the new address can reuse the sign-in code mechanism; the notice to the old address is a new template). Connects to the Flodesk integration (2026-09-24-002). | 2026-10-13: Flodesk's API has no way to change a subscriber's address; an email change must handle the Members segment (and program segments) another way, e.g. add the new address to the same segments and unsubscribe the old one, or leave Flodesk to the person. | 2026-10-15: the history this item asks for now exists as former_emails (lib/formerEmail.ts): an admin email change already records the old address, sign-in recognizes it ('Your sign-in email has changed', the current address masked, one button sends the code there), and no door makes a second account from it. The self-service change can record into the same table."
   },
   {
     "id": "2026-10-12-004",
@@ -1891,5 +1891,25 @@
     "status": "open",
     "addedAt": "2026-10-14",
     "notes": "From the 2026-10-14 (night) review of the link-box fix (lib/linkInput.ts). The read needs Jesse's go-ahead (production data)."
+  },
+  {
+    "id": "2026-10-15-001",
+    "title": "Merge two accounts the duplicate rules don't match",
+    "description": "The merge starts from the 'Possible second account' note, which matches the same first and last name or the same phone. A person with a nickname, a changed surname or no phone on one account isn't matched. Let an admin open the merge from any profile by typing the other account's email, with the same preview, trial and confirm.",
+    "category": "Member Accounts",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-15",
+    "notes": "From the 2026-10-15 duplicate-accounts build (lib/memberMerge.ts already merges any two ids; only the entry point is missing)."
+  },
+  {
+    "id": "2026-10-15-002",
+    "title": "The quiet pool's 34 likely duplicate pairs",
+    "description": "The old site's import holds 68 unclaimed accounts in 34 pairs that share a name (32) or a phone (2): people who joined the old site twice. They are inert (no email, hidden from the main list) and flagged in the legacy-pool view. Decide whether to merge them now (each from its profile) or leave them until each person signs in.",
+    "category": "Member Accounts",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-15",
+    "notes": "Counted read-only on 2026-10-15. Nobody in the main Members list or on a team is flagged."
   }
 ]

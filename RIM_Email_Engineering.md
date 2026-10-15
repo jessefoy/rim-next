@@ -96,6 +96,10 @@ The cleanup-cron staged-account guard is the other half of staging (so staged ac
 
 ---
 
+**`accounts-merged` (2026-10-15)** is not gated either: it tells a person which address to sign in with after an admin merges their two accounts. Instead the route skips the send when the kept account is still archived or still unclaimed (the quiet pool gets no email; an archived member can't sign in). Sent by `sendAccountsMergedEmail` in `after()`; seeded in `migrate.mjs` (group `01-auth`).
+
+**An address can change under a person** (an admin edit, a merge): RIM keeps the old one in `former_emails` (`RIM_Auth.md`). Registrations made through an old address take the account's current address, so confirmations and reminders reach the inbox the person uses now; past registrations keep the address they were made with.
+
 ## URL construction rules
 
 **`BASE_URL` is trimmed and slash-stripped once at module load.** Don't trim it again at the call site. Don't bypass it by hardcoding `https://rim-next.vercel.app` — env-var-driven base URL is how we'll cut over to `rootedinmindfulness.org` without touching code.

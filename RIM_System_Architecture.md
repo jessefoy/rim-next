@@ -146,6 +146,7 @@ Assigned by ADMIN via the Neon console for now; a UI for this will be added when
 
 | Section ID | Allowed Roles | Condition |
 |---|---|---|
+| `possible-duplicates` | ADMIN, REGISTRAR | another account may be the same person (2026-10-15; the Merge button is ADMIN only) |
 | `core-record` | ADMIN, REGISTRAR | — |
 | `household` | ADMIN, REGISTRAR | — |
 | `admin-notes` | ADMIN | — |
@@ -159,6 +160,10 @@ Assigned by ADMIN via the Neon console for now; a UI for this will be added when
 | `danger-zone` | ADMIN | member has no registrations |
 
 **`hub-memberships` (session 153) — the Member Registry now *writes* hub membership.** Previously hubs owned their rosters; this section is the deliberate shift to staffing any team from the profile (Off / Member / Coordinator per active hub). Role-derived hubs (Courses ← TEACHER, Registrar ← REGISTRAR, via `lib/syncHubMembership.ts::roleDerivedHubs()`) render locked and the route 409s direct writes — the role governs them. The plain **HOST** role was retired in the same session: host-team membership (not a role) is the source of truth for being a host. Full model in `RIM_MemberRegistry.md`.
+
+### One person, one account (2026-10-15)
+
+An account's id carries everything (roles, teams, hosting, rotations, teaching, conversations); its email is only how the person signs in. So when one person has two accounts, the one with the history is kept and only its address changes (`lib/memberMerge.ts`, ADMIN), and an address an account no longer uses is remembered (`former_emails`) so every door that looks a person up by email still finds them and never makes a second account from it. Detail: `RIM_MemberRegistry.md`, `RIM_Auth.md`.
 
 ### Save model
 

@@ -1,3 +1,46 @@
+## 2026-10-15 — Duplicate accounts: one person, one account; old addresses still lead in; the Members list shows teams
+
+On `main`: `a77f454`, `cbfcd8b`, `da8fced`, `3093e8e`, `d9ead58`, `d975061`, `3744981`, `3836e7c`, `dbea81a`, and this closing. Production writes, each Jesse-approved by record (snapshot, drift check, one transaction, whole-table diff); production reads to diagnose. Verified on the deployed site: the moved-address page seen live with one old address (no code sent); the Members list, profile note and merge panel measured with fixtures on the production stylesheet at 1280, 1440 and 375. **Not seen signed in with real data; no real merge has run yet.**
+
+### The report
+
+LoriLee (via Jesse): a member added to a team "doesn't always populate the general member list"; Silvia couldn't see any team until LoriLee turned her teams on by hand; "the role/team designations don't uniformly show up on the Members page." Jesse: the Roles column shows roles and access, not team membership.
+
+### What was actually wrong
+
+- **Silvia had two accounts.** Her teams (Hosting Team, Program Central, Dāna coordinator) and 28 hosting dates were on her personal-address account. On 2026-10-15 she signed in for the first time with her RIM address, an unclaimed account from the old site's member import, which became a second live account with no teams. Nothing was broken; she was in the other account. A read-only check of everyone on a team or holding a role found two more such pairs: LoriLee (an unclaimed RIM-address account) and Jesse.
+- **The Members list never showed teams**, printed roles as `HOST_MANAGER` and the retired `SUPPORT`, put the always-"Active" status under a "Roles" heading, and cut its uppercase pills off at the frame's edge.
+
+### Built and live
+
+- **The three people merged by hand** (production, approved): LoriLee and Jesse at their RIM addresses on the account that held their history; Silvia likewise (her personal-address account held the rotations, which can't be deleted). Old-site history and the Flodesk date carried over; sessions ended; current registrations moved to the new address. Flodesk itself was not touched.
+- **The Members list** (`cbfcd8b`, `d975061`, `3744981`): a Teams column and filter, roles in Roles & access's words (`lib/roleLabels.ts`), sentence-case neutral tags that wrap, status only when it isn't Active; one Name column (First / Last sort, "Last, First" when sorted by last) with the email under the name, wrapping only after the @; the list's frame may reach 1120px. Fits at 1280 with real-length addresses.
+- **Former sign-in addresses** (`3093e8e`, new table `former_emails`): an old address typed at sign-in or Join shows "Your sign-in email has changed" with the current address masked ("j•••@rootedinmindfulness.org") and one button, **Send my code there**; the code page keeps the old address and the code check maps it on the server. No door makes a second account from an old address (Join, guest registration, the Stripe webhook, check-email, Add member, an email change, the member import; `callbacks.signIn` refuses codes for a former-only address; an email change deletes old codes). The three old addresses from the merges are recorded (approved).
+- **Possible second accounts** (`d9ead58`): same name, or same phone (not within one household, not shared by more than three accounts, not a one-digit placeholder), across every account including the quiet pool; a note at the top of the profile; a filter on the list.
+- **Merging** (`3836e7c`, Admin only): a panel from the note (what each holds, the address to keep), `lib/memberMerge.ts` in one transaction, a safety net that refuses if anything still points at the account being removed, a rolled-back trial merge inside the preview, and the `accounts-merged` email. Tested by trial on production (an old-site pair; two rich accounts): no table changed.
+- **An older gap closed:** the `/login` form and the code page's resend called `signIn()` in-process and were never rate-limited (RIM_Auth.md said they were); both use `codeSendAllowed` now.
+
+### Design decisions and why
+
+- **Keep the account with the history; change only its address.** Every role, team, hosting date, rotation and teaching link hangs off the account id, and rotations make an account undeletable. Learned on the three hand merges; now the merge's rule.
+- **Recognize old addresses, nudge, teach** (Jesse: *"In a way, it's recognizing both of their addresses, with a gentle nudge and education, correct? I think that's a good idea."*). An older sangha learns the new address at the moment they need it, with one press.
+- **Never show the current address whole to someone who knows only the old one.** A member may change address to get away from someone. Masked on the page; the code check maps old to current server-side (raised by review; Jesse's design otherwise unchanged).
+- **Admin only for merging** (Jesse's ruling): it can't be undone and touches everything.
+- **Merge rules from review:** a coordinator's "can't host" / "no notices" taken from the stronger membership, never OR-ed; two live registrations for one program leave one and Cancel the other; a public teacher page wins; older-format notes stop the merge rather than lose one; no email to an archived or unclaimed account.
+- **Tags in an app table are words, not badges** (Jesse: the tags "are a little big. They should conform to best practices"): sentence case, one neutral colour, 15px (the readability floor); the uppercase tracked column headers stay (RIM's label convention).
+
+### What this work connects to
+
+Sign-in (`/login`, `/login/check-email`, the auth catch-all, `auth.ts` callbacks), Join, guest registration, the Stripe webhook, `/api/account/check-email`, the Member Registry (list, profile, Add member, email change), the member import (`lib/legacyImport.ts`), Flodesk (subscribers keyed by address; not touched), hosting and rotations (moved with the account), teams (`hub_members`), the household tool, the teacher profile, and the planned self-service email change (`2026-10-12-003`), which can now record the old address in `former_emails`. Docs: `RIM_Auth.md` ("Former sign-in addresses", the rate-limit correction), `RIM_MemberRegistry.md` ("The Members list, duplicates and merging").
+
+### Jesse's words on the result
+
+*"I think the text seems good. I like the way that it works."* (2026-10-15, after the summary of the moved-address notice, the profile note, the merge panel and the email.) The full `accounts-merged` body and the panel's longer lines were summarized in chat, not read aloud line by line.
+
+### What comes next
+
+A signed-in look at the Members list and a profile with real data; the first real merge is the end-to-end proof (the old site's quiet pool holds 34 likely pairs, inert; merge them or leave them). Ideas not built: merging two accounts the rules don't match (a nickname, a changed surname) by typing the other address. A follow-up for the teams sign-in note: duplicates can now be seen before adding people.
+
 ## 2026-10-14 (late night) — the outside-meeting settings in plain words; This Week's date block
 
 On `main`: `d6e2a6f`, `a066df1`, `1105be6`, `ce1a5a0` (Program Manager), `4a56c41`, `ca17683` (This Week). Measured with the live stylesheet (headless Chrome for the editor's field; the published This Week page at 1280 and 375 in the built-in browser). The editor itself was not seen signed in.

@@ -1,23 +1,19 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-15 (duplicate accounts); last closing ritual 2026-10-14 (late night). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-15 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-15: duplicate accounts merged; teams on the Members list
+## Active — 2026-10-15 closed: one person, one account
 
-**Cause of "Silvia couldn't see her teams" (LoriLee's report):** two accounts for one person. Her teams were on her personal-address account; on 2026-10-15 she first signed in with her RIM address, an unclaimed account from the old site's member import, which became a second live account with no teams. A read-only check of everyone on a team or holding a role found three people with two accounts under one name: Silvia, LoriLee and Jesse. **All three are now one account each, at their RIM address** (production, each Jesse-approved on 2026-10-15; snapshot, drift check, one transaction, whole-table diff of every affected table):
-- **The account kept is the one with the history, whichever address it had; only its address changes.** Every role, team, hosting date, rotation, teaching link and conversation hangs off the account's id, and standing rotations make an account undeletable (`ON DELETE RESTRICT`). The extra account's few real items are moved onto the kept one (Jesse's Dharma Lessons team row and a test registration), then it is deleted.
-- Each kept account takes the RIM address; the earlier old-site member-since date and (Silvia) the Flodesk Members date carry over; open sessions end, so each signs in again with the RIM address; current registrations move to the new address, past ones keep the old one as history.
-- **Flodesk was not touched.** Each person's old address may still be a subscriber there; removing it is their call. Jesse's RIM address is not in Flodesk's Members by the app (his account was added once, under the old address).
-- Snapshots live only in that session's scratch folder. The commit before this rewrite (`a77f454`) named two addresses and an account id in this file; they remain in git history.
+Everything is on `main` (`a77f454` … `3836e7c`, `dbea81a`, the closing docs). Narrative: `session-log.md`, 2026-10-15. References: `RIM_MemberRegistry.md` ("The Members list, duplicates and merging"), `RIM_Auth.md` ("Former sign-in addresses").
 
-**Live (`cbfcd8b`): teams on the Members list.** A Teams column (coordinator and paused marked; three, then "and N more"), a team filter, team names in search; roles in Roles & access's words (Scheduling manager, Guiding teacher; the retired HOST and SUPPORT hidden, and no one holds HOST); sentence-case neutral tags that wrap, in place of uppercase coloured pills; status only when it isn't Active, as a quiet line under the name. Measured on the production stylesheet with a fixture at 1280 and 375; not yet seen signed in with real rows.
+**Live:**
+- **Silvia, LoriLee and Jesse each have one account, at their RIM address** (merged by hand, Jesse-approved; the account with the history kept, only its address changed). Each signs in again with the RIM address. Flodesk wasn't touched: their old addresses may still be subscribers there (their call).
+- **Old addresses still lead in:** sign-in or Join with an address an account used to use shows "Your sign-in email has changed" (the current address masked) and **Send my code there**. The three old addresses are recorded. The `/login` form and resend are now rate-limited.
+- **The Members list shows teams**, roles in plain words, sentence-case tags, one Name column with the email under it; fits at 1280.
+- **Possible second accounts** are flagged on the profile and filterable; **Admin merge** with a rolled-back trial in its preview and the `accounts-merged` note.
+- **Words approved** by Jesse after the summary: *"I think the text seems good. I like the way that it works."* (The full `accounts-merged` body and the panel's longer lines were summarized, not read aloud line by line; `/admin/emails` has the body.)
 
-**Live, the rest of 2026-10-15 (Jesse: "a duplicate account and merging feature"; "recognizing both of their addresses, with a gentle nudge and education"):**
-- **Former sign-in addresses** (`3093e8e`, `RIM_Auth.md`): an old address at sign-in or Join shows "Your sign-in email has changed" with the current one masked and one button that sends the code there; it never becomes a second account anywhere. The three addresses merged away today are recorded (Jesse-approved). Seen live with one old address (no code sent). Also fixed: the `/login` form and resend were never rate-limited.
-- **Possible second accounts and merging** (`d9ead58` … `3836e7c`, `RIM_MemberRegistry.md`): a note on the profile, a filter on the list, an Admin merge with a rolled-back trial in its preview (tested that way on production: an old-site pair and two rich accounts, no table changed). The list: one Name column with the email under it, fits at 1280.
-- **The quiet pool holds 34 likely pairs** (68 accounts, people who joined the old site twice). Nobody in the main list is flagged. They can be merged from the legacy-pool view, or left: they're inert.
-
-**Waiting on Jesse:** read-aloud of the new words: the moved-address notice and button ("Your sign-in email has changed…", "Send my code there"), the profile note ("Possible second account"…), the merge panel, the after-merge notice, and the `accounts-merged` email (`/admin/emails`). **Not yet seen signed in:** the Members list, a profile's note and the merge panel with real data (measured on the production stylesheet with fixtures only); the first real merge is the end-to-end proof. **Ideas, not built:** merging two accounts the rules don't match (a nickname, a changed surname) by typing the other address; the lasting fix remains self-service email change (`2026-10-12-003`), which can now record the old address in `former_emails`.
+**Next concrete step:** a signed-in look at `/admin/members` and one profile with real data; the first real merge is the end-to-end proof. **Queued:** `2026-10-15-001` (merge by typing the other address), `2026-10-15-002` (the quiet pool's 34 likely pairs: merge or leave), `2026-10-12-003` (self-service email change, which can now record into `former_emails`). Before the teams sign-in note goes out, check the "Possible second account" filter so no one lands in an empty account.
 
 ## Earlier — 2026-10-14 closed: outside meeting rooms live; LoriLee's review ruled and live; every email in one look
 
