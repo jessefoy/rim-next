@@ -29036,6 +29036,19 @@ html { scroll-padding-top: 88px; }
   .pl-page .pl-card--time .pl-card__content { display: block; padding: 22px 20px; }
   .pl-page .pl-card--time .pl-card__action { display: none; }
 }
+/* This Week's day headings: no blue rule; the date block, blue with white
+   letters, sits on that edge instead (Jesse, 2026-10-14). Today keeps its
+   "Today" pill. Programs & Events keeps the rule on its section headings. */
+.pl-page .tw-day-heading {
+  border-left: 0;
+  padding-left: 0;
+}
+.tw-day-heading__date,
+.tw-day--today .tw-day-heading__date { background: var(--rim-blue); }
+.tw-day-heading__month,
+.tw-day--today .tw-day-heading__month { color: color-mix(in srgb, var(--rim-surface) 78%, transparent); }
+.tw-day-heading__day,
+.tw-day--today .tw-day-heading__day { color: var(--rim-surface); }
 
 /* ── New to RIM (nt-): the newcomer's page on the refresh ────────────────── */
 /* A compact photo hero, then sections of a 5/7 split (the eyebrow and heading
