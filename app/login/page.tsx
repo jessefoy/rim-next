@@ -171,10 +171,27 @@ export default async function LoginPage({
       <section className="pp-hero pp-hero--quiet">
         <div className="rim-container pp-hero__inner">
           <p className="pp-hero__eyebrow">Members</p>
-          <h1 className="pp-hero__title">Sign in</h1>
-          <p className="pp-hero__body">
-            Enter your email and we&apos;ll send you a 6-digit code. No password needed.
-          </p>
+          {movedTo ? (
+            /* The state is said where the page says where you are, as the
+               code page does: plain words, "old" and "new" named, so nobody
+               wonders which address the code goes to (LoriLee, 2026-10-15). */
+            <>
+              <h1 className="pp-hero__title">Your sign-in email has changed</h1>
+              <p className="pp-hero__body">
+                You typed your old email, <strong className="lg-email">{prefillEmail}</strong>.
+                Your account now uses your new email,{" "}
+                <strong className="lg-email">{movedTo}</strong>. Please sign in with your new
+                email from now on.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="pp-hero__title">Sign in</h1>
+              <p className="pp-hero__body">
+                Enter your email and we&apos;ll send you a 6-digit code. No password needed.
+              </p>
+            </>
+          )}
         </div>
       </section>
 
@@ -183,19 +200,10 @@ export default async function LoginPage({
           <div className="pp-form">
             {movedTo ? (
               <>
-                <div className="pp-notice">
-                  <p className="pp-notice__body">
-                    <strong>Your sign-in email has changed.</strong> We recognize{" "}
-                    <strong className="lg-email">{prefillEmail}</strong>, and your RIM
-                    account now signs in with{" "}
-                    <strong className="lg-email">{movedTo}</strong>. We&apos;ll send your
-                    code there. Please use that address from now on.
-                  </p>
-                </div>
                 <form action={handleSendToCurrent}>
                   <input type="hidden" name="former" value={prefillEmail} />
                   <button type="submit" className="pp-btn pp-form__submit">
-                    Send my code there <span aria-hidden="true">&rarr;</span>
+                    Send code to my new email <span aria-hidden="true">&rarr;</span>
                   </button>
                 </form>
                 <p className="lg-alt">

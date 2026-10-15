@@ -8,7 +8,7 @@ Everything is on `main` (`a77f454` … `3836e7c`, `dbea81a`, the closing docs). 
 
 **Live:**
 - **Silvia, LoriLee and Jesse each have one account, at their RIM address** (merged by hand, Jesse-approved; the account with the history kept, only its address changed). Each signs in again with the RIM address. Flodesk wasn't touched: their old addresses may still be subscribers there (their call).
-- **Old addresses still lead in:** sign-in or Join with an address an account used to use shows "Your sign-in email has changed" (the current address masked) and **Send my code there**. The three old addresses are recorded. The `/login` form and resend are now rate-limited.
+- **Old addresses still lead in:** sign-in or Join with an address an account used to use shows "Your sign-in email has changed" (old and new email named, the new one masked) and **Send code to my new email** (relabelled after LoriLee's test: "there" was unclear). The three old addresses are recorded. The `/login` form and resend are now rate-limited.
 - **The Members list shows teams**, roles in plain words, sentence-case tags, one Name column with the email under it; fits at 1280.
 - **Possible second accounts** are flagged on the profile and filterable; **Admin merge** with a rolled-back trial in its preview and the `accounts-merged` note.
 - **Words approved** by Jesse after the summary: *"I think the text seems good. I like the way that it works."* (The full `accounts-merged` body and the panel's longer lines were summarized, not read aloud line by line; `/admin/emails` has the body.)

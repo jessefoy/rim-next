@@ -163,8 +163,8 @@ export default async function CheckEmailPage({
               </>
             ) : (
               <>
-                We sent a 6-digit code to <strong className="lg-email">{sentTo}</strong>. It
-                expires in 30 minutes.
+                We sent a 6-digit code to {movedAccount ? "your new email, " : ""}
+                <strong className="lg-email">{sentTo}</strong>. It expires in 30 minutes.
               </>
             )}
           </p>
