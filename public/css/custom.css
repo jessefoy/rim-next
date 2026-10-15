@@ -29037,11 +29037,17 @@ html { scroll-padding-top: 88px; }
   .pl-page .pl-card--time .pl-card__action { display: none; }
 }
 /* This Week's day headings: no blue rule; the date block, blue with white
-   letters, sits on that edge instead (Jesse, 2026-10-14). Today keeps its
+   letters, lines up with the times below (Jesse, 2026-10-14). Today keeps its
    "Today" pill. Programs & Events keeps the rule on its section headings. */
+/* The date block lines up with the times in the cards below: the card's
+   1px border plus its content padding (24px; 20px at 700px and below,
+   .pl-page .pl-card--time .pl-card__content). */
 .pl-page .tw-day-heading {
   border-left: 0;
-  padding-left: 0;
+  padding-left: 25px;
+}
+@media (max-width: 700px) {
+  .pl-page .tw-day-heading { padding-left: 21px; }
 }
 .tw-day-heading__date,
 .tw-day--today .tw-day-heading__date { background: var(--rim-blue); }
