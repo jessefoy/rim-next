@@ -9,78 +9,12 @@ import {
 } from "@/lib/email";
 import { extractTextAsync } from "@/lib/renderRichContentServer";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { isHubCoordinator } from "@/lib/hubAuth";
-import { DEFAULT_HOSTING_HUB_SLUG, getProgramHubSlug } from "@/lib/programHub";
+import { canManageHubCoverage } from "@/lib/hubAuth";
+import { getProgramHubSlug } from "@/lib/programHub";
 
-/**
- * Capability gate, scoped to a specific hub. For the program-aware POST
- * handler, callers pass the program's `hostingHubSlug`. The GET handler
- * (list-all-open sub-requests) keeps the legacy host-team gate — broadening
- * it to "host-capable in any hub" is a Slice 2 concern when the second
- * hosting hub goes live and its surface is wired into the schedule tool.
- */
-async function hasEffectiveHostAccess(
-  userId: string,
-  roles: string[],
-  hubSlug: string = DEFAULT_HOSTING_HUB_SLUG,
-): Promise<boolean> {
-  if (roles.includes("ADMIN")) return true;
-  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, hubSlug, tentative);
-}
+// (The GET listing every team's open requests was removed 2026-10-15: no
+// caller used it, and it ignored teams.)
 
-// GET /api/host/sub-requests — all OPEN sub requests (visible to all hub members)
-export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (!(await hasEffectiveHostAccess(session.user.id, session.user.roles ?? []))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const requests = await db.subRequest.findMany({
-    where: { status: "OPEN" },
-    include: {
-      assignment: {
-        include: {
-          user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
-        },
-      },
-      claim: {
-        include: {
-          claimedBy: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return Response.json(
-    requests.map((r) => ({
-      id: r.id,
-      programSlug: r.programSlug,
-      sessionDate: r.sessionDate?.toISOString() ?? null,
-      status: r.status,
-      message: r.message,
-      createdAt: r.createdAt.toISOString(),
-      requester: r.assignment.user,
-      assignmentId: r.assignmentId,
-      claim: r.claim
-        ? {
-            id: r.claim.id,
-            claimedBy: r.claim.claimedBy,
-            message: r.claim.message,
-            createdAt: r.claim.createdAt.toISOString(),
-          }
-        : null,
-    }))
-  );
-}
-
-// POST /api/host/sub-requests — create a sub request
-// Body: { assignmentId, sessionDate?, message? }
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -128,9 +62,6 @@ export async function POST(request: Request) {
   }
 
   const roles = session.user.roles ?? [];
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, assignmentHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
   // Owner, a manager, OR a coordinator of the assignment's hub can open a cover
   // request. Coordinator parity with assign / remove / reassign / clear (session
   // 142 completed the coordinator-as-manager-for-their-own-hub model — this was
@@ -138,9 +69,9 @@ export async function POST(request: Request) {
   // assignment's hub, so a coordinator only acts on their own team; a plain host
   // still acts only on their own assignment. (Greeter/multi-claim hubs are
   // already rejected above — open sign-up has no sub-request flow.)
-  const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-  const canManage =
-    isManager || (await isHubCoordinator(session.user.id, assignmentHubSlug));
+  // The person whose session it is may always ask (even while paused: they're
+  // stepping back); managers and the team's coordinator may ask for them.
+  const canManage = await canManageHubCoverage(session.user.id, roles, assignmentHubSlug);
   if (!canManage && assignment.userId !== session.user.id) {
     return Response.json({ error: "You can only request subs for your own assignments" }, { status: 403 });
   }

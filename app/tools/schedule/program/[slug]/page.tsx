@@ -20,9 +20,11 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import {
-  DEFAULT_HOSTING_HUB_SLUG,
   getProgramCoverageHubs,
+  resolveHostingHubSlug,
+  teamCannotStaff,
 } from "@/lib/programHub";
+import { ctStartOfToday } from "@/lib/timezone";
 import {
   ctDateStr,
   isOccurrenceOnDate,
@@ -110,15 +112,21 @@ export default async function ProgramStaffingPage({
   });
   if (!program || program.archivedAt) notFound();
 
-  const primaryHubSlug = program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
+  const primaryHubSlug = resolveHostingHubSlug(program);
   const auxHubSlugs = await getProgramCoverageHubs(program.slug);
   // "No host needed" governs the PRIMARY host only: omit the primary section for
   // a self-led program (it isn't host-staffed) and show just its auxiliary
   // (AV/greeter) coverage. A purely self-led program with no auxiliary coverage
   // has nothing to staff → 404. Normal programs: primary first, then auxiliary.
-  const allHubSlugs = program.hostingRequired
+  const candidateHubSlugs = program.hostingRequired
     ? [primaryHubSlug, ...auxHubSlugs.filter((s) => s !== primaryHubSlug).sort()]
     : auxHubSlugs.filter((s) => s !== primaryHubSlug).sort();
+  // Only teams that can staff it now: the Scheduler installed, and the
+  // program's format among the team's (2026-10-15: an in-person team showed
+  // here for a virtual program it never staffs). The same rule the Scheduler
+  // and the rotation engine use (lib/programHub.ts teamCannotStaff).
+  const refusals = await Promise.all(candidateHubSlugs.map((h) => teamCannotStaff(h, program.slug)));
+  const allHubSlugs = candidateHubSlugs.filter((_, i) => refusals[i] === null);
   if (allHubSlugs.length === 0) notFound();
 
   // Fetch every hub's config + StandingAssignment rows + upcoming HostAssignment
@@ -137,7 +145,14 @@ export default async function ProgramStaffingPage({
       },
     }),
     db.standingAssignment.findMany({
-      where: { programSlug: program.slug, hubSlug: { in: allHubSlugs } },
+      // An ended rotation fills nothing, so it isn't shown as the pattern.
+      // Strictly after Central midnight: ending one rotation stores exactly
+      // that instant ("ended, today not filled").
+      where: {
+        programSlug: program.slug,
+        hubSlug: { in: allHubSlugs },
+        OR: [{ endsOn: null }, { endsOn: { gt: ctStartOfToday() } }],
+      },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
       },

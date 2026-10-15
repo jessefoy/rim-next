@@ -1,18 +1,17 @@
 import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
-import { ensureActiveHubMembership, getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { canAccessHubScheduler, isHubCoordinator } from "@/lib/hubAuth";
+import { authorizeSelfClaim, getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { canAccessHubScheduler, canManageHubCoverage } from "@/lib/hubAuth";
 import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
-import { ctMonthBounds, fmtSessionDay } from "@/lib/timezone";
+import { fmtSessionDay } from "@/lib/timezone";
 import {
   DEFAULT_HOSTING_HUB_SLUG,
   getProgramHubSlug,
   getHubCoverageConfig,
-  getProgramSlugsForHub,
-  programNeedsHost,
+  teamCannotStaff,
 } from "@/lib/programHub";
-import { ctDateStr, isOccurrenceOnDate, shiftToDate } from "@/lib/scheduleUtils";
+import { buildHubMonthSessions } from "@/lib/scheduleSessions";
 
 /**
  * Format a session date for use in host emails.
@@ -60,35 +59,16 @@ async function notifyAssignedHost(
   }
 }
 
-function isManager(roles: string[]) {
-  return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
-
-/**
- * Capability gate. For the program-aware POST handler, callers pass the
- * program's hosting hub slug. GET handlers (which surface schedules across
- * potentially many programs) keep the legacy host-team gate for Slice 1 —
- * broadening the schedule UI to surface multiple hubs is a Slice 2 follow-on.
- */
-async function hasEffectiveHostAccess(
-  userId: string,
-  roles: string[],
-  hubSlug: string = DEFAULT_HOSTING_HUB_SLUG,
-): Promise<boolean> {
-  if (roles.includes("ADMIN")) return true;
-  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, hubSlug, tentative);
-}
-
 // Occurrence + date helpers (ctDateStr, isOccurrenceOnDate, shiftToDate) come
 // from the shared lib/scheduleUtils.ts — the single source of truth. Do NOT
 // reintroduce a private copy here: this route's old copy lacked the session-137
 // endDatetime / DAILY rules and drifted from /tools/schedule + /this-week.
 
-// GET /api/host/assignments?month=YYYY-MM
-// Returns all program occurrences for the month merged with assignment records.
-// Sessions with no HostAssignment get a synthetic id ("unassigned::slug::YYYY-MM-DD")
-// and status "unclaimed". This is used by HubScheduleClient for month navigation.
+// GET /api/host/assignments?month=YYYY-MM&hub=<slug>
+// One team's month (lib/scheduleSessions.ts): every occurrence of the
+// programs it staffs, with its assignments. HubScheduleClient's month
+// navigation. The month is required (the old no-month listing had no callers
+// and was removed, 2026-10-15).
 export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -110,206 +90,15 @@ export async function GET(request: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (!monthParam) {
-    // No month param — return raw assignments scoped to this hub
-    // (backward compat for any direct callers).
-    const assignments = await db.hostAssignment.findMany({
-      where: { hubSlug: requestedHubSlug },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true, preferredName: true, email: true } },
-        subRequests: { where: { status: "OPEN" }, select: { id: true, message: true }, take: 1 },
-      },
-      orderBy: [{ sessionDate: "asc" }, { programSlug: "asc" }],
-    });
-    return Response.json(
-      assignments.map((a) => {
-        const openSub = a.subRequests[0] ?? null;
-        const status: "unclaimed" | "claimed" | "sub_needed" = !a.userId
-          ? "unclaimed" : openSub ? "sub_needed" : "claimed";
-        return {
-          id: a.id, programSlug: a.programSlug,
-          sessionDate: a.sessionDate?.toISOString() ?? null,
-          hubSlug: a.hubSlug,
-          status, hostUserId: a.userId ?? null,
-          hostName: a.user
-            ? (a.user.preferredName || [a.user.firstName, a.user.lastName].filter(Boolean).join(" ") || a.user.email)
-            : null,
-          subRequestId: openSub?.id ?? null, subMessage: openSub?.message ?? null,
-        };
-      })
-    );
+  const match = monthParam ? /^(\d{4})-(\d{2})$/.exec(monthParam) : null;
+  const monthN = match ? Number(match[2]) : 0;
+  if (!match || monthN < 1 || monthN > 12) {
+    return Response.json({ error: "Which month? (YYYY-MM)" }, { status: 400 });
   }
 
-  const [yearN, monthN] = monthParam.split("-").map(Number);
-  // Central midnights, not UTC (2026-10-15).
-  const { start: startOfMonth, end: endOfMonth } = ctMonthBounds(yearN, monthN - 1);
-  const daysInMonth  = new Date(yearN, monthN, 0).getDate();
-
-  // Hub-scoped program filter: primary + auxiliary coverage, then the
-  // hub's appliesToFormats. Session 129. The page does the same filter
-  // for SSR; this branch handles client-side month nav.
-  const hubConfig = await getHubCoverageConfig(requestedHubSlug);
-  const appliesToFormats = hubConfig?.appliesToFormats ?? ["virtual", "hybrid"];
-  const allowsMultipleAssignments = hubConfig?.allowsMultipleAssignments ?? false;
-  const eligibleSlugs = await getProgramSlugsForHub(requestedHubSlug);
-
-  const [pgPrograms, assignments] = await Promise.all([
-    db.program.findMany({
-      where: {
-        programFormat: { in: appliesToFormats },
-        archivedAt: null,
-        slug: { in: eligibleSlugs },
-      },
-      select: {
-        id: true, name: true, slug: true,
-        programFormat: true, startDatetime: true, endDatetime: true,
-        recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
-        livekitRoom: true,
-        hostingHubSlug: true,
-        createdAt: true,
-      },
-      orderBy: { sortOrder: "asc" },
-    }),
-    db.hostAssignment.findMany({
-      where: {
-        sessionDate: { gte: startOfMonth, lte: endOfMonth },
-        hubSlug: requestedHubSlug,
-      },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
-        subRequests: { where: { status: "OPEN" }, select: { id: true, message: true }, take: 1 },
-      },
-      orderBy: { sessionDate: "asc" },
-    }),
-  ]);
-
-  // Pause-state map for the active hub.
-  const assignedUserIds = [...new Set(assignments.map((a) => a.userId).filter(Boolean))] as string[];
-  const pauseMap = new Map<string, "paused" | "inactive">();
-  if (assignedUserIds.length > 0) {
-    const activeHub = await db.hub.findUnique({ where: { slug: requestedHubSlug }, select: { id: true } });
-    if (activeHub) {
-      const hubMembers = await db.hubMember.findMany({
-        where: { hubId: activeHub.id, userId: { in: assignedUserIds } },
-        select: { userId: true, status: true, hostingCapability: true },
-      });
-      for (const m of hubMembers) {
-        if (m.status === "INACTIVE") {
-          pauseMap.set(m.userId, "inactive");
-        } else if (m.status === "PAUSED" || !m.hostingCapability) {
-          pauseMap.set(m.userId, "paused");
-        }
-      }
-    }
-  }
-
-  // Group assignments by (programSlug, dateStr) for multi-claim support.
-  type AssignmentRow = typeof assignments[number];
-  const assignmentsByKey = new Map<string, AssignmentRow[]>();
-  for (const a of assignments) {
-    const dateStr = a.sessionDate ? ctDateStr(a.sessionDate.toISOString()) : "";
-    const key = `${a.programSlug}::${dateStr}`;
-    const bucket = assignmentsByKey.get(key);
-    if (bucket) bucket.push(a);
-    else assignmentsByKey.set(key, [a]);
-  }
-
-  type SessionStatus = "unclaimed" | "claimed" | "sub_needed";
-  const sessions: object[] = [];
-
-  function nameOf(u: { firstName: string | null; lastName: string | null; preferredName: string | null } | null): string | null {
-    if (!u) return null;
-    return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || null;
-  }
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateStr = `${yearN}-${String(monthN).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    for (const p of pgPrograms) {
-      if (!isOccurrenceOnDate(p, dateStr)) continue;
-
-      const shiftedDate = p.startDatetime
-        ? shiftToDate(p.startDatetime.toISOString(), dateStr)
-        : null;
-      // Occurrence end (mirrors lib/sessionWindow.ts) so the client can show
-      // "Enter room" only while the session is enterable. Kept in sync with
-      // the same field on the /tools/schedule server loader.
-      const shiftedEnd = p.endDatetime
-        ? shiftToDate(p.endDatetime.toISOString(), dateStr)
-        : null;
-      const key = `${p.slug}::${dateStr}`;
-      const bucket = assignmentsByKey.get(key);
-
-      if (!bucket || bucket.length === 0) {
-        sessions.push({
-          id: `unassigned::${p.slug}::${dateStr}`,
-          programSlug: p.slug, programName: p.name,
-          sessionDate: shiftedDate?.toISOString() ?? null,
-          sessionEnd: shiftedEnd?.toISOString() ?? null,
-          status: "unclaimed", hostUserId: null, hostName: null,
-          claimants: [],
-          subRequestId: null, subMessage: null,
-          programFormat: p.programFormat ?? null, programId: p.id,
-          livekitRoom: p.livekitRoom ?? null,
-          // Same rule as the page loader: only the hosting team enters the room.
-          opensRoom: (p.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG) === requestedHubSlug,
-          programCreatedAt: p.createdAt?.toISOString() ?? null, // the NEW badge, as on the page
-          standingAssignmentId: null,
-          hostBadge: null,
-        });
-        continue;
-      }
-
-      if (allowsMultipleAssignments) {
-        const claimants = bucket.map((a) => ({
-          assignmentId: a.id,
-          userId: a.userId ?? null,
-          userName: nameOf(a.user),
-          badge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
-        }));
-        const first = bucket[0];
-        sessions.push({
-          id: `multi::${p.slug}::${dateStr}`,
-          programSlug: p.slug, programName: p.name,
-          sessionDate: shiftedDate?.toISOString() ?? null,
-          sessionEnd: shiftedEnd?.toISOString() ?? null,
-          status: "claimed", hostUserId: null, hostName: null,
-          claimants,
-          subRequestId: null, subMessage: null,
-          programFormat: p.programFormat ?? null, programId: p.id,
-          livekitRoom: p.livekitRoom ?? null,
-          // Same rule as the page loader: only the hosting team enters the room.
-          opensRoom: (p.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG) === requestedHubSlug,
-          programCreatedAt: p.createdAt?.toISOString() ?? null, // the NEW badge, as on the page
-          standingAssignmentId: first?.standingAssignmentId ?? null,
-          hostBadge: null,
-        });
-        continue;
-      }
-
-      const a = bucket[0];
-      const openSub = a.subRequests[0] ?? null;
-      const status: SessionStatus = !a.userId
-        ? "unclaimed" : openSub ? "sub_needed" : "claimed";
-      sessions.push({
-        id: a.id,
-        programSlug: p.slug, programName: p.name,
-        sessionDate: shiftedDate?.toISOString() ?? null,
-        sessionEnd: shiftedEnd?.toISOString() ?? null,
-        status, hostUserId: a.userId ?? null,
-        hostName: nameOf(a.user),
-        claimants: [],
-        subRequestId: openSub?.id ?? null, subMessage: openSub?.message ?? null,
-        programFormat: p.programFormat ?? null, programId: p.id,
-        livekitRoom: p.livekitRoom ?? null,
-        // Same rule as the page loader: only the hosting team enters the room.
-        opensRoom: (p.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG) === requestedHubSlug,
-        programCreatedAt: p.createdAt?.toISOString() ?? null, // the NEW badge, as on the page
-        standingAssignmentId: a.standingAssignmentId ?? null,
-        hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
-      });
-    }
-  }
-
+  // The same builder the page uses (lib/scheduleSessions.ts), so the first
+  // month and every month after it are built by one rule.
+  const { sessions } = await buildHubMonthSessions(requestedHubSlug, Number(match[1]), monthN - 1);
   return Response.json(sessions);
 }
 
@@ -369,45 +158,27 @@ export async function POST(request: Request) {
   if (!(await canAccessHubScheduler(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, targetHubSlug))) {
+
+  // The team must be one that staffs this program (2026-10-15: this was
+  // checked only where the schedule is shown, so a crafted request could add
+  // an assignment on any team, for any program or format). Includes "No host
+  // needed" on the hosting team.
+  const cannot = await teamCannotStaff(targetHubSlug, programSlug);
+  if (cannot) return Response.json({ error: cannot.message }, { status: 422 });
+
+  // Placing yourself is a self-claim, with or without the "claim" action, and
+  // passes the one self-claim rule (access, coverage allowed, enrollment).
+  // Placing someone else, or leaving a seat empty, is coverage management.
+  const placingSelf = action === "claim" || userId === session.user.id;
+  if (placingSelf) {
+    if (!(await authorizeSelfClaim(session.user.id, roles, targetHubSlug))) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else if (!(await canManageHubCoverage(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // "No host needed" blocks staffing on the program's PRIMARY host only —
-  // auxiliary AV/greeter coverage stays independently staffable (matches
-  // getProgramSlugsForHub + generateCandidates, which scope the flag to the
-  // primary hub). Checked AFTER the capability gate so it never reveals the flag
-  // to a non-host; refuses a crafted primary-hub claim on a self-led program.
-  if (targetHubSlug === programHubSlug && !(await programNeedsHost(programSlug))) {
-    return Response.json(
-      { error: 'This program is marked "No host needed" and can\'t be scheduled.' },
-      { status: 422 },
-    );
-  }
-
-  // Self-claim: any active hub-team member can create+claim for themselves.
-  // Assigning *others* (no self-claim action) is a coordinator operation —
-  // allow hub coordinators of the target hub too, not just HOST_MANAGER/ADMIN
-  // (session 140). Same trust model as the rotation routes; previously this
-  // locked out the very hub coordinators who staff the team from filling a gap.
-  if (
-    action !== "claim" &&
-    !isManager(roles) &&
-    !(await isHubCoordinator(session.user.id, targetHubSlug))
-  ) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  // Auto-enroll safety net (session 146): a successful self-claim by an
-  // oversight role who isn't yet a roster member of this hub adds them, so the
-  // assignment ledger and the team roster never disagree ("covers ⇒ member").
-  // No-op for existing members. Non-oversight users already have a row — the
-  // per-hub access gate above requires it for them.
-  if (action === "claim") {
-    await ensureActiveHubMembership(session.user.id, targetHubSlug);
-  }
-
-  const assignedUserId = action === "claim" ? session.user.id : (userId ?? null);
+  const assignedUserId = placingSelf ? session.user.id : (userId ?? null);
   const parsedDate = sessionDate ? new Date(sessionDate) : null;
 
   // Hub-coverage config decides whether (programSlug, sessionDate, hubSlug)

@@ -23,8 +23,8 @@
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { isHubCoordinator } from "@/lib/hubAuth";
+
+import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug } from "@/lib/programHub";
 import { previewStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
 
@@ -32,16 +32,6 @@ const TZ = "America/Chicago";
 
 function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
-
-async function hasEffectiveHostAccess(
-  userId: string,
-  roles: string[],
-  hubSlug: string,
-): Promise<boolean> {
-  if (roles.includes("ADMIN")) return true;
-  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, hubSlug, tentative);
 }
 
 export async function POST(request: Request) {
@@ -67,13 +57,19 @@ export async function POST(request: Request) {
 
   // Hub-route by body.hubSlug if supplied, else by program's primary hub
   // (when programSlug given), else manager-only ("preview all").
+  // A single rule is authorized by its own team; otherwise the body's team,
+  // else the program's hosting team. The engine is then held to that same
+  // team (2026-10-15: it ran on the raw body value, which could be empty and
+  // reach every team's rotations on the program).
+  const rule = standingId
+    ? await db.standingAssignment.findUnique({ where: { id: standingId }, select: { hubSlug: true } })
+    : null;
+  if (standingId && !rule) return Response.json({ error: "Rotation not found" }, { status: 404 });
   const programHubSlug = programSlug ? await getProgramHubSlug(programSlug) : undefined;
-  const authHubSlug = hubSlug || programHubSlug;
+  const authHubSlug = rule?.hubSlug || hubSlug || programHubSlug;
   if (authHubSlug) {
-    if (!isManager(roles) && !(await isHubCoordinator(session.user.id, authHubSlug))) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-    if (!(await hasEffectiveHostAccess(session.user.id, roles, authHubSlug))) {
+    // One rule for managing a team's coverage (lib/hubAuth.ts, 2026-10-15).
+    if (!(await canManageHubCoverage(session.user.id, roles, authHubSlug))) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
   } else {
@@ -107,7 +103,7 @@ export async function POST(request: Request) {
 
   const previews = await Promise.all(
     months.map(({ year: y, month: m }) =>
-      previewStandingAssignments(programSlug, y, m, standingId, dayOfWeek, hubSlug),
+      previewStandingAssignments(programSlug, y, m, standingId, dayOfWeek, authHubSlug ?? null),
     )
   );
   const allOpens     = previews.flatMap((p) => p.openSessions);

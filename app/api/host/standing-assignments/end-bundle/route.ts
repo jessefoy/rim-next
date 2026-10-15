@@ -35,26 +35,13 @@
 import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { isHubCoordinator } from "@/lib/hubAuth";
+
+import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import { sendStandingAssignmentEndedEmail } from "@/lib/email";
+import { ctStartOfToday } from "@/lib/timezone";
 
 const TZ = "America/Chicago";
-
-function isManager(roles: string[]) {
-  return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
-
-async function hasEffectiveHostAccess(
-  userId: string,
-  roles: string[],
-  hubSlug: string,
-): Promise<boolean> {
-  if (roles.includes("ADMIN")) return true;
-  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, hubSlug, tentative);
-}
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -76,10 +63,8 @@ export async function POST(request: Request) {
   // its hub); fall back to the program's primary hub for legacy callers.
   const programHubSlug = await getProgramHubSlug(programSlug);
   const targetHubSlug = bodyHubSlug || programHubSlug;
-  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, targetHubSlug))) {
+  // One rule for managing a team's coverage (lib/hubAuth.ts, 2026-10-15).
+  if (!(await canManageHubCoverage(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -89,8 +74,7 @@ export async function POST(request: Request) {
     if (isNaN(parsed.getTime())) {
       return Response.json({ error: "endsOn must be a valid YYYY-MM-DD date" }, { status: 400 });
     }
-    const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-    todayCt.setHours(0, 0, 0, 0);
+    const todayCt = ctStartOfToday(); // Central midnight, not UTC (2026-10-15)
     if (parsed < todayCt) {
       return Response.json({ error: "endsOn must be today or a future date" }, { status: 400 });
     }
@@ -113,8 +97,7 @@ export async function POST(request: Request) {
 
   // CT-anchored "today" — start-of-day for the future-assignment cutoff
   // (anything on or after today CT can be released). Past stays untouched.
-  const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-  todayCt.setHours(0, 0, 0, 0);
+  const todayCt = ctStartOfToday(); // Central midnight, not UTC (2026-10-15)
 
   // For the rotation's endsOn we want "today is the last active day."
   // Setting endsOn to today's start-of-day-CT (which is 6am UTC) compared

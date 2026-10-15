@@ -1,10 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { isHubCoordinator } from "@/lib/hubAuth";
-
-function isManager(roles: string[]) {
-  return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
+import { canManageHubCoverage } from "@/lib/hubAuth";
 
 // PATCH /api/host/sub-requests/[id] — cancel a sub request
 // The host who owns the underlying assignment, a manager, OR a coordinator of
@@ -34,9 +30,7 @@ export async function PATCH(
     return Response.json({ error: "Only open requests can be cancelled" }, { status: 409 });
   }
   const isOwn = subRequest.assignment.userId === session.user.id;
-  const canManage =
-    isManager(roles) ||
-    (await isHubCoordinator(session.user.id, subRequest.assignment.hubSlug));
+  const canManage = await canManageHubCoverage(session.user.id, roles, subRequest.assignment.hubSlug);
   if (!canManage && !isOwn) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }

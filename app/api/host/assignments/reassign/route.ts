@@ -1,20 +1,17 @@
 import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
+import { ensureActiveHubMembership } from "@/lib/hubMemberAuth";
 import { fmtSessionDay } from "@/lib/timezone";
 import {
   sendHostAssignmentConfirmationEmail,
   sendHostAssignmentRemovedEmail,
 } from "@/lib/email";
-import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
-import { isHubCoordinator } from "@/lib/hubAuth";
+import { getHubCoverageConfig } from "@/lib/programHub";
+import { canManageHubCoverage } from "@/lib/hubAuth";
 
 // Central Time, not the server's UTC (2026-10-15).
 const fmtDate = (d: Date | null) => fmtSessionDay(d);
-
-function isManager(roles: string[]) {
-  return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
 
 // POST /api/host/assignments/reassign
 // A manager (HOST_MANAGER/ADMIN), or a coordinator of the session's hub, can
@@ -22,7 +19,8 @@ function isManager(roles: string[]) {
 // coordinator/manager takes the session over themselves). Coordinator parity
 // with the assign + unclaim paths: scoped to the session's own hub.
 //
-// Body: { programSlug, sessionDate, currentAssignmentId? }
+// Body: { currentAssignmentId } (programSlug and sessionDate are ignored: the
+// assignment's own are used)
 //   - If currentAssignmentId is provided, the old HostAssignment is deleted
 //     (its open sub-requests are cancelled first). The previously assigned
 //     host, if any, is notified.
@@ -38,50 +36,45 @@ export async function POST(request: Request) {
   const roles = session.user.roles ?? [];
 
   const body = await request.json().catch(() => null);
-  if (!body?.programSlug) {
-    return Response.json({ error: "programSlug is required" }, { status: 400 });
+  if (!body) {
+    return Response.json({ error: "Which session?" }, { status: 400 });
   }
 
-  const { programSlug, sessionDate, currentAssignmentId } = body as {
+  const { currentAssignmentId } = body as {
     programSlug: string;
     sessionDate?: string | null;
     currentAssignmentId?: string | null;
   };
 
-  const parsedDate = sessionDate ? new Date(sessionDate) : null;
 
   let previousUserId: string | null = null;
   // Preserve the existing assignment's hub on reassign (session 129) so
   // an AV reassign doesn't accidentally route the new row to host-team.
   // Falls back to the program's primary hub when there's no existing
   // assignment to inherit from.
-  let preservedHubSlug: string | null = null;
 
   // Load the existing assignment first (if any) so the permission check can be
   // scoped to the SESSION's hub.
-  let existing: Awaited<ReturnType<typeof db.hostAssignment.findUnique>> = null;
-  if (currentAssignmentId) {
-    existing = await db.hostAssignment.findUnique({
-      where: { id: currentAssignmentId },
-    });
-    if (!existing) {
-      return Response.json({ error: "Session not found." }, { status: 404 });
-    }
-    previousUserId = existing.userId ?? null;
-    preservedHubSlug = existing.hubSlug;
+  // Taking over is always of a real assignment: its own program, date and
+  // team are used, never the request's (2026-10-15 audit).
+  if (!currentAssignmentId) {
+    return Response.json({ error: "Which session?" }, { status: 400 });
+  }
+  const existing = await db.hostAssignment.findUnique({
+    where: { id: currentAssignmentId },
+  });
+  if (!existing) {
+    return Response.json({ error: "Session not found." }, { status: 404 });
+  }
+  previousUserId = existing.userId ?? null;
+  if ((await getHubCoverageConfig(existing.hubSlug))?.allowsMultipleAssignments) {
+    return Response.json({ error: "This team uses open sign-up." }, { status: 400 });
   }
 
-  // Resolve the hub this reassign targets: the existing assignment's hub, else
-  // the program's primary hosting hub. Gate on manager OR coordinator-of-hub.
-  const sessionHubSlug =
-    preservedHubSlug ??
-    (await db.program.findUnique({
-      where: { slug: programSlug },
-      select: { hostingHubSlug: true },
-    }))?.hostingHubSlug ??
-    DEFAULT_HOSTING_HUB_SLUG;
+  // The assignment's own team decides who may take it over.
+  const sessionHubSlug = existing.hubSlug;
 
-  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, sessionHubSlug))) {
+  if (!(await canManageHubCoverage(session.user.id, roles, sessionHubSlug))) {
     return Response.json(
       { error: "Only coordinators, Host Managers, and Admins can reassign sessions." },
       { status: 403 },
@@ -95,44 +88,28 @@ export async function POST(request: Request) {
     );
   }
 
-  if (existing) {
-    // Atomic cascade-delete. SubRequest.assignmentId FK is Restrict — a
-    // bare hostAssignment.delete would FK-violate on any historic non-OPEN
-    // SubRequest. SubClaim cascades on SubRequest delete; explicit for
-    // clarity. Session 130 follow-up — same FK-pattern fix applied to
-    // clear-rotations, release-host, and assignments/[id] DELETE.
-    const existingId = existing.id;
-    await db.$transaction(async (tx) => {
-      await tx.subClaim.deleteMany({
-        where: { request: { assignmentId: existingId } },
-      });
-      await tx.subRequest.deleteMany({
-        where: { assignmentId: existingId },
-      });
-      await tx.hostAssignment.delete({ where: { id: existingId } });
-    });
-  }
+  // The person taking over joins the team ("covers ⇒ member").
+  await ensureActiveHubMembership(session.user.id, existing.hubSlug);
 
-  const fallbackHubSlug = await (async () => {
-    if (preservedHubSlug) return preservedHubSlug;
-    const program = await db.program.findUnique({
-      where: { slug: programSlug },
-      select: { hostingHubSlug: true },
+  // Swap in one transaction (FK-safe order: SubClaim → SubRequest →
+  // HostAssignment), so a failure never leaves the session with no one.
+  const existingId = existing.id;
+  const created = await db.$transaction(async (tx) => {
+    await tx.subClaim.deleteMany({ where: { request: { assignmentId: existingId } } });
+    await tx.subRequest.deleteMany({ where: { assignmentId: existingId } });
+    await tx.hostAssignment.delete({ where: { id: existingId } });
+    return tx.hostAssignment.create({
+      data: {
+        programSlug: existing.programSlug,
+        hubSlug: existing.hubSlug,
+        userId: session.user.id,
+        sessionDate: existing.sessionDate,
+        assignedBy: session.user.id,
+      },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
+      },
     });
-    return program?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
-  })();
-
-  const created = await db.hostAssignment.create({
-    data: {
-      programSlug,
-      hubSlug: fallbackHubSlug,
-      userId: session.user.id,
-      sessionDate: parsedDate,
-      assignedBy: session.user.id,
-    },
-    include: {
-      user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
-    },
   });
 
   // Symmetric host notifications:
@@ -144,11 +121,11 @@ export async function POST(request: Request) {
   after(async () => {
     try {
       const program = await db.program.findUnique({
-        where:  { slug: programSlug },
+        where:  { slug: created.programSlug },
         select: { name: true },
       });
-      const programName = program?.name || programSlug;
-      const dateText = fmtDate(parsedDate);
+      const programName = program?.name || created.programSlug;
+      const dateText = fmtDate(created.sessionDate);
       // Use the created row's hub (session 129) so reassigns in AV /
       // peer-led hubs send their links back to the right scheduler view.
       const hubSlug = created.hubSlug;
@@ -164,7 +141,7 @@ export async function POST(request: Request) {
           firstName: newHost.firstName,
           programName,
           dateText,
-          sessionAt: parsedDate,
+          sessionAt: created.sessionDate,
           hubSlug,
         });
       }
@@ -184,7 +161,7 @@ export async function POST(request: Request) {
             firstName: displaced.firstName,
             programName,
             dateText,
-            sessionAt: parsedDate,
+            sessionAt: created.sessionDate,
             byName,
             hubSlug,
           });

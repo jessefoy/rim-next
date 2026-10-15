@@ -34,26 +34,13 @@
 import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { isHubCoordinator } from "@/lib/hubAuth";
+
+import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import { sendStandingAssignmentReleasedEmail } from "@/lib/email";
+import { ctStartOfToday } from "@/lib/timezone";
 
 const TZ = "America/Chicago";
-
-function isManager(roles: string[]) {
-  return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
-
-async function hasEffectiveHostAccess(
-  userId: string,
-  roles: string[],
-  hubSlug: string,
-): Promise<boolean> {
-  if (roles.includes("ADMIN")) return true;
-  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, hubSlug, tentative);
-}
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -76,10 +63,8 @@ export async function POST(request: Request) {
   // Hub-route. Body wins (session 129); fall back to the program's primary.
   const programHubSlug = await getProgramHubSlug(programSlug);
   const targetHubSlug = bodyHubSlug || programHubSlug;
-  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, targetHubSlug))) {
+  // One rule for managing a team's coverage (lib/hubAuth.ts, 2026-10-15).
+  if (!(await canManageHubCoverage(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -99,8 +84,7 @@ export async function POST(request: Request) {
   const userRotationIds = userRotations.map((r) => r.id);
 
   // CT-anchored today — only future sessions are affected
-  const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-  todayCt.setHours(0, 0, 0, 0);
+  const todayCt = ctStartOfToday(); // Central midnight, not UTC (2026-10-15)
 
   // Find the future assignments tied to THIS user's rules in the bundle.
   // We don't need to filter by userId here (the rule's userId IS this user

@@ -397,6 +397,12 @@ export async function generateCandidates(
       // claim independent slots in different hubs.
       const key = `${sa.programSlug}::${dateStr}::${sa.hubSlug}`;
       if (skippedSlots.has(key) || skippedRuleDates.has(`${sa.id}::${dateStr}`)) continue;
+      // One rotation person per session per team, open sign-up included: a
+      // team has one rotation per program and day, so the only rules that
+      // meet here are a 5th-week person and the every-week one, and the 5th
+      // week replaces (as the editor's preview shows). Additive open sign-up
+      // means adding to the people already signed up, which
+      // previewStandingAssignments handles (2026-10-15 review).
       if (claimedKeys.has(key)) continue;
       claimedKeys.add(key);
 
@@ -535,8 +541,31 @@ export async function previewStandingAssignments(
   const openSessions: OpenSlot[] = [];
   const conflicts:    Conflict[] = [];
 
+  // Open sign-up teams are additive (Jesse, 2026-10-15): a rotation adds its
+  // person to the session's list and never replaces anyone. The only thing
+  // to avoid is signing the same person up twice.
+  const openSignUpHubs = new Set(
+    (await db.hub.findMany({
+      where: { slug: { in: [...new Set(candidates.map((c) => c.hubSlug))] }, allowsMultipleAssignments: true },
+      select: { slug: true },
+    })).map((h) => h.slug),
+  );
+  const signedUp = new Map<string, Set<string>>();
+  for (const a of existingRaw) {
+    if (!a.sessionDate || !a.userId || !openSignUpHubs.has(a.hubSlug)) continue;
+    const k = `${a.programSlug}::${ctDateStr(a.sessionDate.toISOString())}::${a.hubSlug}`;
+    if (!signedUp.has(k)) signedUp.set(k, new Set());
+    signedUp.get(k)!.add(a.userId);
+  }
+
   for (const cand of candidates) {
     const key = `${cand.programSlug}::${cand.dateStr}::${cand.hubSlug}`;
+    if (openSignUpHubs.has(cand.hubSlug)) {
+      if (!signedUp.get(key)?.has(cand.userId)) {
+        openSessions.push({ ...cand, existingHostAssignmentId: undefined });
+      }
+      continue;
+    }
     const existing = existingByKey.get(key);
 
     if (!existing || existing.userId === null) {

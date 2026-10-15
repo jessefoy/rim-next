@@ -19,6 +19,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 import { EARLY_OPEN_MIN, LATE_GRACE_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
+import type { ScheduleClaimant, ScheduleProgramSummary, ScheduleSessionRow } from "@/lib/scheduleSessions";
 
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -30,63 +31,14 @@ const RotationsClient = dynamic(
   { ssr: false, loading: () => <p className="hs-loading">Loading rotations…</p> },
 );
 
-/** One signed-up volunteer on a multi-claim session (greeter hub). */
-interface Claimant {
-  assignmentId: string;
-  userId: string | null;
-  userName: string | null;
-  badge: "paused" | "inactive" | null;
-}
-
-interface Session {
-  id: string;
-  programId: string | null;
-  programSlug: string;
-  programName: string;
-  sessionDate: string | null;
-  /** Occurrence end (ISO), or null when the program has no endDatetime. With
-   *  sessionDate (start) this lets HsRow show "Enter room" only while the
-   *  session is actually enterable (mirrors lib/sessionWindow.ts). */
-  sessionEnd?: string | null;
-  status: "unclaimed" | "claimed" | "sub_needed";
-  hostUserId: string | null;
-  hostName: string | null;
-  /** Populated only in multi-claim hubs (greeter). Empty in single-slot
-   *  hubs (host-team, AV, peer-led). When non-empty the row renders as
-   *  a sign-up stack instead of one-host-with-actions. */
-  claimants?: Claimant[];
-  subRequestId: string | null;
-  subMessage: any;
-  programFormat: string | null;
-  livekitRoom?: string | null;
-  /** True only on the hosting team's rows: the one team that enters the
-   *  online room. Greeter and AV rows offer no "Enter room" (2026-10-15). */
-  opensRoom?: boolean;
-  /** ISO timestamp when the program was created. Drives the NEW badge. */
-  programCreatedAt?: string | null;
-  /** If non-null, this assignment was created by a standing rotation rule. */
-  standingAssignmentId?: string | null;
-  /**
-   * Coordinator-facing status for the assigned host.
-   * "paused" — HubMember.status is PAUSED or hostingCapability is false while ACTIVE.
-   * "inactive" — HubMember.status is INACTIVE (host has left the team but assignment
-   *              was not released; coordinator should act).
-   * null — host is fully active, or no host assigned.
-   */
-  hostBadge?: "paused" | "inactive" | null;
-}
+// Row shapes come from the one builder (lib/scheduleSessions.ts, 2026-10-15).
+type Claimant = ScheduleClaimant;
+type Session = ScheduleSessionRow;
 
 /** Programs created within this many days show a NEW badge on schedule cards. */
 const NEW_PROGRAM_DAYS = 14;
 
-interface Program {
-  id: string | null;
-  slug: string;
-  name: string;
-  programFormat: string | null;
-  /** Days of week this program runs on (e.g. ["MO","TH"]). Drives rotation editor rows. */
-  recurrenceDays: string[];
-}
+type Program = ScheduleProgramSummary;
 
 interface TeamMember {
   id: string;
@@ -1007,7 +959,7 @@ export default function HubScheduleClient({
     }
     const data = await res.json().catch(() => ({}));
     setSessions(prev => prev.map(row => row.id === s.id
-      ? { ...row, status: "sub_needed", subRequestId: data.id ?? null, subMessage: messagePayload }
+      ? { ...row, status: "sub_needed", subRequestId: data.id ?? null, subMessage: messagePayload ?? null }
       : row
     ));
   }

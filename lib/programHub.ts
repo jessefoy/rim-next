@@ -265,3 +265,111 @@ export async function getHubCoverageConfig(
     allowsMultipleAssignments: hub.allowsMultipleAssignments ?? false,
   };
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// One resolver and one eligibility rule (2026-10-15 Scheduler integrity audit:
+// "hostingHubSlug ?? host-team" was inlined at a dozen sites, and which team
+// may staff which program was checked only where the schedule is shown, never
+// where it is changed).
+// ───────────────────────────────────────────────────────────────────────────
+
+/** A program's hosting team: its own setting, else the Hosting Team. */
+export function resolveHostingHubSlug(p: { hostingHubSlug?: string | null } | null | undefined): string {
+  return p?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
+}
+
+/**
+ * Why this team can't staff this program, or null when it can. The rule every
+ * write to the schedule checks (assignments, rotations, reassign) and the
+ * rotation engine mirrors: the team exists, is active and has the Scheduler
+ * installed; the program exists and isn't archived; the team is its hosting
+ * team or a covering team; the program's format is one the team serves; and
+ * on the hosting team, the program needs a host.
+ */
+export type StaffRefusal = {
+  code: "no-scheduler" | "not-running" | "not-covering" | "wrong-format" | "no-host-needed";
+  message: string;
+};
+
+export async function teamCannotStaff(hubSlug: string, programSlug: string): Promise<StaffRefusal | null> {
+  const [hub, program, covering] = await Promise.all([
+    db.hub.findUnique({
+      where: { slug: hubSlug },
+      select: {
+        status: true,
+        appliesToFormats: true,
+        appLinks: { where: { toolSlug: "schedule", isEnabled: true }, select: { id: true } },
+      },
+    }),
+    db.program.findUnique({
+      where: { slug: programSlug },
+      select: { archivedAt: true, programFormat: true, hostingHubSlug: true, hostingRequired: true },
+    }),
+    db.programCoverageHub.findUnique({
+      where: { programSlug_hubSlug: { programSlug, hubSlug } },
+      select: { hubSlug: true },
+    }),
+  ]);
+  if (!hub || hub.status !== "ACTIVE" || hub.appLinks.length === 0) return { code: "no-scheduler", message: "This team doesn't use the Scheduler." };
+  if (!program || program.archivedAt) return { code: "not-running", message: "This program isn't running." };
+  const isHosting = resolveHostingHubSlug(program) === hubSlug;
+  if (!isHosting && !covering) return { code: "not-covering", message: "This team doesn't cover this program." };
+  if (!program.programFormat || !(hub.appliesToFormats ?? []).includes(program.programFormat)) {
+    return { code: "wrong-format", message: "This team doesn't cover this kind of session." };
+  }
+  if (isHosting && !program.hostingRequired) return { code: "no-host-needed", message: 'This program is marked "No host needed".' };
+  return null;
+}
+
+/**
+ * After a program changes, clear the future coverage of any team that no
+ * longer staffs it (unticked as a covering team, or the format left the
+ * team's set). Past sessions stay as history; an archived program is left
+ * alone (archiving can be undone). Same FK-safe order as every coverage
+ * delete: SubClaim → SubRequest → HostAssignment, then the team's rotations.
+ * Returns what was cleared, per team, for the log.
+ */
+export async function clearCoverageNoLongerStaffed(
+  programSlug: string,
+  /** Only these teams are judged: the ones this save changed. Old leftovers
+   *  on other teams are not swept up by an unrelated save (2026-10-15 review). */
+  onlyHubs: string[],
+): Promise<{ hubSlug: string; assignments: number; rotations: number }[]> {
+  if (onlyHubs.length === 0) return [];
+  const program = await db.program.findUnique({ where: { slug: programSlug }, select: { archivedAt: true } });
+  if (!program || program.archivedAt) return [];
+  const now = new Date();
+  const [assignmentHubs, rotationHubs] = await Promise.all([
+    db.hostAssignment.findMany({
+      where: { programSlug, OR: [{ sessionDate: null }, { sessionDate: { gte: now } }] },
+      select: { hubSlug: true },
+      distinct: ["hubSlug"],
+    }),
+    db.standingAssignment.findMany({ where: { programSlug }, select: { hubSlug: true }, distinct: ["hubSlug"] }),
+  ]);
+  const hubs = [...new Set([...assignmentHubs, ...rotationHubs].map((r) => r.hubSlug))]
+    .filter((h) => onlyHubs.includes(h));
+  const cleared: { hubSlug: string; assignments: number; rotations: number }[] = [];
+  for (const hubSlug of hubs) {
+    // Only when the program itself says this team no longer covers it; a
+    // switched-off Scheduler app is a setting, not a reason to clear coverage.
+    const refusal = await teamCannotStaff(hubSlug, programSlug);
+    if (!refusal || refusal.code === "no-scheduler" || refusal.code === "not-running") continue;
+    const result = await db.$transaction(async (tx) => {
+      const future = await tx.hostAssignment.findMany({
+        where: { programSlug, hubSlug, OR: [{ sessionDate: null }, { sessionDate: { gte: now } }] },
+        select: { id: true },
+      });
+      const ids = future.map((a) => a.id);
+      if (ids.length) {
+        await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: ids } } } });
+        await tx.subRequest.deleteMany({ where: { assignmentId: { in: ids } } });
+        await tx.hostAssignment.deleteMany({ where: { id: { in: ids } } });
+      }
+      const rot = await tx.standingAssignment.deleteMany({ where: { programSlug, hubSlug } });
+      return { hubSlug, assignments: ids.length, rotations: rot.count };
+    });
+    if (result.assignments || result.rotations) cleared.push(result);
+  }
+  return cleared;
+}

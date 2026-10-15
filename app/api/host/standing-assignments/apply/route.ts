@@ -22,8 +22,8 @@
 import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { isHubCoordinator } from "@/lib/hubAuth";
+
+import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import {
   applyStandingAssignments,
@@ -39,16 +39,6 @@ const TZ = "America/Chicago";
 
 function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
-
-async function hasEffectiveHostAccess(
-  userId: string,
-  roles: string[],
-  hubSlug: string,
-): Promise<boolean> {
-  if (roles.includes("ADMIN")) return true;
-  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, hubSlug, tentative);
 }
 
 export async function POST(request: Request) {
@@ -75,18 +65,24 @@ export async function POST(request: Request) {
   };
 
   // Resolve the hub used for auth + email scoping.
+  // A single rule is authorized by its own team; otherwise the body's team,
+  // else the program's hosting team. The engine is then held to that same
+  // team (2026-10-15: it ran on the raw body value, which could be empty and
+  // reach every team's rotations on the program).
+  const rule = standingId
+    ? await db.standingAssignment.findUnique({ where: { id: standingId }, select: { hubSlug: true } })
+    : null;
+  if (standingId && !rule) return Response.json({ error: "Rotation not found" }, { status: 404 });
   const programHubSlug = programSlug ? await getProgramHubSlug(programSlug) : undefined;
-  const authHubSlug = hubSlug || programHubSlug;
+  const authHubSlug = rule?.hubSlug || hubSlug || programHubSlug;
 
   // Auth gate. When a hub or program is provided, route by that hub
   // (any hub's coordinator can apply their own rotations).
   // When neither is provided ("apply all"), require ADMIN or
   // HOST_MANAGER — that's a cross-hub global action.
   if (authHubSlug) {
-    if (!isManager(roles) && !(await isHubCoordinator(session.user.id, authHubSlug))) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-    if (!(await hasEffectiveHostAccess(session.user.id, roles, authHubSlug))) {
+    // One rule for managing a team's coverage (lib/hubAuth.ts, 2026-10-15).
+    if (!(await canManageHubCoverage(session.user.id, roles, authHubSlug))) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
   } else {
@@ -138,7 +134,7 @@ export async function POST(request: Request) {
   const byDisplacedUser = new Map<string, SessSum[]>();
 
   for (const { year: y, month: m } of months) {
-    const r = await applyStandingAssignments(programSlug, y, m, resolution, standingId, dayOfWeek, hubSlug);
+    const r = await applyStandingAssignments(programSlug, y, m, resolution, standingId, dayOfWeek, authHubSlug ?? null);
     totalFilled   += r.filled;
     totalReplaced += r.replaced;
     totalKept     += r.kept;

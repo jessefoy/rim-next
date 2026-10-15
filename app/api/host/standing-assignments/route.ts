@@ -37,14 +37,15 @@ import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { isHubCoordinator } from "@/lib/hubAuth";
-import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getProgramSlugsForHub, getHubCoverageCopy, programNeedsHost } from "@/lib/programHub";
+import { canAccessHubScheduler, canManageHubCoverage } from "@/lib/hubAuth";
+import { teamCannotStaff, getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
 import { applyStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
 import {
   sendStandingAssignmentScheduledEmail,
   sendStandingAssignmentReplacedEmail,
 } from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
+import { ctStartOfToday } from "@/lib/timezone";
 
 const TZ = "America/Chicago";
 
@@ -68,19 +69,6 @@ function endOfCalendarDay(yyyyMmDd: string): Date {
   return new Date(yyyyMmDd + "T23:59:59Z");
 }
 
-function isManager(roles: string[]) {
-  return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
-
-async function hasEffectiveHostAccess(
-  userId: string,
-  roles: string[],
-  hubSlug: string,
-): Promise<boolean> {
-  if (roles.includes("ADMIN")) return true;
-  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, hubSlug, tentative);
-}
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 
@@ -95,7 +83,8 @@ export async function GET(request: Request) {
   // ?hub= scopes the query to one hub's programs and gates auth by that hub.
   // Defaults to host-team for backward compat with existing callers that
   // don't yet pass it. Slice 2.6.
-  const hubSlug       = searchParams.get("hub") || DEFAULT_HOSTING_HUB_SLUG;
+  const hubParam      = searchParams.get("hub");
+  const hubSlug       = hubParam || DEFAULT_HOSTING_HUB_SLUG;
   // ?includeEnded=1 returns ended rotations too. Default: active only — ended
   // rotations would otherwise display in the grid as if active and let users
   // edit/save them with stale endsOn=today values.
@@ -105,11 +94,17 @@ export async function GET(request: Request) {
   // hub (so a peer-led-silent-meditation coordinator can read rotations for
   // their hub's programs even without passing ?hub=). Otherwise use the
   // ?hub= param (or host-team default).
-  const effectiveHubSlug = programSlug
-    ? await getProgramHubSlug(programSlug)
-    : hubSlug;
+  // ?hub= wins when given (an AV or greeter view asking about a program
+  // whose hosting team is another one must get its own team's rotations).
+  const effectiveHubSlug = hubParam
+    ? hubParam
+    : programSlug
+      ? await getProgramHubSlug(programSlug)
+      : hubSlug;
 
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, effectiveHubSlug))) {
+  // Seeing a team's rotations is seeing its schedule: the per-team door, not
+  // the right to cover (a coordinator who doesn't host still manages them).
+  if (!(await canAccessHubScheduler(session.user.id, roles, effectiveHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -231,18 +226,13 @@ export async function POST(request: Request) {
   // 129 generalises to allow any hub to own a rotation.
   const programHubSlug = await getProgramHubSlug(body.programSlug);
   const targetHubSlug = body.hubSlug || programHubSlug;
-  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
+  if (!(await canManageHubCoverage(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden — coordinator or manager required" }, { status: 403 });
   }
-  // "No host needed" blocks a rotation on the program's PRIMARY host only —
-  // an auxiliary AV/greeter rotation on a self-led program is still allowed
-  // (matches the view + the apply engine, which scope the flag to the primary).
-  if (targetHubSlug === programHubSlug && !(await programNeedsHost(body.programSlug))) {
-    return Response.json(
-      { error: 'This program is marked "No host needed" and can\'t have a rotation.' },
-      { status: 422 },
-    );
-  }
+  // The team must staff this program: covers it, in a format it serves, and
+  // on the hosting team the program needs a host (lib/programHub.ts).
+  const cannot = await teamCannotStaff(targetHubSlug, body.programSlug);
+  if (cannot) return Response.json({ error: cannot.message }, { status: 422 });
   if (!VALID_DAYS.includes(body.dayOfWeek)) {
     return Response.json({ error: `Invalid dayOfWeek: ${body.dayOfWeek}` }, { status: 400 });
   }
@@ -251,6 +241,33 @@ export async function POST(request: Request) {
   }
 
   const targets = patternToRecords(body);
+
+  // Everyone placed on a rotation must be a member of the team who may cover
+  // (2026-10-15: any id could be saved; the engine then skipped or placed
+  // them inconsistently). Someone new to this rotation must be able to cover
+  // now. Someone already on it may be paused: the rotation skips them while
+  // paused (Jesse, 2026-10-15), and editing the rest of the rotation must not
+  // force them off it. Only someone who has left the team is refused.
+  const alreadyOn = new Set(
+    (await db.standingAssignment.findMany({
+      where: { programSlug: body.programSlug, dayOfWeek: body.dayOfWeek, hubSlug: targetHubSlug },
+      select: { userId: true },
+    })).map((r) => r.userId),
+  );
+  for (const uid of new Set(targets.values())) {
+    const ok = alreadyOn.has(uid)
+      ? !!(await db.hubMember.findFirst({
+          where: { userId: uid, hub: { slug: targetHubSlug }, status: { not: "INACTIVE" } },
+          select: { id: true },
+        }))
+      : await getEffectiveHostingCapability(uid, targetHubSlug, false);
+    if (!ok) {
+      return Response.json(
+        { error: "Someone in this rotation isn't a member of this team who can cover sessions. Check the team's members and try again." },
+        { status: 422 },
+      );
+    }
+  }
 
   if (targets.size === 0) {
     return Response.json(
@@ -276,8 +293,7 @@ export async function POST(request: Request) {
   // scoped by hubSlug too (session 129) — an AV rotation and a host-team
   // rotation can coexist for the same program/day independently.
   // CT-anchored today for the future-assignment cutoff during cleanup below.
-  const todayCtForCleanup = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-  todayCtForCleanup.setHours(0, 0, 0, 0);
+  const todayCtForCleanup = ctStartOfToday(); // Central midnight, not UTC (2026-10-15)
 
   // Captured inside the transaction; consumed after it to notify displaced
   // hosts. Map<userId, sessionDate[]>.

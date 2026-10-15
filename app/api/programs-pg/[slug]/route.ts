@@ -8,6 +8,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { clearCoverageNoLongerStaffed, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs } from "@/lib/programHub";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
 import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
@@ -15,7 +16,7 @@ import { applyProgramRecordingSetting, teardownProgramMeetings } from "@/lib/ses
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
 import { cleanOffering, resolveOffering } from "@/lib/programOffering";
-import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
+import { ctDateStr, parseAnnouncementUntil, shiftToDate } from "@/lib/scheduleUtils";
 import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { normalizeLinkInput } from "@/lib/linkInput";
@@ -528,6 +529,8 @@ export async function PUT(
   // client sends the complete desired set; we delete all existing rows
   // for this program and recreate. Slugs are validated against existing
   // hubs to prevent orphan rows from stale or tampered payloads.
+  // Teams a covering-team change left out (for the coverage cleanup below).
+  let removedCoverage: string[] = [];
   if (body.coverageHubSlugs !== undefined) {
     const requestedSlugs: string[] = Array.isArray(body.coverageHubSlugs)
       ? body.coverageHubSlugs.filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
@@ -554,6 +557,7 @@ export async function PUT(
       select: { hubSlug: true },
     });
     const existingSet = new Set(existingRows.map((r) => r.hubSlug));
+    removedCoverage = [...existingSet].filter((h) => !requestedSlugs.includes(h));
 
     await db.programCoverageHub.deleteMany({ where: { programSlug: slug } });
     if (requestedSlugs.length > 0) {
@@ -579,6 +583,59 @@ export async function PUT(
         }
       });
     }
+  }
+
+  // A new start time moves every future assignment to the new time on its
+  // own day, with its cover request, so "who is hosting this session" still
+  // finds the assigned person (2026-10-15: assignments kept the old time, and
+  // the Zoom door, which matches the exact start, no longer found the host).
+  const startMoved =
+    data.startDatetime !== undefined &&
+    !!updated.startDatetime &&
+    ms(data.startDatetime as Date | null) !== ms(existing.startDatetime);
+  if (startMoved) {
+    try {
+      const newStartIso = updated.startDatetime!.toISOString();
+      const future = await db.hostAssignment.findMany({
+        where: { programSlug: updated.slug, sessionDate: { gte: new Date() } },
+        select: { id: true, sessionDate: true },
+      });
+      const moves = future
+        .map((a) => ({ id: a.id, from: a.sessionDate!, to: shiftToDate(newStartIso, ctDateStr(a.sessionDate!.toISOString())) }))
+        .filter((m) => m.to.getTime() !== m.from.getTime());
+      if (moves.length) {
+        await db.$transaction(
+          moves.flatMap((m) => [
+            db.hostAssignment.update({ where: { id: m.id }, data: { sessionDate: m.to } }),
+            db.subRequest.updateMany({ where: { assignmentId: m.id, sessionDate: m.from }, data: { sessionDate: m.to } }),
+          ]),
+        );
+        console.log(`[programs-pg] ${updated.slug}: moved ${moves.length} future assignment(s) to the new start time`);
+      }
+    } catch (e) {
+      console.error("[programs-pg] re-timing assignments failed", e);
+    }
+  }
+
+  // A team that no longer staffs this program (unticked, or the format left
+  // its set) loses its future coverage, so no sign-ups or rotation emails go
+  // out for sessions nobody on that team can see (2026-10-15 audit).
+  // Judged only for the teams this save changed: a team unticked, the old
+  // hosting team, or every staffing team when the format changed.
+  try {
+    const affected = new Set<string>(removedCoverage);
+    if (hubChanged) affected.add(oldHubSlug);
+    if (data.programFormat !== undefined && data.programFormat !== existing.programFormat) {
+      affected.add(oldHubSlug);
+      affected.add(updated.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG);
+      for (const h of await getProgramCoverageHubs(updated.slug)) affected.add(h);
+    }
+    const cleared = await clearCoverageNoLongerStaffed(updated.slug, [...affected]);
+    for (const c of cleared) {
+      console.log(`[programs-pg] ${updated.slug}: cleared ${c.assignments} future assignment(s) and ${c.rotations} rotation(s) on ${c.hubSlug}, which no longer staffs it`);
+    }
+  } catch (e) {
+    console.error("[programs-pg] coverage cleanup failed", e);
   }
 
   // Layer 2: surface any Zoom seat conflict this schedule creates with other

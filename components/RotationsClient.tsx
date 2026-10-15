@@ -27,6 +27,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import RotationConflictModal from "./RotationConflictModal";
+import { ctDateStr, isOccurrenceOnDate } from "@/lib/scheduleUtils";
+import type { ScheduleProgramSummary } from "@/lib/scheduleSessions";
 
 type Occurrence = "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "FIFTH" | "LAST" | "ALL";
 type DayOfWeek = "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
@@ -42,19 +44,34 @@ const DAY_TO_JS: Record<DayOfWeek, number> = {
   SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6,
 };
 
-/** Return the next N dates (YYYY-MM-DD) that fall on the given day of week. */
-function upcomingDates(dayOfWeek: DayOfWeek, count: number): string[] {
+/**
+ * The next `count` dates (YYYY-MM-DD, Central) on this weekday when the
+ * program actually meets, through the rotation's end date. The same test the
+ * rotation engine uses (isOccurrenceOnDate), so an every-other-week program or
+ * one that has ended previews the sessions it will really fill (2026-10-15:
+ * the preview walked every weekday from the browser's own "today").
+ */
+function upcomingDates(dayOfWeek: DayOfWeek, count: number, program: Program | undefined, endsOn: string): string[] {
+  if (!program) return [];
+  const schedule = {
+    ...program,
+    id: program.id ?? "",
+    startDatetime: program.startDatetime ? new Date(program.startDatetime) : null,
+    endDatetime: program.endDatetime ? new Date(program.endDatetime) : null,
+  };
   const target = DAY_TO_JS[dayOfWeek];
-  const today = new Date();
-  const cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  // Advance to next matching weekday (inclusive of today)
+  const today = ctDateStr(new Date().toISOString());
+  const cursor = new Date(`${today}T12:00:00`);
   while (cursor.getDay() !== target) cursor.setDate(cursor.getDate() + 1);
   const out: string[] = [];
-  for (let i = 0; i < count; i++) {
+  // A year of weeks is the most we look ahead.
+  for (let i = 0; i < 53 && out.length < count; i++) {
     const y = cursor.getFullYear();
     const m = String(cursor.getMonth() + 1).padStart(2, "0");
     const d = String(cursor.getDate()).padStart(2, "0");
-    out.push(`${y}-${m}-${d}`);
+    const dateStr = `${y}-${m}-${d}`;
+    if (endsOn && dateStr > endsOn) break;
+    if (isOccurrenceOnDate(schedule, dateStr)) out.push(dateStr);
     cursor.setDate(cursor.getDate() + 7);
   }
   return out;
@@ -81,6 +98,9 @@ function resolvePreviewHost(occN: number, form: FormState): string | undefined {
       // For "same" pattern without a 5th override, the ALL record covers 5th weeks too
       return form.hosts.every;
     case "alternate":
+      // Alternating saves 1st/3rd and 2nd/4th only: a 5th week has no one
+      // unless the 5th-week person is set (as the engine applies it).
+      if (occN === 5) return undefined;
       return occN % 2 === 1 ? form.hosts.oddWk : form.hosts.evenWk;
     case "custom": {
       const keys: Array<keyof FormState["hosts"]> = ["first", "second", "third", "fourth"];
@@ -89,13 +109,7 @@ function resolvePreviewHost(occN: number, form: FormState): string | undefined {
   }
 }
 
-interface Program {
-  id:             string | null;
-  slug:           string;
-  name:           string;
-  programFormat:  string | null;
-  recurrenceDays: string[];
-}
+type Program = ScheduleProgramSummary;
 
 interface TeamMember {
   id:            string;
@@ -222,9 +236,10 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
 function projectUpcoming(
   form: FormState,
   teamMembers: { id: string; displayName: string }[],
+  program: Program | undefined,
   count = 6,
 ): { dateStr: string; hostName: string | null }[] {
-  return upcomingDates(form.dayOfWeek, count).map((dateStr) => {
+  return upcomingDates(form.dayOfWeek, count, program, form.endsOn).map((dateStr) => {
     const occN = occurrenceInMonth(dateStr);
     const userId = resolvePreviewHost(occN, form);
     const hostName = userId ? (teamMembers.find((m) => m.id === userId)?.displayName ?? null) : null;
@@ -642,7 +657,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       // Capture the projected next sessions from the form BEFORE cancelForm()
       // clears it — this is the in-place confirmation so the coordinator sees
       // the change landed without navigating away (session 141, Maria's #5).
-      const confirmRows = projectUpcoming(form, teamMembers);
+      const confirmRows = projectUpcoming(form, teamMembers, programs.find((p) => p.slug === form.programSlug));
 
       await loadRotations();
       cancelForm();
@@ -909,6 +924,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                         onSave={handleSave}
                         onCancel={cancelForm}
                         showDayPicker={false}
+                        program={programs.find((p) => p.slug === form.programSlug)}
                       />
                     )}
 
@@ -1107,9 +1123,11 @@ interface FormProps {
   onCancel:      () => void;
   showDayPicker: boolean;
   allowedDays?:  DayOfWeek[];
+  /** The program being rotated, so the preview shows the dates it meets. */
+  program:       Program | undefined;
 }
 
-function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, showDayPicker, allowedDays }: FormProps) {
+function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, showDayPicker, allowedDays, program }: FormProps) {
   const personOptions = (
     <>
       <option value="">— pick a person —</option>
@@ -1321,7 +1339,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
       {(() => {
         const hasAnyHost = Object.values(form.hosts).some((v) => v);
         if (!hasAnyHost) return null;
-        const rows = projectUpcoming(form, teamMembers);
+        const rows = projectUpcoming(form, teamMembers, program);
         return (
           <div className="hs-rot__preview">
             <span className="hs-rot__preview-label">Preview</span>

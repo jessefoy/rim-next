@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { db } from "@/lib/db";
 import { sendHostAssignmentConfirmationEmail, sendHostAssignmentRemovedEmail } from "@/lib/email";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageConfig, getProgramHubSlug, programNeedsHost } from "@/lib/programHub";
-import { isHubCoordinator } from "@/lib/hubAuth";
+import { canManageHubCoverage } from "@/lib/hubAuth";
 import { authorizeSelfClaim } from "@/lib/hubMemberAuth";
 import { fmtSessionDay } from "@/lib/timezone";
 import { ctDateStr } from "@/lib/scheduleUtils";
@@ -28,10 +28,6 @@ async function holdRotationDate(
     create: { standingAssignmentId: assignment.standingAssignmentId, dateStr, createdById: byUserId },
     update: {},
   });
-}
-
-function isManagerRole(roles: string[]) {
-  return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 }
 
 // PATCH /api/host/assignments/[id]
@@ -128,9 +124,7 @@ export async function PATCH(
   // a coordinator who can put someone on a session can take them off it. Scoped
   // to THIS assignment's hub so a coordinator only manages their own team.
   const isOwn = assignment.userId === session.user.id;
-  const canManage =
-    isManagerRole(roles) ||
-    (await isHubCoordinator(session.user.id, assignment.hubSlug));
+  const canManage = await canManageHubCoverage(session.user.id, roles, assignment.hubSlug);
   if (!canManage && !isOwn) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -207,9 +201,7 @@ export async function DELETE(
   }
 
   const roles = session.user.roles ?? [];
-  const canManage =
-    isManagerRole(roles) ||
-    (await isHubCoordinator(session.user.id, assignment.hubSlug));
+  const canManage = await canManageHubCoverage(session.user.id, roles, assignment.hubSlug);
   const isOwn = assignment.userId !== null && assignment.userId === session.user.id;
 
   if (!canManage && !isOwn) {

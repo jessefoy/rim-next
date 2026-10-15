@@ -21,26 +21,13 @@
 import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+
 import { sendStandingAssignmentEndedEmail } from "@/lib/email";
-import { isHubCoordinator } from "@/lib/hubAuth";
+import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
+import { ctStartOfToday } from "@/lib/timezone";
 
 const TZ = "America/Chicago";
-
-function isManager(roles: string[]) {
-  return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
-
-async function hasEffectiveHostAccess(
-  userId: string,
-  roles: string[],
-  hubSlug: string,
-): Promise<boolean> {
-  if (roles.includes("ADMIN")) return true;
-  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, hubSlug, tentative);
-}
 
 export async function DELETE(
   request: Request,
@@ -66,10 +53,8 @@ export async function DELETE(
   // needed for routing. The program-hub helper is kept as a fallback for
   // any legacy row whose hubSlug was somehow left at the default.
   const rotationHubSlug = rotation.hubSlug || await getProgramHubSlug(rotation.programSlug);
-  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, rotationHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, rotationHubSlug))) {
+  // One rule for managing a team's coverage (lib/hubAuth.ts, 2026-10-15).
+  if (!(await canManageHubCoverage(session.user.id, roles, rotationHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -77,8 +62,7 @@ export async function DELETE(
   const releaseFuture = body?.releaseFuture === true;
 
   // CT-anchored "today" — past stays untouched
-  const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-  todayCt.setHours(0, 0, 0, 0);
+  const todayCt = ctStartOfToday(); // Central midnight, not UTC (2026-10-15)
 
   // Collect the future assignments we're about to clear (for the email summary)
   type ReleasedSession = {

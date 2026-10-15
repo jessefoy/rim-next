@@ -32,15 +32,14 @@
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { isHubCoordinator } from "@/lib/hubAuth";
+import { canManageHubCoverage } from "@/lib/hubAuth";
+import { ctStartOfToday } from "@/lib/timezone";
 
-const TZ = "America/Chicago";
 
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const roles = session.user.roles ?? [];
-  const isAdmin = roles.includes("ADMIN");
 
   const body = await request.json().catch(() => ({}));
   const hubSlug       = body?.hubSlug as string | undefined;
@@ -57,10 +56,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Gate: hub coordinator of the target hub OR ADMIN. Hub coordinator
-  // gate matches the rest of the standing-assignment routes; ADMIN
-  // bypass preserves the operational-recovery path.
-  if (!isAdmin && !(await isHubCoordinator(session.user.id, hubSlug))) {
+  // Gate: the one coverage-management rule (a scheduling manager, or this
+  // team's active coordinator). It left out HOST_MANAGER, whom the button showed.
+  if (!(await canManageHubCoverage(session.user.id, roles, hubSlug))) {
     return Response.json(
       { error: "Forbidden — hub coordinator or ADMIN required" },
       { status: 403 },
@@ -72,8 +70,7 @@ export async function POST(request: Request) {
 
   if (scope === "future") {
     // CT-anchored "today"
-    const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-    todayCt.setHours(0, 0, 0, 0);
+    const todayCt = ctStartOfToday(); // Central midnight, not UTC (2026-10-15)
 
     // SubRequests reference HostAssignment via FK without cascade — clean
     // them up first. Hub-scoped via the parent assignment's hubSlug so
