@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { ctMonthKey, ctStartOfToday } from "@/lib/timezone";
 import {
   getToolBySlug,
   TOOL_REGISTRY,
@@ -121,6 +122,9 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
     : null;
   const canRespond = membership?.status === "ACTIVE" && membership.hostingCapability;
 
+  // A request still needs someone only while its session is ahead (2026-10-15:
+  // a passed, uncovered request stayed "open" for good).
+  const today = ctStartOfToday();
   const [requests, claims] = await Promise.all([
     query.filter === "for-me" && !canRespond
       ? Promise.resolve([])
@@ -130,7 +134,9 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
               hubSlug: query.hubSlug,
               ...(query.filter === "for-me" ? { userId: { not: query.userId } } : {}),
             },
-            ...(query.filter === "for-me" ? { status: "OPEN" } : {}),
+            ...(query.filter === "for-me"
+              ? { status: "OPEN", OR: [{ sessionDate: null }, { sessionDate: { gte: today } }] }
+              : {}),
             ...(createdAt ? { createdAt } : {}),
           },
           select: {
@@ -138,6 +144,7 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
             programSlug: true,
             sessionDate: true,
             createdAt: true,
+            requestedById: true,
             assignment: {
               select: {
                 userId: true,
@@ -151,10 +158,10 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
     db.subClaim.findMany({
       where: {
         request: {
-          assignment: {
-            hubSlug: query.hubSlug,
-            ...(query.filter === "for-me" ? { userId: query.userId } : {}),
-          },
+          assignment: { hubSlug: query.hubSlug },
+          // "For me": a claim on a request I asked for. The assignment's user
+          // becomes the person covering, so the asker is requestedById.
+          ...(query.filter === "for-me" ? { requestedById: query.userId } : {}),
         },
         ...(query.filter === "for-me" ? { claimedById: { not: query.userId } } : {}),
         ...(createdAt ? { createdAt } : {}),
@@ -182,6 +189,17 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
       })
     : [];
   const programNameBySlug = new Map(programs.map((program) => [program.slug, program.name]));
+  // Who asked: requestedById, else (older rows) the assignment's user.
+  const askerIds = [...new Set(requests.map((r) => r.requestedById).filter((x): x is string => !!x))];
+  const askers = askerIds.length
+    ? await db.user.findMany({
+        where: { id: { in: askerIds } },
+        select: { id: true, firstName: true, lastName: true, preferredName: true },
+      })
+    : [];
+  const askerById = new Map(askers.map((u) => [u.id, u]));
+  const monthHref = (d: Date | null) =>
+    `/tools/schedule?hub=${encodeURIComponent(query.hubSlug)}${d ? `&month=${ctMonthKey(d)}` : ""}`;
 
   return [
     ...requests.map((request) => ({
@@ -189,11 +207,13 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
       sourceKey: "app:schedule" as const,
       sourceLabel: "Scheduler",
       kind: "coverage-requested",
-      authorId: request.assignment.userId,
-      authorName: personName(request.assignment.user),
+      authorId: request.requestedById ?? request.assignment.userId,
+      authorName: personName(
+        request.requestedById ? askerById.get(request.requestedById) : request.assignment.user,
+      ),
       verb: "requested coverage for",
       subject: `${programNameBySlug.get(request.programSlug) ?? request.programSlug} · ${sessionLabel(request.sessionDate)}`,
-      href: `/tools/schedule?hub=${encodeURIComponent(query.hubSlug)}`,
+      href: monthHref(request.sessionDate),
       ts: request.createdAt.toISOString(),
       isForUser: query.filter === "for-me",
     })),
@@ -206,7 +226,7 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
       authorName: personName(claim.claimedBy),
       verb: "claimed coverage for",
       subject: `${programNameBySlug.get(claim.request.programSlug) ?? claim.request.programSlug} · ${sessionLabel(claim.request.sessionDate)}`,
-      href: `/tools/schedule?hub=${encodeURIComponent(query.hubSlug)}`,
+      href: monthHref(claim.request.sessionDate),
       ts: claim.createdAt.toISOString(),
       isForUser: query.filter === "for-me",
     })),
@@ -219,19 +239,26 @@ async function scheduleAttention(hubId: string, hubSlug: string, userId: string)
     select: { status: true, hostingCapability: true },
   });
   if (member?.status !== "ACTIVE" || !member.hostingCapability) return [];
-  const count = await db.subRequest.count({
+  // Only requests whose session is still ahead: a passed one needs no one.
+  const open = await db.subRequest.findMany({
     where: {
       status: "OPEN",
       assignment: { hubSlug, userId: { not: userId } },
+      OR: [{ sessionDate: null }, { sessionDate: { gte: ctStartOfToday() } }],
     },
+    select: { sessionDate: true },
+    orderBy: { sessionDate: "asc" },
   });
+  const count = open.length;
   if (count === 0) return [];
+  // Open the month of the soonest one, so it is on screen.
+  const soonest = open.find((r) => r.sessionDate)?.sessionDate ?? null;
   return [{
     id: "schedule-open-coverage",
     sourceKey: "app:schedule",
     sourceLabel: "Scheduler",
     label: plural(count, "1 coverage request is open", `${count} coverage requests are open`),
-    href: `/tools/schedule?hub=${encodeURIComponent(hubSlug)}`,
+    href: `/tools/schedule?hub=${encodeURIComponent(hubSlug)}${soonest ? `&month=${ctMonthKey(soonest)}` : ""}`,
     count,
   }];
 }

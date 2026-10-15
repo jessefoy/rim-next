@@ -334,6 +334,19 @@ export async function POST(request: Request) {
     // occurrence, hubSlug) composite unique.
     const out: Array<{ id: string; occurrence: StandingOccurrence; userId: string }> = [];
     for (const [occurrence, userId] of targets.entries()) {
+      // A skipped date belongs to the person it was made for: when this slot
+      // gets a different person, their skips go (2026-10-15 review).
+      await tx.standingSkip.deleteMany({
+        where: {
+          standingAssignment: {
+            programSlug: body.programSlug,
+            dayOfWeek: body.dayOfWeek,
+            occurrence,
+            hubSlug: targetHubSlug,
+            userId: { not: userId },
+          },
+        },
+      });
       const rec = await tx.standingAssignment.upsert({
         where: {
           programSlug_dayOfWeek_occurrence_hubSlug: {

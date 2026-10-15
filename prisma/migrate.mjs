@@ -6551,6 +6551,74 @@ Rooted In Mindfulness`,
     console.error("  accounts-merged template: failed (no change):", err?.message ?? err);
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Coverage emails in each team's terms (2026-10-15 Scheduler integrity
+  // audit; Jesse approved the fix list). Two EXISTING templates, one sentence
+  // each, replaced only where it is still exactly as seeded, so any edit made
+  // in /admin/emails is left alone and logged:
+  //   host-assignment-confirmation: "request a sub" went to greeters, who
+  //     have no sub requests -> {{changeNote}}, filled per team by the code.
+  //   host-assignment-removed: "has reassigned … to someone else" was false
+  //     when nobody replaced them -> "has taken you off …".
+  // ───────────────────────────────────────────────────────────────────────
+  {
+    const flag = "coverage_email_team_words_2026_10_15_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      try {
+        const edits = [
+          {
+            slug: "host-assignment-confirmation",
+            from: "If anything changes and you need coverage, you can request a sub from the schedule.",
+            to: "{{changeNote}}",
+            addVariable: "changeNote",
+          },
+          {
+            slug: "host-assignment-removed",
+            from: "has reassigned **{{programName}}**{{#if dateText}} on {{dateText}}{{/if}} to someone else — you're no longer scheduled for this session.",
+            to: "has taken you off **{{programName}}**{{#if dateText}} on {{dateText}}{{/if}}. You're no longer scheduled for this session.",
+            addVariable: null,
+          },
+        ];
+        for (const e of edits) {
+          const row = await db.emailTemplate.findUnique({ where: { slug: e.slug }, select: { body: true, variables: true } });
+          if (!row) {
+            console.log(`  Coverage words: ${e.slug} not found, skipped.`);
+          } else if (!row.body.includes(e.from)) {
+            console.log(`  Coverage words: ${e.slug}'s sentence was edited or already changed, left alone.`);
+          } else {
+            const variables = e.addVariable && !row.variables.includes(e.addVariable) ? [...row.variables, e.addVariable] : row.variables;
+            const res = await db.emailTemplate.updateMany({
+              where: { slug: e.slug, body: row.body },
+              data: { body: row.body.replace(e.from, e.to), variables },
+            });
+            console.log(res.count ? `  Coverage words: ${e.slug} updated.` : `  Coverage words: ${e.slug} changed during the update, left alone.`);
+          }
+        }
+        await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+      } catch (err) {
+        console.error("  Coverage words: failed (templates unchanged):", err?.message ?? err);
+      }
+    }
+  }
+
+  // Rotation skip dates (2026-10-15): additive and idempotent. See
+  // StandingSkip in schema.prisma. Old code ignores the table.
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "standing_assignment_skips" (
+      "id" TEXT NOT NULL PRIMARY KEY, "standingAssignmentId" TEXT NOT NULL,
+      "dateStr" TEXT NOT NULL, "createdById" TEXT,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "standing_assignment_skips_standingAssignmentId_fkey" FOREIGN KEY ("standingAssignmentId") REFERENCES "standing_assignments"("id") ON DELETE CASCADE ON UPDATE CASCADE)`),
+    db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "standing_assignment_skips_standingAssignmentId_dateStr_key" ON "standing_assignment_skips"("standingAssignmentId", "dateStr")`),
+  ]);
+  console.log("  ✔ Rotation skip dates table ready.");
+
+  // Who asked for cover (2026-10-15): additive, nullable, no backfill. Old code
+  // ignores it; readers fall back to the assignment's user when it is null.
+  await db.$executeRawUnsafe(`ALTER TABLE "sub_requests" ADD COLUMN IF NOT EXISTS "requestedById" TEXT`);
+  console.log("  ✔ sub_requests.requestedById ready.");
+
   // Former sign-in addresses (2026-10-15): additive and idempotent, no
   // backfill. Old code ignores the table. See FormerEmail in schema.prisma.
   await db.$transaction([

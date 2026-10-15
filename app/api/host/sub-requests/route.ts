@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
+import { fmtSessionDay } from "@/lib/timezone";
 import { Prisma } from "@prisma/client";
 import {
   sendSubRequestEmail,
@@ -91,9 +92,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "assignmentId is required" }, { status: 400 });
   }
 
-  const { assignmentId, sessionDate, message } = body as {
+  const { assignmentId, message } = body as {
     assignmentId: string;
-    sessionDate?: string | null;
     message?: unknown;
   };
 
@@ -145,9 +145,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "You can only request subs for your own assignments" }, { status: 403 });
   }
 
-  // Check no existing open request for this assignment+date
+  // The request's date is the assignment's own (2026-10-15: the browser never
+  // sent one, so every request was undated in emails and Updates).
+  const sessionDate = assignment.sessionDate;
+
+  // One open request per assignment (older requests were saved undated).
   const existing = await db.subRequest.findFirst({
-    where: { assignmentId, sessionDate: sessionDate ? new Date(sessionDate) : null, status: "OPEN" },
+    where: { assignmentId, status: "OPEN" },
   });
   if (existing) {
     return Response.json(
@@ -160,7 +164,9 @@ export async function POST(request: Request) {
     data: {
       assignmentId,
       programSlug: assignment.programSlug,
-      sessionDate: sessionDate ? new Date(sessionDate) : null,
+      sessionDate,
+      // Whose session it is (a coordinator may ask on their behalf).
+      requestedById: assignment.userId ?? session.user.id,
       message: message ?? Prisma.JsonNull,
     },
   });
@@ -168,13 +174,7 @@ export async function POST(request: Request) {
   const requesterName = assignment.user
     ? [assignment.user.firstName].filter(Boolean).join(" ") || assignment.user.email
     : "Someone";
-  const sessionLabel = sessionDate
-    ? new Date(sessionDate).toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      })
-    : null;
+  const sessionLabel = fmtSessionDay(sessionDate);
 
   // Send emails after the response. `after()` keeps the work alive past
   // Response.json() — without it, Vercel tears the function down and the
@@ -209,6 +209,7 @@ export async function POST(request: Request) {
             sessionDate: sessionLabel,
             message: messageText,
             subRequestId: subRequest.id,
+            sessionAt: sessionDate,
             hubSlug: assignmentHubSlug,
           } as SubRequestEmailData)
         )

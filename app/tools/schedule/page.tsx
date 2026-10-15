@@ -13,6 +13,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { ctMonthBounds, ctMonthKey } from "@/lib/timezone";
 import { getToolHubContext } from "@/lib/toolAuth";
 import HubScheduleClient from "@/components/HubScheduleClient";
 import {
@@ -124,11 +125,13 @@ export default async function ScheduleToolPage({
     if (y < nowY - 10 || y > nowY + 10) return null;
     return { year: y, month: m - 1 }; // JS month is 0-indexed
   })();
-  const year  = parsedMonth?.year  ?? now.getFullYear();
-  const month = parsedMonth?.month ?? now.getMonth();
+  // This month means this month in Central Time, and its bounds are Central
+  // midnights (2026-10-15: both were UTC).
+  const [ctY, ctM] = ctMonthKey(now).split("-").map(Number);
+  const year  = parsedMonth?.year  ?? ctY;
+  const month = parsedMonth?.month ?? ctM - 1;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startOfMonth = new Date(year, month, 1);
-  const endOfMonth   = new Date(year, month + 1, 0, 23, 59, 59, 999);
+  const { start: startOfMonth, end: endOfMonth } = ctMonthBounds(year, month);
 
   // Hub config drives the program-format filter + the multi-claim flag.
   // host-team / peer-led: ["virtual","hybrid"]; AV / greeter: ["in-person","hybrid"].

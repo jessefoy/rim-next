@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { activeAnnouncement, ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
 import { hasOpenEntry } from "@/lib/programOffering";
 import { getHubCoverageCopy } from "@/lib/programHub";
-import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
+import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN, LATE_GRACE_MIN } from "@/lib/sessionWindowConstants";
 import AccountLayout from "@/components/AccountLayout";
 import FormDone from "@/components/FormDone";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
@@ -216,7 +216,10 @@ export default async function DashboardPage({ searchParams }: {
         hostedSlugsToday.has(p.slug) ||
         teacherProgramIds.has(p.id);
       const earlyOpenStart = new Date(start.getTime() - EARLY_OPEN_MIN * 60 * 1000);
-      const isLive       = now >= liveStart && now <= liveEnd;
+      // Join stays until the door closes (end + the late grace), as /enter
+      // does, so someone running late can still get back in (Jesse, 2026-10-15).
+      const doorCloses   = new Date(liveEnd.getTime() + LATE_GRACE_MIN * 60 * 1000);
+      const isLive       = now >= liveStart && now <= doorCloses;
       const isSetupOpen  = !isLive && isHostOrTeacher && now >= earlyOpenStart && now < liveStart;
       const isLaterToday = !isLive && !isSetupOpen && start > now;
 

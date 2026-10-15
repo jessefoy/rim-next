@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
+import { fmtSessionDay } from "@/lib/timezone";
 import {
   sendHostAssignmentConfirmationEmail,
   sendHostAssignmentRemovedEmail,
@@ -8,9 +9,8 @@ import {
 import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 import { isHubCoordinator } from "@/lib/hubAuth";
 
-function fmtDate(d: Date | null): string | null {
-  return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
-}
+// Central Time, not the server's UTC (2026-10-15).
+const fmtDate = (d: Date | null) => fmtSessionDay(d);
 
 function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
@@ -164,6 +164,7 @@ export async function POST(request: Request) {
           firstName: newHost.firstName,
           programName,
           dateText,
+          sessionAt: parsedDate,
           hubSlug,
         });
       }
@@ -183,6 +184,7 @@ export async function POST(request: Request) {
             firstName: displaced.firstName,
             programName,
             dateText,
+            sessionAt: parsedDate,
             byName,
             hubSlug,
           });

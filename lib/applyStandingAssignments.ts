@@ -274,6 +274,44 @@ export async function generateCandidates(
     if (!p.hostingRequired) selfLedPrimaryHub.set(p.slug, p.hostingHubSlug ?? "host-team");
   }
 
+  // A rotation fires only where its team still covers the program, in a
+  // format the team serves (2026-10-15: after a team was unticked, or the
+  // format changed, rotations kept creating sessions nobody could see).
+  const ruleHubs = [...new Set(standingAssignments.map((sa) => sa.hubSlug))];
+  const [hubRows, coverageRows, skipRows] = await Promise.all([
+    db.hub.findMany({
+      where: { slug: { in: ruleHubs } },
+      select: { slug: true, appliesToFormats: true, allowsMultipleAssignments: true },
+    }),
+    db.programCoverageHub.findMany({ where: { programSlug: { in: slugs } }, select: { programSlug: true, hubSlug: true } }),
+    // Dates a rotation must not fill: someone was removed from it, or released it.
+    db.standingSkip.findMany({
+      where: { standingAssignmentId: { in: standingAssignments.map((sa) => sa.id) } },
+      select: { standingAssignmentId: true, dateStr: true },
+    }),
+  ]);
+  const hubBySlug = new Map(hubRows.map((h) => [h.slug, h]));
+  const coverage = new Set(coverageRows.map((c) => `${c.programSlug}::${c.hubSlug}`));
+  const teamCovers = (program: { slug: string; programFormat: string | null; hostingHubSlug?: string | null }, hubSlug: string) => {
+    const hub = hubBySlug.get(hubSlug);
+    if (!hub) return false;
+    const covers = (program.hostingHubSlug ?? "host-team") === hubSlug || coverage.has(`${program.slug}::${hubSlug}`);
+    // Same as the view: a program with no format shows on no team's schedule.
+    return covers && !!program.programFormat && hub.appliesToFormats.includes(program.programFormat);
+  };
+  // On a one-person team a skip holds the whole session open (another rule
+  // mustn't fill the gap someone just made); on an open sign-up team it holds
+  // only that rule's person off that date.
+  const ruleById = new Map(standingAssignments.map((sa) => [sa.id, sa]));
+  const skippedRuleDates = new Set(skipRows.map((s) => `${s.standingAssignmentId}::${s.dateStr}`));
+  const skippedSlots = new Set(
+    skipRows.flatMap((s) => {
+      const rule = ruleById.get(s.standingAssignmentId);
+      if (!rule || hubBySlug.get(rule.hubSlug)?.allowsMultipleAssignments) return [];
+      return [`${rule.programSlug}::${s.dateStr}::${rule.hubSlug}`];
+    }),
+  );
+
   // 3. Walk every day of the month, building candidates
   const daysInMonth   = new Date(year, month, 0).getDate();
   const candidates: Candidate[] = [];
@@ -312,6 +350,7 @@ export async function generateCandidates(
       // (AV/greeter) rotations on a self-led program still apply.
       const selfLedHub = selfLedPrimaryHub.get(sa.programSlug);
       if (selfLedHub && sa.hubSlug === selfLedHub) continue;
+      if (!teamCovers(program as ScheduleProgram & { slug: string; programFormat: string | null; hostingHubSlug?: string | null }, sa.hubSlug)) continue;
 
       // Respect startsOn / endsOn
       if (dateStr < ctDateStr(sa.startsOn.toISOString())) continue;
@@ -357,6 +396,7 @@ export async function generateCandidates(
       // rotation on the same program/date don't crowd each other out — they
       // claim independent slots in different hubs.
       const key = `${sa.programSlug}::${dateStr}::${sa.hubSlug}`;
+      if (skippedSlots.has(key) || skippedRuleDates.has(`${sa.id}::${dateStr}`)) continue;
       if (claimedKeys.has(key)) continue;
       claimedKeys.add(key);
 
@@ -393,8 +433,10 @@ export async function generateCandidates(
     });
     const slugByHubId = new Map(hubs.map((h) => [h.id, h.slug]));
     const userIds = [...new Set(candidates.map((c) => c.userId))];
+    // Active members who may cover: a paused member, or one whose coverage is
+    // turned off, isn't scheduled by a rotation (Jesse, 2026-10-15).
     const members = await db.hubMember.findMany({
-      where: { hubId: { in: hubs.map((h) => h.id) }, userId: { in: userIds } },
+      where: { hubId: { in: hubs.map((h) => h.id) }, userId: { in: userIds }, status: "ACTIVE", hostingCapability: true },
       select: { hubId: true, userId: true },
     });
     const memberKeys = new Set(
@@ -404,7 +446,7 @@ export async function generateCandidates(
     if (kept.length < candidates.length) {
       const dropped = candidates.filter((c) => !memberKeys.has(`${c.userId}::${c.hubSlug}`));
       console.warn(
-        `[standing-apply] dropped ${dropped.length} candidate(s) whose host is no longer a hub member:`,
+        `[standing-apply] dropped ${dropped.length} candidate(s) whose person isn't an active member who may cover (left, paused, or coverage off):`,
         dropped.map((c) => `${c.userId}@${c.hubSlug} ${c.programSlug} ${c.dateStr}`).join("; "),
       );
       return { candidates: kept, pastIgnored };

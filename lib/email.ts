@@ -3,7 +3,8 @@ import { portableTextToMarkdown } from "@/lib/portableTextEmail";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { db } from "@/lib/db";
-import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
+import { ctMonthKey } from "@/lib/timezone";
+import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageConfig, getHubCoverageCopy } from "@/lib/programHub";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { RIM_ADDRESS, RIM_EIN, RIM_LEGAL_NAME, emailSafeLink, markdownLinkText } from "@/lib/locations";
 import { FORM_KIND, formNoticeSubject } from "@/lib/formSubmissions";
@@ -64,6 +65,12 @@ export function hubScopedUrl(path: string, hubSlug?: string | null): string {
   if (!hubSlug || hubSlug === DEFAULT_HOSTING_HUB_SLUG) return base;
   const sep = path.includes("?") ? "&" : "?";
   return `${base}${sep}hub=${encodeURIComponent(hubSlug)}`;
+}
+
+/** The Scheduler link for a session's month, so the session is on screen. */
+function scheduleUrlFor(hubSlug: string | null | undefined, sessionAt?: Date | null, extra = ""): string {
+  const params = [extra, sessionAt ? `month=${ctMonthKey(sessionAt)}` : ""].filter(Boolean).join("&");
+  return hubScopedUrl(`/tools/schedule${params ? `?${params}` : ""}`, hubSlug);
 }
 
 export function hubHomeUrl(hubSlug: string): string {
@@ -345,6 +352,9 @@ const PRE_THRESHOLD_GATED_SLUGS = new Set<string>([
   // chosen individual), so gate them here too.
   "file-shared",
   "file-comment",
+  // "Your session is covered" goes straight to the person who was hosting, who
+  // may be a staged account a coordinator asked cover for (2026-10-15).
+  "sub-request-claimed",
 ]);
 
 export async function sendTemplatedEmail(
@@ -943,6 +953,8 @@ export interface SubRequestEmailData {
   sessionDate: string | null; // formatted date string, or null for standing
   message: string | null;
   subRequestId: string;       // for deep-link "Cover this session" button
+  /** The session's start, so the link opens its month (2026-10-15). */
+  sessionAt?: Date | null;
   /** Hub the program belongs to (Program.hostingHubSlug or "host-team").
    *  Passed to hubScopedUrl so the email link lands the recipient in the
    *  right hub view, not the default host-team. Slice 2.5. */
@@ -961,7 +973,7 @@ export interface SubRequestEmailData {
  */
 export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<void> {
   const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
-  const coverUrl = hubScopedUrl(`/tools/schedule?action=cover&id=${data.subRequestId}`, data.hubSlug);
+  const coverUrl = scheduleUrlFor(data.hubSlug, data.sessionAt, `action=cover&id=${data.subRequestId}`);
   await sendTemplatedEmail("sub-request-posted", data.to, {
     firstName:     data.firstName ?? "there",
     requesterName: data.requesterName,
@@ -1097,15 +1109,39 @@ export interface HostAssignmentConfirmationEmailData {
   dateText: string | null;
   /** Optional note from the original sub-request, when this confirmation is for a sub-claim. */
   requesterNote?: string | null;
+  /** The session's start, so the link opens its month (2026-10-15). */
+  sessionAt?: Date | null;
   /** Hub the program belongs to. Slice 2.5. */
   hubSlug: string;
+}
+
+/** Whether this team signs people up openly (greeters) rather than one per session. */
+async function isOpenSignUp(hubSlug: string | null | undefined): Promise<boolean> {
+  if (!hubSlug) return false;
+  return (await getHubCoverageConfig(hubSlug))?.allowsMultipleAssignments ?? false;
+}
+
+/**
+ * What to do if plans change, in the team's own terms (2026-10-15): an open
+ * sign-up team (greeters) has no sub requests, so it never hears "request a sub".
+ */
+async function changeNoteText(hubSlug: string | null | undefined): Promise<string> {
+  return (await isOpenSignUp(hubSlug))
+    ? "If anything changes, you can cancel your sign-up from the schedule."
+    : "If anything changes and you need coverage, you can request a sub from the schedule.";
+}
+async function changeNoteHtml(hubSlug: string | null | undefined): Promise<string> {
+  return (await isOpenSignUp(hubSlug))
+    ? "<p>If you can't make one of these dates, open the Schedule and cancel your sign-up for it.</p>"
+    : "<p>If you can't make any of these dates, open the Schedule and use <strong>Ask the team to cover</strong> on that session's row.</p>";
 }
 
 export async function sendHostAssignmentConfirmationEmail(
   data: HostAssignmentConfirmationEmailData,
 ): Promise<void> {
-  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
+  const scheduleUrl = scheduleUrlFor(data.hubSlug, data.sessionAt);
   await sendTemplatedEmail("host-assignment-confirmation", data.to, {
+    changeNote:    await changeNoteText(data.hubSlug),
     firstName:     data.firstName ?? "there",
     programName:   data.programName,
     dateText:      data.dateText ?? "",
@@ -1128,6 +1164,8 @@ export interface HostAssignmentRemovedEmailData {
   dateText: string | null;
   /** Name of the person who reassigned (the manager). */
   byName: string;
+  /** The session's start, so the link opens its month (2026-10-15). */
+  sessionAt?: Date | null;
   /** Hub the program belongs to. Slice 2.5. */
   hubSlug: string;
 }
@@ -1135,7 +1173,7 @@ export interface HostAssignmentRemovedEmailData {
 export async function sendHostAssignmentRemovedEmail(
   data: HostAssignmentRemovedEmailData,
 ): Promise<void> {
-  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
+  const scheduleUrl = scheduleUrlFor(data.hubSlug, data.sessionAt);
   await sendTemplatedEmail("host-assignment-removed", data.to, {
     firstName:   data.firstName ?? "there",
     programName: data.programName,
@@ -1211,7 +1249,7 @@ export async function sendStandingAssignmentScheduledEmail(
 <p>Your standing rotation has been applied. You're scheduled to be ${copy.verb} the following ${count === 1 ? "session" : "sessions"}:</p>
 <ul>${listHtml}</ul>
 ${emailButtonHtml("Open the Schedule", scheduleUrl)}
-<p>If you can't make any of these dates, open the Schedule and use <strong>Ask the team to cover</strong> on that session's row.</p>
+${await changeNoteHtml(data.hubSlug)}
 <p>This is an automated message from your standing rotation.</p>`;
 
   try {
@@ -1320,7 +1358,7 @@ export async function sendStandingAssignmentReleasedEmail(
     ? `<p>You won't be scheduled for upcoming sessions of this program through this rotation.</p>`
     : `<p>The following upcoming ${count === 1 ? "date is" : "dates are"} no longer assigned to you:</p>
 ${listHtml}
-<p>These slots are now open for other hosts to claim.</p>`;
+<p>${(await isOpenSignUp(data.hubSlug)) ? "Others on the team can still sign up for them." : "They're now open for others on the team to take."}</p>`;
   // Role-aware role noun in the body ("standing rotation as Host / AV /
   // Greeter / Facilitator"). Defaults to host language when not supplied.
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };

@@ -12,6 +12,7 @@
  */
 
 import { db } from "@/lib/db";
+import { canAccessHubScheduler } from "@/lib/hubAuth";
 
 type HubAuthMember = {
   status: "ACTIVE" | "PAUSED" | "INACTIVE";
@@ -107,4 +108,23 @@ export async function ensureActiveHubMembership(
     create: { hubId: hub.id, userId, position, isCoordinator: false },
     update: {},
   });
+}
+
+/**
+ * May this person take a session for themselves on this team's schedule?
+ * The one rule for every self-service claim (2026-10-15 audit: the release
+ * route still checked the retired HOST role, so volunteers couldn't retake a
+ * session a coordinator had removed, and managers could claim on any team).
+ *   1. Access: a member of the team, or an oversight role (canAccessHubScheduler).
+ *   2. Capability: an ACTIVE member with hosting allowed; with no member row,
+ *      only HOST_MANAGER / ADMIN (the oversight roles) may claim.
+ *   3. Enrollment: an oversight claimer joins the team ("covers ⇒ member").
+ * Returns false (refuse with 403) at the first failure; enrolls only on success.
+ */
+export async function authorizeSelfClaim(userId: string, roles: string[], hubSlug: string): Promise<boolean> {
+  if (!(await canAccessHubScheduler(userId, roles, hubSlug))) return false;
+  const oversight = roles.includes("HOST_MANAGER") || roles.includes("ADMIN");
+  if (!roles.includes("ADMIN") && !(await getEffectiveHostingCapability(userId, hubSlug, oversight))) return false;
+  await ensureActiveHubMembership(userId, hubSlug);
+  return true;
 }

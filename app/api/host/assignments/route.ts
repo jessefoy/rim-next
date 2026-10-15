@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { ensureActiveHubMembership, getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { canAccessHubScheduler, isHubCoordinator } from "@/lib/hubAuth";
 import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
+import { ctMonthBounds, fmtSessionDay } from "@/lib/timezone";
 import {
   DEFAULT_HOSTING_HUB_SLUG,
   getProgramHubSlug,
@@ -19,10 +20,8 @@ import { ctDateStr, isOccurrenceOnDate, shiftToDate } from "@/lib/scheduleUtils"
  * emails so all host notifications speak the same dialect.
  */
 function formatSessionDate(date: Date | null): string | null {
-  if (!date) return null;
-  return date.toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric",
-  });
+  // Central Time, not the server's UTC (2026-10-15).
+  return fmtSessionDay(date);
 }
 
 /**
@@ -53,6 +52,7 @@ async function notifyAssignedHost(
       firstName: assignee.firstName,
       programName: program?.name || programSlug,
       dateText: formatSessionDate(sessionDate),
+      sessionAt: sessionDate,
       hubSlug,
     });
   } catch (e) {
@@ -141,8 +141,8 @@ export async function GET(request: Request) {
   }
 
   const [yearN, monthN] = monthParam.split("-").map(Number);
-  const startOfMonth = new Date(yearN, monthN - 1, 1);
-  const endOfMonth   = new Date(yearN, monthN, 0, 23, 59, 59, 999);
+  // Central midnights, not UTC (2026-10-15).
+  const { start: startOfMonth, end: endOfMonth } = ctMonthBounds(yearN, monthN - 1);
   const daysInMonth  = new Date(yearN, monthN, 0).getDate();
 
   // Hub-scoped program filter: primary + auxiliary coverage, then the
@@ -166,6 +166,7 @@ export async function GET(request: Request) {
         recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
         livekitRoom: true,
         hostingHubSlug: true,
+        createdAt: true,
       },
       orderBy: { sortOrder: "asc" },
     }),
@@ -251,6 +252,7 @@ export async function GET(request: Request) {
           livekitRoom: p.livekitRoom ?? null,
           // Same rule as the page loader: only the hosting team enters the room.
           opensRoom: (p.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG) === requestedHubSlug,
+          programCreatedAt: p.createdAt?.toISOString() ?? null, // the NEW badge, as on the page
           standingAssignmentId: null,
           hostBadge: null,
         });
@@ -277,6 +279,7 @@ export async function GET(request: Request) {
           livekitRoom: p.livekitRoom ?? null,
           // Same rule as the page loader: only the hosting team enters the room.
           opensRoom: (p.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG) === requestedHubSlug,
+          programCreatedAt: p.createdAt?.toISOString() ?? null, // the NEW badge, as on the page
           standingAssignmentId: first?.standingAssignmentId ?? null,
           hostBadge: null,
         });
@@ -300,6 +303,7 @@ export async function GET(request: Request) {
         livekitRoom: p.livekitRoom ?? null,
         // Same rule as the page loader: only the hosting team enters the room.
         opensRoom: (p.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG) === requestedHubSlug,
+        programCreatedAt: p.createdAt?.toISOString() ?? null, // the NEW badge, as on the page
         standingAssignmentId: a.standingAssignmentId ?? null,
         hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
       });

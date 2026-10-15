@@ -2,23 +2,42 @@ import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
 import { sendHostAssignmentConfirmationEmail, sendHostAssignmentRemovedEmail } from "@/lib/email";
-import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageConfig, getProgramHubSlug, programNeedsHost } from "@/lib/programHub";
 import { isHubCoordinator } from "@/lib/hubAuth";
+import { authorizeSelfClaim } from "@/lib/hubMemberAuth";
+import { fmtSessionDay } from "@/lib/timezone";
+import { ctDateStr } from "@/lib/scheduleUtils";
 
-function fmtDate(d: Date | null): string | null {
-  return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
+// Central Time, not the server's UTC (2026-10-15).
+const fmtDate = (d: Date | null) => fmtSessionDay(d);
+
+/**
+ * A session a rotation made, emptied by hand (released or removed), stays
+ * empty: record a skip so the daily rotation run doesn't fill it again the
+ * next morning (2026-10-15; it used to re-add the person and re-email them).
+ */
+async function holdRotationDate(
+  assignment: { standingAssignmentId: string | null; sessionDate: Date | null },
+  byUserId: string,
+  client: Pick<typeof db, "standingSkip"> = db,
+) {
+  if (!assignment.standingAssignmentId || !assignment.sessionDate) return;
+  const dateStr = ctDateStr(assignment.sessionDate.toISOString());
+  await client.standingSkip.upsert({
+    where: { standingAssignmentId_dateStr: { standingAssignmentId: assignment.standingAssignmentId, dateStr } },
+    create: { standingAssignmentId: assignment.standingAssignmentId, dateStr, createdById: byUserId },
+    update: {},
+  });
 }
 
-function hasHubAccess(roles: string[]) {
-  return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
-}
 function isManagerRole(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 }
 
 // PATCH /api/host/assignments/[id]
 // Body: { action: "claim" | "unclaim" }
-// claim:   HOST/HOST_MANAGER/ADMIN can claim an unclaimed session
+// claim:   anyone who may claim on this assignment's team (authorizeSelfClaim:
+//          member or oversight, hosting allowed, enrolled) takes an open seat
 // unclaim: owner, a manager, OR a coordinator of the assignment's hub can
 //          unclaim — sets userId=null, cancels open sub requests, and notifies
 //          the removed host when someone else takes them off.
@@ -50,15 +69,26 @@ export async function PATCH(
   // to shadow the coordinator check below — it 403'd a non-HOST-role hub
   // coordinator on unclaim while DELETE/reassign let them through.)
   if (action === "claim") {
-    // Claiming an open session: hub-team system role OR coordinator of this hub.
-    if (!hasHubAccess(roles) && !(await isHubCoordinator(session.user.id, assignment.hubSlug))) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
+    // Open sign-up teams add a fresh row per person (POST); there is no seat
+    // to take. A primary-team seat on a "No host needed" program can't be
+    // taken. Both refused before the claim rule, which enrolls on success.
+    if ((await getHubCoverageConfig(assignment.hubSlug))?.allowsMultipleAssignments) {
+      return Response.json({ error: "This team uses open sign-up." }, { status: 400 });
     }
+    if (
+      assignment.hubSlug === (await getProgramHubSlug(assignment.programSlug)) &&
+      !(await programNeedsHost(assignment.programSlug))
+    ) {
+      return Response.json({ error: 'This program is marked "No host needed".' }, { status: 422 });
+    }
+    // Claiming an open seat: the same rule as every self-claim, against the
+    // assignment's own team. (It checked the retired HOST role, so ordinary
+    // volunteers got 403 retaking a session a coordinator had removed.)
     if (assignment.userId) {
-      return Response.json(
-        { error: "This session is already claimed." },
-        { status: 409 }
-      );
+      return Response.json({ error: "This session is already claimed." }, { status: 409 });
+    }
+    if (!(await authorizeSelfClaim(session.user.id, roles, assignment.hubSlug))) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
     await db.hostAssignment.update({
       where: { id },
@@ -82,6 +112,7 @@ export async function PATCH(
             firstName: claimer.firstName,
             programName: program?.name || assignment.programSlug,
             dateText: fmtDate(assignment.sessionDate),
+            sessionAt: assignment.sessionDate,
             hubSlug: assignment.hubSlug || DEFAULT_HOSTING_HUB_SLUG,
           });
         }
@@ -106,15 +137,18 @@ export async function PATCH(
 
   const removedUserId = assignment.userId;
 
-  // Cancel open sub requests
-  await db.subRequest.updateMany({
-    where: { assignmentId: id, status: "OPEN" },
-    data: { status: "CANCELLED" },
-  });
-
-  await db.hostAssignment.update({
-    where: { id },
-    data: { userId: null },
+  // Cancel open sub requests, empty the seat, and hold a rotation date open,
+  // together: a half-done release would leave the seat empty and unreported.
+  await db.$transaction(async (tx) => {
+    await tx.subRequest.updateMany({
+      where: { assignmentId: id, status: "OPEN" },
+      data: { status: "CANCELLED" },
+    });
+    await tx.hostAssignment.update({
+      where: { id },
+      data: { userId: null },
+    });
+    await holdRotationDate(assignment, session.user.id, tx);
   });
 
   // Courtesy notification: when a coordinator/manager removes SOMEONE ELSE, tell
@@ -139,6 +173,7 @@ export async function PATCH(
             firstName: removed.firstName,
             programName: program?.name || assignment.programSlug,
             dateText: fmtDate(assignment.sessionDate),
+            sessionAt: assignment.sessionDate,
             byName,
             hubSlug: assignment.hubSlug || DEFAULT_HOSTING_HUB_SLUG,
           });
@@ -197,6 +232,7 @@ export async function DELETE(
       where: { assignmentId: id },
     });
     await tx.hostAssignment.delete({ where: { id } });
+    await holdRotationDate(assignment, session.user.id, tx);
   });
 
   // Courtesy notification, mirroring the PATCH-unclaim path above: when a
@@ -224,6 +260,7 @@ export async function DELETE(
             firstName: removed.firstName,
             programName: program?.name || assignment.programSlug,
             dateText: fmtDate(assignment.sessionDate),
+            sessionAt: assignment.sessionDate,
             byName,
             hubSlug: assignment.hubSlug || DEFAULT_HOSTING_HUB_SLUG,
           });

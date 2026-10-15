@@ -861,6 +861,11 @@ model SubRequest {
   sessionDate  DateTime?      // specific date (for recurring programs); null = next/all
   status       SubStatus      @default(OPEN)
   message      Json?          // context for potential claimers (BlockNote JSON)
+  /// Whose session needed cover (2026-10-15): the assignment's person when the
+  /// request was made (a coordinator may ask on their behalf). The assignment's
+  /// userId changes to the person covering on claim, so it can't say this.
+  /// Null on older rows (readers fall back to the assignment's user).
+  requestedById String?
   claim        SubClaim?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -940,6 +945,8 @@ model StandingAssignment {
 
   // Reverse relation: HostAssignments derived from this rotation rule
   hostAssignments HostAssignment[] @relation("StandingDerivedAssignments")
+  // Dates this rotation must not fill (a removal on a rotation date sticks).
+  skips           StandingSkip[]
 
   // Bundle = (programSlug, dayOfWeek, hubSlug). Inside a bundle, one record
   // per occurrence. The hubSlug element of the key lets parallel hubs hold
@@ -947,6 +954,22 @@ model StandingAssignment {
   @@unique([programSlug, dayOfWeek, occurrence, hubSlug])
   @@index([userId])
   @@map("standing_assignments")
+}
+
+/// A date a rotation must not fill (2026-10-15). When a coordinator removes
+/// someone from a rotation-made session, or the person releases it, the
+/// daily rotation run used to put them back the next morning. dateStr is
+/// the session's Central Time date, "YYYY-MM-DD".
+model StandingSkip {
+  id                   String             @id @default(cuid())
+  standingAssignmentId String
+  standingAssignment   StandingAssignment @relation(fields: [standingAssignmentId], references: [id], onDelete: Cascade)
+  dateStr              String
+  createdById          String?
+  createdAt            DateTime           @default(now())
+
+  @@unique([standingAssignmentId, dateStr])
+  @@map("standing_assignment_skips")
 }
 
 // HostThread and HostReply models removed in session 76 (hub conformance).

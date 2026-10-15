@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
+import { fmtSessionDay } from "@/lib/timezone";
+import { authorizeSelfClaim } from "@/lib/hubMemberAuth";
 import { Prisma } from "@prisma/client";
 import {
   sendSubClaimedEmail,
@@ -8,7 +10,6 @@ import {
   type SubClaimedEmailData,
 } from "@/lib/email";
 import { extractTextAsync } from "@/lib/renderRichContentServer";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { getProgramHubSlug } from "@/lib/programHub";
 
 // POST /api/host/sub-requests/[id]/claim — claim an open sub request
@@ -56,14 +57,12 @@ export async function POST(
   // Capability gate, scoped to the assignment's hub (session 129) so an
   // AV sub-request claim is gated against the AV team — not host-team.
   const roles = session.user.roles ?? [];
-  const isAdmin = roles.includes("ADMIN");
   const assignmentHubSlug =
     subRequest.assignment.hubSlug || (await getProgramHubSlug(subRequest.programSlug));
-  const tentativeHost = isAdmin || roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  const canClaim = isAdmin
-    ? true
-    : await getEffectiveHostingCapability(session.user.id, assignmentHubSlug, tentativeHost);
-  if (!canClaim) {
+  // The same rule as every self-claim (lib/hubMemberAuth.ts): a member or an
+  // oversight role, hosting allowed, enrolled on the team ("covers ⇒ member").
+  // It used a role fallback that let a non-member cover and stay off the roster.
+  if (!(await authorizeSelfClaim(session.user.id, roles, assignmentHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -96,13 +95,10 @@ export async function POST(
     }),
   ]);
 
-  const sessionLabel = subRequest.sessionDate
-    ? subRequest.sessionDate.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      })
-    : null;
+  // The request's own date, else its assignment's (older requests were saved
+  // undated), in Central Time (2026-10-15).
+  const sessionAt = subRequest.sessionDate ?? subRequest.assignment.sessionDate;
+  const sessionLabel = fmtSessionDay(sessionAt);
 
   // Resolve human-friendly program name (slug isn't great in an email body)
   // and the claimer's email + first name for their own confirmation.
@@ -144,6 +140,7 @@ export async function POST(
           programName,
           dateText: sessionLabel,
           requesterNote,
+          sessionAt,
           hubSlug: assignmentHubSlug,
         });
       }

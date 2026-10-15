@@ -199,11 +199,13 @@ function getWeekLabel(weekStart: Date, todayWeekStart: Date, isCurrentMonth: boo
   return `Week of ${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
-function rowKind(s: Session, currentUserId: string): RowKind {
-  // Multi-claim sessions (greeter) carry a `claimants` array and don't
-  // use the single-host/sub-request shape at all. They always render
-  // through the dedicated multi-claim row variant. Session 129.
-  if (s.claimants && s.claimants.length > 0 || (s.id.startsWith("multi::"))) {
+function rowKind(s: Session, currentUserId: string, openSignUp = false): RowKind {
+  // Every session on an open sign-up team (greeter) renders as the sign-up
+  // list, empty ones too ("No greeters yet. Be the first?"). Keyed on the
+  // team's setting: an empty session carries no claimants and an unassigned
+  // id, so it used to fall through to the single-host "Greeter needed" row
+  // (2026-10-15). Session 129.
+  if (openSignUp || (s.claimants && s.claimants.length > 0) || s.id.startsWith("multi::")) {
     return "multi";
   }
   if (s.hostUserId === currentUserId) {
@@ -1526,7 +1528,7 @@ export default function HubScheduleClient({
                   <HsRow
                     key={s.id}
                     session={s}
-                    kind={rowKind(s, currentUserId)}
+                    kind={rowKind(s, currentUserId, allowsMultipleAssignments)}
                     isPast={false}
                     {...rowHandlers}
                   />
@@ -1556,7 +1558,7 @@ export default function HubScheduleClient({
                         <HsRow
                           key={s.id}
                           session={s}
-                          kind={rowKind(s, currentUserId)}
+                          kind={rowKind(s, currentUserId, allowsMultipleAssignments)}
                           isPast
                           {...rowHandlers}
                         />
