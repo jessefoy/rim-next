@@ -8,6 +8,7 @@ import {
   type ViewerPermissions,
   type MemberSection,
 } from "@/lib/memberSectionRegistry";
+import { ROLE_LABELS, shownRoles } from "@/lib/roleLabels";
 
 interface Props {
   member: SerializedMember;
@@ -64,12 +65,9 @@ export default function MemberDetail({ member, viewerPermissions }: Props) {
               <span className={`adm2-badge adm2-badge--${member.memberStatus.toLowerCase()}`}>
                 {member.memberStatus.charAt(0) + member.memberStatus.slice(1).toLowerCase()}
               </span>
-              {member.roles.slice(0, 3).map((r) => (
-                <span key={r} className="adm2-badge adm2-badge--role">{r}</span>
+              {shownRoles(member.roles).map((r) => (
+                <span key={r} className="adm2-badge adm2-badge--role">{ROLE_LABELS[r]}</span>
               ))}
-              {member.roles.length > 3 && (
-                <span className="adm2-badge adm2-badge--role">+{member.roles.length - 3} more</span>
-              )}
               {member.tags.slice(0, 4).map((t) => (
                 <span key={t} className="adm2-badge adm2-badge--tag">{t}</span>
               ))}

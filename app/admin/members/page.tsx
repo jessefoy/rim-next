@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import MembersTable, { type SerializedMember } from "@/components/MembersTable";
+import { accountsWithPossibleDuplicates } from "@/lib/memberDuplicates";
 
 export const metadata = { title: "Members - Admin" };
 export const dynamic = "force-dynamic";
@@ -47,7 +48,7 @@ export default async function AdminMembersPage({
         ],
       };
 
-  const [users, legacyCount, teams] = await Promise.all([
+  const [users, legacyCount, teams, duplicates] = await Promise.all([
     db.user.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -83,6 +84,7 @@ export default async function AdminMembersPage({
       select: { slug: true, name: true },
       orderBy: { name: "asc" },
     }),
+    accountsWithPossibleDuplicates(),
   ]);
 
   const members: SerializedMember[] = users.map((u) => ({
@@ -101,6 +103,7 @@ export default async function AdminMembersPage({
     teams: u.hubMemberships
       .map((m) => ({ slug: m.hub.slug, name: m.hub.name, isCoordinator: m.isCoordinator, status: m.status }))
       .sort((a, b) => Number(b.isCoordinator) - Number(a.isCoordinator) || a.name.localeCompare(b.name)),
+    possibleDuplicate: duplicates.has(u.id),
     _count: u._count,
   }));
 

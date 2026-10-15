@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { ROLE_LABELS, shownRoles } from "@/lib/roleLabels";
 
 export interface SerializedMember {
   id: string;
@@ -18,6 +19,8 @@ export interface SerializedMember {
   isLegacyUnclaimed: boolean;
   /** Teams (active hubs) this person is on; coordinators first, then by name. */
   teams: MemberTeam[];
+  /** Another account may be the same person (lib/memberDuplicates.ts). */
+  possibleDuplicate: boolean;
   _count: { registrations: number };
 }
 
@@ -29,22 +32,9 @@ export interface MemberTeam {
 }
 
 type RoleFilter = "ALL" | "ADMIN" | "REGISTRAR" | "TEACHER" | "HOST_MANAGER" | "GUIDING_TEACHER" | "NOROLES";
-type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE" | "VISITOR" | "STUDENT" | "VOLUNTEER";
+type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE" | "VISITOR" | "STUDENT" | "VOLUNTEER" | "DUPLICATE";
 type SortField = "firstName" | "lastName" | "email" | "createdAt" | "registrations";
 type SortDir = "asc" | "desc";
-
-// The system powers, in the words Roles & access uses. A role not listed here
-// (the retired HOST and SUPPORT) is residual data and is not shown.
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Admin",
-  GUIDING_TEACHER: "Guiding teacher",
-  REGISTRAR: "Registrar",
-  TEACHER: "Teacher",
-  HOST_MANAGER: "Scheduling manager",
-};
-const ROLE_ORDER = Object.keys(ROLE_LABELS);
-const shownRoles = (roles: string[]) =>
-  ROLE_ORDER.filter((r) => roles.includes(r));
 
 // Teams named in a row before the rest are summed up; the profile lists them all.
 const TEAMS_SHOWN = 3;
@@ -158,6 +148,9 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
     }
   };
 
+  const sortState = (field: SortField) =>
+    sortField !== field ? "" : sortDir === "asc" ? ", sorted A to Z" : ", sorted Z to A";
+
   const sortIndicator = (field: SortField) => {
     if (sortField !== field) return <span className="adm-table__sort-dir adm-table__sort-dir--inactive">↕</span>;
     return <span className="adm-table__sort-dir">{sortDir === "asc" ? "↑" : "↓"}</span>;
@@ -174,7 +167,9 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
     if (teamFilter === "NONE" && m.teams.length > 0) return false;
     if (teamFilter !== "ALL" && teamFilter !== "ANY" && teamFilter !== "NONE" && !m.teams.some((t) => t.slug === teamFilter)) return false;
 
-    if (statusFilter !== "ALL" && m.memberStatus !== statusFilter) return false;
+    if (statusFilter === "DUPLICATE") {
+      if (!m.possibleDuplicate) return false;
+    } else if (statusFilter !== "ALL" && m.memberStatus !== statusFilter) return false;
 
     if (search) {
       const q = search.toLowerCase();
@@ -190,23 +185,21 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
   const sorted = sortMembers(filtered, sortField, sortDir);
   const archivedCount = members.filter((m) => m.archivedAt).length;
 
-  const displayName = (m: SerializedMember) => {
-    const full = `${m.firstName ?? ""} ${m.lastName ?? ""}`.trim();
-    if (!full) return "—";
-    if (m.preferredName && m.preferredName !== m.firstName) {
-      return `${full} (${m.preferredName})`;
-    }
-    return full;
-  };
-
   // A row says a person's state only when it isn't the usual one (an active,
   // claimed member), so the exceptions stand out instead of every row
   // repeating "Active".
   const memberState = (m: SerializedMember) => {
-    if (m.archivedAt) return "Archived";
-    if (m.isLegacyUnclaimed && !showLegacyPool) return "Unclaimed";
-    if (m.memberStatus !== "ACTIVE") return STATUS_LABELS[m.memberStatus] ?? m.memberStatus;
-    return null;
+    const notes = [
+      m.archivedAt
+        ? "Archived"
+        : m.isLegacyUnclaimed && !showLegacyPool
+          ? "Unclaimed"
+          : m.memberStatus !== "ACTIVE"
+            ? STATUS_LABELS[m.memberStatus] ?? m.memberStatus
+            : null,
+      m.possibleDuplicate ? "Possible second account" : null,
+    ].filter(Boolean);
+    return notes.length ? notes.join(" · ") : null;
   };
 
   const joinedDate = (iso: string) =>
@@ -264,6 +257,7 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
           <option value="STUDENT">Student</option>
           <option value="VOLUNTEER">Volunteer</option>
           <option value="INACTIVE">Inactive</option>
+          <option value="DUPLICATE">Possible second account</option>
         </select>
         <div className="adm-toolbar__right">
           <button type="button" className="adm-add-btn" onClick={openAdd}>
@@ -311,14 +305,21 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
             <thead>
               <tr>
                 <th>
-                  <button className="adm-table__sort-btn" onClick={() => handleSort("firstName")}>
-                    First name {sortIndicator("firstName")}
-                  </button>
-                </th>
-                <th>
-                  <button className="adm-table__sort-btn" onClick={() => handleSort("lastName")}>
-                    Last name {sortIndicator("lastName")}
-                  </button>
+                  {/* One Name column, sortable by first or last name. The
+                      hidden words carry the column's name and the sort state
+                      to screen readers; the arrows are visual. */}
+                  <span className="rim-sr-only">Name. </span>
+                  <span className="adm-table__sort-pair">
+                    <button className="adm-table__sort-btn" onClick={() => handleSort("firstName")}>
+                      First<span className="rim-sr-only"> name{sortState("firstName")}</span>
+                      <span aria-hidden="true">{sortIndicator("firstName")}</span>
+                    </button>
+                    <span className="adm-table__sort-sep" aria-hidden="true">/</span>
+                    <button className="adm-table__sort-btn" onClick={() => handleSort("lastName")}>
+                      Last<span className="rim-sr-only"> name{sortState("lastName")}</span>
+                      <span aria-hidden="true">{sortIndicator("lastName")}</span>
+                    </button>
+                  </span>
                 </th>
                 <th>
                   <button className="adm-table__sort-btn" onClick={() => handleSort("email")}>
@@ -350,13 +351,14 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
                   onKeyDown={(e) => e.key === "Enter" && router.push(`/admin/members/${m.id}`)}
                 >
                   <td className="adm-table__name">
-                    {m.firstName ?? "—"}
+                    {(sortField === "lastName"
+                      ? [m.lastName, m.firstName].filter(Boolean).join(", ")
+                      : [m.firstName, m.lastName].filter(Boolean).join(" ")) || "—"}
                     {m.preferredName && m.preferredName !== m.firstName && (
                       <span className="adm-table__preferred"> ({m.preferredName})</span>
                     )}
                     {memberState(m) && <span className="adm-member-state">{memberState(m)}</span>}
                   </td>
-                  <td>{m.lastName ?? "—"}</td>
                   <td className="adm-table__email">{m.email}</td>
                   <td className="adm-table__col--teams">
                     {m.teams.length > 0 && (

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import MemberDetail from "@/components/MemberDetail";
 import { type ViewerPermissions } from "@/lib/memberSectionRegistry";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
+import { possibleDuplicatesOf } from "@/lib/memberDuplicates";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function AdminMemberDetailPage({
   const { id } = await params;
 
   // Fetch viewer's sectionGrants alongside the member record
-  const [user, viewer] = await Promise.all([
+  const [user, viewer, possibleDuplicates] = await Promise.all([
     db.user.findUnique({
       where: { id },
       include: {
@@ -87,6 +88,7 @@ export default async function AdminMemberDetailPage({
       where: { id: session.user.id },
       select: { sectionGrants: true },
     }),
+    possibleDuplicatesOf(id),
   ]);
 
   if (!user) notFound();
@@ -135,6 +137,7 @@ export default async function AdminMemberDetailPage({
       : null,
     archivedAt: user.archivedAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
+    possibleDuplicates,
     registrations: user.registrations.map((r) => ({
       id: r.id,
       programTitle: r.programTitle,

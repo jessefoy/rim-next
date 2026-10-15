@@ -10,6 +10,8 @@ import RegistrationHistorySection from "@/components/member-sections/Registratio
 import DangerZoneSection from "@/components/member-sections/DangerZoneSection";
 import AccountAccessSection from "@/components/member-sections/AccountAccessSection";
 import HubMembershipSection from "@/components/member-sections/HubMembershipSection";
+import PossibleDuplicatesSection from "@/components/member-sections/PossibleDuplicatesSection";
+import type { DuplicateCandidate } from "@/lib/memberDuplicates";
 
 export type SerializedMember = {
   id: string;
@@ -40,6 +42,8 @@ export type SerializedMember = {
   } | null;
   archivedAt: string | null;
   createdAt: string;
+  /** Other accounts that may be the same person (lib/memberDuplicates.ts). */
+  possibleDuplicates: DuplicateCandidate[];
   registrations: {
     id: string;
     programTitle: string;
@@ -98,6 +102,12 @@ export type MemberSection = {
 
 // The section registry. Order here is display order on the page.
 export const MEMBER_SECTIONS: MemberSection[] = [
+  {
+    id: "possible-duplicates",
+    allowedRoles: ["ADMIN", "REGISTRAR"],
+    condition: (member) => member.possibleDuplicates.length > 0,
+    render: ({ member }) => <PossibleDuplicatesSection candidates={member.possibleDuplicates} />,
+  },
   {
     id: "core-record",
     allowedRoles: ["ADMIN", "REGISTRAR"],
