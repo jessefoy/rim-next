@@ -48,6 +48,24 @@ The tool was originally named "Host Schedule" when host-team was the only hub. R
 
 ---
 
+## Integrity audit, 2026-10-15 (Jesse: "we just duplicated and applied it to the other hubs")
+
+A five-part read-only audit (route gates and scoping; hard-coded team assumptions; duplicated logic; emails, My Home and team Home; production data). **Production data was clean** (70 upcoming assignments, 19 rotations: every row on a team that covers the program, in a format it serves, every person a member, no doubles). The defects were in code, mostly one class: a rule computed in two places, or checked only where the schedule is shown and not where it is changed.
+
+**Fixed the same day (`071afba`):** only a program's hosting team (`Program.hostingHubSlug ?? "host-team"`) hosts. Greeter and AV sign-ups never make someone the session's host, never open the room early on My Home, never get "Enter room" in the Scheduler, and aren't Zoom staff at the door (Jesse: AV uses the hall's own logged-in computer; greeters serve in person). "No host needed" clears only the hosting team's coverage.
+
+**Jesse's rulings (2026-10-15):**
+- **A hosting-team change clears the old team's future assignments and rotations** (what the save does); the editor's warning and this doc's "grandfather policy" are corrected to say so.
+- **Rotations on open sign-up teams are additive:** a rotation adds its person to the sign-up list and never replaces anyone; a conflict is only the same person already signed up.
+- **The daily rotation skips paused members.**
+- **My Home keeps Join until the door closes** (end + the late grace), matching `/enter`.
+
+**Step 1, broken today:** PATCH claim gated on the retired HOST role (volunteers can't retake a removed session; managers claim anywhere without membership); coverage emails format dates in UTC (evening sessions show the next day); month bounds in UTC (last-evening sessions show "needed"); cover links lack `month=` and `SubRequest.sessionDate` is never set; a coordinator's Remove on a rotation date is undone by the next cron; an empty greeter session renders as a single-slot row; greeters' emails mention subs, and the removal email says "reassigned" when nobody was; team Home's open-request count never clears and Updates name the wrong requester; the month route drops the NEW badge.
+
+**Step 2, structural:** one row builder for the page and the month route; one occurrence rule; one hosting-hub resolver; one eligibility check (`hub covers program`, format, archived, `hostingRequired` on primary) on every write and in the cron (rotations for removed coverage still fire today); shared authority helpers (claim, coordinator management, Reset for HOST_MANAGER); close apply/preview's cross-team reach and the unused all-teams `GET /sub-requests`; program start-time edits re-shift assignments; the rotation preview matches the engine.
+
+**Step 3, new teams by configuration:** `/admin/hubs` sets open sign-up and formats; coverage wording everywhere (dialogs, notices, members page); a checklist for adding a scheduling team (below, when written).
+
 ## Hub-scoping — every layer
 
 Per `RIM_Hub_Engineering.md`'s "four routing layers" model:
