@@ -161,7 +161,7 @@ Claim-Host code, no recording. The seat-conflict check (`lib/sessionConflicts.ts
 these programs out, and saving a program into an outside room tears down its future RIM
 meetings so the seats come free.
 
-Who gets in is three settings together, explained live in the editor's "Who can get in"
+Who gets in is three settings together, explained live in the editor's "Who can join, with these settings"
 readout: members through My Home (by Open entry or registration); the guest link
 (`isOpenAccess`), a RIM address to share; and **`outsideMeetingPublic`**, a Join button on the
 public program page for anyone without an account. That button goes **through the door**, so

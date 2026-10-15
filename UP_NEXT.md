@@ -6,7 +6,7 @@ Read first when opening RIM. Updated 2026-10-14 (night, closing ritual). Full hi
 
 Everything is on `main` (`6063bf5` … `41e305e`, `fedbecd`, the closing docs). Narrative: `session-log.md`, 2026-10-14 (evening), (later) and 2026-10-14.
 
-**Live from this evening: outside meeting rooms.** Program Manager → Hosting & Access → "Where it meets online": RIM's Zoom, or an outside link (`Program.outsideMeetingUrl`), with the public Join option and a "Who can get in" readout. The door keeps every gate and the window, then forwards; no seat, no host code. `RIM_Zoom.md` → "Outside rooms". **No program uses it yet.**
+**Live from this evening: outside meeting rooms.** Program Manager → Hosting & Access → "Where it meets online": RIM's Zoom, or an outside link (`Program.outsideMeetingUrl`), with the public Join option and a "Who can join, with these settings" summary. The door keeps every gate and the window, then forwards; no seat, no host code. `RIM_Zoom.md` → "Outside rooms". **No program uses it yet.**
 
 **Live from tonight: confirmation emails and links** (`734b16b`): the Confirmation Message help (how to add a link), "Map and directions" for another venue, one link tidy-up for every link box. **Waiting:** Jesse checks `registration-confirmation` in `/admin/emails` still holds `{{confirmationMessageHtml}}`, then sends LoriLee the four-page PDF (session scratchpad; his voice, read the note first); LoriLee adds Qigong's handout link and uses **Resend Confirmation** for earlier registrants; read-aloud of the two help lines and "Map and directions". Queued: `2026-10-14-006` (absolute links in program emails; check saved links).
 

@@ -1727,13 +1727,10 @@ export default function ProgramEditor({
               <fieldset className="pe-field">
                 <legend className="pe-field__label">Where it meets online</legend>
                 <span className="pe-field__help">
-                  Most programs meet in RIM&rsquo;s Zoom: RIM opens the meeting for
-                  each session and gives hosts the code to take host controls.
-                  Choose an outside meeting when the program meets in someone
-                  else&rsquo;s room, such as Recovery Dharma&rsquo;s or a
-                  facilitator&rsquo;s own Zoom. RIM then sends people to that
-                  link instead. It opens no meeting of its own, uses none of
-                  RIM&rsquo;s Zoom rooms, and shows no host code.
+                  Most programs meet in RIM&rsquo;s own Zoom. If this program
+                  meets in someone else&rsquo;s room, like Recovery
+                  Dharma&rsquo;s, choose an outside meeting link. The Join
+                  button will then take people to that link.
                 </span>
                 <div className="pe-option-cards">
                   {([
@@ -1759,8 +1756,8 @@ export default function ProgramEditor({
                   <div className="pe-field" style={{ marginTop: 16 }}>
                     <label htmlFor="pe-outside-url" className="pe-field__label">Meeting link</label>
                     <span className="pe-field__help" id="pe-outside-url-help">
-                      Paste the whole invite link, starting with https://. If the
-                      link carries a passcode, keep it, so people go straight in.
+                      Paste the full link, starting with https://. If it has a
+                      passcode in it, keep that part too.
                     </span>
                     <input
                       id="pe-outside-url"
@@ -1794,69 +1791,69 @@ export default function ProgramEditor({
                     </label>
                     <span className="pe-field__help" id="pe-outside-public-help">
                       {registrationEnabled
-                        ? "Not for a program that takes registrations: turn registration off on the Registration tab to use this."
-                        : "Adds a Join button to the program page that works without a RIM account. It goes through RIM, so it opens only around session times, and the link itself never appears on the page."}
+                        ? "This can\u2019t be used while the program takes registrations. Turn registration off on the Registration tab first."
+                        : "Puts a Join button on the public program page that works without signing in. It works only around session times, and the link itself stays hidden."}
                     </span>
                   </div>
                 )}
 
                 <div className="pe-readout" aria-live="polite" style={{ marginTop: 16 }}>
-                  <p className="pe-readout__title">Who can get in</p>
+                  <p className="pe-readout__title">Who can join, with these settings</p>
                   {roomChoice === "rim" ? (
                     <p className="pe-readout__row">
-                      RIM opens a Zoom meeting for each session. Members join
-                      from My Home; hosts and teachers also see the code to take
-                      host controls.
+                      RIM opens a Zoom meeting for each session. Hosts and
+                      teachers also get the code to take host controls.
                     </p>
                   ) : (
                     <p className="pe-readout__row">
-                      RIM sends everyone to the outside link: members, hosts and
-                      teachers alike. Whoever owns that room runs it.
+                      Everyone who presses Join goes to this link, hosts and
+                      teachers too. The person who runs that room is in charge
+                      of it.
                     </p>
                   )}
                   <p className="pe-readout__row">
                     <span className="pe-readout__place">Members: </span>
                     {openEntry
-                      ? "anyone signed in, with the Join button on My Home."
+                      ? "anyone signed in can join from My Home."
                       : registrationEnabled
-                        ? "registered members, with the Join button on My Home."
+                        ? "people who registered can join from My Home."
                         : publicJoinOn
-                          ? "anyone, with the Join button on the program page. (My Home shows it only with Open entry.)"
-                          : "only the people who staff it, until registration or Open entry is turned on (Registration tab)."}
+                          ? "anyone can join from the public program page. (My Home shows a Join button only when Open entry is on.)"
+                          : "no one yet, only hosts and teachers. Turn on registration or Open entry on the Registration tab."}
                   </p>
                   <p className="pe-readout__row">
-                    <span className="pe-readout__place">People without a RIM account: </span>
+                    <span className="pe-readout__place">Guests without a RIM account: </span>
                     {publicJoinOn
                       ? isOpenAccess
-                        ? "anyone, from the program page or the guest link (below)."
-                        : "anyone, from the program page."
+                        ? "anyone can join, from the public program page or with the guest link below."
+                        : "anyone can join from the public program page."
                       : isOpenAccess
-                        ? "anyone you give the guest link to (below)."
-                        : "no one, unless you turn on the guest link below."}
+                        ? "anyone you send the guest link (below) can join."
+                        : "no one. To let guests in, turn on the guest link below."}
                   </p>
                   {roomChoice === "outside" && (
                     <p className="pe-readout__row">
-                      <span className="pe-readout__place">Program page: </span>
+                      <span className="pe-readout__place">Public program page: </span>
                       {publicJoinOn
-                        ? "a Join button anyone may use."
+                        ? "shows a Join button anyone can use."
                         : registrationEnabled
-                          ? "the registration button; registered members join from My Home."
+                          ? "shows the Register button. People who register join from My Home."
                           : openEntry
-                            ? "no Join button; it sends members to My Home and visitors to sign in."
-                            : "no way in yet; it says registration isn\u2019t open."}
+                            ? "no Join button. It points members to My Home and visitors to sign in."
+                            : "no way to join yet. It says registration isn\u2019t open."}
                     </p>
                   )}
                   <p className="pe-readout__row pe-readout__row--meta">
-                    Every way in through RIM is open from {EARLY_OPEN_MIN} minutes
-                    before a session (My Home shows Join from {MEMBER_JOIN_MIN}{" "}
-                    minutes before) until {LATE_GRACE_MIN} minutes after it ends.
+                    Joining opens {EARLY_OPEN_MIN} minutes before each session
+                    (the Join button appears on My Home {MEMBER_JOIN_MIN}{" "}
+                    minutes before) and closes {LATE_GRACE_MIN} minutes after it ends.
                     {roomChoice === "outside" &&
-                      " Someone who already has the outside link itself can use it whenever its owner allows."}
+                      " Anyone who already has the outside link can still use it whenever the room\u2019s owner allows."}
                   </p>
                   {roomChoice === "outside" && !noHostNeeded && (
                     <p className="pe-readout__row pe-readout__row--meta">
-                      An outside room usually needs no RIM host. If so, check
-                      &ldquo;No host needed&rdquo; above.
+                      Outside rooms usually don&rsquo;t need a RIM host. If this
+                      one doesn&rsquo;t, check &ldquo;No host needed&rdquo; above.
                     </p>
                   )}
                 </div>
