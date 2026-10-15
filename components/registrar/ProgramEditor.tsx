@@ -1754,7 +1754,9 @@ export default function ProgramEditor({
                 </div>
 
                 {roomChoice === "outside" && (
-                  <div style={{ marginTop: 16 }}>
+                  // pe-field stacks the label above its help, as every other field does
+                  // ("Meeting link" ran into its help text inline).
+                  <div className="pe-field" style={{ marginTop: 16 }}>
                     <label htmlFor="pe-outside-url" className="pe-field__label">Meeting link</label>
                     <span className="pe-field__help" id="pe-outside-url-help">
                       Paste the whole invite link, starting with https://. If the
