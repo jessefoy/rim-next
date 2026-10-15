@@ -109,7 +109,7 @@ export default async function AdminMembersPage({
 
   return (
     <div className="adm-page">
-      <div className="adm-content">
+      <div className="adm-content adm-content--wide">
         <header className="adm-header ac-page-head">
           <div>
             <p className="lp-label">Admin</p>
