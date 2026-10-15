@@ -47,7 +47,7 @@ export default async function AdminMembersPage({
         ],
       };
 
-  const [users, legacyCount] = await Promise.all([
+  const [users, legacyCount, teams] = await Promise.all([
     db.user.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -64,6 +64,12 @@ export default async function AdminMembersPage({
         archivedAt: true,
         createdAt: true,
         isLegacyUnclaimed: true,
+        // The teams this person is on (archived teams left out), so the list
+        // shows team membership beside roles, which are system powers only.
+        hubMemberships: {
+          where: { hub: { status: "ACTIVE" } },
+          select: { isCoordinator: true, status: true, hub: { select: { slug: true, name: true } } },
+        },
         _count: {
           select: {
             registrations: { where: { status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } } },
@@ -72,6 +78,11 @@ export default async function AdminMembersPage({
       },
     }),
     db.user.count({ where: { isLegacyUnclaimed: true } }),
+    db.hub.findMany({
+      where: { status: "ACTIVE" },
+      select: { slug: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const members: SerializedMember[] = users.map((u) => ({
@@ -87,6 +98,9 @@ export default async function AdminMembersPage({
     archivedAt: u.archivedAt?.toISOString() ?? null,
     createdAt: u.createdAt.toISOString(),
     isLegacyUnclaimed: u.isLegacyUnclaimed,
+    teams: u.hubMemberships
+      .map((m) => ({ slug: m.hub.slug, name: m.hub.name, isCoordinator: m.isCoordinator, status: m.status }))
+      .sort((a, b) => Number(b.isCoordinator) - Number(a.isCoordinator) || a.name.localeCompare(b.name)),
     _count: u._count,
   }));
 
@@ -103,7 +117,7 @@ export default async function AdminMembersPage({
           </div>
         </header>
 
-        <MembersTable members={members} showLegacyPool={showLegacyPool} legacyCount={legacyCount} />
+        <MembersTable members={members} teams={teams} showLegacyPool={showLegacyPool} legacyCount={legacyCount} />
       </div>
     </div>
   );

@@ -4808,7 +4808,32 @@ h4 { font-size: var(--text-h4); }
 .adm-table__name { font-weight: 600; }
 .adm-table__email { color: var(--rim-text-muted); }
 
-.adm-table__col--roles { white-space: nowrap; }
+.adm-table__col--roles { min-width: 9em; }
+.adm-table__col--teams { min-width: 14em; }
+
+/* Members list (2026-10-15): a person's state, their teams and their roles.
+   Plain words in sentence case; status shows only when it isn't Active. */
+.adm-member-state {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-app-meta);
+  font-weight: 400;
+  color: var(--rim-text-muted);
+}
+.adm-member-teams { font-size: var(--text-app-meta); color: var(--rim-text); }
+.adm-member-teams__more { color: var(--rim-text-muted); }
+.adm-member-roles { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.adm-member-role {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+  font-size: var(--text-app-meta);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
 .adm-table__col--num { text-align: center; width: 100px; }
 .adm-table__col--date { white-space: nowrap; color: var(--rim-text-muted); width: 120px; }
 
@@ -4824,13 +4849,6 @@ h4 { font-size: var(--text-h4); }
   margin-right: 4px;
 }
 
-.adm-badge--admin     { background: var(--rim-blue); color: #fff; }
-.adm-badge--registrar { background: var(--rim-mid); color: #fff; }
-.adm-badge--treasurer { background: #3a7a6a; color: #fff; }
-.adm-badge--teacher   { background: #7a5a3a; color: #fff; }
-.adm-badge--volunteer { background: #5a5a7a; color: #fff; }
-.adm-badge--other     { background: var(--rim-rule); color: var(--rim-text); }
-.adm-badge--none      { color: var(--rim-rule); }
 /* Subtle outline badge for "Primary" contact label in household rows */
 .adm-badge--primary-contact {
   background: transparent;
@@ -5468,20 +5486,6 @@ h4 { font-size: var(--text-h4); }
 /* Archived member rows in table */
 .adm-member-row--archived td { color: var(--rim-text-muted); }
 
-/* Archived badge (inline in name) */
-.adm-badge--archived {
-  display: inline-block;
-  font-size: var(--text-app-meta);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  background: var(--rim-bg-accent);
-  color: var(--rim-text-muted);
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin-left: 8px;
-  vertical-align: middle;
-}
 
 /* Show archived toggle button */
 .adm-toggle-btn {
@@ -5557,26 +5561,6 @@ h4 { font-size: var(--text-h4); }
   font-size: var(--text-xs);
 }
 
-/* ── Member status badges ───────────────────────────── */
-.adm-status {
-  display: inline-block;
-  font-size: var(--text-app-meta);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 2px 7px;
-  border-radius: 3px;
-  margin-right: 4px;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-.adm-status--active    { background: #e8f5e9; color: #2e7d32; }
-.adm-status--inactive  { background: var(--rim-bg-accent); color: var(--rim-text-muted); }
-.adm-status--visitor   { background: #e3f2fd; color: #1565c0; }
-.adm-status--student   { background: #e0f2f1; color: #00695c; }
-.adm-status--volunteer { background: #fff3e0; color: #e65100; }
-.adm-status--unclaimed  { background: var(--rim-bg-accent); color: var(--rim-text-muted); }
 
 /* ── Form additions ─────────────────────────────────── */
 .adm-form__select {
@@ -30300,8 +30284,7 @@ html { scroll-padding-top: 88px; }
 }
 .admin-ui :is(.adm-search__input, .adm-form__input, .adm-form__select, .adm-form__textarea, .adm-hubs-input, .em-editor__input):focus { border-color: var(--rim-blue); outline: 2px solid var(--rim-blue); outline-offset: 2px; }
 /* Badges. */
-.admin-ui :is(.adm-badge, .adm-status, .adm-badge--archived, .em-list__badge, .hh-badge) { border-radius: 999px; }
-.admin-ui .adm-status--active { background: var(--color-success-bg); color: var(--color-success); }
+.admin-ui :is(.adm-badge, .em-list__badge, .hh-badge) { border-radius: 999px; }
 /* Buttons. */
 .admin-ui :is(.adm-btn--primary, .adm-btn--restore, .adm-hubs-btn-create, .adm-hubs-btn-save, .adm-hubs-btn-add, .em-editor__btn--primary, .hh-btn--primary, .adm2-btn--primary) {
   min-height: 48px;

@@ -16,24 +16,45 @@ export interface SerializedMember {
   archivedAt: string | null;
   createdAt: string;
   isLegacyUnclaimed: boolean;
+  /** Teams (active hubs) this person is on; coordinators first, then by name. */
+  teams: MemberTeam[];
   _count: { registrations: number };
 }
 
-type RoleFilter = "ALL" | "ADMIN" | "REGISTRAR" | "NOROLES";
+export interface MemberTeam {
+  slug: string;
+  name: string;
+  isCoordinator: boolean;
+  status: string;
+}
+
+type RoleFilter = "ALL" | "ADMIN" | "REGISTRAR" | "TEACHER" | "HOST_MANAGER" | "GUIDING_TEACHER" | "NOROLES";
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE" | "VISITOR" | "STUDENT" | "VOLUNTEER";
 type SortField = "firstName" | "lastName" | "email" | "createdAt" | "registrations";
 type SortDir = "asc" | "desc";
 
-const ROLE_COLORS: Record<string, string> = {
-  ADMIN: "adm-badge--admin",
-  REGISTRAR: "adm-badge--registrar",
-  HOST: "adm-badge--host",
-};
-
+// The system powers, in the words Roles & access uses. A role not listed here
+// (the retired HOST and SUPPORT) is residual data and is not shown.
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Admin",
+  GUIDING_TEACHER: "Guiding teacher",
   REGISTRAR: "Registrar",
-  HOST: "Host",
+  TEACHER: "Teacher",
+  HOST_MANAGER: "Scheduling manager",
+};
+const ROLE_ORDER = Object.keys(ROLE_LABELS);
+const shownRoles = (roles: string[]) =>
+  ROLE_ORDER.filter((r) => roles.includes(r));
+
+// Teams named in a row before the rest are summed up; the profile lists them all.
+const TEAMS_SHOWN = 3;
+
+const teamLabel = (t: MemberTeam) => {
+  const notes = [
+    t.isCoordinator ? "coordinator" : null,
+    t.status === "PAUSED" ? "paused" : t.status === "INACTIVE" ? "inactive" : null,
+  ].filter(Boolean);
+  return notes.length ? `${t.name} (${notes.join(", ")})` : t.name;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -46,6 +67,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 interface Props {
   members: SerializedMember[];
+  teams: { slug: string; name: string }[];
   showLegacyPool: boolean;
   legacyCount: number;
 }
@@ -78,10 +100,12 @@ function sortMembers(members: SerializedMember[], field: SortField, dir: SortDir
   });
 }
 
-export default function MembersTable({ members, showLegacyPool, legacyCount }: Props) {
+export default function MembersTable({ members, teams, showLegacyPool, legacyCount }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
+  // "ALL", "ANY" (on a team), "NONE" (on no team), or a team's slug.
+  const [teamFilter, setTeamFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [showArchived, setShowArchived] = useState(false);
   const [sortField, setSortField] = useState<SortField>("createdAt");
@@ -143,8 +167,12 @@ export default function MembersTable({ members, showLegacyPool, legacyCount }: P
     if (!showArchived && m.archivedAt) return false;
     if (showArchived && !m.archivedAt) return false;
 
-    if (roleFilter === "NOROLES" && m.roles.length > 0) return false;
+    if (roleFilter === "NOROLES" && shownRoles(m.roles).length > 0) return false;
     if (roleFilter !== "ALL" && roleFilter !== "NOROLES" && !m.roles.includes(roleFilter)) return false;
+
+    if (teamFilter === "ANY" && m.teams.length === 0) return false;
+    if (teamFilter === "NONE" && m.teams.length > 0) return false;
+    if (teamFilter !== "ALL" && teamFilter !== "ANY" && teamFilter !== "NONE" && !m.teams.some((t) => t.slug === teamFilter)) return false;
 
     if (statusFilter !== "ALL" && m.memberStatus !== statusFilter) return false;
 
@@ -153,7 +181,8 @@ export default function MembersTable({ members, showLegacyPool, legacyCount }: P
       const name = `${m.firstName ?? ""} ${m.lastName ?? ""} ${m.preferredName ?? ""}`.toLowerCase();
       const email = m.email.toLowerCase();
       const tags = m.tags.join(" ").toLowerCase();
-      if (!name.includes(q) && !email.includes(q) && !tags.includes(q)) return false;
+      const teamNames = m.teams.map((t) => t.name).join(" ").toLowerCase();
+      if (!name.includes(q) && !email.includes(q) && !tags.includes(q) && !teamNames.includes(q)) return false;
     }
     return true;
   });
@@ -170,6 +199,16 @@ export default function MembersTable({ members, showLegacyPool, legacyCount }: P
     return full;
   };
 
+  // A row says a person's state only when it isn't the usual one (an active,
+  // claimed member), so the exceptions stand out instead of every row
+  // repeating "Active".
+  const memberState = (m: SerializedMember) => {
+    if (m.archivedAt) return "Archived";
+    if (m.isLegacyUnclaimed && !showLegacyPool) return "Unclaimed";
+    if (m.memberStatus !== "ACTIVE") return STATUS_LABELS[m.memberStatus] ?? m.memberStatus;
+    return null;
+  };
+
   const joinedDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -180,23 +219,42 @@ export default function MembersTable({ members, showLegacyPool, legacyCount }: P
         <input
           type="search"
           className="adm-search__input"
-          placeholder="Search by name, email, or tag…"
+          placeholder="Search by name, email, team, or tag…"
+          aria-label="Search members"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           autoComplete="off"
         />
         <select
           className="adm-search__filter"
+          aria-label="Role"
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
         >
           <option value="ALL">All roles</option>
           <option value="ADMIN">Admins</option>
+          <option value="GUIDING_TEACHER">Guiding teachers</option>
           <option value="REGISTRAR">Registrars</option>
+          <option value="TEACHER">Teachers</option>
+          <option value="HOST_MANAGER">Scheduling managers</option>
           <option value="NOROLES">No roles</option>
         </select>
         <select
           className="adm-search__filter"
+          aria-label="Team"
+          value={teamFilter}
+          onChange={(e) => setTeamFilter(e.target.value)}
+        >
+          <option value="ALL">All teams</option>
+          <option value="ANY">On a team</option>
+          <option value="NONE">Not on a team</option>
+          {teams.map((t) => (
+            <option key={t.slug} value={t.slug}>{t.name}</option>
+          ))}
+        </select>
+        <select
+          className="adm-search__filter"
+          aria-label="Status"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
         >
@@ -267,6 +325,7 @@ export default function MembersTable({ members, showLegacyPool, legacyCount }: P
                     Email {sortIndicator("email")}
                   </button>
                 </th>
+                <th className="adm-table__col--teams">Teams</th>
                 <th className="adm-table__col--roles">Roles</th>
                 <th className="adm-table__col--num">
                   <button className="adm-table__sort-btn adm-table__sort-btn--center" onClick={() => handleSort("registrations")}>
@@ -295,23 +354,30 @@ export default function MembersTable({ members, showLegacyPool, legacyCount }: P
                     {m.preferredName && m.preferredName !== m.firstName && (
                       <span className="adm-table__preferred"> ({m.preferredName})</span>
                     )}
-                    {m.archivedAt && <span className="adm-badge--archived">Archived</span>}
+                    {memberState(m) && <span className="adm-member-state">{memberState(m)}</span>}
                   </td>
                   <td>{m.lastName ?? "—"}</td>
                   <td className="adm-table__email">{m.email}</td>
-                  <td className="adm-table__col--roles">
-                    {m.isLegacyUnclaimed ? (
-                      <span className="adm-status adm-status--unclaimed">Unclaimed</span>
-                    ) : (
-                      <span className={`adm-status adm-status--${m.memberStatus.toLowerCase()}`}>
-                        {STATUS_LABELS[m.memberStatus] ?? m.memberStatus}
+                  <td className="adm-table__col--teams">
+                    {m.teams.length > 0 && (
+                      <span className="adm-member-teams">
+                        {m.teams.slice(0, TEAMS_SHOWN).map(teamLabel).join(", ")}
+                        {m.teams.length > TEAMS_SHOWN && (
+                          <span className="adm-member-teams__more">
+                            {" "}and {m.teams.length - TEAMS_SHOWN} more
+                          </span>
+                        )}
                       </span>
                     )}
-                    {m.roles.map((r) => (
-                      <span key={r} className={`adm-badge ${ROLE_COLORS[r] ?? "adm-badge--other"}`}>
-                        {ROLE_LABELS[r] ?? r}
+                  </td>
+                  <td className="adm-table__col--roles">
+                    {shownRoles(m.roles).length > 0 && (
+                      <span className="adm-member-roles">
+                        {shownRoles(m.roles).map((r) => (
+                          <span key={r} className="adm-member-role">{ROLE_LABELS[r]}</span>
+                        ))}
                       </span>
-                    ))}
+                    )}
                   </td>
                   <td className="adm-table__col--num">{m._count.registrations}</td>
                   <td className="adm-table__col--date">{joinedDate(m.createdAt)}</td>
