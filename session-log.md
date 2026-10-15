@@ -37,6 +37,10 @@ Sign-in (`/login`, `/login/check-email`, the auth catch-all, `auth.ts` callbacks
 
 *"I think the text seems good. I like the way that it works."* (2026-10-15, after the summary of the moved-address notice, the profile note, the merge panel and the email.) The full `accounts-merged` body and the panel's longer lines were summarized in chat, not read aloud line by line.
 
+### Follow-up the same day: "there" was unclear (`14bceae`)
+
+LoriLee tested the changed-email page and asked: *"Send my code 'there': does this mean the old email or new email?"* Jesse: *"This should be more clear. And be sure that the formatting conforms to our website styles."* The message moved into the hero, the way the code page's hero says where a code went ("Your sign-in email has changed" / "You typed your old email, … Your account now uses your new email, j•••@… Please sign in with your new email from now on."), the button became **Send code to my new email**, and the code page says "to your new email". The notice boxed inside the form card (a bordered box in a bordered card) is gone. Rule recorded in `RIM_Auth.md`: name "old" and "new" every time, never "there". Measured live at 1280 and 375 (no overflow; the button wraps to two lines on a phone, as the button standard allows below 560px). The style script's one flag ("my" in the button) is the reader's own voice and stays.
+
 ### What comes next
 
 A signed-in look at the Members list and a profile with real data; the first real merge is the end-to-end proof (the old site's quiet pool holds 34 likely pairs, inert; merge them or leave them). Ideas not built: merging two accounts the rules don't match (a nickname, a changed surname) by typing the other address. A follow-up for the teams sign-in note: duplicates can now be seen before adding people.
