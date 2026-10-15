@@ -165,6 +165,7 @@ export async function GET(request: Request) {
         programFormat: true, startDatetime: true, endDatetime: true,
         recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
         livekitRoom: true,
+        hostingHubSlug: true,
       },
       orderBy: { sortOrder: "asc" },
     }),
@@ -248,6 +249,8 @@ export async function GET(request: Request) {
           subRequestId: null, subMessage: null,
           programFormat: p.programFormat ?? null, programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
+          // Same rule as the page loader: only the hosting team enters the room.
+          opensRoom: (p.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG) === requestedHubSlug,
           standingAssignmentId: null,
           hostBadge: null,
         });
@@ -272,6 +275,8 @@ export async function GET(request: Request) {
           subRequestId: null, subMessage: null,
           programFormat: p.programFormat ?? null, programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
+          // Same rule as the page loader: only the hosting team enters the room.
+          opensRoom: (p.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG) === requestedHubSlug,
           standingAssignmentId: first?.standingAssignmentId ?? null,
           hostBadge: null,
         });
@@ -293,6 +298,8 @@ export async function GET(request: Request) {
         subRequestId: openSub?.id ?? null, subMessage: openSub?.message ?? null,
         programFormat: p.programFormat ?? null, programId: p.id,
         livekitRoom: p.livekitRoom ?? null,
+        // Same rule as the page loader: only the hosting team enters the room.
+        opensRoom: (p.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG) === requestedHubSlug,
         standingAssignmentId: a.standingAssignmentId ?? null,
         hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
       });

@@ -224,8 +224,12 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   html=await dashboardHtml();
   check(html.includes('Join on Zoom'),false,'members cannot join during host-only setup');
   check(html.includes('Opens at'),true,'later session explains availability');
-  assignments=[{programSlug:'morning',sessionDate:new Date('2026-09-21T16:00:00Z')}];
+  assignments=[{programSlug:'morning',sessionDate:new Date('2026-09-21T16:00:00Z'),hubSlug:'host-team'}];
   html=await dashboardHtml();check(html.includes('Enter Zoom as host'),true,'host early-entry preserved');
+  // A greeter or AV sign-up is not hosting (2026-10-15): no early entry from another team.
+  assignments=[{programSlug:'morning',sessionDate:new Date('2026-09-21T16:00:00Z'),hubSlug:'greeter'}];
+  html=await dashboardHtml();check(html.includes('Enter Zoom as host'),false,'a greeter sign-up does not open the room early');
+  check(html.includes('Opens at'),true,'a greeter sees the session as a member does (opens at the member time)');
   assignments=[];now='2026-09-21T15:55:00Z';
   programs[0].category.kind='CLASS';programs[0].registrationEnabled=true;
   html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'registration-required offering hidden from nonregistrant');

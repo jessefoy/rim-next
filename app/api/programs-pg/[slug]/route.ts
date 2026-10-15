@@ -357,9 +357,12 @@ export async function PUT(
   // Flip to "No host needed" (true→false): the program no longer carries
   // coverage, so its FUTURE assignments + rotations must be cleared too —
   // otherwise grandfathered rows surface as ghosts (a host's "open early as
-  // host" on the dashboard, the cross-hub staffing view). Self-led clears
-  // EVERY hub's future coverage; a plain hub transfer only clears the old
-  // hub's. Past rows stay as history. Only fires on the true→false edge.
+  // host" on the dashboard, the cross-hub staffing view). Both a flip to
+  // self-led and a hub transfer clear only the (old) HOSTING team's coverage:
+  // "No host needed" concerns the host alone, and greeter / AV sign-ups stay,
+  // since those teams still staff the program (RIM_Scheduler.md; 2026-10-15,
+  // it had cleared every team's). Past rows stay as history. Self-led fires
+  // only on the true→false edge.
   const becameSelfLed =
     data.hostingRequired === false && existing.hostingRequired === true;
 
@@ -379,11 +382,9 @@ export async function PUT(
       // ("standing") rows — the dashboard treats null as "today," so leaving
       // them would re-surface a ghost "open early as host." Past-dated rows
       // (concrete history) stay.
-      ? { programSlug: slug, OR: [{ sessionDate: null }, { sessionDate: { gte: futureCutoff } }] }
+      ? { programSlug: slug, hubSlug: oldHubSlug, OR: [{ sessionDate: null }, { sessionDate: { gte: futureCutoff } }] }
       : { programSlug: slug, hubSlug: oldHubSlug, sessionDate: { gte: futureCutoff } };
-    const standingWhere = becameSelfLed
-      ? { programSlug: slug }
-      : { programSlug: slug, hubSlug: oldHubSlug };
+    const standingWhere = { programSlug: slug, hubSlug: oldHubSlug };
 
     updated = await db.$transaction(async (tx) => {
       const futureAssns = await tx.hostAssignment.findMany({
@@ -412,7 +413,7 @@ export async function PUT(
     console.log(becameSelfLed ? "[program-self-led]" : "[program-transfer]", {
       programSlug: slug,
       ...(becameSelfLed
-        ? { clearedAllHubs: true, message: "future HostAssignments + rotations cleared (No host needed)" }
+        ? { clearedHub: oldHubSlug, message: "the hosting team's future HostAssignments + rotations cleared (No host needed); greeter/AV kept" }
         : { from: oldHubSlug, to: newHubSlug, message: "orphan rules + future HostAssignments purged on old hub" }),
     });
   } else {

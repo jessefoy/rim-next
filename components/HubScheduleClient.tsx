@@ -59,6 +59,9 @@ interface Session {
   subMessage: any;
   programFormat: string | null;
   livekitRoom?: string | null;
+  /** True only on the hosting team's rows: the one team that enters the
+   *  online room. Greeter and AV rows offer no "Enter room" (2026-10-15). */
+  opensRoom?: boolean;
   /** ISO timestamp when the program was created. Drives the NEW badge. */
   programCreatedAt?: string | null;
   /** If non-null, this assignment was created by a standing rotation rule. */
@@ -529,6 +532,7 @@ function HsRow({
   // Evaluated at render — matches the NEW badge.
   const isRoomLiveNow = (() => {
     if (isPast) return false;
+    if (!session.opensRoom) return false;
     if (session.programFormat !== "virtual" && session.programFormat !== "hybrid") return false;
     if (!session.sessionDate) return false;
     const start = new Date(session.sessionDate).getTime();

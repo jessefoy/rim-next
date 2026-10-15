@@ -97,9 +97,12 @@ export default async function EditProgramToolPage({
   // assignments are about to grandfather so the coordinator's decision is
   // informed. Standing rotations live in a separate table and aren't part
   // of this count — they ride forward on the new hub automatically.
+  // Only the current hosting team's assignments move with a hosting-team
+  // change; greeter and AV sign-ups belong to their own teams.
   const futureHostAssignmentCount = await db.hostAssignment.count({
     where: {
       programSlug,
+      hubSlug: program.hostingHubSlug ?? "host-team",
       sessionDate: { gte: new Date() },
     },
   });

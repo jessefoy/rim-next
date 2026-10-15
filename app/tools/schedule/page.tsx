@@ -162,7 +162,7 @@ export default async function ScheduleToolPage({
         id: true, name: true, slug: true,
         programFormat: true, startDatetime: true, endDatetime: true,
         recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
-        livekitRoom: true, createdAt: true,
+        livekitRoom: true, createdAt: true, hostingHubSlug: true,
       },
       orderBy: { sortOrder: "asc" },
     }),
@@ -247,6 +247,10 @@ export default async function ScheduleToolPage({
     programFormat: string | null;
     programId: string | null;
     livekitRoom: string | null;
+    /** The active team runs this session online (its hosting team), so the
+     *  row may offer "Enter room". Greeter and AV rows never do: AV uses the
+     *  hall's own computer and greeters serve in person (Jesse, 2026-10-15). */
+    opensRoom: boolean;
     /** ISO string of the program's createdAt — drives the "NEW" badge on cards. */
     programCreatedAt: string | null;
     /** If non-null, this assignment was created by a standing rotation. */
@@ -301,6 +305,8 @@ export default async function ScheduleToolPage({
           programFormat: p.programFormat ?? null,
           programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
+          // Only the team that runs the session online enters its room (2026-10-15).
+          opensRoom: (p.hostingHubSlug ?? "host-team") === activeHubSlug,
           programCreatedAt: p.createdAt?.toISOString() ?? null,
           standingAssignmentId: null,
           hostBadge: null,
@@ -336,6 +342,8 @@ export default async function ScheduleToolPage({
           programFormat: p.programFormat ?? null,
           programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
+          // Only the team that runs the session online enters its room (2026-10-15).
+          opensRoom: (p.hostingHubSlug ?? "host-team") === activeHubSlug,
           programCreatedAt: p.createdAt?.toISOString() ?? null,
           standingAssignmentId: first?.standingAssignmentId ?? null,
           hostBadge: null,
@@ -366,6 +374,7 @@ export default async function ScheduleToolPage({
         programFormat: p.programFormat ?? null,
         programId: p.id,
         livekitRoom: p.livekitRoom ?? null,
+        opensRoom: (p.hostingHubSlug ?? "host-team") === activeHubSlug,
         programCreatedAt: p.createdAt?.toISOString() ?? null,
         standingAssignmentId: a.standingAssignmentId ?? null,
         hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,

@@ -125,13 +125,19 @@ export async function resolveSessionRole(
       : await getProgramHostingHub(programSlug);
   const hostingHubSlug = programHub?.hubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
 
-  // ── Session Host (identity): HostAssignment match for this exact session.
+  // ── Session Host (identity): HostAssignment match for this exact session,
+  // in the program's HOSTING team only. Greeter and AV assignments cover the
+  // hall, not the online room: they never make someone the session's host
+  // (a greeter on a hybrid program was shown the Claim-Host code; Jesse,
+  // 2026-10-15: AV uses the hall's own logged-in computer and greeters serve
+  // in person, so neither needs anything from Zoom).
   // No role-based bypass — identity is who was assigned, not who has authority.
   // Capability for ADMIN/GT is handled below via hasEndAllAuthority.
   const myAssignment = await db.hostAssignment.findFirst({
     where: {
       programSlug,
       userId,
+      hubSlug: hostingHubSlug,
       ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
     },
     select: { id: true },
@@ -197,9 +203,13 @@ export async function resolveSessionRole(
   // without needing a Step-In first.
   let teacherIsFallbackHost = false;
   if (isProgramTeacher && !isSessionHost) {
+    // Only a host from the hosting team counts: a greeter or AV sign-up
+    // doesn't take the room off a teacher leading alone.
     const anyHostAssigned = await db.hostAssignment.findFirst({
       where: {
         programSlug,
+        hubSlug: hostingHubSlug,
+        userId: { not: null },
         ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
       },
       select: { id: true },

@@ -217,11 +217,13 @@ export default async function ZoomEnterPage({
     // A registration-required class, event, or retreat is for its
     // registrants. My Home only offers them Join, and this door agrees:
     // a program with open entry admits any member, and so does the
-    // program's open-access link. The people who staff the session always
-    // get in, using the same reach My Home and the Scheduler give them: a
-    // host assignment for this day (any team, including standing ones), or
-    // active membership in the hosting team or a team covering the program
-    // (AV, greeters).
+    // program's open-access link. The people who run the session online
+    // always get in, using the same reach My Home and the Scheduler give
+    // them: the HOSTING team only, by an assignment for this day (including
+    // standing ones) or active membership. Greeter and AV teams serve the
+    // hall and need nothing from Zoom (Jesse, 2026-10-15: AV uses the hall's
+    // own logged-in computer; greeters serve in person); they enter like any
+    // member (registration or open entry).
     if (
       userId &&
       !canHostHere &&
@@ -230,7 +232,7 @@ export default async function ZoomEnterPage({
       !hasOpenEntry(program)
     ) {
       const occurrenceDay = ctDateStr(sessionDateIso);
-      const [registration, assignments, coverage] = await Promise.all([
+      const [registration, assignments] = await Promise.all([
         db.registration.findFirst({
           where: {
             userId,
@@ -241,18 +243,14 @@ export default async function ZoomEnterPage({
           select: { id: true },
         }),
         db.hostAssignment.findMany({
-          where: { userId, programSlug: slug },
+          where: { userId, programSlug: slug, hubSlug: program.hostingHubSlug ?? "host-team" },
           select: { sessionDate: true },
-        }),
-        db.programCoverageHub.findMany({
-          where: { programSlug: slug },
-          select: { hubSlug: true },
         }),
       ]);
       const assignedToday = assignments.some(
         (a) => !a.sessionDate || ctDateStr(a.sessionDate.toISOString()) === occurrenceDay,
       );
-      const staffHubs = [program.hostingHubSlug ?? "host-team", ...coverage.map((c) => c.hubSlug)];
+      const staffHubs = [program.hostingHubSlug ?? "host-team"];
       const onStaffTeam =
         !registration && !assignedToday
           ? !!(await db.hubMember.findFirst({

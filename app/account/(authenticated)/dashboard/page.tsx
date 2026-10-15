@@ -89,7 +89,7 @@ export default async function DashboardPage({ searchParams }: {
           ],
         },
         select: {
-          id: true, name: true, slug: true,
+          id: true, name: true, slug: true, hostingHubSlug: true,
           startDatetime: true, endDatetime: true,
           recurrenceFreq: true, recurrenceInterval: true,
           recurrenceDays: true, recurrenceCount: true,
@@ -155,7 +155,7 @@ export default async function DashboardPage({ searchParams }: {
   const [myHostAssignments, myTeacherPrograms] = await Promise.all([
     db.hostAssignment.findMany({
       where: { userId, programSlug: { in: todayProgramSlugs } },
-      select: { programSlug: true, sessionDate: true },
+      select: { programSlug: true, sessionDate: true, hubSlug: true },
     }),
     db.programTeacher.findMany({
       where: { userId, programId: { in: todayProgramIds } },
@@ -165,8 +165,13 @@ export default async function DashboardPage({ searchParams }: {
   // A host matches today's occurrence if either the assignment's sessionDate
   // is set to today (the normal per-occurrence case) OR sessionDate is null
   // (a legacy "standing" assignment — covers every occurrence).
+  // Hosting means the program's HOSTING team: a greeter or AV sign-up is not
+  // hosting, so it neither opens the room early nor puts the session in Today
+  // (Jesse, 2026-10-15; greeters were shown "Open early as host").
+  const hostingHubBySlug = new Map(todaySessionsRaw.map((p) => [p.slug, p.hostingHubSlug ?? "host-team"]));
   const hostedSlugsToday = new Set(
     myHostAssignments
+      .filter((a) => a.hubSlug === hostingHubBySlug.get(a.programSlug))
       .filter((a) => !a.sessionDate || ctDateStr(a.sessionDate.toISOString()) === today)
       .map((a) => a.programSlug),
   );
