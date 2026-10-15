@@ -2,7 +2,15 @@
 
 Read first when opening RIM. Updated 2026-10-14 (late night, closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-14 closed: outside meeting rooms live; LoriLee's review ruled and live; every email in one look
+## Active — 2026-10-15: duplicate accounts (LoriLee's report)
+
+**Cause of "Silvia couldn't see her teams":** two accounts. Her teams were on `scpasquini09@icloud.com`; on 2026-10-15 she first signed in with `silviapasquini@rootedinmindfulness.org`, an unclaimed legacy-import account, which became a live account with no teams (LoriLee then added the same three). A read-only check of everyone on a team or holding a role found three people with two accounts by name: Silvia, LoriLee, Jesse.
+
+**Done (production, Jesse-approved 2026-10-15; snapshot, drift check, one transaction, whole-table diff of users, registrations, sessions):** LoriLee is one account at `lorilee@rootedinmindfulness.org`: her real account (id `cmmcq8kzi0000scmbggs2sh8g`, Admin and Registrar, 12 teams) took that address; the empty legacy account that held it was deleted (nothing pointed to it); member-since carried over as 2022-08-19; her 6 sessions ended (she signs in again with the RIM address); her 5 current registrations moved to the new address, the 3 past ones keep the Gmail. Her Gmail may still be a Flodesk subscriber (her call).
+
+**Waiting on Jesse:** Silvia (keep the RIM address and remove the iCloud account, after checking what's attached); his own two accounts (already below); the proposed registry changes: a Teams column and team filter on `/admin/members`, roles in plain words (no raw `HOST_MANAGER`, the retired `SUPPORT` hidden), status out of the Roles column, labels that wrap; and a "another account has this name" note on the member profile. The lasting fix is self-service email change (`2026-10-12-003`).
+
+## Earlier — 2026-10-14 closed: outside meeting rooms live; LoriLee's review ruled and live; every email in one look
 
 Everything is on `main` (`6063bf5` … `41e305e`, `fedbecd`, the closing docs). Narrative: `session-log.md`, 2026-10-14 (evening), (later) and 2026-10-14.
 
