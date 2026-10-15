@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import stripe from "@/lib/stripe";
 import { db } from "@/lib/db";
+import { accountForFormerEmail } from "@/lib/formerEmail";
 import type Stripe from "stripe";
 import { EnrollmentSource } from "@prisma/client";
 import {
@@ -208,6 +209,11 @@ async function handleRegistrationDanaCompleted(
   let userId = reg.userId;
   if (!userId) {
     let user = await db.user.findUnique({ where: { email: reg.email } });
+    if (!user) {
+      // A former sign-in address links to the account that used it.
+      const moved = await accountForFormerEmail(reg.email);
+      if (moved) user = await db.user.findUnique({ where: { id: moved.id } });
+    }
     if (!user) {
       user = await db.user.create({
         data: {

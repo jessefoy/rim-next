@@ -66,6 +66,13 @@ export default function JoinForm({ defaultEmail = "" }: JoinFormProps) {
         throw new Error(data?.error ?? "Something went wrong. Please try again.");
       }
 
+      // An address this person's account used to sign in with: /login says
+      // which address it uses now and sends the code there in one press.
+      if (data.moved) {
+        router.push(`/login?moved=1&email=${encodeURIComponent(email.trim())}`);
+        return;
+      }
+
       // Returning member detected — gently route to /login instead.
       if (data.alreadyMember) {
         router.push(`/login?email=${encodeURIComponent(email.trim())}`);

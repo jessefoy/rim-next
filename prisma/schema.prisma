@@ -137,8 +137,27 @@ model User {
   toolAccessGranted    UserToolAccess[]      @relation("ToolAccessGranter")
   standingAssignments        StandingAssignment[] @relation("StandingAssignmentHost")
   standingAssignmentsCreated StandingAssignment[] @relation("StandingAssignmentCreator")
+  formerEmails               FormerEmail[]
 
   @@map("users")
+}
+
+// An address an account used to sign in with (2026-10-15). Written when an
+// admin changes a member's email or two accounts are merged, so RIM still
+// recognizes the old address: sign-in shows the current one and sends the
+// code there; join, registration and the import never make a second account
+// from it. A current address always wins (an address in use is released).
+model FormerEmail {
+  id          String   @id @default(cuid())
+  email       String   @unique // lowercased
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason      String // "changed" | "merged"
+  createdById String? // the admin who made the change
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@map("former_emails")
 }
 
 enum Role {

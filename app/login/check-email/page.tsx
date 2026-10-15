@@ -2,6 +2,8 @@ import { signIn } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import SignInCodeForm from "@/components/login/SignInCodeForm";
+import { accountForFormerEmail, maskEmail } from "@/lib/formerEmail";
+import { codeSendAllowed } from "@/lib/authRateLimits";
 
 // no-referrer: this page can carry a sign-in code in its URL (?code=), which
 // must not travel to third-party requests (fonts, images) as a Referer.
@@ -34,9 +36,9 @@ function isInPostJoinWindow(
 export default async function CheckEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; resent?: string; code?: string }>;
+  searchParams: Promise<{ email?: string; resent?: string; code?: string; moved?: string }>;
 }) {
-  const { email, resent, code } = await searchParams;
+  const { email, resent, code, moved } = await searchParams;
   // Arrives from the email's "Sign me in from this device" button. Only a
   // well-formed six-digit code pre-fills the form; the member still taps
   // Sign in, so opening the link alone never uses the code up.
@@ -53,9 +55,17 @@ export default async function CheckEmailPage({
   // doesn't rely on query params surviving reloads or resends, so the
   // post-/join warmth persists through "send a new code" as long as the
   // user is still inside the 5-minute window.
+  // Arrived from /login's moved-address button: `email` is the old address
+  // the person typed, and the code went to the account's current address.
+  // That address is named only masked (lib/formerEmail.ts); the code form
+  // keeps the old one, and the code check maps it back on the server.
+  const movedAccount =
+    moved === "1" ? await accountForFormerEmail(email).catch(() => null) : null;
+  const sentTo = movedAccount ? maskEmail(movedAccount.email) : email;
+
   const user = await db.user
     .findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: (movedAccount?.email ?? email).toLowerCase() },
       select: { firstName: true, agreedAt: true, emailVerified: true },
     })
     .catch(() => null);
@@ -73,16 +83,39 @@ export default async function CheckEmailPage({
 
   async function resendCode(formData: FormData) {
     "use server";
-    const e = (formData.get("email") as string | null)?.trim();
+    const e = (formData.get("email") as string | null)?.trim().toLowerCase();
     if (!e) {
       redirect("/login");
+    }
+    // Send only to an account's current address: an old address resends to
+    // the address it moved to, and an address with no account goes back to
+    // sign-in. Fail-safe on a database error, as on /login.
+    let current: { id: string } | null = null;
+    let movedTo: { email: string } | null = null;
+    let lookupFailed = false;
+    try {
+      current = await db.user.findUnique({ where: { email: e }, select: { id: true } });
+      if (!current) movedTo = await accountForFormerEmail(e);
+    } catch (err) {
+      console.error("[check-email] Account lookup failed", err);
+      lookupFailed = true;
+    }
+    let sendTo = e;
+    let former: string | null = null;
+    if (!current && !lookupFailed) {
+      if (!movedTo) redirect(`/login?notMember=1&email=${encodeURIComponent(e)}`);
+      sendTo = movedTo.email;
+      former = e;
+    }
+    if (!(await codeSendAllowed(sendTo))) {
+      redirect("/login/error?error=RateLimit");
     }
     // Same redirect-handling pattern as /login: signIn with redirect:false
     // does not throw on email-send failure but returns an error URL.
     let signInResult: string | undefined;
     let signInThrew = false;
     try {
-      signInResult = await signIn("resend", { email: e, redirect: false });
+      signInResult = await signIn("resend", { email: sendTo, redirect: false });
     } catch {
       signInThrew = true;
     }
@@ -93,7 +126,11 @@ export default async function CheckEmailPage({
     if (sendFailed) {
       redirect("/login?error=send-failed");
     }
-    redirect(`/login/check-email?email=${encodeURIComponent(e!)}&resent=1`);
+    redirect(
+      former
+        ? `/login/check-email?email=${encodeURIComponent(former)}&moved=1&resent=1`
+        : `/login/check-email?email=${encodeURIComponent(e)}&resent=1`,
+    );
   }
 
   return (
@@ -116,7 +153,7 @@ export default async function CheckEmailPage({
             {prefilledCode ? (
               <>
                 We&apos;ve filled in the code we sent to{" "}
-                <strong className="lg-email">{email}</strong>. Sign in to continue.
+                <strong className="lg-email">{sentTo}</strong>. Sign in to continue.
               </>
             ) : isFromJoin ? (
               <>
@@ -126,7 +163,7 @@ export default async function CheckEmailPage({
               </>
             ) : (
               <>
-                We sent a 6-digit code to <strong className="lg-email">{email}</strong>. It
+                We sent a 6-digit code to <strong className="lg-email">{sentTo}</strong>. It
                 expires in 30 minutes.
               </>
             )}

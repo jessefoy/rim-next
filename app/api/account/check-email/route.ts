@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { accountForFormerEmail } from "@/lib/formerEmail";
 
 // GET /api/account/check-email?email=X
 // Public — no auth required.
@@ -18,10 +19,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ exists: false });
   }
 
-  const user = await db.user.findUnique({
-    where: { email },
-    select: { firstName: true, lastName: true, phone: true, agreedToTerms: true },
-  });
+  const select = { firstName: true, lastName: true, phone: true, agreedToTerms: true } as const;
+  let user = await db.user.findUnique({ where: { email }, select });
+  if (!user) {
+    // A former sign-in address answers for the account that used it.
+    const moved = await accountForFormerEmail(email);
+    if (moved) user = await db.user.findUnique({ where: { id: moved.id }, select });
+  }
 
   if (!user) {
     // Same response shape + timing whether user exists or not (anti-enumeration)

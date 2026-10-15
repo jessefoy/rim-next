@@ -1,18 +1,60 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { accountForFormerEmail, maskEmail } from "@/lib/formerEmail";
+import { codeSendAllowed } from "@/lib/authRateLimits";
 
 export const metadata = { title: "Sign in - Rooted In Mindfulness" };
+
+/**
+ * Send a sign-in code to `email` and continue to the code page. Shared by the
+ * sign-in form and the moved-address button, which passes `former` (the old
+ * address typed): the code page then names the current address only masked,
+ * and the code check maps the old address back to it on the server.
+ * redirect() throws NEXT_REDIRECT, so it never sits inside the try/catch.
+ */
+async function sendCodeAndContinue(email: string, former?: string): Promise<never> {
+  if (!(await codeSendAllowed(email))) {
+    redirect("/login/error?error=RateLimit");
+  }
+
+  // signIn with redirect:false does NOT throw on email-send failure; it
+  // returns an error-page URL string. Detect that case by parsing the
+  // returned URL's error query param. (It CAN still throw on DB/network
+  // failure, so it's wrapped separately.)
+  let signInResult: string | undefined;
+  let signInThrew = false;
+  try {
+    signInResult = await signIn("resend", { email, redirect: false });
+  } catch {
+    signInThrew = true;
+  }
+
+  const sendFailed =
+    signInThrew ||
+    !signInResult ||
+    (typeof signInResult === "string" && /[?&]error=/.test(signInResult));
+
+  if (sendFailed) {
+    redirect("/login?error=send-failed");
+  }
+  // The code page needs the email to construct the verification URL.
+  redirect(
+    former
+      ? `/login/check-email?email=${encodeURIComponent(former)}&moved=1`
+      : `/login/check-email?email=${encodeURIComponent(email)}`,
+  );
+}
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; email?: string; notMember?: string }>;
+  searchParams: Promise<{ error?: string; email?: string; notMember?: string; moved?: string }>;
 }) {
   const session = await auth();
   if (session) redirect("/account/dashboard");
 
-  const { error, email: prefillEmailRaw, notMember } = await searchParams;
+  const { error, email: prefillEmailRaw, notMember, moved } = await searchParams;
   const errorMessage =
     error === "send-failed"
       ? "We couldn't send the code. Please check your email address and try again."
@@ -31,6 +73,19 @@ export default async function LoginPage({
       : "";
 
   const isNotMember = notMember === "1";
+
+  // An address this account used to sign in with (lib/formerEmail.ts): say
+  // which address it uses now, and let one button send the code there.
+  // Re-resolved here, so a stale link falls back to the plain form.
+  let movedTo: string | null = null;
+  if (moved === "1" && prefillEmail) {
+    try {
+      const account = await accountForFormerEmail(prefillEmail);
+      movedTo = account ? maskEmail(account.email) : null;
+    } catch (err) {
+      console.error("[login] Former address lookup failed", err);
+    }
+  }
 
   async function handleSignIn(formData: FormData) {
     "use server";
@@ -68,36 +123,38 @@ export default async function LoginPage({
       lookupFailed = true;
     }
     if (!existing && !lookupFailed) {
+      // Not a current address. If it's one an account used to sign in with,
+      // show which address it uses now instead of sending them to /join.
+      let movedAccount: { email: string } | null = null;
+      try {
+        movedAccount = await accountForFormerEmail(email!);
+      } catch (err) {
+        console.error("[login] Former address lookup failed", err);
+      }
+      if (movedAccount) {
+        redirect(`/login?moved=1&email=${encodeURIComponent(email!)}`);
+      }
       redirect(`/login?notMember=1&email=${encodeURIComponent(email!)}`);
     }
 
-    // redirect:false so we land here after the email send attempt, then route
-    // manually to /login/check-email with the email in the query string. The
-    // check-email page needs the email to construct the verification URL
-    // when the user submits the 6-digit code.
-    //
-    // signIn with redirect:false does NOT throw on email-send failure — it
-    // returns an error-page URL string. Detect that case by parsing the
-    // returned URL's error query param. (Wrap signIn in try/catch separately
-    // because it CAN still throw on DB/network failure, and redirect() must
-    // never live inside try/catch since it throws NEXT_REDIRECT internally.)
-    let signInResult: string | undefined;
-    let signInThrew = false;
+    await sendCodeAndContinue(email!);
+  }
+
+  // The moved-address button. The current address is looked up again on the
+  // server from the old one, never taken from the form, and never shown whole.
+  async function handleSendToCurrent(formData: FormData) {
+    "use server";
+    const former = (formData.get("former") as string | null)?.trim().toLowerCase();
+    if (!former) redirect("/login");
+    let account: { email: string } | null = null;
     try {
-      signInResult = await signIn("resend", { email: email!, redirect: false });
-    } catch {
-      signInThrew = true;
-    }
-
-    const sendFailed =
-      signInThrew ||
-      !signInResult ||
-      (typeof signInResult === "string" && /[?&]error=/.test(signInResult));
-
-    if (sendFailed) {
+      account = await accountForFormerEmail(former);
+    } catch (err) {
+      console.error("[login] Former address lookup failed", err);
       redirect("/login?error=send-failed");
     }
-    redirect(`/login/check-email?email=${encodeURIComponent(email!)}`);
+    if (!account) redirect(`/login?email=${encodeURIComponent(former)}`);
+    await sendCodeAndContinue(account.email, former);
   }
 
   return (
@@ -124,54 +181,81 @@ export default async function LoginPage({
       <section className="pp-section pp-section--last">
         <div className="rim-container">
           <div className="pp-form">
-            {isNotMember ? (
-              <div className="pp-notice">
-                <p className="pp-notice__body">
-                  We don&apos;t have an account for{" "}
-                  <strong className="lg-email">{prefillEmail || "that email"}</strong>. If
-                  you&apos;re new to RIM, you&apos;re warmly welcome.{" "}
-                  <a
-                    href={`/join${prefillEmail ? `?email=${encodeURIComponent(prefillEmail)}` : ""}`}
-                  >
-                    Become a member <span aria-hidden="true">&rarr;</span>
+            {movedTo ? (
+              <>
+                <div className="pp-notice">
+                  <p className="pp-notice__body">
+                    <strong>Your sign-in email has changed.</strong> We recognize{" "}
+                    <strong className="lg-email">{prefillEmail}</strong>, and your RIM
+                    account now signs in with{" "}
+                    <strong className="lg-email">{movedTo}</strong>. We&apos;ll send your
+                    code there. Please use that address from now on.
+                  </p>
+                </div>
+                <form action={handleSendToCurrent}>
+                  <input type="hidden" name="former" value={prefillEmail} />
+                  <button type="submit" className="pp-btn pp-form__submit">
+                    Send my code there <span aria-hidden="true">&rarr;</span>
+                  </button>
+                </form>
+                <p className="lg-alt">
+                  <a href="/login">
+                    Sign in with a different email <span aria-hidden="true">&rarr;</span>
                   </a>
                 </p>
-              </div>
-            ) : prefillEmail ? (
-              <p className="pp-form__help lg-lead">
-                It looks like you already have an account with us. Sign in to continue.
+              </>
+            ) : (
+              <>
+              {isNotMember ? (
+                <div className="pp-notice">
+                  <p className="pp-notice__body">
+                    We don&apos;t have an account for{" "}
+                    <strong className="lg-email">{prefillEmail || "that email"}</strong>. If
+                    you&apos;re new to RIM, you&apos;re warmly welcome.{" "}
+                    <a
+                      href={`/join${prefillEmail ? `?email=${encodeURIComponent(prefillEmail)}` : ""}`}
+                    >
+                      Become a member <span aria-hidden="true">&rarr;</span>
+                    </a>
+                  </p>
+                </div>
+              ) : prefillEmail && moved !== "1" ? (
+                <p className="pp-form__help lg-lead">
+                  It looks like you already have an account with us. Sign in to continue.
+                </p>
+              ) : null}
+
+              {errorMessage && <p className="pp-form__error" role="alert">{errorMessage}</p>}
+
+              <form action={handleSignIn}>
+                <div className="pp-form__field">
+                  <label htmlFor="email" className="pp-form__label">
+                    Email
+                  </label>
+                  <input
+                    className="pp-form__input"
+                    maxLength={256}
+                    name="email"
+                    placeholder="e.g. howard.thurman@gmail.com"
+                    type="email"
+                    id="email"
+                    defaultValue={prefillEmail}
+                    required
+                  />
+                </div>
+                <button type="submit" className="pp-btn pp-form__submit">
+                  Send code <span aria-hidden="true">&rarr;</span>
+                </button>
+              </form>
+
+              <p className="lg-alt">
+                New to RIM?{" "}
+                <a href="/join">
+                  Become a member <span aria-hidden="true">&rarr;</span>
+                </a>
               </p>
-            ) : null}
-
-            {errorMessage && <p className="pp-form__error" role="alert">{errorMessage}</p>}
-
-            <form action={handleSignIn}>
-              <div className="pp-form__field">
-                <label htmlFor="email" className="pp-form__label">
-                  Email
-                </label>
-                <input
-                  className="pp-form__input"
-                  maxLength={256}
-                  name="email"
-                  placeholder="e.g. howard.thurman@gmail.com"
-                  type="email"
-                  id="email"
-                  defaultValue={prefillEmail}
-                  required
-                />
-              </div>
-              <button type="submit" className="pp-btn pp-form__submit">
-                Send code <span aria-hidden="true">&rarr;</span>
-              </button>
-            </form>
-
-            <p className="lg-alt">
-              New to RIM?{" "}
-              <a href="/join">
-                Become a member <span aria-hidden="true">&rarr;</span>
-              </a>
-            </p>
+              </>
+            )}
           </div>
         </div>
       </section>

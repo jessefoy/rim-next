@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { accountForFormerEmail } from "@/lib/formerEmail";
 import { auth } from "@/auth";
 import { looksAutomated, BOT_RETRY_MESSAGE } from "@/lib/botCheck";
 import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
@@ -90,6 +91,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: BOT_RETRY_MESSAGE }, { status: 400 });
     }
     let normalizedEmail = email.trim().toLowerCase();
+    // What the form is told the address is. Normally the registration's own;
+    // for a former address it stays the one typed, so the current address
+    // isn't revealed to whoever typed the old one (lib/formerEmail.ts).
+    let responseEmail: string | null = null;
     const now = new Date();
     // null for a brand-new guest on the provisional path: we DON'T create an
     // account until they actually pay (the Stripe webhook creates it). Existing
@@ -121,8 +126,20 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      // Guest path: find the account by email.
-      const user = await db.user.findUnique({ where: { email: normalizedEmail } });
+      // Guest path: find the account by email. An address the account used to
+      // sign in with (lib/formerEmail.ts) links to that account, and the
+      // registration takes its current address, so no second account is made.
+      let user = await db.user.findUnique({ where: { email: normalizedEmail } });
+      if (!user) {
+        const moved = await accountForFormerEmail(normalizedEmail);
+        if (moved) {
+          user = await db.user.findUnique({ where: { id: moved.id } });
+          if (user) {
+            responseEmail = normalizedEmail;
+            normalizedEmail = user.email.trim().toLowerCase();
+          }
+        }
+      }
       if (user) {
         // Existing account: link it and use its stored values for the record.
         // Never overwrite existing data from unauthenticated form input.
@@ -314,7 +331,7 @@ export async function POST(request: NextRequest) {
       registrationId: registration.id,
       // The address the confirmation goes to (a signed-in member's own), so
       // the form never names a different one.
-      email: normalizedEmail,
+      email: responseEmail ?? normalizedEmail,
       requiresPayment,
       // After this registration, spots remaining (for client feedback)
       spotsRemaining: spotsRemaining !== null ? Math.max(0, spotsRemaining - 1) : null,

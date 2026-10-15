@@ -6498,6 +6498,19 @@ Jesse`,
     }
   }
 
+  // Former sign-in addresses (2026-10-15): additive and idempotent, no
+  // backfill. Old code ignores the table. See FormerEmail in schema.prisma.
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "former_emails" (
+      "id" TEXT NOT NULL PRIMARY KEY, "email" TEXT NOT NULL, "userId" TEXT NOT NULL,
+      "reason" TEXT NOT NULL, "createdById" TEXT,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "former_emails_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE)`),
+    db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "former_emails_email_key" ON "former_emails"("email")`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "former_emails_userId_idx" ON "former_emails"("userId")`),
+  ]);
+  console.log("  ✔ Former sign-in addresses table ready.");
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

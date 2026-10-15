@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { accountForFormerEmail } from "@/lib/formerEmail";
 import { toProperName } from "@/lib/nameCase";
 
 export async function GET(req: Request) {
@@ -113,6 +114,14 @@ export async function POST(req: Request) {
   if (existing) {
     return NextResponse.json(
       { error: "A member with that email already exists.", existingId: existing.id },
+      { status: 409 },
+    );
+  }
+  const movedTo = await accountForFormerEmail(email);
+  if (movedTo) {
+    const name = [movedTo.firstName, movedTo.lastName].filter(Boolean).join(" ") || movedTo.email;
+    return NextResponse.json(
+      { error: `That address used to sign in to ${name}'s account, which now uses ${movedTo.email}.`, existingId: movedTo.id },
       { status: 409 },
     );
   }

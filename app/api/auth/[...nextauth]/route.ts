@@ -1,6 +1,7 @@
 import { handlers } from "@/auth";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { accountForFormerEmail } from "@/lib/formerEmail";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import {
   EMAIL_MAX,
@@ -72,6 +73,14 @@ function notMemberResponse(reqUrl: string, email: string): Response {
   return NextResponse.redirect(url, 303);
 }
 
+/** Redirect helper for a former address: the /login moved-address page. */
+function movedResponse(reqUrl: string, email: string): Response {
+  const url = new URL("/login", reqUrl);
+  url.searchParams.set("moved", "1");
+  url.searchParams.set("email", email);
+  return NextResponse.redirect(url, 303);
+}
+
 /**
  * GET is wrapped for one path. The six-digit code form (SignInCodeForm)
  * submits by GET to /callback/resend, so the code check must be limited here
@@ -81,11 +90,37 @@ function notMemberResponse(reqUrl: string, email: string): Response {
 export async function GET(req: NextRequest): Promise<Response> {
   const url = new URL(req.url);
   if (url.pathname.endsWith("/callback/resend")) {
-    if (!(await verifyAllowed(getRequestIp(req), url.searchParams.get("email")))) {
+    req = await withCurrentAddress(req);
+    const checked = new URL(req.url);
+    if (!(await verifyAllowed(getRequestIp(req), checked.searchParams.get("email")))) {
       return rateLimitResponse(req.url);
     }
   }
   return handlers.GET(req);
+}
+
+/**
+ * A code sent after /login's moved-address button is checked against the
+ * account's current address, but the code page only knows the old address
+ * the person typed (the current one is never shown whole; lib/formerEmail.ts).
+ * Map a former address in the callback to the current one, here on the
+ * server. Without the code sent to that current inbox, this changes nothing.
+ */
+async function withCurrentAddress(req: NextRequest): Promise<NextRequest> {
+  const url = new URL(req.url);
+  const email = url.searchParams.get("email")?.trim().toLowerCase();
+  if (!email) return req;
+  try {
+    if (await db.user.findUnique({ where: { email }, select: { id: true } })) return req;
+    const movedTo = await accountForFormerEmail(email);
+    if (!movedTo) return req;
+    // Codes are stored under the lowercased address they were sent to.
+    url.searchParams.set("email", movedTo.email.trim().toLowerCase());
+    return new NextRequest(url, { headers: req.headers, method: req.method });
+  } catch (err) {
+    console.error("[auth catch-all] Former address mapping failed", err);
+    return req;
+  }
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
@@ -160,7 +195,15 @@ export async function POST(req: NextRequest): Promise<Response> {
         lookupFailed = true;
       }
       if (!existing && !lookupFailed) {
-        return notMemberResponse(req.url, email);
+        // A former address (lib/formerEmail.ts) goes to the same "your
+        // sign-in email has changed" page the /login form shows.
+        let moved = false;
+        try {
+          moved = !!(await accountForFormerEmail(email));
+        } catch (err) {
+          console.error("[auth catch-all] Former address lookup failed", err);
+        }
+        return moved ? movedResponse(req.url, email) : notMemberResponse(req.url, email);
       }
     }
   }

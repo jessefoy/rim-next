@@ -202,9 +202,12 @@ export async function importFromMemberstack(opts: { dryRun: boolean }): Promise<
   const latest = await db.user.aggregate({ _max: { legacyMemberSince: true } });
   const cutoff = latest._max.legacyMemberSince ?? JUNE_EXPORT_DATE;
 
-  const existing = new Set(
-    (await db.user.findMany({ select: { email: true } })).map((u) => u.email.trim().toLowerCase()),
-  );
+  // Current addresses and former ones (lib/formerEmail.ts): an address an
+  // account used to sign in with is never imported as a second account.
+  const existing = new Set([
+    ...(await db.user.findMany({ select: { email: true } })).map((u) => u.email.trim().toLowerCase()),
+    ...(await db.formerEmail.findMany({ select: { email: true } })).map((f) => f.email),
+  ]);
 
   let alreadyInApp = 0;
   let earlierNotRecreated = 0;

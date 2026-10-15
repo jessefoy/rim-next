@@ -92,9 +92,20 @@ Edit messages in `app/login/error/page.tsx`. Add new branches there when a new f
 
 **Privacy disclosure.** This reveals whether a given email has a `User` row (different page content per email). The leak already exists via the public `/api/account/check-email` endpoint used by the program registration form's pre-fill, and for a community-membership site the UX win of "you typed an email we don't recognize → here's the door to membership" is worth the modest disclosure. For a banking-grade auth surface the calculus would be different.
 
-**Rate-limit ordering.** The existence check happens AFTER the rate-limit check in both places. So a probe-the-DB-for-emails attack costs rate-limit budget per probe — bounded by 20 probes per IP per 10min via `signin-ip:<ip>`.
+**Rate-limit ordering.** In the catch-all the existence check happens AFTER the rate-limit check, so a probe-the-DB-for-emails attack costs rate-limit budget per probe (20 per IP per 10 minutes via `signin-ip:<ip>`).
+
+**Correction (2026-10-15): the `/login` form was not rate-limited.** `signIn()` called from a server action runs NextAuth in-process, so the catch-all's limits never saw `handleSignIn` or the code page's `resendCode`; this doc said otherwise. Both now call `codeSendAllowed(email)` (`lib/authRateLimits.ts`: the same per-email and per-IP send keys and thresholds, IP from `next/headers`) before sending, keyed on the address the code actually goes to. The existence check in `handleSignIn` still runs before the limit, so probing addresses through the form costs no budget.
 
 ---
+
+## Former sign-in addresses (2026-10-15)
+
+When an admin changes a member's email, or two accounts for one person are merged, the old address is kept in `former_emails` (`FormerEmail`, `lib/formerEmail.ts`): the address, the account it belongs to, why, which admin, when. RIM recognizes it everywhere it looks a person up by email; a current address always wins (an address that becomes current is released).
+
+- **`/login` and the catch-all:** a former address goes to `/login?moved=1&email=OLD`: "Your sign-in email has changed. We recognize OLD, and your RIM account now signs in with s•••@domain. We'll send your code there." One button (**Send my code there**) re-resolves the account on the server and sends the code to its current address. Jesse's design: an older sangha, so the moment is used to teach the new address with one press (2026-10-15).
+- **The current address is never shown whole** to someone who typed an old one (`maskEmail`: first letter and domain). A member may have changed address to get away from someone who knows the old one. So the code page shows it masked and its form keeps the OLD address, and the GET wrapper's `withCurrentAddress` maps a former address in `/callback/resend` to the current one on the server. Without the code sent to that current inbox the mapping changes nothing. The registration reply likewise returns the address typed.
+- **No second account at an old address:** `/join` routes to the moved page; guest registration, the Stripe webhook's account creation and `/api/account/check-email` link to the account; admin "+ Add member" and an admin email change refuse another account's former address; the member import skips former addresses. Backstop: `callbacks.signIn` in `auth.ts` refuses to send or accept a code for an address that is only a former one (fail-safe true on a database error), and an admin email change deletes codes already sent to the old address.
+- **The code page's resend** sends only to a current address: a former one resends to its current address, and an address with no account goes back to `/login?notMember=1` (it used to send a code that created an account on use).
 
 ## Rate limiting (session 131; extended to `/join` session 132)
 

@@ -1,5 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
+import { accountForFormerEmail } from "@/lib/formerEmail";
 import { signIn } from "@/auth";
 import { sendJoinWelcomeEmail, sendLegacyWelcomeBackEmail } from "@/lib/email";
 import { toProperName } from "@/lib/nameCase";
@@ -129,6 +130,13 @@ export async function POST(request: Request) {
       },
       { status: 200 },
     );
+  }
+
+  // A former sign-in address (lib/formerEmail.ts) belongs to an account that
+  // now signs in with another address: never make a second account from it.
+  // The client goes to /login's "your sign-in email has changed" page.
+  if (!existing && (await accountForFormerEmail(emailRaw))) {
+    return NextResponse.json({ ok: true, moved: true }, { status: 200 });
   }
 
   // A returning legacy member can land on the /join door instead of /login; if

@@ -63,6 +63,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   callbacks: {
+    // No sign-in code is sent to, or accepted for, an address that is only a
+    // former one (lib/formerEmail.ts): that would make a second account at the
+    // old address. Covers every way a code is asked for, including a code
+    // requested before an admin changed the address. Fail-safe on a database
+    // error, like the existence checks at the doors.
+    async signIn({ user }) {
+      const address = user?.email?.trim().toLowerCase();
+      if (!address) return true;
+      try {
+        if (await db.user.findUnique({ where: { email: address }, select: { id: true } })) return true;
+        return !(await db.formerEmail.findUnique({ where: { email: address }, select: { id: true } }));
+      } catch (err) {
+        console.error("[auth] Former address check failed", err);
+        return true;
+      }
+    },
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;

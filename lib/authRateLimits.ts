@@ -11,6 +11,9 @@
  * Per-area engineering reference: RIM_Auth.md.
  */
 
+import { headers } from "next/headers";
+import { checkRateLimit } from "@/lib/rateLimit";
+
 /** Email-send window — 5 attempts per email per 10 minutes. */
 export const EMAIL_MAX = 5;
 
@@ -62,4 +65,20 @@ export function verifyIpKey(ip: string): string {
  */
 export function verifyEmailKey(email: string): string {
   return `verify-email:${email}`;
+}
+
+/**
+ * Both send limits (per email, per IP) for a sign-in code sent from a server
+ * action. signIn() called from a server action runs NextAuth in-process, so
+ * the catch-all route's limits never see it; these actions check here first.
+ * Key on the address the code actually goes to, so it shares that member's
+ * budget with every other door.
+ */
+export async function codeSendAllowed(email: string): Promise<boolean> {
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip")?.trim() || "unknown";
+  const byEmail = await checkRateLimit(signinEmailKey(email), EMAIL_MAX, WINDOW_SECONDS);
+  if (!byEmail.allowed) return false;
+  const byIp = await checkRateLimit(signinIpKey(ip), IP_SEND_MAX, WINDOW_SECONDS);
+  return byIp.allowed;
 }

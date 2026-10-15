@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { accountForFormerEmail, recordFormerEmail, releaseFormerEmail } from "@/lib/formerEmail";
 import { Role, MemberStatus } from "@prisma/client";
 import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail, sendHostManagerRoleAssignmentEmail } from "@/lib/email";
 import { syncHubMembership } from "@/lib/syncHubMembership";
@@ -80,6 +81,14 @@ export async function PATCH(
         { status: 409 }
       );
     }
+    // Another account's former address stays theirs (lib/formerEmail.ts).
+    const formerOwner = await accountForFormerEmail(newEmail);
+    if (formerOwner && formerOwner.id !== id) {
+      return NextResponse.json(
+        { error: "That address used to belong to another member's account." },
+        { status: 409 }
+      );
+    }
   }
 
   const user = await db.user.findUnique({ where: { id } });
@@ -146,19 +155,35 @@ export async function PATCH(
     ...(statusDrivenArchivedAt !== undefined && { archivedAt: statusDrivenArchivedAt }),
   };
 
-  const updated = await db.user.update({
-    where: { id },
-    data: updateData,
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      phone: true,
-      roles: true,
-      archivedAt: true,
-      createdAt: true,
-    },
+  // An email change keeps the old address as a former one, so sign-in still
+  // recognizes it and points to the new one (lib/formerEmail.ts).
+  const updated = await db.$transaction(async (tx) => {
+    const row = await tx.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        roles: true,
+        archivedAt: true,
+        createdAt: true,
+      },
+    });
+    if (emailIsChanging) {
+      // Codes already sent to the old address stop working with it.
+      await tx.verificationToken.deleteMany({ where: { identifier: user.email } });
+      await releaseFormerEmail(tx, newEmail!);
+      await recordFormerEmail(tx, {
+        userId: id,
+        email: user.email,
+        reason: "changed",
+        byUserId: session?.user?.id ?? null,
+      });
+    }
+    return row;
   });
 
   // Kill sessions when email changes or member is set to Inactive
