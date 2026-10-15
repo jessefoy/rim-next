@@ -1,14 +1,18 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-14 (late night, closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-15 (duplicate accounts); last closing ritual 2026-10-14 (late night). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-15: duplicate accounts (LoriLee's report)
+## Active — 2026-10-15: duplicate accounts merged; teams on the Members list
 
-**Cause of "Silvia couldn't see her teams":** two accounts. Her teams were on `scpasquini09@icloud.com`; on 2026-10-15 she first signed in with `silviapasquini@rootedinmindfulness.org`, an unclaimed legacy-import account, which became a live account with no teams (LoriLee then added the same three). A read-only check of everyone on a team or holding a role found three people with two accounts by name: Silvia, LoriLee, Jesse.
+**Cause of "Silvia couldn't see her teams" (LoriLee's report):** two accounts for one person. Her teams were on her personal-address account; on 2026-10-15 she first signed in with her RIM address, an unclaimed account from the old site's member import, which became a second live account with no teams. A read-only check of everyone on a team or holding a role found three people with two accounts under one name: Silvia, LoriLee and Jesse. **All three are now one account each, at their RIM address** (production, each Jesse-approved on 2026-10-15; snapshot, drift check, one transaction, whole-table diff of every affected table):
+- **The account kept is the one with the history, whichever address it had; only its address changes.** Every role, team, hosting date, rotation, teaching link and conversation hangs off the account's id, and standing rotations make an account undeletable (`ON DELETE RESTRICT`). The extra account's few real items are moved onto the kept one (Jesse's Dharma Lessons team row and a test registration), then it is deleted.
+- Each kept account takes the RIM address; the earlier old-site member-since date and (Silvia) the Flodesk Members date carry over; open sessions end, so each signs in again with the RIM address; current registrations move to the new address, past ones keep the old one as history.
+- **Flodesk was not touched.** Each person's old address may still be a subscriber there; removing it is their call. Jesse's RIM address is not in Flodesk's Members by the app (his account was added once, under the old address).
+- Snapshots live only in that session's scratch folder. The commit before this rewrite (`a77f454`) named two addresses and an account id in this file; they remain in git history.
 
-**Done (production, Jesse-approved 2026-10-15; snapshot, drift check, one transaction, whole-table diff of users, registrations, sessions):** LoriLee is one account at `lorilee@rootedinmindfulness.org`: her real account (id `cmmcq8kzi0000scmbggs2sh8g`, Admin and Registrar, 12 teams) took that address; the empty legacy account that held it was deleted (nothing pointed to it); member-since carried over as 2022-08-19; her 6 sessions ended (she signs in again with the RIM address); her 5 current registrations moved to the new address, the 3 past ones keep the Gmail. Her Gmail may still be a Flodesk subscriber (her call).
+**Live (`cbfcd8b`): teams on the Members list.** A Teams column (coordinator and paused marked; three, then "and N more"), a team filter, team names in search; roles in Roles & access's words (Scheduling manager, Guiding teacher; the retired HOST and SUPPORT hidden, and no one holds HOST); sentence-case neutral tags that wrap, in place of uppercase coloured pills; status only when it isn't Active, as a quiet line under the name. Measured on the production stylesheet with a fixture at 1280 and 375; not yet seen signed in with real rows.
 
-**Waiting on Jesse:** Silvia (keep the RIM address and remove the iCloud account, after checking what's attached); his own two accounts (already below); the proposed registry changes: a Teams column and team filter on `/admin/members`, roles in plain words (no raw `HOST_MANAGER`, the retired `SUPPORT` hidden), status out of the Roles column, labels that wrap; and a "another account has this name" note on the member profile. The lasting fix is self-service email change (`2026-10-12-003`).
+**Waiting on Jesse:** merge First and Last name into one sortable Name column (at desktop width the table is about 190px wider than its frame, so Regs and Joined sit behind a sideways scroll; it scrolled before this change too); a "another account has this name" note on the member profile, so the next duplicate is seen when someone adds teams. The lasting fix is self-service email change (`2026-10-12-003`).
 
 ## Earlier — 2026-10-14 closed: outside meeting rooms live; LoriLee's review ruled and live; every email in one look
 
@@ -29,7 +33,6 @@ Everything is on `main` (`6063bf5` … `41e305e`, `fedbecd`, the closing docs). 
 
 **Waiting on Jesse:**
 - **Teams before the sign-in note.** Only 13 people are on the 15 teams (Peer-Led Silent Meditation has two; Course Team none). LoriLee and Cindy gather who serves on each team; I add them in one approved batch (Member Registry → Hub memberships; silent until they sign in); then the drafted note goes out (address: rim-next.vercel.app until launch, help at support@). Not signed in yet: Stacy Isaacson, Daniela Oliveira, Wendy Peche. Program Central has no apps installed, so adding leads (Maria, Marne) gives no editing power.
-- **Which of his two addresses stays on teams** (iCloud on most; rootedinmindfulness.org on Dharma Lessons).
 - **Look at `/join` signed in** (the built-in browser here is signed out).
 - **The fundraiser's donation link** (December 5 gathering): waiting on the fundraising team.
 - **Sacred Clarity**, dated March 16, 2026, still the only Immersion program (wrong date, or hide-when-past off): read its row, propose the fix.
