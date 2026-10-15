@@ -10,8 +10,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminMemberDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ merged?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -29,6 +31,7 @@ export default async function AdminMemberDetailPage({
   }
 
   const { id } = await params;
+  const { merged } = await searchParams;
 
   // Fetch viewer's sectionGrants alongside the member record
   const [user, viewer, possibleDuplicates] = await Promise.all([
@@ -178,7 +181,11 @@ export default async function AdminMemberDetailPage({
   return (
     <div className="adm2-page">
       <div className="adm2-content">
-        <MemberDetail member={serialized} viewerPermissions={viewerPermissions} />
+        <MemberDetail
+          member={serialized}
+          viewerPermissions={viewerPermissions}
+          justMerged={merged === "1" ? "notified" : merged === "quiet" ? "quiet" : null}
+        />
       </div>
     </div>
   );

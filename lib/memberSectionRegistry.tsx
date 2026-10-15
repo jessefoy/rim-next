@@ -106,7 +106,13 @@ export const MEMBER_SECTIONS: MemberSection[] = [
     id: "possible-duplicates",
     allowedRoles: ["ADMIN", "REGISTRAR"],
     condition: (member) => member.possibleDuplicates.length > 0,
-    render: ({ member }) => <PossibleDuplicatesSection candidates={member.possibleDuplicates} />,
+    render: ({ member, viewerPermissions }) => (
+      <PossibleDuplicatesSection
+        memberId={member.id}
+        candidates={member.possibleDuplicates}
+        canMerge={viewerPermissions.roles.includes("ADMIN")}
+      />
+    ),
   },
   {
     id: "core-record",

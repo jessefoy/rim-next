@@ -767,6 +767,28 @@ export async function sendLegacyWelcomeBackEmail(
   });
 }
 
+// ─── Accounts merged (to the address kept) ───────────────────────────────────
+
+/**
+ * Sent when an admin merges a person's two accounts (lib/memberMerge.ts), to
+ * the address they sign in with now. Template `accounts-merged`, seeded in
+ * prisma/migrate.mjs. Not pre-threshold-gated: it tells the person how to get in.
+ */
+export async function sendAccountsMergedEmail(data: {
+  to: string;
+  firstName: string | null;
+  formerEmail: string;
+}): Promise<void> {
+  await sendTemplatedEmail("accounts-merged", data.to, {
+    firstName: data.firstName || "there",
+    email: data.to,
+    formerEmail: data.formerEmail,
+    signInButton: emailButtonHtml("Sign in", `${BASE_URL}/login?email=${encodeURIComponent(data.to)}`),
+    signInUrl: `${BASE_URL}/login`,
+    supportEmail: "support@rootedinmindfulness.org",
+  });
+}
+
 // ─── Program reminder email (to registrant) ──────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

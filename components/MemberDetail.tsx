@@ -9,10 +9,13 @@ import {
   type MemberSection,
 } from "@/lib/memberSectionRegistry";
 import { ROLE_LABELS, shownRoles } from "@/lib/roleLabels";
+import FormDone from "@/components/FormDone";
 
 interface Props {
   member: SerializedMember;
   viewerPermissions: ViewerPermissions;
+  /** Arrived here from a merge (?merged=1 or quiet): say what happened, once. */
+  justMerged?: "notified" | "quiet" | null;
 }
 
 function canViewSection(
@@ -26,7 +29,7 @@ function canViewSection(
   return (hasRole || hasGrant) && passesCondition;
 }
 
-export default function MemberDetail({ member, viewerPermissions }: Props) {
+export default function MemberDetail({ member, viewerPermissions, justMerged = null }: Props) {
   const displayName =
     member.firstName || member.lastName
       ? `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim()
@@ -47,6 +50,18 @@ export default function MemberDetail({ member, viewerPermissions }: Props) {
       <Link href="/admin/members" className="adm2-back">
         ← All members
       </Link>
+
+      {justMerged && (
+        <FormDone app title="The accounts are now one." clearParam="merged">
+          <p>
+            They sign in with <strong>{member.email}</strong> from now on
+            {justMerged === "notified"
+              ? <>, and we&rsquo;ve sent them a note there.</>
+              : <>. No note was sent, because this account is archived or not yet claimed.</>}{" "}
+            Their other address still leads them here.
+          </p>
+        </FormDone>
+      )}
 
       {/* ── Member header ── */}
       <div className="adm2-header">

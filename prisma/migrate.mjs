@@ -6498,6 +6498,59 @@ Jesse`,
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // accounts-merged email template (2026-10-15, Email Template Gate). Sent by
+  // lib/email.ts::sendAccountsMergedEmail when an admin merges a person's two
+  // accounts. findUnique → create: never overwrites an edit made in
+  // /admin/emails. Copy is provisional until Jesse's read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const mergedFlag = await db.$queryRawUnsafe(`
+      SELECT name FROM "_migration_flags" WHERE name = 'seed_accounts_merged_email_template_v1'
+    `).catch(() => []);
+    if (mergedFlag.length === 0) {
+      const existingMerged = await db.emailTemplate.findUnique({ where: { slug: "accounts-merged" } });
+      if (!existingMerged) {
+        await db.emailTemplate.create({
+          data: {
+            slug: "accounts-merged",
+            name: "Accounts merged: one account now",
+            description:
+              "Sent when an admin merges a person's two accounts in the Member Registry, to the address they sign in with now.",
+            enabled: true,
+            subject: "Your RIM accounts are now one",
+            variables: ["firstName", "email", "formerEmail", "signInButton", "signInUrl", "supportEmail"],
+            group: "01-auth",
+            groupLabel: "Sign-in & Authentication",
+            helpText:
+              "Sent once, right after an admin merges two accounts that belonged to one person (Member Registry, the 'Possible second account' note). Goes to the address the person signs in with from now on.\n\n" +
+              "Available variables: {{firstName}}, {{email}} (the address they sign in with now), {{formerEmail}} (the other address, which still leads them here), {{signInButton}} (use triple braces {{{signInButton}}}), {{signInUrl}}, {{supportEmail}}.",
+            body: `## Hi {{firstName}},
+
+You had two accounts with Rooted In Mindfulness, so what you saw depended on which email you signed in with. We've joined them into one.
+
+**From now on, please sign in with {{email}}.** Your teams, registrations and history are all there.
+
+If you sign in with your other address ({{formerEmail}}), we'll recognize it and send your code here.
+
+{{{signInButton}}}
+
+If anything looks unfamiliar, write to us at [{{supportEmail}}](mailto:{{supportEmail}}). A real person will write back.
+
+With care,
+Rooted In Mindfulness`,
+          },
+        });
+        console.log("  ✔ accounts-merged template created.");
+      } else {
+        console.log("  ⏭ accounts-merged template already exists; preserving admin edits.");
+      }
+      await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_accounts_merged_email_template_v1')`);
+    }
+  } catch (err) {
+    console.error("  accounts-merged template: failed (no change):", err?.message ?? err);
+  }
+
   // Former sign-in addresses (2026-10-15): additive and idempotent, no
   // backfill. Old code ignores the table. See FormerEmail in schema.prisma.
   await db.$transaction([
