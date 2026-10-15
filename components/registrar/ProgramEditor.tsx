@@ -1809,9 +1809,9 @@ export default function ProgramEditor({
                   <p className="pe-readout__row">
                     <span className="pe-readout__place">Members: </span>
                     {openEntry
-                      ? "anyone signed in, from My Home."
+                      ? "anyone signed in, from My Home (Member area)."
                       : registrationEnabled
-                        ? "people who registered, from My Home."
+                        ? "people who registered, from My Home (Member area)."
                         : publicJoinOn
                           ? "anyone, from the program page."
                           : "no one yet. Turn on registration or Open entry on the Registration tab."}
@@ -1839,6 +1839,8 @@ export default function ProgramEditor({
                   <p className="pe-readout__row pe-readout__row--meta">
                     Join opens {EARLY_OPEN_MIN} minutes before each session and
                     closes {LATE_GRACE_MIN} minutes after.
+                    {roomChoice === "outside" &&
+                      " Anyone who already has the outside link can still use it whenever the room\u2019s owner allows."}
                   </p>
                   {roomChoice === "outside" && !noHostNeeded && (
                     <p className="pe-readout__row pe-readout__row--meta">
