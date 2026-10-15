@@ -72,12 +72,26 @@ So a host needs only host-team membership (set via Teams). `ROLE_HUB_MAPPINGS` k
 
 ---
 
+## The Members list, duplicates and merging (2026-10-15)
+
+**The list** shows one Name column (sortable by first or last name; "Last, First" while sorted by last; the email under the name, wrapping only after the @), Teams (coordinator and paused marked, three then "and N more"), Roles in Roles & access's words (`lib/roleLabels.ts`; the retired HOST and SUPPORT hidden), Regs, Joined. Status shows only when it isn't Active, as a quiet line under the name. Filters: role, team (any one, on a team, on none), status, and **Possible second account**. The frame may reach 1120px (`.adm-content--wide`); measured to fit at 1280 with real-length addresses.
+
+**Possible second accounts** (`lib/memberDuplicates.ts`): two accounts may be one person when they share a first and last name, or a phone (last ten digits; not inside one household, not a number shared by more than three accounts, not a one-digit placeholder). Every account is compared, the quiet pool included, because that is where the second account usually waits (all three 2026-10-15 cases: a personal-address account with the teams, and an unclaimed import at the RIM address that the person then signed in with). A profile with a match shows a note at the top (`PossibleDuplicatesSection`), where teams are added.
+
+**Merging** (`lib/memberMerge.ts`, `POST /api/admin/members/[id]/merge`, ADMIN only): the admin opens the panel from the note, sees what each account holds and chooses the address to keep. The rules, from the three merges done by hand that day:
+- **The record kept is the one with the history** (roles, teams, hosting, teaching, conversations), whichever address it has; only its address changes. Standing rotations make an account undeletable anyway (`ON DELETE RESTRICT`).
+- Every link moves in one transaction. Teams keep the stronger membership (coordinator over member; a coordinator's "can't host" or "no notices" is taken whole from the stronger row, never OR-ed). One-per things keep the kept copy (a public teacher page wins over a private one). Two live registrations for one program leave one and Cancel the other (history kept). Reactions are rewritten. Sessions and old codes end. Older-format admin notes on both accounts stop the merge rather than lose one.
+- **A safety net** checks every foreign key to users and every column named like a person reference (`…userId`, `…ById`, `…authorId`, `…by`, `…identity`) and refuses to delete the other account if anything still points at it: a table added later must be added to the lists in `lib/memberMerge.ts`.
+- **The preview runs the whole merge and rolls it back**, so the admin is told before pressing whether it can complete. Refused: merging away the account you're signed in with.
+- The address not kept becomes a former address (`RIM_Auth.md`, "Former sign-in addresses"). The `accounts-merged` email goes to the kept address, except for an account still archived or unclaimed (the quiet pool gets no email).
+
 ## Pitfalls
 
 - **Don't add GT (or any non-ADMIN/REGISTRAR role) to the registry gate.** Use the in-hub member tools for GT.
 - **Don't inline the FK-safe coverage cascade** — call `removeHubMembershipWithCleanup`. Two copies drift (the "two sources of truth" class).
 - **Don't write a role-derived hub from the Teams tool** — the 409 guard is intentional; the role governs it.
 - **Don't add a person-picker that selects `User` rows without the `isLegacyUnclaimed: false` filter.**
+- **A new table that points at a person must be added to `lib/memberMerge.ts`** (`ONE_PER` if a person may hold one row per key, else `POINTERS`). The merge's safety net will refuse every merge until it is, which is the intended failure.
 - **`/api/admin/members` GET is a picker, not the listing** — it filters legacy + archived. The listing is server-rendered in `app/admin/members/page.tsx`; the "+ Add member" is a POST.
 - **A teacher portrait is stored as a normal rectangular image URL.** The public circle is CSS. Preserve the existing upload → preview → Save sequence and the `isPublic`/slug gate.
 - Residual dead code after the HOST retirement (the `addingHost`/`sendHostRoleAssignmentEmail` path in `/api/admin/members/[id]`, `ROLE_COLORS.HOST`) is tracked in backlog `2026-06-17-003`.
