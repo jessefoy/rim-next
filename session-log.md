@@ -1,3 +1,27 @@
+## 2026-10-14 (late night) — the outside-meeting settings in plain words; This Week's date block
+
+On `main`: `d6e2a6f`, `a066df1`, `1105be6`, `ce1a5a0` (Program Manager), `4a56c41`, `ca17683` (This Week). Measured with the live stylesheet (headless Chrome for the editor's field; the published This Week page at 1280 and 375 in the built-in browser). The editor itself was not seen signed in.
+
+### Built and live
+
+- **LoriLee's question answered.** She set up Recovery Dharma with the old Webflow link and couldn't find the checkbox the guide named. There is none: the guide's "Check the Who can get in box" meant *read* the summary. Her screenshot showed exactly the intended setup (members from My Home, no guests, no Join button on the program page); she only needed Save. A reply for Jesse to send was drafted; the web guide's step 7 now says "Read the 'Who can join, with these settings' summary, then Save. There is nothing to tick here" ([Outside Meeting Links](https://claude.ai/artifact/XyEZPshu1FSxDRJ2SDhjTT)). The PDF she has still says "Check."
+- **"Meeting link" no longer runs into its help** ("Meeting linkPaste the whole…"): the block was a plain div; it is a `pe-field` now.
+- **Where it meets online, in plain words, as short instructions** (Jesse: *"This should be really plain English. I'm even confused, and I worked on it with you"*; *"more like 'Click this if you want it to.' The paragraph formatting is long and confusing"*). Each note is one instruction ("Paste the full link here, passcode and all."; "Check this if people without a RIM account should be able to join from the program page."; with registration on, "To use this, turn off registration on the Registration tab."). The summary is titled **"Who can join, with these settings"** and reads in short lines: Members ("anyone signed in, from My Home (Member area)", Jesse's words), Guests, Program page, and when Join opens, plus, for outside links, "Anyone who already has the outside link can still use it whenever the room's owner allows" (Jesse kept it). The labels the guide quotes ("An outside meeting link", "Anyone may join from the public program page") are unchanged so the PDF still matches the screen.
+- **This Week's day headings** (Jesse): the blue rule beside each day is gone; every date block is blue with white letters (Today keeps its pill) and lines up with the session times below (25px: the card's 1px border plus 24px padding; 21px at 700px and below). Measured flush at 1280 (164px) and 375 (58px). Programs & Events keeps its rule.
+
+### Design decisions and why
+
+- **Tool copy is instructions, not explanations.** A volunteer reading a settings panel needs what to do and what it will mean, in a line; the why belongs in the guide. Recorded in `RIM_ProgramEditor.md`.
+- **A summary must not look like a control.** "Who can get in" in a box read as something to tick; its title now says it describes the settings.
+
+### What this work connects to
+
+`components/registrar/ProgramEditor.tsx` (Hosting & Access); `RIM_ProgramEditor.md`, `RIM_Zoom.md`, FEATURES and UP_NEXT (renamed summary); the registrar's guide (web page). This Week: `.tw-day-heading` in `custom.css` (`.pl-page` is shared with Programs & Events, so the change is scoped to This Week's headings). No data, schema, email or permission change.
+
+### What comes next
+
+Jesse sends LoriLee the reply (the summary isn't something to tick; press Save); a signed-in look at Hosting & Access when the link is saved, and Join at the next Recovery Dharma session to see the forward; his read-aloud of the new editor lines.
+
 ## 2026-10-14 (night) — Confirmation emails: the handout link and the lakehouse; links that work wherever they're typed
 
 On `main`: `734b16b`, and this closing. No production reads or writes by hand; one template change ran through `migrate.mjs` on deploy (below). Deployed and checked (This Week and Qigong's page answer 200).

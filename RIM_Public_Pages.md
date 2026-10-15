@@ -647,6 +647,7 @@ Jesse, comparing the live page with the old Webflow one: the new page is *"overl
 - **The hero keeps the quiet header** (home, New to RIM and Donate are the only image heads; this is a page for finding a time, and a photo would push the first program down by a screen) and gains a line of jump links to the sections. The overview sentence "Taking CARE, our way of practice, is offered through three program categories" is gone; home and Taking CARE carry it.
 - **Where, in plain words, site-wide:** `fmtLabel` now says "On Zoom", "In person and on Zoom", "In person" ("Online" for an unrecognized outside room), on this page, This Week, the Kalyana Mitta groups page and the register page.
 - **This Week keeps its day boxes** (`.pl-page .pl-cat`, its own now). The retired catalog CSS was pruned (`scripts/css-prune.mjs` entries, then the selectors that named a retired class beside a live one).
+- **This Week's date blocks lead each day** (2026-10-14, Jesse): no blue rule beside the heading; every date block is blue with white letters (Today keeps its pill) and lines up with the session times in the cards below (`.pl-page .tw-day-heading`, 25px; 21px at 700px and below). Programs & Events keeps its section rule.
 
 Measured on the mockup against the live page: desktop 5,900 to about 4,950px, phone 8,837 to about 6,050px. Owed to the data, not the design: program taglines are Title Case (sentence case reads calmer; Program Manager edits, with Jesse's approval), and Sacred Clarity (March 16, 2026) still lists under Immersion.
 

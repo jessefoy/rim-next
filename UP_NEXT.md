@@ -1,6 +1,6 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-14 (night, closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-14 (late night, closing ritual). Full history belongs in `session-log.md`.
 
 ## Active — 2026-10-14 closed: outside meeting rooms live; LoriLee's review ruled and live; every email in one look
 
@@ -11,7 +11,8 @@ Everything is on `main` (`6063bf5` … `41e305e`, `fedbecd`, the closing docs). 
 **Live from tonight: confirmation emails and links** (`734b16b`): the Confirmation Message help (how to add a link), "Map and directions" for another venue, one link tidy-up for every link box. **Waiting:** Jesse checks `registration-confirmation` in `/admin/emails` still holds `{{confirmationMessageHtml}}`, then sends LoriLee the four-page PDF (session scratchpad; his voice, read the note first); LoriLee adds Qigong's handout link and uses **Resend Confirmation** for earlier registrants; read-aloud of the two help lines and "Map and directions". Queued: `2026-10-14-006` (absolute links in program emails; check saved links).
 
 **Waiting from this evening:**
-- **LoriLee adds the two links** (Recovery Dharma: members only, guest link off; Our Hearts Were Made for This: guest link stays on, public box unchecked unless Jesse and Sara decide). Jesse has the five-page PDF for her (in the session scratchpad, not the repo); **read its note before sending**, it is in his voice. The same guide is a private page: [Outside Meeting Links](https://claude.ai/artifact/XyEZPshu1FSxDRJ2SDhjTT) (its "Ready to set up" table predates the LoriLee note).
+- **LoriLee adds the two links.** Recovery Dharma: she set it up with the old Webflow link and asked where the checkbox was (the guide's "Check the Who can get in box" meant *read*); her settings were right, so **Jesse sends her the reply: it isn't something to tick, press Save**, and paste the new link over the old one when Recovery Dharma sends it. The editor's wording is now short plain instructions and the summary is "Who can join, with these settings" (2026-10-14, late night); the web guide matches ([Outside Meeting Links](https://claude.ai/artifact/XyEZPshu1FSxDRJ2SDhjTT)); the PDF still says "Check". Our Hearts Were Made for This: guest link stays on, public box unchecked unless Jesse and Sara decide.
+- **This Week** (live, 2026-10-14 late night): no rule beside each day; blue date blocks aligned with the times.
 - **Look at the new Hosting & Access section signed in** when the first link goes in (never seen signed in; verified by tsc, the harness and review). Then press Join at the next Sunday session to see the forward.
 - **Read-aloud, the new public lines:** "Join on Zoom →" (a public program page), "You can join from [time] on [day], Central Time." (the door, early), "Sign in to find the meeting link →".
 - **Queued:** in-app help guides (`2026-10-14-004`, from this guide); drop the old `zoomLink` / `meetHostAccount` columns (`2026-10-14-005`).

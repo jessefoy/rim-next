@@ -113,6 +113,11 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Leads only, in every team's Files:** leads (an active coordinator, the guiding teacher, admin) switch between **Team files** and **Leads only**, and move a file or a folder with everything in it between them; members see Files exactly as before. The shared file gates refuse anything in Leads only to non-leads (by walking its folders), Updates and notifications leave it out, and moving in cuts off links already handed out. See `RIM_GoogleWorkspace.md` §12 (and its accepted trade). The emails and Files say "team", not "hub" or "Space"; team Home's old welcome and guidance text was archived off-repo and its columns dropped.
 - **Every team's files were moved into Leads only** (Jesse's call, 79 items across 12 teams) so leads choose what to share back; the leads were sent a note (template `leads-files-update`) asking them to sort and tidy before launch. **Duplicate files** (Manage RIM → Google Files): each team's same-name files with a content check and a suggested keeper, the rest to Drive's trash; first run removed 11 copies left by the July document move.
 
+## October 14, 2026 (late night): plain settings, This Week's date block
+
+- **Program Manager, where it meets online:** the notes are short instructions and the summary is "Who can join, with these settings" (Members, Guests, Program page, when Join opens). See `RIM_ProgramEditor.md`.
+- **This Week:** no blue rule beside each day; the date block is blue with white letters and lines up with the session times.
+
 ## October 13, 2026 (later): the Memberstack members, Flodesk's Members, one header
 
 - **Import members** (`/admin/import-legacy`, ADMIN, temporary): brings people who joined the old site since the last import into the quiet pool, read straight from Memberstack's API; preview first; never re-creates anyone removed; bots listed for review. 56 imported (quiet pool 1,555). Runs once more on the day the domain moves, then is removed. See `RIM_Auth.md`.
