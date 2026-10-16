@@ -1911,5 +1911,15 @@
     "status": "open",
     "addedAt": "2026-10-15",
     "notes": "Counted read-only on 2026-10-15. Nobody in the main Members list or on a team is flagged."
+  },
+  {
+    "id": "2026-10-16-001",
+    "title": "A supporting team that helps in the online room",
+    "description": "Supporting teams (AV, greeters) were built for in-person work, so the Zoom door treats their people like any member: no early entry, turned away from a registration-required session they aren't registered for, and no join button with their My Home duty line. Only the hosting team is staff at the door. If a team ever helps online (Tech Support for Zoom trouble, online greeters who welcome people in the meeting), add a team setting such as \"helps in the online room\" that lets its people in early as staff, without making them the session's host or giving them host controls.",
+    "category": "Sessions & Zoom",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-16",
+    "notes": "Jesse, 2026-10-16: record it, don't build it until a real team needs it. Found by the Scheduler deep audit (RIM_Scheduler.md, checklist step 3). Where it would go: the door's staff list in app/session/[slug]/enter/page.tsx (now hosting team only), resolveSessionRole in lib/sessionAuth.ts, and the Today duty row in the dashboard."
   }
 ]
