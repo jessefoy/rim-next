@@ -120,7 +120,15 @@ Five parallel read-only audits (hosting leakage outside the Scheduler; every wri
 - **The Scheduler offers only what the server allows:** claim and sign-up buttons follow `canSelfClaim`; pickers list people who can be scheduled (a paused person already on a rotation stays visible); no `?hub=` lands a member on their own team; a team without the Scheduler has no board; errors are words, not "Forbidden".
 - **Account merge knows every person column,** including tables without a Prisma model (`reflection_responses`, `pages`). When adding a column that points at a user, add it to `lib/memberMerge.ts` or every merge of someone holding one fails.
 
-**Open, for Jesse:** see the session's questions (the cover-request template still says "Sub needed"; teacher-pill settings that do nothing since Zoom; whether My Home lists greeter/AV commitments; a virtual supporting team can't enter the room without new engineering; the 40px tool-wide button size).
+**Jesse's rulings on the audit (2026-10-16), done in `2a84320`:**
+- **Data repaired** (approved, snapshot first, one transaction): the 11 Awakening the Heart sessions now sit at 9:30 Central; the two May cover requests are closed.
+- **"Sub needed" became the team's words:** `sub-request-posted` reads "Cover needed: …" and "… is asking someone to {{coverageAction}}: …" (flag-guarded, only where unedited).
+- **Teacher-pill settings retired:** `Hub.assignmentGrantsTeacher`, `Hub.teacherLabel` and `Program.teacherLabel` are gone from the forms and APIs, with the session-role path that used them (it only ever applied to someone already the host). The columns stay, unused.
+- **My Home names a supporting-team duty in Today** ("You're greeting", in the team's words, no button), or adds it to the program's own row.
+
+**Found on the way: sessions drifted an hour across every time change.** `shiftToDate` (every placement: the Scheduler, the Zoom door and its window, rotations, seat conflicts, My Home) added 24-hour days, keeping UTC time, so from Nov 1 every program first dated in daylight time would have been placed an hour early, its door and Zoom meeting included. It now keeps the program's Central wall-clock time, and `centralToUtc` is exact on time-change days. Zoom meetings are found by program and Central day (`lib/sessionMeeting.ts`), so one made at a drifted time is reused, never doubled. **Rule:** a session's time comes from `shiftToDate`, and anything that finds a session matches its Central day, never the exact instant.
+
+**Still open, for Jesse:** 46 upcoming sessions on other programs (winter dates) are stored an hour early by the old placement; every lookup matches by day, so nothing misbehaves, but re-timing them keeps the data true (needs approval of those records). A supporting team for **virtual** sessions can't enter the room without new engineering. The tool-wide button height is 40px against the 44px standard (a design-system call).
 
 ## Hub-scoping — every layer
 

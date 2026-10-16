@@ -270,6 +270,8 @@ share-link UI).
 
 ## Pitfalls (hard-won)
 
+- **A session is its program and Central day, never an exact instant (2026-10-16).** `getOrCreateSessionMeeting` and `deleteSessionMeeting` find a meeting by program plus the occurrence's Central day (`ctDayBounds`), and the door finds the host the same way (`resolveSessionRole`). Exact matching broke when a stored time drifted: `shiftToDate` used to add 24-hour days, so sessions moved an hour at each time change; it now keeps the program's Central wall-clock time. A drifted meeting looked up exactly would have been missed and a second room made, splitting the session.
+
 - **Add-Registrant is rate-limited ~3/day per email.** Pre-registering each person
   by name to pre-fill the display name hit this on repeat joins → 429 → bounce.
   **We dropped per-person registration entirely** — standard join link, type your
