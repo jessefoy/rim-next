@@ -6733,6 +6733,43 @@ Rooted In Mindfulness`,
     console.error("  coverage-sessions-cleared seed failed:", err?.message ?? err);
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // sub-request-posted in every team's words (Jesse approved, 2026-10-16:
+  // AV members and facilitators read "Sub needed" / "needs a sub"). Replaces
+  // the exact seeded subject and sentence only where they are unedited;
+  // anything changed in /admin/emails is left alone. Adds {{coverageAction}}.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const flag = "sub_request_posted_team_words_2026_10_16_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const row = await db.emailTemplate.findUnique({ where: { slug: "sub-request-posted" }, select: { subject: true, body: true, variables: true } });
+      if (!row) {
+        console.log("  sub-request-posted: not found, skipped.");
+      } else {
+        const fromSubject = "Sub needed: {{programName}}{{sessionDate}}";
+        const fromLine = "**{{requesterName}}** needs a sub for **{{programName}}**{{sessionDate}}.";
+        const data = {};
+        if (row.subject === fromSubject) data.subject = "Cover needed: {{programName}}{{sessionDate}}";
+        if (row.body.includes(fromLine)) {
+          data.body = row.body.replace(fromLine, "**{{requesterName}}** is asking someone to {{coverageAction}}: **{{programName}}**{{sessionDate}}.");
+          data.variables = row.variables.includes("coverageAction") ? row.variables : [...row.variables, "coverageAction"];
+        }
+        if (Object.keys(data).length === 0) {
+          console.log("  sub-request-posted: subject and sentence were edited or already changed, left alone.");
+        } else {
+          const res = await db.emailTemplate.updateMany({ where: { slug: "sub-request-posted", subject: row.subject, body: row.body }, data });
+          console.log(res.count
+            ? `  ✔ sub-request-posted: ${Object.keys(data).filter((k) => k !== "variables").join(" and ")} updated to the team's words.`
+            : "  sub-request-posted: changed during the update, left alone.");
+        }
+      }
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  } catch (err) {
+    console.error("  sub-request-posted wording failed (template unchanged):", err?.message ?? err);
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

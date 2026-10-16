@@ -18,6 +18,7 @@
  */
 
 import { db } from "@/lib/db";
+import { ctDayBounds } from "@/lib/timezone";
 import { createMeeting, deleteMeeting, setMeetingAutoRecording } from "@/lib/zoom";
 import { EARLY_OPEN_MIN, LATE_GRACE_MIN } from "@/lib/sessionWindowConstants";
 
@@ -78,10 +79,13 @@ export interface ProvisionInput {
 export async function getOrCreateSessionMeeting(input: ProvisionInput) {
   const { programSlug, sessionDate, endTime } = input;
 
-  // 1. Reuse if already provisioned (the common case: no lock needed).
-  const existing = await db.sessionMeeting.findUnique({
-    where: { programSlug_sessionDate: { programSlug, sessionDate } },
-  });
+  // 1. Reuse if already provisioned (the common case: no lock needed). Found
+  // by the program and the session's Central day, not the exact start: a
+  // meeting made before a placement fix or a start-time edit would otherwise
+  // be missed and a second room made (2026-10-16).
+  const day = ctDayBounds(sessionDate);
+  const thisOccurrence = { programSlug, sessionDate: { gte: day.start, lte: day.end } };
+  const existing = await db.sessionMeeting.findFirst({ where: thisOccurrence, orderBy: { createdAt: "asc" } });
   if (existing) return existing;
 
   if (SEAT_USER_IDS.length === 0) {
@@ -104,9 +108,7 @@ export async function getOrCreateSessionMeeting(input: ProvisionInput) {
         await tx.$executeRawUnsafe(`SET LOCAL lock_timeout = '15s'`);
         await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock(${SEAT_LOCK_KEY}::bigint)`);
 
-        const again = await tx.sessionMeeting.findUnique({
-          where: { programSlug_sessionDate: { programSlug, sessionDate } },
-        });
+        const again = await tx.sessionMeeting.findFirst({ where: thisOccurrence, orderBy: { createdAt: "asc" } });
         if (again) return again;
 
         // 2. Pick a seat. Meetings whose padded windows touch ours make a seat
@@ -171,9 +173,7 @@ export async function getOrCreateSessionMeeting(input: ProvisionInput) {
   } catch (err) {
     // Backstop for anything that slipped past the lock (e.g. a row written by
     // an older deployment mid-rollout): the unique index keeps one winner.
-    const winner = await db.sessionMeeting.findUnique({
-      where: { programSlug_sessionDate: { programSlug, sessionDate } },
-    });
+    const winner = await db.sessionMeeting.findFirst({ where: thisOccurrence, orderBy: { createdAt: "asc" } });
     if (createdZoomId !== null && winner?.zoomMeetingId !== String(createdZoomId)) {
       const orphan = createdZoomId;
       await deleteMeeting(orphan).catch((e) =>
@@ -190,8 +190,11 @@ export async function deleteSessionMeeting(
   programSlug: string,
   sessionDate: Date,
 ): Promise<boolean> {
-  const row = await db.sessionMeeting.findUnique({
-    where: { programSlug_sessionDate: { programSlug, sessionDate } },
+  // This occurrence's Central day, as getOrCreateSessionMeeting finds it.
+  const day = ctDayBounds(sessionDate);
+  const row = await db.sessionMeeting.findFirst({
+    where: { programSlug, sessionDate: { gte: day.start, lte: day.end } },
+    orderBy: { createdAt: "asc" },
   });
   if (!row) return false;
   await deleteMeeting(row.zoomMeetingId).catch((e) =>

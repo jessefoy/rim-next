@@ -11,17 +11,20 @@ const TZ = "America/Chicago";
  * Convert a UTC Date to a "YYYY-MM-DDTHH:mm" string in Central Time.
  * Used to populate datetime-local inputs with the correct CT value.
  */
+// One formatter, built once: every session placement reads through here.
+const CENTRAL_PARTS = new Intl.DateTimeFormat("en-US", {
+  timeZone: TZ,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
 export function toCentralDatetime(d: Date | null | undefined): string {
   if (!d) return "";
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(d);
+  const parts = CENTRAL_PARTS.formatToParts(d);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   // hour12: false with en-US can return "24" for midnight — normalize to "00"
   const hour = get("hour") === "24" ? "00" : get("hour");
@@ -38,6 +41,17 @@ export function centralToUtc(dtLocal: string | null | undefined): Date | null {
   // Treat the input as UTC to get a reference timestamp
   const asUtc = new Date(dtLocal + ":00.000Z");
   if (isNaN(asUtc.getTime())) return null;
+
+  // Central is UTC-5 (daylight) or UTC-6 (standard): take the one whose
+  // Central reading is exactly the wall time asked for. Sampling the offset
+  // at the wrong moment put an early-morning time on a time-change day an
+  // hour off (2026-10-16). An hour that doesn't exist (2:30 on the spring
+  // change) falls through to the estimate below.
+  const wanted = dtLocal.slice(0, 16);
+  for (const hours of [5, 6]) {
+    const candidate = new Date(asUtc.getTime() + hours * 3_600_000);
+    if (toCentralDatetime(candidate) === wanted) return candidate;
+  }
 
   // Find the CT→UTC offset at this approximate moment
   const utcStr = asUtc.toLocaleString("en-US", { timeZone: "UTC" });

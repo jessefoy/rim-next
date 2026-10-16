@@ -194,10 +194,13 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
       hostAssignment:{findMany:async()=>assignments},programTeacher:{findMany:async()=>[]},
       user:{findUnique:async()=>({hostWelcomeSeenAt:new Date()})},
     }},
-    '@/lib/scheduleUtils':load('lib/scheduleUtils.ts'),
+    // scheduleUtils places a session at its Central wall-clock time through
+    // lib/timezone (2026-10-16), a pure module with no imports of its own.
+    '@/lib/scheduleUtils':load('lib/scheduleUtils.ts',{'./timezone':load('lib/timezone.ts')}),
     '@/lib/programKind':programKind,
     '@/lib/programOffering':load('lib/programOffering.ts',{'@/lib/programKind':programKind}),
-    '@/lib/programHub':{getHubCoverageCopy:async()=>({noun:'Host'})},
+    '@/lib/programHub':{getHubCoverageCopy:async hub=>hub==='greeter'?{noun:'Greeter',verb:'greeting',action:'greet'}:{noun:'Host',verb:'hosting',action:'host this'}},
+    '@/lib/timezone':load('lib/timezone.ts'),
     '@/lib/sessionWindowConstants':load('lib/sessionWindowConstants.ts'),
     '@/lib/outsideMeeting':load('lib/outsideMeeting.ts'),
     '@/components/AccountLayout':{default:({children})=>children,__esModule:true},
@@ -230,6 +233,8 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   assignments=[{programSlug:'morning',sessionDate:new Date('2026-09-21T16:00:00Z'),hubSlug:'greeter'}];
   html=await dashboardHtml();check(html.includes('Enter Zoom as host'),false,'a greeter sign-up does not open the room early');
   check(html.includes('Opens at'),true,'a greeter sees the session as a member does (opens at the member time)');
+  // My Home names the duty in the team's words, with no extra button (Jesse, 2026-10-16).
+  check(html.includes('re greeting'),true,'a greeter sees their duty in Today');
   assignments=[];now='2026-09-21T15:55:00Z';
   programs[0].category.kind='CLASS';programs[0].registrationEnabled=true;
   html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'registration-required offering hidden from nonregistrant');

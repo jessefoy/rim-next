@@ -978,7 +978,10 @@ export interface SubRequestEmailData {
 export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<void> {
   const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
   const coverUrl = scheduleUrlFor(data.hubSlug, data.sessionAt, `action=cover&id=${data.subRequestId}`);
+  // The team's own claim phrase ("host this", "cover AV", "facilitate").
+  const copy = await getHubCoverageCopy(data.hubSlug);
   await sendTemplatedEmail("sub-request-posted", data.to, {
+    coverageAction: copy.action,
     firstName:     data.firstName ?? "there",
     requesterName: data.requesterName,
     programName:   data.programName,

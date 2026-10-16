@@ -34,13 +34,10 @@ import {
 const TZ = "America/Chicago";
 
 /**
- * Shift uses scheduleUtils.shiftToDate to stay aligned with the schedule
- * tool that creates HostAssignment rows. That helper has a known DST drift
- * (24-hour increments, not wall-clock-preserving across DST boundaries) —
- * the entire schedule subsystem has the same drift, so this helper inherits
- * it deliberately. Forking to a DST-correct shift here would mismatch the
- * timestamps the rest of the codebase produces. Fixing shiftToDate
- * platform-wide is a separate undertaking.
+ * Shift uses scheduleUtils.shiftToDate, the one placement every part of the
+ * app uses: a program's Central wall-clock time on the day (2026-10-16; it
+ * used to add 24-hour days, so sessions drifted an hour across each time
+ * change, a known gap now closed platform-wide).
  */
 
 export type SessionWindowReason =
@@ -52,11 +49,11 @@ export type SessionWindowReason =
 export interface ActiveSessionWindow {
   active: true;
   /**
-   * ISO timestamp matching the program's start moment shifted to today.
-   * Aligns with the value the schedule tool writes to
-   * HostAssignment.sessionDate, so `new Date(sessionDate)` lookups in
-   * resolveSessionRole hit existing rows exactly. roomNameForProgram
-   * strips this to the first 10 chars (YYYY-MM-DD) for the room suffix.
+   * ISO timestamp of the program's start on today's date (shiftToDate).
+   * Lookups of this session (resolveSessionRole, the Zoom meeting) match it
+   * by Central day, not exactly, so a stored row at a drifted time is still
+   * found (2026-10-16). roomNameForProgram strips this to the first 10 chars
+   * (YYYY-MM-DD) for the room suffix.
    */
   sessionDate: string;
   opensAt: Date;

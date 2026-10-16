@@ -10,6 +10,8 @@
  * monthly, bi-weekly, and single-event recurrence patterns.
  */
 
+import { centralToUtc, toCentralDatetime } from "./timezone";
+
 const TZ = "America/Chicago";
 
 /** Format an ISO string to a CT date string: "YYYY-MM-DD" */
@@ -64,11 +66,17 @@ export function dateToDayCode(dateStr: string): string {
  */
 export function shiftToDate(anchorISO: string, targetDate: string): Date {
   const anchor = new Date(anchorISO);
-  const anchorCTDate = ctDateStr(anchorISO);
-  if (anchorCTDate === targetDate) return anchor;
+  if (ctDateStr(anchorISO) === targetDate) return anchor;
+  // The anchor's Central wall-clock time, on the target day (2026-10-16:
+  // adding whole 24-hour days kept the UTC time instead, so a program that
+  // began in daylight time was placed an hour early all winter, and one
+  // that began in standard time an hour late all summer).
+  const wall = toCentralDatetime(anchor).slice(11, 16);
+  const shifted = centralToUtc(`${targetDate}T${wall}`);
+  if (shifted) return new Date(shifted.getTime() + (anchor.getTime() % 60_000));
   const msPerDay = 24 * 60 * 60 * 1000;
   const daysDiff = Math.round(
-    (new Date(targetDate + "T12:00:00").getTime() - new Date(anchorCTDate + "T12:00:00").getTime())
+    (new Date(targetDate + "T12:00:00").getTime() - new Date(ctDateStr(anchorISO) + "T12:00:00").getTime())
     / msPerDay
   );
   return new Date(anchor.getTime() + daysDiff * msPerDay);

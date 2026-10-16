@@ -9,7 +9,6 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
 import { computeTimeText, computeDateText } from "@/lib/programUtils";
-import { sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
 import { DEFAULT_HOSTING_HUB_SLUG, hostingTeamRefusal, supportingTeamRefusal } from "@/lib/programHub";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
@@ -134,7 +133,6 @@ export async function POST(request: NextRequest) {
       openEntry: body.openEntry === true,
       programNotes: body.programNotes || null,
       teacherFacilitators: body.teacherFacilitators ?? [],
-      teacherLabel: sanitizeTeacherLabel(body.teacherLabel),
       // `hostingHubSlug`: null defaults to host-team at read time. Coordinator
       // can transfer hosting authority to a different hub (Silent Meditation,
       // etc.) by setting this field via the editor's Hosting & Access tab.

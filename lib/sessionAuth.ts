@@ -85,16 +85,10 @@ export interface SessionRole {
   isCoHost: boolean;
   /** True if user is on the host team for the program's hosting hub (used for Step-In UI). */
   isHostTeam: boolean;
-  /** Whether the user is the teacher for this program (drives audio profile + Teacher pill).
-   *  Either: a `ProgramTeacher` row exists for the user on this program (the
-   *  original path), OR the program's hosting hub has `assignmentGrantsTeacher: true`
-   *  AND the user holds an active HostAssignment for this exact session (the
-   *  Silent Meditation Hub path — peer leaders become "teachers" by virtue of
-   *  signing up to lead a session in a teacher-granting hub). */
+  /** Whether the user teaches this program (a `ProgramTeacher` row). */
   isProgramTeacher: boolean;
-  /** The program's resolved hosting hub. Returned so callers can compose the
-   *  pill label hierarchy (`program.teacherLabel ?? hub.teacherLabel ?? null`)
-   *  without re-fetching. Null only when the program doesn't exist. */
+  /** The program's resolved hosting team. Null only when the program
+   *  doesn't exist. */
   programHub: ProgramHostingHub | null;
 }
 
@@ -118,8 +112,7 @@ export async function resolveSessionRole(
 
   // ── Resolve which hub hosts this program. Defaults to "host-team" when
   // Program.hostingHubSlug is null. Callers that already fetched the join
-  // can pass it in to avoid a second query. The resolved record carries
-  // `assignmentGrantsTeacher` and the hub-level pill label fallback.
+  // can pass it in to avoid a second query.
   const programHub =
     programHubOverride !== undefined
       ? programHubOverride
@@ -153,23 +146,10 @@ export async function resolveSessionRole(
   // Teacher pill. Resolves the program record once; reused below for the
   // "any host assigned" check.
   //
-  // Two paths into the Teacher capability:
-  //
-  //   1. A `ProgramTeacher` row exists for this user on this program
-  //      (the operational path: Jesse on Essential Dharma Study, Maria on
-  //      Qigong, etc.). Same lookup as before.
-  //
-  //   2. The program's hosting hub has `assignmentGrantsTeacher: true` AND
-  //      the user holds an active HostAssignment for this exact session
-  //      (the Silent Meditation Hub path: peer leaders are not teachers
-  //      in the public/editorial sense, but they take on teacher-room
-  //      capability — bell-friendly audio, Teacher pill — for the session
-  //      they're leading because the hub establishes that role).
-  //
-  // The two paths layer cleanly: if both apply, either alone would
-  // produce the same effect — Teacher pill, teacher audio profile, End
-  // fallback if no other host is assigned (which is moot when path 2
-  // applies, since path 2 requires an assignment).
+  // The teacher is whoever has a `ProgramTeacher` row on this program. (A
+  // second path, a team setting that made the session's host a "teacher"
+  // too, was retired 2026-10-16 with the teacher pill: it only ever applied
+  // to someone already the host, whom the door greets as host first.)
   const program = await db.program.findFirst({
     where: { slug: programSlug },
     select: { id: true },
@@ -181,9 +161,6 @@ export async function resolveSessionRole(
       select: { id: true },
     });
     if (teacher) isProgramTeacher = true;
-  }
-  if (!isProgramTeacher && isSessionHost && programHub?.assignmentGrantsTeacher) {
-    isProgramTeacher = true;
   }
 
   // ── Teacher-as-fallback-host: if no host is assigned for this session and

@@ -7,19 +7,11 @@
  * `peer-led-silent-meditation` for community-led silent sits, future hubs
  * for Recovery Dharma, skills classes, etc.
  *
- * Two reads on the hub matter for slice-1 behaviour:
- *
- *   `assignmentGrantsTeacher`  When true, an active HostAssignment for a
- *                              program in this hub confers teacher
- *                              capability on the assignee (bell-friendly
- *                              audio, Teacher pill, End-for-All fallback).
- *                              Peer-led offerings opt in; host-team keeps
- *                              the default false.
- *
- *   `teacherLabel`             Default pill text when the hub grants
- *                              teacher capability. The pill hierarchy is
- *                              `program.teacherLabel ?? hub.teacherLabel
- *                              ?? "Teacher"` — most specific wins.
+ * It also holds the shared Scheduler rules: which team may staff a program
+ * (`teamCannotStaff`, `hostingTeamRefusal`, `supportingTeamRefusal`), and the
+ * cleanups when that changes. (The teacher-pill settings this header once
+ * described, `assignmentGrantsTeacher` and `teacherLabel`, were retired
+ * 2026-10-16; their columns stay on the record, unused.)
  *
  * Why slug, not FK? `HostAssignment.programSlug` already uses slug as the
  * join key. Programs and hubs share that convention; slugs are stable once
@@ -36,14 +28,10 @@ import {
 /** The implicit default hub when `Program.hostingHubSlug` is null. */
 export const DEFAULT_HOSTING_HUB_SLUG = "host-team" as const;
 
-/** Resolved hosting hub info for a program, including teacher-capability flags. */
+/** A program's resolved hosting team. */
 export interface ProgramHostingHub {
   /** The effective slug — always populated. `null` source resolves to host-team. */
   hubSlug: string;
-  /** True when an assignment from this hub confers teacher capability. */
-  assignmentGrantsTeacher: boolean;
-  /** Default pill text when the hub grants teacher capability. */
-  hubTeacherLabel: string | null;
 }
 
 /**
@@ -62,57 +50,20 @@ export async function getProgramHubSlug(programSlug: string): Promise<string> {
 }
 
 /**
- * Look up the effective hosting hub *and* its teacher-capability flags for a
- * program. Returns null only when the program doesn't exist; otherwise always
- * returns a resolved record, falling back to host-team-with-defaults when the
- * column is null.
- *
- * Used by `resolveSessionRole` (the session-role resolver) for the host/teacher
- * label hierarchy and the hub-grants-teacher capability path.
+ * A program's hosting team, resolved (null in the column is host-team).
+ * Returns null only when the program doesn't exist. Used by
+ * `resolveSessionRole`. (It also returned the teacher-pill settings, retired
+ * 2026-10-16; `resolveTeacherPillLabel` went with them.)
  */
 export async function getProgramHostingHub(
   programSlug: string,
 ): Promise<ProgramHostingHub | null> {
   const program = await db.program.findUnique({
     where: { slug: programSlug },
-    select: {
-      hostingHubSlug: true,
-    },
+    select: { hostingHubSlug: true },
   });
   if (!program) return null;
-
-  const resolvedSlug = program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
-
-  const hub = await db.hub.findUnique({
-    where: { slug: resolvedSlug },
-    select: { assignmentGrantsTeacher: true, teacherLabel: true },
-  });
-
-  // If the resolved hub doesn't exist (shouldn't happen — host-team is seeded,
-  // and the editor pulls the dropdown from db.hub.findMany) we degrade to safe
-  // defaults rather than throw. The Teacher pill stays at "Teacher", no hub
-  // grants kick in. Coordinator's editor warning surfaces the orphan, if any.
-  return {
-    hubSlug: resolvedSlug,
-    assignmentGrantsTeacher: hub?.assignmentGrantsTeacher ?? false,
-    hubTeacherLabel: hub?.teacherLabel ?? null,
-  };
-}
-
-/**
- * Resolve the pill text that should render on a teacher's tile in the session
- * room. Hierarchy: program override → hub default → built-in "Teacher".
- *
- * Returns `null` when the result is the built-in default — callers seed the
- * `teacherLabel` field into participant metadata only when non-null, so the
- * client falls through to the default string. This keeps the wire payload
- * minimal and lets the renderer own the literal.
- */
-export function resolveTeacherPillLabel(
-  programTeacherLabel: string | null,
-  hubTeacherLabel: string | null,
-): string | null {
-  return programTeacherLabel ?? hubTeacherLabel ?? null;
+  return { hubSlug: program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG };
 }
 
 // ───────────────────────────────────────────────────────────────────────────

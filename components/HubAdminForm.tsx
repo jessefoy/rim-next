@@ -47,15 +47,6 @@ interface HubData {
    *  they just don't run the live session. */
   hasSchedule: boolean;
   conversationsEnabled?: boolean;
-  /** Session 128 — when true, an active HostAssignment from this hub
-   *  confers Teacher capability (bell-friendly audio + Teacher pill) on
-   *  the assigned leader. Used by peer-led hubs where the act of claiming
-   *  a session IS the teacher role for that session. */
-  assignmentGrantsTeacher: boolean;
-  /** Hub-level fallback for the Teacher pill text. Used when
-   *  assignmentGrantsTeacher is true and the program doesn't override.
-   *  Pill hierarchy: program.teacherLabel ?? hub.teacherLabel ?? "Teacher". */
-  teacherLabel: string | null;
   /** Role-aware copy fields (session 130 follow-up). Drive the Scheduler
    *  UI and email body strings so each hub speaks its own language
    *  ("AV needed" / "You're covering AV" / "I can cover AV"). Schema
@@ -117,27 +108,6 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
   );
   const [conversationsEnabled, setConversationsEnabled] = useState<boolean>(
     initialData?.conversationsEnabled ?? true,
-  );
-  const [assignmentGrantsTeacher, setAssignmentGrantsTeacher] = useState<boolean>(
-    initialData?.assignmentGrantsTeacher ?? false,
-  );
-  // Mirror the ProgramEditor's teacherLabel UX so the field reads the same
-  // way coordinators encounter it in both places.  Dropdown of preset
-  // alternates plus a Custom… reveal.  Initial-state derivation handles
-  // all save shapes — null → "default", exact preset match → preset,
-  // anything else → "Custom" with text preserved.
-  const HUB_LABEL_PRESETS = ["Guide", "Facilitator", "Instructor"] as const;
-  const initialHubLabel = initialData?.teacherLabel ?? null;
-  const initialHubLabelChoice: "default" | "Guide" | "Facilitator" | "Instructor" | "Custom" =
-    initialHubLabel === null
-      ? "default"
-      : (HUB_LABEL_PRESETS as readonly string[]).includes(initialHubLabel)
-        ? (initialHubLabel as "Guide" | "Facilitator" | "Instructor")
-        : "Custom";
-  const [teacherLabelChoice, setTeacherLabelChoice] =
-    useState<typeof initialHubLabelChoice>(initialHubLabelChoice);
-  const [teacherLabelCustom, setTeacherLabelCustom] = useState(
-    initialHubLabelChoice === "Custom" ? (initialHubLabel ?? "") : "",
   );
   const [coverageNoun, setCoverageNoun] = useState<string>(
     initialData?.coverageNoun ?? "",
@@ -380,16 +350,6 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
     setSuccess("");
     setPendingConfirm(null);
 
-    // Resolve teacherLabel from the dropdown state.
-    //   "default" stores null (renderer falls through to "Teacher")
-    //   preset literals store as themselves
-    //   "Custom" stores the trimmed custom string, or null if empty
-    const resolvedTeacherLabel: string | null =
-      teacherLabelChoice === "default"
-        ? null
-        : teacherLabelChoice === "Custom"
-          ? teacherLabelCustom.trim() || null
-          : teacherLabelChoice;
 
     // Coverage strings sent as-is (trimmed). Server resolves blank ↦
     // schema default. Server also clamps length.
@@ -401,8 +361,6 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       status,
       hasSchedule,
       conversationsEnabled,
-      assignmentGrantsTeacher,
-      teacherLabel: resolvedTeacherLabel,
       coverageNoun: coverageNoun.trim(),
       coverageVerb: coverageVerb.trim(),
       coverageAction: coverageAction.trim(),
@@ -568,82 +526,6 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           its pages are closed.
         </p>
       </div>
-
-      {/* Assignment confers Teacher capability — session 128 */}
-      <div className="adm-hubs-field">
-        <label className="adm-hubs-label">
-          <input
-            type="checkbox"
-            checked={assignmentGrantsTeacher}
-            onChange={(e) => {
-              const next = e.target.checked;
-              setAssignmentGrantsTeacher(next);
-              // Unchecking resets the label choice so a stale value
-              // can't ride along on submit.
-              if (!next) {
-                setTeacherLabelChoice("default");
-                setTeacherLabelCustom("");
-              }
-            }}
-            style={{ marginRight: 8 }}
-          />
-          Hub assignments grant Teacher capability
-        </label>
-        <p className="adm-hubs-hint">
-          When enabled, anyone assigned to lead a session in this hub
-          automatically gets the Teacher pill and bell-friendly audio in
-          the session room — without needing to be a ProgramTeacher of the
-          program. Use this for peer-led offerings (silent meditation, Recovery
-          Dharma, etc.) where the leader rotates each week. Leave off for
-          host-team-style hubs where teachers are attributed per-program.
-        </p>
-      </div>
-
-      {/* Teacher pill label — only meaningful when assignmentGrantsTeacher is true.
-          Mirrors the ProgramEditor's Hosting & Access dropdown UX. */}
-      {assignmentGrantsTeacher && (
-        <div className="adm-hubs-field">
-          <label className="adm-hubs-label">Default pill label</label>
-          <p className="adm-hubs-hint">
-            What the role pill reads on a leader&rsquo;s tile in the session
-            room when they&rsquo;ve been assigned via this hub. Per-program
-            override (on the program record itself) takes priority over this
-            hub default; if both are unset, the pill falls back to
-            &ldquo;Teacher.&rdquo;
-          </p>
-          <select
-            className="adm-hubs-input"
-            value={teacherLabelChoice}
-            onChange={(e) =>
-              setTeacherLabelChoice(
-                e.target.value as
-                  | "default"
-                  | "Guide"
-                  | "Facilitator"
-                  | "Instructor"
-                  | "Custom",
-              )
-            }
-          >
-            <option value="default">Teacher (default)</option>
-            <option value="Guide">Guide</option>
-            <option value="Facilitator">Facilitator</option>
-            <option value="Instructor">Instructor</option>
-            <option value="Custom">Custom…</option>
-          </select>
-          {teacherLabelChoice === "Custom" && (
-            <input
-              type="text"
-              className="adm-hubs-input"
-              placeholder="e.g. Co-Leader"
-              value={teacherLabelCustom}
-              onChange={(e) => setTeacherLabelCustom(e.target.value)}
-              maxLength={20}
-              style={{ marginTop: 8 }}
-            />
-          )}
-        </div>
-      )}
 
       {/* Team files — RIM_GoogleWorkspace.md (Files system). Edit-mode only.
           Two shapes: an auto-provisioned hub (a folder in the shared

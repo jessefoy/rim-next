@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { activeAnnouncement, ctDateStr, isOccurrenceOnDate, nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
 import { hasOpenEntry } from "@/lib/programOffering";
 import { getHubCoverageCopy } from "@/lib/programHub";
+import { ctDayBounds } from "@/lib/timezone";
 import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN, LATE_GRACE_MIN } from "@/lib/sessionWindowConstants";
 import AccountLayout from "@/components/AccountLayout";
 import FormDone from "@/components/FormDone";
@@ -58,6 +59,8 @@ type TodayDisplayItem = {
   contextText?: string;
   note?: string | null;
   announcement?: string | null;
+  /** The program, so a team duty can join the row it belongs to. */
+  programSlug?: string;
 };
 
 export default async function DashboardPage({ searchParams }: {
@@ -296,6 +299,7 @@ export default async function DashboardPage({ searchParams }: {
     .filter((s) => s.isLive || s.isSetupOpen || s.isLaterToday)
     .map((s) => ({
       key: `program-${s._id}`,
+      programSlug: s.slug,
       note: s.earlyArrivalMessage, announcement: activeAnnouncement(s, now),
       name: s.name,
       startTimeCT: s.startTimeCT,
@@ -340,6 +344,7 @@ export default async function DashboardPage({ searchParams }: {
     const isHappeningNow = now >= start;
     return [{
       key: `registration-${r.id}`,
+      programSlug: r.programSlug,
       note: p.earlyArrivalMessage, announcement: activeAnnouncement(p, now),
       name: r.programTitle,
       startTimeCT: fmtTimeCT(start.toISOString()),
@@ -352,10 +357,54 @@ export default async function DashboardPage({ searchParams }: {
     }];
   });
 
-  const activeTodayItems = [...onlineTodayItems, ...inPersonTodayItems]
+  // Today's duties on a supporting team (greeting, AV): a quiet line in the
+  // team's own words, with no button: the work happens in the hall, not the
+  // room (Jesse, 2026-10-16). It joins the program's row when there is one.
+  const { start: dayStart, end: dayEnd } = ctDayBounds(now);
+  const myDutiesRaw = await db.hostAssignment.findMany({
+    where: { userId, sessionDate: { gte: dayStart, lte: dayEnd } },
+    select: { id: true, programSlug: true, hubSlug: true },
+  });
+  const dutyPrograms = new Map(
+    (await db.program.findMany({
+      where: { slug: { in: [...new Set(myDutiesRaw.map((d) => d.programSlug))] }, archivedAt: null },
+      select: { slug: true, name: true, programFormat: true, hostingHubSlug: true, startDatetime: true, endDatetime: true },
+    })).map((p) => [p.slug, p]),
+  );
+  const dutyItems: TodayDisplayItem[] = [];
+  for (const d of myDutiesRaw) {
+    const p = dutyPrograms.get(d.programSlug);
+    if (!p?.startDatetime || d.hubSlug === (p.hostingHubSlug ?? "host-team")) continue;
+    const copy = await getHubCoverageCopy(d.hubSlug);
+    const duty = `You're ${copy.verb}`;
+    const existing = [...onlineTodayItems, ...inPersonTodayItems, ...dutyItems].find((i) => i.programSlug === d.programSlug);
+    if (existing) {
+      existing.contextText = existing.contextText ? `${duty} · ${existing.contextText}` : duty;
+      continue;
+    }
+    const start = shiftToDate(p.startDatetime.toISOString(), today);
+    const end = p.endDatetime
+      ? shiftToDate(p.endDatetime.toISOString(), today)
+      : new Date(start.getTime() + FALLBACK_DURATION_MIN * 60 * 1000);
+    if (now > end) continue;
+    dutyItems.push({
+      key: `duty-${d.id}`,
+      programSlug: d.programSlug,
+      name: p.name,
+      startTimeCT: fmtTimeCT(start.toISOString()),
+      endTimeCT: p.endDatetime ? fmtTimeCT(end.toISOString()) : null,
+      startEpoch: start.getTime(),
+      formatLabel: p.programFormat === "virtual" ? "Online" : "In person",
+      isRegistered: false,
+      stage: now >= start ? "in-person" : "later",
+      contextText: duty,
+    });
+  }
+
+  const activeTodayItems = [...onlineTodayItems, ...inPersonTodayItems, ...dutyItems]
     .filter((item) => item.stage !== "later")
     .sort((a, b) => a.startEpoch - b.startEpoch);
-  const laterTodayItems = [...onlineTodayItems, ...inPersonTodayItems]
+  const laterTodayItems = [...onlineTodayItems, ...inPersonTodayItems, ...dutyItems]
     .filter((item) => item.stage === "later")
     .sort((a, b) => a.startEpoch - b.startEpoch);
   const showTodayCard = activeTodayItems.length > 0 || laterTodayItems.length > 0;

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   const creatorId = session.user.id;
 
   const body = await req.json();
-  const { name, slug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, appLinks, allowsMultipleAssignments, appliesToFormats } = body;
+  const { name, slug, description, type, status, hasSchedule, conversationsEnabled, coverageNoun, coverageVerb, coverageAction, appLinks, allowsMultipleAssignments, appliesToFormats } = body;
   // Scheduler settings (2026-10-15): the formats this team staffs, in the
   // editor's order; none chosen keeps the schema default (online sessions).
   const FORMATS = ["virtual", "in-person", "hybrid"];
@@ -101,13 +101,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // teacherLabel only meaningful when assignmentGrantsTeacher is true;
-  // strip it otherwise so we don't store dead state. Sanitize: trim, max 20.
-  const grantsTeacher = !!assignmentGrantsTeacher;
-  const sanitizedLabel =
-    grantsTeacher && typeof teacherLabel === "string" && teacherLabel.trim().length > 0
-      ? teacherLabel.trim().slice(0, 20)
-      : null;
 
   // Coverage strings: trim, cap at 40. Empty input falls through to the
   // host-team default for that field, so clearing an input in the form
@@ -131,8 +124,6 @@ export async function POST(req: Request) {
       allowsMultipleAssignments: !!allowsMultipleAssignments,
       ...(formats.length > 0 && { appliesToFormats: formats }),
       conversationsEnabled: conversationsEnabled !== false,
-      assignmentGrantsTeacher: grantsTeacher,
-      teacherLabel: sanitizedLabel,
       coverageNoun:   cleanCoverageInput(coverageNoun,   DEFAULT_COVERAGE_COPY.noun),
       coverageVerb:   cleanCoverageInput(coverageVerb,   DEFAULT_COVERAGE_COPY.verb),
       coverageAction: cleanCoverageInput(coverageAction, DEFAULT_COVERAGE_COPY.action),

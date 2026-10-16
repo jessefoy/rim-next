@@ -8,6 +8,7 @@ import {
 } from "@/lib/programHub";
 import { resolveSpacesContainerDrive } from "@/lib/googleFiles";
 import { retargetTeamLink } from "@/lib/linkInput";
+import { ctDateStr } from "@/lib/scheduleUtils";
 import { sendCoverageClearedEmails } from "@/lib/email";
 import { getToolBySlug, isToolCompatibleWithHub } from "@/lib/toolRegistry";
 import type { Prisma } from "@prisma/client";
@@ -64,7 +65,7 @@ export async function PATCH(
 
   const { slug } = await params;
   const body = await req.json();
-  const { name, slug: newSlug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, googleDriveId, googleFilesEnabled, appLinks, allowsMultipleAssignments, appliesToFormats, confirmCoverageClear } = body;
+  const { name, slug: newSlug, description, type, status, hasSchedule, conversationsEnabled, coverageNoun, coverageVerb, coverageAction, googleDriveId, googleFilesEnabled, appLinks, allowsMultipleAssignments, appliesToFormats, confirmCoverageClear } = body;
 
   // Coverage strings: trim, cap at 40. Empty input falls through to the
   // host-team default for that field — clearing an input in the form
@@ -121,7 +122,8 @@ export async function PATCH(
       const perSession = new Map<string, number>();
       for (const a of future) {
         if (!a.userId) continue;
-        const k = `${a.programSlug}::${a.sessionDate?.toISOString()}`;
+        // One session = program + Central day (lib/timezone.ts ctDayBounds).
+        const k = `${a.programSlug}::${a.sessionDate ? ctDateStr(a.sessionDate.toISOString()) : ""}`;
         perSession.set(k, (perSession.get(k) ?? 0) + 1);
       }
       const crowded = [...perSession.values()].filter((n) => n > 1).length;
@@ -354,23 +356,9 @@ export async function PATCH(
       ...(status !== undefined && { status }),
       ...(hasSchedule !== undefined && { hasSchedule: !!hasSchedule }),
       ...(conversationsEnabled !== undefined && { conversationsEnabled: !!conversationsEnabled }),
-      ...(assignmentGrantsTeacher !== undefined && { assignmentGrantsTeacher: !!assignmentGrantsTeacher }),
-      // teacherLabel: trim + cap at 20, null when empty.  Effective capability
-      // for this update = the body's flag if present, otherwise the hub's
-      // stored value.  When the effective capability is false, force the label
-      // to null so a stale label can't sit on a hub where the capability is
-      // off (covers BOTH the explicit-off PATCH AND the "send only label, hub
-      // already off" case).
-      ...(teacherLabel !== undefined && {
-        teacherLabel:
-          (assignmentGrantsTeacher !== undefined
-            ? !!assignmentGrantsTeacher
-            : hub.assignmentGrantsTeacher) === false
-            ? null
-            : typeof teacherLabel === "string" && teacherLabel.trim().length > 0
-              ? teacherLabel.trim().slice(0, 20)
-              : null,
-      }),
+      // The teacher-pill settings (assignmentGrantsTeacher, teacherLabel) were
+      // retired 2026-10-16 (Jesse): they did nothing once sessions moved to
+      // Zoom. Their columns stay on the record; nothing sets them.
       ...(coverageNoun   !== undefined && { coverageNoun:   cleanCoverageInput(coverageNoun,   DEFAULT_COVERAGE_COPY.noun) }),
       ...(coverageVerb   !== undefined && { coverageVerb:   cleanCoverageInput(coverageVerb,   DEFAULT_COVERAGE_COPY.verb) }),
       ...(coverageAction !== undefined && { coverageAction: cleanCoverageInput(coverageAction, DEFAULT_COVERAGE_COPY.action) }),

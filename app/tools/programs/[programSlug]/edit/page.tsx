@@ -124,7 +124,6 @@ export default async function EditProgramToolPage({
       firstName: pt.user.preferredName || pt.user.firstName || "",
       lastName: pt.user.lastName || "",
     })) ?? [],
-    teacherLabel: program.teacherLabel ?? null,
     categoryId: program.categoryId ?? "",
     // The offering's own fields, or (until the migration has filled them) the
     // values its old category implies, so the dropdowns open on a sensible choice.

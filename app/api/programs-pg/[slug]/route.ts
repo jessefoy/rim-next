@@ -10,7 +10,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { clearCoverageNoLongerStaffed, clearOffScheduleCoverage, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal, supportingTeamRefusal } from "@/lib/programHub";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
-import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
+import { computeTimeText, computeDateText } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage, sendCoverageClearedEmails, sendSessionsClearedEmail } from "@/lib/email";
 import { applyProgramRecordingSetting, teardownProgramMeetings } from "@/lib/sessionMeeting";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
@@ -196,7 +196,6 @@ export async function PUT(
   }
   if (body.programNotes !== undefined) data.programNotes = body.programNotes || null;
   if (body.teacherFacilitators !== undefined) data.teacherFacilitators = body.teacherFacilitators;
-  if (body.teacherLabel !== undefined) data.teacherLabel = sanitizeTeacherLabel(body.teacherLabel);
   if (body.hostingHubSlug !== undefined) {
     // Empty string from the form (or the "Host Team (default)" option that
     // sends ""/null) normalises to null. Null is the implicit default and
