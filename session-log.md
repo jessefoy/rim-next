@@ -1,3 +1,64 @@
+## 2026-10-15 to 10-16 — The Scheduler, made sound for every team; sessions keep their Central time
+
+On `main`: `adba2ea`, `071afba`, `4ed1c4b`, `82751fa`, `fee8a74`, `4e3838c`, `51b0cb5`, `7f3b757`, `b3038b7`, `fcb6538`, `4fa231d`, `43f57cc`, `2a84320`, `8c084e5`, `5a47829`, `6bb021c`, `1f0e204`, and this closing. Production writes, each Jesse-approved by record (snapshot, drift check, one transaction, before and after shown). Verified: `npx tsc --noEmit`, the member-redesign harness (103 checks), lint compared file by file with the last commit, a reviewer sub-agent on every batch, read-only production invariant checks (clean at the end), and the tap targets measured on the live stylesheet at 375 and 1024px. **Not clicked through signed in.**
+
+### The report and the ask
+
+Jesse, in the Greeter team: his dummy program, with him signed up as a greeter, asked him to log in with the hosting code. *"We have to make sure that all of these hubs that use the same scheduling app are doing it appropriately and aren't using the other team hubs' features."* Then: *"We need to do an integrity check of that whole system… we're going to be adding this scheduler to other groups in the future too, and it needs to be done well."* And after the three steps: *"Please do a deep integrity check… I think this brought a lot of things over from the original hub that it was copied from."*
+
+### What was wrong, at the root
+
+- **The Scheduler was copied from the Hosting Team, and "is on the schedule" was read as "is hosting"** in the Zoom door, My Home and the Scheduler's room button. Greeters and AV were treated as hosts.
+- **Rules lived in several places and drifted**: two copies of the month builder, eligibility checked only where the schedule was shown (not where it was changed), team-blind gates, UTC month bounds and dates in emails, hosting words for every team.
+- **The deep audit (five parallel read-only audits plus a production check) found the class beneath:** the account merge failed for anyone who had asked for cover; two people could take one seat at once; eight paths took people off sessions silently; archiving or deleting a member left their schedule; buttons were offered that the server refused ("Forbidden"); and a session was found by its exact timestamp, so any drift hid it (the Awakening the Heart host would not have been recognized at the door).
+- **Found on the way, platform-wide:** `shiftToDate`, which places every session on its date, added 24-hour days and so kept UTC time. From Nov 1, all 12 recurring programs would have been placed an hour early: doors opening at the wrong hour, Zoom meetings made for the wrong hour, doors closing mid-session. A code comment had recorded it as known and deferred.
+
+### Built and live
+
+- **Only the hosting team hosts** (`071afba`): the door, My Home and "Enter room" follow `Program.hostingHubSlug`; greeters and AV get nothing from Zoom (Jesse: the AV computer is already logged in; greeters serve in person).
+- **Step 1, broken today** (`82751fa`): one self-claim rule (`authorizeSelfClaim`); Central dates in every email and month; a rotation date emptied by hand stays empty (`StandingSkip`); greeter rows always open sign-up; coverage emails in each team's terms; team Home counts that clear.
+- **Step 2, structural** (`4e3838c`): one row builder (`lib/scheduleSessions.ts`), one staffing rule (`teamCannotStaff`), one coordinator gate (`canManageHubCoverage`), additive open sign-up rotations, start-time edits re-time sessions, coverage cleared for teams a save leaves out, the rotation preview follows the engine, Central "today" in every route.
+- **Step 3, new teams by configuration** (`7f3b757`): `/admin/hubs` sets open sign-up and formats with guards; a slug rename carries the team's programs, schedule, Files and links; one Hosting-team rule (`hostingTeamRefusal`); wording for every team; an add-a-team checklist.
+- **Follow-ups** (`fcb6538`): a schedule change clears sessions and rotations on days the program no longer meets, and tells the people (new template `sessions-cleared-schedule-change`); custom links follow a rename.
+- **The deep audit's fixes** (`4fa231d`): merge pointers (and two tables without a Prisma model); seat claims conditional and the create path locked on the session (program, Central day, team); the door, its host line and the create path match by Central day (`ctDayBounds`); one release (`releasePersonCoverage`) for a pause, archive, Inactive and deletion; the engine skips archived people and teams without the Scheduler; server-side team rules before any write; one notice for everyone a change removes (new template `coverage-sessions-cleared`); claim buttons only for those who may claim; an accessible dialog; plain-word errors; rotations and staffing pages for every team.
+- **Sessions keep their Central time** (`2a84320`): `shiftToDate` keeps the program's wall-clock time; `centralToUtc` is exact on time-change days; Zoom meetings are found by program and Central day, so none is doubled.
+- **Jesse's four rulings** (`2a84320`): the cover-request email reads "Cover needed" and "… is asking someone to {action}" (approved template update); the teacher-pill settings retired (team and program labels and the "grants teacher" path; columns kept, unused); My Home names a supporting-team duty in Today ("You're greeting", no button).
+- **Data made true** (approved): the 11 Awakening the Heart sessions to 9:30; two May cover requests closed; then 46 more winter sessions (The Art of Meditation on three teams, Essential Dharma Study, Meditation and Dharma Talk) to 9:30. The production invariant check is clean: 71 upcoming sessions, 19 rotations, 8 coverage links.
+- **Tap targets** (`1f0e204`): measured, every tool button already tapped at 44px except "Enter room →" and the Course Manager's table "Edit"; an invisible 2px above and below brings them to 44 without changing how they look (Jesse: *"we want to balance accessibility with aesthetics"*).
+- **Backlog** (`6bb021c`): a supporting team that helps in the online room (`2026-10-16-001`), recorded, not built.
+
+### Design decisions and why
+
+- **Only the hosting team hosts; supporting teams never touch Zoom** (Jesse, 2026-10-15). A team's kind (runs sessions, or supporting) is configuration, not a slug.
+- **A hosting-team change clears the old team's sessions and rotations; open sign-up rotations add, never displace; the daily rotation skips paused members; My Home keeps Join until the door closes** (Jesse's rulings, 2026-10-15). The session-128 grandfather policy is superseded.
+- **"They should be cleared. I don't like a lot of junk in our system if it's not being used."** (Jesse, 2026-10-16, on sessions left on days a program no longer meets.)
+- **A session is its program, team and Central day, never an exact instant.** Exact matching is what hid hosts and would have doubled Zoom rooms when a time drifted.
+- **One function for each rule, used on every write**, rather than a check where the schedule is shown. Each duplicated rule had drifted.
+- **Everyone a change takes off sessions is told**, by one notice with a sentence of reason from the caller; never the person who made the change, never an archived account.
+- **Record, don't build, the online supporting team** (Jesse): it is small when a real team needs it, and its shape isn't known yet.
+- **Accessibility and look, both:** grow the tap area invisibly rather than the visible button.
+
+### What this connects to
+
+- **Zoom** (`RIM_Zoom.md`): the door's host and staff checks, meeting reuse by day, and session placement for the window.
+- **My Home** (`RIM_Member_Area.md`): hosting from the hosting team only; the supporting-team duty line; Join until the door closes.
+- **Program Manager** (`RIM_ProgramEditor.md`): the Hosting team and supporting-team lists, the corrected change warning, schedule-change and coverage cleanups with their notices, the teacher pill removed.
+- **Member Registry** (`RIM_MemberRegistry.md`): merge pointers; archive, Inactive and deletion release a person's schedule.
+- **Teams** (`RIM_Hub_Engineering.md`): `/admin/hubs` Scheduler settings, rename carrying slug-keyed records, the Members tab's off-the-schedule wording and release.
+- **Email** (`RIM_Email_Engineering.md`): two new templates, the cover-request rewording, the shared cleared-sessions notice, `canCover` recipient pools.
+- **Every session's time:** the public schedule, the session window, seat conflicts and rotations all place sessions through `shiftToDate`.
+
+### Closing audits
+
+- **Hub routing, all four layers:** (1) every coverage gate is `canManageHubCoverage` / `authorizeSelfClaim` with the resource's own team, loaded from the row; (2) pool emails use `getHubNotificationRecipients(team, { canCover })` for the session's team, and the new cleared-sessions notices go to each affected person, grouped by team; (3) the Scheduler's rows come from `buildHubMonthSessions(team)`, the staffing page shows only teams `teamCannotStaff` allows, the Members tab and its release are team-scoped; (4) every new email link goes through `scheduleUrlFor(team, date)` (team and month). No slug branch remains in the Scheduler; `"host-team"` survives only as the null fallback.
+- **Email templates:** added `sessions-cleared-schedule-change` and `coverage-sessions-cleared` (seeded `findUnique → create`, enabled, confirmed live in production); updated with Jesse's consent `host-assignment-confirmation` and `host-assignment-removed` (2026-10-15, team words) and `sub-request-posted` (2026-10-16, "Cover needed"), each flag-guarded and only where unedited. All 30 templated slugs in the code have seeds.
+
+### What comes next
+
+A signed-in walk through the Scheduler on each team (Hosting, Peer-Led, Greeter, AV) and a session door before Nov 1's time change; a read-aloud of the new member-facing words ("Take this session?", "Off the schedule", "Can take sessions on the schedule", "You're greeting", "Cover needed", the two new emails).
+
+---
+
 ## 2026-10-15 — Duplicate accounts: one person, one account; old addresses still lead in; the Members list shows teams
 
 On `main`: `a77f454`, `cbfcd8b`, `da8fced`, `3093e8e`, `d9ead58`, `d975061`, `3744981`, `3836e7c`, `dbea81a`, and this closing. Production writes, each Jesse-approved by record (snapshot, drift check, one transaction, whole-table diff); production reads to diagnose. Verified on the deployed site: the moved-address page seen live with one old address (no code sent); the Members list, profile note and merge panel measured with fixtures on the production stylesheet at 1280, 1440 and 375. **Not seen signed in with real data; no real merge has run yet.**

@@ -42,11 +42,16 @@ Real example from Slice 2.5: capability gates routed correctly to peer-led-silen
 | Helper | File | Purpose |
 |---|---|---|
 | `getProgramHubSlug(programSlug)` | `lib/programHub.ts` | Returns the program's hub slug. Null `hostingHubSlug` defaults to `"host-team"`. Use this every time you need to route a per-program action by hub. |
-| `getProgramHostingHub(programSlug)` | `lib/programHub.ts` | Returns `{ slug, assignmentGrantsTeacher, teacherLabel }`. Use when you also need the hub's teacher-capability config. |
-| `resolveTeacherPillLabel(programLabel, hubLabel)` | `lib/programHub.ts` | Pill hierarchy: `program.teacherLabel ?? hub.teacherLabel ?? "Teacher"`. |
+| `getProgramHostingHub(programSlug)` | `lib/programHub.ts` | Returns `{ hubSlug }` (the teacher-pill fields were retired 2026-10-16). Used by `resolveSessionRole`. |
+| `teamCannotStaff(hubSlug, programSlug)` | `lib/programHub.ts` | The one rule for "may this team staff this program now" (active, Scheduler installed, hosts or covers it, format among the team's, a host needed). Every coverage create checks it. |
+| `hostingTeamRefusal(hubSlug, format)` / `supportingTeamRefusal(hubSlug, format)` | `lib/programHub.ts` | May this team be a program's Hosting team / supporting team? Returns why not, in words. Program routes run them before writing. |
+| `canManageHubCoverage(userId, roles, hubSlug)` | `lib/hubAuth.ts` | The one coverage-management gate: HOST_MANAGER, ADMIN, or that team's ACTIVE coordinator. Always pass the resource's own team, loaded from the row. |
+| `authorizeSelfClaim` / `canSelfClaim` | `lib/hubMemberAuth.ts` | Taking a session yourself (access, coverage allowed, then enrollment); `canSelfClaim` is the same test without enrolling, for showing buttons. |
+| `releasePersonCoverage(tx, userId, byUserId, opts)` | `lib/applyStandingAssignments.ts` | Take one person off their upcoming sessions (pause, archive, Inactive, deletion). |
+| `sendCoverageClearedEmails({ rows, reason })` | `lib/email.ts` | Tell everyone a coverage change took off sessions (template `coverage-sessions-cleared`). |
 | `DEFAULT_HOSTING_HUB_SLUG` | `lib/programHub.ts` | The constant `"host-team"`. Use this everywhere you need the default — never inline the string. |
 | `getEffectiveHostingCapability(userId, hubSlug, fallback)` | `lib/hubMemberAuth.ts` | "Is this user an active hosting-capable member of this hub?" Pass `program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG`. |
-| `getHubNotificationRecipients(hubSlug, opts)` | `lib/toolAuth.ts` | Active members of a hub with `communicationsEnabled`. Use for notification recipient pools. |
+| `getHubNotificationRecipients(hubSlug, opts)` | `lib/toolAuth.ts` | Active members of a hub with `communicationsEnabled`. Use for notification recipient pools. Pass `canCover: true` for coverage asks (cover requests, a new program to staff), so people taken off the schedule aren't asked. |
 | `getHubMembership(slug, userId, roles)` | `lib/hubAuth.ts` | Returns `{ hub, member, isAdmin }`. Fetches the row; gate access with `canAccessHub`, never a bare `!member` (see *ADMIN policy* below). |
 | `canAccessHub(member, roles, openToAll?)` | `lib/hubAuth.ts` | **The access door** (session 135). True if a `HubMember` row exists OR roles includes `GUIDING_TEACHER`. ADMIN-alone does NOT pass. Single source of truth — use at every hub access gate (the layout, all sub-pages, every `/api/hub/[slug]/**` route). The optional `openToAll` (session 165) is the Community-Space primitive — see below. |
 | `effectiveCoordinator(member, roles)` | `lib/hubAuth.ts` | "Is this user acting as coordinator on this hub?" True for the coordinator flag, ADMIN, or GUIDING_TEACHER. Use everywhere you would have written `(member?.isCoordinator ?? false) || isAdmin`. |
@@ -183,9 +188,9 @@ After session 130's final commits, six hub-config fields drive every per-hub beh
 | Field | Drives |
 |---|---|
 | `hasSchedule` | Hosting team dropdown eligibility (the Home month overview it once drove was retired 2026-10-13) |
-| `allowsMultipleAssignments` | Single-slot vs open-signup Schedule UX |
-| `appliesToFormats` | Which programs surface (virtual/hybrid vs in-person/hybrid) |
-| `assignmentGrantsTeacher` + `teacherLabel` | Session-room pill semantics |
+| `allowsMultipleAssignments` | Single-slot vs open-signup Schedule UX (set in `/admin/hubs` since 2026-10-15, guarded) |
+| `appliesToFormats` | Which programs a team staffs (set in `/admin/hubs` since 2026-10-15; a dropped format confirms before clearing) |
+| ~~`assignmentGrantsTeacher` + `teacherLabel`~~ | Retired 2026-10-16 (did nothing after the move to Zoom; columns unused) |
 | `coverageNoun` + `coverageVerb` + `coverageAction` | User-facing UI + email copy |
 | `ProgramCoverageHub` (join table) | Primary + auxiliary program coverage |
 

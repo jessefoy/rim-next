@@ -1,19 +1,26 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-15 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-16 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-15 closed: one person, one account
+## Active — 2026-10-16 closed: the Scheduler, sound for every team; sessions keep their Central time
 
-Everything is on `main` (`a77f454` … `3836e7c`, `dbea81a`, the closing docs). Narrative: `session-log.md`, 2026-10-15. References: `RIM_MemberRegistry.md` ("The Members list, duplicates and merging"), `RIM_Auth.md` ("Former sign-in addresses").
+Everything is on `main` (`071afba` … `1f0e204`, the closing docs). Narrative: `session-log.md`, 2026-10-15 to 10-16. References: `RIM_Scheduler.md` (the integrity audits, the rules they left in place, the add-a-team checklist), `RIM_Zoom.md` (Pitfalls: a session is its program and Central day).
 
 **Live:**
-- **Silvia, LoriLee and Jesse each have one account, at their RIM address** (merged by hand, Jesse-approved; the account with the history kept, only its address changed). Each signs in again with the RIM address. Flodesk wasn't touched: their old addresses may still be subscribers there (their call).
-- **Old addresses still lead in:** sign-in or Join with an address an account used to use shows "Your sign-in email has changed" (old and new email named, the new one masked) and **Send code to my new email** (relabelled after LoriLee's test: "there" was unclear). The three old addresses are recorded. The `/login` form and resend are now rate-limited.
-- **The Members list shows teams**, roles in plain words, sentence-case tags, one Name column with the email under it; fits at 1280.
-- **Possible second accounts** are flagged on the profile and filterable; **Admin merge** with a rolled-back trial in its preview and the `accounts-merged` note.
-- **Words approved** by Jesse after the summary: *"I think the text seems good. I like the way that it works."* (The full `accounts-merged` body and the panel's longer lines were summarized, not read aloud line by line; `/admin/emails` has the body.)
+- **Only the hosting team hosts.** Greeters and AV get nothing from Zoom; My Home's hosting and "Enter room" follow the program's hosting team.
+- **One set of rules for every scheduling team** (staffing, the coordinator gate, self-claim, one row builder), checked on every write; claims can't race; a session is matched by its Central day.
+- **New teams by configuration:** `/admin/hubs` sets open sign-up and formats; a slug rename carries the team's records and links; the checklist is in `RIM_Scheduler.md`.
+- **Everyone taken off a session is told** (two new templates); archive, Inactive and deletion release a person's schedule; the account merge works again for anyone who asked for cover.
+- **Sessions keep their Central time across Nov 1** (`shiftToDate`); the Zoom door and meeting reuse match by day. Production data is true: 57 upcoming sessions re-timed (approved), two stale May cover requests closed; the invariant check is clean.
+- **Jesse's rulings done:** "Cover needed" wording; teacher-pill settings retired; a supporting-team duty line in My Home; "Enter room" and the Course Manager's table "Edit" tap at 44px, looking unchanged.
 
-**Next concrete step:** a signed-in look at `/admin/members` and one profile with real data; the first real merge is the end-to-end proof. **Queued:** `2026-10-15-001` (merge by typing the other address), `2026-10-15-002` (the quiet pool's 34 likely pairs: merge or leave), `2026-10-12-003` (self-service email change, which can now record into `former_emails`). Before the teams sign-in note goes out, check the "Possible second account" filter so no one lands in an empty account.
+**Next concrete step:** a signed-in walk through the Scheduler on each team (Hosting, Peer-Led, Greeter, AV) and one session door, **before the Nov 1 time change**; then a Monday session's door for the Awakening the Heart host. **Read-aloud:** "Take this session?", "Off the schedule", "Can take sessions on the schedule", "Take them off their sessions", "You're greeting", "Cover needed", and the two new emails (`coverage-sessions-cleared`, `sessions-cleared-schedule-change` in `/admin/emails`).
+
+**Queued:** `2026-10-16-001` (a supporting team that helps in the online room: record, don't build until a real team needs it).
+
+## Earlier — 2026-10-15 closed: one person, one account
+
+Narrative: `session-log.md`, 2026-10-15. Silvia, LoriLee and Jesse each have one account at their RIM address; old addresses still lead in ("Send code to my new email"; the way back reads "← Back to sign in"); the Members list shows teams; possible second accounts are flagged; Admin can merge. **Open:** a signed-in look at `/admin/members` and one profile with real data; the first real merge is the end-to-end proof. **Queued:** `2026-10-15-001`, `2026-10-15-002`, `2026-10-12-003`. Before the teams sign-in note goes out, check the "Possible second account" filter.
 
 ## Earlier — 2026-10-14 closed: outside meeting rooms live; LoriLee's review ruled and live; every email in one look
 

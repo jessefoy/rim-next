@@ -42,10 +42,9 @@ The create route also adds the creating admin as the first active coordinator an
 - `homeContent` → `null`
 - `conversationCategories` → `["General"]`
 - `conversationsEnabled` → `true`
-- `assignmentGrantsTeacher` → `false` (added session 128 — see below)
-- `teacherLabel` → `null`
+- `assignmentGrantsTeacher` → `false`, `teacherLabel` → `null` (retired 2026-10-16: unused columns, set by nothing; see below)
 
-**Hub-as-source-of-teacher-capability (session 128).** When `assignmentGrantsTeacher: true`, an active `HostAssignment` from this hub confers Teacher capability in `resolveSessionRole` — bell-friendly audio profile + the Teacher pill (label from `Hub.teacherLabel`, falling through to "Teacher"). This is how peer-led hubs work: the act of claiming a session IS the teacher capability for that session. No per-user `ProgramTeacher` row is required. The first hub to set this is `peer-led-silent-meditation` (Slice 2 setup) with `teacherLabel: "Guide"`. The host-team hub keeps `assignmentGrantsTeacher: false` — its assigned hosts get host capability only; Teacher capability for host-team programs comes from `ProgramTeacher` rows.
+**Hub-as-source-of-teacher-capability (session 128; retired 2026-10-16).** This path made a session's host also its "teacher" (Teacher pill, bell-friendly audio) when the hub set `assignmentGrantsTeacher`. After the move to Zoom it did nothing anyone could see: it only applied to someone already the host, whom the door greets as host first, and the pill label was never shown. Jesse retired it with the pill labels; the columns stay, unused. The Zoom door greets a hosting team's people in the team's own words ("You're facilitating today").
 
 ### Step 2: Admin adds members
 
@@ -162,8 +161,8 @@ App links connect a *tool* to a hub (UI navigation). Programs connect to a *host
 **Lookup helpers (`lib/programHub.ts`):**
 
 - `getProgramHubSlug(programSlug)` → `string` (always returns a slug; `"host-team"` for null)
-- `getProgramHostingHub(programSlug)` → `{ slug, assignmentGrantsTeacher, teacherLabel } | null`
-- `resolveTeacherPillLabel(programLabel, hubLabel)` — pill hierarchy `program.teacherLabel ?? hub.teacherLabel ?? "Teacher"`
+- `getProgramHostingHub(programSlug)` → `{ hubSlug } | null` (the teacher-pill fields and `resolveTeacherPillLabel` retired 2026-10-16)
+- `teamCannotStaff`, `hostingTeamRefusal`, `supportingTeamRefusal` — whether a team may staff, host or support a program (2026-10-15/16; `RIM_Scheduler.md`)
 - `DEFAULT_HOSTING_HUB_SLUG = "host-team"`
 
 **Which routes consult this:**
@@ -177,9 +176,9 @@ App links connect a *tool* to a hub (UI navigation). Programs connect to a *host
 
 **Editor surface.** The Program editor's "Hosting & Access" tab carries the hub dropdown. Default option "Host Team (default)" stores null. Mid-flight warning fires when changing the hub on a program with future HostAssignments. Saving clears the old team's future assignments and rotations for the program (Jesse, 2026-10-15; this superseded the session-128 grandfather policy). The dropdown lists only teams that run sessions and have the Scheduler installed.
 
-**Slug validation.** POST + PUT on `programs-pg` reject non-existent hub slugs with 422.
+**Validation.** POST + PUT on `programs-pg` refuse a Hosting team that doesn't run sessions, isn't active, lacks the Scheduler, or doesn't staff the program's format, and a supporting team that doesn't fit, before anything is written (422).
 
-**Slice 2 of the Silent Meditation Hub (queued).** This architecture is inert until a hub is created with `assignmentGrantsTeacher: true` and programs are moved. The first such hub will be `peer-led-silent-meditation`.
+**Slice 2 of the Silent Meditation Hub** shipped in session 128 (`peer-led-silent-meditation`); its teacher-capability flag was retired 2026-10-16 (above).
 
 ---
 

@@ -40,6 +40,12 @@ All first-party authenticated surfaces use `public/css/custom.css` as their desi
 - Personal file favorites/colors/sort are stored by authenticated member and place; shared pins require existing file write authority. They never change Drive colors, ordering or grants.
 - `useNavigationDrawer` handles Escape, focus containment, scroll lock and focus restoration for account/hub drawers. The lock sets `overflow: hidden` on `<html>`, not `<body>`: the global `html { overflow-x: clip }` stops a body lock from reaching the viewport (found live on the public nav sheet, 2026-09-28). Header account menu also closes on Escape, outside pointer and navigation.
 
+## Today and the teams (2026-10-15/16)
+
+- **Hosting comes from the program's hosting team only** (early entry, "Enter Zoom as host", a session in Today because you host it). A greeter or AV sign-up is not hosting.
+- **A supporting-team duty that day is a quiet line in Today**, in the team's words ("You're greeting"), with no button: the work happens in the hall. It joins the program's own row when there is one, and stands alone otherwise (`dashboard/page.tsx`, the duty rows; checked by the harness).
+- **Join stays until the door closes** (the end plus the late grace), as the door does (Jesse, 2026-10-15).
+
 ## Answers where the member is looking (2026-10-13)
 
 My Profile's details, photo and introduction each say "Saved…" beside their own button and keep saying it until the next change (`SaveNote`; the `?saved=true` banner at the top is gone). My Home shows **"You're all set. Welcome to RIM."** on a member's first arrival (a first verified sign-in from /join or a guest registration, via `/login/check-email`'s callback, or the welcome page) and **"Welcome back. You're all set."** after the returning-member welcome or reactivation (`?welcome=new|back`, cleared from the address once shown; `FormDone` app size). The footer newsletter fills in a signed-in member's name and email. Rule: `RIM_Web_Design_Philosophy.md`, "Every submit is answered where the person is looking".

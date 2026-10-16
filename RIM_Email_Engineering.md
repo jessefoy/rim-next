@@ -226,6 +226,14 @@ An email that can reach a scheduler-hub member must speak that hub's coverage ro
 
 ---
 
+## Telling people a coverage change took them off sessions (2026-10-16)
+
+**Rule: when a change takes someone off a session they had, they are told.** A program moving to another team or stopping needing a host, a team unticked or out of format, an admin format drop or a team stopping, a member's sessions opened, the team Reset, a program's rotation Reset, removal from a team: all call **`sendCoverageClearedEmails({ rows, reason, excludeUserId })`** (template `coverage-sessions-cleared`), inside `after()`. One email per person per team, listing program and date; never to the person who made the change, an archived account, or an empty seat. `reason` is one sentence from the caller, built from the team as `teamPhrase` gives it ("the Greeter team", "the Hosting Team"; never "the Hosting Team team"). A schedule change that clears sessions on days a program no longer meets uses its own template, `sessions-cleared-schedule-change`. Archiving and deleting a member release their sessions without email (they can't sign in to come back to it).
+
+**Coverage asks go to people who can act:** `getHubNotificationRecipients(hub, { canCover: true })` for cover requests and a new program to staff, so a member taken off the schedule isn't asked to cover. **A team newly responsible for a program is told** (`notifyHubOfNewProgramCoverage`): moved to it, needing a host again, or moved into its format.
+
+**Wording built from the role:** `roleInline(copy)` gives the noun as it reads mid-sentence ("as greeter", "as AV"); a sentence built from the -ing verb ("to be covering AV the following sessions") is wrong. `sub-request-posted` reads "Cover needed" and "… is asking someone to {{coverageAction}}: …" (flag `sub_request_posted_team_words_2026_10_16_v1`, Jesse's consent, only where unedited).
+
 ## Places and links in program emails (2026-10-14)
 
 - **`lib/locations.ts::emailLocationFor(program)`** is the place for every program email (registration confirmation, resend, reminders, the reminder cron): `resolveLocation`, except an **online-only program shows no place** (its venue fields can keep an old address; the editor hides them, it doesn't clear them). The thank-you page already did this.

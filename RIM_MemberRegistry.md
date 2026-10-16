@@ -85,6 +85,8 @@ So a host needs only host-team membership (set via Teams). `ROLE_HUB_MAPPINGS` k
 - **The preview runs the whole merge and rolls it back**, so the admin is told before pressing whether it can complete. Refused: merging away the account you're signed in with.
 - The address not kept becomes a former address (`RIM_Auth.md`, "Former sign-in addresses"). The `accounts-merged` email goes to the kept address, except for an account still archived or unclaimed (the quiet pool gets no email).
 
+**Archive, Inactive and deletion release the schedule (2026-10-16).** Archiving a member (the Archive action or Status → Inactive) releases their upcoming sessions and ends their rotations in the same transaction (`releasePersonCoverage` in `lib/applyStandingAssignments.ts`): an open sign-up is removed, a seat emptied with its cover request closed. The rotation engine also skips archived people. Deleting an account does the same first, passes rotations they created to the deleting admin (that column can't be empty, so the delete used to fail), and removes their past open sign-up rows. **The merge now knows** `sub_requests.requestedById`, `standing_assignment_skips.createdById`, `pages.updatedById` and `reflection_responses` (a table with no Prisma model): missing ones had refused every merge of someone who had asked for cover.
+
 ## Pitfalls
 
 - **Don't add GT (or any non-ADMIN/REGISTRAR role) to the registry gate.** Use the in-hub member tools for GT.

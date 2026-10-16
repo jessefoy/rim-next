@@ -41,6 +41,8 @@ The hub is team context, not program data authority. Program Manager is not curr
 
 The visitor-facing registration readout is intentionally present in the Registration tab. It translates registration state plus the **Open entry** setting (and the program's delivery) into the public consequence before a coordinator saves, with an "Open entry: on/off" line that must agree with the Visibility tab's Member home line. Preserve this clear-seeing bridge whenever those rules change.
 
+**Hosting & Access and the schedule (2026-10-15/16).** The **Hosting team** list shows only teams that run sessions, have the Scheduler installed and staff the program's format (`hostingTeamRefusal` in `lib/programHub.ts`, also enforced by both routes before anything is written; the program's current team stays listed). **Auxiliary role coverage** lists supporting teams that staff the format; the server applies the same rule (`supportingTeamRefusal`) to newly ticked teams before writing, and the editor sends only ticked teams that still fit. **A hosting-team change clears the old team's upcoming sessions and rotations** (Jesse's ruling; the warning says so), and the people on them are told. **Saving a schedule change** (start date, days, frequency, count) re-times upcoming sessions to the new start and clears those on days the program no longer meets, with rotations that can't match; a note beside Save says what was cleared. **The teacher pill label** was retired 2026-10-16 (it did nothing after the move to Zoom; `Program.teacherLabel` stays, unused). Deleting a program removes its schedule rows.
+
 ## Full ecosystem trace
 
 Before changing a Program field or save route, check every affected surface:
