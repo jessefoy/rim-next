@@ -45,13 +45,18 @@ interface HubMemberRow {
 interface UpcomingAssignment {
   id: string;
   programSlug: string;
+  programName?: string;
   sessionDate: string | null;
 }
 
 interface Props {
   hubSlug: string;
-  /** True when hub.hasSchedule — drives hosting-capability UI affordances. */
+  /** The team uses the Scheduler (an enabled Scheduler app). Drives the
+   *  "can take sessions" setting and its warning. */
   hasSchedule: boolean;
+  /** The team runs sessions itself (hub.hasSchedule: hosting teams). Only
+   *  then does the setting also decide who the Zoom door admits as host. */
+  hostsSessions?: boolean;
   members: HubMemberRow[];
   isCoordinator: boolean;
   isAdmin: boolean;
@@ -83,6 +88,7 @@ function fmtDate(iso: string | null) {
 export default function HubMembersClient({
   hubSlug,
   hasSchedule,
+  hostsSessions = false,
   members: initialMembers,
   isCoordinator,
   isAdmin,
@@ -229,7 +235,7 @@ export default function HubMembersClient({
             <div className="hub-mem-item__role">{m.position || m.user.title}</div>
           )}
           {isHostingHub && !m.hostingCapability && m.status === "ACTIVE" && (
-            <div className="hub-mem-item__flag">Hosting restricted</div>
+            <div className="hub-mem-item__flag">Off the schedule</div>
           )}
           {!m.communicationsEnabled && (
             <div className="hub-mem-item__flag">Notifications off</div>
@@ -374,14 +380,17 @@ export default function HubMembersClient({
       {confirmDialog && (
         <div className="hub-mem-dialog">
           <div className="hub-mem-dialog__panel">
-            <h3>Revoke hosting for {confirmDialog.memberName}?</h3>
+            <h3>Take {confirmDialog.memberName} off the schedule?</h3>
             <p className="hub-mem-dialog__lede">
-              This member has {confirmDialog.upcoming.length} upcoming host assignment{confirmDialog.upcoming.length === 1 ? "" : "s"}. Pausing or restricting hosting will prevent them from joining those sessions as host.
+              {confirmDialog.memberName} has {confirmDialog.upcoming.length} upcoming session{confirmDialog.upcoming.length === 1 ? "" : "s"} on this team&rsquo;s schedule.
+              {hostsSessions
+                ? " If they keep them, they won't be let into those sessions as host."
+                : " Rotations will skip them until they're back on the schedule."}
             </p>
             <ul className="hub-mem-dialog__list">
               {confirmDialog.upcoming.slice(0, 10).map((a) => (
                 <li key={a.id}>
-                  <strong>{a.programSlug}</strong>{a.sessionDate ? ` — ${fmtDate(a.sessionDate)}` : ""}
+                  <strong>{a.programName ?? a.programSlug}</strong>{a.sessionDate ? `, ${fmtDate(a.sessionDate)}` : ""}
                 </li>
               ))}
               {confirmDialog.upcoming.length > 10 && (
@@ -391,10 +400,10 @@ export default function HubMembersClient({
             <div className="hub-mem-dialog__actions">
               <button className="btn--ghost" onClick={() => setConfirmDialog(null)}>Cancel</button>
               <button className="btn btn--sm" onClick={() => confirmProceed(false)}>
-                Proceed (keep assignments)
+                Keep their sessions
               </button>
               <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(true)}>
-                Proceed and release assignments
+                Open their sessions to the team
               </button>
             </div>
           </div>
@@ -469,7 +478,7 @@ function MemberEditor({
               checked={hostingCapability}
               onChange={(e) => setHostingCapability(e.target.checked)}
             />
-            <span>Can host sessions</span>
+            <span>Can take sessions on the schedule</span>
           </label>
         )}
         <label className="hub-mem-editor__check">

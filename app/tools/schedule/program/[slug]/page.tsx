@@ -87,7 +87,7 @@ export default async function ProgramStaffingPage({
   // follow-up — links in non-host hubs were collapsing to host-team.
   const { hub: fromHubSlug } = await searchParams;
   const backUrl =
-    fromHubSlug && fromHubSlug !== "host-team"
+    fromHubSlug
       ? `/tools/schedule?hub=${encodeURIComponent(fromHubSlug)}`
       : "/tools/schedule";
 
@@ -256,7 +256,7 @@ export default async function ProgramStaffingPage({
       case "in-person":
         return "In-person";
       case "hybrid":
-        return "In-person & virtual";
+        return "Hybrid";
       default:
         return program.programFormat ?? "—";
     }
@@ -302,7 +302,7 @@ export default async function ProgramStaffingPage({
                         (isPrimary ? " ps-hub__role--primary" : " ps-hub__role--aux")
                       }
                     >
-                      {isPrimary ? "Primary host" : "Auxiliary coverage"}
+                      {isPrimary ? "Hosting team" : "Supporting role"}
                     </span>
                     {isMultiClaim && <span className="ps-hub__mode">Open sign-up</span>}
                   </div>
@@ -384,7 +384,7 @@ export default async function ProgramStaffingPage({
                         <thead>
                           <tr>
                             <th scope="col">Day</th>
-                            <th scope="col">Host(s)</th>
+                            <th scope="col">Who</th>
                             <th scope="col">Pattern</th>
                           </tr>
                         </thead>

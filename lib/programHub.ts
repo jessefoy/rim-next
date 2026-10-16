@@ -273,6 +273,28 @@ export async function getHubCoverageConfig(
 // where it is changed).
 // ───────────────────────────────────────────────────────────────────────────
 
+/**
+ * May this team be chosen as a program's Hosting team? It must run sessions
+ * (`hasSchedule`), be active, and have the Scheduler installed, or the
+ * program would be hosted by a team with no schedule to staff it (2026-10-15
+ * audit). Returns why not, in words for the editor, or null when it may.
+ * The editor's list applies the same rule.
+ */
+export async function hostingTeamRefusal(hubSlug: string): Promise<string | null> {
+  const hub = await db.hub.findUnique({
+    where: { slug: hubSlug },
+    select: {
+      name: true, status: true, hasSchedule: true,
+      appLinks: { where: { toolSlug: "schedule", isEnabled: true }, select: { id: true }, take: 1 },
+    },
+  });
+  if (!hub) return `Unknown team: ${hubSlug}`;
+  if (hub.status !== "ACTIVE") return `${hub.name} is archived, so it can't host programs.`;
+  if (!hub.hasSchedule) return `${hub.name} staffs a supporting role. Choose it under Auxiliary role coverage instead.`;
+  if (hub.appLinks.length === 0) return `${hub.name} doesn't have the Scheduler installed yet, so it can't host programs.`;
+  return null;
+}
+
 /** A program's hosting team: its own setting, else the Hosting Team. */
 export function resolveHostingHubSlug(p: { hostingHubSlug?: string | null } | null | undefined): string {
   return p?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;

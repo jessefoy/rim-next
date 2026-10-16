@@ -69,6 +69,8 @@ export default async function AdminHubEditPage({
     coverageNoun: hub.coverageNoun,
     coverageVerb: hub.coverageVerb,
     coverageAction: hub.coverageAction,
+    allowsMultipleAssignments: hub.allowsMultipleAssignments,
+    appliesToFormats: hub.appliesToFormats,
     appLinks: hub.appLinks.map((l) => ({
       toolSlug: l.toolSlug ?? null,
       label: l.label,

@@ -8,7 +8,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { clearCoverageNoLongerStaffed, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs } from "@/lib/programHub";
+import { clearCoverageNoLongerStaffed, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal } from "@/lib/programHub";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
 import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
@@ -206,17 +206,12 @@ export async function PUT(
       typeof raw === "string" && raw.trim() ? raw.trim() : null;
     // Validate non-null slugs against the hub table to prevent orphan state
     // (typo / stale client / payload tampering). Null is always accepted.
-    if (requestedSlug) {
-      const hub = await db.hub.findUnique({
-        where: { slug: requestedSlug },
-        select: { id: true },
-      });
-      if (!hub) {
-        return NextResponse.json(
-          { error: `Unknown hub: ${requestedSlug}` },
-          { status: 422 },
-        );
-      }
+    // A newly chosen Hosting team must run sessions and have the Scheduler
+    // (2026-10-15). The team a program already has is left alone, so an
+    // unrelated edit still saves.
+    if (requestedSlug && requestedSlug !== existing.hostingHubSlug) {
+      const refusal = await hostingTeamRefusal(requestedSlug);
+      if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
     }
     data.hostingHubSlug = requestedSlug;
   }

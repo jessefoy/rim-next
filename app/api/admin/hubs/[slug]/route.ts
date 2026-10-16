@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { DEFAULT_COVERAGE_COPY } from "@/lib/programHub";
+import {
+  DEFAULT_COVERAGE_COPY,
+  DEFAULT_HOSTING_HUB_SLUG,
+  resolveHostingHubSlug,
+} from "@/lib/programHub";
 import { resolveSpacesContainerDrive } from "@/lib/googleFiles";
 import { getToolBySlug, isToolCompatibleWithHub } from "@/lib/toolRegistry";
 import type { Prisma } from "@prisma/client";
@@ -58,7 +62,7 @@ export async function PATCH(
 
   const { slug } = await params;
   const body = await req.json();
-  const { name, slug: newSlug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, googleDriveId, googleFilesEnabled, appLinks } = body;
+  const { name, slug: newSlug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, googleDriveId, googleFilesEnabled, appLinks, allowsMultipleAssignments, appliesToFormats, confirmCoverageClear } = body;
 
   // Coverage strings: trim, cap at 40. Empty input falls through to the
   // host-team default for that field — clearing an input in the form
@@ -76,10 +80,105 @@ export async function PATCH(
   }
 
   // If slug is changing, check uniqueness
-  if (newSlug && newSlug !== slug) {
+  const renaming = !!newSlug && newSlug !== slug;
+  if (renaming) {
+    // The Hosting Team's slug is the default every unassigned program
+    // falls back to (Program.hostingHubSlug null), so it can't move.
+    if (slug === DEFAULT_HOSTING_HUB_SLUG) {
+      return NextResponse.json({ error: "The Hosting Team's address can't change: every program without a hosting team is hosted by it." }, { status: 400 });
+    }
     const existing = await db.hub.findUnique({ where: { slug: newSlug } });
     if (existing) {
       return NextResponse.json({ error: "A hub with this slug already exists." }, { status: 409 });
+    }
+  }
+
+  // ── Scheduler settings (2026-10-15 audit, step 3) ──────────────────────
+  // Open sign-up and the formats a team staffs, set here rather than by a
+  // migration. Each change keeps the schedule consistent or says why not.
+  const FORMATS = ["virtual", "in-person", "hybrid"];
+  let nextFormats: string[] | undefined;
+  if (appliesToFormats !== undefined) {
+    if (!Array.isArray(appliesToFormats)) {
+      return NextResponse.json({ error: "Formats must be a list." }, { status: 400 });
+    }
+    nextFormats = FORMATS.filter((f) => appliesToFormats.includes(f));
+    if (nextFormats.length === 0) {
+      return NextResponse.json({ error: "Choose at least one kind of session this team staffs." }, { status: 400 });
+    }
+  }
+  const nextMulti = allowsMultipleAssignments === undefined ? hub.allowsMultipleAssignments : !!allowsMultipleAssignments;
+  const now = new Date();
+  if (nextMulti !== hub.allowsMultipleAssignments) {
+    const future = await db.hostAssignment.findMany({
+      where: { hubSlug: slug, sessionDate: { gte: now } },
+      select: { id: true, programSlug: true, sessionDate: true, userId: true },
+    });
+    if (!nextMulti) {
+      // Back to one person per session: refuse while any session has more.
+      const perSession = new Map<string, number>();
+      for (const a of future) {
+        if (!a.userId) continue;
+        const k = `${a.programSlug}::${a.sessionDate?.toISOString()}`;
+        perSession.set(k, (perSession.get(k) ?? 0) + 1);
+      }
+      const crowded = [...perSession.values()].filter((n) => n > 1).length;
+      if (crowded > 0) {
+        return NextResponse.json(
+          { error: `${crowded} upcoming session${crowded === 1 ? " has" : "s have"} more than one person signed up. Take people off those sessions first, or leave open sign-up on.` },
+          { status: 409 },
+        );
+      }
+    } else {
+      // To open sign-up: open sign-up teams don't use cover requests.
+      const open = await db.subRequest.count({
+        where: { status: "OPEN", assignmentId: { in: future.map((a) => a.id) } },
+      });
+      if (open > 0) {
+        return NextResponse.json(
+          { error: `${open} cover request${open === 1 ? " is" : "s are"} still open on this team. Close ${open === 1 ? "it" : "them"} first: open sign-up teams don't use cover requests.` },
+          { status: 409 },
+        );
+      }
+    }
+  }
+
+  // Formats leaving the team's set: the programs in those formats leave
+  // its schedule. A program it hosts can't (move its hosting team first);
+  // coverage it gives elsewhere is cleared, after a confirmation that says
+  // how much.
+  const droppedFormats = nextFormats ? hub.appliesToFormats.filter((f) => !nextFormats!.includes(f)) : [];
+  let programsLeaving: string[] = [];
+  if (droppedFormats.length > 0) {
+    const affected = await db.program.findMany({
+      where: { archivedAt: null, programFormat: { in: droppedFormats } },
+      select: { slug: true, name: true, hostingHubSlug: true, hostingRequired: true },
+    });
+    const covering = new Set(
+      (await db.programCoverageHub.findMany({ where: { hubSlug: slug }, select: { programSlug: true } })).map((r) => r.programSlug),
+    );
+    const hosted = affected.filter((p) => resolveHostingHubSlug(p) === slug && p.hostingRequired);
+    if (hosted.length > 0) {
+      return NextResponse.json(
+        { error: `This team hosts ${hosted.map((p) => p.name).join(", ")}, in a format you're removing. Move ${hosted.length === 1 ? "that program" : "those programs"} to another hosting team first.` },
+        { status: 409 },
+      );
+    }
+    programsLeaving = affected.filter((p) => covering.has(p.slug)).map((p) => p.slug);
+    if (programsLeaving.length > 0 && !confirmCoverageClear) {
+      const [assignments, rotations] = await Promise.all([
+        db.hostAssignment.count({ where: { hubSlug: slug, programSlug: { in: programsLeaving }, OR: [{ sessionDate: null }, { sessionDate: { gte: now } }] } }),
+        db.standingAssignment.count({ where: { hubSlug: slug, programSlug: { in: programsLeaving } } }),
+      ]);
+      if (assignments + rotations > 0) {
+        return NextResponse.json(
+          {
+            requiresConfirmation: true,
+            error: `This team will stop staffing ${programsLeaving.length} program${programsLeaving.length === 1 ? "" : "s"}. ${assignments} upcoming session${assignments === 1 ? "" : "s"} and ${rotations} rotation rule${rotations === 1 ? "" : "s"} for ${programsLeaving.length === 1 ? "it" : "them"} will be cleared.`,
+          },
+          { status: 409 },
+        );
+      }
     }
   }
 
@@ -195,6 +294,8 @@ export async function PATCH(
         description: typeof description === "string" ? description.replace(/\s+/g, " ").trim().slice(0, 200) || null : null,
       }),
       ...(type !== undefined && { type }),
+      ...(allowsMultipleAssignments !== undefined && { allowsMultipleAssignments: nextMulti }),
+      ...(nextFormats && { appliesToFormats: nextFormats }),
       ...(status !== undefined && { status }),
       ...(hasSchedule !== undefined && { hasSchedule: !!hasSchedule }),
       ...(conversationsEnabled !== undefined && { conversationsEnabled: !!conversationsEnabled }),
@@ -237,6 +338,51 @@ export async function PATCH(
   // App replacement and hub config are one unit. A failed create can no
   // longer leave a Space with every app link deleted.
   const updated = await db.$transaction(async (tx) => {
+    // Moving to open sign-up: an empty single-seat row would read as a
+    // blank name on the session; with no row it reads "no one yet".
+    // FK-safe (SubClaim → SubRequest → HostAssignment): an emptied seat
+    // often still carries its cancelled cover request.
+    if (nextMulti && !hub.allowsMultipleAssignments) {
+      const empty = (await tx.hostAssignment.findMany({
+        where: { hubSlug: slug, userId: null, sessionDate: { gte: now } },
+        select: { id: true },
+      })).map((a) => a.id);
+      if (empty.length) {
+        await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: empty } } } });
+        await tx.subRequest.deleteMany({ where: { assignmentId: { in: empty } } });
+        await tx.hostAssignment.deleteMany({ where: { id: { in: empty } } });
+      }
+    }
+    // Programs whose format left the team's set leave its schedule
+    // (confirmed above), in this same transaction so the save and the
+    // clear land together.
+    if (programsLeaving.length) {
+      const leaving = (await tx.hostAssignment.findMany({
+        where: { hubSlug: slug, programSlug: { in: programsLeaving }, OR: [{ sessionDate: null }, { sessionDate: { gte: now } }] },
+        select: { id: true },
+      })).map((a) => a.id);
+      if (leaving.length) {
+        await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: leaving } } } });
+        await tx.subRequest.deleteMany({ where: { assignmentId: { in: leaving } } });
+        await tx.hostAssignment.deleteMany({ where: { id: { in: leaving } } });
+      }
+      const rot = await tx.standingAssignment.deleteMany({ where: { hubSlug: slug, programSlug: { in: programsLeaving } } });
+      console.log(`[admin hubs] ${slug}: cleared ${leaving.length} upcoming session(s) and ${rot.count} rotation(s) on ${programsLeaving.join(", ")} (format no longer staffed)`);
+    }
+    // A new address carries everything that names the team by its slug
+    // (these join by text, not by a database link), or its programs,
+    // schedule and files would fall away from it.
+    if (renaming) {
+      await tx.program.updateMany({ where: { hostingHubSlug: slug }, data: { hostingHubSlug: newSlug } });
+      await tx.programCoverageHub.updateMany({ where: { hubSlug: slug }, data: { hubSlug: newSlug } });
+      await tx.hostAssignment.updateMany({ where: { hubSlug: slug }, data: { hubSlug: newSlug } });
+      await tx.standingAssignment.updateMany({ where: { hubSlug: slug }, data: { hubSlug: newSlug } });
+      await tx.googleFileTransfer.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });
+      await tx.googleFileMeta.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });
+      await tx.googleFilePin.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });
+      await tx.googleFilePreference.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });
+      await tx.googleFileViewPreference.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });
+    }
     if (normalizedAppLinks !== undefined) {
       await tx.hubAppLink.deleteMany({ where: { hubId: hub.id } });
       if (normalizedAppLinks.length > 0) {

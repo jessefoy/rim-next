@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { canAccessHub, effectiveCoordinator, getHubMembership, requireCoordinator } from "@/lib/hubAuth";
+import { holdRotationDate } from "@/lib/applyStandingAssignments";
 import { removeHubMembershipWithCleanup } from "@/lib/removeHubMembership";
 
 type HubMemberStatus = "ACTIVE" | "PAUSED" | "INACTIVE";
@@ -108,6 +109,13 @@ export async function PATCH(
       orderBy: { sessionDate: "asc" },
       take: 50,
     });
+    // The list in the confirmation names programs, not their slugs.
+    const names = new Map(
+      (await db.program.findMany({
+        where: { slug: { in: [...new Set(upcoming.map((a) => a.programSlug))] } },
+        select: { slug: true, name: true },
+      })).map((p) => [p.slug, p.name]),
+    );
     if (upcoming.length > 0) {
       return NextResponse.json(
         {
@@ -116,6 +124,7 @@ export async function PATCH(
           upcomingAssignments: upcoming.map((a) => ({
             id: a.id,
             programSlug: a.programSlug,
+            programName: names.get(a.programSlug) ?? a.programSlug,
             sessionDate: a.sessionDate?.toISOString() ?? null,
           })),
         },
@@ -153,10 +162,29 @@ export async function PATCH(
   // Optional: release this user's upcoming host assignments back to the pool.
   // Hub-scoped (session 129) so an AV coordinator pausing an AV member
   // doesn't accidentally release that member's host-team assignments.
+  // Their open cover requests close with the seat. On an open sign-up team
+  // (greeter) the sign-up itself goes: an empty row there would show as a
+  // blank name on the session (2026-10-15 audit). FK-safe order: SubClaim →
+  // SubRequest → HostAssignment.
   if (willRevokeHosting && force && releaseAssignments) {
-    await db.hostAssignment.updateMany({
-      where: { userId, hubSlug: hub.slug, sessionDate: { gte: new Date() } },
-      data: { userId: null },
+    const openSignUp = hub.allowsMultipleAssignments;
+    await db.$transaction(async (tx) => {
+      const rows = await tx.hostAssignment.findMany({
+        where: { userId, hubSlug: hub.slug, sessionDate: { gte: new Date() } },
+        select: { id: true, standingAssignmentId: true, sessionDate: true },
+      });
+      // Their rotation won't put them back on these when they return.
+      for (const r of rows) await holdRotationDate(r, session.user.id, tx);
+      const ids = rows.map((r) => r.id);
+      if (ids.length === 0) return;
+      if (openSignUp) {
+        await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: ids } } } });
+        await tx.subRequest.deleteMany({ where: { assignmentId: { in: ids } } });
+        await tx.hostAssignment.deleteMany({ where: { id: { in: ids } } });
+      } else {
+        await tx.subRequest.updateMany({ where: { assignmentId: { in: ids }, status: "OPEN" }, data: { status: "CANCELLED" } });
+        await tx.hostAssignment.updateMany({ where: { id: { in: ids } }, data: { userId: null } });
+      }
     });
   }
 

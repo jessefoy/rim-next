@@ -38,10 +38,10 @@ interface HubData {
   type: "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP";
   status: "ACTIVE" | "ARCHIVED";
   /** True for hubs that run live sessions (host-team, peer-led-silent-
-   *  meditation). Drives two things: the hub's Home view shows the
-   *  primary Scheduler contribution may include an "Our offerings this month" panel, AND the hub
-   *  is selectable as a primary hosting team in the Program editor.
-   *  Leave off for AV / greeter / future supporting-role hubs.
+   *  meditation): the hub is selectable as a Hosting team in the Program
+   *  editor (with the Scheduler installed), and its sessions' room and
+   *  Zoom door answer to it. Leave off for AV / greeter / future
+   *  supporting-role hubs.
    *  Note: a hub having a Scheduler app link in its sidebar is a
    *  separate concern — supporting-role hubs use the Scheduler too,
    *  they just don't run the live session. */
@@ -73,6 +73,11 @@ interface HubData {
   coverageNoun: string;
   coverageVerb: string;
   coverageAction: string;
+  /** Scheduler: several people sign up for one session (greeters) rather
+   *  than one person covering it and asking for cover. */
+  allowsMultipleAssignments?: boolean;
+  /** Scheduler: the program formats this team staffs. */
+  appliesToFormats?: string[];
   appLinks: AppLink[];
   coordinators: CoordinatorInfo[];
 }
@@ -169,6 +174,15 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
     Boolean(initialData?.googleDriveId && initialData?.googleRootFolderId),
   );
   const [appLinks, setAppLinks] = useState<AppLink[]>(initialData?.appLinks ?? []);
+  const [allowsMultipleAssignments, setAllowsMultipleAssignments] = useState<boolean>(
+    initialData?.allowsMultipleAssignments ?? false,
+  );
+  const [appliesToFormats, setAppliesToFormats] = useState<string[]>(
+    initialData?.appliesToFormats ?? ["virtual", "hybrid"],
+  );
+  // A save that would clear scheduled sessions waits here for a yes.
+  const [pendingConfirm, setPendingConfirm] = useState<string | null>(null);
+  const usesScheduler = appLinks.some((l) => l.toolSlug === "schedule" && l.isEnabled !== false);
   const coordinators = initialData?.coordinators ?? [];
 
   // Load the drive list for the picker (edit mode only — mapping is an
@@ -357,9 +371,14 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    await save(false);
+  }
+
+  async function save(confirmCoverageClear: boolean) {
     setSaving(true);
     setError("");
     setSuccess("");
+    setPendingConfirm(null);
 
     // Resolve teacherLabel from the dropdown state.
     //   "default" stores null (renderer falls through to "Teacher")
@@ -393,6 +412,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       // select's onChange reset below are affordances, not enforcement.
       googleFilesEnabled,
       appLinks: appLinks.filter((l) => l.label && (l.toolSlug || l.href)),
+      allowsMultipleAssignments,
+      appliesToFormats,
+      confirmCoverageClear,
     };
 
     try {
@@ -406,7 +428,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 409 && data.requiresConfirmation) {
+          setPendingConfirm(data.error);
+          return;
+        }
         throw new Error(data.error || "The team was not saved. Please try again.");
       }
 
@@ -516,12 +542,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           This hub runs live sessions
         </label>
         <p className="adm-hubs-hint">
-          Check this for hubs that own the live session itself — Host
-          Team, Peer-Led Silent Meditation, future hosting hubs. These
-          hubs appear in the Program editor&rsquo;s Hosting team
-          dropdown and add an &ldquo;Our offerings this month&rdquo; module to
-          the universal Home. Leave off
-          for AV, greeter, and other supporting-role hubs.
+          Check this for teams that run the live session itself, like the
+          Hosting Team and Peer-Led Silent Meditation. With the Scheduler
+          installed, they appear in the Program editor&rsquo;s Hosting team
+          list. Leave it off for teams that staff a supporting role, like
+          AV and greeters.
         </p>
       </div>
 
@@ -793,6 +818,56 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
         </p>
       </div>
 
+      {/* Scheduler settings (2026-10-15): a new scheduling team is set up
+          here, not by a migration. Shown once the Scheduler app is on. */}
+      {usesScheduler && (
+        <div className="adm-hubs-field">
+          <label className="adm-hubs-label">Scheduler</label>
+          <label className="adm-hubs-label" style={{ marginTop: 8, fontWeight: "normal" }}>
+            <input
+              type="checkbox"
+              checked={allowsMultipleAssignments}
+              onChange={(e) => setAllowsMultipleAssignments(e.target.checked)}
+              style={{ marginRight: 8 }}
+            />
+            Open sign-up
+          </label>
+          <p className="adm-hubs-hint">
+            Several people can sign up for each session, as greeters do. Leave
+            it off when one person covers each session and asks the team for
+            cover when they can&rsquo;t make it.
+          </p>
+
+          <fieldset style={{ border: 0, padding: 0, margin: "12px 0 0" }}>
+            <legend className="adm-hubs-label">Sessions this team staffs</legend>
+            {[
+              { value: "virtual", label: "Virtual" },
+              { value: "in-person", label: "In-person" },
+              { value: "hybrid", label: "Hybrid" },
+            ].map((f) => (
+              <label key={f.value} className="adm-hubs-label" style={{ fontWeight: "normal" }}>
+                <input
+                  type="checkbox"
+                  checked={appliesToFormats.includes(f.value)}
+                  onChange={(e) =>
+                    setAppliesToFormats((prev) =>
+                      e.target.checked ? [...prev, f.value] : prev.filter((x) => x !== f.value),
+                    )
+                  }
+                  style={{ marginRight: 8 }}
+                />
+                {f.label}
+              </label>
+            ))}
+          </fieldset>
+          <p className="adm-hubs-hint">
+            Programs in these formats can use this team. Removing a format
+            takes those programs off the team&rsquo;s schedule; you&rsquo;ll be
+            asked first if that clears anything already scheduled.
+          </p>
+        </div>
+      )}
+
       {/* Coordinator — read only */}
       {isEditing && (
         <div className="adm-hubs-field">
@@ -952,6 +1027,19 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       </div>
 
       {/* Submit */}
+      {pendingConfirm && (
+        <div className="adm-hubs-error" role="alert">
+          <p style={{ margin: 0 }}>{pendingConfirm}</p>
+          <div className="adm-hubs-actions" style={{ marginTop: 12 }}>
+            <button type="button" className="adm-hubs-btn-save" disabled={saving} onClick={() => save(true)}>
+              Clear them and save
+            </button>
+            <button type="button" className="adm-hubs-btn-cancel" onClick={() => setPendingConfirm(null)}>
+              Keep editing
+            </button>
+          </div>
+        </div>
+      )}
       <div className="adm-hubs-actions">
         <button type="submit" className="adm-hubs-btn-save" disabled={saving}>
           {saving ? "Saving..." : isEditing ? "Save Changes" : "Create Team"}

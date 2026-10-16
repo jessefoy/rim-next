@@ -42,7 +42,11 @@ export async function POST(req: Request) {
   const creatorId = session.user.id;
 
   const body = await req.json();
-  const { name, slug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, appLinks } = body;
+  const { name, slug, description, type, status, hasSchedule, conversationsEnabled, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, appLinks, allowsMultipleAssignments, appliesToFormats } = body;
+  // Scheduler settings (2026-10-15): the formats this team staffs, in the
+  // editor's order; none chosen keeps the schema default (online sessions).
+  const FORMATS = ["virtual", "in-person", "hybrid"];
+  const formats = Array.isArray(appliesToFormats) ? FORMATS.filter((f) => appliesToFormats.includes(f)) : [];
 
   if (!name || !slug) {
     return NextResponse.json({ error: "Name and slug are required." }, { status: 400 });
@@ -124,6 +128,8 @@ export async function POST(req: Request) {
       type: type || "OPERATIONAL",
       status: status || "ACTIVE",
       hasSchedule: !!hasSchedule,
+      allowsMultipleAssignments: !!allowsMultipleAssignments,
+      ...(formats.length > 0 && { appliesToFormats: formats }),
       conversationsEnabled: conversationsEnabled !== false,
       assignmentGrantsTeacher: grantsTeacher,
       teacherLabel: sanitizedLabel,

@@ -124,6 +124,9 @@ export default async function ScheduleToolPage({
   // The month's rows, from the one builder the month navigation also uses.
   const { sessions, programs: serializedPrograms, allowsMultipleAssignments } =
     await buildHubMonthSessions(activeHubSlug, year, month);
+  // Does this team run the session (a hosting team) or staff a supporting
+  // role? Picks the empty-state instructions.
+  const hostsSessions = !!(await db.hub.findUnique({ where: { slug: activeHubSlug }, select: { hasSchedule: true } }))?.hasSchedule;
   // Role-aware copy for this team ("You're hosting" / "Needs a greeter").
   const coverageCopy = await getHubCoverageCopy(activeHubSlug);
 
@@ -144,6 +147,8 @@ export default async function ScheduleToolPage({
         apiBase="/api/host"
         hubSlug={activeHubSlug}
         allowsMultipleAssignments={allowsMultipleAssignments}
+        hubName={hubContext?.name ?? activeHubSlug}
+        hostsSessions={hostsSessions}
       />
     </div>
   );

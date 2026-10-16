@@ -17,9 +17,9 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import type { HubCoverageCopy } from "@/lib/programHub";
 import { EARLY_OPEN_MIN, LATE_GRACE_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
-import type { ScheduleClaimant, ScheduleProgramSummary, ScheduleSessionRow } from "@/lib/scheduleSessions";
+import type { ScheduleProgramSummary, ScheduleSessionRow } from "@/lib/scheduleSessions";
 
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -32,7 +32,6 @@ const RotationsClient = dynamic(
 );
 
 // Row shapes come from the one builder (lib/scheduleSessions.ts, 2026-10-15).
-type Claimant = ScheduleClaimant;
 type Session = ScheduleSessionRow;
 
 /** Programs created within this many days show a NEW badge on schedule cards. */
@@ -71,6 +70,11 @@ interface Props {
    *  AV" / "Yes, I can cover AV" instead of the host-team default.
    *  Defaults to host-team values if absent. */
   coverageCopy?: { noun: string; verb: string; action: string };
+  /** The team's display name. */
+  hubName?: string;
+  /** The team runs the session (hub.hasSchedule), as opposed to staffing a
+   *  supporting role: picks the empty-state instructions. */
+  hostsSessions?: boolean;
 }
 
 const TZ = "America/Chicago";
@@ -222,9 +226,13 @@ interface ModalProps {
   submitting: boolean;
   /** A failed confirm, said beside the button inside the modal. */
   error?: string | null;
+  /** The team's own words ("Host" / "hosting" / "host this"; "AV" /
+   *  "covering AV" / "cover AV"). Sentences that would read wrongly with
+   *  them stay neutral and name the person instead (2026-10-15). */
+  coverageCopy: HubCoverageCopy;
 }
 
-function HsModal({ kind, session, onConfirm, onCancel, submitting, error }: ModalProps) {
+function HsModal({ kind, session, onConfirm, onCancel, submitting, error, coverageCopy }: ModalProps) {
   const [coverNote, setCoverNote] = useState<string>("");
 
   useEffect(() => {
@@ -243,17 +251,17 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error }: Moda
   let cancelLabel = "Not yet";
 
   if (kind === "take") {
-    title = "Confirm hosting";
+    title = "Take this session?";
     body = (
-      <>You'll host <strong>{session.programName}</strong> on{" "}
-      <strong>{dateStr}</strong> at <strong>{timeStr}</strong>. The team
-      will be notified.</>
+      <><strong>{session.programName}</strong> on <strong>{dateStr}</strong>{" "}
+      at <strong>{timeStr}</strong> will be yours. The team will be
+      notified.</>
     );
-    primaryLabel = "Yes, I'll host this";
+    primaryLabel = `Yes, I'll ${coverageCopy.action}`;
   } else if (kind === "cover") {
     title = "Confirm covering";
     body = (
-      <>You'll cover for <strong>{session.hostName ?? "the original host"}</strong>{" "}
+      <>You'll cover for <strong>{session.hostName ?? "the person who asked"}</strong>{" "}
       on <strong>{dateStr}</strong> for <strong>{session.programName}</strong>.
       They'll be notified that you're stepping in.</>
     );
@@ -283,10 +291,10 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error }: Moda
     // backlog's specific concern about this affordance reading oddly.
     title = "Ask the team to cover";
     body = (
-      <>Ask the team to cover for <strong>{session.hostName ?? "the host"}</strong>{" "}
+      <>Ask the team to cover for <strong>{session.hostName ?? "this person"}</strong>{" "}
       on <strong>{dateStr}</strong> for <strong>{session.programName}</strong>.
       The team will receive an email and someone may step in.{" "}
-      <strong>{session.hostName ?? "The host"}</strong> stays assigned until
+      <strong>{session.hostName ?? "This person"}</strong> stays on until
       someone does.</>
     );
     primaryLabel = "Send to the team";
@@ -304,9 +312,8 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error }: Moda
   } else if (kind === "cancel-request") {
     title = "Cancel your request?";
     body = (
-      <>You'll go back to hosting <strong>{session.programName}</strong> on{" "}
-      <strong>{dateStr}</strong> yourself. The team will know your request
-      is closed.</>
+      <><strong>{session.programName}</strong> on <strong>{dateStr}</strong>{" "}
+      stays yours. The team will know your request is closed.</>
     );
     primaryLabel = "Yes, cancel the request";
     cancelLabel = "Keep the request";
@@ -314,8 +321,8 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error }: Moda
     title = "Clear this cover request?";
     body = (
       <>This closes the cover request for <strong>{session.programName}</strong> on{" "}
-      <strong>{dateStr}</strong>. <strong>{session.hostName ?? "The host"}</strong>{" "}
-      stays on as host.</>
+      <strong>{dateStr}</strong>. <strong>{session.hostName ?? "The person on it"}</strong>{" "}
+      keeps the session.</>
     );
     primaryLabel = "Yes, clear the request";
     cancelLabel = "Keep the request";
@@ -323,7 +330,7 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error }: Moda
     title = "Reassign to yourself";
     body = session.hostUserId
       ? (
-        <>This will remove <strong>{session.hostName ?? "the current host"}</strong>{" "}
+        <>This will remove <strong>{session.hostName ?? "the person on it now"}</strong>{" "}
         from <strong>{session.programName}</strong> on <strong>{dateStr}</strong>{" "}
         and assign you. They will be notified. Any open cover request will be closed.</>
       )
@@ -333,9 +340,9 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error }: Moda
       );
     primaryLabel = "Yes, reassign to me";
   } else if (kind === "unassign") {
-    title = "Remove this host?";
+    title = "Remove them from this session?";
     body = (
-      <>This takes <strong>{session.hostName ?? "the current host"}</strong> off{" "}
+      <>This takes <strong>{session.hostName ?? "the person on it now"}</strong> off{" "}
       <strong>{session.programName}</strong> on <strong>{dateStr}</strong>. The
       session reopens as needing coverage, and they&apos;ll be notified. Any open
       cover request will be closed.</>
@@ -510,8 +517,10 @@ function HsRow({
 
   // Lowercase form of the role noun for natural inline use ("No host (missed)"
   // / "Needs a host" reads with lowercase). Capitalize-on-use for statuses.
-  const nounLower = coverageCopy.noun.toLowerCase() === "av"
-    ? "AV" // AV stays uppercase regardless
+  // An abbreviation the team wrote in capitals (AV) stays as written, for
+  // any team, not just one named here (2026-10-15).
+  const nounLower = /^[A-Z0-9/&]+$/.test(coverageCopy.noun)
+    ? coverageCopy.noun
     : coverageCopy.noun.toLowerCase();
   const nounCap   = coverageCopy.noun;
 
@@ -767,6 +776,7 @@ export default function HubScheduleClient({
   isHostManager = false, isManager = false,
   apiBase = "/api/host", hubSlug,
   allowsMultipleAssignments = false,
+  hubName, hostsSessions = false,
   coverageCopy = { noun: "Host", verb: "hosting", action: "host this" },
 }: Props) {
   const router = useRouter();
@@ -843,9 +853,9 @@ export default function HubScheduleClient({
       const s = sessions.find(x => x.id === id);
       if (s) {
         if (s.hostUserId === currentUserId) {
-          showToast("You're already hosting this session.", "error");
+          showToast("This session is already yours.", "error");
         } else if (s.status === "claimed" && !s.subRequestId) {
-          showToast("This session already has a host.", "error");
+          showToast("Someone already has this session.", "error");
         } else {
           setModal({ kind: "take", session: s });
         }
@@ -1010,7 +1020,7 @@ export default function HubScheduleClient({
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
-      throw new Error(d.error ?? "Couldn't remove the host.");
+      throw new Error(d.error ?? "Couldn't take them off. Please try again.");
     }
     setSessions(prev => prev.map(row => row.id === s.id
       ? { ...row, status: "unclaimed", hostUserId: null, hostName: null, subRequestId: null, subMessage: null }
@@ -1135,21 +1145,21 @@ export default function HubScheduleClient({
         showToast(`You're ${coverageCopy.verb}. The team has been notified.`);
       } else if (modal.kind === "cover") {
         await coverSession(modal.session);
-        showToast("You're covering this session. The original host has been notified.");
+        showToast("You're covering this session. They've been notified.");
       } else if (modal.kind === "ask-cover") {
         await askForCover(modal.session, extra);
         showToast("Done. The team will help find a replacement.");
       } else if (modal.kind === "ask-cover-for") {
-        const host = modal.session.hostName ?? "the host";
+        const host = modal.session.hostName ?? "them";
         await askForCover(modal.session, extra);
         showToast(`Cover requested for ${host} · the team has been notified`);
       } else if (modal.kind === "cancel-request") {
         await cancelRequest(modal.session);
-        showToast("Request cancelled. You're back to hosting this session.");
+        showToast("Request cancelled. The session is yours again.");
       } else if (modal.kind === "clear-request") {
-        const host = modal.session.hostName ?? "the host";
+        const host = modal.session.hostName;
         await cancelRequest(modal.session);
-        showToast(`Cover request cleared · ${host} stays on`);
+        showToast(host ? `Cover request cleared. ${host} keeps the session.` : "Cover request cleared. They keep the session.");
       } else if (modal.kind === "reassign") {
         await reassign(modal.session);
         showToast("Reassigned to you.");
@@ -1247,8 +1257,10 @@ export default function HubScheduleClient({
   const emptyMsg = (() => {
     if (filteredSessions.length > 0) return null;
     if (filter === "all") {
-      if (programs.length === 0 && hubSlug && hubSlug !== DEFAULT_HOSTING_HUB_SLUG) {
-        return `No programs are scheduled with this team yet. A coordinator can tag a program in the Program editor → Hosting & Access → Auxiliary role coverage.`;
+      if (programs.length === 0) {
+        return hostsSessions
+          ? "No programs are hosted by this team yet. In the Program editor, choose this team under Hosting & Access → Hosting team."
+          : "No programs are scheduled with this team yet. A coordinator can add this team in the Program editor under Hosting & Access → Auxiliary role coverage.";
       }
       return `No sessions in ${MONTHS[month]}.`;
     }
@@ -1332,6 +1344,8 @@ export default function HubScheduleClient({
           month={month + 1}
           isManager={isManager}
           hubSlug={hubSlug}
+          hubName={hubName}
+          hostsSessions={hostsSessions}
           onScheduleStale={() => loadMonth(year, month)}
         />
       )}
@@ -1540,6 +1554,7 @@ export default function HubScheduleClient({
         onCancel={closeModal}
         submitting={modalSubmitting}
         error={modalError}
+        coverageCopy={coverageCopy}
       />
 
       <ActionNotice notice={toast} onClose={() => setToast(null)} />

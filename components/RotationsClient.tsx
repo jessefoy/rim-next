@@ -38,6 +38,8 @@ const DAY_LABEL: Record<DayOfWeek, string> = {
   SU: "Sunday", MO: "Monday", TU: "Tuesday", WE: "Wednesday",
   TH: "Thursday", FR: "Friday", SA: "Saturday",
 };
+/** The editor's own names for a program's format (ProgramEditor). */
+const FORMAT_LABEL: Record<string, string> = { virtual: "Virtual", "in-person": "In-person", hybrid: "Hybrid" };
 const DAY_ORDER: DayOfWeek[] = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
 const DAY_TO_JS: Record<DayOfWeek, number> = {
@@ -139,6 +141,11 @@ interface Props {
    *  API filters rotations to programs in this hub. Defaults to host-team
    *  on the server when omitted. Slice 2.6. */
   hubSlug?: string;
+  /** The team's display name, for confirmations ("Reset · Greeter"). */
+  hubName?: string;
+  /** The team runs the session (hub.hasSchedule): picks the empty-state
+   *  instructions (Hosting team vs supporting role). */
+  hostsSessions?: boolean;
   /** Called after any rotation change that may have created/modified HostAssignment
    *  rows so the parent (Schedule view) can refresh its display. */
   onScheduleStale?: () => void;
@@ -256,7 +263,8 @@ function miniDateParts(dateStr: string): { month: string; day: string; label: st
   };
 }
 
-export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, hubSlug, onScheduleStale }: Props) {
+export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, hubSlug, hubName, hostsSessions = false, onScheduleStale }: Props) {
+  const teamName = hubName ?? hubSlug ?? "this team";
   const router = useRouter();
   const [rotations, setRotations] = useState<Rotation[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -340,7 +348,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         if (freed > 0)   parts.push(`${freed} upcoming session${freed === 1 ? "" : "s"} freed`);
         showToast(`Done · ${parts.join(" · ")}`);
       } else {
-        showToast("Nothing to remove — this host has no rules in this rotation");
+        showToast("Nothing to remove. This person has no rules in this rotation.");
       }
       // Refresh both branches: in the 0/0 case the grid is probably stale
       // (a concurrent coordinator may have removed the host already), so a
@@ -349,7 +357,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       await loadRotations();
       fullRefresh();
     } catch {
-      setError("Could not remove this host from the rotation. Please try again.");
+      setError("Couldn't take this person off the rotation. Please try again.");
     } finally {
       setReleasing(false);
     }
@@ -434,7 +442,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const rCount = data?.deletedRotations   ?? 0;
       const program = programs.find((p) => p.slug === slug);
       const programName = program?.name ?? slug;
-      const teamLabel = hubSlug && hubSlug !== "host-team" ? ` (${hubSlug})` : "";
+      const teamLabel = ` (${teamName})`;
       const summary = `Reset · ${programName}${teamLabel} · ${rCount} rotation rule${rCount === 1 ? "" : "s"} and ${aCount} upcoming session${aCount === 1 ? "" : "s"} removed`;
       showToast(summary);
       // Inline result at the click point — survives until next reset attempt.
@@ -499,9 +507,9 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       // coordinator can verify scope. Maria's beta test reported a "full
       // reset didn't change anything" symptom; an unambiguous toast makes
       // any "wrong hub view" case self-diagnosing on the next test.
-      const teamLabel = hubSlug;
+      const teamLabel = teamName;
       const summary = mode === "soft"
-        ? `Cleared upcoming schedule in ${teamLabel} · ${aCount} host assignment${aCount === 1 ? "" : "s"} removed`
+        ? `Cleared upcoming schedule in ${teamLabel} · ${aCount} session${aCount === 1 ? "" : "s"} removed`
         : `Reset ${teamLabel} · ${aCount} assignment${aCount === 1 ? "" : "s"} and ${rCount} rotation rule${rCount === 1 ? "" : "s"} removed`;
       showToast(summary);
       setClearConfirm(null);
@@ -747,9 +755,9 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
 
       {programs.length === 0 && (
         <p className="hs-rot__empty">
-          {hubSlug && hubSlug !== "host-team"
-            ? "No programs are scheduled with this team yet. A coordinator can tag a program in the Program editor → Hosting & Access → Auxiliary role coverage."
-            : "No programs available."}
+          {hostsSessions
+            ? "No programs are hosted by this team yet. In the Program editor, choose this team under Hosting & Access → Hosting team."
+            : "No programs are scheduled with this team yet. A coordinator can add this team in the Program editor under Hosting & Access → Auxiliary role coverage."}
         </p>
       )}
 
@@ -769,7 +777,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
               <h3 className="hs-rot__prog-name">{program.name}</h3>
               {program.programFormat && (
                 <span className="hs-rot__prog-format">
-                  {program.programFormat === "virtual" ? "Virtual" : "In-person and virtual"}
+                  {FORMAT_LABEL[program.programFormat] ?? program.programFormat}
                 </span>
               )}
               {/* Cross-hub program staffing view (session 130 follow-up) —
@@ -777,7 +785,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                   greeter) in one place. */}
               <a
                 href={
-                  hubSlug && hubSlug !== "host-team"
+                  hubSlug
                     ? `/tools/schedule/program/${encodeURIComponent(program.slug)}?hub=${encodeURIComponent(hubSlug)}`
                     : `/tools/schedule/program/${encodeURIComponent(program.slug)}`
                 }
@@ -1013,7 +1021,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                       <p className="hs-rot__prog-danger-q">
                         <strong>Reset rotations for {program.name}?</strong><br />
                         Deletes <em>every</em> rotation rule for this program in
-                        {" "}<strong>{hubSlug ?? "host-team"}</strong>, and removes
+                        {" "}<strong>{teamName}</strong>, and removes
                         every upcoming session this program has in this team.
                         Other teams scheduling this program are unaffected.
                         Past sessions stay in the historical record.
@@ -1143,7 +1151,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
     setForm({ ...form, hosts: { ...form.hosts, ...next } });
 
   const PATTERN_OPTIONS: Array<{ value: Pattern; label: string; hint: string }> = [
-    { value: "same",      label: "Same every week", hint: "One person hosts every session" },
+    { value: "same",      label: "Same every week", hint: "The same person every week" },
     { value: "alternate", label: "Alternate",       hint: "Two people, 1st & 3rd / 2nd & 4th" },
     { value: "custom",    label: "Custom",          hint: "Set each week independently" },
   ];
@@ -1257,11 +1265,11 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
       {form.fifthExpanded ? (
         <div className="pe-field">
           <span className="pe-field__label">
-            {form.pattern === "same" ? "5th-week override (optional)" : "5th-week host"}
+            {form.pattern === "same" ? "5th-week override (optional)" : "5th-week person"}
           </span>
           <span className="pe-field__help">
             {form.pattern === "same"
-              ? "Leave blank and the main host covers 5th weeks automatically."
+              ? "Leave blank and the every-week person covers 5th weeks too."
               : "For months with a 5th occurrence (rare). Leave blank to skip those weeks."}
           </span>
           <div className="pe-inline-row">
@@ -1270,7 +1278,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
               value={form.fifthHost}
               onChange={(e) => setForm({ ...form, fifthHost: e.target.value })}
             >
-              <option value="">{form.pattern === "same" ? "— Same as main host —" : "— Skip 5th weeks —"}</option>
+              <option value="">{form.pattern === "same" ? "— Same as every week —" : "— Skip 5th weeks —"}</option>
               {teamMembers.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.displayName}{m.isCoordinator ? " ★" : ""}
@@ -1292,7 +1300,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
           className="hs-rot__form-link"
           onClick={() => setForm({ ...form, fifthExpanded: true })}
         >
-          {form.pattern === "same" ? "+ Override 5th week (optional)" : "+ Assign 5th-week host (optional)"}
+          {form.pattern === "same" ? "+ Override 5th week (optional)" : "+ Add a 5th-week person (optional)"}
         </button>
       )}
 

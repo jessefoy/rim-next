@@ -11,7 +11,7 @@ import { centralToUtc } from "@/lib/timezone";
 import { computeTimeText, computeDateText } from "@/lib/programUtils";
 import { sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
-import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import { DEFAULT_HOSTING_HUB_SLUG, hostingTeamRefusal } from "@/lib/programHub";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOffering } from "@/lib/programOffering";
@@ -86,16 +86,9 @@ export async function POST(request: NextRequest) {
       ? body.hostingHubSlug.trim()
       : null;
   if (requestedHostingHubSlug) {
-    const hub = await db.hub.findUnique({
-      where: { slug: requestedHostingHubSlug },
-      select: { id: true },
-    });
-    if (!hub) {
-      return NextResponse.json(
-        { error: `Unknown hub: ${requestedHostingHubSlug}` },
-        { status: 422 },
-      );
-    }
+    // A Hosting team must run sessions and have the Scheduler (2026-10-15).
+    const refusal = await hostingTeamRefusal(requestedHostingHubSlug);
+    if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
   }
 
   // Flodesk (mass email), as on the PUT: null = the default rule; a linked

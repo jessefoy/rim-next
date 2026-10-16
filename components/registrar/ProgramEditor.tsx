@@ -1914,11 +1914,13 @@ export default function ProgramEditor({
               >
                 <option value="">Host Team (default)</option>
                 {hubs
-                  // Only hosting-style hubs (hasSchedule=true) belong here —
-                  // those that actually run live sessions. AV/greeter-style
-                  // hubs (hasSchedule=false) staff supporting roles and
-                  // can't be a primary hosting team.
-                  .filter((h) => h.hasSchedule && h.slug !== DEFAULT_HOSTING_HUB_SLUG)
+                  // Teams that run sessions AND have the Scheduler installed
+                  // (lib/programHub.ts hostingTeamRefusal, the server's rule).
+                  // The team a program already has stays listed so an
+                  // unrelated edit doesn't silently change it.
+                  .filter((h) =>
+                    h.slug !== DEFAULT_HOSTING_HUB_SLUG &&
+                    ((h.hasSchedule && h.usesScheduler) || h.slug === initialHostingHubSlug))
                   .map((h) => (
                     <option key={h.slug} value={h.slug}>
                       {h.name}
@@ -1927,11 +1929,10 @@ export default function ProgramEditor({
               </select>
 
               {/* Mid-flight change warning. Fires when the editor's current
-                  choice differs from what was loaded AND future
-                  HostAssignment rows exist on this program. Grandfather
-                  policy: existing future assignments stay valid in the
-                  prior hub; only new self-claims route through the new
-                  hub. */}
+                  choice differs from what was loaded AND the current hosting
+                  team has upcoming sessions on this program. Saving clears
+                  them and that team's rotations for it (Jesse, 2026-10-15;
+                  the save in app/api/programs-pg/[slug]/route.ts). */}
               {isEditing && hostingHubChanged && futureHostAssignmentCount > 0 && (
                 <div
                   style={{
@@ -1944,12 +1945,13 @@ export default function ProgramEditor({
                     lineHeight: 1.55,
                   }}
                 >
-                  <strong>Heads up:</strong> {futureHostAssignmentCount} upcoming
-                  {futureHostAssignmentCount === 1 ? " host assignment" : " host assignments"}
-                  {" "}already exist for this program. Those assignments will stay
-                  valid after the change — the assigned hosts keep their sessions.
-                  Only new claims and rotations after you save will route through
-                  the new team.
+                  <strong>Heads up:</strong> the current hosting team has{" "}
+                  {futureHostAssignmentCount} upcoming
+                  {futureHostAssignmentCount === 1 ? " session" : " sessions"} scheduled
+                  for this program. Saving with a new hosting team clears{" "}
+                  {futureHostAssignmentCount === 1 ? "it" : "them"}, along with that
+                  team&rsquo;s rotations for this program. The new team schedules
+                  from here.
                 </div>
               )}
             </div>
@@ -1975,24 +1977,19 @@ export default function ProgramEditor({
                 return formats.includes(programFormat);
               });
               if (eligible.length === 0) {
-                // Show a calm note when the program's format means no
-                // auxiliary teams apply (typically a virtual-only
-                // program). Better than rendering nothing — coordinator
-                // sees the section exists and why it's empty for this
-                // program.
-                if (programFormat === "virtual") {
-                  return (
-                    <fieldset className="pe-field">
-                      <legend className="pe-field__label">Auxiliary role coverage</legend>
-                      <span className="pe-field__help">
-                        Not applicable — this is a virtual-only program. AV
-                        and greeter teams cover in-person and hybrid
-                        offerings.
-                      </span>
-                    </fieldset>
-                  );
-                }
-                return null;
+                // A calm note instead of nothing: the section exists, and no
+                // supporting team staffs this format (each team's formats
+                // are set in /admin/hubs, so no team is named here).
+                const formatWord =
+                  programFormat === "in-person" ? "in-person" : programFormat === "hybrid" ? "hybrid" : "virtual";
+                return (
+                  <fieldset className="pe-field">
+                    <legend className="pe-field__label">Auxiliary role coverage</legend>
+                    <span className="pe-field__help">
+                      No supporting team staffs {formatWord} programs.
+                    </span>
+                  </fieldset>
+                );
               }
               return (
                 <fieldset className="pe-field">

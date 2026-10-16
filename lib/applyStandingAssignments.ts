@@ -817,3 +817,23 @@ export async function applyStandingAssignments(
 
   return { filled, replaced, kept, byUser, byDisplacedUser };
 }
+
+/**
+ * A session a rotation made, emptied by hand (released or removed), stays
+ * empty: record a skip so the daily rotation run doesn't fill it again the
+ * next morning (2026-10-15; it used to re-add the person and re-email them).
+ */
+export async function holdRotationDate(
+  assignment: { standingAssignmentId: string | null; sessionDate: Date | null },
+  byUserId: string,
+  client: Pick<typeof db, "standingSkip"> = db,
+) {
+  if (!assignment.standingAssignmentId || !assignment.sessionDate) return;
+  const dateStr = ctDateStr(assignment.sessionDate.toISOString());
+  await client.standingSkip.upsert({
+    where: { standingAssignmentId_dateStr: { standingAssignmentId: assignment.standingAssignmentId, dateStr } },
+    create: { standingAssignmentId: assignment.standingAssignmentId, dateStr, createdById: byUserId },
+    update: {},
+  });
+}
+
