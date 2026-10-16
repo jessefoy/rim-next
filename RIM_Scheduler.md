@@ -18,11 +18,11 @@ Two top-level tabs:
 
 The tool was originally named "Host Schedule" when host-team was the only hub. Renamed to "Scheduler" in Slice 2 to read correctly across multiple hubs.
 
-**Two hub modes** (session 129):
+**Two hub modes** (session 129; open sign-up is set per team in `/admin/hubs` since 2026-10-15):
 - **Single-slot** (host-team, peer-led, audio-visual). One claimant per session per hub. Rows render the historical "Host: Maria" + claim/sub-request affordances.
 - **Multi-claim** (greeter). `Hub.allowsMultipleAssignments = true`. Open sign-up — many people on one session, no sub-request flow, "I'll be there" / "Cancel my signup" actions. Rows render as a community of people with plain-language state header, stacked names, and self-recognition marks. See *Multi-claim rendering* below.
 
-**Two format buckets** (session 129) — `Hub.appliesToFormats` drives which `programFormat` values surface:
+**Formats** (session 129; set per team in `/admin/hubs` since 2026-10-15). `Hub.appliesToFormats` drives which `programFormat` values surface:
 - Host-team / peer-led: `["virtual","hybrid"]`
 - Audio-visual / greeter: `["in-person","hybrid"]`
 
@@ -32,6 +32,24 @@ The tool was originally named "Host Schedule" when host-team was the only hub. R
 
 | Path | What it does |
 |---|---|
+| `app/tools/schedule/layout.tsx` | Tool chrome (ToolsNav, hub-context provider). Reads `?hub=<slug>` and exposes it to the page. |
+| `app/tools/schedule/page.tsx` | The Schedule tab. Server component: access gate, then `buildHubMonthSessions` for the month. |
+| `app/tools/schedule/program/[slug]/page.tsx` | One program's staffing across every team that may staff it now (`teamCannotStaff`), live rotations only. |
+| `lib/scheduleSessions.ts` | `buildHubMonthSessions`: the one builder of Scheduler rows, and the row types the clients use. |
+| `lib/programHub.ts` | The shared rules: `resolveHostingHubSlug`, `teamCannotStaff`, `hostingTeamRefusal`, `clearCoverageNoLongerStaffed`, coverage copy and config. |
+| `components/HubScheduleClient.tsx` | Client component for the Schedule tab (calendar nav, claim, cover requests, member picker). |
+| `components/RotationsClient.tsx` | Client component for the Rotations tab; its preview follows the engine's dates. |
+| `app/api/host/assignments/route.ts` | GET one team's month (`?month=YYYY-MM&hub=`, required) + POST (self-claim or coordinator assign). |
+| `app/api/host/assignments/[id]/route.ts` | PATCH (claim, release) and DELETE. |
+| `app/api/host/assignments/reassign/route.ts` | POST: a coordinator takes over an existing assignment, in one transaction. |
+| `app/api/host/sub-requests/route.ts` | POST (ask the team to cover). The old team-blind GET listing was removed (2026-10-15). |
+| `app/api/host/sub-requests/[id]/claim/route.ts` | POST (cover an open request). |
+| `app/api/host/standing-assignments/*` | Rotation save, preview, apply, end, release. Every route gates on `canManageHubCoverage` with the rotation's own team. |
+| `app/api/host/programs/[slug]/clear-rotations/route.ts` | Reset one program's rotations on one team. |
+| `app/api/host/assignments/clear/route.ts` | "Reset this team": `future` deletes upcoming assignments; `all + endRotations` wipes the team's schedule. Other teams untouched. |
+| `app/api/admin/hubs/[slug]/route.ts` | Team settings, including the Scheduler's open sign-up and formats, and a slug rename that carries the schedule with it. |
+
+---|---|
 | `app/tools/schedule/layout.tsx` | Tool chrome (ToolsNav, hub-context provider). Reads `?hub=<slug>` and exposes it to the page. |
 | `app/tools/schedule/page.tsx` | The Schedule tab. Server component. Filters programs and rotations by `?hub=`. |
 | `components/host/HubScheduleClient.tsx` | Client component for the Schedule tab interactivity (calendar nav, claim, sub-request, member picker). |
@@ -83,7 +101,7 @@ A five-part read-only audit (route gates and scoping; hard-coded team assumption
 - **Central "today" is `ctStartOfToday()`**, never `new Date(toLocaleString(…TZ))` with `setHours(0)`: on a UTC server that is 7 pm the evening before.
 - **Still open from the step-2 review:** when a start-date edit moves the program to another weekday, future assignments keep their old day (re-timed, but on a day the program no longer meets). They don't show in the Scheduler but still exist. Decide with Jesse whether they move or clear.
 
-**Step 3, new teams by configuration:** `/admin/hubs` sets open sign-up and formats; coverage wording everywhere (dialogs, notices, members page); a checklist for adding a scheduling team (below, when written).
+**Step 3, new teams by configuration (done, `7f3b757`):** `/admin/hubs` sets open sign-up and formats, with guards against changes that would break the schedule; a team's slug rename carries its programs, schedule and Files with it (the Hosting Team's can't move); the Hosting team list and both program routes use `hostingTeamRefusal`; the editor's warning matches the ruling; coverage wording fits every team (dialogs, notices, rotations, members page, staffing page) and empty states branch on the team's kind, not its slug; releasing a member's sessions works on open sign-up teams and holds their rotation dates. The checklist is "Adding a scheduling team" below. Still open: the step-2 weekday-move question, and custom app links that name an old slug after a rename (free text, not rewritten).
 
 ## Hub-scoping — every layer
 
@@ -174,13 +192,11 @@ This is **NOT** a cross-hub entanglement bug and is **not** a reason to split th
 
 ---
 
-## The grandfather policy on hub changes
+## A hosting-team change clears the old team (Jesse, 2026-10-15)
 
-When a coordinator transfers a program to a different hub via the ProgramEditor "Hosting & Access" tab, existing future HostAssignments stay valid in the old hub for the dates they were created for. New self-claims and sub-requests route to the new hub.
+Supersedes the grandfather policy (session 128), which the code had stopped following. When a program moves to a new Hosting team, the save deletes the old team's future assignments (with their cover requests) and all its rotations for the program, in one transaction. The ProgramEditor warns before saving, with the count. The new team schedules from there. Supporting teams (AV, greeters) are untouched.
 
-The ProgramEditor surfaces a mid-flight warning before save — count of affected upcoming HostAssignments + explanation of the grandfather policy.
-
-Operational consequence: if a host-team member has claimed Good Morning Silent Meditation sessions before a coordinator transfers it to peer-led-silent-meditation, those host-team-claimed sessions remain on the host-team member's `/tools/schedule?hub=host-team` view. New claims will only come from peer-led members. The mixed-hub state resolves as the grandfathered sessions complete.
+Only a team that runs sessions (`hasSchedule`), is active, and has the Scheduler installed can be chosen (`hostingTeamRefusal`; the editor's list uses the same rule and keeps a program's current team).
 
 ---
 
@@ -545,11 +561,29 @@ The Scheduler's 3-second toast is `ActionNotice` (`components/FormDone.tsx`): fi
 
 | Item | Status | Why |
 |---|---|---|
-| PDF export hub-scoping | Deferred | "My schedule" is personal; revisit if AV/greeter members ask |
 | Time-gate adjustments per-program | Deferred (parked) | The entry window is uniform across programs (host/early-open **30 min** before, member "Join now" **10 min** before, close **30 min** after — `lib/sessionWindowConstants.ts`, session 141); if dharma retreats want a longer pre-open, add a per-program override |
 | Sub-request flow on AV (in-person) | Edge case to verify | Sub-requests still work in single-slot AV; verify on live deploy that the in-person hub's coordinator notifications behave correctly |
 | Manual chapter for AV + greeter hubs | Open follow-on | Write a hub-specific manual chapter explaining the AV / greeter flow, the difference between single-slot and multi-claim, sub-request semantics. Can be done via `/admin/manual/<slug>/edit` once the hubs are configured. |
 | Hub-aware new-program notifications | ✅ Done (session 146) | Every scheduler hub now gets the "needs coverage" heads-up, not just the primary host hub. An auxiliary hub (AV / greeter) is notified when a program is tagged for it — on **create** AND when **added on edit** (diffed against existing coverage rows so re-saving the editor doesn't re-notify; removals stay silent). Reuses the hub-neutral `new-program-needs-host` template (subject "New program added", body "may need {{coverageNoun}} coverage"); helper `lib/email.ts::notifyHubOfNewProgramCoverage`. Per-hub grain by design — a dual-hub member gets one email per role, each with that hub's noun + scoped link. |
+
+---
+
+## Adding a scheduling team (2026-10-15)
+
+A new team uses the Scheduler by configuration. No code changes, and no slug in code. Done in this order:
+
+1. **Create the team** at `/admin/hubs/new`, then use "Add me as coordinator" (or assign a coordinator in its Members tab).
+2. **Install the Scheduler app** in the team's apps list (as primary if it's the team's main work). The Scheduler section appears in the form.
+3. **Choose its kind:**
+   - **Runs the session** (like the Hosting Team or Peer-Led Silent Meditation): check "This hub runs live sessions". It can then be a program's Hosting team; its people are the session's host at the Zoom door.
+   - **Supporting role** (like AV or greeters): leave that off. Programs add it under "Auxiliary role coverage"; it never opens the room or admits anyone at the door.
+4. **Open sign-up or one person per session.** Open sign-up means several people per session and no cover requests (greeters). Off means one person, who asks the team for cover (hosts, AV). Switching later is refused while it would break something: sessions with more than one person, or open cover requests.
+5. **Formats it staffs** (virtual, in-person, hybrid). Removing one later asks first if it clears scheduled sessions, and refuses if the team hosts a program in that format.
+6. **Its words:** role name, -ing verb and claim phrase ("Greeter" / "greeting" / "greet"). An abbreviation written in capitals (AV) stays capitalized. They fill the Scheduler, Home and coverage emails; dialogs and notices are written to fit every team without them.
+7. **Attach programs:** set it as a program's Hosting team, or tick it under Auxiliary role coverage. The program must be in one of the team's formats.
+8. **Add members** with "Can take sessions on the schedule" on. Then open `/tools/schedule?hub=<slug>` as a member and as the coordinator: the month shows, Rotations works, and the right empty state appears if no programs are attached.
+
+What the code already guarantees for any team: every write passes `teamCannotStaff`, every gate is `canManageHubCoverage` with the resource's own team, rows come from `buildHubMonthSessions`, and only the hosting team opens the room. If a new team needs behaviour none of these settings express, that is new engineering: follow the Hub App Integration Gate in `CLAUDE.md`.
 
 ---
 

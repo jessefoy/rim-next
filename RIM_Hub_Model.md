@@ -175,7 +175,7 @@ App links connect a *tool* to a hub (UI navigation). Programs connect to a *host
 - `/tools/schedule?hub=...` (filters programs by `hostingHubSlug`)
 - `lib/livekitAuth.ts::resolveSessionRole` (Co-host + Step-In gates)
 
-**Editor surface.** The Program editor's "Hosting & Access" tab carries the hub dropdown. Default option "Host Team (default)" stores null. Mid-flight warning fires when changing the hub on a program with future HostAssignments — those assignments stay valid (grandfather policy); new claims route to the new hub.
+**Editor surface.** The Program editor's "Hosting & Access" tab carries the hub dropdown. Default option "Host Team (default)" stores null. Mid-flight warning fires when changing the hub on a program with future HostAssignments. Saving clears the old team's future assignments and rotations for the program (Jesse, 2026-10-15; this superseded the session-128 grandfather policy). The dropdown lists only teams that run sessions and have the Scheduler installed.
 
 **Slug validation.** POST + PUT on `programs-pg` reject non-existent hub slugs with 422.
 

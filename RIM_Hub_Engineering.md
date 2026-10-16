@@ -26,7 +26,7 @@ Every hub-related action touches up to four layers. **Every layer must honor the
 
 | Layer | Question | Slice 1 surface | Where the rule lives |
 |---|---|---|---|
-| **Capability** | Can this user perform this action in this hub? | `lib/livekitAuth.ts::resolveSessionRole`, `lib/hubMemberAuth.ts::getEffectiveHostingCapability` | API route handlers gate by `program.hostingHubSlug` |
+| **Capability** | Can this user perform this action in this hub? | `lib/sessionAuth.ts::resolveSessionRole`, `lib/hubMemberAuth.ts::getEffectiveHostingCapability` | API route handlers gate by `program.hostingHubSlug` |
 | **Recipients** | When this action sends notifications, who gets them? | `lib/toolAuth.ts::getHubNotificationRecipients(hubSlug, …)` | Caller passes the *program's* hub, not the actor's hub |
 | **UI filter** | What does the schedule / hub workspace show? | Filtered by `Program.hostingHubSlug === hub.slug` in queries | List queries always include the hub filter |
 | **Outbound URLs** | When the email's recipient clicks through, where do they land? | `lib/email.ts::hubScopedUrl(path, hubSlug)` and `hubHomeUrl(hubSlug)` | Every URL variable in an email passes through a helper |
@@ -243,11 +243,9 @@ None of these would fail a routing-layer audit. They're all gaps at the user-flo
 
 ---
 
-## Grandfather policy on `Program.hostingHubSlug` changes
+## A `Program.hostingHubSlug` change clears the old team (2026-10-15)
 
-When a coordinator transfers a program to a different hub via the ProgramEditor "Hosting & Access" tab, **existing future HostAssignments stay** — they don't migrate. New self-claims route to the new hub.
-
-The editor surfaces a mid-flight warning before the save commits, showing the count of affected upcoming HostAssignments. The warning is enforced server-side by counting future rows with `userId: { not: null }` on the program. Same pattern applies if you build other mid-flight migration affordances.
+Supersedes the session-128 grandfather policy. When a program moves to a new Hosting team, the save (`app/api/programs-pg/[slug]/route.ts`) deletes the old team's future HostAssignments (with their cover requests, FK-safe) and all its rotations for the program, in one transaction; supporting teams are untouched. The editor warns before saving with the count. Only a team that runs sessions, is active and has the Scheduler installed may be chosen (`lib/programHub.ts::hostingTeamRefusal`). A save that unticks a supporting team, or changes the format, clears only the teams it affected (`clearCoverageNoLongerStaffed(programSlug, onlyHubs)`). Detail: `RIM_Scheduler.md`.
 
 ---
 
