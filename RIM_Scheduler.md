@@ -103,6 +103,25 @@ A five-part read-only audit (route gates and scoping; hard-coded team assumption
 
 **Step 3, new teams by configuration (done, `7f3b757`):** `/admin/hubs` sets open sign-up and formats, with guards against changes that would break the schedule; a team's slug rename carries its programs, schedule and Files with it (the Hosting Team's can't move); the Hosting team list and both program routes use `hostingTeamRefusal`; the editor's warning matches the ruling; coverage wording fits every team (dialogs, notices, rotations, members page, staffing page) and empty states branch on the team's kind, not its slug; releasing a member's sessions works on open sign-up teams and holds their rotation dates. The checklist is "Adding a scheduling team" below. Follow-ups closed 2026-10-16: off-day sessions and dead rotations are cleared on a schedule change (above), and a rename rewrites custom app links in any Space that point at the team's own pages (`retargetTeamLink` in `lib/linkInput.ts`: RIM paths and RIM full URLs only, `/account/hub/<slug>` and `hub=<slug>`; other sites' links are left alone).
 
+### The deep audit, 2026-10-16 (Jesse: "make sure that this is done right and the integrity of these systems is sound")
+
+Five parallel read-only audits (hosting leakage outside the Scheduler; every write path and cron; every notification; the UI by team kind; walking three hypothetical new teams through setup) plus a production invariant check. Fixed in `4fa231d`. An honest correction first: step 3 said the Rotations tab's wording fit every team. It didn't ("schedule a host", "Host every week", "Each affected host is emailed" were still there); it does now.
+
+**Production data:** clean except two things, both awaiting Jesse's approval to repair: 11 upcoming Awakening the Heart sessions stored an hour off the program's start (made by the June rotation, before start-time edits re-timed sessions), and two cover requests from May still open on past Peer-Led sessions.
+
+**Rules this audit left in place (read before changing the Scheduler):**
+- **A session is its program, its team and its Central day** (`ctDayBounds` in `lib/timezone.ts`), never an exact timestamp. The Zoom door, the designated-host line and the create path all match this way; the create path stores the program's own start for that day and refuses a day the program doesn't meet. Exact matching had hidden the Awakening the Heart host from the door.
+- **A seat is taken only if still empty:** claims use a conditional update (`updateMany` where `userId` is null), the create path runs its check and write under `pg_advisory_xact_lock` on the session, and cover claims/cancels act only while the request is OPEN. Known residue: the 3 am rotation run doesn't take the lock; its race with a manual claim is theoretical at that hour.
+- **Taking a person off their sessions is one function,** `releasePersonCoverage` (`lib/applyStandingAssignments.ts`): an open sign-up is removed, a seat emptied with its cover request closed, rotation dates held (a pause) or rotations ended (archive, Inactive, deletion). Account deletion also hands rotations the person created to the deleting admin.
+- **Everyone a change takes off sessions is told,** by `sendCoverageClearedEmails` (template `coverage-sessions-cleared`), with one sentence of reason from the caller and the team as `teamPhrase` gives it ("the Greeter team", "the Hosting Team"). Wired into: hosting-team change, "No host needed", a team unticked or out of format, an admin format drop or a team stopping, a member's sessions opened, the team Reset, a program's rotation Reset, removal from a team. Not for the person who made the change; not for archive or deletion (no sign-in to come back to). The schedule-change case keeps its own template.
+- **A team newly responsible for a program is told** (moved to it, needs a host again, or moved into its format).
+- **The server applies the editor's lists:** `hostingTeamRefusal(team, format)` and `supportingTeamRefusal(team, format)` run before anything is written; the editor sends only ticked teams that still fit.
+- **A team can't stop scheduling with work in hand:** archiving, removing the Scheduler or switching off "runs live sessions" is refused while it hosts programs, and clears its own sessions and rotations only after a confirmation that counts them. The engine skips archived teams, teams with the Scheduler off, and archived people.
+- **The Scheduler offers only what the server allows:** claim and sign-up buttons follow `canSelfClaim`; pickers list people who can be scheduled (a paused person already on a rotation stays visible); no `?hub=` lands a member on their own team; a team without the Scheduler has no board; errors are words, not "Forbidden".
+- **Account merge knows every person column,** including tables without a Prisma model (`reflection_responses`, `pages`). When adding a column that points at a user, add it to `lib/memberMerge.ts` or every merge of someone holding one fails.
+
+**Open, for Jesse:** see the session's questions (the cover-request template still says "Sub needed"; teacher-pill settings that do nothing since Zoom; whether My Home lists greeter/AV commitments; a virtual supporting team can't enter the room without new engineering; the 40px tool-wide button size).
+
 ## Hub-scoping — every layer
 
 Per `RIM_Hub_Engineering.md`'s "four routing layers" model:
@@ -568,22 +587,26 @@ The Scheduler's 3-second toast is `ActionNotice` (`components/FormDone.tsx`): fi
 
 ---
 
-## Adding a scheduling team (2026-10-15)
+## Adding a scheduling team (2026-10-15, corrected 2026-10-16)
 
 A new team uses the Scheduler by configuration. No code changes, and no slug in code. Done in this order:
 
-1. **Create the team** at `/admin/hubs/new`, then use "Add me as coordinator" (or assign a coordinator in its Members tab).
+1. **Create the team** at `/admin/hubs/new`. You become its coordinator, able to take sessions and on its email pool; step back in its Members tab if that's not wanted.
 2. **Install the Scheduler app** in the team's apps list (as primary if it's the team's main work). The Scheduler section appears in the form.
 3. **Choose its kind:**
-   - **Runs the session** (like the Hosting Team or Peer-Led Silent Meditation): check "This hub runs live sessions". It can then be a program's Hosting team; its people are the session's host at the Zoom door.
-   - **Supporting role** (like AV or greeters): leave that off. Programs add it under "Auxiliary role coverage"; it never opens the room or admits anyone at the door.
+   - **Runs the session** (like the Hosting Team or Peer-Led Silent Meditation): check "This hub runs live sessions". It can then be a program's Hosting team; its people are the session's host at the Zoom door. (The teacher-pill settings on this form do nothing since sessions moved to Zoom; pending Jesse's decision.)
+   - **Supporting role** (like AV or greeters): leave that off. Programs add it under "Auxiliary role coverage"; it never opens the room or admits anyone at the door. A supporting team for **virtual** sessions (say, tech support) would need new engineering to enter the room: today only the hosting team does.
 4. **Open sign-up or one person per session.** Open sign-up means several people per session and no cover requests (greeters). Off means one person, who asks the team for cover (hosts, AV). Switching later is refused while it would break something: sessions with more than one person, or open cover requests.
 5. **Formats it staffs** (virtual, in-person, hybrid). Removing one later asks first if it clears scheduled sessions, and refuses if the team hosts a program in that format.
-6. **Its words:** role name, -ing verb and claim phrase ("Greeter" / "greeting" / "greet"). An abbreviation written in capitals (AV) stays capitalized. They fill the Scheduler, Home and coverage emails; dialogs and notices are written to fit every team without them.
-7. **Attach programs:** set it as a program's Hosting team, or tick it under Auxiliary role coverage. The program must be in one of the team's formats.
+6. **Its words:** role name, -ing verb and claim phrase ("Greeter" / "greeting" / "greet"). A blank field falls back to Host / hosting / host this. An abbreviation written in capitals (AV) stays capitalized. A regular plural is assumed ("Greeters"). They fill the Scheduler, the Zoom door (hosting teams), Home and coverage emails; dialogs and notices are written to fit every team without them.
+7. **Attach programs:** set it as a program's Hosting team (the program's format must be one the team staffs, and "No host needed" off), or tick it under Auxiliary role coverage. The server refuses a team that doesn't fit, and the team is emailed when a program becomes its to staff.
 8. **Add members** with "Can take sessions on the schedule" on. Then open `/tools/schedule?hub=<slug>` as a member and as the coordinator: the month shows, Rotations works, and the right empty state appears if no programs are attached.
 
-What the code already guarantees for any team: every write passes `teamCannotStaff`, every gate is `canManageHubCoverage` with the resource's own team, rows come from `buildHubMonthSessions`, and only the hosting team opens the room. If a new team needs behaviour none of these settings express, that is new engineering: follow the Hub App Integration Gate in `CLAUDE.md`.
+**Retiring or archiving a team:** move the programs it hosts to another hosting team first (the save refuses otherwise). Archiving it, or removing its Scheduler, then asks before clearing its upcoming sessions and rotations, and tells the people on them.
+
+**An outside meeting link** sends everyone, the team's people included, straight to that room; there's no Claim Host there.
+
+What the code guarantees for any team: every create passes `teamCannotStaff` (reassign, claim-by-id and cover act on existing rows and check the team where it matters), every gate is `canManageHubCoverage` with the resource's own team, rows come from `buildHubMonthSessions`, a session is matched by its Central day, and only the hosting team opens the room. If a new team needs behaviour none of these settings express, that is new engineering: follow the Hub App Integration Gate in `CLAUDE.md`.
 
 ---
 
