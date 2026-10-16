@@ -30305,6 +30305,12 @@ html { scroll-padding-top: 88px; }
   box-shadow: inset 0 0 0 1px var(--rim-blue); font-family: var(--font-sans); font-size: var(--text-app-meta); font-weight: 600; line-height: 1.5; text-decoration: none; cursor: pointer; opacity: 1;
 }
 .tools-shell :is(.hs-row__join, .hs-row__assign-link, .th-table .th-link--edit):hover { background: var(--rim-surface); color: var(--rim-dark); text-decoration: none; opacity: 1; }
+/* Tap area 44px, look unchanged (Jesse, 2026-10-16: balance accessibility
+   with how it looks). These two pills are 40px to the eye; an invisible 2px
+   above and below brings the tap target to the 44px standard. Measured at
+   375px and 1024px: every other tool button already taps at 44px or more. */
+.tools-shell :is(.hs-row__join, .th-table .th-link--edit) { position: relative; }
+.tools-shell :is(.hs-row__join, .th-table .th-link--edit)::after { content: ""; position: absolute; inset: -2px 0; }
 /* The tools nav. */
 .tools-shell .tools-nav { background: var(--rim-surface); border-bottom: 1px solid var(--rim-rule); }
 .tools-shell .tools-nav__name { color: var(--rim-heading); font-weight: 400; }
