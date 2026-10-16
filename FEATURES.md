@@ -75,6 +75,15 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 - **Page titles** on public pages use the home page's hyphen; the approved `RIM_MISSION` and the final `RIM_WHAT_BINDS` are live.
 - **All of this copy is provisional until Jesse's read-aloud.**
 
+## October 16, 2026 (later): every role accounted for
+
+- **A team hears when a session needs someone.** When a session in the next two weeks loses its last person on a team (a greeter cancels, a coordinator takes someone off, a pause, leaving a team, archive, a person released from a rotation), the team members who can take sessions get one email with a button. Every Monday each team gets the next two weeks' open sessions; two days before, the coordinators hear about anything still open. Before this, only a cover request reached the team.
+- **A reminder two days before**, to each person serving, with their role and everyone serving the session ("Host: …", "AV: none yet", "Greeters: …").
+- **Confirmations name the role, the team and the time:** "You're greeting: Dummy Test Program · Fri, Oct 16 at 9:30 AM", "You're confirmed as greeter … with the Greeter team." The same for removals and "your session is covered".
+- **Team Home's line is a true count** ("3 sessions in the next two weeks need a greeter"), and Updates shows a session that needs someone.
+- **The Scheduler says who'll be told:** cancelling as the last one signed up asks first; the answers say whether the team was told. The "Take this session?" dialog no longer claims the team is notified.
+- New: `lib/coverageNotices.ts`, the daily `coverage-notices` cron, the `coverage_notices` table, four templates (`coverage-gap-opened`, `coverage-lookahead`, `coverage-still-needed`, `coverage-session-reminder`), wording provisional until Jesse's read-aloud. See `RIM_Scheduler.md`, "Coverage notices".
+
 ## October 15-16, 2026: the Scheduler, sound for every team; sessions keep their Central time
 
 - **Only the hosting team hosts.** A greeter or AV sign-up never opens the room, never gets "Enter room", and isn't staff at the Zoom door; My Home counts hosting from the program's hosting team only.
@@ -455,7 +464,7 @@ Transactional email via **Resend**. Most sends go through the database-backed te
 
 ## Platform infrastructure
 
-- **Crons (8, in `vercel.json`):** `send-reminders` (0 14 * * *), `cleanup-incomplete-accounts` (0 5), `apply-standing-assignments` (0 8), `cleanup-rate-limits` (15 10), `cleanup-pending-registrations` (30 5), `process-file-transfers` (0 9 — Blob→Drive upload backstop, s164), `sweep-orphan-file-data` (45 9 — clears RIM per-file rows for files permanently deleted directly in Drive, s166), `archive-concluded-programs` (15 9 — archives one-time programs whose CT day has passed, honoring `hideWhenPast`, s172). All validate `CRON_SECRET`.
+- **Crons (9, in `vercel.json`):** `coverage-notices` (0 13 — reminders, the coordinator note and the Monday look-ahead, 2026-10-16), `send-reminders` (0 14 * * *), `cleanup-incomplete-accounts` (0 5), `apply-standing-assignments` (0 8), `cleanup-rate-limits` (15 10), `cleanup-pending-registrations` (30 5), `process-file-transfers` (0 9 — Blob→Drive upload backstop, s164), `sweep-orphan-file-data` (45 9 — clears RIM per-file rows for files permanently deleted directly in Drive, s166), `archive-concluded-programs` (15 9 — archives one-time programs whose CT day has passed, honoring `hideWhenPast`, s172). All validate `CRON_SECRET`.
 - **Data model** — `prisma/schema.prisma` (54 models/enums) is canonical. Migrations + idempotent seeds run through `prisma/migrate.mjs` (flag-guarded via `MigrationFlag`).
 - **File uploads** — Vercel Blob via `/api/upload` (images in editors, PDFs in hub documents).
 - **CSS** — all custom styles in `public/css/custom.css`, per-page prefixes + design tokens. Rules + the two hygiene scripts (`css-prune.mjs`, `css-cut.mjs`) are in `CLAUDE.md`. Never edit `normalize.css` / `webflow.css` / `rim.webflow.css`.

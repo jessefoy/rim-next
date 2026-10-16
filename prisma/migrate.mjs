@@ -6770,6 +6770,210 @@ Rooted In Mindfulness`,
     console.error("  sub-request-posted wording failed (template unchanged):", err?.message ?? err);
   }
 
+  // Coverage notices (2026-10-16): additive and idempotent, no backfill. Old
+  // code ignores the table. See CoverageNotice in schema.prisma.
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "coverage_notices" (
+      "id" TEXT NOT NULL PRIMARY KEY, "kind" TEXT NOT NULL, "hubSlug" TEXT NOT NULL,
+      "programSlug" TEXT, "sessionDay" TEXT, "sessionDate" TIMESTAMP(3), "assignmentId" TEXT,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "coverage_notices_hubSlug_kind_createdAt_idx" ON "coverage_notices"("hubSlug", "kind", "createdAt")`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "coverage_notices_kind_hubSlug_programSlug_sessionDay_idx" ON "coverage_notices"("kind", "hubSlug", "programSlug", "sessionDay")`),
+  ]);
+  console.log("  ✔ Coverage notices table ready.");
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: the four coverage-notice templates (2026-10-16, Jesse's rulings:
+  // tell the team when a session within two weeks loses its last person; a
+  // Monday look-ahead; the coordinator's two-days-before note; the person's
+  // two-days-before reminder). lib/coverageNotices.ts sends them.
+  // findUnique → create: never overwrites an edited template. Wording is
+  // provisional until Jesse's read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const flag = "seed_coverage_notice_templates_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const roleVars = "{{coverageRole}} (greeter, host, AV), {{coverageVerb}} (greeting, hosting), {{coverageAction}} (greet, host this), {{needsRole}} (a greeter, AV), {{teamName}} (Greeter team, Hosting Team)";
+      const templates = [
+        {
+          slug: "coverage-gap-opened",
+          name: "Coverage: a session needs someone",
+          description: "Sent to a team's members who can take sessions when a session in the next two weeks loses its last person (someone cancelled, was taken off, or was paused).",
+          subject: "{{headline}}",
+          variables: ["firstName", "headline", "opening", "sessionList", "coverageRole", "coverageVerb", "coverageAction", "needsRole", "teamName", "scheduleUrl", "scheduleButton"],
+          helpText:
+            "Sent when a session in the next two weeks is left with no one from this team. Not sent to the person who cancelled or was taken off.\n\n" +
+            "Available variables: {{firstName}}, {{headline}} (the subject, written by the app: \"Needs a greeter: Program · Sun, Oct 18 at 9:30 AM\"), {{opening}} (\"This session coming up has no greeter now:\"), {{sessionList}}, " + roleVars + ", {{scheduleUrl}}, {{scheduleButton}} (use triple braces {{{scheduleButton}}}).",
+          body: `Hi {{firstName}},
+
+{{opening}}
+
+{{sessionList}}
+
+If you can take it, you'll find it on the schedule.
+
+{{{scheduleButton}}}
+
+Thank you for helping our community gather.
+
+With care,
+Rooted In Mindfulness`,
+        },
+        {
+          slug: "coverage-lookahead",
+          name: "Coverage: the next two weeks",
+          description: "Sent each Monday to a team's members who can take sessions, listing the next two weeks' sessions that still need someone. Not sent when every session is covered.",
+          subject: "{{headline}}",
+          variables: ["firstName", "headline", "sessionList", "coverageRole", "coverageVerb", "coverageAction", "needsRole", "teamName", "scheduleUrl", "scheduleButton"],
+          helpText:
+            "Sent on Monday mornings when any of the team's sessions in the next two weeks still need someone. A session where someone asked for cover shows their name.\n\n" +
+            "Available variables: {{firstName}}, {{headline}} (the subject: \"3 sessions in the next two weeks need a greeter\"), {{sessionList}}, " + roleVars + ", {{scheduleUrl}}, {{scheduleButton}} (use triple braces {{{scheduleButton}}}).",
+          body: `Hi {{firstName}},
+
+These sessions in the next two weeks still need {{needsRole}}:
+
+{{sessionList}}
+
+If you can take one, you'll find them on the schedule.
+
+{{{scheduleButton}}}
+
+With care,
+Rooted In Mindfulness`,
+        },
+        {
+          slug: "coverage-still-needed",
+          name: "Coverage: still open in two days (coordinators)",
+          description: "Sent to a team's coordinators two days before a session that still has no one, or whose cover request no one has taken.",
+          subject: "{{headline}}",
+          variables: ["firstName", "headline", "sessionList", "coverageRole", "coverageVerb", "coverageAction", "needsRole", "teamName", "scheduleUrl", "scheduleButton"],
+          helpText:
+            "Sent each morning to the team's coordinators about sessions two days away that are still open.\n\n" +
+            "Available variables: {{firstName}}, {{headline}} (the subject: \"Still needs a greeter: Program · Sun, Oct 18 at 9:30 AM\"), {{sessionList}}, " + roleVars + ", {{scheduleUrl}}, {{scheduleButton}} (use triple braces {{{scheduleButton}}}).",
+          body: `Hi {{firstName}},
+
+As a coordinator of the {{teamName}}, here is what is still open in two days:
+
+{{sessionList}}
+
+You can assign someone from the schedule, or ask the team.
+
+{{{scheduleButton}}}
+
+With care,
+Rooted In Mindfulness`,
+        },
+        {
+          slug: "coverage-session-reminder",
+          name: "Coverage: your session in two days",
+          description: "Sent two days before a session to each person serving it, with their role and everyone else serving the session.",
+          subject: "Reminder: you're {{coverageVerb}} · {{programName}} · {{dateText}}",
+          variables: ["firstName", "programName", "dateText", "teamPicture", "coverNote", "roomNote", "changeNote", "coverageRole", "coverageVerb", "coverageAction", "needsRole", "teamName", "scheduleUrl", "scheduleButton"],
+          helpText:
+            "Sent two days before each session to the people on it.\n\n" +
+            "Available variables: {{firstName}}, {{programName}}, {{dateText}} (\"Sun, Oct 18 at 9:30 AM\"), {{teamPicture}} (everyone serving, one role per line), {{coverNote}} (only when they asked for cover and no one took it), {{roomNote}} (only for the hosting team online: when the room opens), {{changeNote}}, " + roleVars + ", {{scheduleUrl}}, {{scheduleButton}} (use triple braces {{{scheduleButton}}}).",
+          body: `Hi {{firstName}},
+
+A reminder that you're {{coverageVerb}} at **{{programName}}** on {{dateText}}, with the {{teamName}}.
+
+{{#if coverNote}}
+{{coverNote}}
+{{/if}}
+
+Serving this session:
+
+{{teamPicture}}
+
+{{#if roomNote}}
+{{roomNote}}
+{{/if}}
+
+{{changeNote}}
+
+{{{scheduleButton}}}
+
+Thank you for serving.
+
+With care,
+Rooted In Mindfulness`,
+        },
+      ];
+      for (const t of templates) {
+        const existing = await db.emailTemplate.findUnique({ where: { slug: t.slug } });
+        if (existing) {
+          console.log(`  Email template ${t.slug} already exists, left alone.`);
+          continue;
+        }
+        await db.emailTemplate.create({ data: { ...t, enabled: true, group: "04-hosts", groupLabel: "Host Team" } });
+        console.log(`  ✔ Email template ${t.slug} created.`);
+      }
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  } catch (err) {
+    console.error("  coverage notice templates seed failed:", err?.message ?? err);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Coverage emails name the role and the team (Jesse, 2026-10-16, on "You're
+  // confirmed for Dummy Test Program on Fri, Oct 16": "Confirmed to greet,
+  // because what if they're part of different teams?"). Three EXISTING
+  // templates; each subject and sentence is replaced only where it is still
+  // exactly as last set, so anything edited in /admin/emails is left alone and
+  // logged. The code now passes {{coverageRole}}, {{coverageVerb}},
+  // {{teamName}}, and dates with the time ("Fri, Oct 16 at 9:30 AM").
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const flag = "coverage_emails_name_the_role_2026_10_16_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const edits = [
+        {
+          slug: "host-assignment-confirmation",
+          subjectFrom: "You're confirmed for {{programName}}{{#if dateText}} — {{dateText}}{{/if}}",
+          subjectTo: "You're {{coverageVerb}}: {{programName}}{{#if dateText}} · {{dateText}}{{/if}}",
+          lineFrom: "You're confirmed for **{{programName}}**{{#if dateText}} on {{dateText}}{{/if}}. Thank you.",
+          lineTo: "You're confirmed as {{coverageRole}} for **{{programName}}**{{#if dateText}} on {{dateText}}{{/if}}, with the {{teamName}}. Thank you.",
+        },
+        {
+          slug: "host-assignment-removed",
+          subjectFrom: "You're no longer scheduled for {{programName}}{{#if dateText}} on {{dateText}}{{/if}}",
+          subjectTo: "You're no longer {{coverageVerb}}: {{programName}}{{#if dateText}} · {{dateText}}{{/if}}",
+          lineFrom: "You're no longer scheduled for this session.",
+          lineTo: "You're no longer on the {{teamName}}'s schedule for this session.",
+        },
+        {
+          slug: "sub-request-claimed",
+          subjectFrom: "Your session is covered — {{programName}}",
+          subjectTo: "Your session is covered: {{programName}}{{sessionDate}}",
+          lineFrom: "Good news — **{{claimerName}}** has agreed to cover your session for **{{programName}}**{{sessionDate}}.",
+          lineTo: "Good news: **{{claimerName}}** will take your place as {{coverageRole}} at **{{programName}}**{{sessionDate}}.",
+        },
+      ];
+      const added = ["coverageRole", "coverageVerb", "teamName"];
+      for (const e of edits) {
+        const row = await db.emailTemplate.findUnique({ where: { slug: e.slug }, select: { subject: true, body: true, variables: true } });
+        if (!row) { console.log(`  Role words: ${e.slug} not found, skipped.`); continue; }
+        const data = {};
+        if (row.subject === e.subjectFrom) data.subject = e.subjectTo;
+        if (row.body.includes(e.lineFrom)) data.body = row.body.replace(e.lineFrom, e.lineTo);
+        // The new variables are listed either way, so an edited template can use them.
+        const variables = [...row.variables, ...added.filter((v) => !row.variables.includes(v))];
+        if (variables.length !== row.variables.length) data.variables = variables;
+        if (!data.subject) console.log(`  Role words: ${e.slug} subject was edited, left alone (add {{coverageVerb}} by hand if wanted).`);
+        if (!data.body) console.log(`  Role words: ${e.slug} sentence was edited, left alone (add {{coverageRole}} and {{teamName}} by hand if wanted).`);
+        if (Object.keys(data).length === 0) continue;
+        const res = await db.emailTemplate.updateMany({ where: { slug: e.slug, subject: row.subject, body: row.body }, data });
+        console.log(res.count
+          ? `  ✔ Role words: ${e.slug} ${["subject", "body", "variables"].filter((k) => k in data).join(", ")} updated.`
+          : `  Role words: ${e.slug} changed during the update, left alone.`);
+      }
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  } catch (err) {
+    console.error("  Role words: failed (templates unchanged):", err?.message ?? err);
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

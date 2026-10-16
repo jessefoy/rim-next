@@ -7,6 +7,7 @@ import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail, sendHostManagerRo
 import { syncHubMembership } from "@/lib/syncHubMembership";
 import { enrollMemberInRoleSeries } from "@/lib/enrollment";
 import { releasePersonCoverage } from "@/lib/applyStandingAssignments";
+import { deliverGapNotices, prepareGapNotices } from "@/lib/coverageNotices";
 
 const ALL_ROLES = Object.values(Role);
 
@@ -41,10 +42,13 @@ export async function PATCH(
     // sessions released (an open sign-up removed, a seat emptied) and their
     // rotations ended, so the daily run stops scheduling them (2026-10-16
     // audit). They aren't emailed; the team sees the open seats.
-    await db.$transaction(async (tx) => {
+    const released = await db.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { archivedAt: new Date() } });
-      await releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true });
+      return releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true });
     });
+    // Each team hears about a session within two weeks now left with no one.
+    const gaps = await prepareGapNotices(released.rows, [session?.user?.id, id]);
+    if (gaps.length) after(() => deliverGapNotices(gaps));
     // Force logout by deleting all active sessions
     await db.session.deleteMany({ where: { userId: id } });
     return NextResponse.json({ ok: true });
@@ -165,6 +169,7 @@ export async function PATCH(
 
   // An email change keeps the old address as a former one, so sign-in still
   // recognizes it and points to the new one (lib/formerEmail.ts).
+  let inactiveReleased: { userId: string; hubSlug: string; programSlug: string; sessionDate: Date | null }[] = [];
   const updated = await db.$transaction(async (tx) => {
     const row = await tx.user.update({
       where: { id },
@@ -183,7 +188,7 @@ export async function PATCH(
     // Marked Inactive archives the account: release its schedule as the
     // Archive action does (2026-10-16 audit).
     if (statusDrivenArchivedAt instanceof Date && !user.archivedAt) {
-      await releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true });
+      inactiveReleased = (await releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true })).rows;
     }
     if (emailIsChanging) {
       // Codes already sent to the old address stop working with it.
@@ -198,6 +203,10 @@ export async function PATCH(
     }
     return row;
   });
+  if (inactiveReleased.length) {
+    const gaps = await prepareGapNotices(inactiveReleased, [session?.user?.id, id]);
+    if (gaps.length) after(() => deliverGapNotices(gaps));
+  }
 
   // Kill sessions when email changes or member is set to Inactive
   if (emailIsChanging || memberStatus === "INACTIVE") {
@@ -322,8 +331,9 @@ export async function DELETE(
   // them (that column can't be empty, so the delete used to fail); their
   // past open sign-up rows go, since a nameless sign-up means nothing.
   const adminId = session!.user.id;
+  let releasedRows: { userId: string; hubSlug: string; programSlug: string; sessionDate: Date | null }[] = [];
   await db.$transaction(async (tx) => {
-    await releasePersonCoverage(tx, id, adminId, { endRotations: true });
+    releasedRows = (await releasePersonCoverage(tx, id, adminId, { endRotations: true })).rows;
     await tx.standingAssignment.updateMany({ where: { createdById: id }, data: { createdById: adminId } });
     const pastSignUps = (await tx.hostAssignment.findMany({
       where: { userId: id, hubSlug: { in: (await tx.hub.findMany({ where: { allowsMultipleAssignments: true }, select: { slug: true } })).map((h) => h.slug) } },
@@ -336,6 +346,8 @@ export async function DELETE(
     }
     await tx.user.delete({ where: { id } });
   });
+  const gaps = await prepareGapNotices(releasedRows, [adminId, id]);
+  if (gaps.length) after(() => deliverGapNotices(gaps));
 
   return NextResponse.json({ ok: true });
 }

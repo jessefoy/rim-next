@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { ctMonthKey, ctStartOfToday } from "@/lib/timezone";
+import { countSessionsNeedingSomeone, LOOKAHEAD_DAYS, sessionHasSomeone } from "@/lib/coverageNotices";
+import { getHubCoverageCopy } from "@/lib/programHub";
 import {
   getToolBySlug,
   TOOL_REGISTRY,
@@ -99,16 +101,30 @@ function createdAtWindow(query: HubAppUpdateQuery) {
   return gt || lt ? { ...(gt ? { gt } : {}), ...(lt ? { lt } : {}) } : undefined;
 }
 
-// The line in the highlighted tool card on team Home. No count: open
-// sessions often have no HostAssignment row yet (the Scheduler builds them
-// from each program's recurrence), so counting rows would tell a team it is
-// covered when it isn't. A true "needs help" count must reuse the Scheduler's
-// own session builder (backlog 2026-10-13-005).
-async function scheduleHome(_hubSlug: string): Promise<HomeContribution> {
+/** The role after "need": "a greeter", "a host", but "AV". */
+function needsRoleOf(noun: string): string {
+  if (/^[A-Z0-9/&]+$/.test(noun)) return noun;
+  const role = noun.toLowerCase();
+  return `${/^[aeiou]/.test(role) ? "an" : "a"} ${role}`;
+}
+
+// The line in the highlighted tool card on team Home: how many of the team's
+// sessions in the next two weeks need someone, counted from the Scheduler's
+// own row builder (2026-10-16, closing backlog 2026-10-13-005: open sessions
+// often have no HostAssignment row, so counting rows would have told a team
+// it was covered when it wasn't). A session with an open cover request counts.
+async function scheduleHome(hubSlug: string): Promise<HomeContribution> {
+  const [{ open: count, total }, copy] = await Promise.all([countSessionsNeedingSomeone(hubSlug), getHubCoverageCopy(hubSlug)]);
+  const needs = needsRoleOf(copy.noun);
+  const weeks = LOOKAHEAD_DAYS === 14 ? "the next two weeks" : `the next ${LOOKAHEAD_DAYS} days`;
   return {
-    count: null,
-    countLabel: null,
-    quietText: "See the sessions ahead, who\u2019s covering them, and where help is needed.",
+    count: count || null,
+    countLabel: count
+      ? plural(count, `session in ${weeks} needs ${needs}`, `sessions in ${weeks} need ${needs}`)
+      : null,
+    // With nothing on the schedule, "every session is covered" would be
+    // true of nothing (reviewer, 2026-10-16).
+    quietText: total ? `Every session in ${weeks} has ${needs}.` : `No sessions on the schedule in ${weeks}.`,
   };
 }
 
@@ -201,7 +217,53 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
   const monthHref = (d: Date | null) =>
     `/tools/schedule?hub=${encodeURIComponent(query.hubSlug)}${d ? `&month=${ctMonthKey(d)}` : ""}`;
 
+  // A session losing its last person (coverage_notices, 2026-10-16): the
+  // assignment it came from is gone, so the notice is the record. Names no
+  // one: who cancelled, or why, isn't the team's news; that it needs someone is.
+  const gaps = query.filter === "for-me" && !canRespond
+    ? []
+    : await db.coverageNotice.findMany({
+        where: {
+          kind: "gap-opened",
+          hubSlug: query.hubSlug,
+          ...(query.filter === "for-me" ? { sessionDate: { gte: today } } : {}),
+          ...(createdAt ? { createdAt } : {}),
+        },
+        select: { id: true, programSlug: true, sessionDate: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: query.limit,
+      });
+  // "For me" is what still needs someone: a gap someone has since filled
+  // leaves it (the cover requests beside it are OPEN only). All and Recent
+  // keep it as history.
+  if (query.filter === "for-me") {
+    const stillOpen = await Promise.all(
+      gaps.map((g) => g.programSlug && g.sessionDate ? sessionHasSomeone(query.hubSlug, g.programSlug, g.sessionDate).then((x) => !x) : Promise.resolve(false)),
+    );
+    gaps.splice(0, gaps.length, ...gaps.filter((_, i) => stillOpen[i]));
+  }
+  const gapCopy = gaps.length ? await getHubCoverageCopy(query.hubSlug) : null;
+  const gapPrograms = gaps.length
+    ? new Map((await db.program.findMany({
+        where: { slug: { in: [...new Set(gaps.map((g) => g.programSlug).filter((x): x is string => !!x))] } },
+        select: { slug: true, name: true },
+      })).map((p) => [p.slug, p.name]))
+    : new Map<string, string>();
+
   return [
+    ...gaps.map((gap) => ({
+      id: `schedule-gap-${gap.id}`,
+      sourceKey: "app:schedule" as const,
+      sourceLabel: "Scheduler",
+      kind: "coverage-gap",
+      authorId: null,
+      authorName: `${gapPrograms.get(gap.programSlug ?? "") ?? gap.programSlug ?? "A session"} · ${sessionLabel(gap.sessionDate)}`,
+      verb: `needs ${needsRoleOf(gapCopy?.noun ?? "Host")}`,
+      subject: null,
+      href: monthHref(gap.sessionDate),
+      ts: gap.createdAt.toISOString(),
+      isForUser: query.filter === "for-me",
+    })),
     ...requests.map((request) => ({
       id: `schedule-sub-${request.id}`,
       sourceKey: "app:schedule" as const,

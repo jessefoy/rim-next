@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { NextResponse, after } from "next/server";
 import { canAccessHub, canManageHubCoverage, effectiveCoordinator, getHubMembership, requireCoordinator } from "@/lib/hubAuth";
 import { releasePersonCoverage } from "@/lib/applyStandingAssignments";
+import { deliverGapNotices, prepareGapNotices } from "@/lib/coverageNotices";
 import { sendCoverageClearedEmails } from "@/lib/email";
 import { removeHubMembershipWithCleanup } from "@/lib/removeHubMembership";
 
@@ -185,6 +186,9 @@ export async function PATCH(
         excludeUserId: session.user.id,
       }),
     );
+    // The team hears about any session within two weeks now left with no one.
+    const gaps = await prepareGapNotices(released.rows, [session.user.id, userId]);
+    if (gaps.length) after(() => deliverGapNotices(gaps));
   }
 
   return NextResponse.json({
@@ -263,6 +267,8 @@ export async function DELETE(
         excludeUserId: session.user.id,
       }),
     );
+    const gaps = await prepareGapNotices(removedRows, [session.user.id, userId]);
+    if (gaps.length) after(() => deliverGapNotices(gaps));
   }
   console.log(
     `[hub-member-remove] ${slug}: removed member ${userId} + ${removedAssignments} future assignment(s) + ${removedRules} rotation rule(s).`,

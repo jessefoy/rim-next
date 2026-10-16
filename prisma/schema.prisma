@@ -972,6 +972,28 @@ model StandingSkip {
   @@map("standing_assignment_skips")
 }
 
+/// A coverage notice the Scheduler sent (2026-10-16): a session losing its
+/// last person ("gap-opened"), the weekly look-ahead ("lookahead"), the
+/// coordinator's two-days-before note ("still-needed"), and the person's
+/// reminder ("reminder"). Kept so nothing is sent twice, and so Updates can
+/// show a gap opening (the assignment it came from is gone). Names no person:
+/// a reminder points at its assignment. lib/coverageNotices.ts.
+model CoverageNotice {
+  id           String    @id @default(cuid())
+  kind         String
+  hubSlug      String
+  programSlug  String?
+  /// The session's Central day, "YYYY-MM-DD" (the look-ahead's: the day it ran).
+  sessionDay   String?
+  sessionDate  DateTime?
+  assignmentId String?
+  createdAt    DateTime  @default(now())
+
+  @@index([hubSlug, kind, createdAt])
+  @@index([kind, hubSlug, programSlug, sessionDay])
+  @@map("coverage_notices")
+}
+
 // HostThread and HostReply models removed in session 76 (hub conformance).
 // Features (reactions, reply editing, categories) ported to shared HubConversationThread/Reply.
 // Tables host_threads and host_replies retained in DB for historical reference.

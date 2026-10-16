@@ -234,6 +234,10 @@ An email that can reach a scheduler-hub member must speak that hub's coverage ro
 
 **Wording built from the role:** `roleInline(copy)` gives the noun as it reads mid-sentence ("as greeter", "as AV"); a sentence built from the -ing verb ("to be covering AV the following sessions") is wrong. `sub-request-posted` reads "Cover needed" and "… is asking someone to {{coverageAction}}: …" (flag `sub_request_posted_team_words_2026_10_16_v1`, Jesse's consent, only where unedited).
 
+**Name the role and the team, and give the time (2026-10-16, Jesse: "Confirmed to greet, because what if they're part of different teams?").** A per-session coverage email spreads `...(await coverageWords(hubSlug))` into its variables (`coverageRole` "greeter" / "AV", `coverageVerb`, `coverageAction`, `needsRole` "a greeter" / "AV", `teamName` in the "the …" form) and formats its date with `fmtSessionWhen` ("Fri, Oct 16 at 9:30 AM"). Someone on two teams must be able to tell from the subject alone which role a message is about.
+
+**Telling a team a session needs someone (2026-10-16):** four templates in `lib/coverageNotices.ts`'s care: `coverage-gap-opened` (a session within two weeks lost its last person; to the team, at once), `coverage-lookahead` (Mondays), `coverage-still-needed` (coordinators, two days before), `coverage-session-reminder` (the person serving, two days before; pre-threshold gated by slug). Subjects are `{{headline}}`, written by the code so one and many read right. Rules and timing: `RIM_Scheduler.md`, "Coverage notices".
+
 ## Places and links in program emails (2026-10-14)
 
 - **`lib/locations.ts::emailLocationFor(program)`** is the place for every program email (registration confirmation, resend, reminders, the reminder cron): `resolveLocation`, except an **online-only program shows no place** (its venue fields can keep an old address; the editor hides them, it doesn't clear them). The thank-you page already did this.

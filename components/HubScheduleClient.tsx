@@ -18,7 +18,7 @@ import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { HubCoverageCopy } from "@/lib/programHub";
-import { EARLY_OPEN_MIN, LATE_GRACE_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
+import { COVERAGE_LOOKAHEAD_DAYS, EARLY_OPEN_MIN, LATE_GRACE_MIN, FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import type { ScheduleProgramSummary, ScheduleSessionRow } from "@/lib/scheduleSessions";
 
 const RimTiptapEditor = dynamic(
@@ -220,7 +220,22 @@ function bucketByWeek(sessions: Session[], isCurrentMonth: boolean): Bucket[] {
 
 // ── Modal ───────────────────────────────────────────────────
 
-type ModalKind = "take" | "cover" | "ask-cover" | "ask-cover-for" | "cancel-request" | "clear-request" | "reassign" | "unassign" | "remove-signup" | null;
+type ModalKind = "take" | "cover" | "ask-cover" | "ask-cover-for" | "cancel-request" | "clear-request" | "reassign" | "unassign" | "remove-signup" | "cancel-signup" | null;
+
+/** The role after "needs": "a greeter", "a host", but "AV". */
+function needsRoleOf(copy: HubCoverageCopy): string {
+  if (/^[A-Z0-9/&]+$/.test(copy.noun)) return copy.noun;
+  const role = copy.noun.toLowerCase();
+  return `${/^[aeiou]/.test(role) ? "an" : "a"} ${role}`;
+}
+
+/** Whether the team is told at once when this session empties (2026-10-16
+ *  ruling: within two weeks; further out, the Monday look-ahead says it). */
+function withinNoticeWindow(s: { sessionDate: string | null }): boolean {
+  if (!s.sessionDate) return false;
+  const t = new Date(s.sessionDate).getTime();
+  return t > Date.now() && t <= Date.now() + COVERAGE_LOOKAHEAD_DAYS * 86_400_000;
+}
 
 interface ModalProps {
   kind: ModalKind;
@@ -300,8 +315,8 @@ function HsModal({ kind, session, signup, onConfirm, onCancel, submitting, error
     title = "Take this session?";
     body = (
       <><strong>{session.programName}</strong> on <strong>{dateStr}</strong>{" "}
-      at <strong>{timeStr}</strong> will be yours. The team will be
-      notified.</>
+      at <strong>{timeStr}</strong> will be yours. We&apos;ll email you a
+      confirmation.</>
     );
     primaryLabel = `Yes, I'll ${coverageCopy.action}`;
   } else if (kind === "cover") {
@@ -391,7 +406,8 @@ function HsModal({ kind, session, signup, onConfirm, onCancel, submitting, error
       <>This takes <strong>{session.hostName ?? "the person on it now"}</strong> off{" "}
       <strong>{session.programName}</strong> on <strong>{dateStr}</strong>. The
       session reopens as needing coverage, and they&apos;ll be notified. Any open
-      cover request will be closed.</>
+      cover request will be closed.
+      {withinNoticeWindow(session) ? <> The team will hear that it needs {needsRoleOf(coverageCopy)}.</> : null}</>
     );
     primaryLabel = "Yes, remove";
     cancelLabel = "Keep them on";
@@ -402,10 +418,26 @@ function HsModal({ kind, session, signup, onConfirm, onCancel, submitting, error
     body = (
       <>This takes <strong>{signup?.userName ?? "this person"}</strong> off{" "}
       <strong>{session.programName}</strong> on <strong>{dateStr}</strong>.
-      They&apos;ll be notified.</>
+      They&apos;ll be notified.
+      {withinNoticeWindow(session) && session.claimants.filter((c) => c.userId).length <= 1
+        ? <> No one else is signed up, so the team will hear that it needs {needsRoleOf(coverageCopy)}.</>
+        : null}</>
     );
     primaryLabel = "Yes, remove";
     cancelLabel = "Keep them on";
+  } else if (kind === "cancel-signup") {
+    // Only when they're the last one signed up (2026-10-16: a greeter's
+    // cancel left a session with no one, and nobody heard).
+    title = "Cancel your sign-up?";
+    body = (
+      <>You&apos;re the only {coverageCopy.noun === coverageCopy.noun.toUpperCase() ? coverageCopy.noun : coverageCopy.noun.toLowerCase()} for{" "}
+      <strong>{session.programName}</strong> on <strong>{dateStr}</strong>.{" "}
+      {withinNoticeWindow(session)
+        ? <>If you cancel, it will show on the schedule as needing {needsRoleOf(coverageCopy)}, and the team will hear.</>
+        : <>If you cancel, it will show on the schedule as needing {needsRoleOf(coverageCopy)}.</>}</>
+    );
+    primaryLabel = "Yes, cancel my sign-up";
+    cancelLabel = "Keep my sign-up";
   }
 
   return (
@@ -1103,10 +1135,12 @@ export default function HubScheduleClient({
       const d = await res.json().catch(() => ({}));
       throw new Error(d.error ?? "Couldn't take them off. Please try again.");
     }
+    const d = await res.json().catch(() => ({}));
     setSessions(prev => prev.map(row => row.id === s.id
       ? { ...row, status: "unclaimed", hostUserId: null, hostName: null, subRequestId: null, subMessage: null }
       : row
     ));
+    return d?.teamTold === true;
   }
 
   // ── Coordinator: assign a chosen teammate to a gap, in place ──
@@ -1162,20 +1196,34 @@ export default function HubScheduleClient({
       setToast(d.error ?? "Couldn't sign up. Try again.", "error");
       return;
     }
-    setToast("Signed up. Thank you!");
+    setToast(`You're ${coverageCopy.verb} at ${s.programName}. Thank you! We'll email you a confirmation.`);
     await loadMonth(year, month);
   }
 
-  async function cancelSignUp(_s: Session, assignmentId: string) {
+  // Cancelling your own sign-up. When you're the last one on the session it
+  // asks first and says who will be told (2026-10-16); otherwise it's one tap.
+  async function cancelSignUp(s: Session, assignmentId: string) {
+    const others = s.claimants.filter((c) => c.userId && c.userId !== currentUserId).length;
+    if (others === 0) {
+      setModal({ kind: "cancel-signup", session: s, signup: { assignmentId, userName: null } });
+      return;
+    }
+    try {
+      await deleteMySignUp(s, assignmentId);
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : "Couldn't cancel. Try again.", "error");
+    }
+  }
+
+  async function deleteMySignUp(s: Session, assignmentId: string) {
     const res = await fetch(`${apiBase}/assignments/${assignmentId}`, {
       method: "DELETE",
     });
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      setToast(d.error ?? "Couldn't cancel. Try again.", "error");
-      return;
-    }
-    setToast("Signup cancelled.");
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error ?? "Couldn't cancel. Try again.");
+    setToast(d?.teamTold
+      ? `Sign-up cancelled. We've let the team know ${s.programName} needs ${needsRoleOf(coverageCopy)}.`
+      : "Sign-up cancelled.");
     await loadMonth(year, month);
   }
 
@@ -1188,12 +1236,13 @@ export default function HubScheduleClient({
     const res = await fetch(`${apiBase}/assignments/${assignmentId}`, {
       method: "DELETE",
     });
+    const d = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
       // Said inside the dialog, beside its button.
       throw new Error(d.error ?? "Couldn't remove the sign-up. Please try again.");
     }
-    setToast(userName ? `Removed ${userName}'s sign-up.` : "Sign-up removed.");
+    const removed = userName ? `Removed ${userName}'s sign-up.` : "Sign-up removed.";
+    setToast(d?.teamTold ? `${removed} We've let the team know the session needs ${needsRoleOf(coverageCopy)}.` : removed);
     await loadMonth(year, month);
   }
 
@@ -1223,7 +1272,7 @@ export default function HubScheduleClient({
     try {
       if (modal.kind === "take") {
         await takeSession(modal.session);
-        showToast(`You're ${coverageCopy.verb}. The team has been notified.`);
+        showToast(`You're ${coverageCopy.verb} at ${modal.session.programName}. We'll email you a confirmation.`);
       } else if (modal.kind === "cover") {
         await coverSession(modal.session);
         showToast("You're covering this session. They've been notified.");
@@ -1246,10 +1295,15 @@ export default function HubScheduleClient({
         showToast("Reassigned to you.");
       } else if (modal.kind === "remove-signup" && modal.signup) {
         await removeSignup(modal.session, modal.signup.assignmentId, modal.signup.userName);
+      } else if (modal.kind === "cancel-signup" && modal.signup) {
+        await deleteMySignUp(modal.session, modal.signup.assignmentId);
       } else if (modal.kind === "unassign") {
         const removedName = modal.session.hostName;
-        await unassign(modal.session);
-        showToast(removedName ? `Removed ${removedName}. The session needs coverage.` : "Removed. The session needs coverage.");
+        const told = await unassign(modal.session);
+        const removed = removedName ? `Removed ${removedName}.` : "Removed.";
+        showToast(told
+          ? `${removed} We've let the team know the session needs ${needsRoleOf(coverageCopy)}.`
+          : `${removed} The session needs ${needsRoleOf(coverageCopy)}.`);
       }
       setModal({ kind: null, session: null });
       clearDeepLinkParams();

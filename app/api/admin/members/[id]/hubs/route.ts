@@ -3,6 +3,7 @@ import { sendCoverageClearedEmails } from "@/lib/email";
 import { db } from "@/lib/db";
 import { NextResponse, after } from "next/server";
 import { removeHubMembershipWithCleanup } from "@/lib/removeHubMembership";
+import { deliverGapNotices, prepareGapNotices } from "@/lib/coverageNotices";
 import { roleDerivedHubs } from "@/lib/syncHubMembership";
 
 /**
@@ -175,6 +176,9 @@ export async function DELETE(
         excludeUserId: session?.user?.id,
       }),
     );
+    // The team hears about any session within two weeks now left with no one.
+    const gaps = await prepareGapNotices(removedRows, [session?.user?.id, id]);
+    if (gaps.length) after(() => deliverGapNotices(gaps));
   }
   console.log(
     `[admin-member-hubs] removed ${id} from ${hubSlug} + ${removedAssignments} future assignment(s) + ${removedRules} rotation rule(s).`,

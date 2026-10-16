@@ -7,6 +7,7 @@ import { canManageHubCoverage } from "@/lib/hubAuth";
 import { authorizeSelfClaim } from "@/lib/hubMemberAuth";
 import { fmtSessionDay } from "@/lib/timezone";
 import { holdRotationDate } from "@/lib/applyStandingAssignments";
+import { deliverGapNotices, gapNoticeReachesTeam, prepareGapNotices } from "@/lib/coverageNotices";
 
 // Central Time, not the server's UTC (2026-10-15).
 const fmtDate = (d: Date | null) => fmtSessionDay(d);
@@ -137,6 +138,17 @@ export async function PATCH(
     await holdRotationDate(assignment, session.user.id, tx);
   });
 
+  // The seat is empty: if the session is within two weeks, the team hears
+  // (2026-10-16 ruling), never the person who did it or the person removed.
+  // Only when someone was on it: an already-empty seat lost no one.
+  const gaps = removedUserId
+    ? await prepareGapNotices(
+        [{ hubSlug: assignment.hubSlug || DEFAULT_HOSTING_HUB_SLUG, programSlug: assignment.programSlug, sessionDate: assignment.sessionDate }],
+        [session.user.id, removedUserId],
+      )
+    : [];
+  if (gaps.length) after(() => deliverGapNotices(gaps));
+
   // Courtesy notification: when a coordinator/manager removes SOMEONE ELSE, tell
   // that host — they were emailed when assigned, so a silent removal would leave
   // a stale "you're hosting" note. Self-unclaim is silent (they did it). The
@@ -170,7 +182,7 @@ export async function PATCH(
     });
   }
 
-  return Response.json({ ok: true, status: "unclaimed" });
+  return Response.json({ ok: true, status: "unclaimed", teamTold: gapNoticeReachesTeam(gaps) });
 }
 
 // DELETE /api/host/assignments/[id]
@@ -219,6 +231,16 @@ export async function DELETE(
     await holdRotationDate(assignment, session.user.id, tx);
   });
 
+  // If that was the session's last person on this team and it's within two
+  // weeks, the team hears (2026-10-16: a greeter's cancel was silent).
+  const gaps = removedUserId
+    ? await prepareGapNotices(
+        [{ hubSlug: assignment.hubSlug || DEFAULT_HOSTING_HUB_SLUG, programSlug: assignment.programSlug, sessionDate: assignment.sessionDate }],
+        [session.user.id, removedUserId],
+      )
+    : [];
+  if (gaps.length) after(() => deliverGapNotices(gaps));
+
   // Courtesy notification, mirroring the PATCH-unclaim path above: when a
   // coordinator/manager removes SOMEONE ELSE, tell that person — they were
   // emailed when they signed up, so a silent removal leaves a stale note.
@@ -255,5 +277,5 @@ export async function DELETE(
     });
   }
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, teamTold: gapNoticeReachesTeam(gaps) });
 }

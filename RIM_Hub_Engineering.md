@@ -360,7 +360,7 @@ Every team's Home is now, in order: the team's name; **its own line** (`Hub.desc
 
 Retired, from the code and the UI: the first-visit welcome screen (and `PATCH /api/hubs/[slug]/membership/visited`), "About this team" (welcome text and the custom-links block, whose links moved into the destination list), the Scheduler's month overview ("Team schedule overview"; the registry's `module` home mode is gone), pinned conversations on Home (pinned topics lead the Conversations list), and "Team guidance". The `welcomeHeadline`, `welcomeBody`, `homeContent` and `firstVisitedAt` columns stay, unread, until Jesse decides to drop them; each team's text was given to Jesse for its leads (backlog 2026-10-13-006).
 
-The Scheduler's summary states no count: open sessions usually have no `HostAssignment` row (the Scheduler builds them from recurrence), so a row count would tell a team it is covered when it isn't. A true count must reuse the Scheduler's own session builder (backlog 2026-10-13-005).
+The Scheduler's summary is a true count since 2026-10-16: the team's sessions in the next two weeks that need someone, from the Scheduler's own row builder (`countSessionsNeedingSomeone` in `lib/coverageNotices.ts`), or "Every session in the next two weeks has a greeter." A row count would have told a team it was covered when it wasn't (open sessions usually have no `HostAssignment` row). See `RIM_Scheduler.md`, "Coverage notices".
 
 Words: "team", not "hub", wherever people read (rail type label "Team", "Team settings", page titles, admin "Teams", the two hard-coded team emails). Routes keep `/account/hub/…` and `?hub=`. Three teams renamed in production with Jesse's approval: Hosting Team, Course Team, Support.
 

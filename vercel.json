@@ -120,6 +120,10 @@
     {
       "path": "/api/cron/archive-concluded-programs",
       "schedule": "15 9 * * *"
+    },
+    {
+      "path": "/api/cron/coverage-notices",
+      "schedule": "0 13 * * *"
     }
   ]
 }

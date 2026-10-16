@@ -72,6 +72,17 @@ export function fmtSessionDay(d: Date | null | undefined): string | null {
   return d.toLocaleDateString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric" });
 }
 
+/**
+ * A session's day and time, in Central Time: "Fri, Oct 16 at 9:30 AM".
+ * For emails that confirm or remind someone of one session (2026-10-16:
+ * "You're confirmed for … on Fri, Oct 16" gave no time).
+ */
+export function fmtSessionWhen(d: Date | null | undefined): string | null {
+  if (!d) return null;
+  const time = d.toLocaleTimeString("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
+  return `${fmtSessionDay(d)} at ${time}`;
+}
+
 /** "YYYY-MM" of a moment in Central Time: the Scheduler's ?month= deep link. */
 export function ctMonthKey(d: Date): string {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: TZ, year: "numeric", month: "2-digit" }).formatToParts(d);

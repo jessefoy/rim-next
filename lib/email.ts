@@ -3,7 +3,7 @@ import { portableTextToMarkdown } from "@/lib/portableTextEmail";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { db } from "@/lib/db";
-import { ctMonthKey, fmtSessionDay } from "@/lib/timezone";
+import { ctMonthKey, fmtSessionDay, fmtSessionWhen } from "@/lib/timezone";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageConfig, getHubCoverageCopy, teamPhrase } from "@/lib/programHub";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { RIM_ADDRESS, RIM_EIN, RIM_LEGAL_NAME, emailSafeLink, markdownLinkText } from "@/lib/locations";
@@ -359,6 +359,8 @@ const PRE_THRESHOLD_GATED_SLUGS = new Set<string>([
   "sessions-cleared-schedule-change",
   // Any other coverage change that took someone off sessions (2026-10-16).
   "coverage-sessions-cleared",
+  // The two-days-before reminder to the person serving (2026-10-16).
+  "coverage-session-reminder",
 ]);
 
 export async function sendTemplatedEmail(
@@ -976,7 +978,8 @@ export interface SubRequestEmailData {
  *   {{hubUrl}}   — fallback link to the schedule page
  */
 export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<void> {
-  const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
+  const when = fmtSessionWhen(data.sessionAt) ?? data.sessionDate;
+  const sessionLabel = when ? ` on ${when}` : "";
   const coverUrl = scheduleUrlFor(data.hubSlug, data.sessionAt, `action=cover&id=${data.subRequestId}`);
   // The team's own claim phrase ("host this", "cover AV", "facilitate").
   const copy = await getHubCoverageCopy(data.hubSlug);
@@ -1015,9 +1018,11 @@ export interface SubClaimedEmailData {
  * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<void> {
-  const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
+  const when = fmtSessionWhen(data.sessionAt) ?? data.sessionDate;
+  const sessionLabel = when ? ` on ${when}` : "";
   const hubUrl = scheduleUrlFor(data.hubSlug, data.sessionAt);
   await sendTemplatedEmail("sub-request-claimed", data.to, {
+    ...(await coverageWords(data.hubSlug)),
     firstName:    data.firstName ?? "there",
     claimerName:  data.claimerName,
     programName:  data.programName,
@@ -1141,6 +1146,48 @@ function roleInline(copy: { noun: string }): string {
 }
 
 /**
+ * The role after "needs": "a greeter", "a host", "an usher", but "AV" (an
+ * abbreviation takes no article).
+ */
+function needsRole(copy: { noun: string }): string {
+  if (/^[A-Z0-9/&]+$/.test(copy.noun)) return copy.noun;
+  const role = roleInline(copy);
+  return `${/^[aeiou]/i.test(role) ? "an" : "a"} ${role}`;
+}
+
+/**
+ * The words every coverage email names the role and team with (2026-10-16,
+ * Jesse, on "You're confirmed for Dummy Test Program": "Confirmed to greet,
+ * because what if they're part of different teams?"). Spread into the
+ * template's variables:
+ *   coverageRole  "greeter" / "host" / "AV"   ("confirmed as greeter")
+ *   coverageVerb  "greeting" / "hosting"      ("You're greeting: …")
+ *   coverageAction "greet" / "host this"      ("If you can greet, …")
+ *   needsRole     "a greeter" / "AV"          ("needs a greeter")
+ *   teamName      "the …" form: "Greeter team", "Hosting Team"
+ */
+export async function coverageWords(hubSlug: string | null | undefined): Promise<{
+  coverageRole: string;
+  coverageVerb: string;
+  coverageAction: string;
+  needsRole: string;
+  teamName: string;
+}> {
+  const slug = hubSlug || DEFAULT_HOSTING_HUB_SLUG;
+  const [copy, hub] = await Promise.all([
+    getHubCoverageCopy(slug),
+    db.hub.findUnique({ where: { slug }, select: { name: true } }),
+  ]);
+  return {
+    coverageRole: roleInline(copy),
+    coverageVerb: copy.verb,
+    coverageAction: copy.action,
+    needsRole: needsRole(copy),
+    teamName: teamPhrase(hub?.name ?? "Hosting Team"),
+  };
+}
+
+/**
  * What to do if plans change, in the team's own terms (2026-10-15): an open
  * sign-up team (greeters) has no sub requests, so it never hears "request a sub".
  */
@@ -1160,10 +1207,11 @@ export async function sendHostAssignmentConfirmationEmail(
 ): Promise<void> {
   const scheduleUrl = scheduleUrlFor(data.hubSlug, data.sessionAt);
   await sendTemplatedEmail("host-assignment-confirmation", data.to, {
+    ...(await coverageWords(data.hubSlug)),
     changeNote:    await changeNoteText(data.hubSlug),
     firstName:     data.firstName ?? "there",
     programName:   data.programName,
-    dateText:      data.dateText ?? "",
+    dateText:      fmtSessionWhen(data.sessionAt) ?? data.dateText ?? "",
     requesterNote: data.requesterNote ?? "",
     scheduleUrl,
     scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
@@ -1194,9 +1242,10 @@ export async function sendHostAssignmentRemovedEmail(
 ): Promise<void> {
   const scheduleUrl = scheduleUrlFor(data.hubSlug, data.sessionAt);
   await sendTemplatedEmail("host-assignment-removed", data.to, {
+    ...(await coverageWords(data.hubSlug)),
     firstName:   data.firstName ?? "there",
     programName: data.programName,
-    dateText:    data.dateText ?? "",
+    dateText:    fmtSessionWhen(data.sessionAt) ?? data.dateText ?? "",
     byName:      data.byName,
     scheduleUrl,
     scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
@@ -1283,6 +1332,144 @@ export async function sendCoverageClearedEmails(opts: {
       console.error("[email] coverage-sessions-cleared failed", e);
     }
   }
+}
+
+// ─── Sessions that need someone (2026-10-16) ────────────────────────────────
+//
+// Jesse: "this is one of the main features to support teams and to make sure
+// roles are all accounted for." Before this, a team heard only when someone
+// asked for cover; a session emptied any other way went quiet. Who is told,
+// when (rulings, 2026-10-16): the team, at once, when a session within two
+// weeks loses its last person; the team, weekly, about the next two weeks;
+// the coordinator two days before about anything still open; the person
+// serving, two days before. Callers and timing: lib/coverageNotices.ts.
+
+/** One session in a coverage email's list. */
+export interface CoverageSessionLine {
+  programName: string;
+  sessionAt: Date | null;
+  /** A short note after the date, e.g. "Maria asked for cover". */
+  note?: string | null;
+}
+
+function coverageSessionList(sessions: CoverageSessionLine[]): string {
+  return sessions
+    .map((s) => `- **${s.programName}**, ${fmtSessionWhen(s.sessionAt) ?? "date to be confirmed"}${s.note ? ` (${s.note})` : ""}`)
+    .join("\n");
+}
+
+function firstSessionAt(sessions: CoverageSessionLine[]): Date | null {
+  return sessions.map((s) => s.sessionAt).filter((d): d is Date => !!d).sort((a, b) => a.getTime() - b.getTime())[0] ?? null;
+}
+
+/**
+ * A session within two weeks has just lost its last person. Template:
+ * "coverage-gap-opened". Recipients come from getHubNotificationRecipients
+ * (canCover), so the pre-threshold gate applies at the source.
+ */
+export async function sendCoverageGapEmail(data: {
+  to: string;
+  firstName: string | null;
+  hubSlug: string;
+  sessions: CoverageSessionLine[];
+}): Promise<void> {
+  if (data.sessions.length === 0) return;
+  const words = await coverageWords(data.hubSlug);
+  const one = data.sessions.length === 1 ? data.sessions[0] : null;
+  const scheduleUrl = scheduleUrlFor(data.hubSlug, firstSessionAt(data.sessions));
+  await sendTemplatedEmail("coverage-gap-opened", data.to, {
+    ...words,
+    firstName: data.firstName ?? "there",
+    headline: one
+      ? `Needs ${words.needsRole}: ${one.programName} · ${fmtSessionWhen(one.sessionAt) ?? "date to be confirmed"}`
+      : `${data.sessions.length} sessions need ${words.needsRole}`,
+    opening: one
+      ? `This session coming up has no ${words.coverageRole} now:`
+      : `These sessions coming up have no ${words.coverageRole} now:`,
+    sessionList: coverageSessionList(data.sessions),
+    scheduleUrl,
+    scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
+  });
+}
+
+/** The weekly look-ahead: the next two weeks' sessions still needing someone. Template: "coverage-lookahead". */
+export async function sendCoverageLookaheadEmail(data: {
+  to: string;
+  firstName: string | null;
+  hubSlug: string;
+  sessions: CoverageSessionLine[];
+}): Promise<void> {
+  if (data.sessions.length === 0) return;
+  const words = await coverageWords(data.hubSlug);
+  const n = data.sessions.length;
+  const scheduleUrl = scheduleUrlFor(data.hubSlug, firstSessionAt(data.sessions));
+  await sendTemplatedEmail("coverage-lookahead", data.to, {
+    ...words,
+    firstName: data.firstName ?? "there",
+    headline: n === 1
+      ? `1 session in the next two weeks needs ${words.needsRole}`
+      : `${n} sessions in the next two weeks need ${words.needsRole}`,
+    sessionList: coverageSessionList(data.sessions),
+    scheduleUrl,
+    scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
+  });
+}
+
+/** To a team's coordinators: sessions two days out that are still open. Template: "coverage-still-needed". */
+export async function sendCoverageStillNeededEmail(data: {
+  to: string;
+  firstName: string | null;
+  hubSlug: string;
+  sessions: CoverageSessionLine[];
+}): Promise<void> {
+  if (data.sessions.length === 0) return;
+  const words = await coverageWords(data.hubSlug);
+  const one = data.sessions.length === 1 ? data.sessions[0] : null;
+  const scheduleUrl = scheduleUrlFor(data.hubSlug, firstSessionAt(data.sessions));
+  await sendTemplatedEmail("coverage-still-needed", data.to, {
+    ...words,
+    firstName: data.firstName ?? "there",
+    headline: one
+      ? `Still needs ${words.needsRole}: ${one.programName} · ${fmtSessionWhen(one.sessionAt) ?? "date to be confirmed"}`
+      : `${data.sessions.length} sessions in two days still need ${words.needsRole}`,
+    sessionList: coverageSessionList(data.sessions),
+    scheduleUrl,
+    scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
+  });
+}
+
+/**
+ * Two days before, to the person serving: the session, their role, and who
+ * else is serving it (2026-10-16 ruling: a host isn't emailed about a
+ * supporting team's gap; their reminder shows it). Template:
+ * "coverage-session-reminder" (pre-threshold gated by slug).
+ */
+export async function sendCoverageReminderEmail(data: {
+  to: string;
+  firstName: string | null;
+  hubSlug: string;
+  programName: string;
+  sessionAt: Date | null;
+  /** Markdown list: "- Host: Jesse Foy", "- Greeters: none yet". */
+  teamPicture: string;
+  /** Set when they asked for cover and no one has taken it. */
+  coverNote?: string | null;
+  /** Set for the hosting team on an online session: when the room opens. */
+  roomNote?: string | null;
+}): Promise<void> {
+  const scheduleUrl = scheduleUrlFor(data.hubSlug, data.sessionAt);
+  await sendTemplatedEmail("coverage-session-reminder", data.to, {
+    ...(await coverageWords(data.hubSlug)),
+    firstName: data.firstName ?? "there",
+    programName: data.programName,
+    dateText: fmtSessionWhen(data.sessionAt) ?? "",
+    teamPicture: data.teamPicture,
+    coverNote: data.coverNote ?? "",
+    roomNote: data.roomNote ?? "",
+    changeNote: await changeNoteText(data.hubSlug),
+    scheduleUrl,
+    scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
+  });
 }
 
 // ─── Standing assignment scheduled notification ───────────────────────────────

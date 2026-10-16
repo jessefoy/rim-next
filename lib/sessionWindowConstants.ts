@@ -26,3 +26,8 @@ export const EARLY_OPEN_MIN = 30;
 export const MEMBER_JOIN_MIN = 10;
 export const LATE_GRACE_MIN = 30;
 export const FALLBACK_DURATION_MIN = 90;
+
+/** How far ahead a team hears about sessions that need someone (2026-10-16
+ *  ruling: a session within two weeks losing its last person; the Monday
+ *  look-ahead; team Home's count). Shared with the Scheduler's dialogs. */
+export const COVERAGE_LOOKAHEAD_DAYS = 14;

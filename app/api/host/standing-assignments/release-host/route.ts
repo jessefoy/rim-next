@@ -39,6 +39,7 @@ import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import { sendStandingAssignmentReleasedEmail } from "@/lib/email";
 import { ctStartOfToday } from "@/lib/timezone";
+import { deliverGapNotices, prepareGapNotices } from "@/lib/coverageNotices";
 
 const TZ = "America/Chicago";
 
@@ -145,6 +146,14 @@ export async function POST(request: Request) {
       where: { id: { in: userRotationIds } },
     });
   });
+
+  // The team hears about any released session within two weeks now left
+  // with no one (2026-10-16 ruling).
+  const gaps = await prepareGapNotices(
+    toRelease.map((a) => ({ hubSlug: targetHubSlug, programSlug: a.programSlug, sessionDate: a.sessionDate })),
+    [session.user.id, userId],
+  );
+  if (gaps.length) after(() => deliverGapNotices(gaps));
 
   // Email the released host. By here at least one of (rule removed,
   // assignment released) is true — the early return above caught the
