@@ -3,7 +3,7 @@ import { portableTextToMarkdown } from "@/lib/portableTextEmail";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { db } from "@/lib/db";
-import { ctMonthKey } from "@/lib/timezone";
+import { ctMonthKey, fmtSessionDay } from "@/lib/timezone";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageConfig, getHubCoverageCopy } from "@/lib/programHub";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { RIM_ADDRESS, RIM_EIN, RIM_LEGAL_NAME, emailSafeLink, markdownLinkText } from "@/lib/locations";
@@ -355,6 +355,8 @@ const PRE_THRESHOLD_GATED_SLUGS = new Set<string>([
   // "Your session is covered" goes straight to the person who was hosting, who
   // may be a staged account a coordinator asked cover for (2026-10-15).
   "sub-request-claimed",
+  // A schedule change cleared someone's sessions (2026-10-16).
+  "sessions-cleared-schedule-change",
 ]);
 
 export async function sendTemplatedEmail(
@@ -1179,6 +1181,31 @@ export async function sendHostAssignmentRemovedEmail(
     programName: data.programName,
     dateText:    data.dateText ?? "",
     byName:      data.byName,
+    scheduleUrl,
+    scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
+  });
+}
+
+/**
+ * A program moved to a different schedule, so sessions someone had on the old
+ * days no longer happen (lib/programHub.ts clearOffScheduleCoverage). One
+ * email per person per team, listing the dates. Template:
+ * "sessions-cleared-schedule-change" (seeded in prisma/migrate.mjs).
+ */
+export async function sendSessionsClearedEmail(data: {
+  to: string;
+  firstName: string | null;
+  programName: string;
+  sessionDates: Date[];
+  hubSlug: string;
+}): Promise<void> {
+  if (data.sessionDates.length === 0) return;
+  const sorted = [...data.sessionDates].sort((a, b) => a.getTime() - b.getTime());
+  const scheduleUrl = scheduleUrlFor(data.hubSlug, sorted[0]);
+  await sendTemplatedEmail("sessions-cleared-schedule-change", data.to, {
+    firstName:   data.firstName ?? "there",
+    programName: data.programName,
+    sessionList: sorted.map((d) => `- ${fmtSessionDay(d)}`).join("\n"),
     scheduleUrl,
     scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
   });

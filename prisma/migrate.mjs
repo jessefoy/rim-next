@@ -6632,6 +6632,56 @@ Rooted In Mindfulness`,
   ]);
   console.log("  ✔ Former sign-in addresses table ready.");
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: sessions-cleared-schedule-change (2026-10-16). Sent when a program
+  // moves to a different schedule and someone's sessions on the old days are
+  // cleared (lib/programHub.ts clearOffScheduleCoverage). findUnique → create:
+  // never overwrites an edited template.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const flag = "seed_sessions_cleared_schedule_change_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const existing = await db.emailTemplate.findUnique({ where: { slug: "sessions-cleared-schedule-change" } });
+      if (!existing) {
+        await db.emailTemplate.create({
+          data: {
+            slug: "sessions-cleared-schedule-change",
+            name: "Sessions cleared: the program's schedule changed",
+            description:
+              "Sent when a program moves to a different day or schedule, to each person who had sessions on the old days. One email per person per team, listing the dates.",
+            enabled: true,
+            group: "04-hosts",
+            groupLabel: "Host Team",
+            subject: "{{programName}} has a new schedule",
+            variables: ["firstName", "programName", "sessionList", "scheduleUrl", "scheduleButton"],
+            helpText:
+              "Sent after someone edits a program's schedule (its start date, days or frequency) so that sessions already on the schedule no longer happen. Those sessions are cleared, and each person who had one gets this note.\n\n" +
+              "Available variables: {{firstName}}, {{programName}}, {{sessionList}} (the cleared dates, one per line as a list), {{scheduleUrl}}, {{scheduleButton}} (use triple braces {{{scheduleButton}}}).",
+            body: `Hi {{firstName}},
+
+**{{programName}}** now meets on a different schedule, so these sessions no longer take place, and you're no longer scheduled for them:
+
+{{sessionList}}
+
+Your team's schedule shows the sessions ahead.
+
+{{{scheduleButton}}}
+
+With care,
+Rooted In Mindfulness`,
+          },
+        });
+        console.log("  ✔ Email template sessions-cleared-schedule-change created.");
+      } else {
+        console.log("  Email template sessions-cleared-schedule-change already exists, left alone.");
+      }
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  } catch (err) {
+    console.error("  sessions-cleared-schedule-change seed failed:", err?.message ?? err);
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

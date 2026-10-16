@@ -726,6 +726,9 @@ export default function ProgramEditor({
   const [outsideUrlError, setOutsideUrlError] = useState("");
   // Layer 2: Zoom seat conflicts returned by the save route (non-blocking warning).
   const [seatConflicts, setSeatConflicts] = useState<{ message: string; capacity: number }[]>([]);
+  // What a schedule change cleared (sessions on days the program no longer
+  // meets, and rotations for those weekdays), said beside Save (2026-10-16).
+  const [scheduleCleared, setScheduleCleared] = useState<{ sessions: number; rotations: number } | null>(null);
   // Pick up the overlap warning from a just-created program (see the create
   // branch of save). Read once, then cleared.
   useEffect(() => {
@@ -1042,6 +1045,7 @@ export default function ProgramEditor({
         // Update guestAccessKey from response if it was generated
         const updated = await res.json();
         setSeatConflicts(updated.seatConflicts ?? []);
+        setScheduleCleared(updated.scheduleCleared ?? null);
         if (updated.guestAccessKey && !guestAccessKey) {
           setGuestAccessKey(updated.guestAccessKey);
         }
@@ -1242,6 +1246,25 @@ export default function ProgramEditor({
 
       {error && <div className="pe-msg pe-msg--error">{error}</div>}
       {success && <div className="pe-msg pe-msg--success">Saved successfully</div>}
+      {scheduleCleared && (
+        <div className="pe-msg" role="status" style={{ background: "var(--color-warning-bg)", color: "var(--color-warning)" }}>
+          This program now meets on a different schedule.{" "}
+          {scheduleCleared.sessions > 0 && (
+            <>
+              {scheduleCleared.sessions} upcoming {scheduleCleared.sessions === 1 ? "session" : "sessions"} on
+              days it no longer meets {scheduleCleared.sessions === 1 ? "was" : "were"} cleared, and the people
+              scheduled for them are emailed.{" "}
+            </>
+          )}
+          {scheduleCleared.rotations > 0 && (
+            <>
+              {scheduleCleared.rotations} {scheduleCleared.rotations === 1 ? "rotation" : "rotations"} that
+              no longer {scheduleCleared.rotations === 1 ? "fits" : "fit"} the schedule {scheduleCleared.rotations === 1 ? "was" : "were"} removed;
+              set up the new days in the Scheduler&rsquo;s Rotations tab.
+            </>
+          )}
+        </div>
+      )}
       {seatConflicts.length > 0 && (
         <div
           className="pe-msg"

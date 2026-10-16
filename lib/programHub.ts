@@ -28,6 +28,10 @@
  */
 
 import { db } from "@/lib/db";
+import {
+  ctDateStr, dateToDayCode, getDayOfWeekOccurrenceInMonth, getTotalDayOfWeekOccurrencesInMonth,
+  isOccurrenceOnDate, type ScheduleProgram,
+} from "@/lib/scheduleUtils";
 
 /** The implicit default hub when `Program.hostingHubSlug` is null. */
 export const DEFAULT_HOSTING_HUB_SLUG = "host-team" as const;
@@ -394,4 +398,78 @@ export async function clearCoverageNoLongerStaffed(
     if (result.assignments || result.rotations) cleared.push(result);
   }
   return cleared;
+}
+
+/**
+ * After a program's schedule changes (start date, days, frequency, count),
+ * clear what no longer has a session to belong to: every team's upcoming
+ * assignments on dates the program no longer meets, with their cover
+ * requests (FK-safe: SubClaim → SubRequest → HostAssignment), and rotations
+ * that can't match any meeting in the coming year (weekday and week). Jesse,
+ * 2026-10-16: "I don't like a lot of junk in our system if it's not being
+ * used." A program with no start date, or an archived one, is left alone.
+ * Returns the cleared sessions (for telling the people who had them) and
+ * the counts.
+ */
+export async function clearOffScheduleCoverage(programSlug: string): Promise<{
+  sessions: { userId: string | null; hubSlug: string; sessionDate: Date }[];
+  rotations: number;
+}> {
+  const program = await db.program.findUnique({
+    where: { slug: programSlug },
+    select: {
+      id: true, name: true, slug: true, programFormat: true, archivedAt: true,
+      startDatetime: true, endDatetime: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+    },
+  });
+  if (!program || program.archivedAt || !program.startDatetime) return { sessions: [], rotations: 0 };
+  const schedule = program as ScheduleProgram;
+  const now = new Date();
+
+  const future = await db.hostAssignment.findMany({
+    where: { programSlug, sessionDate: { gte: now } },
+    select: { id: true, userId: true, hubSlug: true, sessionDate: true },
+  });
+  const offDay = future.filter((a) => !isOccurrenceOnDate(schedule, ctDateStr(a.sessionDate!.toISOString())));
+
+  // What a rotation could still match in the coming year (Central dates),
+  // by the engine's own test: the weekday, its nth time in the month, and
+  // whether it is the month's last (lib/applyStandingAssignments.ts). A
+  // "2nd Tuesday" rotation dies when the program moves to the last Tuesday.
+  const NTH = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH"];
+  const canMatch = new Set<string>(); // "TU", "TU:SECOND", "TU:LAST"
+  const start = new Date(`${ctDateStr(now.toISOString())}T12:00:00Z`);
+  for (let i = 0; i < 366; i++) {
+    const dateStr = new Date(start.getTime() + i * 86_400_000).toISOString().slice(0, 10);
+    if (!isOccurrenceOnDate(schedule, dateStr)) continue;
+    const day = dateToDayCode(dateStr);
+    const nth = getDayOfWeekOccurrenceInMonth(dateStr);
+    canMatch.add(day);
+    if (NTH[nth - 1]) canMatch.add(`${day}:${NTH[nth - 1]}`);
+    if (nth === getTotalDayOfWeekOccurrencesInMonth(dateStr)) canMatch.add(`${day}:LAST`);
+  }
+  const deadRules = (await db.standingAssignment.findMany({
+    where: { programSlug, dayOfWeek: { not: null } },
+    select: { id: true, dayOfWeek: true, occurrence: true },
+  })).filter((r) =>
+    r.occurrence === "ALL" ? !canMatch.has(r.dayOfWeek!) : !canMatch.has(`${r.dayOfWeek}:${r.occurrence}`),
+  );
+
+  if (offDay.length === 0 && deadRules.length === 0) return { sessions: [], rotations: 0 };
+  const ids = offDay.map((a) => a.id);
+  await db.$transaction(async (tx) => {
+    if (ids.length) {
+      await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: ids } } } });
+      await tx.subRequest.deleteMany({ where: { assignmentId: { in: ids } } });
+      await tx.hostAssignment.deleteMany({ where: { id: { in: ids } } });
+    }
+    if (deadRules.length) {
+      await tx.standingAssignment.deleteMany({ where: { id: { in: deadRules.map((r) => r.id) } } });
+    }
+  });
+  return {
+    sessions: offDay.map((a) => ({ userId: a.userId, hubSlug: a.hubSlug, sessionDate: a.sessionDate! })),
+    rotations: deadRules.length,
+  };
 }

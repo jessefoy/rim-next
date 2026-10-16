@@ -7,6 +7,7 @@ import {
   resolveHostingHubSlug,
 } from "@/lib/programHub";
 import { resolveSpacesContainerDrive } from "@/lib/googleFiles";
+import { retargetTeamLink } from "@/lib/linkInput";
 import { getToolBySlug, isToolCompatibleWithHub } from "@/lib/toolRegistry";
 import type { Prisma } from "@prisma/client";
 
@@ -397,6 +398,18 @@ export async function PATCH(
             isPrimary: link.isPrimary ?? false,
           })),
         });
+      }
+    }
+    // Custom links that point at this team's pages, in any Space, follow
+    // the new address too (only RIM's own links; lib/linkInput.ts).
+    if (renaming) {
+      const ownOrigins = [process.env.NEXTAUTH_URL, "https://rootedinmindfulness.org", "https://www.rootedinmindfulness.org"]
+        .flatMap((u) => { try { return u ? [new URL(u.trim()).origin] : []; } catch { return []; } });
+      // Every Space's custom links: another team may link to this one.
+      const custom = await tx.hubAppLink.findMany({ where: { toolSlug: null }, select: { id: true, href: true } });
+      for (const link of custom) {
+        const href = retargetTeamLink(link.href, slug, newSlug, ownOrigins);
+        if (href !== link.href) await tx.hubAppLink.update({ where: { id: link.id }, data: { href } });
       }
     }
     return tx.hub.update({

@@ -8,10 +8,10 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { clearCoverageNoLongerStaffed, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal } from "@/lib/programHub";
+import { clearCoverageNoLongerStaffed, clearOffScheduleCoverage, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal } from "@/lib/programHub";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
 import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
-import { notifyHubOfNewProgramCoverage } from "@/lib/email";
+import { notifyHubOfNewProgramCoverage, sendSessionsClearedEmail } from "@/lib/email";
 import { applyProgramRecordingSetting, teardownProgramMeetings } from "@/lib/sessionMeeting";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
@@ -434,20 +434,34 @@ export async function PUT(
     d == null ? null : (d instanceof Date ? d : new Date(d)).getTime();
   const sameDays = (a: string[], b: string[]) =>
     a.length === b.length && [...a].sort().join() === [...b].sort().join();
-  const scheduleMoved =
-    stillVirtual &&
-    ((data.startDatetime !== undefined &&
+  // Any change to when the program meets (also clears off-day coverage below).
+  const scheduleChanged =
+    (data.startDatetime !== undefined &&
       ms(data.startDatetime as Date | null) !== ms(existing.startDatetime)) ||
-      (data.endDatetime !== undefined &&
-        ms(data.endDatetime as Date | null) !== ms(existing.endDatetime)) ||
-      (data.recurrenceFreq !== undefined &&
-        (data.recurrenceFreq ?? null) !== (existing.recurrenceFreq ?? null)) ||
-      (data.recurrenceInterval !== undefined &&
-        (data.recurrenceInterval ?? null) !== (existing.recurrenceInterval ?? null)) ||
-      (data.recurrenceCount !== undefined &&
-        (data.recurrenceCount ?? null) !== (existing.recurrenceCount ?? null)) ||
-      (data.recurrenceDays !== undefined &&
-        !sameDays(data.recurrenceDays as string[], existing.recurrenceDays)));
+    (data.endDatetime !== undefined &&
+      ms(data.endDatetime as Date | null) !== ms(existing.endDatetime)) ||
+    (data.recurrenceFreq !== undefined &&
+      (data.recurrenceFreq ?? null) !== (existing.recurrenceFreq ?? null)) ||
+    (data.recurrenceInterval !== undefined &&
+      (data.recurrenceInterval ?? null) !== (existing.recurrenceInterval ?? null)) ||
+    (data.recurrenceCount !== undefined &&
+      (data.recurrenceCount ?? null) !== (existing.recurrenceCount ?? null)) ||
+    (data.recurrenceDays !== undefined &&
+      !sameDays(data.recurrenceDays as string[], existing.recurrenceDays));
+  const scheduleMoved = stillVirtual && scheduleChanged;
+  // Which DAYS it meets changed (not just the time of day): the start's
+  // Central date, the pattern, or a one-time program's end date. A time-only
+  // edit can't leave a session on a day the program no longer meets.
+  const ctDay = (d: Date | string | null | undefined) =>
+    d == null ? null : ctDateStr((d instanceof Date ? d : new Date(d)).toISOString());
+  const recurringNow = (data.recurrenceFreq !== undefined ? data.recurrenceFreq : existing.recurrenceFreq) ?? null;
+  const daysChanged =
+    (data.startDatetime !== undefined && ctDay(data.startDatetime as Date | null) !== ctDay(existing.startDatetime)) ||
+    (!recurringNow && data.endDatetime !== undefined && ctDay(data.endDatetime as Date | null) !== ctDay(existing.endDatetime)) ||
+    (data.recurrenceFreq !== undefined && (data.recurrenceFreq ?? null) !== (existing.recurrenceFreq ?? null)) ||
+    (data.recurrenceInterval !== undefined && (data.recurrenceInterval ?? null) !== (existing.recurrenceInterval ?? null)) ||
+    (data.recurrenceCount !== undefined && (data.recurrenceCount ?? null) !== (existing.recurrenceCount ?? null)) ||
+    (data.recurrenceDays !== undefined && !sameDays(data.recurrenceDays as string[], existing.recurrenceDays));
 
   // (c) slugChanged — meetings are keyed by slug. Move the rows to the new
   //     slug (the Zoom meetings themselves don't use it), so a session that is
@@ -633,6 +647,44 @@ export async function PUT(
     console.error("[programs-pg] coverage cleanup failed", e);
   }
 
+  // A schedule change (start date, days, frequency, count, or a one-time
+  // program's end) can leave sessions on days the program no longer meets.
+  // They are cleared, with rotations set for those weekdays, and the people
+  // who had them are told (Jesse, 2026-10-16: "they should be cleared").
+  // The editor shows what was cleared beside its Save.
+  let scheduleCleared: { sessions: number; rotations: number } | null = null;
+  if (daysChanged) {
+    try {
+      const result = await clearOffScheduleCoverage(updated.slug);
+      if (result.sessions.length || result.rotations) {
+        scheduleCleared = { sessions: result.sessions.length, rotations: result.rotations };
+        console.log(`[programs-pg] ${updated.slug}: schedule changed; cleared ${result.sessions.length} session(s) and ${result.rotations} rotation(s) on days it no longer meets`);
+        const byPerson = new Map<string, { userId: string; hubSlug: string; dates: Date[] }>();
+        for (const c of result.sessions) {
+          if (!c.userId) continue;
+          const key = `${c.userId}::${c.hubSlug}`;
+          const entry = byPerson.get(key) ?? { userId: c.userId, hubSlug: c.hubSlug, dates: [] };
+          entry.dates.push(c.sessionDate);
+          byPerson.set(key, entry);
+        }
+        const programName = updated.name;
+        after(async () => {
+          for (const p of byPerson.values()) {
+            try {
+              const user = await db.user.findUnique({ where: { id: p.userId }, select: { email: true, firstName: true, archivedAt: true } });
+              if (!user?.email || user.archivedAt) continue;
+              await sendSessionsClearedEmail({ to: user.email, firstName: user.firstName, programName, sessionDates: p.dates, hubSlug: p.hubSlug });
+            } catch (e) {
+              console.error("[programs-pg] sessions-cleared email failed", e);
+            }
+          }
+        });
+      }
+    } catch (e) {
+      console.error("[programs-pg] clearing off-schedule sessions failed", e);
+    }
+  }
+
   // Layer 2: surface any Zoom seat conflict this schedule creates with other
   // virtual/hybrid programs (non-blocking — the coordinator decides what to do).
   const seatConflicts = stillVirtual
@@ -642,7 +694,7 @@ export async function PUT(
       })
     : [];
 
-  return NextResponse.json({ ...updated, seatConflicts });
+  return NextResponse.json({ ...updated, seatConflicts, scheduleCleared });
 }
 
 export async function DELETE(

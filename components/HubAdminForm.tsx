@@ -478,7 +478,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
             setSlugTouched(true);
           }}
           isEditing={isEditing}
-          warnText="Changing the slug will break existing links and bookmarks to this team."
+          warnText="Changing the slug moves this team to a new address. Its programs, schedule, files and team links to it follow; bookmarks and links in past emails won't."
           hintText={`/account/hub/${slug}`}
         />
       </div>
