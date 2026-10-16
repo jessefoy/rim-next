@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import {
@@ -8,6 +8,7 @@ import {
 } from "@/lib/programHub";
 import { resolveSpacesContainerDrive } from "@/lib/googleFiles";
 import { retargetTeamLink } from "@/lib/linkInput";
+import { sendCoverageClearedEmails } from "@/lib/email";
 import { getToolBySlug, isToolCompatibleWithHub } from "@/lib/toolRegistry";
 import type { Prisma } from "@prisma/client";
 
@@ -250,6 +251,59 @@ export async function PATCH(
     }
   }
 
+  // ── A team stops scheduling (2026-10-16 audit) ──────────────────────────
+  // Archiving it, turning its Scheduler off, or turning off "runs live
+  // sessions" used to leave its programs on no schedule and its rotations
+  // still firing. Programs it hosts must move first; its own upcoming
+  // sessions and rotations are cleared after a confirmation that counts them.
+  const schedulerOnNow = (await db.hubAppLink.count({ where: { hubId: hub.id, toolSlug: "schedule", isEnabled: true } })) > 0;
+  const schedulerOnNext = normalizedAppLinks !== undefined
+    ? normalizedAppLinks.some((l) => l.toolSlug === "schedule" && l.isEnabled !== false)
+    : schedulerOnNow;
+  const activeNext = (status ?? hub.status) === "ACTIVE";
+  const stopsScheduling = hub.status === "ACTIVE" && schedulerOnNow && !(activeNext && schedulerOnNext);
+  const stopsHosting = hub.hasSchedule && (hasSchedule === false || stopsScheduling);
+  if (stopsHosting) {
+    const hosted = (await db.program.findMany({
+      where: { archivedAt: null, hostingRequired: true },
+      select: { name: true, hostingHubSlug: true },
+    })).filter((p) => resolveHostingHubSlug(p) === slug);
+    if (hosted.length > 0) {
+      return NextResponse.json(
+        { error: `This team hosts ${hosted.map((p) => p.name).join(", ")}. Move ${hosted.length === 1 ? "that program" : "those programs"} to another hosting team first.` },
+        { status: 409 },
+      );
+    }
+  }
+  if (!hub.hasSchedule && hasSchedule === true) {
+    const covering = await db.programCoverageHub.count({ where: { hubSlug: slug } });
+    if (covering > 0) {
+      return NextResponse.json(
+        { error: `This team is a supporting team on ${covering} program${covering === 1 ? "" : "s"}. Untick it there first, then make it a team that runs sessions.` },
+        { status: 409 },
+      );
+    }
+  }
+  let clearWholeSchedule = false;
+  if (stopsScheduling) {
+    const [upcoming, rules] = await Promise.all([
+      db.hostAssignment.count({ where: { hubSlug: slug, OR: [{ sessionDate: null }, { sessionDate: { gte: now } }] } }),
+      db.standingAssignment.count({ where: { hubSlug: slug } }),
+    ]);
+    if (upcoming + rules > 0) {
+      if (!confirmCoverageClear) {
+        return NextResponse.json(
+          {
+            requiresConfirmation: true,
+            error: `This team will stop scheduling. Its ${upcoming} upcoming session${upcoming === 1 ? "" : "s"} and ${rules} rotation rule${rules === 1 ? "" : "s"} will be cleared, and the people on them told.`,
+          },
+          { status: 409 },
+        );
+      }
+      clearWholeSchedule = true;
+    }
+  }
+
   // Google Drive mapping (RIM_GoogleWorkspace.md) — one merged authority.
   // The drive id is admin config, not member input (a foreign id is inert:
   // the service account can only reach drives it manages; the picker +
@@ -338,6 +392,7 @@ export async function PATCH(
 
   // App replacement and hub config are one unit. A failed create can no
   // longer leave a Space with every app link deleted.
+  const clearedRows: { userId: string | null; hubSlug: string; programSlug: string; sessionDate: Date | null }[] = [];
   const updated = await db.$transaction(async (tx) => {
     // Moving to open sign-up: an empty single-seat row would read as a
     // blank name on the session; with no row it reads "no one yet".
@@ -357,18 +412,26 @@ export async function PATCH(
     // Programs whose format left the team's set leave its schedule
     // (confirmed above), in this same transaction so the save and the
     // clear land together.
-    if (programsLeaving.length) {
-      const leaving = (await tx.hostAssignment.findMany({
-        where: { hubSlug: slug, programSlug: { in: programsLeaving }, OR: [{ sessionDate: null }, { sessionDate: { gte: now } }] },
-        select: { id: true },
-      })).map((a) => a.id);
+    if (programsLeaving.length || clearWholeSchedule) {
+      const leavingRows = await tx.hostAssignment.findMany({
+        where: {
+          hubSlug: slug,
+          ...(clearWholeSchedule ? {} : { programSlug: { in: programsLeaving } }),
+          OR: [{ sessionDate: null }, { sessionDate: { gte: now } }],
+        },
+        select: { id: true, userId: true, hubSlug: true, programSlug: true, sessionDate: true },
+      });
+      clearedRows.push(...leavingRows);
+      const leaving = leavingRows.map((a) => a.id);
       if (leaving.length) {
         await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: leaving } } } });
         await tx.subRequest.deleteMany({ where: { assignmentId: { in: leaving } } });
         await tx.hostAssignment.deleteMany({ where: { id: { in: leaving } } });
       }
-      const rot = await tx.standingAssignment.deleteMany({ where: { hubSlug: slug, programSlug: { in: programsLeaving } } });
-      console.log(`[admin hubs] ${slug}: cleared ${leaving.length} upcoming session(s) and ${rot.count} rotation(s) on ${programsLeaving.join(", ")} (format no longer staffed)`);
+      const rot = await tx.standingAssignment.deleteMany({
+        where: { hubSlug: slug, ...(clearWholeSchedule ? {} : { programSlug: { in: programsLeaving } }) },
+      });
+      console.log(`[admin hubs] ${slug}: cleared ${leaving.length} upcoming session(s) and ${rot.count} rotation(s) ${clearWholeSchedule ? "(team stopped scheduling)" : `on ${programsLeaving.join(", ")} (format no longer staffed)`}`);
     }
     // A new address carries everything that names the team by its slug
     // (these join by text, not by a database link), or its programs,
@@ -424,6 +487,21 @@ export async function PATCH(
       },
     });
   });
+
+  // Tell the people taken off sessions (lib/email.ts sendCoverageClearedEmails).
+  if (clearedRows.length) {
+    const effective = renaming ? newSlug : slug;
+    after(() =>
+      sendCoverageClearedEmails({
+        rows: clearedRows.map((r) => ({ ...r, hubSlug: effective })),
+        reason: (team) =>
+          clearWholeSchedule
+            ? `The ${team} has stopped scheduling sessions for now.`
+            : `The ${team} no longer covers the programs below.`,
+        excludeUserId: session!.user.id,
+      }),
+    );
+  }
 
   return NextResponse.json(updated);
 }

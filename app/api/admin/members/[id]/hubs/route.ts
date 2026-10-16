@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
+import { sendCoverageClearedEmails } from "@/lib/email";
 import { db } from "@/lib/db";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { removeHubMembershipWithCleanup } from "@/lib/removeHubMembership";
 import { roleDerivedHubs } from "@/lib/syncHubMembership";
 
@@ -164,7 +165,17 @@ export async function DELETE(
   });
   if (!existing) return NextResponse.json({ error: "Not a member of this hub" }, { status: 404 });
 
-  const { removedAssignments, removedRules } = await removeHubMembershipWithCleanup(hub.id, hubSlug, id);
+  const { removedAssignments, removedRules, rows: removedRows } = await removeHubMembershipWithCleanup(hub.id, hubSlug, id);
+  // They're told which sessions went with the team (2026-10-16 audit).
+  if (removedRows.length) {
+    after(() =>
+      sendCoverageClearedEmails({
+        rows: removedRows,
+        reason: (team) => `You're no longer on the ${team}.`,
+        excludeUserId: session?.user?.id,
+      }),
+    );
+  }
   console.log(
     `[admin-member-hubs] removed ${id} from ${hubSlug} + ${removedAssignments} future assignment(s) + ${removedRules} rotation rule(s).`,
   );

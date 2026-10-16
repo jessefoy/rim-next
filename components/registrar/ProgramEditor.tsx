@@ -1023,7 +1023,15 @@ export default function ProgramEditor({
         outsideMeetingPublic: roomChoice === "outside" && outsidePublic && !registrationEnabled,
         // Auxiliary hubs providing role coverage. Empty array means no
         // additional coverage. Server replaces the full set on each save.
-        coverageHubSlugs,
+        // Only ticked teams the list still shows: a team hidden by a format
+        // change isn't sent, so it's unticked rather than refused
+        // (2026-10-16 review).
+        coverageHubSlugs: coverageHubSlugs.filter((slug) => {
+          const h = hubs.find((x) => x.slug === slug);
+          return !!h && !h.hasSchedule && !!h.usesScheduler &&
+            h.slug !== (hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG) &&
+            (h.appliesToFormats ?? []).includes(programFormat);
+        }),
       };
 
       const url = isEditing ? `/api/programs-pg/${initialData?.slug}` : "/api/programs-pg";
@@ -1694,14 +1702,13 @@ export default function ProgramEditor({
             <div className="pe-field">
               <span className="pe-field__label">Host coverage</span>
               <span className="pe-field__help">
-                Most programs need a host on the schedule. Self-led or
-                community-led offerings (Recovery Dharma, drop-in community
-                groups) don&rsquo;t — check this to keep the program off the
-                Scheduler entirely. It stays fully visible on the public
-                schedule, the member dashboard, and its program page, and its
-                session room still works; it just won&rsquo;t show as
-                &ldquo;Needs Coverage&rdquo; and won&rsquo;t generate host
-                rotations or notifications.
+                Most programs need someone from the hosting team on the
+                schedule. Self-led or community-led offerings, like drop-in
+                community groups, don&rsquo;t: check this and the hosting team
+                won&rsquo;t schedule it, rotate it, or be notified about it.
+                It stays fully visible on the public schedule, the member
+                dashboard, and its program page, and its online room still
+                works. Supporting teams added below still schedule it.
               </span>
               <label className="pe-checkbox">
                 <input
@@ -1912,30 +1919,28 @@ export default function ProgramEditor({
               }}
             >
               <strong>Two things on this tab.</strong><br />
-              <strong>Hosting team</strong> — the single team that runs the live
-              session (owns the room, gets sub-request notifications, holds the
-              dharma role).<br />
-              <strong>Auxiliary role coverage</strong> — additional teams that
-              staff supporting roles (AV, greeters) for in-person or hybrid
-              offerings. Layered on top of the hosting team; not a substitute.
+              <strong>Hosting team:</strong> the one team that runs the live
+              session. It opens the online room and handles cover requests.<br />
+              <strong>Auxiliary role coverage:</strong> supporting teams, such
+              as AV or greeters, layered on top of the hosting team. Each
+              team&rsquo;s formats decide which programs it can staff.
             </div>
 
             {/* ── Hosting team ───────────────────────────────────────── */}
             <div className="pe-field">
               <span className="pe-field__label">Hosting team</span>
               <span className="pe-field__help">
-                Which volunteer team coordinates this program&rsquo;s live sessions —
-                who self-claims, fields sub requests, and receives notifications.
-                Defaults to the Host Team. Peer-led offerings can be transferred
-                to a hub that grants peer leaders teacher-room capability
-                (bell-friendly audio, &ldquo;Guide&rdquo; pill on their tile).
+                Which team runs this program&rsquo;s live sessions: who takes
+                them, handles cover requests, and is notified. The list shows
+                teams that run sessions, have the Scheduler, and staff this
+                program&rsquo;s format.
               </span>
               <select
                 className="pe-input"
                 value={hostingHubSlug}
                 onChange={(e) => { setHostingHubSlug(e.target.value); markDirty(); }}
               >
-                <option value="">Host Team (default)</option>
+                <option value="">{(hubs.find((h) => h.slug === DEFAULT_HOSTING_HUB_SLUG)?.name ?? "Hosting Team") + " (default)"}</option>
                 {hubs
                   // Teams that run sessions AND have the Scheduler installed
                   // (lib/programHub.ts hostingTeamRefusal, the server's rule).
@@ -1943,7 +1948,8 @@ export default function ProgramEditor({
                   // unrelated edit doesn't silently change it.
                   .filter((h) =>
                     h.slug !== DEFAULT_HOSTING_HUB_SLUG &&
-                    ((h.hasSchedule && h.usesScheduler) || h.slug === initialHostingHubSlug))
+                    ((h.hasSchedule && h.usesScheduler && (h.appliesToFormats ?? []).includes(programFormat)) ||
+                      h.slug === initialHostingHubSlug))
                   .map((h) => (
                     <option key={h.slug} value={h.slug}>
                       {h.name}
@@ -2018,8 +2024,8 @@ export default function ProgramEditor({
                 <fieldset className="pe-field">
                   <legend className="pe-field__label">Auxiliary role coverage</legend>
                   <span className="pe-field__help">
-                    Additional volunteer teams that staff supporting roles
-                    for this program — AV, greeters, future expansions.
+                    Supporting teams for this program, such as AV or
+                    greeters.
                     Each team gets its own claim/sign-up flow inside its
                     own hub&rsquo;s Scheduler view; the hub&rsquo;s
                     configuration decides single-slot (one volunteer) vs.

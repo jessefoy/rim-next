@@ -53,23 +53,34 @@ async function main() {
   for (const line of missing) console.log("  " + line);
 
   // Surface upcoming HostAssignments to cross-reference
-  const upcoming = await db.hostAssignment.findMany({
+  // Hosting is the program's hosting team only; a greeter or AV sign-up is
+  // not a host (2026-10-15), so other teams' rows are left out below.
+  const hostingBySlug = new Map(
+    (await db.program.findMany({ select: { slug: true, hostingHubSlug: true } }))
+      .map((p) => [p.slug, p.hostingHubSlug ?? "host-team"]),
+  );
+  const upcomingAll = await db.hostAssignment.findMany({
     where: {
       OR: [
         { sessionDate: { gte: new Date() } },
         { sessionDate: null }, // standing assignments
       ],
+      userId: { not: null },
     },
     select: {
       programSlug: true,
+      hubSlug: true,
       sessionDate: true,
       user: { select: { id: true, firstName: true, lastName: true } },
     },
     orderBy: [{ sessionDate: "asc" }],
-    take: 30,
+    take: 200,
   });
+  const upcoming = upcomingAll
+    .filter((a) => a.hubSlug === (hostingBySlug.get(a.programSlug) ?? "host-team"))
+    .slice(0, 30);
 
-  console.log(`\n--- Upcoming HostAssignments (${upcoming.length}, max 30) ---`);
+  console.log(`\n--- Upcoming hosting assignments, hosting team only (${upcoming.length}, max 30) ---`);
   for (const a of upcoming) {
     const date = a.sessionDate ? a.sessionDate.toISOString().slice(0, 10) : "(standing)";
     console.log(`  ${date}  ${a.programSlug}  ←  ${a.user.firstName} ${a.user.lastName}`);

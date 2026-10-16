@@ -70,12 +70,12 @@ export async function POST(request: Request) {
   if (authHubSlug) {
     // One rule for managing a team's coverage (lib/hubAuth.ts, 2026-10-15).
     if (!(await canManageHubCoverage(session.user.id, roles, authHubSlug))) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
+      return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
     }
   } else {
     if (!isManager(roles)) {
       return Response.json(
-        { error: "Forbidden — preview-all requires HOST_MANAGER or ADMIN" },
+        { error: "Only a Host Manager or an admin can preview every team's rotations at once." },
         { status: 403 },
       );
     }

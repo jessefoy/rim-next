@@ -121,6 +121,7 @@ export async function POST(request: Request) {
       const [recipientUsers, program] = await Promise.all([
         getHubNotificationRecipients(assignmentHubSlug, {
           excludeUserId: assignment.userId ?? undefined,
+          canCover: true,
         }),
         db.program.findUnique({
           where: { slug: assignment.programSlug },

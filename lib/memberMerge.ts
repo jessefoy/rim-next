@@ -33,7 +33,8 @@ export type MergeSide = {
   roles: string[];
   teams: number;
   registrations: number;
-  hostingDates: number;
+  /** Upcoming and past sessions on any team's schedule (not only hosting). */
+  scheduledDates: number;
   rotations: number;
   teaching: number;
   conversations: number;
@@ -106,7 +107,7 @@ function toSide(u: SideRow): MergeSide {
     roles: u.roles,
     teams: u._count.hubMemberships,
     registrations: u._count.registrations,
-    hostingDates: u._count.hostAssignments,
+    scheduledDates: u._count.hostAssignments,
     rotations: u._count.standingAssignments,
     teaching: u._count.programTeachers + u._count.lessonTeachers,
     conversations: u._count.hubThreads2 + u._count.hubReplies2,
@@ -156,6 +157,9 @@ const ONE_PER: { table: string; column: string; keys: string[] }[] = [
   { table: "lesson_progress", column: "userId", keys: ["lessonId"] },
   { table: "series_enrollments", column: "userId", keys: ["courseId"] },
   { table: "lesson_notes", column: "userId", keys: ["lessonId"] },
+  // A table in the database without a Prisma model (2026-10-16 audit: an
+  // answer here refused the merge as "records it doesn't know how to move").
+  { table: "reflection_responses", column: "userId", keys: ["questionId"] },
   { table: "user_tool_access", column: "userId", keys: ["toolSlug"] },
   { table: "hub_thread_subscriptions", column: "userId", keys: ["threadId"] },
   { table: "google_file_preferences", column: "userId", keys: ["placeKey", "googleFileId"] },
@@ -190,6 +194,11 @@ const POINTERS: { table: string; column: string }[] = [
   { table: "former_emails", column: "userId" },
   { table: "former_emails", column: "createdById" },
   { table: "host_assignments", column: "assignedBy" },
+  // Added 2026-10-15; missing here refused every merge of someone who had
+  // asked for cover or emptied a rotation session (2026-10-16 audit).
+  { table: "sub_requests", column: "requestedById" },
+  { table: "pages", column: "updatedById" },
+  { table: "standing_assignment_skips", column: "createdById" },
   { table: "course_access", column: "grantedBy" },
   // A member's ban from a session room is kept by id (guests by name).
   { table: "session_bans", column: "identity" },

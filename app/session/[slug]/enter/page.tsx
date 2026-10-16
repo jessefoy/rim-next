@@ -41,6 +41,8 @@ import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
 import { hasOpenEntry } from "@/lib/programOffering";
 import { meetingServiceName, outsideRoomUrl } from "@/lib/outsideMeeting";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
+import { ctDayBounds } from "@/lib/timezone";
+import { getHubCoverageCopy, teamPhrase } from "@/lib/programHub";
 
 export const dynamic = "force-dynamic";
 
@@ -355,6 +357,13 @@ export default async function ZoomEnterPage({
     }
 
     // Resolve who the designated host is (to name them for alternates/teacher).
+    // The hosting team's own words for the landing ("facilitating" on a
+    // peer-led team; 2026-10-16 audit). Zoom's "host controls" stay Zoom's.
+    const hostingSlug = program.hostingHubSlug ?? "host-team";
+    const [hostingTeam, hostingCopy] = await Promise.all([
+      db.hub.findUnique({ where: { slug: hostingSlug }, select: { name: true } }),
+      getHubCoverageCopy(hostingSlug),
+    ]);
     const designatedHostName = await getDesignatedHostName(
       slug,
       program.hostingHubSlug ?? "host-team",
@@ -388,6 +397,8 @@ export default async function ZoomEnterPage({
         hostKey={hostKey}
         viewerRole={viewerRole}
         designatedHostName={designatedHostName}
+        teamName={hostingTeam?.name ?? "hosting"}
+        roleVerb={hostingCopy.verb}
       />
     );
   } catch (e) {
@@ -557,8 +568,8 @@ function meetingIsGone(e: unknown): boolean {
 /**
  * The display name of the session's designated host (first name + last initial),
  * or null if there's no assigned host or the viewer IS the host. Mirrors
- * resolveSessionRole's occurrence matching: an exact-date assignment wins over a
- * legacy standing (null-date) one.
+ * resolveSessionRole's occurrence matching (the session's Central day): a dated
+ * assignment wins over a legacy standing (null-date) one.
  */
 async function getDesignatedHostName(
   programSlug: string,
@@ -566,12 +577,15 @@ async function getDesignatedHostName(
   sessionDate: Date,
   viewerId: string,
 ): Promise<string | null> {
+  const day = ctDayBounds(sessionDate);
   const rows = await db.hostAssignment.findMany({
     where: {
       programSlug,
       hubSlug,
       userId: { not: null },
-      OR: [{ sessionDate }, { sessionDate: null }],
+      // This session's Central day, as resolveSessionRole matches it
+      // (lib/timezone.ts ctDayBounds), or a legacy undated row.
+      OR: [{ sessionDate: { gte: day.start, lte: day.end } }, { sessionDate: null }],
     },
     select: {
       userId: true,
@@ -591,27 +605,32 @@ function HostLanding({
   hostKey,
   viewerRole,
   designatedHostName,
+  teamName,
+  roleVerb,
 }: {
   programName: string;
   joinUrl: string;
   hostKey: string | null;
   viewerRole: ViewerRole;
   designatedHostName: string | null;
+  /** The hosting team's name and -ing verb ("Hosting Team", "hosting"). */
+  teamName: string;
+  roleVerb: string;
 }) {
   const eyebrow =
     viewerRole === "designated"
-      ? "You're hosting today"
+      ? `You're ${roleVerb} today`
       : viewerRole === "teacher"
         ? "You're teaching today"
-        : "You're on the host team";
+        : `You're on the ${teamPhrase(teamName)}`;
 
-  // Who's hosting (for teacher/alternate).
+  // Who's on it today (for teacher/alternate).
   const hostLine =
     viewerRole === "designated"
       ? null
       : designatedHostName
-        ? `${designatedHostName} is today's host.`
-        : "No one has claimed today's host role yet.";
+        ? `${designatedHostName} is ${roleVerb} today.`
+        : `No one is ${roleVerb} today yet.`;
 
   const claimIntro =
     viewerRole === "designated"

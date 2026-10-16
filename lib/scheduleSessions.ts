@@ -202,7 +202,10 @@ export async function buildHubMonthSessions(hubSlug: string, year: number, month
             badge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
           })),
           subRequestId: null, subMessage: null,
-          standingAssignmentId: bucket[0]?.standingAssignmentId ?? null,
+          // Several people, each signed up their own way: the card names no
+          // single source (it showed "via rotation" from whichever sorted
+          // first; 2026-10-16 audit).
+          standingAssignmentId: null,
           hostBadge: null,
         });
         continue;

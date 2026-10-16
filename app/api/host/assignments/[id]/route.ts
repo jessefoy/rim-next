@@ -65,12 +65,17 @@ export async function PATCH(
       return Response.json({ error: "This session is already claimed." }, { status: 409 });
     }
     if (!(await authorizeSelfClaim(session.user.id, roles, assignment.hubSlug))) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
+      return Response.json({ error: "You can't take sessions on this team's schedule right now." }, { status: 403 });
     }
-    await db.hostAssignment.update({
-      where: { id },
+    // Only if it's still empty: two people claiming at once can't both win,
+    // and the second can't overwrite the first (2026-10-16 audit).
+    const taken = await db.hostAssignment.updateMany({
+      where: { id, userId: null },
       data: { userId: session.user.id, assignedBy: session.user.id },
     });
+    if (taken.count === 0) {
+      return Response.json({ error: "Someone just took this session." }, { status: 409 });
+    }
     // Confirmation email to the claimer. The email link is scoped to
     // the assignment's hub (session 129) so an AV claim lands the
     // recipient at /tools/schedule?hub=audio-visual, not host-team.
@@ -100,6 +105,12 @@ export async function PATCH(
     return Response.json({ ok: true, status: "claimed" });
   }
 
+  // Open sign-up teams leave by removing the sign-up (DELETE), never by
+  // emptying it: an empty row would read as a blank name (2026-10-16 audit).
+  if ((await getHubCoverageConfig(assignment.hubSlug))?.allowsMultipleAssignments) {
+    return Response.json({ error: "Cancel the sign-up instead." }, { status: 400 });
+  }
+
   // unclaim — owner removes themselves, OR a manager/hub-coordinator removes
   // anyone in their hub. Coordinator parity with the assign path (session 140):
   // a coordinator who can put someone on a session can take them off it. Scoped
@@ -107,7 +118,7 @@ export async function PATCH(
   const isOwn = assignment.userId === session.user.id;
   const canManage = await canManageHubCoverage(session.user.id, roles, assignment.hubSlug);
   if (!canManage && !isOwn) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
   const removedUserId = assignment.userId;
@@ -186,7 +197,7 @@ export async function DELETE(
   const isOwn = assignment.userId !== null && assignment.userId === session.user.id;
 
   if (!canManage && !isOwn) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
   const removedUserId = assignment.userId;

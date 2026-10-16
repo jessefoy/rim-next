@@ -8,10 +8,10 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { clearCoverageNoLongerStaffed, clearOffScheduleCoverage, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal } from "@/lib/programHub";
+import { clearCoverageNoLongerStaffed, clearOffScheduleCoverage, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal, supportingTeamRefusal } from "@/lib/programHub";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
 import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
-import { notifyHubOfNewProgramCoverage, sendSessionsClearedEmail } from "@/lib/email";
+import { notifyHubOfNewProgramCoverage, sendCoverageClearedEmails, sendSessionsClearedEmail } from "@/lib/email";
 import { applyProgramRecordingSetting, teardownProgramMeetings } from "@/lib/sessionMeeting";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
@@ -206,13 +206,6 @@ export async function PUT(
       typeof raw === "string" && raw.trim() ? raw.trim() : null;
     // Validate non-null slugs against the hub table to prevent orphan state
     // (typo / stale client / payload tampering). Null is always accepted.
-    // A newly chosen Hosting team must run sessions and have the Scheduler
-    // (2026-10-15). The team a program already has is left alone, so an
-    // unrelated edit still saves.
-    if (requestedSlug && requestedSlug !== existing.hostingHubSlug) {
-      const refusal = await hostingTeamRefusal(requestedSlug);
-      if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
-    }
     data.hostingHubSlug = requestedSlug;
   }
   // "No host needed" toggle. Default true; false = self-led (excluded from the
@@ -228,6 +221,39 @@ export async function PUT(
       data.livekitRoom = body.slug ?? slug;
     }
   }
+  // A newly ticked supporting team must be one that staffs this format (the
+  // editor's rule, enforced here too; 2026-10-16 audit). Checked before any
+  // write, so a refusal saves nothing. Teams already ticked are left to the
+  // coverage cleanup.
+  if (Array.isArray(body.coverageHubSlugs)) {
+    const format = (data.programFormat ?? existing.programFormat) as string | null;
+    const already = new Set((await db.programCoverageHub.findMany({ where: { programSlug: slug }, select: { hubSlug: true } })).map((r) => r.hubSlug));
+    const asked = (body.coverageHubSlugs as unknown[]).filter((h): h is string => typeof h === "string" && h.trim().length > 0);
+    for (const hubSlug of asked.filter((h) => !already.has(h))) {
+      const refusal = await supportingTeamRefusal(hubSlug, format);
+      if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
+    }
+  }
+  // A Hosting team a program names must run sessions, have the Scheduler,
+  // and staff the program's format (lib/programHub.ts hostingTeamRefusal;
+  // 2026-10-15/16). Checked when the team, the format or "No host needed"
+  // changes, so an unrelated edit still saves. The default (no team named:
+  // the Hosting Team) isn't checked: an in-person program is simply hosted
+  // by no one online.
+  {
+    const team = data.hostingHubSlug !== undefined ? (data.hostingHubSlug as string | null) : existing.hostingHubSlug;
+    const format = (data.programFormat ?? existing.programFormat) as string | null;
+    const needsHost = data.hostingRequired !== undefined ? data.hostingRequired !== false : existing.hostingRequired;
+    const changed =
+      (data.hostingHubSlug !== undefined && data.hostingHubSlug !== existing.hostingHubSlug) ||
+      (data.programFormat !== undefined && data.programFormat !== existing.programFormat) ||
+      (data.hostingRequired !== undefined && data.hostingRequired !== existing.hostingRequired);
+    if (team && needsHost && changed) {
+      const refusal = await hostingTeamRefusal(team, format);
+      if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
+    }
+  }
+
   if (body.recordByDefault !== undefined) data.recordByDefault = body.recordByDefault !== false;
   // Outside room: https only, or empty for RIM's Zoom. A request that leaves
   // it out leaves it as stored. "Anyone may join from the public page" means
@@ -362,6 +388,8 @@ export async function PUT(
   const becameSelfLed =
     data.hostingRequired === false && existing.hostingRequired === true;
 
+  // Sessions the old hosting team loses here, to tell the people on them.
+  const hostingCleared: { userId: string | null; hubSlug: string; programSlug: string; sessionDate: Date | null }[] = [];
   let updated;
   if (hubChanged || becameSelfLed) {
     const futureCutoff = new Date(); // strictly future — past stays as history
@@ -385,8 +413,9 @@ export async function PUT(
     updated = await db.$transaction(async (tx) => {
       const futureAssns = await tx.hostAssignment.findMany({
         where: assnWhere,
-        select: { id: true },
+        select: { id: true, userId: true, hubSlug: true, programSlug: true, sessionDate: true },
       });
+      hostingCleared.push(...futureAssns);
       const futureAssnIds = futureAssns.map((a) => a.id);
 
       if (futureAssnIds.length > 0) {
@@ -626,6 +655,42 @@ export async function PUT(
     }
   }
 
+  // Tell the people the hosting change took off sessions (2026-10-16 audit).
+  if (hostingCleared.length) {
+    const programName = updated.name;
+    after(() =>
+      sendCoverageClearedEmails({
+        rows: hostingCleared,
+        reason: (team) => becameSelfLed
+          ? `${programName} no longer needs anyone from the ${team}.`
+          : `${programName} is now covered by another team.`,
+        excludeUserId: session.user.id,
+      }),
+    );
+  }
+
+  // A team newly responsible for running this program hears about it, as a
+  // newly ticked supporting team does (2026-10-16 audit): the program moved
+  // to it, began needing a host again, or moved into a format it staffs.
+  {
+    const formats = new Map(
+      (await db.hub.findMany({ where: { slug: { in: [oldHubSlug, newHubSlug] } }, select: { slug: true, appliesToFormats: true } }))
+        .map((h) => [h.slug, h.appliesToFormats]),
+    );
+    const staffedBefore = existing.hostingRequired && (formats.get(oldHubSlug) ?? []).includes(existing.programFormat ?? "");
+    const staffedAfter = updated.hostingRequired && (formats.get(newHubSlug) ?? []).includes(updated.programFormat ?? "");
+    if (staffedAfter && (hubChanged || !staffedBefore)) {
+      const programName = updated.name, programFormat = updated.programFormat;
+      after(async () => {
+        try {
+          await notifyHubOfNewProgramCoverage({ hubSlug: newHubSlug, programName, programFormat, excludeUserId: session.user.id });
+        } catch (e) {
+          console.error("[programs-pg] new hosting team notification error:", e);
+        }
+      });
+    }
+  }
+
   // A team that no longer staffs this program (unticked, or the format left
   // its set) loses its future coverage, so no sign-ups or rotation emails go
   // out for sessions nobody on that team can see (2026-10-15 audit).
@@ -642,6 +707,17 @@ export async function PUT(
     const cleared = await clearCoverageNoLongerStaffed(updated.slug, [...affected]);
     for (const c of cleared) {
       console.log(`[programs-pg] ${updated.slug}: cleared ${c.assignments} future assignment(s) and ${c.rotations} rotation(s) on ${c.hubSlug}, which no longer staffs it`);
+    }
+    const clearedRows = cleared.flatMap((c) => c.rows);
+    if (clearedRows.length) {
+      const programName = updated.name;
+      after(() =>
+        sendCoverageClearedEmails({
+          rows: clearedRows,
+          reason: (team) => `The ${team} no longer covers ${programName}.`,
+          excludeUserId: session.user.id,
+        }),
+      );
     }
   } catch (e) {
     console.error("[programs-pg] coverage cleanup failed", e);
@@ -735,7 +811,21 @@ export async function DELETE(
     );
   }
 
-  await db.program.delete({ where: { slug } });
+  // Its schedule goes with it: these rows name the program by slug (no
+  // database link), so a new program given the same slug would inherit them
+  // (2026-10-16 audit). FK-safe: SubClaim → SubRequest → HostAssignment;
+  // rotation skips go with their rotations.
+  await db.$transaction(async (tx) => {
+    const ids = (await tx.hostAssignment.findMany({ where: { programSlug: slug }, select: { id: true } })).map((a) => a.id);
+    if (ids.length) {
+      await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: ids } } } });
+      await tx.subRequest.deleteMany({ where: { assignmentId: { in: ids } } });
+      await tx.hostAssignment.deleteMany({ where: { id: { in: ids } } });
+    }
+    await tx.standingAssignment.deleteMany({ where: { programSlug: slug } });
+    await tx.programCoverageHub.deleteMany({ where: { programSlug: slug } });
+    await tx.program.delete({ where: { slug } });
+  });
 
   // Tear down any Zoom meetings this program provisioned (Zoom + rows), since
   // SessionMeeting is keyed by slug (no FK) and would otherwise orphan.

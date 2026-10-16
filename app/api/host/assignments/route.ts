@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { authorizeSelfClaim, getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { canAccessHubScheduler, canManageHubCoverage } from "@/lib/hubAuth";
 import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
-import { fmtSessionDay } from "@/lib/timezone";
+import { ctDayBounds, fmtSessionDay } from "@/lib/timezone";
 import {
   DEFAULT_HOSTING_HUB_SLUG,
   getProgramHubSlug,
@@ -12,6 +12,7 @@ import {
   teamCannotStaff,
 } from "@/lib/programHub";
 import { buildHubMonthSessions } from "@/lib/scheduleSessions";
+import { ctDateStr, isOccurrenceOnDate, shiftToDate } from "@/lib/scheduleUtils";
 
 /**
  * Format a session date for use in host emails.
@@ -87,7 +88,7 @@ export async function GET(request: Request) {
   // Tighter than the prior capability check, which let any HOST role-holder
   // read every hub's board regardless of membership.
   if (!(await canAccessHubScheduler(session.user.id, roles, requestedHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
   const match = monthParam ? /^(\d{4})-(\d{2})$/.exec(monthParam) : null;
@@ -156,7 +157,7 @@ export async function POST(request: Request) {
   // they don't belong to — that was a source of "covers but not a member"
   // orphan assignments.
   if (!(await canAccessHubScheduler(session.user.id, roles, targetHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
   // The team must be one that staffs this program (2026-10-15: this was
@@ -172,14 +173,36 @@ export async function POST(request: Request) {
   const placingSelf = action === "claim" || userId === session.user.id;
   if (placingSelf) {
     if (!(await authorizeSelfClaim(session.user.id, roles, targetHubSlug))) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
+      return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
     }
   } else if (!(await canManageHubCoverage(session.user.id, roles, targetHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
   const assignedUserId = placingSelf ? session.user.id : (userId ?? null);
-  const parsedDate = sessionDate ? new Date(sessionDate) : null;
+
+  // The session: a day the program meets, stored at the program's own start
+  // and matched by its Central day (2026-10-16 audit: the client's timestamp
+  // was stored as sent and matched exactly, so any drift split one session
+  // into two rows).
+  const program = await db.program.findUnique({
+    where: { slug: programSlug },
+    select: {
+      id: true, name: true, slug: true, programFormat: true, startDatetime: true, endDatetime: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+    },
+  });
+  const requested = sessionDate ? new Date(sessionDate) : null;
+  if (!program?.startDatetime || !requested || Number.isNaN(requested.getTime())) {
+    return Response.json({ error: "Which session?" }, { status: 400 });
+  }
+  const dayStr = ctDateStr(requested.toISOString());
+  if (!isOccurrenceOnDate(program, dayStr)) {
+    return Response.json({ error: "This program doesn't meet that day." }, { status: 422 });
+  }
+  const parsedDate = shiftToDate(program.startDatetime.toISOString(), dayStr);
+  const day = ctDayBounds(parsedDate);
+  const thisSession = { programSlug, hubSlug: targetHubSlug, sessionDate: { gte: day.start, lte: day.end } };
 
   // Hub-coverage config decides whether (programSlug, sessionDate, hubSlug)
   // is single-slot or multi-claim. Single-slot (host-team / AV / peer-led):
@@ -189,141 +212,70 @@ export async function POST(request: Request) {
   const hubConfig = await getHubCoverageConfig(targetHubSlug);
   const multiClaim = hubConfig?.allowsMultipleAssignments ?? false;
 
-  if (multiClaim) {
-    if (action !== "claim" || !assignedUserId) {
-      return Response.json(
-        { error: "This hub uses open sign-up — only the self-claim action is supported." },
-        { status: 400 },
-      );
-    }
-    // Already signed up?
-    const dup = await db.hostAssignment.findFirst({
-      where: {
-        programSlug, sessionDate: parsedDate, hubSlug: targetHubSlug, userId: assignedUserId,
-      },
-      select: { id: true },
-    });
-    if (dup) {
-      return Response.json({ error: "You're already signed up." }, { status: 409 });
-    }
-    const created = await db.hostAssignment.create({
-      data: {
-        programSlug,
-        hubSlug: targetHubSlug,
-        userId: assignedUserId,
-        sessionDate: parsedDate,
-        notes: notes ?? null,
-        assignedBy: session.user.id,
-      },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
-      },
-    });
-    after(() => notifyAssignedHost(assignedUserId, created.programSlug, created.sessionDate, created.hubSlug));
-    return Response.json({
-      id: created.id,
-      programSlug: created.programSlug,
-      sessionDate: created.sessionDate?.toISOString() ?? null,
-      hubSlug: created.hubSlug,
-      status: "claimed",
-      hostUserId: created.userId,
-      hostName: created.user
-        ? (created.user.preferredName || [created.user.firstName, created.user.lastName].filter(Boolean).join(" ") || null)
-        : null,
-    });
-  }
-
-  // If assigning a specific person (coordinator/manager path), verify they
-  // can host in the target hub BEFORE touching any row — applies whether we
-  // claim an existing unclaimed seed or create a fresh assignment. Hub
-  // authority applies: a member who is paused/inactive or has had hosting
-  // revoked on this hub can't be assigned, even with the HOST role.
-  if (assignedUserId && assignedUserId !== session.user.id) {
-    const targetUser = await db.user.findUnique({
-      where: { id: assignedUserId },
-      select: { id: true },
-    });
-    if (!targetUser) {
-      return Response.json({ error: "User not found" }, { status: 404 });
-    }
-    // Assigning someone requires them to be an active, hosting-capable MEMBER
-    // of this hub — no role fallback (session 146). The picker only offers
-    // roster members, so this is the server-side guard that keeps a coordinator
-    // (or a crafted request) from placing a non-member onto a session and
-    // creating a "covers but not on the team" orphan.
-    if (!(await getEffectiveHostingCapability(assignedUserId, targetHubSlug, false))) {
-      return Response.json(
-        { error: "This member can't be assigned here — they're not on this team, or they're paused, inactive, or have had hosting revoked on this hub." },
-        { status: 422 }
-      );
-    }
-  }
-
-  // Single-slot path. Look up any existing row in this hub for the session;
-  // claim/assign its unclaimed seed, or reject as already filled.
-  const existing = await db.hostAssignment.findFirst({
-    where: { programSlug, sessionDate: parsedDate, hubSlug: targetHubSlug },
-  });
-  if (existing) {
-    // Self-claim an unclaimed seed.
-    if (action === "claim" && !existing.userId) {
-      const updated = await db.hostAssignment.update({
-        where: { id: existing.id },
-        data: { userId: session.user.id, assignedBy: session.user.id },
-        include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
-      });
-      after(() => notifyAssignedHost(session.user.id, updated.programSlug, updated.sessionDate, updated.hubSlug));
-      return Response.json({
-        id: updated.id, programSlug: updated.programSlug,
-        sessionDate: updated.sessionDate?.toISOString() ?? null,
-        hubSlug: updated.hubSlug,
-        status: "claimed", hostUserId: updated.userId,
-        hostName: updated.user
-          ? (updated.user.preferredName || [updated.user.firstName, updated.user.lastName].filter(Boolean).join(" ") || null)
-          : null,
-      });
-    }
-    // Coordinator/manager assigns a specific person to an unclaimed seed.
-    // (Capability already verified above.) Without this branch, assigning
-    // someone to an existing-but-empty slot returned a confusing 409
-    // "session already exists" — the kind of dead-end that erodes trust
-    // (session 140).
-    if (action !== "claim" && !existing.userId && assignedUserId) {
-      const updated = await db.hostAssignment.update({
-        where: { id: existing.id },
-        data: { userId: assignedUserId, assignedBy: session.user.id },
-        include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
-      });
-      after(() => notifyAssignedHost(assignedUserId, updated.programSlug, updated.sessionDate, updated.hubSlug));
-      return Response.json({
-        id: updated.id, programSlug: updated.programSlug,
-        sessionDate: updated.sessionDate?.toISOString() ?? null,
-        hubSlug: updated.hubSlug,
-        status: "claimed", hostUserId: updated.userId,
-        hostName: updated.user
-          ? (updated.user.preferredName || [updated.user.firstName, updated.user.lastName].filter(Boolean).join(" ") || null)
-          : null,
-      });
-    }
+  if (multiClaim && (action !== "claim" || !assignedUserId)) {
     return Response.json(
-      { error: "A session already exists for this program on that date." },
-      { status: 409 }
+      { error: "This hub uses open sign-up — only the self-claim action is supported." },
+      { status: 400 },
     );
   }
 
-  const assignment = await db.hostAssignment.create({
-    data: {
-      programSlug,
-      hubSlug: targetHubSlug,
-      userId: assignedUserId ?? null,
-      sessionDate: parsedDate,
-      notes: notes ?? null,
-      assignedBy: session.user.id,
-    },
-    include: {
-      user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
-    },
+  // If assigning a specific person (coordinator/manager path), verify they
+  // can host in the target hub BEFORE touching any row. Assigning someone
+  // requires them to be an active, hosting-capable MEMBER of this hub, no
+  // role fallback (session 146): the server-side guard that keeps a
+  // coordinator (or a crafted request) from placing a non-member.
+  if (assignedUserId && assignedUserId !== session.user.id) {
+    if (!(await getEffectiveHostingCapability(assignedUserId, targetHubSlug, false))) {
+      return Response.json(
+        { error: "This person can't be scheduled here: they're not on this team, or they're paused or off the schedule." },
+        { status: 422 },
+      );
+    }
+  }
+
+  // Check and write under a lock on this session (program, Central day,
+  // team), so two people taking the same open seat at once can't both win.
+  type Outcome =
+    | { kind: "error"; status: number; error: string }
+    | { kind: "ok"; row: Awaited<ReturnType<typeof db.hostAssignment.create>> & { user: { id: string; firstName: string | null; lastName: string | null; preferredName: string | null } | null } };
+  const userSelect = { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } };
+  const outcome: Outcome = await db.$transaction(async (tx) => {
+    await tx.$queryRawUnsafe("SELECT 1 FROM pg_advisory_xact_lock(hashtext($1))", `seat:${programSlug}:${dayStr}:${targetHubSlug}`);
+
+    if (multiClaim) {
+      const dup = await tx.hostAssignment.findFirst({ where: { ...thisSession, userId: assignedUserId }, select: { id: true } });
+      if (dup) return { kind: "error", status: 409, error: "You're already signed up." };
+      const row = await tx.hostAssignment.create({
+        data: { programSlug, hubSlug: targetHubSlug, userId: assignedUserId, sessionDate: parsedDate, notes: notes ?? null, assignedBy: session.user.id },
+        include: userSelect,
+      });
+      return { kind: "ok", row };
+    }
+
+    // Single seat: fill an empty row for this session, or refuse if filled.
+    const existing = await tx.hostAssignment.findFirst({ where: thisSession, orderBy: { createdAt: "asc" } });
+    if (existing) {
+      if (existing.userId) {
+        return { kind: "error", status: 409, error: existing.userId === session.user.id ? "This session is already yours." : "Someone already has this session." };
+      }
+      if (!assignedUserId) {
+        return { kind: "error", status: 409, error: "This session is already on the schedule." };
+      }
+      const row = await tx.hostAssignment.update({
+        where: { id: existing.id },
+        data: { userId: assignedUserId, assignedBy: session.user.id },
+        include: userSelect,
+      });
+      return { kind: "ok", row };
+    }
+    const row = await tx.hostAssignment.create({
+      data: { programSlug, hubSlug: targetHubSlug, userId: assignedUserId ?? null, sessionDate: parsedDate, notes: notes ?? null, assignedBy: session.user.id },
+      include: userSelect,
+    });
+    return { kind: "ok", row };
   });
+  if (outcome.kind === "error") return Response.json({ error: outcome.error }, { status: outcome.status });
+  const assignment = outcome.row;
 
   // Confirmation email when someone becomes the host: self-claim AND
   // manager-assigns-to-another-user both flow through here.

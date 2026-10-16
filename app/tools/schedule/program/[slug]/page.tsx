@@ -25,6 +25,7 @@ import {
   teamCannotStaff,
 } from "@/lib/programHub";
 import { ctStartOfToday } from "@/lib/timezone";
+import { canAccessHubScheduler, canManageHubCoverage } from "@/lib/hubAuth";
 import {
   ctDateStr,
   isOccurrenceOnDate,
@@ -171,6 +172,17 @@ export default async function ProgramStaffingPage({
   ]);
 
   const hubBySlug = new Map(hubs.map((h) => [h.slug, h]));
+  // What the viewer may do on each team (the coverage gates).
+  const viewerRoles = session.user.roles ?? [];
+  const access = new Map<string, "manage" | "view" | null>();
+  for (const h of allHubSlugs) {
+    access.set(
+      h,
+      (await canManageHubCoverage(session.user.id, viewerRoles, h))
+        ? "manage"
+        : (await canAccessHubScheduler(session.user.id, viewerRoles, h)) ? "view" : null,
+    );
+  }
   // Build the name lookup from the rules themselves; every userId that
   // appears in displayName() comes from a StandingAssignment row that
   // already includes the user record.
@@ -306,21 +318,23 @@ export default async function ProgramStaffingPage({
                     </span>
                     {isMultiClaim && <span className="ps-hub__mode">Open sign-up</span>}
                   </div>
-                  <Link
-                    href={
-                      isMultiClaim
-                        ? `/tools/schedule?hub=${encodeURIComponent(hubSlug)}`
-                        : `/tools/schedule?hub=${encodeURIComponent(hubSlug)}&view=rotations`
-                    }
-                    className="ps-hub__edit-link"
-                  >
-                    {isMultiClaim ? `Open ${hubName} schedule →` : `Edit rotation in ${hubName} →`}
-                  </Link>
+                  {/* A link only where it leads somewhere the viewer can act:
+                      the coordinator to the rotations, a member to the board. */}
+                  {access.get(hubSlug) === "manage" ? (
+                    <Link href={`/tools/schedule?hub=${encodeURIComponent(hubSlug)}&view=rotations`} className="ps-hub__edit-link">
+                      {`Edit rotations in ${hubName} →`}
+                    </Link>
+                  ) : access.get(hubSlug) === "view" ? (
+                    <Link href={`/tools/schedule?hub=${encodeURIComponent(hubSlug)}`} className="ps-hub__edit-link">
+                      {`Open ${hubName} schedule →`}
+                    </Link>
+                  ) : null}
                 </header>
 
-                {isMultiClaim ? (
-                  /* Multi-claim hubs (greeter): no rotation rules — show next
-                     few sessions with current signup counts. */
+                {isMultiClaim && (
+                  /* Open sign-up teams: the next few sessions with how many
+                     have signed up. Their rotations show below too (they run
+                     additively; 2026-10-16 audit: this said they had none). */
                   <div className="ps-multi">
                     {upcomingDates.length === 0 ? (
                       <p className="ps-multi__empty">No upcoming sessions in scope.</p>
@@ -371,9 +385,10 @@ export default async function ProgramStaffingPage({
                       </ul>
                     )}
                   </div>
-                ) : (
-                  /* Single-slot hubs: per-day rotation pattern. Skip days
-                     the program doesn't run on. */
+                )}
+                {(
+                  /* Every team: the per-day rotation pattern. Skip days the
+                     program doesn't run on. */
                   <div className="ps-grid">
                     {days.length === 0 ? (
                       <p className="ps-grid__empty">

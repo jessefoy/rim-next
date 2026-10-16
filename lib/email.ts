@@ -4,7 +4,7 @@ import { isBlockNoteJSON } from "@/lib/renderRichContent";
 import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { db } from "@/lib/db";
 import { ctMonthKey, fmtSessionDay } from "@/lib/timezone";
-import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageConfig, getHubCoverageCopy } from "@/lib/programHub";
+import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageConfig, getHubCoverageCopy, teamPhrase } from "@/lib/programHub";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { RIM_ADDRESS, RIM_EIN, RIM_LEGAL_NAME, emailSafeLink, markdownLinkText } from "@/lib/locations";
 import { FORM_KIND, formNoticeSubject } from "@/lib/formSubmissions";
@@ -357,6 +357,8 @@ const PRE_THRESHOLD_GATED_SLUGS = new Set<string>([
   "sub-request-claimed",
   // A schedule change cleared someone's sessions (2026-10-16).
   "sessions-cleared-schedule-change",
+  // Any other coverage change that took someone off sessions (2026-10-16).
+  "coverage-sessions-cleared",
 ]);
 
 export async function sendTemplatedEmail(
@@ -1000,6 +1002,8 @@ export interface SubClaimedEmailData {
   message: string | null;
   /** Hub the program belongs to. Slice 2.5. */
   hubSlug: string;
+  /** The session, so the link opens its month. */
+  sessionAt?: Date | null;
 }
 
 /**
@@ -1009,7 +1013,7 @@ export interface SubClaimedEmailData {
  */
 export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<void> {
   const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
-  const hubUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
+  const hubUrl = scheduleUrlFor(data.hubSlug, data.sessionAt);
   await sendTemplatedEmail("sub-request-claimed", data.to, {
     firstName:    data.firstName ?? "there",
     claimerName:  data.claimerName,
@@ -1068,10 +1072,10 @@ export async function notifyHubOfNewProgramCoverage(opts: {
   programFormat: string | null; // raw Program.programFormat
   excludeUserId?: string;
 }): Promise<void> {
-  const recipients = await getHubNotificationRecipients(
-    opts.hubSlug,
-    opts.excludeUserId ? { excludeUserId: opts.excludeUserId } : undefined,
-  );
+  const recipients = await getHubNotificationRecipients(opts.hubSlug, {
+    canCover: true,
+    ...(opts.excludeUserId ? { excludeUserId: opts.excludeUserId } : {}),
+  });
   if (recipients.length === 0) return;
   const programFormat =
     opts.programFormat === "virtual" ? "Virtual"
@@ -1124,13 +1128,23 @@ async function isOpenSignUp(hubSlug: string | null | undefined): Promise<boolean
 }
 
 /**
+ * The team's role as it reads mid-sentence ("as host", "as greeter", "your
+ * facilitator rotation"); an abbreviation written in capitals stays as
+ * written ("as AV"). Building sentences from the -ing verb produced "to be
+ * covering AV the following sessions" (2026-10-16 audit).
+ */
+function roleInline(copy: { noun: string }): string {
+  return /^[A-Z0-9/&]+$/.test(copy.noun) ? copy.noun : copy.noun.toLowerCase();
+}
+
+/**
  * What to do if plans change, in the team's own terms (2026-10-15): an open
  * sign-up team (greeters) has no sub requests, so it never hears "request a sub".
  */
 async function changeNoteText(hubSlug: string | null | undefined): Promise<string> {
   return (await isOpenSignUp(hubSlug))
     ? "If anything changes, you can cancel your sign-up from the schedule."
-    : "If anything changes and you need coverage, you can request a sub from the schedule.";
+    : "If anything changes, open the schedule and use Ask the team to cover on that session.";
 }
 async function changeNoteHtml(hubSlug: string | null | undefined): Promise<string> {
   return (await isOpenSignUp(hubSlug))
@@ -1211,6 +1225,63 @@ export async function sendSessionsClearedEmail(data: {
   });
 }
 
+/**
+ * A coverage change took people off sessions: tell each one (2026-10-16
+ * audit: seven paths cleared sessions silently, from a hosting-team change to
+ * a team reset). One email per person per team, listing program and date;
+ * never to the person who made the change, an archived account, or a seat
+ * with no one in it. `reason` is one plain sentence naming what happened,
+ * written by the caller (it knows the program or team). Template:
+ * "coverage-sessions-cleared" (seeded in prisma/migrate.mjs). Call inside
+ * after(); failures are logged per person.
+ */
+export async function sendCoverageClearedEmails(opts: {
+  rows: { userId: string | null; hubSlug: string; programSlug: string; sessionDate: Date | null }[];
+  /** A sentence, or one built from the team as it reads after "the" (teamPhrase). */
+  reason: string | ((team: string) => string);
+  excludeUserId?: string;
+}): Promise<void> {
+  const groups = new Map<string, { userId: string; hubSlug: string; rows: { programSlug: string; sessionDate: Date | null }[] }>();
+  for (const r of opts.rows) {
+    if (!r.userId || r.userId === opts.excludeUserId) continue;
+    const key = `${r.userId}::${r.hubSlug}`;
+    const g = groups.get(key) ?? { userId: r.userId, hubSlug: r.hubSlug, rows: [] };
+    g.rows.push({ programSlug: r.programSlug, sessionDate: r.sessionDate });
+    groups.set(key, g);
+  }
+  if (groups.size === 0) return;
+  const programSlugs = [...new Set(opts.rows.map((r) => r.programSlug))];
+  const hubSlugs = [...new Set([...groups.values()].map((g) => g.hubSlug))];
+  const [programs, hubs] = await Promise.all([
+    db.program.findMany({ where: { slug: { in: programSlugs } }, select: { slug: true, name: true } }),
+    db.hub.findMany({ where: { slug: { in: hubSlugs } }, select: { slug: true, name: true } }),
+  ]);
+  const programName = new Map(programs.map((p) => [p.slug, p.name]));
+  const teamName = new Map(hubs.map((h) => [h.slug, h.name]));
+  for (const g of groups.values()) {
+    try {
+      const user = await db.user.findUnique({ where: { id: g.userId }, select: { email: true, firstName: true, archivedAt: true } });
+      if (!user?.email || user.archivedAt) continue;
+      const sorted = [...g.rows].sort((a, b) => (a.sessionDate?.getTime() ?? 0) - (b.sessionDate?.getTime() ?? 0));
+      const team = teamName.get(g.hubSlug) ?? g.hubSlug;
+      const scheduleUrl = scheduleUrlFor(g.hubSlug, sorted.find((r) => r.sessionDate)?.sessionDate ?? null);
+      await sendTemplatedEmail("coverage-sessions-cleared", user.email, {
+        firstName:   user.firstName ?? "there",
+        teamName:    team,
+        // Reasons read "the …": "the Greeter team", "the Hosting Team".
+        reason:      typeof opts.reason === "function" ? opts.reason(teamPhrase(team)) : opts.reason,
+        sessionList: sorted
+          .map((r) => `- ${programName.get(r.programSlug) ?? r.programSlug}${r.sessionDate ? `, ${fmtSessionDay(r.sessionDate)}` : ""}`)
+          .join("\n"),
+        scheduleUrl,
+        scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
+      });
+    } catch (e) {
+      console.error("[email] coverage-sessions-cleared failed", e);
+    }
+  }
+}
+
 // ─── Standing assignment scheduled notification ───────────────────────────────
 //
 // Hub scope (Slice 2.6): standing-assignment emails accept an optional
@@ -1257,14 +1328,14 @@ export async function sendStandingAssignmentScheduledEmail(
   }
   const count = data.sessions.length;
   const listHtml = data.sessions
-    .map((s) => `<li>${s.programName} &mdash; ${s.dateLabel}</li>`)
+    .map((s) => `<li>${s.programName}, ${s.dateLabel}</li>`)
     .join("");
   // Role-aware copy: "hosting" → "covering AV" / "greeting" / "facilitating"
   // when the rotation is on a non-host-team hub. Defaults to host language.
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const subject =
     count === 1
-      ? `You're scheduled — ${data.sessions[0].programName}`
+      ? `You're scheduled for ${data.sessions[0].programName}`
       : `You're scheduled for ${count} upcoming sessions`;
   // Deep-link to the month of the FIRST scheduled session when provided.
   const schedulePath = data.firstSessionMonth
@@ -1273,7 +1344,7 @@ export async function sendStandingAssignmentScheduledEmail(
   const scheduleUrl = hubScopedUrl(schedulePath, data.hubSlug);
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
-<p>Your standing rotation has been applied. You're scheduled to be ${copy.verb} the following ${count === 1 ? "session" : "sessions"}:</p>
+<p>Your standing rotation has been applied. You're scheduled as ${roleInline(copy)} for the following ${count === 1 ? "session" : "sessions"}:</p>
 <ul>${listHtml}</ul>
 ${emailButtonHtml("Open the Schedule", scheduleUrl)}
 ${await changeNoteHtml(data.hubSlug)}
@@ -1302,17 +1373,20 @@ export async function sendStandingAssignmentReplacedEmail(
   }
   const count = data.sessions.length;
   const listHtml = data.sessions
-    .map((s) => `<li>${s.programName} &mdash; ${s.dateLabel}</li>`)
+    .map((s) => `<li>${s.programName}, ${s.dateLabel}</li>`)
     .join("");
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const subject =
     count === 1
-      ? `You're no longer ${copy.verb} ${data.sessions[0].programName} on ${data.sessions[0].dateLabel}`
-      : `You've been replaced on ${count} upcoming sessions`;
-  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
+      ? `You're no longer scheduled for ${data.sessions[0].programName} on ${data.sessions[0].dateLabel}`
+      : `You're no longer scheduled for ${count} upcoming sessions`;
+  const scheduleUrl = hubScopedUrl(
+    data.firstSessionMonth ? `/tools/schedule?month=${data.firstSessionMonth}` : "/tools/schedule",
+    data.hubSlug,
+  );
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
-<p>Your coordinator has updated the standing rotation. You're no longer scheduled to be ${copy.verb} the following ${count === 1 ? "session" : "sessions"}:</p>
+<p>Your coordinator has updated the standing rotation. You're no longer scheduled as ${roleInline(copy)} for the following ${count === 1 ? "session" : "sessions"}:</p>
 <ul>${listHtml}</ul>
 <p>If you have questions about this change, please reach out to your coordinator. You can see your current schedule any time on the <a href="${scheduleUrl}">Schedule</a>.</p>
 <p>This is an automated message from your standing rotation.</p>`;
@@ -1379,7 +1453,7 @@ export async function sendStandingAssignmentReleasedEmail(
   const listHtml = count === 0
     ? ""
     : `<ul>${data.sessions
-        .map((s) => `<li>${s.programName} &mdash; ${s.dateLabel}</li>`)
+        .map((s) => `<li>${s.programName}, ${s.dateLabel}</li>`)
         .join("")}</ul>`;
   const datesIntro = count === 0
     ? `<p>You won't be scheduled for upcoming sessions of this program through this rotation.</p>`
@@ -1391,7 +1465,7 @@ ${listHtml}
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
-<p>A coordinator has removed you from the standing rotation as <strong>${copy.noun}</strong> for <strong>${programName}</strong>.</p>
+<p>A coordinator has removed you from the standing rotation as ${roleInline(copy)} for <strong>${programName}</strong>.</p>
 ${datesIntro}
 <p>If this was unexpected or you'd like to talk about it, please reach out to your coordinator.</p>
 <p><a href="${scheduleUrl}">View the Schedule</a> &middot; This is an automated message from your standing rotation.</p>`;
@@ -1423,19 +1497,23 @@ export async function sendStandingAssignmentEndedEmail(
   }
   const count = data.sessions.length;
   const listHtml = data.sessions
-    .map((s) => `<li>${s.programName} &mdash; ${s.dateLabel}</li>`)
+    .map((s) => `<li>${s.programName}, ${s.dateLabel}</li>`)
     .join("");
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const subject =
     count === 1
-      ? `Your ${copy.verb} rotation has ended`
-      : `Your ${copy.verb} rotation has ended (${count} sessions cleared)`;
+      ? `Your ${roleInline(copy)} rotation has ended`
+      : `Your ${roleInline(copy)} rotation has ended (${count} sessions cleared)`;
+  const scheduleUrl = hubScopedUrl(
+    data.firstSessionMonth ? `/tools/schedule?month=${data.firstSessionMonth}` : "/tools/schedule",
+    data.hubSlug,
+  );
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
 <p>Your standing rotation has been ended. The following upcoming ${count === 1 ? "session has" : "sessions have"} been cleared from your schedule:</p>
 <ul>${listHtml}</ul>
 <p>Thank you for the time you've contributed. If this was unexpected or you'd like to talk about it, please reach out to your coordinator.</p>
-<p>This is an automated message from your standing rotation.</p>`;
+<p><a href="${scheduleUrl}">View the Schedule</a> &middot; This is an automated message from your standing rotation.</p>`;
 
   try {
     await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });

@@ -55,7 +55,7 @@ export async function DELETE(
   const rotationHubSlug = rotation.hubSlug || await getProgramHubSlug(rotation.programSlug);
   // One rule for managing a team's coverage (lib/hubAuth.ts, 2026-10-15).
   if (!(await canManageHubCoverage(session.user.id, roles, rotationHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({}));

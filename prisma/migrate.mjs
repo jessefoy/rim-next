@@ -6682,6 +6682,57 @@ Rooted In Mindfulness`,
     console.error("  sessions-cleared-schedule-change seed failed:", err?.message ?? err);
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: coverage-sessions-cleared (2026-10-16). Sent when a coverage change
+  // takes someone off sessions: a program changes hosting team or stops
+  // needing one, a team stops covering a program, a team's schedule is
+  // reset, or a coordinator takes them off the schedule or the team
+  // (lib/email.ts sendCoverageClearedEmails). findUnique → create.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const flag = "seed_coverage_sessions_cleared_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const existing = await db.emailTemplate.findUnique({ where: { slug: "coverage-sessions-cleared" } });
+      if (!existing) {
+        await db.emailTemplate.create({
+          data: {
+            slug: "coverage-sessions-cleared",
+            name: "Sessions cleared: a coverage change",
+            description:
+              "Sent when a change takes someone off sessions they were scheduled for: the program moved to another team, a team stopped covering it, the team's schedule was reset, or a coordinator took them off the schedule or the team. One email per person per team, listing the sessions.",
+            enabled: true,
+            group: "04-hosts",
+            groupLabel: "Host Team",
+            subject: "Your {{teamName}} schedule has changed",
+            variables: ["firstName", "teamName", "reason", "sessionList", "scheduleUrl", "scheduleButton"],
+            helpText:
+              "Sent after a coverage change removes someone from sessions they had. {{reason}} is one sentence written by the app for what happened (for example, that a program is now covered by another team).\n\n" +
+              "Available variables: {{firstName}}, {{teamName}}, {{reason}}, {{sessionList}} (each session as a list line: program and date), {{scheduleUrl}}, {{scheduleButton}} (use triple braces {{{scheduleButton}}}).",
+            body: `Hi {{firstName}},
+
+{{reason}} You're no longer scheduled for these sessions:
+
+{{sessionList}}
+
+If you have questions, please reach out to your team's coordinator.
+
+{{{scheduleButton}}}
+
+With care,
+Rooted In Mindfulness`,
+          },
+        });
+        console.log("  ✔ Email template coverage-sessions-cleared created.");
+      } else {
+        console.log("  Email template coverage-sessions-cleared already exists, left alone.");
+      }
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  } catch (err) {
+    console.error("  coverage-sessions-cleared seed failed:", err?.message ?? err);
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

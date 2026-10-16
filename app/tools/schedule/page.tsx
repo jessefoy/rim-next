@@ -18,6 +18,7 @@ import { getToolHubContext } from "@/lib/toolAuth";
 import HubScheduleClient from "@/components/HubScheduleClient";
 import { buildHubMonthSessions } from "@/lib/scheduleSessions";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
+import { canSelfClaim } from "@/lib/hubMemberAuth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Scheduler - Tools" };
@@ -43,6 +44,25 @@ export default async function ScheduleToolPage({
   // standing-assignment confirmation email can land hosts on the actual
   // month containing their next session.
   const { hub: hubSlug, month: monthParam } = await searchParams;
+  // No team named: the Hosting Team's board for its members and the
+  // oversight roles; anyone else goes to their own scheduling team (2026-10-16
+  // audit: a greeter-only member was turned away from the Hosting Team's).
+  if (!hubSlug) {
+    const oversight = isHostManager || roles.includes("GUIDING_TEACHER");
+    const own = await db.hubMember.findMany({
+      where: {
+        userId: session.user.id,
+        status: { not: "INACTIVE" },
+        hub: { status: "ACTIVE", appLinks: { some: { toolSlug: "schedule", isEnabled: true } } },
+      },
+      select: { hub: { select: { slug: true, name: true } } },
+    });
+    const onHostingTeam = own.some((m) => m.hub.slug === DEFAULT_HOSTING_HUB_SLUG);
+    if (!oversight && !onHostingTeam && own.length > 0) {
+      const first = own.map((m) => m.hub).sort((a, b) => a.name.localeCompare(b.name))[0];
+      redirect(`/tools/schedule?hub=${encodeURIComponent(first.slug)}${monthParam ? `&month=${encodeURIComponent(monthParam)}` : ""}`);
+    }
+  }
   const activeHubSlug = hubSlug || DEFAULT_HOSTING_HUB_SLUG;
 
   // isManager = HOST_MANAGER/ADMIN OR a coordinator of *this* hub. Routed by
@@ -78,6 +98,25 @@ export default async function ScheduleToolPage({
     );
   }
 
+  // A team that is archived or has the Scheduler off has no board: every
+  // change would be refused (2026-10-16 audit).
+  const schedulerTeam = await db.hub.findUnique({
+    where: { slug: activeHubSlug },
+    select: { status: true, appLinks: { where: { toolSlug: "schedule", isEnabled: true }, select: { id: true }, take: 1 } },
+  });
+  if (!schedulerTeam || schedulerTeam.status !== "ACTIVE" || schedulerTeam.appLinks.length === 0) {
+    return (
+      <div className="tools-unauthorized">
+        <p>{hubContext?.name ?? "This team"} doesn&rsquo;t use the Scheduler right now.</p>
+        <p><a href="/account/dashboard">&larr; Back to your dashboard</a></p>
+      </div>
+    );
+  }
+
+  // Whether the viewer may take sessions here: the buttons follow the rule
+  // the server applies (lib/hubMemberAuth.ts canSelfClaim).
+  const canClaim = await canSelfClaim(session.user.id, roles, activeHubSlug);
+
   const coordinators = (hubContext?.members ?? [])
     .filter((m) => m.isCoordinator)
     .map((m) => m.user.preferredName || [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") || null)
@@ -95,6 +134,9 @@ export default async function ScheduleToolPage({
         [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") ||
         "Unnamed",
       isCoordinator: m.isCoordinator,
+      // Can be put on a session or a rotation: ACTIVE with the schedule on.
+      // The pickers offer only these; the member view lists everyone.
+      canCover: m.status === "ACTIVE" && m.hostingCapability,
     }))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
@@ -149,6 +191,7 @@ export default async function ScheduleToolPage({
         allowsMultipleAssignments={allowsMultipleAssignments}
         hubName={hubContext?.name ?? activeHubSlug}
         hostsSessions={hostsSessions}
+        canClaim={canClaim}
       />
     </div>
   );

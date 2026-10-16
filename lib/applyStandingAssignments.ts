@@ -231,6 +231,8 @@ export async function generateCandidates(
       ...(dayOfWeekFilter   ? { dayOfWeek:   dayOfWeekFilter   } : {}),
       ...(hubSlugFilter     ? { hubSlug:     hubSlugFilter     } : {}),
       OR: [{ endsOn: null }, { endsOn: { gte: todayCt } }],
+      // An archived person is never scheduled (2026-10-16 audit).
+      user: { archivedAt: null },
     },
     include: {
       user: { select: { id: true, firstName: true, preferredName: true, email: true } },
@@ -281,7 +283,10 @@ export async function generateCandidates(
   const [hubRows, coverageRows, skipRows] = await Promise.all([
     db.hub.findMany({
       where: { slug: { in: ruleHubs } },
-      select: { slug: true, appliesToFormats: true, allowsMultipleAssignments: true },
+      select: {
+        slug: true, appliesToFormats: true, allowsMultipleAssignments: true, status: true,
+        appLinks: { where: { toolSlug: "schedule", isEnabled: true }, select: { id: true }, take: 1 },
+      },
     }),
     db.programCoverageHub.findMany({ where: { programSlug: { in: slugs } }, select: { programSlug: true, hubSlug: true } }),
     // Dates a rotation must not fill: someone was removed from it, or released it.
@@ -294,7 +299,9 @@ export async function generateCandidates(
   const coverage = new Set(coverageRows.map((c) => `${c.programSlug}::${c.hubSlug}`));
   const teamCovers = (program: { slug: string; programFormat: string | null; hostingHubSlug?: string | null }, hubSlug: string) => {
     const hub = hubBySlug.get(hubSlug);
-    if (!hub) return false;
+    // An archived team, or one with the Scheduler off, schedules no one
+    // (2026-10-16 audit: an archived team's rotations kept filling sessions).
+    if (!hub || hub.status !== "ACTIVE" || hub.appLinks.length === 0) return false;
     const covers = (program.hostingHubSlug ?? "host-team") === hubSlug || coverage.has(`${program.slug}::${hubSlug}`);
     // Same as the view: a program with no format shows on no team's schedule.
     return covers && !!program.programFormat && hub.appliesToFormats.includes(program.programFormat);
@@ -589,8 +596,11 @@ export async function previewStandingAssignments(
     let source: Conflict["source"];
     let isProtected = false;
 
+    // An open cover request is protected too, as the header says: replacing
+    // the person under it would let a claimer take over the rotation's new
+    // person (2026-10-16 audit).
     const hasSubCover = existing.subRequests.some(
-      (sr) => sr.status === "CLAIMED" && sr.claim?.claimedById === existing.userId
+      (sr) => sr.status === "OPEN" || (sr.status === "CLAIMED" && sr.claim?.claimedById === existing.userId)
     );
     if (hasSubCover) {
       source = "sub-cover";
@@ -837,3 +847,59 @@ export async function holdRotationDate(
   });
 }
 
+type Tx = Parameters<Parameters<typeof db.$transaction>[0]>[0];
+
+/**
+ * Take one person off their upcoming sessions (2026-10-16 audit: the member
+ * release, archiving and account deletion each did this differently, and
+ * archiving didn't do it at all). Within one team (`hubSlug`) or all.
+ *
+ * - An open sign-up team's sign-up is removed; a one-person team's seat is
+ *   emptied and its open cover request closed (FK-safe throughout).
+ * - `endRotations`: their rotations go too (archive, delete). Otherwise each
+ *   rotation date is held so their rotation won't put them back when they
+ *   return (a pause).
+ *
+ * Returns the sessions they were taken off, for telling them. Run inside the
+ * caller's transaction.
+ */
+export async function releasePersonCoverage(
+  tx: Tx,
+  userId: string,
+  byUserId: string,
+  opts: { hubSlug?: string; endRotations: boolean },
+): Promise<{ rows: { userId: string; hubSlug: string; programSlug: string; sessionDate: Date | null }[]; rotations: number }> {
+  const rows = await tx.hostAssignment.findMany({
+    where: {
+      userId,
+      ...(opts.hubSlug ? { hubSlug: opts.hubSlug } : {}),
+      OR: [{ sessionDate: null }, { sessionDate: { gte: new Date() } }],
+    },
+    select: { id: true, hubSlug: true, programSlug: true, standingAssignmentId: true, sessionDate: true },
+  });
+  const openSignUp = new Set(
+    (await tx.hub.findMany({
+      where: { slug: { in: [...new Set(rows.map((r) => r.hubSlug))] }, allowsMultipleAssignments: true },
+      select: { slug: true },
+    })).map((h) => h.slug),
+  );
+  if (!opts.endRotations) for (const r of rows) await holdRotationDate(r, byUserId, tx);
+  const remove = rows.filter((r) => openSignUp.has(r.hubSlug)).map((r) => r.id);
+  const empty = rows.filter((r) => !openSignUp.has(r.hubSlug)).map((r) => r.id);
+  if (remove.length) {
+    await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: remove } } } });
+    await tx.subRequest.deleteMany({ where: { assignmentId: { in: remove } } });
+    await tx.hostAssignment.deleteMany({ where: { id: { in: remove } } });
+  }
+  if (empty.length) {
+    await tx.subRequest.updateMany({ where: { assignmentId: { in: empty }, status: "OPEN" }, data: { status: "CANCELLED" } });
+    await tx.hostAssignment.updateMany({ where: { id: { in: empty } }, data: { userId: null } });
+  }
+  const rotations = opts.endRotations
+    ? (await tx.standingAssignment.deleteMany({ where: { userId, ...(opts.hubSlug ? { hubSlug: opts.hubSlug } : {}) } })).count
+    : 0;
+  return {
+    rows: rows.map((r) => ({ userId, hubSlug: r.hubSlug, programSlug: r.programSlug, sessionDate: r.sessionDate })),
+    rotations,
+  };
+}

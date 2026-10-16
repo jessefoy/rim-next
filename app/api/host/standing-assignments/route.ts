@@ -45,7 +45,7 @@ import {
   sendStandingAssignmentReplacedEmail,
 } from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
-import { ctStartOfToday } from "@/lib/timezone";
+import { ctMonthKey, ctStartOfToday } from "@/lib/timezone";
 
 const TZ = "America/Chicago";
 
@@ -105,7 +105,7 @@ export async function GET(request: Request) {
   // Seeing a team's rotations is seeing its schedule: the per-team door, not
   // the right to cover (a coordinator who doesn't host still manages them).
   if (!(await canAccessHubScheduler(session.user.id, roles, effectiveHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
   const now = new Date();
@@ -227,7 +227,7 @@ export async function POST(request: Request) {
   const programHubSlug = await getProgramHubSlug(body.programSlug);
   const targetHubSlug = body.hubSlug || programHubSlug;
   if (!(await canManageHubCoverage(session.user.id, roles, targetHubSlug))) {
-    return Response.json({ error: "Forbidden — coordinator or manager required" }, { status: 403 });
+    return Response.json({ error: "Only this team's coordinator or a Host Manager can do that." }, { status: 403 });
   }
   // The team must staff this program: covers it, in a format it serves, and
   // on the hosting team the program needs a host (lib/programHub.ts).
@@ -486,6 +486,10 @@ export async function POST(request: Request) {
               : "(no date)",
           })),
           hubSlug: targetHubSlug,
+          firstSessionMonth: (() => {
+            const first = dates.filter((d): d is Date => !!d).sort((a, b) => a.getTime() - b.getTime())[0];
+            return first ? ctMonthKey(first) : undefined;
+          })(),
           coverageCopy,
         });
       }

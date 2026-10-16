@@ -40,6 +40,8 @@ const NEW_PROGRAM_DAYS = 14;
 type Program = ScheduleProgramSummary;
 
 interface TeamMember {
+  /** Can be put on a session or rotation (ACTIVE, on the schedule). */
+  canCover?: boolean;
   id: string;
   displayName: string;
   isCoordinator: boolean;
@@ -72,6 +74,8 @@ interface Props {
   coverageCopy?: { noun: string; verb: string; action: string };
   /** The team's display name. */
   hubName?: string;
+  /** The viewer may take sessions on this team's schedule. */
+  canClaim?: boolean;
   /** The team runs the session (hub.hasSchedule), as opposed to staffing a
    *  supporting role: picks the empty-state instructions. */
   hostsSessions?: boolean;
@@ -216,11 +220,13 @@ function bucketByWeek(sessions: Session[], isCurrentMonth: boolean): Bucket[] {
 
 // ── Modal ───────────────────────────────────────────────────
 
-type ModalKind = "take" | "cover" | "ask-cover" | "ask-cover-for" | "cancel-request" | "clear-request" | "reassign" | "unassign" | null;
+type ModalKind = "take" | "cover" | "ask-cover" | "ask-cover-for" | "cancel-request" | "clear-request" | "reassign" | "unassign" | "remove-signup" | null;
 
 interface ModalProps {
   kind: ModalKind;
   session: Session | null;
+  /** remove-signup: whose sign-up. */
+  signup?: { assignmentId: string; userName: string | null } | null;
   onConfirm: (extra?: any) => Promise<void> | void;
   onCancel: () => void;
   submitting: boolean;
@@ -232,12 +238,52 @@ interface ModalProps {
   coverageCopy: HubCoverageCopy;
 }
 
-function HsModal({ kind, session, onConfirm, onCancel, submitting, error, coverageCopy }: ModalProps) {
+function HsModal({ kind, session, signup, onConfirm, onCancel, submitting, error, coverageCopy }: ModalProps) {
   const [coverNote, setCoverNote] = useState<string>("");
 
   useEffect(() => {
     if (kind === "ask-cover" || kind === "ask-cover-for") setCoverNote("");
   }, [kind, session?.id]);
+
+  // A real dialog (2026-10-16 audit): focus moves into it on open and back to
+  // where it was on close, and Escape closes it unless a save is running.
+  const primaryRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const latest = useRef({ onCancel, submitting });
+  useEffect(() => { latest.current = { onCancel, submitting }; });
+  const open = !!kind && !!session;
+  // Taking someone off starts on the safe choice, so one Enter can't remove them.
+  const destructive = kind === "unassign" || kind === "remove-signup" || kind === "clear-request" || kind === "reassign";
+  useEffect(() => {
+    if (!open) return;
+    const returnTo = document.activeElement as HTMLElement | null;
+    (destructive ? cancelRef : primaryRef).current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      // Not from inside the note editor, or when an inner control handled it.
+      const inEditor = (e.target as HTMLElement | null)?.closest?.("[contenteditable='true']");
+      if (e.key === "Escape" && !e.defaultPrevented && !inEditor && !latest.current.submitting) {
+        latest.current.onCancel();
+        return;
+      }
+      // Keep Tab inside the dialog (it is modal).
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          "button:not([disabled]), [href], input, select, textarea, [contenteditable='true'], [tabindex]:not([tabindex='-1'])",
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0], last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      returnTo?.focus?.();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on open/close only; `destructive` is fixed while open
+  }, [open]);
 
   if (!kind || !session) return null;
 
@@ -276,7 +322,7 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error, covera
     primaryLabel = "Send to the team";
     extraInput = (
       <div className="hs-modal__field">
-        <label className="hs-modal__field-label">Add a note (optional)</label>
+        <p className="hs-modal__field-label">Add a note (optional)</p>
         <RimTiptapEditor
           value={coverNote}
           onChange={setCoverNote}
@@ -300,7 +346,7 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error, covera
     primaryLabel = "Send to the team";
     extraInput = (
       <div className="hs-modal__field">
-        <label className="hs-modal__field-label">Add a note (optional)</label>
+        <p className="hs-modal__field-label">Add a note (optional)</p>
         <RimTiptapEditor
           value={coverNote}
           onChange={setCoverNote}
@@ -349,12 +395,30 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error, covera
     );
     primaryLabel = "Yes, remove";
     cancelLabel = "Keep them on";
+  } else if (kind === "remove-signup") {
+    // A coordinator removing someone else's sign-up (open sign-up teams). It
+    // was one tap on a small link, with no confirmation (2026-10-16 audit).
+    title = "Remove this sign-up?";
+    body = (
+      <>This takes <strong>{signup?.userName ?? "this person"}</strong> off{" "}
+      <strong>{session.programName}</strong> on <strong>{dateStr}</strong>.
+      They&apos;ll be notified.</>
+    );
+    primaryLabel = "Yes, remove";
+    cancelLabel = "Keep them on";
   }
 
   return (
     <div className="hs-modal-backdrop" onClick={onCancel}>
-      <div className="hs-modal" onClick={(e) => e.stopPropagation()}>
-        <h2 className="hs-modal__title">{title}</h2>
+      <div
+        ref={dialogRef}
+        className="hs-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="hs-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="hs-modal__title" id="hs-modal-title">{title}</h2>
         <div className="hs-modal__body">{body}</div>
         {extraInput}
         {error && (
@@ -364,6 +428,7 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error, covera
         )}
         <div className="hs-modal__actions">
           <button
+            ref={primaryRef}
             className="lr-btn lr-btn--host hs-modal__primary"
             onClick={() => onConfirm(kind === "ask-cover" || kind === "ask-cover-for" ? coverNote : undefined)}
             disabled={submitting}
@@ -371,6 +436,7 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting, error, covera
             {submitting ? "Working…" : primaryLabel}
           </button>
           <button
+            ref={cancelRef}
             className="hs-modal__cancel"
             onClick={onCancel}
             disabled={submitting}
@@ -413,11 +479,14 @@ interface RowProps {
   /** Coordinator/manager (incl. hub coordinators) — shows the assign-in-place
    *  affordance on needs-coverage rows (session 140). */
   isManager: boolean;
-  teamMembers: { id: string; displayName: string; isCoordinator: boolean }[];
+  teamMembers: { id: string; displayName: string; isCoordinator: boolean; canCover?: boolean }[];
   onAssign: (s: Session, userId: string) => Promise<void>;
   /** Multi-claim hub (greeter): open sign-up model. Suppresses single-slot
    *  affordances that don't apply (the assign-others picker on empty rows). */
   allowsMultipleAssignments?: boolean;
+  /** The viewer may take sessions here (the server's own rule). Without it
+   *  the take, cover and sign-up buttons aren't offered (2026-10-16). */
+  canClaim: boolean;
 }
 
 /**
@@ -431,7 +500,7 @@ function AssignControl({
   session, teamMembers, onAssign,
 }: {
   session: Session;
-  teamMembers: { id: string; displayName: string; isCoordinator: boolean }[];
+  teamMembers: { id: string; displayName: string; isCoordinator: boolean; canCover?: boolean }[];
   onAssign: (s: Session, userId: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -461,7 +530,9 @@ function AssignControl({
       }}
     >
       <option value="">{busy ? "Assigning…" : "Choose a person…"}</option>
-      {teamMembers.map((m) => (
+      {/* Only people who can be scheduled: paused or off-schedule members
+          would be refused (2026-10-16 audit). */}
+      {teamMembers.filter((m) => m.canCover !== false).map((m) => (
         <option key={m.id} value={m.id}>
           {m.displayName}{m.isCoordinator ? " ★" : ""}
         </option>
@@ -473,7 +544,7 @@ function AssignControl({
 function HsRow({
   session, kind, isPast, currentUserId,
   onTake, onCover, onAskCover, onAskCoverFor, onCancelRequest, onClearRequest, onReassign, onUnassign,
-  onSignUp, onCancelSignUp, onRemoveSignup,
+  onSignUp, onCancelSignUp, onRemoveSignup, canClaim,
   isHostManager,
   coverageCopy,
   isManager, teamMembers, onAssign, allowsMultipleAssignments,
@@ -530,9 +601,11 @@ function HsRow({
       if (!isPast) {
         actionEl = (
           <div className="hs-row__action-stack">
-            <button className="lr-btn lr-btn--host" onClick={() => onTake(session)}>
-              Yes, I can {coverageCopy.action}
-            </button>
+            {canClaim && (
+              <button className="lr-btn lr-btn--host" onClick={() => onTake(session)}>
+                Yes, I can {coverageCopy.action}
+              </button>
+            )}
             {/* Assign-a-specific-person is a single-slot operation. Multi-claim
                 hubs (greeter) use open sign-up — the server rejects assign-others
                 there — so the picker is hidden on those empty rows. */}
@@ -547,16 +620,18 @@ function HsRow({
       statusEl = (
         <span className="hs-row__status hs-row__status--needs">
           {isPast
-            ? "Sub never claimed"
-            : (session.hostName ? `${session.hostName} needs help` : "Needs a sub")}
+            ? "No one covered"
+            : (session.hostName ? `${session.hostName} needs help` : "Needs cover")}
         </span>
       );
       if (!isPast) {
         actionEl = (
           <div className="hs-row__action-stack">
-            <button className="lr-btn lr-btn--host" onClick={() => onCover(session)}>
-              Yes, I can cover
-            </button>
+            {canClaim && (
+              <button className="lr-btn lr-btn--host" onClick={() => onCover(session)}>
+                Yes, I can cover
+              </button>
+            )}
             {/* Coordinator/manager: clear the cover request without removing the
                 host (the host stays on). Gated by isManager — the requesting
                 host themselves sees "Cancel my request" on their own row. */}
@@ -619,12 +694,12 @@ function HsRow({
       const nounPlural = `${nounLower}s`;
       let headerText: string;
       if (count === 0) {
-        headerText = isPast ? `No ${nounPlural}` : `No ${nounPlural} yet — be the first?`;
+        headerText = isPast ? `No ${nounPlural}` : `No ${nounPlural} yet. Be the first?`;
       } else if (count === 1) {
-        headerText = mine ? `We have 1 ${nounLower} — that's you` : `We have 1 ${nounLower}`;
+        headerText = mine ? `We have 1 ${nounLower}: that's you` : `We have 1 ${nounLower}`;
       } else {
         headerText = mine
-          ? `We have ${count} ${nounPlural} — you're one of them`
+          ? `We have ${count} ${nounPlural}, and you're one of them`
           : `We have ${count} ${nounPlural}`;
       }
 
@@ -685,11 +760,13 @@ function HsRow({
               Cancel my signup
             </button>
           )
-          : (
-            <button className="lr-btn lr-btn--host" onClick={() => onSignUp?.(session)}>
-              {count === 0 ? "I’ll be the first" : "I’ll be there too"}
-            </button>
-          );
+          : canClaim
+            ? (
+              <button className="lr-btn lr-btn--host" onClick={() => onSignUp?.(session)}>
+                {count === 0 ? "I’ll be the first" : "I’ll be there too"}
+              </button>
+            )
+            : null;
       }
       break;
     }
@@ -776,7 +853,7 @@ export default function HubScheduleClient({
   isHostManager = false, isManager = false,
   apiBase = "/api/host", hubSlug,
   allowsMultipleAssignments = false,
-  hubName, hostsSessions = false,
+  hubName, hostsSessions = false, canClaim = false,
   coverageCopy = { noun: "Host", verb: "hosting", action: "host this" },
 }: Props) {
   const router = useRouter();
@@ -800,7 +877,11 @@ export default function HubScheduleClient({
   const [filter, setFilter] = useState<FilterKey>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string>(currentUserId);
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
-  const [modal, setModal] = useState<{ kind: ModalKind; session: Session | null }>({ kind: null, session: null });
+  const [modal, setModal] = useState<{
+    kind: ModalKind;
+    session: Session | null;
+    signup?: { assignmentId: string; userName: string | null } | null;
+  }>({ kind: null, session: null });
   const [modalSubmitting, setModalSubmitting] = useState(false);
 
   // Close dropdown on outside click
@@ -1054,7 +1135,7 @@ export default function HubScheduleClient({
         ? { ...row, id: data.id, status: "claimed", hostUserId: data.hostUserId, hostName: data.hostName, subRequestId: null, subMessage: null }
         : row
       ));
-      const who = teamMembers.find(m => m.id === userId)?.displayName ?? data.hostName ?? "host";
+      const who = teamMembers.find(m => m.id === userId)?.displayName ?? data.hostName ?? "them";
       showToast(`Assigned ${who} · ${s.programName} · ${fmtDateShort(s.sessionDate)}`);
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Couldn't assign. Please try again.", "error");
@@ -1109,10 +1190,10 @@ export default function HubScheduleClient({
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
-      setToast(d.error ?? "Couldn't remove the signup. Try again.", "error");
-      return;
+      // Said inside the dialog, beside its button.
+      throw new Error(d.error ?? "Couldn't remove the sign-up. Please try again.");
     }
-    setToast(userName ? `Removed ${userName}'s signup.` : "Signup removed.");
+    setToast(userName ? `Removed ${userName}'s sign-up.` : "Sign-up removed.");
     await loadMonth(year, month);
   }
 
@@ -1163,10 +1244,12 @@ export default function HubScheduleClient({
       } else if (modal.kind === "reassign") {
         await reassign(modal.session);
         showToast("Reassigned to you.");
+      } else if (modal.kind === "remove-signup" && modal.signup) {
+        await removeSignup(modal.session, modal.signup.assignmentId, modal.signup.userName);
       } else if (modal.kind === "unassign") {
-        const removedName = modal.session.hostName ?? "Host";
+        const removedName = modal.session.hostName;
         await unassign(modal.session);
-        showToast(`Removed ${removedName} · now needs coverage`);
+        showToast(removedName ? `Removed ${removedName}. The session needs coverage.` : "Removed. The session needs coverage.");
       }
       setModal({ kind: null, session: null });
       clearDeepLinkParams();
@@ -1292,7 +1375,8 @@ export default function HubScheduleClient({
     onUnassign: openUnassign,
     onSignUp: signUp,
     onCancelSignUp: cancelSignUp,
-    onRemoveSignup: removeSignup,
+    onRemoveSignup: (s: Session, assignmentId: string, userName: string | null) =>
+      setModal({ kind: "remove-signup", session: s, signup: { assignmentId, userName } }),
     currentUserId,
     isHostManager,
     coverageCopy,
@@ -1300,6 +1384,7 @@ export default function HubScheduleClient({
     teamMembers,
     onAssign: assignMember,
     allowsMultipleAssignments,
+    canClaim,
   };
 
   return (
@@ -1346,6 +1431,7 @@ export default function HubScheduleClient({
           hubSlug={hubSlug}
           hubName={hubName}
           hostsSessions={hostsSessions}
+          allowsMultipleAssignments={allowsMultipleAssignments}
           onScheduleStale={() => loadMonth(year, month)}
         />
       )}
@@ -1507,7 +1593,7 @@ export default function HubScheduleClient({
           {pastBuckets.length > 0 && (
             <details className="hs-past">
               <summary className="hs-past__summary">
-                Earlier this month — {pastSessions.length}{" "}
+                Earlier this month: {pastSessions.length}{" "}
                 {pastSessions.length === 1 ? "session" : "sessions"}
               </summary>
               <div className="hs-past__content">
@@ -1555,6 +1641,7 @@ export default function HubScheduleClient({
         submitting={modalSubmitting}
         error={modalError}
         coverageCopy={coverageCopy}
+        signup={modal.signup ?? null}
       />
 
       <ActionNotice notice={toast} onClose={() => setToast(null)} />

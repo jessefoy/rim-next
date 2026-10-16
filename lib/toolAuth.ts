@@ -103,7 +103,10 @@ export async function getToolHubContext(hubSlug: string | undefined) {
  */
 export async function getHubNotificationRecipients(
   hubSlug: string,
-  options?: { coordinatorsOnly?: boolean; excludeUserId?: string },
+  /** `canCover`: only members who may take sessions on the schedule
+   *  (hostingCapability). For coverage asks (cover requests, a new program to
+   *  staff): a member taken off the schedule can't act on them (2026-10-16). */
+  options?: { coordinatorsOnly?: boolean; excludeUserId?: string; canCover?: boolean },
 ) {
   const hub = await db.hub.findUnique({
     where: { slug: hubSlug },
@@ -113,6 +116,7 @@ export async function getHubNotificationRecipients(
           status: "ACTIVE",
           communicationsEnabled: true,
           ...(options?.coordinatorsOnly ? { isCoordinator: true } : {}),
+          ...(options?.canCover ? { hostingCapability: true } : {}),
           // emailVerified must be set: excludes pre-threshold / staged members.
           // An admin can add a host to a hub before they've ever logged in —
           // they must receive ZERO hub-pool notifications until they onboard.

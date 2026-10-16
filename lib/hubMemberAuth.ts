@@ -122,9 +122,18 @@ export async function ensureActiveHubMembership(
  * Returns false (refuse with 403) at the first failure; enrolls only on success.
  */
 export async function authorizeSelfClaim(userId: string, roles: string[], hubSlug: string): Promise<boolean> {
-  if (!(await canAccessHubScheduler(userId, roles, hubSlug))) return false;
-  const oversight = roles.includes("HOST_MANAGER") || roles.includes("ADMIN");
-  if (!roles.includes("ADMIN") && !(await getEffectiveHostingCapability(userId, hubSlug, oversight))) return false;
+  if (!(await canSelfClaim(userId, roles, hubSlug))) return false;
   await ensureActiveHubMembership(userId, hubSlug);
   return true;
+}
+
+/**
+ * The same rule without enrolling: may this person take sessions here? The
+ * Scheduler shows its take and sign-up buttons only when it is true, so no
+ * one is offered a button the server will refuse (2026-10-16 audit).
+ */
+export async function canSelfClaim(userId: string, roles: string[], hubSlug: string): Promise<boolean> {
+  if (!(await canAccessHubScheduler(userId, roles, hubSlug))) return false;
+  const oversight = roles.includes("HOST_MANAGER") || roles.includes("ADMIN");
+  return roles.includes("ADMIN") || (await getEffectiveHostingCapability(userId, hubSlug, oversight));
 }

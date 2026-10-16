@@ -64,6 +64,7 @@
  */
 
 import { db } from "@/lib/db";
+import { ctDayBounds } from "@/lib/timezone";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import {
   DEFAULT_HOSTING_HUB_SLUG,
@@ -124,6 +125,9 @@ export async function resolveSessionRole(
       ? programHubOverride
       : await getProgramHostingHub(programSlug);
   const hostingHubSlug = programHub?.hubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
+  const sessionDay = sessionDate && !Number.isNaN(new Date(sessionDate).getTime())
+    ? ctDayBounds(new Date(sessionDate))
+    : null;
 
   // ── Session Host (identity): HostAssignment match for this exact session,
   // in the program's HOSTING team only. Greeter and AV assignments cover the
@@ -138,7 +142,8 @@ export async function resolveSessionRole(
       programSlug,
       userId,
       hubSlug: hostingHubSlug,
-      ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
+      // This session = its Central day (see ctDayBounds), not the exact start.
+      ...(sessionDay ? { sessionDate: { gte: sessionDay.start, lte: sessionDay.end } } : {}),
     },
     select: { id: true },
   });
@@ -210,7 +215,7 @@ export async function resolveSessionRole(
         programSlug,
         hubSlug: hostingHubSlug,
         userId: { not: null },
-        ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
+        ...(sessionDay ? { sessionDate: { gte: sessionDay.start, lte: sessionDay.end } } : {}),
       },
       select: { id: true },
     });

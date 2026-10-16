@@ -72,6 +72,23 @@ export function ctStartOfToday(now: Date = new Date()): Date {
 }
 
 /**
+ * The Central calendar day a moment falls on, as UTC instants: from its
+ * midnight to just before the next. A program meets at most once a Central
+ * day, so "this session" is matched by day, not by exact start: an exact
+ * match broke when a stored time drifted from the program's (a start-time
+ * edit before re-timing existed, or daylight saving), and the Zoom door then
+ * didn't know the assigned host (2026-10-16).
+ */
+export function ctDayBounds(d: Date): { start: Date; end: Date } {
+  const day = toCentralDatetime(d).slice(0, 10);
+  const next = new Date(`${day}T12:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  const start = centralToUtc(`${day}T00:00`) ?? d;
+  const end = new Date((centralToUtc(`${next.toISOString().slice(0, 10)}T00:00`) ?? d).getTime() - 1);
+  return { start, end };
+}
+
+/**
  * A calendar month in Central Time as UTC instants: from its first midnight to
  * just before the next month's (month0 is 0-based). The Scheduler's month query
  * uses this (2026-10-15: it used UTC, so an evening session on the last day of

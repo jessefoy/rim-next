@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { NextResponse } from "next/server";
-import { canAccessHub, effectiveCoordinator, getHubMembership, requireCoordinator } from "@/lib/hubAuth";
-import { holdRotationDate } from "@/lib/applyStandingAssignments";
+import { NextResponse, after } from "next/server";
+import { canAccessHub, canManageHubCoverage, effectiveCoordinator, getHubMembership, requireCoordinator } from "@/lib/hubAuth";
+import { releasePersonCoverage } from "@/lib/applyStandingAssignments";
+import { sendCoverageClearedEmails } from "@/lib/email";
 import { removeHubMembershipWithCleanup } from "@/lib/removeHubMembership";
 
 type HubMemberStatus = "ACTIVE" | "PAUSED" | "INACTIVE";
@@ -68,6 +69,12 @@ export async function PATCH(
     force?: boolean;
     releaseAssignments?: boolean;
   };
+  // Releasing someone's sessions is coverage management: the one coverage
+  // gate (an ACTIVE coordinator of this team, or a manager), not just the
+  // Members tab's coordinator check (2026-10-16 audit).
+  if (releaseAssignments && !(await canManageHubCoverage(session.user.id, roles, hub.slug))) {
+    return NextResponse.json({ error: "Only this team's coordinator can open someone's sessions to the team." }, { status: 403 });
+  }
 
   // Compute the effective next state for destructive-action detection.
   const nextStatus = (status !== undefined ? status : existing.status) as HubMemberStatus;
@@ -167,25 +174,17 @@ export async function PATCH(
   // blank name on the session (2026-10-15 audit). FK-safe order: SubClaim →
   // SubRequest → HostAssignment.
   if (willRevokeHosting && force && releaseAssignments) {
-    const openSignUp = hub.allowsMultipleAssignments;
-    await db.$transaction(async (tx) => {
-      const rows = await tx.hostAssignment.findMany({
-        where: { userId, hubSlug: hub.slug, sessionDate: { gte: new Date() } },
-        select: { id: true, standingAssignmentId: true, sessionDate: true },
-      });
-      // Their rotation won't put them back on these when they return.
-      for (const r of rows) await holdRotationDate(r, session.user.id, tx);
-      const ids = rows.map((r) => r.id);
-      if (ids.length === 0) return;
-      if (openSignUp) {
-        await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: ids } } } });
-        await tx.subRequest.deleteMany({ where: { assignmentId: { in: ids } } });
-        await tx.hostAssignment.deleteMany({ where: { id: { in: ids } } });
-      } else {
-        await tx.subRequest.updateMany({ where: { assignmentId: { in: ids }, status: "OPEN" }, data: { status: "CANCELLED" } });
-        await tx.hostAssignment.updateMany({ where: { id: { in: ids } }, data: { userId: null } });
-      }
-    });
+    const released = await db.$transaction((tx) =>
+      releasePersonCoverage(tx, userId, session.user.id, { hubSlug: hub.slug, endRotations: false }),
+    );
+    // Tell them, unless they did it themselves.
+    after(() =>
+      sendCoverageClearedEmails({
+        rows: released.rows,
+        reason: (team) => `Your coordinator has taken you off the ${team}'s schedule for now, and your sessions are open to the team.`,
+        excludeUserId: session.user.id,
+      }),
+    );
   }
 
   return NextResponse.json({
@@ -248,13 +247,23 @@ export async function DELETE(
   // past sessions stay as historical record. FK-safe order: SubClaim →
   // SubRequest → HostAssignment (SubRequest.assignmentId is Restrict). Their
   // StandingAssignment rules go too, so the daily apply cron stops re-creating
-  // assignments for someone no longer on the team. Silent, matching the
-  // coordinator pause/release path; hard-remove is an ADMIN cleanup action.
-  const { removedAssignments, removedRules } = await removeHubMembershipWithCleanup(
+  // assignments for someone no longer on the team. The person is told which
+  // sessions went (2026-10-16 audit; it was silent).
+  const { removedAssignments, removedRules, rows: removedRows } = await removeHubMembershipWithCleanup(
     hub.id,
     slug,
     userId,
   );
+  // They're told which sessions went with the team (2026-10-16 audit).
+  if (removedRows.length) {
+    after(() =>
+      sendCoverageClearedEmails({
+        rows: removedRows,
+        reason: (team) => `You're no longer on the ${team}.`,
+        excludeUserId: session.user.id,
+      }),
+    );
+  }
   console.log(
     `[hub-member-remove] ${slug}: removed member ${userId} + ${removedAssignments} future assignment(s) + ${removedRules} rotation rule(s).`,
   );

@@ -2,12 +2,13 @@ import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
 import { ensureActiveHubMembership } from "@/lib/hubMemberAuth";
-import { fmtSessionDay } from "@/lib/timezone";
+import { ctStartOfToday, fmtSessionDay } from "@/lib/timezone";
 import {
   sendHostAssignmentConfirmationEmail,
   sendHostAssignmentRemovedEmail,
 } from "@/lib/email";
-import { getHubCoverageConfig } from "@/lib/programHub";
+import { getHubCoverageConfig, teamCannotStaff } from "@/lib/programHub";
+import { holdRotationDate } from "@/lib/applyStandingAssignments";
 import { canManageHubCoverage } from "@/lib/hubAuth";
 
 // Central Time, not the server's UTC (2026-10-15).
@@ -71,6 +72,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "This team uses open sign-up." }, { status: 400 });
   }
 
+  // Only a session still ahead, on a team that may still staff the program
+  // (2026-10-16 audit).
+  if (existing.sessionDate && existing.sessionDate < ctStartOfToday()) {
+    return Response.json({ error: "This session has already happened." }, { status: 400 });
+  }
+  const cannot = await teamCannotStaff(existing.hubSlug, existing.programSlug);
+  if (cannot) return Response.json({ error: cannot.message }, { status: 422 });
+
   // The assignment's own team decides who may take it over.
   const sessionHubSlug = existing.hubSlug;
 
@@ -98,6 +107,9 @@ export async function POST(request: Request) {
     await tx.subClaim.deleteMany({ where: { request: { assignmentId: existingId } } });
     await tx.subRequest.deleteMany({ where: { assignmentId: existingId } });
     await tx.hostAssignment.delete({ where: { id: existingId } });
+    // A rotation-made session taken over by hand stays out of the rotation,
+    // or emptying it later would let the rotation put the old person back.
+    await holdRotationDate(existing, session.user.id, tx);
     return tx.hostAssignment.create({
       data: {
         programSlug: existing.programSlug,

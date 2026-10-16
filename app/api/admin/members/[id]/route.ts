@@ -6,6 +6,7 @@ import { Role, MemberStatus } from "@prisma/client";
 import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail, sendHostManagerRoleAssignmentEmail } from "@/lib/email";
 import { syncHubMembership } from "@/lib/syncHubMembership";
 import { enrollMemberInRoleSeries } from "@/lib/enrollment";
+import { releasePersonCoverage } from "@/lib/applyStandingAssignments";
 
 const ALL_ROLES = Object.values(Role);
 
@@ -36,7 +37,14 @@ export async function PATCH(
   }
 
   if (action === "archive") {
-    await db.user.update({ where: { id }, data: { archivedAt: new Date() } });
+    // An archived person can't sign in, so their schedule goes with them:
+    // sessions released (an open sign-up removed, a seat emptied) and their
+    // rotations ended, so the daily run stops scheduling them (2026-10-16
+    // audit). They aren't emailed; the team sees the open seats.
+    await db.$transaction(async (tx) => {
+      await tx.user.update({ where: { id }, data: { archivedAt: new Date() } });
+      await releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true });
+    });
     // Force logout by deleting all active sessions
     await db.session.deleteMany({ where: { userId: id } });
     return NextResponse.json({ ok: true });
@@ -172,6 +180,11 @@ export async function PATCH(
         createdAt: true,
       },
     });
+    // Marked Inactive archives the account: release its schedule as the
+    // Archive action does (2026-10-16 audit).
+    if (statusDrivenArchivedAt instanceof Date && !user.archivedAt) {
+      await releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true });
+    }
     if (emailIsChanging) {
       // Codes already sent to the old address stop working with it.
       await tx.verificationToken.deleteMany({ where: { identifier: user.email } });
@@ -304,8 +317,25 @@ export async function DELETE(
   // Cascade handles: Account, Session, CourseAccess, UserMembership, AttendanceRecord,
   // HubMember, SubClaim, HubConversationThread/Reply, HubDocument.
   // Registration uses SetNull (records preserved, userId cleared).
-  // HostAssignment uses SetNull (slot becomes unclaimed).
-  await db.user.delete({ where: { id } });
+  // The schedule first (2026-10-16 audit): their upcoming sessions released
+  // and rotations ended; rotations they created pass to the admin deleting
+  // them (that column can't be empty, so the delete used to fail); their
+  // past open sign-up rows go, since a nameless sign-up means nothing.
+  const adminId = session!.user.id;
+  await db.$transaction(async (tx) => {
+    await releasePersonCoverage(tx, id, adminId, { endRotations: true });
+    await tx.standingAssignment.updateMany({ where: { createdById: id }, data: { createdById: adminId } });
+    const pastSignUps = (await tx.hostAssignment.findMany({
+      where: { userId: id, hubSlug: { in: (await tx.hub.findMany({ where: { allowsMultipleAssignments: true }, select: { slug: true } })).map((h) => h.slug) } },
+      select: { id: true },
+    })).map((a) => a.id);
+    if (pastSignUps.length) {
+      await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: pastSignUps } } } });
+      await tx.subRequest.deleteMany({ where: { assignmentId: { in: pastSignUps } } });
+      await tx.hostAssignment.deleteMany({ where: { id: { in: pastSignUps } } });
+    }
+    await tx.user.delete({ where: { id } });
+  });
 
   return NextResponse.json({ ok: true });
 }

@@ -261,6 +261,7 @@ export default function HubMembersClient({
           <MemberEditor
             member={m}
             isHostingHub={isHostingHub}
+            hostsSessions={hostsSessions}
             isSelf={isSelf}
             isAdmin={isAdmin}
             onSave={(payload) => patchMember(m.userId, payload)}
@@ -403,7 +404,7 @@ export default function HubMembersClient({
                 Keep their sessions
               </button>
               <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(true)}>
-                Open their sessions to the team
+                Take them off their sessions
               </button>
             </div>
           </div>
@@ -417,6 +418,7 @@ export default function HubMembersClient({
 function MemberEditor({
   member,
   isHostingHub,
+  hostsSessions,
   isSelf,
   isAdmin,
   onSave,
@@ -424,6 +426,7 @@ function MemberEditor({
 }: {
   member: HubMemberRow;
   isHostingHub: boolean;
+  hostsSessions: boolean;
   isSelf: boolean;
   isAdmin: boolean;
   onSave: (payload: Record<string, unknown>) => Promise<{ ok: boolean; confirmed?: boolean }>;
@@ -457,7 +460,7 @@ function MemberEditor({
       <div className="hub-mem-editor__grid">
         <label className="hub-mem-editor__field">
           <span>Position</span>
-          <input className="fi" value={position} onChange={(e) => setPosition(e.target.value)} placeholder="e.g. Virtual Host" />
+          <input className="fi" value={position} onChange={(e) => setPosition(e.target.value)} placeholder={isHostingHub && hostsSessions ? "e.g. Virtual Host" : "e.g. Team member"} />
         </label>
         <label className="hub-mem-editor__field">
           <span>Status</span>

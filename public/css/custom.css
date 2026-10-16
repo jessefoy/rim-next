@@ -13708,8 +13708,13 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 .hs-row__multi-remove {
   background: none;
   border: none;
-  padding: 0;
-  margin-left: 4px;
+  padding: 0 8px;
+  margin-left: 0;
+  /* A 44px target (CLAUDE.md); it was text-height, about 16px (2026-10-16). */
+  min-height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
   font-family: var(--font-sans);
   font-size: var(--text-xxs);
   color: var(--rim-text-muted);
@@ -14735,6 +14740,8 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   border: 1px solid var(--color-warning);
   border-radius: 6px;
   padding: 5px 12px;
+  min-height: 44px; /* touch target (CLAUDE.md); was 32px (2026-10-16) */
+  box-sizing: border-box;
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   color: var(--color-warning);

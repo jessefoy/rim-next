@@ -32,9 +32,13 @@ export async function PATCH(
   const isOwn = subRequest.assignment.userId === session.user.id;
   const canManage = await canManageHubCoverage(session.user.id, roles, subRequest.assignment.hubSlug);
   if (!canManage && !isOwn) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
-  await db.subRequest.update({ where: { id }, data: { status: "CANCELLED" } });
+  // Only while still open: a cover that landed first stands (2026-10-16 audit).
+  const closed = await db.subRequest.updateMany({ where: { id, status: "OPEN" }, data: { status: "CANCELLED" } });
+  if (closed.count === 0) {
+    return Response.json({ error: "This request is already closed: someone covered it, or it was cancelled." }, { status: 409 });
+  }
   return Response.json({ ok: true });
 }

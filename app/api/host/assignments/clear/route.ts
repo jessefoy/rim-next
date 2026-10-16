@@ -31,6 +31,8 @@
  */
 
 import { auth } from "@/auth";
+import { after } from "next/server";
+import { sendCoverageClearedEmails } from "@/lib/email";
 import { db } from "@/lib/db";
 import { canManageHubCoverage } from "@/lib/hubAuth";
 import { ctStartOfToday } from "@/lib/timezone";
@@ -60,51 +62,43 @@ export async function POST(request: Request) {
   // team's active coordinator). It left out HOST_MANAGER, whom the button showed.
   if (!(await canManageHubCoverage(session.user.id, roles, hubSlug))) {
     return Response.json(
-      { error: "Forbidden — hub coordinator or ADMIN required" },
+      { error: "Only this team's coordinator or an admin can do that." },
       { status: 403 },
     );
   }
 
-  let deletedAssignments = 0;
-  let deletedRotations   = 0;
-
-  if (scope === "future") {
-    // CT-anchored "today"
-    const todayCt = ctStartOfToday(); // Central midnight, not UTC (2026-10-15)
-
-    // SubRequests reference HostAssignment via FK without cascade — clean
-    // them up first. Hub-scoped via the parent assignment's hubSlug so
-    // an AV reset doesn't cancel host-team sub-requests.
-    await db.subRequest.deleteMany({
-      where: { assignment: { hubSlug, sessionDate: { gte: todayCt } } },
+  // One transaction (FK-safe: SubClaim → SubRequest → HostAssignment, then
+  // rotations), and the people taken off upcoming sessions are told
+  // (2026-10-16 audit: done in separate steps, and silently).
+  const todayCt = ctStartOfToday(); // Central midnight, not UTC (2026-10-15)
+  const { deletedAssignments, deletedRotations, upcoming } = await db.$transaction(async (tx) => {
+    const rows = await tx.hostAssignment.findMany({
+      where: { hubSlug, ...(scope === "future" ? { sessionDate: { gte: todayCt } } : {}) },
+      select: { id: true, userId: true, hubSlug: true, programSlug: true, sessionDate: true },
     });
-
-    const result = await db.hostAssignment.deleteMany({
-      where: { hubSlug, sessionDate: { gte: todayCt } },
-    });
-    deletedAssignments = result.count;
-  } else {
-    // Everything in this hub. Clear sub-request chain first.
-    await db.subClaim.deleteMany({
-      where: { request: { assignment: { hubSlug } } },
-    });
-    await db.subRequest.deleteMany({
-      where: { assignment: { hubSlug } },
-    });
-    const result = await db.hostAssignment.deleteMany({
-      where: { hubSlug },
-    });
-    deletedAssignments = result.count;
-  }
-
-  if (endRotations) {
-    // Hard delete — true fresh start for this hub. The HostAssignment
-    // cascade is SetNull on standingAssignmentId, so any past
-    // assignments we kept lose the FK but stay as historical record.
-    const rotResult = await db.standingAssignment.deleteMany({
-      where: { hubSlug },
-    });
-    deletedRotations = rotResult.count;
+    const ids = rows.map((r) => r.id);
+    if (ids.length) {
+      await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: ids } } } });
+      await tx.subRequest.deleteMany({ where: { assignmentId: { in: ids } } });
+      await tx.hostAssignment.deleteMany({ where: { id: { in: ids } } });
+    }
+    // Hard delete of the rules: a true fresh start for this team. Past
+    // assignments kept above lose the rule link (SetNull) and stay as record.
+    const rot = endRotations ? await tx.standingAssignment.deleteMany({ where: { hubSlug } }) : { count: 0 };
+    return {
+      deletedAssignments: ids.length,
+      deletedRotations: rot.count,
+      upcoming: rows.filter((r) => r.sessionDate && r.sessionDate >= todayCt),
+    };
+  });
+  if (upcoming.length) {
+    after(() =>
+      sendCoverageClearedEmails({
+        rows: upcoming,
+        reason: (team) => `The ${team}'s upcoming schedule has been cleared.`,
+        excludeUserId: session.user.id,
+      }),
+    );
   }
 
   return Response.json({ deletedAssignments, deletedRotations, scope, hubSlug });

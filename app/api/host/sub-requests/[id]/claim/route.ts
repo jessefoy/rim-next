@@ -63,7 +63,7 @@ export async function POST(
   // oversight role, hosting allowed, enrolled on the team ("covers ⇒ member").
   // It used a role fallback that let a non-member cover and stay off the roster.
   if (!(await authorizeSelfClaim(session.user.id, roles, assignmentHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
   // Fetch claimer's name for notifications
@@ -76,24 +76,21 @@ export async function POST(
     claimer?.email ||
     "Someone";
 
-  // Create claim + flip status + update assignment.userId to claimer atomically
-  await db.$transaction([
-    db.subClaim.create({
-      data: {
-        requestId: id,
-        claimedById: session.user.id,
-        message: message ?? Prisma.JsonNull,
-      },
-    }),
-    db.subRequest.update({
-      where: { id },
-      data: { status: "CLAIMED" },
-    }),
-    db.hostAssignment.update({
-      where: { id: subRequest.assignmentId },
-      data: { userId: session.user.id },
-    }),
-  ]);
+  // Claim, close the request and move the seat, atomically. The request
+  // closes only if it is still open, so two people covering at once can't
+  // both win, and a cancel that landed first is respected (2026-10-16 audit).
+  const won = await db.$transaction(async (tx) => {
+    const closed = await tx.subRequest.updateMany({ where: { id, status: "OPEN" }, data: { status: "CLAIMED" } });
+    if (closed.count === 0) return false;
+    await tx.subClaim.create({
+      data: { requestId: id, claimedById: session.user.id, message: message ?? Prisma.JsonNull },
+    });
+    await tx.hostAssignment.update({ where: { id: subRequest.assignmentId }, data: { userId: session.user.id } });
+    return true;
+  });
+  if (!won) {
+    return Response.json({ error: "Someone has already covered this session, or the request was closed." }, { status: 409 });
+  }
 
   // The request's own date, else its assignment's (older requests were saved
   // undated), in Central Time (2026-10-15).
@@ -113,7 +110,10 @@ export async function POST(
     }),
   ]);
   const programName = program?.name || subRequest.programSlug;
-  const requesterNote = message ? (await extractTextAsync(message) || null) : null;
+  // Two notes, each to the other person (2026-10-16 audit: the claimer's own
+  // note was quoted back to them, and the request's note never reached them).
+  const claimerNote = message ? (await extractTextAsync(message) || null) : null;
+  const requestNote = subRequest.message ? (await extractTextAsync(subRequest.message) || null) : null;
 
   // Send both emails after the response. The requester gets the existing
   // "your session is covered" email; the claimer gets a confirmation so they
@@ -128,8 +128,9 @@ export async function POST(
           claimerName,
           programName,
           sessionDate: sessionLabel,
-          message: requesterNote,
+          message: claimerNote,
           hubSlug: assignmentHubSlug,
+          sessionAt,
         } as SubClaimedEmailData);
       }
 
@@ -139,7 +140,7 @@ export async function POST(
           firstName: claimerForEmail.firstName,
           programName,
           dateText: sessionLabel,
-          requesterNote,
+          requesterNote: requestNote,
           sessionAt,
           hubSlug: assignmentHubSlug,
         });

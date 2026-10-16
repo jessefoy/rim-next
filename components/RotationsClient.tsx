@@ -117,6 +117,8 @@ interface TeamMember {
   id:            string;
   displayName:   string;
   isCoordinator: boolean;
+  /** Can be put on a rotation (ACTIVE, on the schedule). */
+  canCover?:     boolean;
 }
 
 interface Rotation {
@@ -146,6 +148,9 @@ interface Props {
   /** The team runs the session (hub.hasSchedule): picks the empty-state
    *  instructions (Hosting team vs supporting role). */
   hostsSessions?: boolean;
+  /** Open sign-up team: a rotation adds its person, never replaces anyone,
+   *  and there are no cover requests. */
+  allowsMultipleAssignments?: boolean;
   /** Called after any rotation change that may have created/modified HostAssignment
    *  rows so the parent (Schedule view) can refresh its display. */
   onScheduleStale?: () => void;
@@ -263,7 +268,7 @@ function miniDateParts(dateStr: string): { month: string; day: string; label: st
   };
 }
 
-export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, hubSlug, hubName, hostsSessions = false, onScheduleStale }: Props) {
+export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, hubSlug, hubName, hostsSessions = false, allowsMultipleAssignments = false, onScheduleStale }: Props) {
   const teamName = hubName ?? hubSlug ?? "this team";
   const router = useRouter();
   const [rotations, setRotations] = useState<Rotation[]>([]);
@@ -744,9 +749,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   return (
     <div className="hs-rot">
       <p className="hs-rot__intro">
-        Standing rotations automatically schedule a host for sessions matching
+        Standing rotations automatically schedule people for sessions matching
         a recurring pattern. Saving a rotation applies it immediately to future
         sessions. Past sessions are never changed.
+        {allowsMultipleAssignments &&
+          " On this team a rotation adds its person to whoever has signed up; it never replaces anyone."}
       </p>
 
       {error && <p className="hs-rot__error">{error}</p>}
@@ -864,8 +871,9 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                                 Their rule for {DAY_LABEL[d]}s is deleted and their upcoming
                                 {" "}{DAY_LABEL[d]}s are freed. Other days (and other people on
                                 this same day) are untouched. Past sessions stay on the record.
-                                For &ldquo;I can&rsquo;t make one specific date,&rdquo; use the
-                                Schedule tab&rsquo;s &ldquo;Ask the team to cover&rdquo; affordance instead.
+                                {allowsMultipleAssignments
+                                  ? <>For &ldquo;I can&rsquo;t make one specific date,&rdquo; they can cancel that sign-up on the Schedule tab instead.</>
+                                  : <>For &ldquo;I can&rsquo;t make one specific date,&rdquo; use the Schedule tab&rsquo;s &ldquo;Ask the team to cover&rdquo; instead.</>}
                               </p>
                               <div className="hs-rot__release-hosts">
                                 {distinctHosts.map((uid) => (
@@ -891,6 +899,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                             </p>
                             <div className="hs-rot__end-date-row">
                               <input
+                                aria-label="Last day of this rotation"
                                 type="date"
                                 className="hs-rot__end-date-input"
                                 value={endOnInput}
@@ -912,9 +921,9 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                             <strong>Reset {DAY_LABEL[d]}&rsquo;s rotation.</strong>
                             <span>
                               Deletes the {DAY_LABEL[d]} rotation rule and clears upcoming
-                              {" "}{DAY_LABEL[d]}s from hosts&rsquo; schedules. Other days for
+                              {" "}{DAY_LABEL[d]}s from everyone&rsquo;s schedule. Other days for
                               {" "}{program.name} are untouched. Past sessions stay on the
-                              record. Each affected host is emailed.
+                              record. Each person affected is emailed.
                             </span>
                           </button>
                           <button className="hs-rot__end-cancel" onClick={() => { setEndingBundle(null); setEndOnInput(""); }} disabled={saving || releasing || settingEndDate}>Cancel</button>
@@ -1136,10 +1145,13 @@ interface FormProps {
 }
 
 function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, showDayPicker, allowedDays, program }: FormProps) {
+  // People who can be scheduled, plus anyone already on this rotation (a
+  // paused member stays on it and visible; 2026-10-16 audit).
+  const onRotation = new Set([...Object.values(form.hosts), form.fifthHost].filter(Boolean));
   const personOptions = (
     <>
       <option value="">— pick a person —</option>
-      {teamMembers.map((m) => (
+      {teamMembers.filter((m) => m.canCover !== false || onRotation.has(m.id)).map((m) => (
         <option key={m.id} value={m.id}>
           {m.displayName}{m.isCoordinator ? " ★" : ""}
         </option>
@@ -1205,8 +1217,9 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
       {/* Pattern-specific fields */}
       {form.pattern === "same" && (
         <div className="pe-field">
-          <span className="pe-field__label">Host every week</span>
+          <span className="pe-field__label">Every week</span>
           <select
+            aria-label="Every week"
             className="pe-select"
             value={form.hosts.every ?? ""}
             onChange={(e) => setHosts({ every: e.target.value })}
@@ -1221,6 +1234,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
           <div className="pe-field">
             <span className="pe-field__label">1st &amp; 3rd weeks</span>
             <select
+              aria-label="1st & 3rd weeks"
               className="pe-select"
               value={form.hosts.oddWk ?? ""}
               onChange={(e) => setHosts({ oddWk: e.target.value })}
@@ -1231,6 +1245,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
           <div className="pe-field">
             <span className="pe-field__label">2nd &amp; 4th weeks</span>
             <select
+              aria-label="2nd & 4th weeks"
               className="pe-select"
               value={form.hosts.evenWk ?? ""}
               onChange={(e) => setHosts({ evenWk: e.target.value })}
@@ -1247,6 +1262,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
             <div key={k} className="pe-field">
               <span className="pe-field__label">{["1st", "2nd", "3rd", "4th"][i]} of month</span>
               <select
+                aria-label={`${["1st", "2nd", "3rd", "4th"][i]} week of the month`}
                 className="pe-select"
                 value={form.hosts[k] ?? ""}
                 onChange={(e) => setHosts({ [k]: e.target.value })}
@@ -1274,6 +1290,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
           </span>
           <div className="pe-inline-row">
             <select
+              aria-label="5th-week person"
               className="pe-select"
               value={form.fifthHost}
               onChange={(e) => setForm({ ...form, fifthHost: e.target.value })}
@@ -1310,6 +1327,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
           <span className="pe-field__label">Until</span>
           <div className="pe-inline-row">
             <input
+              aria-label="Until"
               type="date"
               className="pe-input"
               value={form.endsOn}

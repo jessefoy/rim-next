@@ -22,12 +22,17 @@ export async function removeHubMembershipWithCleanup(
   hubId: string,
   hubSlug: string,
   userId: string,
-): Promise<{ removedAssignments: number; removedRules: number }> {
+): Promise<{
+  removedAssignments: number;
+  removedRules: number;
+  /** The sessions they were on, for telling them (2026-10-16 audit). */
+  rows: { userId: string | null; hubSlug: string; programSlug: string; sessionDate: Date | null }[];
+}> {
   const now = new Date();
   return db.$transaction(async (tx) => {
     const futureAssns = await tx.hostAssignment.findMany({
       where: { userId, hubSlug, sessionDate: { gte: now } },
-      select: { id: true },
+      select: { id: true, userId: true, hubSlug: true, programSlug: true, sessionDate: true },
     });
     const futureIds = futureAssns.map((a) => a.id);
     if (futureIds.length > 0) {
@@ -37,6 +42,10 @@ export async function removeHubMembershipWithCleanup(
     }
     const rules = await tx.standingAssignment.deleteMany({ where: { userId, hubSlug } });
     await tx.hubMember.delete({ where: { hubId_userId: { hubId, userId } } });
-    return { removedAssignments: futureIds.length, removedRules: rules.count };
+    return {
+      removedAssignments: futureIds.length,
+      removedRules: rules.count,
+      rows: futureAssns.map((a) => ({ userId: a.userId, hubSlug: a.hubSlug, programSlug: a.programSlug, sessionDate: a.sessionDate })),
+    };
   });
 }

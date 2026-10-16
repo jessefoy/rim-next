@@ -278,17 +278,42 @@ export async function getHubCoverageConfig(
 // ───────────────────────────────────────────────────────────────────────────
 
 /**
+ * May this team be ticked as a program's supporting team (Auxiliary role
+ * coverage)? Active, a supporting team (not one that runs sessions), the
+ * Scheduler installed, and the program's format among the team's. The
+ * editor's list applies the same rule; the server checked only that the team
+ * existed (2026-10-16 audit). Returns why not, or null.
+ */
+export async function supportingTeamRefusal(hubSlug: string, programFormat: string | null): Promise<string | null> {
+  const hub = await db.hub.findUnique({
+    where: { slug: hubSlug },
+    select: {
+      name: true, status: true, hasSchedule: true, appliesToFormats: true,
+      appLinks: { where: { toolSlug: "schedule", isEnabled: true }, select: { id: true }, take: 1 },
+    },
+  });
+  if (!hub) return `Unknown team: ${hubSlug}`;
+  if (hub.status !== "ACTIVE") return `${hub.name} is archived.`;
+  if (hub.hasSchedule) return `${hub.name} runs sessions itself; choose it as the Hosting team instead.`;
+  if (hub.appLinks.length === 0) return `${hub.name} doesn't have the Scheduler installed yet.`;
+  if (!programFormat || !hub.appliesToFormats.includes(programFormat)) {
+    return `${hub.name} doesn't staff ${programFormat ?? "unformatted"} sessions.`;
+  }
+  return null;
+}
+
+/**
  * May this team be chosen as a program's Hosting team? It must run sessions
  * (`hasSchedule`), be active, and have the Scheduler installed, or the
  * program would be hosted by a team with no schedule to staff it (2026-10-15
  * audit). Returns why not, in words for the editor, or null when it may.
  * The editor's list applies the same rule.
  */
-export async function hostingTeamRefusal(hubSlug: string): Promise<string | null> {
+export async function hostingTeamRefusal(hubSlug: string, programFormat?: string | null): Promise<string | null> {
   const hub = await db.hub.findUnique({
     where: { slug: hubSlug },
     select: {
-      name: true, status: true, hasSchedule: true,
+      name: true, status: true, hasSchedule: true, appliesToFormats: true,
       appLinks: { where: { toolSlug: "schedule", isEnabled: true }, select: { id: true }, take: 1 },
     },
   });
@@ -296,6 +321,11 @@ export async function hostingTeamRefusal(hubSlug: string): Promise<string | null
   if (hub.status !== "ACTIVE") return `${hub.name} is archived, so it can't host programs.`;
   if (!hub.hasSchedule) return `${hub.name} staffs a supporting role. Choose it under Auxiliary role coverage instead.`;
   if (hub.appLinks.length === 0) return `${hub.name} doesn't have the Scheduler installed yet, so it can't host programs.`;
+  // The program's format must be one the team staffs, or the program shows
+  // on no schedule at all (2026-10-16 audit).
+  if (programFormat && !hub.appliesToFormats.includes(programFormat)) {
+    return `${hub.name} doesn't staff ${programFormat} sessions. Choose another hosting team, or add ${programFormat} to the team's formats in /admin/hubs.`;
+  }
   return null;
 }
 
@@ -360,7 +390,7 @@ export async function clearCoverageNoLongerStaffed(
   /** Only these teams are judged: the ones this save changed. Old leftovers
    *  on other teams are not swept up by an unrelated save (2026-10-15 review). */
   onlyHubs: string[],
-): Promise<{ hubSlug: string; assignments: number; rotations: number }[]> {
+): Promise<{ hubSlug: string; assignments: number; rotations: number; rows: { userId: string | null; hubSlug: string; programSlug: string; sessionDate: Date | null }[] }[]> {
   if (onlyHubs.length === 0) return [];
   const program = await db.program.findUnique({ where: { slug: programSlug }, select: { archivedAt: true } });
   if (!program || program.archivedAt) return [];
@@ -375,7 +405,7 @@ export async function clearCoverageNoLongerStaffed(
   ]);
   const hubs = [...new Set([...assignmentHubs, ...rotationHubs].map((r) => r.hubSlug))]
     .filter((h) => onlyHubs.includes(h));
-  const cleared: { hubSlug: string; assignments: number; rotations: number }[] = [];
+  const cleared: { hubSlug: string; assignments: number; rotations: number; rows: { userId: string | null; hubSlug: string; programSlug: string; sessionDate: Date | null }[] }[] = [];
   for (const hubSlug of hubs) {
     // Only when the program itself says this team no longer covers it; a
     // switched-off Scheduler app is a setting, not a reason to clear coverage.
@@ -384,7 +414,7 @@ export async function clearCoverageNoLongerStaffed(
     const result = await db.$transaction(async (tx) => {
       const future = await tx.hostAssignment.findMany({
         where: { programSlug, hubSlug, OR: [{ sessionDate: null }, { sessionDate: { gte: now } }] },
-        select: { id: true },
+        select: { id: true, userId: true, hubSlug: true, programSlug: true, sessionDate: true },
       });
       const ids = future.map((a) => a.id);
       if (ids.length) {
@@ -393,7 +423,7 @@ export async function clearCoverageNoLongerStaffed(
         await tx.hostAssignment.deleteMany({ where: { id: { in: ids } } });
       }
       const rot = await tx.standingAssignment.deleteMany({ where: { programSlug, hubSlug } });
-      return { hubSlug, assignments: ids.length, rotations: rot.count };
+      return { hubSlug, assignments: ids.length, rotations: rot.count, rows: future.map((r) => ({ userId: r.userId, hubSlug: r.hubSlug, programSlug: r.programSlug, sessionDate: r.sessionDate })) };
     });
     if (result.assignments || result.rotations) cleared.push(result);
   }
@@ -472,4 +502,13 @@ export async function clearOffScheduleCoverage(programSlug: string): Promise<{
     sessions: offDay.map((a) => ({ userId: a.userId, hubSlug: a.hubSlug, sessionDate: a.sessionDate! })),
     rotations: deadRules.length,
   };
+}
+
+/**
+ * A team's name as it reads after "the": "Greeter team", but "Hosting Team"
+ * as is (2026-10-16: "the Hosting Team team"). For sentences like "You're on
+ * the …" and "The … no longer covers …".
+ */
+export function teamPhrase(name: string): string {
+  return /\bteam$/i.test(name.trim()) ? name.trim() : `${name.trim()} team`;
 }

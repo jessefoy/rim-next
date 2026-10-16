@@ -25,6 +25,8 @@
  */
 
 import { auth } from "@/auth";
+import { sendCoverageClearedEmails } from "@/lib/email";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 
 import { canManageHubCoverage } from "@/lib/hubAuth";
@@ -58,7 +60,7 @@ export async function POST(
 
   // One rule for managing a team's coverage (lib/hubAuth.ts, 2026-10-15).
   if (!(await canManageHubCoverage(session.user.id, roles, targetHubSlug))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "You don't have permission to do that on this team's schedule." }, { status: 403 });
   }
 
   // CT-anchored today cutoff — past sessions are never touched
@@ -66,6 +68,7 @@ export async function POST(
 
   let deletedAssignments = 0;
   let deletedRotations   = 0;
+  let clearedRows: { userId: string | null; hubSlug: string; programSlug: string; sessionDate: Date | null }[] = [];
 
   // Atomic cleanup. SubRequest.assignmentId FK is Restrict (no cascade),
   // so the parent HostAssignment delete will FK-violate if any SubRequest
@@ -77,8 +80,9 @@ export async function POST(
   await db.$transaction(async (tx) => {
     const futureAssns = await tx.hostAssignment.findMany({
       where: { programSlug, hubSlug: targetHubSlug, sessionDate: { gte: todayCt } },
-      select: { id: true },
+      select: { id: true, userId: true, hubSlug: true, programSlug: true, sessionDate: true },
     });
+    clearedRows = futureAssns;
     const futureAssnIds = futureAssns.map((a) => a.id);
 
     if (futureAssnIds.length > 0) {
@@ -101,6 +105,19 @@ export async function POST(
       deletedRotations = rotResult.count;
     }
   });
+
+  // The people taken off these sessions are told (2026-10-16 audit).
+  if (clearedRows.length) {
+    const program = await db.program.findUnique({ where: { slug: programSlug }, select: { name: true } });
+    const programName = program?.name ?? programSlug;
+    after(() =>
+      sendCoverageClearedEmails({
+        rows: clearedRows,
+        reason: (team) => `The ${team}'s upcoming schedule for ${programName} has been cleared.`,
+        excludeUserId: session.user.id,
+      }),
+    );
+  }
 
   // Diagnostic log to correlate with the client's `[reset]` console output
   // when a coordinator reports the action "not working." Session 130

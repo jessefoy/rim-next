@@ -11,7 +11,7 @@ import { centralToUtc } from "@/lib/timezone";
 import { computeTimeText, computeDateText } from "@/lib/programUtils";
 import { sanitizeTeacherLabel } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage } from "@/lib/email";
-import { DEFAULT_HOSTING_HUB_SLUG, hostingTeamRefusal } from "@/lib/programHub";
+import { DEFAULT_HOSTING_HUB_SLUG, hostingTeamRefusal, supportingTeamRefusal } from "@/lib/programHub";
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOffering } from "@/lib/programOffering";
@@ -85,9 +85,18 @@ export async function POST(request: NextRequest) {
     typeof body.hostingHubSlug === "string" && body.hostingHubSlug.trim()
       ? body.hostingHubSlug.trim()
       : null;
+  // Each supporting team must be one that staffs this format (the editor's
+  // rule, enforced here too; 2026-10-16 audit), checked before the program is
+  // created so a refusal leaves nothing behind.
+  if (Array.isArray(body.coverageHubSlugs)) {
+    for (const hubSlug of (body.coverageHubSlugs as unknown[]).filter((h): h is string => typeof h === "string" && h.trim().length > 0)) {
+      const refusal = await supportingTeamRefusal(hubSlug, body.programFormat || "in-person");
+      if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
+    }
+  }
   if (requestedHostingHubSlug) {
     // A Hosting team must run sessions and have the Scheduler (2026-10-15).
-    const refusal = await hostingTeamRefusal(requestedHostingHubSlug);
+    const refusal = await hostingTeamRefusal(requestedHostingHubSlug, body.hostingRequired === false ? null : (body.programFormat ?? null));
     if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
   }
 

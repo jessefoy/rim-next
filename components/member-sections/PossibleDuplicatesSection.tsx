@@ -99,7 +99,7 @@ function holds(s: MergeSide): string {
     ...shownRoles(s.roles).map((r) => ROLE_LABELS[r]),
     s.teams ? `${s.teams} ${s.teams === 1 ? "team" : "teams"}` : null,
     s.registrations ? `${s.registrations} ${s.registrations === 1 ? "registration" : "registrations"}` : null,
-    s.hostingDates ? `${s.hostingDates} hosting ${s.hostingDates === 1 ? "date" : "dates"}` : null,
+    s.scheduledDates ? `${s.scheduledDates} scheduled ${s.scheduledDates === 1 ? "session" : "sessions"}` : null,
     s.rotations ? `${s.rotations} ${s.rotations === 1 ? "rotation" : "rotations"}` : null,
     s.teaching ? `teaches ${s.teaching}` : null,
     s.conversations ? `${s.conversations} ${s.conversations === 1 ? "post" : "posts"}` : null,
@@ -194,8 +194,8 @@ function MergePanel({ memberId, otherId, onCancel }: { memberId: string; otherId
         ))}
       </ul>
       <p className="adm2-section__hint">
-        Everything from both moves onto one account: roles, teams, registrations, hosting
-        dates, rotations, teaching, conversations and files. Where both have the same thing,
+        Everything from both moves onto one account: roles, teams, registrations, scheduled
+        sessions, rotations, teaching, conversations and files. Where both have the same thing,
         nothing is doubled. The record kept is the one now at {kept.email}, because it holds
         more of the history; you choose the address it signs in with.
       </p>

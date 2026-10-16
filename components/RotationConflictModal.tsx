@@ -251,7 +251,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
                       />
                       <span className="hs-cmodal__mode-label">
                         <strong>Leave them alone</strong>
-                        <span className="hs-cmodal__mode-hint">Fill only the open slots. The current hosts keep these dates.</span>
+                        <span className="hs-cmodal__mode-hint">Fill only the open slots. The people already scheduled keep these dates.</span>
                       </span>
                     </label>
                     <label className={`hs-cmodal__mode${mode === "replace-all" ? " hs-cmodal__mode--active" : ""}`}>
