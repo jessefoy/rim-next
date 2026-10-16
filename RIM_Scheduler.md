@@ -128,7 +128,9 @@ Five parallel read-only audits (hosting leakage outside the Scheduler; every wri
 
 **Found on the way: sessions drifted an hour across every time change.** `shiftToDate` (every placement: the Scheduler, the Zoom door and its window, rotations, seat conflicts, My Home) added 24-hour days, keeping UTC time, so from Nov 1 every program first dated in daylight time would have been placed an hour early, its door and Zoom meeting included. It now keeps the program's Central wall-clock time, and `centralToUtc` is exact on time-change days. Zoom meetings are found by program and Central day (`lib/sessionMeeting.ts`), so one made at a drifted time is reused, never doubled. **Rule:** a session's time comes from `shiftToDate`, and anything that finds a session matches its Central day, never the exact instant.
 
-**Still open, for Jesse:** 46 upcoming sessions on other programs (winter dates) are stored an hour early by the old placement; every lookup matches by day, so nothing misbehaves, but re-timing them keeps the data true (needs approval of those records). A supporting team for **virtual** sessions can't enter the room without new engineering. The tool-wide button height is 40px against the 44px standard (a design-system call).
+**Data now true (Jesse approved, 2026-10-16):** the 46 upcoming winter sessions the old placement had stored an hour early (The Art of Meditation on the hosting, AV and greeter teams; Essential Dharma Study; Meditation and Dharma Talk) were re-timed to 9:30 Central, same days and people, in one transaction after a snapshot. The production invariant check is clean.
+
+**Still open, for Jesse:** a supporting team for **virtual** sessions can't enter the room without new engineering. The tool-wide button height is 40px against the 44px standard (a design-system call).
 
 ## Hub-scoping — every layer
 
