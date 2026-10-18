@@ -608,6 +608,11 @@ Jesse signed up as the first greeter, cancelled, and nothing happened: *"Shouldn
 - **The Scheduler:** cancelling when you're the last one signed up asks first ("You're the only greeter for …. If you cancel, we'll let the team know it needs a greeter."); a coordinator's Remove dialogs say the team will be told. The toast after says whether the team was actually told (the server's `teamTold`).
 - **Known residue, accepted:** two people cancelling the same session at the same moment can both announce it; a reminder is keyed by its assignment, so if a cover is claimed between two runs on one day the new person isn't reminded that day; the mail sender swallows a refused send, so the daily pass paces its sends (600 ms) but still records a notice it couldn't deliver.
 
+**From the signed-in walk (2026-10-18), Jesse's rulings:**
+- **Peer-Led facilitators are both host and teacher** (*"think of it like they're both the host and the teacher/facilitator"*): Good Morning and Good Evening are meant to have a facilitator signed up, so that team's notices go out as for any team. At the walk, all 19 of its sessions in the next two weeks had no one.
+- **The Dummy Test Program stays** while the hosts train on it, so the Hosting, Greeter and AV teams' notices include its daily 6:00 AM sessions until Jesse deletes it by hand. Archiving it takes it off every schedule and out of the notices; deleting it (archive first, its test registrations cancelled) also removes its sessions, rotations and team coverage.
+- The walk also found the door's early entry (admin or guiding teacher) saying "You're teaching today" for the next session days away; it now says the day ("You're teaching on Tue, Oct 20").
+
 **Recipients:** gap and look-ahead emails go to `getHubNotificationRecipients(team, { canCover: true })`, the coordinator note to `{ coordinatorsOnly: true }` (a team with no active coordinator is logged), so the pre-threshold gate applies at the source; the reminder is slug-gated and needs an ACTIVE membership with communications on. All four templates are in `/admin/emails` (Host Team group). **Their wording is provisional until Jesse's read-aloud.**
 
 ## What's deferred

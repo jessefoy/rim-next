@@ -41,7 +41,7 @@ import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
 import { hasOpenEntry } from "@/lib/programOffering";
 import { meetingServiceName, outsideRoomUrl } from "@/lib/outsideMeeting";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
-import { ctDayBounds } from "@/lib/timezone";
+import { ctDayBounds, fmtSessionDay } from "@/lib/timezone";
 import { getHubCoverageCopy, teamPhrase } from "@/lib/programHub";
 
 export const dynamic = "force-dynamic";
@@ -399,6 +399,12 @@ export default async function ZoomEnterPage({
         designatedHostName={designatedHostName}
         teamName={hostingTeam?.name ?? "hosting"}
         roleVerb={hostingCopy.verb}
+        // An admin or guiding teacher entering early reaches the NEXT
+        // session; it isn't "today" (walk, 2026-10-18: "You're teaching
+        // today" on a Friday for Tuesday's session).
+        dayWord={ctDateStr(sessionDateIso) === ctDateStr(new Date().toISOString())
+          ? "today"
+          : `on ${fmtSessionDay(sessionDate)}`}
       />
     );
   } catch (e) {
@@ -607,6 +613,7 @@ function HostLanding({
   designatedHostName,
   teamName,
   roleVerb,
+  dayWord,
 }: {
   programName: string;
   joinUrl: string;
@@ -616,21 +623,23 @@ function HostLanding({
   /** The hosting team's name and -ing verb ("Hosting Team", "hosting"). */
   teamName: string;
   roleVerb: string;
+  /** "today", or "on Tue, Oct 20" when entering early for the next session. */
+  dayWord: string;
 }) {
   const eyebrow =
     viewerRole === "designated"
-      ? `You're ${roleVerb} today`
+      ? `You're ${roleVerb} ${dayWord}`
       : viewerRole === "teacher"
-        ? "You're teaching today"
+        ? `You're teaching ${dayWord}`
         : `You're on the ${teamPhrase(teamName)}`;
 
-  // Who's on it today (for teacher/alternate).
+  // Who's on it that day (for teacher/alternate).
   const hostLine =
     viewerRole === "designated"
       ? null
       : designatedHostName
-        ? `${designatedHostName} is ${roleVerb} today.`
-        : `No one is ${roleVerb} today yet.`;
+        ? `${designatedHostName} is ${roleVerb} ${dayWord}.`
+        : `No one is ${roleVerb} ${dayWord} yet.`;
 
   const claimIntro =
     viewerRole === "designated"
