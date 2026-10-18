@@ -14178,12 +14178,13 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 .hs-rot__cell-empty { color: var(--rim-rule); }
 /* Every other week (2026-10-18): one line across the five week columns. */
 .hs-rot__grid-cell--cycle { grid-column: 2 / span 5; justify-content: flex-start; text-align: left; }
-@media (max-width: 760px) {
+@container (max-width: 720px) {
   .hs-rot__grid-cell--cycle { grid-column: auto; flex-direction: column; align-items: flex-start; gap: 2px; }
 }
 
 .hs-rot__grid-actions {
   display: flex;
+  flex-wrap: wrap; /* Edit and Reset stack rather than spill over the names */
   gap: 6px;
   justify-content: flex-end;
 }
@@ -14947,8 +14948,12 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
 }
 .hs-rot__danger-cancel:hover { color: var(--rim-text); }
 
-/* Mobile — stack the grid as horizontally-scrolling cards */
-@media (max-width: 760px) {
+/* Narrow grid — stack the rows as cards. By the grid's own width, not the
+   screen's (2026-10-18): beside the team sidebar on a 1,024px window the five
+   week columns were 55px wide, so names and the Edit/Reset buttons ran over
+   each other. Phones are narrower than this too, so they stack as before. */
+.hs-rot__grid { container-type: inline-size; }
+@container (max-width: 720px) {
   .hs-rot__grid-head { display: none; }
   .hs-rot__grid-row {
     grid-template-columns: 1fr;
