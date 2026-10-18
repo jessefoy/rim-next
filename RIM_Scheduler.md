@@ -308,6 +308,19 @@ Standing rotations are recurring patterns: "Maria hosts every 2nd and 4th Thursd
 
 **`RotationsClient.tsx`** receives `hubSlug` as a prop and passes `?hub=<active>` to its rotation-list fetch. Each hub's Rotations tab loads only that hub's rotations.
 
+### Every other week (2026-10-18)
+
+Jessica Chapin and Lorri Bohn take turns on Thursday evenings, week by week ("I will be hosting this week the 22nd, then Lorri the 29th, and so on"). The week-of-month patterns can't say that: after any month with a fifth Thursday, "1st & 3rd / 2nd & 4th" names the wrong person, and the fifth week gets no one. Jesse: build it for every team, labelled **"Every other week"**, with the old card renamed **"Alternate by week of the month"**.
+
+- **Stored as** two pattern values, `ALT_WEEK_A` (the first person: the starting week and every second week after it) and `ALT_WEEK_B` (the weeks between), plus `StandingAssignment.cycleStart`, the first week-A session's Central day ("YYYY-MM-DD"). Both people's rules carry the same date. Two values, not one, because the table allows one rule per program, day, pattern and team.
+- **One rule decides a turn:** `isCycleWeek(occurrence, cycleStart, dateStr)` in `lib/scheduleUtils.ts` (whole weeks since the start, even = A, odd = B; nothing before the start). The engine (`generateCandidates`), the schedule-change cleanup (`clearOffScheduleCoverage`, which keeps a cycle rule while one of its weeks still lands on a meeting day) and the editor's preview all call it. Never count cycle weeks anywhere else.
+- **The editor:** "Every other week" asks for a starting date (a short list of the next sessions on that weekday, so no day the program skips can be chosen), the first person and the second person. No 5th-week override. The grid shows one line ("Jessica Chapin from Thu, Oct 22, then Lorri Bohn, taking turns"); the staffing page says "every other week from Oct 22" / "from Oct 29".
+- **Only for programs that meet every week** (`meetsEveryWeek` in `lib/scheduleUtils.ts`: WEEKLY, interval 1). Turns are counted in weeks, so on a program that already meets every other week the second person would never get a turn; the editor hides the card and the route refuses it (reviewer, 2026-10-18).
+- **The save route** (`POST /api/host/standing-assignments`, `pattern: "biweekly"`, `hosts.weekA` / `weekB`, `cycleStart`) refuses a starting date that isn't a meeting day on that weekday (checked only when the date is new, so a re-save survives the program's own start moving later). **Changing the starting date or a person moves the turns:** that rule's future sessions are cleared (and its skip dates), then refilled on the new turns; anyone taken off is told, someone still on the rotation isn't. Without this a shifted cycle kept its old sessions, and an open sign-up team got both people on every session.
+- **Don't roll back past this deploy once a cycle is saved:** an older build's Prisma client can't read `ALT_WEEK_A` / `ALT_WEEK_B` and would break the Rotations tab, the staffing page and the daily rotation run.
+- **Every team** has it (Hosting, Peer-Led, Greeter, AV): on an open sign-up team a cycle person adds to whoever signed up, like any rotation.
+- Two people only. A three-week cycle waits for a team that needs one.
+
 ### Released vs Ended — two distinct semantics (session 130)
 
 Two distinct exits, two distinct email builders, two distinct UI actions. Don't conflate them.

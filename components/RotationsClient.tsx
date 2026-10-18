@@ -27,12 +27,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import RotationConflictModal from "./RotationConflictModal";
-import { ctDateStr, isOccurrenceOnDate } from "@/lib/scheduleUtils";
+import { ctDateStr, isCycleWeek, isOccurrenceOnDate, meetsEveryWeek } from "@/lib/scheduleUtils";
 import type { ScheduleProgramSummary } from "@/lib/scheduleSessions";
 
-type Occurrence = "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "FIFTH" | "LAST" | "ALL";
+type Occurrence = "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "FIFTH" | "LAST" | "ALL" | "ALT_WEEK_A" | "ALT_WEEK_B";
 type DayOfWeek = "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
-type Pattern = "same" | "alternate" | "custom";
+type Pattern = "same" | "alternate" | "custom" | "biweekly";
 
 const DAY_LABEL: Record<DayOfWeek, string> = {
   SU: "Sunday", MO: "Monday", TU: "Tuesday", WE: "Wednesday",
@@ -91,7 +91,15 @@ function occurrenceInMonth(dateStr: string): number {
 }
 
 /** Resolve the assigned host userId for one session given the current form state. */
-function resolvePreviewHost(occN: number, form: FormState): string | undefined {
+function resolvePreviewHost(dateStr: string, form: FormState): string | undefined {
+  // Every other week: turns counted from the first date, as the engine does
+  // (lib/scheduleUtils.ts isCycleWeek). No 5th-week override.
+  if (form.pattern === "biweekly") {
+    if (isCycleWeek("ALT_WEEK_A", form.cycleStart, dateStr)) return form.hosts.weekA;
+    if (isCycleWeek("ALT_WEEK_B", form.cycleStart, dateStr)) return form.hosts.weekB;
+    return undefined;
+  }
+  const occN = occurrenceInMonth(dateStr);
   // FIFTH override: if expanded + set, always wins for 5th occurrence
   if (occN === 5 && form.fifthExpanded && form.fifthHost) return form.fifthHost;
 
@@ -109,6 +117,7 @@ function resolvePreviewHost(occN: number, form: FormState): string | undefined {
       return keys[occN - 1] !== undefined ? form.hosts[keys[occN - 1]] : undefined;
     }
   }
+  return undefined;
 }
 
 type Program = ScheduleProgramSummary;
@@ -130,6 +139,8 @@ interface Rotation {
   hostName:    string | null;
   startsOn:    string;
   endsOn:      string | null;
+  /** Every other week: the first week-A date. */
+  cycleStart:  string | null;
 }
 
 interface Props {
@@ -168,7 +179,11 @@ interface FormState {
     second?: string;        // custom: 2nd
     third?:  string;        // custom: 3rd
     fourth?: string;        // custom: 4th
+    weekA?:  string;        // biweekly: starts on cycleStart
+    weekB?:  string;        // biweekly: the week after, and every other week
   };
+  /** biweekly: the first week-A date (YYYY-MM-DD, a day the program meets). */
+  cycleStart:     string;
   fifthHost:      string;
   fifthExpanded:  boolean;  // whether the 5th-week reveal is open
   endsOn:         string;
@@ -196,7 +211,18 @@ function resolveCells(rows: Rotation[]): ResolvedCells {
 }
 
 /** Detect the pattern from a (program, day) bundle's rows. */
-function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["hosts"]; fifthHost: string } {
+function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["hosts"]; fifthHost: string; cycleStart: string } {
+  // Every other week: its two rules carry the cycle's first date.
+  const a = rows.find((r) => r.occurrence === "ALT_WEEK_A");
+  const b = rows.find((r) => r.occurrence === "ALT_WEEK_B");
+  if (a || b) {
+    return {
+      pattern: "biweekly",
+      hosts: { weekA: a?.userId ?? "", weekB: b?.userId ?? "" },
+      fifthHost: "",
+      cycleStart: a?.cycleStart ?? b?.cycleStart ?? "",
+    };
+  }
   const cells = resolveCells(rows);
   const fifthRow = rows.find((r) => r.occurrence === "FIFTH");
   const fifthHost = fifthRow?.userId ?? "";
@@ -207,7 +233,7 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
                 && cells.FIRST === cells.THIRD
                 && cells.FIRST === cells.FOURTH
   ) {
-    return { pattern: "same", hosts: { every: cells.FIRST }, fifthHost };
+    return { pattern: "same", hosts: { every: cells.FIRST }, fifthHost, cycleStart: "" };
   }
 
   // "Alternate" — 1st === 3rd, 2nd === 4th, 1st !== 2nd
@@ -221,6 +247,7 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
       pattern: "alternate",
       hosts: { oddWk: cells.FIRST, evenWk: cells.SECOND },
       fifthHost,
+      cycleStart: "",
     };
   }
 
@@ -235,6 +262,7 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
       fourth: cells.FOURTH ?? "",
     },
     fifthHost,
+    cycleStart: "",
   };
 }
 
@@ -252,8 +280,7 @@ function projectUpcoming(
   count = 6,
 ): { dateStr: string; hostName: string | null }[] {
   return upcomingDates(form.dayOfWeek, count, program, form.endsOn).map((dateStr) => {
-    const occN = occurrenceInMonth(dateStr);
-    const userId = resolvePreviewHost(occN, form);
+    const userId = resolvePreviewHost(dateStr, form);
     const hostName = userId ? (teamMembers.find((m) => m.id === userId)?.displayName ?? null) : null;
     return { dateStr, hostName };
   });
@@ -579,6 +606,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         dayOfWeek,
         pattern:       "same",
         hosts:         {},
+        cycleStart:    "",
         fifthHost:     "",
         fifthExpanded: false,
         endsOn:        "",
@@ -596,6 +624,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         dayOfWeek,
         pattern:       detected.pattern,
         hosts:         detected.hosts,
+        cycleStart:    detected.cycleStart,
         fifthHost:     detected.fifthHost,
         fifthExpanded: !!detected.fifthHost,  // expand if already set
         endsOn,
@@ -628,6 +657,10 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       setError("Pick at least one person before saving.");
       return;
     }
+    if (form.pattern === "biweekly" && !form.cycleStart) {
+      setError("Choose the first date before saving.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -647,7 +680,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
           dayOfWeek:   form.dayOfWeek,
           pattern:     form.pattern,
           hosts:       form.hosts,
-          fifthHost:   form.fifthHost || null,
+          fifthHost:   form.pattern === "biweekly" ? null : (form.fifthHost || null),
+          cycleStart:  form.pattern === "biweekly" ? form.cycleStart : null,
           endsOn:      form.endsOn || null,
           // hubSlug MUST be passed — without it the route falls back to
           // the program's PRIMARY hosting hub, silently writing the
@@ -818,6 +852,13 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                 const cells = resolveCells(rows);
                 const fifthHost = rows.find((r) => r.occurrence === "FIFTH")?.userId ?? cells.FIFTH;
                 const isEditingThis = editingHere === d;
+                // Every other week has no 1st–5th cells: one line says it.
+                const cycleA = rows.find((r) => r.occurrence === "ALT_WEEK_A");
+                const cycleB = rows.find((r) => r.occurrence === "ALT_WEEK_B");
+                const isCycle = !!(cycleA || cycleB);
+                const cycleStartLabel = (cycleA?.cycleStart ?? cycleB?.cycleStart)
+                  ? miniDateParts((cycleA?.cycleStart ?? cycleB?.cycleStart)!).label
+                  : null;
 
                 const hostName = (uid?: string) => {
                   if (!uid) return null;
@@ -829,13 +870,27 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                   <div key={d} className={`hs-rot__grid-row-wrap${isEditingThis ? " hs-rot__grid-row-wrap--active" : ""}`}>
                     <div className="hs-rot__grid-row">
                       <div className="hs-rot__grid-day">{DAY_LABEL[d]}</div>
-                      <div className="hs-rot__grid-cell" data-label="1st">{hostName(cells.FIRST)  ?? <span className="hs-rot__cell-empty">—</span>}</div>
-                      <div className="hs-rot__grid-cell" data-label="2nd">{hostName(cells.SECOND) ?? <span className="hs-rot__cell-empty">—</span>}</div>
-                      <div className="hs-rot__grid-cell" data-label="3rd">{hostName(cells.THIRD)  ?? <span className="hs-rot__cell-empty">—</span>}</div>
-                      <div className="hs-rot__grid-cell" data-label="4th">{hostName(cells.FOURTH) ?? <span className="hs-rot__cell-empty">—</span>}</div>
-                      <div className="hs-rot__grid-cell hs-rot__grid-cell--fifth" data-label="5th">
-                        {hostName(fifthHost) ?? <span className="hs-rot__cell-empty">—</span>}
-                      </div>
+                      {isCycle ? (
+                        <div className="hs-rot__grid-cell hs-rot__grid-cell--cycle" data-label="Every other week">
+                          <span>
+                            {hostName(cycleA?.userId) ?? "No one"}
+                            {cycleStartLabel ? ` from ${cycleStartLabel}` : ""}
+                            {", then "}
+                            {hostName(cycleB?.userId) ?? "no one"}
+                            {", taking turns"}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="hs-rot__grid-cell" data-label="1st">{hostName(cells.FIRST)  ?? <span className="hs-rot__cell-empty">—</span>}</div>
+                          <div className="hs-rot__grid-cell" data-label="2nd">{hostName(cells.SECOND) ?? <span className="hs-rot__cell-empty">—</span>}</div>
+                          <div className="hs-rot__grid-cell" data-label="3rd">{hostName(cells.THIRD)  ?? <span className="hs-rot__cell-empty">—</span>}</div>
+                          <div className="hs-rot__grid-cell" data-label="4th">{hostName(cells.FOURTH) ?? <span className="hs-rot__cell-empty">—</span>}</div>
+                          <div className="hs-rot__grid-cell hs-rot__grid-cell--fifth" data-label="5th">
+                            {hostName(fifthHost) ?? <span className="hs-rot__cell-empty">—</span>}
+                          </div>
+                        </>
+                      )}
                       <div className="hs-rot__grid-actions">
                         {rows.length > 0 ? (
                           <>
@@ -857,7 +912,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                     {/* Manage-rotation panel — End button opens this */}
                     {endingBundle?.programSlug === program.slug && endingBundle?.dayOfWeek === d && (() => {
                       const distinctHosts = [...new Set(
-                        [cells.FIRST, cells.SECOND, cells.THIRD, cells.FOURTH, fifthHost]
+                        [cells.FIRST, cells.SECOND, cells.THIRD, cells.FOURTH, fifthHost, cycleA?.userId, cycleB?.userId]
                           .filter((uid): uid is string => !!uid)
                       )];
                       return (
@@ -1162,11 +1217,25 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
   const setHosts = (next: Partial<FormState["hosts"]>) =>
     setForm({ ...form, hosts: { ...form.hosts, ...next } });
 
-  const PATTERN_OPTIONS: Array<{ value: Pattern; label: string; hint: string }> = [
+  // The days this weekday's sessions fall on, for the every-other-week first
+  // date: a short list, so no day the program doesn't meet can be chosen.
+  const cycleDates = upcomingDates(form.dayOfWeek, 8, program, "");
+  // An existing cycle may have started before today; keep its date listed.
+  const cycleOptions = form.cycleStart && !cycleDates.includes(form.cycleStart)
+    ? [form.cycleStart, ...cycleDates]
+    : cycleDates;
+
+  const PATTERN_OPTIONS: Array<{ value: Pattern; label: string; hint: string }> = ([
     { value: "same",      label: "Same every week", hint: "The same person every week" },
-    { value: "alternate", label: "Alternate",       hint: "Two people, 1st & 3rd / 2nd & 4th" },
-    { value: "custom",    label: "Custom",          hint: "Set each week independently" },
-  ];
+    // 2026-10-18 (Jesse): true turn-taking, counted from a date, whatever the
+    // month does; the old Alternate is named for what it is.
+    { value: "biweekly",  label: "Every other week", hint: "Two people take turns, week by week, from the date you choose" },
+    { value: "alternate", label: "Alternate by week of the month", hint: "Two people, 1st & 3rd / 2nd & 4th of the month" },
+    { value: "custom",    label: "Custom",          hint: "Set each week of the month independently" },
+  ] as Array<{ value: Pattern; label: string; hint: string }>)
+    // Turns are counted in weeks: only a program that meets every week can
+    // take turns (an existing cycle stays editable).
+    .filter((opt) => opt.value !== "biweekly" || form.pattern === "biweekly" || (program && meetsEveryWeek(program)));
 
   return (
     <div className="hs-rot__form pe-form">
@@ -1180,7 +1249,9 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
                   type="radio"
                   name="dayOfWeek"
                   checked={form.dayOfWeek === d}
-                  onChange={() => setForm({ ...form, dayOfWeek: d })}
+                  // A cycle's first date belongs to its weekday: changing the
+                  // day starts the cycle on that day's next session.
+                  onChange={() => setForm({ ...form, dayOfWeek: d, cycleStart: form.pattern === "biweekly" ? (upcomingDates(d, 1, program, "")[0] ?? "") : form.cycleStart })}
                 />
                 {DAY_LABEL[d].slice(0, 3)}
               </label>
@@ -1191,7 +1262,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
 
       <div className="pe-field">
         <span className="pe-field__label">Pattern</span>
-        <span className="pe-field__help">How the rotation repeats each month.</span>
+        <span className="pe-field__help">How the rotation repeats.</span>
         <div className="pe-option-cards">
           {PATTERN_OPTIONS.map((opt) => (
             <label
@@ -1202,7 +1273,12 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
                 type="radio"
                 name="pattern"
                 checked={form.pattern === opt.value}
-                onChange={() => setForm({ ...form, pattern: opt.value, hosts: {} })}
+                onChange={() => setForm({
+                  ...form,
+                  pattern: opt.value,
+                  hosts: {},
+                  cycleStart: opt.value === "biweekly" ? (form.cycleStart || cycleDates[0] || "") : form.cycleStart,
+                })}
               />
               <span className="pe-option-card__mark" />
               <span className="hs-rot__pattern-label">
@@ -1227,6 +1303,52 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
             {personOptions}
           </select>
         </div>
+      )}
+
+      {form.pattern === "biweekly" && (
+        <>
+          <div className="pe-field">
+            <span className="pe-field__label">Starting</span>
+            <span className="pe-field__help">The first person&rsquo;s first session. They take turns from here.</span>
+            <select
+              aria-label="Starting"
+              className="pe-select"
+              value={form.cycleStart}
+              onChange={(e) => setForm({ ...form, cycleStart: e.target.value })}
+            >
+              {cycleOptions.length === 0 && <option value="">No upcoming sessions on this day</option>}
+              {cycleOptions.map((d) => (
+                <option key={d} value={d}>{miniDateParts(d).label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="pe-field">
+            <span className="pe-field__label">First person</span>
+            <span className="pe-field__help">
+              {form.cycleStart ? `${miniDateParts(form.cycleStart).label}, then every other week` : "The starting week, then every other week"}
+            </span>
+            <select
+              aria-label="First person"
+              className="pe-select"
+              value={form.hosts.weekA ?? ""}
+              onChange={(e) => setHosts({ weekA: e.target.value })}
+            >
+              {personOptions}
+            </select>
+          </div>
+          <div className="pe-field">
+            <span className="pe-field__label">Second person</span>
+            <span className="pe-field__help">The weeks in between</span>
+            <select
+              aria-label="Second person"
+              className="pe-select"
+              value={form.hosts.weekB ?? ""}
+              onChange={(e) => setHosts({ weekB: e.target.value })}
+            >
+              {personOptions}
+            </select>
+          </div>
+        </>
       )}
 
       {form.pattern === "alternate" && (
@@ -1278,7 +1400,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
           Same pattern: blank = main host covers 5ths automatically (ALL record).
           Other patterns: blank = skip 5th-week occurrences (no FIFTH record).
           Most months don't have a 5th occurrence so this stays out of the way. */}
-      {form.fifthExpanded ? (
+      {form.pattern === "biweekly" ? null : form.fifthExpanded ? (
         <div className="pe-field">
           <span className="pe-field__label">
             {form.pattern === "same" ? "5th-week override (optional)" : "5th-week person"}

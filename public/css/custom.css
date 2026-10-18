@@ -14176,6 +14176,11 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   justify-content: center;
 }
 .hs-rot__cell-empty { color: var(--rim-rule); }
+/* Every other week (2026-10-18): one line across the five week columns. */
+.hs-rot__grid-cell--cycle { grid-column: 2 / span 5; justify-content: flex-start; text-align: left; }
+@media (max-width: 760px) {
+  .hs-rot__grid-cell--cycle { grid-column: auto; flex-direction: column; align-items: flex-start; gap: 2px; }
+}
 
 .hs-rot__grid-actions {
   display: flex;

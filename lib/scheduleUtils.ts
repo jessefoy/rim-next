@@ -14,6 +14,42 @@ import { centralToUtc, toCentralDatetime } from "./timezone";
 
 const TZ = "America/Chicago";
 
+/**
+ * Every-other-week rotations (2026-10-18): is this date one of this person's
+ * weeks? Two people take turns week by week from `cycleStart` (the first
+ * week-A session's Central day): week A is the start week and every second
+ * week after it, week B the weeks between, whatever the calendar month does
+ * (the week-of-month patterns drift after a month with a fifth weekday).
+ * Dates before the start belong to neither. The one rule the rotation
+ * engine, the schedule-change cleanup and the editor's preview all use.
+ */
+export function isCycleWeek(
+  occurrence: string,
+  cycleStart: string | null | undefined,
+  dateStr: string,
+): boolean {
+  if ((occurrence !== "ALT_WEEK_A" && occurrence !== "ALT_WEEK_B") || !cycleStart) return false;
+  const day = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
+  const days = Math.round((day(dateStr) - day(cycleStart)) / 86_400_000);
+  if (days < 0) return false;
+  const week = Math.floor(days / 7);
+  return occurrence === "ALT_WEEK_A" ? week % 2 === 0 : week % 2 === 1;
+}
+
+/**
+ * Whether a program meets every week, the condition for an every-other-week
+ * rotation: turns are counted in weeks, so on a program that already meets
+ * every other week (or monthly) the second person would never get a turn.
+ */
+export function meetsEveryWeek(p: { recurrenceFreq?: string | null; recurrenceInterval?: number | null }): boolean {
+  return p.recurrenceFreq === "WEEKLY" && (p.recurrenceInterval ?? 1) === 1;
+}
+
+/** True for the every-other-week pattern values. */
+export function isCycleOccurrence(occurrence: string): boolean {
+  return occurrence === "ALT_WEEK_A" || occurrence === "ALT_WEEK_B";
+}
+
 /** Format an ISO string to a CT date string: "YYYY-MM-DD" */
 export function ctDateStr(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {

@@ -11,7 +11,7 @@
  *     {
  *       programSlug: string,
  *       dayOfWeek:   "MO"|"TU"|"WE"|"TH"|"FR"|"SA"|"SU",
- *       pattern:     "same" | "alternate" | "pair" | "custom",
+ *       pattern:     "same" | "alternate" | "pair" | "custom" | "biweekly",
  *       hosts: {                       -- shape depends on pattern:
  *         every?:  string,             -- "same"
  *         oddWk?:  string, evenWk?: string,  -- "alternate" (1st&3rd, 2nd&4th)
@@ -19,7 +19,11 @@
  *         first?: string, second?: string, third?: string, fourth?: string,
  *                                       -- "custom" (any subset filled)
  *       },
- *       fifthHost?:   string | null,  -- 5th-occurrence host (any pattern)
+ *         weekA?: string, weekB?: string,  -- "biweekly" (every other week,
+ *                                       --  taking turns from cycleStart)
+ *       },
+ *       cycleStart?:  string,         -- "biweekly": first week-A date, YYYY-MM-DD
+ *       fifthHost?:   string | null,  -- 5th-occurrence host (not "biweekly")
  *       endsOn?:      string | null   -- ISO date or null
  *     }
  *
@@ -46,6 +50,7 @@ import {
 } from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
 import { ctMonthKey, ctStartOfToday } from "@/lib/timezone";
+import { dateToDayCode, isCycleOccurrence, isOccurrenceOnDate, meetsEveryWeek, type ScheduleProgram } from "@/lib/scheduleUtils";
 
 const TZ = "America/Chicago";
 
@@ -143,6 +148,7 @@ export async function GET(request: Request) {
         null,
       startsOn: a.startsOn.toISOString(),
       endsOn:   a.endsOn?.toISOString() ?? null,
+      cycleStart: a.cycleStart ?? null,
     }))
   );
 }
@@ -156,9 +162,11 @@ interface BundleInput {
    *  primary hosting hub. AV / greeter hub callers must pass their own
    *  hub slug so the rotation lands on the right team. */
   hubSlug?:    string;
-  pattern:     "same" | "alternate" | "custom";
+  pattern:     "same" | "alternate" | "custom" | "biweekly";
   hosts: {
     every?:  string;
+    weekA?:  string;
+    weekB?:  string;
     oddWk?:  string;
     evenWk?: string;
     first?:  string;
@@ -168,6 +176,8 @@ interface BundleInput {
   };
   fifthHost?: string | null;
   endsOn?:    string | null;
+  /** "biweekly": the first week-A session's Central day, "YYYY-MM-DD". */
+  cycleStart?: string | null;
 }
 
 /**
@@ -201,6 +211,14 @@ function patternToRecords(input: BundleInput): Map<StandingOccurrence, string> {
       if (h.third)  out.set("THIRD",  h.third);
       if (h.fourth) out.set("FOURTH", h.fourth);
       break;
+
+    case "biweekly":
+      // Every other week (2026-10-18): two people take turns from
+      // cycleStart, whatever the month does. No 5th-week override: a
+      // cycle has no 5th week.
+      if (h.weekA) out.set("ALT_WEEK_A", h.weekA);
+      if (h.weekB) out.set("ALT_WEEK_B", h.weekB);
+      return out;
   }
 
   if (input.fifthHost) out.set("FIFTH", input.fifthHost);
@@ -236,8 +254,36 @@ export async function POST(request: Request) {
   if (!VALID_DAYS.includes(body.dayOfWeek)) {
     return Response.json({ error: `Invalid dayOfWeek: ${body.dayOfWeek}` }, { status: 400 });
   }
-  if (!["same", "alternate", "custom"].includes(body.pattern)) {
+  if (!["same", "alternate", "custom", "biweekly"].includes(body.pattern)) {
     return Response.json({ error: `Invalid pattern: ${body.pattern}` }, { status: 400 });
+  }
+  // Every other week: turns are counted in weeks, so only a program that
+  // meets every week can take turns (reviewer, 2026-10-18: on a program that
+  // already meets every other week, the second person would never get a
+  // turn). It starts on a day the program meets, on this weekday; an
+  // unchanged start is kept even if the program's own start moved later.
+  const cycleStart = body.pattern === "biweekly"
+    ? (typeof body.cycleStart === "string" ? body.cycleStart.trim() : "")
+    : null;
+  if (cycleStart !== null) {
+    const program = await db.program.findUnique({
+      where: { slug: body.programSlug },
+      select: { startDatetime: true, endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true },
+    });
+    if (!program || !meetsEveryWeek(program)) {
+      return Response.json({ error: "Every other week is for programs that meet every week." }, { status: 400 });
+    }
+    const unchanged = !!(await db.standingAssignment.findFirst({
+      where: { programSlug: body.programSlug, dayOfWeek: body.dayOfWeek, hubSlug: body.hubSlug || programHubSlug, cycleStart },
+      select: { id: true },
+    }));
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(cycleStart) ||
+      dateToDayCode(cycleStart) !== body.dayOfWeek ||
+      (!unchanged && !isOccurrenceOnDate(program as ScheduleProgram, cycleStart))
+    ) {
+      return Response.json({ error: "Choose a first date the program meets on this day." }, { status: 400 });
+    }
   }
 
   const targets = patternToRecords(body);
@@ -307,7 +353,7 @@ export async function POST(request: Request) {
         dayOfWeek: body.dayOfWeek,
         hubSlug: targetHubSlug,
       },
-      select: { id: true, occurrence: true },
+      select: { id: true, occurrence: true, userId: true, cycleStart: true },
     });
 
     // Rules being removed = existing occurrences not present in the new set.
@@ -315,6 +361,19 @@ export async function POST(request: Request) {
     const removedRuleIds = existing
       .filter((ex) => !targetOccs.has(ex.occurrence))
       .map((ex) => ex.id);
+    // An every-other-week rule whose start date or person changed keeps its
+    // id but its turns move, so its future sessions are cleared like a
+    // removed rule's and refilled below (reviewer, 2026-10-18: a shifted
+    // cycle left the old sessions, and on an open sign-up team doubled
+    // people up with no prompt). Its skip dates go with them.
+    const movedCycleIds = existing
+      .filter((ex) => isCycleOccurrence(ex.occurrence) && targets.has(ex.occurrence)
+        && (ex.cycleStart !== cycleStart || ex.userId !== targets.get(ex.occurrence)))
+      .map((ex) => ex.id);
+    if (movedCycleIds.length > 0) {
+      await tx.standingSkip.deleteMany({ where: { standingAssignmentId: { in: movedCycleIds } } });
+    }
+    const clearSessionsOf = [...removedRuleIds, ...movedCycleIds];
 
     // Clean up the FUTURE HostAssignments those removed rules created.
     // Without this, removing a host/occurrence from the pattern left their
@@ -323,16 +382,21 @@ export async function POST(request: Request) {
     // (session 140, coordinator bug #4). FK-safe order matches the other
     // destructive Scheduler routes: SubClaim → SubRequest → HostAssignment
     // → StandingAssignment.
-    if (removedRuleIds.length > 0) {
+    if (clearSessionsOf.length > 0) {
       const futureRows = await tx.hostAssignment.findMany({
         where: {
-          standingAssignmentId: { in: removedRuleIds },
+          standingAssignmentId: { in: clearSessionsOf },
           sessionDate: { gte: todayCtForCleanup },
         },
-        select: { id: true, userId: true, sessionDate: true },
+        select: { id: true, userId: true, sessionDate: true, standingAssignmentId: true },
       });
+      // On a moved cycle, someone still on the rotation is refilled on their
+      // new turns, not told they were taken off.
+      const stillOn = new Set(targets.values());
+      const moved = new Set(movedCycleIds);
       for (const r of futureRows) {
         if (!r.userId || !r.sessionDate) continue;
+        if (r.standingAssignmentId && moved.has(r.standingAssignmentId) && stillOn.has(r.userId)) continue;
         if (!displacedByUser.has(r.userId)) displacedByUser.set(r.userId, []);
         displacedByUser.get(r.userId)!.push(r.sessionDate);
       }
@@ -379,11 +443,13 @@ export async function POST(request: Request) {
           occurrence,
           userId,
           endsOn,
+          cycleStart,
           createdById: session.user!.id,
         },
         update: {
           userId,
           endsOn,
+          cycleStart,
           // Reset window when re-saving so the new assignment takes effect now
           startsOn: new Date(),
         },

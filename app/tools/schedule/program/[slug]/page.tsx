@@ -60,9 +60,21 @@ const OCCURRENCE_LABEL: Record<string, string> = {
   ALL: "every",
 };
 
-function formatPattern(occurrences: string[]): string {
+/** "Oct 22": a Central day ("YYYY-MM-DD") plus `days`. */
+function shortDay(day: string, days = 0): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+}
+
+function formatPattern(occurrences: string[], cycleStart: string | null = null): string {
   if (occurrences.length === 0) return "—";
   if (occurrences.includes("ALL")) return "every";
+  // Every other week (2026-10-18): the person's own first date. Holding
+  // both turns is every week.
+  if (occurrences.includes("ALT_WEEK_A") && occurrences.includes("ALT_WEEK_B")) return "every";
+  if (occurrences.includes("ALT_WEEK_A")) return cycleStart ? `every other week from ${shortDay(cycleStart)}` : "every other week";
+  if (occurrences.includes("ALT_WEEK_B")) return cycleStart ? `every other week from ${shortDay(cycleStart, 7)}` : "every other week";
   // Group neighboring numerics for a readable summary
   const numerics = occurrences.filter((o) => ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH"].includes(o));
   const others = occurrences.filter((o) => o === "LAST");
@@ -240,7 +252,7 @@ export default async function ProgramStaffingPage({
   // Group rules by occurrence type for a clean per-day summary in the
   // single-slot grid. For each (hub, day, userId), list which occurrences
   // they hold (e.g. ["FIRST", "THIRD"]).
-  type DayCell = { userId: string; userName: string; occurrences: string[] };
+  type DayCell = { userId: string; userName: string; occurrences: string[]; cycleStart: string | null };
   function cellsForDay(hubSlug: string, day: DayCode): DayCell[] {
     const bundle = rulesByKey.get(`${hubSlug}::${day}`) ?? [];
     const byUser = new Map<string, DayCell>();
@@ -248,11 +260,13 @@ export default async function ProgramStaffingPage({
       const existing = byUser.get(r.userId);
       if (existing) {
         existing.occurrences.push(r.occurrence);
+        existing.cycleStart ??= r.cycleStart ?? null;
       } else {
         byUser.set(r.userId, {
           userId: r.userId,
           userName: displayName(r.userId),
           occurrences: [r.occurrence],
+          cycleStart: r.cycleStart ?? null,
         });
       }
     }
@@ -426,7 +440,7 @@ export default async function ProgramStaffingPage({
                                   ) : (
                                     <ul className="ps-grid__pattern-list">
                                       {cells.map((c) => (
-                                        <li key={c.userId}>{formatPattern(c.occurrences)}</li>
+                                        <li key={c.userId}>{formatPattern(c.occurrences, c.cycleStart)}</li>
                                       ))}
                                     </ul>
                                   )}

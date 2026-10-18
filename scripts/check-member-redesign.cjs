@@ -277,5 +277,18 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   html=await dashboardHtml({view:'upcoming'});check(html.includes('Your upcoming programs'),true,'separate upcoming view remains reachable');
   check(html.includes('Cancel registration'),false,'self-cancellation remains removed');
 
+  // Every-other-week rotations (2026-10-18): turns counted from the first
+  // date, through five-Thursday months, the Nov 1 time change and the new
+  // year. Jessica from Oct 22 and Lorri the weeks between, as they do it.
+  const sched = load('lib/scheduleUtils.ts',{'./timezone':load('lib/timezone.ts')});
+  const thursdays = ['2026-10-22','2026-10-29','2026-11-05','2026-11-12','2026-11-19','2026-11-26','2026-12-03','2026-12-10','2026-12-17','2026-12-24','2026-12-31','2027-01-07','2027-01-14','2027-04-29','2027-05-06'];
+  const turns = thursdays.map((d)=>sched.isCycleWeek('ALT_WEEK_A','2026-10-22',d)?'A':sched.isCycleWeek('ALT_WEEK_B','2026-10-22',d)?'B':'-');
+  check(turns.join(''),'ABABABABABABABA','every other week alternates week by week across months and years');
+  check(sched.isCycleWeek('ALT_WEEK_A','2026-10-22','2026-10-15'),false,'no turn before the cycle starts');
+  check(sched.isCycleWeek('ALT_WEEK_B','2026-10-22','2026-10-15'),false,'the second person has no turn before it starts either');
+  check(sched.isCycleWeek('ALL','2026-10-22','2026-10-22'),false,'only the cycle patterns use cycle weeks');
+  check(sched.isCycleWeek('ALT_WEEK_A',null,'2026-10-22'),false,'a cycle needs its first date');
+  check(sched.isCycleOccurrence('ALT_WEEK_B') && !sched.isCycleOccurrence('FIFTH'),true,'cycle patterns are recognised');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

@@ -43,6 +43,8 @@ import {
   getTotalOccurrencesInMonth,
   getDayOfWeekOccurrenceInMonth,
   getTotalDayOfWeekOccurrencesInMonth,
+  isCycleOccurrence,
+  isCycleWeek,
   type ScheduleProgram,
 } from "@/lib/scheduleUtils";
 import type { StandingOccurrence } from "@prisma/client";
@@ -379,6 +381,9 @@ export async function generateCandidates(
       let matches = false;
       if (sa.occurrence === "ALL") {
         matches = true;
+      } else if (isCycleOccurrence(sa.occurrence)) {
+        // Every other week, counted from the cycle's start (2026-10-18).
+        matches = isCycleWeek(sa.occurrence, sa.cycleStart, dateStr);
       } else if (sa.occurrence === "LAST") {
         const occ      = sa.dayOfWeek
           ? getDayOfWeekOccurrenceInMonth(dateStr)

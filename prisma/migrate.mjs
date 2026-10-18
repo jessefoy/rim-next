@@ -3079,6 +3079,21 @@ async function main() {
     CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
   `);
 
+  // Every-other-week rotations (2026-10-18), before ANY Prisma-model read (the
+  // generated client selects cycleStart): two pattern values and the cycle's
+  // start date, additive and idempotent, no backfill. No row uses them until
+  // the new code saves one, so the old code never reads an unknown value.
+  // ADD VALUE runs outside a transaction (Postgres rule).
+  try {
+    await db.$executeRawUnsafe(`ALTER TYPE "StandingOccurrence" ADD VALUE IF NOT EXISTS 'ALT_WEEK_A'`);
+    await db.$executeRawUnsafe(`ALTER TYPE "StandingOccurrence" ADD VALUE IF NOT EXISTS 'ALT_WEEK_B'`);
+    await db.$executeRawUnsafe(`ALTER TABLE "standing_assignments" ADD COLUMN IF NOT EXISTS "cycleStart" TEXT`);
+    console.log("  ✔ Every-other-week rotations ready (pattern values, cycleStart).");
+  } catch (err) {
+    console.error("  Every-other-week rotations: failed:", err?.message ?? err);
+    throw err;
+  }
+
   // Add new HubMember columns before ANY Prisma-model read. The generated
   // client already selects activitySeenAt, so placing this at the tail would
   // make an earlier hubMember.findMany fail against the pre-migration table.

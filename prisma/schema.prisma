@@ -917,6 +917,11 @@ enum StandingOccurrence {
   FIFTH
   LAST
   ALL
+  // Every other week (2026-10-18): two people take turns week by week from
+  // StandingAssignment.cycleStart, whatever the month does. A = the start
+  // week and every second week after it; B = the weeks between.
+  ALT_WEEK_A
+  ALT_WEEK_B
 }
 
 model StandingAssignment {
@@ -936,6 +941,10 @@ model StandingAssignment {
   occurrence  StandingOccurrence
   startsOn    DateTime           @default(now())
   endsOn      DateTime?
+  /// Every-other-week rotations only (ALT_WEEK_A / ALT_WEEK_B): the first
+  /// week-A session's Central day, "YYYY-MM-DD". Both people's rules carry
+  /// the same date. Null for every other pattern.
+  cycleStart  String?
   createdById String
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt

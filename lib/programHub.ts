@@ -22,7 +22,7 @@
 import { db } from "@/lib/db";
 import {
   ctDateStr, dateToDayCode, getDayOfWeekOccurrenceInMonth, getTotalDayOfWeekOccurrencesInMonth,
-  isOccurrenceOnDate, type ScheduleProgram,
+  isCycleOccurrence, isCycleWeek, isOccurrenceOnDate, type ScheduleProgram,
 } from "@/lib/scheduleUtils";
 
 /** The implicit default hub when `Program.hostingHubSlug` is null. */
@@ -420,10 +420,12 @@ export async function clearOffScheduleCoverage(programSlug: string): Promise<{
   // "2nd Tuesday" rotation dies when the program moves to the last Tuesday.
   const NTH = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH"];
   const canMatch = new Set<string>(); // "TU", "TU:SECOND", "TU:LAST"
+  const meetingDays: string[] = []; // every meeting date, for every-other-week rules
   const start = new Date(`${ctDateStr(now.toISOString())}T12:00:00Z`);
   for (let i = 0; i < 366; i++) {
     const dateStr = new Date(start.getTime() + i * 86_400_000).toISOString().slice(0, 10);
     if (!isOccurrenceOnDate(schedule, dateStr)) continue;
+    meetingDays.push(dateStr);
     const day = dateToDayCode(dateStr);
     const nth = getDayOfWeekOccurrenceInMonth(dateStr);
     canMatch.add(day);
@@ -432,9 +434,15 @@ export async function clearOffScheduleCoverage(programSlug: string): Promise<{
   }
   const deadRules = (await db.standingAssignment.findMany({
     where: { programSlug, dayOfWeek: { not: null } },
-    select: { id: true, dayOfWeek: true, occurrence: true },
+    select: { id: true, dayOfWeek: true, occurrence: true, cycleStart: true },
   })).filter((r) =>
-    r.occurrence === "ALL" ? !canMatch.has(r.dayOfWeek!) : !canMatch.has(`${r.dayOfWeek}:${r.occurrence}`),
+    r.occurrence === "ALL"
+      ? !canMatch.has(r.dayOfWeek!)
+      : isCycleOccurrence(r.occurrence)
+        // Every other week (2026-10-18): alive while one of its weeks still
+        // lands on a meeting day of its weekday.
+        ? !meetingDays.some((d) => dateToDayCode(d) === r.dayOfWeek && isCycleWeek(r.occurrence, r.cycleStart, d))
+        : !canMatch.has(`${r.dayOfWeek}:${r.occurrence}`),
   );
 
   if (offDay.length === 0 && deadRules.length === 0) return { sessions: [], rotations: 0 };
