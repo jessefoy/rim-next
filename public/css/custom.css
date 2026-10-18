@@ -13419,8 +13419,12 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   min-width: 220px;
-  max-height: 320px;
-  overflow-y: auto;
+  /* The whole team, always (2026-10-18): a 320px cap with an inner scroll
+     held six 44px rows, and on a Mac the hidden scrollbar made the list look
+     complete. Jesse saw the Hosting Team end at Maria and thought Nancy was
+     gone. A long team extends the page, which scrolls as usual. */
+  max-height: none;
+  overflow-y: visible;
   padding: 6px;
   display: flex;
   flex-direction: column;
