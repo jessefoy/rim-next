@@ -13419,16 +13419,34 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   min-width: 220px;
-  /* The whole team, always (2026-10-18): a 320px cap with an inner scroll
-     held six 44px rows, and on a Mac the hidden scrollbar made the list look
-     complete. Jesse saw the Hosting Team end at Maria and thought Nancy was
-     gone. A long team extends the page, which scrolls as usual. */
-  max-height: none;
-  overflow-y: visible;
+  /* The list must never look complete when it isn't (2026-10-18): a 320px
+     cap held six 44px rows, and a Mac hid the scrollbar, so Jesse saw the
+     Hosting Team end at Maria and thought Nancy was gone. Now: up to 70% of
+     the screen (a whole team today), then a scroll with a scrollbar that
+     always shows (Jesse's call). */
+  max-height: 70vh;
+  max-height: 70dvh;
+  box-sizing: border-box; /* the cap includes the padding (no global reset) */
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 1px;
+}
+/* Always visible: styling the WebKit scrollbar (Chrome, Safari, Edge) keeps
+   it on screen instead of the Mac's hide-until-scrolled overlay. The standard
+   scrollbar-color is left to Firefox only, because in Chrome it would
+   replace these rules and bring the hidden overlay back. */
+.hs-member-menu::-webkit-scrollbar { width: 10px; }
+.hs-member-menu::-webkit-scrollbar-track { background: var(--rim-bg); border-radius: 8px; }
+.hs-member-menu::-webkit-scrollbar-thumb {
+  background: var(--rim-text-muted);
+  border-radius: 8px;
+  border: 2px solid var(--rim-bg);
+}
+@supports not selector(::-webkit-scrollbar) {
+  .hs-member-menu { scrollbar-color: var(--rim-text-muted) var(--rim-bg); }
 }
 .hs-member-menu__item {
   background: none;
