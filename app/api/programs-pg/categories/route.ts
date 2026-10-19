@@ -10,10 +10,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { isValidKind } from "@/lib/programKind";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 function requireRole(session: any) {
   const roles = (session?.user?.roles ?? []) as string[];
-  return roles.includes("ADMIN") || roles.includes("REGISTRAR");
+  return canUseProgramManager(roles);
 }
 
 export async function GET() {

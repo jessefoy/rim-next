@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 /**
  * PATCH /api/programs-pg/categories/reorder
@@ -13,7 +14,7 @@ export async function PATCH(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const roles = (session.user.roles ?? []) as string[];
-  if (!roles.includes("ADMIN") && !roles.includes("REGISTRAR")) {
+  if (!canUseProgramManager(roles)) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

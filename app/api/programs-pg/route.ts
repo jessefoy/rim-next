@@ -1,6 +1,6 @@
 /**
- * GET  /api/programs-pg — List all programs (REGISTRAR | ADMIN)
- * POST /api/programs-pg — Create a new program (REGISTRAR | ADMIN)
+ * GET  /api/programs-pg — List all programs (canUseProgramManager: REGISTRAR | ADMIN | GUIDING_TEACHER)
+ * POST /api/programs-pg — Create a new program (canUseProgramManager: REGISTRAR | ADMIN | GUIDING_TEACHER)
  */
 
 import { NextRequest, NextResponse, after } from "next/server";
@@ -17,10 +17,11 @@ import { cleanOffering } from "@/lib/programOffering";
 import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { normalizeLinkInput } from "@/lib/linkInput";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -34,7 +35,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { hasToolAccess } from "@/lib/toolAuth";
+import { canUseProgramManager } from "@/lib/toolAuth";
 import CategoryOrderClient from "@/components/registrar/CategoryOrderClient";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export default async function CategoriesPage() {
   if (!session) redirect("/login");
   // The layout's gate, repeated: Next.js can render a page without re-running
   // its layout, so the layout alone doesn't protect this data (2026-10-19 audit).
-  if (!(await hasToolAccess(session.user.id, session.user.roles ?? [], ["REGISTRAR"], "programs"))) notFound();
+  if (!canUseProgramManager(session.user.roles)) notFound();
 
   const categories = await db.programCategory.findMany({
     orderBy: { sortOrder: "asc" },

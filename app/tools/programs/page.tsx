@@ -5,7 +5,7 @@
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
-import { hasToolAccess } from "@/lib/toolAuth";
+import { canUseProgramManager } from "@/lib/toolAuth";
 import { db } from "@/lib/db";
 import { resolveOffering } from "@/lib/programOffering";
 import ProgramsTableClient, {
@@ -21,11 +21,11 @@ export default async function ProgramsToolPage() {
   if (!session) redirect("/login");
   // The layout's gate, repeated: Next.js can render a page without re-running
   // its layout, so the layout alone doesn't protect this data (2026-10-19 audit).
-  if (!(await hasToolAccess(session.user.id, session.user.roles ?? [], ["REGISTRAR"], "programs"))) notFound();
+  if (!canUseProgramManager(session.user.roles)) notFound();
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  const isRegistrar = roles.includes("REGISTRAR") || isAdmin;
+  const isRegistrar = canUseProgramManager(roles);
 
   const pgPrograms = await db.program.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],

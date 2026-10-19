@@ -8,13 +8,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

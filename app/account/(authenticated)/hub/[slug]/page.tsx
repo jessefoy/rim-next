@@ -13,6 +13,7 @@ import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubA
 import HubHomeClient from "@/components/HubHomeClient";
 import { getHubHomeApps } from "@/lib/hubApps";
 import { getHubHomeAttention } from "@/lib/hubActivity";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +42,13 @@ export default async function HubHomePage({
     });
   }
 
-  const appLinks = await db.hubAppLink.findMany({
+  // The Program Manager shows only to the roles that can use it (Jesse,
+  // 2026-10-19); a team member without them saw a card and a rail link that
+  // opened "You don't have permission".
+  const appLinks = (await db.hubAppLink.findMany({
     where: { hubId: hub.id, isEnabled: true },
     orderBy: { order: "asc" },
-  });
+  })).filter((l) => l.toolSlug !== "programs" || canUseProgramManager(session.user.roles));
   const [attention, apps] = await Promise.all([
     getHubHomeAttention({
       hubId: hub.id,

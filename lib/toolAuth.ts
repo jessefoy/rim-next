@@ -1,6 +1,19 @@
 import { db } from "@/lib/db";
 
 /**
+ * Who may use the Program Manager (Jesse, 2026-10-19): the Registrar, Admin
+ * and Guiding Teacher roles. One rule for its pages and every API behind them.
+ * Team membership alone does not open it, unlike the other tools (registrant
+ * contact details and gifts are registry-level data), and the page and its
+ * saves used to follow different rules (2026-10-19 audit).
+ */
+export const PROGRAM_MANAGER_ROLES = ["REGISTRAR", "ADMIN", "GUIDING_TEACHER"] as const;
+
+export function canUseProgramManager(roles: readonly string[] | null | undefined): boolean {
+  return !!roles?.some((r) => (PROGRAM_MANAGER_ROLES as readonly string[]).includes(r));
+}
+
+/**
  * Check if a user has access to a tool.
  *
  * Access is granted if the user:
@@ -11,8 +24,9 @@ import { db } from "@/lib/db";
  * Pathway 3 is the primary intent: hub membership implies access to that hub's tools.
  * Pathways 1 and 2 remain as safety nets and for edge-case grants.
  *
- * This is the standard gate for all tools. Every tool layout should use this
- * instead of inline role checks.
+ * This is the standard gate for the tools, except the Program Manager, which
+ * is role-only (canUseProgramManager above). Every other tool layout should use
+ * this instead of inline role checks.
  *
  * Usage:
  *   const hasAccess = await hasToolAccess(userId, roles, ["TEACHER"], "learning");

@@ -1,6 +1,6 @@
 /**
- * GET    /api/programs-pg/[slug] — Get single program (REGISTRAR | ADMIN)
- * PUT    /api/programs-pg/[slug] — Update program (REGISTRAR | ADMIN)
+ * GET    /api/programs-pg/[slug] — Get single program (canUseProgramManager: REGISTRAR | ADMIN | GUIDING_TEACHER)
+ * PUT    /api/programs-pg/[slug] — Update program (canUseProgramManager: REGISTRAR | ADMIN | GUIDING_TEACHER)
  * DELETE /api/programs-pg/[slug] — Delete program (ADMIN only, safety check)
  */
 
@@ -20,13 +20,14 @@ import { ctDateStr, parseAnnouncementUntil, shiftToDate } from "@/lib/scheduleUt
 import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { normalizeLinkInput } from "@/lib/linkInput";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -55,7 +56,7 @@ export async function PATCH(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -87,7 +88,7 @@ export async function PUT(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

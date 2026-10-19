@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { extractBlockNoteText } from "@/lib/renderRichContent";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

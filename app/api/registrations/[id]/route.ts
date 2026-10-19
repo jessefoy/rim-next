@@ -16,6 +16,7 @@ import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { requiredDanaCents } from "@/lib/programUtils";
 import { addRegistrationToFlodesk, removeRegistrationFromFlodesk } from "@/lib/flodesk";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
@@ -24,7 +25,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -271,7 +272,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

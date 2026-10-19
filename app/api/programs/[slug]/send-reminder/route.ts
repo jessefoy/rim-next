@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { sendReminderEmail } from "@/lib/email";
 import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 // ─── POST /api/programs/[slug]/send-reminder ──────────────────────────────────
 // Sends the program reminder email to all active registrants who haven't
@@ -15,7 +16,7 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+  if (!session || !canUseProgramManager(session.user.roles)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

@@ -1,6 +1,7 @@
 /**
  * Programs tool layout — wraps /tools/programs/* with ToolsProvider.
- * Role gate: REGISTRAR or ADMIN, or individual UserToolAccess grant.
+ * Gate: the Registrar, Admin or Guiding Teacher role (canUseProgramManager),
+ * the same rule as every page and API behind it (Jesse, 2026-10-19).
  */
 
 import { auth } from "@/auth";
@@ -8,7 +9,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ToolsProvider } from "@/components/ToolsContext";
 import WorkspaceShell from "@/components/WorkspaceShell";
-import { hasToolAccess } from "@/lib/toolAuth";
+import { canUseProgramManager } from "@/lib/toolAuth";
 
 export default async function ProgramsToolLayout({
   children,
@@ -20,7 +21,7 @@ export default async function ProgramsToolLayout({
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  const hasAccess = await hasToolAccess(session.user.id, roles, ["REGISTRAR"], "programs");
+  const hasAccess = canUseProgramManager(roles);
 
   if (!hasAccess) {
     return (
