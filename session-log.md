@@ -1,3 +1,44 @@
+## 2026-10-19 — The integrity pass: the member area, checked end to end
+
+On `main`: `068dd2f` … `288bfd9` (17 commits), and this closing. No production writes. One read-only production query (probed with `SELECT 1`): 0 inactive memberships on scheduling teams, so the first inactive pass releases no one.
+
+### The ask
+
+- *"Do an integrity check of the website and its apps and functionality in the member area to make sure that everything is coded well and serving its purpose, not conflicting with any other system within the app, and everything is mutually synergistic."*
+
+An audit across accounts, registration, teams, tools, the Scheduler, email and the interface produced five batches. Each went implementation → reviewer agents → fixes → `tsc --noEmit` + the member-area harness → commit and push → live checks.
+
+### Jesse's rulings (verbatim, 2026-10-19)
+
+- **Program Manager access:** *"the registrar, admin, and guiding teacher. The guiding teacher is always an admin."* Team membership and grants no longer open it (`canUseProgramManager`). I had first recommended this without reading `lib/toolAuth.ts`, which documented team membership as the primary path; I surfaced the reversal and he chose the roles.
+- **Pre-staged people** get the join-welcome letter when they agree on the Welcome page.
+- **A paused person who keeps their sessions** still gets the two-day reminder.
+- **Inactive:** *"If they're inactive, then we should consider them removed and set up a system where it identifies that that happened… opens it up and alerts as to what is needed."*
+- **The read-aloud:** *"I approved all of them"* (the October 19 page: members and visitors, coordinators and leads, registrars and staff, screen-reader names). Items still owed from October 18 and earlier were not part of it.
+
+### What changed
+
+1. **Accounts and data safety.** A registrar can't change the email or status of an account that carries authority; the decline/delete path can't remove an agreed member or anyone with roles, teams, threads or registrations; the email lookup returns only exists/agreed (rate-limited, no names); `/join` and guest registration never write to an existing account; the cleanup cron keeps staged teachers, household members and anyone on the schedule; a member who started team conversations can't be deleted (archive instead).
+2. **Teams.** Coordinator notes and emails stay with coordinators; replies, reactions and threads are checked against their own team; archived conversations refuse edits; a paused or inactive coordinator steps back (`effectiveCoordinator`, `canManageTrash` ACTIVE-only). The unused `GET /api/hub/[slug]` and members GET are gone.
+3. **Tools.** Every tool page repeats its own gate; the Program Manager gate is one helper on every page and save.
+4. **Scheduler.** `ruleFillsDate` is the one test for whether a rotation fills a date; removals stay removed (skip holds decided most-specific-first, `holdRotationDate`); every engine write takes the seat lock; end dates and next month by Central day; the 08:00 run fills next month once the 14-day window reaches it; Reassign uses `canSelfClaim`; a team rename carries its notices.
+5. **Email.** Reminders carry their message; team-wide sends are paced (`sendEachPaced`, 600 ms); member-typed fields are escaped (`memberText`), plain-text parts decoded correctly; refusals are logged.
+6. **Programs and registration.** The program decides its own identity and whether it's open (archived/closed/past-deadline refused, 403); a person's own hold is their seat; the slug locks once registrations or the schedule use it; guests finish from the email through a signed link (`lib/registrationLink.ts`; the reviewer's HIGH finding: an unsigned `?r=` leaked account details); the webhook sends no second confirmation; decline and cron accept APPROVED.
+7. **Inactive is off the team's schedule.** Marking someone inactive opens their sessions, ends their rotations and tells the team (dialog states the count first); the daily coverage pass releases any inactive holder first (`releaseInactiveCoverage`).
+8. **Interface.** Toolbars work from the keyboard (commands on `onClick`); saves answer beside the button (`SaveNote`); about 30 components gained in-page confirmations instead of browser pop-ups, labels, Escape handling and plain failure answers; "hub" and "Space" read "team"; the host page uses app tokens; Course/Lesson editors guard leaving.
+9. **Residue.** `custom.css` 31,040 → 23,769 lines (verified by computed-style fingerprints of 20 live pages before and after; no differences); three unused Tiptap packages removed; SessionBan checks and `roomNameForProgram` retired; 14 backlog items closed.
+
+### What this connects to
+
+Member Registry (authority-carrying accounts), Welcome/agreement (join-welcome latch), registration + Stripe webhook + dana reminders, every team's Conversations/Files/Members/Trash, the Scheduler engine and coverage notices (inactive release runs inside the 13:00 pass), Program Manager + Course Manager + hub nav/Home filters, the email template manager (no new slugs; two templates' URL variable value changed), and the public pages' CSS (the prune).
+
+### What comes next
+
+- **Tomorrow 08:00 UTC** is the first live rotation run under the seat lock and `ruleFillsDate`; check its log and the integrity count.
+- **A signed-in walk** of the new interactions (none has been clicked through signed in).
+- **The email template drafts** (Read-Aloud v3: Scheduling manager welcome, registrar Staff Manual line and subject, rotation subjects naming the role, "with the {team}" in file-shared, colons for em-dashes in subjects) await Jesse's read-aloud and consent before any `migrate.mjs` update.
+- CLEANUP #72–77 remain (drop `session_bans`, the `livekitRoom` column, the last three components' pop-ups).
+
 ## 2026-10-16 (later) to 10-18 — Every role accounted for: coverage notices, Peer-Led staffed, every-other-week rotations
 
 On `main`: `e565cd5`, `2bb886d`, `974ee4a`, `f8b0181`, `9534dab`, `2bf89f4`, and this closing. Production writes, each Jesse-approved by record (snapshot or drift guard, one transaction, before and after shown). Verified: `npx tsc --noEmit`, the member-redesign harness (109 checks), a reviewer sub-agent on the two large builds (coverage notices; every-other-week), read-only production invariant checks (clean at the end: 180 upcoming sessions, 30 rotations, 0 problems), and a signed-in walk in the built-in browser (team Home lines, all four schedules, November times, a session door, the person menu, the Rotations grid at 1,024 and 1,440px, phone width). **Not clicked:** the take/cancel dialogs (a schedule button click was refused as a possible write).

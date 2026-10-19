@@ -1,26 +1,25 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-18 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-19 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-18 closed: every role accounted for; Peer-Led staffed; every other week
+## Active — 2026-10-19 closed: the integrity pass
 
-Everything is on `main` (`e565cd5` … `2bf89f4`, and the closing docs). Narrative: `session-log.md`, 2026-10-16 (later) to 10-18. Reference: `RIM_Scheduler.md` ("Coverage notices", "Every other week", "Lists and the grid never hide people").
+Everything is on `main` (`068dd2f` … `288bfd9`, and the closing docs). Narrative: `session-log.md`, 2026-10-19. Five batches: accounts and data safety, the Scheduler, programs/registration/email, inactive members, the interface; then the CSS prune and residue. The October 19 read-aloud is **ratified** (*"I approved all of them"*).
 
-**Live:**
-- **Coverage notices** (`lib/coverageNotices.ts`): a session within two weeks that loses its last person emails that team; a daily cron (13:00 UTC) sends the two-days-before reminder (with who else is serving), the coordinators' still-open note, and on Mondays each team's two-week look-ahead. Team Home's line is a true count; Updates shows gaps. It ran on Oct 17 and 18; the first Monday look-ahead goes out Oct 19.
-- **Confirmations name the role, team and time** ("You're greeting: … · Fri, Oct 16 at 9:30 AM").
-- **Every other week** for every team (turns from a chosen date; programs that meet every week only); "Alternate by week of the month" renamed. **Don't roll back past `9534dab`** now that a cycle is saved.
-- **Peer-Led Silent Meditation staffed in production:** 17 members (11 guides, 6 subs), 9 weekly rotations, Jessica and Lorri's Thursday cycle from Oct 22 (11 dated sessions through Dec 31, the cycle from January); Sara Neall signs in with her Gmail. Integrity check clean: 180 upcoming sessions, 30 rotations, 0 problems.
-- **The person menu** shows the whole team (70% of the screen, scrollbar always visible); **the Rotations grid** stacks by its own width; the door's early entry names the day.
+**Live:** Program Manager is Registrar, Admin and Guiding Teacher only (`canUseProgramManager`); inactive means off the team's schedule (sessions open, rotations end, the team hears; the 13:00 pass releases any holder first, 0 today); guests finish a waitlist/dana registration from a signed link; rotations decided by `ruleFillsDate` under the seat lock; team emails paced; in-page confirmations replace browser pop-ups; `custom.css` down to 23,769 lines with no visual change.
+
+**Watch:**
+- **Oct 20, 08:00 UTC:** the first live rotation run under the seat lock and `ruleFillsDate`. Check the cron log and the Scheduler integrity count (was 180 sessions, 30 rotations, 0 problems).
+- **A signed-in walk** of the new interactions is still owed: the inactive dialog, a file removal request, a reply delete, the Program Manager save note and slug lock, a Course/Lesson leave guard, the Rotations Apply failure line.
 
 **Waiting on Jesse:**
-- **Read-aloud:** the four new emails (`coverage-gap-opened`, `coverage-lookahead`, `coverage-still-needed`, `coverage-session-reminder`, in `/admin/emails`, Host Team), the new Scheduler lines ("You're the only greeter …", "We'll email you a confirmation", the Remove dialogs' "The team will hear …", "Every other week", "Alternate by week of the month", "taking turns"), and the door's "You're teaching on …".
-- **Check in `/admin/emails`** that `host-assignment-confirmation`, `host-assignment-removed` and `sub-request-claimed` carry the role words (an edited template was left alone; the deploy log says which).
-- **Ask Maria** what "the website isn't set up to see a listed host yet" meant: training on the Dummy Test Program (no host listed; put the trainee on a Dummy session, or a Dummy rotation) or My Home not showing upcoming duties (backlog `2026-10-18-001`, a session card proposed).
-- **The Dummy Test Program** stays while hosts train on it, so Hosting, Greeter and AV notices include its daily 6:00 AM sessions until it's archived or deleted (archive first, cancel its test registrations).
-- **After Monday Oct 19:** how did the look-ahead read to the teams?
+- **Email template drafts** (Read-Aloud v3, "Proposed email wording"): the Scheduling manager welcome rewrite, the registrar Staff Manual line and subject, rotation subjects that name the role, "with the {team}" in the file-shared email, colons for em-dashes in subjects. These change existing templates, so each needs his read-aloud and consent, then an explicit `update` in `migrate.mjs` with a per-template log.
 
-**Next concrete step:** the read-aloud above, then the template check. **Queued:** `2026-10-18-001` (My Home upcoming sessions), `2026-10-16-001` (a supporting team in the online room).
+**Next concrete step:** check the Oct 20 rotation run, then the signed-in walk. **Queued:** CLEANUP #72–77 (drop `session_bans`, the `livekitRoom` column, the last pop-ups in HubTrashClient, GoogleFileAdminClient, RimTiptapEditor); `2026-10-18-001`; `2026-10-16-001`.
+
+## Earlier — 2026-10-18 closed: every role accounted for; Peer-Led staffed; every other week
+
+Narrative: `session-log.md`, 2026-10-16 (later) to 10-18. Coverage notices live; Peer-Led staffed; every other week (**don't roll back past `9534dab`**). **Still owed** (not part of the Oct 19 read): the read-aloud of the four coverage emails and the Scheduler lines from that session; the `/admin/emails` check that `host-assignment-confirmation`, `host-assignment-removed`, `sub-request-claimed` carry the role words; ask Maria what "the website isn't set up to see a listed host yet" meant; how the first Monday look-ahead (Oct 19) read to the teams. The Dummy Test Program stays while hosts train (its 6:00 AM sessions show in notices until archived).
 
 ## Earlier — 2026-10-16 closed: the Scheduler, sound for every team; sessions keep their Central time
 
