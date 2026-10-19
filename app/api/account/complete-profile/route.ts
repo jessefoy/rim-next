@@ -5,6 +5,7 @@ import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
 import { sendLegacyWelcomeBackEmail } from "@/lib/email";
 import { toProperName } from "@/lib/nameCase";
 import { addVerifiedMemberToFlodesk } from "@/lib/flodesk";
+import { RIM_SUPPORT_EMAIL } from "@/lib/locations";
 
 // POST — save name/phone and mark community agreements accepted
 export async function POST(request: Request) {
@@ -77,13 +78,42 @@ export async function POST(request: Request) {
 }
 
 // DELETE — member explicitly declined; remove their account entirely
+//
+// Only for the Welcome page's decline: someone who has never agreed, on an
+// account with nothing attached (2026-10-19 audit). It deleted any signed-in
+// account on request, skipping the admin delete's schedule release and its
+// care with other people's replies. An account with a role, a team, a
+// conversation or a registration is left for an admin, and the Welcome page
+// says so beside the button.
 export async function DELETE() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Cascade deletes: Sessions, Accounts, CourseAccess, HubMember, threads/replies, etc.
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      agreedToTerms: true,
+      roles: true,
+      _count: { select: { hubMemberships: true, hubThreads2: true, registrations: true } },
+    },
+  });
+  if (!user) return NextResponse.json({ ok: true });
+  if (
+    user.agreedToTerms ||
+    user.roles.length > 0 ||
+    user._count.hubMemberships > 0 ||
+    user._count.hubThreads2 > 0 ||
+    user._count.registrations > 0
+  ) {
+    return NextResponse.json(
+      { error: `This account is kept, because it's connected to RIM. If you'd like it removed, write to ${RIM_SUPPORT_EMAIL} and we'll help.` },
+      { status: 409 },
+    );
+  }
+
+  // Cascade deletes: Sessions, Accounts, CourseAccess, etc.
   // Registrations use onDelete: SetNull — registration records are preserved with userId = null.
   await db.user.delete({ where: { id: session.user.id } });
 

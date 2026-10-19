@@ -99,9 +99,7 @@ export default function RegistrationForm({
 
   // Email recognition — pre-fill returning members' info on blur
   const [emailCheckStatus, setEmailCheckStatus] = useState<"idle" | "checking" | "found" | "not_found">("idle");
-  const [foundMember, setFoundMember] = useState<{
-    firstName: string; lastName: string; phone: string; agreedToTerms: boolean;
-  } | null>(null);
+  const [foundMember, setFoundMember] = useState<{ agreedToTerms: boolean } | null>(null);
 
   // Dana state — pre-populate registrationId for promoted waitlist members
   const [registrationId, setRegistrationId] = useState<string | null>(
@@ -385,7 +383,9 @@ export default function RegistrationForm({
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  // On email blur: look up the address and pre-fill if it belongs to a known member.
+  // On email blur: say whether the address belongs to a member. The lookup
+  // returns no name or phone (2026-10-19 audit); the server records an existing
+  // account's own values, whatever is typed here.
   // Non-blocking — form works normally regardless of the outcome.
   const handleEmailBlur = async () => {
     if (sessionUserId || !form.email.includes("@")) return;
@@ -394,15 +394,7 @@ export default function RegistrationForm({
       const res = await fetch(`/api/account/check-email?email=${encodeURIComponent(form.email)}`);
       const data = await res.json();
       if (data.exists) {
-        setFoundMember(data);
-        // Account values win — corrects typos and restores the member's real name.
-        // Fall back to what they typed only if the account has no value for that field.
-        setForm((prev) => ({
-          ...prev,
-          firstName: data.firstName || prev.firstName,
-          lastName: data.lastName || prev.lastName,
-          phone: data.phone || prev.phone,
-        }));
+        setFoundMember({ agreedToTerms: !!data.agreedToTerms });
         if (data.agreedToTerms) setAgreedToTerms(true);
         setEmailCheckStatus("found");
       } else {
@@ -446,8 +438,6 @@ export default function RegistrationForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           programId: program._id,
-          programSlug: program.slug.current,
-          programTitle: program.name,
           // Logged-in members already agreed; guests agree via checkbox on this form
           agreedToTerms: sessionUserId ? true : agreedToTerms,
           ...form,
@@ -533,12 +523,11 @@ export default function RegistrationForm({
             id="reg-firstName"
             name="firstName"
             type="text"
-            className={`pg-form__input${emailCheckStatus === "found" ? " pg-form__input--locked" : ""}`}
+            className="pg-form__input"
             value={form.firstName}
             onChange={handleField}
             required
             autoComplete="given-name"
-            readOnly={emailCheckStatus === "found"}
           />
         </div>
         <div className="pg-form__field">
@@ -549,12 +538,11 @@ export default function RegistrationForm({
             id="reg-lastName"
             name="lastName"
             type="text"
-            className={`pg-form__input${emailCheckStatus === "found" ? " pg-form__input--locked" : ""}`}
+            className="pg-form__input"
             value={form.lastName}
             onChange={handleField}
             required
             autoComplete="family-name"
-            readOnly={emailCheckStatus === "found"}
           />
         </div>
       </div>
@@ -573,6 +561,9 @@ export default function RegistrationForm({
             handleField(e);
             // Reset recognition state when email changes
             if (emailCheckStatus !== "idle") {
+              // A different address is a different person: their agreement
+              // isn't carried over from the recognized one.
+              if (foundMember?.agreedToTerms) setAgreedToTerms(false);
               setEmailCheckStatus("idle");
               setFoundMember(null);
             }
@@ -584,7 +575,7 @@ export default function RegistrationForm({
         />
         {!sessionUserId && emailCheckStatus === "found" && foundMember && (
           <p className="pg-form__email-found">
-            Welcome back, <strong>{foundMember.firstName} {foundMember.lastName}</strong>! Your registration will be linked to your account.
+            Welcome back. This registration will be linked to your account.
           </p>
         )}
       </div>
@@ -597,14 +588,13 @@ export default function RegistrationForm({
           id="reg-phone"
           name="phone"
           type="tel"
-          className={`pg-form__input${emailCheckStatus === "found" ? " pg-form__input--locked" : ""}`}
+          className="pg-form__input"
           value={form.phone}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, phone: formatPhoneInput(e.target.value) }))
           }
           placeholder="(414) 555-0100"
           autoComplete="tel"
-          readOnly={emailCheckStatus === "found"}
         />
       </div>
 

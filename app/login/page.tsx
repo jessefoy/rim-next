@@ -107,10 +107,10 @@ export default async function LoginPage({
     // than by being falsely told they don't have an account.
     //
     // Privacy note: this does reveal whether a given email has a User row
-    // (different page content per email). The leak already exists via the
-    // public /api/account/check-email endpoint used by the registration
-    // form's pre-fill, and for a community-membership site the UX win is
-    // worth the modest disclosure.
+    // (different page content per email). The registration form's
+    // /api/account/check-email answers the same yes or no (rate-limited, and
+    // since 2026-10-19 without a name or phone), and for a community-membership
+    // site the UX win is worth the modest disclosure.
     let existing: { id: string } | null = null;
     let lookupFailed = false;
     try {

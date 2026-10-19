@@ -339,7 +339,7 @@ export async function DELETE(
 
   const user = await db.user.findUnique({
     where: { id },
-    include: { _count: { select: { registrations: true } } },
+    include: { _count: { select: { registrations: true, hubThreads2: true } } },
   });
 
   if (!user) {
@@ -353,8 +353,17 @@ export async function DELETE(
     );
   }
 
-  // Cascade handles: Account, Session, CourseAccess, UserMembership, AttendanceRecord,
-  // HubMember, SubClaim, HubConversationThread/Reply, HubDocument.
+  // A conversation is deleted with the person who started it, and every reply
+  // other members wrote in it goes too (2026-10-19 audit). Archive keeps them.
+  if (user._count.hubThreads2 > 0) {
+    return NextResponse.json(
+      { error: `Member started ${user._count.hubThreads2} team conversation(s), and deleting would remove everyone's replies in them. Archive instead.` },
+      { status: 409 }
+    );
+  }
+
+  // Cascade handles: Account, Session, CourseAccess, HubMember, SubClaim, and
+  // the member's own replies (their conversations are refused above).
   // Registration uses SetNull (records preserved, userId cleared).
   // The schedule first (2026-10-16 audit): their upcoming sessions released
   // and rotations ended; rotations they created pass to the admin deleting

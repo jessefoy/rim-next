@@ -29,6 +29,7 @@ export default function WelcomeForm({
   const [agreed, setAgreed] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "declining" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [declineError, setDeclineError] = useState("");
   const [showDeclineConfirm, setShowDeclineConfirm] = useState(false);
 
   function formatPhone(value: string) {
@@ -64,8 +65,18 @@ export default function WelcomeForm({
 
   async function handleDecline() {
     setStatus("declining");
+    setDeclineError("");
     try {
-      await fetch("/api/account/complete-profile", { method: "DELETE" });
+      const res = await fetch("/api/account/complete-profile", { method: "DELETE" });
+      // An account someone set up for them (a role or a team) is kept: say so
+      // here, beside the button, rather than signing them out as if it were
+      // gone (2026-10-19 audit).
+      if (res.status === 409) {
+        const data = await res.json().catch(() => ({}));
+        setDeclineError(data.error ?? "This account can't be removed here.");
+        setStatus("idle");
+        return;
+      }
     } catch {
       // best effort — sign them out regardless
     }
@@ -179,6 +190,7 @@ export default function WelcomeForm({
             >
               {status === "declining" ? "Removing…" : "Yes, remove my account"}
             </button>
+            {declineError && <p className="wl-error" role="alert">{declineError}</p>}
             <button
               type="button"
               className="wl-decline__cancel"
