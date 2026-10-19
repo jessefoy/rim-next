@@ -1,3 +1,57 @@
+## 2026-10-16 (later) to 10-18 — Every role accounted for: coverage notices, Peer-Led staffed, every-other-week rotations
+
+On `main`: `e565cd5`, `2bb886d`, `974ee4a`, `f8b0181`, `9534dab`, `2bf89f4`, and this closing. Production writes, each Jesse-approved by record (snapshot or drift guard, one transaction, before and after shown). Verified: `npx tsc --noEmit`, the member-redesign harness (109 checks), a reviewer sub-agent on the two large builds (coverage notices; every-other-week), read-only production invariant checks (clean at the end: 180 upcoming sessions, 30 rotations, 0 problems), and a signed-in walk in the built-in browser (team Home lines, all four schedules, November times, a session door, the person menu, the Rotations grid at 1,024 and 1,440px, phone width). **Not clicked:** the take/cancel dialogs (a schedule button click was refused as a possible write).
+
+### The asks
+
+- After signing up as the first greeter and cancelling: *"Shouldn't it send a notification … that it needs a greeter? … this is one of the main features to support teams and to make sure roles are all accounted for, and that they can do this all through the app in a convenient, well-informed way."*
+- On his greeter confirmation ("You're confirmed for Dummy Test Program on Fri, Oct 16"): *"Confirmed to greet, because what if they're part of different teams?"*
+- *"I didn't even see Nancy in there for the hosts. Looked like she was scheduled but didn't show up."*
+- The Good Morning / Good Evening guide list (a PDF), to populate the community-led sits; then Sam's and Jessica's replies.
+- Jessica and Lorri alternate Thursdays week by week, which the rotations couldn't express.
+
+### Built and live
+
+- **Coverage notices** (`e565cd5`, `lib/coverageNotices.ts`). The inventory: only a cover request reached a team; a session emptied any other way, or never taken, went quiet, and team Home counted only cover requests. Now: a session within two weeks that loses its last person emails that team's members who can take sessions (never the person who made the change or the person removed), from cancel, coordinator removal, pause, removal from a team, archive, Inactive, deletion and a person released from a rotation; a daily cron (`/api/cron/coverage-notices`, 13:00 UTC) sends the person serving a reminder two days before (with who else is serving: "Host: …", "AV: none yet"), the coordinators what is still open two days out, and on Mondays each team its next two weeks; team Home's line is a true count from the Scheduler's own row builder (closing backlog `2026-10-13-005`); Updates shows "Program · date needs a greeter"; the Scheduler asks before the last person cancels and says whether the team was told; the take dialog no longer claims the team is notified. A `coverage_notices` table records every notice (dedupe, and Updates after the assignment is gone).
+- **Confirmations name the role, team and time** (same commit): "You're greeting: Dummy Test Program · Fri, Oct 16 at 9:30 AM", "You're confirmed as greeter … with the Greeter team"; removals and "covered" likewise (`coverageWords`, `fmtSessionWhen`; exact template swaps only where unedited).
+- **The signed-in walk** (`2bb886d`): November keeps 9:30; four schedules render by team kind; Home lines per team. Fixed: an admin's early entry said "You're teaching today" for Tuesday's session; it names the day now.
+- **"Nancy is missing"** (`974ee4a`, `f8b0181`): the production schedule was clean; the Hosting Team's person menu was capped at 320px with an inner scroll that held six 44px rows, and a Mac hides the scrollbar, so the list ended at Maria and looked complete. Now up to 70% of the screen with a scrollbar that always shows (Jesse's call).
+- **Peer-Led Silent Meditation staffed** (production): 17 members (11 guides, 6 subs), quietly; 9 weekly rotations (Good Morning: Nancy, Jeff Heilman, Mike Ferguson, Jamshid Zonoozi, Judy Radtke; Good Evening: Joan Kunicki, Daniela Oliveira, Samantha Scherer, Marne Taylor); Sara Neall's sign-in address to her Gmail (the Yahoo one kept as former). Annie Repaci stays on the team without a rotation (Jesse: may not be active now).
+- **Every other week** (`9534dab`): a two-person turn-taking rotation counted from a chosen date, whatever the month does, for every scheduling team; the old card renamed "Alternate by week of the month". `ALT_WEEK_A` / `ALT_WEEK_B` and `StandingAssignment.cycleStart`; one rule (`isCycleWeek`) for the engine, the schedule-change cleanup and the preview; only for programs that meet every week; a moved cycle clears and refills its sessions. Jessica Chapin and Lorri Bohn: 11 dated Thursdays through Dec 31 (first), then a cycle rule from Oct 22 that the engine continues from January (dry run: Lorri Jan 7, Jessica Jan 14 …).
+- **Rotations grid** (`2bf89f4`): beside the team sidebar on a 1,024px window the five week columns were ~55px and Edit/Reset spilled over names on every row; the grid stacks by its own width (a container query) and the buttons wrap.
+
+### Design decisions and why
+
+- **Tell the people who can act, when it matters, once** (Jesse's four rulings, all as recommended): the team at once within two weeks; the team weekly; the coordinator two days before; the person two days before; a host never emailed about a supporting team's gap (their reminder shows it).
+- **"Needs someone" is what the Scheduler shows** (`buildHubMonthSessions`, unclaimed or with an open cover request); never count rows another way.
+- **No gap notice from structural changes** (ending or resetting a rotation, the rotation Save, a team Reset, a program moving team, format or days): the coordinator usually refills next, and the team would be told a session is open that isn't. The weekly look-ahead covers them.
+- **A role named in every confirmation**, because one person can be on several teams.
+- **The Dummy Test Program stays** while hosts train on it (its notices included); archiving or deleting removes it from every schedule.
+- **Peer-Led facilitators are host and teacher** (Jesse): that team's notices go out like any team's.
+- **A list must never look complete when it isn't** (the person menu).
+- **True alternation is its own pattern, not week-of-month** (Jesse: build it for all teams). Two pattern values because the rotation table allows one rule per program, day, pattern and team.
+- **Dated sessions before a wrong rotation:** a schedule naming the wrong person is worse than an open one, which the notices flag.
+
+### What this connects to
+
+- **Every scheduling team** (Hosting, Peer-Led, Greeter, AV): notices, reminders, the cycle pattern, the person menu and the grid are shared.
+- **Team Home and Updates** (`RIM_Hub_Engineering.md`): the Scheduler's provider in `lib/hubApps.ts` (true count, gap Updates, For me drops filled gaps).
+- **Member Registry and team Members**: archive, Inactive, deletion, pause and removal now also tell the team about gaps they open.
+- **Email** (`RIM_Email_Engineering.md`): four new templates, three reworded, the role words helper.
+- **Zoom door** (`RIM_Zoom.md`): the early-entry wording.
+- **The rotation engine, schedule-change cleanup and staffing page** (`RIM_Scheduler.md`): cycle rules.
+
+### Closing audits
+
+- **Hub routing, four layers:** (1) every new write path keeps its existing gate with the resource's team (no new gate; `prepareGapNotices` runs after the gated write); (2) gap and look-ahead emails go to `getHubNotificationRecipients(team, { canCover: true })` of the session's own team, the coordinator note to `{ coordinatorsOnly: true }`, the reminder to the assigned person with an ACTIVE membership; (3) gaps, counts and Updates come from `buildHubMonthSessions(team)` / team-scoped `coverage_notices`; (4) every new email link is `scheduleUrlFor(team, date)`. No slug branch added.
+- **Email templates:** added `coverage-gap-opened`, `coverage-lookahead`, `coverage-still-needed`, `coverage-session-reminder` (seeded `findUnique → create`, enabled, group 04-hosts; the reminder pre-threshold gated by slug, the others gated at the recipient source); updated with Jesse's consent (role words, exact swaps where unedited, logged) `host-assignment-confirmation`, `host-assignment-removed`, `sub-request-claimed`. Whether the swaps landed (edited templates are left alone) is unverified: a look in `/admin/emails` settles it.
+
+### What comes next
+
+Jesse's read-aloud of the four new emails and the new Scheduler lines; a look at the three reworded confirmations; when a Monday look-ahead has gone out, ask how it read. Follow-on proposed: My Home showing a volunteer's upcoming sessions (Maria's possible meaning).
+
+---
+
 ## 2026-10-15 to 10-16 — The Scheduler, made sound for every team; sessions keep their Central time
 
 On `main`: `adba2ea`, `071afba`, `4ed1c4b`, `82751fa`, `fee8a74`, `4e3838c`, `51b0cb5`, `7f3b757`, `b3038b7`, `fcb6538`, `4fa231d`, `43f57cc`, `2a84320`, `8c084e5`, `5a47829`, `6bb021c`, `1f0e204`, and this closing. Production writes, each Jesse-approved by record (snapshot, drift check, one transaction, before and after shown). Verified: `npx tsc --noEmit`, the member-redesign harness (103 checks), lint compared file by file with the last commit, a reviewer sub-agent on every batch, read-only production invariant checks (clean at the end), and the tap targets measured on the live stylesheet at 375 and 1024px. **Not clicked through signed in.**

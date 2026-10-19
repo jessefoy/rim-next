@@ -1,22 +1,30 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-16 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-18 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-16 closed: the Scheduler, sound for every team; sessions keep their Central time
+## Active — 2026-10-18 closed: every role accounted for; Peer-Led staffed; every other week
 
-Everything is on `main` (`071afba` … `1f0e204`, the closing docs). Narrative: `session-log.md`, 2026-10-15 to 10-16. References: `RIM_Scheduler.md` (the integrity audits, the rules they left in place, the add-a-team checklist), `RIM_Zoom.md` (Pitfalls: a session is its program and Central day).
+Everything is on `main` (`e565cd5` … `2bf89f4`, and the closing docs). Narrative: `session-log.md`, 2026-10-16 (later) to 10-18. Reference: `RIM_Scheduler.md` ("Coverage notices", "Every other week", "Lists and the grid never hide people").
 
 **Live:**
-- **Only the hosting team hosts.** Greeters and AV get nothing from Zoom; My Home's hosting and "Enter room" follow the program's hosting team.
-- **One set of rules for every scheduling team** (staffing, the coordinator gate, self-claim, one row builder), checked on every write; claims can't race; a session is matched by its Central day.
-- **New teams by configuration:** `/admin/hubs` sets open sign-up and formats; a slug rename carries the team's records and links; the checklist is in `RIM_Scheduler.md`.
-- **Everyone taken off a session is told** (two new templates); archive, Inactive and deletion release a person's schedule; the account merge works again for anyone who asked for cover.
-- **Sessions keep their Central time across Nov 1** (`shiftToDate`); the Zoom door and meeting reuse match by day. Production data is true: 57 upcoming sessions re-timed (approved), two stale May cover requests closed; the invariant check is clean.
-- **Jesse's rulings done:** "Cover needed" wording; teacher-pill settings retired; a supporting-team duty line in My Home; "Enter room" and the Course Manager's table "Edit" tap at 44px, looking unchanged.
+- **Coverage notices** (`lib/coverageNotices.ts`): a session within two weeks that loses its last person emails that team; a daily cron (13:00 UTC) sends the two-days-before reminder (with who else is serving), the coordinators' still-open note, and on Mondays each team's two-week look-ahead. Team Home's line is a true count; Updates shows gaps. It ran on Oct 17 and 18; the first Monday look-ahead goes out Oct 19.
+- **Confirmations name the role, team and time** ("You're greeting: … · Fri, Oct 16 at 9:30 AM").
+- **Every other week** for every team (turns from a chosen date; programs that meet every week only); "Alternate by week of the month" renamed. **Don't roll back past `9534dab`** now that a cycle is saved.
+- **Peer-Led Silent Meditation staffed in production:** 17 members (11 guides, 6 subs), 9 weekly rotations, Jessica and Lorri's Thursday cycle from Oct 22 (11 dated sessions through Dec 31, the cycle from January); Sara Neall signs in with her Gmail. Integrity check clean: 180 upcoming sessions, 30 rotations, 0 problems.
+- **The person menu** shows the whole team (70% of the screen, scrollbar always visible); **the Rotations grid** stacks by its own width; the door's early entry names the day.
 
-**Next concrete step:** a signed-in walk through the Scheduler on each team (Hosting, Peer-Led, Greeter, AV) and one session door, **before the Nov 1 time change**; then a Monday session's door for the Awakening the Heart host. **Read-aloud:** "Take this session?", "Off the schedule", "Can take sessions on the schedule", "Take them off their sessions", "You're greeting", "Cover needed", and the two new emails (`coverage-sessions-cleared`, `sessions-cleared-schedule-change` in `/admin/emails`).
+**Waiting on Jesse:**
+- **Read-aloud:** the four new emails (`coverage-gap-opened`, `coverage-lookahead`, `coverage-still-needed`, `coverage-session-reminder`, in `/admin/emails`, Host Team), the new Scheduler lines ("You're the only greeter …", "We'll email you a confirmation", the Remove dialogs' "The team will hear …", "Every other week", "Alternate by week of the month", "taking turns"), and the door's "You're teaching on …".
+- **Check in `/admin/emails`** that `host-assignment-confirmation`, `host-assignment-removed` and `sub-request-claimed` carry the role words (an edited template was left alone; the deploy log says which).
+- **Ask Maria** what "the website isn't set up to see a listed host yet" meant: training on the Dummy Test Program (no host listed; put the trainee on a Dummy session, or a Dummy rotation) or My Home not showing upcoming duties (backlog `2026-10-18-001`, a session card proposed).
+- **The Dummy Test Program** stays while hosts train on it, so Hosting, Greeter and AV notices include its daily 6:00 AM sessions until it's archived or deleted (archive first, cancel its test registrations).
+- **After Monday Oct 19:** how did the look-ahead read to the teams?
 
-**Queued:** `2026-10-16-001` (a supporting team that helps in the online room: record, don't build until a real team needs it).
+**Next concrete step:** the read-aloud above, then the template check. **Queued:** `2026-10-18-001` (My Home upcoming sessions), `2026-10-16-001` (a supporting team in the online room).
+
+## Earlier — 2026-10-16 closed: the Scheduler, sound for every team; sessions keep their Central time
+
+Narrative: `session-log.md`, 2026-10-15 to 10-16. Only the hosting team hosts; one set of rules for every scheduling team; new teams by configuration; sessions keep their Central time across Nov 1 (`shiftToDate`). Its signed-in walk was done 2026-10-18 (clean; fixes above). Still owed: the read-aloud of "Take this session?", "Off the schedule", "Can take sessions on the schedule", "Take them off their sessions", "You're greeting", "Cover needed", and `coverage-sessions-cleared`, `sessions-cleared-schedule-change`.
 
 ## Earlier — 2026-10-15 closed: one person, one account
 

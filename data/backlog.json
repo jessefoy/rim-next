@@ -1921,5 +1921,15 @@
     "status": "open",
     "addedAt": "2026-10-16",
     "notes": "Jesse, 2026-10-16: record it, don't build it until a real team needs it. Found by the Scheduler deep audit (RIM_Scheduler.md, checklist step 3). Where it would go: the door's staff list in app/session/[slug]/enter/page.tsx (now hosting team only), resolveSessionRole in lib/sessionAuth.ts, and the Today duty row in the dashboard."
+  },
+  {
+    "id": "2026-10-18-001",
+    "title": "My Home: a volunteer's upcoming sessions",
+    "description": "My Home shows a person's hosting or supporting duty only on the day itself; their upcoming sessions are visible only in the Scheduler. Maria (Hosting Team coordinator), training new hosts: \"the website isn't set up to see a listed host yet\" may mean this. Design where it belongs (likely the Upcoming view, or one quiet line on My Home pointing to it), in each team's words, for every team, without a card that competes with Today.",
+    "category": "Dashboard",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-18",
+    "notes": "app/account/(authenticated)/dashboard/page.tsx queries HostAssignment for today only; ?view=upcoming lists registrations. A session card with the full brief was proposed on 2026-10-18. Ask Maria which she meant first (the other reading: training on the Dummy Test Program, which has no host listed)."
   }
 ]

@@ -595,6 +595,11 @@ The pre-audit versions of both routes were either hardcoded to `host-team` or gl
 
 ---
 
+## Lists and the grid never hide people (2026-10-18)
+
+- **The person menu** (beside "My schedule") lists the whole team up to 70% of the screen, then scrolls with a scrollbar that always shows. A 320px cap (six 44px rows) and a Mac's hidden scrollbar made the Hosting Team end at Maria; Jesse thought Nancy had been dropped. Rule: a list must never look complete when it isn't.
+- **The Rotations grid** is a size container: under 720px wide (beside the team sidebar on a 1,024px window, or on a phone) its rows stack as cards, and Edit/Reset wrap. Measured: the five week columns were ~55px there, and the buttons spilled over every row's names.
+
 ## Every action answered (2026-10-13)
 
 The Scheduler's 3-second toast is `ActionNotice` (`components/FormDone.tsx`): fixed to the bottom of the screen, kept until closed or the next action, announced (status, or alert for a problem), wrapping on phones, with a 44px Close. A failed confirm in the take/cover/ask/cancel/reassign/remove modal is said inside the modal beside its button (`HsModal` `error`), and a month that fails to load says so. Same for every hub mode (single-slot and multi-claim); only the messages changed. Rule: `RIM_Web_Design_Philosophy.md`, "Every submit is answered where the person is looking".

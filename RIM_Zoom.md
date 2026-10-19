@@ -105,7 +105,10 @@ entry/host screens use inline styles + tokens (no new prefix).
    program has no live sessions, and this closes the hand-crafted-URL path that
    could provision a meeting for a manually archived recurring program during
    its old weekly window) → in-person programs bounce to their page → time
-   window (`getActiveSessionWindow`, ADMIN/GT bypass) → `SessionBan` (members
+   window (`getActiveSessionWindow`, ADMIN/GT bypass: outside the window an
+   admin or guiding teacher reaches the program's NEXT session at its real
+   time, and the host screen names that day, "You're teaching on Tue, Oct 20",
+   not "today"; 2026-10-18) → `SessionBan` (members
    by id; guests have none; nothing writes these rows since the LiveKit room
    retired, so this check is inert) → **registration** (2026-09-24): a
    program without Open entry (`!hasOpenEntry(program)`: the program's own setting, set by hand in Program Manager; Category and Format never set it; 2026-10-02)
