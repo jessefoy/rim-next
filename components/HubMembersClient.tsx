@@ -111,6 +111,8 @@ export default function HubMembersClient({
     memberName: string;
     upcoming: UpcomingAssignment[];
     pendingPayload: Record<string, unknown>;
+    /** Inactive opens their sessions; there is no "keep" (Jesse, 2026-10-19). */
+    inactive: boolean;
   }>(null);
 
   // Every change is answered, success or not (ActionNotice, 2026-10-13).
@@ -144,14 +146,27 @@ export default function HubMembersClient({
           memberName: row ? displayName(row.user) : "this member",
           upcoming: j.upcomingAssignments ?? [],
           pendingPayload: payload,
+          inactive: !!j.inactive,
         });
         return { ok: false, confirmed: false };
       }
     }
     if (res.ok) {
-      const updated: HubMemberRow = { ...(await res.json()), user: members.find((m) => m.userId === userId)!.user };
+      const body = await res.json();
+      const { opened = 0, rotationsEnded = 0, teamTold = false, ...row } = body as { opened?: number; rotationsEnded?: number; teamTold?: boolean } & Record<string, unknown>;
+      const updated: HubMemberRow = { ...(row as unknown as HubMemberRow), user: members.find((m) => m.userId === userId)!.user };
       setMembers((prev) => prev.map((m) => (m.userId === userId ? { ...m, ...updated } : m)));
-      say(`Saved. ${displayName(updated.user)}\u2019s details are updated.`);
+      // Say what opened, and whether the team heard (2026-10-19).
+      if (opened > 0 || rotationsEnded > 0) {
+        const parts = [
+          opened > 0 ? `${opened} session${opened === 1 ? " is" : "s are"} now open to the team.` : "",
+          rotationsEnded > 0 ? `Their rotation${rotationsEnded === 1 ? " has" : "s have"} ended.` : "",
+          teamTold ? "The team has been told about the sessions in the next two weeks." : "",
+        ].filter(Boolean);
+        say(`Saved. ${parts.join(" ")}`);
+      } else {
+        say(`Saved. ${displayName(updated.user)}\u2019s details are updated.`);
+      }
       return { ok: true };
     }
     say("Those changes were not saved. Please try again.", "error");
@@ -381,10 +396,12 @@ export default function HubMembersClient({
       {confirmDialog && (
         <div className="hub-mem-dialog">
           <div className="hub-mem-dialog__panel">
-            <h3>Take {confirmDialog.memberName} off the schedule?</h3>
+            <h3>{confirmDialog.inactive ? `Mark ${confirmDialog.memberName} inactive?` : `Take ${confirmDialog.memberName} off the schedule?`}</h3>
             <p className="hub-mem-dialog__lede">
               {confirmDialog.memberName} has {confirmDialog.upcoming.length} upcoming session{confirmDialog.upcoming.length === 1 ? "" : "s"} on this team&rsquo;s schedule.
-              {hostsSessions
+              {confirmDialog.inactive
+                ? " Inactive takes them off the schedule: these sessions open to the team, their rotations end, and the team hears about any in the next two weeks."
+                : hostsSessions
                 ? " If they keep them, they won't be let into those sessions as host."
                 : " Rotations will skip them until they're back on the schedule."}
             </p>
@@ -400,12 +417,20 @@ export default function HubMembersClient({
             </ul>
             <div className="hub-mem-dialog__actions">
               <button className="btn--ghost" onClick={() => setConfirmDialog(null)}>Cancel</button>
-              <button className="btn btn--sm" onClick={() => confirmProceed(false)}>
-                Keep their sessions
-              </button>
-              <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(true)}>
-                Take them off their sessions
-              </button>
+              {confirmDialog.inactive ? (
+                <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(false)}>
+                  Mark inactive and open their sessions
+                </button>
+              ) : (
+                <>
+                  <button className="btn btn--sm" onClick={() => confirmProceed(false)}>
+                    Keep their sessions
+                  </button>
+                  <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(true)}>
+                    Take them off their sessions
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

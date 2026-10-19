@@ -98,7 +98,24 @@ export async function PATCH(
     (existing.status === "ACTIVE" && existing.hostingCapability) &&
     !(nextStatus === "ACTIVE" && nextHostingCapability);
 
-  if (willRevokeHosting && !force) {
+  // Inactive is off the team's schedule (Jesse, 2026-10-19): their sessions
+  // open to the team and their rotations end, as a removal from the team
+  // does, from Active or from Paused. Pausing keeps the choice to keep them.
+  const goingInactive = hubUsesScheduler && nextStatus === "INACTIVE" && existing.status !== "INACTIVE";
+  // Marking someone inactive opens their sessions and ends their rotations,
+  // so it takes the one coverage gate whenever they hold either (and the
+  // daily pass would release them anyway; 2026-10-19 review).
+  if (goingInactive) {
+    const [held, rotations] = await Promise.all([
+      db.hostAssignment.count({ where: { userId, hubSlug: hub.slug, OR: [{ sessionDate: null }, { sessionDate: { gte: new Date() } }] } }),
+      db.standingAssignment.count({ where: { userId, hubSlug: hub.slug } }),
+    ]);
+    if ((held > 0 || rotations > 0) && !(await canManageHubCoverage(session.user.id, roles, hub.slug))) {
+      return NextResponse.json({ error: "Only this team's coordinator can open someone's sessions to the team." }, { status: 403 });
+    }
+  }
+
+  if ((willRevokeHosting || goingInactive) && !force) {
     // Scope the destructive-action lookup to THIS hub (session 129).
     // A coordinator pausing an AV member's hosting capability should
     // see their AV assignments, not host-team assignments they have
@@ -129,6 +146,9 @@ export async function PATCH(
         {
           requiresConfirmation: true,
           reason: "hosting_revoked_with_upcoming_assignments",
+          // Inactive always opens their sessions; the dialog says so and
+          // offers no "keep".
+          inactive: goingInactive,
           upcomingAssignments: upcoming.map((a) => ({
             id: a.id,
             programSlug: a.programSlug,
@@ -174,20 +194,28 @@ export async function PATCH(
   // (greeter) the sign-up itself goes: an empty row there would show as a
   // blank name on the session (2026-10-15 audit). FK-safe order: SubClaim →
   // SubRequest → HostAssignment.
-  if (willRevokeHosting && force && releaseAssignments) {
+  let opened = 0;
+  let rotationsEnded = 0;
+  let teamTold = false;
+  if (goingInactive || (willRevokeHosting && force && releaseAssignments)) {
     const released = await db.$transaction((tx) =>
-      releasePersonCoverage(tx, userId, session.user.id, { hubSlug: hub.slug, endRotations: false }),
+      releasePersonCoverage(tx, userId, session.user.id, { hubSlug: hub.slug, endRotations: goingInactive }),
     );
+    opened = released.rows.length;
+    rotationsEnded = released.rotations;
     // Tell them, unless they did it themselves.
     after(() =>
       sendCoverageClearedEmails({
         rows: released.rows,
-        reason: (team) => `Your coordinator has taken you off the ${team}'s schedule for now, and your sessions are open to the team.`,
+        reason: goingInactive
+          ? (team) => `You're now inactive on the ${team}, so your sessions are open to the team.`
+          : (team) => `Your coordinator has taken you off the ${team}'s schedule for now, and your sessions are open to the team.`,
         excludeUserId: session.user.id,
       }),
     );
     // The team hears about any session within two weeks now left with no one.
     const gaps = await prepareGapNotices(released.rows, [session.user.id, userId]);
+    teamTold = gaps.length > 0;
     if (gaps.length) after(() => deliverGapNotices(gaps));
   }
 
@@ -204,6 +232,10 @@ export async function PATCH(
     pauseNote: updated.pauseNote,
     coordinatorNote: updated.coordinatorNote,
     joinedAt: updated.joinedAt.toISOString(),
+    // What opened, for the coordinator's confirmation.
+    opened,
+    rotationsEnded,
+    teamTold,
   });
 }
 

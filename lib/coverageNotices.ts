@@ -31,7 +31,9 @@ import { ctDateStr } from "@/lib/scheduleUtils";
 import { ctDayBounds } from "@/lib/timezone";
 import { getHubCoverageCopy, resolveHostingHubSlug, teamCannotStaff } from "@/lib/programHub";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
+import { releasePersonCoverage } from "@/lib/applyStandingAssignments";
 import {
+  sendCoverageClearedEmails,
   sendCoverageGapEmail,
   sendCoverageLookaheadEmail,
   sendCoverageReminderEmail,
@@ -293,13 +295,60 @@ async function alreadySent(where: {
  * reminders and the coordinator's note for sessions two days out, and on
  * Mondays the team's two-week look-ahead. Returns counts for the log.
  */
+/**
+ * Inactive is off a team's schedule (Jesse, 2026-10-19). Marking someone
+ * inactive in the team's Members tab releases their sessions there and ends
+ * their rotations; this catches anyone already inactive who still holds a
+ * session or a rotation on that team (marked before the rule, or another
+ * way). Each is released the same way, told, and the team hears about any
+ * session in the next two weeks now left with no one. Runs first in the
+ * daily pass, so the notices after it see those sessions as open.
+ */
+export async function releaseInactiveCoverage(): Promise<number> {
+  let released = 0;
+  // The same teams the daily pass and the Members tab act on: active, with
+  // the Scheduler installed.
+  const inactive = await db.hubMember.findMany({
+    where: { status: "INACTIVE", hub: { status: "ACTIVE", appLinks: { some: { toolSlug: "schedule", isEnabled: true } } } },
+    select: { userId: true, hub: { select: { slug: true } } },
+  }).catch((err) => {
+    console.error("[coverage-notices] finding inactive members failed", err);
+    return [];
+  });
+  for (const m of inactive) {
+    const hubSlug = m.hub.slug;
+    try {
+      const [sessions, rotations] = await Promise.all([
+        db.hostAssignment.count({ where: { userId: m.userId, hubSlug, OR: [{ sessionDate: null }, { sessionDate: { gte: new Date() } }] } }),
+        db.standingAssignment.count({ where: { userId: m.userId, hubSlug } }),
+      ]);
+      if (sessions === 0 && rotations === 0) continue;
+      const result = await db.$transaction((tx) =>
+        releasePersonCoverage(tx, m.userId, m.userId, { hubSlug, endRotations: true }),
+      );
+      released += result.rows.length;
+      await sendCoverageClearedEmails({
+        rows: result.rows,
+        reason: (team) => `You're inactive on the ${team}, so your sessions there are open to the team.`,
+      });
+      const gaps = await prepareGapNotices(result.rows, [m.userId]);
+      if (gaps.length) await deliverGapNotices(gaps);
+      console.log(`[coverage-notices] released ${result.rows.length} session(s) and ${result.rotations} rotation(s) held by an inactive member on ${hubSlug}`);
+    } catch (err) {
+      console.error(`[coverage-notices] releasing an inactive member's sessions on ${hubSlug} failed`, err);
+    }
+  }
+  return released;
+}
+
 export async function runDailyCoverageNotices(now: Date = new Date()): Promise<{
-  reminders: number; stillNeeded: number; lookaheads: number;
+  releasedInactive: number; reminders: number; stillNeeded: number; lookaheads: number;
 }> {
+  const releasedInactive = await releaseInactiveCoverage();
   const today = centralDay(now);
   const reminderDay = addDays(today, REMINDER_DAYS_BEFORE);
   const isMonday = new Date(`${today}T12:00:00Z`).getUTCDay() === 1;
-  const counts = { reminders: 0, stillNeeded: 0, lookaheads: 0 };
+  const counts = { releasedInactive, reminders: 0, stillNeeded: 0, lookaheads: 0 };
 
   const teams = await db.hub.findMany({
     where: { status: "ACTIVE", appLinks: { some: { toolSlug: "schedule", isEnabled: true } } },
