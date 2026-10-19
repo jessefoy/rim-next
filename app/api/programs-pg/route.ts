@@ -199,7 +199,6 @@ export async function POST(request: NextRequest) {
       hideWhenPast: body.hideWhenPast ?? true,
       isOpenAccess: body.isOpenAccess ?? false,
       guestAccessKey: body.isOpenAccess ? randomBytes(6).toString("hex") : null,
-      livekitRoom: (body.programFormat === "virtual" || body.programFormat === "hybrid") ? slug : null,
       recordByDefault: body.recordByDefault ?? false,
       outsideMeetingUrl: outsideMeeting.value,
       // Never on a program that takes registrations.

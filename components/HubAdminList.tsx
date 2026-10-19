@@ -22,6 +22,22 @@ interface Props {
   showCreated?: boolean;
 }
 
+/** A plain answer for a refused request: sign-in, permission and missing
+    things in people's words; the server's own reason only when it is a
+    sentence written for people; otherwise the kind fallback. */
+function readableError(status: number, serverError: unknown, fallback: string): string {
+  if (status === 401) return "You\u2019ve been signed out. Sign in again, then try once more.";
+  if (status === 404) return "That isn\u2019t here any more. Refresh the page.";
+  // Keep the server's words only when they are a sentence written for people
+  // (several words, ending in a full stop), never a code like "Hub not found".
+  const text = typeof serverError === "string" ? serverError.trim() : "";
+  if (/\s/.test(text) && /[.?!]$/.test(text) && !/\b(hubs?|spaces?)\b/i.test(text)) return text;
+  // A refusal says why when the server wrote it for people ("Open this from
+  // within RIM."); otherwise plainly.
+  if (status === 403) return "You don\u2019t have permission to do that here.";
+  return fallback;
+}
+
 const TYPE_LABELS: Record<string, string> = {
   OPERATIONAL: "Operational",
   GOVERNANCE: "Governance",
@@ -42,9 +58,9 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
     setProvisionNote("");
     try {
       const res = await fetch("/api/admin/hubs/provision-all", { method: "POST" });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setProvisionNote(data.error ?? "Couldn't set up files. Please try again.");
+        setProvisionNote(readableError(res.status, data.error, "Couldn't set up files. Please try again."));
       } else {
         const parts = [`${data.provisioned} set up`, `${data.already} already had files`];
         if (data.failedCount > 0) {
@@ -86,7 +102,7 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
       if (!res.ok) {
         setRowError({
           id: hub.id,
-          msg: data.error ?? `${hub.name} couldn't be ${newStatus === "ARCHIVED" ? "archived" : "unarchived"}. Nothing changed. Please try again.`,
+          msg: readableError(res.status, data.error, `${hub.name} couldn't be ${newStatus === "ARCHIVED" ? "archived" : "unarchived"}. Nothing changed. Please try again.`),
         });
         return;
       }

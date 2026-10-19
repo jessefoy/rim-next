@@ -2,8 +2,8 @@
 
 **The per-tool reference for "RIM orchestrates, Zoom is the room."** Read this before
 touching the Zoom entry (`app/session/[slug]/enter/`), the Zoom helpers
-(`lib/zoom.ts`, `lib/sessionMeeting.ts`), or the `useZoom` / `recordByDefault`
-program flags.
+(`lib/zoom.ts`, `lib/sessionMeeting.ts`), or the `recordByDefault` program flag
+(`useZoom` was removed at the session-159 cutover).
 
 Companion docs: `RIM_SessionRoom.md` (historical LiveKit reference),
 `RIM_System_Architecture.md` (Video Conferencing — permission model, still the
@@ -84,7 +84,7 @@ now), `user:read:user:admin`, `user:update:user:admin` (host-key set).
 | `components/session/ZoomLaunch.tsx` | "Opening Zoom…" → `window.location.replace(joinUrl)` |
 | `app/admin/zoom-test/page.tsx` + `components/admin/AdminSelfTest.tsx` (shared with `/admin/google-test`; renamed from ZoomSelfTest, session 163) | ADMIN diagnostic: connection check + provisioning round-trip + orchestration round-trip |
 | `app/api/admin/zoom/selftest*` | The two self-test routes |
-| `prisma/schema.prisma` | `SessionMeeting` model; `Program.useZoom` + `Program.recordByDefault` |
+| `prisma/schema.prisma` | `SessionMeeting` model; `Program.recordByDefault` |
 
 `Program.recordByDefault` is the **cloud-record** toggle (set in the editor's
 Hosting & Access tab; audio-only / per-speaker tracks depend on the pool seats' Zoom
@@ -267,7 +267,7 @@ only. The link is **persistent** (it changes only if the key is reset); what's
 ephemeral is the underlying per-occurrence Zoom meeting, which the link
 transparently wraps — the same relationship the member dashboard "Join" has. So
 guest access *is* possible with the per-occurrence model. Outside the window a
-guest is bounced to `/programs/[slug]`. Open question (session 159): whether RIM
+guest sees a notice on the door (`EnterNotice`: when the room next opens, Central Time, or that there are no upcoming sessions) with a link to the program page. Open question (session 159): whether RIM
 actually uses external guests (keep + clarify the editor copy) or not (hide the
 share-link UI).
 
@@ -296,10 +296,11 @@ share-link UI).
   start). A failed host-key sync no longer blocks the host (2026-09-24): it's
   logged and the code is shown anyway.
 - **My Home's Join vs the door.** Members see Join from 10 minutes before start
-  until the scheduled end (`MEMBER_JOIN_MIN`); hosts and teachers see "Enter Zoom as
-  host" from 30 minutes before. The door itself stays open from 30 minutes before
-  to 30 minutes after the end, so a host can close the room and a straggler's saved
-  link still works.
+  (`MEMBER_JOIN_MIN`) until the door closes, the end plus `LATE_GRACE_MIN` (30), so
+  someone running late can still get back in (Jesse, 2026-10-15); hosts and teachers
+  see "Enter Zoom as host" from 30 minutes before. The door itself stays open from
+  30 minutes before to 30 minutes after the end, so a host can close the room and a
+  straggler's saved link still works.
 - **Names aren't pre-filled.** Accountless members type their name on first join
   (Zoom remembers it on that device after); signed-in members show their Zoom
   name — which RIM cannot override. We can't remotely log anyone out of their Zoom.

@@ -13,9 +13,8 @@
  * the window. ADMIN and GUIDING_TEACHER bypass (safety override; mirrors
  * hasEndAllAuthority).
  *
- * Returns the active sessionDate so the entry can build a per-occurrence key
- * (the SessionBan scope — historically the per-date LiveKit room name; see
- * lib/sessionIdentity.ts::roomNameForProgram).
+ * Returns the active sessionDate, the occurrence's own key (it once built
+ * the retired per-session room and ban key, removed 2026-10-19).
  */
 import { db } from "./db";
 import {
@@ -52,8 +51,7 @@ export interface ActiveSessionWindow {
    * ISO timestamp of the program's start on today's date (shiftToDate).
    * Lookups of this session (resolveSessionRole, the Zoom meeting) match it
    * by Central day, not exactly, so a stored row at a drifted time is still
-   * found (2026-10-16). roomNameForProgram strips this to the first 10 chars
-   * (YYYY-MM-DD) for the room suffix.
+   * found (2026-10-16).
    */
   sessionDate: string;
   opensAt: Date;

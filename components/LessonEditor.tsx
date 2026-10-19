@@ -6,7 +6,7 @@
  * CSS prefix: th-
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import dynamic from "next/dynamic";
@@ -18,6 +18,7 @@ const RimTiptapEditor = dynamic(
 );
 import SlugField from "@/components/SlugField";
 import { SaveNote } from "@/components/FormDone";
+import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 
 interface Resource {
   name: string;
@@ -146,13 +147,9 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
   // ── Unsaved changes (mirrors ProgramEditor's guardedNavigate) ──
   const [dirty, setDirty] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
-  // Escape closes the leave dialog wherever focus is (2026-10-19 review).
-  useEffect(() => {
-    if (!pendingNav) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPendingNav(null); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [pendingNav]);
+  // The dialog takes focus (Stay, its first button), keeps Tab and Shift-Tab
+  // inside it, and gives focus back to whatever opened it.
+  const leaveDialogRef = useNavigationDrawer(pendingNav !== null, () => setPendingNav(null));
 
   useEffect(() => {
     if (!dirty) return;
@@ -395,10 +392,10 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
       {/* ── Unsaved changes confirmation (as in ProgramEditor) ── */}
       {pendingNav && (
         <div className="pe-overlay" onClick={() => setPendingNav(null)}>
-          <div className="pe-dialog" role="dialog" aria-modal="true" aria-labelledby="th-leave-text" onClick={(e) => e.stopPropagation()}>
+          <div ref={leaveDialogRef as RefObject<HTMLDivElement | null>} className="pe-dialog" role="dialog" aria-modal="true" aria-labelledby="th-leave-text" onClick={(e) => e.stopPropagation()}>
             <p className="pe-dialog__text" id="th-leave-text">You have unsaved changes. Leave without saving?</p>
             <div className="pe-dialog__actions">
-              <button type="button" className="th-btn th-btn--primary" onClick={() => setPendingNav(null)} autoFocus>
+              <button type="button" className="th-btn th-btn--primary" onClick={() => setPendingNav(null)}>
                 Stay on this page
               </button>
               <button

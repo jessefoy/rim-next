@@ -50,7 +50,6 @@ export interface ScheduleSessionRow {
   /** The cover request's note (rich-text JSON), if any. */
   subMessage: Prisma.JsonValue | null;
   programFormat: string | null;
-  livekitRoom: string | null;
   /** True only on the hosting team's rows: the one team that enters the
    *  online room. Greeter and AV rows never do: AV uses the hall's own
    *  computer and greeters serve in person (Jesse, 2026-10-15). */
@@ -117,7 +116,7 @@ export async function buildHubMonthSessions(hubSlug: string, year: number, month
         id: true, name: true, slug: true,
         programFormat: true, startDatetime: true, endDatetime: true,
         recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
-        livekitRoom: true, createdAt: true, hostingHubSlug: true,
+        createdAt: true, hostingHubSlug: true,
       },
       orderBy: { sortOrder: "asc" },
     }),
@@ -171,7 +170,6 @@ export async function buildHubMonthSessions(hubSlug: string, year: number, month
         sessionDate: p.startDatetime ? shiftToDate(p.startDatetime.toISOString(), dateStr).toISOString() : null,
         sessionEnd: p.endDatetime ? shiftToDate(p.endDatetime.toISOString(), dateStr).toISOString() : null,
         programFormat: p.programFormat ?? null,
-        livekitRoom: p.livekitRoom ?? null,
         // Only the team that runs the session online enters its room.
         opensRoom: resolveHostingHubSlug(p) === hubSlug,
         programCreatedAt: p.createdAt?.toISOString() ?? null,

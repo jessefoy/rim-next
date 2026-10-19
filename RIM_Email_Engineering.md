@@ -19,6 +19,17 @@ When you write an email feature you write code that supplies variables to a temp
 
 ---
 
+## 2026-10-19 (the integrity pass)
+
+- **Team-wide sends are paced.** `sendEachPaced(items, send, label)` in `lib/email.ts` sends one at a time, 600 ms apart (Resend allows 10 requests a second; fired at once, a team past about ten people lost emails). Used by new coverage (`notifyHubOfNewProgramCoverage`), cover requests (`/api/host/sub-requests`), new topics and replies (`/api/hub/[slug]/conversations` and `[id]/replies`); those routes carry `maxDuration = 60`. A failure on one recipient never stops the rest. A cover request no longer emails the coordinator who asked on someone's behalf. Any new send to a whole team uses it.
+- **What a member typed is inert.** `sendTemplatedEmail(…, { memberText: [keys] })` escapes those variables (HTML and markdown marks) in the body, so a title, note or name shows as typed instead of becoming a link or markup. The subject and text part use them as typed. Pass it for every member-typed variable.
+- **The plain-text part is readable.** `textVariables` turns an HTML variable (a button, a rendered message) into text: a link becomes "Label: URL", other tags are dropped.
+- **Reminders carry their message.** `sendReminderEmail` renders the program's Reminder Message from the editor's HTML (the format it is saved in; BlockNote and Portable Text stay for old rows). An emptied editor (`<p></p>`) counts as no message. A paused person who kept their sessions still gets the two-days-before reminder; an inactive one does not. Conversation emails skip archived accounts.
+- **Signed resume links.** The waitlist-approval and dana-reminder emails link to `/programs/[slug]/register?r=<id>&t=<key>` (`registrationResumeUrl`, key from `lib/registrationLink.ts`, an HMAC keyed by `AUTH_SECRET`), so a signed-out guest can finish. Never link a registration id without its key.
+- **Refusals are logged.** The five hand-written sends read Resend's `{ error }` and log it; Resend's SDK returns a refusal rather than throwing, so it was silent.
+
+---
+
 
 ## Channels: the app and Flodesk (Jesse, 2026-10-12)
 
@@ -68,7 +79,7 @@ When you do an intentional update:
 
 When in doubt about whether you have consent, ask before shipping. The cost of asking is one round-trip; the cost of an unexpected overwrite is a lost edit.
 
-Hardcoded sends (don't use the template manager, intentionally): `sendHostManagerRoleAssignmentEmail`, `sendStandingAssignmentScheduledEmail`, `sendStandingAssignmentReplacedEmail`, and `sendCareConcernEmail` (2026-10-12: the "If harm happens" form's message to the guiding teacher; a disabled or edited template must never be able to drop someone's account of harm, so it is hardcoded, **awaited**, and returns whether Resend accepted it; Reply-To is the sender; recipient `CARE_CONCERN_EMAIL`, else jesse@; not pre-threshold gated, since it goes to staff). These render markdown inline — long-form, set-and-forget content that doesn't need coordinator editing. If you add a new hardcoded send, write a one-line justification in the function's JSDoc explaining why it bypasses the manager.
+Hardcoded sends (don't use the template manager, intentionally): `sendHostManagerRoleAssignmentEmail`, `sendStandingAssignmentScheduledEmail`, `sendStandingAssignmentReplacedEmail`, `sendStandingAssignmentReleasedEmail`, `sendStandingAssignmentEndedEmail`, and `sendCareConcernEmail` (2026-10-12: the "If harm happens" form's message to the guiding teacher; a disabled or edited template must never be able to drop someone's account of harm, so it is hardcoded, **awaited**, and returns whether Resend accepted it; Reply-To is the sender; recipient `CARE_CONCERN_EMAIL`, else jesse@; not pre-threshold gated, since it goes to staff). These render markdown inline — long-form, set-and-forget content that doesn't need coordinator editing. If you add a new hardcoded send, write a one-line justification in the function's JSDoc explaining why it bypasses the manager.
 
 **Registration emails — fire from the choke point.** The registrant confirmation (`registration-confirmation`) and the support@ notification (`registration-support-notification`, session 136) both fire from `lib/registrationConfirmation.ts::sendRegistrationConfirmation(id)` — the single "a registration just became real" point. Don't bolt a registration-completion email onto one path (the POST, the decline endpoint, the webhook, the cron); add it to the choke point so it covers every completion and can't drift. Full model: `RIM_Registration.md`.
 
@@ -82,9 +93,9 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 
 This is enforced in **two layers**, because RIM has two recipient shapes:
 
-1. **Pool emails** — recipients come from `getHubNotificationRecipients(hubSlug)` (`lib/toolAuth.ts`): new-program-needs-host, sub-request-posted/claimed, and any future hub-pool email. The helper's member `where` includes `user: { emailVerified: { not: null } }`, so staged members are excluded **at the source**. Any future consumer of this helper is covered automatically — you don't have to remember anything.
+1. **Pool emails** — recipients come from `getHubNotificationRecipients(hubSlug)` (`lib/toolAuth.ts`): new-program-needs-host, sub-request-posted, and any future hub-pool email. (`sub-request-claimed` goes straight to the person whose session was covered, so it is gated by slug below.) The helper's member `where` includes `user: { emailVerified: { not: null } }`, so staged members are excluded **at the source**. Any future consumer of this helper is covered automatically — you don't have to remember anything.
 
-2. **Direct / subscription / document emails** — sent to a specific person (role-assigned, hub-welcome, host-assignment-confirmation/removed, hub-conv-new-thread/reply, hub-document-created/updated) and the hardcoded resend-direct host/standing builders. These bypass the pool, so they're gated individually:
+2. **Direct / subscription / document emails** — sent to a specific person (role-assigned, hub-welcome, host-assignment-confirmation/removed, hub-conv-new-thread/reply, file-shared, file-comment, sub-request-claimed, sessions-cleared-schedule-change, coverage-sessions-cleared, coverage-session-reminder; the `hub-document-*` templates retired with native Documents) and the hardcoded resend-direct host/standing builders. These bypass the pool, so they're gated individually:
    - **Templated ones:** `sendTemplatedEmail` checks `PRE_THRESHOLD_GATED_SLUGS` (a `Set` near the top of `lib/email.ts`) and no-ops via `recipientHasOnboarded(to)` for a staged recipient. **A new member-directed hub email sent to a specific person must be added to this set.**
    - **Hardcoded ones** (`sendHostManagerRoleAssignmentEmail`, `sendStandingAssignment{Scheduled,Replaced,Released,Ended}`): each calls `recipientHasOnboarded(data.to)` inline at the top and returns early if false.
 
@@ -92,7 +103,7 @@ This is enforced in **two layers**, because RIM has two recipient shapes:
 
 **NEVER gate** the sign-in code emails (`sign-in-code-*`) or the join-welcome letter (`join-welcome`) — those *must* reach a mid-signup person whose `emailVerified` is still null. They're deliberately absent from the slug set and have no inline gate. Gating `sendTemplatedEmail` globally (instead of by slug) would break sign-in — don't.
 
-The cleanup-cron staged-account guard is the other half of staging (so staged accounts survive the 48h sweep): `cleanup-incomplete-accounts` only deletes accounts with no role, no hub membership, no legacy flag and no registration. See `RIM_Auth.md`.
+The cleanup-cron staged-account guard is the other half of staging (so staged accounts survive the 48h sweep): `cleanup-incomplete-accounts` only deletes accounts with no role, no hub membership, no legacy flag and no registration, and (since 2026-10-19) no teacher flag, profile or link to a program or lesson, no household, no hand-granted course, no team conversation started and no place on the schedule or a rotation. See `RIM_Auth.md`.
 
 ---
 
@@ -247,7 +258,7 @@ An email that can reach a scheduler-hub member must speak that hub's coverage ro
 
 ## Engineering rules in one paragraph
 
-When you send an email: write the slug into both the code and a `prisma/migrate.mjs` seed entry; use `findUnique → create` (never `upsert`); never overwrite an existing template body; build URLs via `hubScopedUrl` / `hubHomeUrl` / `BASE_URL` (never inline `https://`); derive `hubSlug` from the resource (program), not the actor; pass a `{{*Button}}` variable for every CTA URL using `emailButtonHtml(label, url)`; wrap fire-and-forget sends in `after()` from `next/server` (or await them if the caller is a route handler that already awaits); `console.error` on failure (never silent `.catch`); add a one-line JSDoc justification on any hardcoded-HTML email that bypasses the template manager.
+When you send an email: write the slug into both the code and a `prisma/migrate.mjs` seed entry; use `findUnique → create` (never `upsert`; the early flag-guarded seeds, session 96 and the session-113 document templates, used `upsert` before this rule, ran once behind their flags, and are not a pattern to copy); never overwrite an existing template body; build URLs via `hubScopedUrl` / `hubHomeUrl` / `BASE_URL` (never inline `https://`); derive `hubSlug` from the resource (program), not the actor; pass a `{{*Button}}` variable for every CTA URL using `emailButtonHtml(label, url)`; wrap fire-and-forget sends in `after()` from `next/server` (or await them if the caller is a route handler that already awaits); `console.error` on failure (never silent `.catch`); add a one-line JSDoc justification on any hardcoded-HTML email that bypasses the template manager.
 
 ---
 

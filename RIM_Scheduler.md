@@ -49,21 +49,6 @@ The tool was originally named "Host Schedule" when host-team was the only hub. R
 | `app/api/host/assignments/clear/route.ts` | "Reset this team": `future` deletes upcoming assignments; `all + endRotations` wipes the team's schedule. Other teams untouched. |
 | `app/api/admin/hubs/[slug]/route.ts` | Team settings, including the Scheduler's open sign-up and formats, and a slug rename that carries the schedule with it. |
 
----|---|
-| `app/tools/schedule/layout.tsx` | Tool chrome (ToolsNav, hub-context provider). Reads `?hub=<slug>` and exposes it to the page. |
-| `app/tools/schedule/page.tsx` | The Schedule tab. Server component. Filters programs and rotations by `?hub=`. |
-| `components/host/HubScheduleClient.tsx` | Client component for the Schedule tab interactivity (calendar nav, claim, sub-request, member picker). |
-| `components/host/RotationsClient.tsx` | Client component for the Rotations tab. |
-| `app/api/host/assignments/route.ts` | GET (list for month) + POST (create/self-claim). |
-| `app/api/host/assignments/[id]/route.ts` | PATCH (claim, release). |
-| `app/api/host/assignments/reassign/route.ts` | PATCH (coordinator override — reassign a session to a different host). |
-| `app/api/host/sub-requests/route.ts` | GET + POST (create a sub request). |
-| `app/api/host/sub-requests/[id]/claim/route.ts` | POST (claim an open sub request). |
-| `app/api/host/standing-assignments/*` | Standing-rotation CRUD. Currently host-team-only at the gate level. |
-| `app/api/host/programs/[slug]/clear-rotations/route.ts` | Coordinator: clear all rotations on a program. Hub-scoped (session 129 audit) — accepts `hubSlug` body field, gates by `isHubCoordinator + ADMIN`, scopes deletes per hub so an AV coordinator clearing AV rotations doesn't touch host-team data on the same program. |
-| `app/api/host/assignments/clear/route.ts` | "Reset this team" — hub-scoped nuclear reset (session 129 audit). Requires `hubSlug` body field. Gate: hub coordinator OR ADMIN. Scope `future` deletes upcoming HostAssignments; `all + endRotations` wipes everything in this hub. Other hubs untouched. |
-| `app/api/host/schedule/pdf/route.ts` | PDF export of "my schedule" — uses `@react-pdf/renderer`. |
-
 ---
 
 ## Integrity audit, 2026-10-15 (Jesse: "we just duplicated and applied it to the other hubs")
@@ -191,7 +176,7 @@ A **hub coordinator** (a `HubMember` with `isCoordinator=true` on the hub — NO
 
 The per-hub coverage copy (`getHubCoverageCopy` → noun/verb/action, session 130) governs more than the Scheduler card list. Session 145 finished wiring it through every scheduler-hub surface that still said "host":
 - the **dashboard** first-login welcome panel ("you're on the {Noun} team") — the dashboard resolves the staged hub's noun and passes it to `HostWelcomePanel`;
-- the **hub home/sidebar** coverage count (`lib/hubContext.ts`) — generalized from a host-team-only `case` to host-team / audio-visual / peer-led, each counting its OWN *hub-scoped* unclaimed slots in its own noun ("open AV slot"). Greeter (multi-claim) has no unclaimed-slot concept → no count. (Also fixed a latent bug: the old host-team count wasn't hub-scoped.)
+- the **team Home** coverage count, now `scheduleHome` in `lib/hubApps.ts` (the primary tool card's line, 2026-10-13; a true count since 2026-10-16 from `countSessionsNeedingSomeone` in `lib/coverageNotices.ts`: the team's sessions in the next two weeks that need someone, in the team's own noun). It began in session 145 in `lib/hubContext.ts`, which now counts only unread conversations.
 - the **shared host/sub emails** (see `RIM_Email_Engineering.md`).
 - Deliberately left "host": the dashboard early-open "Enter as host" names the live session-**room** role, not hub coverage.
 - **Rule:** when you add a scheduler-hub surface that names the coverage role, resolve `getHubCoverageCopy(hubSlug)` — don't hardcode "host". The leak hides in the dashboard + email bodies, not just `/tools/schedule`.
@@ -212,7 +197,7 @@ This is **NOT** a cross-hub entanglement bug and is **not** a reason to split th
 
 1. **Access gate (the door).** `lib/hubAuth.ts::canAccessHubScheduler(userId, roles, hubSlug)` — you can open a hub's Scheduler (`/tools/schedule?hub=X`, its month-nav GET, the create POST) only if you're a `HubMember` of X (any status — pause governs hosting, not visibility) **or** hold an oversight role (HOST_MANAGER / ADMIN / GUIDING_TEACHER). This per-hub gate replaced tool-level-only access: a host-team member can no longer switch `?hub=greeter` and sign themselves up there. Distinct from `getEffectiveHostingCapability` (which decides whether they may *claim*).
 2. **Create-time.** Self-claim auto-enrolls the claimer if they lack a row (`lib/hubMemberAuth.ts::ensureActiveHubMembership` — silent, no-op for existing members, only on `action === "claim"`); assign-others requires the assignee already be an active hosting-capable member (`getEffectiveHostingCapability(assignee, hub, /* fallback */ false)` — **no role fallback for the person being placed**).
-3. **Step-In.** `/api/livekit/step-in` also calls `ensureActiveHubMembership` after writing the HostAssignment — stepping in puts you on the roster too.
+3. **Reassign to me.** `/api/host/assignments/reassign` calls `ensureActiveHubMembership` after taking over the assignment, and follows the rule for taking sessions (`canSelfClaim`, 2026-10-19), so taking over puts you on the roster too. (Session 146's third point was the LiveKit Step-In route, retired with the room in session 159.)
 4. **Cron-time.** `generateCandidates` drops any candidate whose `(userId, hubSlug)` isn't a current member (defense-in-depth: a stray rotation rule can't have the daily cron resurrect an orphan).
 5. **Removal-time.** The member hard-DELETE (`/api/hub/[slug]/members/[userId]`) cleans up that user's future HostAssignments (FK-safe SubClaim→SubRequest→HostAssignment) + StandingAssignment rules in that hub, in one transaction. Past stays as history. **This was the most likely original cause** — a member removed while their assignments remained.
 
@@ -260,7 +245,7 @@ CSS lives in `public/css/custom.css` under `.hs-row__multi*` (incl. `.hs-row__mu
 A host who can't make a session they're committed to posts a sub-request:
 
 1. They open the session in `/tools/schedule?hub=<their-hub>`, click **"Ask the team to cover"** on their assignment.
-2. The POST to `/api/host/sub-requests` creates the `SubRequest` row, then notifies other active members of the program's hub via `sendSubRequestEmail`.
+2. The POST to `/api/host/sub-requests` creates the `SubRequest` row, then notifies the other active members of the assignment's own team (`assignment.hubSlug`, else the program's hosting team for legacy rows) who can cover, via `sendSubRequestEmail`, one at a time (`sendEachPaced`, 2026-10-19). Neither the person whose session it is nor a coordinator who asked on their behalf is emailed.
 3. The email contains:
    - Context: who's requesting, what program, what date, the requester's optional note
    - `{{coverUrl}}` — a deep link that opens `/tools/schedule?action=cover&id=<id>&hub=<slug>` with the cover modal pre-opened
@@ -268,7 +253,7 @@ A host who can't make a session they're committed to posts a sub-request:
 4. Another member clicks "Fill in" / the button → lands at `/tools/schedule?action=cover&id=<id>&hub=<slug>` → cover modal → POST to `/api/host/sub-requests/[id]/claim`.
 5. The claim writes the new userId to the HostAssignment + closes the SubRequest. Two emails go out: a `sub-request-claimed` to the original host ("your session is covered"), and a `host-assignment-confirmation` to the new host.
 
-All three emails carry `hubSlug` derived from `program.hostingHubSlug` so every link lands the recipient in the correct hub view. Slice 2.5 fix.
+All three emails carry the assignment's team (`assignment.hubSlug`, falling back to the program's hosting team only for legacy rows with none) so every link lands the recipient in the correct team's view. (Slice 2.5 derived it from `program.hostingHubSlug`; it has followed the assignment since session 129, so a supporting team's request stays on that team.)
 
 ### Sub-request discoverability — `?month=YYYY-MM` deep-link
 
@@ -294,14 +279,16 @@ Standing rotations are recurring patterns: "Maria hosts every 2nd and 4th Thursd
 
 | Route | Hub source | Gate |
 |---|---|---|
-| `POST /api/host/standing-assignments` | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` for that hub |
-| `GET /api/host/standing-assignments?hub=&programSlug=` | `?hub=` (or `programSlug`'s hub if given) | hosting capability in that hub |
-| `POST .../apply` (per-program) | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` |
+| `POST /api/host/standing-assignments` | `body.hubSlug` (else program's primary) | `canManageHubCoverage` for that team |
+| `GET /api/host/standing-assignments?hub=&programSlug=` | `?hub=` (or `programSlug`'s hub if given) | `canAccessHubScheduler` for that team (any member, or HOST_MANAGER / ADMIN / GUIDING_TEACHER) |
+| `POST .../apply` (per-program) | `body.hubSlug` (else program's primary) | `canManageHubCoverage` |
 | `POST .../apply` (apply-all) | none | HOST_MANAGER or ADMIN only |
-| `POST .../preview` | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` |
-| `POST .../release-host` | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` |
-| `POST .../end-bundle` | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` |
-| `DELETE /api/host/standing-assignments/[id]` | `rotation.hubSlug` | manager OR `isHubCoordinator` |
+| `POST .../preview` | `body.hubSlug` (else program's primary) | `canManageHubCoverage` |
+| `POST .../release-host` | `body.hubSlug` (else program's primary) | `canManageHubCoverage` |
+| `POST .../end-bundle` | `body.hubSlug` (else program's primary) | `canManageHubCoverage` |
+| `DELETE /api/host/standing-assignments/[id]` | `rotation.hubSlug` | `canManageHubCoverage` |
+
+`canManageHubCoverage(userId, roles, hubSlug)` is HOST_MANAGER, ADMIN, or the team's ACTIVE coordinator (`isHubCoordinator`).
 
 **`lib/applyStandingAssignments.ts`** — `Candidate` carries `hubSlug` so applied HostAssignments inherit the source rotation's hub. Conflict detection scoped per `(programSlug, dateStr, hubSlug)` — an AV rotation candidate doesn't conflict with a host-team HostAssignment on the same date. Apply takes an optional `hubSlugFilter` so per-hub callers can narrow the apply to one team's rotations.
 
@@ -583,12 +570,12 @@ Both destructive routes the Scheduler exposes are now hub-aware. Pattern matches
 
 **Per-program reset** (`POST /api/host/programs/[slug]/clear-rotations`):
 - Body: `{ mode: "clear" | "reset", hubSlug?: string }`. `hubSlug` defaults to the program's primary hosting hub if omitted.
-- Gate: `isHubCoordinator(userId, targetHubSlug) || ADMIN`.
+- Gate: `canManageHubCoverage(userId, roles, targetHubSlug)` (HOST_MANAGER, ADMIN, or the team's ACTIVE coordinator).
 - `mode: "clear"` deletes upcoming HostAssignment rows for this `(programSlug, hubSlug)`. `mode: "reset"` also deletes StandingAssignment rows for this `(programSlug, hubSlug)`. Other hubs covering the same program are untouched.
 
 **Whole-hub reset** (`POST /api/host/assignments/clear`):
 - Body: `{ hubSlug: string (required), scope: "future" | "all", endRotations?: boolean }`.
-- Gate: `isHubCoordinator(userId, hubSlug) || ADMIN`.
+- Gate: `canManageHubCoverage(userId, roles, hubSlug)` (it left out HOST_MANAGER before 2026-10-15).
 - `scope: "future"` deletes upcoming HostAssignment in this hub. `scope: "all"` adds past assignments. `endRotations: true` also wipes StandingAssignment in this hub.
 - RotationsClient calls this with the active hub. UI copy reads "Reset this team" with explanatory text that other teams' data stays intact.
 

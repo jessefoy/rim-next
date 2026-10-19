@@ -53,8 +53,8 @@ Real example from Slice 2.5: capability gates routed correctly to peer-led-silen
 | `getEffectiveHostingCapability(userId, hubSlug, fallback)` | `lib/hubMemberAuth.ts` | "Is this user an active hosting-capable member of this hub?" Pass `program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG`. |
 | `getHubNotificationRecipients(hubSlug, opts)` | `lib/toolAuth.ts` | Active members of a hub with `communicationsEnabled`. Use for notification recipient pools. Pass `canCover: true` for coverage asks (cover requests, a new program to staff), so people taken off the schedule aren't asked. |
 | `getHubMembership(slug, userId, roles)` | `lib/hubAuth.ts` | Returns `{ hub, member, isAdmin }`. Fetches the row; gate access with `canAccessHub`, never a bare `!member` (see *ADMIN policy* below). |
-| `canAccessHub(member, roles, openToAll?)` | `lib/hubAuth.ts` | **The access door** (session 135). True if a `HubMember` row exists OR roles includes `GUIDING_TEACHER`. ADMIN-alone does NOT pass. Single source of truth — use at every hub access gate (the layout, all sub-pages, every `/api/hub/[slug]/**` route). The optional `openToAll` (session 165) is the Community-Space primitive — see below. |
-| `effectiveCoordinator(member, roles)` | `lib/hubAuth.ts` | "Is this user acting as coordinator on this hub?" True for the coordinator flag, ADMIN, or GUIDING_TEACHER. Use everywhere you would have written `(member?.isCoordinator ?? false) || isAdmin`. |
+| `canAccessHub(member, roles)` | `lib/hubAuth.ts` | **The access door** (session 135). True if a `HubMember` row exists OR roles includes `GUIDING_TEACHER`. ADMIN-alone does NOT pass. Single source of truth — use at every hub access gate (the layout, all sub-pages, every `/api/hub/[slug]/**` route). (The session-165 `openToAll` argument was removed when the Community Space retired in session 166.) |
+| `effectiveCoordinator(member, roles)` | `lib/hubAuth.ts` | "Is this user acting as coordinator on this hub?" True for ADMIN, GUIDING_TEACHER, or an **ACTIVE** member with the coordinator flag (ACTIVE since 2026-10-19: a paused coordinator steps back from the Members tab, moderation, the team line and Trash). `member` must carry `status`. Use everywhere you would have written `(member?.isCoordinator ?? false) || isAdmin`. `canManageTrash(roles, member)` is the same rule. |
 | `hubScopedUrl(path, hubSlug)` | `lib/email.ts` | Append `?hub=<slug>` to a `/tools/*` URL when the slug isn't the host-team default. Use for every email link to a hub-scoped tool view. |
 | `hubHomeUrl(hubSlug)` | `lib/email.ts` | Build `/account/hub/<slug>` (the hub's own workspace URL). |
 | `emailButtonHtml(label, url)` | `lib/email.ts` | Canonical CTA button HTML for emails. See `RIM_Email_Engineering.md`. |
@@ -208,7 +208,7 @@ Current safety rules:
 - Program Manager is restricted to `registrar`; Course Manager is restricted to `courses` until their data and permissions are truly multi-Space scoped.
 - Admin UI and POST/PATCH APIs both block newly incompatible installs. Ordinary edits preserve an existing incompatible row so an unrelated save cannot break a team.
 - Hub config + app replacement commit in one `$transaction`; never delete all links before a possibly-failing hub update.
-- `hasToolAccess()` grants the app-link pathway only to ACTIVE members of an ACTIVE hub. Custom links never grant access.
+- `hasToolAccess()` grants the app-link pathway only to ACTIVE members of an ACTIVE hub. Custom links never grant access. The Program Manager is the exception: it is role-only (`canUseProgramManager`: Registrar, Admin, Guiding Teacher), on every page and API, and the registrar team's Home and rail show it only to those roles (Jesse, 2026-10-19).
 - When a Space has enabled registered apps, one is primary (`HubAppLink.isPrimary`); a partial unique index enforces at most one primary per Space. Other registered apps are supporting. Custom links can never be primary.
 - Home renders at most one contribution per app, and only the primary app's: one summary line in the highlighted tool card at the top of team Home (2026-10-13). Supporting apps and custom links are quiet destination rows. No app adds a module, disclosure or second card, and a summary never states a count it cannot compute truthfully (the Scheduler's row count would have; see "Team Home, 2026-10-13").
 - Updates adapters emit only meaningful, visible events (never held Google-file draft activity) and every item names `sourceKey`, `sourceLabel`, and `kind`.
@@ -223,7 +223,7 @@ Before a new app may be installed through `HubAppLink`, all ten answers must be 
 1. Is it `multi-space` or `primary-space`?
 2. May it be the primary app, and which unique semantic icon identifies it?
 3. Do every scoped read and write derive authority from the resource Space?
-4. What is its single Home contribution (`summary`, `module`, or `none`)?
+4. What is its single Home contribution (`summary` or `none`; the `module` mode was retired 2026-10-13)?
 5. Which durable, actor-attributed events are meaningful Updates?
 6. Which signals are personally actionable, and for whom?
 7. Which detailed count does the app itself own?
@@ -278,7 +278,7 @@ The session-129 audit found that the destructive routes (`/api/host/programs/[sl
 
 Pattern for any destructive route:
 1. Take `hubSlug` as a required body field (or derive from a resource the user explicitly identified).
-2. Gate by `isHubCoordinator(userId, hubSlug)` plus ADMIN bypass. (Since session 171 the helper is ACTIVE-only — a paused coordinator has no mutation authority anywhere it gates, including `isSpaceLead` in Google Files.)
+2. Gate coverage routes by `canManageHubCoverage(userId, roles, hubSlug)` (HOST_MANAGER, ADMIN, or the team's ACTIVE coordinator, built on `isHubCoordinator`); content routes by `effectiveCoordinator` / `canManageTrash`. All three are ACTIVE-only: `isHubCoordinator` since session 171 (including `isSpaceLead` in Google Files), `effectiveCoordinator` and `canManageTrash` since 2026-10-19.
 3. Scope every `deleteMany` / `updateMany` by `hubSlug`.
 4. Update UI copy to make the hub scope plain ("Reset this team" not "Reset everything").
 
@@ -358,7 +358,7 @@ Jesse: "I would like to simplify this page… if there is a tool associated with
 
 Every team's Home is now, in order: the team's name; **its own line** (`Hub.description`, one sentence, at most 200 characters, edited in place by the team's leads, `effectiveCoordinator`, through `PATCH /api/hubs/[slug]/home`; empty shows "Your team's shared space."); **the team's tool** when it has a primary registered app (one bordered card: "This team's tool", the app's name, its one summary line, one button "Open the …"); personal attention ("N items need your attention", unchanged); then the destination list (Conversations, Files, Members, supporting apps, custom links).
 
-Retired, from the code and the UI: the first-visit welcome screen (and `PATCH /api/hubs/[slug]/membership/visited`), "About this team" (welcome text and the custom-links block, whose links moved into the destination list), the Scheduler's month overview ("Team schedule overview"; the registry's `module` home mode is gone), pinned conversations on Home (pinned topics lead the Conversations list), and "Team guidance". The `welcomeHeadline`, `welcomeBody`, `homeContent` and `firstVisitedAt` columns stay, unread, until Jesse decides to drop them; each team's text was given to Jesse for its leads (backlog 2026-10-13-006).
+Retired, from the code and the UI: the first-visit welcome screen (and `PATCH /api/hubs/[slug]/membership/visited`), "About this team" (welcome text and the custom-links block, whose links moved into the destination list), the Scheduler's month overview ("Team schedule overview"; the registry's `module` home mode is gone), pinned conversations on Home (pinned topics lead the Conversations list), and "Team guidance". The `welcomeHeadline`, `welcomeBody` and `homeContent` columns were dropped later on 2026-10-13 (`drop_team_home_text_v1`; each team's text was archived off-repo and given to Jesse for its leads, backlog 2026-10-13-006). `HubMember.firstVisitedAt` stays, unread except by the account merge.
 
 The Scheduler's summary is a true count since 2026-10-16: the team's sessions in the next two weeks that need someone, from the Scheduler's own row builder (`countSessionsNeedingSomeone` in `lib/coverageNotices.ts`), or "Every session in the next two weeks has a greeter." A row count would have told a team it was covered when it wasn't (open sessions usually have no `HostAssignment` row). See `RIM_Scheduler.md`, "Coverage notices".
 

@@ -233,6 +233,29 @@ export default function HubConvThreadClient({
   // on mobile where the hover tooltip doesn't. One open at a time.
   const [whoOpenFor, setWhoOpenFor] = useState<string | null>(null);
 
+  // Deleting a reply asks first, in the reply itself; a problem is said there.
+  const [confirmReplyId, setConfirmReplyId] = useState<string | null>(null);
+  const [deletingReply, setDeletingReply] = useState(false);
+  const [replyDeleteError, setReplyDeleteError] = useState<{ id: string; msg: string } | null>(null);
+  const cancelReplyDeleteRef = useRef<HTMLButtonElement>(null);
+  const deleteReplyRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const prevConfirmReply = useRef<string | null>(null);
+  useEffect(() => {
+    // Open: focus Cancel. Closed without deleting: back to that reply's Delete.
+    if (confirmReplyId) cancelReplyDeleteRef.current?.focus();
+    else if (prevConfirmReply.current) deleteReplyRefs.current[prevConfirmReply.current]?.focus();
+    prevConfirmReply.current = confirmReplyId;
+  }, [confirmReplyId]);
+
+  // Deleting an archived conversation asks first, below the title.
+  const [confirmThreadDelete, setConfirmThreadDelete] = useState(false);
+  const [deletingThread, setDeletingThread] = useState(false);
+  const [threadDeleteError, setThreadDeleteError] = useState<string | null>(null);
+  const cancelThreadDeleteRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (confirmThreadDelete) cancelThreadDeleteRef.current?.focus();
+  }, [confirmThreadDelete]);
+
   const isClosed = thread.status !== "OPEN";
   const canEditOp = thread.authorId === currentUserId || isCoordinator;
 
@@ -326,16 +349,26 @@ export default function HubConvThreadClient({
   }
 
   async function deleteReply(replyId: string) {
-    if (!window.confirm("Delete this reply? This can't be undone.")) return;
+    if (deletingReply) return;
+    setDeletingReply(true);
+    setReplyDeleteError(null);
+    say(null);
     const res = await fetch(
       `/api/hub/${hubSlug}/conversations/${thread.id}/replies/${replyId}`,
       { method: "DELETE" },
     ).catch(() => null);
+    setDeletingReply(false);
     if (res?.ok) {
       setThread((prev) => ({ ...prev, replies: prev.replies.filter((r) => r.id !== replyId) }));
+      setConfirmReplyId(null);
       say("Reply deleted.");
     } else {
-      say("That reply was not deleted. Please try again.", "error");
+      setReplyDeleteError({
+        id: replyId,
+        msg: res
+          ? "That reply was not deleted. Please try again."
+          : "That reply was not deleted. Please check your connection and try again.",
+      });
     }
   }
 
@@ -466,17 +499,37 @@ export default function HubConvThreadClient({
     say(action === "pin" ? "Pinned to the top of the list." : "Unpinned.");
   }
 
-  async function softDeleteThread() {
+  function askThreadDelete() {
     setMenuOpen(false);
-    if (!window.confirm("Delete this archived thread? It will move to the trash, where admins or coordinators can restore or permanently delete it.")) return;
+    setThreadDeleteError(null);
+    setConfirmThreadDelete(true);
+  }
+
+  function cancelThreadDelete() {
+    setConfirmThreadDelete(false);
+    setThreadDeleteError(null);
+    menuButtonRef.current?.focus();
+  }
+
+  async function softDeleteThread() {
+    if (deletingThread) return;
+    setDeletingThread(true);
+    setThreadDeleteError(null);
     const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
       method: "DELETE",
     }).catch(() => null);
-    if (!res?.ok) say("This conversation was not deleted. Please try again.", "error");
     if (res?.ok) {
-      // Navigate back to the list — the thread is no longer visible to this user.
+      // Navigate back to the list (the thread is no longer visible to this
+      // user). The button keeps saying "Deleting…" until the page changes.
       window.location.href = `/account/hub/${hubSlug}/conversations`;
+      return;
     }
+    setDeletingThread(false);
+    setThreadDeleteError(
+      res
+        ? "This conversation was not deleted. Please try again."
+        : "This conversation was not deleted. Please check your connection and try again.",
+    );
   }
 
   return (
@@ -557,7 +610,7 @@ export default function HubConvThreadClient({
                 {canEditOp && isClosed && (
                   <button
                     className="hub-conv-menu__item hub-conv-menu__item--danger"
-                    onClick={softDeleteThread}
+                    onClick={askThreadDelete}
                     role="menuitem"
                   >
                     Delete
@@ -568,6 +621,35 @@ export default function HubConvThreadClient({
           </div>
         )}
       </header>
+
+      {confirmThreadDelete && (
+        <div className="hub-conv-post__edit-form" role="group" aria-labelledby="hub-conv-thread-del-q">
+          <p className="save-note" id="hub-conv-thread-del-q">
+            Delete this archived conversation? It will move to the trash, where a coordinator or
+            admin can restore it or delete it for good.
+          </p>
+          {threadDeleteError && (
+            <p className="save-note save-note--error" role="alert">{threadDeleteError}</p>
+          )}
+          <div className="hub-conv-post__edit-actions">
+            <button
+              ref={cancelThreadDeleteRef}
+              className="btn--ghost"
+              onClick={cancelThreadDelete}
+              disabled={deletingThread}
+            >
+              Cancel
+            </button>
+            <button
+              className="hub-action-btn hub-action-btn--del"
+              onClick={softDeleteThread}
+              disabled={deletingThread}
+            >
+              {deletingThread ? "Deleting…" : "Delete conversation"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Original post */}
       <article className="hub-conv-post hub-conv-post--op">
@@ -659,16 +741,47 @@ export default function HubConvThreadClient({
                         <span>Edit</span>
                       </button>
                     )}
-                    {(isAuthor || isCoordinator) && !isEditing && (
+                    {(isAuthor || isCoordinator) && !isEditing && confirmReplyId !== r.id && (
                       <button
+                        ref={(el) => { deleteReplyRefs.current[r.id] = el; }}
                         className="hub-conv-post__delete"
-                        onClick={() => deleteReply(r.id)}
+                        onClick={() => { setConfirmReplyId(r.id); setReplyDeleteError(null); }}
                         aria-label="Delete reply"
                       >
                         <span>Delete</span>
                       </button>
                     )}
                   </div>
+
+                  {confirmReplyId === r.id && (
+                    <div className="hub-conv-post__edit-form" role="group" aria-labelledby={`hub-conv-del-${r.id}`}>
+                      <p className="save-note" id={`hub-conv-del-${r.id}`}>
+                        {isAuthor
+                          ? "Delete your reply? This can\u2019t be undone."
+                          : `Delete ${displayName(r.author)}\u2019s reply? This can\u2019t be undone.`}
+                      </p>
+                      {replyDeleteError?.id === r.id && (
+                        <p className="save-note save-note--error" role="alert">{replyDeleteError.msg}</p>
+                      )}
+                      <div className="hub-conv-post__edit-actions">
+                        <button
+                          ref={cancelReplyDeleteRef}
+                          className="btn--ghost"
+                          onClick={() => { setConfirmReplyId(null); setReplyDeleteError(null); }}
+                          disabled={deletingReply}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="hub-action-btn hub-action-btn--del"
+                          onClick={() => deleteReply(r.id)}
+                          disabled={deletingReply}
+                        >
+                          {deletingReply ? "Deleting…" : "Delete reply"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {isEditing ? (
                     <div className="hub-conv-post__edit-form">

@@ -72,7 +72,7 @@ Session 162 unified the visual shell without changing any authority boundary:
 - `/admin/*` uses that same account shell. `app/admin/layout.tsx` adds `admin-ui` inside `AccountLayout`; admin content supplies the task, while the account rail supplies location.
 - `/account/hub/[slug]/*` uses the site header (since 2026-10-13) plus `HubWorkspaceSidebar`. The hub rail replaces the account rail so there is only one local navigation system; its desktop collapse is a true 64px icon rail, while mobile remains a full labeled drawer.
 - `/tools/*` uses `WorkspaceShell`. A hub-launched tool (`?hub=`) keeps the hub rail and hub identity; direct entry uses the quiet `ToolsNav` header. Tool access and data scope remain governed by their existing helpers—not by the visible shell.
-- Focused document and Mind Map editors may use a reduced/full-canvas composition, but retain an explicit return path to the owning directory or hub.
+- Focused editors (the Program, Course and Lesson editors; Google files open in Google) keep an explicit return path to the owning directory or team. (The native document and Mind Map editors were retired in sessions 165 and 166.)
 
 The shared shell is presentation infrastructure, not authorization. Never infer hub access, tool access, or query scoping from which rail is visible. The route/page/API gates remain authoritative.
 

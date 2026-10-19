@@ -59,9 +59,29 @@ interface Props {
   canRemove: boolean;
   /** Where to return after an approved removal (the file is then trashed). */
   backHref: string;
+  /** The file's preview and conversation. Once the removal is approved the
+   *  file is in the trash, so only the confirmation and the way back remain
+   *  (2026-10-19). */
+  children?: React.ReactNode;
 }
 
 const GENERIC_ERROR = "Something went wrong. Please try again.";
+
+/** A plain answer for a refused request: sign-in, permission and missing
+    things in people's words; the server's own reason only when it is a
+    sentence written for people; otherwise the kind fallback. */
+function readableError(status: number, serverError: unknown, fallback: string): string {
+  if (status === 401) return "You\u2019ve been signed out. Sign in again, then try once more.";
+  if (status === 404) return "That isn\u2019t here any more. Refresh the page.";
+  // Keep the server's words only when they are a sentence written for people
+  // (several words, ending in a full stop), never a code like "Hub not found".
+  const text = typeof serverError === "string" ? serverError.trim() : "";
+  if (/\s/.test(text) && /[.?!]$/.test(text) && !/\b(hubs?|spaces?)\b/i.test(text)) return text;
+  // A refusal says why when the server wrote it for people ("Open this from
+  // within RIM."); otherwise plainly.
+  if (status === 403) return "You don\u2019t have permission to do that here.";
+  return fallback;
+}
 
 export default function FileDetailActions({
   fileId,
@@ -82,6 +102,7 @@ export default function FileDetailActions({
   canApproveRemoval,
   canRemove,
   backHref,
+  children,
 }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -112,7 +133,7 @@ export default function FileDetailActions({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? GENERIC_ERROR);
+        setError(readableError(res.status, data.error, GENERIC_ERROR));
         return false;
       }
       return true;
@@ -171,7 +192,7 @@ export default function FileDetailActions({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? GENERIC_ERROR);
+        setError(readableError(res.status, data.error, GENERIC_ERROR));
         return;
       }
       const n = Number(data.notified ?? 0);
@@ -232,6 +253,7 @@ export default function FileDetailActions({
   );
 
   return (
+    <>
     <div className="gf-detail__head">
       <p className="gf-detail__meta">
         <span className="gf-detail__kind">{kindLabel}</span>
@@ -459,5 +481,7 @@ export default function FileDetailActions({
         </p>
       )}
     </div>
+    {children}
+    </>
   );
 }

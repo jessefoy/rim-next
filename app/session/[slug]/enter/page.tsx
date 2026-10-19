@@ -35,7 +35,7 @@ import { getActiveSessionWindow } from "@/lib/sessionWindow";
 import { resolveSessionRole } from "@/lib/sessionAuth";
 import { getOrCreateSessionMeeting, NoSeatAvailableError } from "@/lib/sessionMeeting";
 import { getMeeting, ensureSeatHostKey, deleteMeeting } from "@/lib/zoom";
-import { roomNameForProgram, sessionDisplayName } from "@/lib/sessionIdentity";
+import { sessionDisplayName } from "@/lib/sessionIdentity";
 import { FALLBACK_DURATION_MIN } from "@/lib/sessionWindowConstants";
 import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
 import { hasOpenEntry } from "@/lib/programOffering";
@@ -177,14 +177,9 @@ export default async function ZoomEnterPage({
   }
   const sessionDate = new Date(sessionDateIso);
 
-  // ── Session ban (members by id; ADMIN/GT exempt; guests have no id to match).
-  if (userId && !isAdminOrGT) {
-    const roomName = roomNameForProgram(slug, sessionDateIso);
-    const ban = await db.sessionBan.findFirst({
-      where: { roomName, identity: userId },
-    });
-    if (ban) redirect("/account/dashboard?session=removed");
-  }
+  // (A session-ban check stood here: bans were written by the retired LiveKit
+  // room's Remove control and keyed to that day's room, so none can match a
+  // Zoom session. Removed 2026-10-19; the table drop is in CLEANUP.md.)
 
   const retryHref = `/session/${slug}/enter${hasValidKey ? `?key=${encodeURIComponent(guestKey!)}` : ""}`;
   const cantOpen = (busy: boolean, detail: string) => (

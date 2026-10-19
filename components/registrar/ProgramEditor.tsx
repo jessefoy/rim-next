@@ -7,7 +7,7 @@
  * CSS prefix: pe-
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -26,6 +26,7 @@ import { programUsesFlodesk } from "@/lib/flodeskRules";
 import { cleanOutsideMeetingUrl, onlinePhrase } from "@/lib/outsideMeeting";
 import { EARLY_OPEN_MIN, LATE_GRACE_MIN } from "@/lib/sessionWindowConstants";
 import { SaveNote } from "@/components/FormDone";
+import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 
 interface TeacherItem {
   id: string;
@@ -748,23 +749,10 @@ export default function ProgramEditor({
   // ── Unsaved changes tracking ────────────────────────────────────────────
   const [dirty, setDirty] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
-  // The leave-without-saving dialog takes focus when it opens, gives it back
-  // to whatever opened it when it closes, and closes on Escape (= stay).
-  const stayBtnRef = useRef<HTMLButtonElement>(null);
-  const leaveOpenerRef = useRef<HTMLElement | null>(null);
-  const leaveOpen = pendingNav !== null;
-  useEffect(() => {
-    if (!leaveOpen) return;
-    leaveOpenerRef.current = document.activeElement as HTMLElement | null;
-    stayBtnRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPendingNav(null); };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      const opener = leaveOpenerRef.current;
-      if (opener && opener.isConnected) opener.focus();
-    };
-  }, [leaveOpen]);
+  // The leave-without-saving dialog takes focus (Stay, its first button),
+  // keeps Tab and Shift-Tab inside it, closes on Escape (= stay), and gives
+  // focus back to whatever opened it.
+  const leaveDialogRef = useNavigationDrawer(pendingNav !== null, () => setPendingNav(null));
 
   // A new edit after a save: "Saved" no longer describes the page.
   const markDirty = useCallback(() => { if (!dirty) { setDirty(true); setSuccess(false); } }, [dirty]);
@@ -1223,6 +1211,7 @@ export default function ProgramEditor({
       {pendingNav && (
         <div className="pe-overlay" onClick={() => setPendingNav(null)}>
           <div
+            ref={leaveDialogRef as RefObject<HTMLDivElement | null>}
             className="pe-dialog"
             role="dialog"
             aria-modal="true"
@@ -1231,7 +1220,7 @@ export default function ProgramEditor({
           >
             <p className="pe-dialog__text" id="pe-leave-title">You have unsaved changes. Leave without saving?</p>
             <div className="pe-dialog__actions">
-              <button ref={stayBtnRef} type="button" className="pe-btn pe-btn--primary" onClick={() => setPendingNav(null)}>
+              <button type="button" className="pe-btn pe-btn--primary" onClick={() => setPendingNav(null)}>
                 Stay on this page
               </button>
               <button

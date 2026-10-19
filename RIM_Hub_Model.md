@@ -89,10 +89,11 @@ Example app links seeded for existing hubs:
 ### Step 5: Coordinator configures hub content
 
 The coordinator (or admin) can now:
-- Edit the Home welcome and orientation inline via `RimTiptapEditor` (also available in hub admin)
-- Set a welcome headline and body for newcomer interstitials (stored as `welcomeHeadline` / `welcomeBody`)
-- Create conversation categories, document categories
-- Pin important conversation threads
+- Edit the team's one line under its name on Home (`Hub.description`, at most 200 characters, through `PATCH /api/hubs/[slug]/home`; ACTIVE coordinators, ADMIN, GUIDING_TEACHER)
+- Create conversation categories
+- Pin important conversation threads (pinned topics lead the Conversations list)
+
+(The welcome text, welcome interstitial, orientation and guidance were retired 2026-10-13 and their columns dropped; see "Team Home, 2026-10-13" in `RIM_Hub_Engineering.md`.)
 
 ### Step 6: Members use the hub
 
@@ -102,7 +103,7 @@ When a member navigates to `/account/hub/[slug]`:
 2. **Hub fetch** — query `hubs` by slug, include `members` and `appLinks`
 3. **Access check** — resolve the `HubMember` row and apply `canAccessHub(member, roles)`
 4. **Sidebar render** — `HubWorkspaceSidebar` receives hub identity, tools, counts, coordinator/trash authority, and admin state
-5. **First visit tracking** — if both `firstVisitedAt` and prior `lastVisitedAt` are null, show the welcome interstitial and set the timestamp (the second check protects established members created before first-visit tracking)
+5. **First visit** — retired 2026-10-13 with the welcome interstitial (and `PATCH /api/hubs/[slug]/membership/visited`); `firstVisitedAt` is no longer written
 6. **Visit tracking** — `lastVisitedAt` remains the Home/conversation boundary; Updates uses a fixed seven-day Recent window and does not record a read state
 
 ---
@@ -492,18 +493,17 @@ The built-in sections are shared infrastructure. Every hub gets them for free. I
 
 **Route:** `/account/hub/[slug]` (page.tsx)
 
-**What it shows:**
-- The team name and compact destinations: Conversations/Files when enabled, Members, and installed apps
-- The first-visit welcome interstitial for genuinely new members
-- Named disclosures for About this team, Team guidance, personal attention, schedule overview and pinned conversations, when present
-- Coordinator-editable welcome/orientation inside their disclosures
-- At most one detailed app contribution, behind its named disclosure; destination links remain available
-- Pinned conversation threads (from `HubConversationThread` where `isPinned: true`); passive chronological history stays in Updates
+**What it shows (Team Home, 2026-10-13, the standard for every team):**
+- The team's name and its one line (`Hub.description`; empty shows "Your team's shared space.")
+- The team's tool, when it has a primary registered app: one bordered card with the app's name, its one summary line and one button
+- Personal attention ("N items need your attention")
+- The destination list: Conversations and Files when enabled, Members, supporting apps, custom links
+
+Retired 2026-10-13: the first-visit welcome screen, "About this team", "Team guidance", the Scheduler's month overview, pinned conversations on Home, and every disclosure. Passive chronological history stays in Updates.
 
 **Extension points:**
-- `welcomeBody` and `homeContent` are HTML strings stored in the existing JSON fields and edited inline or in hub admin
 - A new app extends the registry contract and a server adapter; the base Home component does not branch by hub slug
-- `Hub.hasSchedule` controls the Scheduler month module and Program Editor hosting eligibility; it no longer selects a separate Home implementation
+- `Hub.hasSchedule` marks a team that runs sessions itself (Hosting-team eligibility in the Program Editor); it no longer selects a Home implementation or a Home module
 
 ### Updates
 
@@ -571,7 +571,7 @@ An app link is a record in the `hub_app_links` table:
 
 **In the sidebar:** Rendered directly below Home. Registered apps receive `?hub=<slug>`; custom links keep the exact configured href.
 
-**On the home screen:** `HubHomeClient` renders compact core/app destination links and quiet custom links. The primary app module is retained behind a named disclosure, with no duplicate content card (September 2026 presentation). `lib/hubApps.ts` resolves the server providers and supplies live summaries, Updates, and attention.
+**On the home screen:** `HubHomeClient` renders the primary app's one card (name, summary line, one button) at the top, then supporting apps and custom links as quiet destination rows (2026-10-13; the September disclosure layout is retired). `lib/hubApps.ts` resolves the server providers and supplies live summaries, Updates, and attention.
 
 ### Registry contract
 
@@ -581,7 +581,7 @@ An app link is a record in the `hub_app_links` table:
 - `spaceMode`: `multi-space` or `primary-space`
 - `primarySpaceSlug` when restricted
 - `canBePrimary`
-- `spaceContributions.home`: `summary`, `module`, or `none`
+- `spaceContributions.home`: `summary` or `none` (`module` retired 2026-10-13)
 - `spaceContributions.updates`: whether a source-aware provider is required
 - `spaceContributions.attention`: whether a personal-attention provider is required
 
@@ -591,8 +591,8 @@ Current contracts:
 
 | App | Space mode | Home | Updates / attention |
 |---|---|---|---|
-| Scheduler | multi-space | hub-scoped open coverage + optional month module | cover requests + claims |
-| Program Manager | primary-space (`registrar`) | recent registrations | none until its mutations have durable actor attribution |
+| Scheduler | multi-space | sessions in the next two weeks that need someone (`scheduleHome`, counted by the Scheduler's row builder) | cover requests + claims |
+| Program Manager | primary-space (`registrar`); role-only access (`canUseProgramManager`, 2026-10-19) | new registrations in the last seven days | none until its mutations have durable actor attribution |
 | Course Manager | primary-space (`courses`) | draft courses | none until its mutations have durable actor attribution |
 
 **Authorization rule:** only ACTIVE members inherit access through a registered app on an ACTIVE hub. Role grants and `UserToolAccess` remain separate pathways. Custom links never grant access.
@@ -676,20 +676,16 @@ All hub-related models in `prisma/schema.prisma`:
 
 | Model | Table | Key Fields | Purpose |
 |-------|-------|------------|---------|
-| `Hub` | `hubs` | `slug` (unique), `name`, `type`, `status`, `hasSchedule`, `welcomeHeadline`, `welcomeBody` (HTML), `homeContent` (HTML), `documentCategories[]`, `conversationCategories[]` | Hub definition |
+| `Hub` | `hubs` | `slug` (unique), `name`, `type`, `description` (the Home line), `status`, `hasSchedule`, `conversationCategories[]` (`welcomeHeadline`, `welcomeBody`, `homeContent` dropped 2026-10-13) | Hub definition |
 | `HubType` | enum | `OPERATIONAL`, `GOVERNANCE`, `COMMUNITY_GROUP` | Hub classification |
 | `HubStatus` | enum | `ACTIVE`, `ARCHIVED` | Hub lifecycle |
-| `HubAppLink` | `hub_app_links` | `hubId`, `label`, `href`, `order`, `isEnabled` | Hub-to-tool connection |
-| `HubMember` | `hub_members` | `hubId` + `userId` (unique), `position`, `isCoordinator`, `joinedAt`, `lastVisitedAt`, `firstVisitedAt` | Hub membership |
-| `HubDocument` | `hub_documents` | nullable origin `hubId`, `addedById`, `label`, `docKind`, `visibility`, `category`, `body` (HTML), lifecycle fields | Portable document resource |
-| `HubDocumentPlacement` | `hub_document_placements` | `documentId`, `hubId` | Cross-hub document placement |
-| `MindMap` | `mind_maps` | nullable origin `hubId`, `addedById`, `visibility`, `editPolicy`, lifecycle fields | Portable spatial-conversation resource |
-| `MindMapPlacement` | `mind_map_placements` | `mapId`, `hubId` | Cross-hub map placement |
-| `MindMapNode` | `mind_map_nodes` | `mapId`, `parentId`, label/note/position | Topic/branch node; conversation anchor |
+| `HubAppLink` | `hub_app_links` | `hubId`, `toolSlug`, `label`, `href`, `order`, `isEnabled`, `isPrimary` | Hub-to-tool connection |
+| `HubMember` | `hub_members` | `hubId` + `userId` (unique), `position`, `isCoordinator`, `status`, `joinedAt`, `lastVisitedAt`, `firstVisitedAt` (no longer written) | Hub membership |
 | `HubConversationThread` | `hub_conversation_threads` | `hubId`, `authorId`, `title`, `body` (HTML), `status`, `isPinned`, `pinnedAt`, `category` | Hub discussions |
 | `HubConversationReply` | `hub_conversation_replies` | `threadId`, `authorId`, `body` (HTML) | Thread replies |
 | `HubThreadSubscription` | `hub_thread_subscriptions` | `threadId`, `userId`, `source`, `@@unique([threadId, userId])` | Per-thread subscriber list (session 113) |
-| `HubDocumentNotification` | `hub_document_notifications` | `documentId`, `userId`, `eventType` | Per-document notification event log (session 113) |
+
+Retired and removed from the schema: `HubDocument`, `HubDocumentPlacement`, `HubDocumentNotification` (native Documents, session 165) and `MindMap`, `MindMapPlacement`, `MindMapNode` (session 166). Team files are Google Workspace Files (`GoogleFileMeta`, `FileComment` and the `GoogleFile*` models; `RIM_GoogleWorkspace.md`).
 
 ---
 

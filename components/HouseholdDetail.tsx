@@ -60,10 +60,25 @@ function memberDisplayName(u: HouseholdUser) {
   return full || u.email;
 }
 
-/** The server's own reason when it gives one; otherwise the kind fallback. */
+/** A plain answer for a refused request: sign-in, permission and missing
+    things in people's words; the server's own reason only when it is a
+    sentence written for people; otherwise the kind fallback. */
+function readableError(status: number, serverError: unknown, fallback: string): string {
+  if (status === 401) return "You\u2019ve been signed out. Sign in again, then try once more.";
+  if (status === 404) return "That isn\u2019t here any more. Refresh the page.";
+  // Keep the server's words only when they are a sentence written for people
+  // (several words, ending in a full stop), never a code like "Hub not found".
+  const text = typeof serverError === "string" ? serverError.trim() : "";
+  if (/\s/.test(text) && /[.?!]$/.test(text) && !/\b(hubs?|spaces?)\b/i.test(text)) return text;
+  // A refusal says why when the server wrote it for people ("Open this from
+  // within RIM."); otherwise plainly.
+  if (status === 403) return "You don\u2019t have permission to do that here.";
+  return fallback;
+}
+
 async function reasonFrom(res: Response, fallback: string) {
   const data = await res.json().catch(() => null);
-  return (data && typeof data.error === "string" && data.error) || fallback;
+  return readableError(res.status, data?.error, fallback);
 }
 
 const OFFLINE = "Couldn't reach the server, so nothing changed. Please try again.";

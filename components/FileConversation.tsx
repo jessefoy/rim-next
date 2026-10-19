@@ -19,6 +19,22 @@ import NotifyPicker, { type NotifyValue, NOTIFY_NONE } from "@/components/Notify
 const REACTIONS = ["👍", "❤️", "🙏", "💡", "😊"] as const;
 const GENERIC_ERROR = "Something went wrong. Please try again.";
 
+/** A plain answer for a refused request: sign-in, permission and missing
+    things in people's words; the server's own reason only when it is a
+    sentence written for people; otherwise the kind fallback. */
+function readableError(status: number, serverError: unknown, fallback: string): string {
+  if (status === 401) return "You\u2019ve been signed out. Sign in again, then try once more.";
+  if (status === 404) return "That isn\u2019t here any more. Refresh the page.";
+  // Keep the server's words only when they are a sentence written for people
+  // (several words, ending in a full stop), never a code like "Hub not found".
+  const text = typeof serverError === "string" ? serverError.trim() : "";
+  if (/\s/.test(text) && /[.?!]$/.test(text) && !/\b(hubs?|spaces?)\b/i.test(text)) return text;
+  // A refusal says why when the server wrote it for people ("Open this from
+  // within RIM."); otherwise plainly.
+  if (status === 403) return "You don\u2019t have permission to do that here.";
+  return fallback;
+}
+
 interface Comment {
   id: string;
   authorId: string;
@@ -77,7 +93,7 @@ export default function FileConversation({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? GENERIC_ERROR);
+        setError(readableError(res.status, data.error, GENERIC_ERROR));
         return;
       }
       setComments(data.comments ?? []);
@@ -98,7 +114,7 @@ export default function FileConversation({
       const res = await fetch(`/api/files/${fileId}/conversation/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setCommentError({ id, msg: data.error ?? "This comment was not deleted. Please try again." });
+        setCommentError({ id, msg: readableError(res.status, data.error, "This comment was not deleted. Please try again.") });
         return;
       }
       setComments((prev) => prev.filter((c) => c.id !== id));
@@ -121,7 +137,7 @@ export default function FileConversation({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setCommentError({ id, msg: data.error ?? GENERIC_ERROR });
+        setCommentError({ id, msg: readableError(res.status, data.error, GENERIC_ERROR) });
         return;
       }
       setComments((prev) =>

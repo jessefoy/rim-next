@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState, type RefObject } from "react";
 import Link from "next/link";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
+import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 import { OFFERING_CATEGORIES, OFFERING_FORMATS, categorySectionTitle, formatLabel } from "@/lib/programOffering";
 
 export type ProgramRow = {
@@ -52,37 +53,15 @@ export default function ProgramsTableClient({
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState("");
   const { notice, say } = useActionNotice();
-  // The dialog takes focus when it opens and gives it back to the button
-  // that opened it when it closes; Escape closes it.
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const openerRef = useRef<HTMLElement | null>(null);
-  const isOpen = confirming !== null;
-  useEffect(() => {
-    if (!isOpen) return;
-    openerRef.current = document.activeElement as HTMLElement | null;
-    cancelRef.current?.focus();
-    return () => {
-      const opener = openerRef.current;
-      if (opener && opener.isConnected) opener.focus();
-    };
-  }, [isOpen]);
-
   function closeDialog() {
     if (busy) return;
     setConfirming(null);
     setProblem("");
   }
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) {
-        setConfirming(null);
-        setProblem("");
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [isOpen, busy]);
+  // The dialog takes focus (Cancel, its first button), keeps Tab and
+  // Shift-Tab inside it, closes on Escape unless it is working, and gives
+  // focus back to the button that opened it.
+  const dialogRef = useNavigationDrawer(confirming !== null, closeDialog);
   // Filters by the offering's Category and Format ("" = all).
   const [categoryFilter, setCategoryFilter] = useState("");
   const [formatFilter, setFormatFilter] = useState("");
@@ -299,6 +278,7 @@ export default function ProgramsTableClient({
     return (
       <div className="vol-overlay" onClick={closeDialog}>
         <div
+          ref={dialogRef as RefObject<HTMLDivElement | null>}
           className="vol-dialog"
           role="dialog"
           aria-modal="true"
@@ -314,7 +294,6 @@ export default function ProgramsTableClient({
           )}
           <div className="vol-dialog__actions">
             <button
-              ref={cancelRef}
               type="button"
               className="vol-confirm-btn"
               disabled={busy}

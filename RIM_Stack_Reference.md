@@ -1,5 +1,7 @@
 # RIM Next — Stack Reference
 
+> **2026-10-19 (the integrity pass):** No new npm dependencies, env vars, services, crons, schema, migrations or email templates. **New in the repo:** `lib/registrationLink.ts` (`registrationResumeKey`, `registrationResumeKeyValid`: an HMAC of the registration id keyed by `AUTH_SECRET`, carried by the waitlist-approval and dana-reminder links so a signed-out guest can finish); `sendEachPaced` in `lib/email.ts` (team-wide sends one at a time, 600 ms apart, under Resend's 10 a second); `canUseProgramManager` and `PROGRAM_MANAGER_ROLES` in `lib/toolAuth.ts` (Registrar, Admin, Guiding Teacher: the one gate for every Program Manager page and API; team membership no longer opens it); `ruleFillsDate` in `lib/applyStandingAssignments.ts` (the one test for whether a rotation fills a date); `releaseInactiveCoverage` in `lib/coverageNotices.ts` (the daily pass releases inactive members' sessions and rotations first). **`maxDuration`** added to the fan-out routes: 60 on `app/api/host/sub-requests`, `app/api/hub/[slug]/conversations`, its `[id]/replies`, `app/api/programs-pg` and `app/api/programs-pg/[slug]`; 300 on the `apply-standing-assignments` cron. **Auth helpers:** `effectiveCoordinator` and `canManageTrash` now require an ACTIVE coordinator (`canManageTrash(roles, member)`). **Removed:** the unused `GET /api/hub/[slug]` and `GET /api/hub/[slug]/members`. Authority for behaviour: `RIM_Registration.md`, `RIM_Scheduler.md`, `RIM_Email_Engineering.md`, `RIM_ProgramEditor.md`.
+
 > **2026-10-18 (every-other-week rotations):** **Schema (additive, at the top of `prisma/migrate.mjs` before any model read):** `StandingOccurrence` gains `ALT_WEEK_A` and `ALT_WEEK_B` (`ALTER TYPE … ADD VALUE IF NOT EXISTS`, outside a transaction), and `standing_assignments` gains nullable `cycleStart TEXT`. **Don't roll back past `9534dab` once a cycle is saved:** an older Prisma client can't read the new enum values. **New in the repo:** `isCycleWeek`, `isCycleOccurrence`, `meetsEveryWeek` in `lib/scheduleUtils.ts`. **CSS:** the rotation grid is a size container (`container-type: inline-size`; `@container (max-width: 720px)` stacks it, replacing the 760px media query); the person menu's cap is 70dvh with a styled WebKit scrollbar. **Tooling:** production read and write scripts run the repo's TypeScript with `node_modules/.bin/jiti` and `JITI_ALIAS` mapping `@/` to the repo and `server-only` to an empty stub; PDF text comes out with a small Swift/PDFKit script (no poppler). No new dependencies, env vars, services, crons or templates.
 
 > **2026-10-16, later (coverage notices):** **New cron** `/api/cron/coverage-notices` (`0 13 * * *`, after the 08:00 rotation run; `maxDuration` 300; `CRON_SECRET`). **Schema (additive):** new table `coverage_notices` (`CoverageNotice`: kind, hubSlug, programSlug, sessionDay, sessionDate, assignmentId; no person column), `CREATE TABLE IF NOT EXISTS` in `prisma/migrate.mjs` outside any flag. **Email templates:** four new (`coverage-gap-opened`, `coverage-lookahead`, `coverage-still-needed`, `coverage-session-reminder`; flag `seed_coverage_notice_templates_v1`, `findUnique → create`); role words added to `host-assignment-confirmation`, `host-assignment-removed`, `sub-request-claimed` (flag `coverage_emails_name_the_role_2026_10_16_v1`, exact swaps only where unedited). **New in the repo:** `lib/coverageNotices.ts`; `coverageWords` and four senders in `lib/email.ts`; `fmtSessionWhen` in `lib/timezone.ts`; `COVERAGE_LOOKAHEAD_DAYS` in `lib/sessionWindowConstants.ts`. No new dependencies, env vars or services. Authority: `RIM_Scheduler.md`, "Coverage notices".
@@ -98,10 +100,10 @@ Rooted In Mindfulness (RIM) is a dharma community in Brookfield, WI, rooted in t
 - **LiveKit session room — RETIRED (session 159).** The custom in-browser room (LiveKit Cloud sessions 86–149, self-hosted on DigitalOcean sessions 150–158) was replaced by Zoom; the code was removed and the droplet destroyed (session 161, after OnlyOffice retired too). History: `RIM_SessionRoom.md` + git.
 - **Zoom sessions — "RIM orchestrates, Zoom is the room" (built session 158; CUT OVER session 159 — Zoom is the only room).** RIM keeps orchestration (program → auto-provision → assignment → dashboard "Join" → host identity); Zoom is the native room. One RIM Zoom org (owner `jesse@`, nonprofit) + **two licensed Pro pool seats** (= 2 concurrent meetings) + a Server-to-Server OAuth app ("RIM Sessions"). One meeting per session occurrence, created just-in-time on a free seat (`SessionMeeting`), reused within the window, self-healed if it dies. Members join by name (no per-person registration — Zoom rate-limits it); hosts claim host under their own name with the 6-digit `ZOOM_HOST_KEY`. Plain `fetch` against Zoom's REST API — no npm dependency. Entry at `/session/[slug]/enter`; diagnostic at `/admin/zoom-test`. **Full reference: `RIM_Zoom.md`** (host guide: `ZOOM_HOST_GUIDE.md`).
 - Email Template Manager at `/admin/emails` — database-backed
-- Database-driven staff manual (ManualSection records) with audience-grouped index, hub-scoped projection, contextual help icons
-- **Hub Documents** with per-document Basecamp-style notifications, PDF file uploads, three-stage Archive → Trash lifecycle (session 113)
-- **Hub Conversations** with thread subscription model (subscribers receive every reply automatically), `Follow` / `Unfollow` toggle, additive "Notify someone new" picker on replies, three-stage Archive → Trash lifecycle (session 113). Archive marker is `archivedAt DateTime?` as of session 115 (mirrors `HubDocument`); legacy `status: "CLOSED"` column kept in sync for backward compat, removable in a future cleanup.
-- **Hub Trash** (`/account/hub/[slug]/trash`) — per-hub trash bin for soft-deleted documents and threads; gated to Admin / Guiding Teacher / hub coordinator (session 113)
+- ~~Staff manual (`ManualSection`)~~: removed session 139.
+- ~~Hub Documents~~: retired session 165; team files are Google Workspace Files (`RIM_GoogleWorkspace.md`).
+- **Hub Conversations** with thread subscription model (subscribers receive every reply automatically), `Follow` / `Unfollow` toggle, additive "Notify someone new" picker on replies, three-stage Archive → Trash lifecycle (session 113). Archive marker is `archivedAt DateTime?` as of session 115; legacy `status: "CLOSED"` column kept in sync for backward compat, removable in a future cleanup.
+- **Hub Trash** (`/account/hub/[slug]/trash`) — per-hub trash bin for soft-deleted conversations; gated to Admin / Guiding Teacher / an ACTIVE team coordinator (session 113; ACTIVE since 2026-10-19)
 - **Host assignment confirmation emails** — every path that makes someone a host (sub-claim, self-claim, manager assignment, PATCH claim, reassign) sends a confirmation; reassign also sends a removal email to the displaced host (session 113)
 
 **Parked or removed:**
@@ -149,7 +151,7 @@ The Webflow-built site at `rootedinmindfulness.org` is the live public-facing do
 | Video | Zoom | Two licensed Pro pool seats (2 concurrent meetings) on the RIM org, nonprofit pricing; S2S OAuth app "RIM Sessions"; no npm dependency. LiveKit (Cloud, then self-hosted) was retired session 159. |
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only. Webflow CSS removed (session 84). Quincy CF self-hosted via `@font-face`. Legacy shim at bottom of custom.css for ~15 unredesigned pages. |
-| Rich text editor | **`RimTiptapEditor`** (Tiptap 3) — migration complete session 97, 2026-04-28 | One component at `components/rim-tiptap/RimTiptapEditor.tsx`, three variants: `minimal` (Form Field), `message` (Hub welcome / conversations / replies / member bios / notes / drafts), `document` (Hub documents / lessons / manual sections / program descriptions / Page Designer surfaces). **Storage:** plain HTML strings produced by `editor.getHTML()`. **Selection bubble menu** is the primary formatting surface (Tiptap `BubbleMenu`); top toolbar is for insertion-only actions. **Sanitization:** `lib/renderRichContentTiptap.ts` uses `sanitize-html` (allowlists per variant) on every render. **Format detection:** `lib/renderRichContent.ts` (`isHtmlString` / `isBlockNoteJSON` / `isRawHtml` / legacy Tiptap doc shape) routes content by shape — unmigrated rows still display correctly via the legacy walker. Five custom block extensions (`Callout`, `PullQuote`, `VerseQuote`, `PracticeSuggestion`, `Reflection`) in `components/rim-tiptap/extensions/`. Tiptap deps: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-{link,underline,highlight,typography,image,table,table-row,table-header,table-cell,task-list,task-item,placeholder,bubble-menu,floating-menu,character-count,text-align,text-style,color}`, plus `sanitize-html` for output sanitization. **Editor Lab** at `/admin/editor-lab` validates all three variants. **Exception (unchanged):** `MarkdownEditor` (Tiptap + tiptap-markdown) is used exclusively by `EmailTemplateEditor` — email template pipeline is markdown → marked() → juice() → Resend. **Removed session 97:** `RimBlockEditor`, `RimProseEditor`, all `@blocknote/*` deps, `lib/blockNoteCustomBlocks.tsx`, `lib/blockNoteTheme.ts`, `components/editor/FormatPill.tsx`. |
+| Rich text editor | **`RimTiptapEditor`** (Tiptap 3) — migration complete session 97, 2026-04-28 | One component at `components/rim-tiptap/RimTiptapEditor.tsx`, three variants: `minimal` (Form Field), `message` (Hub welcome / conversations / replies / member bios / notes / drafts), `document` (lessons / program descriptions / Page Designer surfaces). **Storage:** plain HTML strings produced by `editor.getHTML()`. **Selection bubble menu** is the primary formatting surface (Tiptap `BubbleMenu`); top toolbar is for insertion-only actions. **Sanitization:** `lib/renderRichContentTiptap.ts` uses `sanitize-html` (allowlists per variant) on every render. **Format detection:** `lib/renderRichContent.ts` (`isHtmlString` / `isBlockNoteJSON` / `isRawHtml` / legacy Tiptap doc shape) routes content by shape — unmigrated rows still display correctly via the legacy walker. Five custom block extensions (`Callout`, `PullQuote`, `VerseQuote`, `PracticeSuggestion`, `Reflection`) in `components/rim-tiptap/extensions/`. Tiptap deps: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-{link,underline,highlight,typography,image,table,table-row,table-header,table-cell,task-list,task-item,placeholder,bubble-menu,floating-menu,character-count,text-align,text-style,color}`, plus `sanitize-html` for output sanitization. **Editor Lab** at `/admin/editor-lab` validates all three variants. **Exception (unchanged):** `MarkdownEditor` (Tiptap + tiptap-markdown) is used exclusively by `EmailTemplateEditor` — email template pipeline is markdown → marked() → juice() → Resend. **Removed session 97:** `RimBlockEditor`, `RimProseEditor`, all `@blocknote/*` deps, `lib/blockNoteCustomBlocks.tsx`, `lib/blockNoteTheme.ts`, `components/editor/FormatPill.tsx`. |
 | Footer suppression | `components/FooterWrapper.tsx` | Newsletter footer suppressed on `/admin/*`, `/account/*`, `/tools/*`, `/lessons/*`, `/course/*` |
 | Hub navigation | `components/HubWorkspaceSidebar.tsx` + `components/AccountSidebar.tsx` | Space and account rails collapse to a true narrow icon rail on desktop; mobile uses a full labeled drawer. Long team lists scroll. Registered apps receive semantic icons from the tool registry; custom links remain distinct. |
 | Tools context | `components/ToolsContext.tsx` | React context providing `toolName`, `backHref`, `backLabel`, `subNav`, `hubSlug`. `hubSlug` read from `?hub=` URL param client-side via `useSearchParams()`. Wrapped in Suspense. Server-side: `getToolHubContext()` in `lib/toolAuth.ts` resolves hub + members. ToolsNav rendered INSIDE each tool's ToolsProvider (not in outer layout). |
@@ -158,7 +160,7 @@ The Webflow-built site at `rootedinmindfulness.org` is the live public-facing do
 | Hub/Tools model | `RIM_Hub_Model.md` | Complete hub/tools architecture: lifecycle, tool creation pattern, data scoping, decision tree, core sections, app links, access control matrix, mobile patterns, DB schema reference |
 | File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
 | ~~Webflow bridge~~ | Removed (May 2026 pivot reversal) | `rim-connect.js` and the `/api/public/*` routes are gone — the public pages are being rebuilt natively in this app |
-| PDF generation | `@react-pdf/renderer` `^4.5.1` | React-based PDF library — server-side rendering via `renderToBuffer()`, no headless Chromium required. Runs on Vercel serverless out of the box. First use: schedule export at `app/api/host/schedule/pdf/route.ts` + `ScheduleDocument.tsx` (session 109). Layout uses `<Document>`/`<Page>`/`<Text>`/`<View>` with `StyleSheet.create()`. |
+| ~~PDF generation~~ | Removed session 139 with the schedule PDF export; `@react-pdf/renderer` is no longer a dependency. The note that follows is history. | React-based PDF library — server-side rendering via `renderToBuffer()`, no headless Chromium required. Runs on Vercel serverless out of the box. First use: schedule export at `app/api/host/schedule/pdf/route.ts` + `ScheduleDocument.tsx` (session 109). Layout uses `<Document>`/`<Page>`/`<Text>`/`<View>` with `StyleSheet.create()`. |
 
 ---
 
@@ -167,9 +169,8 @@ The Webflow-built site at `rootedinmindfulness.org` is the live public-facing do
 - **Never run a local dev server.** Push to `main` → Vercel auto-deploys in ~1–2 min.
 - `npm run build` = `prisma generate && node prisma/migrate.mjs && next build` — **never run it locally**: its `migrate.mjs` step runs migrations against whatever database the environment points to, and production is reachable from this machine (see `CLAUDE.md`, Workflow). The local gate is `npx tsc --noEmit`; `npx next build` also works (it skips migrations but reads production at prerender).
 - **`prisma/migrate.mjs` skips cleanly when DB env is missing.** Top-of-`main()` guard: if `POSTGRES_PRISMA_URL` is absent, log a friendly note and return. Production deploys always set the env and run migrations. Vercel preview deploys (which don't inherit production env vars by default) complete `next build` without DB access. Established session 116 after the first non-main branch push surfaced the pre-existing fragility.
-- To pull env vars: `npx vercel env pull .env.local`
-- To run DB migration: `set -a && source .env.local && set +a && npx prisma db push`
-- Route protection: `proxy.ts` (not `middleware.ts` — Next.js 16 naming)
+- **Production data from this machine:** read only when Jesse asks (probe with `SELECT 1` first); write only with his approval of the specific records, snapshot first and show before and after. Schema changes and one-time writes go through `prisma/migrate.mjs` on Vercel. Never `prisma db push` (see `CLAUDE.md`, Workflow).
+- Route protection: per page via `auth()` and at route-group layouts (e.g. `app/account/(authenticated)/layout.tsx`); a page under a gated layout repeats its gate, since Next.js can render a page without re-running its layout (2026-10-19). `proxy.ts` is an intentional no-op (the Next.js 16 name for `middleware.ts`).
 - `params` is `Promise<{slug}>` in App Router — must `await params` before destructuring.
 - **Mobile viewport:** `app/layout.tsx` exports `viewport: Viewport` with `width: "device-width", initialScale: 1`. Required — without it mobile browsers render every route at ~980px desktop width and silently ignore every `@media (max-width: 768px)` rule. Do not remove. (Added session 88 after the whole platform was discovered to be rendering as desktop-scaled on phones since inception.)
 - **Cron rules-of-thumb:** Neon Free-tier compute = 100 CU-hrs/mo ≈ 24/7 active time of a `.25 CU` compute. A cron firing more than hourly will keep the endpoint continuously active and exhaust the cap. Use hourly (or less frequent) for DB-hitting crons; if real-time syncing is required, upgrade the plan or use a manual-sync UI pattern.
@@ -178,12 +179,12 @@ The Webflow-built site at `rootedinmindfulness.org` is the live public-facing do
 
 ## Environment Variables
 
-All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
+All set in Vercel. `.env.production.local` on this machine is a production env pull: anything run with it touches production (see Workflow above).
 
 ### Auth & Session
 | Variable | Purpose |
 |---|---|
-| `AUTH_SECRET` | NextAuth session signing key |
+| `AUTH_SECRET` | NextAuth session signing key; also keys the signed registration resume links (`lib/registrationLink.ts`, 2026-10-19). Rotating it invalidates every resume link already emailed. |
 | `NEXTAUTH_URL` | `https://rim-next.vercel.app` |
 
 ### Database (Neon)
@@ -209,8 +210,9 @@ No code reads Sanity. If `NEXT_PUBLIC_SANITY_PROJECT_ID` / `NEXT_PUBLIC_SANITY_D
 | `EMAIL_FROM` | `hello@rootedinmindfulness.org` (domain verified 2026-03-03) |
 | `REGISTRAR_EMAIL` | Receives cancellation and edit notifications |
 | `SUPPORT_EMAIL` | Receives a notification on every completed registration (session 136). Optional — defaults to `support@rootedinmindfulness.org` in `lib/email.ts`. |
+| `CARE_CONCERN_EMAIL` | Optional. Recipient of the "If harm happens" form (`sendCareConcernEmail`); defaults to jesse@rootedinmindfulness.org. |
 
-**Email Template Manager:** 7 managed templates live in `email_templates` DB table, editable at `/admin/emails`. `EmailTemplate` model fields: `slug` (permanent), `name`, `description`, `subject`, `body` (markdown), `enabled`, `variables String[]`, `group`, `groupLabel`, `minRole`, `helpText?`, `sanityNote?`. See `RIM_Email_Engineering.md` and FEATURES.md → "Notifications & Email" for the email system.
+**Email Template Manager:** every templated email (36 slugs called from code on 2026-10-19, the two sign-in code templates among them) lives in the `email_templates` DB table, editable at `/admin/emails`. `EmailTemplate` model fields: `slug` (permanent), `name`, `description`, `subject`, `body` (markdown), `enabled`, `variables String[]`, `group`, `groupLabel`, `minRole`, `helpText?`, `sanityNote?`. See `RIM_Email_Engineering.md` and FEATURES.md → "Notifications & Email" for the email system.
 
 **Background email sends from route handlers — use `after()` from `next/server`.** The `void (async () => { ... })()` pattern after `Response.json()` does not work on Vercel — the function tears down once the response goes out, killing in-flight Resend calls (intermittent or no delivery). Wrap fire-and-forget email batches in `after(async () => { ... })` so the work runs after the response is committed but before the function is torn down. Currently used in `app/api/host/sub-requests/route.ts`, `app/api/host/sub-requests/[id]/claim/route.ts`, `app/api/programs-pg/route.ts`. Establishment session: 96.
 
@@ -244,11 +246,11 @@ The "RIM orchestrates, Zoom is the room" integration. Server-to-Server OAuth (no
 
 **Open Access + ProgramTeacher (session 79; Zoom era since 159):** `Program` gains `isOpenAccess Boolean @default(false)` + `guestAccessKey String?`. `ProgramTeacher` model (`program_teachers`, `programId + userId @@unique`, `order Int`) links teachers to programs via user accounts. Open-access guest entry is key-gated at `/session/[slug]/enter` (see `RIM_Zoom.md`); guest key reset: `POST /api/programs-pg/[slug]/guest-key` (REGISTRAR/ADMIN). `/api/members/search` access extended to REGISTRAR role. Public program pages link teacher names to `/teachers/[slug]` profiles.
 
-**Learning System (sessions 60–61, updated session 67):** Prisma models — `LessonProgress` (`lesson_progress`, `userId + lessonId @@unique`), `SeriesEnrollment` (`series_enrollments`, `userId + courseId @@unique`, `enrollmentSource`, `completedAt DateTime?`), `LessonNote` (`lesson_notes`, `userId + lessonId @@unique`, `body Json?`), `ReflectionQuestion` (`reflection_questions`, `lessonId`, `body Json?` — Tiptap, `sortOrder`), `ReflectionOption` (`reflection_options`, `questionId`, `text`, `isCorrect Boolean`, `sortOrder`), `ReflectionResponse` (`reflection_responses`, `userId + questionId @@unique`, `optionId`), `LessonTeacher` (`lesson_teachers`, `id @id`, `lessonId`, `userId` → User direct join, `order Int`, `@@unique([lessonId, userId])`), `TeacherProfile` (`teacher_profiles`, `userId @unique`, `bio String?`, `photoUrl String?`, `slug String? @unique`, `isPublic Boolean`). User gains `isTeacher Boolean @default(false)`. `Lesson` gains `durationMinutes Int?`, `reflectionPrompt String?`, `questionsRequired Boolean @default(false)`. Key API routes: `POST /api/courses/[slug]/enroll`, `POST /api/lessons/[slug]/complete` (toggle; enrollment-gated), `GET + PATCH /api/lessons/[slug]/note`, `GET + PUT /api/lessons/[slug]/questions`, `POST /api/lessons/[slug]/questions/[questionId]/respond`, `DELETE /api/lessons/[slug]/questions/responses` (clears all responses for retake), `GET /api/members/search?q=` (TEACHER/ADMIN; filters `isTeacher: true` — returns `{id, firstName, lastName}`), `PATCH /api/admin/members/[id]/teacher-profile` (ADMIN; upserts TeacherProfile). Key components: `EnrollButton.tsx`, `MarkCompleteButton.tsx` (locked prop), `LessonNoteEditor.tsx`, `ReflectionQuestionsClient.tsx` (group submit; plain-string body fallback), `LessonFooterClient.tsx` (allCorrect state). Lesson page links teacher name to `/teachers/[slug]` only if `TeacherProfile.isPublic`. `isCorrect` never sent to client in GET questions route. **Teacher attribution:** managed in MemberDetail admin — `isTeacher` checkbox + "Public Teacher Profile" section (bio/photoUrl/slug/isPublic, saved separately). Slug auto-generates from `firstName + lastName` on first render when empty; uses `SlugField` (locked + Unlock). Public pages `/teachers` and `/teachers/[slug]` show profiles where `isPublic: true`. Old standalone Teacher model removed (session 67).
+**Learning System (sessions 60–61, updated session 67):** Prisma models — `LessonProgress` (`lesson_progress`, `userId + lessonId @@unique`), `SeriesEnrollment` (`series_enrollments`, `userId + courseId @@unique`, `enrollmentSource`, `completedAt DateTime?`), `LessonNote` (`lesson_notes`, `userId + lessonId @@unique`, `body Json?`), `LessonTeacher` (`lesson_teachers`, `id @id`, `lessonId`, `userId` → User direct join, `order Int`, `@@unique([lessonId, userId])`), `TeacherProfile` (`teacher_profiles`, `userId @unique`, `bio String?`, `photoUrl String?`, `slug String? @unique`, `isPublic Boolean`). User gains `isTeacher Boolean @default(false)`. `Lesson` gains `durationMinutes Int?`, `reflectionPrompt String?`. (Reflection Questions, their three models, routes and `questionsRequired` were removed session 139; the `reflection_*` tables remain in the database, unread, see `CLEANUP.md`.) Key API routes: `POST /api/courses/[slug]/enroll`, `POST /api/lessons/[slug]/complete` (toggle; enrollment-gated), `GET + PATCH /api/lessons/[slug]/note`, `GET /api/members/search?q=` (TEACHER/ADMIN; filters `isTeacher: true` — returns `{id, firstName, lastName}`), `PATCH /api/admin/members/[id]/teacher-profile` (ADMIN; upserts TeacherProfile). Key components: `EnrollButton.tsx`, `MarkCompleteButton.tsx`, `LessonNoteEditor.tsx`, `LessonFooterClient.tsx`. Lesson page links teacher name to `/teachers/[slug]` only if `TeacherProfile.isPublic`. **Teacher attribution:** managed in MemberDetail admin — `isTeacher` checkbox + "Public Teacher Profile" section (bio/photoUrl/slug/isPublic, saved separately). Slug auto-generates from `firstName + lastName` on first render when empty; uses `SlugField` (locked + Unlock). Public pages `/teachers` and `/teachers/[slug]` show profiles where `isPublic: true`. Old standalone Teacher model removed (session 67).
 
 **Course drip system (session 63–64, removed session 100):** Schema fields and `lib/drip.ts` fully removed in Theme E cleanup. Never entered operational use.
 
-**Hub Notifications + Subscriptions + Trash (session 113):** Three connected systems. Schema additions:
+**Hub Notifications + Subscriptions + Trash (session 113):** *History: the document half (`HubDocument`, `HubDocumentNotification`, the `documents` routes, PDF uploads, the `hub-document-*` templates) was retired with native Documents in session 165. Subscriptions, conversation archive/trash and `canManageTrash` are live; `canManageTrash(roles, member)` requires an ACTIVE coordinator since 2026-10-19.* Three connected systems. Schema additions:
 
 - `HubDocumentNotification` (`hub_document_notifications`, `documentId × userId × eventType` event log; no unique constraint — same person can be notified once per event type). Cascade-deletes with the document. Indexes `documentId`, `(documentId, userId)`.
 - `HubThreadSubscription` (`hub_thread_subscriptions`, `@@unique([threadId, userId])`, `source ∈ {AUTHOR, COORDINATOR_AUTO, ADDED, SELF}`). Replaces implicit per-reply notification logic. Backfilled for every existing thread at deploy: author + all prior repliers + all current coordinators.
@@ -270,13 +272,9 @@ API routes added: `/api/hub/[slug]/documents/[id]/{notify,archive,restore,perman
 - Native document conversations and `HubConversationThread.documentId` were retired in session 165. Google Files conversations use `FileComment` and remain visibly distinct from Space Conversations.
 
 
-**Modular Manual System (session 62–63):** `ManualSection` model — `slug @unique`, `title`, `description String?`, `hubSlug String?`, `body Json?`, `relations String[]`, `order Int`. Sections seeded (introduction, registration, programs, member-accounts, course-hub, host-* family, volunteer-roles, manual-system, conversations). The `support-inbox` section was deleted in session 110 via the `remove_support_inbox_residue` migrate.mjs entry — the Support Inbox tool was removed in session 100 but its manual chapter persisted as a dead row until session 110. Routes: `/admin/manual` (index, any logged-in user), `/admin/manual/[slug]` (section page, any logged-in user; ADMIN sees Edit link), `/admin/manual/editor` (DB editor, ADMIN only), `/manual` (public index). `body` stored as Tiptap JSON; migrated sections were initially stored as `{ type: "rawHtml", html: "..." }` — `renderContentBody()` handles both formats. `ManualSectionEditor` auto-converts rawHtml → Tiptap JSON via `generateJSON()` on mount. `ManualHelpIcon` wired into 10 locations. `ManualContent.tsx` hollowed out (content now in DB). Migration script: `prisma/seed-manual-chapters.ts`.
+**Modular Manual System (session 62–63), removed session 139** (pages, routes, components, the `ManualSection` model and its seeds; history only): `ManualSection` model — `slug @unique`, `title`, `description String?`, `hubSlug String?`, `body Json?`, `relations String[]`, `order Int`. Sections seeded (introduction, registration, programs, member-accounts, course-hub, host-* family, volunteer-roles, manual-system, conversations). The `support-inbox` section was deleted in session 110 via the `remove_support_inbox_residue` migrate.mjs entry — the Support Inbox tool was removed in session 100 but its manual chapter persisted as a dead row until session 110. Routes: `/admin/manual` (index, any logged-in user), `/admin/manual/[slug]` (section page, any logged-in user; ADMIN sees Edit link), `/admin/manual/editor` (DB editor, ADMIN only), `/manual` (public index). `body` stored as Tiptap JSON; migrated sections were initially stored as `{ type: "rawHtml", html: "..." }` — `renderContentBody()` handles both formats. `ManualSectionEditor` auto-converts rawHtml → Tiptap JSON via `generateJSON()` on mount. `ManualHelpIcon` wired into 10 locations. `ManualContent.tsx` hollowed out (content now in DB). Migration script: `prisma/seed-manual-chapters.ts`.
 
-**Closing ritual — required after every session that changes features:**
-1. Update `FEATURES.md` — add session entry, update relevant feature sections
-2. Update `RIM_Stack_Reference.md` — update stack, routes, or env vars if changed
-3. Update `RIM_System_Architecture.md` — if hubs, roles, or member data architecture changed
-4. **Upsert ManualSection DB records** — touch only affected section(s); upsert on slug; write for the person doing the work. Edit at `/admin/manual/[slug]/edit` or re-run `prisma/seed-manual-chapters.ts` for large rewrites.
+**Closing ritual:** the `closing-ritual` skill (`.claude/skills/closing-ritual/`) carries the full pass; there is no manual step.
 
 **Site-Wide Banner (session 72, removed session 100):** Models, API routes, admin page, and component all deleted in Theme E cleanup. Never entered operational use.
 
@@ -285,6 +283,23 @@ API routes added: `/api/hub/[slug]/documents/[id]/{notify,archive,restore,perman
 > **Note on alerts:** the broader Alerts module (`Alert` model + `AlertType` enum + `/api/account/alerts` + `check-unassigned-hosts` cron) was removed entirely in session 96. The unread badge on hub cards now counts conversation thread updates only.
 
 **Support Inbox security posture (hardened 2026-03-16, system removed 2026-05-06):** Historical reference only. All code removed in session 100 Theme E.
+
+### Google Workspace (Files)
+RIM's only Google identity: one service account, a Manager on each RIM Shared Drive. Read by `lib/google/auth.ts`; without both, Files reports Google as not configured. See `RIM_GoogleWorkspace.md` §7.
+| Variable | Purpose |
+|---|---|
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | The service account's address (`rim-files@…iam.gserviceaccount.com`) |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | The JSON key file's `private_key`, pasted with its `\n` sequences (un-escaped in code). Server-only |
+
+### Legacy import (temporary)
+| Variable | Purpose |
+|---|---|
+| `MEMBERSTACK_SECRET_KEY` | Live Memberstack secret key, server-only, read by `lib/legacyImport.ts` for `/admin/import-legacy`. Remove with the tool after the domain move (2026-10-13 note above) |
+
+### Set by Vercel
+| Variable | Purpose |
+|---|---|
+| `VERCEL_GIT_COMMIT_SHA` | Versions the stylesheet link (`/css/custom.css?v=<commit>`, `app/layout.tsx`); `local` when absent |
 
 ### Payments (Stripe — test mode)
 | Variable | Purpose |
@@ -339,10 +354,8 @@ app/
     households/       household grouping (ADMIN | REGISTRAR)
     emails/           Email Template Manager (ADMIN only)
     emails/[slug]/    template editor
-    manual/           staff reference manual
-    roadmap/          planned work tracker
-    sitemap/          site architecture
-    ideas/            backlog (data/backlog.json)
+    hubs/             team configuration (ADMIN)
+    *(manual/, roadmap/, sitemap/, ideas/ are gone)*
   api/
     account/          member-facing APIs (registrations, reactivate, profile, bio)
     courses/          course CRUD (TEACHER/ADMIN)
@@ -361,9 +374,9 @@ app/
 components/           shared UI components
 lib/                  utilities (queries, email, dateLabel, scheduleUtils, locations, etc.)
 prisma/schema.prisma  database schema
-proxy.ts              route protection (replaces middleware.ts in Next.js 16)
+proxy.ts              intentional no-op (Next.js 16's middleware.ts); route protection is per page + route-group layouts
 public/css/custom.css all custom styles (single source of truth — Webflow CSS removed)
-data/backlog.json     feature backlog (surfaced at /admin/ideas)
+data/backlog.json     feature backlog (git-tracked; no in-app viewer, see the backlog skill)
 ```
 
 ---
@@ -372,24 +385,24 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 
 | Role | Access |
 |---|---|
-| ~~`HOST`~~ | Retired session 153: being a host is host-team membership (`HubMember`), not a role. See `RIM_Role_Design.md` |
-| `HOST_MANAGER` | All HOST access + assignment management + Standing Rotations editor |
+| ~~`HOST`~~ | Retired session 153: being a host is host-team membership (`HubMember`), not a role. The enum value remains; nothing should grant or check it. See `RIM_Role_Design.md` |
+| `HOST_MANAGER` | Scheduling oversight on every team: coverage management (`canManageHubCoverage`) and the Scheduler on any team (`canAccessHubScheduler`) |
 | `TEACHER` | Teacher Hub — course and lesson management |
-| ~~`SUPPORT`~~ | Removed session 100 — Support Inbox deleted |
-| `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, Program Editor |
+| ~~`SUPPORT`~~ | Retired session 100 with the Support Inbox. The enum value remains; nothing reads it |
+| `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, the Program Manager (`canUseProgramManager`: Registrar, Admin, Guiding Teacher; role-only since 2026-10-19) |
 | `GUIDING_TEACHER` | Sangha-wide dharma authority. Acts as **implicit coordinator on every hub** for content + moderation (scope expanded session 115). Distinct from `ADMIN`: no technical-admin scope (no hub config, no hard-remove member, no hub create/delete). Currently held only by Jesse; preserved in the enum for future teachers without technical-admin scope. Full role design: `RIM_Role_Design.md`. |
 | `ADMIN` | Everything |
 
-Hub access check: `roles.some(r => ["HOST","HOST_MANAGER","ADMIN"].includes(r))`
-Manager check: `roles.some(r => ["HOST_MANAGER","ADMIN"].includes(r))`
+Team access check: `canAccessHub(member, roles)` in `lib/hubAuth.ts` (a `HubMember` row, or GUIDING_TEACHER; ADMIN alone does not pass)
+Coverage-manager check: `canManageHubCoverage(userId, roles, hubSlug)` (HOST_MANAGER, ADMIN, or the team's ACTIVE coordinator)
 Teacher check: `roles.some(r => ["TEACHER","ADMIN"].includes(r))`
-*(SUPPORT role removed session 100)*
-Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
-Trash-manager check: `canManageTrash(roles, isCoordinator)` in `lib/hubAuth.ts` — returns true for ADMIN, GUIDING_TEACHER, or hub coordinator. Used by the Trash page, the sidebar Trash link, and every restore/permanent-delete endpoint.
+Registry check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))` (the Member Registry)
+Program Manager check: `canUseProgramManager(roles)` in `lib/toolAuth.ts` (REGISTRAR, ADMIN, GUIDING_TEACHER)
+Trash-manager check: `canManageTrash(roles, member)` in `lib/hubAuth.ts` — returns true for ADMIN, GUIDING_TEACHER, or an ACTIVE team coordinator (2026-10-19). Used by the Trash page, the sidebar Trash link, and every restore/permanent-delete endpoint.
 
-Coordinator-level check: `effectiveCoordinator(member, roles)` in `lib/hubAuth.ts` (session 115) — returns true for `HubMember.isCoordinator || ADMIN || GUIDING_TEACHER`. Use this everywhere previously inlined as `(member?.isCoordinator ?? false) || isAdmin`. The pre-session-115 inline pattern silently omitted GT. `requireCoordinator(isCoordinator, roles)` also bypasses for ADMIN + GT.
+Coordinator-level check: `effectiveCoordinator(member, roles)` in `lib/hubAuth.ts` (session 115) — returns true for ADMIN, GUIDING_TEACHER, or an ACTIVE `HubMember` with `isCoordinator` (ACTIVE required since 2026-10-19; a paused coordinator steps back). Use this everywhere previously inlined as `(member?.isCoordinator ?? false) || isAdmin`. The pre-session-115 inline pattern silently omitted GT. `requireCoordinator(isCoordinator, roles)` also bypasses for ADMIN + GT.
 
-Hub thread filter: `activeHubThreadWhere(hubId)` in `lib/hubQueries.ts` (session 115) — returns the canonical filter shape `{ hubId, documentId: null, deletedAt: null, archivedAt: null }`. Use for any hub-level thread findMany / count: unread badges, conversations page server load, hub Home pinned + recent. Don't inline the filter; the three previous drift bugs (`status: { not: "ARCHIVED" }`, missing `documentId: null`, missing `deletedAt: null`) all happened by inlining.
+Hub thread filter: `activeHubThreadWhere(hubId)` in `lib/hubQueries.ts` (session 115) — returns the canonical filter shape `{ hubId, deletedAt: null, archivedAt: null }`. Use for any hub-level thread findMany / count: unread badges, conversations page server load, hub Home pinned + recent. Don't inline the filter; the three previous drift bugs (`status: { not: "ARCHIVED" }`, missing `documentId: null`, missing `deletedAt: null`) all happened by inlining.
 
 **Hub membership as authority (session 92 Phase 3):** for hosting and hub communications, a HubMember record is authoritative when it exists — coordinator-owned `status`, `hostingCapability`, and `communicationsEnabled` fields override the legacy role check. Use `getEffectiveHostingCapability(userId, hubSlug, fallback)` and `canReceiveHubNotifications(userId, hubSlug, fallback)` in `lib/hubMemberAuth.ts` when gating hosting/notification surfaces. ADMIN bypasses. If no HubMember record exists, the helpers fall through to the passed role-based fallback. `syncHubMembership` no longer deletes records on role revoke; hard removal is ADMIN-only via `DELETE /api/hub/[slug]/members/[userId]`.
 

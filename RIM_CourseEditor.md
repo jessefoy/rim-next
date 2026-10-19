@@ -16,7 +16,7 @@ The Course Manager is the operational application for RIM's persistent learning 
 - `/tools/learning/lessons/[lessonSlug]` — edit lesson
 - `/api/courses/*`, `/api/lessons/*`, and category/access routes — course and lesson operations
 
-The layout gates with `hasToolAccess(userId, roles, ["TEACHER"], "learning")`: TEACHER, ADMIN, or an individual `UserToolAccess` grant. Course and lesson API routes must retain the corresponding tool gate; the layout is not the security boundary by itself.
+The layout gates with `hasToolAccess(userId, roles, ["TEACHER"], "learning")`: TEACHER, ADMIN, an individual `UserToolAccess` grant, or ACTIVE membership of an ACTIVE team with the Course Manager installed (the app-link pathway; the Course Manager installs only into the `courses` team). Every page under `/tools/learning` repeats this gate (2026-10-19), since Next.js can render a page without re-running its layout. Course and lesson API routes must retain the corresponding tool gate; the layout is not the security boundary by itself.
 
 ## Hub context and shell
 

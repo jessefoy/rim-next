@@ -290,7 +290,7 @@ export default async function FileDetailPage({
           canApproveRemoval={canModerate}
           canRemove={place.canWrite}
           backHref={backHref}
-        />
+        >
 
         <div className="gf-detail__body">
           {bodyMode === "iframe" && previewUrl && (
@@ -344,6 +344,7 @@ export default async function FileDetailPage({
           members={notifyMembers}
           leadsOnly={leadsFile}
         />
+        </FileDetailActions>
       </div>
     </AccountLayout>
   );

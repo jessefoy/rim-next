@@ -23,21 +23,3 @@ export function sessionDisplayName(
   const name = [given, initial].filter(Boolean).join(" ");
   return name || fallback;
 }
-
-/**
- * Per-session scope key: `${slug}-${YYYY-MM-DD}`. Used as the SessionBan scope
- * (and historically the LiveKit room name). Every program gets a fresh key per
- * occurrence.
- *
- * NOTE: the date suffix is sliced from the ISO `sessionDate`, a UTC instant — so
- * for an evening CT session the suffix is the *next* calendar day. Cosmetic only
- * (it's a stable scoping key): every caller derives it from the same canonical
- * sessionDate, so no session is ever split. (Audit TG-3.)
- */
-export function roomNameForProgram(slug: string, sessionDate?: string): string {
-  if (sessionDate) {
-    const d = sessionDate.slice(0, 10);
-    return `${slug}-${d}`;
-  }
-  return slug;
-}

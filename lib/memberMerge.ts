@@ -312,8 +312,22 @@ async function restoreHouseholdPrimary(tx: Tx, householdId: string | null) {
   }
 }
 
+/** The tables that exist now. The lists above name tables by hand, some of
+ *  them retired (reflections, the LiveKit chat and bans, pages) and planned
+ *  for dropping; a dropped table would otherwise fail every merge with
+ *  "relation does not exist" (2026-10-19 audit). A missing table has nothing
+ *  to move. */
+async function existingTables(tx: Tx): Promise<Set<string>> {
+  const rows = await tx.$queryRawUnsafe<{ table_name: string }[]>(
+    `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`,
+  );
+  return new Set(rows.map((r) => r.table_name));
+}
+
 async function moveOnePer(tx: Tx, keepId: string, dropId: string) {
+  const exists = await existingTables(tx);
   for (const { table, column, keys } of ONE_PER) {
+    if (!exists.has(table)) continue;
     const match = keys.length
       ? `AND (${keys.map((k) => `"${k}"`).join(", ")}) IN (SELECT ${keys.map((k) => `"${k}"`).join(", ")} FROM "${table}" WHERE "${column}" = $2)`
       : `AND EXISTS (SELECT 1 FROM "${table}" WHERE "${column}" = $2)`;
@@ -323,13 +337,17 @@ async function moveOnePer(tx: Tx, keepId: string, dropId: string) {
 }
 
 async function movePointers(tx: Tx, keepId: string, dropId: string) {
+  const exists = await existingTables(tx);
   for (const { table, column } of POINTERS) {
+    if (!exists.has(table)) continue;
     await tx.$executeRawUnsafe(`UPDATE "${table}" SET "${column}" = $2 WHERE "${column}" = $1`, dropId, keepId);
   }
 }
 
 async function moveReactions(tx: Tx, keepId: string, dropId: string) {
+  const exists = await existingTables(tx);
   for (const table of REACTION_TABLES) {
+    if (!exists.has(table)) continue;
     const rows = await tx.$queryRawUnsafe<{ id: string; reactions: Record<string, unknown> }[]>(
       `SELECT "id", "reactions" FROM "${table}" WHERE "reactions"::text LIKE $1`,
       `%${dropId}%`,

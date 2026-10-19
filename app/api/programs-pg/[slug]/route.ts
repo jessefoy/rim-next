@@ -236,10 +236,7 @@ export async function PUT(
   // so we ignore whatever the client sends here.
   if (body.programFormat !== undefined) {
     data.programFormat = body.programFormat;
-    const fmt = body.programFormat as string;
-    if ((fmt === "virtual" || fmt === "hybrid") && !existing.livekitRoom) {
-      data.livekitRoom = body.slug ?? slug;
-    }
+    // (livekitRoom was set here for the retired LiveKit room; nothing reads it.)
   }
   // A newly ticked supporting team must be one that staffs this format (the
   // editor's rule, enforced here too; 2026-10-16 audit). Checked before any

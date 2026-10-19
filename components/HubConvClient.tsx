@@ -110,9 +110,17 @@ function hasContent(value: any): boolean {
 function AddCategoryForm({
   onAdd,
   busy,
+  inputId,
+  onCancel,
+  autoFocus = false,
 }: {
   onAdd: (name: string) => Promise<string | null>;
   busy: boolean;
+  /** When a visible <label htmlFor> names the field (the new-topic card). */
+  inputId?: string;
+  /** Shows a Cancel button; Escape in the field does the same. */
+  onCancel?: () => void;
+  autoFocus?: boolean;
 }) {
   const [draft, setDraft] = useState("");
   return (
@@ -120,19 +128,30 @@ function AddCategoryForm({
       className="hub-conv-manage__add"
       onSubmit={async (e) => {
         e.preventDefault();
+        if (busy) return;
         const added = await onAdd(draft);
         if (added) setDraft("");
       }}
     >
       <input
+        id={inputId}
         className="hub-conv-manage__input"
         type="text"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && onCancel) { e.preventDefault(); onCancel(); }
+        }}
         placeholder="Add a category"
-        aria-label="New category name"
+        aria-label={inputId ? undefined : "New category name"}
         maxLength={40}
+        autoFocus={autoFocus}
       />
+      {onCancel && (
+        <button type="button" className="btn--ghost hub-conv-manage__addbtn" onClick={onCancel} disabled={busy}>
+          Cancel
+        </button>
+      )}
       <button
         type="submit"
         className="btn--ghost hub-conv-manage__addbtn"
@@ -184,6 +203,12 @@ export default function HubConvClient({
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [loadingClosed, setLoadingClosed] = useState(false);
   const [closedThreads, setClosedThreads] = useState<Thread[] | null>(null);
+  // The archived list failed to load: said in the list itself, with a retry,
+  // instead of an empty state that would say there are none.
+  const [closedFailed, setClosedFailed] = useState(false);
+  // "+ Add new category…" in the new-topic card opens a field below it.
+  const [addingCat, setAddingCat] = useState(false);
+  const composeCatRef = useRef<HTMLSelectElement>(null);
   const [showManage, setShowManage] = useState(false);
   const [renamingCat, setRenamingCat] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -307,6 +332,7 @@ export default function HubConvClient({
   }
   function discardCompose() {
     setShowCompose(false);
+    setAddingCat(false);
     setTitle("");
     setBody("");
     setPostError(null);
@@ -330,10 +356,11 @@ export default function HubConvClient({
   const regularThreads = filtered.filter((t) => !t.isPinned);
 
   async function loadClosed() {
-    if (closedThreads !== null) return;
+    if (closedThreads !== null || loadingClosed) return;
     setLoadingClosed(true);
+    setClosedFailed(false);
     const res = await fetch(`/api/hub/${hubSlug}/conversations?status=CLOSED`).catch(() => null);
-    if (!res?.ok) say("The archived conversations didn\u2019t load. Please try again.", "error");
+    if (!res?.ok) setClosedFailed(true);
     if (res?.ok) {
       const data = await res.json();
       setClosedThreads(
@@ -391,7 +418,7 @@ export default function HubConvClient({
           updatedAt:  t.updatedAt,
         };
         setThreads((prev) => [thread, ...prev]);
-        setTitle(""); setBody(""); setShowCompose(false);
+        setTitle(""); setBody(""); setShowCompose(false); setAddingCat(false);
         setComposeNotifyIds([]);
         setPosted({ id: thread.id, title: thread.title });
       } else {
@@ -560,7 +587,7 @@ export default function HubConvClient({
           </div>
           <button
             className="hub-conv-newbtn"
-            onClick={() => { setShowCompose((v) => !v); setPosted(null); setConfirmDiscard(false); }}
+            onClick={() => { setShowCompose((v) => !v); setPosted(null); setConfirmDiscard(false); setAddingCat(false); }}
           >
             <Plus size={16} strokeWidth={2} />
             <span>New topic</span>
@@ -614,7 +641,7 @@ export default function HubConvClient({
               <X size={16} />
             </button>
           </div>
-          {catError && <div className="hub-conv-manage__err" role="alert">{catError}</div>}
+          {catError && !addingCat && <div className="hub-conv-manage__err" role="alert">{catError}</div>}
           <ul className="hub-conv-manage__list">
             {categoryList.map((cat) => (
               <li key={cat} className="hub-conv-manage__row">
@@ -734,14 +761,12 @@ export default function HubConvClient({
             className="hub-conv-compose__cat"
             aria-label="Category"
             value={composeCategory}
-            onChange={async (e) => {
+            ref={composeCatRef}
+            onChange={(e) => {
               const val = e.target.value;
               if (val === "__add__") {
-                const name = window.prompt("New category name");
-                if (name) {
-                  const added = await addCategory(name);
-                  if (added) setComposeCategory(added);
-                }
+                setCatError(null);
+                setAddingCat(true);
                 return;
               }
               setComposeCategory(val);
@@ -752,6 +777,36 @@ export default function HubConvClient({
             ))}
             <option value="__add__">+ Add new category…</option>
           </select>
+          {addingCat && (
+            <div className="hub-conv-post__edit-form" role="group" aria-labelledby="hub-conv-newcat-label">
+              <label className="hub-conv-compose__label" id="hub-conv-newcat-label" htmlFor="hub-conv-newcat">
+                New category
+              </label>
+              <AddCategoryForm
+                inputId="hub-conv-newcat"
+                busy={catBusy}
+                autoFocus
+                onCancel={() => {
+                  setAddingCat(false);
+                  setCatError(null);
+                  composeCatRef.current?.focus();
+                }}
+                onAdd={async (name) => {
+                  const added = await addCategory(name);
+                  if (added) {
+                    setComposeCategory(added);
+                    setAddingCat(false);
+                    composeCatRef.current?.focus();
+                  }
+                  return added;
+                }}
+              />
+              {/* A problem adding is said here, beside the field. */}
+              {catError && (
+                <p className="save-note save-note--error" role="alert">{catError}</p>
+              )}
+            </div>
+          )}
           <div className="hub-conv-compose__editor">
             <RimTiptapEditor
               value={body}
@@ -773,11 +828,6 @@ export default function HubConvClient({
             selectedIds={composeNotifyIds}
             onChange={setComposeNotifyIds}
           />
-          {/* A category added from this menu reports its problem here, where
-              the person is, not only in the Manage panel. */}
-          {catError && !showManage && (
-            <p className="save-note save-note--error" role="alert">{catError}</p>
-          )}
           {postError && (
             <p className="save-note save-note--error" role="alert">{postError}</p>
           )}
@@ -825,6 +875,14 @@ export default function HubConvClient({
       {/* List */}
       {loadingClosed ? (
         <div className="hub-conv__empty">Loading…</div>
+      ) : view === "closed" && closedFailed ? (
+        <div className="hub-conv__empty" role="alert">
+          <p className="hub-conv__empty-title">The archived conversations didn&rsquo;t load.</p>
+          <p className="hub-conv__empty-sub">Please try again.</p>
+          <button type="button" className="btn--ghost" onClick={loadClosed}>
+            Try again
+          </button>
+        </div>
       ) : displayed.length === 0 ? (
         <div className="hub-conv__empty">
           <MessageSquare size={36} strokeWidth={1.5} aria-hidden="true" />
