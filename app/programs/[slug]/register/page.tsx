@@ -87,13 +87,18 @@ export default async function RegisterPage({
     ? Math.max(0, program.registrationCapacity - activeCount)
     : null;
 
-  const deadlinePassed = !!(
-    program.registrationDeadline && new Date(program.registrationDeadline) < new Date()
-  );
-
   const alreadyRegistered = !!existingRegistration;
   const hasPendingDana =
     alreadyRegistered && existingRegistration?.donationStatus === "PENDING";
+
+  // Closed by the coordinator or past its deadline: the same rule the
+  // registration API refuses with (2026-10-19 audit; the page used to check
+  // only the deadline). A registrant finishing their dana is not turned away,
+  // since that step goes to checkout, not to a new registration.
+  const deadlinePassed =
+    !hasPendingDana &&
+    (pgProgram.registrationClosed ||
+      !!(program.registrationDeadline && new Date(program.registrationDeadline) < new Date()));
 
   // If already registered (and not here to complete dana), show a friendly message
   // rather than redirect — they may have bookmarked the page or arrived from an old link
@@ -101,6 +106,8 @@ export default async function RegisterPage({
 
   const headerTitle = hasPendingDana
     ? "Complete Your Dana"
+    : deadlinePassed
+    ? "Register"
     : spotsRemaining === 0
     ? "Join the Waitlist"
     : "Register";
@@ -135,7 +142,7 @@ export default async function RegisterPage({
             </div>
           ) : (
             <>
-              {!hasPendingDana && (
+              {!hasPendingDana && !deadlinePassed && (
                 <div className="rg-card__intro">
                   <h2>{spotsRemaining === 0 ? "Add your name" : "Your information"}</h2>
                   <p>

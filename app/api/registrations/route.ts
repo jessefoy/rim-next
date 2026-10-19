@@ -16,8 +16,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       programId,
-      programSlug,
-      programTitle,
       email,
       phone,
       customFields,
@@ -36,16 +34,46 @@ export async function POST(request: NextRequest) {
     // The dana fields decide whether payment is REQUIRED (which makes this a
     // provisional, held registration) vs optional/none (a real registration).
     // Email content is loaded separately inside sendRegistrationConfirmation.
+    // The program's slug and title come from here too: the Zoom door and My
+    // Home read the stored slug as proof of registration, so a slug from the
+    // request let a free registration claim a paid or full program's room
+    // (2026-10-19 audit).
     const pgProgram = await db.program.findUnique({
       where: { id: programId },
       select: {
+        slug: true,
+        name: true,
+        archivedAt: true,
+        registrationEnabled: true,
+        registrationClosed: true,
+        registrationDeadline: true,
         registrationCapacity: true,
         danaMode: true,
         danaFixedAmount: true,
         danaBaseAmount: true,
       },
     });
-    const registrationCapacity = pgProgram?.registrationCapacity ?? null;
+    if (!pgProgram || pgProgram.archivedAt || !pgProgram.registrationEnabled) {
+      return NextResponse.json(
+        { error: "This program isn't taking registrations." },
+        { status: 404 },
+      );
+    }
+    // The same rule the register page shows: closed by the coordinator, or
+    // past its deadline. Checked before anything is written.
+    if (
+      pgProgram.registrationClosed ||
+      (pgProgram.registrationDeadline && pgProgram.registrationDeadline < new Date())
+    ) {
+      return NextResponse.json(
+        { error: "Registration for this program has closed." },
+        // Not 409: the form reads 409 as "already registered".
+        { status: 403 },
+      );
+    }
+    const programSlug = pgProgram.slug;
+    const programTitle = pgProgram.name;
+    const registrationCapacity = pgProgram.registrationCapacity ?? null;
 
     // Dana shape, derived server-side (not from the client body):
     //  - requiresPayment: a price must be paid before the registration is real
