@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse, after } from "next/server";
 import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
-import { sendLegacyWelcomeBackEmail } from "@/lib/email";
+import { sendJoinWelcomeEmail, sendLegacyWelcomeBackEmail } from "@/lib/email";
 import { toProperName } from "@/lib/nameCase";
 import { addVerifiedMemberToFlodesk } from "@/lib/flodesk";
 import { RIM_SUPPORT_EMAIL } from "@/lib/locations";
@@ -27,22 +27,24 @@ export async function POST(request: Request) {
   // member being promoted out of the quiet pool (drives the welcome-back letter).
   const before = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { email: true, isLegacyUnclaimed: true },
+    select: { email: true, isLegacyUnclaimed: true, agreedToTerms: true },
   });
 
-  await db.user.update({
-    where: { id: session.user.id },
-    data: {
-      firstName,
-      lastName,
-      phone: phone || null,
-      agreedToTerms: true,
-      agreedAt: new Date(),
-      // Promotion: a legacy import (or any pre-staged account) becomes a real
-      // member the moment it crosses the agreement gate. No-op for everyone else.
-      isLegacyUnclaimed: false,
-    },
-  });
+  const data = {
+    firstName,
+    lastName,
+    phone: phone || null,
+    agreedToTerms: true,
+    agreedAt: new Date(),
+    // Promotion: a legacy import (or any pre-staged account) becomes a real
+    // member the moment it crosses the agreement gate. No-op for everyone else.
+    isLegacyUnclaimed: false,
+  };
+  // The first agreement is the write that finds them not yet agreed, so two
+  // tabs can't both send the welcome letter below.
+  const firstAgreement =
+    (await db.user.updateMany({ where: { id: session.user.id, agreedToTerms: false }, data })).count === 1;
+  if (!firstAgreement) await db.user.update({ where: { id: session.user.id }, data });
 
   // Crossing the agreements, signed in (so the address is proven), makes a
   // member: Flodesk's Members segment, once.
@@ -70,6 +72,19 @@ export async function POST(request: Request) {
         await sendLegacyWelcomeBackEmail({ to, firstName });
       } catch (err) {
         console.error("[account/complete-profile] sendLegacyWelcomeBackEmail failed", err);
+      }
+    });
+  } else if (before && firstAgreement) {
+    // Someone set up ahead of time (pre-staged from the Member Registry, or
+    // arriving from /join to an account that already existed) agrees for the
+    // first time here: their first arrival, so the join-welcome letter
+    // (Jesse, 2026-10-19; /join sends it only for a new address).
+    const to = before.email;
+    after(async () => {
+      try {
+        await sendJoinWelcomeEmail({ to, firstName });
+      } catch (err) {
+        console.error("[account/complete-profile] sendJoinWelcomeEmail failed", err);
       }
     });
   }
