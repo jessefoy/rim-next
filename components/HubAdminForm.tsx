@@ -16,6 +16,7 @@ import {
   isToolCompatibleWithHub,
   toolCompatibilityNote,
 } from "@/lib/toolRegistry";
+import { SaveNote } from "@/components/FormDone";
 
 interface AppLink {
   toolSlug: string | null;
@@ -207,10 +208,13 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
   const [addingMe, setAddingMe] = useState(false);
   const [iAmCoordinator, setIAmCoordinator] = useState(isCurrentUserCoordinator);
 
+  // This action's answer stays beside its own button, not in the Save bar,
+  // where it read as if the form had been saved (2026-10-19 review).
+  const [coordNote, setCoordNote] = useState<{ ok: boolean; text: string } | null>(null);
   async function handleAddMeAsCoordinator() {
     if (!hubSlug) return;
     setAddingMe(true);
-    setError("");
+    setCoordNote(null);
     try {
       const res = await fetch(`/api/admin/hubs/${hubSlug}/add-me-as-coordinator`, {
         method: "POST",
@@ -220,11 +224,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
         throw new Error(data.error || "Failed to add yourself as coordinator.");
       }
       setIAmCoordinator(true);
-      setSuccess("You're now a coordinator of this team.");
+      setCoordNote({ ok: true, text: "You're now a coordinator of this team." });
       // Refresh to repopulate the coordinator list display.
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setCoordNote({ ok: false, text: err instanceof Error ? err.message : "Something went wrong." });
     } finally {
       setAddingMe(false);
     }
@@ -411,9 +415,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
   }
 
   return (
-    <form className="adm-hubs-form" onSubmit={handleSubmit}>
-      {error && <div className="adm-hubs-error">{error}</div>}
-      {success && <div className="adm-hubs-success">{success}</div>}
+    <form className="adm-hubs-form" onSubmit={handleSubmit} onChangeCapture={() => setSuccess("")} onInputCapture={() => setSuccess("")} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSuccess(""); }}>
 
       {/* Name */}
       <div className="adm-hubs-field">
@@ -789,6 +791,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
               </button>
             </div>
           )}
+          {coordNote && (
+            <p className={`save-note ${coordNote.ok ? "save-note--saved" : "save-note--error"}`} role={coordNote.ok ? "status" : "alert"}>
+              {coordNote.text}
+            </p>
+          )}
         </div>
       )}
 
@@ -929,6 +936,8 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
         <Link href="/admin/hubs" className="adm-hubs-btn-cancel">
           Cancel
         </Link>
+        {/* The answer beside the button, and it stays (2026-10-19). */}
+        <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={success} problem={error} />
       </div>
     </form>
   );

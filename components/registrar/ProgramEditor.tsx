@@ -25,6 +25,7 @@ import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
 import { programUsesFlodesk } from "@/lib/flodeskRules";
 import { cleanOutsideMeetingUrl, onlinePhrase } from "@/lib/outsideMeeting";
 import { EARLY_OPEN_MIN, LATE_GRACE_MIN } from "@/lib/sessionWindowConstants";
+import { SaveNote } from "@/components/FormDone";
 
 interface TeacherItem {
   id: string;
@@ -573,6 +574,7 @@ export default function ProgramEditor({
   const [tab, setTab] = useState<Tab>("Content");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [savedAt, setSavedAt] = useState("");
   const [success, setSuccess] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugLocked, setSlugLocked] = useState(isEditing);
@@ -743,7 +745,8 @@ export default function ProgramEditor({
   const [dirty, setDirty] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
 
-  const markDirty = useCallback(() => { if (!dirty) setDirty(true); }, [dirty]);
+  // A new edit after a save: "Saved" no longer describes the page.
+  const markDirty = useCallback(() => { if (!dirty) { setDirty(true); setSuccess(false); } }, [dirty]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -1038,7 +1041,7 @@ export default function ProgramEditor({
         setDirty(false);
         setFlodeskSegmentChanged(false);
         setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
+        setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
         // The save went through this fetch, not through the router, so the
         // Next.js client router cache still holds the list page and this
         // edit page as they were rendered before it. Without a refresh,
@@ -1226,8 +1229,6 @@ export default function ProgramEditor({
         </div>
       </div>
 
-      {error && <div className="pe-msg pe-msg--error">{error}</div>}
-      {success && <div className="pe-msg pe-msg--success">Saved successfully</div>}
       {scheduleCleared && (
         <div className="pe-msg" role="status" style={{ background: "var(--color-warning-bg)", color: "var(--color-warning)" }}>
           This program now meets on a different schedule.{" "}
@@ -2808,6 +2809,9 @@ export default function ProgramEditor({
         >
           Cancel
         </button>
+        {/* The answer beside the button, and it stays (2026-10-19: it showed at
+            the top of a long page for three seconds). */}
+        <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={`Saved at ${savedAt}.${scheduleCleared || seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}`} problem={error} />
       </div>
 
     </div>

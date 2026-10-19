@@ -35,10 +35,10 @@ export default function HostWelcomePanel({
 
   return (
     <div className="db-host-welcome" role="status">
-      <p className="db-host-welcome__title">Welcome — you&apos;re on the {coverageNoun} team.</p>
+      <p className="db-host-welcome__title">Welcome. You&apos;re on the {coverageNoun} team.</p>
       <p className="db-host-welcome__text">
         Your schedule is already in place. Have a look whenever you&apos;re
-        ready — there&apos;s nothing you need to do right now.
+        ready. There&apos;s nothing you need to do right now.
       </p>
       <div className="db-host-welcome__actions">
         <Link

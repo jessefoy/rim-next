@@ -31,14 +31,14 @@ export default async function WelcomePage() {
             {isLegacy ? (
               <>
                 We&apos;ve rebuilt Rooted In Mindfulness as a new website and home,
-                and your membership came with you — there&apos;s nothing to sign up
+                and your membership came with you. There&apos;s nothing to sign up
                 for again. As we begin here together, we&apos;re simply asking every
                 member to revisit our community commitments below and confirm your name.
               </>
             ) : (
               <>
                 We&apos;re glad you&apos;re here. Before you step in, we&apos;d love to
-                know your name — it&apos;s how we know one another in this community.
+                know your name. It&apos;s how we know one another in this community.
               </>
             )}
           </p>

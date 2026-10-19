@@ -405,6 +405,7 @@ export default async function ZoomEnterPage({
         dayWord={ctDateStr(sessionDateIso) === ctDateStr(new Date().toISOString())
           ? "today"
           : `on ${fmtSessionDay(sessionDate)}`}
+        showSetup={isAdminOrGT}
       />
     );
   } catch (e) {
@@ -455,8 +456,9 @@ function EnterNotice({
           boxSizing: "border-box",
           textAlign: "center",
           background: "var(--rim-surface)",
-          borderRadius: 14,
-          boxShadow: "var(--card-shadow)",
+          // Bordered, not lifted, like every other surface (2026-10-19).
+          border: "1px solid var(--rim-rule)",
+          borderRadius: 12,
           padding: "32px 24px",
         }}
       >
@@ -500,7 +502,7 @@ function EnterNotice({
               minHeight: 44,
               boxSizing: "border-box",
               background: "var(--rim-blue)",
-              color: "#fff",
+              color: "var(--rim-surface)",
               fontSize: "var(--text-app)",
               fontWeight: 600,
               padding: "10px 24px",
@@ -614,6 +616,7 @@ function HostLanding({
   teamName,
   roleVerb,
   dayWord,
+  showSetup,
 }: {
   programName: string;
   joinUrl: string;
@@ -625,6 +628,8 @@ function HostLanding({
   roleVerb: string;
   /** "today", or "on Tue, Oct 20" when entering early for the next session. */
   dayWord: string;
+  /** A missing host code is named only to an admin, who can set it. */
+  showSetup: boolean;
 }) {
   const eyebrow =
     viewerRole === "designated"
@@ -664,15 +669,18 @@ function HostLanding({
           maxWidth: 460,
           width: "100%",
           textAlign: "center",
-          background: "#fff",
-          borderRadius: 14,
-          boxShadow: "var(--card-shadow)",
+          // A host reads the Claim Host steps here before opening Zoom: the
+          // app's 16/15px sizes and the bordered surface (2026-10-19: no
+          // shell wraps /session, so the public 12/14px sizes showed).
+          background: "var(--rim-surface)",
+          border: "1px solid var(--rim-rule)",
+          borderRadius: 12,
           padding: "32px 28px",
         }}
       >
         <p
           style={{
-            fontSize: "var(--text-label)",
+            fontSize: "var(--text-app-meta)",
             fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: "0.08em",
@@ -693,7 +701,7 @@ function HostLanding({
           {programName}
         </h1>
         {hostLine && (
-          <p style={{ fontSize: "var(--text-ui)", color: "var(--rim-mid)", margin: "0 0 20px" }}>
+          <p style={{ fontSize: "var(--text-app)", color: "var(--rim-mid)", margin: "0 0 20px" }}>
             {hostLine}
           </p>
         )}
@@ -702,9 +710,12 @@ function HostLanding({
         <a
           href={joinUrl}
           style={{
-            display: "inline-block",
+            display: "inline-flex",
+            alignItems: "center",
+            minHeight: 44,
+            boxSizing: "border-box",
             background: "var(--rim-blue)",
-            color: "#fff",
+            color: "var(--rim-surface)",
             fontSize: "var(--text-body)",
             fontWeight: 600,
             padding: "12px 28px",
@@ -722,7 +733,7 @@ function HostLanding({
               padding: "16px 18px",
               background: "var(--rim-bg)",
               borderRadius: 10,
-              fontSize: "var(--text-ui)",
+              fontSize: "var(--text-app)",
               lineHeight: "var(--lh-body)",
               color: "var(--rim-text)",
             }}
@@ -742,9 +753,13 @@ function HostLanding({
             </div>
           </div>
         ) : (
-          <p style={{ marginTop: 20, fontSize: "var(--text-small)", color: "var(--rim-mid)" }}>
-            You&rsquo;ll join under your own name. (Host code isn&rsquo;t configured —
-            set <code>ZOOM_HOST_KEY</code> to enable Claim&nbsp;Host.)
+          <p style={{ marginTop: 20, fontSize: "var(--text-app)", color: "var(--rim-mid)" }}>
+            You&rsquo;ll join under your own name.
+            {showSetup && (
+              <>
+                {" "}(The host code isn&rsquo;t set up. Set <code>ZOOM_HOST_KEY</code> to turn on Claim&nbsp;Host.)
+              </>
+            )}
           </p>
         )}
       </div>

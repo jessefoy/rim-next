@@ -34,8 +34,8 @@ export default function ReactivatePage() {
           <p className="wl-eyebrow">Rooted In Mindfulness</p>
           <h1 className="wl-title">Welcome back, {firstName}.</h1>
           <p className="wl-subtitle">
-            Your account was archived. If you&apos;d like to rejoin our community — whether
-            you&apos;re returning after time away or simply exploring what&apos;s new — we&apos;d
+            Your account was archived. If you&apos;d like to rejoin our community, whether
+            you&apos;re returning after time away or simply exploring what&apos;s new, we&apos;d
             love to welcome you back in.
           </p>
         </div>

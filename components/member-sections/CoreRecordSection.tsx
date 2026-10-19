@@ -172,8 +172,11 @@ export default function CoreRecordSection({ member }: Props) {
       <section className="adm2-section">
         <h2 className="adm2-section__title">
           Identity &amp; Contact
-          <button className="adm2-edit-toggle" onClick={() => setIsEditing(true)}>Edit</button>
+          <button className="adm2-edit-toggle" onClick={() => { setSaved(false); setIsEditing(true); }}>Edit</button>
         </h2>
+        {/* The form closes on save, so the answer shows here (2026-10-19: the
+            saved state was never seen). */}
+        {saved && <p className="adm2-save__success" role="status">Saved. The record is updated.</p>}
         <div className="adm2-display">
           <span className="adm2-display__label">Name</span>
           <span className="adm2-display__value">
@@ -400,8 +403,8 @@ export default function CoreRecordSection({ member }: Props) {
 
       {/* ── Save bar ─────────────────────────────────────────────────────────── */}
       <div className="adm2-save">
-        {error && <p className="adm2-save__error">{error}</p>}
-        {saved && <span className="adm2-save__success">Saved ✓</span>}
+        {error && <p className="adm2-save__error" role="alert">{error}</p>}
+        {saved && <span className="adm2-save__success" role="status">Saved ✓</span>}
         {showEmailConfirm ? (
           <div className="adm2-email-confirm">
             <p className="adm2-email-confirm__text">

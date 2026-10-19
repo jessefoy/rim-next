@@ -214,7 +214,7 @@ export async function POST(request: Request) {
 
   if (multiClaim && (action !== "claim" || !assignedUserId)) {
     return Response.json(
-      { error: "This hub uses open sign-up — only the self-claim action is supported." },
+      { error: "This team uses open sign-up, so people sign themselves up." },
       { status: 400 },
     );
   }

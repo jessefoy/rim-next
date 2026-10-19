@@ -17,6 +17,7 @@ const RimTiptapEditor = dynamic(
   { ssr: false, loading: () => <div style={{ minHeight: 500 }} /> },
 );
 import SlugField from "@/components/SlugField";
+import { SaveNote } from "@/components/FormDone";
 
 interface Resource {
   name: string;
@@ -68,6 +69,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [savedAt, setSavedAt] = useState("");
   const [success, setSuccess] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
 
@@ -299,7 +301,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
 
       if (isEditing) {
         setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
+        setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
       } else {
         router.push(`${basePath}/${lessonSlug}`);
       }
@@ -311,7 +313,8 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
   }
 
   return (
-    <div className="th-editor">
+    // An edit after a save: "Saved" no longer describes the page.
+    <div className="th-editor" onChangeCapture={() => setSuccess(false)} onInputCapture={() => setSuccess(false)} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSuccess(false); }}>
       <div className="th-editor__header">
         <h2 className="th-editor__title">{isEditing ? "Edit Lesson" : "New Lesson"}</h2>
         {isEditing && slug && (
@@ -321,8 +324,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
         )}
       </div>
 
-      {error && <div className="th-msg th-msg--error">{error}</div>}
-      {success && <div className="th-msg th-msg--success">Saved successfully</div>}
 
       {/* ── Section: Identity ── */}
       <div className="th-section">
@@ -629,6 +630,9 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
         >
           Cancel
         </button>
+        {/* The answer beside the button, and it stays (2026-10-19: it showed at
+            the top of a long page for three seconds). */}
+        <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={`Saved at ${savedAt}.`} problem={error} />
       </div>
     </div>
   );

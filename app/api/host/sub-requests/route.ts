@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   });
   if (hub?.allowsMultipleAssignments) {
     return Response.json(
-      { error: "This hub uses open sign-up — cancel your signup instead of asking for a sub." },
+      { error: "This team uses open sign-up. Cancel your sign-up instead of asking for cover." },
       { status: 400 },
     );
   }

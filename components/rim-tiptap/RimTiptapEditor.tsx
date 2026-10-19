@@ -238,7 +238,8 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
               <button
                 type="button"
                 className={`rt-toolbar__btn rt-toolbar__btn--label${open ? " rt-toolbar__btn--active" : ""}`}
-                onMouseDown={(e) => { e.preventDefault(); toggle(); }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { toggle(); }}
                 title="Text style"
                 aria-haspopup="menu"
                 aria-expanded={open}
@@ -282,7 +283,8 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
               <button
                 type="button"
                 className={`rt-toolbar__btn${open ? " rt-toolbar__btn--active" : ""}`}
-                onMouseDown={(e) => { e.preventDefault(); toggle(); }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { toggle(); }}
                 title="Callout"
                 aria-haspopup="menu"
                 aria-expanded={open}
@@ -304,7 +306,8 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
               <button
                 type="button"
                 className={`rt-toolbar__btn${open ? " rt-toolbar__btn--active" : ""}`}
-                onMouseDown={(e) => { e.preventDefault(); toggle(); }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { toggle(); }}
                 title="Dharma block"
                 aria-haspopup="menu"
                 aria-expanded={open}
@@ -391,7 +394,8 @@ function DocToolbar({ editor }: { editor: Editor }) {
           <button
             type="button"
             className={`rt-toolbar__btn rt-toolbar__btn--label${open ? " rt-toolbar__btn--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); toggle(); }}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => { toggle(); }}
             title="Text style"
             aria-haspopup="menu"
             aria-expanded={open}
@@ -486,7 +490,8 @@ function TDropdown({
                 type="button"
                 className="rt-toolbar__dropdown-item"
                 role="menuitem"
-                onMouseDown={(e) => { e.preventDefault(); it.onClick(); onOpenChange(false); }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { it.onClick(); onOpenChange(false); }}
               >
                 {Icon ? <Icon size={14} strokeWidth={2} /> : null}
                 <span>{it.label}</span>
@@ -516,7 +521,8 @@ function TBtn({
     <button
       type="button"
       className={`rt-toolbar__btn${active ? " rt-toolbar__btn--active" : ""}`}
-      onMouseDown={(e) => { e.preventDefault(); cmd(); }}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => { cmd(); }}
       title={title}
       aria-label={title}
       aria-pressed={active}
@@ -602,7 +608,8 @@ function Btn({
     <button
       type="button"
       className={`rt-bubble__btn${active ? " rt-bubble__btn--active" : ""}`}
-      onMouseDown={(e) => { e.preventDefault(); cmd(); }}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => { cmd(); }}
       title={title}
       aria-label={title}
       aria-pressed={active}
@@ -643,7 +650,8 @@ function LinkBtn({ editor }: { editor: Editor }) {
     <button
       type="button"
       className={`rt-bubble__btn${editor.isActive("link") ? " rt-bubble__btn--active" : ""}`}
-      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => { onClick(); }}
       title="Link"
       aria-label="Link"
     >

@@ -43,7 +43,6 @@ export default function BioSection({ memberId, initialBio }: Props) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Save failed");
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -52,7 +51,7 @@ export default function BioSection({ memberId, initialBio }: Props) {
   };
 
   return (
-    <section className="adm2-section">
+    <section className="adm2-section" onChangeCapture={() => setSaved(false)} onInputCapture={() => setSaved(false)} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSaved(false); }}>
       <h2 className="adm2-section__title">Bio</h2>
       <p className="adm2-section__hint">
         Member's personal description. Separate from any role — shown on the
@@ -65,11 +64,11 @@ export default function BioSection({ memberId, initialBio }: Props) {
         variant="message"
       />
       <div className="adm2-save">
-        {error && <p className="adm2-save__error">{error}</p>}
+        {error && <p className="adm2-save__error" role="alert">{error}</p>}
         <button className="adm2-save__btn" onClick={handleSave} disabled={saving}>
           {saving ? "Saving…" : "Save bio"}
         </button>
-        {saved && <span className="adm2-save__success">Saved ✓</span>}
+        {saved && <span className="adm2-save__success" role="status">Saved ✓</span>}
       </div>
     </section>
   );

@@ -63,7 +63,6 @@ export default function TeacherSection({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Save failed");
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -92,7 +91,7 @@ export default function TeacherSection({
   return (
     <>
       {/* ── Teacher Attribution ───────────────────────────────────────────────── */}
-      <section className="adm2-section">
+      <section className="adm2-section" onChangeCapture={() => setSaved(false)} onInputCapture={() => setSaved(false)} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSaved(false); }}>
         <h2 className="adm2-section__title">Teacher Attribution</h2>
         <label className="adm2-role-item">
           <input
@@ -109,7 +108,7 @@ export default function TeacherSection({
 
       {/* ── Teacher Profile (visible when isTeacher) ─────────────────────────── */}
       {isTeacher && (
-        <section className="adm2-section">
+        <section className="adm2-section" onChangeCapture={() => setSaved(false)} onInputCapture={() => setSaved(false)} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSaved(false); }}>
           <h2 className="adm2-section__title">Public Teacher Profile</h2>
           <p className="adm2-section__hint">
             Optional public profile page. Set a slug to enable the public URL (e.g. /teachers/jesse-foy).
@@ -173,11 +172,11 @@ export default function TeacherSection({
 
       {/* ── Save ─────────────────────────────────────────────────────────────── */}
       <div className="adm2-save">
-        {error && <p className="adm2-save__error">{error}</p>}
+        {error && <p className="adm2-save__error" role="alert">{error}</p>}
         <button className="adm2-save__btn" onClick={handleSave} disabled={saving}>
           {saving ? "Saving…" : "Save teacher profile"}
         </button>
-        {saved && <span className="adm2-save__success">Saved ✓</span>}
+        {saved && <span className="adm2-save__success" role="status">Saved ✓</span>}
       </div>
     </>
   );

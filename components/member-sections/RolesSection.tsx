@@ -59,7 +59,6 @@ export default function RolesSection({ memberId, initialRoles }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Save failed");
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -98,11 +97,11 @@ export default function RolesSection({ memberId, initialRoles }: Props) {
         </div>
       ))}
       <div className="adm2-save">
-        {error && <p className="adm2-save__error">{error}</p>}
+        {error && <p className="adm2-save__error" role="alert">{error}</p>}
         <button className="adm2-save__btn" onClick={handleSave} disabled={saving}>
           {saving ? "Saving…" : "Save roles"}
         </button>
-        {saved && <span className="adm2-save__success">Saved ✓</span>}
+        {saved && <span className="adm2-save__success" role="status">Saved ✓</span>}
       </div>
     </section>
   );

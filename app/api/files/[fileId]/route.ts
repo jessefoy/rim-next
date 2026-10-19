@@ -165,7 +165,7 @@ export async function PATCH(
     if (body.action === "approve-removal") {
       if (!(await isSpaceLead(viewer, place))) {
         return NextResponse.json(
-          { error: "Only a Space lead can approve a removal." },
+          { error: "Only a team lead can approve a removal." },
           { status: 403 },
         );
       }
@@ -190,7 +190,7 @@ export async function PATCH(
       const isRequester = !!meta?.pendingDeleteById && meta.pendingDeleteById === viewer.userId;
       if (!isRequester && !(await isSpaceLead(viewer, place))) {
         return NextResponse.json(
-          { error: "Only the person who requested this, or a Space lead, can cancel it." },
+          { error: "Only the person who asked, or a team lead, can cancel it." },
           { status: 403 },
         );
       }

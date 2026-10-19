@@ -66,7 +66,7 @@ export async function PATCH(
   }
   // Trashed threads are read-only — must be restored first.
   if (thread.deletedAt) {
-    return NextResponse.json({ error: "This thread is in the trash — restore it first" }, { status: 400 });
+    return NextResponse.json({ error: "This conversation is in the trash. Restore it first." }, { status: 400 });
   }
 
   const body = await req.json();

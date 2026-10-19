@@ -78,7 +78,8 @@ function Btn({
     <button
       type="button"
       className={`re-btn${active ? " re-btn--active" : ""}`}
-      onMouseDown={(e) => { e.preventDefault(); onClick(e); }}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={(e) => { onClick(e); }}
       aria-label={title}
       title={title}
     >
@@ -267,7 +268,8 @@ export default function MarkdownEditor({
               <button
                 type="button"
                 className="re-link-popover__apply"
-                onMouseDown={(e) => { e.preventDefault(); applyLink(); }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { applyLink(); }}
               >
                 Apply
               </button>

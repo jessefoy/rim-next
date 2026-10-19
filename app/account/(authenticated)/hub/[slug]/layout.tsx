@@ -60,7 +60,7 @@ export default async function HubLayout({ children, params }: Props) {
         <div className="hub-ws-main">
           <div className="hub-ws-content hub-ws-content--reading">
             <div className="rim-empty" style={{ padding: "40px 0" }}>
-              You don&rsquo;t have access to this hub.
+              You don&rsquo;t have access to this team.
             </div>
           </div>
         </div>

@@ -29,6 +29,7 @@ const RimTiptapEditor = dynamic(
   { ssr: false, loading: () => <div style={{ minHeight: 100 }} /> },
 );
 import SlugField from "@/components/SlugField";
+import { SaveNote } from "@/components/FormDone";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -178,6 +179,7 @@ export default function CourseEditor({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [savedAt, setSavedAt] = useState("");
   const [success, setSuccess] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [tab, setTab] = useState<Tab>("Content");
@@ -498,7 +500,7 @@ export default function CourseEditor({
 
       if (isEditing) {
         setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
+        setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
       } else {
         const created = await res.json();
         router.push(`${basePath}/${created.slug}`);
@@ -513,7 +515,8 @@ export default function CourseEditor({
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="pe-editor">
+    // An edit after a save: "Saved" no longer describes the page.
+    <div className="pe-editor" onChangeCapture={() => setSuccess(false)} onInputCapture={() => setSuccess(false)} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSuccess(false); }}>
       {/* ── Header ── */}
       <div className="pe-editor__header">
         <h2 className="pe-editor__title">{isEditing ? "Edit Course" : "New Course"}</h2>
@@ -529,8 +532,6 @@ export default function CourseEditor({
         )}
       </div>
 
-      {error && <div className="pe-msg pe-msg--error">{error}</div>}
-      {success && <div className="pe-msg pe-msg--success">Saved successfully</div>}
 
       {/* ── Tab bar ── */}
       <div className="pe-tabs">
@@ -1278,6 +1279,9 @@ export default function CourseEditor({
         >
           Cancel
         </button>
+        {/* The answer beside the button, and it stays (2026-10-19: it showed at
+            the top of a long page for three seconds). */}
+        <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={`Saved at ${savedAt}.`} problem={error} />
       </div>
     </div>
   );
