@@ -152,9 +152,9 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   // guiding teacher's own teams are separated from the ones they oversee; a
   // member with no team gets the volunteer empty state.
   const teamHubs=[
-    {slug:'host-team',name:'Host Team',status:'ACTIVE',members:[{isCoordinator:true}]},
-    {slug:'greeter',name:'Greeters',status:'ACTIVE',members:[{isCoordinator:false}]},
-    {slug:'old-team',name:'Old Team',status:'ARCHIVED',members:[{isCoordinator:false}]},
+    {slug:'host-team',name:'Host Team',status:'ACTIVE',members:[{isCoordinator:true,status:'ACTIVE'}]},
+    {slug:'greeter',name:'Greeters',status:'ACTIVE',members:[{isCoordinator:false,status:'ACTIVE'}]},
+    {slug:'old-team',name:'Old Team',status:'ARCHIVED',members:[{isCoordinator:false,status:'ACTIVE'}]},
     {slug:'av',name:'Audio Visual',status:'ACTIVE',members:[]},
   ];
   const TeamsWith=hubs=>load('app/account/(authenticated)/teams/page.tsx',{
@@ -170,6 +170,9 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   teamsHtml=renderToStaticMarkup(await TeamsWith(teamHubs.slice(0,2))());
   check(teamsHtml.includes('Coordinator'),true,'coordinator role is marked');
   check((teamsHtml.match(/Coordinator/g)||[]).length,1,'only the coordinated team is marked');
+  // 2026-10-19: a paused coordinator isn't marked (the ACTIVE coordinator rule).
+  teamsHtml=renderToStaticMarkup(await TeamsWith([{...teamHubs[0],members:[{isCoordinator:true,status:'PAUSED'}]}])());
+  check(teamsHtml.includes('Coordinator'),false,'paused coordinator is not marked');
   session={user:{id:'member-a',roles:['GUIDING_TEACHER']}};
   teamsHtml=renderToStaticMarkup(await TeamsWith(teamHubs)());
   check(teamsHtml.includes('Your teams')&&teamsHtml.includes('Teams you oversee'),true,'guiding teacher sees two groups');
