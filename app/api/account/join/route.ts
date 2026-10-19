@@ -2,7 +2,7 @@ import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { accountForFormerEmail } from "@/lib/formerEmail";
 import { signIn } from "@/auth";
-import { sendJoinWelcomeEmail, sendLegacyWelcomeBackEmail } from "@/lib/email";
+import { sendJoinWelcomeEmail } from "@/lib/email";
 import { toProperName } from "@/lib/nameCase";
 import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
 import { looksAutomated, BOT_RETRY_MESSAGE } from "@/lib/botCheck";
@@ -28,7 +28,11 @@ import {
  *   1. Validate name + email + agreement checkbox.
  *   2. If a member with this email already exists AND has agreedToTerms,
  *      gently route them to /login (no point creating a duplicate threshold).
- *   3. Otherwise upsert the User with names + agreedToTerms: true + agreedAt.
+ *   3. A new address creates the User with names + agreedToTerms: true + agreedAt.
+ *      An existing account that hasn't agreed (pre-staged, or imported from the
+ *      old site) is not touched: the person hasn't proved the address is
+ *      theirs yet, and anyone could type it (2026-10-19 audit). They agree on
+ *      /account/welcome after signing in, as they would arriving from /login.
  *   4. Trigger signIn("resend", …) so NextAuth issues the 6-digit code email.
  *      The auth.ts sendVerificationRequest branches on emailVerified — since
  *      the user has NOT yet completed a verification at this point, they
@@ -36,7 +40,7 @@ import {
  *      the routine returning-member one. (Branching on agreedToTerms would
  *      misclassify them since /join sets that to true before the code is
  *      sent.)
- *   5. In after(), send the warm welcome letter and enroll them in the
+ *   5. In after(), for a new address only, send the warm welcome letter and enroll them in the
  *      onboarding course series.
  */
 export async function POST(request: Request) {
@@ -119,7 +123,7 @@ export async function POST(request: Request) {
   // gently — no error, no shame; they're already in.
   const existing = await db.user.findUnique({
     where: { email: emailRaw },
-    select: { id: true, agreedToTerms: true, isLegacyUnclaimed: true },
+    select: { id: true, agreedToTerms: true },
   });
   if (existing?.agreedToTerms) {
     return NextResponse.json(
@@ -139,40 +143,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, moved: true }, { status: 200 });
   }
 
-  // A returning legacy member can land on the /join door instead of /login; if
-  // so, this pre-upsert flag routes them to the welcome-back letter below
-  // (rather than the new-member join-welcome), and the upsert promotes them.
-  const wasLegacy = existing?.isLegacyUnclaimed === true;
-
+  // Only a brand-new address is written here. An existing account keeps its
+  // name, phone and agreement until its owner signs in and agrees on the
+  // Welcome page, which also sends the welcome-back letter and enrolls them.
   const now = new Date();
-  const user = await db.user.upsert({
-    where: { email: emailRaw },
-    create: {
-      email: emailRaw,
-      firstName,
-      lastName,
-      phone: phone || null,
-      agreedToTerms: true,
-      agreedAt: now,
-      isLegacyUnclaimed: false,
-    },
-    update: {
-      firstName,
-      lastName,
-      phone: phone || null,
-      agreedToTerms: true,
-      agreedAt: now,
-      // Promotion: if this email was a legacy import, crossing /join claims it.
-      isLegacyUnclaimed: false,
-    },
-    select: { id: true },
-  });
+  const user = existing
+    ? null
+    : await db.user.create({
+        data: {
+          email: emailRaw,
+          firstName,
+          lastName,
+          phone: phone || null,
+          agreedToTerms: true,
+          agreedAt: now,
+          isLegacyUnclaimed: false,
+        },
+        select: { id: true },
+      });
 
   // Trigger the NextAuth sign-in code flow. redirect:false so we keep control
   // of the response (the page navigates the client to /login/check-email).
   // The Resend provider's sendVerificationRequest fires inside signIn() and
   // delivers the 6-digit code email. emailVerified is null at this point
-  // (the User just got upserted; no verification has completed yet), so the
+  // (a new account, or an existing one not yet verified), so the
   // WARM sign-in-code-new-user template fires — see auth.ts:38.
   //
   // Defensive pattern mirrors app/login/page.tsx: signIn with redirect:false
@@ -200,15 +194,17 @@ export async function POST(request: Request) {
   // Welcome letter + onboarding series — fire-and-forget via after() per the
   // session 96 / 131 pattern (Vercel tears the function down once the
   // response is committed; after() keeps the work alive).
-  // Returning legacy member (came via /join) → welcome-back; a genuinely new
-  // member → join-welcome. wasLegacy is read from the pre-upsert record.
+  // Only a new address gets join-welcome and the onboarding series here; an
+  // existing account gets them (or welcome-back) from the Welcome page.
+  if (!user) {
+    // An existing account: the Welcome page after sign-in does the rest.
+    return NextResponse.json({ ok: true, email: emailRaw });
+  }
+  const newUserId = user.id;
+
   after(async () => {
     try {
-      if (wasLegacy) {
-        await sendLegacyWelcomeBackEmail({ to: emailRaw, firstName });
-      } else {
-        await sendJoinWelcomeEmail({ to: emailRaw, firstName });
-      }
+      await sendJoinWelcomeEmail({ to: emailRaw, firstName });
     } catch (err) {
       console.error("[account/join] welcome email failed", err);
     }
@@ -216,7 +212,7 @@ export async function POST(request: Request) {
 
   after(async () => {
     try {
-      await enrollMemberInOnboardingSeries(user.id);
+      await enrollMemberInOnboardingSeries(newUserId);
     } catch (err) {
       console.error("[account/join] enrollMemberInOnboardingSeries failed", err);
     }

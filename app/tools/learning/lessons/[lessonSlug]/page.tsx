@@ -4,6 +4,7 @@
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
+import { hasToolAccess } from "@/lib/toolAuth";
 import { db } from "@/lib/db";
 import LessonEditor from "@/components/LessonEditor";
 
@@ -29,6 +30,9 @@ export default async function EditLessonPage({
   const { lessonSlug } = await params;
   const session = await auth();
   if (!session) redirect("/login");
+  // The layout's gate, repeated: Next.js can render a page without re-running
+  // its layout, so the layout alone doesn't protect this data (2026-10-19 audit).
+  if (!(await hasToolAccess(session.user.id, session.user.roles ?? [], ["TEACHER"], "learning"))) notFound();
 
   const lesson = await db.lesson.findUnique({
     where: { slug: lessonSlug },

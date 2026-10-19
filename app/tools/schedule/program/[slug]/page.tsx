@@ -25,6 +25,7 @@ import {
   teamCannotStaff,
 } from "@/lib/programHub";
 import { ctStartOfToday } from "@/lib/timezone";
+import { hasToolAccess } from "@/lib/toolAuth";
 import { canAccessHubScheduler, canManageHubCoverage } from "@/lib/hubAuth";
 import {
   ctDateStr,
@@ -93,6 +94,9 @@ export default async function ProgramStaffingPage({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
+  // The layout's gate, repeated: Next.js can render a page without re-running
+  // its layout, and this page lists who staffs every team (2026-10-19 audit).
+  if (!(await hasToolAccess(session.user.id, session.user.roles ?? [], ["HOST", "HOST_MANAGER"], "schedule"))) notFound();
 
   const { slug } = await params;
   // Preserve hub context across the staffing page so the "Back to Scheduler"

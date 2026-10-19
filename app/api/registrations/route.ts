@@ -176,19 +176,13 @@ export async function POST(request: NextRequest) {
         resolvedLastName = user.lastName || lastName.trim();
         resolvedPhone = user.phone || phone?.trim() || null;
 
-        // Fill genuinely blank fields and handle agreements / restore.
+        // Fill genuinely blank fields. Agreeing and un-archiving are left to
+        // the person once they sign in (the Welcome and Reactivate pages): a
+        // signed-out form can't show the address is theirs (2026-10-19 audit).
         const updates: Record<string, unknown> = {};
         if (!user.firstName && firstName?.trim()) updates.firstName = firstName.trim();
         if (!user.lastName && lastName?.trim()) updates.lastName = lastName.trim();
         if (!user.phone && phone?.trim()) updates.phone = phone.trim();
-        if (!user.agreedToTerms && agreedToTerms === true) {
-          updates.agreedToTerms = true;
-          updates.agreedAt = now;
-        }
-        // Auto-restore archived members who register for a new program
-        if (user.archivedAt) {
-          updates.archivedAt = null;
-        }
         if (Object.keys(updates).length > 0) {
           await db.user.update({ where: { id: user.id }, data: updates });
         }
