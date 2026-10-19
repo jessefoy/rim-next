@@ -22,6 +22,10 @@ import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { normalizeLinkInput } from "@/lib/linkInput";
 import { canUseProgramManager } from "@/lib/toolAuth";
 
+// Team-wide emails go one at a time after the response (sendEachPaced),
+// so the function needs room past the usual limit (2026-10-19).
+export const maxDuration = 60;
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -146,6 +150,22 @@ export async function PUT(
     if (conflict) {
       return NextResponse.json({ error: "A program with this slug already exists" }, { status: 409 });
     }
+    // Registrations, the schedule and cover requests find their program by
+    // its slug, so a program's address is permanent once any of them exist
+    // (CLAUDE.md). Changing it here orphaned them all: the roster and CSV
+    // emptied, reminders stopped, registrants lost Join (2026-10-19 audit).
+    const [registrations, sessions, rotations, requests] = await Promise.all([
+      db.registration.count({ where: { OR: [{ programSlug: slug }, { programId: existing.id }] } }),
+      db.hostAssignment.count({ where: { programSlug: slug } }),
+      db.standingAssignment.count({ where: { programSlug: slug } }),
+      db.subRequest.count({ where: { programSlug: slug } }),
+    ]);
+    if (registrations + sessions + rotations + requests > 0) {
+      return NextResponse.json(
+        { error: "This program's address can't change now: registrations or its schedule already use it. Keep the address, or make a new program." },
+        { status: 409 },
+      );
+    }
   }
 
   const data: Record<string, unknown> = {};
@@ -248,8 +268,11 @@ export async function PUT(
       (data.hostingHubSlug !== undefined && data.hostingHubSlug !== existing.hostingHubSlug) ||
       (data.programFormat !== undefined && data.programFormat !== existing.programFormat) ||
       (data.hostingRequired !== undefined && data.hostingRequired !== existing.hostingRequired);
-    if (team && needsHost && changed) {
-      const refusal = await hostingTeamRefusal(team, format);
+    // With "No host needed" the team is still checked, without its format, as
+    // the create route does; the edit skipped it, so an unknown team could be
+    // stored (2026-10-19 audit).
+    if (team && changed) {
+      const refusal = await hostingTeamRefusal(team, needsHost ? format : null);
       if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
     }
   }
@@ -500,6 +523,11 @@ export async function PUT(
     await db.sessionMeeting
       .updateMany({ where: { programSlug: slug }, data: { programSlug: updated.slug } })
       .catch((e) => console.error("[programs-pg] Zoom meeting slug move failed", e));
+    // Its supporting teams follow it (a change is refused above once anything
+    // else uses the address).
+    // A stale row already under the new address would collide with the move.
+    await db.programCoverageHub.deleteMany({ where: { programSlug: updated.slug } });
+    await db.programCoverageHub.updateMany({ where: { programSlug: slug }, data: { programSlug: updated.slug } });
   }
 
   // (e) movedOutside — the program now meets in someone else's room, so the
@@ -597,10 +625,12 @@ export async function PUT(
     const existingSet = new Set(existingRows.map((r) => r.hubSlug));
     removedCoverage = [...existingSet].filter((h) => !requestedSlugs.includes(h));
 
-    await db.programCoverageHub.deleteMany({ where: { programSlug: slug } });
+    // Under the program's slug as saved: the old address, when it just
+    // changed, was dropping the supporting teams (2026-10-19 audit).
+    await db.programCoverageHub.deleteMany({ where: { programSlug: { in: [slug, updated.slug] } } });
     if (requestedSlugs.length > 0) {
       await db.programCoverageHub.createMany({
-        data: requestedSlugs.map((hubSlug) => ({ programSlug: slug, hubSlug })),
+        data: requestedSlugs.map((hubSlug) => ({ programSlug: updated.slug, hubSlug })),
       });
     }
 

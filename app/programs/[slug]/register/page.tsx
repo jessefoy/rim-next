@@ -5,6 +5,7 @@ import RegistrationForm, { RegistrationField } from "@/components/RegistrationFo
 import { db } from "@/lib/db";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildSubtitle } from "@/lib/programUtils";
+import { registrationResumeKeyValid } from "@/lib/registrationLink";
 
 // Always show fresh data — this page is user-specific
 export const dynamic = "force-dynamic";
@@ -19,10 +20,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function RegisterPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ r?: string; t?: string }>;
 }) {
   const { slug } = await params;
+  const { r, t } = await searchParams;
+  // Only a link RIM signed (the approval and dana-reminder emails) resumes a
+  // registration for someone signed out (lib/registrationLink.ts).
+  const resumeId = r && registrationResumeKeyValid(r, t) ? r : undefined;
 
   const [pgProgram, session] = await Promise.all([
     db.program.findUnique({ where: { slug } }),
@@ -68,12 +75,24 @@ export default async function RegisterPage({
           where: { id: session.user.id },
           select: { firstName: true, lastName: true, phone: true, email: true },
         })
+      : resumeId
+      ? // A guest finishing a registration from its email: the form needs
+        // their details for the dana step (checkout matches the email).
+        db.registration.findFirst({
+          where: { id: resumeId, programId: program._id, status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
+          select: { firstName: true, lastName: true, email: true },
+        })
       : Promise.resolve(null),
-    session?.user?.id
+    session?.user?.id || resumeId
       ? db.registration.findFirst({
           where: {
             programId: program._id,
-            userId: session.user.id,
+            // The signed-in member's own, or, for a guest arriving from the
+            // waitlist-approval or dana-reminder email, the registration that
+            // email named (lib/email.ts registrationResumeUrl; 2026-10-19
+            // audit: a guest otherwise got a fresh form that answered
+            // "already registered").
+            ...(session?.user?.id ? { userId: session.user.id } : { id: resumeId }),
             // Exclude a held (PENDING_PAYMENT) row: a registrant mid-checkout
             // resubmits to resume (the POST reuses their held row) rather than
             // being shown the "already registered" / pending-dana resume state.
@@ -134,7 +153,15 @@ export default async function RegisterPage({
       {/* ── Content ── */}
       <div className="rg-content">
         <section className="rg-card">
-          {showAlreadyRegistered ? (
+          {showAlreadyRegistered && existingRegistration?.status === "WAITLISTED" ? (
+            // A waitlisted registration isn't a confirmed place (2026-10-19
+            // review); the words are the form's own waitlist answer.
+            <div className="rg-already">
+              <h2>You&rsquo;re on the waitlist</h2>
+              <p>This program is currently full. We&rsquo;ll reach out if a spot opens up.</p>
+              <Link href={`/programs/${slug}`} className="pp-btn pp-btn--ghost">Return to the program <span aria-hidden="true">→</span></Link>
+            </div>
+          ) : showAlreadyRegistered ? (
             <div className="rg-already">
               <h2>You&rsquo;re already registered.</h2>
               <p>Your place in this program is confirmed.</p>

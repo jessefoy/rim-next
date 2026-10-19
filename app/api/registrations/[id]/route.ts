@@ -105,6 +105,7 @@ export async function PATCH(
         firstName:    reg.firstName,
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
+        registrationId: reg.id,
       });
       return NextResponse.json({ ok: true });
     }
@@ -236,6 +237,7 @@ export async function PATCH(
         programSlug:  current.programSlug,
         danaMode:     programDanaMode,
         requiredCents,
+        registrationId: id,
       });
     }
 

@@ -19,6 +19,10 @@ import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { normalizeLinkInput } from "@/lib/linkInput";
 import { canUseProgramManager } from "@/lib/toolAuth";
 
+// Team-wide emails go one at a time after the response (sendEachPaced),
+// so the function needs room past the usual limit (2026-10-19).
+export const maxDuration = 60;
+
 export async function GET() {
   const session = await auth();
   if (!session || !canUseProgramManager(session.user.roles)) {
@@ -93,6 +97,10 @@ export async function POST(request: NextRequest) {
       const refusal = await supportingTeamRefusal(hubSlug, body.programFormat || "in-person");
       if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
     }
+  }
+  // As the edit route does: Open entry is on or off, not coerced (2026-10-19).
+  if (body.openEntry !== undefined && typeof body.openEntry !== "boolean") {
+    return NextResponse.json({ error: "Open entry must be on or off." }, { status: 422 });
   }
   if (requestedHostingHubSlug) {
     // A Hosting team must run sessions and have the Scheduler (2026-10-15).

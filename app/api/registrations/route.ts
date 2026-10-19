@@ -89,12 +89,27 @@ export async function POST(request: NextRequest) {
 
     // Count seats taken. PENDING_PAYMENT holds a seat during the active checkout
     // window (released automatically on abandonment — see the expiry handler).
-    const activeCount = await db.registration.count({
-      where: {
-        programId,
-        status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] },
-      },
-    });
+    // The person's own hold is their seat, not someone else's: counted, it put
+    // a member coming back to the last seat onto the waitlist behind their own
+    // hold (2026-10-19 audit). Matched by account, or a guest by email.
+    const session = await auth();
+    const sessionUserId = session?.user?.id ?? null;
+    const [takenCount, ownHolds] = await Promise.all([
+      db.registration.count({
+        where: {
+          programId,
+          status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] },
+        },
+      }),
+      db.registration.count({
+        where: {
+          programId,
+          status: "PENDING_PAYMENT",
+          ...(sessionUserId ? { userId: sessionUserId } : { email: email.trim().toLowerCase() }),
+        },
+      }),
+    ]);
+    const activeCount = takenCount - ownHolds;
 
     const hasCapacity = registrationCapacity == null || activeCount < registrationCapacity;
     const spotsRemaining =
@@ -109,8 +124,6 @@ export async function POST(request: NextRequest) {
     // the request (a userId in the body was trusted until 2026-10-13, which let
     // an unauthenticated request attach a registration to any account and
     // fill its blank profile fields). Anyone not signed in is a guest by email.
-    const session = await auth();
-    const sessionUserId = session?.user?.id ?? null;
     // A guest registration creates a member account and sends email, so a bot
     // is refused before anything is written (lib/botCheck.ts). Signed-in
     // members proved who they are and are not checked.

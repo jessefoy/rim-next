@@ -1339,7 +1339,7 @@ export default function ProgramEditor({
                 </div>
                 {isEditing && !slugLocked && (
                   <span className="pe-field__help pe-field__help--warn">
-                    Changing the slug will break existing links and host assignments.
+                    Changing the slug breaks existing links. Once anyone has registered or the schedule uses it, it can't change.
                   </span>
                 )}
               </label>

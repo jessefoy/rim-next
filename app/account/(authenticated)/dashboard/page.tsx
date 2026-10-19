@@ -113,7 +113,13 @@ export default async function DashboardPage({ searchParams }: {
       db.registration.findMany({
         // PENDING_PAYMENT is a held, unpaid registration — not a real commitment
         // until the Stripe webhook completes it, so keep it off the dashboard.
-        where: { userId, status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
+        // An archived program has left the site, so it leaves My Home too
+        // (2026-10-19 audit: Coming up linked to a page that no longer exists).
+        where: {
+          userId,
+          status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
+          OR: [{ programId: null }, { program: { archivedAt: null } }],
+        },
         select: {
           id: true,
           programTitle: true,
@@ -151,7 +157,9 @@ export default async function DashboardPage({ searchParams }: {
   // (MEMBER_JOIN_MIN = 10 min before). ADMIN gets the same affordance as a
   // safety override. One batched query per surface (host + teacher), then we
   // match per session in JS using the CT date string for HostAssignment.
-  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
+  // The guiding teacher too, as the Zoom door already admits them early
+  // (2026-10-19 audit).
+  const isAdmin = (session.user.roles ?? []).some((r) => r === "ADMIN" || r === "GUIDING_TEACHER");
   const todayProgramSlugs = todaySessionsRaw.map((p) => p.slug);
   const todayProgramIds   = todaySessionsRaw.map((p) => p.id);
   // Prisma `{ in: [] }` returns no rows, so the queries are safe to always run.

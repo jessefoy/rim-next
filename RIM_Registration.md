@@ -93,7 +93,11 @@ Promotion derives the dana mode from the **program record**, not the request bod
 ## Idempotency
 
 - **Webhook**: gated on whether the `Donation` row (keyed by `payment_intent`) existed *before* this delivery → the confirmation isn't double-sent on redelivery. Status flip / account find-or-create are idempotent (same values / find-existing).
-- **Decline + cron**: a guarded `updateMany({ where: { status:"REGISTERED", donationStatus:"PENDING" }, data:{ WAIVED } })` — the `PENDING → WAIVED` flip is a one-shot latch; the confirmation sends only when `count > 0`. A second call no-ops.
+- **Decline + cron**: a guarded `updateMany({ where: { status: { in: ["REGISTERED","APPROVED"] }, donationStatus:"PENDING" }, data:{ WAIVED } })` — the `PENDING → WAIVED` flip is a one-shot latch; the confirmation sends only when `count > 0`. A second call no-ops. APPROVED (a waitlist promotion) is included since 2026-10-19; before, its decline did nothing and its dana invitation stayed on My Home.
+- **The webhook sends no second confirmation** for a registration already confirmed (`WAIVED`) or cancelled while checkout was open; the receipt still goes (2026-10-19).
+- **A guest finishes from the email** (2026-10-19): `waitlist-approval` and `dana-reminder` link to `/programs/[slug]/register?r=<id>&t=<key>`, a key signed with `AUTH_SECRET` (`lib/registrationLink.ts`); the page then resumes that registration's dana step for someone signed out. The id alone is not a key: the registration POST returns it to whoever submits.
+- **A person's own hold is their seat:** the seat count leaves out their own `PENDING_PAYMENT` hold (by account, or a guest by email), so coming back to the last seat no longer waitlists them behind it (2026-10-19).
+- **Guest registration no longer marks an existing account agreed or un-archives it** (2026-10-19); the person does that at sign-in (Welcome, Reactivate).
 
 ## Visibility rules — which registration-status filter goes where
 

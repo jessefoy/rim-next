@@ -7,6 +7,7 @@ import { ctMonthKey, fmtSessionDay, fmtSessionWhen } from "@/lib/timezone";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageConfig, getHubCoverageCopy, teamPhrase } from "@/lib/programHub";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { RIM_ADDRESS, RIM_EIN, RIM_LEGAL_NAME, emailSafeLink, markdownLinkText } from "@/lib/locations";
+import { registrationResumeKey } from "@/lib/registrationLink";
 import { FORM_KIND, formNoticeSubject } from "@/lib/formSubmissions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -244,10 +245,60 @@ export async function renderTemplateToText(
   markdownBody: string,
   textBody: string | null,
   variables: Record<string, unknown> = {},
+  memberText: string[] = [],
 ): Promise<string> {
   const Handlebars = (await import("handlebars")).default;
   const source = textBody && textBody.trim().length > 0 ? textBody : markdownBody;
-  return Handlebars.compile(source, { noEscape: true })(variables);
+  return Handlebars.compile(source, { noEscape: true })(textVariables(variables, memberText));
+}
+
+/** Escape what a member typed for the markdown body: HTML characters, and
+ *  the marks that make links, emphasis and code. */
+function inertMemberText(variables: Record<string, unknown>, keys: string[] | undefined): Record<string, unknown> {
+  if (!keys?.length) return variables;
+  const out = { ...variables };
+  for (const key of keys) {
+    const value = out[key];
+    if (typeof value !== "string") continue;
+    out[key] = value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/([\\`*_[\]])/g, "\\$1");
+  }
+  return out;
+}
+
+/**
+ * Variables for the plain-text part. A button or a rendered message is HTML,
+ * and went into the text part as raw markup (2026-10-19 audit): a link becomes
+ * "Label: URL", other tags are dropped, a few entities are decoded.
+ */
+function textVariables(variables: Record<string, unknown>, memberText: string[] = []): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(variables)) {
+    // What a member typed is shown as typed, angle brackets and all.
+    if (typeof value !== "string" || memberText.includes(key) || !/<[a-z][\s\S]*>/i.test(value)) {
+      out[key] = value;
+      continue;
+    }
+    out[key] = value
+      .replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, label: string) => {
+        const text = label.replace(/<[^>]+>/g, "").trim();
+        return text && text !== href ? `${text}: ${href}` : href;
+      })
+      .replace(/<\/(p|div|li|h[1-6]|tr)>|<br\s*\/?>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&") // last, so "&amp;lt;" stays "&lt;"
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+  return out;
 }
 
 /**
@@ -262,6 +313,14 @@ export async function renderTemplateToText(
  * Errors are caught and logged — a failed templated email must never throw.
  */
 export interface TemplatedEmailOptions {
+  /**
+   * Variables a member typed (a title, a note, a name). In the email's body
+   * they are made inert, so markup shows as the characters typed instead of
+   * becoming a link or HTML in another member's inbox (2026-10-19 audit).
+   * The subject and the text part, which are plain text, use them as typed.
+   */
+  memberText?: string[];
+
   /**
    * If true, the function rethrows on send failure instead of swallowing.
    * Used for emails where the caller must surface delivery errors
@@ -398,8 +457,8 @@ export async function sendTemplatedEmail(
 
     const Handlebars = (await import("handlebars")).default;
     const subject = options.subject ?? Handlebars.compile(template.subject, { noEscape: true })(variables);
-    const html    = await renderTemplateToHtml(template.body, variables);
-    const text    = await renderTemplateToText(template.body, template.textBody, variables);
+    const html    = await renderTemplateToHtml(template.body, inertMemberText(variables, options.memberText));
+    const text    = await renderTemplateToText(template.body, template.textBody, variables, options.memberText);
 
     const { error } = await resend.emails.send({
       from: FROM,
@@ -521,6 +580,19 @@ export interface ApprovalEmailData {
   danaMode?: string | null; // if set and not "none", include a dana section
   /** Cents the program requires before the place is held (fixed / base). 0 = optional dana. */
   requiredCents?: number;
+  /** The registration, so the link resumes it for a guest who isn't signed in. */
+  registrationId: string;
+}
+
+/** The register page for one registration: a guest who isn't signed in can
+ *  finish it (pay or offer dana) from the email. Without it the page showed a
+ *  fresh form, which answered "already registered" (2026-10-19 audit). The
+ *  link carries a signed key (lib/registrationLink.ts); without a secret it
+ *  falls back to the plain page. */
+function registrationResumeUrl(programSlug: string, registrationId: string): string {
+  const key = registrationResumeKey(registrationId);
+  const base = `${BASE_URL}/programs/${programSlug}/register`;
+  return key ? `${base}?r=${encodeURIComponent(registrationId)}&t=${encodeURIComponent(key)}` : base;
 }
 
 /**
@@ -529,12 +601,12 @@ export interface ApprovalEmailData {
  * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendApprovalEmail(data: ApprovalEmailData): Promise<void> {
-  const { to, firstName, programTitle, programSlug, danaMode, requiredCents = 0 } = data;
+  const { to, firstName, programTitle, programSlug, danaMode, requiredCents = 0, registrationId } = data;
   const paymentRequired = requiredCents > 0;
   await sendTemplatedEmail("waitlist-approval", to, {
     firstName,
     programTitle,
-    programUrl: `${BASE_URL}/programs/${programSlug}/register`,
+    programUrl: registrationResumeUrl(programSlug, registrationId),
     // Optional dana and a required payment read differently; never both.
     hasDana: !paymentRequired && !!danaMode && danaMode !== "none",
     paymentRequired,
@@ -623,6 +695,7 @@ export interface DanaReminderEmailData {
   firstName: string;
   programTitle: string;
   programSlug: string;
+  registrationId: string;
 }
 
 /**
@@ -631,11 +704,11 @@ export interface DanaReminderEmailData {
  * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendDanaReminderEmail(data: DanaReminderEmailData): Promise<void> {
-  const { to, firstName, programTitle, programSlug } = data;
+  const { to, firstName, programTitle, programSlug, registrationId } = data;
   await sendTemplatedEmail("dana-reminder", to, {
     firstName,
     programTitle,
-    registerUrl: `${BASE_URL}/programs/${programSlug}/register`,
+    registerUrl: registrationResumeUrl(programSlug, registrationId),
   });
 }
 
@@ -1005,7 +1078,7 @@ export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<vo
     // {{coverButton}} where they want a prominent "Cover this session"
     // affordance, in place of (or alongside) the plain coverUrl link.
     coverButton:   emailButtonHtml("Cover this session", coverUrl),
-  });
+  }, { memberText: ["requesterName", "message"] });
 }
 
 export interface SubClaimedEmailData {
@@ -1041,7 +1114,7 @@ export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<vo
     // New as of Slice 2.5 — paste {{scheduleButton}} in the template
     // for a prominent "View your schedule" affordance.
     scheduleButton: emailButtonHtml("View your schedule", hubUrl),
-  });
+  }, { memberText: ["claimerName", "message"] });
 }
 
 export interface NewProgramNeedsHostEmailData {
@@ -1786,7 +1859,7 @@ export async function sendHubConvNewThreadEmail(data: HubConvNewThreadEmailData)
     threadTitle:   data.threadTitle,
     documentTitle: data.documentTitle ?? null,
     threadUrl:     `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
-  });
+  }, { memberText: ["threadTitle", "authorName"] });
 }
 
 export interface HubConvNewReplyEmailData {
@@ -1810,7 +1883,7 @@ export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): 
     hubName:     data.hubName,
     threadTitle: data.threadTitle,
     threadUrl:   `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
-  });
+  }, { memberText: ["threadTitle", "replierName"] });
 }
 
 // ─── Google Files notifications (Basecamp-style, per-post opt-in) ────────────
@@ -1833,7 +1906,7 @@ export async function sendFileSharedEmail(data: {
     spaceName: data.spaceName,
     note: data.note ?? "",
     fileUrl: `${BASE_URL}/account/files/${data.fileId}`,
-  });
+  }, { memberText: ["sharerName", "fileName", "note"] });
 }
 
 export async function sendFileCommentEmail(data: {
@@ -1852,7 +1925,7 @@ export async function sendFileCommentEmail(data: {
     spaceName: data.spaceName,
     excerpt: data.excerpt,
     fileUrl: `${BASE_URL}/account/files/${data.fileId}`,
-  });
+  }, { memberText: ["commenterName", "fileName", "excerpt"] });
 }
 
 // ─── Hub Welcome Email ───────────────────────────────────────────────────────

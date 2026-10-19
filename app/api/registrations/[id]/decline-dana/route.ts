@@ -72,8 +72,11 @@ export async function POST(
 
     // Flip PENDING → WAIVED exactly once. The where-guard makes a double-click
     // (or any re-call) a no-op, so the confirmation can't be sent twice.
+    // APPROVED too: a member promoted from the waitlist declines the same way
+    // (2026-10-19 audit: the decline did nothing for them, and their dana
+    // invitation never left My Home).
     const result = await db.registration.updateMany({
-      where: { id, status: "REGISTERED", donationStatus: "PENDING" },
+      where: { id, status: { in: ["REGISTERED", "APPROVED"] }, donationStatus: "PENDING" },
       data: { donationStatus: "WAIVED" },
     });
 

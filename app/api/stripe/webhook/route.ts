@@ -346,8 +346,12 @@ async function handleRegistrationDanaCompleted(
       giftCents,
       paidAt,
     };
+    // No second "you're registered" for one that was already confirmed (its
+    // dana declined or waived, which sent the confirmation) or was cancelled
+    // while checkout was open (2026-10-19 audit). The receipt still goes.
+    const alreadyConfirmed = reg.donationStatus === "WAIVED" || reg.status === "CANCELLED";
     after(async () => {
-      if (!isAdditionalPayment) {
+      if (!isAdditionalPayment && !alreadyConfirmed) {
         try {
           await sendRegistrationConfirmation(registrationId);
         } catch (err) {

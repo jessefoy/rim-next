@@ -46,7 +46,9 @@ export async function GET(request: Request) {
   const voluntaryCutoff = new Date(now - 24 * 60 * 60 * 1000); // 24 hours ago
   const stale = await db.registration.findMany({
     where: {
-      status: "REGISTERED",
+      // APPROVED too: a waitlist promotion on a voluntary program is finalized
+      // the same way (2026-10-19 audit).
+      status: { in: ["REGISTERED", "APPROVED"] },
       donationStatus: "PENDING",
       // updatedAt so a member promoted from the waitlist gets their full day.
       updatedAt: { lt: voluntaryCutoff },
@@ -71,7 +73,7 @@ export async function GET(request: Request) {
     // The where-guard makes the WAIVED transition happen at most once, so the
     // confirmation can't be re-sent on a later run.
     const res = await db.registration.updateMany({
-      where: { id: r.id, status: "REGISTERED", donationStatus: "PENDING" },
+      where: { id: r.id, status: { in: ["REGISTERED", "APPROVED"] }, donationStatus: "PENDING" },
       data: { donationStatus: "WAIVED" },
     });
     if (res.count > 0) {
