@@ -29,6 +29,10 @@ import { NextResponse } from "next/server";
 // The Memberstack migration adds a third exemption: imported legacy accounts
 // (isLegacyUnclaimed = true) sit in the quiet pool with no role/hub by design
 // and must survive until their owner logs in and is promoted.
+// A fifth (2026-10-19): anyone an admin linked another way: a teacher (profile,
+// program or lesson), a household member, a hand-granted course, someone on
+// the schedule or a rotation, or who started a conversation. A bare record
+// with only notes or tags is not staging and is still removed.
 // A fourth (2026-10-13): anyone who has registered for a program. Registering
 // as a guest creates an agreed, unverified account (the form carries the
 // agreements), which looked exactly like an abandoned /join and was deleted
@@ -55,6 +59,19 @@ export async function GET(request: Request) {
       hubMemberships: { none: {} },      // …or added to a hub (staged volunteers)
       isLegacyUnclaimed: false,          // …or imported from Memberstack (quiet pool)
       registrations: { none: {} },       // …or registered for any program
+      // …or set up by an admin in other ways (2026-10-19 audit): a teacher
+      // attached to a program or lesson, a family member added to a household,
+      // a course granted by hand. These are staged people too, and deleting
+      // them took the link with them.
+      isTeacher: false,
+      teacherProfile: null,
+      programTeachers: { none: {} },
+      lessonTeachers: { none: {} },
+      household: null,
+      courseAccess: { none: {} },
+      hubThreads2: { none: {} },         // …or started a team conversation
+      hostAssignments: { none: {} },     // …or is on the schedule, or a rotation
+      standingAssignments: { none: {} }, //   (a rotation row would also refuse the delete)
       OR: [
         // Path 1 — never agreed
         { agreedToTerms: false },
