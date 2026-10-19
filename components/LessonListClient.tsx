@@ -92,6 +92,7 @@ export default function LessonListClient({ basePath = "/tools/learning/lessons",
       <input
         type="text"
         placeholder="Search by title…"
+        aria-label="Search lessons by title"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         className="th-input th-list__search"

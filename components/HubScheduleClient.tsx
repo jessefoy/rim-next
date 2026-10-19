@@ -500,7 +500,7 @@ interface RowProps {
   /** Coordinator/manager: take the current host off a covered session. */
   onUnassign: (s: Session) => void;
   /** Multi-claim hubs only: sign me up for this session. */
-  onSignUp?: (s: Session) => void;
+  onSignUp?: (s: Session) => Promise<void> | void;
   /** Multi-claim hubs only: cancel my signup on this session. */
   onCancelSignUp?: (s: Session, assignmentId: string) => void;
   /** Multi-claim hubs only: coordinator/manager removes another person's signup. */
@@ -548,6 +548,7 @@ function AssignControl({
   return (
     <select
       className="hs-row__assign-select"
+      aria-label={`Choose a person to assign to ${session.programName} on ${fmtDateLong(session.sessionDate)}`}
       defaultValue=""
       disabled={busy}
       onChange={async (e) => {
@@ -570,6 +571,28 @@ function AssignControl({
         </option>
       ))}
     </select>
+  );
+}
+
+/** The open sign-up button: shows the work and can't be pressed twice. */
+function SignUpButton({ label, onSignUp }: { label: string; onSignUp: () => Promise<void> | void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      className="lr-btn lr-btn--host"
+      disabled={busy}
+      onClick={async () => {
+        if (busy) return;
+        setBusy(true);
+        try {
+          await onSignUp();
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? "Signing you up…" : label}
+    </button>
   );
 }
 
@@ -794,9 +817,10 @@ function HsRow({
           )
           : canClaim
             ? (
-              <button className="lr-btn lr-btn--host" onClick={() => onSignUp?.(session)}>
-                {count === 0 ? "I’ll be the first" : "I’ll be there too"}
-              </button>
+              <SignUpButton
+                label={count === 0 ? "I’ll be the first" : "I’ll be there too"}
+                onSignUp={() => onSignUp?.(session)}
+              />
             )
             : null;
       }
@@ -920,6 +944,7 @@ export default function HubScheduleClient({
 
   // Close dropdown on outside click
   const memberPillRef = useRef<HTMLDivElement>(null);
+  const memberCaretRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!memberDropdownOpen) return;
     const handler = (e: MouseEvent) => {
@@ -927,8 +952,19 @@ export default function HubScheduleClient({
         setMemberDropdownOpen(false);
       }
     };
+    // Escape closes the menu and returns focus to the button that opened it.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      setMemberDropdownOpen(false);
+      memberCaretRef.current?.focus();
+    };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [memberDropdownOpen]);
 
   const showToast = setToast;
@@ -1184,6 +1220,7 @@ export default function HubScheduleClient({
   // up the new row in the right shape.
   async function signUp(s: Session) {
     if (!s.sessionDate) return;
+    setToast(null);
     const res = await fetch(`${apiBase}/assignments`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1192,10 +1229,10 @@ export default function HubScheduleClient({
         action: "claim",
         hubSlug,
       }),
-    });
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      setToast(d.error ?? "Couldn't sign up. Try again.", "error");
+    }).catch(() => null);
+    if (!res?.ok) {
+      const d = await res?.json().catch(() => ({}));
+      setToast(d?.error ?? "You weren\u2019t signed up. Please check your connection and try again.", "error");
       return;
     }
     setToast(`You're ${coverageCopy.verb} at ${s.programName}. Thank you! We'll email you a confirmation.`);
@@ -1555,6 +1592,7 @@ export default function HubScheduleClient({
             <span className="hs-filter__count">{counts.mine}</span>
           </button>
           <button
+            ref={memberCaretRef}
             type="button"
             className={`hs-filter__caret${filter === "mine" ? " hs-filter__caret--active" : ""}`}
             onClick={(e) => {

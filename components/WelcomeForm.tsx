@@ -51,14 +51,24 @@ export default function WelcomeForm({
         body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim() }),
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Something went wrong. Please try again.");
+        // The answer may not be JSON (an error page), so read it safely and
+        // never show its raw text.
+        const data = await res.json().catch(() => null);
+        setErrorMsg(
+          res.status === 401
+            ? "You've been signed out, so this wasn't saved. Please sign in again, then fill in this page once more."
+            : data && typeof data.error === "string" && data.error
+              ? data.error
+              : "Something went wrong on our side, so this wasn't saved. What you wrote is still here. Please try again.",
+        );
+        setStatus("idle");
+        return;
       }
       // Reload session and land on My Home, which says they're all set.
       router.push(isLegacy ? "/account/dashboard?welcome=back" : "/account/dashboard?welcome=new");
       router.refresh();
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } catch {
+      setErrorMsg("We couldn't reach RIM just now, so this wasn't saved. What you wrote is still here. Please check your connection and try again.");
       setStatus("idle");
     }
   }

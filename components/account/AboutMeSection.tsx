@@ -44,6 +44,9 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
     saved: "",
     problem: "",
   });
+  // Removing the photo is asked first, in place, and can't be pressed twice.
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -73,6 +76,7 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
   }
 
   async function handleAvatarRemove() {
+    setRemoving(true);
     setPhoto({ status: "idle", saved: "", problem: "" });
     try {
       const res = await fetch("/api/account/avatar", {
@@ -82,9 +86,12 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
       });
       if (!res.ok) throw new Error("Remove failed");
       setAvatarUrl(null);
+      setConfirmRemove(false);
       setPhoto({ status: "saved", saved: "Removed. Your profile has no photo now.", problem: "" });
     } catch {
       setPhoto({ status: "error", saved: "", problem: "Your photo was not removed. Please try again." });
+    } finally {
+      setRemoving(false);
     }
   }
 
@@ -130,18 +137,43 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
             type="button"
             className="mp-bio__avatar-btn"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
+            disabled={uploading || removing}
           >
             {uploading ? "Uploading…" : avatarUrl ? "Change photo" : "Add photo"}
           </button>
-          {avatarUrl && (
+          {avatarUrl && !confirmRemove && (
             <button
               type="button"
               className="mp-bio__avatar-remove"
-              onClick={handleAvatarRemove}
+              onClick={() => { setConfirmRemove(true); setPhoto({ status: "idle", saved: "", problem: "" }); }}
+              disabled={uploading}
             >
               Remove
             </button>
+          )}
+          {avatarUrl && confirmRemove && (
+            <>
+              <p className="save-note">
+                Remove your photo? Team member lists will show no photo for you
+                until you add one again.
+              </p>
+              <button
+                type="button"
+                className="mp-bio__avatar-btn"
+                onClick={handleAvatarRemove}
+                disabled={removing}
+              >
+                {removing ? "Removing…" : "Yes, remove my photo"}
+              </button>
+              <button
+                type="button"
+                className="mp-bio__avatar-remove"
+                onClick={() => setConfirmRemove(false)}
+                disabled={removing}
+              >
+                Cancel
+              </button>
+            </>
           )}
           <input
             ref={fileInputRef}
@@ -150,7 +182,7 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
             className="mp-bio__file-input"
             onChange={handleAvatarUpload}
           />
-          <SaveNote status={uploading ? "saving" : photo.status} saved={photo.saved} problem={photo.problem} />
+          <SaveNote status={uploading || removing ? "saving" : photo.status} saved={photo.saved} problem={photo.problem} />
         </div>
       </div>
 

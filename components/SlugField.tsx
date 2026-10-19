@@ -6,7 +6,7 @@
  * CSS: th-slug-row, th-input:disabled, th-field__hint--warn
  */
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 interface Props {
   value: string;
@@ -24,12 +24,17 @@ export default function SlugField({
   hintText,
 }: Props) {
   const [locked, setLocked] = useState(isEditing);
+  const inputId = useId();
+  const hintId = useId();
+  const showHint = isEditing && (!locked || !!hintText);
 
   return (
     <div className="th-field">
-      <span className="th-field__label">Slug</span>
+      <label className="th-field__label" htmlFor={inputId}>Slug</label>
       <div className="th-slug-row">
         <input
+          id={inputId}
+          aria-describedby={showHint ? hintId : undefined}
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -48,10 +53,10 @@ export default function SlugField({
         )}
       </div>
       {isEditing && !locked && (
-        <span className="th-field__hint th-field__hint--warn">{warnText}</span>
+        <span className="th-field__hint th-field__hint--warn" id={hintId}>{warnText}</span>
       )}
       {isEditing && locked && hintText && (
-        <span className="th-field__hint">{hintText}</span>
+        <span className="th-field__hint" id={hintId}>{hintText}</span>
       )}
     </div>
   );

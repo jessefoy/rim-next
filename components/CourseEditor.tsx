@@ -122,7 +122,7 @@ const TABS = [
 type Tab = typeof TABS[number];
 
 const DANA_MODES = [
-  { value: "none", label: "None", help: "No dana step. Use for onboarding, role-assigned, or always-free courses." },
+  { value: "none", label: "None", help: "No dana step. Use for onboarding, role-assigned, or courses that never ask for payment." },
   { value: "voluntary", label: "Voluntary", help: "Pay what you want. A suggested amount can be shown as the default." },
   { value: "base_plus_dana", label: "Base + Dana", help: "Minimum required, optional more on top." },
   { value: "fixed", label: "Fixed", help: "Exact amount. No picker, no extra." },
@@ -180,6 +180,16 @@ export default function CourseEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState("");
+  // A save that moved the page to a new address carries its answer here.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const saved = url.searchParams.get("saved");
+    if (!saved) return;
+    setSuccess(true);
+    setSavedAt(saved);
+    url.searchParams.delete("saved");
+    window.history.replaceState(window.history.state, "", url.toString());
+  }, []);
   const [success, setSuccess] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [tab, setTab] = useState<Tab>("Content");
@@ -207,6 +217,10 @@ export default function CourseEditor({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState("");
+  // Deleting a category asks first, and its answer stays on that row.
+  const [confirmDeleteCat, setConfirmDeleteCat] = useState<string | null>(null);
+  const [deletingCat, setDeletingCat] = useState(false);
+  const [deleteCatProblem, setDeleteCatProblem] = useState<{ id: string; msg: string } | null>(null);
 
   // ── Access ──
   const [allowSelfEnroll, setAllowSelfEnroll] = useState(initialData?.allowSelfEnroll ?? false);
@@ -257,7 +271,39 @@ export default function CourseEditor({
   const [newLessonTitle, setNewLessonTitle] = useState("");
   const [creatingLesson, setCreatingLesson] = useState(false);
 
+  // ── Unsaved changes (mirrors ProgramEditor's guardedNavigate) ──
+  const [dirty, setDirty] = useState(false);
+  const [pendingNav, setPendingNav] = useState<string | null>(null);
+  // Escape closes the leave dialog wherever focus is (2026-10-19 review).
+  useEffect(() => {
+    if (!pendingNav) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPendingNav(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pendingNav]);
+
+  // An edit after a save: "Saved" no longer describes the page, and there is
+  // now something to lose. Searches and the new-category and new-lesson
+  // boxes (which save themselves) are marked data-transient.
+  function noteEdit(e: React.SyntheticEvent) {
+    setSuccess(false);
+    if (!(e.target as HTMLElement).closest("[data-transient]")) setDirty(true);
+  }
+
+  /** Wrap navigation: with unsaved changes, ask before leaving. */
+  function guardedNavigate(href: string) {
+    if (dirty) setPendingNav(href);
+    else router.push(href);
+  }
+
   // ── Effects ─────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   // Auto-generate slug from title
   useEffect(() => {
@@ -309,17 +355,20 @@ export default function CourseEditor({
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   function addLesson(lesson: Lesson) {
+    setDirty(true);
     setItems((prev) => [...prev, { type: "lesson", lessonId: lesson.id, lesson }]);
     setSearchQuery("");
     setSearchResults([]);
   }
 
   function removeItem(idx: number) {
+    setDirty(true);
     setItems((prev) => prev.filter((_, i) => i !== idx));
   }
 
   function addSection() {
     const uid = `s-${uidCounter.current++}`;
+    setDirty(true);
     setItems((prev) => [...prev, { type: "section", uid, label: "" }]);
   }
 
@@ -345,6 +394,7 @@ export default function CourseEditor({
       return updated;
     });
     setDragIdx(idx);
+    setDirty(true);
   }
 
   function handleDragEnd() {
@@ -372,6 +422,7 @@ export default function CourseEditor({
           ...prev,
           { type: "lesson", lessonId: newLesson.id, lesson: newLesson },
         ]);
+        setDirty(true);
         setNewLessonTitle("");
         setShowNewLessonForm(false);
       } else {
@@ -404,6 +455,7 @@ export default function CourseEditor({
           )
         );
         setCategoryId(created.id); // auto-select the new category
+        setDirty(true); // the course's category changed; it saves with the course
         setNewCategoryName("");
       } else {
         const data = await res.json().catch(() => ({}));
@@ -417,7 +469,9 @@ export default function CourseEditor({
   }
 
   async function handleDeleteCategory(catId: string) {
-    setCategoryError("");
+    if (deletingCat) return;
+    setDeleteCatProblem(null);
+    setDeletingCat(true);
     try {
       const res = await fetch(`/api/courses/categories?id=${encodeURIComponent(catId)}`, {
         method: "DELETE",
@@ -425,12 +479,25 @@ export default function CourseEditor({
       if (res.ok) {
         setCategories((prev) => prev.filter((c) => c.id !== catId));
         if (categoryId === catId) setCategoryId("");
+        setConfirmDeleteCat(null);
       } else {
         const data = await res.json().catch(() => ({}));
-        setCategoryError(data?.error ?? "Failed to delete category");
+        // The server explains a category that still has courses; anything
+        // else gets a plain sentence.
+        setDeleteCatProblem({
+          id: catId,
+          msg: res.status === 409 && data?.error
+            ? data.error
+            : "This category was not deleted. Please try again.",
+        });
       }
     } catch {
-      setCategoryError("Network error");
+      setDeleteCatProblem({
+        id: catId,
+        msg: "This category was not deleted because the connection was lost. Please try again.",
+      });
+    } finally {
+      setDeletingCat(false);
     }
   }
 
@@ -498,9 +565,14 @@ export default function CourseEditor({
         return;
       }
 
+      setDirty(false);
       if (isEditing) {
         setSuccess(true);
         setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
+        // A saved new address: the page moves to it, or every later save
+        // would go to the old one and fail (2026-10-19). The page remounts there,
+        // so the answer travels in ?saved= and is read back below.
+        if (slug !== initialData?.slug) router.replace(`${basePath}/${slug}?saved=${encodeURIComponent(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))}`);
       } else {
         const created = await res.json();
         router.push(`${basePath}/${created.slug}`);
@@ -516,7 +588,28 @@ export default function CourseEditor({
 
   return (
     // An edit after a save: "Saved" no longer describes the page.
-    <div className="pe-editor" onChangeCapture={() => setSuccess(false)} onInputCapture={() => setSuccess(false)} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSuccess(false); }}>
+    <div className="pe-editor" onChangeCapture={noteEdit} onInputCapture={noteEdit} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSuccess(false); }}>
+      {/* ── Unsaved changes confirmation (as in ProgramEditor) ── */}
+      {pendingNav && (
+        <div className="pe-overlay" onClick={() => setPendingNav(null)}>
+          <div className="pe-dialog" role="dialog" aria-modal="true" aria-labelledby="ce-leave-text" onClick={(e) => e.stopPropagation()}>
+            <p className="pe-dialog__text" id="ce-leave-text">You have unsaved changes. Leave without saving?</p>
+            <div className="pe-dialog__actions">
+              <button type="button" className="pe-btn pe-btn--primary" onClick={() => setPendingNav(null)} autoFocus>
+                Stay on this page
+              </button>
+              <button
+                type="button"
+                className="pe-btn"
+                onClick={() => { setDirty(false); router.push(pendingNav); }}
+              >
+                Leave without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="pe-editor__header">
         <h2 className="pe-editor__title">{isEditing ? "Edit Course" : "New Course"}</h2>
@@ -587,7 +680,7 @@ export default function CourseEditor({
               <span className="pe-field__help">The main body of the course landing page. Mirrors the Program description field.</span>
               <RimTiptapEditor
                 value={description}
-                onChange={setDescription}
+                onChange={(v) => { setDescription(v); setDirty(true); }}
                 placeholder="A description of this course…"
                 variant="message"
               />
@@ -722,6 +815,8 @@ export default function CourseEditor({
                     <input
                       type="text"
                       placeholder="Lesson title…"
+                      aria-label="New lesson title"
+                      data-transient
                       value={newLessonTitle}
                       onChange={(e) => setNewLessonTitle(e.target.value)}
                       onKeyDown={(e) => {
@@ -762,8 +857,10 @@ export default function CourseEditor({
               </div>
 
               <div className="th-lessons__add">
-                <p className="th-lessons__add-label">Or add an existing lesson:</p>
+                <label className="th-lessons__add-label" htmlFor="ce-lesson-search" style={{ display: "block" }}>Or add an existing lesson:</label>
                 <input
+                  id="ce-lesson-search"
+                  data-transient
                   type="text"
                   placeholder="Search lessons…"
                   value={searchQuery}
@@ -883,10 +980,12 @@ export default function CourseEditor({
             </label>
 
             <div className="pe-field">
-              <span className="pe-field__label">Add a new category</span>
+              <label className="pe-field__label" htmlFor="ce-new-category">Add a new category</label>
               <span className="pe-field__help">Categories shared with all courses. Empty categories can be deleted; populated ones can&rsquo;t (reassign first).</span>
               <div style={{ display: "flex", gap: 8 }}>
                 <input
+                  id="ce-new-category"
+                  data-transient
                   type="text"
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
@@ -910,7 +1009,7 @@ export default function CourseEditor({
                 </button>
               </div>
               {categoryError && (
-                <p className="pe-field__error">{categoryError}</p>
+                <p className="pe-field__error" role="alert">{categoryError}</p>
               )}
             </div>
 
@@ -919,24 +1018,57 @@ export default function CourseEditor({
                 <span className="pe-field__label">All categories</span>
                 <ul className="pe-list">
                   {categories.map((c) => (
-                    <li key={c.id} className="pe-list__item">
-                      <span className="pe-list__name">{c.name}</span>
-                      <span className="pe-list__meta">
-                        {c._count?.courses ?? 0} course{(c._count?.courses ?? 0) === 1 ? "" : "s"}
-                      </span>
-                      <button
-                        type="button"
-                        className="pe-btn pe-btn--small pe-btn--ghost"
-                        onClick={() => handleDeleteCategory(c.id)}
-                        disabled={(c._count?.courses ?? 0) > 0}
-                        title={
-                          (c._count?.courses ?? 0) > 0
-                            ? "Reassign the courses in this category before deleting"
-                            : "Delete this category"
-                        }
-                      >
-                        Delete
-                      </button>
+                    <li key={c.id} className="pe-list__item" style={{ flexWrap: "wrap" }}>
+                      {confirmDeleteCat === c.id ? (
+                        <>
+                          <span className="pe-list__name">
+                            Delete the category &ldquo;{c.name}&rdquo;? This cannot be undone.
+                          </span>
+                          <button
+                            type="button"
+                            className="pe-btn pe-btn--small pe-btn--danger"
+                            onClick={() => handleDeleteCategory(c.id)}
+                            disabled={deletingCat}
+                          >
+                            {deletingCat ? "Deleting…" : "Delete category"}
+                          </button>
+                          <button
+                            type="button"
+                            className="pe-btn pe-btn--small"
+                            onClick={() => { setConfirmDeleteCat(null); setDeleteCatProblem(null); }}
+                            disabled={deletingCat}
+                            autoFocus
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="pe-list__name">{c.name}</span>
+                          <span className="pe-list__meta">
+                            {c._count?.courses ?? 0} course{(c._count?.courses ?? 0) === 1 ? "" : "s"}
+                          </span>
+                          <button
+                            type="button"
+                            className="pe-btn pe-btn--small pe-btn--ghost"
+                            onClick={() => { setDeleteCatProblem(null); setConfirmDeleteCat(c.id); }}
+                            disabled={(c._count?.courses ?? 0) > 0 || deletingCat}
+                            aria-label={`Delete ${c.name}`}
+                            title={
+                              (c._count?.courses ?? 0) > 0
+                                ? "Reassign the courses in this category before deleting"
+                                : "Delete this category"
+                            }
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                      {deleteCatProblem?.id === c.id && (
+                        <p className="pe-field__error" role="alert" style={{ flexBasis: "100%" }}>
+                          {deleteCatProblem.msg}
+                        </p>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -954,7 +1086,7 @@ export default function CourseEditor({
           <div className="pe-form">
             <p className="pe-card__help">
               Each control is independent. Combine them to express different course shapes
-              (free for all, dana-required, role-locked, bundled with a live program, etc.).
+              (open to all with no payment asked, dana-required, role-locked, bundled with a live program, etc.).
             </p>
 
             <label className="pe-checkbox">
@@ -1185,7 +1317,7 @@ export default function CourseEditor({
                 </span>
                 <RimTiptapEditor
                   value={danaMessage}
-                  onChange={setDanaMessage}
+                  onChange={(v) => { setDanaMessage(v); setDirty(true); }}
                   placeholder="Describe how dana supports this course…"
                   variant="message"
                 />
@@ -1274,7 +1406,7 @@ export default function CourseEditor({
         </button>
         <button
           type="button"
-          onClick={() => router.push(basePath)}
+          onClick={() => guardedNavigate(basePath)}
           className="pe-btn"
         >
           Cancel

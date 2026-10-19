@@ -191,16 +191,44 @@ export default function HubConvThreadClient({
   // "…" menu toggle for thread-level actions
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     }
-    if (menuOpen) document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    // Escape closes the menu and returns focus to the button that opened it.
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      setMenuOpen(false);
+      menuButtonRef.current?.focus();
+    }
+    if (menuOpen) {
+      document.addEventListener("mousedown", onClick);
+      document.addEventListener("keydown", onKey);
+    }
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [menuOpen]);
 
   // Reaction picker popover per-reply
   const [reactionOpenFor, setReactionOpenFor] = useState<string | null>(null);
+  // Each reply's "Add reaction" button, so the picker can hand focus back.
+  const reactButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  useEffect(() => {
+    if (!reactionOpenFor) return;
+    const openFor = reactionOpenFor;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      setReactionOpenFor(null);
+      reactButtonRefs.current[openFor]?.focus();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [reactionOpenFor]);
   // Which reply's "who reacted" list is expanded — a tap-to-reveal that works
   // on mobile where the hover tooltip doesn't. One open at a time.
   const [whoOpenFor, setWhoOpenFor] = useState<string | null>(null);
@@ -383,6 +411,7 @@ export default function HubConvThreadClient({
   }
 
   async function react(replyId: string, emoji: string) {
+    if (reactionOpenFor === replyId) reactButtonRefs.current[replyId]?.focus();
     setReactionOpenFor(null);
     const res = await fetch(
       `/api/hub/${hubSlug}/conversations/${thread.id}/replies/${replyId}/react`,
@@ -406,6 +435,7 @@ export default function HubConvThreadClient({
 
   async function setStatus(status: string) {
     setMenuOpen(false);
+    menuButtonRef.current?.focus();
     const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -421,6 +451,7 @@ export default function HubConvThreadClient({
 
   async function togglePin() {
     setMenuOpen(false);
+    menuButtonRef.current?.focus();
     const action = thread.isPinned ? "unpin" : "pin";
     const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
       method:  "PATCH",
@@ -461,6 +492,7 @@ export default function HubConvThreadClient({
           <input
             className="hub-conv-thread__title-input"
             type="text"
+            aria-label="Topic title"
             value={editTitle}
             onChange={(e) => setEditTitle(e.target.value)}
             placeholder="Topic title"
@@ -494,6 +526,7 @@ export default function HubConvThreadClient({
         {(isCoordinator || canEditOp) && editingId !== "op" && (
           <div className="hub-conv-thread__menu-wrap" ref={menuRef}>
             <button
+              ref={menuButtonRef}
               className="hub-conv-iconbtn"
               onClick={() => setMenuOpen((v) => !v)}
               aria-label="Thread actions"
@@ -675,7 +708,7 @@ export default function HubConvThreadClient({
                                   onClick={() => react(r.id, emoji)}
                                   aria-pressed={youReacted}
                                   title={who}
-                                  aria-label={`${emoji} reaction from ${who} — ${youReacted ? "tap to remove yours" : "tap to add yours"}`}
+                                  aria-label={`${emoji} reaction from ${who}. ${youReacted ? "Tap to remove yours." : "Tap to add yours."}`}
                                 >
                                   <span>{emoji}</span>
                                   <span className="hub-conv-reaction__count">{users.length}</span>
@@ -694,6 +727,7 @@ export default function HubConvThreadClient({
                         )}
                         <div className="hub-conv-post__react-wrap">
                           <button
+                            ref={(el) => { reactButtonRefs.current[r.id] = el; }}
                             className="hub-conv-post__react-btn"
                             onClick={() => setReactionOpenFor(reactionOpenFor === r.id ? null : r.id)}
                             aria-label="Add reaction"
@@ -784,7 +818,7 @@ export default function HubConvThreadClient({
         </div>
       ) : (
         <p className="hub-conv-thread__closed-note">
-          This conversation is archived — no new replies can be added.
+          This conversation is archived, so no new replies can be added.
         </p>
       )}
 

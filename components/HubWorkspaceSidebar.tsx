@@ -241,7 +241,7 @@ export default function HubWorkspaceSidebar({
               : <ChevronsLeft size={15} strokeWidth={1.75} />}
           </button>
           {collapsed ? (
-            <div className="hub-ws-identity__mark" aria-label={hub.name}>
+            <div className="hub-ws-identity__mark" role="img" aria-label={hub.name}>
               {hub.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "H"}
             </div>
           ) : (

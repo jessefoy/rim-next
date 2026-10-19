@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PROGRAM_KINDS } from "@/lib/programKind";
+import { ActionNotice, useActionNotice } from "@/components/FormDone";
 
 interface Category {
   id: string;
@@ -22,6 +23,10 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
   const [newName, setNewName] = useState("");
   const [newKind, setNewKind] = useState("");
   const [adding, setAdding] = useState(false);
+  // The row whose Delete was pressed: its plain-language confirmation shows
+  // beneath it, with Cancel.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const { notice, say } = useActionNotice();
   // Last server-saved name per id — so a blur only PATCHes when the name changed.
   const savedNames = useRef(new Map(initial.map((c) => [c.id, c.name] as [string, string])));
   const router = useRouter();
@@ -34,18 +39,28 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (res.ok) router.refresh();
-      return res.ok;
+      if (res.ok) {
+        router.refresh();
+        say("Saved.");
+        return true;
+      }
+      const d = await res.json().catch(() => ({}));
+      say(d.error || "That change didn't save. Please try again.", "error");
+      return false;
     } catch {
+      say("That change didn't save. Please check your connection and try again.", "error");
       return false;
     } finally {
       setSaving(false);
     }
   }
 
-  function setKind(id: string, kind: string) {
+  async function setKind(id: string, kind: string) {
+    const before = items.find((c) => c.id === id)?.kind ?? null;
     setItems((prev) => prev.map((c) => (c.id === id ? { ...c, kind: kind || null } : c)));
-    patch({ id, kind: kind || null });
+    const ok = await patch({ id, kind: kind || null });
+    // Put the old kind back, so the page never shows what didn't save.
+    if (!ok) setItems((prev) => prev.map((c) => (c.id === id ? { ...c, kind: before } : c)));
   }
 
   function editName(id: string, name: string) {
@@ -65,6 +80,10 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
     if (name === savedNames.current.get(id)) return;
     const ok = await patch({ id, name });
     if (ok) savedNames.current.set(id, name);
+    else {
+      const saved = savedNames.current.get(id) ?? "";
+      setItems((prev) => prev.map((c) => (c.id === id ? { ...c, name: saved } : c)));
+    }
   }
 
   async function move(index: number, direction: "up" | "down") {
@@ -76,25 +95,27 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
     setItems(next);
     setSaving(true);
     try {
-      await fetch(`${API}/reorder`, {
+      const res = await fetch(`${API}/reorder`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderedIds: next.map((c) => c.id) }),
       });
-      router.refresh();
+      if (res.ok) {
+        router.refresh();
+        say("The new order is saved.");
+      } else {
+        setItems(prev);
+        say("The order didn't change. Please try again.", "error");
+      }
     } catch {
       setItems(prev);
+      say("The order didn't change. Please check your connection and try again.", "error");
     } finally {
       setSaving(false);
     }
   }
 
-  async function remove(id: string, name: string, count: number) {
-    if (count > 0) {
-      alert(`"${name}" has ${count} program${count !== 1 ? "s" : ""} assigned. Move them to another category first, then delete it.`);
-      return;
-    }
-    if (!confirm(`Delete the category "${name}"? This can't be undone.`)) return;
+  async function remove(id: string, name: string) {
     setSaving(true);
     try {
       const res = await fetch(API, {
@@ -105,13 +126,15 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
       if (res.ok) {
         setItems((prev) => prev.filter((c) => c.id !== id));
         savedNames.current.delete(id);
+        setConfirmingId(null);
         router.refresh();
+        say(`The category "${name}" is deleted.`);
       } else {
         const d = await res.json().catch(() => ({}));
-        alert(d.error || "Could not delete category.");
+        say(d.error || `"${name}" wasn't deleted. Please try again.`, "error");
       }
     } catch {
-      /* network error — leave the row in place */
+      say(`"${name}" wasn't deleted. Please check your connection and try again.`, "error");
     } finally {
       setSaving(false);
     }
@@ -145,12 +168,13 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
         setNewName("");
         setNewKind("");
         router.refresh();
+        say(`The category "${cat.name}" is added at the end of the list.`);
       } else {
         const d = await res.json().catch(() => ({}));
-        alert(d.error || "Could not add category.");
+        say(d.error || "The category wasn't added. Please try again.", "error");
       }
     } catch {
-      /* network error */
+      say("The category wasn't added. Please check your connection and try again.", "error");
     } finally {
       setAdding(false);
     }
@@ -171,7 +195,8 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
 
       <div className="catord__list">
         {items.map((cat, i) => (
-          <div key={cat.id} className={`catord__row${cat.hidden ? " catord__row--hidden" : ""}`}>
+          <Fragment key={cat.id}>
+          <div className={`catord__row${cat.hidden ? " catord__row--hidden" : ""}`}>
             <div className="catord__arrows">
               <button className="catord__arrow" disabled={i === 0 || saving} onClick={() => move(i, "up")} aria-label="Move up">↑</button>
               <button className="catord__arrow" disabled={i === items.length - 1 || saving} onClick={() => move(i, "down")} aria-label="Move down">↓</button>
@@ -207,11 +232,49 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
               disabled={saving}
               title={cat.programCount > 0 ? "Move its programs elsewhere before deleting" : "Delete category"}
               aria-label={`Delete ${cat.name}`}
-              onClick={() => remove(cat.id, cat.name, cat.programCount)}
+              aria-expanded={confirmingId === cat.id}
+              onClick={() => setConfirmingId(confirmingId === cat.id ? null : cat.id)}
             >
               ×
             </button>
           </div>
+          {confirmingId === cat.id && (
+            <div className="adm2-danger-confirm">
+              {cat.programCount > 0 ? (
+                <>
+                  <p className="adm2-danger-confirm__msg">
+                    &ldquo;{cat.name}&rdquo; still has {cat.programCount} program{cat.programCount !== 1 ? "s" : ""} in
+                    it. Move {cat.programCount !== 1 ? "them" : "it"} to another category first, then you can delete it.
+                  </p>
+                  <div className="adm2-danger-confirm__actions">
+                    <button type="button" className="adm2-btn--neutral" onClick={() => setConfirmingId(null)}>
+                      Close
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="adm2-danger-confirm__msg">
+                    Delete the category &ldquo;{cat.name}&rdquo;? This can&rsquo;t be undone.
+                  </p>
+                  <div className="adm2-danger-confirm__actions">
+                    <button
+                      type="button"
+                      className="adm2-btn--danger"
+                      disabled={saving}
+                      onClick={() => remove(cat.id, cat.name)}
+                    >
+                      {saving ? "Deleting…" : "Delete category"}
+                    </button>
+                    <button type="button" className="adm2-btn--neutral" disabled={saving} onClick={() => setConfirmingId(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          </Fragment>
         ))}
       </div>
 
@@ -222,6 +285,7 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
           placeholder="New category name"
+          aria-label="New category name"
           className="catord__add-input"
           disabled={adding}
         />
@@ -241,6 +305,7 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
       </div>
 
       {saving && <p className="catord__saving">Saving…</p>}
+      <ActionNotice notice={notice} onClose={() => say(null)} />
     </div>
   );
 }

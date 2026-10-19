@@ -5,7 +5,7 @@
  * CSS prefix: adm-hubs-
  */
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
 
 interface HubRow {
@@ -52,7 +52,7 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
             `${data.failedCount} failed (${data.failed.map((f: { name: string }) => f.name).join(", ")})`,
           );
         }
-        setProvisionNote(`Done — ${parts.join(" · ")}.`);
+        setProvisionNote(`Done: ${parts.join(" · ")}.`);
       }
     } catch {
       setProvisionNote("Couldn't reach the server. Please try again.");
@@ -61,20 +61,41 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
     }
   }
 
-  async function toggleStatus(hub: HubRow) {
+  // Archiving a whole team is asked first, in the page; unarchiving is not
+  // (it only brings the team back). The answer stays beside the row.
+  const [confirming, setConfirming] = useState<{ id: string; warning?: string } | null>(null);
+  const [rowError, setRowError] = useState<{ id: string; msg: string } | null>(null);
+
+  async function toggleStatus(hub: HubRow, confirmCoverageClear = false) {
     setToggling(hub.id);
+    setRowError(null);
     const newStatus = hub.status === "ACTIVE" ? "ARCHIVED" : "ACTIVE";
     try {
       const res = await fetch(`/api/admin/hubs/${hub.slug}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, ...(confirmCoverageClear && { confirmCoverageClear: true }) }),
       });
-      if (res.ok) {
-        setHubs((prev) =>
-          prev.map((h) => (h.id === hub.id ? { ...h, status: newStatus } : h)),
-        );
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409 && data.requiresConfirmation) {
+        // The team still has people on its schedule: say what will be
+        // cleared and ask once more.
+        setConfirming({ id: hub.id, warning: data.error });
+        return;
       }
+      if (!res.ok) {
+        setRowError({
+          id: hub.id,
+          msg: data.error ?? `${hub.name} couldn't be ${newStatus === "ARCHIVED" ? "archived" : "unarchived"}. Nothing changed. Please try again.`,
+        });
+        return;
+      }
+      setHubs((prev) =>
+        prev.map((h) => (h.id === hub.id ? { ...h, status: newStatus } : h)),
+      );
+      setConfirming(null);
+    } catch {
+      setRowError({ id: hub.id, msg: "Couldn't reach the server, so nothing changed. Please try again." });
     } finally {
       setToggling(null);
     }
@@ -85,36 +106,82 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
 
   function renderRow(hub: HubRow) {
     const isArchived = hub.status !== "ACTIVE";
+    const busy = toggling === hub.id;
+    const asking = confirming?.id === hub.id;
+    const problem = rowError?.id === hub.id ? rowError.msg : null;
     return (
-      <tr key={hub.id} className={isArchived ? "adm-hubs-row--archived" : ""}>
-        <td>
-          <Link href={`/admin/hubs/${hub.slug}/edit`} className="adm-hubs-name-link">
-            {hub.name}
-          </Link>
-        </td>
-        <td className="adm-hubs-slug">{hub.slug}</td>
-        <td>{TYPE_LABELS[hub.type] ?? hub.type}</td>
-        <td>
-          <span className={`adm-hubs-status adm-hubs-status--${hub.status.toLowerCase()}`}>
-            {hub.status === "ACTIVE" ? "Active" : "Archived"}
-          </span>
-        </td>
-        <td className="adm-hubs-count">{hub._count.members}</td>
-        <td>
-          <div className="adm-hubs-row-actions">
-            <Link href={`/admin/hubs/${hub.slug}/edit`} className="adm-hubs-btn-edit">
-              Edit
+      <Fragment key={hub.id}>
+        <tr className={isArchived ? "adm-hubs-row--archived" : ""}>
+          <td>
+            <Link href={`/admin/hubs/${hub.slug}/edit`} className="adm-hubs-name-link">
+              {hub.name}
             </Link>
-            <button
-              className="adm-hubs-btn-toggle"
-              onClick={() => toggleStatus(hub)}
-              disabled={toggling === hub.id}
-            >
-              {toggling === hub.id ? "..." : isArchived ? "Unarchive" : "Archive"}
-            </button>
-          </div>
-        </td>
-      </tr>
+          </td>
+          <td className="adm-hubs-slug">{hub.slug}</td>
+          <td>{TYPE_LABELS[hub.type] ?? hub.type}</td>
+          <td>
+            <span className={`adm-hubs-status adm-hubs-status--${hub.status.toLowerCase()}`}>
+              {hub.status === "ACTIVE" ? "Active" : "Archived"}
+            </span>
+          </td>
+          <td className="adm-hubs-count">{hub._count.members}</td>
+          <td>
+            <div className="adm-hubs-row-actions">
+              <Link href={`/admin/hubs/${hub.slug}/edit`} className="adm-hubs-btn-edit">
+                Edit
+              </Link>
+              <button
+                type="button"
+                className="adm-hubs-btn-toggle"
+                onClick={() => {
+                  setRowError(null);
+                  if (isArchived) toggleStatus(hub);
+                  else setConfirming({ id: hub.id });
+                }}
+                disabled={busy || asking}
+              >
+                {busy && !asking ? "Unarchiving…" : isArchived ? "Unarchive" : "Archive"}
+              </button>
+            </div>
+          </td>
+        </tr>
+        {(asking || problem) && (
+          <tr className="adm-hubs-divider-row">
+            <td colSpan={6}>
+              {asking && (
+                <div className="adm2-danger-confirm">
+                  <p className="adm2-danger-confirm__msg">
+                    {confirming?.warning
+                      ? confirming.warning
+                      : `Archive ${hub.name}? Its members will no longer see it among their teams. You can unarchive it later.`}
+                  </p>
+                  <div className="adm2-danger-confirm__actions">
+                    <button
+                      type="button"
+                      className="adm2-btn--danger"
+                      onClick={() => toggleStatus(hub, !!confirming?.warning)}
+                      disabled={busy}
+                    >
+                      {busy ? "Archiving…" : confirming?.warning ? "Archive and clear the schedule" : "Archive this team"}
+                    </button>
+                    <button
+                      type="button"
+                      className="adm2-btn--neutral"
+                      onClick={() => { setConfirming(null); setRowError(null); }}
+                      disabled={busy}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+              {problem && (
+                <p className="save-note save-note--error" role="alert">{problem}</p>
+              )}
+            </td>
+          </tr>
+        )}
+      </Fragment>
     );
   }
 
@@ -131,7 +198,7 @@ export default function HubAdminList({ hubs: initial, showCreated }: Props) {
         >
           {provisioningAll ? "Setting up files…" : "Set up files for all teams"}
         </button>
-        {provisionNote && <span className="adm-hubs-hint">{provisionNote}</span>}
+        <span className="adm-hubs-hint" role="status">{provisionNote}</span>
       </div>
 
       <div className="adm-hubs-table-wrap">

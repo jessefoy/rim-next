@@ -114,6 +114,7 @@ export default function HubActivityClient({
   const [view, setView] = useState<ActivityView>("timeline");
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const viewMenuRef = useRef<HTMLDivElement>(null);
+  const viewButtonRef = useRef<HTMLButtonElement>(null);
   const [pages, setPages] = useState<Record<string, ActivityPageState>>({
     [pageKey(initialFilter, "timeline")]: {
       items: initialItems,
@@ -141,8 +142,19 @@ export default function HubActivityClient({
         setViewMenuOpen(false);
       }
     };
+    // Escape closes the menu and returns focus to the View button.
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setViewMenuOpen(false);
+      viewButtonRef.current?.focus();
+    };
     document.addEventListener("mousedown", closeOnOutsideClick);
-    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
   }, [viewMenuOpen]);
 
   async function fetchPage(nextFilter: HubActivityFilter, nextView: ActivityView, cursor?: string | null) {
@@ -187,6 +199,7 @@ export default function HubActivityClient({
   function changeView(next: ActivityView) {
     setView(next);
     setViewMenuOpen(false);
+    viewButtonRef.current?.focus();
     const key = pageKey(filter, next);
     if (!pages[key]?.loaded) void fetchPage(filter, next);
   }
@@ -209,7 +222,7 @@ export default function HubActivityClient({
       <header className="hub-act__header">
         <div>
           <h1 className="hub-act__title">Updates</h1>
-          <p className="hub-act__intro">Meaningful changes from Conversations, Files, Members, and this Space’s apps.</p>
+          <p className="hub-act__intro">Meaningful changes from Conversations, Files, Members, and this team’s apps.</p>
         </div>
         <div className="hub-act__controls">
           <div className="hub-act__filters" role="group" aria-label="Filter updates">
@@ -229,6 +242,7 @@ export default function HubActivityClient({
             <span className="hub-act__view-label">View</span>
             <div className="hub-act__view-picker">
               <button
+                ref={viewButtonRef}
                 type="button"
                 className="hub-act__view-button"
                 aria-haspopup="menu"

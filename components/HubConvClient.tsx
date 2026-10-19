@@ -101,6 +101,8 @@ function extractText(value: any): string {
   return value.map(blockText).filter(Boolean).join(" ");
 }
 
+const CAT_OFFLINE = "That didn\u2019t go through. Please check your connection and try again.";
+
 function hasContent(value: any): boolean {
   return extractText(value).trim().length > 0;
 }
@@ -128,6 +130,7 @@ function AddCategoryForm({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder="Add a category"
+        aria-label="New category name"
         maxLength={40}
       />
       <button
@@ -135,7 +138,7 @@ function AddCategoryForm({
         className="btn--ghost hub-conv-manage__addbtn"
         disabled={busy || !draft.trim()}
       >
-        Add
+        {busy ? "Adding…" : "Add"}
       </button>
     </form>
   );
@@ -186,6 +189,18 @@ export default function HubConvClient({
   const [renameDraft, setRenameDraft] = useState("");
   const [catError, setCatError] = useState<string | null>(null);
   const [catBusy, setCatBusy] = useState(false);
+  // Deleting a category asks first, in the row itself.
+  const [confirmDeleteCat, setConfirmDeleteCat] = useState<string | null>(null);
+  // Closing a new topic with words in it asks first, so one tap can't lose it.
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const keepWritingRef = useRef<HTMLButtonElement>(null);
+  const cancelDeleteCatRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (confirmDeleteCat) cancelDeleteCatRef.current?.focus();
+  }, [confirmDeleteCat]);
+  useEffect(() => {
+    if (confirmDiscard) keepWritingRef.current?.focus();
+  }, [confirmDiscard]);
 
   const titleRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -199,20 +214,26 @@ export default function HubConvClient({
     if (!trimmed) return null;
     setCatBusy(true);
     setCatError(null);
-    const res = await fetch(`/api/hub/${hubSlug}/categories`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ name: trimmed }),
-    });
-    setCatBusy(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setCatError(data?.error ?? "Could not add category");
+    try {
+      const res = await fetch(`/api/hub/${hubSlug}/categories`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ name: trimmed }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setCatError(data?.error ?? "That category was not added. Please try again.");
+        return null;
+      }
+      const data = await res.json();
+      setCategoryList(data.categories);
+      return trimmed;
+    } catch {
+      setCatError(CAT_OFFLINE);
       return null;
+    } finally {
+      setCatBusy(false);
     }
-    const data = await res.json();
-    setCategoryList(data.categories);
-    return trimmed;
   }
 
   async function renameCategory(oldName: string, newName: string) {
@@ -223,18 +244,25 @@ export default function HubConvClient({
     }
     setCatBusy(true);
     setCatError(null);
-    const res = await fetch(`/api/hub/${hubSlug}/categories`, {
-      method:  "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ oldName, newName: trimmed }),
-    });
-    setCatBusy(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setCatError(data?.error ?? "Could not rename category");
+    let data: { categories: string[] };
+    try {
+      const res = await fetch(`/api/hub/${hubSlug}/categories`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ oldName, newName: trimmed }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setCatError(err?.error ?? "That category was not renamed. Please try again.");
+        return;
+      }
+      data = await res.json();
+    } catch {
+      setCatError(CAT_OFFLINE);
       return;
+    } finally {
+      setCatBusy(false);
     }
-    const data = await res.json();
     setCategoryList(data.categories);
     setRenamingCat(null);
     // Reflect rename on threads in view
@@ -247,22 +275,27 @@ export default function HubConvClient({
   }
 
   async function deleteCategory(name: string) {
-    if (!window.confirm(
-      `Delete "${name}"? Any topics in this category will move to a remaining category.`,
-    )) return;
     setCatBusy(true);
     setCatError(null);
-    const res = await fetch(
-      `/api/hub/${hubSlug}/categories?name=${encodeURIComponent(name)}`,
-      { method: "DELETE" },
-    );
-    setCatBusy(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setCatError(data?.error ?? "Could not delete category");
+    let data: { categories: string[]; reassignedTo: string };
+    try {
+      const res = await fetch(
+        `/api/hub/${hubSlug}/categories?name=${encodeURIComponent(name)}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setCatError(err?.error ?? "That category was not deleted. Please try again.");
+        return;
+      }
+      data = await res.json();
+    } catch {
+      setCatError(CAT_OFFLINE);
       return;
+    } finally {
+      setCatBusy(false);
     }
-    const data = await res.json();
+    setConfirmDeleteCat(null);
     setCategoryList(data.categories);
     const reassigned: string = data.reassignedTo;
     const remap = (t: Thread) =>
@@ -272,6 +305,21 @@ export default function HubConvClient({
     if (filterCategory === name) setFilterCategory(null);
     if (composeCategory === name) setComposeCategory(data.categories[0] ?? "General");
   }
+  function discardCompose() {
+    setShowCompose(false);
+    setTitle("");
+    setBody("");
+    setPostError(null);
+    setConfirmDiscard(false);
+  }
+
+  /** Cancel or X on a new topic: one tap when empty, a question when not. */
+  function closeCompose() {
+    if (saving) return;
+    if (title.trim() || hasContent(body)) setConfirmDiscard(true);
+    else discardCompose();
+  }
+
   const visitedAt = lastVisitedAt ? new Date(lastVisitedAt).getTime() : 0;
 
   const displayed = view === "open" ? threads : (closedThreads ?? []);
@@ -284,8 +332,9 @@ export default function HubConvClient({
   async function loadClosed() {
     if (closedThreads !== null) return;
     setLoadingClosed(true);
-    const res = await fetch(`/api/hub/${hubSlug}/conversations?status=CLOSED`);
-    if (res.ok) {
+    const res = await fetch(`/api/hub/${hubSlug}/conversations?status=CLOSED`).catch(() => null);
+    if (!res?.ok) say("The archived conversations didn\u2019t load. Please try again.", "error");
+    if (res?.ok) {
       const data = await res.json();
       setClosedThreads(
         data.map((t: any) => ({
@@ -511,7 +560,7 @@ export default function HubConvClient({
           </div>
           <button
             className="hub-conv-newbtn"
-            onClick={() => { setShowCompose((v) => !v); setPosted(null); }}
+            onClick={() => { setShowCompose((v) => !v); setPosted(null); setConfirmDiscard(false); }}
           >
             <Plus size={16} strokeWidth={2} />
             <span>New topic</span>
@@ -542,7 +591,7 @@ export default function HubConvClient({
         )}
         <button
           className="hub-conv-chip hub-conv-chip--ghost"
-          onClick={() => { setShowManage((v) => !v); setCatError(null); setRenamingCat(null); }}
+          onClick={() => { setShowManage((v) => !v); setCatError(null); setRenamingCat(null); setConfirmDeleteCat(null); }}
           aria-label="Manage categories"
           aria-expanded={showManage}
           title="Manage categories"
@@ -559,13 +608,13 @@ export default function HubConvClient({
             <span className="hub-conv-manage__title">Categories</span>
             <button
               className="hub-conv-manage__close"
-              onClick={() => { setShowManage(false); setRenamingCat(null); setCatError(null); }}
+              onClick={() => { setShowManage(false); setRenamingCat(null); setCatError(null); setConfirmDeleteCat(null); }}
               aria-label="Close"
             >
               <X size={16} />
             </button>
           </div>
-          {catError && <div className="hub-conv-manage__err">{catError}</div>}
+          {catError && <div className="hub-conv-manage__err" role="alert">{catError}</div>}
           <ul className="hub-conv-manage__list">
             {categoryList.map((cat) => (
               <li key={cat} className="hub-conv-manage__row">
@@ -575,6 +624,7 @@ export default function HubConvClient({
                       className="hub-conv-manage__input"
                       type="text"
                       value={renameDraft}
+                      aria-label={`New name for ${cat}`}
                       autoFocus
                       onChange={(e) => setRenameDraft(e.target.value)}
                       onKeyDown={(e) => {
@@ -601,12 +651,33 @@ export default function HubConvClient({
                       <X size={15} />
                     </button>
                   </>
+                ) : confirmDeleteCat === cat ? (
+                  <>
+                    <span className="hub-conv-manage__name">
+                      Delete &ldquo;{cat}&rdquo;? Any topics in it will move to another category.
+                    </span>
+                    <button
+                      ref={cancelDeleteCatRef}
+                      className="btn--ghost"
+                      onClick={() => setConfirmDeleteCat(null)}
+                      disabled={catBusy}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="hub-action-btn hub-action-btn--del"
+                      onClick={() => deleteCategory(cat)}
+                      disabled={catBusy}
+                    >
+                      {catBusy ? "Deleting…" : "Delete"}
+                    </button>
+                  </>
                 ) : (
                   <>
                     <span className="hub-conv-manage__name">{cat}</span>
                     <button
                       className="hub-conv-iconbtn"
-                      onClick={() => { setRenamingCat(cat); setRenameDraft(cat); setCatError(null); }}
+                      onClick={() => { setRenamingCat(cat); setRenameDraft(cat); setCatError(null); setConfirmDeleteCat(null); }}
                       title="Rename"
                       aria-label={`Rename ${cat}`}
                     >
@@ -615,7 +686,7 @@ export default function HubConvClient({
                     {isCoordinator && categoryList.length > 1 && (
                       <button
                         className="hub-conv-iconbtn"
-                        onClick={() => deleteCategory(cat)}
+                        onClick={() => { setConfirmDeleteCat(cat); setRenamingCat(null); setCatError(null); }}
                         disabled={catBusy}
                         title="Delete"
                         aria-label={`Delete ${cat}`}
@@ -644,8 +715,8 @@ export default function HubConvClient({
             <span className="hub-conv-compose__label">New topic</span>
             <button
               className="hub-conv-compose__close"
-              onClick={() => { setShowCompose(false); setTitle(""); setBody(""); }}
-              aria-label="Cancel"
+              onClick={closeCompose}
+              aria-label="Cancel new topic"
             >
               <X size={16} />
             </button>
@@ -656,10 +727,12 @@ export default function HubConvClient({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            aria-label="Topic title"
             placeholder="What would you like to discuss?"
           />
           <select
             className="hub-conv-compose__cat"
+            aria-label="Category"
             value={composeCategory}
             onChange={async (e) => {
               const val = e.target.value;
@@ -708,21 +781,34 @@ export default function HubConvClient({
           {postError && (
             <p className="save-note save-note--error" role="alert">{postError}</p>
           )}
-          <div className="hub-conv-compose__actions">
-            <button
-              className="btn--ghost"
-              onClick={() => { setShowCompose(false); setTitle(""); setBody(""); setPostError(null); }}
-            >
-              Cancel
-            </button>
-            <button
-              className="btn"
-              onClick={postThread}
-              disabled={saving || !title.trim() || !hasContent(body)}
-            >
-              {saving ? "Posting…" : "Post topic"}
-            </button>
-          </div>
+          {confirmDiscard ? (
+            <>
+              <p className="save-note" id="hub-conv-discard-q">
+                Discard this topic? What you wrote will be lost.
+              </p>
+              <div className="hub-conv-compose__actions" role="group" aria-labelledby="hub-conv-discard-q">
+                <button ref={keepWritingRef} className="btn--ghost" onClick={() => { setConfirmDiscard(false); titleRef.current?.focus(); }}>
+                  Keep writing
+                </button>
+                <button className="hub-action-btn hub-action-btn--del" onClick={discardCompose}>
+                  Discard
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="hub-conv-compose__actions">
+              <button className="btn--ghost" onClick={closeCompose} disabled={saving}>
+                Cancel
+              </button>
+              <button
+                className="btn"
+                onClick={postThread}
+                disabled={saving || !title.trim() || !hasContent(body)}
+              >
+                {saving ? "Posting…" : "Post topic"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

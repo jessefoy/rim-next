@@ -50,6 +50,14 @@ function memberDisplayName(u: HouseholdUser) {
   return full || u.email;
 }
 
+/** The server's own reason when it gives one; otherwise the kind fallback. */
+async function reasonFrom(res: Response, fallback: string) {
+  const data = await res.json().catch(() => null);
+  return (data && typeof data.error === "string" && data.error) || fallback;
+}
+
+const OFFLINE = "Couldn't reach the server, so nothing changed. Please try again.";
+
 function relationshipLabel(type: string, custom: string | null) {
   if (type === "OTHER" && custom) return custom;
   return RELATIONSHIP_LABELS[type] ?? type;
@@ -72,30 +80,36 @@ export default function HouseholdSection({ memberId, household: initialHousehold
   const [joinSearch, setJoinSearch] = useState("");
   const [joinResults, setJoinResults] = useState<HouseholdUser[]>([]);
   const [joinSearching, setJoinSearching] = useState(false);
+  const [checkingId, setCheckingId] = useState<string | null>(null);
   const [joinTarget, setJoinTarget] = useState<{ householdId: string; householdName: string | null } | null>(null);
   const [joinRel, setJoinRel] = useState("OTHER");
   const [joinCustom, setJoinCustom] = useState("");
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
-  // Remove
+  // Remove (asked first, in the card)
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const handleCreate = async () => {
     setCreating(true);
     setCreateError(null);
-    const res = await fetch("/api/admin/households", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: newName || null,
-        memberId,
-        relationshipType: newRel,
-        relationshipCustom: newRel === "OTHER" ? newCustom : null,
-      }),
-    });
-    setCreating(false);
-    if (res.ok) {
+    try {
+      const res = await fetch("/api/admin/households", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newName || null,
+          memberId,
+          relationshipType: newRel,
+          relationshipCustom: newRel === "OTHER" ? newCustom : null,
+        }),
+      });
+      if (!res.ok) {
+        setCreateError(await reasonFrom(res, "The household wasn't created. Please try again."));
+        return;
+      }
       const data = await res.json();
       setHousehold({
         id: data.id,
@@ -110,61 +124,89 @@ export default function HouseholdSection({ memberId, household: initialHousehold
         otherMembers: [],
       });
       setMode("idle");
-    } else {
-      const d = await res.json();
-      setCreateError(d.error ?? "Error creating household.");
+    } catch {
+      setCreateError("Couldn't reach the server, so the household wasn't created. Please try again.");
+    } finally {
+      setCreating(false);
     }
   };
 
   const searchForJoin = useCallback(async (q: string) => {
     if (q.length < 2) { setJoinResults([]); return; }
     setJoinSearching(true);
-    const res = await fetch(`/api/admin/members?q=${encodeURIComponent(q)}&limit=8`);
-    setJoinSearching(false);
-    if (res.ok) {
+    setJoinError(null);
+    try {
+      const res = await fetch(`/api/admin/members?q=${encodeURIComponent(q)}&limit=8`);
+      if (!res.ok) { setJoinError("The search didn't work just now. Please try typing again."); return; }
       const data = await res.json();
       setJoinResults((data.members ?? data).filter((u: HouseholdUser) => u.id !== memberId));
+    } catch {
+      setJoinError("The search didn't work just now. Please try typing again.");
+    } finally {
+      setJoinSearching(false);
     }
   }, [memberId]);
 
-  const checkMemberHousehold = async (userId: string) => {
-    // Fetch that member's detail to get their household
-    const res = await fetch(`/api/admin/members/${userId}/household`);
-    if (!res.ok) return null;
-    return res.json();
-  };
-
   const handleSelectJoinTarget = async (u: HouseholdUser) => {
-    const hh = await checkMemberHousehold(u.id);
-    if (!hh) {
-      setJoinError(`${memberDisplayName(u)} is not in a household yet. Create one instead.`);
-      return;
-    }
-    setJoinTarget({ householdId: hh.id, householdName: hh.name });
-    setJoinSearch("");
-    setJoinResults([]);
+    setCheckingId(u.id);
     setJoinError(null);
+    try {
+      // That member's household, if they have one (null when they don't).
+      const res = await fetch(`/api/admin/members/${u.id}/household`);
+      if (!res.ok) {
+        setJoinError(await reasonFrom(res, `Couldn't look up ${memberDisplayName(u)}'s household. Please try again.`));
+        return;
+      }
+      const hh = await res.json();
+      if (!hh) {
+        setJoinError(`${memberDisplayName(u)} is not in a household yet. Create one instead.`);
+        return;
+      }
+      setJoinTarget({ householdId: hh.id, householdName: hh.name });
+      setJoinSearch("");
+      setJoinResults([]);
+    } catch {
+      setJoinError(`Couldn't reach the server to look up ${memberDisplayName(u)}'s household. Please try again.`);
+    } finally {
+      setCheckingId(null);
+    }
   };
 
   const handleJoin = async () => {
     if (!joinTarget) return;
     setJoining(true);
     setJoinError(null);
-    const res = await fetch(`/api/admin/households/${joinTarget.householdId}/members`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: memberId,
+    try {
+      const res = await fetch(`/api/admin/households/${joinTarget.householdId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: memberId,
+          relationshipType: joinRel,
+          relationshipCustom: joinRel === "OTHER" ? joinCustom : null,
+        }),
+      });
+      if (!res.ok) {
+        setJoinError(await reasonFrom(res, "This member wasn't added to the household. Please try again."));
+        return;
+      }
+      // They are in. Show the household as it now stands; if that read
+      // fails, show what we already know rather than nothing.
+      const known: HouseholdInfo = {
+        id: joinTarget.householdId,
+        name: joinTarget.householdName,
+        addressLine1: null,
+        addressCity: null,
+        addressState: null,
+        addressZip: null,
+        isPrimary: false,
         relationshipType: joinRel,
-        relationshipCustom: joinRel === "OTHER" ? joinCustom : null,
-      }),
-    });
-    setJoining(false);
-    if (res.ok) {
-      // Refresh household data by fetching the new household detail
-      const hhRes = await fetch(`/api/admin/households/${joinTarget.householdId}`);
-      if (hhRes.ok) {
-        const hhData = await hhRes.json();
+        relationshipCustom: joinRel === "OTHER" ? joinCustom || null : null,
+        otherMembers: [],
+      };
+      const hhRes = await fetch(`/api/admin/households/${joinTarget.householdId}`).catch(() => null);
+      const hhData = hhRes?.ok ? await hhRes.json().catch(() => null) : null;
+      if (hhData?.members) {
         const me = hhData.members.find((m: { userId: string }) => m.userId === memberId);
         setHousehold({
           id: hhData.id,
@@ -186,24 +228,36 @@ export default function HouseholdSection({ memberId, household: initialHousehold
               user: m.user,
             })),
         });
+      } else {
+        setHousehold(known);
       }
       setMode("idle");
-    } else {
-      const d = await res.json();
-      setJoinError(d.error ?? "Error joining household.");
+    } catch {
+      setJoinError("Couldn't reach the server, so this member wasn't added. Please try again.");
+    } finally {
+      setJoining(false);
     }
   };
 
   const handleRemove = async () => {
     if (!household) return;
     setRemoving(true);
-    const res = await fetch(`/api/admin/households/${household.id}/members/${memberId}`, {
-      method: "DELETE",
-    });
-    setRemoving(false);
-    if (res.ok) {
+    setRemoveError(null);
+    try {
+      const res = await fetch(`/api/admin/households/${household.id}/members/${memberId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        setRemoveError(await reasonFrom(res, "This member wasn't removed from the household. Please try again."));
+        return;
+      }
+      setConfirmRemove(false);
       setHousehold(null);
       setMode("idle");
+    } catch {
+      setRemoveError(OFFLINE);
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -228,8 +282,9 @@ export default function HouseholdSection({ memberId, household: initialHousehold
         {mode === "creating" && (
           <div className="hh-create-form">
             <div className="adm-form__field">
-              <label className="adm-form__label">Household name (optional)</label>
+              <label className="adm-form__label" htmlFor="hhs-new-name">Household name (optional)</label>
               <input
+                id="hhs-new-name"
                 className="adm-form__input"
                 placeholder="e.g. The Smith Family"
                 value={newName}
@@ -238,8 +293,8 @@ export default function HouseholdSection({ memberId, household: initialHousehold
             </div>
             <div className="adm-form__row" style={{ gap: "12px", alignItems: "flex-end" }}>
               <div className="adm-form__field" style={{ flex: 1 }}>
-                <label className="adm-form__label">This member&rsquo;s role in household</label>
-                <select className="adm-form__select" value={newRel} onChange={(e) => setNewRel(e.target.value)}>
+                <label className="adm-form__label" htmlFor="hhs-new-rel">This member&rsquo;s role in household</label>
+                <select id="hhs-new-rel" className="adm-form__select" value={newRel} onChange={(e) => setNewRel(e.target.value)}>
                   {Object.entries(RELATIONSHIP_LABELS).map(([v, l]) => (
                     <option key={v} value={v}>{l}</option>
                   ))}
@@ -247,8 +302,9 @@ export default function HouseholdSection({ memberId, household: initialHousehold
               </div>
               {newRel === "OTHER" && (
                 <div className="adm-form__field" style={{ flex: 1 }}>
-                  <label className="adm-form__label">Describe (optional)</label>
+                  <label className="adm-form__label" htmlFor="hhs-new-custom">Describe (optional)</label>
                   <input
+                    id="hhs-new-custom"
                     className="adm-form__input"
                     placeholder="e.g. guardian"
                     value={newCustom}
@@ -257,12 +313,12 @@ export default function HouseholdSection({ memberId, household: initialHousehold
                 </div>
               )}
             </div>
-            {createError && <p className="adm-form__hint adm-form__hint--warn">{createError}</p>}
+            {createError && <p className="adm-form__hint adm-form__hint--warn" role="alert">{createError}</p>}
             <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
               <button className="adm-btn adm-btn--primary" onClick={handleCreate} disabled={creating}>
                 {creating ? "Creating…" : "Create household"}
               </button>
-              <button className="adm-btn adm-btn--ghost" onClick={() => setMode("idle")}>Cancel</button>
+              <button className="adm-btn adm-btn--ghost" onClick={() => { setMode("idle"); setCreateError(null); }} disabled={creating}>Cancel</button>
             </div>
           </div>
         )}
@@ -274,6 +330,7 @@ export default function HouseholdSection({ memberId, household: initialHousehold
               <div className="hh-search">
                 <input
                   className="adm-form__input"
+                  aria-label="Search members by name or email"
                   placeholder="Search by name or email…"
                   value={joinSearch}
                   onChange={(e) => {
@@ -287,15 +344,15 @@ export default function HouseholdSection({ memberId, household: initialHousehold
                   <ul className="hh-search__results">
                     {joinResults.map((u) => (
                       <li key={u.id}>
-                        <button className="hh-search__result" onClick={() => handleSelectJoinTarget(u)}>
-                          {memberDisplayName(u)}
+                        <button className="hh-search__result" onClick={() => handleSelectJoinTarget(u)} disabled={checkingId !== null}>
+                          {checkingId === u.id ? "Checking…" : memberDisplayName(u)}
                           <span className="hh-search__email">{u.email}</span>
                         </button>
                       </li>
                     ))}
                   </ul>
                 )}
-                {joinError && <p className="adm-form__hint adm-form__hint--warn">{joinError}</p>}
+                {joinError && <p className="adm-form__hint adm-form__hint--warn" role="alert">{joinError}</p>}
               </div>
             ) : (
               <div className="hh-add-form">
@@ -306,8 +363,8 @@ export default function HouseholdSection({ memberId, household: initialHousehold
                 </p>
                 <div className="hh-inline-form">
                   <div className="adm-form__field hh-inline-form__field">
-                    <label className="adm-form__label">Relationship</label>
-                    <select className="adm-form__select" value={joinRel} onChange={(e) => setJoinRel(e.target.value)}>
+                    <label className="adm-form__label" htmlFor="hhs-join-rel">Relationship</label>
+                    <select id="hhs-join-rel" className="adm-form__select" value={joinRel} onChange={(e) => setJoinRel(e.target.value)}>
                       {Object.entries(RELATIONSHIP_LABELS).map(([v, l]) => (
                         <option key={v} value={v}>{l}</option>
                       ))}
@@ -315,8 +372,9 @@ export default function HouseholdSection({ memberId, household: initialHousehold
                   </div>
                   {joinRel === "OTHER" && (
                     <div className="adm-form__field hh-inline-form__field">
-                      <label className="adm-form__label">Describe (optional)</label>
+                      <label className="adm-form__label" htmlFor="hhs-join-custom">Describe (optional)</label>
                       <input
+                        id="hhs-join-custom"
                         className="adm-form__input"
                         placeholder="e.g. guardian"
                         value={joinCustom}
@@ -328,7 +386,7 @@ export default function HouseholdSection({ memberId, household: initialHousehold
                     {joining ? "Adding…" : "Join household"}
                   </button>
                 </div>
-                {joinError && <p className="adm-form__hint adm-form__hint--warn">{joinError}</p>}
+                {joinError && <p className="adm-form__hint adm-form__hint--warn" role="alert">{joinError}</p>}
               </div>
             )}
             <button className="adm-btn adm-btn--ghost" onClick={() => { setMode("idle"); setJoinTarget(null); setJoinError(null); }} style={{ marginTop: "8px" }}>
@@ -376,13 +434,32 @@ export default function HouseholdSection({ memberId, household: initialHousehold
           </ul>
         )}
         <div className="hh-household-card__footer">
-          <button
-            className="adm-btn adm-btn--sm adm-btn--danger-ghost"
-            onClick={handleRemove}
-            disabled={removing}
-          >
-            {removing ? "Removing…" : "Remove from household"}
-          </button>
+          {!confirmRemove ? (
+            <button
+              className="adm-btn adm-btn--sm adm-btn--danger-ghost"
+              onClick={() => { setConfirmRemove(true); setRemoveError(null); }}
+            >
+              Remove from household
+            </button>
+          ) : (
+            <div className="adm-confirm">
+              <p>
+                Take this member out of {household.name ?? "this household"}? The household
+                itself stays, with anyone else still in it.
+              </p>
+              <button className="adm-btn adm-btn--danger" onClick={handleRemove} disabled={removing}>
+                {removing ? "Removing…" : "Yes, remove"}
+              </button>
+              <button
+                className="adm-btn adm-btn--ghost"
+                onClick={() => { setConfirmRemove(false); setRemoveError(null); }}
+                disabled={removing}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          {removeError && <p className="save-note save-note--error" role="alert">{removeError}</p>}
         </div>
       </div>
     </section>

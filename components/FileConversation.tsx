@@ -12,7 +12,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { relativeDate } from "@/lib/relativeDate";
 import NotifyPicker, { type NotifyValue, NOTIFY_NONE } from "@/components/NotifyPicker";
 
@@ -54,6 +54,15 @@ export default function FileConversation({
   const [notify, setNotify] = useState<NotifyValue>(NOTIFY_NONE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Deleting a comment asks first, in the comment itself; a problem with a
+  // comment (delete, reaction) is said beside it, not down at the compose box.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [commentError, setCommentError] = useState<{ id: string; msg: string } | null>(null);
+  const cancelDeleteRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (confirmDeleteId) cancelDeleteRef.current?.focus();
+  }, [confirmDeleteId]);
 
   async function post() {
     const text = draft.trim();
@@ -82,22 +91,28 @@ export default function FileConversation({
   }
 
   async function remove(id: string) {
-    setError(null);
+    if (deleting) return;
+    setDeleting(true);
+    setCommentError(null);
     try {
       const res = await fetch(`/api/files/${fileId}/conversation/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? GENERIC_ERROR);
+        setCommentError({ id, msg: data.error ?? "This comment was not deleted. Please try again." });
         return;
       }
       setComments((prev) => prev.filter((c) => c.id !== id));
+      setConfirmDeleteId(null);
     } catch {
-      setError(GENERIC_ERROR);
+      setCommentError({ id, msg: "This comment was not deleted. Please check your connection and try again." });
+    } finally {
+      setDeleting(false);
     }
   }
 
   async function react(id: string, emoji: string) {
     // Optimistic-free: apply the server's authoritative reaction map on return.
+    setCommentError(null);
     try {
       const res = await fetch(`/api/files/${fileId}/conversation/${id}/react`, {
         method: "POST",
@@ -106,14 +121,14 @@ export default function FileConversation({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? GENERIC_ERROR);
+        setCommentError({ id, msg: data.error ?? GENERIC_ERROR });
         return;
       }
       setComments((prev) =>
         prev.map((c) => (c.id === id ? { ...c, reactions: data.reactions ?? {} } : c)),
       );
     } catch {
-      setError(GENERIC_ERROR);
+      setCommentError({ id, msg: GENERIC_ERROR });
     }
   }
 
@@ -132,10 +147,10 @@ export default function FileConversation({
                 <div className="gf-comment__head">
                   <span className="gf-comment__author">{c.authorName}</span>
                   <span className="gf-comment__time">{relativeDate(c.createdAt)}</span>
-                  {canDelete && (
+                  {canDelete && confirmDeleteId !== c.id && (
                     <button
                       className="gf-comment__delete"
-                      onClick={() => remove(c.id)}
+                      onClick={() => { setConfirmDeleteId(c.id); setCommentError(null); }}
                       aria-label="Delete comment"
                     >
                       Delete
@@ -143,6 +158,35 @@ export default function FileConversation({
                   )}
                 </div>
                 <p className="gf-comment__body">{c.body}</p>
+                {confirmDeleteId === c.id && (
+                  <div role="group" aria-labelledby={`gf-del-${c.id}`}>
+                    <p className="gf-comment__body" id={`gf-del-${c.id}`}>
+                      {c.authorId === viewerId
+                        ? "Delete your comment? This can\u2019t be undone."
+                        : `Delete ${c.authorName}\u2019s comment? This can\u2019t be undone.`}
+                    </p>
+                    <div className="gf-detail__actions">
+                      <button
+                        ref={cancelDeleteRef}
+                        className="gf-detail__btn gf-detail__btn--ghost"
+                        onClick={() => { setConfirmDeleteId(null); setCommentError(null); }}
+                        disabled={deleting}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="gf-detail__btn gf-detail__btn--danger"
+                        onClick={() => remove(c.id)}
+                        disabled={deleting}
+                      >
+                        {deleting ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {commentError?.id === c.id && (
+                  <p className="gf-detail__error" role="alert">{commentError.msg}</p>
+                )}
                 <div className="gf-comment__reactions">
                   {REACTIONS.map((emoji) => {
                     const who = c.reactions[emoji] ?? [];
@@ -170,6 +214,7 @@ export default function FileConversation({
       <div className="gf-conv__compose">
         <textarea
           className="gf-conv__input"
+          aria-label="Add a comment"
           placeholder="Add a comment…"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

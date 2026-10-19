@@ -305,6 +305,7 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: string) => void; 
             value={saveName}
             onChange={(e) => setSaveName(e.target.value)}
             placeholder="Template name…"
+            aria-label="Template name"
             className="pe-input pe-template-bar__name-input"
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveTemplate(); } }}
             autoFocus
@@ -320,13 +321,13 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: string) => void; 
           {visibleBuiltins.map((t) => (
             <span key={t.name} className="pe-template-chip pe-template-chip--builtin">
               <button type="button" className="pe-template-chip__name" onClick={() => load(textToHtml(t.text), t.name)}>{t.name}</button>
-              <button type="button" className="pe-template-chip__delete" onClick={() => hideBuiltin(t.name)} title="Remove">×</button>
+              <button type="button" className="pe-template-chip__delete" onClick={() => hideBuiltin(t.name)} title="Remove" aria-label={`Remove the template ${t.name}`}>×</button>
             </span>
           ))}
           {saved.map((t) => (
             <span key={t.name} className="pe-template-chip">
               <button type="button" className="pe-template-chip__name" onClick={() => load(t.content, t.name)}>{t.name}</button>
-              <button type="button" className="pe-template-chip__delete" onClick={() => deleteCustom(t.name)} title="Delete">×</button>
+              <button type="button" className="pe-template-chip__delete" onClick={() => deleteCustom(t.name)} title="Delete" aria-label={`Delete the template ${t.name}`}>×</button>
             </span>
           ))}
         </div>
@@ -347,7 +348,7 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: string) => void; 
 // render (the editor re-renders on each keystroke) — keeps the selects snappy.
 const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const MINUTES = ["00", "15", "30", "45"];
-function DateTimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function DateTimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; /** Names the four controls for screen readers ("Start date and time"). */ label: string }) {
   const parse = (v: string) => {
     if (!v) return { date: "", hour: "7", minute: "00", ampm: "PM" };
     const [datePart, timePart] = v.split("T");
@@ -372,22 +373,23 @@ function DateTimePicker({ value, onChange }: { value: string; onChange: (v: stri
   };
 
   return (
-    <div className="pe-datetime">
+    <div className="pe-datetime" role="group" aria-label={label}>
       <input
         type="date"
+        aria-label={`${label}: date`}
         value={date}
         onChange={(e) => emit(e.target.value, hour, minute, ampm)}
         className="pe-datetime__date"
       />
       <div className="pe-datetime__time">
-        <select value={hour} onChange={(e) => emit(date, e.target.value, minute, ampm)} className="pe-datetime__select">
+        <select aria-label={`${label}: hour`} value={hour} onChange={(e) => emit(date, e.target.value, minute, ampm)} className="pe-datetime__select">
           {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
         </select>
         <span className="pe-datetime__colon">:</span>
-        <select value={minute} onChange={(e) => emit(date, hour, e.target.value, ampm)} className="pe-datetime__select">
+        <select aria-label={`${label}: minutes`} value={minute} onChange={(e) => emit(date, hour, e.target.value, ampm)} className="pe-datetime__select">
           {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
-        <select value={ampm} onChange={(e) => emit(date, hour, minute, e.target.value)} className="pe-datetime__select pe-datetime__select--ampm">
+        <select aria-label={`${label}: AM or PM`} value={ampm} onChange={(e) => emit(date, hour, minute, e.target.value)} className="pe-datetime__select pe-datetime__select--ampm">
           <option value="AM">AM</option>
           <option value="PM">PM</option>
         </select>
@@ -676,6 +678,8 @@ export default function ProgramEditor({
   const [isOpenAccess, setIsOpenAccess] = useState(initialData?.isOpenAccess ?? false);
   const [guestAccessKey, setGuestAccessKey] = useState(initialData?.guestAccessKey ?? "");
   const [resettingKey, setResettingKey] = useState(false);
+  const [confirmResetKey, setConfirmResetKey] = useState(false);
+  const [resetKeyNote, setResetKeyNote] = useState<{ tone: "ok" | "error"; msg: string } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Hosting hub — which volunteer/peer-leader team hosts the live session
@@ -744,6 +748,23 @@ export default function ProgramEditor({
   // ── Unsaved changes tracking ────────────────────────────────────────────
   const [dirty, setDirty] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
+  // The leave-without-saving dialog takes focus when it opens, gives it back
+  // to whatever opened it when it closes, and closes on Escape (= stay).
+  const stayBtnRef = useRef<HTMLButtonElement>(null);
+  const leaveOpenerRef = useRef<HTMLElement | null>(null);
+  const leaveOpen = pendingNav !== null;
+  useEffect(() => {
+    if (!leaveOpen) return;
+    leaveOpenerRef.current = document.activeElement as HTMLElement | null;
+    stayBtnRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPendingNav(null); };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      const opener = leaveOpenerRef.current;
+      if (opener && opener.isConnected) opener.focus();
+    };
+  }, [leaveOpen]);
 
   // A new edit after a save: "Saved" no longer describes the page.
   const markDirty = useCallback(() => { if (!dirty) { setDirty(true); setSuccess(false); } }, [dirty]);
@@ -1201,13 +1222,20 @@ export default function ProgramEditor({
       {/* ── Unsaved changes confirmation dialog ── */}
       {pendingNav && (
         <div className="pe-overlay" onClick={() => setPendingNav(null)}>
-          <div className="pe-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="pe-dialog__text">You have unsaved changes. Leave without saving?</p>
+          <div
+            className="pe-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pe-leave-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="pe-dialog__text" id="pe-leave-title">You have unsaved changes. Leave without saving?</p>
             <div className="pe-dialog__actions">
-              <button className="pe-btn pe-btn--primary" onClick={() => setPendingNav(null)}>
+              <button ref={stayBtnRef} type="button" className="pe-btn pe-btn--primary" onClick={() => setPendingNav(null)}>
                 Stay on this page
               </button>
               <button
+                type="button"
                 className="pe-btn"
                 onClick={() => { setDirty(false); router.push(pendingNav); }}
               >
@@ -1434,6 +1462,7 @@ export default function ProgramEditor({
                         <button
                           type="button"
                           className="pe-teacher-tag__remove"
+                          aria-label={`Remove ${t.firstName} ${t.lastName}`}
                           onClick={() => removeTeacher(t.id)}
                         >
                           &times;
@@ -1449,6 +1478,7 @@ export default function ProgramEditor({
                   onChange={(e) => setTeacherQuery(e.target.value)}
                   className="pe-input"
                   placeholder="Search teachers by name…"
+                  aria-label="Search teachers by name"
                 />
                 {teacherSearching && <span className="pe-field__help">Searching…</span>}
                 {teacherResults.length > 0 && (
@@ -1566,12 +1596,12 @@ export default function ProgramEditor({
             <div className="pe-field">
               <span className="pe-field__label">Start Date &amp; Time</span>
               <span className="pe-field__help">The date range for this program. For single-day events, set both to the same date.</span>
-              <DateTimePicker value={startDatetime} onChange={(v) => { setStartDatetime(v); markDirty(); }} />
+              <DateTimePicker label="Start date and time" value={startDatetime} onChange={(v) => { setStartDatetime(v); markDirty(); }} />
             </div>
 
             <div className="pe-field">
               <span className="pe-field__label">End Date &amp; Time</span>
-              <DateTimePicker value={endDatetime} onChange={(v) => { setEndDatetime(v); markDirty(); }} />
+              <DateTimePicker label="End date and time" value={endDatetime} onChange={(v) => { setEndDatetime(v); markDirty(); }} />
             </div>
 
             <div className="pe-field">
@@ -1912,6 +1942,7 @@ export default function ProgramEditor({
               </span>
               <select
                 className="pe-input"
+                aria-label="Hosting team"
                 value={hostingHubSlug}
                 onChange={(e) => { setHostingHubSlug(e.target.value); markDirty(); }}
               >
@@ -2054,6 +2085,7 @@ export default function ProgramEditor({
                         <input
                           type="text"
                           readOnly
+                          aria-label="Guest access link"
                           value={guestUrl}
                           onFocus={(e) => e.target.select()}
                           style={{
@@ -2088,34 +2120,72 @@ export default function ProgramEditor({
                           {copiedLink ? "✓ Copied" : "Copy"}
                         </button>
                       </div>
-                      {/* Reset row */}
+                      {/* Reset row: asks first, then answers beside the button. */}
+                      {confirmResetKey ? (
+                        <div style={{ marginTop: 8 }}>
+                          <p className="pe-field__help" style={{ margin: "0 0 8px" }}>
+                            Reset the guest link? The old link will stop working right away, so anyone you
+                            shared it with will need the new one.
+                          </p>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              className="pe-btn pe-btn--small pe-btn--danger"
+                              disabled={resettingKey}
+                              onClick={async () => {
+                                setResettingKey(true);
+                                setResetKeyNote(null);
+                                try {
+                                  const res = await fetch(`/api/programs-pg/${slug}/guest-key`, { method: "POST" });
+                                  const data = await res.json().catch(() => ({}));
+                                  if (res.ok && data.guestAccessKey) {
+                                    setGuestAccessKey(data.guestAccessKey);
+                                    setResetKeyNote({ tone: "ok", msg: "The old link no longer works. Share the new one." });
+                                    setConfirmResetKey(false);
+                                  } else {
+                                    setResetKeyNote({ tone: "error", msg: "The link wasn't reset, so the old one still works. Please try again." });
+                                  }
+                                } catch {
+                                  setResetKeyNote({ tone: "error", msg: "The link wasn't reset, so the old one still works. Please check your connection and try again." });
+                                } finally {
+                                  setResettingKey(false);
+                                }
+                              }}
+                            >
+                              {resettingKey ? "Resetting…" : "Yes, reset the link"}
+                            </button>
+                            <button
+                              type="button"
+                              className="pe-btn pe-btn--small pe-btn--ghost"
+                              disabled={resettingKey}
+                              onClick={() => { setConfirmResetKey(false); setResetKeyNote(null); }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
                         <button
                           type="button"
-                          disabled={resettingKey}
-                          onClick={async () => {
-                            if (!confirm("Reset the guest link? The old link will stop working immediately.")) return;
-                            setResettingKey(true);
-                            try {
-                              const res = await fetch(`/api/programs-pg/${slug}/guest-key`, { method: "POST" });
-                              if (res.ok) {
-                                const data = await res.json();
-                                setGuestAccessKey(data.guestAccessKey);
-                              }
-                            } catch {}
-                            setResettingKey(false);
-                          }}
+                          onClick={() => { setConfirmResetKey(true); setResetKeyNote(null); }}
                           style={{
                             background: "none", border: "none", padding: 0,
                             fontSize: "var(--text-xs)", color: "var(--rim-text-muted)", cursor: "pointer",
                             textDecoration: "underline", fontFamily: "var(--font-sans)",
-                            opacity: resettingKey ? 0.5 : 1,
                           }}
                         >
-                          {resettingKey ? "Resetting…" : "Reset link"}
+                          Reset link
                         </button>
-                        <span style={{ fontSize: "var(--text-xs)", color: "var(--rim-text-muted)" }}>— invalidates the old link immediately.</span>
+                        <span style={{ fontSize: "var(--text-xs)", color: "var(--rim-text-muted)" }}>This stops the old link from working.</span>
                       </div>
+                      )}
+                      <p className={`save-note${resetKeyNote?.tone === "ok" ? " save-note--saved" : ""}`} role="status">
+                        {resetKeyNote?.tone === "ok" ? resetKeyNote.msg : ""}
+                      </p>
+                      {resetKeyNote?.tone === "error" && (
+                        <p className="save-note save-note--error" role="alert">{resetKeyNote.msg}</p>
+                      )}
                     </div>
                   );
                 })()}
@@ -2324,7 +2394,7 @@ export default function ProgramEditor({
             <div className="pe-field">
               <span className="pe-field__label">Registration Deadline</span>
               <span className="pe-field__help">Registration closes automatically after this date. Leave blank if there&rsquo;s no deadline.</span>
-              <DateTimePicker value={registrationDeadline} onChange={setRegistrationDeadline} />
+              <DateTimePicker label="Registration deadline" value={registrationDeadline} onChange={setRegistrationDeadline} />
             </div>
 
             {/* Custom questions builder */}
@@ -2340,6 +2410,7 @@ export default function ProgramEditor({
                       onChange={(e) => updateField(idx, { label: e.target.value })}
                       className="pe-input"
                       placeholder="Question label"
+                      aria-label={`Question ${idx + 1}`}
                     />
                     <select
                       value={field.fieldType}
@@ -2348,6 +2419,7 @@ export default function ProgramEditor({
                         setOptionsDraft((prev) => { const next = { ...prev }; delete next[idx]; return next; });
                       }}
                       className="pe-select pe-select--narrow"
+                      aria-label={`Kind of answer for question ${idx + 1}`}
                     >
                       <option value="shortText">Short text</option>
                       <option value="longText">Long text</option>
@@ -2381,12 +2453,13 @@ export default function ProgramEditor({
                       }}
                       className="pe-input"
                       placeholder="Option 1, Option 2, Option 3"
+                      aria-label={`Choices for question ${idx + 1}, separated by commas`}
                     />
                   )}
                   <div className="pe-reg-field__actions">
-                    <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, -1)} disabled={idx === 0}>↑</button>
-                    <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, 1)} disabled={idx === registrationFields.length - 1}>↓</button>
-                    <button type="button" className="pe-btn pe-btn--small pe-btn--danger" onClick={() => removeField(idx)}>Remove</button>
+                    <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, -1)} disabled={idx === 0} aria-label={`Move question ${idx + 1} up`}>↑</button>
+                    <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, 1)} disabled={idx === registrationFields.length - 1} aria-label={`Move question ${idx + 1} down`}>↓</button>
+                    <button type="button" className="pe-btn pe-btn--small pe-btn--danger" onClick={() => removeField(idx)} aria-label={`Remove question ${idx + 1}`}>Remove</button>
                   </div>
                 </div>
               ))}
@@ -2418,7 +2491,7 @@ export default function ProgramEditor({
             <div className="pe-field">
               <span className="pe-field__label">Reminder Date</span>
               <span className="pe-field__help">When set, a reminder email can be sent to all registered participants on or after this date.</span>
-              <DateTimePicker value={reminderDate} onChange={setReminderDate} />
+              <DateTimePicker label="Reminder date" value={reminderDate} onChange={setReminderDate} />
             </div>
 
             <div className="pe-field">
@@ -2443,6 +2516,7 @@ export default function ProgramEditor({
                 value={flodeskChoice}
                 onChange={(e) => { setFlodeskChoice(e.target.value as "auto" | "on" | "off"); markDirty(); }}
                 className="pe-select pe-select--narrow"
+                aria-label="Mailing list (Flodesk)"
               >
                 <option value="auto">Automatic ({flodeskDefaultOn ? "on" : "off"} for this program)</option>
                 <option value="on">On</option>
@@ -2775,7 +2849,7 @@ export default function ProgramEditor({
                 <div className="pe-visibility-schedule">
                   <span className="pe-field__label">Auto-show on member home</span>
                   <p className="pe-field__help">Optional. On this date the program will automatically reappear on the member home — no manual action needed.</p>
-                  <DateTimePicker value={dashboardShowAt} onChange={setDashboardShowAt} />
+                  <DateTimePicker label="Auto-show on member home" value={dashboardShowAt} onChange={setDashboardShowAt} />
                   {dashboardShowAt && (
                     <button
                       type="button"

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import { OFFERING_CATEGORIES, OFFERING_FORMATS, categorySectionTitle, formatLabel } from "@/lib/programOffering";
 
 export type ProgramRow = {
@@ -48,6 +49,40 @@ export default function ProgramsTableClient({
     action: "archive" | "restore" | "delete";
   } | null>(null);
   const [rows, setRows] = useState(programs);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState("");
+  const { notice, say } = useActionNotice();
+  // The dialog takes focus when it opens and gives it back to the button
+  // that opened it when it closes; Escape closes it.
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const isOpen = confirming !== null;
+  useEffect(() => {
+    if (!isOpen) return;
+    openerRef.current = document.activeElement as HTMLElement | null;
+    cancelRef.current?.focus();
+    return () => {
+      const opener = openerRef.current;
+      if (opener && opener.isConnected) opener.focus();
+    };
+  }, [isOpen]);
+
+  function closeDialog() {
+    if (busy) return;
+    setConfirming(null);
+    setProblem("");
+  }
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) {
+        setConfirming(null);
+        setProblem("");
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen, busy]);
   // Filters by the offering's Category and Format ("" = all).
   const [categoryFilter, setCategoryFilter] = useState("");
   const [formatFilter, setFormatFilter] = useState("");
@@ -106,40 +141,52 @@ export default function ProgramsTableClient({
     slug: string,
     action: "archive" | "restore" | "delete"
   ) {
-    if (action === "delete") {
-      const res = await fetch(`/api/programs-pg/${slug}`, { method: "DELETE" });
+    if (busy) return;
+    const name = rows.find((r) => r.slug === slug)?.name ?? "This program";
+    const verb = action === "archive" ? "archived" : action === "restore" ? "restored" : "deleted";
+    setBusy(true);
+    setProblem("");
+    try {
+      const res =
+        action === "delete"
+          ? await fetch(`/api/programs-pg/${slug}`, { method: "DELETE" })
+          : await fetch(`/api/programs-pg/${slug}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action }),
+            });
       if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "Failed to delete program.");
-        setConfirming(null);
+        const data = await res.json().catch(() => ({}));
+        setProblem(data.error || `${name} wasn't ${verb}. Please try again.`);
         return;
       }
-      setRows((prev) => prev.filter((p) => p.slug !== slug));
-    } else {
-      const res = await fetch(`/api/programs-pg/${slug}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || `Failed to ${action} program.`);
-        setConfirming(null);
-        return;
+      if (action === "delete") {
+        setRows((prev) => prev.filter((p) => p.slug !== slug));
+        say(`${name} is permanently deleted.`);
+      } else {
+        setRows((prev) =>
+          prev.map((p) =>
+            p.slug === slug
+              ? {
+                  ...p,
+                  archivedAt:
+                    action === "archive" ? new Date().toISOString() : null,
+                }
+              : p
+          )
+        );
+        say(
+          action === "archive"
+            ? `${name} is archived. You can find it under Archived and restore it at any time.`
+            : `${name} is restored and visible again.`
+        );
       }
-      setRows((prev) =>
-        prev.map((p) =>
-          p.slug === slug
-            ? {
-                ...p,
-                archivedAt:
-                  action === "archive" ? new Date().toISOString() : null,
-              }
-            : p
-        )
-      );
+      setConfirming(null);
+    } catch {
+      setProblem(`${name} wasn't ${verb}. Please check your connection and try again.`);
+    } finally {
+      setBusy(false);
     }
-    setConfirming(null);
   }
 
   function formatBadge(format: string) {
@@ -225,6 +272,7 @@ export default function ProgramsTableClient({
     let title = "";
     let body = "";
     let btnLabel = "";
+    let busyLabel = "";
     let btnClass = "";
 
     if (confirming.action === "archive") {
@@ -232,36 +280,55 @@ export default function ProgramsTableClient({
       body =
         "It will be hidden from all public views and scheduling. Members who registered keep their registration history. You can restore it at any time.";
       btnLabel = "Archive";
+      busyLabel = "Archiving…";
       btnClass = "vol-confirm-btn--warn";
     } else if (confirming.action === "restore") {
       title = `Restore ${p.name}?`;
       body = "It will become visible again immediately.";
       btnLabel = "Restore";
+      busyLabel = "Restoring…";
       btnClass = "vol-confirm-btn--primary";
     } else {
       title = `Permanently delete ${p.name}?`;
       body = "This cannot be undone.";
       btnLabel = "Delete permanently";
+      busyLabel = "Deleting…";
       btnClass = "vol-confirm-btn--danger";
     }
 
     return (
-      <div className="vol-overlay" onClick={() => setConfirming(null)}>
-        <div className="vol-dialog" onClick={(e) => e.stopPropagation()}>
-          <h3 className="vol-dialog__title">{title}</h3>
+      <div className="vol-overlay" onClick={closeDialog}>
+        <div
+          className="vol-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="vol-confirm-title"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="vol-dialog__title" id="vol-confirm-title">{title}</h3>
           <p className="vol-dialog__body">{body}</p>
+          {problem && (
+            <p className="save-note save-note--error" role="alert">
+              {problem}
+            </p>
+          )}
           <div className="vol-dialog__actions">
             <button
+              ref={cancelRef}
+              type="button"
               className="vol-confirm-btn"
-              onClick={() => setConfirming(null)}
+              disabled={busy}
+              onClick={closeDialog}
             >
               Cancel
             </button>
             <button
+              type="button"
               className={`vol-confirm-btn ${btnClass}`}
+              disabled={busy}
               onClick={() => handleAction(confirming.slug, confirming.action)}
             >
-              {btnLabel}
+              {busy ? busyLabel : btnLabel}
             </button>
           </div>
         </div>
@@ -328,6 +395,7 @@ export default function ProgramsTableClient({
             className="vol-table-search"
             type="text"
             placeholder="Search programs…"
+            aria-label="Search programs"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -475,6 +543,7 @@ export default function ProgramsTableClient({
         </table>
         </div>
       )}
+      <ActionNotice notice={notice} onClose={() => say(null)} />
     </>
   );
 }

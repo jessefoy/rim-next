@@ -12,8 +12,9 @@
  * team state that is independent of system roles.
  */
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
+import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 
 type HubMemberStatus = "ACTIVE" | "PAUSED" | "INACTIVE";
 
@@ -115,6 +116,14 @@ export default function HubMembersClient({
     inactive: boolean;
   }>(null);
 
+  // A dialog or remove button that is working can't be pressed twice.
+  const [proceeding, setProceeding] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  // The confirmation dialog takes focus, closes on Escape, and hands focus back.
+  const dialogRef = useNavigationDrawer(!!confirmDialog, () => {
+    if (!proceeding) setConfirmDialog(null);
+  });
+
   // Every change is answered, success or not (ActionNotice, 2026-10-13).
   const { notice, say } = useActionNotice();
 
@@ -174,15 +183,24 @@ export default function HubMembersClient({
   }
 
   async function confirmProceed(releaseAssignments: boolean) {
-    if (!confirmDialog) return;
+    if (!confirmDialog || proceeding) return;
     const { userId, pendingPayload } = confirmDialog;
-    await patchMember(userId, pendingPayload, true, releaseAssignments);
-    setConfirmDialog(null);
+    setProceeding(true);
+    try {
+      await patchMember(userId, pendingPayload, true, releaseAssignments);
+    } finally {
+      setProceeding(false);
+      setConfirmDialog(null);
+    }
   }
 
   async function hardRemove(userId: string) {
+    if (removing) return;
     const row = members.find((m) => m.userId === userId);
+    setRemoving(true);
+    say(null);
     const res = await fetch(`/api/hub/${hubSlug}/members/${userId}`, { method: "DELETE" }).catch(() => null);
+    setRemoving(false);
     if (res?.ok) {
       setMembers((prev) => prev.filter((m) => m.userId !== userId));
       say(row ? `${displayName(row.user)} is removed from this team.` : "Removed from this team.");
@@ -286,10 +304,12 @@ export default function HubMembersClient({
 
         {confirmHardRemove === m.userId && (
           <div className="hub-mem-confirm">
-            <p>Permanently remove {displayName(m.user)} from this hub? Their coordinator-owned state (pause notes, capability flags) will be lost.</p>
+            <p>Permanently remove {displayName(m.user)} from this team? They come off their upcoming sessions and rotations on this team, and we&rsquo;ll let them know which ones. Their position, notes and settings for this team will be lost.</p>
             <div className="hub-mem-confirm__actions">
-              <button className="btn--ghost" onClick={() => setConfirmHardRemove(null)}>Cancel</button>
-              <button className="hub-action-btn hub-action-btn--del" onClick={() => hardRemove(m.userId)}>Remove</button>
+              <button className="btn--ghost" onClick={() => setConfirmHardRemove(null)} disabled={removing}>Cancel</button>
+              <button className="hub-action-btn hub-action-btn--del" onClick={() => hardRemove(m.userId)} disabled={removing}>
+                {removing ? "Removing…" : "Remove"}
+              </button>
             </div>
           </div>
         )}
@@ -325,6 +345,7 @@ export default function HubMembersClient({
             type="text"
             value={searchQuery}
             onChange={(e) => searchUsers(e.target.value)}
+            aria-label="Search for a member to add"
             placeholder="Search by name or email (min 3 chars)…"
             autoFocus
           />
@@ -395,8 +416,14 @@ export default function HubMembersClient({
 
       {confirmDialog && (
         <div className="hub-mem-dialog">
-          <div className="hub-mem-dialog__panel">
-            <h3>{confirmDialog.inactive ? `Mark ${confirmDialog.memberName} inactive?` : `Take ${confirmDialog.memberName} off the schedule?`}</h3>
+          <div
+            className="hub-mem-dialog__panel"
+            ref={dialogRef as RefObject<HTMLDivElement | null>}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="hub-mem-dialog-title"
+          >
+            <h3 id="hub-mem-dialog-title">{confirmDialog.inactive ? `Mark ${confirmDialog.memberName} inactive?` : `Take ${confirmDialog.memberName} off the schedule?`}</h3>
             <p className="hub-mem-dialog__lede">
               {confirmDialog.memberName} has {confirmDialog.upcoming.length} upcoming session{confirmDialog.upcoming.length === 1 ? "" : "s"} on this team&rsquo;s schedule.
               {confirmDialog.inactive
@@ -416,18 +443,18 @@ export default function HubMembersClient({
               )}
             </ul>
             <div className="hub-mem-dialog__actions">
-              <button className="btn--ghost" onClick={() => setConfirmDialog(null)}>Cancel</button>
+              <button className="btn--ghost" onClick={() => setConfirmDialog(null)} disabled={proceeding}>Cancel</button>
               {confirmDialog.inactive ? (
-                <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(false)}>
-                  Mark inactive and open their sessions
+                <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(false)} disabled={proceeding}>
+                  {proceeding ? "Saving…" : "Mark inactive and open their sessions"}
                 </button>
               ) : (
                 <>
-                  <button className="btn btn--sm" onClick={() => confirmProceed(false)}>
-                    Keep their sessions
+                  <button className="btn btn--sm" onClick={() => confirmProceed(false)} disabled={proceeding}>
+                    {proceeding ? "Saving…" : "Keep their sessions"}
                   </button>
-                  <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(true)}>
-                    Take them off their sessions
+                  <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(true)} disabled={proceeding}>
+                    {proceeding ? "Saving…" : "Take them off their sessions"}
                   </button>
                 </>
               )}
@@ -542,7 +569,7 @@ function MemberEditor({
         </button>
         {isAdmin && !isSelf && (
           <button className="hub-action-btn hub-action-btn--del" onClick={onHardRemoveRequest}>
-            Hard-remove from hub
+            Remove from this team
           </button>
         )}
       </div>

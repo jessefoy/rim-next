@@ -70,6 +70,16 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState("");
+  // A save that moved the page to a new address carries its answer here.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const saved = url.searchParams.get("saved");
+    if (!saved) return;
+    setSuccess(true);
+    setSavedAt(saved);
+    url.searchParams.delete("saved");
+    window.history.replaceState(window.history.state, "", url.toString());
+  }, []);
   const [success, setSuccess] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
 
@@ -125,6 +135,46 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
+  // A problem with a media upload or removal, said beside that control.
+  const [imageProblem, setImageProblem] = useState("");
+  const [audioProblem, setAudioProblem] = useState("");
+  const [resourceProblem, setResourceProblem] = useState<{ idx: number; msg: string } | null>(null);
+  // Removing media saves at once, so it asks first.
+  const [confirmRemove, setConfirmRemove] = useState<"image" | "audio" | null>(null);
+  const [removing, setRemoving] = useState(false);
+
+  // ── Unsaved changes (mirrors ProgramEditor's guardedNavigate) ──
+  const [dirty, setDirty] = useState(false);
+  const [pendingNav, setPendingNav] = useState<string | null>(null);
+  // Escape closes the leave dialog wherever focus is (2026-10-19 review).
+  useEffect(() => {
+    if (!pendingNav) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPendingNav(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pendingNav]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  /** Wrap navigation: with unsaved changes, ask before leaving. */
+  function guardedNavigate(href: string) {
+    if (dirty) setPendingNav(href);
+    else router.push(href);
+  }
+
+  // An edit after a save: "Saved" no longer describes the page, and there is
+  // now something to lose. Searches and media uploads (which save themselves)
+  // are marked data-transient and don't count as unsaved work.
+  function noteEdit(e: React.SyntheticEvent) {
+    setSuccess(false);
+    if (!(e.target as HTMLElement).closest("[data-transient]")) setDirty(true);
+  }
+
   // Auto-generate slug from internal title
   useEffect(() => {
     if (!isEditing && !slugTouched && titleInternal) {
@@ -139,55 +189,72 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
         handleUploadUrl: "/api/upload",
       });
       return blob.url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+    } catch {
       return null;
     }
   }
 
-  // Auto-save a single field to DB (only when editing an existing lesson)
-  async function autoSaveField(field: string, value: string | null) {
-    if (!isEditing || !initialData?.slug) return;
+  // Saves media fields at once when editing an existing lesson (a new lesson
+  // keeps them until Create). Returns whether the save took.
+  async function autoSaveFields(fields: Record<string, string | null>): Promise<boolean> {
+    if (!isEditing || !initialData?.slug) return true;
     try {
-      await fetch(`/api/lessons/${initialData.slug}`, {
+      const res = await fetch(`/api/lessons/${initialData.slug}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value }),
+        body: JSON.stringify(fields),
       });
+      return res.ok;
     } catch {
-      // Silent — full save will catch any issues
+      return false;
     }
   }
 
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  // The new file shows only once it is saved; until then the lesson keeps
+  // what it had, and a problem is said beside the upload control.
+  async function handleMediaUpload(kind: "image" | "audio", e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
-    setUploadingImage(true);
+    const setProblem = kind === "image" ? setImageProblem : setAudioProblem;
+    const setUploading = kind === "image" ? setUploadingImage : setUploadingAudio;
+    const noun = kind === "image" ? "The image" : "The audio file";
+    setProblem("");
+    setUploading(true);
     const url = await uploadFile(file);
-    if (url) {
-      setHeroImageUrl(url);
-      await autoSaveField("heroImageUrl", url);
+    input.value = ""; // so the same file can be chosen again
+    if (!url) {
+      setProblem(`${noun} did not upload. Please try again.`);
+    } else if (!(await autoSaveFields({ [kind === "image" ? "heroImageUrl" : "audioUrl"]: url }))) {
+      setProblem(`${noun} uploaded but was not saved to this lesson. Please try again.`);
     } else {
-      setError("Image upload failed");
+      if (kind === "image") setHeroImageUrl(url);
+      else setAudioUrl(url);
+      if (!isEditing) setDirty(true);
     }
-    setUploadingImage(false);
+    setUploading(false);
   }
 
-  async function handleAudioUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingAudio(true);
-    const url = await uploadFile(file);
-    if (url) {
-      setAudioUrl(url);
-      await autoSaveField("audioUrl", url);
-    } else {
-      setError("Audio upload failed");
+  async function removeMedia(kind: "image" | "audio") {
+    const setProblem = kind === "image" ? setImageProblem : setAudioProblem;
+    setProblem("");
+    setRemoving(true);
+    const ok = await autoSaveFields(
+      kind === "image" ? { heroImageUrl: null, heroImageAlt: null } : { audioUrl: null },
+    );
+    setRemoving(false);
+    if (!ok) {
+      setProblem(`${kind === "image" ? "The image" : "The audio file"} was not removed. Please try again.`);
+      return;
     }
-    setUploadingAudio(false);
+    if (kind === "image") { setHeroImageUrl(""); setHeroImageAlt(""); }
+    else setAudioUrl("");
+    if (!isEditing) setDirty(true);
+    setConfirmRemove(null);
   }
 
   async function handleResourceUpload(idx: number, file: File) {
+    setResourceProblem(null);
     setUploadingResourceIdx(idx);
     const url = await uploadFile(file);
     if (url) {
@@ -197,7 +264,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
         return updated;
       });
     } else {
-      setError("Resource upload failed");
+      setResourceProblem({ idx, msg: "The file did not upload. Please try again." });
     }
     setUploadingResourceIdx(null);
   }
@@ -232,16 +299,19 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
   }, [teacherQuery]);
 
   function addTeacher(teacher: TeacherItem) {
+    setDirty(true);
     setSelectedTeachers((prev) => [...prev, teacher]);
     setTeacherResults([]);
     setTeacherQuery("");
   }
 
   function removeTeacher(id: string) {
+    setDirty(true);
     setSelectedTeachers((prev) => prev.filter((t) => t.id !== id));
   }
 
   function addResource() {
+    setDirty(true);
     setResources((prev) => [...prev, { name: "", url: "", resourceType: "Link" }]);
   }
 
@@ -254,6 +324,8 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
   }
 
   function removeResource(idx: number) {
+    setDirty(true);
+    setResourceProblem(null);
     setResources((prev) => prev.filter((_, i) => i !== idx));
   }
 
@@ -299,9 +371,14 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
       const savedLesson = await res.json();
       const lessonSlug = isEditing ? initialData!.slug : savedLesson.slug;
 
+      setDirty(false);
       if (isEditing) {
         setSuccess(true);
         setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
+        // A saved new address: the page moves to it, or every later save,
+        // media included, would go to the old one and fail (2026-10-19). The page
+        // remounts there, so the answer travels in ?saved= and is read back below.
+        if (savedLesson.slug && savedLesson.slug !== initialData?.slug) router.replace(`${basePath}/${savedLesson.slug}?saved=${encodeURIComponent(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))}`);
       } else {
         router.push(`${basePath}/${lessonSlug}`);
       }
@@ -314,7 +391,28 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
 
   return (
     // An edit after a save: "Saved" no longer describes the page.
-    <div className="th-editor" onChangeCapture={() => setSuccess(false)} onInputCapture={() => setSuccess(false)} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSuccess(false); }}>
+    <div className="th-editor" onChangeCapture={noteEdit} onInputCapture={noteEdit} onClickCapture={(e) => { if ((e.target as HTMLElement).closest("button")) setSuccess(false); }}>
+      {/* ── Unsaved changes confirmation (as in ProgramEditor) ── */}
+      {pendingNav && (
+        <div className="pe-overlay" onClick={() => setPendingNav(null)}>
+          <div className="pe-dialog" role="dialog" aria-modal="true" aria-labelledby="th-leave-text" onClick={(e) => e.stopPropagation()}>
+            <p className="pe-dialog__text" id="th-leave-text">You have unsaved changes. Leave without saving?</p>
+            <div className="pe-dialog__actions">
+              <button type="button" className="th-btn th-btn--primary" onClick={() => setPendingNav(null)} autoFocus>
+                Stay on this page
+              </button>
+              <button
+                type="button"
+                className="th-btn"
+                onClick={() => { setDirty(false); router.push(pendingNav); }}
+              >
+                Leave without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="th-editor__header">
         <h2 className="th-editor__title">{isEditing ? "Edit Lesson" : "New Lesson"}</h2>
         {isEditing && slug && (
@@ -380,7 +478,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
         <h3 className="th-section__title">Content</h3>
         <RimTiptapEditor
           value={body}
-          onChange={setBody}
+          onChange={(v) => { setBody(v); setDirty(true); }}
           placeholder="Begin writing your lesson here…"
           variant="document"
         />
@@ -419,13 +517,38 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
                       className="th-input"
                     />
                   </label>
-                  <button
-                    type="button"
-                    className="th-btn th-btn--danger th-btn--small"
-                    onClick={() => { setHeroImageUrl(""); setHeroImageAlt(""); autoSaveField("heroImageUrl", null); }}
-                  >
-                    Remove
-                  </button>
+                  {confirmRemove === "image" ? (
+                    <div>
+                      <p className="th-field__help">Remove this image from the lesson?</p>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className="th-btn th-btn--danger th-btn--small"
+                          onClick={() => removeMedia("image")}
+                          disabled={removing}
+                        >
+                          {removing ? "Removing…" : "Remove image"}
+                        </button>
+                        <button
+                          type="button"
+                          className="th-btn th-btn--small"
+                          onClick={() => setConfirmRemove(null)}
+                          disabled={removing}
+                          autoFocus
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="th-btn th-btn--danger th-btn--small"
+                      onClick={() => { setImageProblem(""); setConfirmRemove("image"); }}
+                    >
+                      Remove image
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -434,12 +557,16 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
                   ref={imageInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={handleImageUpload}
+                  onChange={(e) => handleMediaUpload("image", e)}
                   className="th-file-input"
+                  aria-label="Choose a hero image"
+                  disabled={uploadingImage}
+                  data-transient={isEditing || undefined}
                 />
                 {uploadingImage && <p className="th-muted">Uploading…</p>}
               </>
             )}
+            {imageProblem && <p className="save-note save-note--error" role="alert">{imageProblem}</p>}
           </div>
 
           <div className="th-field">
@@ -447,13 +574,38 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
             {audioUrl ? (
               <div className="th-media-preview">
                 <p className="th-muted">{audioUrl.split("/").pop()}</p>
-                <button
-                  type="button"
-                  className="th-btn th-btn--danger th-btn--small"
-                  onClick={() => { setAudioUrl(""); autoSaveField("audioUrl", null); }}
-                >
-                  Remove
-                </button>
+                {confirmRemove === "audio" ? (
+                  <div>
+                    <p className="th-field__help">Remove this audio file from the lesson?</p>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className="th-btn th-btn--danger th-btn--small"
+                        onClick={() => removeMedia("audio")}
+                        disabled={removing}
+                      >
+                        {removing ? "Removing…" : "Remove audio"}
+                      </button>
+                      <button
+                        type="button"
+                        className="th-btn th-btn--small"
+                        onClick={() => setConfirmRemove(null)}
+                        disabled={removing}
+                        autoFocus
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="th-btn th-btn--danger th-btn--small"
+                    onClick={() => { setAudioProblem(""); setConfirmRemove("audio"); }}
+                  >
+                    Remove audio
+                  </button>
+                )}
               </div>
             ) : (
               <>
@@ -461,12 +613,16 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
                   ref={audioInputRef}
                   type="file"
                   accept="audio/*"
-                  onChange={handleAudioUpload}
+                  onChange={(e) => handleMediaUpload("audio", e)}
                   className="th-file-input"
+                  aria-label="Choose an audio file"
+                  disabled={uploadingAudio}
+                  data-transient={isEditing || undefined}
                 />
                 {uploadingAudio && <p className="th-muted">Uploading…</p>}
               </>
             )}
+            {audioProblem && <p className="save-note save-note--error" role="alert">{audioProblem}</p>}
           </div>
 
           <label className="th-field">
@@ -537,7 +693,9 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
               value={teacherQuery}
               onChange={(e) => setTeacherQuery(e.target.value)}
               placeholder="Search teachers by name…"
+              aria-label="Search teachers by name"
               className="th-input"
+              data-transient
             />
             {teacherSearching && <p className="th-muted">Searching…</p>}
             {teacherResults.length > 0 && (
@@ -566,6 +724,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
             <input
               type="text"
               placeholder="Name"
+              aria-label={`Resource ${i + 1} name`}
               value={resource.name}
               onChange={(e) => updateResource(i, "name", e.target.value)}
               className="th-input"
@@ -574,6 +733,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
               <input
                 type="text"
                 placeholder="URL"
+                aria-label={`Resource ${i + 1} web address`}
                 value={resource.url}
                 onChange={(e) => updateResource(i, "url", e.target.value)}
                 className="th-input"
@@ -583,15 +743,23 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
                 <input
                   type="file"
                   className="th-sr-only"
+                  aria-label={`Upload a file for resource ${i + 1}`}
+                  disabled={uploadingResourceIdx !== null}
                   onChange={async (e) => {
-                    const file = e.target.files?.[0];
+                    const input = e.target;
+                    const file = input.files?.[0];
                     if (file) await handleResourceUpload(i, file);
+                    input.value = "";
                   }}
                 />
               </label>
               {uploadingResourceIdx === i && <span className="th-muted">Uploading…</span>}
+              {resourceProblem?.idx === i && (
+                <span className="save-note save-note--error" role="alert">{resourceProblem.msg}</span>
+              )}
             </div>
             <select
+              aria-label={`Resource ${i + 1} type`}
               value={resource.resourceType}
               onChange={(e) => updateResource(i, "resourceType", e.target.value)}
               className="th-select"
@@ -604,6 +772,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
               type="button"
               className="th-btn th-btn--danger th-btn--small"
               onClick={() => removeResource(i)}
+              aria-label={`Remove resource ${i + 1}`}
             >
               Remove
             </button>
@@ -625,7 +794,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
         </button>
         <button
           type="button"
-          onClick={() => router.push(basePath)}
+          onClick={() => guardedNavigate(basePath)}
           className="th-btn"
         >
           Cancel

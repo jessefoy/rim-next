@@ -257,6 +257,7 @@ export default function MarkdownEditor({
                 ref={linkInputRef}
                 className="re-link-popover__input"
                 type="url"
+                aria-label="Link address"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 placeholder="https://…"

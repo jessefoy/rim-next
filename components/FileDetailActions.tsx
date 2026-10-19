@@ -17,9 +17,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import NotifyPicker, { type NotifyValue, NOTIFY_NONE } from "@/components/NotifyPicker";
+import FormDone from "@/components/FormDone";
 
 interface Member {
   id: string;
@@ -91,6 +92,14 @@ export default function FileDetailActions({
   const [notifyValue, setNotifyValue] = useState<NotifyValue>(NOTIFY_NONE);
   const [note, setNote] = useState("");
   const [notifyDone, setNotifyDone] = useState<string | null>(null);
+  // Removing asks first, in the page (as the Files list does), and an
+  // approved removal is answered here before the person goes back.
+  const [confirming, setConfirming] = useState<"request" | "approve" | null>(null);
+  const [removed, setRemoved] = useState(false);
+  const confirmCancelRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (confirming) confirmCancelRef.current?.focus();
+  }, [confirming]);
 
   async function patch(payload: Record<string, unknown>) {
     setBusy(true);
@@ -127,12 +136,20 @@ export default function FileDetailActions({
   }
 
   async function requestRemoval() {
-    if (await patch({ action: "request-removal" })) router.refresh();
+    if (await patch({ action: "request-removal" })) {
+      setConfirming(null);
+      router.refresh();
+    }
   }
 
   async function approveRemoval() {
-    // The file is trashed on approval, so leave the (now-gone) detail page.
-    if (await patch({ action: "approve-removal" })) router.push(backHref);
+    // The file is trashed on approval. Say so here, with the way back,
+    // rather than leaving silently (a refresh would only show "no longer
+    // available").
+    if (await patch({ action: "approve-removal" })) {
+      setConfirming(null);
+      setRemoved(true);
+    }
   }
 
   async function cancelRemoval() {
@@ -168,6 +185,51 @@ export default function FileDetailActions({
       setBusy(false);
     }
   }
+
+  if (removed) {
+    return (
+      <div className="gf-detail__head">
+        <FormDone app title="This file is removed.">
+          <p>
+            It no longer appears in the team&rsquo;s files. You don&rsquo;t need to do anything
+            else. <a href={backHref}>Back to files</a>
+          </p>
+        </FormDone>
+      </div>
+    );
+  }
+
+  const confirmBox = confirming && (
+    <div role="group" aria-labelledby="gf-detail-confirm-q">
+      <p className="gf-detail__draft-note" id="gf-detail-confirm-q">
+        {confirming === "approve"
+          ? "Remove this file for everyone on the team? It will no longer appear in the team\u2019s files."
+          : "Remove this file? It will wait for a team lead to approve. Nothing is deleted yet, and a lead (or you) can keep it instead."}
+      </p>
+      <div className="gf-detail__actions">
+        <button
+          ref={confirmCancelRef}
+          className="gf-detail__btn gf-detail__btn--ghost"
+          onClick={() => {
+            setConfirming(null);
+            setError(null);
+          }}
+          disabled={busy}
+        >
+          Cancel
+        </button>
+        <button
+          className="gf-detail__btn gf-detail__btn--danger"
+          onClick={confirming === "approve" ? approveRemoval : requestRemoval}
+          disabled={busy}
+        >
+          {confirming === "approve"
+            ? busy ? "Removing…" : "Remove it"
+            : busy ? "Requesting…" : "Request removal"}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="gf-detail__head">
@@ -236,8 +298,11 @@ export default function FileDetailActions({
             {canApproveRemoval && (
               <button
                 className="gf-detail__btn gf-detail__btn--danger"
-                onClick={approveRemoval}
-                disabled={busy}
+                onClick={() => {
+                  setConfirming("approve");
+                  setError(null);
+                }}
+                disabled={busy || !!confirming}
               >
                 Approve removal
               </button>
@@ -260,6 +325,7 @@ export default function FileDetailActions({
               {isGoogleEditor ? (editorName ? `Open in Google ${editorName}` : "Open in Google") : "Download"}
             </a>
           </div>
+          {confirmBox}
         </>
       ) : (
         <>
@@ -317,17 +383,22 @@ export default function FileDetailActions({
             {canRemove && (
               <button
                 className="gf-detail__btn gf-detail__btn--ghost gf-detail__btn--danger-text"
-                onClick={requestRemoval}
-                disabled={busy}
+                onClick={() => {
+                  setConfirming("request");
+                  setError(null);
+                }}
+                disabled={busy || !!confirming}
               >
                 Remove
               </button>
             )}
           </div>
+          {confirmBox}
 
           {/* Basecamp-style: announce this file to the Space — nobody is
               emailed unless the sharer picks people (default No one). */}
-          {canRemove &&
+          {/* Not on a held draft: the team can't see it yet. */}
+          {canRemove && !held &&
             (notifying ? (
               <div className="gf-detail__notify">
                 <NotifyPicker
@@ -339,6 +410,7 @@ export default function FileDetailActions({
                 />
                 <input
                   className="gf-detail__note"
+                  aria-label="A short message (optional)"
                   placeholder="Add a short message (optional)"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
@@ -377,7 +449,7 @@ export default function FileDetailActions({
                 Notify the team about this
               </button>
             ))}
-          {notifyDone && <p className="gf-detail__notify-done">{notifyDone}</p>}
+          {notifyDone && <p className="gf-detail__notify-done" role="status">{notifyDone}</p>}
         </>
       )}
 

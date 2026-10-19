@@ -25,29 +25,60 @@ export default function LessonNoteEditor({ lessonSlug, initialBody }: Props) {
   });
   const [status, setStatus] = useState<SaveStatus>("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Words typed but not yet sent; null once they're on their way.
+  const pendingRef = useRef<string | null>(null);
 
+  function save(value: string, keepalive = false) {
+    const payload = JSON.stringify({ body: value });
+    fetch(`/api/lessons/${lessonSlug}/note`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      // keepalive lets the save finish as the page closes; browsers refuse it
+      // above 64 KB, so a very long note goes as an ordinary request.
+      keepalive: keepalive && new Blob([payload]).size < 60000, // bytes, the keepalive limit
+    })
+      .then((res) => {
+        // A newer edit is waiting: its own save will answer.
+        if (pendingRef.current === null) setStatus(res.ok ? "saved" : "error");
+      })
+      .catch(() => {
+        if (pendingRef.current === null) setStatus("error");
+      });
+  }
+
+  // Leaving the lesson, closing the tab or switching away while a save is
+  // still waiting: send it now, so the last few seconds of writing are kept.
   useEffect(() => {
-    return () => {
+    function flush() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      const value = pendingRef.current;
+      if (value === null) return;
+      pendingRef.current = null;
+      save(value, true);
+    }
+    const onHidden = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onHidden);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onHidden);
+      flush();
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessonSlug]);
 
   function handleChange(value: string) {
     setBody(value);
     setStatus("saving");
+    pendingRef.current = value;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/lessons/${lessonSlug}/note`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body: value }),
-        });
-        setStatus(res.ok ? "saved" : "error");
-      } catch {
-        setStatus("error");
-      }
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      pendingRef.current = null;
+      save(value);
     }, 1500);
   }
 

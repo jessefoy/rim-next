@@ -14,7 +14,7 @@
  * Sub-cover assignments are always protected — shown but not togglable.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface OpenSession {
   dateStr:      string;
@@ -80,7 +80,10 @@ const isShieldedFromReplaceAll = (c: Conflict) => c.protected || c.source === "m
 export default function RotationConflictModal({ standingId, programSlug, dayOfWeek, hubSlug, year, month, onClose, onApplied }: Props) {
   const [preview, setPreview]     = useState<Preview | null>(null);
   const [loading, setLoading]     = useState(true);
+  // A preview that couldn't load ends the dialog's use; an apply that
+  // failed does not: the preview and Apply stay so the person can retry.
   const [error, setError]         = useState<string | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
   const [mode, setMode]           = useState<Mode>("leave");
   const [perDate, setPerDate]     = useState<Record<string, "keep" | "replace">>({});
   const [applying, setApplying]   = useState(false);
@@ -115,7 +118,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
   // ── Apply ──────────────────────────────────────────────────────────────
   const handleApply = async () => {
     setApplying(true);
-    setError(null);
+    setApplyError(null);
 
     let resolution: unknown;
     if (mode === "leave")        resolution = "leave";
@@ -128,12 +131,20 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ standingId, programSlug, dayOfWeek, hubSlug, year, month, resolution }),
       });
-      if (!res.ok) throw new Error("apply failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setApplyError(
+          body && typeof body.error === "string" && body.error
+            ? `The rotation wasn't applied: ${body.error} Your choices are still here, so you can press Apply again.`
+            : "The rotation wasn't applied. Your choices are still here, so you can press Apply again.",
+        );
+        return;
+      }
       const data = await res.json();
       setResult({ filled: data.filled, replaced: data.replaced, kept: data.kept });
       onApplied?.();
     } catch {
-      setError("Apply failed. Please try again.");
+      setApplyError("Couldn't reach the server, so the rotation wasn't applied. Your choices are still here, so you can press Apply again.");
     } finally {
       setApplying(false);
     }
@@ -146,23 +157,44 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
     }));
   };
 
+  // ── Dialog behaviour: focus moves in, Escape closes, focus returns ─────
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const applyingRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    applyingRef.current = applying;
+    onCloseRef.current = onClose;
+  });
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !applyingRef.current) onCloseRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      if (opener && document.contains(opener)) opener.focus();
+    };
+  }, []);
+
   // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <div className="hs-cmodal-backdrop" role="dialog" aria-labelledby="hs-cmodal-title">
+    <div className="hs-cmodal-backdrop" role="dialog" aria-modal="true" aria-labelledby="hs-cmodal-title">
       <div className="hs-cmodal">
         {/* HEADER */}
         <div className="hs-cmodal__head">
           <h2 className="hs-cmodal__title" id="hs-cmodal-title">
             {result ? "Done" : "Apply rotation"}
           </h2>
-          <button className="hs-cmodal__close" onClick={onClose} aria-label="Close">×</button>
+          <button className="hs-cmodal__close" ref={closeRef} onClick={onClose} disabled={applying} aria-label="Close">×</button>
         </div>
 
         {/* BODY */}
         <div className="hs-cmodal__body">
           {loading && <p className="hs-cmodal__loading">Looking at the schedule…</p>}
 
-          {error && <p className="hs-cmodal__error">{error}</p>}
+          {error && <p className="hs-cmodal__error" role="alert">{error}</p>}
 
           {result && (
             <div className="hs-cmodal__result">
@@ -174,7 +206,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
             </div>
           )}
 
-          {!loading && !error && preview && !result && (
+          {!loading && preview && !result && (
             <>
               {/* SUMMARY */}
               <div className="hs-cmodal__summary">
@@ -193,7 +225,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
                 )}
                 {preview.openSessions.length === 0 && preview.conflicts.length === 0 && (
                   <p className="hs-cmodal__summary-line">
-                    Nothing to do this month — no future sessions match this rotation that aren't already covered.
+                    Nothing to do this month. Every future session that matches this rotation is already covered.
                   </p>
                 )}
                 {preview.pastIgnored > 0 && (
@@ -332,10 +364,15 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
         {/* FOOTER */}
         {!result && (
           <div className="hs-cmodal__foot">
+            {applyError && (
+              <p className="hs-cmodal__error" role="alert" style={{ flex: "1 1 auto", alignSelf: "center" }}>
+                {applyError}
+              </p>
+            )}
             <button className="hs-cmodal__cancel" onClick={onClose} disabled={applying}>
               Cancel
             </button>
-            {!loading && !error && preview && (
+            {!loading && preview && (
               <button
                 className="hs-cmodal__apply"
                 onClick={handleApply}

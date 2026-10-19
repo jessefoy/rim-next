@@ -419,8 +419,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
 
       {/* Name */}
       <div className="adm-hubs-field">
-        <label className="adm-hubs-label">Hub Name *</label>
+        <label className="adm-hubs-label" htmlFor="hubf-name">Hub Name *</label>
         <input
+          id="hubf-name"
           type="text"
           className="adm-hubs-input"
           value={name}
@@ -445,8 +446,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
 
       {/* Description */}
       <div className="adm-hubs-field">
-        <label className="adm-hubs-label">Description</label>
+        <label className="adm-hubs-label" htmlFor="hubf-description">Description</label>
         <input
+          id="hubf-description"
           type="text"
           className="adm-hubs-input"
           value={description}
@@ -461,8 +463,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
 
       {/* Type */}
       <div className="adm-hubs-field">
-        <label className="adm-hubs-label">Type</label>
+        <label className="adm-hubs-label" htmlFor="hubf-type">Type</label>
         <select
+          id="hubf-type"
           className="adm-hubs-select"
           value={type}
           onChange={(e) => setType(e.target.value as HubData["type"])}
@@ -475,8 +478,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
 
       {/* Status */}
       <div className="adm-hubs-field">
-        <label className="adm-hubs-label">Status</label>
+        <label className="adm-hubs-label" htmlFor="hubf-status">Status</label>
         <select
+          id="hubf-status"
           className="adm-hubs-select"
           value={status}
           onChange={(e) => setStatus(e.target.value as HubData["status"])}
@@ -582,7 +586,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
               )}
               {provisionNote && <p className="adm-hubs-hint">{provisionNote}</p>}
 
-              <label className="adm-hubs-label" style={{ marginTop: 16 }}>
+              <label className="adm-hubs-label" style={{ marginTop: 16 }} htmlFor="hubf-drive">
                 Advanced: use a separate Shared Drive
               </label>
               <p className="adm-hubs-hint">
@@ -590,6 +594,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
                 material). Most teams use the automatic setup above.
               </p>
               <select
+                id="hubf-drive"
                 className="adm-hubs-input"
                 value={googleDriveId}
                 onChange={(e) => {
@@ -655,10 +660,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           (<em>Host</em> / <em>hosting</em> / <em>host this</em>).
         </p>
 
-        <label className="adm-hubs-label" style={{ marginTop: 12 }}>
+        <label className="adm-hubs-label" style={{ marginTop: 12 }} htmlFor="hubf-role-noun">
           Role name (noun)
         </label>
         <input
+          id="hubf-role-noun"
           type="text"
           className="adm-hubs-input"
           placeholder="Host"
@@ -671,10 +677,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           and &ldquo;<strong>{coverageNoun.trim() || "Host"}</strong>: Bob.&rdquo;
         </p>
 
-        <label className="adm-hubs-label" style={{ marginTop: 12 }}>
+        <label className="adm-hubs-label" style={{ marginTop: 12 }} htmlFor="hubf-role-verb">
           Role verb (-ing form)
         </label>
         <input
+          id="hubf-role-verb"
           type="text"
           className="adm-hubs-input"
           placeholder="hosting"
@@ -686,10 +693,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           Fills sentences like &ldquo;You&rsquo;re <strong>{coverageVerb.trim() || "hosting"}</strong>.&rdquo;
         </p>
 
-        <label className="adm-hubs-label" style={{ marginTop: 12 }}>
+        <label className="adm-hubs-label" style={{ marginTop: 12 }} htmlFor="hubf-role-action">
           Role action (claim phrasing)
         </label>
         <input
+          id="hubf-role-action"
           type="text"
           className="adm-hubs-input"
           placeholder="host this"
@@ -828,6 +836,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
                       value={link.label}
                       onChange={(e) => updateAppLink(i, "label", e.target.value)}
                       placeholder="Label"
+                      aria-label="Link label"
                     />
                     <input
                       type="text"
@@ -835,6 +844,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
                       value={link.href}
                       onChange={(e) => updateAppLink(i, "href", e.target.value)}
                       placeholder="URL or /path"
+                      aria-label="Link address"
                     />
                   </>
                 )}
@@ -865,6 +875,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
                   onClick={() => moveAppLink(i, -1)}
                   disabled={i === 0}
                   title="Move up"
+                  aria-label="Move up"
                 >
                   &uarr;
                 </button>
@@ -874,6 +885,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
                   onClick={() => moveAppLink(i, 1)}
                   disabled={i === appLinks.length - 1}
                   title="Move down"
+                  aria-label="Move down"
                 >
                   &darr;
                 </button>
@@ -882,6 +894,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
                   className="adm-hubs-btn-icon adm-hubs-btn-icon--danger"
                   onClick={() => removeAppLink(i)}
                   title="Remove"
+                  aria-label="Remove"
                 >
                   &times;
                 </button>
@@ -893,6 +906,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           {availableTools.length > 0 && (
             <select
               className="adm-hubs-select adm-hubs-select--inline"
+              aria-label="Add a tool"
               value=""
               onChange={(e) => {
                 if (e.target.value) addToolLink(e.target.value);

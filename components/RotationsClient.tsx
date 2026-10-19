@@ -27,6 +27,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import RotationConflictModal from "./RotationConflictModal";
+import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import { ctDateStr, isCycleWeek, isOccurrenceOnDate, meetsEveryWeek } from "@/lib/scheduleUtils";
 import type { ScheduleProgramSummary } from "@/lib/scheduleSessions";
 
@@ -300,8 +301,19 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   const router = useRouter();
   const [rotations, setRotations] = useState<Rotation[]>([]);
   const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState<string | null>(null);
-  const [toast, setToast]         = useState<string | null>(null);
+  const [error, setErrorState]    = useState<string | null>(null);
+  // A problem is said in the notice each time it happens, even the same one
+  // twice, and clearing it closes the notice (2026-10-19 review: a mirror
+  // effect on `error` stayed silent on a repeat).
+  const setError = (msg: string | null) => {
+    setErrorState(msg);
+    say(msg, msg ? "error" : undefined);
+  };
+  // Each action's answer (and each problem) stays in view at the bottom of
+  // the screen, wherever the person has scrolled to act, until they close it
+  // or act again; announced (FormDone ActionNotice). It used to be a 4-second
+  // flash at the top of the tab, out of sight from most cards.
+  const { notice, say } = useActionNotice();
 
   /**
    * Force the parent server component to re-run after a destructive
@@ -349,10 +361,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   // Empty previews and conflict-free fills get a toast instead.
   const [pendingApply, setPendingApply] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 4000);
-  };
+  const showToast = (msg: string) => say(msg, "ok");
 
   // ── Remove-host (called from inside the manage panel) ───────────────────
   //
@@ -492,7 +501,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const msg = e instanceof Error ? e.message : "Could not reset rotations.";
       // eslint-disable-next-line no-console
       console.error("[reset] failed", msg, e);
-      setError(`Could not reset rotations — ${msg}`);
+      setError(`The rotations weren't reset: ${msg}`);
       setProgResetResult({ slug, kind: "error", message: msg });
     } finally {
       setProgClearing(false);
@@ -510,7 +519,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
     // context is missing (session 146 fallback hardening). Refuse instead, so
     // a "reset" can't nuke the wrong team's data.
     if (!hubSlug) {
-      setError("Missing team context — please refresh and try again.");
+      setError("This page lost track of which team it is for, so nothing was changed. Please refresh the page and try again.");
       return;
     }
     setClearing(true);
@@ -790,9 +799,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
           " On this team a rotation adds its person to whoever has signed up; it never replaces anyone."}
       </p>
 
-      {error && <p className="hs-rot__error">{error}</p>}
-
-      {toast && <div className="hs-rot__toast">{toast}</div>}
+      <ActionNotice notice={notice} onClose={() => say(null)} />
 
       {programs.length === 0 && (
         <p className="hs-rot__empty">

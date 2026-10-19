@@ -38,7 +38,7 @@
  * CSS prefix: gf-
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import {
@@ -61,6 +61,7 @@ import { ALLOWED_UPLOAD_MIME_TYPES, GOOGLE_MIME } from "@/lib/google/mime";
 import { orderFiles, isFileSort, type FileSort } from "@/lib/fileOrganization";
 import { relativeDate } from "@/lib/relativeDate";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
+import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 
 // The exact same list the server's Blob-token scope enforces (lib/google/
 // mime.ts) — the picker can never offer a type the server would reject.
@@ -306,6 +307,12 @@ export default function FilesBrowser({
     setDialog(null);
     setActionError(null);
   }, []);
+
+  // The remove dialog takes focus, keeps it inside, closes on Escape, and
+  // hands focus back to the button that opened it.
+  const removeDialogRef = useNavigationDrawer(dialog?.mode === "remove", () => {
+    if (!busy) closeDialog();
+  });
 
   // Escape closes an open menu or (when not mid-request) the dialog.
   useEffect(() => {
@@ -890,7 +897,7 @@ export default function FilesBrowser({
             <UploadIcon size={16} strokeWidth={1.75} aria-hidden="true" />
             {"error" in uploadStatus ? (
               <span className="gf-upload-status__text">
-                &ldquo;{uploadStatus.name}&rdquo; — {uploadStatus.error}
+                &ldquo;{uploadStatus.name}&rdquo;: {uploadStatus.error}
               </span>
             ) : (
               <>
@@ -1048,12 +1055,18 @@ export default function FilesBrowser({
       )}
 
       {dialog?.mode === "remove" && (
-        <div className="gf-overlay" role="dialog" aria-modal="true" aria-label="Remove file">
+        <div
+          className="gf-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="gf-remove-title"
+          ref={removeDialogRef as RefObject<HTMLDivElement | null>}
+        >
           <div className="gf-dialog">
-            <h2 className="gf-dialog__title">Remove this file?</h2>
+            <h2 className="gf-dialog__title" id="gf-remove-title">Remove this file?</h2>
             <p className="gf-dialog__text">
-              &ldquo;{dialog.row.name}&rdquo; will be held for a team lead to approve.
-              Nothing is deleted yet — it stays recoverable, and a lead (or you) can keep
+              &ldquo;{dialog.row.name}&rdquo; will wait for a team lead to approve.
+              Nothing is deleted yet. It stays recoverable, and a lead (or you) can keep
               it instead.
             </p>
             {actionError && <p className="gf-dialog__error" role="alert">{actionError}</p>}
@@ -1095,8 +1108,19 @@ function NameDialog({
 }) {
   const [name, setName] = useState(initialValue);
   const trimmed = name.trim();
+  // Focus moves in (to the name field, which tabIndex={0} puts in the
+  // dialog's focus loop), Escape closes, focus returns.
+  const dialogRef = useNavigationDrawer(true, () => {
+    if (!busy) onCancel();
+  });
   return (
-    <div className="gf-overlay" role="dialog" aria-modal="true" aria-label={title}>
+    <div
+      className="gf-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gf-name-title"
+      ref={dialogRef as RefObject<HTMLDivElement | null>}
+    >
       <form
         className="gf-dialog"
         onSubmit={(e) => {
@@ -1104,14 +1128,15 @@ function NameDialog({
           if (trimmed && !busy) onSubmit(trimmed);
         }}
       >
-        <h2 className="gf-dialog__title">{title}</h2>
+        <h2 className="gf-dialog__title" id="gf-name-title">{title}</h2>
         <input
           className="gf-dialog__input"
           type="text"
+          tabIndex={0}
+          aria-label="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Name"
-          autoFocus
           maxLength={150}
         />
         {error && <p className="gf-dialog__error" role="alert">{error}</p>}
@@ -1161,6 +1186,11 @@ function MovePicker({
   const [loadError, setLoadError] = useState<string | null>(null);
   const seq = useRef(0);
 
+  // Focus moves in, stays inside, Escape closes, focus returns.
+  const dialogRef = useNavigationDrawer(true, () => {
+    if (!busy) onCancel();
+  });
+
   const pickFolderId = pickTrail.length ? pickTrail[pickTrail.length - 1].id : base?.id ?? null;
   // Disabled when the destination is where the item already lives.
   const sameLocation = (pickFolderId ?? null) === (currentFolderId ?? null);
@@ -1196,9 +1226,15 @@ function MovePicker({
   }, [placeKey, pickFolderId, row.id]);
 
   return (
-    <div className="gf-overlay" role="dialog" aria-modal="true" aria-label={`Move ${row.name}`}>
+    <div
+      className="gf-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gf-move-title"
+      ref={dialogRef as RefObject<HTMLDivElement | null>}
+    >
       <div className="gf-dialog gf-dialog--move">
-        <h2 className="gf-dialog__title">Move &ldquo;{row.name}&rdquo;</h2>
+        <h2 className="gf-dialog__title" id="gf-move-title">Move &ldquo;{row.name}&rdquo;</h2>
         <nav className="gf-crumbs gf-crumbs--picker" aria-label="Destination path">
           <button className="gf-crumbs__item" onClick={() => setPickTrail([])}>
             {base?.name ?? placeName}

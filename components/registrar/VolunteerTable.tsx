@@ -106,6 +106,10 @@ export default function VolunteerTable({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmEditRequestId, setConfirmEditRequestId] = useState<string | null>(null);
   const [confirmProgReminderId, setConfirmProgReminderId] = useState<string | null>(null);
+  // One-tap actions that email someone ask first, naming who will be emailed.
+  const [confirmPromoteId, setConfirmPromoteId] = useState<string | null>(null);
+  const [confirmDanaId, setConfirmDanaId] = useState<string | null>(null);
+  const [confirmBulk, setConfirmBulk] = useState(false);
   const [reminderSent, setReminderSent] = useState<string | null>(null);
   const [editRequestSent, setEditRequestSent] = useState<string | null>(null);
   const [editingFields, setEditingFields] = useState<Record<string, Record<string, string>>>({});
@@ -179,7 +183,9 @@ export default function VolunteerTable({
 
   // ── Action: promote from waitlist ────────────────────────────────────────────
   async function promoteRegistration(id: string) {
-    const prevStatus = registrations.find((r) => r.id === id)?.status;
+    const prev = registrations.find((r) => r.id === id);
+    const prevStatus = prev?.status;
+    const prevDonation = prev?.donationStatus;
     const optimisticDonation = danaMode && danaMode !== "none" ? "PENDING" : "WAIVED";
 
     setActionLoading(id);
@@ -196,10 +202,10 @@ export default function VolunteerTable({
         body: JSON.stringify({ status: "REGISTERED", danaMode: danaMode ?? "none" }),
       });
       if (!res.ok) throw new Error();
-      say("Moved from the waitlist to registered.");
+      say(`Moved from the waitlist to registered. ${prev?.firstName ?? "They"} will get an email saying their spot is confirmed.`);
     } catch {
       setRegistrations((rs) =>
-        rs.map((r) => (r.id === id ? { ...r, status: prevStatus! } : r))
+        rs.map((r) => (r.id === id ? { ...r, status: prevStatus!, donationStatus: prevDonation! } : r))
       );
       say("Failed to promote. Please try again.", "error");
     } finally {
@@ -396,7 +402,6 @@ export default function VolunteerTable({
       setSavedFields(id);
       say("Saved. Their answers are updated.");
       setEditFieldsOpen(null);
-      setTimeout(() => setSavedFields(null), 2500);
     } catch {
       say("Failed to save responses. Please try again.", "error");
     } finally {
@@ -420,7 +425,6 @@ export default function VolunteerTable({
       setRegistrations((rs) => rs.map((r) => (r.id === id ? { ...r, notes } : r)));
       setSavedNotes(id);
       say("Notes saved.");
-      setTimeout(() => setSavedNotes(null), 2000);
     } catch {
       say("Failed to save notes. Please try again.", "error");
     } finally {
@@ -437,6 +441,8 @@ export default function VolunteerTable({
       setConfirmEditRequestId(null);
       setConfirmProgReminderId(null);
       setConfirmResendId(null);
+      setConfirmPromoteId(null);
+      setConfirmDanaId(null);
     } else {
       setExpandedId(id);
       setConfirmCancelId(null);
@@ -444,6 +450,8 @@ export default function VolunteerTable({
       setConfirmEditRequestId(null);
       setConfirmProgReminderId(null);
       setConfirmResendId(null);
+      setConfirmPromoteId(null);
+      setConfirmDanaId(null);
       if (!(id in editingNotes)) {
         setEditingNotes((prev) => ({ ...prev, [id]: toEditorString(currentNotes) }));
       }
@@ -527,8 +535,9 @@ export default function VolunteerTable({
             <div className="vol-reminder-actions">
               <button
                 className="vol-reminder-bulk-btn"
-                onClick={sendBulkReminder}
-                disabled={bulkReminderSending}
+                onClick={() => setConfirmBulk(true)}
+                disabled={bulkReminderSending || confirmBulk}
+                aria-expanded={confirmBulk}
               >
                 {bulkReminderSending
                   ? "Sending…"
@@ -546,7 +555,39 @@ export default function VolunteerTable({
           ) : totalActive > 0 ? (
             <span className="vol-reminder-all-sent">All sent ✓</span>
           ) : null}
-          {showReminderNames && unsentCount > 0 && (
+          {confirmBulk && unsentCount > 0 && (
+            <div className="vol-confirm-wrap">
+              <span className="vol-confirm-label">
+                Email the reminder now to {unsentCount === 1 ? "this person" : `these ${unsentCount} people`}?
+              </span>
+              <div className="vol-reminder-names">
+                {registrations
+                  .filter((r) => (r.status === "REGISTERED" || r.status === "APPROVED") && !getReminderSentAt(r.id))
+                  .map((r) => (
+                    <span key={r.id} className="vol-reminder-name">{r.firstName} {r.lastName}</span>
+                  ))}
+              </div>
+              <div className="vol-reminder-actions">
+                <button
+                  className="vol-action-btn vol-action-btn--danger"
+                  disabled={bulkReminderSending}
+                  onClick={() => {
+                    setConfirmBulk(false);
+                    sendBulkReminder();
+                  }}
+                >
+                  Yes, send the reminder
+                </button>
+                <button
+                  className="vol-action-btn vol-action-btn--ghost"
+                  onClick={() => setConfirmBulk(false)}
+                >
+                  Never mind
+                </button>
+              </div>
+            </div>
+          )}
+          {showReminderNames && !confirmBulk && unsentCount > 0 && (
             <div className="vol-reminder-names">
               {registrations
                 .filter((r) => (r.status === "REGISTERED" || r.status === "APPROVED") && !getReminderSentAt(r.id))
@@ -577,6 +618,7 @@ export default function VolunteerTable({
         <input
           type="search"
           className="vol-search"
+          aria-label="Search registrations by name or email"
           placeholder="Search by name or email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -641,12 +683,17 @@ export default function VolunteerTable({
                         )}
                       </span>
 
-                      {/* WAITLISTED → Promote (safe, no confirm needed) */}
+                      {/* WAITLISTED → Promote. It emails them, so it opens
+                          the row with the confirmation in its Actions. */}
                       {r.status === "WAITLISTED" && (
                         <button
                           className="vol-promote-inline"
                           disabled={actionLoading === r.id}
-                          onClick={(e) => { e.stopPropagation(); promoteRegistration(r.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isExpanded) toggleExpand(r.id, r.notes);
+                            setConfirmPromoteId(r.id);
+                          }}
                         >
                           {actionLoading === r.id ? "…" : "Promote"}
                         </button>
@@ -702,6 +749,7 @@ export default function VolunteerTable({
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setEditFieldsOpen(r.id);
+                                        setSavedFields(null);
                                         setEditingFields((prev) => ({
                                           ...prev,
                                           [r.id]: { ...(r.customFields as Record<string, string>) },
@@ -726,7 +774,8 @@ export default function VolunteerTable({
                                 ) : (
                                   /* Edit mode */
                                   <div className="vol-fields-edit" onClick={(e) => e.stopPropagation()}>
-                                    {Object.entries(editingFields[r.id] ?? {}).map(([q, a]) => {
+                                    {Object.entries(editingFields[r.id] ?? {}).map(([q, a], qi) => {
+                                      const fieldId = `vol-field-${r.id}-${qi}`;
                                       const fieldDef = registrationFields.find((f) => f.label === q);
                                       const onChange = (val: string) =>
                                         setEditingFields((prev) => ({
@@ -735,15 +784,17 @@ export default function VolunteerTable({
                                         }));
                                       return (
                                         <div key={q}>
-                                          <label className="vol-field-edit__label">{q}</label>
+                                          <label className="vol-field-edit__label" htmlFor={fieldId}>{q}</label>
                                           {fieldDef?.fieldType === "longText" ? (
                                             <textarea
+                                              id={fieldId}
                                               className="vol-field-edit__input vol-field-edit__textarea"
                                               value={a}
                                               onChange={(e) => onChange(e.target.value)}
                                             />
                                           ) : fieldDef?.fieldType === "yesNo" ? (
                                             <select
+                                              id={fieldId}
                                               className="vol-field-edit__select"
                                               value={a}
                                               onChange={(e) => onChange(e.target.value)}
@@ -754,6 +805,7 @@ export default function VolunteerTable({
                                             </select>
                                           ) : fieldDef?.fieldType === "select" && fieldDef.options?.length ? (
                                             <select
+                                              id={fieldId}
                                               className="vol-field-edit__select"
                                               value={a}
                                               onChange={(e) => onChange(e.target.value)}
@@ -765,6 +817,7 @@ export default function VolunteerTable({
                                             </select>
                                           ) : (
                                             <input
+                                              id={fieldId}
                                               className="vol-field-edit__input"
                                               value={a}
                                               onChange={(e) => onChange(e.target.value)}
@@ -807,15 +860,43 @@ export default function VolunteerTable({
                               <p className="vol-detail__col-label">Actions</p>
                               {/* Dana reminder — shown whenever donation is pending */}
                               {r.donationStatus === "PENDING" && (
-                                <button
-                                  className="vol-action-btn vol-action-btn--dominant"
-                                  disabled={actionLoading === r.id}
-                                  onClick={() => sendDanaReminder(r.id)}
-                                >
-                                  {reminderSent === r.id
-                                    ? "Reminder Sent ✓"
-                                    : "Send Dana Reminder"}
-                                </button>
+                                confirmDanaId === r.id ? (
+                                  <div className="vol-confirm-wrap">
+                                    <span className="vol-confirm-label">
+                                      Email a dana reminder to {r.firstName} at {r.email}?
+                                    </span>
+                                    <div className="vol-confirm-btns">
+                                      <button
+                                        className="vol-action-btn vol-action-btn--danger"
+                                        disabled={actionLoading === r.id}
+                                        onClick={() => {
+                                          setConfirmDanaId(null);
+                                          sendDanaReminder(r.id);
+                                        }}
+                                      >
+                                        Yes, send it
+                                      </button>
+                                      <button
+                                        className="vol-action-btn vol-action-btn--ghost"
+                                        onClick={() => setConfirmDanaId(null)}
+                                      >
+                                        Never mind
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="vol-action-btn vol-action-btn--dominant"
+                                    disabled={actionLoading === r.id}
+                                    onClick={() => setConfirmDanaId(r.id)}
+                                  >
+                                    {actionLoading === r.id
+                                      ? "Sending…"
+                                      : reminderSent === r.id
+                                      ? "Reminder Sent ✓"
+                                      : "Send Dana Reminder"}
+                                  </button>
+                                )
                               )}
 
                               {/* Send Edit Request — only for active registrations with custom fields */}
@@ -942,13 +1023,40 @@ export default function VolunteerTable({
 
                               {/* Promote */}
                               {r.status === "WAITLISTED" && (
-                                <button
-                                  className="vol-action-btn vol-action-btn--promote"
-                                  disabled={actionLoading === r.id}
-                                  onClick={() => promoteRegistration(r.id)}
-                                >
-                                  {actionLoading === r.id ? "Promoting…" : "Promote to Registered"}
-                                </button>
+                                confirmPromoteId === r.id ? (
+                                  <div className="vol-confirm-wrap">
+                                    <span className="vol-confirm-label">
+                                      Move {r.firstName} {r.lastName} from the waitlist to registered?
+                                      This emails {r.firstName} at {r.email} to say their spot is confirmed.
+                                    </span>
+                                    <div className="vol-confirm-btns">
+                                      <button
+                                        className="vol-action-btn vol-action-btn--promote"
+                                        disabled={actionLoading === r.id}
+                                        onClick={() => {
+                                          setConfirmPromoteId(null);
+                                          promoteRegistration(r.id);
+                                        }}
+                                      >
+                                        Yes, register and email them
+                                      </button>
+                                      <button
+                                        className="vol-action-btn vol-action-btn--ghost"
+                                        onClick={() => setConfirmPromoteId(null)}
+                                      >
+                                        Never mind
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="vol-action-btn vol-action-btn--promote"
+                                    disabled={actionLoading === r.id}
+                                    onClick={() => setConfirmPromoteId(r.id)}
+                                  >
+                                    {actionLoading === r.id ? "Promoting…" : "Promote to Registered"}
+                                  </button>
+                                )
                               )}
 
                               {/* Cancel with inline confirm — all active statuses */}
@@ -1038,9 +1146,11 @@ export default function VolunteerTable({
                               <p className="vol-detail__col-label">Internal Notes</p>
                               <RimTiptapEditor
                                 value={editingNotes[r.id] ?? toEditorString(r.notes)}
-                                onChange={(val) =>
-                                  setEditingNotes((prev) => ({ ...prev, [r.id]: val }))
-                                }
+                                onChange={(val) => {
+                                  setEditingNotes((prev) => ({ ...prev, [r.id]: val }));
+                                  // "Saved ✓" stays until the notes change again.
+                                  if (savedNotes === r.id) setSavedNotes(null);
+                                }}
                                 placeholder="Notes visible only to staff…"
                                 variant="message"
                               />

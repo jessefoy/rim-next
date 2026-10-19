@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ROLE_LABELS, shownRoles } from "@/lib/roleLabels";
 
@@ -105,11 +105,32 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
+  // The button that opened the dialog gets focus back when it closes.
+  const addOpenerRef = useRef<HTMLElement | null>(null);
+
   const openAdd = () => {
+    addOpenerRef.current = document.activeElement as HTMLElement | null;
     setAddForm({ firstName: "", lastName: "", email: "", phone: "" });
     setAddError(null);
     setShowAdd(true);
   };
+
+  // Escape closes the dialog (not while the member is being created).
+  useEffect(() => {
+    if (!showAdd) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !adding) setShowAdd(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showAdd, adding]);
+
+  useEffect(() => {
+    if (showAdd) return;
+    const opener = addOpenerRef.current;
+    addOpenerRef.current = null;
+    opener?.focus();
+  }, [showAdd]);
 
   const handleAddSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -389,10 +410,16 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
 
       {showAdd && (
         <div className="adm-modal-backdrop" onClick={() => !adding && setShowAdd(false)}>
-          <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
-            <h2 className="adm-modal__title">Add a member</h2>
+          <div
+            className="adm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-member-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="adm-modal__title" id="add-member-title">Add a member</h2>
             <p className="adm-modal__hint">
-              Creates the account now. No email is sent — they cross the usual
+              Creates the account now. No email is sent. They cross the usual
               sign-up threshold (agreements + sign-in) when they first log in,
               and their name updates to whatever they enter. You&rsquo;ll land on
               their profile next to assign a role.
@@ -446,7 +473,7 @@ export default function MembersTable({ members, teams, showLegacyPool, legacyCou
                   autoComplete="off"
                 />
               </div>
-              {addError && <p className="adm-modal__error">{addError}</p>}
+              {addError && <p className="adm-modal__error" role="alert">{addError}</p>}
               <div className="adm-modal__actions">
                 <button
                   type="button"
