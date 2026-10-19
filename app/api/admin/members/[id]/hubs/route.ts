@@ -33,6 +33,20 @@ function isAuthorized(roles: string[] | undefined): boolean {
   return !!roles?.some((r) => r === "ADMIN" || r === "REGISTRAR");
 }
 
+/** A registrar staffs other people's teams, not their own: making yourself a
+ *  coordinator grants coverage and Leads-only authority (2026-10-19 audit). */
+function refusesOwnTeams(
+  session: { user?: { id?: string; roles?: string[] } } | null,
+  targetId: string,
+): NextResponse | null {
+  if (session?.user?.roles?.includes("ADMIN")) return null;
+  if (session?.user?.id !== targetId) return null;
+  return NextResponse.json(
+    { error: "Ask an admin to change your own teams." },
+    { status: 403 },
+  );
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -84,13 +98,15 @@ export async function POST(
   }
 
   const { id } = await params;
+  const ownTeams = refusesOwnTeams(session, id);
+  if (ownTeams) return ownTeams;
   const user = await db.user.findUnique({
     where: { id },
     select: { id: true, archivedAt: true, roles: true },
   });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
   if (user.archivedAt) {
-    return NextResponse.json({ error: "Cannot assign an archived member to a hub." }, { status: 400 });
+    return NextResponse.json({ error: "An archived member can't be added to a team." }, { status: 400 });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -100,7 +116,7 @@ export async function POST(
   // Role-derived hubs are governed by the role, not this tool.
   if (roleDerivedHubs(user.roles).has(hubSlug)) {
     return NextResponse.json(
-      { error: "This team comes from a role — manage it in Roles & access." },
+      { error: "This team comes from a role. Change it in Roles & access." },
       { status: 409 },
     );
   }
@@ -109,9 +125,9 @@ export async function POST(
     where: { slug: hubSlug },
     select: { id: true, status: true },
   });
-  if (!hub) return NextResponse.json({ error: "Hub not found" }, { status: 404 });
+  if (!hub) return NextResponse.json({ error: "That team wasn't found." }, { status: 404 });
   if (hub.status !== "ACTIVE") {
-    return NextResponse.json({ error: "Cannot assign to an archived hub." }, { status: 400 });
+    return NextResponse.json({ error: "This team is archived." }, { status: 400 });
   }
 
   // Upsert: create the membership, or flip just the coordinator flag on an
@@ -143,6 +159,8 @@ export async function DELETE(
   }
 
   const { id } = await params;
+  const ownTeams = refusesOwnTeams(session, id);
+  if (ownTeams) return ownTeams;
   const body = await req.json().catch(() => ({}));
   const { hubSlug } = body as { hubSlug?: string };
   if (!hubSlug) return NextResponse.json({ error: "hubSlug required" }, { status: 400 });
@@ -152,19 +170,19 @@ export async function DELETE(
   // Role-derived hubs are governed by the role — remove the role, not the membership.
   if (roleDerivedHubs(user.roles).has(hubSlug)) {
     return NextResponse.json(
-      { error: "This team comes from a role — remove the role in Roles & access." },
+      { error: "This team comes from a role. Remove the role in Roles & access." },
       { status: 409 },
     );
   }
 
   const hub = await db.hub.findUnique({ where: { slug: hubSlug }, select: { id: true } });
-  if (!hub) return NextResponse.json({ error: "Hub not found" }, { status: 404 });
+  if (!hub) return NextResponse.json({ error: "That team wasn't found." }, { status: 404 });
 
   const existing = await db.hubMember.findUnique({
     where: { hubId_userId: { hubId: hub.id, userId: id } },
     select: { id: true },
   });
-  if (!existing) return NextResponse.json({ error: "Not a member of this hub" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "They aren't on this team." }, { status: 404 });
 
   const { removedAssignments, removedRules, rows: removedRows } = await removeHubMembershipWithCleanup(hub.id, hubSlug, id);
   // They're told which sessions went with the team (2026-10-16 audit).

@@ -55,7 +55,12 @@ export async function PATCH(
   }
 
   if (action === "restore") {
-    await db.user.update({ where: { id }, data: { archivedAt: null } });
+    // Restoring also lifts an Inactive status, or the next profile save would
+    // read the stale Inactive as a new archive (2026-10-19 audit).
+    await db.$transaction([
+      db.user.update({ where: { id }, data: { archivedAt: null } }),
+      db.user.updateMany({ where: { id, memberStatus: "INACTIVE" }, data: { memberStatus: "ACTIVE" } }),
+    ]);
     return NextResponse.json({ ok: true });
   }
 
@@ -109,6 +114,29 @@ export async function PATCH(
   }
 
   const emailIsChanging = newEmail !== undefined && newEmail !== user.email;
+  // The form sends the status on every save, so only a different value is a
+  // change. A repeated Inactive used to re-archive the person and release
+  // their schedule again (2026-10-19 audit). Compared with the status the form
+  // shows: an archived member always shows Inactive (CoreRecordSection), even
+  // when the admin-only Archive action left the stored status Active.
+  const shownStatus = user.archivedAt && user.memberStatus !== "INACTIVE" ? "INACTIVE" : user.memberStatus;
+  const statusIsChanging = memberStatus !== undefined && memberStatus !== shownStatus;
+
+  // A registrar keeps the registry, but the sign-in address and status of an
+  // account that carries authority (any role, or coordinating a team) stay
+  // with an admin: the old address forwards its sign-in code to the new one,
+  // so changing it let a registrar sign in with that authority (2026-10-19
+  // audit).
+  const carriesAuthority = (user.roles as string[]).length > 0 || !!(await db.hubMember.findFirst({
+    where: { userId: id, isCoordinator: true },
+    select: { id: true },
+  }));
+  if (!isAdmin && carriesAuthority && (emailIsChanging || statusIsChanging)) {
+    return NextResponse.json(
+      { error: "Only an admin can change the sign-in email or status of this account." },
+      { status: 403 },
+    );
+  }
 
   // Detect new REGISTRAR: role wasn't there before, but is in the incoming list
   const addingRegistrar =
@@ -136,11 +164,13 @@ export async function PATCH(
 
   // Determine archivedAt changes driven by memberStatus
   let statusDrivenArchivedAt: Date | null | undefined;
-  if (memberStatus !== undefined) {
+  if (statusIsChanging) {
     if (memberStatus === "INACTIVE") {
       statusDrivenArchivedAt = new Date();
-    } else {
-      // Any active-ish status clears the archived flag
+    } else if (user.memberStatus === "INACTIVE") {
+      // Leaving Inactive lifts the archive that Inactive set. A status change
+      // never lifts an archive made by the admin-only Archive action; Restore
+      // does (and so does the member's own reactivation).
       statusDrivenArchivedAt = null;
     }
   }
@@ -158,7 +188,7 @@ export async function PATCH(
     ...(addressCity !== undefined && { addressCity }),
     ...(addressState !== undefined && { addressState }),
     ...(addressZip !== undefined && { addressZip }),
-    ...(memberStatus !== undefined && { memberStatus }),
+    ...(statusIsChanging && { memberStatus }),
     ...(firstVisitDate !== undefined && {
       firstVisitDate: firstVisitDate ? new Date(firstVisitDate) : null,
     }),
@@ -209,7 +239,7 @@ export async function PATCH(
   }
 
   // Kill sessions when email changes or member is set to Inactive
-  if (emailIsChanging || memberStatus === "INACTIVE") {
+  if (emailIsChanging || (statusIsChanging && memberStatus === "INACTIVE")) {
     await db.session.deleteMany({ where: { userId: id } });
   }
 
