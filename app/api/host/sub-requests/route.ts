@@ -3,14 +3,15 @@ import { after } from "next/server";
 import { db } from "@/lib/db";
 import { fmtSessionDay } from "@/lib/timezone";
 import { Prisma } from "@prisma/client";
-import {
-  sendSubRequestEmail,
-  type SubRequestEmailData,
-} from "@/lib/email";
+import { sendSubRequestEmail, type SubRequestEmailData, sendEachPaced } from "@/lib/email";
 import { extractTextAsync } from "@/lib/renderRichContentServer";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug } from "@/lib/programHub";
+
+// Team-wide emails go one at a time after the response (sendEachPaced),
+// so the function needs room past the usual limit (2026-10-19).
+export const maxDuration = 60;
 
 // (The GET listing every team's open requests was removed 2026-10-15: no
 // caller used it, and it ignored teams.)
@@ -131,20 +132,21 @@ export async function POST(request: Request) {
       const programName = program?.name || assignment.programSlug;
 
       const messageText = message ? (await extractTextAsync(message as any) || null) : null;
-      await Promise.all(
-        recipientUsers.map((u) =>
-          sendSubRequestEmail({
-            to: u.email,
-            firstName: u.firstName,
-            requesterName,
-            programName,
-            sessionDate: sessionLabel,
-            message: messageText,
-            subRequestId: subRequest.id,
-            sessionAt: sessionDate,
-            hubSlug: assignmentHubSlug,
-          } as SubRequestEmailData)
-        )
+      // Not to the coordinator who asked on someone's behalf, either.
+      const others = recipientUsers.filter((u) => u.id !== session.user.id);
+      await sendEachPaced(others, (u) =>
+        sendSubRequestEmail({
+          to: u.email,
+          firstName: u.firstName,
+          requesterName,
+          programName,
+          sessionDate: sessionLabel,
+          message: messageText,
+          subRequestId: subRequest.id,
+          sessionAt: sessionDate,
+          hubSlug: assignmentHubSlug,
+        } as SubRequestEmailData),
+        "sub-request-posted",
       );
     } catch (e) {
       console.error("[sub-requests] notification error:", e);

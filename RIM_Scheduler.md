@@ -632,7 +632,7 @@ Jesse signed up as the first greeter, cancelled, and nothing happened: *"Shouldn
 - **The Dummy Test Program stays** while the hosts train on it, so the Hosting, Greeter and AV teams' notices include its daily 6:00 AM sessions until Jesse deletes it by hand. Archiving it takes it off every schedule and out of the notices; deleting it (archive first, its test registrations cancelled) also removes its sessions, rotations and team coverage.
 - The walk also found the door's early entry (admin or guiding teacher) saying "You're teaching today" for the next session days away; it now says the day ("You're teaching on Tue, Oct 20").
 
-**Recipients:** gap and look-ahead emails go to `getHubNotificationRecipients(team, { canCover: true })`, the coordinator note to `{ coordinatorsOnly: true }` (a team with no active coordinator is logged), so the pre-threshold gate applies at the source; the reminder is slug-gated and needs an ACTIVE membership with communications on. All four templates are in `/admin/emails` (Host Team group). **Their wording is provisional until Jesse's read-aloud.**
+**Recipients:** gap and look-ahead emails go to `getHubNotificationRecipients(team, { canCover: true })`, the coordinator note to `{ coordinatorsOnly: true }` (a team with no active coordinator is logged), so the pre-threshold gate applies at the source; the reminder is slug-gated and needs an ACTIVE or PAUSED membership (a paused person who kept their sessions is still serving them; Jesse, 2026-10-19) with communications on. All four templates are in `/admin/emails` (Host Team group). **Their wording is provisional until Jesse's read-aloud.**
 
 ## What's deferred
 

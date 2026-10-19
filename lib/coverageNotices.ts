@@ -330,7 +330,9 @@ export async function runDailyCoverageNotices(now: Date = new Date()): Promise<{
         const memberOf = new Map(members.map((m) => [m.userId, m]));
         for (const p of people) {
           const m = memberOf.get(p.userId);
-          if (!m || m.status !== "ACTIVE" || !m.communicationsEnabled || !m.user.email || m.user.archivedAt) continue;
+          // A paused person who kept their sessions is still serving them, so
+          // they are reminded too (Jesse, 2026-10-19). Inactive is not.
+          if (!m || (m.status !== "ACTIVE" && m.status !== "PAUSED") || !m.communicationsEnabled || !m.user.email || m.user.archivedAt) continue;
           if (await alreadySent({ kind: "reminder", hubSlug: team.slug, assignmentId: p.assignmentId })) continue;
           const sessionAt = new Date(p.row.sessionDate as string);
           const program = await db.program.findUnique({

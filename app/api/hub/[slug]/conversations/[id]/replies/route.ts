@@ -3,7 +3,11 @@ import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
-import { sendHubConvNewReplyEmail } from "@/lib/email";
+import { sendHubConvNewReplyEmail, sendEachPaced } from "@/lib/email";
+
+// Team-wide emails go one at a time after the response (sendEachPaced),
+// so the function needs room past the usual limit (2026-10-19).
+export const maxDuration = 60;
 
 // POST /api/hub/[slug]/conversations/[id]/replies — add reply (any member)
 //
@@ -86,15 +90,17 @@ export async function POST(
         userId:                { in: subs.map((s) => s.userId) },
         status:                "ACTIVE",
         communicationsEnabled: true,
+        // An archived account isn't emailed about a team it can't sign in to
+        // (2026-10-19 audit; archiving leaves team memberships as they were).
+        user:                  { archivedAt: null },
       },
       include: { user: { select: { email: true, firstName: true } } },
     });
 
-    await Promise.allSettled(
-      eligible
-        .filter((m) => m.user.email)
-        .map((m) =>
-          sendHubConvNewReplyEmail({
+    await sendEachPaced(
+      eligible.filter((m) => m.user.email),
+      (m) =>
+        sendHubConvNewReplyEmail({
             to: m.user.email!,
             firstName: m.user.firstName,
             replierName,
@@ -102,8 +108,8 @@ export async function POST(
             hubSlug: slug,
             threadTitle,
             threadId,
-          })
-        )
+        }),
+      "hub-conv-new-reply",
     );
   });
 

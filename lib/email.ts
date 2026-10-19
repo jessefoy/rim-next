@@ -818,8 +818,8 @@ export interface ReminderEmailData {
   dateText?: string | null;
   locationText?: string | null;
   locationLink?: string | null;
-  // Accepts either Tiptap JSON (from Postgres) or Portable Text array (legacy).
-  // Tiptap JSON has { type: "doc", content: [...] }. Portable Text is an array of blocks.
+  // The editor's HTML string (current), an older Tiptap document, or a legacy
+  // BlockNote / Portable Text array.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reminderMessage?: any;
 }
@@ -837,9 +837,17 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
     ? `[${markdownLinkText(data.locationText)}](${safeLink})`
     : (data.locationText ?? "");
 
-  // Render reminder message — detect BlockNote JSON vs Portable Text
+  // Render reminder message. The editor saves HTML (RimTiptapEditor); render
+  // it the way the confirmation's message is (2026-10-19 audit: an HTML string
+  // matched neither older format, so every reminder went out without the
+  // coordinator's message). BlockNote and Portable Text stay for old rows.
   let reminderMessage = "";
-  if (data.reminderMessage) {
+  if (data.reminderMessage && !Array.isArray(data.reminderMessage)) {
+    // HTML, or an older Tiptap document: rendered as the confirmation is.
+    const html = await renderFormattedTextAsync(data.reminderMessage);
+    // An emptied editor saves "<p></p>": no message, not a blank block.
+    if (html.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, "").trim()) reminderMessage = html;
+  } else if (data.reminderMessage) {
     if (isBlockNoteJSON(data.reminderMessage)) {
       // BlockNote JSON — extract plain text for email template
       reminderMessage = await extractTextAsync(data.reminderMessage);
@@ -938,12 +946,13 @@ The coordinator is the team's main point of contact — not Jesse. You train new
   const html = await renderEmailHtml(await marked(markdown, { breaks: true }));
 
   try {
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: FROM,
       to: data.to,
       subject: "Welcome, host coordinator — your team is ready",
       html,
     });
+    if (error) console.error("[email] sendHostManagerRoleAssignmentEmail refused:", error);
   } catch (e) {
     console.error("[email] sendHostManagerRoleAssignmentEmail failed:", e);
   }
@@ -1064,6 +1073,29 @@ export async function sendNewProgramNeedsHostEmail(data: NewProgramNeedsHostEmai
 }
 
 /**
+ * Send one email per recipient, one after another with a short gap. The mail
+ * service allows 10 requests a second, so a team-wide send fired all at once
+ * lost emails past about ten people, logged only (2026-10-19 audit; the
+ * coverage notices already paced themselves for this). A failure on one
+ * recipient never stops the rest.
+ */
+export async function sendEachPaced<T>(
+  items: T[],
+  send: (item: T) => Promise<unknown>,
+  label: string,
+  gapMs = 600,
+): Promise<void> {
+  for (let i = 0; i < items.length; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, gapMs));
+    try {
+      await send(items[i]);
+    } catch (err) {
+      console.error(`[email] ${label} failed for one recipient`, err);
+    }
+  }
+}
+
+/**
  * Notify a hub's team that a program now needs their coverage — the same
  * heads-up the primary host hub gets when a program is created, generalized so
  * EVERY scheduler hub behaves alike: an auxiliary hub (AV / greeter / …) hears
@@ -1089,16 +1121,15 @@ export async function notifyHubOfNewProgramCoverage(opts: {
     opts.programFormat === "virtual" ? "Virtual"
     : opts.programFormat === "in-person" ? "In-person"
     : "In-person and virtual";
-  await Promise.all(
-    recipients.map((u) =>
-      sendNewProgramNeedsHostEmail({
-        to: u.email,
-        firstName: u.firstName,
-        programName: opts.programName,
-        programFormat,
-        hubSlug: opts.hubSlug,
-      }),
-    ),
+  await sendEachPaced(recipients, (u) =>
+    sendNewProgramNeedsHostEmail({
+      to: u.email,
+      firstName: u.firstName,
+      programName: opts.programName,
+      programFormat,
+      hubSlug: opts.hubSlug,
+    }),
+    "new-program-needs-host",
   );
 }
 
@@ -1541,7 +1572,10 @@ ${await changeNoteHtml(data.hubSlug)}
 <p>This is an automated message from your standing rotation.</p>`;
 
   try {
-    await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
+    // Resend answers a refusal with { error } rather than throwing
+    // (2026-10-19 audit: these sends never saw one).
+    const { error } = await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
+    if (error) console.error("[email] sendStandingAssignmentScheduledEmail refused:", error);
   } catch (e) {
     console.error("[email] sendStandingAssignmentScheduledEmail failed:", e);
   }
@@ -1582,7 +1616,10 @@ export async function sendStandingAssignmentReplacedEmail(
 <p>This is an automated message from your standing rotation.</p>`;
 
   try {
-    await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
+    // Resend answers a refusal with { error } rather than throwing
+    // (2026-10-19 audit: these sends never saw one).
+    const { error } = await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
+    if (error) console.error("[email] sendStandingAssignmentReplacedEmail refused:", error);
   } catch (e) {
     console.error("[email] sendStandingAssignmentReplacedEmail failed:", e);
   }
@@ -1661,7 +1698,10 @@ ${datesIntro}
 <p><a href="${scheduleUrl}">View the Schedule</a> &middot; This is an automated message from your standing rotation.</p>`;
 
   try {
-    await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
+    // Resend answers a refusal with { error } rather than throwing
+    // (2026-10-19 audit: these sends never saw one).
+    const { error } = await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
+    if (error) console.error("[email] sendStandingAssignmentReleasedEmail refused:", error);
   } catch (e) {
     console.error("[email] sendStandingAssignmentReleasedEmail failed:", e);
   }
@@ -1706,7 +1746,10 @@ export async function sendStandingAssignmentEndedEmail(
 <p><a href="${scheduleUrl}">View the Schedule</a> &middot; This is an automated message from your standing rotation.</p>`;
 
   try {
-    await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
+    // Resend answers a refusal with { error } rather than throwing
+    // (2026-10-19 audit: these sends never saw one).
+    const { error } = await resend.emails.send({ from: FROM, to: data.to, subject, html: await renderEmailHtml(html) });
+    if (error) console.error("[email] sendStandingAssignmentEndedEmail refused:", error);
   } catch (e) {
     console.error("[email] sendStandingAssignmentEndedEmail failed:", e);
   }
