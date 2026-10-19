@@ -39,15 +39,15 @@ import {
   ctDateStr,
   shiftToDate,
   isOccurrenceOnDate,
-  getOccurrenceInMonth,
-  getTotalOccurrencesInMonth,
   getDayOfWeekOccurrenceInMonth,
   getTotalDayOfWeekOccurrencesInMonth,
   isCycleOccurrence,
   isCycleWeek,
+  meetsEveryWeek,
   type ScheduleProgram,
 } from "@/lib/scheduleUtils";
 import type { StandingOccurrence } from "@prisma/client";
+import { ctDayBounds } from "@/lib/timezone";
 
 const TZ = "America/Chicago";
 
@@ -55,6 +55,47 @@ const TZ = "America/Chicago";
 const OCC_NUMBER: Partial<Record<StandingOccurrence, number>> = {
   FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, FIFTH: 5,
 };
+
+/** The program fields the rotation test needs. */
+const RULE_PROGRAM_SELECT = {
+  startDatetime: true, endDatetime: true,
+  recurrenceFreq: true, recurrenceInterval: true,
+  recurrenceDays: true, recurrenceCount: true,
+} as const;
+
+/**
+ * Would this rotation fill this Central date of its program: within its start
+ * and end, a day the program meets, the rotation's weekday, and its week
+ * pattern? The engine's own test, shared with holdRotationDate and the skip
+ * check, so a skip holds a session open only on a date its rotation would
+ * fill (2026-10-19 audit: a hand claim on another person's rotation date
+ * held that date shut against them). Team coverage and "No host needed" are
+ * the engine's separate checks. A rotation with no weekday (legacy) fills
+ * nothing.
+ */
+export function ruleFillsDate(
+  sa: { dayOfWeek: string | null; occurrence: StandingOccurrence; cycleStart: string | null; startsOn: Date; endsOn: Date | null },
+  program: ScheduleProgram,
+  dateStr: string,
+): boolean {
+  if (dateStr < ctDateStr(sa.startsOn.toISOString())) return false;
+  if (sa.endsOn && new Date(dateStr + "T12:00:00") > sa.endsOn) return false;
+  if (!isOccurrenceOnDate(program, dateStr)) return false;
+  if (!sa.dayOfWeek) return false;
+  if (sa.dayOfWeek !== DOW_FROM_INDEX[new Date(`${dateStr}T12:00:00`).getDay()]) return false;
+  if (sa.occurrence === "ALL") return true;
+  // Every other week, counted from the cycle's start (2026-10-18), and only
+  // for a program that meets every week (2026-10-19 audit).
+  if (isCycleOccurrence(sa.occurrence)) {
+    return meetsEveryWeek(program) && isCycleWeek(sa.occurrence, sa.cycleStart, dateStr);
+  }
+  // The rotation's weekday counted in the month (not all program sessions).
+  if (sa.occurrence === "LAST") {
+    return getDayOfWeekOccurrenceInMonth(dateStr) === getTotalDayOfWeekOccurrencesInMonth(dateStr);
+  }
+  const target = OCC_NUMBER[sa.occurrence];
+  return target !== undefined && getDayOfWeekOccurrenceInMonth(dateStr) === target;
+}
 
 /** Day index (0=Sun..6=Sat) → enum value used in StandingAssignment.dayOfWeek. */
 const DOW_FROM_INDEX = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
@@ -308,18 +349,12 @@ export async function generateCandidates(
     // Same as the view: a program with no format shows on no team's schedule.
     return covers && !!program.programFormat && hub.appliesToFormats.includes(program.programFormat);
   };
-  // On a one-person team a skip holds the whole session open (another rule
-  // mustn't fill the gap someone just made); on an open sign-up team it holds
-  // only that rule's person off that date.
-  const ruleById = new Map(standingAssignments.map((sa) => [sa.id, sa]));
+  // A skip holds its rule's person off that date. On a one-person team it
+  // also holds the seat open (no other rule fills the gap someone just made),
+  // but only where its rule would have won the seat: decided in the loop
+  // below, which runs the most specific rule first (2026-10-19 audit: a
+  // broader rule's skip shut out a more specific rule's date).
   const skippedRuleDates = new Set(skipRows.map((s) => `${s.standingAssignmentId}::${s.dateStr}`));
-  const skippedSlots = new Set(
-    skipRows.flatMap((s) => {
-      const rule = ruleById.get(s.standingAssignmentId);
-      if (!rule || hubBySlug.get(rule.hubSlug)?.allowsMultipleAssignments) return [];
-      return [`${rule.programSlug}::${s.dateStr}::${rule.hubSlug}`];
-    }),
-  );
 
   // 3. Walk every day of the month, building candidates
   const daysInMonth   = new Date(year, month, 0).getDate();
@@ -348,9 +383,6 @@ export async function generateCandidates(
       continue;
     }
 
-    // Pre-compute the date's weekday once
-    const dateDow = DOW_FROM_INDEX[new Date(`${dateStr}T12:00:00`).getDay()];
-
     for (const sa of standingAssignments) {
       const program = programMap.get(sa.programSlug);
       if (!program) continue;
@@ -361,46 +393,7 @@ export async function generateCandidates(
       if (selfLedHub && sa.hubSlug === selfLedHub) continue;
       if (!teamCovers(program as ScheduleProgram & { slug: string; programFormat: string | null; hostingHubSlug?: string | null }, sa.hubSlug)) continue;
 
-      // Respect startsOn / endsOn
-      if (dateStr < ctDateStr(sa.startsOn.toISOString())) continue;
-      if (sa.endsOn && new Date(dateStr + "T12:00:00") > sa.endsOn) continue;
-
-      if (!isOccurrenceOnDate(program, dateStr)) continue;
-
-      // Day-of-week scope. v3 requires dayOfWeek to be set explicitly; null
-      // rotations are legacy from v2 (before the column existed) and the
-      // migration backfilled what it could. Skip any remaining null rows
-      // so they don't fire on every weekday and compete with new editor-
-      // created rotations.
-      if (!sa.dayOfWeek) continue;
-      if (sa.dayOfWeek !== dateDow) continue;
-
-      // Resolve occurrence pattern. When dayOfWeek is set, count occurrences
-      // of THAT WEEKDAY in the month (not all program sessions). For null
-      // dayOfWeek (legacy / single-day programs), use program-level occurrence.
-      let matches = false;
-      if (sa.occurrence === "ALL") {
-        matches = true;
-      } else if (isCycleOccurrence(sa.occurrence)) {
-        // Every other week, counted from the cycle's start (2026-10-18).
-        matches = isCycleWeek(sa.occurrence, sa.cycleStart, dateStr);
-      } else if (sa.occurrence === "LAST") {
-        const occ      = sa.dayOfWeek
-          ? getDayOfWeekOccurrenceInMonth(dateStr)
-          : getOccurrenceInMonth(dateStr, program);
-        const totalOcc = sa.dayOfWeek
-          ? getTotalDayOfWeekOccurrencesInMonth(dateStr)
-          : getTotalOccurrencesInMonth(program, year, month);
-        matches = occ === totalOcc;
-      } else {
-        const targetOcc = OCC_NUMBER[sa.occurrence];
-        if (targetOcc === undefined) continue;
-        const actualOcc = sa.dayOfWeek
-          ? getDayOfWeekOccurrenceInMonth(dateStr)
-          : getOccurrenceInMonth(dateStr, program);
-        matches = actualOcc === targetOcc;
-      }
-      if (!matches) continue;
+      if (!ruleFillsDate(sa, program, dateStr)) continue;
 
       // De-dupe within this generation pass — first (most-specific) wins.
       // The specificity sort above ensures FIRST/.../FIFTH come before ALL.
@@ -408,7 +401,6 @@ export async function generateCandidates(
       // rotation on the same program/date don't crowd each other out — they
       // claim independent slots in different hubs.
       const key = `${sa.programSlug}::${dateStr}::${sa.hubSlug}`;
-      if (skippedSlots.has(key) || skippedRuleDates.has(`${sa.id}::${dateStr}`)) continue;
       // One rotation person per session per team, open sign-up included: a
       // team has one rotation per program and day, so the only rules that
       // meet here are a 5th-week person and the every-week one, and the 5th
@@ -416,6 +408,12 @@ export async function generateCandidates(
       // means adding to the people already signed up, which
       // previewStandingAssignments handles (2026-10-15 review).
       if (claimedKeys.has(key)) continue;
+      if (skippedRuleDates.has(`${sa.id}::${dateStr}`)) {
+        // This rule won the seat and is held off it: a one-person team's
+        // seat stays open; an open sign-up team just goes without this person.
+        if (!hubBySlug.get(sa.hubSlug)?.allowsMultipleAssignments) claimedKeys.add(key);
+        continue;
+      }
       claimedKeys.add(key);
 
       const sessionDate = shiftToDate(program.startDatetime!.toISOString(), dateStr);
@@ -723,33 +721,62 @@ export async function applyStandingAssignments(
   const displacedUserMap = new Map(displacedUsers.map((u) => [u.id, u]));
 
   // ── Writes ─────────────────────────────────────────────────────────────
+  // Each session is written under the same lock a volunteer's claim takes
+  // (seat:<program>:<Central day>:<team>, app/api/host/assignments POST), and
+  // only if it is still as the preview found it: the preview reads outside
+  // this transaction, and a coordinator's daytime Save & apply could
+  // otherwise put two people in one seat, or overwrite a claim made a moment
+  // before without telling anyone (2026-10-19 audit). A session that changed
+  // is left as it is and left out of the emails; the next run looks again.
+  const openSignUp = new Set(
+    (await db.hub.findMany({
+      where: { slug: { in: [...new Set(toCreate.map((c) => c.hubSlug))] }, allowsMultipleAssignments: true },
+      select: { slug: true },
+    })).map((h) => h.slug),
+  );
+  const created: OpenSlot[] = [];
+  const updated: OpenSlot[] = [];
+  const replacedRows: Array<{ conflict: Conflict; cand: Candidate }> = [];
   await db.$transaction(async (tx) => {
-    // 1. Create rows for slots that don't have any existing row at all.
-    //    `hubSlug` carries the candidate's hub (session 129) so the row
-    //    lands in the right team's scope — AV rotations write into the
-    //    audio-visual hub, host-team rotations into host-team, etc.
-    if (toCreate.length > 0) {
-      await tx.hostAssignment.createMany({
-        data: toCreate.map((c) => ({
+    const lockSeat = (c: Candidate) =>
+      tx.$queryRawUnsafe("SELECT 1 FROM pg_advisory_xact_lock(hashtext($1))", `seat:${c.programSlug}:${c.dateStr}:${c.hubSlug}`);
+
+    // 1. Create rows for slots that had no row at all. `hubSlug` carries the
+    //    candidate's hub (session 129) so the row lands in the right team.
+    for (const c of toCreate) {
+      await lockSeat(c);
+      const day = ctDayBounds(c.sessionDate);
+      const taken = await tx.hostAssignment.findFirst({
+        where: {
+          programSlug: c.programSlug,
+          hubSlug: c.hubSlug,
+          sessionDate: { gte: day.start, lte: day.end },
+          // An open sign-up team: only this person's own sign-up blocks it.
+          ...(openSignUp.has(c.hubSlug) ? { userId: c.userId } : {}),
+        },
+        select: { id: true },
+      });
+      if (taken) continue;
+      await tx.hostAssignment.create({
+        data: {
           programSlug:          c.programSlug,
           hubSlug:              c.hubSlug,
           userId:               c.userId,
           sessionDate:          c.sessionDate,
           assignedBy:           c.userId, // self for standing — no manual assigner
           standingAssignmentId: c.standingAssignmentId,
-        })),
-        skipDuplicates: true,
+        },
       });
+      created.push(c);
     }
 
-    // 2. Update placeholder rows (userId=null) to point at the rotation host.
-    //    These rows already exist in the DB so we can't CREATE — must UPDATE
-    //    by id. We don't reset hubSlug here: the existing row's hubSlug
-    //    is what bound it to the open-slot lookup in the first place,
-    //    so it already matches the candidate's hub.
+    // 2. Fill placeholder rows (userId=null), only while still empty. We
+    //    don't reset hubSlug: the row's hubSlug is what bound it to the
+    //    open-slot lookup, so it already matches the candidate's hub.
     for (const u of toUpdate) {
-      await tx.hostAssignment.update({
-        where: { id: u.existingHostAssignmentId! },
+      await lockSeat(u);
+      const r = await tx.hostAssignment.updateMany({
+        where: { id: u.existingHostAssignmentId!, userId: null },
         data: {
           userId:               u.userId,
           sessionDate:          u.sessionDate,
@@ -757,13 +784,15 @@ export async function applyStandingAssignments(
           standingAssignmentId: u.standingAssignmentId,
         },
       });
+      if (r.count === 1) updated.push(u);
     }
 
-    // 3. Replace conflicts: update existing rows in place (keeps subRequest
-    //    relationship integrity if any non-sub-cover ones exist)
+    // 3. Replace conflicts in place (keeps subRequest integrity), only while
+    //    the person the coordinator chose to replace still holds the seat.
     for (const r of toReplace) {
-      await tx.hostAssignment.update({
-        where: { id: r.conflict.hostAssignmentId },
+      await lockSeat(r.cand);
+      const res = await tx.hostAssignment.updateMany({
+        where: { id: r.conflict.hostAssignmentId, userId: r.conflict.currentHost.userId },
         data: {
           userId:               r.cand.userId,
           sessionDate:          r.cand.sessionDate,  // canonicalize the t-o-d
@@ -771,22 +800,23 @@ export async function applyStandingAssignments(
           standingAssignmentId: r.cand.standingAssignmentId,
         },
       });
+      if (res.count === 1) replacedRows.push(r);
     }
-  });
+  }, { maxWait: 10_000, timeout: 120_000 });
 
   // Removable diagnostic (session 140): when a coordinator replaces hosts,
   // log the exact per-date deltas so an unclear "my edit changed the wrong
   // host" report (the Qigong head-scratcher) can be reconstructed from the
   // server logs. Only fires on replacements — routine cron fills ("leave"
   // mode) never reach this, so it doesn't spam the daily run.
-  if (toReplace.length > 0) {
+  if (replacedRows.length > 0) {
     console.log("[rotation-apply]", JSON.stringify({
       program: programSlugFilter, hub: hubSlugFilter, day: dayOfWeekFilter,
       standingId: standingFilterId, year, month,
       resolution: typeof resolution === "string" ? resolution : "perDate",
-      filled: toCreate.length + toUpdate.length,
-      replaced: toReplace.length,
-      replaces: toReplace.map((r) => ({
+      filled: created.length + updated.length,
+      replaced: replacedRows.length,
+      replaces: replacedRows.map((r) => ({
         program: r.cand.programSlug, hub: r.cand.hubSlug, date: r.cand.dateStr,
         from: r.conflict.currentHost.userId, to: r.cand.userId, source: r.conflict.source,
       })),
@@ -795,9 +825,9 @@ export async function applyStandingAssignments(
 
   // ── Build result reports ───────────────────────────────────────────────
   // "filled" = slots that now have a host (creates + placeholder-updates)
-  const filled   = toCreate.length + toUpdate.length;
-  const replaced = toReplace.length;
-  const kept     = preview.conflicts.length - toReplace.length;
+  const filled   = created.length + updated.length;
+  const replaced = replacedRows.length;
+  const kept     = preview.conflicts.length - replacedRows.length;
 
   const byUser = new Map<string, ApplyResultSession[]>();
   const pushUser = (c: Candidate) => {
@@ -809,12 +839,12 @@ export async function applyStandingAssignments(
       dateStr:     c.dateStr,
     });
   };
-  for (const c of toCreate) pushUser(c);
-  for (const c of toUpdate) pushUser(c);
-  for (const r of toReplace) pushUser(r.cand);
+  for (const c of created) pushUser(c);
+  for (const c of updated) pushUser(c);
+  for (const r of replacedRows) pushUser(r.cand);
 
   const byDisplacedUser = new Map<string, ApplyResultSession[]>();
-  for (const r of toReplace) {
+  for (const r of replacedRows) {
     const uid = r.conflict.currentHost.userId;
     if (!uid) continue;
     const u = displacedUserMap.get(uid);
@@ -837,19 +867,50 @@ export async function applyStandingAssignments(
  * A session a rotation made, emptied by hand (released or removed), stays
  * empty: record a skip so the daily rotation run doesn't fill it again the
  * next morning (2026-10-15; it used to re-add the person and re-email them).
+ *
+ * A seat the person had claimed themselves before their rotation existed
+ * carries no rotation id, and the run skips it as "already covered" while it
+ * is theirs. Emptied, it would be filled again the next morning, so its date
+ * is held on each of their rotations that would fill it (ruleFillsDate,
+ * 2026-10-19 audit). A date that is another person's rotation date is left
+ * for that rotation.
  */
 export async function holdRotationDate(
-  assignment: { standingAssignmentId: string | null; sessionDate: Date | null },
+  assignment: {
+    standingAssignmentId: string | null;
+    sessionDate: Date | null;
+    userId?: string | null;
+    programSlug?: string;
+    hubSlug?: string;
+  },
   byUserId: string,
-  client: Pick<typeof db, "standingSkip"> = db,
+  client: Pick<typeof db, "standingSkip" | "standingAssignment" | "program"> = db,
 ) {
-  if (!assignment.standingAssignmentId || !assignment.sessionDate) return;
+  if (!assignment.sessionDate) return;
   const dateStr = ctDateStr(assignment.sessionDate.toISOString());
-  await client.standingSkip.upsert({
-    where: { standingAssignmentId_dateStr: { standingAssignmentId: assignment.standingAssignmentId, dateStr } },
-    create: { standingAssignmentId: assignment.standingAssignmentId, dateStr, createdById: byUserId },
-    update: {},
-  });
+  let ruleIds: string[] = [];
+  if (assignment.standingAssignmentId) {
+    ruleIds = [assignment.standingAssignmentId];
+  } else if (assignment.userId && assignment.programSlug && assignment.hubSlug) {
+    const program = await client.program.findUnique({
+      where: { slug: assignment.programSlug },
+      select: RULE_PROGRAM_SELECT,
+    });
+    const rules = program
+      ? await client.standingAssignment.findMany({
+          where: { userId: assignment.userId, programSlug: assignment.programSlug, hubSlug: assignment.hubSlug },
+          select: { id: true, dayOfWeek: true, occurrence: true, cycleStart: true, startsOn: true, endsOn: true },
+        })
+      : [];
+    ruleIds = rules.filter((r) => ruleFillsDate(r, program as ScheduleProgram, dateStr)).map((r) => r.id);
+  }
+  for (const standingAssignmentId of ruleIds) {
+    await client.standingSkip.upsert({
+      where: { standingAssignmentId_dateStr: { standingAssignmentId, dateStr } },
+      create: { standingAssignmentId, dateStr, createdById: byUserId },
+      update: {},
+    });
+  }
 }
 
 type Tx = Parameters<Parameters<typeof db.$transaction>[0]>[0];
@@ -888,7 +949,7 @@ export async function releasePersonCoverage(
       select: { slug: true },
     })).map((h) => h.slug),
   );
-  if (!opts.endRotations) for (const r of rows) await holdRotationDate(r, byUserId, tx);
+  if (!opts.endRotations) for (const r of rows) await holdRotationDate({ ...r, userId }, byUserId, tx);
   const remove = rows.filter((r) => openSignUp.has(r.hubSlug)).map((r) => r.id);
   const empty = rows.filter((r) => !openSignUp.has(r.hubSlug)).map((r) => r.id);
   if (remove.length) {

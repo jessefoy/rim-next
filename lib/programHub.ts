@@ -22,7 +22,7 @@
 import { db } from "@/lib/db";
 import {
   ctDateStr, dateToDayCode, getDayOfWeekOccurrenceInMonth, getTotalDayOfWeekOccurrencesInMonth,
-  isCycleOccurrence, isCycleWeek, isOccurrenceOnDate, type ScheduleProgram,
+  isCycleOccurrence, isCycleWeek, isOccurrenceOnDate, meetsEveryWeek, type ScheduleProgram,
 } from "@/lib/scheduleUtils";
 
 /** The implicit default hub when `Program.hostingHubSlug` is null. */
@@ -440,8 +440,13 @@ export async function clearOffScheduleCoverage(programSlug: string): Promise<{
       ? !canMatch.has(r.dayOfWeek!)
       : isCycleOccurrence(r.occurrence)
         // Every other week (2026-10-18): alive while one of its weeks still
-        // lands on a meeting day of its weekday.
-        ? !meetingDays.some((d) => dateToDayCode(d) === r.dayOfWeek && isCycleWeek(r.occurrence, r.cycleStart, d))
+        // lands on a meeting day of its weekday, and only while the program
+        // meets every week: both rules end together. When a program moved to
+        // every other week, one half could lose its dates and the other take
+        // every session alone (2026-10-19 audit). Sessions already filled on
+        // days it still meets stay with their person.
+        ? !meetsEveryWeek(schedule) ||
+          !meetingDays.some((d) => dateToDayCode(d) === r.dayOfWeek && isCycleWeek(r.occurrence, r.cycleStart, d))
         : !canMatch.has(`${r.dayOfWeek}:${r.occurrence}`),
   );
 

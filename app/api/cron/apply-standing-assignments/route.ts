@@ -6,8 +6,12 @@
  * overrides existing assignments. Only humans do that, via the apply route
  * with explicit resolution.
  *
- * On the 1st of the month, also pre-fills next month so hosts know their
- * schedule in advance.
+ * Also fills next month once the coverage notices' two-week window reaches
+ * into it (from about the 17th), and always on the 1st. It used to wait for
+ * the 1st, so near a month's end the notices called sessions open that a
+ * rotation would fill, and the person serving got no two-day reminder
+ * (2026-10-19 audit). Filling is idempotent; each session is filled and
+ * announced once.
  */
 
 import { after } from "next/server";
@@ -17,8 +21,12 @@ import {
 } from "@/lib/applyStandingAssignments";
 import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
 import { getHubCoverageCopy } from "@/lib/programHub";
+import { COVERAGE_LOOKAHEAD_DAYS } from "@/lib/sessionWindowConstants";
 
 export const dynamic = "force-dynamic";
+// Each session is now written under its own lock (2026-10-19), and next month
+// is filled from about the 17th: room for both, as coverage-notices has.
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -34,11 +42,13 @@ export async function GET(request: Request) {
 
   const current = await applyStandingAssignments(null, year, month, "leave");
 
-  // On the 1st, also pre-fill next month
+  // Next month too, once the notices' window reaches it (or on the 1st).
   let nextFilled = 0;
   const nextByUser = new Map<string, ApplyResultSession[]>();
+  const horizon = new Date(now);
+  horizon.setDate(horizon.getDate() + COVERAGE_LOOKAHEAD_DAYS);
 
-  if (now.getDate() === 1) {
+  if (now.getDate() === 1 || horizon.getMonth() !== now.getMonth()) {
     const nextMonth = month === 12 ? 1        : month + 1;
     const nextYear  = month === 12 ? year + 1 : year;
     const next = await applyStandingAssignments(null, nextYear, nextMonth, "leave");

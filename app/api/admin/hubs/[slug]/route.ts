@@ -429,6 +429,10 @@ export async function PATCH(
       await tx.programCoverageHub.updateMany({ where: { hubSlug: slug }, data: { hubSlug: newSlug } });
       await tx.hostAssignment.updateMany({ where: { hubSlug: slug }, data: { hubSlug: newSlug } });
       await tx.standingAssignment.updateMany({ where: { hubSlug: slug }, data: { hubSlug: newSlug } });
+      // The coverage notices too: the team's gap history in Updates, and the
+      // daily pass's once-a-day records, which would otherwise send again
+      // (2026-10-19 audit).
+      await tx.coverageNotice.updateMany({ where: { hubSlug: slug }, data: { hubSlug: newSlug } });
       await tx.googleFileTransfer.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });
       await tx.googleFileMeta.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });
       await tx.googleFilePin.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });

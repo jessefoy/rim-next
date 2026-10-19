@@ -309,9 +309,12 @@ export function isOccurrenceOnDate(p: ScheduleProgram, dateStr: string): boolean
       const daysPerCycle = p.recurrenceDays?.length ?? 1;
       const cyclesNeeded = Math.ceil((p.recurrenceCount - 1) / daysPerCycle);
       const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-      const lastMs = new Date(anchor + "T12:00:00").getTime()
+      // UTC noons: local noons lose an hour across a time change, so in a
+      // Central browser the series' last date fell past the bound and the
+      // Rotations preview dropped it (2026-10-19 audit).
+      const lastMs = new Date(anchor + "T12:00:00Z").getTime()
         + cyclesNeeded * (p.recurrenceInterval ?? 1) * msPerWeek;
-      if (new Date(dateStr + "T12:00:00").getTime() > lastMs) return false;
+      if (new Date(dateStr + "T12:00:00Z").getTime() > lastMs) return false;
     }
     return true;
   }

@@ -865,9 +865,11 @@ function HsRow({
                 <button className="hs-row__quiet" onClick={() => onUnassign(session)}>
                   Remove {nounLower}
                 </button>
-                <button className="hs-row__manager" onClick={() => onReassign(session)}>
-                  Reassign to me
-                </button>
+                {canClaim && (
+                  <button className="hs-row__manager" onClick={() => onReassign(session)}>
+                    Reassign to me
+                  </button>
+                )}
               </div>
             </details>
           )}

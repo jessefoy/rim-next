@@ -128,6 +128,14 @@ async function scheduleHome(hubSlug: string): Promise<HomeContribution> {
   };
 }
 
+/** Archived programs leave the board and Home's line (buildHubMonthSessions);
+ *  "For me" and the attention line follow them, or a cover request on an
+ *  archived program stayed "open" with nowhere to act on it (2026-10-19
+ *  audit). History (All, Recent) keeps them. */
+async function archivedProgramSlugs(): Promise<string[]> {
+  return (await db.program.findMany({ where: { archivedAt: { not: null } }, select: { slug: true } })).map((p) => p.slug);
+}
+
 async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateItem[]> {
   const createdAt = createdAtWindow(query);
   const membership = query.filter === "for-me"
@@ -141,6 +149,7 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
   // A request still needs someone only while its session is ahead (2026-10-15:
   // a passed, uncovered request stayed "open" for good).
   const today = ctStartOfToday();
+  const archived = query.filter === "for-me" ? await archivedProgramSlugs() : [];
   const [requests, claims] = await Promise.all([
     query.filter === "for-me" && !canRespond
       ? Promise.resolve([])
@@ -151,7 +160,7 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
               ...(query.filter === "for-me" ? { userId: { not: query.userId } } : {}),
             },
             ...(query.filter === "for-me"
-              ? { status: "OPEN", OR: [{ sessionDate: null }, { sessionDate: { gte: today } }] }
+              ? { status: "OPEN", programSlug: { notIn: archived }, OR: [{ sessionDate: null }, { sessionDate: { gte: today } }] }
               : {}),
             ...(createdAt ? { createdAt } : {}),
           },
@@ -226,7 +235,7 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateIt
         where: {
           kind: "gap-opened",
           hubSlug: query.hubSlug,
-          ...(query.filter === "for-me" ? { sessionDate: { gte: today } } : {}),
+          ...(query.filter === "for-me" ? { sessionDate: { gte: today }, programSlug: { notIn: archived } } : {}),
           ...(createdAt ? { createdAt } : {}),
         },
         select: { id: true, programSlug: true, sessionDate: true, createdAt: true },
@@ -305,6 +314,7 @@ async function scheduleAttention(hubId: string, hubSlug: string, userId: string)
   const open = await db.subRequest.findMany({
     where: {
       status: "OPEN",
+      programSlug: { notIn: await archivedProgramSlugs() },
       assignment: { hubSlug, userId: { not: userId } },
       OR: [{ sessionDate: null }, { sessionDate: { gte: ctStartOfToday() } }],
     },

@@ -39,7 +39,7 @@ import { db } from "@/lib/db";
 import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import { sendStandingAssignmentEndedEmail } from "@/lib/email";
-import { ctStartOfToday } from "@/lib/timezone";
+import { ctDayBounds, ctStartOfToday } from "@/lib/timezone";
 
 const TZ = "America/Chicago";
 
@@ -164,7 +164,10 @@ export async function POST(request: Request) {
     if (endsOnParam) {
       // Set-end-date mode: delete pre-generated sessions AFTER the new end date.
       // Sessions up to the end date stay. No email sent.
-      const cutoff = new Date(endsOnParam + "T23:59:59Z");
+      // The end date's last Central moment. 23:59:59Z is 6 PM Central in
+      // winter, so an evening session on the end date was deleted here and
+      // then remade, and re-emailed, by the daily run (2026-10-19 audit).
+      const cutoff = ctDayBounds(new Date(endsOnParam + "T12:00:00Z")).end;
       const outOfRange = await tx.hostAssignment.findMany({
         where: {
           standingAssignmentId: { in: rotationIds },

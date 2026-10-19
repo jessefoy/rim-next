@@ -127,7 +127,10 @@ export async function GET(request: Request) {
       ...(userId      ? { userId      } : {}),
       ...(includeEnded
         ? {}
-        : { OR: [{ endsOn: null }, { endsOn: { gte: now } }] }),
+        // By Central day: endsOn is stored at 23:59:59Z, 6 PM Central in
+        // winter, so comparing with the moment hid a rotation on the evening
+        // of its last day (2026-10-19 audit).
+        : { OR: [{ endsOn: null }, { endsOn: { gte: ctStartOfToday() } }] }),
     },
     include: {
       user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
@@ -329,9 +332,10 @@ export async function POST(request: Request) {
   // `today` and the user picks "Dec 31" — they expect "through Dec 31"
   // but get "through Dec 30".
   //
-  // Fix: anchor endsOn at 23:59:59 in CT on the picked calendar day so
-  // the apply-loop's `dateStr <= ctDateStr(endsOn)` comparison treats
-  // the user's intended last day as still active.
+  // Fix: anchor endsOn at 23:59:59 UTC on the picked calendar day (6 PM
+  // Central in winter, 7 PM in summer) so the apply loop's noon-of-day
+  // comparison treats the intended last day as still active. Anything that
+  // compares endsOn with a moment must do it by Central day (2026-10-19).
   const endsOn = body.endsOn ? endOfCalendarDay(body.endsOn) : null;
 
   // Single transaction: delete any existing records in the bundle that aren't

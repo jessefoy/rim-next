@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
-import { ensureActiveHubMembership } from "@/lib/hubMemberAuth";
+import { ensureActiveHubMembership, canSelfClaim } from "@/lib/hubMemberAuth";
 import { ctStartOfToday, fmtSessionDay } from "@/lib/timezone";
 import {
   sendHostAssignmentConfirmationEmail,
@@ -94,6 +94,16 @@ export async function POST(request: Request) {
     return Response.json(
       { error: "You're already hosting this session." },
       { status: 409 },
+    );
+  }
+
+  // Taking it over is placing yourself, so the rule for taking sessions
+  // applies too: a coordinator who can't take sessions couldn't claim an empty
+  // seat but could take a covered one (2026-10-19 audit).
+  if (!(await canSelfClaim(session.user.id, roles, sessionHubSlug))) {
+    return Response.json(
+      { error: "You aren't set to take sessions on this team." },
+      { status: 403 },
     );
   }
 
