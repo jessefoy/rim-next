@@ -46,6 +46,9 @@ export default async function HubMembersPage({
   });
   const usesScheduler = !!schedulerAppLink;
 
+  // The coordinator's note and members' email addresses are for the people
+  // who manage the team. They were sent to every member's browser, where only
+  // the screen hid them (2026-10-19 audit). The pause note is shown to all.
   const serialized = members.map((m) => ({
     id:            m.id,
     userId:        m.userId,
@@ -57,14 +60,14 @@ export default async function HubMembersPage({
     pausedAt:        m.pausedAt?.toISOString() ?? null,
     pausedById:      m.pausedById,
     pauseNote:       m.pauseNote,
-    coordinatorNote: m.coordinatorNote,
+    coordinatorNote: isCoordinator ? m.coordinatorNote : null,
     joinedAt:        m.joinedAt.toISOString(),
     user: {
       firstName:     m.user.firstName,
       lastName:      m.user.lastName,
       preferredName: m.user.preferredName,
       title:         m.user.title,
-      email:         m.user.email,
+      email:         isCoordinator ? m.user.email : null,
       avatarUrl:     m.user.avatarUrl,
     },
   }));

@@ -5,7 +5,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
 import HubConvClient from "@/components/HubConvClient";
 
@@ -67,8 +67,9 @@ export default async function HubConversationsPage({
     }),
   ]);
 
-  const isCoordinator =
-    member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
+  // The shared rule (ACTIVE coordinator, ADMIN, or GT); the inline check left
+  // out the guiding teacher and ignored pause (2026-10-19 audit).
+  const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
 
   const categories = hub.conversationCategories ?? ["General"];
 

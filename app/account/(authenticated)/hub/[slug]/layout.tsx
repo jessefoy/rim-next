@@ -68,7 +68,7 @@ export default async function HubLayout({ children, params }: Props) {
   }
 
   const isCoordinator = effectiveCoordinator(member, roles);
-  const canTrash = canManageTrash(roles, member?.isCoordinator ?? false);
+  const canTrash = canManageTrash(roles, member);
 
   const ctx = await getHubContext(
     hub.slug,
@@ -78,8 +78,9 @@ export default async function HubLayout({ children, params }: Props) {
     hub.conversationsEnabled,
   );
 
+  // An ACTIVE coordinator is the one to contact (2026-10-19 audit).
   const coordinatorNames = hub.members
-    .filter((m) => m.isCoordinator)
+    .filter((m) => m.isCoordinator && m.status === "ACTIVE")
     .map((m) => {
       const u = m.user as { firstName: string | null; lastName: string | null; preferredName?: string | null };
       return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "—";

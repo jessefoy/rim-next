@@ -29,6 +29,18 @@ export async function PATCH(
   if (!reply || reply.threadId !== threadId) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
+  // The conversation must belong to this team: the reply check alone let a
+  // coordinator of one team delete replies in another (2026-10-19 audit).
+  const thread = await db.hubConversationThread.findFirst({
+    where: { id: threadId, hubId: hub.id, deletedAt: null },
+    select: { archivedAt: true },
+  });
+  if (!thread) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+  if (thread.archivedAt) {
+    return Response.json({ error: "This conversation is archived." }, { status: 409 });
+  }
   if (reply.authorId !== session.user.id) {
     return Response.json({ error: "You can only edit your own replies" }, { status: 403 });
   }
@@ -62,6 +74,14 @@ export async function DELETE(
 
   const reply = await db.hubConversationReply.findUnique({ where: { id: replyId } });
   if (!reply || reply.threadId !== threadId) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+  // The conversation must belong to this team (2026-10-19 audit).
+  const thread = await db.hubConversationThread.findFirst({
+    where: { id: threadId, hubId: hub.id, deletedAt: null },
+    select: { archivedAt: true },
+  });
+  if (!thread) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 

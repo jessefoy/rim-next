@@ -53,8 +53,9 @@ export async function GET(
     hub.conversationsEnabled,
   );
 
+  // An ACTIVE coordinator is the one to contact (2026-10-19 audit).
   const coordinatorNames = hub.members
-    .filter((m) => m.isCoordinator)
+    .filter((m) => m.isCoordinator && m.status === "ACTIVE")
     .map((m) => {
       const u = m.user as { firstName: string | null; lastName: string | null; preferredName?: string | null };
       return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "—";

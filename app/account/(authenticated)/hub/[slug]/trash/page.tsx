@@ -36,8 +36,7 @@ export default async function HubTrashPage({
   if (!hub || !canAccessHub(member, session.user.roles ?? [])) redirect("/account/dashboard");
 
   const roles = session.user.roles ?? [];
-  const isCoord = member?.isCoordinator ?? false;
-  if (!canManageTrash(roles, isCoord)) {
+  if (!canManageTrash(roles, member)) {
     redirect(`/account/hub/${slug}`);
   }
 

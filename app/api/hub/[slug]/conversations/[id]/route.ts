@@ -35,8 +35,7 @@ export async function GET(
   // Trashed threads are only visible to trash-managers.
   if (thread.deletedAt) {
     const roles = session.user.roles ?? [];
-    const isCoord = member?.isCoordinator ?? false;
-    if (!canManageTrash(roles, isCoord)) {
+    if (!canManageTrash(roles, member)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
   }
@@ -80,6 +79,11 @@ export async function PATCH(
     if (!isAuthor && !isCoordinator) {
       return NextResponse.json({ error: "Only the author can edit this post." }, { status: 403 });
     }
+    // An archived conversation is settled: no edits to it or its replies
+    // (2026-10-19 audit; the reply route refuses the same).
+    if (thread.archivedAt) {
+      return NextResponse.json({ error: "This conversation is archived." }, { status: 409 });
+    }
     const updated = await db.hubConversationThread.update({
       where: { id },
       data: {
@@ -99,7 +103,7 @@ export async function PATCH(
   // Pin/Unpin are coordinator-only — structural moderation.
   if (action === "pin" || action === "unpin") {
     try {
-      requireCoordinator(member?.isCoordinator ?? false, session.user.roles ?? []);
+      requireCoordinator(effectiveCoordinator(member, session.user.roles ?? []), session.user.roles ?? []);
     } catch {
       return NextResponse.json({ error: "Coordinators only" }, { status: 403 });
     }

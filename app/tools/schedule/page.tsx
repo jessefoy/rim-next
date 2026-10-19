@@ -118,7 +118,7 @@ export default async function ScheduleToolPage({
   const canClaim = await canSelfClaim(session.user.id, roles, activeHubSlug);
 
   const coordinators = (hubContext?.members ?? [])
-    .filter((m) => m.isCoordinator)
+    .filter((m) => m.isCoordinator && m.status === "ACTIVE")
     .map((m) => m.user.preferredName || [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") || null)
     .filter(Boolean) as string[];
   const coordinatorName = coordinators.length > 0 ? coordinators[0] : undefined;

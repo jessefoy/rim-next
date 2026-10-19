@@ -22,8 +22,7 @@ export async function POST(
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const roles = session.user.roles ?? [];
-  const isCoord = member?.isCoordinator ?? false;
-  if (!canManageTrash(roles, isCoord)) {
+  if (!canManageTrash(roles, member)) {
     return NextResponse.json({ error: "Only admin, guiding teacher, or coordinator can permanently delete" }, { status: 403 });
   }
 

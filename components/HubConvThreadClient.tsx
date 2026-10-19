@@ -551,7 +551,7 @@ export default function HubConvThreadClient({
             <span className="hub-conv-post__dot">·</span>
             <span className="hub-conv-post__time">{relativeTime(thread.createdAt)}</span>
             {thread.edited && <span className="hub-conv-post__edited">(edited)</span>}
-            {canEditOp && editingId !== "op" && (
+            {canEditOp && !isClosed && editingId !== "op" && (
               <button
                 className="hub-conv-post__edit"
                 onClick={startEditOp}
@@ -616,7 +616,7 @@ export default function HubConvThreadClient({
                     <span className="hub-conv-post__dot">·</span>
                     <span className="hub-conv-post__time">{relativeTime(r.createdAt)}</span>
                     {r.edited && <span className="hub-conv-post__edited">(edited)</span>}
-                    {isAuthor && !isEditing && (
+                    {isAuthor && !isClosed && !isEditing && (
                       <button
                         className="hub-conv-post__edit"
                         onClick={() => startEditReply(r)}

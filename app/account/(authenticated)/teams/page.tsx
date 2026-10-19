@@ -46,7 +46,7 @@ export default async function TeamsPage() {
       slug: true,
       name: true,
       status: true,
-      members: { where: { userId }, select: { isCoordinator: true } },
+      members: { where: { userId }, select: { isCoordinator: true, status: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -55,7 +55,7 @@ export default async function TeamsPage() {
     slug: h.slug,
     name: h.name,
     archived: h.status === "ARCHIVED",
-    coordinator: h.members.some((m) => m.isCoordinator),
+    coordinator: h.members.some((m) => m.isCoordinator && m.status === "ACTIVE"),
     member: h.members.length > 0,
   }));
   const mine = rows.filter((r) => r.member && !r.archived);

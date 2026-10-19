@@ -121,7 +121,7 @@ export function requireCoordinator(isCoordinator: boolean, roles: string[]) {
  * The canonical "is this user acting as a coordinator on this hub?" check.
  *
  * Returns true if any of:
- *   - HubMember.isCoordinator === true on this hub (the canonical flag)
+ *   - an ACTIVE HubMember with isCoordinator === true on this hub
  *   - roles includes ADMIN (technical authority)
  *   - roles includes GUIDING_TEACHER (sangha-wide dharma authority)
  *
@@ -131,12 +131,15 @@ export function requireCoordinator(isCoordinator: boolean, roles: string[]) {
  * everywhere coordinator-level UI affordances or write paths are gated.
  */
 export function effectiveCoordinator(
-  member: { isCoordinator: boolean } | null | undefined,
+  member: { isCoordinator: boolean; status: string } | null | undefined,
   roles: string[],
 ): boolean {
   if (roles.includes("ADMIN")) return true;
   if (roles.includes("GUIDING_TEACHER")) return true;
-  return member?.isCoordinator ?? false;
+  // ACTIVE only, as isHubCoordinator has been since session 171: a paused or
+  // inactive coordinator kept the Members tab, moderation and Trash, and could
+  // set themselves back to Active (2026-10-19 audit).
+  return !!member && member.isCoordinator && member.status === "ACTIVE";
 }
 
 /**
@@ -208,17 +211,19 @@ export async function canAccessHubScheduler(
  * if ANY of the following is true:
  *   - role includes ADMIN
  *   - role includes GUIDING_TEACHER (sangha-wide dharma authority)
- *   - HubMember.isCoordinator === true on this hub (hub-scoped authority)
+ *   - an ACTIVE HubMember with isCoordinator === true (hub-scoped authority)
  *
  * Non-coordinators can still soft-delete their own items — that's a separate
  * check (authorship or coordinator-ness on the item itself). This helper is
  * only the gate for the trash bin: who can see deleted items, restore them,
  * or perform the final permanent delete.
  */
-export function canManageTrash(roles: string[], isCoordinator: boolean): boolean {
-  if (roles.includes("ADMIN")) return true;
-  if (roles.includes("GUIDING_TEACHER")) return true;
-  return isCoordinator;
+export function canManageTrash(
+  roles: string[],
+  member: { isCoordinator: boolean; status: string } | null | undefined,
+): boolean {
+  // The same ACTIVE coordinator rule as effectiveCoordinator (2026-10-19 audit).
+  return effectiveCoordinator(member, roles);
 }
 
 /**

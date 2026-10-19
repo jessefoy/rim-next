@@ -4,53 +4,9 @@ import { NextResponse, after } from "next/server";
 import { canAccessHub, effectiveCoordinator, getHubMembership, requireCoordinator } from "@/lib/hubAuth";
 import { sendHubWelcomeEmail, hubHomeUrl } from "@/lib/email";
 
-// GET /api/hub/[slug]/members — list hub members
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { slug } = await params;
-  const { hub, member } = await getHubMembership(slug, session.user.id);
-  if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!canAccessHub(member, session.user.roles ?? [])) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const members = await db.hubMember.findMany({
-    where: { hubId: hub.id },
-    include: {
-      user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true, avatarUrl: true } },
-    },
-    orderBy: [{ isCoordinator: "desc" }, { joinedAt: "asc" }],
-  });
-
-  return NextResponse.json(
-    members.map((m) => ({
-      id: m.id,
-      userId: m.userId,
-      isCoordinator: m.isCoordinator,
-      position: m.position,
-      status: m.status,
-      hostingCapability: m.hostingCapability,
-      communicationsEnabled: m.communicationsEnabled,
-      pausedAt: m.pausedAt?.toISOString() ?? null,
-      pausedById: m.pausedById,
-      pauseNote: m.pauseNote,
-      coordinatorNote: m.coordinatorNote,
-      joinedAt: m.joinedAt.toISOString(),
-      user: {
-        firstName: m.user.firstName,
-        lastName: m.user.lastName,
-        preferredName: m.user.preferredName,
-        title: m.user.title,
-        email: m.user.email,
-        avatarUrl: m.user.avatarUrl,
-      },
-    }))
-  );
-}
+// No list GET (2026-10-19 audit): it returned every member's email and the
+// coordinator's private note to any member, and nothing called it. The
+// Members page builds its own list.
 
 /** POST /api/hub/[slug]/members — add a member (coordinator or admin) */
 export async function POST(

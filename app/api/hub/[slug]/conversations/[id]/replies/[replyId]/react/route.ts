@@ -68,6 +68,14 @@ export async function POST(
   if (!reply || reply.threadId !== threadId) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
+  // The conversation must belong to this team (2026-10-19 audit).
+  const thread = await db.hubConversationThread.findFirst({
+    where: { id: threadId, hubId: hub.id, deletedAt: null },
+    select: { id: true },
+  });
+  if (!thread) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
 
   const reactions = readReactions(reply.reactions);
   const current = reactions[emoji] ?? [];

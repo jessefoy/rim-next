@@ -5,7 +5,7 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { canAccessHub, getHubMembership, canManageTrash } from "@/lib/hubAuth";
+import { canAccessHub, getHubMembership, canManageTrash, effectiveCoordinator } from "@/lib/hubAuth";
 import HubConvThreadClient from "@/components/HubConvThreadClient";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
@@ -75,13 +75,14 @@ export default async function HubConvThreadPage({
 
   if (!thread || thread.hubId !== hub.id) notFound();
 
-  const isCoordinator =
-    member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
+  // The shared rule (ACTIVE coordinator, ADMIN, or GT); the inline check left
+  // out the guiding teacher and ignored pause (2026-10-19 audit).
+  const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
 
   // Trashed threads: 404 for non-managers (they shouldn't even know it exists).
   // Managers can still view via the Trash page; this page redirects them there.
   if (thread.deletedAt) {
-    if (!canManageTrash(session.user.roles ?? [], member?.isCoordinator ?? false)) {
+    if (!canManageTrash(session.user.roles ?? [], member)) {
       notFound();
     }
     redirect(`/account/hub/${slug}/trash`);
