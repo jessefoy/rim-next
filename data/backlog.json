@@ -1971,5 +1971,15 @@
     "status": "open",
     "addedAt": "2026-10-20",
     "notes": "Code: the last version with it is 6e82aaa, app/account/(authenticated)/dashboard/page.tsx (UpcomingRow, sortedRegistrations, the upcoming view) and the db2-upcoming / db2-coming-up / db2-chip / db2-empty-card CSS. Questions for the rebuild: a waitlisted registration showed the \"Registered\" chip (it should say waitlisted); the Dana invitation chip was My Home's only reminder of an open gift, and the rebuild should give open dana a home again (today it is reached through the dana-reminder email's link to the register page); a recurring program showed only its next session, so a weekly class read like a one-time event; the dana receipt's notice opened this view (now the program page). Today still reads registrations to place in-person sessions."
+  },
+  {
+    "id": "2026-10-20-005",
+    "title": "Notifications as the inbox for messages from the center, some marked priority",
+    "description": "Jesse (2026-10-20): Notifications (/account/notifications) is \"also a place where people will get other messages, sometimes priority messages from the center itself.\" Beyond the automatic notices (sessions, teams, programs, account), the center will send its own messages there: to everyone, a chosen group or one person, some of them priority. A priority message must stand out, reach people who chose a daily summary or no team email (as urgent coverage news does), and be visible from My Home's line. They sit in the same inbox and filters (a type of their own, such as \"From RIM\"), beside the planned member-to-member messages (\"Messages\").",
+    "category": "Email & Notifications",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-20",
+    "notes": "Build on what exists: notices are written once per person (lib/notifications.ts recordNotice), types come from NOTICE_TYPES (add a kind or prefix, and the harness requires every recorded kind to have a type), urgent team notices already bypass the email choice (notice.urgent). Related: 2026-10-12-001 (a member-area announcement surface; Notifications may be its home, with My Home's one line as the door) and 2026-10-13-008 (a one-off email to a chosen group: the same compose, pick a group, preview, send, now also as a notice). Questions to settle: who may send (Admin, Guiding Teacher, a team lead to their team?), what makes a message priority and how it looks (no badges or bell: the Alerts module and the site banner are tombstones), whether a priority message stays on My Home until read, and whether people can reply."
   }
 ]
