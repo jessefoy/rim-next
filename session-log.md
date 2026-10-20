@@ -1,3 +1,47 @@
+## 2026-10-20 (later) — My Home without Coming up; Notifications categorized like team Updates
+
+On `main`: `5c09dc8`, `bd09b27`, `c610e5f`, `e21acdf`, `183fa34`, and this closing. **Production:** one flag-guarded template change runs on the `bd09b27` deploy (`session_reminder_program_link_2026_10_20_v1`: the `session-reminder` button line swapped only if still as seeded, `programUrl` added to its variables). Its deploy-log line was not read here, so whether it swapped or left an edited line alone is unconfirmed. No production reads or other writes.
+
+### The asks (verbatim)
+
+- *"On the member homepage, can we get rid of the up-and-coming program through the registrations for now? I want to rebuild the system later, so getting rid of everything that relates to the showing up and allow us to build this in the future. With more thought"*
+- *"Just like in the team hubs, the notification center needs to be categorized in their main member area. Where they're coming from and the categories, etc eventually, we're going to be able to communicate with each other, and they'll be notified there too. It's like a big inbox."*
+- *"please remember to add to our up-and-coming things that this is also a place where people will get other messages, sometimes priority messages from the center itself."*
+
+### Jesse's rulings
+
+- **Remove all of it** (the Coming up card, the "All upcoming programs" button, the `?view=upcoming` page), and record what existed for the rebuild.
+- **The two lines that promised "what's coming up"** become "This is My Home: your gatherings for today are here." and "My Home has today's gatherings." (approved; provisional until his read-aloud).
+- **The session reminder's button opens the program** ("View the program →"), with his consent for that template.
+- **Notifications: From is which team, the kind is what kind** (Schedule, Conversations, Files, Programs, Your account); Messages between members becomes one more kind later. Two words changed from the approved plan, said to him: the picker reads **View** (as team Updates) and From's first choice **Everywhere** (it includes Programs and Your account, which aren't teams).
+- **It shows only a person's own news and their teams'** (his question, answered from the code); From leaves out a team they are Inactive on.
+- `2026-07-16-002` (an in-app inbox for file notifications) is **done**: Notifications is that inbox.
+
+### What changed
+
+1. **My Home** (`app/account/(authenticated)/dashboard/page.tsx`): Today, then This week's schedule. `UpcomingRow`, the sorting and paging, the upcoming view and their CSS (`db2-upcoming`, `db2-coming-up`, `db2-chip`, `db2-empty-card`; 39 rules by `css-prune.mjs`, then 16 `.ac-layout`-scoped rules and 4 grouped selectors by a postcss pass, and six orphaned comments) are gone. The registrations query stays: it places a registered in-person session in Today. The old address shows My Home.
+2. **Links that pointed at the view:** the dana receipt's notice opens the program (`programSlug` passed from the Stripe webhook); the `session-reminder` button too (above).
+3. **Notifications, categorized** (`lib/notifications.ts`, `components/NotificationsClient.tsx`, the page and both API routes): `NOTICE_TYPES` derives a notice's kind from its existing `kind` (a slug or a prefix), so no schema change and old notices sort. `listNoticeFacets` gives From every team the person is on (active or paused, ACTIVE teams), plus teams they have notices from, each picker counted within the other's choice; Mark all as read marks only what both show; rows read "Hosting Team · Schedule"; Needs you shows under Everything or Schedule. A `from=` not offered falls back to Everywhere.
+4. **Harness** (`scripts/check-member-redesign.cjs`, 124 checks): Coming up gone and today's in-person registration still in Today (proved failing on the old page); every notice kind recorded in `lib/` and `app/` has a type; From before any notice, no archived or Inactive team; counts within each other's choice.
+
+### What this connects to
+
+- **My Home's Today** still reads registrations; **dana:** an open gift is reached through the dana-reminder email's signed link to the register page (the chip was My Home's only reminder; backlog `2026-10-20-004` says the rebuild must give it a home).
+- **Team Updates:** the same kind names (Schedule, Conversations, Files) and the same filter grammar (`RIM_Hub_Engineering.md`, "One filter grammar").
+- **Every email that records a notice:** a new notice kind must be added to `NOTICE_TYPES`; the harness fails otherwise.
+- **The rail's count and My Home's line** are unchanged (all unread); the daily summary is unchanged.
+- **Docs:** `RIM_Member_Area.md` (routes table, invariants, Notifications), `RIM_Offering_Model.md` and `RIM_Registration.md` (Coming up retired), `FEATURES.md`.
+
+### Reviews
+
+Two reviewer passes. The first found the reminder button leading to a page that no longer mentioned the session (fixed with consent) and stale docs and comments (fixed). The second found a stale reload after Mark all as read, an unoffered `from=` that couldn't be cleared, the "Every team" label, and a mock that ignored the team-status filter (all fixed).
+
+### What comes next
+
+- **Backlog:** `2026-10-20-004` (rethink a member's upcoming programs: what existed, the waitlisted-shows-Registered defect, open dana's home, recurring programs showing one date); `2026-10-20-005` (Notifications as the inbox for messages from the center, some priority; ties to `2026-10-12-001` and `2026-10-13-008`); `2026-10-20-006` (the file notify picker's two refinements).
+- **Check:** the `bd09b27` deploy log for the session-reminder line; the Notifications page signed in (both pickers, the counts, a row's "Team · Kind").
+- **Read-aloud:** the two My Home and `/join` lines, "View the program →", the Notifications pickers' words ("From", "Everywhere", "View", the five kinds) and empty states.
+
 ## 2026-10-19 (later) to 10-20 — Updates as an inbox, the lead's brief, Notifications, one filter grammar
 
 On `main`: `20da9b6`, `2be8271`, `bbd0141`, `893fa75`, `78f1d11`, `af3f4fc`, and this closing. **Production changes:** the migrations created `hub_events`, `hub_update_reads`, `notifications` and `users.teamEmailMode`, set every `HubMember.activitySeenAt` to the deploy moment once (`updates_inbox_start_read_v1`), and seeded two templates (`team-lead-brief`, `notifications-daily-summary`). One live test with Jesse's approval: he took Dummy Test Program · Sun, Nov 1 at 6:00 AM from Updates and stays on it (taking him off would have emailed the Hosting Team). One read-only production query, on his ask: who on the three teams staffing the Dummy Test Program receives team email (11 people besides Jesse), for his note to them (sent by Jesse).

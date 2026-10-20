@@ -1,27 +1,26 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-20 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-20, later (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-20 closed: Updates as an inbox, the lead's brief, Notifications, one filter grammar
+## Active — 2026-10-20 (later) closed: My Home without Coming up; Notifications categorized
 
-Everything is on `main` (`20da9b6` … `af3f4fc`, and the closing docs). Narrative: `session-log.md`, 2026-10-19 (later) to 10-20.
+Everything is on `main` (`5c09dc8` … `183fa34`, and the closing docs; the earlier Oct 20 work `20da9b6` … `af3f4fc`). Narrative: `session-log.md`, 2026-10-20 (later) and 2026-10-19 (later) to 10-20.
 
 **Live:**
-- **Team Updates is an inbox:** Needs you (take a session in place), one sentence per item that opens the exact session, reply, comment or member, and read marks. Every Scheduler change is recorded (`hub_events`); who drops a session shows only to leads and the person.
-- **One filter grammar** (`components/FilterBar.tsx`) on the Scheduler, Updates, Conversations and Files.
-- **The lead's brief** (`team-lead-brief`) replaces the Monday list and the daily still-needed email for coordinators (approved by Jesse's read).
-- **Notifications** (`/account/notifications`): every email about a person also writes a notice there; the rail count; one line on My Home; the email choice in My Profile (each one, once a day at 13:30 UTC, none); urgent coverage news always emails; muted members still get notices.
+- **My Home is Today, then This week's schedule.** Coming up, "All upcoming programs" and the `?view=upcoming` page are removed to be rethought (backlog `2026-10-20-004` records what existed and the questions). Registered in-person sessions still appear in Today. The welcome and `/join` lines no longer promise "what's coming up".
+- **Notifications, categorized like team Updates:** All · Unread, **From** a team (every team the person is on, before any notice), **View** by kind (Schedule, Conversations, Files, Programs, Your account), counts within each other; rows read "Hosting Team · Schedule". A new notice kind must go in `NOTICE_TYPES` (the harness enforces it).
+- From the morning: team Updates as an inbox, one filter grammar, the lead's brief, Notifications with the email choice.
 
 **Watch:**
-- **The first lead briefs:** from Oct 21 a short "in two days" brief (the Dummy Test Program's daily sessions will trigger it for the Hosting Team most mornings); the full brief Monday Oct 26.
-- **The first notices** arrive with the next emails (none existed at deploy). Open a row live then: the expand and the "Open the …" button were never clicked.
-- **The Oct 20 08:00 UTC rotation run** under the seat lock and `ruleFillsDate` (from Oct 19) was not checked: look at its cron log and the Scheduler integrity count (was 180 sessions, 30 rotations, 0 problems).
+- **The `bd09b27` deploy log:** "Session reminder link: …" says whether `session-reminder`'s button became "View the program →" or was left alone as edited (then paste `{{programUrl}}` in `/admin/emails`).
+- **The first lead briefs** from Oct 21 (the full brief Monday Oct 26), and **the first notices**: open a row signed in, use both pickers, check the counts.
+- **The Oct 20 08:00 UTC rotation run** (seat lock, `ruleFillsDate`) was never checked: its cron log and the Scheduler integrity count (was 180 sessions, 30 rotations, 0 problems).
 
 **Waiting on Jesse:**
-- **Read-aloud of the new wording:** the Updates and Notifications pages (titles, intros, empty states, "Needs you", buttons), the notice titles, My Profile's email choice, and the `notifications-daily-summary` template.
+- **Read-aloud:** the Updates and Notifications pages (titles, intros, empty states, "Needs you", buttons; the pickers' "From", "Everywhere", "View" and the five kinds), notice titles, My Profile's email choice, `notifications-daily-summary`, My Home's welcome line, `/join`'s signed-in line, "View the program →".
 - **Still owed from Oct 19:** the signed-in walk of that pass's interactions; the email template drafts (Read-Aloud v3).
 
-**Next concrete step:** check that the Oct 21 briefs went out and the first notices read right, then the read-aloud. **Queued:** `2026-10-20-001` (a Practice program setting), `2026-10-20-002` (retire `coverage-still-needed`), `2026-10-20-003`; CLEANUP #72–77; `2026-10-18-001`; `2026-10-16-001`.
+**Next concrete step:** read the `bd09b27` deploy log line and the Oct 21 brief; look at Notifications signed in; then the read-aloud. **Queued:** `2026-10-20-004` (upcoming programs, rethought), `2026-10-20-005` (messages from the center in Notifications, some priority), `2026-10-20-006` (file notify picker), `2026-10-20-001` (a Practice program setting), `2026-10-20-002` (retire `coverage-still-needed`), `2026-10-20-003`; CLEANUP #72–77; `2026-10-18-001`; `2026-10-16-001`.
 
 ## Earlier — 2026-10-19 closed: the integrity pass
 
