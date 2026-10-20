@@ -265,3 +265,13 @@ When you send an email: write the slug into both the code and a `prisma/migrate.
 ---
 
 *RIM Email Engineering · September 2026 · Written during session 128 Slice 2.5 as the institutional response to the welcome-email-not-delivered and email-URL-leak failures.*
+
+## Notices: every email also lands in Notifications (2026-10-20)
+
+`sendTemplatedEmail(slug, to, vars, { notice })` records the notice for the recipient (`lib/notifications.ts` `recordNotice`: by email, signed-in and not archived only) **before** deciding the email, so a disabled template or a skipped email still leaves the notice. Rules for a sender:
+- **Give every person-directed email a `notice`**: `kind` (the slug), `category` (`"personal"`: about them, always emailed; `"team"`: team news, emailed by their choice), a source (`teamSource(hubSlug, hub.name)`, `PROGRAMS_SOURCE`, `ACCOUNT_SOURCE`), a one-sentence `title`, optional `detail`, an **app path** `href` (`appPath(fullUrl)`, or `scheduleSessionHref` from `lib/scheduleLinks.ts`), and a `threadKey` to fold notices about one thing.
+- **`urgent: true`** for team news that can't wait (`isUrgentSession`: a session still ahead within 48 hours): emailed whatever the person chose.
+- **`noticeOnly: true`** when a coordinator has switched off this member's team emails (`muted` from `getHubNotificationRecipients(…, { withMuted: true })`): recorded, never emailed. It outranks `urgent`.
+- Team notices are **settled** (`summarizedAt`) once emailed or not wanted; unsettled ones go in the 13:30 UTC daily summary (`lib/notificationsSummary.ts`, `notifications-daily-summary`, sent with `throwOnFailure` so a failed summary stays due). Changing the choice settles what's there.
+- Hardcoded sends (the four rotation emails) call `recordNotice` themselves. Sign-in codes, staff inbox notices and `join-welcome` (sent before the person has signed in) carry no notice.
+

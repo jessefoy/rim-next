@@ -1,21 +1,31 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-19 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-20 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-19 closed: the integrity pass
+## Active — 2026-10-20 closed: Updates as an inbox, the lead's brief, Notifications, one filter grammar
 
-Everything is on `main` (`068dd2f` … `288bfd9`, and the closing docs). Narrative: `session-log.md`, 2026-10-19. Five batches: accounts and data safety, the Scheduler, programs/registration/email, inactive members, the interface; then the CSS prune and residue. The October 19 read-aloud is **ratified** (*"I approved all of them"*).
+Everything is on `main` (`20da9b6` … `af3f4fc`, and the closing docs). Narrative: `session-log.md`, 2026-10-19 (later) to 10-20.
 
-**Live:** Program Manager is Registrar, Admin and Guiding Teacher only (`canUseProgramManager`); inactive means off the team's schedule (sessions open, rotations end, the team hears; the 13:00 pass releases any holder first, 0 today); guests finish a waitlist/dana registration from a signed link; rotations decided by `ruleFillsDate` under the seat lock; team emails paced; in-page confirmations replace browser pop-ups; `custom.css` down to 23,769 lines with no visual change.
+**Live:**
+- **Team Updates is an inbox:** Needs you (take a session in place), one sentence per item that opens the exact session, reply, comment or member, and read marks. Every Scheduler change is recorded (`hub_events`); who drops a session shows only to leads and the person.
+- **One filter grammar** (`components/FilterBar.tsx`) on the Scheduler, Updates, Conversations and Files.
+- **The lead's brief** (`team-lead-brief`) replaces the Monday list and the daily still-needed email for coordinators (approved by Jesse's read).
+- **Notifications** (`/account/notifications`): every email about a person also writes a notice there; the rail count; one line on My Home; the email choice in My Profile (each one, once a day at 13:30 UTC, none); urgent coverage news always emails; muted members still get notices.
 
 **Watch:**
-- **Oct 20, 08:00 UTC:** the first live rotation run under the seat lock and `ruleFillsDate`. Check the cron log and the Scheduler integrity count (was 180 sessions, 30 rotations, 0 problems).
-- **A signed-in walk** of the new interactions is still owed: the inactive dialog, a file removal request, a reply delete, the Program Manager save note and slug lock, a Course/Lesson leave guard, the Rotations Apply failure line.
+- **The first lead briefs:** from Oct 21 a short "in two days" brief (the Dummy Test Program's daily sessions will trigger it for the Hosting Team most mornings); the full brief Monday Oct 26.
+- **The first notices** arrive with the next emails (none existed at deploy). Open a row live then: the expand and the "Open the …" button were never clicked.
+- **The Oct 20 08:00 UTC rotation run** under the seat lock and `ruleFillsDate` (from Oct 19) was not checked: look at its cron log and the Scheduler integrity count (was 180 sessions, 30 rotations, 0 problems).
 
 **Waiting on Jesse:**
-- **Email template drafts** (Read-Aloud v3, "Proposed email wording"): the Scheduling manager welcome rewrite, the registrar Staff Manual line and subject, rotation subjects that name the role, "with the {team}" in the file-shared email, colons for em-dashes in subjects. These change existing templates, so each needs his read-aloud and consent, then an explicit `update` in `migrate.mjs` with a per-template log.
+- **Read-aloud of the new wording:** the Updates and Notifications pages (titles, intros, empty states, "Needs you", buttons), the notice titles, My Profile's email choice, and the `notifications-daily-summary` template.
+- **Still owed from Oct 19:** the signed-in walk of that pass's interactions; the email template drafts (Read-Aloud v3).
 
-**Next concrete step:** check the Oct 20 rotation run, then the signed-in walk. **Queued:** CLEANUP #72–77 (drop `session_bans`, the `livekitRoom` column, the last pop-ups in HubTrashClient, GoogleFileAdminClient, RimTiptapEditor); `2026-10-18-001`; `2026-10-16-001`.
+**Next concrete step:** check that the Oct 21 briefs went out and the first notices read right, then the read-aloud. **Queued:** `2026-10-20-001` (a Practice program setting), `2026-10-20-002` (retire `coverage-still-needed`), `2026-10-20-003`; CLEANUP #72–77; `2026-10-18-001`; `2026-10-16-001`.
+
+## Earlier — 2026-10-19 closed: the integrity pass
+
+Narrative: `session-log.md`, 2026-10-19. Program Manager is Registrar, Admin and Guiding Teacher only; inactive means off the team's schedule; guests finish waitlist/dana from a signed link; in-page confirmations replace pop-ups; `custom.css` pruned with no visual change. The October 19 read-aloud is ratified. **Still owed:** the signed-in walk (the inactive dialog, a file removal request, a reply delete, the Program Manager save note and slug lock, a Course/Lesson leave guard, the Rotations Apply failure line); the email template drafts (Read-Aloud v3: Scheduling manager welcome, registrar Staff Manual line and subject, rotation subjects naming the role, "with the {team}" in file-shared, colons for em-dashes), each needing his read-aloud, consent and an explicit `update` in `migrate.mjs`.
 
 ## Earlier — 2026-10-18 closed: every role accounted for; Peer-Led staffed; every other week
 

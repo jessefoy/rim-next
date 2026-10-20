@@ -16,7 +16,7 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 ## October 19, 2026 (later): team Updates, read like an inbox
 
 Jesse: *"People should be able to read it like an inbox and by type. It should also go to the item specifically."*
-- **Types in plain sight:** For you, Everything, Schedule, Conversations, Files, Members, each with its unread count; All or Unread; history under day headings. The View menu and the Recent filter are retired.
+- **By type, with the shared filters:** pills All · For you · Unread with counts, and View by type (Everything, Schedule, Conversations, Files, Members, each with its unread count); history under day headings. The old View menu and the Recent filter are retired.
 - **Needs you** on top: the team's sessions in the next two weeks that need someone, with "Take this session", "Sign up to greet" or "I'll cover this" right on the item (the Scheduler's own rules and routes). They leave once someone takes them.
 - **Complete:** every Scheduler change is recorded (`hub_events`): who took a session, who was put on one, rotations set and ended, cover requests with where they stand (Open, Covered by …, Closed, Passed). Who drops a session, is taken off, or leaves the team shows only to the team's leads and the person (Jesse's ruling); the team sees the need.
 - **Every item opens the exact thing:** the session in the Scheduler, the reply, the file comment, the member.

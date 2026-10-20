@@ -1931,5 +1931,35 @@
     "status": "open",
     "addedAt": "2026-10-18",
     "notes": "app/account/(authenticated)/dashboard/page.tsx queries HostAssignment for today only; ?view=upcoming lists registrations. A session card with the full brief was proposed on 2026-10-18. Ask Maria which she meant first (the other reading: training on the Dummy Test Program, which has no host listed)."
+  },
+  {
+    "id": "2026-10-20-001",
+    "title": "A \"Practice program\" setting for training",
+    "description": "Hosts train on the Dummy Test Program, whose daily 6:00 AM sessions fill coordinators' briefs, Needs you and every team's \"needs a host\" emails, which caused angst. Proposed (not decided): an explicit Program Manager checkbox. Practice sessions stay takeable on the Scheduler (marked Practice) and the Zoom door works, but they never send a team email or appear in Needs you, the lead brief, team Home's count or a member's My Home. Jesse chose a plain note to the team for now (2026-10-20).",
+    "category": "Programs",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-20",
+    "notes": "An explicit setting, never derived from a label (feedback: a label never decides access). Touches lib/coverageNotices.ts, lib/hubApps.ts scheduleNeeds, lib/teamBrief.ts, the dashboard. Moot once the Dummy Test Program is deleted before launch, unless training continues after launch."
+  },
+  {
+    "id": "2026-10-20-002",
+    "title": "Retire the coverage-still-needed template",
+    "description": "Since 2026-10-20 a team's coordinators get the lead's brief (team-lead-brief) instead, so coverage-still-needed no longer sends; its row still shows in /admin/emails. Disable or delete it, with Jesse's consent, so the email manager doesn't list an email that never goes out.",
+    "category": "Email & Notifications",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-20",
+    "notes": "A flag-guarded migrate.mjs change (enabled: false, or delete), per-template log line. sendCoverageStillNeededEmail was removed from lib/email.ts."
+  },
+  {
+    "id": "2026-10-20-003",
+    "title": "Plain-text emails: names shown with markdown escapes",
+    "description": "The lead's brief and the daily summary escape names for markdown (md()), so the plain-text part of those emails can show a backslash before an underscore or bracket in a name. Rare; the HTML part reads right.",
+    "category": "Email & Notifications",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-20",
+    "notes": "lib/teamBrief.ts and lib/notificationsSummary.ts md(); the text part is derived from the markdown body in renderTemplateToText. Fix by passing the names through memberText or unescaping in the text pipeline."
   }
 ]

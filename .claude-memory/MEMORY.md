@@ -18,6 +18,9 @@ This file is the **index** — one line per memory file. Detail lives in the top
 - [Plain-English Explanations](feedback-explanation-style.md) — For any design decision: what it is, where it shows up, the decision, the recommendation — in user terms, not schema terms
 - [Clear Seeing Is Correctness](feedback-clear-seeing-is-correctness.md) — Hierarchy/state/self-recognition aren't "polish for later" — RIM's philosophy makes them correctness criteria
 - [Submit is answered where they look](feedback-submit-answered-where-looking.md) — every save/submit: confirmation scrolled into view (FormDone), errors beside the button, nothing silent, prefill known member data; across the board (Jesse 2026-10-13)
+- [Reuse the existing UI grammar](feedback-reuse-existing-ui-grammar.md) — filters/types/tabs use components/FilterBar.tsx (the Scheduler's pills + View picker); never a page-local nav (Jesse 2026-10-20: "Consistency is key.")
+- [Check a live test's side effects](feedback-check-live-test-side-effects.md) — before testing a schedule action on production, trace what doing AND undoing sends (removing someone within two weeks emails the team); ask how to test
+- [Answer a question with a distinction](feedback-answer-question-with-distinction.md) — when Jesse answers with a question back, spell out the cases concretely and re-ask; never guess
 - [Visual Design Standards](feedback-visual-design.md) — Compare against the reference in-browser, use tokens, check specificity, verify alignment
 - [Community not anonymous](feedback-community-not-anonymous.md) — A community isn't a community if it's anonymous. RIM community surfaces require real names.
 - [Honor the reference](feedback-honor-the-reference.md) — When Jesse points at a specific reference (live page, draft, screenshot), match what it shows; don't blend in content from elsewhere

@@ -26,7 +26,8 @@ import { getToolBySlug, type ToolSlug } from "@/lib/toolRegistry";
  *   read ("Mark all as read"). All keeps everything. This reverses the July
  *   rule of no read bookkeeping, which existed because the old read point
  *   emptied Recent; nothing here hides an item.
- * - **Types** are the folders: For you, Everything, then each source.
+ * - **Types**: the View picker (Everything, then each source); For you and
+ *   Unread are pills beside it (components/FilterBar.tsx).
  *
  * The Space owns read state and rendering; each app owns what its items mean
  * (lib/hubApps.ts). Who sees leaving: lib/hubEvents.ts.

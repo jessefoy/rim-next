@@ -1,3 +1,42 @@
+## 2026-10-19 (later) to 10-20 — Updates as an inbox, the lead's brief, Notifications, one filter grammar
+
+On `main`: `20da9b6`, `2be8271`, `bbd0141`, `893fa75`, `78f1d11`, `af3f4fc`, and this closing. **Production changes:** the migrations created `hub_events`, `hub_update_reads`, `notifications` and `users.teamEmailMode`, set every `HubMember.activitySeenAt` to the deploy moment once (`updates_inbox_start_read_v1`), and seeded two templates (`team-lead-brief`, `notifications-daily-summary`). One live test with Jesse's approval: he took Dummy Test Program · Sun, Nov 1 at 6:00 AM from Updates and stays on it (taking him off would have emailed the Hosting Team). One read-only production query, on his ask: who on the three teams staffing the Dummy Test Program receives team email (11 people besides Jesse), for his note to them (sent by Jesse).
+
+### The asks (verbatim)
+
+- *"I feel like the team updates section can be improved. It's uncategorized and incomplete. People should be able to read it like an inbox and by type. It should also go to the item specifically… It should say when subs happen and claims etc. Remembering that we can filter."* And: *"what would an ideal inbox do and function for a team / volunteer"*.
+- *"If you're a team lead… If a manager was informed about something, they would say, 'Present this in a way that is easy for me to look at and make decisions on.'"*
+- *"in one's general member area, a notification section… notifications from all kinds of sources because some people don't even have hubs… like text meets email, where there's the right information with a dropdown… truly informative and useful, not just having these features with checkboxes to organize… and where they can go into the hub when they click them."*
+- *"We already have a general navigation for these kinds of things, for example, in the calendar hub. I don't think we should have too many different configurations. That's confusing for people. Consistency is key."*
+
+### Jesse's rulings
+
+- **Updates is an inbox with read marks** (reverses July's "no read state"); **the rail counts only what is for you**; **take a session right from Updates**.
+- **Who drops a session outright** (no sub asked), is taken off, comes off a rotation or leaves the team: **the team's leads and the person**, never the whole team. Asking for a sub names the asker to everyone.
+- **Leads get one brief per team** (approved by reading the rendered email: *"The lead brief reads right. Ship it."*).
+- **Notifications is its own page in the rail; emails stay as today by default.**
+- **Urgent coverage news always emails** (a session within two days that needs someone); **a coordinator's switch on a member's team emails stops the emails only**, the notices still come.
+- **The Dummy Test Program stays** while hosts train; Jesse asked for a plain note to the team instead of a "Practice program" setting (backlog).
+
+### What changed
+
+1. **The team's record (`hub_events`, `lib/hubEvents.ts`).** Every Scheduler write records one line in its own transaction: taken, assigned, left, released (pause, Inactive, archive, deletion, clears, program changes), rotation set/ended, left the team; carried on slug rename and account merge.
+2. **Updates as an inbox** (`lib/hubActivity.ts`, `components/HubActivityClient.tsx`): Needs you (take / sign up / cover in place with the Scheduler's routes and confirm words), history by day, one sentence per item linking to the exact session (`?session=program~YYYY-MM-DD`), reply, comment or member; cover requests show Open / Covered by / Closed / Passed; read marks (`hub_update_reads` + `activitySeenAt`); paging complete across sources (boundary on raw rows, inclusive cursor); your own doings never unread.
+3. **One filter grammar** (`components/FilterBar.tsx`): the Scheduler's pills, View picker and tabs, now on the Scheduler, Updates, Conversations and Files; the amber Needs help pill shows again.
+4. **The lead's brief** (`lib/teamBrief.ts`, `team-lead-brief`): Needs your decision (why, who can take it), Since last Monday, All set; Mondays, and a short brief two days out on other days. Replaces the Monday list and `coverage-still-needed` for coordinators.
+5. **Notifications** (`lib/notifications.ts`, `/account/notifications`): every email about a person or their teams also writes a notice once (`sendTemplatedEmail`'s `notice`), rows are one line that open beneath ("text meets email"), notices about one thing fold together, Needs you from every team, the rail count, My Home's one line, and My Profile's email choice (each one, one a day via the 13:30 UTC summary cron, none).
+
+### What this connects to
+
+The Scheduler (every write route, the rotation engine, the deep link), coverage notices and the daily cron, team Home (unchanged attention line), Conversations and Files (anchors, notice excerpts, filters), the member area rail and phone menu, My Home, My Profile, the email layer (every sender), the account merge, the hub slug rename, the member-area harness (new stub).
+
+### What comes next
+
+- **Read-aloud** of the new wording: Updates and Notifications pages, notice titles, Needs you buttons, the email choice, `notifications-daily-summary`.
+- **Open a Notifications row live** once the first notices arrive (none existed at deploy).
+- **The Oct 20 08:00 UTC rotation run** under the seat lock was not checked this session.
+- Backlog: a Practice program setting; the unused `coverage-still-needed` template.
+
 ## 2026-10-19 — The integrity pass: the member area, checked end to end
 
 On `main`: `068dd2f` … `288bfd9` (17 commits), and this closing. No production writes. One read-only production query (probed with `SELECT 1`): 0 inactive memberships on scheduling teams, so the first inactive pass releases no one.
