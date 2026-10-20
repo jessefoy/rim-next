@@ -23,8 +23,63 @@
  */
 
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 
 export type NoticeCategory = "personal" | "team";
+
+/**
+ * What kind of news a notice is (2026-10-20, Jesse: categorized "just like in
+ * the team hubs… like a big inbox"). Read from the notice's kind (the email
+ * template's slug), so it needs no column and old notices sort too. The
+ * names match team Updates (Schedule, Conversations, Files). From says which
+ * team; the type says what kind. When members can write to each other, their
+ * notices become one more type here ("Messages").
+ */
+export type NoticeType = "schedule" | "conversations" | "files" | "programs" | "account";
+
+export const NOTICE_TYPES: { key: NoticeType; label: string; kinds: string[] }[] = [
+  // Each entry is a kind, or a prefix ending in "-".
+  {
+    key: "schedule",
+    label: "Schedule",
+    kinds: ["coverage-", "host-assignment-", "standing-assignment-", "sub-request-", "sessions-cleared-", "new-program-needs-host", "team-lead-brief"],
+  },
+  { key: "conversations", label: "Conversations", kinds: ["hub-conv-"] },
+  { key: "files", label: "Files", kinds: ["file-"] },
+  {
+    key: "programs",
+    label: "Programs",
+    kinds: ["registration-", "waitlist-", "dana-", "session-reminder", "course-"],
+  },
+  {
+    key: "account",
+    label: "Your account",
+    kinds: ["accounts-", "welcome-back", "host-role-", "registrar-role-", "hub-welcome"],
+  },
+];
+
+function kindMatches(kind: string, k: string): boolean {
+  return k.endsWith("-") ? kind.startsWith(k) : kind === k;
+}
+
+/** The type of a notice's kind, or null for a kind not yet sorted. */
+export function noticeTypeOf(kind: string): NoticeType | null {
+  return NOTICE_TYPES.find((t) => t.kinds.some((k) => kindMatches(kind, k)))?.key ?? null;
+}
+
+export function isNoticeType(value: unknown): value is NoticeType {
+  return typeof value === "string" && NOTICE_TYPES.some((t) => t.key === value);
+}
+
+function typeWhere(type: string | null | undefined): Prisma.NotificationWhereInput {
+  const t = NOTICE_TYPES.find((x) => x.key === type);
+  if (!t) return {};
+  return { OR: t.kinds.map((k) => (k.endsWith("-") ? { kind: { startsWith: k } } : { kind: k })) };
+}
+
+function sourceWhere(source: string | null | undefined): Prisma.NotificationWhereInput {
+  return source && source !== "all" ? { sourceKey: source } : {};
+}
 
 export interface NoticeInput {
   /** The kind, usually the email template's slug. */
@@ -146,6 +201,8 @@ export interface NoticeRow {
   detail: string | null;
   href: string;
   threadKey: string | null;
+  /** "Schedule", "Programs"…; null for a kind not yet sorted. */
+  typeLabel: string | null;
   ts: string;
   unread: boolean;
 }
@@ -168,6 +225,7 @@ export async function countUnreadNotices(userId: string): Promise<number> {
 export async function listNotices(opts: {
   userId: string;
   source?: string | null;
+  type?: string | null;
   unreadOnly?: boolean;
   cursor?: string | null;
   limit?: number;
@@ -176,7 +234,7 @@ export async function listNotices(opts: {
   const found = await db.notification.findMany({
     where: {
       userId: opts.userId,
-      ...(opts.source && opts.source !== "all" ? { sourceKey: opts.source } : {}),
+      AND: [sourceWhere(opts.source), typeWhere(opts.type)],
       ...(opts.unreadOnly ? { readAt: null } : {}),
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -195,6 +253,7 @@ export async function listNotices(opts: {
       detail: n.detail,
       href: n.href,
       threadKey: n.threadKey,
+      typeLabel: NOTICE_TYPES.find((t) => t.key === noticeTypeOf(n.kind))?.label ?? null,
       ts: n.createdAt.toISOString(),
       unread: !n.readAt,
     })),
@@ -202,30 +261,63 @@ export async function listNotices(opts: {
   };
 }
 
-/** The sources a person has notices from, for the From picker. */
-export async function listNoticeSources(userId: string): Promise<{ key: string; label: string; unread: number }[]> {
-  const groups = await db.notification.groupBy({
-    by: ["sourceKey", "sourceLabel"],
-    where: { userId },
-    _count: { _all: true },
-  });
-  const unread = await db.notification.groupBy({
-    by: ["sourceKey"],
-    where: { userId, readAt: null },
-    _count: { _all: true },
-  });
-  const unreadBy = new Map(unread.map((u) => [u.sourceKey, u._count._all]));
-  const seen = new Map<string, { key: string; label: string; unread: number }>();
-  for (const g of groups) {
-    if (!seen.has(g.sourceKey)) seen.set(g.sourceKey, { key: g.sourceKey, label: g.sourceLabel, unread: unreadBy.get(g.sourceKey) ?? 0 });
-  }
-  // Teams first by name, then Programs, then the account.
-  const rank = (k: string) => (k.startsWith("team:") ? 0 : k === "programs" ? 1 : 2);
-  return [...seen.values()].sort((a, b) => rank(a.key) - rank(b.key) || a.label.localeCompare(b.label));
+export interface NoticeFacet { key: string; label: string; unread: number }
+
+/**
+ * What the two pickers offer, with unread counts. From: every team the person
+ * is on, always (so the page shows how it's organized before anything has
+ * arrived), and any team they have notices from; counted within the chosen
+ * type. Type: every kind of news, counted within the chosen team. `unread`
+ * is the count for both choices together (the Unread pill).
+ */
+export async function listNoticeFacets(opts: {
+  userId: string;
+  source?: string | null;
+  type?: string | null;
+}): Promise<{ sources: NoticeFacet[]; types: NoticeFacet[]; unread: number }> {
+  const { userId } = opts;
+  const [memberships, teamGroups, unreadByKind] = await Promise.all([
+    db.hubMember.findMany({
+      where: { userId, hub: { status: "ACTIVE" } },
+      select: { hub: { select: { slug: true, name: true } } },
+    }),
+    db.notification.groupBy({
+      by: ["sourceKey", "sourceLabel"],
+      where: { userId, sourceKey: { startsWith: "team:" } },
+    }),
+    db.notification.groupBy({
+      by: ["sourceKey", "kind"],
+      where: { userId, readAt: null },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const teams = new Map<string, string>();
+  for (const m of memberships) teams.set(`team:${m.hub.slug}`, m.hub.name);
+  // A team they've left keeps its notices reachable, under the name they carry.
+  for (const g of teamGroups) if (!teams.has(g.sourceKey)) teams.set(g.sourceKey, g.sourceLabel);
+
+  const inSource = (k: string) => !opts.source || opts.source === "all" || k === opts.source;
+  const inType = (kind: string) => !isNoticeType(opts.type) || noticeTypeOf(kind) === opts.type;
+
+  const sources = [...teams.entries()]
+    .map(([key, label]) => ({
+      key,
+      label,
+      unread: unreadByKind.filter((u) => u.sourceKey === key && inType(u.kind)).reduce((n, u) => n + u._count._all, 0),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  const types = NOTICE_TYPES.map((t) => ({
+    key: t.key,
+    label: t.label,
+    unread: unreadByKind.filter((u) => inSource(u.sourceKey) && noticeTypeOf(u.kind) === t.key).reduce((n, u) => n + u._count._all, 0),
+  }));
+  const unread = unreadByKind.filter((u) => inSource(u.sourceKey) && inType(u.kind)).reduce((n, u) => n + u._count._all, 0);
+  return { sources, types, unread };
 }
 
 /** Mark notices read: these, or everything up to `asOf` (when the page loaded). */
-export async function markNoticesRead(opts: { userId: string; ids?: string[]; all?: boolean; asOf?: Date | null; source?: string | null }): Promise<void> {
+export async function markNoticesRead(opts: { userId: string; ids?: string[]; all?: boolean; asOf?: Date | null; source?: string | null; type?: string | null }): Promise<void> {
   const now = new Date();
   if (opts.all) {
     const asOf = opts.asOf && opts.asOf < now ? opts.asOf : now;
@@ -234,8 +326,8 @@ export async function markNoticesRead(opts: { userId: string; ids?: string[]; al
         userId: opts.userId,
         readAt: null,
         createdAt: { lte: asOf },
-        // Only what's on screen: the From choice, when one is made.
-        ...(opts.source && opts.source !== "all" ? { sourceKey: opts.source } : {}),
+        // Only what's on screen: the From and type choices, when made.
+        AND: [sourceWhere(opts.source), typeWhere(opts.type)],
       },
       data: { readAt: now },
     });

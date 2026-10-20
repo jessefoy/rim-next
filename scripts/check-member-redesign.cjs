@@ -308,5 +308,49 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(sched.isCycleWeek('ALT_WEEK_A',null,'2026-10-22'),false,'a cycle needs its first date');
   check(sched.isCycleOccurrence('ALT_WEEK_B') && !sched.isCycleOccurrence('FIFTH'),true,'cycle patterns are recognised');
 
+  // Notifications by type and team (2026-10-20). Every kind of notice the code
+  // records has a type, so nothing is reachable only under Everything.
+  const noticeHubs=[{userId:'member-a',hub:{slug:'host-team',name:'Hosting Team',status:'ACTIVE'}},{userId:'member-a',hub:{slug:'greeter',name:'Greeters',status:'ACTIVE'}},{userId:'member-a',hub:{slug:'closed',name:'Closed Team',status:'ARCHIVED'}}];
+  let noticeRows=[];
+  const matches=(row,where)=>Object.entries(where).every(([k,v])=>{
+    if(k==='AND') return v.every(w=>matches(row,w));
+    if(k==='OR') return v.some(w=>matches(row,w));
+    if(v&&typeof v==='object'&&'startsWith' in v) return String(row[k]).startsWith(v.startsWith);
+    return row[k]===v;
+  });
+  const groupBy=({by,where})=>{const out=new Map();for(const r of noticeRows.filter(r=>matches(r,where))){const key=by.map(b=>r[b]).join('|');const g=out.get(key)??{...Object.fromEntries(by.map(b=>[b,r[b]])),_count:{_all:0}};g._count._all++;out.set(key,g);}return [...out.values()];};
+  const notices=load('lib/notifications.ts',{'@/lib/db':{db:{
+    hubMember:{findMany:async q=>noticeHubs.filter(m=>m.userId===q.where.userId&&m.hub.status===q.where.hub.status)},
+    notification:{groupBy:async q=>groupBy(q)},
+  }}});
+  const plain=v=>JSON.parse(JSON.stringify(v));
+  const recorded=new Set();
+  const walk=dir=>{for(const f of fs.readdirSync(path.join(root,dir),{withFileTypes:true})){const rel=path.join(dir,f.name);if(f.isDirectory())walk(rel);else if(/\.tsx?$/.test(f.name))for(const m of fs.readFileSync(path.join(root,rel),'utf8').matchAll(/kind:\s*"([a-z0-9-]+)",\s*category:/g))recorded.add(m[1]);}};
+  walk('lib');walk('app');
+  check(recorded.size>=25,true,'the notice kinds are found in the code');
+  check([...recorded].filter(k=>notices.noticeTypeOf(k)===null),[],'every notice kind has a type');
+  check(notices.noticeTypeOf('coverage-session-reminder'),'schedule','a coverage reminder is Schedule');
+  check(notices.noticeTypeOf('session-reminder'),'programs','a program reminder is Programs');
+  let facets=await notices.listNoticeFacets({userId:'member-a'});
+  check(plain(facets.sources.map(f=>f.label)),['Greeters','Hosting Team'],'From lists every team before any notice arrives, and no archived one');
+  check(plain(facets.types.map(f=>f.label)),['Schedule','Conversations','Files','Programs','Your account'],'the types, in order');
+  const n=(id,sourceKey,sourceLabel,kind,readAt=null)=>({id,userId:'member-a',sourceKey,sourceLabel,kind,readAt});
+  noticeRows=[
+    n('1','team:host-team','Hosting Team','coverage-gap-opened'),
+    n('2','team:host-team','Hosting Team','hub-conv-new-reply'),
+    n('3','team:greeter','Greeters','coverage-gap-opened'),
+    n('4','programs','Programs','registration-confirmation'),
+    n('5','team:old-team','Old Team','file-shared'),
+    n('6','team:host-team','Hosting Team','coverage-lookahead',new Date()),
+  ];
+  facets=await notices.listNoticeFacets({userId:'member-a'});
+  check(facets.unread,5,'Unread counts every unread notice');
+  check(facets.sources.find(f=>f.key==='team:old-team')?.label,'Old Team','a team left behind keeps its notices reachable');
+  check(facets.types.find(f=>f.key==='schedule').unread,2,'Schedule counts across teams');
+  facets=await notices.listNoticeFacets({userId:'member-a',source:'team:host-team'});
+  check([facets.unread,facets.types.find(f=>f.key==='schedule').unread],[2,1],'types count within the chosen team');
+  facets=await notices.listNoticeFacets({userId:'member-a',type:'schedule'});
+  check(plain(facets.sources.map(f=>[f.label,f.unread])),[['Greeters',1],['Hosting Team',1],['Old Team',0]],'teams count within the chosen type');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

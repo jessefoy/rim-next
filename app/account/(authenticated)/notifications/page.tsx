@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import NotificationsClient from "@/components/NotificationsClient";
-import { countUnreadNotices, listNotices, listNoticeSources } from "@/lib/notifications";
+import { isNoticeType, listNoticeFacets, listNotices } from "@/lib/notifications";
 import { listHubNeeds, readPointOf, type HubActivityItem } from "@/lib/hubActivity";
 import { hubLeadAllowed } from "@/lib/googleFiles";
 
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function NotificationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ show?: string; from?: string }>;
+  searchParams: Promise<{ show?: string; from?: string; type?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -26,7 +26,12 @@ export default async function NotificationsPage({
   const roles = session.user.roles ?? [];
   const query = await searchParams;
   const show = query.show === "unread" ? "unread" : "all";
-  const source = typeof query.from === "string" && query.from ? query.from : "all";
+  // From is a team (2026-10-20); the type says what kind of news.
+  const asked = typeof query.from === "string" && query.from.startsWith("team:") ? query.from : "all";
+  const type = isNoticeType(query.type) ? query.type : "all";
+  // Only a team the From picker offers, so the page can always undo it.
+  const offered = await listNoticeFacets({ userId, type });
+  const source = offered.sources.some((s) => s.key === asked) ? asked : "all";
 
   // Needs you, from every active team they're on that runs the Scheduler.
   const memberships = await db.hubMember.findMany({
@@ -57,10 +62,9 @@ export default async function NotificationsPage({
     .sort((a, b) => new Date(a.action?.sessionDate ?? a.ts).getTime() - new Date(b.action?.sessionDate ?? b.ts).getTime());
 
   const loadedAt = new Date().toISOString();
-  const [page, sources, unreadCount] = await Promise.all([
-    listNotices({ userId, source, unreadOnly: show === "unread", limit: 40 }),
-    listNoticeSources(userId),
-    countUnreadNotices(userId),
+  const [page, facets] = await Promise.all([
+    listNotices({ userId, source, type, unreadOnly: show === "unread", limit: 40 }),
+    source === "all" ? offered : listNoticeFacets({ userId, source, type }),
   ]);
 
   return (
@@ -70,8 +74,8 @@ export default async function NotificationsPage({
         initialNextCursor={page.nextCursor}
         initialShow={show}
         initialSource={source}
-        sources={sources}
-        unreadCount={unreadCount}
+        initialType={type}
+        initialFacets={facets}
         needs={needs}
         loadedAt={loadedAt}
       />

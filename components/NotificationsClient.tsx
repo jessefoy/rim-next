@@ -10,8 +10,10 @@
  * Tapping it opens the rest right there (the details, earlier notices about
  * the same thing) and one button that goes to it. Opening marks it read.
  * Filters are the shared grammar (components/FilterBar.tsx): All · Unread,
- * and From (a team, Programs, your account). Needs you, at the top, is what
- * the person could take now, from every team they're on.
+ * From (which team) and View (what kind: Schedule, Conversations, Files,
+ * Programs, Your account; Jesse, 2026-10-20: categorized "just like in the
+ * team hubs… like a big inbox"). Needs you, at the top, is what the person
+ * could take now, from every team they're on.
  */
 
 import { useRef, useState } from "react";
@@ -20,17 +22,17 @@ import { useRouter } from "next/navigation";
 import { FilterPills, ViewPicker } from "@/components/FilterBar";
 import { NeedCard, dayHeading, timeOf } from "@/components/HubActivityClient";
 import type { HubActivityItem } from "@/lib/hubActivity";
-import type { NoticeRow } from "@/lib/notifications";
+import type { NoticeFacet, NoticeRow } from "@/lib/notifications";
 
-interface Source { key: string; label: string; unread: number }
+interface Facets { sources: NoticeFacet[]; types: NoticeFacet[]; unread: number }
 
 interface Props {
   initialRows: NoticeRow[];
   initialNextCursor: string | null;
   initialShow: "all" | "unread";
   initialSource: string;
-  sources: Source[];
-  unreadCount: number;
+  initialType: string;
+  initialFacets: Facets;
   needs: HubActivityItem[];
   loadedAt: string;
 }
@@ -88,7 +90,10 @@ function ThreadRow({ thread, onOpen }: { thread: Thread; onOpen: (ids: string[])
         <span className="hub-inbox__body">
           <span className="hub-inbox__meta">
             {unread && <span className="rim-sr-only">Unread. </span>}
-            <span className="hub-inbox__type">{latest.sourceLabel}</span>
+            <span className="hub-inbox__type">
+              {latest.sourceLabel}
+              {latest.typeLabel && latest.typeLabel !== latest.sourceLabel && <> · {latest.typeLabel}</>}
+            </span>
             {more > 0 && <span className="ib-row__more">{more === 1 ? "1 more" : `${more} more`}</span>}
           </span>
           <span className="hub-inbox__sentence">{latest.title}</span>
@@ -116,16 +121,17 @@ export default function NotificationsClient({
   initialNextCursor,
   initialShow,
   initialSource,
-  sources,
-  unreadCount: initialUnread,
+  initialType,
+  initialFacets,
   needs,
   loadedAt,
 }: Props) {
   const [show, setShow] = useState<"all" | "unread">(initialShow);
   const [source, setSource] = useState(initialSource);
+  const [type, setType] = useState(initialType);
+  const [facets, setFacets] = useState(initialFacets);
   const [rows, setRows] = useState(initialRows);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
-  const [unread, setUnread] = useState(initialUnread);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -134,19 +140,20 @@ export default function NotificationsClient({
   // Only the latest request's answer is shown (filters changed quickly).
   const latest = useRef(0);
 
-  async function load(nextShow: "all" | "unread", nextSource: string, cursor?: string | null) {
+  async function load(nextShow: "all" | "unread", nextSource: string, nextType: string, cursor?: string | null) {
     const ticket = ++latest.current;
     setLoading(true);
     setError("");
     try {
-      const qs = new URLSearchParams({ show: nextShow, source: nextSource });
+      const qs = new URLSearchParams({ show: nextShow, source: nextSource, type: nextType });
       if (cursor) qs.set("cursor", cursor);
       const res = await fetch(`/api/account/notifications?${qs}`);
       if (!res.ok) throw new Error();
-      const data = (await res.json()) as { rows: NoticeRow[]; nextCursor: string | null };
+      const data = (await res.json()) as { rows: NoticeRow[]; nextCursor: string | null; facets: Facets | null };
       if (ticket !== latest.current) return;
       setRows((prev) => (cursor ? [...prev, ...data.rows.filter((r) => !prev.some((p) => p.id === r.id))] : data.rows));
       setNextCursor(data.nextCursor);
+      if (data.facets) setFacets(data.facets);
     } catch {
       if (ticket === latest.current) setError("Notifications couldn't be loaded. Check your connection and try again.");
     } finally {
@@ -154,22 +161,33 @@ export default function NotificationsClient({
     }
   }
 
-  function choose(nextShow: "all" | "unread", nextSource: string) {
+  function choose(nextShow: "all" | "unread", nextSource: string, nextType: string) {
     setShow(nextShow);
     setSource(nextSource);
+    setType(nextType);
     setNote("");
     const qs = new URLSearchParams();
     if (nextShow !== "all") qs.set("show", nextShow);
     if (nextSource !== "all") qs.set("from", nextSource);
+    if (nextType !== "all") qs.set("type", nextType);
     const q = qs.toString();
     window.history.replaceState(null, "", `/account/notifications${q ? `?${q}` : ""}`);
-    void load(nextShow, nextSource);
+    void load(nextShow, nextSource, nextType);
   }
 
   function markRead(ids: string[]) {
     if (!ids.length) return;
+    // The pickers' counts follow at once: each opened notice leaves its team's
+    // and its type's count.
+    const opened = rows.filter((r) => ids.includes(r.id) && r.unread);
+    const less = (list: NoticeFacet[], keyOf: (r: NoticeRow) => string | null) =>
+      list.map((f) => ({ ...f, unread: Math.max(0, f.unread - opened.filter((r) => keyOf(r) === f.key).length) }));
+    setFacets((f) => ({
+      sources: less(f.sources, (r) => r.sourceKey),
+      types: less(f.types, (r) => f.types.find((t) => t.label === r.typeLabel)?.key ?? null),
+      unread: Math.max(0, f.unread - opened.length),
+    }));
     setRows((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, unread: false } : r)));
-    setUnread((n) => Math.max(0, n - ids.length));
     void fetch("/api/account/notifications/read", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -183,16 +201,18 @@ export default function NotificationsClient({
 
   async function markAll() {
     setNote("");
+    // If a filter changes while this is sent, that choice's own load wins.
+    const ticket = latest.current;
     try {
       const res = await fetch("/api/account/notifications/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ all: true, asOf: loadedAt, source }),
+        body: JSON.stringify({ all: true, asOf: loadedAt, source, type }),
       });
       if (!res.ok) throw new Error();
-      setRows((prev) => prev.map((r) => (new Date(r.ts) <= new Date(loadedAt) ? { ...r, unread: false } : r)));
-      setUnread((n) => (source === "all" ? 0 : Math.max(0, n - rows.filter((r) => r.unread).length)));
-      setNote(source === "all" ? "Everything here is marked as read." : `Everything from ${sourceLabel} is marked as read.`);
+      setNote(source === "all" && type === "all" ? "Everything here is marked as read." : `Everything in ${shownLabel} is marked as read.`);
+      // The rows and counts as they now stand.
+      if (latest.current === ticket) void load(show, source, type);
       router.refresh();
     } catch {
       setNote("That didn't go through. Please try again.");
@@ -200,23 +220,33 @@ export default function NotificationsClient({
   }
 
   const sourceOptions = [
-    { key: "all", label: "Everything", dividerAfter: sources.length > 0 },
-    ...sources.map((s) => ({ key: s.key, label: s.label, count: s.unread })),
+    // Everything includes Programs and Your account, which aren't teams.
+    { key: "all", label: "Everywhere", dividerAfter: true },
+    ...facets.sources.map((s) => ({ key: s.key, label: s.label, count: s.unread })),
   ];
-  const sourceLabel = sourceOptions.find((o) => o.key === source)?.label ?? "Everything";
+  const typeOptions = [
+    { key: "all", label: "Everything", dividerAfter: true },
+    ...facets.types.map((t) => ({ key: t.key, label: t.label, count: t.unread })),
+  ];
+  const sourceLabel = sourceOptions.find((o) => o.key === source)?.label ?? "Everywhere";
+  const typeLabel = typeOptions.find((o) => o.key === type)?.label ?? "Everything";
+  // What's on screen, in words: "Hosting Team", "Files", "Hosting Team: Files".
+  const shownLabel = source === "all"
+    ? typeLabel
+    : type === "all" ? sourceLabel : `${sourceLabel}: ${typeLabel}`;
   const teamSlug = source.startsWith("team:") ? source.slice(5) : null;
-  const shownNeeds = source === "all"
-    ? needs
+  const shownNeeds = type !== "all" && type !== "schedule"
+    ? []
     : teamSlug
       ? needs.filter((n) => (n.action?.hubSlug ?? new URLSearchParams(n.href.split("?")[1] ?? "").get("hub")) === teamSlug)
-      : [];
+      : needs;
   const days = threadsOf(rows);
 
   const empty = show === "unread"
-    ? `You're all caught up${source === "all" ? "" : ` on ${sourceLabel}`}.`
-    : source === "all"
+    ? `You're all caught up${source === "all" && type === "all" ? "" : ` in ${shownLabel}`}.`
+    : source === "all" && type === "all"
       ? "Nothing yet. When there's news about your sessions, your teams, your programs or your account, it will be here, and in your email as before."
-      : `Nothing from ${sourceLabel} yet.`;
+      : `Nothing in ${shownLabel} yet.`;
 
   return (
     <div className="ac-member-page ib">
@@ -225,7 +255,7 @@ export default function NotificationsClient({
           <h1 className="ac-page-title">Notifications</h1>
           <p className="ac-page-sub">News about you, your teams, your programs and your account. Tap one to read it.</p>
         </div>
-        {unread > 0 && (
+        {facets.unread > 0 && (
           <button type="button" className="btn--ghost ib__mark-all" onClick={() => void markAll()}>
             Mark all as read
           </button>
@@ -236,22 +266,30 @@ export default function NotificationsClient({
       <FilterPills
         label="Show notifications"
         value={show}
-        onChange={(k) => choose(k, source)}
+        onChange={(k) => choose(k, source, type)}
         options={[
           { key: "all" as const, label: "All" },
-          { key: "unread" as const, label: "Unread", count: unread },
+          { key: "unread" as const, label: "Unread", count: facets.unread },
         ]}
       >
-        {sources.length > 0 && (
+        {facets.sources.length > 0 && (
           <ViewPicker
             label="From"
-            menuLabel="Choose where notifications are from"
+            menuLabel="Choose a team"
             value={source}
             active={source !== "all"}
-            onChoose={(k) => choose(show, k)}
+            onChoose={(k) => choose(show, k, type)}
             options={sourceOptions}
           />
         )}
+        <ViewPicker
+          label="View"
+          menuLabel="Choose a kind of notification"
+          value={type}
+          active={type !== "all"}
+          onChoose={(k) => choose(show, source, k)}
+          options={typeOptions}
+        />
       </FilterPills>
 
       {shownNeeds.length > 0 && (
@@ -271,7 +309,7 @@ export default function NotificationsClient({
         </section>
       )}
 
-      <section className="hub-inbox__section ib__section" aria-label={`Notifications from ${sourceLabel}`}>
+      <section className="hub-inbox__section ib__section" aria-label={source === "all" && type === "all" ? "Notifications" : `Notifications: ${shownLabel}`}>
         {error && <p className="hub-inbox__problem" role="alert">{error}</p>}
         {loading && rows.length === 0 ? (
           <p className="hub-inbox__empty">Loading…</p>
@@ -288,7 +326,7 @@ export default function NotificationsClient({
           ))
         )}
         {nextCursor && (
-          <button type="button" className="btn--ghost hub-inbox__more" onClick={() => void load(show, source, nextCursor)} disabled={loading}>
+          <button type="button" className="btn--ghost hub-inbox__more" onClick={() => void load(show, source, type, nextCursor)} disabled={loading}>
             {loading ? "Loading…" : "Show earlier notifications"}
           </button>
         )}
