@@ -265,7 +265,7 @@ export interface NoticeFacet { key: string; label: string; unread: number }
 
 /**
  * What the two pickers offer, with unread counts. From: every team the person
- * is on, always (so the page shows how it's organized before anything has
+ * is on (active or paused), always (so the page shows how it's organized before anything has
  * arrived), and any team they have notices from; counted within the chosen
  * type. Type: every kind of news, counted within the chosen team. `unread`
  * is the count for both choices together (the Unread pill).
@@ -278,7 +278,9 @@ export async function listNoticeFacets(opts: {
   const { userId } = opts;
   const [memberships, teamGroups, unreadByKind] = await Promise.all([
     db.hubMember.findMany({
-      where: { userId, hub: { status: "ACTIVE" } },
+      // Inactive means removed from the team (Jesse, 2026-10-19): not offered,
+      // though notices they already have from it stay reachable below.
+      where: { userId, status: { not: "INACTIVE" }, hub: { status: "ACTIVE" } },
       select: { hub: { select: { slug: true, name: true } } },
     }),
     db.notification.groupBy({

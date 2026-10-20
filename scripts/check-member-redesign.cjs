@@ -310,7 +310,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
 
   // Notifications by type and team (2026-10-20). Every kind of notice the code
   // records has a type, so nothing is reachable only under Everything.
-  const noticeHubs=[{userId:'member-a',hub:{slug:'host-team',name:'Hosting Team',status:'ACTIVE'}},{userId:'member-a',hub:{slug:'greeter',name:'Greeters',status:'ACTIVE'}},{userId:'member-a',hub:{slug:'closed',name:'Closed Team',status:'ARCHIVED'}}];
+  const noticeHubs=[{userId:'member-a',hub:{slug:'host-team',name:'Hosting Team',status:'ACTIVE'}},{userId:'member-a',hub:{slug:'greeter',name:'Greeters',status:'ACTIVE'}},{userId:'member-a',hub:{slug:'closed',name:'Closed Team',status:'ARCHIVED'}},{userId:'member-a',status:'INACTIVE',hub:{slug:'left',name:'Left Team',status:'ACTIVE'}}];
   let noticeRows=[];
   const matches=(row,where)=>Object.entries(where).every(([k,v])=>{
     if(k==='AND') return v.every(w=>matches(row,w));
@@ -320,7 +320,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   });
   const groupBy=({by,where})=>{const out=new Map();for(const r of noticeRows.filter(r=>matches(r,where))){const key=by.map(b=>r[b]).join('|');const g=out.get(key)??{...Object.fromEntries(by.map(b=>[b,r[b]])),_count:{_all:0}};g._count._all++;out.set(key,g);}return [...out.values()];};
   const notices=load('lib/notifications.ts',{'@/lib/db':{db:{
-    hubMember:{findMany:async q=>noticeHubs.filter(m=>m.userId===q.where.userId&&m.hub.status===q.where.hub.status)},
+    hubMember:{findMany:async q=>noticeHubs.filter(m=>m.userId===q.where.userId&&m.hub.status===q.where.hub.status&&(m.status??'ACTIVE')!==q.where.status.not)},
     notification:{groupBy:async q=>groupBy(q)},
   }}});
   const plain=v=>JSON.parse(JSON.stringify(v));
@@ -332,7 +332,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(notices.noticeTypeOf('coverage-session-reminder'),'schedule','a coverage reminder is Schedule');
   check(notices.noticeTypeOf('session-reminder'),'programs','a program reminder is Programs');
   let facets=await notices.listNoticeFacets({userId:'member-a'});
-  check(plain(facets.sources.map(f=>f.label)),['Greeters','Hosting Team'],'From lists every team before any notice arrives, and no archived one');
+  check(plain(facets.sources.map(f=>f.label)),['Greeters','Hosting Team'],'From lists every team before any notice arrives, and no archived team or one they are inactive on');
   check(plain(facets.types.map(f=>f.label)),['Schedule','Conversations','Files','Programs','Your account'],'the types, in order');
   const n=(id,sourceKey,sourceLabel,kind,readAt=null)=>({id,userId:'member-a',sourceKey,sourceLabel,kind,readAt});
   noticeRows=[
