@@ -1036,6 +1036,8 @@ export interface NotifyRecipient {
   id: string;
   email: string;
   firstName: string | null;
+  /** Team emails switched off: Notifications only (2026-10-20). */
+  muted?: boolean;
 }
 
 /**
@@ -1057,12 +1059,12 @@ export interface NotifyRecipient {
 export async function teamLeadRecipients(
   place: FilesPlace,
   excludeUserId?: string,
-): Promise<{ id: string; email: string; firstName: string | null; lastName: string | null; preferredName: string | null }[]> {
+): Promise<{ id: string; email: string; firstName: string | null; lastName: string | null; preferredName: string | null; muted: boolean }[]> {
   if (!place.hubSlug) return [];
   const opts = excludeUserId ? { excludeUserId } : {};
   const [coordinators, pool, teachers] = await Promise.all([
-    getHubNotificationRecipients(place.hubSlug, { ...opts, coordinatorsOnly: true }),
-    getHubNotificationRecipients(place.hubSlug, opts),
+    getHubNotificationRecipients(place.hubSlug, { ...opts, coordinatorsOnly: true, withMuted: true }),
+    getHubNotificationRecipients(place.hubSlug, { ...opts, withMuted: true }),
     db.user.findMany({
       where: {
         roles: { has: "GUIDING_TEACHER" },
@@ -1080,9 +1082,15 @@ export async function teamLeadRecipients(
       })
     : [];
   const adminIds = new Set(admins.map((a) => a.id));
-  const byId = new Map<string, { id: string; email: string; firstName: string | null; lastName: string | null; preferredName: string | null }>();
+  // A lead whose team emails are off gets the notice, not the email (2026-10-20).
+  const byId = new Map<string, { id: string; email: string; firstName: string | null; lastName: string | null; preferredName: string | null; muted: boolean }>();
   for (const u of [...coordinators, ...pool.filter((m) => adminIds.has(m.id)), ...teachers]) {
-    if (u.email) byId.set(u.id, { id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, preferredName: u.preferredName });
+    if (u.email) {
+      const muted = "muted" in u && u.muted === true;
+      const had = byId.get(u.id);
+      // On the team with emails on, or the guiding teacher: not muted.
+      byId.set(u.id, { id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, preferredName: u.preferredName, muted: had ? had.muted && muted : muted });
+    }
   }
   return [...byId.values()];
 }
@@ -1099,9 +1107,10 @@ export async function resolveNotifyRecipients(
   // coordinators, an admin on the team, the guiding teacher) are told.
   const members = opts?.leadsOnly
     ? await teamLeadRecipients(place, excludeUserId)
-    : await getHubNotificationRecipients(place.hubSlug, { excludeUserId });
+    : await getHubNotificationRecipients(place.hubSlug, { excludeUserId, withMuted: true });
+  const muted = (m: (typeof members)[number]) => "muted" in m && m.muted === true;
   if (mode === "everyone") {
-    return members.map((m) => ({ id: m.id, email: m.email, firstName: m.firstName }));
+    return members.map((m) => ({ id: m.id, email: m.email, firstName: m.firstName, muted: muted(m) }));
   }
   if (mode === "people" && notify && Array.isArray(notify.userIds)) {
     const wanted = new Set(
@@ -1109,7 +1118,7 @@ export async function resolveNotifyRecipients(
     );
     return members
       .filter((m) => wanted.has(m.id))
-      .map((m) => ({ id: m.id, email: m.email, firstName: m.firstName }));
+      .map((m) => ({ id: m.id, email: m.email, firstName: m.firstName, muted: muted(m) }));
   }
   return [];
 }

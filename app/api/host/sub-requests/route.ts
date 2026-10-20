@@ -123,6 +123,7 @@ export async function POST(request: Request) {
         getHubNotificationRecipients(assignmentHubSlug, {
           excludeUserId: assignment.userId ?? undefined,
           canCover: true,
+          withMuted: true,
         }),
         db.program.findUnique({
           where: { slug: assignment.programSlug },
@@ -145,6 +146,8 @@ export async function POST(request: Request) {
           subRequestId: subRequest.id,
           sessionAt: sessionDate,
           hubSlug: assignmentHubSlug,
+          // Team emails off: Notifications only (2026-10-20).
+          noticeOnly: u.muted,
         } as SubRequestEmailData),
         "sub-request-posted",
       );

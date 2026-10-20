@@ -120,7 +120,14 @@ export async function getHubNotificationRecipients(
   /** `canCover`: only members who may take sessions on the schedule
    *  (hostingCapability). For coverage asks (cover requests, a new program to
    *  staff): a member taken off the schedule can't act on them (2026-10-16). */
-  options?: { coordinatorsOnly?: boolean; excludeUserId?: string; canCover?: boolean },
+  options?: {
+    coordinatorsOnly?: boolean;
+    excludeUserId?: string;
+    canCover?: boolean;
+    /** Also those whose team emails are switched off, marked `muted`: they
+     *  get the notice in Notifications, not the email (Jesse, 2026-10-20). */
+    withMuted?: boolean;
+  },
 ) {
   const hub = await db.hub.findUnique({
     where: { slug: hubSlug },
@@ -128,7 +135,7 @@ export async function getHubNotificationRecipients(
       members: {
         where: {
           status: "ACTIVE",
-          communicationsEnabled: true,
+          ...(options?.withMuted ? {} : { communicationsEnabled: true }),
           ...(options?.coordinatorsOnly ? { isCoordinator: true } : {}),
           ...(options?.canCover ? { hostingCapability: true } : {}),
           // emailVerified must be set: excludes pre-threshold / staged members.
@@ -156,5 +163,5 @@ export async function getHubNotificationRecipients(
       },
     },
   });
-  return hub?.members.map((m) => m.user) ?? [];
+  return hub?.members.map((m) => ({ ...m.user, muted: !m.communicationsEnabled })) ?? [];
 }

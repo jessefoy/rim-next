@@ -65,6 +65,7 @@ export async function POST(
           note,
           fileId,
           placeKey: place.key,
+          noticeOnly: r.muted,
         });
       }
     });

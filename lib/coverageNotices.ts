@@ -140,7 +140,8 @@ export async function sessionHasSomeone(hubSlug: string, programSlug: string, se
 export interface PreparedGapNotice {
   hubSlug: string;
   sessions: { programSlug: string; programName: string; sessionDate: Date; sessionDay: string }[];
-  recipients: { email: string; firstName: string | null }[];
+  /** `muted`: their team emails are off; they get the notice only. */
+  recipients: { email: string; firstName: string | null; muted: boolean }[];
 }
 
 /**
@@ -206,9 +207,9 @@ async function findGaps(
 
   const prepared: PreparedGapNotice[] = [];
   for (const [hubSlug, sessions] of byHub) {
-    const recipients = (await getHubNotificationRecipients(hubSlug, { canCover: true }))
+    const recipients = (await getHubNotificationRecipients(hubSlug, { canCover: true, withMuted: true }))
       .filter((u) => !exclude.has(u.id) && !!u.email)
-      .map((u) => ({ email: u.email as string, firstName: u.firstName }));
+      .map((u) => ({ email: u.email as string, firstName: u.firstName, muted: u.muted }));
     prepared.push({
       hubSlug,
       sessions: sessions
@@ -222,6 +223,7 @@ async function findGaps(
 
 /** Whether a prepared notice will reach anyone (for the answer beside the button). */
 export function gapNoticeReachesTeam(prepared: PreparedGapNotice[]): boolean {
+  // Told counts the muted too: they get it in Notifications (2026-10-20).
   return prepared.some((p) => p.sessions.length > 0 && p.recipients.length > 0);
 }
 
@@ -244,7 +246,7 @@ export async function deliverGapNotices(prepared: PreparedGapNotice[]): Promise<
     const lines: CoverageSessionLine[] = p.sessions.map((s) => ({ programName: s.programName, sessionAt: s.sessionDate }));
     for (const r of p.recipients) {
       try {
-        await sendCoverageGapEmail({ to: r.email, firstName: r.firstName, hubSlug: p.hubSlug, sessions: lines });
+        await sendCoverageGapEmail({ to: r.email, firstName: r.firstName, hubSlug: p.hubSlug, sessions: lines, noticeOnly: r.muted });
       } catch (e) {
         console.error("[coverage-notices] gap email failed", e);
       }
@@ -524,15 +526,18 @@ export async function runDailyCoverageNotices(now: Date = new Date()): Promise<{
             console.error("[coverage-notices] lead brief (Monday) could not be built", team.slug, e);
           }
           // Everyone else who can take sessions: the list, as before.
-          const leadIds = new Set(coordinators.map((c) => c.id));
+          // Every lead, emails on or off: none of them gets the members' list.
+          const leadIds = new Set(
+            (await getHubNotificationRecipients(team.slug, { coordinatorsOnly: true, withMuted: true })).map((c) => c.id),
+          );
           const recipients = open.length
-            ? (await getHubNotificationRecipients(team.slug, { canCover: true })).filter((u) => !leadIds.has(u.id))
+            ? (await getHubNotificationRecipients(team.slug, { canCover: true, withMuted: true })).filter((u) => !leadIds.has(u.id))
             : [];
           for (const u of recipients) {
             if (!u.email) continue;
             try {
               await pause();
-              await sendCoverageLookaheadEmail({ to: u.email, firstName: u.firstName, hubSlug: team.slug, sessions: open.map(lineFor) });
+              await sendCoverageLookaheadEmail({ to: u.email, firstName: u.firstName, hubSlug: team.slug, sessions: open.map(lineFor), noticeOnly: u.muted });
             } catch (e) {
               console.error("[coverage-notices] look-ahead email failed", team.slug, e);
             }

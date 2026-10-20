@@ -90,7 +90,7 @@ export async function POST(
         hubId:                 hub.id,
         userId:                { in: subs.map((s) => s.userId) },
         status:                "ACTIVE",
-        communicationsEnabled: true,
+        // Team emails switched off still get the notice (2026-10-20).
         // An archived account isn't emailed about a team it can't sign in to
         // (2026-10-19 audit; archiving leaves team memberships as they were).
         user:                  { archivedAt: null },
@@ -111,6 +111,7 @@ export async function POST(
             threadId,
             replyId: reply.id,
             excerpt: excerptOf(body),
+            noticeOnly: !m.communicationsEnabled,
         }),
       "hub-conv-new-reply",
     );

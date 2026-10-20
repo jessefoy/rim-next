@@ -92,6 +92,7 @@ export async function POST(
             fileId,
             placeKey: place.key,
             commentId: created.id,
+            noticeOnly: r.muted,
           });
         }
       });

@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { ACCOUNT_SOURCE, PROGRAMS_SOURCE, appPath, recordNotice, settleNoticeEmail, teamSource, type NoticeInput } from "@/lib/notifications";
+import { ACCOUNT_SOURCE, PROGRAMS_SOURCE, appPath, isUrgentSession, recordNotice, settleNoticeEmail, teamSource, type NoticeInput } from "@/lib/notifications";
 import { portableTextToMarkdown } from "@/lib/portableTextEmail";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
@@ -338,6 +338,9 @@ export interface TemplatedEmailOptions {
    * their choice (each one, a daily summary, or none). One recipient only.
    */
   notice?: NoticeInput;
+  /** Record the notice only, no email: the person's team emails are
+   *  switched off by a coordinator (2026-10-20). */
+  noticeOnly?: boolean;
 
   /**
    * Variables a member typed (a title, a note, a name). In the email's body
@@ -463,14 +466,20 @@ export async function sendTemplatedEmail(
     if (options.notice && typeof to === "string") {
       const recorded = await recordNotice(to, options.notice);
       if (recorded && options.notice.category === "team") {
-        if (recorded.mode === "summary") return;
-        if (recorded.mode === "none") {
+        if (options.noticeOnly) {
+          await settleNoticeEmail(recorded.id);
+          return;
+        }
+        // Urgent team news always emails; the rest follows their choice.
+        if (!options.notice.urgent && recorded.mode === "summary") return;
+        if (!options.notice.urgent && recorded.mode === "none") {
           await settleNoticeEmail(recorded.id);
           return;
         }
         teamNoticeId = recorded.id;
       }
     }
+    if (options.noticeOnly) return;
 
     const template = await db.emailTemplate.findUnique({ where: { slug } });
     if (!template || !template.enabled) {
@@ -1165,6 +1174,8 @@ export interface SubRequestEmailData {
    *  Passed to hubScopedUrl so the email link lands the recipient in the
    *  right hub view, not the default host-team. Slice 2.5. */
   hubSlug: string;
+  /** Their team emails are off: the notice only (2026-10-20). */
+  noticeOnly?: boolean;
 }
 
 /**
@@ -1198,7 +1209,9 @@ export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<vo
     coverButton:   emailButtonHtml("Cover this session", coverUrl),
   }, {
     memberText: ["requesterName", "message"],
+    noticeOnly: data.noticeOnly,
     notice: {
+      urgent: isUrgentSession(data.sessionAt),
       kind: "sub-request-posted",
       category: "team",
       ...(await teamNotice(data.hubSlug)),
@@ -1263,6 +1276,8 @@ export interface NewProgramNeedsHostEmailData {
   programFormat: string; // "Virtual" or "In-person and virtual"
   /** Hub the program belongs to. Slice 2.5. */
   hubSlug: string;
+  /** Their team emails are off: the notice only (2026-10-20). */
+  noticeOnly?: boolean;
 }
 
 /**
@@ -1282,6 +1297,7 @@ export async function sendNewProgramNeedsHostEmail(data: NewProgramNeedsHostEmai
     scheduleUrl,
     scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
   }, {
+    noticeOnly: data.noticeOnly,
     notice: {
       kind: "new-program-needs-host",
       category: "team",
@@ -1335,6 +1351,7 @@ export async function notifyHubOfNewProgramCoverage(opts: {
 }): Promise<void> {
   const recipients = await getHubNotificationRecipients(opts.hubSlug, {
     canCover: true,
+    withMuted: true,
     ...(opts.excludeUserId ? { excludeUserId: opts.excludeUserId } : {}),
   });
   if (recipients.length === 0) return;
@@ -1349,6 +1366,7 @@ export async function notifyHubOfNewProgramCoverage(opts: {
       programName: opts.programName,
       programFormat,
       hubSlug: opts.hubSlug,
+      noticeOnly: u.muted,
     }),
     "new-program-needs-host",
   );
@@ -1663,6 +1681,7 @@ export async function sendCoverageGapEmail(data: {
   firstName: string | null;
   hubSlug: string;
   sessions: CoverageSessionLine[];
+  noticeOnly?: boolean;
 }): Promise<void> {
   if (data.sessions.length === 0) return;
   const words = await coverageWords(data.hubSlug);
@@ -1681,7 +1700,9 @@ export async function sendCoverageGapEmail(data: {
     scheduleUrl,
     scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
   }, {
+    noticeOnly: data.noticeOnly,
     notice: {
+      urgent: data.sessions.some((x) => isUrgentSession(x.sessionAt)),
       kind: "coverage-gap-opened",
       category: "team",
       ...(await teamNotice(data.hubSlug)),
@@ -1700,6 +1721,7 @@ export async function sendCoverageLookaheadEmail(data: {
   firstName: string | null;
   hubSlug: string;
   sessions: CoverageSessionLine[];
+  noticeOnly?: boolean;
 }): Promise<void> {
   if (data.sessions.length === 0) return;
   const words = await coverageWords(data.hubSlug);
@@ -1715,7 +1737,9 @@ export async function sendCoverageLookaheadEmail(data: {
     scheduleUrl,
     scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
   }, {
+    noticeOnly: data.noticeOnly,
     notice: {
+      urgent: data.sessions.some((x) => isUrgentSession(x.sessionAt)),
       kind: "coverage-lookahead",
       category: "team",
       ...(await teamNotice(data.hubSlug)),
@@ -2074,6 +2098,8 @@ export interface HubConvNewThreadEmailData {
   documentTitle?: string; // set when the thread belongs to a document
   /** The opening words, for Notifications. */
   excerpt?: string | null;
+  /** Their team emails are off: the notice only. */
+  noticeOnly?: boolean;
 }
 
 /**
@@ -2090,6 +2116,7 @@ export async function sendHubConvNewThreadEmail(data: HubConvNewThreadEmailData)
     threadUrl:     `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
   }, {
     memberText: ["threadTitle", "authorName"],
+    noticeOnly: data.noticeOnly,
     notice: {
       kind: "hub-conv-new-thread",
       category: "team",
@@ -2113,6 +2140,7 @@ export interface HubConvNewReplyEmailData {
   /** Notifications open the thread at this reply, with its opening words. */
   replyId?: string;
   excerpt?: string | null;
+  noticeOnly?: boolean;
 }
 
 /**
@@ -2128,6 +2156,7 @@ export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): 
     threadUrl:   `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
   }, {
     memberText: ["threadTitle", "replierName"],
+    noticeOnly: data.noticeOnly,
     notice: {
       kind: "hub-conv-new-reply",
       category: "team",
@@ -2154,6 +2183,7 @@ export async function sendFileSharedEmail(data: {
   fileId: string;
   /** The file's place ("hub:<slug>"), for Notifications' source. */
   placeKey?: string;
+  noticeOnly?: boolean;
 }): Promise<void> {
   await sendTemplatedEmail("file-shared", data.to, {
     firstName: data.firstName,
@@ -2164,6 +2194,7 @@ export async function sendFileSharedEmail(data: {
     fileUrl: `${BASE_URL}/account/files/${data.fileId}`,
   }, {
     memberText: ["sharerName", "fileName", "note"],
+    noticeOnly: data.noticeOnly,
     notice: {
       kind: "file-shared",
       category: "team",
@@ -2187,6 +2218,7 @@ export async function sendFileCommentEmail(data: {
   placeKey?: string;
   /** Notifications open the file at this comment. */
   commentId?: string;
+  noticeOnly?: boolean;
 }): Promise<void> {
   await sendTemplatedEmail("file-comment", data.to, {
     firstName: data.firstName,
@@ -2197,6 +2229,7 @@ export async function sendFileCommentEmail(data: {
     fileUrl: `${BASE_URL}/account/files/${data.fileId}`,
   }, {
     memberText: ["commenterName", "fileName", "excerpt"],
+    noticeOnly: data.noticeOnly,
     notice: {
       kind: "file-comment",
       category: "team",

@@ -42,6 +42,16 @@ export interface NoticeInput {
   href: string;
   /** Notices about one thing fold together: "conv:<threadId>". */
   threadKey?: string | null;
+  /** Team news that can't wait (a session within two days that needs
+   *  someone): emailed at once whatever the person chose (Jesse, 2026-10-20). */
+  urgent?: boolean;
+}
+
+/** Within two days: news about it can't wait for a summary. */
+export function isUrgentSession(at: Date | null | undefined, now: Date = new Date()): boolean {
+  if (!at || Number.isNaN(at.getTime())) return false;
+  const ahead = at.getTime() - now.getTime();
+  return ahead >= 0 && ahead < 2 * 24 * 60 * 60 * 1000;
 }
 
 export type TeamEmailMode = "each" | "summary" | "none";
