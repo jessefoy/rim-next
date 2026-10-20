@@ -6,6 +6,8 @@ import AccountLayout from "@/components/AccountLayout";
 import AboutMeSection from "@/components/account/AboutMeSection";
 import ProfileDetailsForm, { type ProfileSaveState } from "@/components/account/ProfileDetailsForm";
 import { RIM_SUPPORT_EMAIL } from "@/lib/locations";
+import EmailChoiceForm, { type EmailChoiceState } from "@/components/account/EmailChoiceForm";
+import { teamEmailModeOf } from "@/lib/notifications";
 
 export const metadata = { title: "My Profile - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -16,7 +18,7 @@ export default async function MyProfilePage() {
 
   const userId = session.user.id;
 
-  const [user, household] = await Promise.all([
+  const [user, household, onTeam] = await Promise.all([
     db.user.findUnique({ where: { id: userId } }),
     db.householdMember.findUnique({
       where: { userId },
@@ -32,7 +34,8 @@ export default async function MyProfilePage() {
         },
       },
     }),
-
+    // Team news only reaches people on a team.
+    db.hubMember.findFirst({ where: { userId, status: { not: "INACTIVE" } }, select: { id: true } }),
   ]);
 
   const displayName = user?.preferredName
@@ -72,6 +75,31 @@ export default async function MyProfilePage() {
     }
     // The header above the form shows the name; refresh it.
     revalidatePath("/account/dashboard-my-profile");
+    return { status: "saved" };
+  }
+
+  async function updateEmailChoice(_prev: EmailChoiceState, formData: FormData): Promise<EmailChoiceState> {
+    "use server";
+    const sess = await auth();
+    if (!sess?.user?.id) return { status: "error" };
+    const mode = teamEmailModeOf(formData.get("teamEmailMode") as string | null);
+    try {
+      const current = await db.user.findUnique({ where: { id: sess.user.id }, select: { teamEmailMode: true } });
+      if (teamEmailModeOf(current?.teamEmailMode) !== mode) {
+        // A new choice starts fresh: what's already here is in Notifications,
+        // and isn't emailed again (or late) under the new choice.
+        await db.$transaction([
+          db.user.update({ where: { id: sess.user.id }, data: { teamEmailMode: mode === "each" ? null : mode } }),
+          db.notification.updateMany({
+            where: { userId: sess.user.id, category: "team", summarizedAt: null },
+            data: { summarizedAt: new Date() },
+          }),
+        ]);
+      }
+    } catch (e) {
+      console.error("[my-profile] email choice save failed:", e);
+      return { status: "error" };
+    }
     return { status: "saved" };
   }
 
@@ -128,6 +156,17 @@ export default async function MyProfilePage() {
             </p>
           </div>
         </section>
+
+        {/* How team news reaches them by email (2026-10-20). */}
+        {onTeam && (
+          <section className="mp-section">
+            <h2 className="mp-section__title">Notifications</h2>
+            <p className="mp-note">
+              Every notice we send you is also in <a href="/account/notifications">Notifications</a>. Choose how news from your teams reaches you by email.
+            </p>
+            <EmailChoiceForm action={updateEmailChoice} initial={teamEmailModeOf(user?.teamEmailMode)} />
+          </section>
+        )}
 
         {/* About me — avatar + bio */}
         <AboutMeSection

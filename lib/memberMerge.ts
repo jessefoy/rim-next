@@ -203,6 +203,8 @@ const POINTERS: { table: string; column: string }[] = [
   // The team's record of schedule changes (2026-10-19): who did it, who it's about.
   { table: "hub_events", column: "actorId" },
   { table: "hub_events", column: "subjectUserId" },
+  // A person's notices (2026-10-20).
+  { table: "notifications", column: "userId" },
   { table: "standing_assignment_skips", column: "createdById" },
   { table: "course_access", column: "grantedBy" },
   // A member's ban from a session room is kept by id (guests by name).

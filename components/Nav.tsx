@@ -512,6 +512,10 @@ export function PublicNavSheet({
   const personalLinks = personalNav
     ? [
         { title: "My Home", href: "/account/dashboard" },
+        {
+          title: personalNav.notifications ? `Notifications (${personalNav.notifications > 99 ? "99+" : personalNav.notifications} unread)` : "Notifications",
+          href: "/account/notifications",
+        },
         { title: "Library", href: "/account/courses" },
         ...(personalNav.showTeams ? [{ title: "My Teams", href: "/account/teams" }] : []),
         { title: "Community Care", href: "/account/community-care" },

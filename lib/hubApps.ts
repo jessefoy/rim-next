@@ -189,16 +189,8 @@ async function archivedProgramSlugs(): Promise<string[]> {
   return (await db.program.findMany({ where: { archivedAt: { not: null } }, select: { slug: true } })).map((p) => p.slug);
 }
 
-/**
- * The Scheduler's own link to one session: the month, and the session itself
- * (`session=program~YYYY-MM-DD`), which the Scheduler scrolls to and marks.
- */
-export function scheduleSessionHref(hubSlug: string, programSlug: string | null, date: Date | null): string {
-  const qs = new URLSearchParams({ hub: hubSlug });
-  if (date) qs.set("month", ctMonthKey(date));
-  if (date && programSlug) qs.set("session", `${programSlug}~${ctDateStr(date.toISOString())}`);
-  return `/tools/schedule?${qs}`;
-}
+export { scheduleSessionHref } from "@/lib/scheduleLinks";
+import { scheduleSessionHref } from "@/lib/scheduleLinks";
 
 /** "Good Evening · Fri, Oct 24 at 6:30 PM" */
 function sessionTitle(programName: string, date: Date | null): string {

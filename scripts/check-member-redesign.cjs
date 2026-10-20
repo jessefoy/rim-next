@@ -188,7 +188,9 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   const registrationQueries = [];
   const programKind = load('lib/programKind.ts');
   const Dashboard = load('app/account/(authenticated)/dashboard/page.tsx', {
-    '@/auth':{auth:async()=>session},'next/navigation':{redirect:()=>{throw Error('redirect')}},
+    '@/auth':{auth:async()=>session},
+    // 2026-10-20: My Home's one line when there's news (none in these fixtures).
+    '@/lib/notifications':{countUnreadNotices:async()=>0},'next/navigation':{redirect:()=>{throw Error('redirect')}},
     'next/link':{default:({children,href,...props})=>React.createElement('a',{href,...props},children),__esModule:true},
     '@/lib/db':{db:{
       program:{findMany:async()=>programs},

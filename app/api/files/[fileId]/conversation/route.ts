@@ -90,6 +90,8 @@ export async function POST(
             spaceName: place.name,
             excerpt,
             fileId,
+            placeKey: place.key,
+            commentId: created.id,
           });
         }
       });

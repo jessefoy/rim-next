@@ -23310,6 +23310,77 @@ html { scroll-padding-top: 88px; }
 }
 
 /* ===================================================================
+   NOTIFICATIONS (ib-), 2026-10-20 (components/NotificationsClient.tsx)
+   A person's notices, "text meets email": one line per row, like a text;
+   tap it and the rest opens beneath, with one button that goes there. Rows,
+   day headings, the unread dot and Needs you are the Updates inbox's own
+   (hub-inbox-), so the two read the same.
+   =================================================================== */
+.ib { display: flex; flex-direction: column; gap: var(--space-3); }
+.ib__head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
+.ib__note { margin: calc(var(--space-2) * -1) 0 0; color: var(--rim-text-soft); font-size: var(--text-app-meta); }
+.ib__section { margin-top: var(--space-1); }
+.ib-row__toggle {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto 16px;
+  align-items: start;
+  gap: 4px 12px;
+  padding: 14px 16px 14px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--rim-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ib-row__toggle:hover { background: var(--rim-bg-bright); }
+.hub-inbox__row--unread .ib-row__toggle { background: var(--rim-bg-bright); }
+.ib-row__toggle:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: -2px; }
+.ib-row__caret { color: var(--rim-text-muted); font-size: var(--text-app-meta); line-height: 1.55; }
+.ib-row__more {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--rim-bg-accent);
+  color: var(--rim-blue);
+  font-size: var(--text-app-meta);
+  font-weight: 600;
+}
+.ib-row__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 20px 18px 34px;
+  background: var(--rim-surface);
+}
+.ib-row__item { display: flex; flex-direction: column; gap: 4px; }
+.ib-row__item-title { margin: 0; color: var(--rim-heading); font-size: var(--text-app); font-weight: 600; line-height: 1.55; }
+.ib-row__item-time { margin-left: 6px; color: var(--rim-text-muted); font-size: var(--text-app-meta); font-weight: 400; }
+.ib-row__detail { margin: 0; color: var(--rim-text-soft); font-size: var(--text-app); line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
+.ib-row__go { align-self: flex-start; }
+/* My Home's one line when there's news. */
+.db2-greeting__news { margin: var(--space-1) 0 0; font-size: var(--text-app); }
+.db2-greeting__news a { min-height: 44px; display: inline-flex; align-items: center; color: var(--rim-blue); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+/* My Profile's email choice. */
+.mp-choices { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px; }
+.mp-choice { box-sizing: border-box; min-height: 44px; display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; border: 1px solid var(--rim-rule); border-radius: 8px; background: var(--rim-surface); cursor: pointer; }
+.mp-choice input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--rim-blue); flex-shrink: 0; }
+.mp-choice:has(input:checked) { border-color: var(--rim-blue); }
+.mp-choice > span { display: flex; flex-direction: column; gap: 2px; }
+.mp-choice__label { color: var(--rim-heading); font-size: var(--text-app); font-weight: 600; }
+.mp-choice__hint { color: var(--rim-text-soft); font-size: var(--text-app-meta); }
+/* The rail's count beside Notifications. */
+.ac-sidebar__badge { margin-left: auto; box-sizing: border-box; background: var(--rim-bg-accent); color: var(--rim-blue); }
+.ac-sidebar--collapsed .ac-sidebar__link { position: relative; }
+.ac-sidebar--collapsed .ac-sidebar__badge { position: absolute; top: 0; right: 4px; margin: 0; }
+@media (max-width: 430px) {
+  .ib-row__panel { padding: 4px 16px 16px 16px; }
+  .ib-row__go { align-self: stretch; }
+}
+
+/* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).
    Presentation only: no route, permission, data, or integration changes.

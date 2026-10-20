@@ -64,6 +64,7 @@ export async function POST(
           spaceName: place.name,
           note,
           fileId,
+          placeKey: place.key,
         });
       }
     });

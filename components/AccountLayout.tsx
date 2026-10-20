@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import AccountSidebar from "@/components/AccountSidebar";
+import { countUnreadNotices } from "@/lib/notifications";
 
 /**
  * AccountLayout — wraps all /account/* pages that need the sidebar.
@@ -43,9 +44,12 @@ export default async function AccountLayout({
         select: { id: true },
       })));
 
+  // Notifications' number in the rail (2026-10-20): unread notices.
+  const notificationsUnread = userId ? await countUnreadNotices(userId) : 0;
+
   return (
     <div className="ac-layout">
-      <AccountSidebar roles={roles} showTeams={showTeams} />
+      <AccountSidebar roles={roles} showTeams={showTeams} notificationsUnread={notificationsUnread} />
       <div className="ac-content">
         <div className="ac-inner">{children}</div>
       </div>

@@ -9,6 +9,7 @@ import { ctDayBounds } from "@/lib/timezone";
 import { EARLY_OPEN_MIN, MEMBER_JOIN_MIN, FALLBACK_DURATION_MIN, LATE_GRACE_MIN } from "@/lib/sessionWindowConstants";
 import AccountLayout from "@/components/AccountLayout";
 import FormDone from "@/components/FormDone";
+import { countUnreadNotices } from "@/lib/notifications";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 import HostWelcomePanel from "@/components/HostWelcomePanel";
 import { joinOnlineLabel, onlinePhrase, onlinePlaceLabel, outsideRoomUrl } from "@/lib/outsideMeeting";
@@ -462,6 +463,9 @@ export default async function DashboardPage({ searchParams }: {
     }
   }
 
+  // One quiet line when there's news (2026-10-20): the rest is in Notifications.
+  const unreadNotices = upcomingView ? 0 : await countUnreadNotices(userId);
+
   const firstName =
     session.user?.name?.split(" ")[0] ??
     session.user?.email?.split("@")[0] ??
@@ -476,6 +480,13 @@ export default async function DashboardPage({ searchParams }: {
           <p className="db2-greeting__date">{fmtTodayFull()}</p>
           <h1 className="db2-greeting__name">{upcomingView ? "Your upcoming programs" : `Good ${timeOfDay()}, ${firstName}.`}</h1>
           {upcomingView && <Link href="/account/dashboard" className="pp-btn pp-btn--ghost">Back to My Home</Link>}
+          {unreadNotices > 0 && (
+            <p className="db2-greeting__news">
+              <Link href="/account/notifications">
+                {unreadNotices === 1 ? "You have 1 new notification" : `You have ${unreadNotices > 99 ? "99+" : unreadNotices} new notifications`}
+              </Link>
+            </p>
+          )}
         </header>
 
         {/* Joining or returning is answered here, where they land (WelcomeForm,

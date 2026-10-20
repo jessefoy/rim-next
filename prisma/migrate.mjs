@@ -7023,6 +7023,20 @@ Rooted In Mindfulness`,
     console.error("  Updates inbox start point failed (inbox shows older items as unread):", err?.message ?? err);
   }
 
+  // Notifications (2026-10-20): additive, no backfill. A person's notices
+  // start the day this ships. Old code ignores both.
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "notifications" (
+      "id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL, "kind" TEXT NOT NULL,
+      "category" TEXT NOT NULL, "sourceKey" TEXT NOT NULL, "sourceLabel" TEXT NOT NULL,
+      "title" TEXT NOT NULL, "detail" TEXT, "href" TEXT NOT NULL, "threadKey" TEXT,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "readAt" TIMESTAMP(3),
+      "summarizedAt" TIMESTAMP(3))`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "notifications_userId_createdAt_idx" ON "notifications"("userId", "createdAt")`),
+    db.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "teamEmailMode" TEXT`),
+  ]);
+  console.log("  ✔ Notifications table ready.");
+
   // ───────────────────────────────────────────────────────────────────────
   // Seed: the team lead's brief (2026-10-20). Jesse: leads want what's
   // "easy for me to look at and make decisions on." Replaces the Monday list
@@ -7070,6 +7084,55 @@ Rooted In Mindfulness`,
     }
   } catch (err) {
     console.error("  team-lead-brief seed failed:", err?.message ?? err);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: the once-a-day summary of team news (2026-10-20), for people who
+  // choose "One email a day" in My Profile. lib/notificationsSummary.ts builds
+  // {{summary}}. findUnique → create. Wording provisional until Jesse's
+  // read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const flag = "seed_notifications_daily_summary_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const existing = await db.emailTemplate.findUnique({ where: { slug: "notifications-daily-summary" } });
+      if (existing) {
+        console.log("  Email template notifications-daily-summary already exists, left alone.");
+      } else {
+        await db.emailTemplate.create({
+          data: {
+            slug: "notifications-daily-summary",
+            name: "Notifications: the daily summary",
+            description: "Sent each morning to people who chose \"One email a day\" in My Profile: what's new and unread on each of their teams.",
+            subject: "{{headline}}",
+            variables: ["firstName", "headline", "summary", "notificationsUrl", "notificationsButton"],
+            helpText:
+              "Sent each morning to people who chose a daily summary. The app writes {{headline}} (the subject, e.g. \"What's new on your teams: 5 updates\") and {{summary}} (each team, then its news).\n\n" +
+              "Available variables: {{firstName}}, {{headline}}, {{summary}}, {{notificationsUrl}}, {{notificationsButton}} (use triple braces {{{notificationsButton}}}).",
+            body: `Hi {{firstName}},
+
+Here is what's new on your teams since yesterday.
+
+{{summary}}
+
+{{{notificationsButton}}}
+
+You chose one email a day for team news. You can change that in My Profile.
+
+With care,
+Rooted In Mindfulness`,
+            enabled: true,
+            group: "05-hubs",
+            groupLabel: "Teams & Onboarding",
+          },
+        });
+        console.log("  ✔ Email template notifications-daily-summary created.");
+      }
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  } catch (err) {
+    console.error("  notifications-daily-summary seed failed:", err?.message ?? err);
   }
 
   await db.$disconnect();

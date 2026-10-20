@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   Home,
+  Bell,
   BookOpen,
   Heart,
   Users,
@@ -39,7 +40,7 @@ import {
   Inbox,
 } from "lucide-react";
 
-interface Props { roles: string[]; showTeams: boolean; }
+interface Props { roles: string[]; showTeams: boolean; notificationsUnread?: number; }
 
 type LucideIcon = React.ComponentType<{
   size?: number;
@@ -56,6 +57,8 @@ interface NavLink {
 const MEMBER_LINKS: NavLink[] = [
   // "My Home", not "Home": the site header's logo is the public home page.
   { label: "My Home",          href: "/account/dashboard",            icon: Home          },
+  // Every notice about you, your teams, programs and account (2026-10-20).
+  { label: "Notifications",    href: "/account/notifications",        icon: Bell          },
   { label: "Library",          href: "/account/courses",              icon: BookOpen      },
   { label: "My Teams", href: "/account/teams", icon: UsersRound },
 ];
@@ -73,7 +76,7 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
 
 const COLLAPSE_KEY = "rim-account-sidebar-collapsed";
 
-export default function AccountSidebar({ roles, showTeams }: Props) {
+export default function AccountSidebar({ roles, showTeams, notificationsUnread = 0 }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -108,9 +111,9 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
   // so there the rail and its drawer handle appear only in administration.
   const personal = isPersonalAccountPath(pathname);
   useEffect(() => {
-    setPersonalNav({ showTeams, canManage: hasRegistrar });
+    setPersonalNav({ showTeams, canManage: hasRegistrar, notifications: notificationsUnread });
     return () => setPersonalNav(null);
-  }, [showTeams, hasRegistrar]);
+  }, [showTeams, hasRegistrar, notificationsUnread]);
 
   // Files live per-Space (each hub's Files tab + the Community Space); the
   // global finder and the native Documents system were both retired (session
@@ -205,6 +208,12 @@ export default function AccountSidebar({ roles, showTeams }: Props) {
           >
             <l.icon size={17} strokeWidth={1.75} className="ac-sidebar__icon" />
             <span className="ac-sidebar__label">{l.label}</span>
+            {l.href === "/account/notifications" && notificationsUnread > 0 && (
+              <span className="hub-ws-badge ac-sidebar__badge">
+                {notificationsUnread > 99 ? "99+" : notificationsUnread}
+                <span className="rim-sr-only"> unread</span>
+              </span>
+            )}
           </Link>
         ))}
 

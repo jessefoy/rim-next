@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { ACCOUNT_SOURCE, PROGRAMS_SOURCE, appPath, recordNotice, settleNoticeEmail, teamSource, type NoticeInput } from "@/lib/notifications";
 import { portableTextToMarkdown } from "@/lib/portableTextEmail";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
@@ -61,6 +62,19 @@ const SUPPORT_EMAIL =
  * fragment in `path` would land in the wrong position.  No callsite uses
  * fragments today; revisit if one needs to.
  */
+/** A team as a notice's source, named as people read it. */
+async function teamNotice(hubSlug: string | null | undefined): Promise<{ sourceKey: string; sourceLabel: string }> {
+  const slug = hubSlug || DEFAULT_HOSTING_HUB_SLUG;
+  const hub = await db.hub.findUnique({ where: { slug }, select: { name: true } });
+  return teamSource(slug, hub?.name ?? "Your team");
+}
+
+/** "Good Evening · Thu, Oct 22 at 6:30 PM". */
+function sessionLine(programName: string, sessionAt: Date | null | undefined, fallback?: string | null): string {
+  const when = fmtSessionWhen(sessionAt ?? null) ?? fallback;
+  return when ? `${programName} · ${when}` : programName;
+}
+
 /** An app path ("/tools/schedule?hub=…") as a full link for an email. */
 export function emailLink(path: string): string {
   return `${BASE_URL}${path}`;
@@ -319,6 +333,13 @@ function textVariables(variables: Record<string, unknown>, memberText: string[] 
  */
 export interface TemplatedEmailOptions {
   /**
+   * The same news for the person's Notifications (2026-10-20): written once,
+   * shown in /account/notifications, and for team news ("team") emailed by
+   * their choice (each one, a daily summary, or none). One recipient only.
+   */
+  notice?: NoticeInput;
+
+  /**
    * Variables a member typed (a title, a note, a name). In the email's body
    * they are made inert, so markup shows as the characters typed instead of
    * becoming a link or HTML in another member's inbox (2026-10-19 audit).
@@ -434,6 +455,23 @@ export async function sendTemplatedEmail(
   options: TemplatedEmailOptions = {},
 ): Promise<void> {
   try {
+    // Notifications first: the inbox holds it whatever the email does.
+    // Team news goes by the person's choice; personal notices always send.
+    // A team notice is settled once emailed (or not wanted); one left
+    // unsettled is due for the person's daily summary.
+    let teamNoticeId: string | null = null;
+    if (options.notice && typeof to === "string") {
+      const recorded = await recordNotice(to, options.notice);
+      if (recorded && options.notice.category === "team") {
+        if (recorded.mode === "summary") return;
+        if (recorded.mode === "none") {
+          await settleNoticeEmail(recorded.id);
+          return;
+        }
+        teamNoticeId = recorded.id;
+      }
+    }
+
     const template = await db.emailTemplate.findUnique({ where: { slug } });
     if (!template || !template.enabled) {
       // Normal path: silently no-op on disabled/missing templates so a
@@ -482,6 +520,8 @@ export async function sendTemplatedEmail(
       if (options.throwOnFailure) {
         throw new Error(`Failed to send ${slug} email: ${error.message ?? "unknown error"}`);
       }
+    } else if (teamNoticeId) {
+      await settleNoticeEmail(teamNoticeId);
     }
   } catch (e) {
     console.error(`[email] sendTemplatedEmail(${slug}) threw:`, e);
@@ -530,6 +570,18 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
     confirmationMessageHtml: data.confirmationMessageHtml ?? "",
     googleCalendarUrl: data.googleCalendarUrl ?? "",
     icsUrl: data.icsUrl ?? "",
+  }, {
+    notice: {
+      kind: "registration-confirmation",
+      category: "personal",
+      ...PROGRAMS_SOURCE,
+      title: isWaitlisted
+        ? `You're on the waitlist for ${programTitle}`
+        : `You're registered for ${programTitle}`,
+      detail: [dateText, locationText].filter(Boolean).join("\n") || null,
+      href: `/programs/${programSlug}`,
+      threadKey: `program:${programSlug}`,
+    },
   });
 }
 
@@ -616,6 +668,16 @@ export async function sendApprovalEmail(data: ApprovalEmailData): Promise<void> 
     hasDana: !paymentRequired && !!danaMode && danaMode !== "none",
     paymentRequired,
     paymentUsd: (requiredCents / 100).toFixed(2),
+  }, {
+    notice: {
+      kind: "waitlist-approval",
+      category: "personal",
+      ...PROGRAMS_SOURCE,
+      title: `A place opened for you in ${programTitle}`,
+      detail: paymentRequired ? "Your place is held once the payment is made." : "Finish your registration from the email or the program's page.",
+      href: appPath(registrationResumeUrl(programSlug, registrationId)),
+      threadKey: `program:${programSlug}`,
+    },
   });
 }
 
@@ -714,6 +776,15 @@ export async function sendDanaReminderEmail(data: DanaReminderEmailData): Promis
     firstName,
     programTitle,
     registerUrl: registrationResumeUrl(programSlug, registrationId),
+  }, {
+    notice: {
+      kind: "dana-reminder",
+      category: "personal",
+      ...PROGRAMS_SOURCE,
+      title: `Your dana for ${programTitle} is still open`,
+      href: appPath(registrationResumeUrl(programSlug, registrationId)),
+      threadKey: `program:${programSlug}`,
+    },
   });
 }
 
@@ -746,6 +817,14 @@ export async function sendCourseDanaReceiptEmail(
     courseTitle,
     amountUsd,
     courseUrl: `${BASE_URL}/course/${courseSlug}`,
+  }, {
+    notice: {
+      kind: "course-dana-receipt",
+      category: "personal",
+      ...PROGRAMS_SOURCE,
+      title: `Your receipt for ${courseTitle} ($${amountUsd})`,
+      href: `/course/${courseSlug}`,
+    },
   });
 }
 
@@ -794,6 +873,15 @@ export async function sendRegistrationDanaReceiptEmail(
     orgLegalName: RIM_LEGAL_NAME,
     orgEin: RIM_EIN,
     orgAddress: RIM_ADDRESS,
+  }, {
+    notice: {
+      kind: "registration-dana-receipt",
+      category: "personal",
+      ...PROGRAMS_SOURCE,
+      title: `Your receipt for ${data.programTitle} ($${usd(data.totalCents)})`,
+      detail: "The receipt is in your email, with what you gave and RIM's details for your records.",
+      href: "/account/dashboard?view=upcoming",
+    },
   });
 }
 
@@ -858,6 +946,8 @@ export async function sendLegacyWelcomeBackEmail(
     dashboardButton: emailButtonHtml("Visit your dashboard", `${BASE_URL}/account/dashboard`),
     dashboardUrl: `${BASE_URL}/account/dashboard`,
     supportEmail: "support@rootedinmindfulness.org",
+  }, {
+    notice: { kind: "welcome-back", category: "personal", ...ACCOUNT_SOURCE, title: "Welcome back to RIM", href: "/account/dashboard" },
   });
 }
 
@@ -880,6 +970,15 @@ export async function sendAccountsMergedEmail(data: {
     signInButton: emailButtonHtml("Sign in", `${BASE_URL}/login?email=${encodeURIComponent(data.to)}`),
     signInUrl: `${BASE_URL}/login`,
     supportEmail: "support@rootedinmindfulness.org",
+  }, {
+    notice: {
+      kind: "accounts-merged",
+      category: "personal",
+      ...ACCOUNT_SOURCE,
+      title: "Your two accounts are now one",
+      detail: `You sign in with ${data.to}. Your old address, ${data.formerEmail}, still leads here.`,
+      href: "/account/dashboard-my-profile",
+    },
   });
 }
 
@@ -942,6 +1041,16 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
     locationText,
     reminderMessage,
     dashboardUrl:    `${BASE_URL}/account/dashboard`,
+  }, {
+    notice: {
+      kind: "session-reminder",
+      category: "personal",
+      ...PROGRAMS_SOURCE,
+      title: `${data.programTitle} is coming up${data.dateText ? `: ${data.dateText}` : ""}`,
+      detail: data.locationText ?? null,
+      href: `/programs/${data.programSlug}`,
+      threadKey: `program:${data.programSlug}`,
+    },
   });
 }
 
@@ -962,6 +1071,8 @@ export async function sendRoleAssignmentEmail(data: RoleAssignmentEmailData): Pr
   await sendTemplatedEmail("registrar-role-assigned", data.to, {
     firstName:    data.firstName,
     dashboardUrl: `${BASE_URL}/volunteer`,
+  }, {
+    notice: { kind: "registrar-role-assigned", category: "personal", ...ACCOUNT_SOURCE, title: "You're now a registrar", href: "/tools/programs" },
   });
 }
 
@@ -977,6 +1088,8 @@ export async function sendHostRoleAssignmentEmail(data: RoleAssignmentEmailData)
   await sendTemplatedEmail("host-role-assigned", data.to, {
     firstName:   data.firstName ?? "there",
     hostAreaUrl: `${BASE_URL}/account/hub/host-team`,
+  }, {
+    notice: { kind: "host-role-assigned", category: "personal", ...ACCOUNT_SOURCE, title: "You're now on the Hosting Team", href: "/account/hub/host-team" },
   });
 }
 
@@ -1083,7 +1196,18 @@ export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<vo
     // {{coverButton}} where they want a prominent "Cover this session"
     // affordance, in place of (or alongside) the plain coverUrl link.
     coverButton:   emailButtonHtml("Cover this session", coverUrl),
-  }, { memberText: ["requesterName", "message"] });
+  }, {
+    memberText: ["requesterName", "message"],
+    notice: {
+      kind: "sub-request-posted",
+      category: "team",
+      ...(await teamNotice(data.hubSlug)),
+      title: `${data.requesterName} asked for someone to cover ${sessionLine(data.programName, data.sessionAt, data.sessionDate)}`,
+      detail: data.message || null,
+      href: appPath(scheduleUrlFor(data.hubSlug, data.sessionAt)),
+      threadKey: `cover:${data.subRequestId}`,
+    },
+  });
 }
 
 export interface SubClaimedEmailData {
@@ -1119,7 +1243,17 @@ export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<vo
     // New as of Slice 2.5 — paste {{scheduleButton}} in the template
     // for a prominent "View your schedule" affordance.
     scheduleButton: emailButtonHtml("View your schedule", hubUrl),
-  }, { memberText: ["claimerName", "message"] });
+  }, {
+    memberText: ["claimerName", "message"],
+    notice: {
+      kind: "sub-request-claimed",
+      category: "personal",
+      ...(await teamNotice(data.hubSlug)),
+      title: `${data.claimerName} is covering your ${sessionLine(data.programName, data.sessionAt, data.sessionDate)}`,
+      detail: data.message || null,
+      href: appPath(hubUrl),
+    },
+  });
 }
 
 export interface NewProgramNeedsHostEmailData {
@@ -1147,6 +1281,15 @@ export async function sendNewProgramNeedsHostEmail(data: NewProgramNeedsHostEmai
     coverageNoun:   copy.noun,
     scheduleUrl,
     scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
+  }, {
+    notice: {
+      kind: "new-program-needs-host",
+      category: "team",
+      ...(await teamNotice(data.hubSlug)),
+      title: `A new program needs this team: ${data.programName}`,
+      detail: data.programFormat || null,
+      href: appPath(scheduleUrl),
+    },
   });
 }
 
@@ -1324,6 +1467,15 @@ export async function sendHostAssignmentConfirmationEmail(
     requesterNote: data.requesterNote ?? "",
     scheduleUrl,
     scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
+  }, {
+    notice: {
+      kind: "host-assignment-confirmation",
+      category: "personal",
+      ...(await teamNotice(data.hubSlug)),
+      title: `You're ${(await coverageWords(data.hubSlug)).coverageVerb} at ${sessionLine(data.programName, data.sessionAt, data.dateText)}`,
+      detail: data.requesterNote || null,
+      href: appPath(scheduleUrl),
+    },
   });
 }
 
@@ -1358,6 +1510,15 @@ export async function sendHostAssignmentRemovedEmail(
     byName:      data.byName,
     scheduleUrl,
     scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
+  }, {
+    notice: {
+      kind: "host-assignment-removed",
+      category: "personal",
+      ...(await teamNotice(data.hubSlug)),
+      title: `You're no longer ${(await coverageWords(data.hubSlug)).coverageVerb} at ${sessionLine(data.programName, data.sessionAt, data.dateText)}`,
+      detail: data.byName ? `${data.byName} made this change.` : null,
+      href: appPath(scheduleUrl),
+    },
   });
 }
 
@@ -1383,6 +1544,15 @@ export async function sendSessionsClearedEmail(data: {
     sessionList: sorted.map((d) => `- ${fmtSessionDay(d)}`).join("\n"),
     scheduleUrl,
     scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
+  }, {
+    notice: {
+      kind: "sessions-cleared-schedule-change",
+      category: "personal",
+      ...(await teamNotice(data.hubSlug)),
+      title: `${data.programName}'s schedule changed: you're off ${sorted.length === 1 ? "1 session" : `${sorted.length} sessions`}`,
+      detail: sorted.map((d) => fmtSessionDay(d)).join("\n"),
+      href: appPath(scheduleUrl),
+    },
   });
 }
 
@@ -1436,6 +1606,18 @@ export async function sendCoverageClearedEmails(opts: {
           .join("\n"),
         scheduleUrl,
         scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
+      }, {
+        notice: {
+          kind: "coverage-sessions-cleared",
+          category: "personal",
+          ...teamSource(g.hubSlug, team),
+          title: `You're off ${sorted.length === 1 ? "1 session" : `${sorted.length} sessions`} with the ${teamPhrase(team)}`,
+          detail: [
+            typeof opts.reason === "function" ? opts.reason(teamPhrase(team)) : opts.reason,
+            ...sorted.map((r) => `${programName.get(r.programSlug) ?? r.programSlug}${r.sessionDate ? `, ${fmtSessionDay(r.sessionDate)}` : ""}`),
+          ].join("\n"),
+          href: appPath(scheduleUrl),
+        },
       });
     } catch (e) {
       console.error("[email] coverage-sessions-cleared failed", e);
@@ -1498,6 +1680,17 @@ export async function sendCoverageGapEmail(data: {
     sessionList: coverageSessionList(data.sessions),
     scheduleUrl,
     scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
+  }, {
+    notice: {
+      kind: "coverage-gap-opened",
+      category: "team",
+      ...(await teamNotice(data.hubSlug)),
+      title: one
+        ? `${sessionLine(one.programName, one.sessionAt)} needs ${words.needsRole}`
+        : `${data.sessions.length} sessions coming up need ${words.needsRole}`,
+      detail: one ? null : data.sessions.map((x) => sessionLine(x.programName, x.sessionAt)).join("\n"),
+      href: appPath(scheduleUrl),
+    },
   });
 }
 
@@ -1521,6 +1714,17 @@ export async function sendCoverageLookaheadEmail(data: {
     sessionList: coverageSessionList(data.sessions),
     scheduleUrl,
     scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
+  }, {
+    notice: {
+      kind: "coverage-lookahead",
+      category: "team",
+      ...(await teamNotice(data.hubSlug)),
+      title: n === 1
+        ? `1 session in the next two weeks needs ${words.needsRole}`
+        : `${n} sessions in the next two weeks need ${words.needsRole}`,
+      detail: data.sessions.map((x) => `${sessionLine(x.programName, x.sessionAt)}${x.note ? ` (${x.note})` : ""}`).join("\n"),
+      href: appPath(scheduleUrl),
+    },
   });
 }
 
@@ -1555,6 +1759,15 @@ export async function sendCoverageReminderEmail(data: {
     changeNote: await changeNoteText(data.hubSlug),
     scheduleUrl,
     scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
+  }, {
+    notice: {
+      kind: "coverage-session-reminder",
+      category: "personal",
+      ...(await teamNotice(data.hubSlug)),
+      title: `Reminder: you're ${(await coverageWords(data.hubSlug)).coverageVerb} at ${sessionLine(data.programName, data.sessionAt)}`,
+      detail: [data.coverNote, data.teamPicture.replace(/^- /gm, ""), data.roomNote].filter(Boolean).join("\n"),
+      href: appPath(scheduleUrl),
+    },
   });
 }
 
@@ -1609,6 +1822,14 @@ export async function sendStandingAssignmentScheduledEmail(
   // Role-aware copy: "hosting" → "covering AV" / "greeting" / "facilitating"
   // when the rotation is on a non-host-team hub. Defaults to host language.
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
+  await recordNotice(data.to, {
+    kind: "standing-assignment-scheduled",
+    category: "personal",
+    ...(await teamNotice(data.hubSlug)),
+    title: `You're on a rotation: ${data.sessions.length === 1 ? "1 upcoming session" : `${data.sessions.length} upcoming sessions`} scheduled`,
+    detail: data.sessions.map((x) => `${x.programName}, ${x.dateLabel}`).join("\n"),
+    href: appPath(scheduleUrlFor(data.hubSlug)),
+  });
   const subject =
     count === 1
       ? `You're scheduled for ${data.sessions[0].programName}`
@@ -1655,6 +1876,14 @@ export async function sendStandingAssignmentReplacedEmail(
     .map((s) => `<li>${s.programName}, ${s.dateLabel}</li>`)
     .join("");
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
+  await recordNotice(data.to, {
+    kind: "standing-assignment-replaced",
+    category: "personal",
+    ...(await teamNotice(data.hubSlug)),
+    title: `You're no longer scheduled for ${data.sessions.length === 1 ? "1 rotation session" : `${data.sessions.length} rotation sessions`}`,
+    detail: data.sessions.map((x) => `${x.programName}, ${x.dateLabel}`).join("\n"),
+    href: appPath(scheduleUrlFor(data.hubSlug)),
+  });
   const subject =
     count === 1
       ? `You're no longer scheduled for ${data.sessions[0].programName} on ${data.sessions[0].dateLabel}`
@@ -1722,6 +1951,14 @@ export async function sendStandingAssignmentReleasedEmail(
   }
   const count = data.sessions.length;
   const programName = data.programName;
+  await recordNotice(data.to, {
+    kind: "standing-assignment-released",
+    category: "personal",
+    ...(await teamNotice(data.hubSlug)),
+    title: `You're off the ${data.programName} rotation`,
+    detail: data.sessions.length ? data.sessions.map((x) => `${x.programName}, ${x.dateLabel}`).join("\n") : null,
+    href: appPath(scheduleUrlFor(data.hubSlug)),
+  });
   const subject =
     count === 0
       ? `You've been removed from the ${programName} rotation`
@@ -1785,6 +2022,14 @@ export async function sendStandingAssignmentEndedEmail(
     .map((s) => `<li>${s.programName}, ${s.dateLabel}</li>`)
     .join("");
   const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
+  await recordNotice(data.to, {
+    kind: "standing-assignment-ended",
+    category: "personal",
+    ...(await teamNotice(data.hubSlug)),
+    title: `Your rotation has ended: ${data.sessions.length === 1 ? "1 session" : `${data.sessions.length} sessions`} released`,
+    detail: data.sessions.map((x) => `${x.programName}, ${x.dateLabel}`).join("\n"),
+    href: appPath(scheduleUrlFor(data.hubSlug)),
+  });
   const subject =
     count === 1
       ? `Your ${roleInline(copy)} rotation has ended`
@@ -1827,6 +2072,8 @@ export interface HubConvNewThreadEmailData {
   threadTitle: string;
   threadId: string;
   documentTitle?: string; // set when the thread belongs to a document
+  /** The opening words, for Notifications. */
+  excerpt?: string | null;
 }
 
 /**
@@ -1841,7 +2088,18 @@ export async function sendHubConvNewThreadEmail(data: HubConvNewThreadEmailData)
     threadTitle:   data.threadTitle,
     documentTitle: data.documentTitle ?? null,
     threadUrl:     `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
-  }, { memberText: ["threadTitle", "authorName"] });
+  }, {
+    memberText: ["threadTitle", "authorName"],
+    notice: {
+      kind: "hub-conv-new-thread",
+      category: "team",
+      ...teamSource(data.hubSlug, data.hubName),
+      title: `${data.authorName} started "${data.threadTitle}"`,
+      detail: data.excerpt || null,
+      href: `/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
+      threadKey: `conv:${data.threadId}`,
+    },
+  });
 }
 
 export interface HubConvNewReplyEmailData {
@@ -1852,6 +2110,9 @@ export interface HubConvNewReplyEmailData {
   hubSlug: string;
   threadTitle: string;
   threadId: string;
+  /** Notifications open the thread at this reply, with its opening words. */
+  replyId?: string;
+  excerpt?: string | null;
 }
 
 /**
@@ -1865,7 +2126,18 @@ export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): 
     hubName:     data.hubName,
     threadTitle: data.threadTitle,
     threadUrl:   `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
-  }, { memberText: ["threadTitle", "replierName"] });
+  }, {
+    memberText: ["threadTitle", "replierName"],
+    notice: {
+      kind: "hub-conv-new-reply",
+      category: "team",
+      ...teamSource(data.hubSlug, data.hubName),
+      title: `${data.replierName} replied in "${data.threadTitle}"`,
+      detail: data.excerpt || null,
+      href: `/account/hub/${data.hubSlug}/conversations/${data.threadId}${data.replyId ? `#reply-${data.replyId}` : ""}`,
+      threadKey: `conv:${data.threadId}`,
+    },
+  });
 }
 
 // ─── Google Files notifications (Basecamp-style, per-post opt-in) ────────────
@@ -1880,6 +2152,8 @@ export async function sendFileSharedEmail(data: {
   spaceName: string;
   note: string | null;
   fileId: string;
+  /** The file's place ("hub:<slug>"), for Notifications' source. */
+  placeKey?: string;
 }): Promise<void> {
   await sendTemplatedEmail("file-shared", data.to, {
     firstName: data.firstName,
@@ -1888,7 +2162,18 @@ export async function sendFileSharedEmail(data: {
     spaceName: data.spaceName,
     note: data.note ?? "",
     fileUrl: `${BASE_URL}/account/files/${data.fileId}`,
-  }, { memberText: ["sharerName", "fileName", "note"] });
+  }, {
+    memberText: ["sharerName", "fileName", "note"],
+    notice: {
+      kind: "file-shared",
+      category: "team",
+      ...(data.placeKey?.startsWith("hub:") ? teamSource(data.placeKey.slice(4), data.spaceName) : { sourceKey: `files:${data.spaceName}`, sourceLabel: data.spaceName }),
+      title: `${data.sharerName} shared ${data.fileName}`,
+      detail: data.note || null,
+      href: `/account/files/${data.fileId}`,
+      threadKey: `file:${data.fileId}`,
+    },
+  });
 }
 
 export async function sendFileCommentEmail(data: {
@@ -1899,6 +2184,9 @@ export async function sendFileCommentEmail(data: {
   spaceName: string;
   excerpt: string;
   fileId: string;
+  placeKey?: string;
+  /** Notifications open the file at this comment. */
+  commentId?: string;
 }): Promise<void> {
   await sendTemplatedEmail("file-comment", data.to, {
     firstName: data.firstName,
@@ -1907,7 +2195,18 @@ export async function sendFileCommentEmail(data: {
     spaceName: data.spaceName,
     excerpt: data.excerpt,
     fileUrl: `${BASE_URL}/account/files/${data.fileId}`,
-  }, { memberText: ["commenterName", "fileName", "excerpt"] });
+  }, {
+    memberText: ["commenterName", "fileName", "excerpt"],
+    notice: {
+      kind: "file-comment",
+      category: "team",
+      ...(data.placeKey?.startsWith("hub:") ? teamSource(data.placeKey.slice(4), data.spaceName) : { sourceKey: `files:${data.spaceName}`, sourceLabel: data.spaceName }),
+      title: `${data.commenterName} commented on ${data.fileName}`,
+      detail: data.excerpt || null,
+      href: `/account/files/${data.fileId}${data.commentId ? `#comment-${data.commentId}` : ""}`,
+      threadKey: `file:${data.fileId}`,
+    },
+  });
 }
 
 // ─── Hub Welcome Email ───────────────────────────────────────────────────────
@@ -1925,11 +2224,20 @@ export interface HubWelcomeEmailData {
  * Fire-and-forget in both call sites. Errors are logged, never thrown.
  */
 export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<void> {
+  const hubPath = appPath(data.hubUrl);
   await sendTemplatedEmail("hub-welcome", data.to, {
     firstName: data.firstName,
     hubName:   data.hubName,
     hubUrl:    data.hubUrl,
     hubButton: emailButtonHtml("Open your team", data.hubUrl),
+  }, {
+    notice: {
+      kind: "hub-welcome",
+      category: "personal",
+      ...teamSource(hubPath.split("/")[3] ?? "", data.hubName),
+      title: `Welcome to the ${teamPhrase(data.hubName)}`,
+      href: hubPath,
+    },
   });
 }
 

@@ -69,6 +69,10 @@ model User {
   // Members segment, at their first verified sign-in after agreeing. Null =
   // not yet; lib/flodesk.ts. Once only, so a deliberate removal in Flodesk holds.
   flodeskMemberAt DateTime?
+  /// How team news reaches them by email (2026-10-20): "each" (null, the
+  /// default), "summary" (one a day) or "none" (they check Notifications).
+  /// Personal notices are always emailed. lib/notifications.ts.
+  teamEmailMode String?
 
   // Soft-delete: archived members cannot log in but their records are preserved
   archivedAt    DateTime?
@@ -1026,6 +1030,30 @@ model HubEvent {
   @@index([hubSlug, createdAt])
   @@index([subjectUserId, createdAt])
   @@map("hub_events")
+}
+
+/// A person's notice (2026-10-20): every email about them or their teams is
+/// also written here once, for /account/notifications. lib/notifications.ts.
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  kind        String
+  /// "personal" (always emailed) or "team" (emailed by their choice).
+  category    String
+  sourceKey   String
+  sourceLabel String
+  title       String
+  detail      String?
+  href        String
+  threadKey   String?
+  createdAt   DateTime  @default(now())
+  readAt      DateTime?
+  /// Team news only: when its email was settled (sent one by one, carried
+  /// in a daily summary, or not wanted). Null = due for the daily summary.
+  summarizedAt DateTime?
+
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 /// Which Updates items a person has opened (2026-10-19, the Updates inbox).

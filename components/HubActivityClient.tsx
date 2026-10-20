@@ -76,7 +76,7 @@ function centralDay(d: Date): string {
 }
 
 /** "Today", "Yesterday", "Monday" (this week), else "October 12". */
-function dayHeading(iso: string): string {
+export function dayHeading(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
   const day = centralDay(d);
@@ -90,7 +90,7 @@ function dayHeading(iso: string): string {
   return d.toLocaleDateString("en-US", { timeZone: TZ, month: "long", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
 }
 
-function timeOf(iso: string): string {
+export function timeOf(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
 }
 
@@ -168,7 +168,7 @@ type NeedPhase =
   | { kind: "done"; message: string }
   | { kind: "error"; message: string };
 
-function NeedCard({
+export function NeedCard({
   item,
   onOpen,
   onTaken,

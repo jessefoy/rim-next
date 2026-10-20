@@ -24,6 +24,7 @@ import type { ScheduleSessionRow } from "@/lib/scheduleSessions";
 import { listHubActivity } from "@/lib/hubActivity";
 import { scheduleSessionHref } from "@/lib/hubApps";
 import { coverageWords, emailButtonHtml, emailLink, sendTemplatedEmail } from "@/lib/email";
+import { teamSource } from "@/lib/notifications";
 
 /** Names as people typed them, inert in markdown. */
 function md(text: string): string {
@@ -174,9 +175,13 @@ export async function sendTeamLeadBrief(opts: {
   headline: string;
   intro: string;
   brief: string;
+  /** The team's own name, for Notifications' source. */
+  teamLabel?: string;
 }): Promise<void> {
   const words = await coverageWords(opts.hubSlug);
   const scheduleUrl = emailLink(scheduleSessionHref(opts.hubSlug, null, null));
+  // The team's own name, as every other notice from it uses.
+  const teamLabel = opts.teamLabel ?? (await db.hub.findUnique({ where: { slug: opts.hubSlug }, select: { name: true } }))?.name ?? words.teamName;
   await sendTemplatedEmail("team-lead-brief", opts.to, {
     ...words,
     firstName: opts.firstName ?? "there",
@@ -185,5 +190,14 @@ export async function sendTeamLeadBrief(opts: {
     brief: opts.brief,
     scheduleUrl,
     scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
+  }, {
+    notice: {
+      kind: "team-lead-brief",
+      category: "personal",
+      ...teamSource(opts.hubSlug, teamLabel),
+      title: opts.headline,
+      detail: opts.brief.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "").replace(/\\(.)/g, "$1").replace(/\n{3,}/g, "\n\n").trim(),
+      href: scheduleSessionHref(opts.hubSlug, null, null),
+    },
   });
 }

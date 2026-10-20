@@ -14,6 +14,7 @@
  */
 const PERSONAL_PATHS = [
   "/account/dashboard",
+  "/account/notifications",
   "/account/dashboard-my-profile",
   "/account/courses",
   "/account/teams",
@@ -36,7 +37,7 @@ export function isPersonalAccountPath(pathname: string | null | undefined): bool
  * My Teams shows only for someone on a team (Jesse, 2026-10-12), which only
  * the account layout knows.
  */
-export type PersonalNav = { showTeams: boolean; canManage: boolean };
+export type PersonalNav = { showTeams: boolean; canManage: boolean; notifications?: number };
 
 let current: PersonalNav | null = null;
 const listeners = new Set<() => void>();

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import { sendHubConvNewThreadEmail, sendEachPaced } from "@/lib/email";
+import { excerptOf } from "@/lib/notifications";
 
 // Team-wide emails go one at a time after the response (sendEachPaced),
 // so the function needs room past the usual limit (2026-10-19).
@@ -145,6 +146,7 @@ export async function POST(
             hubSlug: slug,
             threadTitle,
             threadId: thread.id,
+            excerpt: excerptOf(body),
         }),
       "hub-conv-new-thread",
     );
