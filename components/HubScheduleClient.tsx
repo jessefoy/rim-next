@@ -14,6 +14,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { FilterPills, SectionTabs, ViewPicker } from "@/components/FilterBar";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -951,7 +952,6 @@ export default function HubScheduleClient({
   const [modalError, setModalError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string>(currentUserId);
-  const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [modal, setModal] = useState<{
     kind: ModalKind;
     session: Session | null;
@@ -959,30 +959,6 @@ export default function HubScheduleClient({
   }>({ kind: null, session: null });
   const [modalSubmitting, setModalSubmitting] = useState(false);
 
-  // Close dropdown on outside click
-  const memberPillRef = useRef<HTMLDivElement>(null);
-  const memberCaretRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (!memberDropdownOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (memberPillRef.current && !memberPillRef.current.contains(e.target as Node)) {
-        setMemberDropdownOpen(false);
-      }
-    };
-    // Escape closes the menu and returns focus to the button that opened it.
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      e.preventDefault();
-      setMemberDropdownOpen(false);
-      memberCaretRef.current?.focus();
-    };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", handler);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [memberDropdownOpen]);
 
   const showToast = setToast;
 
@@ -1531,24 +1507,12 @@ export default function HubScheduleClient({
           Rotations tab from peer-led-silent-meditation coordinators who
           weren't also global HOST_MANAGERs — Jesse caught this post-2.6. */}
       {isManager && (
-        <div className="hs-viewtabs" role="tablist" aria-label="Schedule views">
-          <button
-            role="tab"
-            aria-selected={view === "schedule"}
-            className={`hs-viewtab${view === "schedule" ? " hs-viewtab--active" : ""}`}
-            onClick={() => setView("schedule")}
-          >
-            Schedule
-          </button>
-          <button
-            role="tab"
-            aria-selected={view === "rotations"}
-            className={`hs-viewtab${view === "rotations" ? " hs-viewtab--active" : ""}`}
-            onClick={() => setView("rotations")}
-          >
-            Rotations
-          </button>
-        </div>
+        <SectionTabs
+          label="Schedule views"
+          value={view}
+          onChange={setView}
+          options={[{ key: "schedule", label: "Schedule" }, { key: "rotations", label: "Rotations" }]}
+        />
       )}
 
       {/* Rotations view */}
@@ -1587,111 +1551,64 @@ export default function HubScheduleClient({
           goes amber when sessions are uncovered (session 141). One affordance
           instead of a separate banner that duplicated the pill's count. */}
 
-      {/* Filter pills */}
-      <div className="hs-filters" role="tablist" aria-label="Filter sessions">
-        <button
-          role="tab"
-          aria-selected={filter === "all"}
-          className={`hs-filter${filter === "all" ? " hs-filter--active" : ""}`}
-          onClick={() => setFilter("all")}
-        >
-          All <span className="hs-filter__count">{counts.all}</span>
-        </button>
-        <button
-          role="tab"
-          aria-selected={filter === "needs"}
-          className={`hs-filter${filter === "needs" ? " hs-filter--active" : ""}${
-            isManager && !allowsMultipleAssignments && counts.needs > 0 && filter !== "needs"
-              ? " hs-filter--alert"
-              : ""
-          }`}
-          onClick={() => setFilter("needs")}
-        >
-          Needs help <span className="hs-filter__count">{counts.needs}</span>
-        </button>
-
-        {/* Member-picker pill — defaults to the signed-in person, can switch
-            to any teammate. The visible label keeps its purpose clear instead
-            of relying on the caret alone. */}
-        <div className="hs-member-filter" ref={memberPillRef}>
-          <span className="hs-member-filter__label">View</span>
-          <div className="hs-filter-group">
-          <button
-            role="tab"
-            aria-selected={filter === "mine"}
-            className={`hs-filter hs-filter--member${filter === "mine" ? " hs-filter--active" : ""}`}
-            onClick={() => {
-              setFilter("mine");
-              setMemberDropdownOpen(false);
-            }}
-          >
-            <span className="hs-filter__label">
-              {selectedMemberId === currentUserId
-                ? "My schedule"
-                : (teamMembers.find(m => m.id === selectedMemberId)?.displayName ?? "Member")}
-            </span>
-            <span className="hs-filter__count">{counts.mine}</span>
-          </button>
-          <button
-            ref={memberCaretRef}
-            type="button"
-            className={`hs-filter__caret${filter === "mine" ? " hs-filter__caret--active" : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setMemberDropdownOpen(v => !v);
-            }}
-            aria-label="Choose a team member"
-            aria-expanded={memberDropdownOpen}
-          >
-            ▾
-          </button>
-          {memberDropdownOpen && (
-            <div className="hs-member-menu" role="menu">
-              <button
-                role="menuitem"
-                className={`hs-member-menu__item${selectedMemberId === currentUserId ? " hs-member-menu__item--active" : ""}`}
-                onClick={() => {
-                  setSelectedMemberId(currentUserId);
-                  setFilter("mine");
-                  setMemberDropdownOpen(false);
-                }}
-              >
-                My schedule
-              </button>
-              {teamMembers.length > 0 && <div className="hs-member-menu__divider" />}
-              {teamMembers.map(m => (
-                <button
-                  key={m.id}
-                  role="menuitem"
-                  className={`hs-member-menu__item${selectedMemberId === m.id ? " hs-member-menu__item--active" : ""}`}
-                  onClick={() => {
-                    setSelectedMemberId(m.id);
-                    setFilter("mine");
-                    setMemberDropdownOpen(false);
-                  }}
-                >
-                  {m.displayName}
+      {/* Filter pills: the shared grammar (components/FilterBar.tsx). */}
+      <FilterPills
+        label="Filter sessions"
+        value={filter === "all" || filter === "needs" || filter === "my-requests" ? filter : null}
+        onChange={(k) => setFilter(k)}
+        options={[
+          { key: "all" as const, label: "All", count: counts.all },
+          {
+            key: "needs" as const,
+            label: "Needs help",
+            count: counts.needs,
+            alert: isManager && !allowsMultipleAssignments && counts.needs > 0,
+          },
+        ]}
+      >
+        {/* Member picker: defaults to the signed-in person, can switch to any
+            teammate. The visible label keeps its purpose clear. */}
+        <ViewPicker
+          label="View"
+          menuLabel="Choose a team member"
+          active={filter === "mine"}
+          value={selectedMemberId === currentUserId ? "me" : selectedMemberId}
+          onPress={() => setFilter("mine")}
+          onChoose={(k) => {
+            setSelectedMemberId(k === "me" ? currentUserId : k);
+            setFilter("mine");
+          }}
+          options={[
+            {
+              key: "me",
+              label: "My schedule",
+              count: selectedMemberId === currentUserId ? counts.mine : undefined,
+              dividerAfter: teamMembers.length > 0,
+            },
+            ...teamMembers.map((m) => ({
+              key: m.id,
+              label: m.displayName,
+              count: selectedMemberId === m.id && m.id !== currentUserId ? counts.mine : undefined,
+              suffix: (
+                <>
                   {m.isCoordinator && <span className="hs-member-menu__star" aria-label="coordinator"> ★</span>}
                   {m.id === currentUserId && <span className="hs-member-menu__you"> (you)</span>}
-                </button>
-              ))}
-            </div>
-          )}
-          </div>
-        </div>
-
+                </>
+              ),
+            })),
+          ]}
+        />
         {selectedMemberId === currentUserId && counts.myReq > 0 && (
           <button
-            role="tab"
-            aria-selected={filter === "my-requests"}
+            type="button"
+            aria-pressed={filter === "my-requests"}
             className={`hs-filter${filter === "my-requests" ? " hs-filter--active" : ""}`}
             onClick={() => setFilter("my-requests")}
           >
             My requests <span className="hs-filter__count">{counts.myReq}</span>
           </button>
         )}
-
-      </div>
+      </FilterPills>
 
       {/* Body */}
       {loading ? (

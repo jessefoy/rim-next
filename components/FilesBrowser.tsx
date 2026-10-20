@@ -61,6 +61,7 @@ import { ALLOWED_UPLOAD_MIME_TYPES, GOOGLE_MIME } from "@/lib/google/mime";
 import { orderFiles, isFileSort, type FileSort } from "@/lib/fileOrganization";
 import { relativeDate } from "@/lib/relativeDate";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
+import { FilterPills, SectionTabs, ViewPicker } from "@/components/FilterBar";
 import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 
 // The exact same list the server's Blob-token scope enforces (lib/google/
@@ -784,24 +785,12 @@ export default function FilesBrowser({
 
       <div className="gf-pane">
         {isLead && (
-          <div className="gf-area" role="group" aria-label="Which files">
-            <button
-              type="button"
-              className="gf-area__btn"
-              aria-pressed={!inLeads}
-              onClick={() => openArea("team")}
-            >
-              Team files
-            </button>
-            <button
-              type="button"
-              className="gf-area__btn"
-              aria-pressed={inLeads}
-              onClick={() => openArea("leads")}
-            >
-              Leads only
-            </button>
-          </div>
+          <SectionTabs
+            label="File areas"
+            value={inLeads ? "leads" : "team"}
+            onChange={(k) => openArea(k)}
+            options={[{ key: "team", label: "Team files" }, { key: "leads", label: "Leads only" }]}
+          />
         )}
         {inLeads && (
           <p className="gf-leads-note">
@@ -868,13 +857,30 @@ export default function FilesBrowser({
           <label className="gf-search-label">Find in this folder
             <input type="search" value={search} placeholder="Search file names" onChange={e => { setSearch(e.target.value); setFilePage(1); }} />
           </label>
-          <label>Sort for me
-            <select value={sort} disabled={busy || files === null} onChange={e => saveSort(e.target.value)}>
-              <option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option>
-              <option value="newest">Recently updated</option><option value="oldest">Oldest updated</option><option value="kind">File type</option>
-            </select>
-          </label>
-          <button className="gf-favorites-toggle" type="button" aria-pressed={favoritesOnly} onClick={() => { setFavoritesOnly(!favoritesOnly); setFilePage(1); }}>Favorites here</button>
+          {/* The shared filter grammar (components/FilterBar.tsx), as on the
+              Scheduler and Updates: pills choose which, a picker sorts. */}
+          <FilterPills
+            label="Which files"
+            value={favoritesOnly ? "favorites" : "all"}
+            onChange={(k) => { setFavoritesOnly(k === "favorites"); setFilePage(1); }}
+            options={[{ key: "all", label: "All files" }, { key: "favorites", label: "Favorites" }]}
+          >
+            <ViewPicker
+              label="Sort"
+              menuLabel="Sort files for me"
+              value={sort}
+              active={false}
+              disabled={busy || files === null}
+              onChoose={(k) => void saveSort(k)}
+              options={[
+                { key: "name", label: "Name A–Z" },
+                { key: "name-desc", label: "Name Z–A" },
+                { key: "newest", label: "Recently updated" },
+                { key: "oldest", label: "Oldest updated" },
+                { key: "kind", label: "File type" },
+              ]}
+            />
+          </FilterPills>
         </div>
         <p className="gf-personal-hint">Your sort order, favorites, and colors are personal. Team pins appear first.</p>
         <p className="gf-preference-status" role="status">{preferenceNotice}</p>

@@ -390,3 +390,7 @@ Jesse: *"I feel like the team updates section can be improved. It's uncategorize
 
 **Cost.** The hub layout and `/api/hubs/[slug]/nav` compute the rail number on every hub page (`countHubUnreadForYou`: the For-you history query narrowed to after the read point, plus Needs you, which builds up to two Scheduler months, and only for someone who could take sessions or lead). Both are computed once per request (React `cache`), shared by the layout and the Updates page. It is wrapped so a failure shows no number rather than breaking the page.
 
+## One filter grammar (2026-10-20)
+
+Jesse: *"We already have a general navigation for these kinds of things, for example, in the calendar hub. I don't think we should have too many different configurations. That's confusing for people. Consistency is key."* Every list that filters uses `components/FilterBar.tsx`, drawn with the Scheduler's own classes: **`FilterPills`** (pills with counts: which items), **`ViewPicker`** (a labelled pill with a dropdown: which kind, which person, how sorted), **`SectionTabs`** (underline tabs for the parts of a page). The Scheduler, Updates (All · For you · Unread; View by type), Conversations (Active · Archived; View by category) and Files (Team files · Leads only tabs; All files · Favorites; Sort) use it. A new page uses these, never its own segment, chips or column of folders. Counts past 99 read "99+".
+

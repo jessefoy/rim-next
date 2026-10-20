@@ -15,13 +15,12 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CalendarDays, FileText, MessageSquare, UserPlus } from "lucide-react";
 import type {
-  HubActivityFolder,
   HubActivityItem,
-  HubActivityShow,
   HubActivitySourceKey,
   HubActivitySourceOption,
 } from "@/lib/hubActivity";
 import { useArrival } from "@/components/FormDone";
+import { FilterPills, ViewPicker } from "@/components/FilterBar";
 
 const TZ = "America/Chicago";
 const NEEDS_SHOWN = 3;
@@ -36,8 +35,8 @@ interface Props {
   hubSlug: string;
   initialItems: HubActivityItem[];
   initialNextCursor: string | null;
-  initialFolder: HubActivityFolder;
-  initialShow: HubActivityShow;
+  initialScope: Scope;
+  initialType: TypeKey;
   needs: HubActivityItem[];
   counts: Counts;
   sourceOptions: HubActivitySourceOption[];
@@ -54,8 +53,13 @@ interface PageState {
   loaded: boolean;
 }
 
-function pageKey(folder: HubActivityFolder, show: HubActivityShow) {
-  return `${folder}:${show}`;
+/** Which items: all, those for you, or unread. */
+export type Scope = "all" | "for-you" | "unread";
+/** Which kind: everything, or one type. */
+export type TypeKey = "all" | HubActivitySourceKey;
+
+function pageKey(scope: Scope, type: TypeKey) {
+  return `${scope}:${type}`;
 }
 
 function ItemIcon({ sourceKey }: { sourceKey: HubActivitySourceKey }) {
@@ -294,8 +298,8 @@ export default function HubActivityClient({
   hubSlug,
   initialItems,
   initialNextCursor,
-  initialFolder,
-  initialShow,
+  initialScope,
+  initialType,
   needs: initialNeeds,
   counts: initialCounts,
   sourceOptions,
@@ -303,10 +307,12 @@ export default function HubActivityClient({
   isLead,
   loadedAt,
 }: Props) {
-  const [folder, setFolder] = useState<HubActivityFolder>(initialFolder);
-  const [show, setShow] = useState<HubActivityShow>(hasReadState ? initialShow : "all");
+  // The Scheduler's grammar (components/FilterBar.tsx): pills choose which
+  // (All · For you · Unread), the View picker chooses the type.
+  const [scope, setScope] = useState<Scope>(hasReadState ? initialScope : initialScope === "unread" ? "all" : initialScope);
+  const [type, setType] = useState<TypeKey>(initialType);
   const [pages, setPages] = useState<Record<string, PageState>>({
-    [pageKey(initialFolder, initialShow)]: { items: initialItems, nextCursor: initialNextCursor, loaded: true },
+    [pageKey(initialScope, initialType)]: { items: initialItems, nextCursor: initialNextCursor, loaded: true },
   });
   const [needs, setNeeds] = useState(initialNeeds);
   const [counts, setCounts] = useState(initialCounts);
@@ -320,7 +326,7 @@ export default function HubActivityClient({
   const [allNeeds, setAllNeeds] = useState(false);
   const pending = useRef(0);
 
-  const current = pages[pageKey(folder, show)] ?? { items: [], nextCursor: null, loaded: false };
+  const current = pages[pageKey(scope, type)] ?? { items: [], nextCursor: null, loaded: false };
 
   const isUnread = (item: HubActivityItem) =>
     item.unread &&
@@ -328,23 +334,32 @@ export default function HubActivityClient({
     !(allReadAt !== null && !item.id.startsWith("need-") && new Date(item.ts).getTime() <= allReadAt);
   const view = (item: HubActivityItem): HubActivityItem => ({ ...item, unread: isUnread(item) });
 
-  const shownNeeds = folder === "all" || folder === "for-you" || folder === "app:schedule" ? needs.map(view) : [];
+  const shownNeeds = type === "all" || type === "app:schedule"
+    // Unread by the server's word, so a card taken or opened here stays to
+    // show its answer until the list is reloaded.
+    ? needs.filter((n) => scope !== "unread" || n.unread).map(view)
+    : [];
   // Read here stays on screen (plain, not bold) until the list is reloaded,
   // so nothing jumps out from under the person.
   const history = current.items.map(view);
 
-  async function fetchPage(nextFolder: HubActivityFolder, nextShow: HubActivityShow, cursor?: string | null) {
+  async function fetchPage(nextScope: Scope, nextType: TypeKey, cursor?: string | null) {
     pending.current += 1;
     setLoading(true);
     setError("");
     try {
-      const qs = new URLSearchParams({ limit: "30", folder: nextFolder, show: nextShow });
+      const qs = new URLSearchParams({
+        limit: "30",
+        folder: nextScope === "for-you" ? "for-you" : nextType,
+        show: nextScope === "unread" ? "unread" : "all",
+      });
+      if (nextScope === "for-you") qs.set("source", nextType);
       if (cursor) qs.set("cursor", cursor);
       const res = await fetch(`/api/hub/${hubSlug}/activity?${qs}`);
       if (!res.ok) throw new Error();
       const data = await res.json() as { items: HubActivityItem[]; nextCursor: string | null };
       setPages((prev) => {
-        const key = pageKey(nextFolder, nextShow);
+        const key = pageKey(nextScope, nextType);
         const existing = cursor ? (prev[key]?.items ?? []) : [];
         // A day's replies can straddle two pages: join them.
         const byId = new Map(existing.map((item) => [item.id, item]));
@@ -364,21 +379,17 @@ export default function HubActivityClient({
     }
   }
 
-  function syncUrl(nextFolder: HubActivityFolder, nextShow: HubActivityShow) {
+  function choose(nextScope: Scope, nextType: TypeKey) {
+    setScope(nextScope);
+    setType(nextType);
+    setMarkNote("");
     const qs = new URLSearchParams();
-    if (nextFolder !== "all") qs.set("folder", nextFolder);
-    if (nextShow !== "all") qs.set("show", nextShow);
+    if (nextScope !== "all") qs.set("show", nextScope);
+    if (nextType !== "all") qs.set("type", nextType);
     const q = qs.toString();
     window.history.replaceState(null, "", `/account/hub/${hubSlug}/activity${q ? `?${q}` : ""}`);
-  }
-
-  function choose(nextFolder: HubActivityFolder, nextShow: HubActivityShow) {
-    setFolder(nextFolder);
-    setShow(nextShow);
-    setMarkNote("");
-    syncUrl(nextFolder, nextShow);
     // Unread lists are fetched fresh each time: they change as you read.
-    if (!pages[pageKey(nextFolder, nextShow)]?.loaded || nextShow === "unread") void fetchPage(nextFolder, nextShow);
+    if (!pages[pageKey(nextScope, nextType)]?.loaded || nextScope === "unread") void fetchPage(nextScope, nextType);
   }
 
   function lowerCounts(item: HubActivityItem) {
@@ -423,21 +434,25 @@ export default function HubActivityClient({
     }
   }
 
-  const folders: { key: HubActivityFolder; label: string; count: number }[] = [
-    { key: "for-you", label: "For you", count: counts.forYou },
-    { key: "all", label: "Everything", count: counts.all },
-    ...sourceOptions.map((o) => ({ key: o.key, label: o.label, count: counts.bySource[o.key] ?? 0 })),
+  const unreadNeeds = needs.filter((n) => isUnread(n)).length;
+  const typeOptions = [
+    { key: "all" as TypeKey, label: "Everything", count: hasReadState ? counts.all : undefined, dividerAfter: true },
+    ...sourceOptions.map((o) => ({
+      key: o.key as TypeKey,
+      label: o.label,
+      count: hasReadState ? (counts.bySource[o.key] ?? 0) : undefined,
+    })),
   ];
-  const folderLabel = folders.find((f) => f.key === folder)?.label ?? "Everything";
+  const typeLabel = typeOptions.find((o) => o.key === type)?.label ?? "Everything";
   const anyUnread = counts.all > 0 || counts.forYou > 0;
 
-  const emptyCopy = show === "unread"
-    ? `You're all caught up${folder === "all" || folder === "for-you" ? "" : ` on ${folderLabel.toLowerCase()}`}.`
-    : folder === "for-you"
+  const emptyCopy = scope === "unread"
+    ? `You're all caught up${type === "all" ? "" : ` on ${typeLabel.toLowerCase()}`}.`
+    : scope === "for-you"
       ? "Nothing here is about you yet. When someone replies to a conversation you follow, comments on your file, or changes your sessions, it will show here."
-      : folder === "all"
+      : type === "all"
         ? "Nothing has happened on this team yet."
-        : `No ${folderLabel.toLowerCase()} updates yet.`;
+        : `No ${typeLabel.toLowerCase()} updates yet.`;
 
   return (
     <div className="hub-act hub-inbox">
@@ -458,104 +473,83 @@ export default function HubActivityClient({
       </header>
       {markNote && <p className="hub-inbox__mark-note" role="status">{markNote}</p>}
 
-      <div className="hub-inbox__layout">
-        <nav className="hub-inbox__folders" aria-label="Types of updates">
-          <ul>
-            {folders.map((f, i) => (
-              <li key={f.key} className={i === 2 ? "hub-inbox__folder-break" : undefined}>
-                <button
-                  type="button"
-                  className={`hub-inbox__folder${folder === f.key ? " hub-inbox__folder--active" : ""}`}
-                  aria-current={folder === f.key ? "true" : undefined}
-                  onClick={() => choose(f.key, show)}
-                >
-                  <span>{f.label}</span>
-                  {hasReadState && f.count > 0 && (
-                    <span className="hub-inbox__count">
-                      {f.count > 99 ? "99+" : f.count}
-                      <span className="rim-sr-only"> unread</span>
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+      <div className="hub-inbox__main">
+        <FilterPills
+          label="Show updates"
+          value={scope}
+          onChange={(k) => choose(k, type)}
+          options={[
+            { key: "all" as Scope, label: "All" },
+            { key: "for-you" as Scope, label: "For you", count: hasReadState ? counts.forYou : undefined },
+            ...(hasReadState ? [{ key: "unread" as Scope, label: "Unread", count: counts.all + unreadNeeds }] : []),
+          ]}
+        >
+          <ViewPicker
+            label="View"
+            menuLabel="Choose a kind of update"
+            value={type}
+            active={type !== "all"}
+            onChoose={(k) => choose(scope, k)}
+            options={typeOptions}
+          />
+        </FilterPills>
 
-        <div className="hub-inbox__main">
-          {hasReadState && (
-            <div className="hub-inbox__show" role="group" aria-label="Show">
-              {(["all", "unread"] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className={`hub-inbox__show-btn${show === s ? " hub-inbox__show-btn--active" : ""}`}
-                  aria-pressed={show === s}
-                  onClick={() => choose(folder, s)}
-                >
-                  {s === "all" ? "All" : "Unread"}
-                </button>
+        {shownNeeds.length > 0 && (
+          <section className="hub-inbox__section" aria-labelledby="hub-inbox-needs">
+            <h2 id="hub-inbox-needs" className="hub-inbox__section-label">Needs you</h2>
+            <p className="hub-inbox__section-sub">
+              Sessions in the next two weeks that need someone. They leave this list once someone takes them.
+            </p>
+            <ul className="hub-inbox__needs">
+              {(allNeeds ? shownNeeds : shownNeeds.slice(0, NEEDS_SHOWN)).map((item) => (
+                <NeedCard key={item.id} item={item} onOpen={open} onTaken={taken} />
               ))}
-            </div>
-          )}
-
-          {shownNeeds.length > 0 && (
-            <section className="hub-inbox__section" aria-labelledby="hub-inbox-needs">
-              <h2 id="hub-inbox-needs" className="hub-inbox__section-label">Needs you</h2>
-              <p className="hub-inbox__section-sub">
-                Sessions in the next two weeks that need someone. They leave this list once someone takes them.
-              </p>
-              <ul className="hub-inbox__needs">
-                {(allNeeds ? shownNeeds : shownNeeds.slice(0, NEEDS_SHOWN)).map((item) => (
-                  <NeedCard key={item.id} item={item} onOpen={open} onTaken={taken} />
-                ))}
-              </ul>
-              {shownNeeds.length > NEEDS_SHOWN && (
-                <button
-                  type="button"
-                  className="btn--ghost hub-inbox__more"
-                  aria-expanded={allNeeds}
-                  onClick={() => setAllNeeds((v) => !v)}
-                >
-                  {allNeeds ? "Show only the next three" : `Show all ${shownNeeds.length} sessions that need someone`}
-                </button>
-              )}
-            </section>
-          )}
-
-          <section className="hub-inbox__section" aria-label={`${folderLabel}, ${show === "unread" ? "unread" : "all"}`}>
-            {error && <p className="hub-inbox__problem" role="alert">{error}</p>}
-            {loading && !current.loaded ? (
-              <p className="hub-inbox__empty">Loading updates…</p>
-            ) : history.length === 0 ? (
-              <p className="hub-inbox__empty">
-                {current.nextCursor ? "Nothing here in the most recent stretch. Show earlier updates to keep looking." : emptyCopy}
-              </p>
-            ) : (
-              groupByDay(history).map((group) => (
-                <div key={group.heading} className="hub-inbox__day">
-                  <h2 className="hub-inbox__day-heading">{group.heading}</h2>
-                  <ul className="hub-inbox__list">
-                    {group.items.map((item) => (
-                      <HistoryRow key={item.id} item={item} onOpen={open} />
-                    ))}
-                  </ul>
-                </div>
-              ))
-            )}
-
-            {current.nextCursor && (
+            </ul>
+            {shownNeeds.length > NEEDS_SHOWN && (
               <button
                 type="button"
-                className="hub-act__load-more"
-                onClick={() => void fetchPage(folder, show, current.nextCursor)}
-                disabled={loading}
+                className="btn--ghost hub-inbox__more"
+                aria-expanded={allNeeds}
+                onClick={() => setAllNeeds((v) => !v)}
               >
-                {loading ? "Loading…" : "Show earlier updates"}
+                {allNeeds ? "Show only the next three" : `Show all ${shownNeeds.length} sessions that need someone`}
               </button>
             )}
           </section>
-        </div>
+        )}
+
+        <section className="hub-inbox__section" aria-label={`${typeLabel}, ${scope === "for-you" ? "for you" : scope}`}>
+          {error && <p className="hub-inbox__problem" role="alert">{error}</p>}
+          {loading && !current.loaded ? (
+            <p className="hub-inbox__empty">Loading updates…</p>
+          ) : history.length === 0 ? (
+            <p className="hub-inbox__empty">
+              {current.nextCursor ? "Nothing here in the most recent stretch. Show earlier updates to keep looking." : emptyCopy}
+            </p>
+          ) : (
+            groupByDay(history).map((group) => (
+              <div key={group.heading} className="hub-inbox__day">
+                <h2 className="hub-inbox__day-heading">{group.heading}</h2>
+                <ul className="hub-inbox__list">
+                  {group.items.map((item) => (
+                    <HistoryRow key={item.id} item={item} onOpen={open} />
+                  ))}
+                </ul>
+              </div>
+            ))
+          )}
+
+          {current.nextCursor && (
+            <button
+              type="button"
+              className="hub-act__load-more"
+              onClick={() => void fetchPage(scope, type, current.nextCursor)}
+              disabled={loading}
+            >
+              {loading ? "Loading…" : "Show earlier updates"}
+            </button>
+          )}
+        </section>
       </div>
     </div>
   );

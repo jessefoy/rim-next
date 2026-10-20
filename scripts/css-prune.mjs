@@ -67,6 +67,10 @@ const DEAD_PREFIXES = [
   // and __load-more stay live.
   "hub-act-item", "hub-act__controls", "hub-act__empty", "hub-act__error",
   "hub-act__filter", "hub-act__group", "hub-act__item", "hub-act__list", "hub-act__view",
+  // 2026-10-20: every list filter uses the Scheduler's grammar
+  // (components/FilterBar.tsx); Conversations' segment and chips and Files'
+  // area buttons and Favorites toggle retired.
+  "hub-conv-segment", "hub-conv-chip", "gf-area", "gf-favorites-toggle",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

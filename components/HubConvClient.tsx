@@ -29,6 +29,10 @@ const RimTiptapEditor = dynamic(
 import { avatarColorFor } from "@/lib/avatarColor";
 import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
 import FormDone, { ActionNotice, useActionNotice } from "@/components/FormDone";
+import { FilterPills, ViewPicker } from "@/components/FilterBar";
+
+/** The View picker's "All categories" (a category can be named anything else). */
+const ALL_CATEGORIES = "\u0000all";
 
 interface ThreadAuthor {
   firstName: string | null;
@@ -567,24 +571,6 @@ export default function HubConvClient({
       <header className="hub-conv__head">
         <h1 className="hub-conv__title">Conversations</h1>
         <div className="hub-conv__head-actions">
-          <div className="hub-conv-segment" role="tablist" aria-label="View">
-            <button
-              role="tab"
-              aria-selected={view === "open"}
-              className={`hub-conv-segment__btn${view === "open" ? " hub-conv-segment__btn--active" : ""}`}
-              onClick={() => setView("open")}
-            >
-              Active
-            </button>
-            <button
-              role="tab"
-              aria-selected={view === "closed"}
-              className={`hub-conv-segment__btn${view === "closed" ? " hub-conv-segment__btn--active" : ""}`}
-              onClick={() => { setView("closed"); loadClosed(); }}
-            >
-              Archived
-            </button>
-          </div>
           <button
             className="hub-conv-newbtn"
             onClick={() => { setShowCompose((v) => !v); setPosted(null); setConfirmDiscard(false); setAddingCat(false); }}
@@ -595,37 +581,41 @@ export default function HubConvClient({
         </div>
       </header>
 
-      {/* Category filter + manage */}
+      {/* Filters: the shared grammar (components/FilterBar.tsx), as on the
+          Scheduler and Updates. Active or Archived; View picks a category. */}
       <div className="hub-conv__filter">
-        {hasMultipleCategories && (
-          <>
-            <button
-              className={`hub-conv-chip${!filterCategory ? " hub-conv-chip--active" : ""}`}
-              onClick={() => setFilterCategory(null)}
-            >
-              All
-            </button>
-            {categoryList.map((cat) => (
-              <button
-                key={cat}
-                className={`hub-conv-chip${filterCategory === cat ? " hub-conv-chip--active" : ""}`}
-                onClick={() => setFilterCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </>
-        )}
-        <button
-          className="hub-conv-chip hub-conv-chip--ghost"
-          onClick={() => { setShowManage((v) => !v); setCatError(null); setRenamingCat(null); setConfirmDeleteCat(null); }}
-          aria-label="Manage categories"
-          aria-expanded={showManage}
-          title="Manage categories"
+        <FilterPills
+          label="Which conversations"
+          value={view}
+          onChange={(k) => { setView(k); if (k === "closed") loadClosed(); }}
+          options={[
+            { key: "open" as const, label: "Active", count: threads.length },
+            { key: "closed" as const, label: "Archived", count: closedThreads?.length },
+          ]}
         >
-          <Pencil size={13} aria-hidden="true" />
-          <span>Manage</span>
-        </button>
+          {hasMultipleCategories && (
+            <ViewPicker
+              label="View"
+              menuLabel="Choose a category"
+              value={filterCategory ?? ALL_CATEGORIES}
+              active={filterCategory !== null}
+              onChoose={(k) => setFilterCategory(k === ALL_CATEGORIES ? null : k)}
+              options={[
+                { key: ALL_CATEGORIES, label: "All categories", dividerAfter: true },
+                ...categoryList.map((cat) => ({ key: cat, label: cat })),
+              ]}
+            />
+          )}
+          <button
+            type="button"
+            className="hs-filter hub-conv-manage-btn"
+            onClick={() => { setShowManage((v) => !v); setCatError(null); setRenamingCat(null); setConfirmDeleteCat(null); }}
+            aria-expanded={showManage}
+          >
+            <Pencil size={14} aria-hidden="true" />
+            <span>Manage categories</span>
+          </button>
+        </FilterPills>
       </div>
 
       {/* Manage categories panel */}

@@ -236,6 +236,8 @@ async function historyPage(options: {
   conversationsEnabled: boolean;
   filesEnabled: boolean;
   folder: HubActivityFolder;
+  /** With "for-you": only this type. */
+  source?: HubActivitySourceKey | "all";
   cursorDate: Date | null;
   since: Date | null;
   limit: number;
@@ -248,12 +250,14 @@ async function historyPage(options: {
 }> {
   const { hubId, hubSlug, viewer, folder, limit } = options;
   const forYou = folder === "for-you";
-  const includes = (key: HubActivitySourceKey) => folder === "all" || forYou || folder === key;
+  // The type chosen: the folder itself, or (For you) the source beside it.
+  const type: HubActivitySourceKey | "all" = forYou ? options.source ?? "all" : folder === "all" ? "all" : folder;
+  const includes = (key: HubActivitySourceKey) => type === "all" || type === key;
   const createdAt = timeWindow(options.cursorDate, options.since);
   const installed = await installedUpdateApps(hubId);
-  const toolSlugs = folder === "all" || forYou
+  const toolSlugs = type === "all"
     ? installed
-    : installed.filter((slug) => folder === `app:${slug}`);
+    : installed.filter((slug) => type === `app:${slug}`);
 
   const [threadsRaw, repliesRaw, fileAuditsRaw, joinsRaw, leavesRaw, appPage] = await Promise.all([
     !includes("conversations") || !options.conversationsEnabled || forYou
@@ -545,6 +549,8 @@ export async function listHubActivity(options: {
   conversationsEnabled?: boolean;
   filesEnabled?: boolean;
   folder?: HubActivityFolder;
+  /** With folder "for-you": only this type (the View picker). */
+  source?: HubActivitySourceKey | "all";
   show?: HubActivityShow;
   cursor?: string | null;
   limit?: number;
@@ -566,6 +572,7 @@ export async function listHubActivity(options: {
       conversationsEnabled: options.conversationsEnabled !== false,
       filesEnabled: options.filesEnabled !== false,
       folder,
+      source: options.source,
       cursorDate,
       since: show === "unread" ? options.viewer.readPoint : null,
       limit,

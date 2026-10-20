@@ -7,7 +7,14 @@ import {
   parseHubActivityFolder,
   parseHubActivityShow,
   readPointOf,
+  type HubActivityFolder,
+  type HubActivitySourceKey,
 } from "@/lib/hubActivity";
+
+/** A type for the For you folder ("for-you" itself is not a type). */
+function sourceOf(f: HubActivityFolder): HubActivitySourceKey | "all" {
+  return f === "for-you" ? "all" : f;
+}
 
 /** A page of a team's Updates, for one folder (type), all or unread. */
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -36,6 +43,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     conversationsEnabled: hub.conversationsEnabled,
     filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
     folder: parseHubActivityFolder(url.searchParams.get("folder")),
+    source: sourceOf(parseHubActivityFolder(url.searchParams.get("source"))),
     show: parseHubActivityShow(url.searchParams.get("show")),
     cursor: url.searchParams.get("cursor"),
     limit: Number.isFinite(rawLimit) ? rawLimit : 30,
