@@ -61,6 +61,11 @@ const SUPPORT_EMAIL =
  * fragment in `path` would land in the wrong position.  No callsite uses
  * fragments today; revisit if one needs to.
  */
+/** An app path ("/tools/schedule?hub=…") as a full link for an email. */
+export function emailLink(path: string): string {
+  return `${BASE_URL}${path}`;
+}
+
 export function hubScopedUrl(path: string, hubSlug?: string | null): string {
   const base = `${BASE_URL}${path}`;
   if (!hubSlug || hubSlug === DEFAULT_HOSTING_HUB_SLUG) return base;
@@ -1513,29 +1518,6 @@ export async function sendCoverageLookaheadEmail(data: {
     headline: n === 1
       ? `1 session in the next two weeks needs ${words.needsRole}`
       : `${n} sessions in the next two weeks need ${words.needsRole}`,
-    sessionList: coverageSessionList(data.sessions),
-    scheduleUrl,
-    scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),
-  });
-}
-
-/** To a team's coordinators: sessions two days out that are still open. Template: "coverage-still-needed". */
-export async function sendCoverageStillNeededEmail(data: {
-  to: string;
-  firstName: string | null;
-  hubSlug: string;
-  sessions: CoverageSessionLine[];
-}): Promise<void> {
-  if (data.sessions.length === 0) return;
-  const words = await coverageWords(data.hubSlug);
-  const one = data.sessions.length === 1 ? data.sessions[0] : null;
-  const scheduleUrl = scheduleUrlFor(data.hubSlug, firstSessionAt(data.sessions));
-  await sendTemplatedEmail("coverage-still-needed", data.to, {
-    ...words,
-    firstName: data.firstName ?? "there",
-    headline: one
-      ? `Still needs ${words.needsRole}: ${one.programName} · ${fmtSessionWhen(one.sessionAt) ?? "date to be confirmed"}`
-      : `${data.sessions.length} sessions in two days still need ${words.needsRole}`,
     sessionList: coverageSessionList(data.sessions),
     scheduleUrl,
     scheduleButton: emailButtonHtml("Open the schedule", scheduleUrl),

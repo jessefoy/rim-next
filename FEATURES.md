@@ -22,6 +22,7 @@ Jesse: *"People should be able to read it like an inbox and by type. It should a
 - **Every item opens the exact thing:** the session in the Scheduler, the reply, the file comment, the member.
 - **Read marks:** opening marks an item read; Mark all as read; nothing ever leaves Everything. The rail's Updates number counts only unread items for you.
 - Wording provisional until Jesse's read-aloud. See `RIM_Hub_Engineering.md`, "The Updates inbox".
+- **The lead's brief** (2026-10-20, Jesse: leads want what's "easy for me to look at and make decisions on"; approved by his read): a team's coordinators get one email laid out for decisions in place of the Monday list and the daily "still needs" email: each open session, why it's open, who on the team can take it, a link to it; what changed since last Monday, stepping back included; how many sessions are set. Members keep their own emails. `lib/teamBrief.ts`, template `team-lead-brief`.
 - **One filter grammar** (2026-10-20, Jesse: "Consistency is key."): Updates, Conversations and Files now filter with the Scheduler's pills and View picker (`components/FilterBar.tsx`); the types column, Conversations' segment and chips, and Files' area buttons are retired. The Scheduler's amber "Needs help" pill shows again.
 
 ## October 19, 2026: the integrity pass

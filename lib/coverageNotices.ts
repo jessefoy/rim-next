@@ -37,7 +37,7 @@ import {
   sendCoverageGapEmail,
   sendCoverageLookaheadEmail,
   sendCoverageReminderEmail,
-  sendCoverageStillNeededEmail,
+  coverageWords as coverageWordsFor,
   type CoverageSessionLine,
 } from "@/lib/email";
 import { COVERAGE_LOOKAHEAD_DAYS, EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
@@ -434,17 +434,46 @@ export async function runDailyCoverageNotices(now: Date = new Date()): Promise<{
       for (const r of twoDaysOut.filter(needsSomeone)) {
         if (!(await alreadySent({ kind: "still-needed", hubSlug: team.slug, programSlug: r.programSlug, sessionDay: reminderDay }))) open2.push(r);
       }
+      const coordinators = await getHubNotificationRecipients(team.slug, { coordinatorsOnly: true }).catch((e) => {
+        console.error("[coverage-notices] coordinators lookup failed", team.slug, e);
+        return [];
+      });
+      // The leads' brief (2026-10-20) replaces the bare "still needs" list:
+      // each open session two days out, why, and who can take it. A failed
+      // brief never stops the notice rows or the members' emails below.
+      const { buildTeamBrief, sendTeamLeadBrief } = await import("@/lib/teamBrief");
       if (open2.length) {
-        const coordinators = await getHubNotificationRecipients(team.slug, { coordinatorsOnly: true });
         if (coordinators.length === 0) console.log(`[coverage-notices] ${team.slug}: ${open2.length} open in two days, no coordinator to tell`);
-        for (const c of coordinators) {
-          if (!c.email) continue;
-          try {
-            await pause();
-            await sendCoverageStillNeededEmail({ to: c.email, firstName: c.firstName, hubSlug: team.slug, sessions: open2.map(lineFor) });
-          } catch (e) {
-            console.error("[coverage-notices] still-needed email failed", team.slug, e);
+        // On Mondays the week's brief already holds these.
+        if (coordinators.length && !isMonday) try {
+          const words = await coverageWordsFor(team.slug);
+          const brief = await buildTeamBrief({
+            hubSlug: team.slug, hubId: team.id, rows: twoDaysOut, decide: open2, since: null,
+            sinceLabel: "", viewerId: coordinators[0].id, windowLabel: "in two days", now,
+          });
+          const one = open2.length === 1 ? open2[0] : null;
+          for (const c of coordinators) {
+            if (!c.email) continue;
+            try {
+              await pause();
+              await sendTeamLeadBrief({
+                to: c.email,
+                firstName: c.firstName,
+                hubSlug: team.slug,
+                headline: one
+                  ? `${words.teamName}: ${one.programName} in two days needs ${words.needsRole}`
+                  : `${words.teamName}: ${open2.length} sessions in two days need ${words.needsRole}`,
+                intro: one
+                  ? "This session in two days still needs someone. Here is who on the team can take it."
+                  : "These sessions in two days still need someone. Here is who on the team can take each one.",
+                brief: brief.body,
+              });
+            } catch (e) {
+              console.error("[coverage-notices] lead brief (two days) failed", team.slug, e);
+            }
           }
+        } catch (e) {
+          console.error("[coverage-notices] lead brief (two days) could not be built", team.slug, e);
         }
         await db.coverageNotice.createMany({
           data: open2.map((r) => ({
@@ -458,8 +487,47 @@ export async function runDailyCoverageNotices(now: Date = new Date()): Promise<{
       // 3. Mondays: the team's next two weeks.
       if (isMonday) {
         const open = rows.filter(needsSomeone);
-        if (open.length && !(await alreadySent({ kind: "lookahead", hubSlug: team.slug, sessionDay: today }))) {
-          const recipients = await getHubNotificationRecipients(team.slug, { canCover: true });
+        const changedSince = new Date(now.getTime() - 7 * 86_400_000);
+        if (!(await alreadySent({ kind: "lookahead", hubSlug: team.slug, sessionDay: today }))) {
+          // Leads: the brief, laid out for decisions, with the week's changes.
+          if (coordinators.length) try {
+            const words = await coverageWordsFor(team.slug);
+            const brief = await buildTeamBrief({
+              hubSlug: team.slug, hubId: team.id, rows, decide: open, since: changedSince,
+              sinceLabel: "Since last Monday", viewerId: coordinators[0].id, windowLabel: "in the next two weeks", now,
+            });
+            if (brief.decisions || brief.changes) {
+              for (const c of coordinators) {
+                if (!c.email) continue;
+                try {
+                  await pause();
+                  await sendTeamLeadBrief({
+                    to: c.email,
+                    firstName: c.firstName,
+                    hubSlug: team.slug,
+                    headline: open.length
+                      ? `${words.teamName}: ${open.length === 1 ? "1 session needs" : `${open.length} sessions need`} a decision`
+                      : rows.length
+                        ? `${words.teamName}: every session in the next two weeks has ${words.needsRole}`
+                        : `${words.teamName}: what changed this week`,
+                    intro: rows.length
+                      ? `Here is the ${words.teamName} for the next two weeks.`
+                      : `Here is what changed on the ${words.teamName}'s schedule this week.`,
+                    brief: brief.body,
+                  });
+                } catch (e) {
+                  console.error("[coverage-notices] lead brief (Monday) failed", team.slug, e);
+                }
+              }
+            }
+          } catch (e) {
+            console.error("[coverage-notices] lead brief (Monday) could not be built", team.slug, e);
+          }
+          // Everyone else who can take sessions: the list, as before.
+          const leadIds = new Set(coordinators.map((c) => c.id));
+          const recipients = open.length
+            ? (await getHubNotificationRecipients(team.slug, { canCover: true })).filter((u) => !leadIds.has(u.id))
+            : [];
           for (const u of recipients) {
             if (!u.email) continue;
             try {
@@ -470,7 +538,7 @@ export async function runDailyCoverageNotices(now: Date = new Date()): Promise<{
             }
           }
           await db.coverageNotice.create({ data: { kind: "lookahead", hubSlug: team.slug, sessionDay: today } });
-          counts.lookaheads++;
+          if (recipients.length) counts.lookaheads++;
         }
       }
     } catch (e) {

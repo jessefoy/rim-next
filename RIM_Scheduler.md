@@ -598,7 +598,7 @@ Jesse signed up as the first greeter, cancelled, and nothing happened: *"Shouldn
 
 **Jesse's rulings (2026-10-16, all four as recommended):**
 - **A session within two weeks that loses its last person on a team:** that team's members who can take sessions are emailed at once (`coverage-gap-opened`), never the person who made the change or the person taken off. Further out, the look-ahead says it.
-- **Every Monday** each team gets the next two weeks' sessions that still need someone (`coverage-lookahead`); **two days before**, the team's coordinators hear about anything still open, open cover requests included (`coverage-still-needed`).
+- **Every Monday** each team's members get the next two weeks' sessions that still need someone (`coverage-lookahead`). **The coordinators get the lead's brief instead** (`team-lead-brief`, `lib/teamBrief.ts`, 2026-10-20): each open session, why, and who on the team can take it; what changed since last Monday; how many are set. **Two days before**, on other days, the coordinators get a short brief about anything still open, open cover requests included (it replaced `coverage-still-needed`).
 - **Two days before**, each person serving gets a reminder (`coverage-session-reminder`) with the time, their role, and everyone serving the session ("Host: …", "AV: none yet", "Greeters: …").
 - **A host is not emailed about a supporting team's gap;** their reminder and the Scheduler show it.
 

@@ -7023,6 +7023,55 @@ Rooted In Mindfulness`,
     console.error("  Updates inbox start point failed (inbox shows older items as unread):", err?.message ?? err);
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: the team lead's brief (2026-10-20). Jesse: leads want what's
+  // "easy for me to look at and make decisions on." Replaces the Monday list
+  // and the daily "still needs" email for a team's coordinators (members keep
+  // theirs). lib/teamBrief.ts builds {{brief}}. findUnique → create: never
+  // overwrites an edited template. Wording provisional until Jesse's
+  // read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const flag = "seed_team_lead_brief_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const existing = await db.emailTemplate.findUnique({ where: { slug: "team-lead-brief" } });
+      if (existing) {
+        console.log("  Email template team-lead-brief already exists, left alone.");
+      } else {
+        await db.emailTemplate.create({
+          data: {
+            slug: "team-lead-brief",
+            name: "Coverage: the lead's brief",
+            description: "Sent to a team's coordinators: on Mondays, the next two weeks laid out for decisions (each open session, why, who can take it), what changed, and how many sessions are set; on other days, only sessions two days out that are still open.",
+            subject: "{{headline}}",
+            variables: ["firstName", "headline", "intro", "brief", "coverageRole", "coverageVerb", "coverageAction", "needsRole", "teamName", "scheduleUrl", "scheduleButton"],
+            helpText:
+              "Sent to the team's coordinators. The app writes {{headline}} (the subject, e.g. \"Hosting Team: 2 sessions need a decision\"), {{intro}} and {{brief}} (the sections: Needs your decision, Since last Monday, All set).\n\n" +
+              "Available variables: {{firstName}}, {{headline}}, {{intro}}, {{brief}}, {{coverageRole}}, {{coverageVerb}}, {{coverageAction}}, {{needsRole}}, {{teamName}}, {{scheduleUrl}}, {{scheduleButton}} (use triple braces {{{scheduleButton}}}).",
+            body: `Hi {{firstName}},
+
+{{intro}}
+
+{{brief}}
+
+{{{scheduleButton}}}
+
+With care,
+Rooted In Mindfulness`,
+            enabled: true,
+            group: "04-hosts",
+            groupLabel: "Host Team",
+          },
+        });
+        console.log("  ✔ Email template team-lead-brief created.");
+      }
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  } catch (err) {
+    console.error("  team-lead-brief seed failed:", err?.message ?? err);
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
