@@ -341,6 +341,7 @@ async function handleRegistrationDanaCompleted(
       to: reg.email,
       firstName: reg.firstName,
       programTitle: reg.programTitle,
+      programSlug: reg.programSlug,
       totalCents: amountCents,
       feeCents,
       giftCents,

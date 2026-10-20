@@ -59,6 +59,8 @@ Before this, Axis 1 was *inferred* from `registrationEnabled` + `programFormat` 
 
 The two senses of "upcoming" run on different signals, and this is the rule the dashboard implements:
 
+> **2026-10-20: "Coming up for you" is removed from My Home** (and its full view), to be rethought (backlog `2026-10-20-004`). The registration rule below is kept as the record for that rebuild; today a member's registrations show on My Home only as their own sessions in Today.
+
 - **"Coming up for you" = your personal commitments** — driven by your `Registration` (status not `CANCELLED`/`PENDING_PAYMENT`) with a future occurrence. **Not gated by kind.** Any kind you register for shows here — including a *registered* community group (Qigong). Registering is the personal "this is mine" signal.
 - **"Today" / community schedule = programs with Open entry** — driven by `hasOpenEntry`: a program with Open entry shows for everyone; every other program is a commitment. A program without Open entry **never offers a public Join to a non-registrant** — it surfaces in their "Coming up for you" once they register. (Plus: the viewer's own registered or hosted/taught sessions always appear in Today; ADMIN sees all.) Before 2026-10-02 this was derived from the old category kind (`DROP_IN` always; `COMMUNITY_GROUP` only when it did not require registration; everything else a commitment); that rule is now only the fallback for an unset Open entry.
 
@@ -209,7 +211,7 @@ A bundled-Program Course's dana for the live-cohort path is the Program's regist
 | `/courses` — public catalog of on-demand offerings | Library-first: lesson count, self-paced, "Enroll" |
 | `/programs/[slug]` — program detail | Live cohort framing, schedule, register CTA |
 | `/course/[slug]` — course detail | **Needs to grow up** — currently a one-line gate for non-enrolled. Must become a real landing page with description, teacher, lesson count, dana ask, enroll CTA. This is the entry point for the dana flow. |
-| `/account/dashboard` — Coming up for you | Upcoming live commitments |
+| `/account/dashboard` — Today | Today's sessions (the upcoming list was removed 2026-10-20, backlog `2026-10-20-004`) |
 | `/account/courses` — Library | On-demand enrollments (onboarding welcome at top when relevant) |
 
 ### The "online blurring" concern

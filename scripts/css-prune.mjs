@@ -71,6 +71,9 @@ const DEAD_PREFIXES = [
   // (components/FilterBar.tsx); Conversations' segment and chips and Files'
   // area buttons and Favorites toggle retired.
   "hub-conv-segment", "hub-conv-chip", "gf-area", "gf-favorites-toggle",
+  // 2026-10-20: My Home's "Coming up" and its full upcoming view removed, to be
+  // rethought (backlog 2026-10-20-004).
+  "db2-upcoming", "db2-coming-up", "db2-chip", "db2-empty-card",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

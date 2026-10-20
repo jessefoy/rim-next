@@ -1961,5 +1961,15 @@
     "status": "open",
     "addedAt": "2026-10-20",
     "notes": "lib/teamBrief.ts and lib/notificationsSummary.ts md(); the text part is derived from the markdown body in renderTemplateToText. Fix by passing the names through memberText or unescaping in the text pipeline."
+  },
+  {
+    "id": "2026-10-20-004",
+    "title": "Rethink a member's upcoming programs on My Home",
+    "description": "Jesse removed My Home's \"Coming up\" and its full \"Your upcoming programs\" view (2026-10-20) to rebuild them later \"with more thought.\" What existed, to rethink from: (1) Coming up, a card under Today with the member's next three registrations, each a row (the next date and time, the title, where it meets, a chip) linking to the public program page, then an \"All upcoming programs\" button. (2) /account/dashboard?view=upcoming, every registration, 20 to a page. Rows were ordered by each program's projected next occurrence (not signup date), left out today's sessions (Today has them), cancelled and pending-payment registrations, programs with no future date and archived programs. Chips: \"Registered\", or \"Dana invitation\" with \"A voluntary gift, never required\" when a voluntary gift was still open (donationStatus PENDING). No member cancellation (the decision stands).",
+    "category": "Dashboard",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-20",
+    "notes": "Code: the last version with it is 6e82aaa, app/account/(authenticated)/dashboard/page.tsx (UpcomingRow, sortedRegistrations, the upcoming view) and the db2-upcoming / db2-coming-up / db2-chip / db2-empty-card CSS. Questions for the rebuild: a waitlisted registration showed the \"Registered\" chip (it should say waitlisted); the Dana invitation chip was My Home's only reminder of an open gift, and the rebuild should give open dana a home again (today it is reached through the dana-reminder email's link to the register page); a recurring program showed only its next session, so a weekly class read like a one-time event; the dana receipt's notice opened this view (now the program page). Today still reads registrations to place in-person sessions."
   }
 ]

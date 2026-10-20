@@ -148,7 +148,7 @@ RIM writes like a person who has already made room for you. The prose is plain, 
 
 - **Spacing scale** (`tokens/spacing.css`) — `custom.css` uses literal pixel values with no named scale. The tokens here are measured from real usage, not invented; every value appears in the source.
 - **Semantic aliases** (`tokens/semantic.css`) — role names layered over the existing `--rim-*` base tokens, so consumers can reason about surfaces instead of colours. The base tokens remain authoritative.
-- **`Eyebrow`, `Badge`, `StateMessage`, `TextField`** — these exist in `custom.css` as repeated class patterns (`sg-eyebrow`/`pl-hero__eyebrow`, `db2-chip`/`today-live-badge`, `sg-state`, `sg-card input`) rather than as named React components. Promoting them keeps consumers from re-deriving them.
+- **`Eyebrow`, `Badge`, `StateMessage`, `TextField`** — these exist in `custom.css` as repeated class patterns (`sg-eyebrow`/`pl-hero__eyebrow`, `today-live-badge`, `sg-state`, `sg-card input`) rather than as named React components. Promoting them keeps consumers from re-deriving them.
 
 ### Not built
 

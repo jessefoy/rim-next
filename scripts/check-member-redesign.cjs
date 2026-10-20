@@ -279,7 +279,20 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(outside.joinOnlineLabel({programFormat:'virtual',outsideMeetingUrl:null}),'Join on Zoom','RIM\'s own room is Zoom');
   programs=[];registrations=[];
   html=await dashboardHtml();check(html.includes('There are no more sessions today.'),true,'empty day has clear state');
-  html=await dashboardHtml({view:'upcoming'});check(html.includes('Your upcoming programs'),true,'separate upcoming view remains reachable');
+  // 2026-10-20: Coming up and the upcoming view are removed (backlog
+  // 2026-10-20-004). Registrations still place today's in-person sessions in Today.
+  const rp={endDatetime:null,recurrenceFreq:null,recurrenceInterval:null,recurrenceDays:[],recurrenceCount:null,outsideMeetingUrl:null,earlyArrivalMessage:null,specialAnnouncement:null,announcementUntil:null};
+  registrations=[
+    {id:'r1',programTitle:'Hall sit',programSlug:'hall-sit',status:'REGISTERED',program:{...rp,programFormat:'in-person',startDatetime:new Date('2026-09-21T18:00:00Z'),endDatetime:new Date('2026-09-21T19:00:00Z')}},
+    {id:'r2',programTitle:'Later course',programSlug:'later-course',status:'REGISTERED',program:{...rp,programFormat:'virtual',startDatetime:new Date('2026-10-26T14:30:00Z')}},
+  ];
+  html=await dashboardHtml();
+  check(html.includes('Hall sit'),true,'a registered in-person session today is in Today');
+  check(html.includes('Later course')||html.includes('Coming up'),false,'Coming up is gone from My Home');
+  check(html.includes('All upcoming programs'),false,'the link to the upcoming view is gone');
+  html=await dashboardHtml({view:'upcoming'});
+  check(html.includes('Your upcoming programs')||html.includes('Later course'),false,'the old upcoming address shows My Home');
+  registrations=[];
   check(html.includes('Cancel registration'),false,'self-cancellation remains removed');
 
   // Every-other-week rotations (2026-10-18): turns counted from the first

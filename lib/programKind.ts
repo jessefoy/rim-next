@@ -72,7 +72,7 @@ export function isValidKind(code: string | null | undefined): code is ProgramKin
  * - DROP_IN          → always open
  * - COMMUNITY_GROUP  → open only when it does NOT require registration
  *   (an open community circle like Recovery Dharma is droppable; a registered
- *   one like Qigong is a commitment that surfaces via "Coming up for you")
+ *   one like Qigong is a commitment: only its registrants see it in Today)
  * - everything else  → a commitment: CLASS / EVENT / RETREAT / SERVICE / PRIVATE
  *   never offer a public Join to a non-registrant
  *

@@ -843,6 +843,8 @@ export interface RegistrationDanaReceiptEmailData {
   to: string;
   firstName: string;
   programTitle: string;
+  /** The program's page is where the receipt's notice leads. */
+  programSlug: string;
   totalCents: number;
   /** The registration-payment part (fixed amount, or the base of "base + dana"). */
   feeCents: number;
@@ -889,7 +891,7 @@ export async function sendRegistrationDanaReceiptEmail(
       ...PROGRAMS_SOURCE,
       title: `Your receipt for ${data.programTitle} ($${usd(data.totalCents)})`,
       detail: "The receipt is in your email, with what you gave and RIM's details for your records.",
-      href: "/account/dashboard?view=upcoming",
+      href: `/programs/${data.programSlug}`,
     },
   });
 }

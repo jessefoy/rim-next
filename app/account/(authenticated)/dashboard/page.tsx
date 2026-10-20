@@ -12,7 +12,7 @@ import FormDone from "@/components/FormDone";
 import { countUnreadNotices } from "@/lib/notifications";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 import HostWelcomePanel from "@/components/HostWelcomePanel";
-import { joinOnlineLabel, onlinePhrase, onlinePlaceLabel, outsideRoomUrl } from "@/lib/outsideMeeting";
+import { joinOnlineLabel, onlinePlaceLabel, outsideRoomUrl } from "@/lib/outsideMeeting";
 
 export const metadata = { title: "My Home - Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -65,10 +65,9 @@ type TodayDisplayItem = {
 };
 
 export default async function DashboardPage({ searchParams }: {
-  searchParams: Promise<{ view?: string; page?: string; welcome?: string }>;
+  searchParams: Promise<{ welcome?: string }>;
 }) {
   const query = await searchParams;
-  const upcomingView = query.view === "upcoming";
   const session = await auth();
   if (!session) redirect("/login");
 
@@ -77,8 +76,10 @@ export default async function DashboardPage({ searchParams }: {
 
   // Dashboard is sessions-only as of session 117: courses live in the Library
   // (`/account/courses`). Onboarding welcome and "Where you're studying" both
-  // moved there. The dashboard surfaces today's commitments, upcoming
-  // registrations, and hub presence — nothing else.
+  // moved there. The dashboard surfaces today's commitments and hub presence.
+  // A member's upcoming programs ("Coming up" and its full view) were removed
+  // 2026-10-20 to be rethought (backlog 2026-10-20-004); registrations are
+  // read here only to place today's in-person sessions in Today.
   const [allVirtual, upcomingRegistrations, hubMemberships] =
     await Promise.all([
       db.program.findMany({
@@ -107,7 +108,6 @@ export default async function DashboardPage({ searchParams }: {
         },
         orderBy: { sortOrder: "asc" },
       }),
-      // Include donationStatus so we can show dana inline.
       // Include recurrence fields so we can compute each program's next occurrence.
       // We sort by next-occurrence in JS below — Prisma can't express "next
       // upcoming session" for a recurring program directly.
@@ -115,7 +115,7 @@ export default async function DashboardPage({ searchParams }: {
         // PENDING_PAYMENT is a held, unpaid registration — not a real commitment
         // until the Stripe webhook completes it, so keep it off the dashboard.
         // An archived program has left the site, so it leaves My Home too
-        // (2026-10-19 audit: Coming up linked to a page that no longer exists).
+        // (2026-10-19 audit).
         where: {
           userId,
           status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] },
@@ -126,7 +126,6 @@ export default async function DashboardPage({ searchParams }: {
           programTitle: true,
           programSlug: true,
           status: true,
-          donationStatus: true,
           program: {
             select: {
               programFormat: true, outsideMeetingUrl: true, earlyArrivalMessage: true, specialAnnouncement: true, announcementUntil: true,
@@ -207,7 +206,7 @@ export default async function DashboardPage({ searchParams }: {
   // What belongs in "Today": programs with open entry for everyone, PLUS anything the viewer is registered for
   // or hosting/teaching (ADMIN sees all as a safety override). A
   // registration-required class/event/retreat never offers a public Join to a
-  // non-registrant — it surfaces in "Coming up for you" instead.
+  // non-registrant.
   const visibleTodayRaw = todaySessionsRaw.filter(
     (p) =>
       hasOpenEntry(p) ||
@@ -269,13 +268,11 @@ export default async function DashboardPage({ searchParams }: {
     .filter((s) => s.isHostOrTeacher && s.earlyOpenEpoch > now.getTime())
     .map((s) => s.earlyOpenEpoch);
 
-  // Project each registration to its next upcoming occurrence — date plus the
-  // session start time on that date. Members think in "what's coming next," not
-  // "what did I sign up for most recently."
+  // Project each registration to its next occurrence, so an in-person one
+  // happening today joins Today below.
   const registrationsWithNext = upcomingRegistrations.map((r) => {
     const p = r.program;
     let nextDateStr: string | null = null;
-    let nextTimeCT: string | null = null;
     if (p?.startDatetime) {
       nextDateStr = nextOccurrenceOnOrAfter(
         {
@@ -293,12 +290,8 @@ export default async function DashboardPage({ searchParams }: {
         today,
         365
       );
-      if (nextDateStr) {
-        const projected = shiftToDate(p.startDatetime.toISOString(), nextDateStr);
-        nextTimeCT = fmtTimeCT(projected.toISOString());
-      }
     }
-    return { ...r, nextDateStr, nextTimeCT };
+    return { ...r, nextDateStr };
   });
 
   // Project every online session into a common display shape. State remains a
@@ -418,17 +411,6 @@ export default async function DashboardPage({ searchParams }: {
     .sort((a, b) => a.startEpoch - b.startEpoch);
   const showTodayCard = activeTodayItems.length > 0 || laterTodayItems.length > 0;
 
-  // "Coming up for you" excludes today's sessions — they live in the Today
-  // card above. Drop registrations with no future occurrence too (past
-  // programs).
-  const sortedRegistrations = registrationsWithNext
-    .filter((r): r is typeof r & { nextDateStr: string } => r.nextDateStr !== null && r.nextDateStr !== today)
-    .sort((a, b) => a.nextDateStr.localeCompare(b.nextDateStr))
-    ;
-  const pageCount = Math.max(1, Math.ceil(sortedRegistrations.length / 20));
-  const page = Math.min(pageCount, Math.max(1, Math.floor(Number(query.page) || 1)));
-  const visibleRegistrations = sortedRegistrations.slice((page - 1) * 20, page * 20);
-
   // First-login host recognition (session 143, backlog 2026-06-08-003): a host
   // can be pre-staged — role assigned, schedule built — before they ever log in.
   // When they finally do, everything's attached but nothing points to it. Show a
@@ -464,7 +446,7 @@ export default async function DashboardPage({ searchParams }: {
   }
 
   // One quiet line when there's news (2026-10-20): the rest is in Notifications.
-  const unreadNotices = upcomingView ? 0 : await countUnreadNotices(userId);
+  const unreadNotices = await countUnreadNotices(userId);
 
   const firstName =
     session.user?.name?.split(" ")[0] ??
@@ -478,8 +460,7 @@ export default async function DashboardPage({ searchParams }: {
         {/* A personal orientation, then the day itself — not a generic dashboard. */}
         <header className="db2-greeting">
           <p className="db2-greeting__date">{fmtTodayFull()}</p>
-          <h1 className="db2-greeting__name">{upcomingView ? "Your upcoming programs" : `Good ${timeOfDay()}, ${firstName}.`}</h1>
-          {upcomingView && <Link href="/account/dashboard" className="pp-btn pp-btn--ghost">Back to My Home</Link>}
+          <h1 className="db2-greeting__name">Good {timeOfDay()}, {firstName}.</h1>
           {unreadNotices > 0 && (
             <p className="db2-greeting__news">
               <Link href="/account/notifications">
@@ -491,7 +472,7 @@ export default async function DashboardPage({ searchParams }: {
 
         {/* Joining or returning is answered here, where they land (WelcomeForm,
             /account/reactivate; FormDone, 2026-10-13). */}
-        {!upcomingView && (query.welcome === "new" || query.welcome === "back") && (
+        {(query.welcome === "new" || query.welcome === "back") && (
           <FormDone
             app
             clearParam="welcome"
@@ -502,10 +483,10 @@ export default async function DashboardPage({ searchParams }: {
         )}
 
         {/* First-login host recognition — one-time, dismissible (session 143) */}
-        {!upcomingView && hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} coverageNoun={hostWelcomeNoun} />}
+        {hostWelcomeHref && <HostWelcomePanel scheduleHref={hostWelcomeHref} coverageNoun={hostWelcomeNoun} />}
 
         {/* Today groups sessions by their truthful state, then orders within it. */}
-        {!upcomingView && showTodayCard && (
+        {showTodayCard && (
           <section className="db-section db2-today">
             <div className="db-section__heading">
               <p className="db-section__label">Today</p>
@@ -560,50 +541,10 @@ export default async function DashboardPage({ searchParams }: {
           </section>
         )}
 
-        {!upcomingView && <>
-          {!showTodayCard && <section className="rim-empty"><h2>There are no more sessions today.</h2><p>You can find the next gathering in the full schedule.</p></section>}
-          {/* The next three registrations, as rows: the next useful thing,
-              not a feed (RIM_Member_Area.md, design decisions). The full list
-              is a destination. */}
-          {sortedRegistrations.length > 0 && (
-            <section className="db-section db2-coming-up">
-              <div className="db-section__heading">
-                <p className="db-section__label">Coming up</p>
-              </div>
-              <div className="db2-upcoming">
-                {sortedRegistrations.slice(0, 3).map((r) => <UpcomingRow key={r.id} r={r} />)}
-              </div>
-            </section>
-          )}
-          <nav className="rim-home-links" aria-label="More programs">
-            {sortedRegistrations.length > 0 && (
-              <Link href="/account/dashboard?view=upcoming" className="pp-btn pp-btn--ghost">All upcoming programs <span aria-hidden="true">→</span></Link>
-            )}
-            <Link href="/this-week" className="pp-btn pp-btn--ghost">This week&rsquo;s schedule <span aria-hidden="true">→</span></Link>
-          </nav>
-        </>}
-        {/* Existing registration information remains reachable, without self-cancellation. */}
-        {upcomingView && (
-        <div className="db-section db2-coming-up">
-
-          {sortedRegistrations.length === 0 ? (
-            <div className="db2-empty-card">
-              <p className="db2-empty-card__text">No upcoming programs yet.</p>
-              <Link href="/community-programs" className="pp-btn pp-btn--ghost">Browse programs <span aria-hidden="true">→</span></Link>
-            </div>
-          ) : (
-            <div className="db2-upcoming">
-              {visibleRegistrations.map((r) => <UpcomingRow key={r.id} r={r} />)}
-            </div>
-          )}
-        </div>
-
-        )}
-        {upcomingView && pageCount > 1 && <nav className="rim-pagination" aria-label="Upcoming programs pages">
-          {page > 1 && <Link href={`/account/dashboard?view=upcoming&page=${page - 1}`}>Previous</Link>}
-          <span>Page {page} of {pageCount}</span>
-          {page < pageCount && <Link href={`/account/dashboard?view=upcoming&page=${page + 1}`}>Next</Link>}
-        </nav>}
+        {!showTodayCard && <section className="rim-empty"><h2>There are no more sessions today.</h2><p>You can find the next gathering in the full schedule.</p></section>}
+        <nav className="rim-home-links" aria-label="More programs">
+          <Link href="/this-week" className="pp-btn pp-btn--ghost">This week&rsquo;s schedule <span aria-hidden="true">→</span></Link>
+        </nav>
 
       </div>
     </AccountLayout>
@@ -617,53 +558,6 @@ function stateLabel(item: TodayDisplayItem): string {
   if (item.stage === "in-person") return "Happening now";
   if (item.stage === "setup") return "Host entry open";
   return "Later today";
-}
-
-type UpcomingRowData = {
-  id: string;
-  programSlug: string;
-  programTitle: string;
-  nextDateStr: string;
-  nextTimeCT: string | null;
-  donationStatus: string | null;
-  program: { programFormat: string | null; outsideMeetingUrl?: string | null } | null;
-};
-
-/** One upcoming registration as a row: date and time, title and place, the
-    chip. Shared by My Home's "Coming up" and the full upcoming view. The
-    date is the projected next occurrence, not the program's anchor. */
-function UpcomingRow({ r }: { r: UpcomingRowData }) {
-  const d = new Date(r.nextDateStr + "T12:00:00");
-  const dateLabel = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
-  const fmt = r.program?.programFormat;
-  const place = r.program && fmt === "virtual"
-    ? onlinePlaceLabel(r.program)
-    : r.program && fmt === "hybrid"
-      ? `In person and ${onlinePhrase(r.program)}`
-      : fmt === "in-person" ? "In person" : null;
-  const hasPendingDana = r.donationStatus === "PENDING";
-  return (
-    <Link href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
-      <span className="db2-upcoming__when">
-        <span className="db2-upcoming__date">{dateLabel}</span>
-        {r.nextTimeCT && <span className="db2-upcoming__time">{r.nextTimeCT}</span>}
-      </span>
-      <span className="db2-upcoming__title">
-        <span>{r.programTitle}</span>
-        {place && <span className="db2-upcoming__meta">{place}</span>}
-      </span>
-      <span className="db2-upcoming__status">
-        {hasPendingDana
-          ? <span className="db2-chip-stack">
-              {/* Visible words, not a title tooltip — touch devices and
-                  screen readers never saw it. */}
-              <span className="db2-chip db2-chip--dana">Dana invitation</span>
-              <span className="db2-chip-note">A voluntary gift, never required</span>
-            </span>
-          : <span className="db2-chip db2-chip--registered">Registered</span>}
-      </span>
-    </Link>
-  );
 }
 
 function SessionNotes({ item }: { item: TodayDisplayItem }) {
