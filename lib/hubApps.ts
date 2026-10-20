@@ -387,7 +387,9 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdatePa
   }
 
   for (const r of requests) {
-    const asker = r.requestedById ?? r.assignment.userId;
+    // Older requests (before 2026-10-15) didn't record who asked; once covered,
+    // the assignment's person is the one covering, so the asker is unknown.
+    const asker = r.requestedById ?? (r.status === "CLAIMED" ? null : r.assignment.userId);
     const passed = !!r.sessionDate && r.sessionDate <= now;
     items.push({
       ...base,
@@ -395,8 +397,8 @@ async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdatePa
       kind: "coverage-requested",
       actorId: asker,
       authorId: asker,
-      authorName: nameOf(asker),
-      verb: "asked for someone to cover",
+      authorName: asker ? nameOf(asker) : "",
+      verb: asker ? "asked for someone to cover" : "Cover was asked for",
       subject: sessionTitle(programName(r.programSlug), r.sessionDate),
       href: scheduleSessionHref(hubSlug, r.programSlug, r.sessionDate),
       ts: r.createdAt.toISOString(),

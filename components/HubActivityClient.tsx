@@ -24,6 +24,7 @@ import type {
 import { useArrival } from "@/components/FormDone";
 
 const TZ = "America/Chicago";
+const NEEDS_SHOWN = 3;
 
 interface Counts {
   forYou: number;
@@ -315,6 +316,8 @@ export default function HubActivityClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [markNote, setMarkNote] = useState("");
+  // Needs you shows the next three; the rest on request, so history stays in view.
+  const [allNeeds, setAllNeeds] = useState(false);
   const pending = useRef(0);
 
   const current = pages[pageKey(folder, show)] ?? { items: [], nextCursor: null, loaded: false };
@@ -503,10 +506,20 @@ export default function HubActivityClient({
                 Sessions in the next two weeks that need someone. They leave this list once someone takes them.
               </p>
               <ul className="hub-inbox__needs">
-                {shownNeeds.map((item) => (
+                {(allNeeds ? shownNeeds : shownNeeds.slice(0, NEEDS_SHOWN)).map((item) => (
                   <NeedCard key={item.id} item={item} onOpen={open} onTaken={taken} />
                 ))}
               </ul>
+              {shownNeeds.length > NEEDS_SHOWN && (
+                <button
+                  type="button"
+                  className="btn--ghost hub-inbox__more"
+                  aria-expanded={allNeeds}
+                  onClick={() => setAllNeeds((v) => !v)}
+                >
+                  {allNeeds ? "Show only the next three" : `Show all ${shownNeeds.length} sessions that need someone`}
+                </button>
+              )}
             </section>
           )}
 

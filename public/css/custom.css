@@ -23263,7 +23263,9 @@ html { scroll-padding-top: 88px; }
 .hub-inbox__header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
 .hub-inbox__mark-note { margin: calc(var(--space-2) * -1) 0 var(--space-3); color: var(--rim-text-soft); font-size: var(--text-app-meta); }
 
-.hub-inbox__layout { container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+/* The page is the container: a container query can't style the container itself. */
+.hub-inbox { container-type: inline-size; }
+.hub-inbox__layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
 @container (min-width: 720px) {
   .hub-inbox__layout { grid-template-columns: 200px minmax(0, 1fr); gap: var(--space-4); align-items: start; }
   .hub-inbox__folders ul { flex-direction: column; flex-wrap: nowrap; }
@@ -23341,6 +23343,7 @@ html { scroll-padding-top: 88px; }
 .hub-inbox__section-sub { margin: calc(var(--space-1) * -1) 0 0; color: var(--rim-text-soft); font-size: var(--text-app-meta); line-height: 1.55; }
 
 /* Needs you: one card per session, the action beside the words. */
+.hub-inbox__more { align-self: flex-start; }
 .hub-inbox__needs { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
 .hub-inbox__need {
   box-sizing: border-box;
