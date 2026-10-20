@@ -433,6 +433,7 @@ export async function PATCH(
       // daily pass's once-a-day records, which would otherwise send again
       // (2026-10-19 audit).
       await tx.coverageNotice.updateMany({ where: { hubSlug: slug }, data: { hubSlug: newSlug } });
+      await tx.hubEvent.updateMany({ where: { hubSlug: slug }, data: { hubSlug: newSlug } });
       await tx.googleFileTransfer.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });
       await tx.googleFileMeta.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });
       await tx.googleFilePin.updateMany({ where: { placeKey: `hub:${slug}` }, data: { placeKey: `hub:${newSlug}` } });

@@ -82,6 +82,16 @@ interface Props {
 }
 
 const TZ = "America/Chicago";
+
+/** A session's key in links: "program~YYYY-MM-DD" (Central day). Updates
+ *  opens the Scheduler at one session with ?session=… (2026-10-19). */
+function sessionLinkKey(s: { programSlug: string; sessionDate: string | null }): string | null {
+  if (!s.sessionDate) return null;
+  return `${s.programSlug}~${new Date(s.sessionDate).toLocaleDateString("en-CA", { timeZone: TZ })}`;
+}
+function sessionAnchorId(key: string): string {
+  return `hs-session-${key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -487,6 +497,8 @@ interface RowProps {
   session: Session;
   kind: RowKind;
   isPast: boolean;
+  /** The session a link opened the Scheduler at: marked so it's found. */
+  arrived?: boolean;
   currentUserId: string;
   onTake: (s: Session) => void;
   onCover: (s: Session) => void;
@@ -597,7 +609,7 @@ function SignUpButton({ label, onSignUp }: { label: string; onSignUp: () => Prom
 }
 
 function HsRow({
-  session, kind, isPast, currentUserId,
+  session, kind, isPast, arrived = false, currentUserId,
   onTake, onCover, onAskCover, onAskCoverFor, onCancelRequest, onClearRequest, onReassign, onUnassign,
   onSignUp, onCancelSignUp, onRemoveSignup, canClaim,
   isHostManager,
@@ -840,7 +852,12 @@ function HsRow({
   })();
 
   return (
-    <div className={`hs-row hs-row--${kind}${isPast ? " hs-row--past" : ""}`}>
+    <div
+      className={`hs-row hs-row--${kind}${isPast ? " hs-row--past" : ""}${arrived ? " hs-row--arrived" : ""}`}
+      id={(() => { const k = sessionLinkKey(session); return k ? sessionAnchorId(k) : undefined; })()}
+      tabIndex={arrived ? -1 : undefined}
+      aria-label={arrived ? `The session you opened: ${session.programName}` : undefined}
+    >
       <div className="hs-row__when">
         {dateBlock ? (
           <time className="hs-row__date-block" dateTime={session.sessionDate ?? undefined} aria-label={`${dateBlock.label} at ${timeStr}`}>
@@ -1026,6 +1043,30 @@ export default function HubScheduleClient({
       }
     }
   }, [searchParams, sessions, currentUserId]);
+
+  // ?session=program~YYYY-MM-DD (from Updates): bring that session into view,
+  // opening "Earlier this month" if it's there, and mark it.
+  const [arrivedKey] = useState<string | null>(() => searchParams?.get("session") ?? null);
+  const sessionLinkHandled = useRef(false);
+  useEffect(() => {
+    if (sessionLinkHandled.current || !arrivedKey || view !== "schedule") return;
+    sessionLinkHandled.current = true;
+    if (!sessions.some((x) => sessionLinkKey(x) === arrivedKey)) {
+      showToast("That session isn't on this team's schedule any more.", "error");
+      return;
+    }
+    const id = requestAnimationFrame(() => {
+      const el = document.getElementById(sessionAnchorId(arrivedKey));
+      if (!el) return;
+      const details = el.closest("details");
+      if (details && !details.open) details.open = true;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      el.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once, after the month's rows are in
+  }, [arrivedKey, sessions, view]);
 
   function clearDeepLinkParams() {
     if (searchParams.get("action") || searchParams.get("id")) {
@@ -1676,6 +1717,7 @@ export default function HubScheduleClient({
                     session={s}
                     kind={rowKind(s, currentUserId, allowsMultipleAssignments)}
                     isPast={false}
+                    arrived={!!arrivedKey && sessionLinkKey(s) === arrivedKey}
                     {...rowHandlers}
                   />
                 ))}
@@ -1706,6 +1748,7 @@ export default function HubScheduleClient({
                           session={s}
                           kind={rowKind(s, currentUserId, allowsMultipleAssignments)}
                           isPast
+                          arrived={!!arrivedKey && sessionLinkKey(s) === arrivedKey}
                           {...rowHandlers}
                         />
                       ))}

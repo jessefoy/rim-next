@@ -40,6 +40,7 @@ import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import { sendStandingAssignmentEndedEmail } from "@/lib/email";
 import { ctDayBounds, ctStartOfToday } from "@/lib/timezone";
+import { emptiedSessionKeys, recordHubEvents } from "@/lib/hubEvents";
 
 const TZ = "America/Chicago";
 
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
   // rotation on the same program/day.
   const rotations = await db.standingAssignment.findMany({
     where: { programSlug, dayOfWeek, hubSlug: targetHubSlug },
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, programSlug: true, occurrence: true, dayOfWeek: true },
   });
 
   if (rotations.length === 0) {
@@ -160,6 +161,7 @@ export async function POST(request: Request) {
   // SubRequest.assignmentId FK is Restrict — must delete SubClaim +
   // SubRequest before the parent HostAssignment. Session 130 follow-up
   // pattern audit (feedback-pattern-audit.md).
+  const emptied: { programSlug: string; sessionDate: Date | null; userId: string | null }[] = [];
   await db.$transaction(async (tx) => {
     if (endsOnParam) {
       // Set-end-date mode: delete pre-generated sessions AFTER the new end date.
@@ -173,8 +175,9 @@ export async function POST(request: Request) {
           standingAssignmentId: { in: rotationIds },
           sessionDate:          { gt: cutoff },
         },
-        select: { id: true },
+        select: { id: true, programSlug: true, sessionDate: true, userId: true },
       });
+      emptied.push(...outOfRange);
       const outOfRangeIds = outOfRange.map((a) => a.id);
       removedOutOfRange = outOfRangeIds.length;
       if (outOfRangeIds.length > 0) {
@@ -199,8 +202,9 @@ export async function POST(request: Request) {
             standingAssignmentId: { in: rotationIds },
             sessionDate:          { gte: todayCt },
           },
-          select: { id: true },
+          select: { id: true, programSlug: true, sessionDate: true, userId: true },
         });
+        emptied.push(...futureAssns);
         const futureAssnIds = futureAssns.map((a) => a.id);
         if (futureAssnIds.length > 0) {
           await tx.subClaim.deleteMany({
@@ -219,6 +223,16 @@ export async function POST(request: Request) {
         data:  { endsOn: endsOnValue },
       });
     }
+    // The team's record, for the leads and each person: their rotation ends
+    // (on a set date, or now).
+    await recordHubEvents(tx, rotations.map((r) => ({
+      hubSlug: targetHubSlug,
+      kind: "rotation-ended" as const,
+      actorId: session.user.id,
+      subjectUserId: r.userId,
+      programSlug: r.programSlug,
+      detail: { occurrence: r.occurrence, dayOfWeek: r.dayOfWeek, endsOn: endsOnParam ?? null, sessions: emptiedSessionKeys(emptied) },
+    })));
   });
 
   // Email each displaced host

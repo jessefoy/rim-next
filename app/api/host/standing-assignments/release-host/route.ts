@@ -39,6 +39,7 @@ import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import { sendStandingAssignmentReleasedEmail } from "@/lib/email";
 import { ctStartOfToday } from "@/lib/timezone";
+import { emptiedSessionKeys, recordHubEvent } from "@/lib/hubEvents";
 import { deliverGapNotices, prepareGapNotices } from "@/lib/coverageNotices";
 
 const TZ = "America/Chicago";
@@ -144,6 +145,16 @@ export async function POST(request: Request) {
     // SetNull on delete, so they lose the link but stay.
     await tx.standingAssignment.deleteMany({
       where: { id: { in: userRotationIds } },
+    });
+    // The team's record, for the leads and the person: off this rotation.
+    await recordHubEvent(tx, {
+      hubSlug: targetHubSlug,
+      kind: "rotation-ended",
+      actorId: session.user.id,
+      subjectUserId: userId,
+      programSlug,
+      count: assignmentIds.length,
+      detail: { dayOfWeek, sessions: emptiedSessionKeys(toRelease) },
     });
   });
 

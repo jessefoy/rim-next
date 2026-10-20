@@ -44,6 +44,7 @@ import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { canAccessHubScheduler, canManageHubCoverage } from "@/lib/hubAuth";
 import { teamCannotStaff, getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
 import { applyStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
+import { emptiedSessionKeys, recordHubEvents } from "@/lib/hubEvents";
 import {
   sendStandingAssignmentScheduledEmail,
   sendStandingAssignmentReplacedEmail,
@@ -350,6 +351,7 @@ export async function POST(request: Request) {
   const displacedByUser = new Map<string, Array<Date | null>>();
   let clearedCount = 0;
 
+  const emptiedRows: { programSlug: string; sessionDate: Date | null; userId: string | null }[] = [];
   const saved = await db.$transaction(async (tx) => {
     const existing = await tx.standingAssignment.findMany({
       where: {
@@ -404,6 +406,7 @@ export async function POST(request: Request) {
         if (!displacedByUser.has(r.userId)) displacedByUser.set(r.userId, []);
         displacedByUser.get(r.userId)!.push(r.sessionDate);
       }
+      emptiedRows.push(...futureRows.map((r) => ({ programSlug: body.programSlug, sessionDate: r.sessionDate, userId: r.userId })));
       const futureIds = futureRows.map((r) => r.id);
       if (futureIds.length > 0) {
         await tx.subClaim.deleteMany({ where: { request: { assignmentId: { in: futureIds } } } });
@@ -460,6 +463,30 @@ export async function POST(request: Request) {
       });
       out.push({ id: rec.id, occurrence: rec.occurrence, userId: rec.userId });
     }
+
+    // The team's record: a person newly on a rotation (the team sees it), and
+    // a person no longer on one (the leads and the person). A re-save with
+    // the same people records nothing.
+    const before = new Map(existing.map((ex) => [ex.occurrence, ex.userId]));
+    const rotationAt = { hubSlug: targetHubSlug, programSlug: body.programSlug, actorId: session.user!.id };
+    await recordHubEvents(tx, [
+      ...[...targets.entries()]
+        .filter(([occ, uid]) => before.get(occ) !== uid)
+        .map(([occurrence, uid]) => ({
+          ...rotationAt, kind: "rotation-set" as const, subjectUserId: uid,
+          detail: { occurrence, dayOfWeek: body.dayOfWeek ?? null, cycleStart: cycleStart ?? null },
+        })),
+      ...existing
+        .filter((ex) => targets.get(ex.occurrence) !== ex.userId)
+        .map((ex) => ({
+          ...rotationAt, kind: "rotation-ended" as const, subjectUserId: ex.userId,
+          detail: {
+            occurrence: ex.occurrence,
+            dayOfWeek: body.dayOfWeek ?? null,
+            sessions: emptiedSessionKeys(emptiedRows.filter((r) => r.userId === ex.userId)),
+          },
+        })),
+    ]);
 
     return out;
   });

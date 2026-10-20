@@ -13,6 +13,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useHashArrival } from "@/components/hooks/useHashArrival";
 import { relativeDate } from "@/lib/relativeDate";
 import NotifyPicker, { type NotifyValue, NOTIFY_NONE } from "@/components/NotifyPicker";
 
@@ -66,6 +67,8 @@ export default function FileConversation({
   leadsOnly = false,
 }: Props) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
+  // An Updates link can open the file at one comment (#comment-…).
+  useHashArrival();
   const [draft, setDraft] = useState("");
   const [notify, setNotify] = useState<NotifyValue>(NOTIFY_NONE);
   const [busy, setBusy] = useState(false);
@@ -159,7 +162,7 @@ export default function FileConversation({
           {comments.map((c) => {
             const canDelete = c.authorId === viewerId || canModerate;
             return (
-              <li key={c.id} className="gf-comment">
+              <li key={c.id} id={`comment-${c.id}`} tabIndex={-1} className="gf-comment">
                 <div className="gf-comment__head">
                   <span className="gf-comment__author">{c.authorName}</span>
                   <span className="gf-comment__time">{relativeDate(c.createdAt)}</span>

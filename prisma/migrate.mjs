@@ -6989,6 +6989,40 @@ Rooted In Mindfulness`,
     console.error("  Role words: failed (templates unchanged):", err?.message ?? err);
   }
 
+  // Updates inbox (2026-10-19, Jesse: "read it like an inbox and by type").
+  // Two additive tables, no backfill: the schedule record (hub_events) starts
+  // the day it ships; earlier changes left no row to recover. Old code
+  // ignores both. See HubEvent / HubUpdateRead in schema.prisma.
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "hub_events" (
+      "id" TEXT NOT NULL PRIMARY KEY, "hubSlug" TEXT NOT NULL, "kind" TEXT NOT NULL,
+      "actorId" TEXT, "subjectUserId" TEXT, "programSlug" TEXT, "sessionDate" TIMESTAMP(3),
+      "count" INTEGER, "detail" JSONB,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "hub_events_hubSlug_createdAt_idx" ON "hub_events"("hubSlug", "createdAt")`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "hub_events_subjectUserId_createdAt_idx" ON "hub_events"("subjectUserId", "createdAt")`),
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "hub_update_reads" (
+      "id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL, "hubId" TEXT NOT NULL,
+      "itemKey" TEXT NOT NULL, "readAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+    db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "hub_update_reads_userId_hubId_itemKey_key" ON "hub_update_reads"("userId", "hubId", "itemKey")`),
+  ]);
+  console.log("  ✔ Updates inbox tables ready.");
+
+  // Everyone starts the inbox with nothing unread: what is already there is
+  // history they have lived through, not news. Once, before the code that
+  // reads it (activitySeenAt was unread since July).
+  try {
+    const flag = "updates_inbox_start_read_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const n = await db.$executeRawUnsafe(`UPDATE "hub_members" SET "activitySeenAt" = NOW()`);
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+      console.log(`  ✔ Updates inbox: ${n} team memberships start with nothing unread.`);
+    }
+  } catch (err) {
+    console.error("  Updates inbox start point failed (inbox shows older items as unread):", err?.message ?? err);
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

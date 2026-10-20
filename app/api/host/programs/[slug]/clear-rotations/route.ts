@@ -32,6 +32,7 @@ import { db } from "@/lib/db";
 import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug } from "@/lib/programHub";
 import { ctStartOfToday } from "@/lib/timezone";
+import { emptiedSessionKeys, recordHubEvent } from "@/lib/hubEvents";
 
 
 export async function POST(
@@ -103,6 +104,19 @@ export async function POST(
         where: { programSlug, hubSlug: targetHubSlug },
       });
       deletedRotations = rotResult.count;
+    }
+    // The team's record, for the leads: one line for this program's clear.
+    const people = futureAssns.filter((a) => a.userId).length;
+    if (people || deletedRotations) {
+      await recordHubEvent(tx, {
+        hubSlug: targetHubSlug,
+        kind: "sessions-released",
+        actorId: session.user.id,
+        subjectUserId: null,
+        programSlug,
+        count: people,
+        detail: { reason: mode === "reset" ? "program-reset" : "program-cleared", rotationsEnded: deletedRotations, sessions: emptiedSessionKeys(futureAssns) },
+      });
     }
   });
 

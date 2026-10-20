@@ -26,6 +26,7 @@ import { sendStandingAssignmentEndedEmail } from "@/lib/email";
 import { canManageHubCoverage } from "@/lib/hubAuth";
 import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import { ctStartOfToday } from "@/lib/timezone";
+import { emptiedSessionKeys, recordHubEvent } from "@/lib/hubEvents";
 
 const TZ = "America/Chicago";
 
@@ -60,6 +61,16 @@ export async function DELETE(
 
   const body = await request.json().catch(() => ({}));
   const releaseFuture = body?.releaseFuture === true;
+
+  // The team's record, for the leads and the person: this rotation ended.
+  const ended = {
+    hubSlug: rotationHubSlug,
+    kind: "rotation-ended" as const,
+    actorId: session.user.id,
+    subjectUserId: rotation.userId,
+    programSlug: rotation.programSlug,
+    detail: { occurrence: rotation.occurrence, dayOfWeek: rotation.dayOfWeek },
+  };
 
   // CT-anchored "today" — past stays untouched
   const todayCt = ctStartOfToday(); // Central midnight, not UTC (2026-10-15)
@@ -116,7 +127,7 @@ export async function DELETE(
           standingAssignmentId: id,
           sessionDate:          { gte: todayCt },
         },
-        select: { id: true },
+        select: { id: true, programSlug: true, sessionDate: true, userId: true },
       });
       const futureAssnIds = futureAssns.map((a) => a.id);
       if (futureAssnIds.length > 0) {
@@ -135,6 +146,7 @@ export async function DELETE(
         where: { id },
         data:  { endsOn: todayCt },
       });
+      await recordHubEvent(tx, { ...ended, count: futureAssnIds.length, detail: { ...ended.detail, sessions: emptiedSessionKeys(futureAssns) } });
     });
 
     // Email the displaced host
@@ -158,9 +170,12 @@ export async function DELETE(
     }
   } else {
     // Just end the rotation. Past + future assignments unaffected.
-    await db.standingAssignment.update({
-      where: { id },
-      data:  { endsOn: todayCt },
+    await db.$transaction(async (tx) => {
+      await tx.standingAssignment.update({
+        where: { id },
+        data:  { endsOn: todayCt },
+      });
+      await recordHubEvent(tx, ended);
     });
   }
 

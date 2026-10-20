@@ -199,7 +199,7 @@ export async function PATCH(
   let teamTold = false;
   if (goingInactive || (willRevokeHosting && force && releaseAssignments)) {
     const released = await db.$transaction((tx) =>
-      releasePersonCoverage(tx, userId, session.user.id, { hubSlug: hub.slug, endRotations: goingInactive }),
+      releasePersonCoverage(tx, userId, session.user.id, { hubSlug: hub.slug, endRotations: goingInactive, reason: goingInactive ? "inactive" : "paused" }),
     );
     opened = released.rows.length;
     rotationsEnded = released.rotations;
@@ -289,6 +289,7 @@ export async function DELETE(
     hub.id,
     slug,
     userId,
+    session.user.id,
   );
   // They're told which sessions went with the team (2026-10-16 audit).
   if (removedRows.length) {

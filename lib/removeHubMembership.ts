@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { emptiedSessionKeys, recordHubEvent } from "@/lib/hubEvents";
 
 /**
  * Hard-remove a user's membership in one hub AND clean up their future coverage
@@ -22,6 +23,8 @@ export async function removeHubMembershipWithCleanup(
   hubId: string,
   hubSlug: string,
   userId: string,
+  /** Who removed them, for the team's record. */
+  actorId: string | null = null,
 ): Promise<{
   removedAssignments: number;
   removedRules: number;
@@ -42,6 +45,15 @@ export async function removeHubMembershipWithCleanup(
     }
     const rules = await tx.standingAssignment.deleteMany({ where: { userId, hubSlug } });
     await tx.hubMember.delete({ where: { hubId_userId: { hubId, userId } } });
+    // The team's record, for its leads: this person left the team.
+    await recordHubEvent(tx, {
+      hubSlug,
+      kind: "member-left",
+      actorId,
+      subjectUserId: userId,
+      count: futureIds.length,
+      detail: { rotationsEnded: rules.count, sessions: emptiedSessionKeys(futureAssns) },
+    });
     return {
       removedAssignments: futureIds.length,
       removedRules: rules.count,

@@ -8,9 +8,29 @@ import { authorizeSelfClaim } from "@/lib/hubMemberAuth";
 import { fmtSessionDay } from "@/lib/timezone";
 import { holdRotationDate } from "@/lib/applyStandingAssignments";
 import { deliverGapNotices, gapNoticeReachesTeam, prepareGapNotices } from "@/lib/coverageNotices";
+import { recordHubEvent } from "@/lib/hubEvents";
+import type { Prisma } from "@prisma/client";
 
 // Central Time, not the server's UTC (2026-10-15).
 const fmtDate = (d: Date | null) => fmtSessionDay(d);
+
+/** The team's record: this person is off this session (leads and the person
+ *  see it; the team sees the need, never the name). */
+function recordLeft(
+  tx: Prisma.TransactionClient,
+  assignment: { hubSlug: string; programSlug: string; sessionDate: Date | null },
+  actorId: string,
+  removedUserId: string,
+) {
+  return recordHubEvent(tx, {
+    hubSlug: assignment.hubSlug,
+    kind: "session-left",
+    actorId,
+    subjectUserId: removedUserId,
+    programSlug: assignment.programSlug,
+    sessionDate: assignment.sessionDate,
+  });
+}
 
 // PATCH /api/host/assignments/[id]
 // Body: { action: "claim" | "unclaim" }
@@ -70,9 +90,22 @@ export async function PATCH(
     }
     // Only if it's still empty: two people claiming at once can't both win,
     // and the second can't overwrite the first (2026-10-16 audit).
-    const taken = await db.hostAssignment.updateMany({
-      where: { id, userId: null },
-      data: { userId: session.user.id, assignedBy: session.user.id },
+    const taken = await db.$transaction(async (tx) => {
+      const r = await tx.hostAssignment.updateMany({
+        where: { id, userId: null },
+        data: { userId: session.user.id, assignedBy: session.user.id },
+      });
+      if (r.count) {
+        await recordHubEvent(tx, {
+          hubSlug: assignment.hubSlug,
+          kind: "session-taken",
+          actorId: session.user.id,
+          subjectUserId: session.user.id,
+          programSlug: assignment.programSlug,
+          sessionDate: assignment.sessionDate,
+        });
+      }
+      return r;
     });
     if (taken.count === 0) {
       return Response.json({ error: "Someone just took this session." }, { status: 409 });
@@ -136,6 +169,7 @@ export async function PATCH(
       data: { userId: null },
     });
     await holdRotationDate(assignment, session.user.id, tx);
+    if (removedUserId) await recordLeft(tx, assignment, session.user.id, removedUserId);
   });
 
   // The seat is empty: if the session is within two weeks, the team hears
@@ -229,6 +263,7 @@ export async function DELETE(
     });
     await tx.hostAssignment.delete({ where: { id } });
     await holdRotationDate(assignment, session.user.id, tx);
+    if (removedUserId) await recordLeft(tx, assignment, session.user.id, removedUserId);
   });
 
   // If that was the session's last person on this team and it's within two

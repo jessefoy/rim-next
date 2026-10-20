@@ -1003,6 +1003,46 @@ model CoverageNotice {
   @@map("coverage_notices")
 }
 
+/// What happened on a team's schedule, one line per change (2026-10-19, the
+/// Updates inbox). Most schedule changes overwrite or delete their row, so
+/// Updates could not show them; this is the record. Append-only, written
+/// beside the change itself. `hubSlug` is the session's own team (carried on
+/// a slug rename). Kinds and who sees each: lib/hubEvents.ts.
+model HubEvent {
+  id            String    @id @default(cuid())
+  hubSlug       String
+  kind          String
+  /// Who did it; null when the system did (the daily pass).
+  actorId       String?
+  /// Who it is about: the person who took, left or was put on something.
+  subjectUserId String?
+  programSlug   String?
+  sessionDate   DateTime?
+  /// How many sessions, for a change that touched several at once.
+  count         Int?
+  detail        Json?
+  createdAt     DateTime  @default(now())
+
+  @@index([hubSlug, createdAt])
+  @@index([subjectUserId, createdAt])
+  @@map("hub_events")
+}
+
+/// Which Updates items a person has opened (2026-10-19, the Updates inbox).
+/// Items before HubMember.activitySeenAt count as read too, which is how
+/// "Mark all as read" works and why nobody starts with old items unread.
+model HubUpdateRead {
+  id      String   @id @default(cuid())
+  userId  String
+  hubId   String
+  /// The Updates item's id ("reply-…", "schedule-sub-…", "event-…").
+  itemKey String
+  readAt  DateTime @default(now())
+
+  @@unique([userId, hubId, itemKey])
+  @@map("hub_update_reads")
+}
+
 // HostThread and HostReply models removed in session 76 (hub conformance).
 // Features (reactions, reply editing, categories) ported to shared HubConversationThread/Reply.
 // Tables host_threads and host_replies retained in DB for historical reference.
@@ -1192,7 +1232,7 @@ model HubMember {
   // Member-owned
   lastVisitedAt  DateTime? // for unread dot tracking on dashboard hub cards
   firstVisitedAt DateTime? // for newcomer welcome interstitial (Phase 2c)
-  activitySeenAt DateTime? // legacy Updates boundary; retained inert for migration safety
+  activitySeenAt DateTime? // Updates inbox: everything before this counts as read ("Mark all as read"); null = joinedAt (2026-10-19)
 
   hub  Hub  @relation(fields: [hubId], references: [id])
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

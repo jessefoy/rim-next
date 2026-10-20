@@ -12,6 +12,7 @@ import {
   teamCannotStaff,
 } from "@/lib/programHub";
 import { buildHubMonthSessions } from "@/lib/scheduleSessions";
+import { recordHubEvent } from "@/lib/hubEvents";
 import { ctDateStr, isOccurrenceOnDate, shiftToDate } from "@/lib/scheduleUtils";
 
 /**
@@ -242,6 +243,21 @@ export async function POST(request: Request) {
   const outcome: Outcome = await db.$transaction(async (tx) => {
     await tx.$queryRawUnsafe("SELECT 1 FROM pg_advisory_xact_lock(hashtext($1))", `seat:${programSlug}:${dayStr}:${targetHubSlug}`);
 
+    // The team's record (Updates): who now has the session, with the change.
+    const ok = async (row: Extract<Outcome, { kind: "ok" }>["row"]): Promise<Outcome> => {
+      if (row.userId) {
+        await recordHubEvent(tx, {
+          hubSlug: targetHubSlug,
+          kind: row.userId === session.user.id ? "session-taken" : "session-assigned",
+          actorId: session.user.id,
+          subjectUserId: row.userId,
+          programSlug,
+          sessionDate: parsedDate,
+        });
+      }
+      return { kind: "ok", row };
+    };
+
     if (multiClaim) {
       const dup = await tx.hostAssignment.findFirst({ where: { ...thisSession, userId: assignedUserId }, select: { id: true } });
       if (dup) return { kind: "error", status: 409, error: "You're already signed up." };
@@ -249,7 +265,7 @@ export async function POST(request: Request) {
         data: { programSlug, hubSlug: targetHubSlug, userId: assignedUserId, sessionDate: parsedDate, notes: notes ?? null, assignedBy: session.user.id },
         include: userSelect,
       });
-      return { kind: "ok", row };
+      return ok(row);
     }
 
     // Single seat: fill an empty row for this session, or refuse if filled.
@@ -266,13 +282,13 @@ export async function POST(request: Request) {
         data: { userId: assignedUserId, assignedBy: session.user.id },
         include: userSelect,
       });
-      return { kind: "ok", row };
+      return ok(row);
     }
     const row = await tx.hostAssignment.create({
       data: { programSlug, hubSlug: targetHubSlug, userId: assignedUserId ?? null, sessionDate: parsedDate, notes: notes ?? null, assignedBy: session.user.id },
       include: userSelect,
     });
-    return { kind: "ok", row };
+    return ok(row);
   });
   if (outcome.kind === "error") return Response.json({ error: outcome.error }, { status: outcome.status });
   const assignment = outcome.row;

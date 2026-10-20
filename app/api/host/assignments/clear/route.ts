@@ -36,6 +36,7 @@ import { sendCoverageClearedEmails } from "@/lib/email";
 import { db } from "@/lib/db";
 import { canManageHubCoverage } from "@/lib/hubAuth";
 import { ctStartOfToday } from "@/lib/timezone";
+import { emptiedSessionKeys, recordHubEvent } from "@/lib/hubEvents";
 
 
 export async function POST(request: Request) {
@@ -85,6 +86,18 @@ export async function POST(request: Request) {
     // Hard delete of the rules: a true fresh start for this team. Past
     // assignments kept above lose the rule link (SetNull) and stay as record.
     const rot = endRotations ? await tx.standingAssignment.deleteMany({ where: { hubSlug } }) : { count: 0 };
+    // The team's record, for the leads: one line for the whole clear.
+    const cleared = rows.filter((r) => r.userId && r.sessionDate && r.sessionDate >= todayCt).length;
+    if (cleared || rot.count) {
+      await recordHubEvent(tx, {
+        hubSlug,
+        kind: "sessions-released",
+        actorId: session.user.id,
+        subjectUserId: null,
+        count: cleared,
+        detail: { reason: "schedule-cleared", rotationsEnded: rot.count, sessions: emptiedSessionKeys(rows.filter((r) => r.sessionDate && r.sessionDate >= todayCt)) },
+      });
+    }
     return {
       deletedAssignments: ids.length,
       deletedRotations: rot.count,

@@ -15,6 +15,8 @@ import { db } from "@/lib/db";
 import { getHubContext } from "@/lib/hubContext";
 import { effectiveCoordinator } from "@/lib/hubAuth";
 import { resolveRegisteredTool } from "@/lib/hubApps";
+import { countHubUnreadForYou, readPointOf } from "@/lib/hubActivity";
+import { hubLeadAllowed } from "@/lib/googleFiles";
 import { canUseProgramManager } from "@/lib/toolAuth";
 
 export async function GET(
@@ -46,13 +48,31 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const ctx = await getHubContext(
-    hub.slug,
-    hub.id,
-    session.user.id,
-    member?.lastVisitedAt ?? null,
-    hub.conversationsEnabled,
-  );
+  const [ctx, updatesForYou] = await Promise.all([
+    getHubContext(
+      hub.slug,
+      hub.id,
+      session.user.id,
+      member?.lastVisitedAt ?? null,
+      hub.conversationsEnabled,
+    ),
+    // The Updates number: unread items for you only (Jesse, 2026-10-19).
+    countHubUnreadForYou({
+      hubId: hub.id,
+      hubSlug: hub.slug,
+      viewer: {
+        userId: session.user.id,
+        roles,
+        isLead: hubLeadAllowed(roles, member ?? null),
+        readPoint: readPointOf(member ?? null),
+      },
+      conversationsEnabled: hub.conversationsEnabled,
+      filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
+    }).catch((err) => {
+      console.error("[hub nav] Updates count failed", err);
+      return 0;
+    }),
+  ]);
 
   // An ACTIVE coordinator is the one to contact (2026-10-19 audit).
   const coordinatorNames = hub.members
@@ -93,6 +113,7 @@ export async function GET(
     tools,
     navCounts: {
       conversations: ctx.conversationsUnread,
+      updates: updatesForYou,
     },
     isCoordinator: effectiveCoordinator(member, roles),
     isAdmin,

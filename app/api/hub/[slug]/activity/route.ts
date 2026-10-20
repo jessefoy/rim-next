@@ -4,36 +4,39 @@ import { NextResponse } from "next/server";
 import { canAccessHub, getHubMembership } from "@/lib/hubAuth";
 import {
   listHubActivity,
-  parseHubActivitySource,
-  type HubActivityFilter,
+  parseHubActivityFolder,
+  parseHubActivityShow,
+  readPointOf,
 } from "@/lib/hubActivity";
 
-/** Paginated, source-aware Space Updates. */
+/** A page of a team's Updates, for one folder (type), all or unread. */
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { slug } = await params;
-  const { hub, member } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  const roles = session.user.roles ?? [];
+  const { hub, member } = await getHubMembership(slug, session.user.id, roles);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!canAccessHub(member, session.user.roles ?? [])) {
+  if (!canAccessHub(member, roles)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const url = new URL(req.url);
   const rawLimit = Number.parseInt(url.searchParams.get("limit") ?? "30", 10);
-  const rawFilter = url.searchParams.get("filter");
-  const filter: HubActivityFilter = rawFilter === "recent" || rawFilter === "for-me" ? rawFilter : "all";
-  const source = parseHubActivitySource(url.searchParams.get("source"));
   const result = await listHubActivity({
     hubId: hub.id,
     hubSlug: slug,
-    userId: session.user.id,
+    viewer: {
+      userId: session.user.id,
+      roles,
+      isLead: hubLeadAllowed(roles, member),
+      readPoint: readPointOf(member),
+    },
     conversationsEnabled: hub.conversationsEnabled,
-    isLead: hubLeadAllowed(session.user.roles ?? [], member),
     filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
-    source,
-    filter,
+    folder: parseHubActivityFolder(url.searchParams.get("folder")),
+    show: parseHubActivityShow(url.searchParams.get("show")),
     cursor: url.searchParams.get("cursor"),
     limit: Number.isFinite(rawLimit) ? rawLimit : 30,
   });

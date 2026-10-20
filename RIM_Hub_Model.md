@@ -104,7 +104,7 @@ When a member navigates to `/account/hub/[slug]`:
 3. **Access check** — resolve the `HubMember` row and apply `canAccessHub(member, roles)`
 4. **Sidebar render** — `HubWorkspaceSidebar` receives hub identity, tools, counts, coordinator/trash authority, and admin state
 5. **First visit** — retired 2026-10-13 with the welcome interstitial (and `PATCH /api/hubs/[slug]/membership/visited`); `firstVisitedAt` is no longer written
-6. **Visit tracking** — `lastVisitedAt` remains the Home/conversation boundary; Updates uses a fixed seven-day Recent window and does not record a read state
+6. **Visit tracking** — `lastVisitedAt` remains the Home/conversation boundary; Updates keeps its own read state (`activitySeenAt` + `hub_update_reads`, 2026-10-19)
 
 ---
 
@@ -509,7 +509,16 @@ Retired 2026-10-13: the first-visit welcome screen, "About this team", "Team gui
 
 **Route:** `/account/hub/[slug]/activity`
 
-A computed, hub-scoped stream that brings together conversation starts/replies, visible Google Files events, member joins, and installed-app events. The stable route remains `/activity` to avoid breaking links, but the UI name is **Updates**. It is a projection, not a separate activity model. Every item names its source (`Conversation`, `Conversation reply`, `Files`, `File comment`, `Members`, or the app label), plus a durable event kind. Filters are **All**, **Recent**, and **For me**; Recent is the rolling seven days and does not change when a member opens the page or clicks an item. “For me” means subscribed conversation replies, comments on files the viewer created, and app-defined personally relevant events—not actions authored by the viewer. A Scheduler-style **View** menu organizes the stream by **Date and time** (the default chronology), **All categories** (grouped newest-first), or one exact active category such as Conversations, Files, Members, or Scheduler. Exact category choices are derived from the Space's enabled core features and installed Updates-capable apps, then filtered on the server before pagination so “Load more” remains complete and correct. All retains the complete history; passive Updates create no unread state or rail dot. Durable Home attention comes only from an owning app's live open/closed state.
+A team's Updates, read like an inbox (2026-10-19, Jesse: *"People should be able to read it like an inbox and by type. It should also go to the item specifically."*). The stable route remains `/activity`; the UI name is **Updates**. Full rules: `RIM_Hub_Engineering.md`, "The Updates inbox".
+
+- **Types are folders in plain sight:** For you, Everything, then the team's tool (Schedule), Conversations, Files and Members, each with its unread count. **All · Unread** chooses what shows; day headings (Today, Yesterday, a weekday, a date) replace the retired Recent filter. The View menu is retired.
+- **Needs you** leads: sessions in the next two weeks that need someone, cover requests among them, offered by installed apps (`needs` provider), with "Take this session", "Sign up to greet" or "I'll cover this" right on the item, using the Scheduler's own rules (`canSelfClaim`) and routes. They leave once taken.
+- **History** is one sentence per item that opens the exact thing: a session (`/tools/schedule?…&session=program~YYYY-MM-DD`), a reply (`#reply-…`), a file comment (`#comment-…`), a member (`#member-…`). A day's replies in one conversation are one item. Cover requests carry where they stand (Open, Covered by …, Closed, Passed); a gap carries Still open / Filled / Passed.
+- **Read state:** opening an item marks it read (`hub_update_reads`); `HubMember.activitySeenAt` is "everything before this is read" (Mark all as read; null = `joinedAt`). Read is a mark, never a removal: All keeps everything. A guiding teacher looking in on a team they aren't on has no read state.
+- **The rail's Updates number** counts only unread items for you (Needs you, and history about you), never team news alone (Jesse, 2026-10-19).
+- **The Scheduler's record** (`hub_events`, `lib/hubEvents.ts`) supplies what otherwise leaves no row: taking a session, being put on one, rotations set and ended, someone leaving a session or the team. **Who leaves is shown only to the leads and the person** (Jesse, 2026-10-19); the team sees the need.
+
+This supersedes the July 2026 "no read state" rule, which existed because the old read point emptied Recent; nothing in the inbox hides an item.
 
 ### Conversations
 
@@ -538,7 +547,7 @@ A computed, hub-scoped stream that brings together conversation starts/replies, 
 - Last visited timestamp
 - Member count
 
-**Data model:** `HubMember` (hubId, userId, position, isCoordinator, joinedAt, lastVisitedAt, firstVisitedAt). The nullable `activitySeenAt` column remains only as a migration-safe legacy field; current Updates code neither reads nor writes it.
+**Data model:** `HubMember` (hubId, userId, position, isCoordinator, joinedAt, lastVisitedAt, firstVisitedAt). `activitySeenAt` is the Updates inbox's read point (2026-10-19): everything before it counts as read; "Mark all as read" sets it; null falls back to `joinedAt`.
 
 ### No Hub-Specific Additions
 
@@ -591,7 +600,7 @@ Current contracts:
 
 | App | Space mode | Home | Updates / attention |
 |---|---|---|---|
-| Scheduler | multi-space | sessions in the next two weeks that need someone (`scheduleHome`, counted by the Scheduler's row builder) | cover requests + claims |
+| Scheduler | multi-space | sessions in the next two weeks that need someone (`scheduleHome`, counted by the Scheduler's row builder) | Needs you (sessions needing someone, takeable in place); history: cover requests with their state, claims, gaps, and the `hub_events` record (leaving shown to leads and the person) |
 | Program Manager | primary-space (`registrar`); role-only access (`canUseProgramManager`, 2026-10-19) | new registrations in the last seven days | none until its mutations have durable actor attribution |
 | Course Manager | primary-space (`courses`) | draft courses | none until its mutations have durable actor attribution |
 

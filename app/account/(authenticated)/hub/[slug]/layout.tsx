@@ -18,6 +18,8 @@ import HubWorkspaceSidebar from "@/components/HubWorkspaceSidebar";
 import { getHubContext } from "@/lib/hubContext";
 import { canAccessHub, canManageTrash, effectiveCoordinator } from "@/lib/hubAuth";
 import { resolveRegisteredTool } from "@/lib/hubApps";
+import { countHubUnreadForYou, readPointOf } from "@/lib/hubActivity";
+import { hubLeadAllowed } from "@/lib/googleFiles";
 import { canUseProgramManager } from "@/lib/toolAuth";
 
 interface Props {
@@ -71,13 +73,31 @@ export default async function HubLayout({ children, params }: Props) {
   const isCoordinator = effectiveCoordinator(member, roles);
   const canTrash = canManageTrash(roles, member);
 
-  const ctx = await getHubContext(
-    hub.slug,
-    hub.id,
-    session.user.id,
-    member?.lastVisitedAt ?? null,
-    hub.conversationsEnabled,
-  );
+  const [ctx, updatesForYou] = await Promise.all([
+    getHubContext(
+      hub.slug,
+      hub.id,
+      session.user.id,
+      member?.lastVisitedAt ?? null,
+      hub.conversationsEnabled,
+    ),
+    // The Updates number: unread items for you only (Jesse, 2026-10-19).
+    countHubUnreadForYou({
+      hubId: hub.id,
+      hubSlug: hub.slug,
+      viewer: {
+        userId: session.user.id,
+        roles,
+        isLead: hubLeadAllowed(roles, member ?? null),
+        readPoint: readPointOf(member ?? null),
+      },
+      conversationsEnabled: hub.conversationsEnabled,
+      filesEnabled: hub.googleFilesEnabled && Boolean(hub.googleDriveId),
+    }).catch((err) => {
+      console.error("[hub nav] Updates count failed", err);
+      return 0;
+    }),
+  ]);
 
   // An ACTIVE coordinator is the one to contact (2026-10-19 audit).
   const coordinatorNames = hub.members
@@ -119,6 +139,7 @@ export default async function HubLayout({ children, params }: Props) {
         tools={tools}
         navCounts={{
           conversations: ctx.conversationsUnread,
+          updates: updatesForYou,
         }}
         isCoordinator={isCoordinator}
         isAdmin={isAdmin}

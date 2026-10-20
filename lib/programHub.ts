@@ -20,6 +20,7 @@
  */
 
 import { db } from "@/lib/db";
+import { emptiedSessionKeys, recordHubEvent, recordHubEvents } from "@/lib/hubEvents";
 import {
   ctDateStr, dateToDayCode, getDayOfWeekOccurrenceInMonth, getTotalDayOfWeekOccurrencesInMonth,
   isCycleOccurrence, isCycleWeek, isOccurrenceOnDate, meetsEveryWeek, type ScheduleProgram,
@@ -374,6 +375,14 @@ export async function clearCoverageNoLongerStaffed(
         await tx.hostAssignment.deleteMany({ where: { id: { in: ids } } });
       }
       const rot = await tx.standingAssignment.deleteMany({ where: { programSlug, hubSlug } });
+      // The team's record, for its leads: the program's change took sessions off.
+      if (ids.length || rot.count) {
+        await recordHubEvent(tx, {
+          hubSlug, kind: "sessions-released", actorId: null, subjectUserId: null, programSlug,
+          count: future.filter((r) => r.userId).length,
+          detail: { reason: "program-no-longer-staffed", rotationsEnded: rot.count, sessions: emptiedSessionKeys(future) },
+        });
+      }
       return { hubSlug, assignments: ids.length, rotations: rot.count, rows: future.map((r) => ({ userId: r.userId, hubSlug: r.hubSlug, programSlug: r.programSlug, sessionDate: r.sessionDate })) };
     });
     if (result.assignments || result.rotations) cleared.push(result);
@@ -434,7 +443,7 @@ export async function clearOffScheduleCoverage(programSlug: string): Promise<{
   }
   const deadRules = (await db.standingAssignment.findMany({
     where: { programSlug, dayOfWeek: { not: null } },
-    select: { id: true, dayOfWeek: true, occurrence: true, cycleStart: true },
+    select: { id: true, dayOfWeek: true, occurrence: true, cycleStart: true, hubSlug: true },
   })).filter((r) =>
     r.occurrence === "ALL"
       ? !canMatch.has(r.dayOfWeek!)
@@ -461,6 +470,13 @@ export async function clearOffScheduleCoverage(programSlug: string): Promise<{
     if (deadRules.length) {
       await tx.standingAssignment.deleteMany({ where: { id: { in: deadRules.map((r) => r.id) } } });
     }
+    // The team's record, for each team's leads: the new schedule took sessions off.
+    const teams = [...new Set([...offDay.map((a) => a.hubSlug), ...deadRules.map((r) => r.hubSlug)])];
+    await recordHubEvents(tx, teams.map((hubSlug) => ({
+      hubSlug, kind: "sessions-released" as const, actorId: null, subjectUserId: null, programSlug,
+      count: offDay.filter((a) => a.hubSlug === hubSlug && a.userId).length,
+      detail: { reason: "schedule-changed", rotationsEnded: deadRules.filter((r) => r.hubSlug === hubSlug).length },
+    })));
   });
   return {
     sessions: offDay.map((a) => ({ userId: a.userId, hubSlug: a.hubSlug, sessionDate: a.sessionDate! })),

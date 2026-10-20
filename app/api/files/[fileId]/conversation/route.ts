@@ -55,8 +55,9 @@ export async function POST(
     if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
     const { viewer, file, place, leadsOnly } = gate.data;
 
-    await db.fileComment.create({
+    const created = await db.fileComment.create({
       data: { googleFileId: fileId, authorId: viewer.userId, body: text },
+      select: { id: true },
     });
     await logFileAction({
       leadsOnly,
@@ -64,7 +65,8 @@ export async function POST(
       action: "comment",
       googleFileId: fileId,
       hubId: place.hubId,
-      detail: { place: place.key, name: file.name },
+      // commentId: Updates opens the file at this comment (2026-10-19).
+      detail: { place: place.key, name: file.name, commentId: created.id },
     });
 
     // Basecamp-style: notify only the people the commenter chose (default none).

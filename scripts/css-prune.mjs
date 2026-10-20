@@ -62,6 +62,11 @@ const DEAD_PREFIXES = [
   // row cards were the last users of these.
   "pp-cards", "pp-card--row", "pp-card__row", "pp-card__meta", "pp-card__schedule",
   "pp-card__format", "pp-card__action--named", "pp-card__main", "pp-split--doors",
+  // 2026-10-19: Updates became an inbox (hub-inbox-); the View menu, filters,
+  // category groups and old rows retired. hub-act, __header, __title, __intro
+  // and __load-more stay live.
+  "hub-act-item", "hub-act__controls", "hub-act__empty", "hub-act__error",
+  "hub-act__filter", "hub-act__group", "hub-act__item", "hub-act__list", "hub-act__view",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

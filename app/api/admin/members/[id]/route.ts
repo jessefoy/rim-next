@@ -44,7 +44,7 @@ export async function PATCH(
     // audit). They aren't emailed; the team sees the open seats.
     const released = await db.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { archivedAt: new Date() } });
-      return releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true });
+      return releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true, reason: "archived" });
     });
     // Each team hears about a session within two weeks now left with no one.
     const gaps = await prepareGapNotices(released.rows, [session?.user?.id, id]);
@@ -218,7 +218,7 @@ export async function PATCH(
     // Marked Inactive archives the account: release its schedule as the
     // Archive action does (2026-10-16 audit).
     if (statusDrivenArchivedAt instanceof Date && !user.archivedAt) {
-      inactiveReleased = (await releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true })).rows;
+      inactiveReleased = (await releasePersonCoverage(tx, id, session?.user?.id ?? id, { endRotations: true, reason: "archived" })).rows;
     }
     if (emailIsChanging) {
       // Codes already sent to the old address stop working with it.
@@ -372,7 +372,7 @@ export async function DELETE(
   const adminId = session!.user.id;
   let releasedRows: { userId: string; hubSlug: string; programSlug: string; sessionDate: Date | null }[] = [];
   await db.$transaction(async (tx) => {
-    releasedRows = (await releasePersonCoverage(tx, id, adminId, { endRotations: true })).rows;
+    releasedRows = (await releasePersonCoverage(tx, id, adminId, { endRotations: true, reason: "deleted" })).rows;
     await tx.standingAssignment.updateMany({ where: { createdById: id }, data: { createdById: adminId } });
     const pastSignUps = (await tx.hostAssignment.findMany({
       where: { userId: id, hubSlug: { in: (await tx.hub.findMany({ where: { allowsMultipleAssignments: true }, select: { slug: true } })).map((h) => h.slug) } },

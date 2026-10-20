@@ -24,6 +24,7 @@ import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 import { avatarColorFor } from "@/lib/avatarColor";
 import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
+import { useHashArrival } from "@/components/hooks/useHashArrival";
 
 interface PersonName {
   firstName: string | null;
@@ -144,6 +145,8 @@ export default function HubConvThreadClient({
   const [replyError, setReplyError] = useState<string | null>(null);
   // Every action is answered, success or not (ActionNotice, 2026-10-13).
   const { notice, say } = useActionNotice();
+  // An Updates link can open the thread at one reply (#reply-…).
+  useHashArrival();
   const sendingReplyRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
@@ -716,7 +719,7 @@ export default function HubConvThreadClient({
             const reactions = Object.entries(r.reactions).filter(([, users]) => users.length > 0);
             const replyInits = initialsOf(r.author);
             return (
-              <article key={r.id} className="hub-conv-post">
+              <article key={r.id} id={`reply-${r.id}`} tabIndex={-1} className="hub-conv-post">
                 <div
                   className="hub-conv-post__avatar"
                   aria-hidden="true"

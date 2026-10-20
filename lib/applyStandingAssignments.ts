@@ -48,6 +48,7 @@ import {
 } from "@/lib/scheduleUtils";
 import type { StandingOccurrence } from "@prisma/client";
 import { ctDayBounds } from "@/lib/timezone";
+import { emptiedSessionKeys, recordHubEvents } from "@/lib/hubEvents";
 
 const TZ = "America/Chicago";
 
@@ -933,7 +934,14 @@ export async function releasePersonCoverage(
   tx: Tx,
   userId: string,
   byUserId: string,
-  opts: { hubSlug?: string; endRotations: boolean },
+  opts: {
+    hubSlug?: string;
+    endRotations: boolean;
+    /** Why, for the team's record ("paused", "inactive", "archived", "deleted"). */
+    reason?: string;
+    /** The daily pass did it, not a person. */
+    bySystem?: boolean;
+  },
 ): Promise<{ rows: { userId: string; hubSlug: string; programSlug: string; sessionDate: Date | null }[]; rotations: number }> {
   const rows = await tx.hostAssignment.findMany({
     where: {
@@ -961,9 +969,26 @@ export async function releasePersonCoverage(
     await tx.subRequest.updateMany({ where: { assignmentId: { in: empty }, status: "OPEN" }, data: { status: "CANCELLED" } });
     await tx.hostAssignment.updateMany({ where: { id: { in: empty } }, data: { userId: null } });
   }
+  const rotationHubs = opts.endRotations
+    ? (await tx.standingAssignment.findMany({ where: { userId, ...(opts.hubSlug ? { hubSlug: opts.hubSlug } : {}) }, select: { hubSlug: true } })).map((r) => r.hubSlug)
+    : [];
   const rotations = opts.endRotations
     ? (await tx.standingAssignment.deleteMany({ where: { userId, ...(opts.hubSlug ? { hubSlug: opts.hubSlug } : {}) } })).count
     : 0;
+  // The team's record, one line per team, for its leads and the person.
+  const hubs = [...new Set([...rows.map((r) => r.hubSlug), ...rotationHubs])];
+  await recordHubEvents(tx, hubs.map((hubSlug) => ({
+    hubSlug,
+    kind: "sessions-released" as const,
+    actorId: opts.bySystem ? null : byUserId,
+    subjectUserId: userId,
+    count: rows.filter((r) => r.hubSlug === hubSlug && r.sessionDate).length,
+    detail: {
+      reason: opts.reason ?? null,
+      rotationsEnded: rotationHubs.filter((h) => h === hubSlug).length,
+      sessions: emptiedSessionKeys(rows.filter((r) => r.hubSlug === hubSlug)),
+    },
+  })));
   return {
     rows: rows.map((r) => ({ userId, hubSlug: r.hubSlug, programSlug: r.programSlug, sessionDate: r.sessionDate })),
     rotations,

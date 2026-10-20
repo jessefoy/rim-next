@@ -611,7 +611,7 @@ Jesse signed up as the first greeter, cancelled, and nothing happened: *"Shouldn
 - **The 08:00 rotation run fills next month once the 14-day window reaches it** (about the 17th, and always on the 1st; 2026-10-19 audit). It waited for the 1st, so near a month's end these notices called rotation sessions open and the person serving got no reminder. Next month's "you're scheduled" emails now arrive around the 17th.
 - **The daily pass** (`/api/cron/coverage-notices`, 13:00 UTC, after the 08:00 rotation run): reminders, the coordinator note, and on Mondays (Central) the look-ahead, for every ACTIVE team with the Scheduler installed. A team that fails is logged and the others continue.
 - **`coverage_notices`** (`CoverageNotice`) records each notice: nothing goes out twice, and Updates shows "**Program · Oct 18** needs a greeter" from `gap-opened` rows (it names no one; who left, or why, isn't the team's news). A reminder points at its assignment, not a person, so the merge needs nothing.
-- **Team Home's line** is the true count: "3 sessions in the next two weeks need a greeter", "Every session in the next two weeks has a greeter.", or with nothing scheduled "No sessions on the schedule in the next two weeks." (closes backlog `2026-10-13-005`). **Updates' For me** shows a gap only while its session still has no one; All and Recent keep it as history.
+- **Team Home's line** is the true count: "3 sessions in the next two weeks need a greeter", "Every session in the next two weeks has a greeter.", or with nothing scheduled "No sessions on the schedule in the next two weeks." (closes backlog `2026-10-13-005`). **Updates' Needs you** (2026-10-19) lists a session only while it still needs someone, with a button to take it; history keeps the gap with its state (Still open, Filled, Passed).
 - **The Scheduler:** cancelling when you're the last one signed up asks first ("You're the only greeter for …. If you cancel, we'll let the team know it needs a greeter."); a coordinator's Remove dialogs say the team will be told. The toast after says whether the team was actually told (the server's `teamTold`).
 - **Known residue, accepted:** two people cancelling the same session at the same moment can both announce it; a reminder is keyed by its assignment, so if a cover is claimed between two runs on one day the new person isn't reminded that day; the mail sender swallows a refused send, so the daily pass paces its sends (600 ms) but still records a notice it couldn't deliver.
 
@@ -621,6 +621,14 @@ Jesse signed up as the first greeter, cancelled, and nothing happened: *"Shouldn
 - The walk also found the door's early entry (admin or guiding teacher) saying "You're teaching today" for the next session days away; it now says the day ("You're teaching on Tue, Oct 20").
 
 **Recipients:** gap and look-ahead emails go to `getHubNotificationRecipients(team, { canCover: true })`, the coordinator note to `{ coordinatorsOnly: true }` (a team with no active coordinator is logged), so the pre-threshold gate applies at the source; the reminder is slug-gated and needs an ACTIVE or PAUSED membership (a paused person who kept their sessions is still serving them; Jesse, 2026-10-19) with communications on. All four templates are in `/admin/emails` (Host Team group). **Their wording is provisional until Jesse's read-aloud.**
+
+## The team's record in Updates (2026-10-19)
+
+Every Scheduler write records one line in `hub_events` (`lib/hubEvents.ts`), so the team's Updates can say what happened: who took a session, who was put on one, a rotation set or ended, someone leaving a session or the team, a schedule cleared. Recorded in: `POST /api/host/assignments` (take, sign up, assign), `PATCH`/`DELETE /api/host/assignments/[id]` (take an open seat; drop or be taken off), `reassign`, `clear`, `standing-assignments` (save: newly on and no longer on a rotation; `[id]` end; `end-bundle`; `release-host`), `programs/[slug]/clear-rotations`, `releasePersonCoverage` (pause, Inactive, archive, deletion, the daily pass), `removeHubMembershipWithCleanup`, and the program-change clears in `lib/programHub.ts`. Cover requests and claims are read from their own rows, with their current state.
+
+**Jesse's ruling (2026-10-19):** who drops a session outright (no sub asked), is taken off, comes off a rotation or leaves the team is shown to the team's leads and the person, never the whole team. The team sees the need ("needs a greeter"). Asking for a sub names the asker to everyone: the team is being asked.
+
+Updates also offers **Needs you**: the team's sessions in the next two weeks that need someone, with "Take this session", "Sign up to …" or "I'll cover this" right there, posting to this tool's own routes. A link from Updates opens the Scheduler at the session (`?session=program~YYYY-MM-DD`, `sessionLinkKey` in `HubScheduleClient`). Detail: `RIM_Hub_Engineering.md`, "The Updates inbox".
 
 ## What's deferred
 
@@ -661,8 +669,9 @@ What the code guarantees for any team: every create passes `teamCannotStaff` (re
 1. Decide whether the new feature is hub-scoped or hub-agnostic. If unclear, default to hub-scoped.
 2. Apply the four routing layers (see `RIM_Hub_Engineering.md`).
 3. If it sends email, follow `RIM_Email_Engineering.md`.
-4. Update this doc with the new feature's hub-scoping story.
-5. At closing ritual, audit every callsite (the addition CLAUDE.md requires for hub slices).
+4. If it changes who is on a session, a rotation or the team, record it in the team's record (`recordHubEvent(s)` in `lib/hubEvents.ts`, inside the change's transaction, against the resource's team). Leaving kinds are shown only to leads and the person. See "The team's record" below.
+5. Update this doc with the new feature's hub-scoping story.
+6. At closing ritual, audit every callsite (the addition CLAUDE.md requires for hub slices).
 
 ---
 

@@ -184,7 +184,7 @@ export async function DELETE(
   });
   if (!existing) return NextResponse.json({ error: "They aren't on this team." }, { status: 404 });
 
-  const { removedAssignments, removedRules, rows: removedRows } = await removeHubMembershipWithCleanup(hub.id, hubSlug, id);
+  const { removedAssignments, removedRules, rows: removedRows } = await removeHubMembershipWithCleanup(hub.id, hubSlug, id, session?.user?.id ?? null);
   // They're told which sessions went with the team (2026-10-16 audit).
   if (removedRows.length) {
     after(() =>

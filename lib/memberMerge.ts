@@ -164,6 +164,8 @@ const ONE_PER: { table: string; column: string; keys: string[] }[] = [
   { table: "hub_thread_subscriptions", column: "userId", keys: ["threadId"] },
   { table: "google_file_preferences", column: "userId", keys: ["placeKey", "googleFileId"] },
   { table: "google_file_view_preferences", column: "userId", keys: ["placeKey"] },
+  // Updates read marks (2026-10-19).
+  { table: "hub_update_reads", column: "userId", keys: ["hubId", "itemKey"] },
 ];
 
 /** Columns that simply point at a person: they all move to the kept account. */
@@ -198,6 +200,9 @@ const POINTERS: { table: string; column: string }[] = [
   // asked for cover or emptied a rotation session (2026-10-16 audit).
   { table: "sub_requests", column: "requestedById" },
   { table: "pages", column: "updatedById" },
+  // The team's record of schedule changes (2026-10-19): who did it, who it's about.
+  { table: "hub_events", column: "actorId" },
+  { table: "hub_events", column: "subjectUserId" },
   { table: "standing_assignment_skips", column: "createdById" },
   { table: "course_access", column: "grantedBy" },
   // A member's ban from a session room is kept by id (guests by name).
@@ -241,6 +246,8 @@ async function mergeTeams(tx: Tx, keepId: string, dropId: string) {
         coordinatorNote: k.coordinatorNote || d.coordinatorNote,
         firstVisitedAt: earliest(k.firstVisitedAt, d.firstVisitedAt),
         lastVisitedAt: latest(k.lastVisitedAt, d.lastVisitedAt),
+        // The earlier read point: nothing either account hadn't read is lost.
+        activitySeenAt: earliest(k.activitySeenAt, d.activitySeenAt),
       },
     });
     await tx.hubMember.delete({ where: { id: d.id } });

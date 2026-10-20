@@ -53,6 +53,9 @@ export interface SidebarTool {
 
 export interface SidebarNavCounts {
   conversations?: number;
+  /** Unread Updates items for you: what needs you and what is about you
+   *  (2026-10-19). Team news alone never raises it. */
+  updates?: number;
 }
 
 interface Props {
@@ -156,7 +159,7 @@ export default function HubWorkspaceSidebar({
     ? [{ label: "Conversations", href: `${base}/conversations`, icon: MessagesSquare, badge: navCounts.conversations ?? 0 }]
     : [];
   const otherItems = [
-    { label: "Updates", href: `${base}/activity`, icon: History, badge: 0 },
+    { label: "Updates", href: `${base}/activity`, icon: History, badge: navCounts.updates ?? 0, badgeLabel: "unread for you" },
     ...conversationsItem,
     ...filesItem,
     { label: "Members", href: `${base}/members`, icon: UsersRound, badge: 0 },
@@ -302,7 +305,12 @@ export default function HubWorkspaceSidebar({
               >
                 <item.icon size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
                 <span className="hub-ws-link__label">{item.label}</span>
-                {item.badge > 0 && <span className="hub-ws-badge">{item.badge}</span>}
+                {item.badge > 0 && (
+                  <span className="hub-ws-badge">
+                    {item.badge}
+                    {"badgeLabel" in item && item.badgeLabel ? <span className="rim-sr-only"> {item.badgeLabel}</span> : null}
+                  </span>
+                )}
               </Link>
             );
           })}

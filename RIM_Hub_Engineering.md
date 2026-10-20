@@ -212,9 +212,9 @@ Current safety rules:
 - When a Space has enabled registered apps, one is primary (`HubAppLink.isPrimary`); a partial unique index enforces at most one primary per Space. Other registered apps are supporting. Custom links can never be primary.
 - Home renders at most one contribution per app, and only the primary app's: one summary line in the highlighted tool card at the top of team Home (2026-10-13). Supporting apps and custom links are quiet destination rows. No app adds a module, disclosure or second card, and a summary never states a count it cannot compute truthfully (the Scheduler's row count would have; see "Team Home, 2026-10-13").
 - Updates adapters emit only meaningful, visible events (never held Google-file draft activity) and every item names `sourceKey`, `sourceLabel`, and `kind`.
-- The Updates View menu derives exact categories from enabled core features plus installed apps whose registry contract promises Updates. Exact-source filtering happens in `listHubActivity()` before the merged stream is paginated; never filter only the already-loaded client page.
+- The Updates folders (types) derive from enabled core features plus installed apps whose registry contract promises Updates. Folder filtering happens in `listHubActivity()` on the server before the merged stream is paginated; never filter only the already-loaded client page.
 - Personal attention is separate from shared Updates. An app owns the meaning and recipients; the Space owns the consistent Home rendering. Passive history must not become an attention badge.
-- Updates has no read boundary. **Recent always means the rolling previous seven days**; page visits and item clicks do not mutate it. Do not add a passive Updates dot or count to the rail. If something must persist until handled, its app must expose a durable attention state with an explicit resolution condition.
+- Updates is an inbox (2026-10-19; supersedes "no read boundary"): read is a mark, never a removal, and All keeps everything. The rail's Updates number counts only unread items **for you**, never team news alone. Team Home's attention line stays app-owned and unchanged. See "The Updates inbox" below.
 
 ### New app integration gate
 
@@ -367,3 +367,26 @@ Words: "team", not "hub", wherever people read (rail type label "Team", "Team se
 ## September 2026 home presentation (superseded 2026-10-13)
 
 The universal Home now renders the core destinations and installed apps as one compact navigation list. The Scheduler overview is retained behind its named disclosure; it is not copied into a second dashboard or reimplemented. Welcome/orientation editing, pinned conversations, and personal attention remain reachable without filling the default Home. These are presentation changes only: the exhaustive app registry, feature switches, app compatibility, source meaning, four routing layers, and access helpers remain authoritative. Home app links continue to carry `?hub=`. The team rail returns to the member’s `/account/teams` directory.
+
+## The Updates inbox (2026-10-19)
+
+Jesse: *"I feel like the team updates section can be improved. It's uncategorized and incomplete. People should be able to read it like an inbox and by type. It should also go to the item specifically. … It should say when subs happen and claims etc."* His rulings that day: inbox read marks (reversing July's no-read-state rule); the rail's number counts only what is for you; acting in place ("Take this session") is in; and **who drops a session outright is shown to the team's leads and the person, never the whole team** (asking for a sub is not leaving: the team is being asked, so the asker is named to everyone).
+
+**The record (`hub_events`, `lib/hubEvents.ts`).** Most Scheduler changes overwrite or delete their row, so Updates could not show them. Every Scheduler write now records one line, inside the change's own transaction: `session-taken`, `session-assigned`, `session-left`, `sessions-released` (pause, Inactive, archive, deletion, a clear, a program change), `rotation-set`, `rotation-ended`, `member-left`. Rules for new code:
+- **Any new route that changes who is on a session, a rotation or a team records an event**, against the resource's own team (the assignment's or rotation's `hubSlug`), with `actorId` (null for the daily pass) and `subjectUserId`.
+- **Leaving kinds are `LEADS_ONLY_EVENT_KINDS`.** Readers show them only when `hubLeadAllowed(roles, member)` or the viewer is the subject. Prisma's `{ not: x }` drops NULLs: when matching "not done by me", write `OR: [{ actorId: null }, { actorId: { not: me } }]`.
+- A slug rename carries `hub_events` with the other slug-keyed tables (`app/api/admin/hubs/[slug]`).
+- Cover requests, claims and gaps keep reading their own rows (`sub_requests`, `sub_claims`, `coverage_notices`); the record does not duplicate them.
+
+**Read state.** `hub_update_reads` (one row per opened item key) plus `HubMember.activitySeenAt` (everything before it is read; null = `joinedAt`; set to the deploy moment for everyone once, flag `updates_inbox_start_read_v1`). Item ids are the read keys; a day's replies in one conversation are one item carrying every reply's key. Needs-you items are dated by their session, so "Mark all as read" also sends their keys. A viewer without a membership row has no read state.
+
+**Needs you** is a provider method (`needs`) beside `updates` and `attention` in `lib/hubApps.ts`. The Scheduler's: sessions in the next two weeks that need someone (`sessionsNeedingSomeone`, the Scheduler's own row builder), minus the viewer's own cover request, with an action only when `canSelfClaim` is true; a lead who can't take sessions sees them with a link. The action posts to the Scheduler's existing routes with the session's `hubSlug`, so every gate, lock and email is the Scheduler's.
+
+**Links go to the item.** `scheduleSessionHref` (`/tools/schedule?hub=…&month=…&session=program~YYYY-MM-DD`, which the Scheduler scrolls to, opening "Earlier this month" if needed, and marks), `#reply-<id>`, `#comment-<id>` (the comment id is in the file audit's detail), `#member-<userId>`; `components/hooks/useHashArrival.ts` brings a client-drawn target into view.
+
+**Paging.** Each source fetches up to a page of rows; a page shows only what is newer than the newest of the oldest rows among the sources that filled up (`completeDownTo`, counted on raw rows before replies group and hidden files drop), and the next page starts at that moment, inclusive (`lte`), so a batch sharing one timestamp is never split or lost. An app's `updates` provider returns `{ items, boundary }` for this. Items that are one thing across two passes merge by id.
+
+**Read rules.** Your own doings are never unread (each item, and each reply in a group, carries its `actorId`). A Needs-you key includes what opened it (the cover request, or the latest gap notice), so a session that reopens is news again. "Mark all as read" sends `asOf` (when the page loaded) and only moves the read point forward. A cover request that closed reads "Closed", not "Withdrawn": it also closes when its person is taken off, which isn't the team's news. An account merge carries `hub_update_reads`, `hub_events` and the later `activitySeenAt`.
+
+**Cost.** The hub layout and `/api/hubs/[slug]/nav` compute the rail number on every hub page (`countHubUnreadForYou`: the For-you history query narrowed to after the read point, plus Needs you, which builds up to two Scheduler months, and only for someone who could take sessions or lead). Both are computed once per request (React `cache`), shared by the layout and the Updates page. It is wrapped so a failure shows no number rather than breaking the page.
+

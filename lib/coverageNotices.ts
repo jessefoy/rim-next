@@ -114,6 +114,19 @@ export async function countSessionsNeedingSomeone(
   return { open: rows.filter(needsSomeone).length, total: rows.length };
 }
 
+/**
+ * The team's sessions in the next two weeks that need someone, as the
+ * Scheduler shows them: the Updates inbox's "Needs you" (2026-10-19).
+ */
+export async function sessionsNeedingSomeone(
+  hubSlug: string,
+  now: Date = new Date(),
+): Promise<ScheduleSessionRow[]> {
+  const today = centralDay(now);
+  const rows = await teamSessionsBetween(hubSlug, today, addDays(today, LOOKAHEAD_DAYS - 1), now);
+  return rows.filter(needsSomeone);
+}
+
 /** Whether anyone from this team is on this session's Central day now. */
 export async function sessionHasSomeone(hubSlug: string, programSlug: string, sessionDate: Date): Promise<boolean> {
   const { start, end } = ctDayBounds(sessionDate);
@@ -324,7 +337,7 @@ export async function releaseInactiveCoverage(): Promise<number> {
       ]);
       if (sessions === 0 && rotations === 0) continue;
       const result = await db.$transaction((tx) =>
-        releasePersonCoverage(tx, m.userId, m.userId, { hubSlug, endRotations: true }),
+        releasePersonCoverage(tx, m.userId, m.userId, { hubSlug, endRotations: true, reason: "inactive", bySystem: true }),
       );
       released += result.rows.length;
       await sendCoverageClearedEmails({

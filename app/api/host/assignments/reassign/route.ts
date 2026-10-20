@@ -9,6 +9,7 @@ import {
 } from "@/lib/email";
 import { getHubCoverageConfig, teamCannotStaff } from "@/lib/programHub";
 import { holdRotationDate } from "@/lib/applyStandingAssignments";
+import { recordHubEvents } from "@/lib/hubEvents";
 import { canManageHubCoverage } from "@/lib/hubAuth";
 
 // Central Time, not the server's UTC (2026-10-15).
@@ -120,6 +121,14 @@ export async function POST(request: Request) {
     // A rotation-made session taken over by hand stays out of the rotation,
     // or emptying it later would let the rotation put the old person back.
     await holdRotationDate(existing, session.user.id, tx);
+    // The team's record: who has it now; the person off it, for the leads.
+    const where = { hubSlug: existing.hubSlug, programSlug: existing.programSlug, sessionDate: existing.sessionDate };
+    await recordHubEvents(tx, [
+      ...(previousUserId
+        ? [{ ...where, kind: "session-left" as const, actorId: session.user.id, subjectUserId: previousUserId }]
+        : []),
+      { ...where, kind: "session-taken" as const, actorId: session.user.id, subjectUserId: session.user.id },
+    ]);
     return tx.hostAssignment.create({
       data: {
         programSlug: existing.programSlug,

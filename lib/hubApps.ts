@@ -1,7 +1,10 @@
 import { db } from "@/lib/db";
-import { ctMonthKey, ctStartOfToday } from "@/lib/timezone";
-import { countSessionsNeedingSomeone, LOOKAHEAD_DAYS, sessionHasSomeone } from "@/lib/coverageNotices";
-import { getHubCoverageCopy } from "@/lib/programHub";
+import { ctMonthKey, ctStartOfToday, fmtSessionWhen } from "@/lib/timezone";
+import { countSessionsNeedingSomeone, LOOKAHEAD_DAYS, sessionsNeedingSomeone } from "@/lib/coverageNotices";
+import { getHubCoverageConfig, getHubCoverageCopy } from "@/lib/programHub";
+import { ctDateStr } from "@/lib/scheduleUtils";
+import { canSelfClaim } from "@/lib/hubMemberAuth";
+import { HUB_EVENT_KINDS, LEADS_ONLY_EVENT_KINDS, type HubEventKind } from "@/lib/hubEvents";
 import {
   getToolBySlug,
   TOOL_REGISTRY,
@@ -40,11 +43,29 @@ export interface HubAppAttentionItem {
   count: number;
 }
 
+/** A session someone can take, offered right on the Updates item. */
+export interface HubTakeSessionAction {
+  kind: "take" | "cover" | "sign-up";
+  hubSlug: string;
+  programSlug: string;
+  programName: string;
+  sessionDate: string;
+  subRequestId: string | null;
+  /** The person being covered for ("cover"). */
+  forName: string | null;
+  /** The team's action words: "host this", "greet". */
+  coverageAction: string;
+  /** The team's verb: "hosting", "greeting". */
+  coverageVerb: string;
+}
+
 export interface HubAppUpdateItem {
   id: string;
   sourceKey: `app:${ToolSlug}`;
   sourceLabel: string;
   kind: string;
+  /** Who did it: the viewer's own doings are never unread. */
+  actorId?: string | null;
   authorId: string | null;
   authorName: string;
   verb: string;
@@ -52,6 +73,13 @@ export interface HubAppUpdateItem {
   href: string;
   ts: string;
   isForUser: boolean;
+  /** Where it stands now: "Open", "Covered by Nancy", "Withdrawn", "Passed". */
+  state?: { label: string; tone: "open" | "done" | "quiet" } | null;
+  /** A quiet second line: "Added by Maria". */
+  note?: string | null;
+  /** Shown only to the team's leads (and the person it is about). */
+  leadsOnly?: boolean;
+  action?: HubTakeSessionAction | null;
 }
 
 export interface HubAppUpdateQuery {
@@ -59,16 +87,36 @@ export interface HubAppUpdateQuery {
   hubSlug: string;
   userId: string;
   cursorDate: Date | null;
-  recentSince: Date;
-  filter: "all" | "recent" | "for-me";
+  /** Unread only: items after this moment (the person's read point). */
+  since: Date | null;
+  /** Only what is about the viewer. */
+  forYou: boolean;
+  isLead: boolean;
   limit: number;
+}
+
+/** A page of an app's history, and how far back it is complete: every one of
+ *  its items newer than `boundary` was fetched (null = everything was). */
+export interface HubAppUpdatePage {
+  items: HubAppUpdateItem[];
+  boundary: Date | null;
+}
+
+export interface HubAppNeedsQuery {
+  hubId: string;
+  hubSlug: string;
+  userId: string;
+  roles: string[];
+  isLead: boolean;
 }
 
 type HomeContribution = Pick<HubHomeApp, "count" | "countLabel" | "quietText">;
 
 interface HubAppProvider {
   home(hubSlug: string): Promise<HomeContribution>;
-  updates?(query: HubAppUpdateQuery): Promise<HubAppUpdateItem[]>;
+  updates?(query: HubAppUpdateQuery): Promise<HubAppUpdatePage>;
+  /** What the viewer could do something about now (Updates' "Needs you"). */
+  needs?(query: HubAppNeedsQuery): Promise<HubAppUpdateItem[]>;
   attention?(hubId: string, hubSlug: string, userId: string): Promise<HubAppAttentionItem[]>;
 }
 
@@ -86,19 +134,24 @@ function personName(u: {
   return [first, u.lastName].filter(Boolean).join(" ") || "Someone";
 }
 
-function sessionLabel(date: Date | null): string {
-  if (!date) return "an upcoming session";
-  return date.toLocaleDateString("en-US", {
-    timeZone: "America/Chicago",
-    month: "short",
-    day: "numeric",
-  });
+// The cursor is inclusive: a page ends just before its boundary moment, so
+// rows sharing that moment come on the next page (createMany gives a batch
+// one timestamp).
+function createdAtWindow(query: HubAppUpdateQuery) {
+  const gt = query.since ?? undefined;
+  const lte = query.cursorDate ?? undefined;
+  return gt || lte ? { ...(gt ? { gt } : {}), ...(lte ? { lte } : {}) } : undefined;
 }
 
-function createdAtWindow(query: HubAppUpdateQuery) {
-  const gt = query.filter === "recent" ? query.recentSince : undefined;
-  const lt = query.cursorDate ?? undefined;
-  return gt || lt ? { ...(gt ? { gt } : {}), ...(lt ? { lt } : {}) } : undefined;
+/** The newest moment down to which every source is complete. */
+export function completeDownTo(sources: { createdAt: Date }[][], limit: number): Date | null {
+  let boundary: Date | null = null;
+  for (const rows of sources) {
+    if (rows.length < limit) continue;
+    const oldest = rows[rows.length - 1].createdAt;
+    if (!boundary || oldest > boundary) boundary = oldest;
+  }
+  return boundary;
 }
 
 /** The role after "need": "a greeter", "a host", but "AV". */
@@ -136,172 +189,420 @@ async function archivedProgramSlugs(): Promise<string[]> {
   return (await db.program.findMany({ where: { archivedAt: { not: null } }, select: { slug: true } })).map((p) => p.slug);
 }
 
-async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdateItem[]> {
-  const createdAt = createdAtWindow(query);
-  const membership = query.filter === "for-me"
-    ? await db.hubMember.findUnique({
-        where: { hubId_userId: { hubId: query.hubId, userId: query.userId } },
-        select: { status: true, hostingCapability: true },
-      })
-    : null;
-  const canRespond = membership?.status === "ACTIVE" && membership.hostingCapability;
+/**
+ * The Scheduler's own link to one session: the month, and the session itself
+ * (`session=program~YYYY-MM-DD`), which the Scheduler scrolls to and marks.
+ */
+export function scheduleSessionHref(hubSlug: string, programSlug: string | null, date: Date | null): string {
+  const qs = new URLSearchParams({ hub: hubSlug });
+  if (date) qs.set("month", ctMonthKey(date));
+  if (date && programSlug) qs.set("session", `${programSlug}~${ctDateStr(date.toISOString())}`);
+  return `/tools/schedule?${qs}`;
+}
 
-  // A request still needs someone only while its session is ahead (2026-10-15:
-  // a passed, uncovered request stayed "open" for good).
-  const today = ctStartOfToday();
-  const archived = query.filter === "for-me" ? await archivedProgramSlugs() : [];
-  const [requests, claims] = await Promise.all([
-    query.filter === "for-me" && !canRespond
+/** "Good Evening · Fri, Oct 24 at 6:30 PM" */
+function sessionTitle(programName: string, date: Date | null): string {
+  return date ? `${programName} · ${fmtSessionWhen(date)}` : programName;
+}
+
+const DAY_NAMES: Record<string, string> = {
+  MO: "Monday", TU: "Tuesday", WE: "Wednesday", TH: "Thursday", FR: "Friday", SA: "Saturday", SU: "Sunday",
+};
+const ORDINALS: Record<string, string> = {
+  FIRST: "first", SECOND: "second", THIRD: "third", FOURTH: "fourth", FIFTH: "fifth", LAST: "last",
+};
+
+/** "every Thursday", "every other Thursday", "the first Thursday of the month". */
+function rotationPhrase(detail: unknown): string {
+  const d = detail && typeof detail === "object" ? (detail as Record<string, unknown>) : {};
+  const day = typeof d.dayOfWeek === "string" ? DAY_NAMES[d.dayOfWeek] : null;
+  const occ = typeof d.occurrence === "string" ? d.occurrence : null;
+  if (!day) return "its rotation";
+  if (occ === "ALL") return `every ${day}`;
+  if (occ === "ALT_WEEK_A" || occ === "ALT_WEEK_B") return `every other ${day}`;
+  if (occ && ORDINALS[occ]) return `the ${ORDINALS[occ]} ${day} of the month`;
+  return `${day}s`;
+}
+
+function plainCount(n: number, one: string, many: string) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/** Why a person came off the schedule, in plain words. */
+function releaseReason(detail: unknown): string | null {
+  const reason = detail && typeof detail === "object" ? (detail as Record<string, unknown>).reason : null;
+  switch (reason) {
+    case "paused": return "Paused on the team";
+    case "inactive": return "Marked inactive on the team";
+    case "archived": return "Account archived";
+    case "deleted": return "Account removed";
+    default: return null;
+  }
+}
+
+const SCHEDULE_EVENT_KINDS = HUB_EVENT_KINDS.filter((k) => k !== "member-left");
+
+/**
+ * The Scheduler's history in Updates (2026-10-19). Cover requests and the
+ * claims on them come from their own rows, with where each stands now; a
+ * session that needs someone from coverage_notices; everything else (taking,
+ * being put on, leaving, rotations) from the team's record, lib/hubEvents.ts.
+ * Who leaves is named only to the leads and the person (Jesse, 2026-10-19).
+ */
+async function scheduleUpdates(query: HubAppUpdateQuery): Promise<HubAppUpdatePage> {
+  const createdAt = createdAtWindow(query);
+  const at = createdAt ? { createdAt } : {};
+  const { hubSlug, userId, forYou } = query;
+  const now = new Date();
+
+  const [requests, claims, gaps, events, copy] = await Promise.all([
+    forYou
       ? Promise.resolve([])
       : db.subRequest.findMany({
-          where: {
-            assignment: {
-              hubSlug: query.hubSlug,
-              ...(query.filter === "for-me" ? { userId: { not: query.userId } } : {}),
-            },
-            ...(query.filter === "for-me"
-              ? { status: "OPEN", programSlug: { notIn: archived }, OR: [{ sessionDate: null }, { sessionDate: { gte: today } }] }
-              : {}),
-            ...(createdAt ? { createdAt } : {}),
-          },
+          where: { assignment: { hubSlug }, ...at },
           select: {
-            id: true,
-            programSlug: true,
-            sessionDate: true,
-            createdAt: true,
-            requestedById: true,
-            assignment: {
-              select: {
-                userId: true,
-                user: { select: { firstName: true, lastName: true, preferredName: true } },
-              },
-            },
+            id: true, programSlug: true, sessionDate: true, createdAt: true, status: true, requestedById: true,
+            assignment: { select: { userId: true } },
+            claim: { select: { claimedById: true } },
           },
           orderBy: { createdAt: "desc" },
           take: query.limit,
         }),
     db.subClaim.findMany({
       where: {
-        request: {
-          assignment: { hubSlug: query.hubSlug },
-          // "For me": a claim on a request I asked for. The assignment's user
-          // becomes the person covering, so the asker is requestedById.
-          ...(query.filter === "for-me" ? { requestedById: query.userId } : {}),
-        },
-        ...(query.filter === "for-me" ? { claimedById: { not: query.userId } } : {}),
-        ...(createdAt ? { createdAt } : {}),
+        // "For you": someone took your request.
+        request: { assignment: { hubSlug }, ...(forYou ? { requestedById: userId } : {}) },
+        ...(forYou ? { claimedById: { not: userId } } : {}),
+        ...at,
       },
       select: {
-        id: true,
-        claimedById: true,
-        createdAt: true,
-        claimedBy: { select: { firstName: true, lastName: true, preferredName: true } },
-        request: { select: { programSlug: true, sessionDate: true } },
+        id: true, claimedById: true, createdAt: true,
+        request: { select: { programSlug: true, sessionDate: true, requestedById: true, assignment: { select: { userId: true } } } },
       },
       orderBy: { createdAt: "desc" },
       take: query.limit,
     }),
+    forYou
+      ? Promise.resolve([])
+      : db.coverageNotice.findMany({
+          where: { kind: "gap-opened", hubSlug, ...at },
+          select: { id: true, programSlug: true, sessionDate: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+          take: query.limit,
+        }),
+    db.hubEvent.findMany({
+      where: {
+        hubSlug,
+        kind: { in: [...SCHEDULE_EVENT_KINDS] },
+        ...at,
+        ...(forYou
+          // About you, done by someone else (or the daily pass).
+          ? { subjectUserId: userId, OR: [{ actorId: null }, { actorId: { not: userId } }] }
+          : query.isLead
+            ? {}
+            : { OR: [{ kind: { notIn: [...LEADS_ONLY_EVENT_KINDS] } }, { subjectUserId: userId }] }),
+      },
+      orderBy: { createdAt: "desc" },
+      take: query.limit,
+    }),
+    getHubCoverageCopy(hubSlug),
   ]);
 
-  const programSlugs = [...new Set([
-    ...requests.map((request) => request.programSlug),
-    ...claims.map((claim) => claim.request.programSlug),
-  ])];
-  const programs = programSlugs.length
-    ? await db.program.findMany({
-        where: { slug: { in: programSlugs } },
-        select: { slug: true, name: true },
-      })
-    : [];
-  const programNameBySlug = new Map(programs.map((program) => [program.slug, program.name]));
-  // Who asked: requestedById, else (older rows) the assignment's user.
-  const askerIds = [...new Set(requests.map((r) => r.requestedById).filter((x): x is string => !!x))];
-  const askers = askerIds.length
-    ? await db.user.findMany({
-        where: { id: { in: askerIds } },
-        select: { id: true, firstName: true, lastName: true, preferredName: true },
-      })
-    : [];
-  const askerById = new Map(askers.map((u) => [u.id, u]));
-  const monthHref = (d: Date | null) =>
-    `/tools/schedule?hub=${encodeURIComponent(query.hubSlug)}${d ? `&month=${ctMonthKey(d)}` : ""}`;
-
-  // A session losing its last person (coverage_notices, 2026-10-16): the
-  // assignment it came from is gone, so the notice is the record. Names no
-  // one: who cancelled, or why, isn't the team's news; that it needs someone is.
-  const gaps = query.filter === "for-me" && !canRespond
-    ? []
-    : await db.coverageNotice.findMany({
-        where: {
-          kind: "gap-opened",
-          hubSlug: query.hubSlug,
-          ...(query.filter === "for-me" ? { sessionDate: { gte: today }, programSlug: { notIn: archived } } : {}),
-          ...(createdAt ? { createdAt } : {}),
-        },
-        select: { id: true, programSlug: true, sessionDate: true, createdAt: true },
-        orderBy: { createdAt: "desc" },
-        take: query.limit,
-      });
-  // "For me" is what still needs someone: a gap someone has since filled
-  // leaves it (the cover requests beside it are OPEN only). All and Recent
-  // keep it as history.
-  if (query.filter === "for-me") {
-    const stillOpen = await Promise.all(
-      gaps.map((g) => g.programSlug && g.sessionDate ? sessionHasSomeone(query.hubSlug, g.programSlug, g.sessionDate).then((x) => !x) : Promise.resolve(false)),
-    );
-    gaps.splice(0, gaps.length, ...gaps.filter((_, i) => stillOpen[i]));
+  // Names, once.
+  const personIds = new Set<string>();
+  for (const r of requests) {
+    if (r.requestedById) personIds.add(r.requestedById);
+    else if (r.assignment.userId) personIds.add(r.assignment.userId);
+    if (r.claim) personIds.add(r.claim.claimedById);
   }
-  const gapCopy = gaps.length ? await getHubCoverageCopy(query.hubSlug) : null;
-  const gapPrograms = gaps.length
-    ? new Map((await db.program.findMany({
-        where: { slug: { in: [...new Set(gaps.map((g) => g.programSlug).filter((x): x is string => !!x))] } },
-        select: { slug: true, name: true },
-      })).map((p) => [p.slug, p.name]))
-    : new Map<string, string>();
+  for (const c of claims) {
+    personIds.add(c.claimedById);
+    if (c.request.requestedById) personIds.add(c.request.requestedById);
+  }
+  for (const e of events) {
+    if (e.actorId) personIds.add(e.actorId);
+    if (e.subjectUserId) personIds.add(e.subjectUserId);
+  }
+  const programSlugs = new Set<string>([
+    ...requests.map((r) => r.programSlug),
+    ...claims.map((c) => c.request.programSlug),
+    ...gaps.flatMap((g) => (g.programSlug ? [g.programSlug] : [])),
+    ...events.flatMap((e) => (e.programSlug ? [e.programSlug] : [])),
+  ]);
+  const [people, programs] = await Promise.all([
+    personIds.size
+      ? db.user.findMany({ where: { id: { in: [...personIds] } }, select: { id: true, firstName: true, lastName: true, preferredName: true } })
+      : Promise.resolve([]),
+    programSlugs.size
+      ? db.program.findMany({ where: { slug: { in: [...programSlugs] } }, select: { slug: true, name: true } })
+      : Promise.resolve([]),
+  ]);
+  const personById = new Map(people.map((p) => [p.id, p]));
+  const nameOf = (id: string | null | undefined) => personName(id ? personById.get(id) : null);
+  const programName = (slug: string | null) => (slug ? programs.find((p) => p.slug === slug)?.name ?? slug : "A session");
 
-  return [
-    ...gaps.map((gap) => ({
+  // Is each future gap still open? One query for all of them.
+  const futureGaps = gaps.filter((g) => g.programSlug && g.sessionDate && g.sessionDate > now);
+  const filled = new Set<string>();
+  if (futureGaps.length) {
+    const dates = futureGaps.map((g) => g.sessionDate!.getTime());
+    const rows = await db.hostAssignment.findMany({
+      where: {
+        hubSlug,
+        userId: { not: null },
+        programSlug: { in: [...new Set(futureGaps.map((g) => g.programSlug!))] },
+        sessionDate: { gte: new Date(Math.min(...dates) - 86_400_000), lte: new Date(Math.max(...dates) + 86_400_000) },
+      },
+      select: { programSlug: true, sessionDate: true },
+    });
+    for (const r of rows) if (r.sessionDate) filled.add(`${r.programSlug}~${ctDateStr(r.sessionDate.toISOString())}`);
+  }
+
+  const needs = needsRoleOf(copy.noun);
+  const base = { sourceKey: "app:schedule" as const, sourceLabel: "Schedule" };
+  const items: HubAppUpdateItem[] = [];
+
+  for (const gap of gaps) {
+    const passed = !gap.sessionDate || gap.sessionDate <= now;
+    const isFilled = !passed && gap.programSlug && gap.sessionDate
+      ? filled.has(`${gap.programSlug}~${ctDateStr(gap.sessionDate.toISOString())}`)
+      : false;
+    items.push({
+      ...base,
       id: `schedule-gap-${gap.id}`,
-      sourceKey: "app:schedule" as const,
-      sourceLabel: "Scheduler",
       kind: "coverage-gap",
       authorId: null,
-      authorName: `${gapPrograms.get(gap.programSlug ?? "") ?? gap.programSlug ?? "A session"} · ${sessionLabel(gap.sessionDate)}`,
-      verb: `needs ${needsRoleOf(gapCopy?.noun ?? "Host")}`,
+      authorName: sessionTitle(programName(gap.programSlug), gap.sessionDate),
+      verb: `needed ${needs}`,
       subject: null,
-      href: monthHref(gap.sessionDate),
+      href: scheduleSessionHref(hubSlug, gap.programSlug, gap.sessionDate),
       ts: gap.createdAt.toISOString(),
-      isForUser: query.filter === "for-me",
-    })),
-    ...requests.map((request) => ({
-      id: `schedule-sub-${request.id}`,
-      sourceKey: "app:schedule" as const,
-      sourceLabel: "Scheduler",
+      isForUser: false,
+      state: passed
+        ? { label: "Passed", tone: "quiet" }
+        : isFilled
+          ? { label: "Filled", tone: "done" }
+          : { label: "Still open", tone: "open" },
+    });
+  }
+
+  for (const r of requests) {
+    const asker = r.requestedById ?? r.assignment.userId;
+    const passed = !!r.sessionDate && r.sessionDate <= now;
+    items.push({
+      ...base,
+      id: `schedule-sub-${r.id}`,
       kind: "coverage-requested",
-      authorId: request.requestedById ?? request.assignment.userId,
-      authorName: personName(
-        request.requestedById ? askerById.get(request.requestedById) : request.assignment.user,
-      ),
-      verb: "requested coverage for",
-      subject: `${programNameBySlug.get(request.programSlug) ?? request.programSlug} · ${sessionLabel(request.sessionDate)}`,
-      href: monthHref(request.sessionDate),
-      ts: request.createdAt.toISOString(),
-      isForUser: query.filter === "for-me",
-    })),
-    ...claims.map((claim) => ({
-      id: `schedule-sub-claim-${claim.id}`,
-      sourceKey: "app:schedule" as const,
-      sourceLabel: "Scheduler",
+      actorId: asker,
+      authorId: asker,
+      authorName: nameOf(asker),
+      verb: "asked for someone to cover",
+      subject: sessionTitle(programName(r.programSlug), r.sessionDate),
+      href: scheduleSessionHref(hubSlug, r.programSlug, r.sessionDate),
+      ts: r.createdAt.toISOString(),
+      isForUser: false,
+      state:
+        r.status === "CLAIMED" && r.claim
+          ? { label: `Covered by ${nameOf(r.claim.claimedById)}`, tone: "done" }
+          : r.status === "CANCELLED"
+            // "Closed", not "Withdrawn": a request also closes when its
+            // person is taken off the schedule, which isn't the team's news.
+            ? { label: "Closed", tone: "quiet" }
+            : passed
+              ? { label: "Passed", tone: "quiet" }
+              : { label: "Open", tone: "open" },
+    });
+  }
+
+  for (const c of claims) {
+    const asker = c.request.requestedById;
+    items.push({
+      ...base,
+      id: `schedule-sub-claim-${c.id}`,
       kind: "coverage-claimed",
-      authorId: claim.claimedById,
-      authorName: personName(claim.claimedBy),
-      verb: "claimed coverage for",
-      subject: `${programNameBySlug.get(claim.request.programSlug) ?? claim.request.programSlug} · ${sessionLabel(claim.request.sessionDate)}`,
-      href: monthHref(claim.request.sessionDate),
-      ts: claim.createdAt.toISOString(),
-      isForUser: query.filter === "for-me",
-    })),
-  ];
+      actorId: c.claimedById,
+      authorId: c.claimedById,
+      authorName: nameOf(c.claimedById),
+      verb: asker ? `is covering for ${nameOf(asker)} at` : "is covering",
+      subject: sessionTitle(programName(c.request.programSlug), c.request.sessionDate),
+      href: scheduleSessionHref(hubSlug, c.request.programSlug, c.request.sessionDate),
+      ts: c.createdAt.toISOString(),
+      isForUser: !!asker && asker === userId && c.claimedById !== userId,
+    });
+  }
+
+  for (const e of events) {
+    const kind = e.kind as HubEventKind;
+    const leadsOnly = LEADS_ONLY_EVENT_KINDS.includes(kind);
+    const byOther = e.actorId && e.actorId !== e.subjectUserId ? nameOf(e.actorId) : null;
+    const session = sessionTitle(programName(e.programSlug), e.sessionDate);
+    const common = {
+      ...base,
+      id: `event-${e.id}`,
+      kind,
+      actorId: e.actorId,
+      authorId: e.subjectUserId ?? e.actorId,
+      href: scheduleSessionHref(hubSlug, e.programSlug, e.sessionDate),
+      ts: e.createdAt.toISOString(),
+      isForUser: e.subjectUserId === userId && e.actorId !== userId,
+      leadsOnly,
+    };
+    switch (kind) {
+      case "session-taken":
+        items.push({ ...common, authorName: nameOf(e.subjectUserId), verb: `is ${copy.verb}`, subject: session });
+        break;
+      case "session-assigned":
+        items.push({ ...common, authorName: nameOf(e.subjectUserId), verb: `is ${copy.verb}`, subject: session, note: byOther ? `Added by ${byOther}` : null });
+        break;
+      case "session-left":
+        items.push({
+          ...common, authorName: nameOf(e.subjectUserId), verb: `is no longer ${copy.verb}`, subject: session,
+          note: byOther ? `Taken off by ${byOther}` : "Cancelled it themselves",
+        });
+        break;
+      case "sessions-released": {
+        const n = e.count ?? 0;
+        const reason = releaseReason(e.detail);
+        const d = e.detail && typeof e.detail === "object" ? (e.detail as Record<string, unknown>) : {};
+        if (e.subjectUserId) {
+          items.push({
+            ...common, authorName: nameOf(e.subjectUserId),
+            verb: n ? `was taken off ${plainCount(n, "upcoming session", "upcoming sessions")}` : "came off the rotations",
+            subject: null,
+            note: [reason, byOther && reason ? null : byOther ? `By ${byOther}` : null].filter(Boolean).join(" · ") || null,
+            href: scheduleSessionHref(hubSlug, null, null),
+          });
+        } else if (d.reason === "schedule-changed" || d.reason === "program-no-longer-staffed") {
+          items.push({
+            ...common, authorName: programName(e.programSlug),
+            verb: d.reason === "schedule-changed"
+              ? `changed its schedule, which took ${plainCount(n, "person", "people")} off sessions`
+              : `no longer needs this team, which took ${plainCount(n, "person", "people")} off sessions`,
+            subject: null,
+            href: scheduleSessionHref(hubSlug, null, null),
+          });
+        } else {
+          items.push({
+            ...common, authorName: nameOf(e.actorId),
+            verb: e.programSlug ? `cleared the upcoming sessions of` : "cleared the team's upcoming schedule",
+            subject: e.programSlug ? programName(e.programSlug) : null,
+            note: n ? `${plainCount(n, "person", "people")} taken off` : null,
+            href: scheduleSessionHref(hubSlug, null, null),
+          });
+        }
+        break;
+      }
+      case "rotation-set":
+        items.push({
+          ...common, authorName: nameOf(e.subjectUserId), verb: `will be ${copy.verb}`,
+          subject: `${programName(e.programSlug)}, ${rotationPhrase(e.detail)}`,
+          note: byOther ? `Set by ${byOther}` : null,
+          href: scheduleSessionHref(hubSlug, null, null),
+        });
+        break;
+      case "rotation-ended":
+        items.push({
+          ...common, authorName: nameOf(e.subjectUserId), verb: "is off the rotation for",
+          subject: `${programName(e.programSlug)}, ${rotationPhrase(e.detail)}`,
+          note: [byOther ? `By ${byOther}` : null, e.count ? `${plainCount(e.count, "upcoming session", "upcoming sessions")} cleared` : null].filter(Boolean).join(" · ") || null,
+          href: scheduleSessionHref(hubSlug, null, null),
+        });
+        break;
+      default:
+        break;
+    }
+  }
+  return { items, boundary: completeDownTo([requests, claims, gaps, events], query.limit) };
+}
+
+/**
+ * "Needs you": the team's sessions in the next two weeks that need someone,
+ * with the cover requests among them, while they are still open (they leave
+ * the moment someone takes them). Offered with a button when the viewer may
+ * take sessions here (the Scheduler's own rule, canSelfClaim); a lead who
+ * can't take them sees them with a link to the session.
+ */
+async function scheduleNeeds(query: HubAppNeedsQuery): Promise<HubAppUpdateItem[]> {
+  const { hubSlug, userId } = query;
+  // Who could act decides whether to build the sessions at all: this runs on
+  // every team page, for the rail's number.
+  const canTake = await canSelfClaim(userId, query.roles, hubSlug);
+  if (!canTake && !query.isLead) return [];
+  const [rows, copy, config] = await Promise.all([
+    sessionsNeedingSomeone(hubSlug),
+    getHubCoverageCopy(hubSlug),
+    getHubCoverageConfig(hubSlug),
+  ]);
+  if (rows.length === 0) return [];
+  const multi = config?.allowsMultipleAssignments ?? false;
+  const needs = needsRoleOf(copy.noun);
+  // A session that was filled and has opened again is news again: its key
+  // carries the latest thing that emptied it (a "needs someone" notice, or a
+  // record line naming the session; a notice alone misses a reopening within
+  // a day, or one first announced beyond two weeks) or the cover request, so
+  // a read mark from the last time doesn't hide it.
+  const days = [...new Set(rows.flatMap((r) => (r.sessionDate ? [ctDateStr(r.sessionDate)] : [])))];
+  const since = new Date(Date.now() - 60 * 86_400_000);
+  const [notices, emptiers] = await Promise.all([
+    db.coverageNotice.findMany({
+      where: { kind: "gap-opened", hubSlug, sessionDay: { in: days } },
+      select: { id: true, programSlug: true, sessionDay: true, createdAt: true },
+    }),
+    db.hubEvent.findMany({
+      where: { hubSlug, kind: { in: ["session-left", "sessions-released", "rotation-ended", "member-left"] }, createdAt: { gte: since } },
+      select: { id: true, programSlug: true, sessionDate: true, detail: true, createdAt: true },
+    }),
+  ]);
+  const latestEmptied = new Map<string, { id: string; at: number }>();
+  const note = (key: string, id: string, at: Date) => {
+    const had = latestEmptied.get(key);
+    if (!had || at.getTime() > had.at) latestEmptied.set(key, { id, at: at.getTime() });
+  };
+  for (const n of notices) if (n.programSlug && n.sessionDay) note(`${n.programSlug}~${n.sessionDay}`, n.id, n.createdAt);
+  for (const e of emptiers) {
+    if (e.programSlug && e.sessionDate) note(`${e.programSlug}~${ctDateStr(e.sessionDate.toISOString())}`, e.id, e.createdAt);
+    const listed = e.detail && typeof e.detail === "object" ? (e.detail as Record<string, unknown>).sessions : null;
+    if (Array.isArray(listed)) for (const k of listed) if (typeof k === "string") note(k, e.id, e.createdAt);
+  }
+  return rows
+    // Your own request is yours to wait on, not to take.
+    .filter((r) => !(r.status === "sub_needed" && r.hostUserId === userId))
+    .flatMap((r) => {
+      if (!r.sessionDate) return [];
+      const date = new Date(r.sessionDate);
+      const day = ctDateStr(r.sessionDate);
+      const title = sessionTitle(r.programName, date);
+      const cover = r.status === "sub_needed";
+      const opening = cover ? `cover-${r.subRequestId}` : latestEmptied.get(`${r.programSlug}~${day}`)?.id ?? "open";
+      const item: HubAppUpdateItem = {
+        id: `need-${hubSlug}-${r.programSlug}~${day}-${opening}`,
+        sourceKey: "app:schedule",
+        sourceLabel: "Schedule",
+        kind: cover ? "need-cover" : "need-someone",
+        authorId: cover ? r.hostUserId : null,
+        authorName: cover ? r.hostName ?? "Someone" : title,
+        verb: cover ? "asked for someone to cover" : `needs ${needs}`,
+        subject: cover ? title : null,
+        href: scheduleSessionHref(hubSlug, r.programSlug, date),
+        ts: r.sessionDate,
+        isForUser: true,
+        state: { label: "Open", tone: "open" },
+        action: canTake
+          ? {
+              kind: cover ? "cover" : multi ? "sign-up" : "take",
+              hubSlug,
+              programSlug: r.programSlug,
+              programName: r.programName,
+              sessionDate: r.sessionDate,
+              subRequestId: cover ? r.subRequestId : null,
+              forName: cover ? r.hostName : null,
+              coverageAction: copy.action,
+              coverageVerb: copy.verb,
+            }
+          : null,
+      };
+      return [item];
+    });
 }
 
 async function scheduleAttention(hubId: string, hubSlug: string, userId: string): Promise<HubAppAttentionItem[]> {
@@ -339,6 +640,7 @@ const HUB_APP_PROVIDERS: Record<ToolSlug, HubAppProvider> = {
   schedule: {
     home: scheduleHome,
     updates: scheduleUpdates,
+    needs: scheduleNeeds,
     attention: scheduleAttention,
   },
   programs: {
@@ -421,9 +723,19 @@ export async function getHubHomeApps(hubSlug: string, links: HubAppLinkInput[]):
 }
 
 /** App-owned update providers; the Space owns sorting and rendering. */
-export async function listInstalledAppUpdates(toolSlugs: ToolSlug[], query: HubAppUpdateQuery) {
+export async function listInstalledAppUpdates(toolSlugs: ToolSlug[], query: HubAppUpdateQuery): Promise<HubAppUpdatePage> {
   const results = await Promise.all(
-    toolSlugs.map((slug) => HUB_APP_PROVIDERS[slug].updates?.(query) ?? Promise.resolve([])),
+    toolSlugs.map((slug) => HUB_APP_PROVIDERS[slug].updates?.(query) ?? Promise.resolve({ items: [], boundary: null })),
+  );
+  let boundary: Date | null = null;
+  for (const r of results) if (r.boundary && (!boundary || r.boundary > boundary)) boundary = r.boundary;
+  return { items: results.flatMap((r) => r.items), boundary };
+}
+
+/** What installed apps say needs the viewer now (Updates' "Needs you"). */
+export async function listInstalledAppNeeds(toolSlugs: ToolSlug[], query: HubAppNeedsQuery) {
+  const results = await Promise.all(
+    toolSlugs.map((slug) => HUB_APP_PROVIDERS[slug].needs?.(query) ?? Promise.resolve([])),
   );
   return results.flat();
 }

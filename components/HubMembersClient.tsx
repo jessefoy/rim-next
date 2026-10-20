@@ -13,6 +13,7 @@
  */
 
 import { useState, type RefObject } from "react";
+import { useHashArrival } from "@/components/hooks/useHashArrival";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 
@@ -96,6 +97,8 @@ export default function HubMembersClient({
   currentUserId,
 }: Props) {
   const [members, setMembers] = useState<HubMemberRow[]>(initialMembers);
+  // An Updates link can open the list at one member (#member-…).
+  useHashArrival();
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [confirmHardRemove, setConfirmHardRemove] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -251,7 +254,7 @@ export default function HubMembersClient({
     const statusClass = isInactive ? "hub-mem-status--inactive" : isPaused ? "hub-mem-status--paused" : "";
 
     return (
-      <div key={m.id} className={`hub-mem-item ${statusClass}`}>
+      <div key={m.id} id={`member-${m.userId}`} tabIndex={-1} className={`hub-mem-item ${statusClass}`}>
         {m.user.avatarUrl ? (
           <img src={m.user.avatarUrl} alt="" className="hub-mem-av hub-mem-av--img" />
         ) : (

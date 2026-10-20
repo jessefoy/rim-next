@@ -1,103 +1,290 @@
 "use client";
 
+/**
+ * A team's Updates, read like an inbox (2026-10-19, Jesse: "read it like an
+ * inbox and by type… it should also go to the item specifically").
+ *
+ * Types are folders in plain sight (For you, Everything, then each kind), each
+ * with what's unread. "Needs you" sits on top: what the viewer could take now,
+ * taken right here with the Scheduler's own rules and words. Below, what
+ * happened, by day, each row one sentence that opens the exact thing. Opening
+ * marks it read; nothing ever leaves Everything. Server: lib/hubActivity.ts.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CalendarDays, FileText, MessageSquare, UserPlus } from "lucide-react";
 import type {
-  HubActivityFilter,
+  HubActivityFolder,
   HubActivityItem,
+  HubActivityShow,
   HubActivitySourceKey,
   HubActivitySourceOption,
 } from "@/lib/hubActivity";
+import { useArrival } from "@/components/FormDone";
 
-interface ActivityPageState {
-  items: HubActivityItem[];
-  nextCursor: string | null;
-  loaded: boolean;
+const TZ = "America/Chicago";
+
+interface Counts {
+  forYou: number;
+  all: number;
+  bySource: Partial<Record<HubActivitySourceKey, number>>;
 }
 
 interface Props {
   hubSlug: string;
   initialItems: HubActivityItem[];
   initialNextCursor: string | null;
-  initialFilter: HubActivityFilter;
+  initialFolder: HubActivityFolder;
+  initialShow: HubActivityShow;
+  needs: HubActivityItem[];
+  counts: Counts;
   sourceOptions: HubActivitySourceOption[];
+  /** A guiding teacher looking in on a team they aren't on has no read state. */
+  hasReadState: boolean;
+  isLead: boolean;
+  /** When the page was built: "Mark all as read" covers what was on screen. */
+  loadedAt: string;
 }
 
-type ActivityView = "timeline" | "categories" | HubActivitySourceKey;
-
-function sourceForView(view: ActivityView): "all" | HubActivitySourceKey {
-  return view === "timeline" || view === "categories" ? "all" : view;
+interface PageState {
+  items: HubActivityItem[];
+  nextCursor: string | null;
+  loaded: boolean;
 }
 
-function pageKey(filter: HubActivityFilter, view: ActivityView): string {
-  return `${filter}:${sourceForView(view)}`;
+function pageKey(folder: HubActivityFolder, show: HubActivityShow) {
+  return `${folder}:${show}`;
 }
 
-function relativeTime(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function ItemIcon({ sourceKey }: { sourceKey: HubActivityItem["sourceKey"] }) {
-  const common = { size: 17, strokeWidth: 1.75, className: "hub-act-item__icon" };
+function ItemIcon({ sourceKey }: { sourceKey: HubActivitySourceKey }) {
+  const common = { size: 18, strokeWidth: 1.75, className: "hub-inbox__icon", "aria-hidden": true };
   if (sourceKey === "files") return <FileText {...common} />;
   if (sourceKey === "members") return <UserPlus {...common} />;
   if (sourceKey.startsWith("app:")) return <CalendarDays {...common} />;
   return <MessageSquare {...common} />;
 }
 
-const FILTERS: { key: HubActivityFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "recent", label: "Recent" },
-  { key: "for-me", label: "For me" },
-];
-
-function categoryLabel(item: HubActivityItem): string {
-  if (item.sourceKey === "conversations") return "Conversations";
-  if (item.sourceKey === "files") return "Files";
-  if (item.sourceKey === "members") return "Members";
-  return item.sourceLabel;
+/** The Central day of a moment, "YYYY-MM-DD". */
+function centralDay(d: Date): string {
+  return d.toLocaleDateString("en-CA", { timeZone: TZ });
 }
 
-function groupByCategory(items: HubActivityItem[]) {
-  const groups = new Map<string, { label: string; items: HubActivityItem[] }>();
+/** "Today", "Yesterday", "Monday" (this week), else "October 12". */
+function dayHeading(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const day = centralDay(d);
+  if (day === centralDay(now)) return "Today";
+  if (day === centralDay(new Date(now.getTime() - 86_400_000))) return "Yesterday";
+  if (now.getTime() - d.getTime() < 6 * 86_400_000) {
+    return d.toLocaleDateString("en-US", { timeZone: TZ, weekday: "long" });
+  }
+  const sameYear = d.toLocaleDateString("en-US", { timeZone: TZ, year: "numeric" }) ===
+    now.toLocaleDateString("en-US", { timeZone: TZ, year: "numeric" });
+  return d.toLocaleDateString("en-US", { timeZone: TZ, month: "long", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
+}
+
+function timeOf(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
+}
+
+function sessionWhen(iso: string): string {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString("en-US", { timeZone: TZ, weekday: "long", month: "long", day: "numeric" })} at ${timeOf(iso)}`;
+}
+
+function groupByDay(items: HubActivityItem[]) {
+  const groups: { heading: string; items: HubActivityItem[] }[] = [];
   for (const item of items) {
-    const existing = groups.get(item.sourceKey);
-    if (existing) {
-      existing.items.push(item);
-    } else {
-      groups.set(item.sourceKey, { label: categoryLabel(item), items: [item] });
+    const heading = dayHeading(item.ts);
+    const last = groups[groups.length - 1];
+    if (last && last.heading === heading) last.items.push(item);
+    else groups.push({ heading, items: [item] });
+  }
+  return groups;
+}
+
+/** Tell the server these were opened. Survives the navigation that follows. */
+function sendRead(hubSlug: string, body: { keys: string[]; all?: boolean; asOf?: string }) {
+  return fetch(`/api/hub/${hubSlug}/activity/read`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    keepalive: true,
+  });
+}
+
+function Sentence({ item }: { item: HubActivityItem }) {
+  return (
+    <span className="hub-inbox__sentence">
+      {item.authorName && <strong>{item.authorName}</strong>}
+      {item.verb && <> {item.verb}</>}
+      {item.subject && <> <strong className="hub-inbox__what">{item.subject}</strong></>}
+    </span>
+  );
+}
+
+function StateChip({ state }: { state: HubActivityItem["state"] }) {
+  if (!state) return null;
+  return <span className={`hub-inbox__state hub-inbox__state--${state.tone}`}>{state.label}</span>;
+}
+
+function HistoryRow({ item, onOpen }: { item: HubActivityItem; onOpen: (item: HubActivityItem) => void }) {
+  return (
+    <li className={`hub-inbox__row${item.unread ? " hub-inbox__row--unread" : ""}`}>
+      <Link href={item.href} className="hub-inbox__row-link" onClick={() => onOpen(item)}>
+        <span className="hub-inbox__dot" aria-hidden="true" />
+        <ItemIcon sourceKey={item.sourceKey} />
+        <span className="hub-inbox__body">
+          <span className="hub-inbox__meta">
+            {item.unread && <span className="rim-sr-only">Unread. </span>}
+            <span className="hub-inbox__type">{item.sourceLabel}</span>
+            {item.leadsOnly && <span className="hub-inbox__leads">Leads only</span>}
+          </span>
+          <Sentence item={item} />
+          {(item.state || item.note) && (
+            <span className="hub-inbox__after">
+              <StateChip state={item.state} />
+              {item.note && <span className="hub-inbox__note">{item.note}</span>}
+            </span>
+          )}
+        </span>
+        <span className="hub-inbox__time">{timeOf(item.ts)}</span>
+      </Link>
+    </li>
+  );
+}
+
+type NeedPhase =
+  | { kind: "idle" }
+  | { kind: "confirm" }
+  | { kind: "working" }
+  | { kind: "done"; message: string }
+  | { kind: "error"; message: string };
+
+function NeedCard({
+  item,
+  onOpen,
+  onTaken,
+}: {
+  item: HubActivityItem;
+  onOpen: (item: HubActivityItem) => void;
+  onTaken: (item: HubActivityItem) => void;
+}) {
+  const [phase, setPhase] = useState<NeedPhase>({ kind: "idle" });
+  const answerRef = useArrival<HTMLParagraphElement>(phase.kind, phase.kind === "done");
+  const confirmRef = useRef<HTMLParagraphElement>(null);
+  const mainButtonRef = useRef<HTMLButtonElement>(null);
+  const lastPhase = useRef<NeedPhase["kind"]>("idle");
+  const action = item.action ?? null;
+
+  // Focus follows the step: into the question, and back to the button when
+  // the question closes ("Not now", or a problem to try again from).
+  useEffect(() => {
+    if (phase.kind === "confirm") confirmRef.current?.focus();
+    else if ((phase.kind === "idle" || phase.kind === "error") && (lastPhase.current === "confirm" || lastPhase.current === "working")) {
+      mainButtonRef.current?.focus();
+    }
+    lastPhase.current = phase.kind;
+  }, [phase.kind]);
+
+  async function take() {
+    if (!action) return;
+    setPhase({ kind: "working" });
+    try {
+      const res = action.kind === "cover" && action.subRequestId
+        ? await fetch(`/api/host/sub-requests/${action.subRequestId}/claim`, {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+          })
+        : await fetch(`/api/host/assignments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              programSlug: action.programSlug,
+              sessionDate: action.sessionDate,
+              action: "claim",
+              hubSlug: action.hubSlug,
+            }),
+          });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error ?? "That didn't go through. Please try again.");
+      }
+      const when = sessionWhen(action.sessionDate);
+      setPhase({
+        kind: "done",
+        message: action.kind === "cover"
+          ? `You're covering for ${action.forName ?? "them"}: ${action.programName}, ${when}. We'll let them know, and email you a confirmation.`
+          : `You're ${action.coverageVerb} ${action.programName}, ${when}. Thank you. We'll email you a confirmation.`,
+      });
+      onTaken(item);
+    } catch (e) {
+      setPhase({ kind: "error", message: e instanceof Error ? e.message : "That didn't go through. Please try again." });
     }
   }
-  return [...groups.entries()]
-    .map(([key, group]) => ({ key, ...group }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-}
 
-function ActivityItemRow({ item }: { item: HubActivityItem }) {
+  const buttonLabel = !action
+    ? null
+    : action.kind === "cover"
+      ? "I'll cover this"
+      : action.kind === "sign-up"
+        ? `Sign up to ${action.coverageAction}`
+        : "Take this session";
+
   return (
-    <li className="hub-act__item">
-      <Link href={item.href} className="hub-act__item-link">
-        <ItemIcon sourceKey={item.sourceKey} />
-        <span className="hub-act__item-content">
-          <span className="hub-act__item-source">
-            {item.sourceLabel}
-          </span>
-          <span className="hub-act__item-label">
-            <strong>{item.authorName}</strong> {item.verb}
-            {item.subject && <> <em>{item.subject}</em></>}
-          </span>
+    <li className={`hub-inbox__need${item.unread ? " hub-inbox__need--unread" : ""}`}>
+      <div className="hub-inbox__need-text">
+        <span className="hub-inbox__meta">
+          {item.unread && <span className="rim-sr-only">New. </span>}
+          <span className="hub-inbox__dot" aria-hidden="true" />
+          <span className="hub-inbox__type">{item.sourceLabel}</span>
         </span>
-        <span className="hub-act__item-time">{relativeTime(item.ts)}</span>
-      </Link>
+        <Sentence item={item} />
+      </div>
+
+      {phase.kind === "done" ? (
+        <p className="hub-inbox__answer" role="status" tabIndex={-1} ref={answerRef}>{phase.message}</p>
+      ) : phase.kind === "confirm" || (phase.kind === "working" && action?.kind !== "sign-up") ? (
+        <div className="hub-inbox__confirm">
+          <p className="hub-inbox__confirm-q" tabIndex={-1} ref={confirmRef}>
+            {action?.kind === "cover"
+              ? <>You&apos;ll cover for <strong>{action.forName ?? "the person who asked"}</strong> at <strong>{action.programName}</strong> on <strong>{sessionWhen(action.sessionDate)}</strong>. They&apos;ll be told you&apos;re stepping in.</>
+              : action
+                ? <><strong>{action.programName}</strong> on <strong>{sessionWhen(action.sessionDate)}</strong> will be yours. We&apos;ll email you a confirmation.</>
+                : null}
+          </p>
+          <div className="hub-inbox__actions">
+            <button type="button" className="btn" onClick={take} disabled={phase.kind === "working"}>
+              {phase.kind === "working"
+                ? "Saving…"
+                : action?.kind === "cover" ? "Yes, I'll cover this" : `Yes, I'll ${action?.coverageAction ?? "take it"}`}
+            </button>
+            <button type="button" className="btn--ghost" onClick={() => setPhase({ kind: "idle" })} disabled={phase.kind === "working"}>
+              Not now
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="hub-inbox__actions">
+          {action && (
+            <button
+              ref={mainButtonRef}
+              type="button"
+              className="btn"
+              disabled={phase.kind === "working"}
+              // Open sign-up is one tap, as in the Scheduler; taking a seat asks first.
+              onClick={() => (action.kind === "sign-up" ? void take() : setPhase({ kind: "confirm" }))}
+            >
+              {phase.kind === "working" ? "Saving…" : buttonLabel}
+            </button>
+          )}
+          <Link href={item.href} className="hub-inbox__see" onClick={() => onOpen(item)}>
+            See it in the Scheduler
+          </Link>
+        </div>
+      )}
+      {phase.kind === "error" && <p className="hub-inbox__problem" role="alert">{phase.message}</p>}
     </li>
   );
 }
@@ -106,234 +293,257 @@ export default function HubActivityClient({
   hubSlug,
   initialItems,
   initialNextCursor,
-  initialFilter,
+  initialFolder,
+  initialShow,
+  needs: initialNeeds,
+  counts: initialCounts,
   sourceOptions,
+  hasReadState,
+  isLead,
+  loadedAt,
 }: Props) {
-  const emptyState = (): ActivityPageState => ({ items: [], nextCursor: null, loaded: false });
-  const [filter, setFilter] = useState<HubActivityFilter>(initialFilter);
-  const [view, setView] = useState<ActivityView>("timeline");
-  const [viewMenuOpen, setViewMenuOpen] = useState(false);
-  const viewMenuRef = useRef<HTMLDivElement>(null);
-  const viewButtonRef = useRef<HTMLButtonElement>(null);
-  const [pages, setPages] = useState<Record<string, ActivityPageState>>({
-    [pageKey(initialFilter, "timeline")]: {
-      items: initialItems,
-      nextCursor: initialNextCursor,
-      loaded: true,
-    },
+  const [folder, setFolder] = useState<HubActivityFolder>(initialFolder);
+  const [show, setShow] = useState<HubActivityShow>(hasReadState ? initialShow : "all");
+  const [pages, setPages] = useState<Record<string, PageState>>({
+    [pageKey(initialFolder, initialShow)]: { items: initialItems, nextCursor: initialNextCursor, loaded: true },
   });
-  const pendingRequests = useRef(0);
+  const [needs, setNeeds] = useState(initialNeeds);
+  const [counts, setCounts] = useState(initialCounts);
+  // Read keys marked here, so every loaded page agrees at once.
+  const [readHere, setReadHere] = useState<Set<string>>(new Set());
+  const [allReadAt, setAllReadAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const currentPageKey = pageKey(filter, view);
-  const current = pages[currentPageKey] ?? emptyState();
-  const categoryGroups = groupByCategory(current.items);
-  const selectedSource = sourceOptions.find((option) => option.key === view);
-  const viewLabel = view === "timeline"
-    ? "Date and time"
-    : view === "categories"
-      ? "All categories"
-      : selectedSource?.label ?? "Category";
+  const [markNote, setMarkNote] = useState("");
+  const pending = useRef(0);
 
-  useEffect(() => {
-    if (!viewMenuOpen) return;
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (viewMenuRef.current && !viewMenuRef.current.contains(event.target as Node)) {
-        setViewMenuOpen(false);
-      }
-    };
-    // Escape closes the menu and returns focus to the View button.
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setViewMenuOpen(false);
-      viewButtonRef.current?.focus();
-    };
-    document.addEventListener("mousedown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("mousedown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [viewMenuOpen]);
+  const current = pages[pageKey(folder, show)] ?? { items: [], nextCursor: null, loaded: false };
 
-  async function fetchPage(nextFilter: HubActivityFilter, nextView: ActivityView, cursor?: string | null) {
-    pendingRequests.current += 1;
+  const isUnread = (item: HubActivityItem) =>
+    item.unread &&
+    !item.readKeys.every((k) => readHere.has(k)) &&
+    !(allReadAt !== null && !item.id.startsWith("need-") && new Date(item.ts).getTime() <= allReadAt);
+  const view = (item: HubActivityItem): HubActivityItem => ({ ...item, unread: isUnread(item) });
+
+  const shownNeeds = folder === "all" || folder === "for-you" || folder === "app:schedule" ? needs.map(view) : [];
+  // Read here stays on screen (plain, not bold) until the list is reloaded,
+  // so nothing jumps out from under the person.
+  const history = current.items.map(view);
+
+  async function fetchPage(nextFolder: HubActivityFolder, nextShow: HubActivityShow, cursor?: string | null) {
+    pending.current += 1;
     setLoading(true);
     setError("");
     try {
-      const qs = new URLSearchParams({ limit: "30", filter: nextFilter });
-      const source = sourceForView(nextView);
-      if (source !== "all") qs.set("source", source);
+      const qs = new URLSearchParams({ limit: "30", folder: nextFolder, show: nextShow });
       if (cursor) qs.set("cursor", cursor);
       const res = await fetch(`/api/hub/${hubSlug}/activity?${qs}`);
-      if (!res.ok) throw new Error("Updates could not be loaded.");
+      if (!res.ok) throw new Error();
       const data = await res.json() as { items: HubActivityItem[]; nextCursor: string | null };
       setPages((prev) => {
-        const key = pageKey(nextFilter, nextView);
+        const key = pageKey(nextFolder, nextShow);
         const existing = cursor ? (prev[key]?.items ?? []) : [];
-        const ids = new Set(existing.map((item) => item.id));
-        return {
-          ...prev,
-          [key]: {
-            items: [...existing, ...data.items.filter((item) => !ids.has(item.id))],
-            nextCursor: data.nextCursor,
-            loaded: true,
-          },
-        };
+        // A day's replies can straddle two pages: join them.
+        const byId = new Map(existing.map((item) => [item.id, item]));
+        for (const item of data.items) {
+          const had = byId.get(item.id);
+          byId.set(item.id, had
+            ? { ...had, unread: had.unread || item.unread, readKeys: [...new Set([...had.readKeys, ...item.readKeys])] }
+            : item);
+        }
+        return { ...prev, [key]: { items: [...byId.values()], nextCursor: data.nextCursor, loaded: true } };
       });
     } catch {
-      setError("Updates couldn’t be loaded. Try again.");
+      setError("Updates couldn't be loaded. Check your connection and try again.");
     } finally {
-      pendingRequests.current -= 1;
-      if (pendingRequests.current === 0) setLoading(false);
+      pending.current -= 1;
+      if (pending.current === 0) setLoading(false);
     }
   }
 
-  function changeFilter(next: HubActivityFilter) {
-    setFilter(next);
-    const key = pageKey(next, view);
-    if (!pages[key]?.loaded) void fetchPage(next, view);
+  function syncUrl(nextFolder: HubActivityFolder, nextShow: HubActivityShow) {
+    const qs = new URLSearchParams();
+    if (nextFolder !== "all") qs.set("folder", nextFolder);
+    if (nextShow !== "all") qs.set("show", nextShow);
+    const q = qs.toString();
+    window.history.replaceState(null, "", `/account/hub/${hubSlug}/activity${q ? `?${q}` : ""}`);
   }
 
-  function changeView(next: ActivityView) {
-    setView(next);
-    setViewMenuOpen(false);
-    viewButtonRef.current?.focus();
-    const key = pageKey(filter, next);
-    if (!pages[key]?.loaded) void fetchPage(filter, next);
+  function choose(nextFolder: HubActivityFolder, nextShow: HubActivityShow) {
+    setFolder(nextFolder);
+    setShow(nextShow);
+    setMarkNote("");
+    syncUrl(nextFolder, nextShow);
+    // Unread lists are fetched fresh each time: they change as you read.
+    if (!pages[pageKey(nextFolder, nextShow)]?.loaded || nextShow === "unread") void fetchPage(nextFolder, nextShow);
   }
 
-  const sourceName = selectedSource?.label;
-  const emptyCopy = sourceName
-    ? filter === "recent"
-      ? `No ${sourceName.toLowerCase()} updates in the last seven days.`
-      : filter === "for-me"
-        ? `No ${sourceName.toLowerCase()} updates need your attention.`
-        : `No ${sourceName.toLowerCase()} updates yet.`
-    : filter === "recent"
-      ? "No updates in the last seven days."
-      : filter === "for-me"
-        ? "Nothing needs your attention here."
-        : "No updates yet.";
+  function lowerCounts(item: HubActivityItem) {
+    if (!isUnread(item)) return;
+    setCounts((c) => {
+      const isNeed = item.id.startsWith("need-");
+      const bySource = { ...c.bySource };
+      if (!isNeed) bySource[item.sourceKey] = Math.max(0, (bySource[item.sourceKey] ?? 0) - 1);
+      return {
+        forYou: item.isForUser ? Math.max(0, c.forYou - 1) : c.forYou,
+        all: isNeed ? c.all : Math.max(0, c.all - 1),
+        bySource,
+      };
+    });
+  }
+
+  function open(item: HubActivityItem) {
+    if (!hasReadState || !isUnread(item)) return;
+    lowerCounts(item);
+    setReadHere((prev) => new Set([...prev, ...item.readKeys]));
+    void sendRead(hubSlug, { keys: item.readKeys }).catch(() => {});
+  }
+
+  function taken(item: HubActivityItem) {
+    open(item);
+    // It leaves Needs you on the next visit; for now it shows its answer.
+    setTimeout(() => setNeeds((prev) => prev.filter((n) => n.id !== item.id)), 60_000);
+  }
+
+  async function markAllRead() {
+    setMarkNote("");
+    const needKeys = needs.map((n) => n.id);
+    try {
+      const res = await sendRead(hubSlug, { keys: needKeys, all: true, asOf: loadedAt });
+      if (!res.ok) throw new Error();
+      setAllReadAt(new Date(loadedAt).getTime());
+      setReadHere((prev) => new Set([...prev, ...needKeys]));
+      setCounts({ forYou: 0, all: 0, bySource: {} });
+      setMarkNote("Everything here is marked as read.");
+    } catch {
+      setMarkNote("That didn't go through. Please try again.");
+    }
+  }
+
+  const folders: { key: HubActivityFolder; label: string; count: number }[] = [
+    { key: "for-you", label: "For you", count: counts.forYou },
+    { key: "all", label: "Everything", count: counts.all },
+    ...sourceOptions.map((o) => ({ key: o.key, label: o.label, count: counts.bySource[o.key] ?? 0 })),
+  ];
+  const folderLabel = folders.find((f) => f.key === folder)?.label ?? "Everything";
+  const anyUnread = counts.all > 0 || counts.forYou > 0;
+
+  const emptyCopy = show === "unread"
+    ? `You're all caught up${folder === "all" || folder === "for-you" ? "" : ` on ${folderLabel.toLowerCase()}`}.`
+    : folder === "for-you"
+      ? "Nothing here is about you yet. When someone replies to a conversation you follow, comments on your file, or changes your sessions, it will show here."
+      : folder === "all"
+        ? "Nothing has happened on this team yet."
+        : `No ${folderLabel.toLowerCase()} updates yet.`;
 
   return (
-    <div className="hub-act">
-      <header className="hub-act__header">
+    <div className="hub-act hub-inbox">
+      <header className="hub-act__header hub-inbox__header">
         <div>
           <h1 className="hub-act__title">Updates</h1>
-          <p className="hub-act__intro">Meaningful changes from Conversations, Files, Members, and this team’s apps.</p>
+          <p className="hub-act__intro">
+            {isLead
+              ? "What's happening on the team, and what needs you. As a lead you also see who has stepped back from sessions."
+              : "What's happening on the team, and what needs you."}
+          </p>
         </div>
-        <div className="hub-act__controls">
-          <div className="hub-act__filters" role="group" aria-label="Filter updates">
-            {FILTERS.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`hub-act__filter${filter === item.key ? " hub-act__filter--active" : ""}`}
-                onClick={() => changeFilter(item.key)}
-                aria-pressed={filter === item.key}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <div className="hub-act__view" ref={viewMenuRef}>
-            <span className="hub-act__view-label">View</span>
-            <div className="hub-act__view-picker">
-              <button
-                ref={viewButtonRef}
-                type="button"
-                className="hub-act__view-button"
-                aria-haspopup="menu"
-                aria-expanded={viewMenuOpen}
-                onClick={() => setViewMenuOpen((open) => !open)}
-              >
-                <span>{viewLabel}</span>
-                <span className="hub-act__view-caret" aria-hidden="true">▾</span>
-              </button>
-              {viewMenuOpen && (
-                <div className="hub-act__view-menu" role="menu" aria-label="Organize updates">
-                  <button
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={view === "timeline"}
-                    className={`hub-act__view-option${view === "timeline" ? " hub-act__view-option--active" : ""}`}
-                    onClick={() => changeView("timeline")}
-                  >
-                    Date and time
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={view === "categories"}
-                    className={`hub-act__view-option${view === "categories" ? " hub-act__view-option--active" : ""}`}
-                    onClick={() => changeView("categories")}
-                  >
-                    All categories
-                  </button>
-                  {sourceOptions.length > 0 && <div className="hub-act__view-divider" />}
-                  {sourceOptions.map((option) => (
-                    <button
-                      key={option.key}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={view === option.key}
-                      className={`hub-act__view-option${view === option.key ? " hub-act__view-option--active" : ""}`}
-                      onClick={() => changeView(option.key)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        {hasReadState && anyUnread && (
+          <button type="button" className="btn--ghost hub-inbox__mark-all" onClick={() => void markAllRead()}>
+            Mark all as read
+          </button>
+        )}
       </header>
+      {markNote && <p className="hub-inbox__mark-note" role="status">{markNote}</p>}
 
-      {error && <p className="hub-act__error" role="alert">{error}</p>}
+      <div className="hub-inbox__layout">
+        <nav className="hub-inbox__folders" aria-label="Types of updates">
+          <ul>
+            {folders.map((f, i) => (
+              <li key={f.key} className={i === 2 ? "hub-inbox__folder-break" : undefined}>
+                <button
+                  type="button"
+                  className={`hub-inbox__folder${folder === f.key ? " hub-inbox__folder--active" : ""}`}
+                  aria-current={folder === f.key ? "true" : undefined}
+                  onClick={() => choose(f.key, show)}
+                >
+                  <span>{f.label}</span>
+                  {hasReadState && f.count > 0 && (
+                    <span className="hub-inbox__count">
+                      {f.count > 99 ? "99+" : f.count}
+                      <span className="rim-sr-only"> unread</span>
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-      {loading && !current.loaded ? (
-        <p className="hub-act__empty">Loading updates…</p>
-      ) : current.items.length === 0 ? (
-        <p className="hub-act__empty">{emptyCopy}</p>
-      ) : view !== "categories" ? (
-        <ul className="hub-act__list">
-          {current.items.map((item) => (
-            <ActivityItemRow key={item.id} item={item} />
-          ))}
-        </ul>
-      ) : (
-        <div className="hub-act__groups">
-          {categoryGroups.map((group) => (
-            <section key={group.key} className="hub-act__group">
-              <header className="hub-act__group-header">
-                <h2 className="hub-act__group-title">{group.label}</h2>
-                <span className="hub-act__group-count">
-                  {group.items.length} {group.items.length === 1 ? "update" : "updates"}
-                </span>
-              </header>
-              <ul className="hub-act__list hub-act__list--grouped">
-                {group.items.map((item) => (
-                  <ActivityItemRow key={item.id} item={item} />
+        <div className="hub-inbox__main">
+          {hasReadState && (
+            <div className="hub-inbox__show" role="group" aria-label="Show">
+              {(["all", "unread"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={`hub-inbox__show-btn${show === s ? " hub-inbox__show-btn--active" : ""}`}
+                  aria-pressed={show === s}
+                  onClick={() => choose(folder, s)}
+                >
+                  {s === "all" ? "All" : "Unread"}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {shownNeeds.length > 0 && (
+            <section className="hub-inbox__section" aria-labelledby="hub-inbox-needs">
+              <h2 id="hub-inbox-needs" className="hub-inbox__section-label">Needs you</h2>
+              <p className="hub-inbox__section-sub">
+                Sessions in the next two weeks that need someone. They leave this list once someone takes them.
+              </p>
+              <ul className="hub-inbox__needs">
+                {shownNeeds.map((item) => (
+                  <NeedCard key={item.id} item={item} onOpen={open} onTaken={taken} />
                 ))}
               </ul>
             </section>
-          ))}
-        </div>
-      )}
+          )}
 
-      {current.nextCursor && (
-        <button
-          type="button"
-          className="hub-act__load-more"
-          onClick={() => void fetchPage(filter, view, current.nextCursor)}
-          disabled={loading}
-        >
-          {loading ? "Loading…" : "Load more"}
-        </button>
-      )}
+          <section className="hub-inbox__section" aria-label={`${folderLabel}, ${show === "unread" ? "unread" : "all"}`}>
+            {error && <p className="hub-inbox__problem" role="alert">{error}</p>}
+            {loading && !current.loaded ? (
+              <p className="hub-inbox__empty">Loading updates…</p>
+            ) : history.length === 0 ? (
+              <p className="hub-inbox__empty">
+                {current.nextCursor ? "Nothing here in the most recent stretch. Show earlier updates to keep looking." : emptyCopy}
+              </p>
+            ) : (
+              groupByDay(history).map((group) => (
+                <div key={group.heading} className="hub-inbox__day">
+                  <h2 className="hub-inbox__day-heading">{group.heading}</h2>
+                  <ul className="hub-inbox__list">
+                    {group.items.map((item) => (
+                      <HistoryRow key={item.id} item={item} onOpen={open} />
+                    ))}
+                  </ul>
+                </div>
+              ))
+            )}
+
+            {current.nextCursor && (
+              <button
+                type="button"
+                className="hub-act__load-more"
+                onClick={() => void fetchPage(folder, show, current.nextCursor)}
+                disabled={loading}
+              >
+                {loading ? "Loading…" : "Show earlier updates"}
+              </button>
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
