@@ -478,7 +478,7 @@ export default async function DashboardPage({ searchParams }: {
             clearParam="welcome"
             title={query.welcome === "new" ? "You\u2019re all set. Welcome to RIM." : "Welcome back. You\u2019re all set."}
           >
-            <p>This is My Home: your gatherings for today and what&rsquo;s coming up are here.</p>
+            <p>This is My Home: your gatherings for today are here.</p>
           </FormDone>
         )}
 

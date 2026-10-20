@@ -1591,7 +1591,7 @@ Rooted In Mindfulness · Brookfield, WI`,
           group: "03-sessions",
           groupLabel: "Session Reminders",
           subject: "Reminder: {{programTitle}}",
-          variables: ["firstName", "programTitle", "dateText", "locationText", "reminderMessage", "dashboardUrl"],
+          variables: ["firstName", "programTitle", "dateText", "locationText", "reminderMessage", "programUrl", "dashboardUrl"],
           body: `Hi {{firstName}},
 
 A gentle reminder that **{{programTitle}}** is coming up{{#if dateText}} — {{dateText}}{{/if}}.
@@ -1602,7 +1602,7 @@ A gentle reminder that **{{programTitle}}** is coming up{{#if dateText}} — {{d
 {{reminderMessage}}
 {{/if}}
 
-**[View in your dashboard →]({{dashboardUrl}})**
+**[View the program →]({{programUrl}})**
 
 We look forward to practicing together.
 
@@ -7133,6 +7133,39 @@ Rooted In Mindfulness`,
     }
   } catch (err) {
     console.error("  notifications-daily-summary seed failed:", err?.message ?? err);
+  }
+
+  // The session reminder's button opens the program (2026-10-20, Jesse's
+  // consent): My Home no longer lists upcoming programs (backlog
+  // 2026-10-20-004), so "View in your dashboard" led to a page that didn't
+  // mention the session. The line is swapped only where it is still exactly
+  // as seeded; an edited body is left alone and logged. {{programUrl}} is
+  // listed either way, so an edited template can use it.
+  try {
+    const flag = "session_reminder_program_link_2026_10_20_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const lineFrom = "**[View in your dashboard →]({{dashboardUrl}})**";
+      const lineTo = "**[View the program →]({{programUrl}})**";
+      const row = await db.emailTemplate.findUnique({ where: { slug: "session-reminder" }, select: { body: true, variables: true } });
+      if (!row) {
+        console.log("  Session reminder link: template not found, skipped.");
+      } else {
+        const data = {};
+        if (row.body.includes(lineFrom)) data.body = row.body.replace(lineFrom, lineTo);
+        else console.log("  Session reminder link: the button line was edited, left alone (use {{programUrl}} by hand in /admin/emails).");
+        if (!row.variables.includes("programUrl")) data.variables = [...row.variables, "programUrl"];
+        if (Object.keys(data).length) {
+          const res = await db.emailTemplate.updateMany({ where: { slug: "session-reminder", body: row.body }, data });
+          console.log(res.count
+            ? `  ✔ Session reminder link: ${Object.keys(data).join(", ")} updated.`
+            : "  Session reminder link: template changed during the update, left alone.");
+        }
+      }
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  } catch (err) {
+    console.error("  Session reminder link: failed (template unchanged):", err?.message ?? err);
   }
 
   await db.$disconnect();

@@ -1051,6 +1051,9 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
     dateText:        data.dateText ?? "",
     locationText,
     reminderMessage,
+    // My Home no longer lists upcoming programs (2026-10-20), so the button
+    // opens the program's page; dashboardUrl stays for an edited template.
+    programUrl:      `${BASE_URL}/programs/${data.programSlug}`,
     dashboardUrl:    `${BASE_URL}/account/dashboard`,
   }, {
     notice: {

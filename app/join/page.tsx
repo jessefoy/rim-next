@@ -146,7 +146,7 @@ function AlreadyMember({ name }: { name: string | null }) {
           <h1 className="pp-hero__title">You&rsquo;re already a member</h1>
           <p className="pp-hero__body">
             You&rsquo;re signed in{name ? ` as ${name}` : ""}, so you don&rsquo;t need to do
-            anything else. My Home has today&rsquo;s gatherings and what&rsquo;s coming up.
+            anything else. My Home has today&rsquo;s gatherings.
           </p>
           <div className="pp-hero__actions">
             <Link href="/account/dashboard" className="pp-btn">
