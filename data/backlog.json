@@ -1992,5 +1992,15 @@
     "status": "open",
     "addedAt": "2026-10-20",
     "notes": "Authority: RIM_GoogleWorkspace.md §10; components NotifyPicker, POST /api/files/[fileId]/notify and the comment notify payload."
+  },
+  {
+    "id": "2026-10-21-001",
+    "title": "Tutorials: decide which go behind sign-in",
+    "description": "/tutorials (built 2026-10-21) is open to everyone and unindexed: no menu, footer or sitemap link, shared by link as needed, grouped by topic on its index. Decide, tutorial by tutorial, which should move behind sign-in as more are added (volunteer and lead how-tos are the likely ones), and how a signed-out person who follows a link is told to sign in first. Keep the sign-in steps themselves readable signed out, since a person who can't sign in yet needs them.",
+    "category": "Member Accounts",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-21",
+    "notes": "Jesse, 2026-10-21: \"Everyone for now, but this is an unindexed page. Remind me later to figure this out because we will probably want stuff behind the login.\" Related, still open from the same day: Zoom's phone app does not document claiming host with the host key (its article covers only the desktop app: Participants, then Claim host at the bottom of the list), so step 13 of Getting started for guides is unconfirmed on a phone until Jesse or Maria checks it in a test meeting (a screenshot from a phone and a computer would make both drawings exact). Code: components/tutorials/ (one file per tutorial, listed in index.ts), components/TutorialSteps.tsx, app/tutorials/."
   }
 ]
