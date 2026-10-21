@@ -23398,6 +23398,17 @@ html { scroll-padding-top: 88px; }
 .tut-zoom__actions > span { padding: 8px 16px; border-radius: 8px; background: var(--zoom-tile); font-weight: 600; }
 .tut-zoom__actions .tut-zoom__primary { background: var(--zoom-blue); }
 
+/* An open sign-up team's names, "you" marked (the Scheduler's multi rows). */
+.tut-signups { display: flex; flex-direction: column; gap: 2px; }
+.tut-row--wide .tut-signups { align-items: flex-end; }
+.tut-signups__name { display: inline-flex; align-items: center; gap: 6px; color: var(--rim-text); font-size: var(--text-app-meta); }
+.tut-signups__name--mine { color: var(--rim-heading); font-weight: 600; }
+.tut-signups__you { padding: 0 6px; border-radius: 999px; background: var(--rim-bg-accent); color: var(--rim-label); font: 700 var(--text-xxs)/1.6 var(--font-sans); text-transform: uppercase; letter-spacing: 0.06em; }
+.tut-zoom__panel-head { display: flex; justify-content: space-between; align-items: center; }
+.tut-zoom__more { padding: 2px 8px; border-radius: 6px; background: var(--zoom-tile); letter-spacing: 0.1em; }
+.tut-zoom__field--name { letter-spacing: normal; }
+.tut-onward { display: inline-flex; align-items: center; min-height: 44px; color: var(--rim-blue); font-weight: 600; }
+
 /* The one place to tap: a ring, and on the step that shows, a soft pulse. */
 .tut-screen .hl { position: relative; z-index: 1; }
 .tut-screen .hl::after {

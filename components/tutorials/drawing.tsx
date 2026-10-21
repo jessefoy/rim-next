@@ -84,14 +84,14 @@ export function PersonalRail({ active, hl }: { active?: string; hl?: string }) {
 }
 
 /** A team's rail, on a computer. */
-export function TeamRail({ team, active }: { team: string; active: string }) {
+export function TeamRail({ team, active, hl }: { team: string; active: string; hl?: string }) {
   const links = ["Home", "Scheduler", "Updates", "Conversations", "Files", "Members"];
   return (
     <div className="tut-rail">
       <span className="tut-rail__label">Team</span>
       <span className="tut-rail__team">{team}</span>
       {links.map((label) => (
-        <span key={label} className={cx("tut-rail__link", active === label && "tut-rail__link--on")}>{label}</span>
+        <span key={label} className={cx("tut-rail__link", active === label && "tut-rail__link--on", hl === label && "hl")}>{label}</span>
       ))}
       <span className="tut-rail__rule" />
       <span className="tut-rail__link">My Teams</span>
@@ -127,6 +127,8 @@ export function Page({
 export function ScheduleRow({
   day,
   date,
+  time = "6:30 AM",
+  program = "Good Morning Silent Meditation",
   tag,
   state,
   action,
@@ -136,6 +138,8 @@ export function ScheduleRow({
 }: {
   day: string;
   date: string;
+  time?: string;
+  program?: string;
   tag: string;
   state: ReactNode;
   action?: string;
@@ -148,10 +152,10 @@ export function ScheduleRow({
       <span className="tut-date">
         <b>{day}</b>
         <strong>{date}</strong>
-        <small>6:30 AM</small>
+        <small>{time}</small>
       </span>
       <span className="tut-row__what">
-        <span className="tut-row__title">Good Morning Silent Meditation</span>
+        <span className="tut-row__title">{program}</span>
         <span className="tut-meta">{tag}</span>
       </span>
       <span className="tut-row__state">
@@ -159,6 +163,20 @@ export function ScheduleRow({
         {action && <span className={cx("tut-btn", quiet && "tut-btn--quiet", hl && "hl")}>{action}</span>}
       </span>
     </div>
+  );
+}
+
+/** An open sign-up team's state (greeters): who is signed up, "you" marked. */
+export function SignUpState({ header, names, mine }: { header: string; names: string[]; mine?: string }) {
+  return (
+    <span className="tut-signups">
+      <span className="tut-state">{header}</span>
+      {names.map((n) => (
+        <span key={n} className={cx("tut-signups__name", n === mine && "tut-signups__name--mine")}>
+          {n}{n === mine && <span className="tut-signups__you">you</span>}
+        </span>
+      ))}
+    </span>
   );
 }
 

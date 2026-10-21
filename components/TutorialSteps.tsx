@@ -145,6 +145,9 @@ export default function TutorialSteps({
           {step.tip && (
             <p className="tut-tip"><strong>{step.tip.lead}</strong> {step.tip.text}</p>
           )}
+          {step.next && (
+            <p><a href={step.next.href} className="tut-onward">{step.next.label}</a></p>
+          )}
           <div className="tut-nav">
             <button type="button" className="pp-btn pp-btn--ghost" onClick={() => go(index - 1, true)} disabled={index === 0}>
               Back

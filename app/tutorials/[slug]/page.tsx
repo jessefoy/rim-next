@@ -37,6 +37,7 @@ export default async function TutorialPage({ params }: { params: Promise<{ slug:
     words: s.words,
     alt: s.alt,
     ...(s.tip ? { tip: s.tip } : {}),
+    ...(s.next ? { next: s.next } : {}),
   });
   const steps = {
     phone: tutorial.steps.map((s) => plain(s)),

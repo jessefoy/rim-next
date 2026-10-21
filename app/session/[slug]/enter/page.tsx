@@ -43,7 +43,7 @@ import { meetingServiceName, outsideRoomUrl } from "@/lib/outsideMeeting";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
 import { ctDayBounds, fmtSessionDay } from "@/lib/timezone";
 import { getHubCoverageCopy, teamPhrase } from "@/lib/programHub";
-import { CLAIM_HOST_HELP_HREF } from "@/lib/tutorialLinks";
+import { claimHostHelpHref } from "@/lib/tutorialLinks";
 
 export const dynamic = "force-dynamic";
 
@@ -395,6 +395,7 @@ export default async function ZoomEnterPage({
         designatedHostName={designatedHostName}
         teamName={hostingTeam?.name ?? "hosting"}
         roleVerb={hostingCopy.verb}
+        helpHref={claimHostHelpHref(hostingSlug)}
         // An admin or guiding teacher entering early reaches the NEXT
         // session; it isn't "today" (walk, 2026-10-18: "You're teaching
         // today" on a Friday for Tuesday's session).
@@ -613,6 +614,7 @@ function HostLanding({
   roleVerb,
   dayWord,
   showSetup,
+  helpHref,
 }: {
   programName: string;
   joinUrl: string;
@@ -626,6 +628,8 @@ function HostLanding({
   dayWord: string;
   /** A missing host code is named only to an admin, who can set it. */
   showSetup: boolean;
+  /** The tutorial step on claiming host, in this team's words. */
+  helpHref: string;
 }) {
   const eyebrow =
     viewerRole === "designated"
@@ -750,7 +754,7 @@ function HostLanding({
             {/* Where Claim Host is in Zoom confused hosts (2026-10-21); the
                 step opens in a new tab so this code stays in view. */}
             <a
-              href={CLAIM_HOST_HELP_HREF}
+              href={helpHref}
               target="_blank"
               rel="noopener"
               style={{

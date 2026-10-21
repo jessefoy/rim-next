@@ -8,6 +8,8 @@ export type TutorialStepText = {
   title: string;
   words: string;
   tip?: { lead: string; text: string };
+  /** A way on from this step, such as the tutorial that picks up from here. */
+  next?: { href: string; label: string };
   /** What the drawing shows, for a screen reader. */
   alt: string;
 };
