@@ -23226,6 +23226,223 @@ html { scroll-padding-top: 88px; }
 }
 
 /* ===================================================================
+   TUTORIALS (2026-10-21) — /tutorials and components/TutorialSteps.
+   A tutorial walks one step at a time: the words, and a drawing of the
+   screen with the one place to tap marked. Drawings are made at the
+   app's own sizes on RIM's tokens and scaled to fit their frame, so the
+   raw sizes below are the drawn screen's geometry (a 390px phone, a
+   1200px computer), not new type or spacing. Zoom's screen is drawn in
+   Zoom's own dark colors, kept here as local custom properties.
+   =================================================================== */
+.tut-note { margin: 0 0 var(--space-3); color: var(--rim-text-soft); font-size: var(--text-small); }
+.tut { display: grid; gap: var(--space-3); }
+.tut-controls { display: grid; gap: var(--space-2); }
+.tut-switch { display: inline-flex; justify-self: start; padding: 4px; gap: 4px; border: 1px solid var(--rim-rule); border-radius: 999px; background: var(--rim-surface); }
+.tut-switch button {
+  box-sizing: border-box; min-height: 44px; padding: 0 var(--space-2);
+  border: 0; border-radius: 999px; background: transparent; cursor: pointer;
+  color: var(--rim-heading); font: 600 var(--text-action)/1.2 var(--font-sans);
+}
+.tut-switch button[aria-pressed="true"] { background: var(--rim-blue); color: var(--rim-surface); }
+.tut-switch button:focus-visible, .tut-steps a:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 3px; }
+.tut-steps { display: flex; flex-wrap: wrap; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.tut-steps li { margin: 0; }
+.tut-steps a {
+  box-sizing: border-box; display: grid; place-items: center; min-width: 44px; height: 44px; padding: 0 12px;
+  border: 1px solid var(--rim-rule); border-radius: 999px; background: var(--rim-surface);
+  color: var(--rim-heading); font: 600 var(--text-ui)/1 var(--font-sans); font-variant-numeric: tabular-nums; text-decoration: none;
+}
+.tut-steps a[aria-current="step"] { background: var(--rim-blue); border-color: var(--rim-blue); color: var(--rim-surface); }
+
+.tut-stage {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: var(--space-5); align-items: start;
+  padding: var(--space-4); background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px;
+}
+.tut-stage--computer { grid-template-columns: minmax(0, 1fr); }
+/* Until the reader's screen is known, nothing jumps from one drawing to the other. */
+.tut-stage--pending { visibility: hidden; }
+.tut-stage--computer .tut-words { max-width: 46rem; }
+.tut-words { display: grid; gap: var(--space-2); align-content: start; min-width: 0; }
+.tut-words p { margin: 0; font-size: var(--text-body); line-height: var(--lh-body); color: var(--rim-text); }
+.tut-count { color: var(--rim-label) !important; font-size: var(--text-small) !important; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tut-title { margin: 0; color: var(--rim-heading); font: 400 var(--text-h3)/var(--lh-heading) var(--font-heading); text-wrap: balance; outline: none; }
+.tut-words .tut-tip { padding: var(--space-2); border-radius: 10px; background: var(--rim-bg); font-size: var(--text-card); }
+.tut-tip strong { color: var(--rim-heading); }
+.tut-nav { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+
+/* The frame around a drawing. */
+.tut-device { box-sizing: border-box; min-width: 0; padding: 10px; border: 1px solid var(--rim-rule); border-radius: 28px; background: var(--rim-bg-accent); }
+.tut-device--computer { border-radius: 16px; padding: 8px; }
+.tut-viewport { position: relative; overflow: hidden; border-radius: 20px; background: var(--rim-bg); }
+.tut-device--computer .tut-viewport { border-radius: 10px; }
+.tut-canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+.tut-shot { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s; }
+.tut-shot--on { opacity: 1; visibility: visible; }
+.tut-example {
+  position: absolute; right: 10px; bottom: 10px; z-index: 3; padding: 2px 10px; border-radius: 999px;
+  background: var(--rim-heading); color: var(--rim-surface); font: 600 var(--text-xxs)/1.6 var(--font-sans); letter-spacing: 0.04em;
+}
+
+/* The drawn screen, at the app's own sizes. */
+.tut-screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--rim-bg); color: var(--rim-text); font: 400 var(--text-app)/1.55 var(--font-sans); }
+.tut-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); height: 72px; padding: 0 var(--space-2); background: var(--rim-surface); border-bottom: 1px solid var(--rim-rule); }
+.tut-head--wide { height: 88px; padding: 0 var(--space-5); }
+.tut-brand { display: flex; align-items: center; gap: 10px; color: var(--rim-heading); font: 400 var(--text-app)/1 var(--font-heading); white-space: nowrap; }
+.tut-brand img { width: 40px; height: 40px; }
+.tut-menu { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 var(--space-2); border-radius: 999px; background: var(--rim-bg); color: var(--rim-heading); font-weight: 600; }
+.tut-menu i { width: 14px; height: 2px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; }
+.tut-bar { display: flex; align-items: center; gap: var(--space-3); color: var(--rim-heading); font-size: var(--text-ui); font-weight: 600; }
+.tut-bar > span { padding: 8px 4px; border-radius: 8px; }
+.tut-donate { padding: 10px 20px !important; border-radius: 999px !important; background: var(--rim-donate); color: var(--rim-surface); }
+.tut-donate--block { display: grid; place-items: center; min-height: 44px; font-weight: 600; }
+
+.tut-frame { flex: 1; display: flex; min-height: 0; }
+.tut-rail { flex: none; width: 240px; display: flex; flex-direction: column; gap: 2px; padding: var(--space-3) var(--space-2); background: var(--rim-surface); border-right: 1px solid var(--rim-rule); }
+.tut-rail__label { margin: 0 0 var(--space-1) 12px; color: var(--rim-label); font: 700 var(--text-xxs)/1.3 var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.tut-rail__team { margin: 0 0 var(--space-2) 12px; color: var(--rim-heading); font: 400 var(--text-h4)/1.3 var(--font-heading); }
+.tut-rail__link { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--rim-text); }
+.tut-rail__link--on { background: var(--rim-bg); color: var(--rim-blue); font-weight: 600; }
+.tut-rail__rule { height: 1px; margin: var(--space-1) 12px; background: var(--rim-rule); }
+.tut-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-3); }
+.tut-head--wide + .tut-frame .tut-main { padding: var(--space-5) var(--space-6); }
+.tut-main--center { align-items: center; text-align: center; }
+.tut-head--wide + .tut-frame .tut-main--center { padding-top: var(--space-6); }
+.tut-main--center > * { max-width: 460px; }
+.tut-stack { display: flex; flex-direction: column; gap: var(--space-2); }
+.tut-eyebrow { color: var(--rim-label); font: 700 var(--text-xxs)/1.3 var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.tut-h1 { color: var(--rim-heading); font: 400 var(--text-h2)/var(--lh-heading) var(--font-heading); }
+.tut-h2 { color: var(--rim-heading); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }
+.tut-p { color: var(--rim-text); }
+.tut-meta { color: var(--rim-text-muted); font-size: var(--text-app-meta); }
+.tut-label { color: var(--rim-heading); font-weight: 600; }
+.tut-link { color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
+.tut-input { box-sizing: border-box; display: flex; align-items: center; width: 100%; height: 48px; padding: 0 var(--space-2); border: 1px solid var(--rim-rule); border-radius: 10px; background: var(--rim-surface); text-align: left; }
+.tut-btn { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; min-height: 44px; padding: 0 var(--space-3); border-radius: 999px; background: var(--rim-blue); color: var(--rim-surface); font-weight: 600; white-space: nowrap; }
+.tut-main--center .tut-btn { align-self: center; }
+.tut-btn--ghost { background: var(--rim-surface); color: var(--rim-blue); box-shadow: inset 0 0 0 1px var(--rim-blue); }
+.tut-btn--quiet { min-height: 32px; padding: 0 2px; background: transparent; color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
+.tut-card { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2); border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); }
+.tut-card--door { align-items: center; gap: var(--space-2); padding: var(--space-4) var(--space-3); width: 100%; box-sizing: border-box; }
+.tut-codes { display: flex; gap: 8px; }
+.tut-codes span { display: grid; place-items: center; width: 46px; height: 56px; border: 1px solid var(--rim-rule); border-radius: 10px; background: var(--rim-surface); color: var(--rim-heading); font: 600 var(--text-h3)/1 var(--font-sans); }
+.tut-pill { align-self: flex-start; padding: 2px 10px; border-radius: 999px; background: var(--rim-bg-accent); color: var(--rim-heading); font: 600 var(--text-app-meta)/1.5 var(--font-sans); }
+.tut-pill--open { background: var(--color-success-bg); color: var(--color-success); }
+.tut-today { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--space-2); }
+.tut-time { display: flex; flex-direction: column; gap: 6px; color: var(--rim-heading); font-weight: 600; }
+.tut-list { display: flex; flex-direction: column; border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); }
+.tut-list__row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 14px var(--space-2); border-bottom: 1px solid var(--rim-rule); border-radius: 12px; }
+.tut-list__row:last-child { border-bottom: 0; }
+.tut-list__row b { color: var(--rim-heading); font-weight: 600; }
+.tut-list__row small { display: block; color: var(--rim-text-muted); font-size: var(--text-app-meta); }
+.tut-pills { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.tut-pills span { padding: 6px 14px; border: 1px solid var(--rim-rule); border-radius: 999px; background: var(--rim-surface); color: var(--rim-heading); font-weight: 600; font-size: var(--text-app-meta); }
+.tut-pills .on { background: var(--rim-blue); border-color: var(--rim-blue); color: var(--rim-surface); }
+.tut-week { display: flex; align-items: baseline; justify-content: space-between; }
+.tut-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 14px; border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); }
+.tut-row__state { grid-column: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.tut-row--wide { grid-template-columns: 72px minmax(0, 1fr) auto; align-items: center; }
+.tut-row--wide .tut-row__state { grid-column: auto; align-items: flex-end; }
+.tut-row__what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tut-row__title { color: var(--rim-heading); font-weight: 600; }
+.tut-state { color: var(--rim-heading); font-weight: 600; }
+.tut-date { grid-row: span 2; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0; border: 1px solid var(--rim-rule); border-radius: 10px; background: var(--rim-bg-bright); }
+.tut-row--wide .tut-date { grid-row: auto; }
+.tut-date b { color: var(--rim-label); font-size: var(--text-xxs); letter-spacing: 0.08em; }
+.tut-date strong { color: var(--rim-heading); font: 400 var(--text-h3)/1.1 var(--font-heading); }
+.tut-date small { color: var(--rim-text-muted); font-size: var(--text-xxs); font-weight: 600; }
+.tut-screen--layer { display: block; }
+.tut-screen--layer > .tut-screen { position: absolute; }
+.tut-scrim { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: var(--space-3); background: color-mix(in srgb, var(--rim-dark) 42%, transparent); }
+.tut-dialog { box-sizing: border-box; width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: 14px; background: var(--rim-surface); }
+.tut-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.tut-area { min-height: 84px; padding: 12px var(--space-2); border: 1px solid var(--rim-rule); border-radius: 10px; color: var(--rim-text-muted); }
+.tut-dim { opacity: 0.55; }
+.tut-hostbox { display: flex; flex-direction: column; gap: 10px; padding: var(--space-2); border-radius: 10px; background: var(--rim-bg); line-height: var(--lh-body); }
+.tut-code { color: var(--rim-blue); font: 700 var(--text-h2)/1 var(--font-mono); letter-spacing: 0.15em; }
+
+/* The phone's open menu. */
+.tut-sheet { background: var(--rim-surface); }
+.tut-sheet__body { flex: 1; display: flex; flex-direction: column; padding: var(--space-3) 20px; }
+.tut-sheet__body .tut-eyebrow { margin-bottom: var(--space-1); }
+.tut-sheet__link { display: flex; align-items: center; min-height: 48px; border-bottom: 1px solid var(--rim-bg-accent); border-radius: 8px; color: var(--rim-text); }
+.tut-sheet__foot { display: flex; flex-direction: column; gap: 10px; padding: var(--space-2) 20px var(--space-3); border-top: 1px solid var(--rim-bg-accent); }
+.tut-sheet__signout { display: grid; place-items: center; min-height: 44px; border: 1px solid var(--rim-rule); border-radius: 999px; color: var(--rim-heading); font-weight: 600; }
+
+/* Zoom's screen, in Zoom's colors. */
+.tut-zoom {
+  --zoom-bg: #1c1c1e; --zoom-bar: #2a2a2d; --zoom-tile: #3a3a3e; --zoom-panel: #2f2f33; --zoom-ink: #f2f2f2;
+  --zoom-blue: #0e72ed; --zoom-red: #e02828;
+  background: var(--zoom-bg); color: var(--zoom-ink);
+}
+.tut-zoom__body { flex: 1; display: flex; min-height: 0; }
+.tut-zoom__stage { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; align-content: start; }
+.tut-zoom--wide .tut-zoom__stage { align-content: center; padding: 24px; }
+.tut-zoom__tile { aspect-ratio: 16 / 10; display: flex; align-items: flex-end; padding: 8px; border-radius: 8px; background: var(--zoom-tile); font-size: var(--text-app-meta); }
+.tut-zoom__bar { flex: none; display: flex; justify-content: space-around; align-items: center; gap: 6px; padding: 12px 8px 18px; background: var(--zoom-bar); font-size: var(--text-app-meta); }
+.tut-zoom__bar > span { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 8px; }
+.tut-zoom__bar > span::before { content: ""; width: 24px; height: 18px; border: 2px solid var(--zoom-ink); border-radius: 5px; opacity: 0.85; }
+.tut-zoom__bar .tut-zoom__leave { padding: 8px 18px; border-radius: 8px; background: var(--zoom-red); font-weight: 600; }
+.tut-zoom__bar .tut-zoom__leave::before { display: none; }
+.tut-zoom__panel { flex: none; width: 320px; display: flex; flex-direction: column; gap: 12px; padding: var(--space-2); background: var(--zoom-panel); border-left: 1px solid var(--zoom-bar); }
+.tut-zoom__panel--sheet { position: absolute; left: 0; right: 0; bottom: 96px; width: auto; border: 0; border-radius: 16px 16px 0 0; }
+.tut-zoom__panel b { font-weight: 600; }
+.tut-zoom__foot { margin-top: auto; display: flex; justify-content: space-between; gap: 8px; }
+.tut-zoom__foot > span, .tut-zoom__claim { padding: 8px 14px; border-radius: 8px; background: var(--zoom-tile); font-weight: 600; }
+.tut-zoom__panel--sheet .tut-zoom__claim { align-self: stretch; text-align: center; }
+.tut-scrim--zoom { background: rgba(0, 0, 0, 0.5); }
+.tut-zoom__dialog { width: 380px; display: flex; flex-direction: column; gap: 14px; padding: var(--space-3); border-radius: 12px; background: var(--zoom-panel); color: var(--zoom-ink); }
+.tut-zoom__field { padding: 10px 12px; border: 1px solid #5a5a60; border-radius: 8px; letter-spacing: 0.2em; }
+.tut-zoom__actions { display: flex; justify-content: flex-end; gap: 10px; }
+.tut-zoom__actions > span { padding: 8px 16px; border-radius: 8px; background: var(--zoom-tile); font-weight: 600; }
+.tut-zoom__actions .tut-zoom__primary { background: var(--zoom-blue); }
+
+/* The one place to tap: a ring, and on the step that shows, a soft pulse. */
+.tut-screen .hl { position: relative; z-index: 1; }
+.tut-screen .hl::after {
+  content: ""; position: absolute; inset: -7px; pointer-events: none;
+  border: 3px solid var(--color-alert); border-radius: inherit;
+}
+.tut-screen .tut-btn.hl::after, .tut-screen .tut-menu.hl::after { border-radius: 999px; }
+.tut-shot--on .hl::after { animation: tut-ring 1.8s ease-in-out infinite; }
+@keyframes tut-ring {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-alert) 45%, transparent); }
+  50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-alert) 0%, transparent); }
+}
+.tut-shot--on .tut-typing { display: inline-block; overflow: hidden; white-space: nowrap; animation: tut-type 1.4s steps(15, end) 0.3s both; }
+@keyframes tut-type { from { width: 0; } to { width: 15ch; } }
+
+/* The index. */
+.tut-index { display: grid; gap: var(--space-5); }
+.tut-index__group { display: grid; gap: var(--space-2); }
+.tut-index__topic { margin: 0; color: var(--rim-heading); font: 400 var(--text-h3)/var(--lh-heading) var(--font-heading); }
+.tut-index__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.tut-index__list li { margin: 0; }
+.tut-index__card {
+  box-sizing: border-box; height: 100%; display: flex; flex-direction: column; gap: var(--space-1);
+  padding: var(--space-3); border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface);
+  color: var(--rim-text); text-decoration: none; transition: background-color 0.15s ease;
+}
+.tut-index__card:hover { background: var(--rim-bg-bright); }
+.tut-index__card:hover .tut-index__title { color: var(--rim-blue); }
+.tut-index__card:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 3px; }
+.tut-index__for { color: var(--rim-label); font: 700 var(--text-xxs)/1.4 var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.tut-index__title { color: var(--rim-heading); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }
+.tut-index__summary { color: var(--rim-text-soft); font-size: var(--text-card); line-height: 1.6; }
+.tut-help { display: grid; gap: var(--space-2); max-width: var(--reading-width); }
+.tut-help h2 { margin: 0; }
+.tut-help p { margin: 0; }
+.tut-help__back { color: var(--rim-blue); font-weight: 600; }
+
+@media (max-width: 768px) {
+  .tut-stage { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3) var(--space-2); }
+  .tut-stage--phone .tut-device { order: -1; justify-self: center; width: 100%; max-width: 380px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tut-shot { transition: none; }
+  .tut-shot--on .hl::after, .tut-shot--on .tut-typing { animation: none; }
+}
+
+/* ===================================================================
    AUTHENTICATED READABILITY — one contract for personal pages, hubs,
    administration, and apps (September 2026).
    Presentation only: no route, permission, data, or integration changes.

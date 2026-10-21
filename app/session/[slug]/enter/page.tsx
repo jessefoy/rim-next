@@ -43,6 +43,7 @@ import { meetingServiceName, outsideRoomUrl } from "@/lib/outsideMeeting";
 import ZoomLaunch from "@/components/session/ZoomLaunch";
 import { ctDayBounds, fmtSessionDay } from "@/lib/timezone";
 import { getHubCoverageCopy, teamPhrase } from "@/lib/programHub";
+import { CLAIM_HOST_HELP_HREF } from "@/lib/tutorialLinks";
 
 export const dynamic = "force-dynamic";
 
@@ -746,6 +747,23 @@ function HostLanding({
             >
               {hostKey}
             </div>
+            {/* Where Claim Host is in Zoom confused hosts (2026-10-21); the
+                step opens in a new tab so this code stays in view. */}
+            <a
+              href={CLAIM_HOST_HELP_HREF}
+              target="_blank"
+              rel="noopener"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                minHeight: 44,
+                marginTop: 8,
+                color: "var(--rim-blue)",
+                fontWeight: 600,
+              }}
+            >
+              How to claim host in Zoom →
+            </a>
           </div>
         ) : (
           <p style={{ marginTop: 20, fontSize: "var(--text-app)", color: "var(--rim-mid)" }}>
