@@ -179,7 +179,9 @@ export async function PATCH(
   }
   if (hostingCapability !== undefined) data.hostingCapability = hostingCapability;
   if (communicationsEnabled !== undefined) data.communicationsEnabled = communicationsEnabled;
-  if (pauseNote !== undefined) data.pauseNote = pauseNote || null;
+  // Back to Active clears the pause note (above); the editor always sends
+  // its pause-note field, which would write the old note straight back.
+  if (pauseNote !== undefined && nextStatus !== "ACTIVE") data.pauseNote = pauseNote || null;
   if (coordinatorNote !== undefined) data.coordinatorNote = coordinatorNote || null;
 
   const updated = await db.hubMember.update({

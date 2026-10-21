@@ -20,8 +20,7 @@ import type { ReactNode } from "react";
 import type { Tutorial, TutorialStep } from "./types";
 import { ScheduleRow, SignUpState } from "./drawing";
 import {
-  DialogActions, TodayRow, codeScreen, myHomeScreen, myTeamsScreen, needsYouScreen, phoneMenuScreen,
-  schedulerScreen, signInScreen, teamHomeScreen, type Device,
+  DialogActions, TodayRow, myHomeScreen, needsYouScreen, schedulerScreen, teamHomeScreen, type Device,
 } from "./screens";
 
 type Session = { day: string; date: string; full: string; short: string; time: string; program: string; format: string };
@@ -43,6 +42,8 @@ type Team = {
   /** Four example sessions: yours, open, someone else's, a cover request. */
   sessions: [Session, Session, Session, Session];
   weekCount: number;
+  /** The tutorial after this one (the team's Zoom tutorial), by slug. */
+  nextTutorial?: string;
   /** The last step: what My Home shows on the day, and where to go on. */
   onTheDay: { pill: string; open?: boolean; place?: string; button?: string; lines: string[]; words: string; tip?: { lead: string; text: string }; next?: { href: string; label: string } };
 };
@@ -69,12 +70,13 @@ export const SCHEDULER_TEAMS: Team[] = [
       s("SAT", "31", "Saturday, October 31", "Sat, Oct 31", "9:30 AM", TALK, BOTH),
     ],
     weekCount: 4,
+    nextTutorial: "zoom-for-hosts",
     onTheDay: {
       pill: "Host entry open", open: true, place: "Online on Zoom", button: "Enter Zoom as host",
       lines: ["Member entry opens at 9:20 AM"],
-      words: "From 30 minutes before the start, My Home shows Enter Zoom as host on the session you're hosting. Choose it to open the room.",
+      words: "From 30 minutes before the start, My Home shows Enter Zoom as host on the session you're hosting; from 10 minutes before, it reads Join on Zoom. Either one opens your host page with the code.",
       tip: { lead: "The Scheduler works too.", text: "In that same window your session shows Enter room." },
-      next: { href: "/tutorials/hosting-on-zoom#step-2", label: "Next: the host code and Claim Host in Zoom →" },
+      next: { href: "/tutorials/zoom-for-hosts#step-2", label: "Next: the host code and Claim Host in Zoom →" },
     },
   },
   {
@@ -91,12 +93,13 @@ export const SCHEDULER_TEAMS: Team[] = [
       s("FRI", "30", "Friday, October 30", "Fri, Oct 30", "6:30 AM", "Good Morning Silent Meditation", "Virtual"),
     ],
     weekCount: 10,
+    nextTutorial: "zoom-for-guides",
     onTheDay: {
       pill: "Host entry open", open: true, place: "Online on Zoom", button: "Enter Zoom as host",
       lines: ["Member entry opens at 6:20 AM"],
-      words: "From 30 minutes before the start, My Home shows Enter Zoom as host on the session you're facilitating. Choose it to open the room.",
+      words: "From 30 minutes before the start, My Home shows Enter Zoom as host on the session you're facilitating; from 10 minutes before, it reads Join on Zoom. Either one opens your host page with the code.",
       tip: { lead: "The Scheduler works too.", text: "In that same window your session shows Enter room." },
-      next: { href: "/tutorials/getting-started-for-guides#step-11", label: "Next: the host code and Claim Host in Zoom →" },
+      next: { href: "/tutorials/zoom-for-guides#step-2", label: "Next: the host code and Claim Host in Zoom →" },
     },
   },
   {
@@ -146,41 +149,10 @@ export const SCHEDULER_TEAMS: Team[] = [
 function openingSteps(t: Team): TutorialStep[] {
   return [
     {
-      title: "Sign in with your email",
-      words: "On this website, tap Menu, then Sign in. Type the email address RIM has for you, then choose Send code. There is no password.",
-      computer: { words: "On this website, choose Members at the top of the page, then Sign in. Type the email address RIM has for you, then choose Send code. There is no password." },
-      tip: { lead: "Your first sign-in matters.", text: "It's what turns on your team's emails, so sign in once even if you're not signing up for anything yet." },
-      alt: "The Sign in page with an email typed in and the Send code button marked.",
-    },
-    {
-      title: "Type the code from your email",
-      words: "Rooted In Mindfulness emails you a 6-digit code. Type the six digits and choose Sign in. The code lasts 30 minutes.",
-      tip: { lead: "Reading the email on the same phone or computer?", text: "Choose Sign me in from this device in the email. The code fills itself in, and you choose Sign in." },
-      alt: "The Enter your code page with six digits filled in and the Sign in button marked.",
-    },
-    {
-      title: "Find My Teams",
-      words: "You arrive at My Home. To reach your team, open Menu at the top of the screen and choose My Teams.",
-      computer: {
-        title: "Choose My Teams",
-        words: "You arrive at My Home. To reach your team, choose My Teams in the column on the left.",
-        alt: "My Home with My Teams marked in the column on the left.",
-        tip: { lead: "Lost?", text: "While you're signed in, My Home is always at the top right of the page." },
-      },
-      tip: { lead: "Lost?", text: "While you're signed in, My Home is the first thing in the Menu." },
-      alt: "The open menu with My Teams marked under My RIM.",
-    },
-    {
-      title: "Choose your team",
-      words: `Choose ${t.team}.`,
-      tip: { lead: "On more than one team?", text: "Each one is listed here, with its own schedule." },
-      alt: `The My Teams page with ${t.team} marked.`,
-    },
-    {
-      title: "Open the Scheduler",
-      words: "Your team's home holds its Conversations, Files and Members. The sessions live in the Scheduler. Choose Open the Scheduler.",
-      tip: { lead: "The line above the button", text: `tells you how many sessions in the next two weeks still need ${t.needs}.` },
-      computer: { tip: { lead: "The column on the left", text: "now lists your team's pages. Scheduler is right under Home." } },
+      title: "Open your team's Scheduler",
+      words: `Signed in, go to My Teams and choose ${t.team}. On your team's home, choose Open the Scheduler.`,
+      tip: { lead: "The line above the button", text: `tells you how many sessions in the next two weeks still need ${t.needs}. On a phone, ☰ beside your team's name also lists Scheduler.` },
+      computer: { tip: { lead: "The line above the button", text: `tells you how many sessions in the next two weeks still need ${t.needs}. Scheduler is also in the column on the left, right under Home.` } },
       alt: "The team's home with the Open the Scheduler button marked.",
     },
     {
@@ -195,15 +167,6 @@ function openingSteps(t: Team): TutorialStep[] {
 }
 
 /* ---- The drawings ------------------------------------------------------ */
-
-function homeToday(t: Team, railHl?: string) {
-  const first = t.sessions[0];
-  return (
-    <TodayRow time={first.time} pill="Later today" program={first.program}
-      place={t.onTheDay.place} lines={t.onTheDay.place ? [`Opens at ${t.onTheDay.lines[0].replace("Member entry opens at ", "")}`] : t.onTheDay.lines}
-      hl={!railHl} />
-  );
-}
 
 function singleRows(t: Team, device: Device, { hlOpen = false, cover = false }: { hlOpen?: boolean; cover?: boolean } = {}) {
   const [mine, open, other, asked] = t.sessions;
@@ -244,7 +207,7 @@ function signUpRows(t: Team, device: Device, stage: "open" | "joined" | "only", 
     <>
       {stage === "joined" ? (
         <ScheduleRow device={device} {...rowOf(tue)}
-          state={<SignUpState header={`We have 3 ${plural}, and you're one of them`} names={["Sam R.", "Alex M.", "Pat L."]} mine="Pat L." />}
+          state={<SignUpState header={`We have 3 ${plural}, and you're one of them`} names={["Sam R.", "Alex M.", "Pat L."]} mine="Pat L." hlMine />}
           action="Cancel my signup" quiet />
       ) : (
         <ScheduleRow device={device} {...rowOf(tue)}
@@ -257,14 +220,7 @@ function signUpRows(t: Team, device: Device, stage: "open" | "joined" | "only", 
 }
 
 function openingScreens(t: Team, device: Device): ReactNode[] {
-  const morning = { date: t.sessions[0].full, greeting: "Good morning, Pat." };
-  return [
-    signInScreen(device),
-    codeScreen(device),
-    device === "phone" ? phoneMenuScreen() : myHomeScreen(device, { ...morning, today: homeToday(t, "My Teams"), railHl: "My Teams" }),
-    myTeamsScreen(device, t.team),
-    teamHomeScreen(device, t.team, `2 sessions in the next two weeks need ${t.needs}`),
-  ];
+  return [teamHomeScreen(device, t.team, `2 sessions in the next two weeks need ${t.needs}`)];
 }
 
 function onTheDayScreen(t: Team, device: Device) {
@@ -299,8 +255,8 @@ function singleSlotTutorial(t: Team): Pick<Tutorial, "steps" | "screens"> {
     },
     {
       title: "Can't make it? Ask the team",
-      words: "Find your session (My schedule shows it) and choose Ask the team to cover. Add a note if you like, then choose Send to the team. Your teammates get an email, and the session stays yours until someone steps in.",
-      tip: { lead: "Plans changed again?", text: "Choose Cancel my request on the same row. The session stays yours, and the team knows the request is closed." },
+      words: "Find your session (My schedule shows it) and choose Ask the team to cover. Add a note if you like, then choose Send to the team. Your teammates are told, and the session stays yours until someone steps in.",
+      tip: { lead: "Plans changed again?", text: "Choose Cancel my request on the same row, then Yes, cancel the request. The session stays yours, and the team knows the request is closed." },
       alt: "The Ask the team to cover box with Send to the team marked.",
     },
     {
@@ -310,7 +266,7 @@ function singleSlotTutorial(t: Team): Pick<Tutorial, "steps" | "screens"> {
     },
     {
       title: "When the team needs someone",
-      words: `Your team's Updates page lists, under Needs you, the sessions in the next two weeks that still need ${t.needs}. You can take one right there with Take this session.`,
+      words: `Your team's Updates page (on a phone, ☰ then Updates) lists, under Needs you, the sessions in the next two weeks that still need ${t.needs}. You can take one right there with Take this session.`,
       tip: { lead: "You'll hear by email too.", text: "When a session close at hand loses its person, the team is told, and every Monday brings the next two weeks' open sessions." },
       alt: "The team's Updates page with Take this session marked under Needs you.",
     },
@@ -384,12 +340,12 @@ function openSignUpTutorial(t: Team): Pick<Tutorial, "steps" | "screens"> {
     },
     {
       title: "Can't make it? Cancel your sign-up",
-      words: `Choose Cancel my signup on the session. If you're the only ${t.noun.toLowerCase()} for it, you'll be asked first. When the session is within two weeks, the team will hear that it needs someone.`,
+      words: `Choose Cancel my signup on the session. If you're the only ${t.noun.toLowerCase()} for it, you'll be asked first, and if the session is within two weeks, the team will hear that it needs someone.`,
       alt: "The Cancel your sign-up? box with Yes, cancel my sign-up marked.",
     },
     {
       title: "When the team needs someone",
-      words: `Your team's Updates page lists, under Needs you, the sessions in the next two weeks with no ${t.noun.toLowerCase()} yet. You can sign up right there with Sign up to ${t.action}.`,
+      words: `Your team's Updates page (on a phone, ☰ then Updates) lists, under Needs you, the sessions in the next two weeks with no ${t.noun.toLowerCase()} yet. You can sign up right there with Sign up to ${t.action}.`,
       tip: { lead: "You'll hear by email too.", text: "When a session close at hand is left with no one, the team is told, and every Monday brings the next two weeks' open sessions." },
       alt: `The team's Updates page with Sign up to ${t.action} marked under Needs you.`,
     },
@@ -429,7 +385,7 @@ export const SCHEDULER_TUTORIALS: Tutorial[] = SCHEDULER_TEAMS.map((t) => ({
   summary: t.openSignUp
     ? "Finding your team, signing up for a session, cancelling, and what you'll see on the day."
     : "Finding your team, taking a session, asking the team to cover, stepping in for a teammate, and what you'll see on the day.",
-  topic: "Using the Scheduler",
+  nextTutorial: t.nextTutorial,
   ...(t.openSignUp ? openSignUpTutorial(t) : singleSlotTutorial(t)),
   help: [
     "Ask your team's coordinators (they're marked Coordinator on your team's Members page), or write to support@rootedinmindfulness.org and someone will help.",

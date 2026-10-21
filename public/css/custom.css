@@ -23409,6 +23409,79 @@ html { scroll-padding-top: 88px; }
 .tut-zoom__field--name { letter-spacing: normal; }
 .tut-onward { display: inline-flex; align-items: center; min-height: 44px; color: var(--rim-blue); font-weight: 600; }
 
+/* Start here's drawings: an email, the Welcome page, feeds and choices. */
+.tut-mail { background: var(--rim-bg); }
+.tut-mail__head { flex: none; display: flex; flex-direction: column; gap: 4px; padding: var(--space-2) var(--space-3); background: var(--rim-surface); border-bottom: 1px solid var(--rim-rule); }
+.tut-mail__from { color: var(--rim-text); font-size: var(--text-app-meta); }
+.tut-mail__from span { color: var(--rim-text-muted); }
+.tut-mail__subject { color: var(--rim-heading); font-weight: 600; }
+.tut-mail__body { flex: 1; padding: var(--space-3) var(--space-2); }
+.tut-mail__body--wide { padding: var(--space-5) var(--space-6); }
+.tut-mail__panel { display: flex; flex-direction: column; gap: var(--space-2); max-width: 560px; margin: 0 auto; padding: var(--space-3); border-radius: 12px; background: var(--rim-surface); }
+.tut-mail__brand { display: flex; align-items: center; gap: 10px; color: var(--rim-heading); font: 400 var(--text-h4)/1.2 var(--font-heading); }
+.tut-mail__brand img { width: 36px; height: 36px; }
+.tut-mail__code { color: var(--rim-blue); font: 700 var(--text-h1)/1 var(--font-sans); letter-spacing: 0.12em; }
+.tut-agree { display: flex; flex-direction: column; gap: 4px; padding: var(--space-2); border: 1px solid var(--rim-rule); border-radius: 10px; background: var(--rim-surface); text-align: left; }
+.tut-check { display: flex; gap: 10px; align-items: flex-start; text-align: left; }
+.tut-check__box { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--rim-blue); color: var(--rim-surface); font-weight: 700; }
+.tut-card--done { border-color: var(--color-success); background: var(--color-success-bg); }
+.tut-feed { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 12px var(--space-2); border-bottom: 1px solid var(--rim-rule); border-radius: 12px; }
+.tut-feed:last-child { border-bottom: 0; }
+.tut-feed > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tut-feed small { color: var(--rim-text-muted); font-size: var(--text-app-meta); }
+.tut-dot { width: 8px; height: 8px; margin-top: 8px; border-radius: 999px; background: var(--rim-blue); }
+.tut-feed__open { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); padding: 0 var(--space-2) var(--space-2) 36px; border-bottom: 1px solid var(--rim-rule); }
+.tut-follow { padding: 2px 10px; border: 1px solid var(--rim-rule); border-radius: 999px; color: var(--rim-heading); font-weight: 600; }
+.tut-doc { display: flex; flex-direction: column; gap: 10px; padding: var(--space-3); border: 1px solid var(--rim-rule); border-radius: 10px; background: var(--rim-surface); }
+.tut-doc span { height: 10px; border-radius: 4px; background: var(--rim-bg-accent); }
+.tut-doc span:nth-child(2) { width: 80%; }
+.tut-doc span:nth-child(4) { width: 60%; }
+.tut-person { display: flex; align-items: center; gap: 12px; padding: 10px var(--space-2); border-bottom: 1px solid var(--rim-rule); }
+.tut-person:last-child { border-bottom: 0; }
+.tut-person > span:last-child { display: flex; align-items: center; gap: 8px; }
+.tut-person b { color: var(--rim-heading); font-weight: 600; }
+.tut-person__av { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; background: var(--rim-bg-accent); color: var(--rim-blue); font-weight: 700; font-size: var(--text-app-meta); }
+.tut-menu-list { display: flex; flex-direction: column; align-self: flex-start; min-width: 220px; border: 1px solid var(--rim-rule); border-radius: 10px; background: var(--rim-surface); }
+.tut-menu-list span { padding: 10px var(--space-2); border-bottom: 1px solid var(--rim-rule); }
+.tut-menu-list span:last-child { border-bottom: 0; }
+.tut-choice { display: flex; flex-direction: column; gap: 2px; padding: 12px var(--space-2); border: 1px solid var(--rim-rule); border-radius: 10px; background: var(--rim-surface); }
+.tut-choice--on { border-color: var(--rim-blue); box-shadow: inset 0 0 0 1px var(--rim-blue); }
+.tut-choice b { color: var(--rim-heading); }
+.tut-choice small { color: var(--rim-text-soft); font-size: var(--text-app-meta); }
+.tut-rail-wrap { display: flex; }
+.tut-screen .tut-rail-wrap.hl::after { inset: 6px; border-radius: 12px; }
+
+/* The leads' drawings: tabs, the amber Needs help, row actions, rotations. */
+.tut-tabs { display: flex; gap: var(--space-1); border-bottom: 1px solid var(--rim-rule); }
+.tut-tabs span { padding: 10px var(--space-2); border-radius: 8px 8px 0 0; color: var(--rim-text-soft); font-weight: 600; }
+.tut-tabs .on { color: var(--rim-blue); box-shadow: inset 0 -3px 0 var(--rim-blue); }
+.tut-pills .tut-pill-alert { border-color: var(--color-alert-border); background: var(--color-alert-bg); color: var(--color-warning); }
+.tut-row__stack { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.tut-row--wide .tut-row__stack { align-items: flex-end; }
+.tut-row .tut-row__stack .tut-btn { min-height: 40px; }
+.tut-row__stack .tut-menu-list { min-width: 200px; }
+.tut-signups__remove { margin-left: 8px; padding: 0 8px; border: 1px solid var(--rim-rule); border-radius: 999px; color: var(--rim-blue); font-weight: 600; }
+.tut-person__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tut-person__main > span { display: flex; align-items: center; gap: 8px; }
+.tut-flag { align-self: flex-start; color: var(--color-warning); font-size: var(--text-app-meta); border-radius: 6px; }
+.tut-btn--sm { min-height: 36px; padding: 0 var(--space-2); }
+.tut-check__box--off { background: var(--rim-surface); border: 1px solid var(--rim-rule); }
+.tut-grid { display: grid; grid-template-columns: 96px repeat(5, minmax(0, 1fr)); border: 1px solid var(--rim-rule); border-radius: 10px; overflow: hidden; }
+.tut-grid > span { padding: 10px 8px; border-bottom: 1px solid var(--rim-rule); font-size: var(--text-app-meta); }
+.tut-grid__head { background: var(--rim-bg-bright); color: var(--rim-label); font-weight: 700; }
+.tut-grid__day { color: var(--rim-heading); font-weight: 600; }
+.tut-saved { display: flex; flex-direction: column; gap: 4px; padding: var(--space-2); border: 1px solid var(--color-success); border-radius: 10px; background: var(--color-success-bg); }
+.tut-saved b { color: var(--color-success); }
+
+/* A team on a phone: the bar under the site header, ☰ beside the team's
+   name, and its drawer (HubWorkspaceSidebar). */
+.tut-frame--rail:has(> .tut-teambar-wrap) { flex-direction: column; }
+.tut-teambar-wrap { flex: none; position: relative; z-index: 1; }
+.tut-teambar { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 var(--space-2); background: var(--rim-surface); border-bottom: 1px solid var(--rim-rule); }
+.tut-teambar b { color: var(--rim-heading); font: 400 var(--text-h4)/1.2 var(--font-heading); }
+.tut-teambar__menu { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; background: var(--rim-bg); color: var(--rim-heading); font-size: var(--text-h4); }
+.tut-teambar__drawer { position: absolute; left: 0; right: 40px; top: 100%; display: flex; flex-direction: column; gap: 2px; padding: var(--space-2); background: var(--rim-surface); border-right: 1px solid var(--rim-rule); border-bottom: 1px solid var(--rim-rule); }
+
 /* The one place to tap: a ring, and on the step that shows, a soft pulse. */
 .tut-screen .hl { position: relative; z-index: 1; }
 .tut-screen .hl::after {
@@ -23424,23 +23497,63 @@ html { scroll-padding-top: 88px; }
 .tut-shot--on .tut-typing { display: inline-block; overflow: hidden; white-space: nowrap; animation: tut-type 1.4s steps(15, end) 0.3s both; }
 @keyframes tut-type { from { width: 0; } to { width: 15ch; } }
 
-/* The index. */
-.tut-index { display: grid; gap: var(--space-5); }
-.tut-index__group { display: grid; gap: var(--space-2); }
-.tut-index__topic { margin: 0; color: var(--rim-heading); font: 400 var(--text-h3)/var(--lh-heading) var(--font-heading); }
-.tut-index__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-.tut-index__list li { margin: 0; }
-.tut-index__card {
-  box-sizing: border-box; height: 100%; display: flex; flex-direction: column; gap: var(--space-1);
+/* The index: Start here as a numbered path, then each team's tutorials. */
+.tut-index { display: grid; gap: var(--space-4); }
+.tut-index__head { display: grid; gap: var(--space-1); max-width: var(--reading-width); }
+.tut-index__head h2 { margin: 0; }
+.tut-index__head p { margin: 0; color: var(--rim-text-soft); }
+.tut-path { display: grid; gap: var(--space-2); max-width: 760px; margin: 0; padding: 0; list-style: none; }
+.tut-path li { margin: 0; }
+.tut-path__card {
+  box-sizing: border-box; display: flex; align-items: flex-start; gap: var(--space-3);
   padding: var(--space-3); border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface);
   color: var(--rim-text); text-decoration: none; transition: background-color 0.15s ease;
 }
-.tut-index__card:hover { background: var(--rim-bg-bright); }
-.tut-index__card:hover .tut-index__title { color: var(--rim-blue); }
-.tut-index__card:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 3px; }
-.tut-index__for { color: var(--rim-label); font: 700 var(--text-xxs)/1.4 var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; }
-.tut-index__title { color: var(--rim-heading); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }
-.tut-index__summary { color: var(--rim-text-soft); font-size: var(--text-card); line-height: 1.6; }
+.tut-path__card:hover { background: var(--rim-bg-bright); }
+.tut-path__card:hover .tut-path__title { color: var(--rim-blue); }
+.tut-path__card:focus-visible, .tut-team__list a:focus-visible, .tut-next__card:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 3px; }
+.tut-path__num {
+  flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px;
+  background: var(--rim-blue); color: var(--rim-surface); font: 400 var(--text-h4)/1 var(--font-heading); font-variant-numeric: tabular-nums;
+}
+.tut-path__text { display: grid; gap: 4px; min-width: 0; }
+.tut-path__title { color: var(--rim-heading); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }
+.tut-path__summary { color: var(--rim-text-soft); font-size: var(--text-card); line-height: 1.6; }
+.tut-teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--space-2); }
+.tut-team { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); scroll-margin-top: calc(var(--site-header-h) + var(--space-2)); }
+.tut-team:target { border-color: var(--rim-blue); box-shadow: inset 0 0 0 1px var(--rim-blue); }
+.tut-team h3 { margin: 0; color: var(--rim-heading); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }
+.tut-team__line { margin: 0; color: var(--rim-text-soft); font-size: var(--text-card); }
+.tut-team__list { display: grid; gap: 4px; margin: var(--space-1) 0 0; padding-left: 1.4em; }
+.tut-team__list li { margin: 0; padding-left: 4px; }
+.tut-team__list a { display: inline-flex; align-items: center; min-height: 44px; color: var(--rim-blue); font-weight: 600; text-decoration: none; }
+.tut-team__list a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.tut-team__leads { margin: var(--space-2) 0 0; padding-top: var(--space-2); border-top: 1px solid var(--rim-rule); color: var(--rim-label); font: 700 var(--text-xxs)/1.4 var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.tut-team__list--leads { list-style: none; padding-left: 0; margin-top: 0; }
+.tut-team__list--leads li { padding-left: 0; }
+
+/* The end of a tutorial: the one to read next. */
+.tut-next { display: grid; gap: var(--space-1); margin-bottom: var(--space-4); }
+.tut-next__label { margin: 0; color: var(--rim-label); font: 700 var(--text-xxs)/1.4 var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.tut-next__card {
+  box-sizing: border-box; display: grid; gap: 6px; padding: var(--space-3); border: 1px solid var(--rim-blue); border-radius: 12px;
+  background: var(--rim-surface); color: var(--rim-text); text-decoration: none; transition: background-color 0.15s ease;
+}
+.tut-next__card:hover { background: var(--rim-bg-bright); }
+.tut-next__title { color: var(--rim-heading); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }
+.tut-next__summary { color: var(--rim-text-soft); font-size: var(--text-card); line-height: 1.6; }
+.tut-next__go { color: var(--rim-blue); font-weight: 600; }
+
+/* Reference below the steps (the emails list). */
+.tut-ref { display: grid; gap: var(--space-3); max-width: var(--reading-width); }
+.tut-ref h2, .tut-ref h3 { margin: 0; }
+.tut-ref__intro { margin: 0; color: var(--rim-text-soft); }
+.tut-ref__group { display: grid; gap: var(--space-1); }
+.tut-ref__group dl { display: grid; margin: 0; border-top: 1px solid var(--rim-rule); }
+.tut-ref__item { display: grid; gap: 2px; padding: var(--space-2) 0; border-bottom: 1px solid var(--rim-rule); }
+.tut-ref__item dt { color: var(--rim-heading); font-weight: 600; }
+.tut-ref__item dd { margin: 0; color: var(--rim-text); }
+
 .tut-help { display: grid; gap: var(--space-2); max-width: var(--reading-width); }
 .tut-help h2 { margin: 0; }
 .tut-help p { margin: 0; }

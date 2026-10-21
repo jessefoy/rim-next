@@ -35,9 +35,12 @@ function stepFromHash(count: number): number | null {
 export default function TutorialSteps({
   steps,
   screens,
+  finish,
 }: {
   steps: Record<TutorialDevice, TutorialStepText[]>;
   screens: Record<TutorialDevice, ReactNode[]>;
+  /** Where the last step leads: the next tutorial, or back to all of them. */
+  finish: { href: string; label: string };
 }) {
   const count = steps.phone.length;
   const [index, setIndex] = useState(0);
@@ -153,7 +156,7 @@ export default function TutorialSteps({
               Back
             </button>
             {index === count - 1 ? (
-              <a href="/tutorials" className="pp-btn">All tutorials</a>
+              <a href={finish.href} className="pp-btn">{finish.label}</a>
             ) : (
               <button type="button" className="pp-btn" onClick={() => go(index + 1, true)}>
                 Next

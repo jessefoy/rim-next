@@ -83,19 +83,39 @@ export function PersonalRail({ active, hl }: { active?: string; hl?: string }) {
   );
 }
 
-/** A team's rail, on a computer. */
-export function TeamRail({ team, active, hl }: { team: string; active: string; hl?: string }) {
+/** A team's pages. On a computer, the column on the left. On a phone, the
+ *  bar under the site header: a ☰ beside the team's name (HubWorkspaceSidebar),
+ *  opened as a drawer when `open`. `hl` marks one link, or "☰". */
+export function TeamRail({ team, active, hl, device = "computer", open = false }: { team: string; active: string; hl?: string; device?: "phone" | "computer"; open?: boolean }) {
   const links = ["Home", "Scheduler", "Updates", "Conversations", "Files", "Members"];
+  const foot = ["My Teams", "My Profile", "Sign out"];
+  const link = (label: string) => (
+    <span key={label} className={cx("tut-rail__link", active === label && "tut-rail__link--on", hl === label && "hl")}>{label}</span>
+  );
+  if (device === "phone") {
+    return (
+      <div className="tut-teambar-wrap">
+        <div className="tut-teambar">
+          <span className={cx("tut-teambar__menu", hl === "☰" && "hl")} aria-hidden="true">☰</span>
+          <b>{team}</b>
+        </div>
+        {open && (
+          <div className="tut-teambar__drawer">
+            {links.map(link)}
+            <span className="tut-rail__rule" />
+            {foot.map(link)}
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="tut-rail">
       <span className="tut-rail__label">Team</span>
       <span className="tut-rail__team">{team}</span>
-      {links.map((label) => (
-        <span key={label} className={cx("tut-rail__link", active === label && "tut-rail__link--on", hl === label && "hl")}>{label}</span>
-      ))}
+      {links.map(link)}
       <span className="tut-rail__rule" />
-      <span className="tut-rail__link">My Teams</span>
-      <span className="tut-rail__link">My Profile</span>
+      {foot.slice(0, 2).map(link)}
     </div>
   );
 }
@@ -167,13 +187,15 @@ export function ScheduleRow({
 }
 
 /** An open sign-up team's state (greeters): who is signed up, "you" marked. */
-export function SignUpState({ header, names, mine }: { header: string; names: string[]; mine?: string }) {
+export function SignUpState({ header, names, mine, removable, hlMine = false, hlRemove = true }: { header: string; names: string[]; mine?: string; removable?: string; hlMine?: boolean; hlRemove?: boolean }) {
   return (
     <span className="tut-signups">
       <span className="tut-state">{header}</span>
       {names.map((n) => (
         <span key={n} className={cx("tut-signups__name", n === mine && "tut-signups__name--mine")}>
-          {n}{n === mine && <span className="tut-signups__you">you</span>}
+          {n}{n === mine && <span className={cx("tut-signups__you", hlMine && "hl")}>you</span>}
+          {/* A lead's per-person Remove (HubScheduleClient's multi rows). */}
+          {n === removable && <span className={cx("tut-signups__remove", hlRemove && "hl")}>Remove</span>}
         </span>
       ))}
     </span>

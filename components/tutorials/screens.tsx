@@ -23,7 +23,7 @@ export function signInScreen(device: Device) {
   );
 }
 
-export function codeScreen(device: Device) {
+export function codeScreen(device: Device, hl: "sign-in" | "resend" = "sign-in") {
   return (
     <Page header={<Header device={device} signedIn={false} />} center={device === "computer"}>
       <span className="tut-eyebrow">Members</span>
@@ -31,8 +31,9 @@ export function codeScreen(device: Device) {
       <span className="tut-p">We sent a 6-digit code to pat@example.com. It expires in 30 minutes.</span>
       <span className="tut-label">6-digit code</span>
       <span className="tut-codes">{["4", "8", "1", "2", "0", "7"].map((d, i) => <span key={i}>{d}</span>)}</span>
-      <span className="tut-btn hl">Sign in →</span>
-      <span className="tut-meta">Didn&rsquo;t receive it? Check your spam folder, or <span className="tut-link">send a new code</span>.</span>
+      <span className={cx("tut-btn", hl === "sign-in" && "hl")}>Sign in →</span>
+      <span className="tut-meta">Didn&rsquo;t receive it? Check your spam folder, or <span className={cx("tut-link", hl === "resend" && "hl")}>send a new code</span>.</span>
+      <span className="tut-meta">Wrong email? <span className="tut-link">Start over.</span></span>
     </Page>
   );
 }
@@ -88,50 +89,53 @@ export function myHomeScreen(
   );
 }
 
-/** The phone's open menu, My Teams marked. */
-export function phoneMenuScreen() {
+/** The phone's open menu, one item marked (My Teams unless said). */
+export function phoneMenuScreen(hl: string = "My Teams") {
   const mine = ["My Home", "Notifications", "Library", "My Teams", "♥  Community Care", "My Profile"];
   return (
     <div className="tut-screen tut-sheet">
       <Header device="phone" open />
       <div className="tut-sheet__body">
-        <span className="tut-eyebrow">My RIM</span>
+        <span className={cx("tut-eyebrow", hl === "My RIM" && "hl")}>My RIM</span>
         {mine.map((label) => (
-          <span key={label} className={cx("tut-sheet__link", label === "My Teams" && "hl")}>{label}</span>
+          <span key={label} className={cx("tut-sheet__link", label === hl && "hl")}>{label}</span>
         ))}
         <span className="tut-sheet__link tut-dim">New to RIM</span>
       </div>
       <div className="tut-sheet__foot">
-        <span className="tut-sheet__signout">Sign out</span>
+        <span className={cx("tut-sheet__signout", hl === "Sign out" && "hl")}>Sign out</span>
         <span className="tut-donate tut-donate--block">Donate</span>
       </div>
     </div>
   );
 }
 
-export function myTeamsScreen(device: Device, team: string) {
+export function myTeamsScreen(device: Device, team: string | string[]) {
+  const teams = Array.isArray(team) ? team : [team];
   return (
     <Page header={<Header device={device} />} rail={device === "computer" ? <PersonalRail active="My Teams" /> : undefined}>
       <span className="tut-h1">My Teams</span>
       <span className="tut-p">Choose a team to find its conversations, files, and shared work.</span>
       <div className="tut-list">
-        <span className="tut-list__row hl"><b>{team}</b><span>→</span></span>
+        {teams.map((t, i) => (
+          <span key={t} className={cx("tut-list__row", i === 0 && "hl")}><b>{t}</b><span>→</span></span>
+        ))}
       </div>
     </Page>
   );
 }
 
 /** A team's Home: its line, the Scheduler card (`needs` is its summary), the destinations. */
-export function teamHomeScreen(device: Device, team: string, needs: string) {
+export function teamHomeScreen(device: Device, team: string, needs: string, { hlCard = false, railHl }: { hlCard?: boolean; railHl?: string } = {}) {
   return (
-    <Page header={<Header device={device} />} rail={device === "computer" ? <TeamRail team={team} active="Home" /> : undefined}>
+    <Page header={<Header device={device} />} rail={<TeamRail device={device} team={team} active="Home" hl={railHl} />}>
       <span className="tut-h1">{team}</span>
       <span className="tut-meta">Your team&rsquo;s shared space.</span>
-      <div className="tut-card">
+      <div className={cx("tut-card", hlCard && "hl")}>
         <span className="tut-eyebrow">This team&rsquo;s tool</span>
         <span className="tut-h2">Scheduler</span>
         <span className="tut-meta">{needs}</span>
-        <span className="tut-btn hl">Open the Scheduler</span>
+        <span className={cx("tut-btn", !hlCard && !railHl && "hl")}>Open the Scheduler</span>
       </div>
       <div className="tut-list">
         <span className="tut-list__row"><span><b>Conversations</b><small>Read and join team discussions</small></span><span>→</span></span>
@@ -151,7 +155,7 @@ export function schedulerScreen(
 ) {
   return (
     <div className="tut-screen tut-screen--layer">
-      <Page header={<Header device={device} />} rail={device === "computer" ? <TeamRail team={team} active="Scheduler" /> : undefined}>
+      <Page header={<Header device={device} />} rail={<TeamRail device={device} team={team} active="Scheduler" />}>
         <div className={cx("tut-stack", dialog ? "tut-dim" : null)}>
           <span className="tut-h1">October 2026</span>
           <span className="tut-pills">
@@ -178,7 +182,7 @@ export function DialogActions({ yes, no = "Not yet" }: { yes: string; no?: strin
 /** A team's Updates, with one session under Needs you. */
 export function needsYouScreen(device: Device, team: string, { what, needs, button }: { what: string; needs: string; button: string }) {
   return (
-    <Page header={<Header device={device} />} rail={device === "computer" ? <TeamRail team={team} active="Updates" /> : undefined}>
+    <Page header={<Header device={device} />} rail={<TeamRail device={device} team={team} active="Updates" />}>
       <span className="tut-h1">Updates</span>
       <span className="tut-p">What&rsquo;s happening on the team, and what needs you.</span>
       <span className="tut-eyebrow">Needs you</span>

@@ -1,6 +1,16 @@
 {
   "redirects": [
     {
+      "source": "/tutorials/getting-started-for-guides",
+      "destination": "/tutorials#team-peer-led-silent-meditation",
+      "permanent": false
+    },
+    {
+      "source": "/tutorials/hosting-on-zoom",
+      "destination": "/tutorials/zoom-for-hosts",
+      "permanent": false
+    },
+    {
       "source": "/your-first-visit",
       "destination": "/new-to-rim",
       "permanent": true

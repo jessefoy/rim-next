@@ -19,6 +19,13 @@ export type TutorialStep = TutorialStepText & {
   computer?: Partial<TutorialStepText>;
 };
 
+/** Plain reference below the steps, such as the list of emails. */
+export type TutorialReference = {
+  heading: string;
+  intro?: string;
+  groups: { title: string; items: { name: string; text: string }[] }[];
+};
+
 export type Tutorial = {
   slug: string;
   /** The heading on the index and the page. */
@@ -26,11 +33,14 @@ export type Tutorial = {
   /** Who it's for, said plainly (the page's eyebrow). */
   forWhom: string;
   summary: string;
-  /** The index groups tutorials by topic (TUTORIAL_TOPICS, in order). */
-  topic: string;
+  /** Start here's parts are read in order ("Start here · 2 of 4"). */
+  series?: { name: string; part: number; of: number };
+  /** The tutorial to read after this one, by slug. */
+  nextTutorial?: string;
   steps: TutorialStep[];
   /** One drawing per step, in step order, for each screen. */
   screens: Record<TutorialDevice, ReactNode[]>;
+  reference?: TutorialReference;
   /** The closing help, a few short paragraphs. */
   help: string[];
 };
