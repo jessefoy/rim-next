@@ -32,7 +32,7 @@ export default async function HubMembersPage({
 
   const members = await db.hubMember.findMany({
     where:   { hubId: hub.id },
-    include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true, avatarUrl: true } } },
+    include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true, avatarUrl: true, emailVerified: true } } },
     orderBy: [{ isCoordinator: "desc" }, { joinedAt: "asc" }],
   });
 
@@ -49,6 +49,9 @@ export default async function HubMembersPage({
   // The coordinator's note and members' email addresses are for the people
   // who manage the team. They were sent to every member's browser, where only
   // the screen hid them (2026-10-19 audit). The pause note is shown to all.
+  // So is whether someone has signed in yet: until they do, team emails stay
+  // silent (the pre-threshold gate reads the same emailVerified), so a lead
+  // can follow up (LoriLee, 2026-10-21).
   const serialized = members.map((m) => ({
     id:            m.id,
     userId:        m.userId,
@@ -62,6 +65,7 @@ export default async function HubMembersPage({
     pauseNote:       m.pauseNote,
     coordinatorNote: isCoordinator ? m.coordinatorNote : null,
     joinedAt:        m.joinedAt.toISOString(),
+    signedIn:        isCoordinator ? m.user.emailVerified !== null : null,
     user: {
       firstName:     m.user.firstName,
       lastName:      m.user.lastName,

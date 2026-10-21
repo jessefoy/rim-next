@@ -55,7 +55,7 @@ export async function POST(
       position: position ?? null,
       isCoordinator: !!makeCoordinator,
     },
-    include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true, avatarUrl: true } } },
+    include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true, avatarUrl: true, emailVerified: true } } },
   });
 
   // Welcome email — wrapped in after() so the in-flight Resend call survives
@@ -93,6 +93,8 @@ export async function POST(
     pauseNote:       newMember.pauseNote,
     coordinatorNote: newMember.coordinatorNote,
     joinedAt:        newMember.joinedAt.toISOString(),
+    // Only coordinators add members, so they may see this (as on the Members page).
+    signedIn:        newMember.user.emailVerified !== null,
     user: {
       firstName:     newMember.user.firstName,
       lastName:      newMember.user.lastName,

@@ -41,6 +41,8 @@ interface HubMemberRow {
   pauseNote: string | null;
   coordinatorNote: string | null;
   joinedAt: string;
+  /** Coordinators only (null for everyone else): false until their first sign-in. */
+  signedIn?: boolean | null;
   user: MemberUser;
 }
 
@@ -273,6 +275,9 @@ export default function HubMembersClient({
           {isHostingHub && !m.hostingCapability && m.status === "ACTIVE" && (
             <div className="hub-mem-item__flag">Off the schedule</div>
           )}
+          {m.signedIn === false && (
+            <div className="hub-mem-item__flag">Hasn&rsquo;t signed in yet. Team emails start when they do.</div>
+          )}
           {!m.communicationsEnabled && (
             <div className="hub-mem-item__flag">Notifications off</div>
           )}
@@ -372,7 +377,9 @@ export default function HubMembersClient({
             </div>
           )}
           {searchQuery.length >= 3 && !searching && searchResults.filter((u) => !existingUserIds.has(u.id)).length === 0 && (
-            <p className="hub-mem-add-form__hint">No matching active members found.</p>
+            <p className="hub-mem-add-form__hint">
+              No matching members found. Someone who hasn&rsquo;t signed in to the new site yet won&rsquo;t appear here. An admin or the registrar can add them from the Member Registry.
+            </p>
           )}
         </div>
       )}

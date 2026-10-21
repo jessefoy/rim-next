@@ -523,6 +523,9 @@ export function PublicNavSheet({
         ...(personalNav.canManage ? [{ title: "Manage RIM", href: "/admin/members" }] : []),
       ]
     : null;
+  // Signed in elsewhere, My Home still leads the sheet, where it sits in the
+  // bar on wider screens (LoriLee, 2026-10-21: at the foot it was hard to find).
+  const myRim = personalLinks ?? (isLoggedIn && !atThreshold ? [{ title: "My Home", href: "/account/dashboard" }] : null);
   return (
     <div
       id="nav-sheet"
@@ -543,10 +546,10 @@ export function PublicNavSheet({
         </button>
       </div>
       <nav className="nav__sheet-body" aria-label="Main navigation">
-        {personalLinks && (
+        {myRim && (
           <div className="nav__sheet-group nav__sheet-group--mine">
             <p className="nav__sheet-label">My RIM</p>
-            {personalLinks.map((item) => (
+            {myRim.map((item) => (
               <Link
                 onClick={onNavigate}
                 key={item.href}
@@ -582,16 +585,13 @@ export function PublicNavSheet({
         ))}
       </nav>
       <div className="nav__sheet-foot">
-        <div className={`nav__sheet-pair${personalLinks || atThreshold ? " nav__sheet-pair--single" : ""}`}>
+        <div className={`nav__sheet-pair${isLoggedIn ? " nav__sheet-pair--single" : ""}`}>
           {isLoggedIn ? (
-            <>
-              {/* Already listed under My RIM on the personal pages, and not
-                  yet open on welcome and reactivate. */}
-              {!personalLinks && !atThreshold && <Link onClick={onNavigate} href="/account/dashboard">My Home</Link>}
-              <button type="button" onClick={() => signOut({ callbackUrl: "/" })}>
-                Sign out
-              </button>
-            </>
+            // My Home leads the sheet under My RIM (not yet open on welcome
+            // and reactivate), so the foot keeps only Sign out.
+            <button type="button" onClick={() => signOut({ callbackUrl: "/" })}>
+              Sign out
+            </button>
           ) : (
             <>
               <Link onClick={onNavigate} href="/login">Sign in</Link>
