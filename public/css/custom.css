@@ -23235,7 +23235,9 @@ html { scroll-padding-top: 88px; }
    Zoom's own dark colors, kept here as local custom properties.
    =================================================================== */
 .tut-note { margin: 0 0 var(--space-3); color: var(--rim-text-soft); font-size: var(--text-small); }
-.tut { display: grid; gap: var(--space-3); }
+.tut { position: relative; display: grid; gap: var(--space-3); }
+.tut-anchors { position: absolute; top: 0; left: 0; }
+.tut-anchors span { display: block; height: 0; }
 .tut-controls { display: grid; gap: var(--space-2); }
 .tut-switch { display: inline-flex; justify-self: start; padding: 4px; gap: 4px; border: 1px solid var(--rim-rule); border-radius: 999px; background: var(--rim-surface); }
 .tut-switch button {

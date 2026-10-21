@@ -61,10 +61,12 @@ export default async function TutorialPage({ params }: { params: Promise<{ slug:
       </section>
 
       <section className="pp-section pp-section--last">
-        <div className="rim-container tut-help">
-          <h2>If you get stuck</h2>
-          {tutorial.help.map((p) => <p key={p}>{p}</p>)}
-          <p><Link href="/tutorials" className="tut-help__back">← All tutorials</Link></p>
+        <div className="rim-container">
+          <div className="tut-help">
+            <h2>If you get stuck</h2>
+            {tutorial.help.map((p) => <p key={p}>{p}</p>)}
+            <p><Link href="/tutorials" className="tut-help__back">← All tutorials</Link></p>
+          </div>
         </div>
       </section>
     </div>

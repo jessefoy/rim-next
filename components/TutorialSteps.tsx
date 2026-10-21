@@ -44,7 +44,6 @@ export default function TutorialSteps({
   const [device, setDevice] = useState<TutorialDevice>("computer");
   const [scale, setScale] = useState(0.4);
   const [ready, setReady] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -55,11 +54,7 @@ export default function TutorialSteps({
     if (saved === "phone" || saved === "computer") setDevice(saved);
     else if (window.matchMedia("(max-width: 768px)").matches) setDevice("phone");
     const fromHash = stepFromHash(count);
-    if (fromHash !== null) {
-      setIndex(fromHash);
-      // A link to one step opens at the step, not at the top of the page.
-      requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: "start" }));
-    }
+    if (fromHash !== null) setIndex(fromHash);
     setReady(true);
     const onHash = () => {
       const n = stepFromHash(count);
@@ -112,7 +107,12 @@ export default function TutorialSteps({
   const canvas = CANVAS[device];
 
   return (
-    <div className="tut" ref={rootRef}>
+    <div className="tut">
+      {/* A link to one step (#step-N) opens here, at the steps, by the
+          browser's own scroll to an anchor. */}
+      <div className="tut-anchors" aria-hidden="true">
+        {steps.phone.map((_, i) => <span key={i} id={`step-${i + 1}`} />)}
+      </div>
       <div className="tut-controls">
         <div className="tut-switch" role="group" aria-label="Show the screens">
           {(["phone", "computer"] as const).map((d) => (
@@ -149,9 +149,13 @@ export default function TutorialSteps({
             <button type="button" className="pp-btn pp-btn--ghost" onClick={() => go(index - 1, true)} disabled={index === 0}>
               Back
             </button>
-            <button type="button" className="pp-btn" onClick={() => go(index + 1, true)} disabled={index === count - 1}>
-              {index === count - 1 ? "You're ready" : "Next"}
-            </button>
+            {index === count - 1 ? (
+              <a href="/tutorials" className="pp-btn">All tutorials</a>
+            ) : (
+              <button type="button" className="pp-btn" onClick={() => go(index + 1, true)}>
+                Next
+              </button>
+            )}
           </div>
         </div>
 
