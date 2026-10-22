@@ -21519,6 +21519,9 @@ html { scroll-padding-top: 88px; }
   .pl-band { padding: calc(var(--space-1) * 7) 0; }
   .pl-head h2 { font-size: var(--text-h2-lg); }
   .pl-sub { margin-top: var(--space-5); }
+  /* On phones the section heading is 28 and the names 20: the group heading
+     sits between them. */
+  .pl-sub h3 { font-size: var(--text-h3); }
   .pl-row { grid-template-columns: 1fr; gap: var(--space-1); padding: 20px var(--space-3); }
   .pl-empty { padding: 20px var(--space-3); }
 }
