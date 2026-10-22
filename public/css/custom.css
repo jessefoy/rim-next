@@ -23490,7 +23490,7 @@ html { scroll-padding-top: 88px; }
 .tut-player__stage--computer { grid-template-columns: minmax(0, 1fr); }
 /* Each picture fits the window's height too, so a step plays on one screen
    (the drawings' shapes: phone 390:820, computer 1200:740, plus the frame). */
-.tut-player__stage--phone .tut-device { max-width: min(380px, calc((100dvh - 150px) * 0.4756 + 20px)); justify-self: center; }
+.tut-player__stage--phone .tut-device { width: 100%; max-width: min(380px, calc((100dvh - 150px) * 0.4756 + 20px)); justify-self: center; }
 .tut-player__stage--computer .tut-device { max-width: min(100%, calc((100dvh - 360px) * 1.6216 + 16px)); justify-self: center; width: 100%; }
 .tut-player__caption { display: grid; gap: var(--space-2); align-content: start; min-width: 0; }
 .tut-player__caption p { margin: 0; }
