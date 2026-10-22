@@ -28,6 +28,7 @@ Jesse brought the brief `08-promotion-site-brief-condensation-2026-10-22.md` (va
 - Live at 1280 and 390: no horizontal scroll on the ten pages; the circles one column on phones; Taking CARE's items open and close with Enter and Space; summaries are the whole tap target.
 - **Word counts** (live, everything inside the page including card labels, buttons and closed text): Home 1,939 → 1,240; Why We Practice 2,173 → 1,605; Taking CARE 1,403 → 1,477 (643 visible with the words closed); Our Roots 798 → 823; A Handful of Leaves 1,186 → 956; New to RIM 1,021 → 904; About 919 → 804; Diverse Together 621 → 620; Volunteer 204 → 210; Outreach 585 → 586.
 - The style script on Part B: five candidates, all Jesse's approved words (a "notice", "truly", two "actually", and the FAQ's "Do I need…", depicted speech); left for his read-aloud.
+- **Hub routing and email templates:** not touched by any of the day's work (public pages and their CSS only); no `sendTemplatedEmail` call added or changed, no seeds needed.
 - Reviewer sub-agent: no blocking defects; fixed its malformed-hash crash (`/care#%E0`), a doubled rule under the last word, and raw values.
 
 ### What this connects to
@@ -81,6 +82,37 @@ Jesse: *"Yes, run the same grid and reading-flow review on the rest of the publi
 - **Jesse's read-aloud** of the ten published pages (copy provisional until then). Flags for it: Diverse Together now says "What we share" in its heading just below "What we share is the direction."; "Read more" and "Show less"; the restored Dana, Calm and ease, and Many medicines lines.
 - **H11, held:** Ways to Give's "supported entirely by the people who practice here" and "Our teachings are offered freely", waiting on his confirmation of the facts.
 - **November 1 sweep** still applies to New to RIM's "Our first offering begins in November."
+
+## 2026-10-21 to 10-22 (morning) — Tutorials, Watch it, and LoriLee's notes (recorded at the 2026-10-22 closing)
+
+Shipped on `main` by an earlier session without its own closing: `0f2a026`, `eb35ff3`, `0c8be0e`, `ac67cd2`, `e29cbc4`, `b9a9714`, `8d76103` and the five "Watch it" fixes to `c40b5d6`. Narrative reconstructed from the commits and the code, not from that session's transcript. No production reads or writes, schema, env vars or email templates.
+
+### The asks (verbatim, from the commits)
+
+- *"think about it holistically… people to be able to log in… find out where their teams are… the team schedule application… log into Zoom and claim host. The whole system should be identified: the emails, the scheduler… organized in a well-thought-out way, remembering that these people are not very tech-savvy."*
+- *"make those tutorials into a video animation… they are still having a hard time understanding… do a second page so that we don't replace this one."*
+- On who may see them: *"Everyone for now, but this is an unindexed page. Remind me later to figure this out because we will probably want stuff behind the login."* (backlog `2026-10-21-001`)
+
+### What changed
+
+1. **LoriLee's notes** (`0f2a026`): My Home leads the phone sheet under My RIM for a signed-in member on a public page; a team's coordinators see "Hasn't signed in yet. Team emails start when they do." on members without a first sign-in (`signedIn`, from the `emailVerified` the pre-threshold email gate reads, sent only to coordinators); the add-member search's empty hint points to the Member Registry.
+2. **Tutorials** (`0c8be0e` → `b9a9714`): `/tutorials` as one path, Start here (four) for everyone, then each of four teams (Hosting Team, Peer-Led Silent Meditation, Greeter, Audio/Visual, Jesse's choice), then the leads'. Each tutorial a step at a time, drawn for a phone or a computer from RIM's own screens; `#step-N` anchors; each ends at the next. The first two tutorials (Getting started for guides, Hosting a session on Zoom) were folded into the path and their addresses forward. The Zoom door's host page links the hosting team's claim-host step. Setting a member back to Active now clears their pause note (found while checking).
+3. **Watch it** (`8d76103` to `c40b5d6`): `/tutorials/[slug]/watch` plays a tutorial with captions and a tapping finger, paced at about two and a half words a second (seven seconds at least), on plain timers (animation frames stalled in a background tab), sized so a step and its caption fit one screen on a phone and a computer. Signing in only, to judge it first.
+
+### What this connects to
+
+- The Scheduler, My Home, Members, Notifications and the Zoom door are drawn in the tutorials: a change to those screens changes the drawings and words in the same commit (`RIM_Tutorials.md`).
+- The pre-threshold email gate (`RIM_Email_Engineering.md`): "hasn't signed in" is the same `emailVerified` test.
+- Docs written at this closing: `RIM_Tutorials.md` (new), the CLAUDE.md orientation row, `FEATURES.md`, `RIM_Stack_Reference.md`, `RIM_Member_Area.md`, `RIM_Hub_Engineering.md`.
+
+### Audits (at the 2026-10-22 closing)
+
+- **Hub routing, four layers**, for the two hub routes touched (`app/api/hub/[slug]/members/route.ts`, `…/members/[userId]/route.ts`) and the Members page: (1) `signedIn` is gated on the viewer coordinating that same team, the resource's hub; the pause-note clear rides the existing PATCH gate; (2) no notification recipients changed; (3) the members query stays `hubId`-scoped; (4) no email URLs. Clean.
+- **Email templates:** no `sendTemplatedEmail` call added or changed on Oct 21 to 22 or Oct 22; no seeds needed.
+
+### What comes next
+
+- Jesse's read-aloud of every tutorial; which move behind sign-in (`2026-10-21-001`); confirming Zoom's phone claim-host steps in a test meeting; Watch it for the other tutorials once Signing in is judged.
 
 ## 2026-10-20 (later) — My Home without Coming up; Notifications categorized like team Updates
 

@@ -21,6 +21,13 @@ Readers found the site tiring to read; Jesse approved a condensation brief (the 
 - **Taking CARE:** each of the eight words shows one line, with its full description behind "Read more" (native `<details>`; a link to a word opens it, `components/OpenOnHash.tsx`).
 - **Integrity:** About names RIM as a Buddhist dharma community rooted in Chan; Our Roots attributes the luminous mind to "a teaching preserved in the early discourses"; "from which Zen grew"; well-being is never "does not depend on circumstances"; Volunteer's misattributed Gandhi line is now the Buddha (Itivuttaka 26); Outreach "can help"; Diverse Together's "What we share".
 - Not touched: the Community Care Agreements, Ways to Give (held for Jesse's confirmation, backlog `2026-10-22-001`), program pages, Home's Programs section. Wording provisional until Jesse's read-aloud. See `RIM_Public_Pages.md`, "Shorter pages and the three circles".
+- **The public pages, measured and recomposed (same day):** every public route checked at 1280, 900 and 390 for grid edges, line lengths, grouping and heading tiers. Text columns share the grid's col-7 line (Home, New to RIM, Diverse Together); Practice for real life's circles are panels named inside; one eyebrow size (13px) on every public page; the program pages, the registration card and Donate are bordered, not lifted; card titles and fact names step under their headings; long notes keep a reading measure; Donate's give cards sit side by side on tablets (its zig-zag reflections kept, Jesse's ruling); Diverse Together's motto stays beside the reading. See `RIM_Public_Pages.md`.
+
+## October 21 to 22, 2026: Tutorials, and LoriLee's notes
+
+- **Tutorials** (`/tutorials`, `noindex`, shared by link): Start here for everyone (Signing in, Finding your way, Your team's space, Emails and notifications), then each team's own (the Scheduler in its words; Zoom for the Hosting Team and the Peer-Led guides), then the leads' (Leading your team, The Scheduler for leads). Drawn from RIM's screens, phone or computer. **Watch it** (`/tutorials/[slug]/watch`) plays a tutorial like a video, with captions and a finger that taps (Signing in for now). The Zoom door's host page links to the claim-host step. See `RIM_Tutorials.md`.
+- **My Home leads the phone menu** when a member is signed in on a public page (under My RIM, where it sits in the bar on wider screens).
+- **Leads see who hasn't signed in yet** on a team's Members tab ("Hasn't signed in yet. Team emails start when they do."), coordinators only; the add-member search says someone not yet on the new site can be added from the Member Registry. Setting a member back to Active clears their pause note.
 
 ## October 19, 2026 (later): team Updates, read like an inbox
 

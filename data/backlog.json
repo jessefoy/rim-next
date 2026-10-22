@@ -2022,5 +2022,35 @@
     "status": "open",
     "addedAt": "2026-10-22",
     "notes": "Jesse's call whether the introduction should follow the public pages here. See RIM_Public_Pages.md, \"Shorter pages and the three circles\" and \"The derived-work rule\"."
+  },
+  {
+    "id": "2026-10-22-003",
+    "title": "Home's program-card titles: a clear step under the section heading",
+    "description": "On Home, the three program-category card titles (Foundations, Ongoing Learning & Practice, Immersion) are 32px under the 38px section heading, the same flattening that made Practice for real life read as a second row of headings (fixed 2026-10-22). Jesse set these sizes on 2026-09-29; reopen with him and, if agreed, step them to 28px (--text-h2).",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-22",
+    "notes": "Measured 2026-10-22: ratio 1.19. The rule now in RIM_Public_Pages.md: a heading tier must read clearly smaller than the one above it."
+  },
+  {
+    "id": "2026-10-22-004",
+    "title": "The last two 11px labels on public pages",
+    "description": "After the 2026-10-22 eyebrow pass (every hero and section eyebrow at 13px), two small uppercase labels stay at 11px: the reading pages' \"On this page\" label and the Tutorials team cards' \"If you lead this team\". Bring both to the 13px spec if Jesse agrees (they were outside the pass's scope).",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-22",
+    "notes": "Spec: --text-xs, 700, 0.16em, uppercase, each in its own colour."
+  },
+  {
+    "id": "2026-10-22-005",
+    "title": "Courses page onto the public system",
+    "description": "/courses still has the old blue pp-hero--flat header and a shadowed .cls-card (raw hex in its access labels), against the quiet hero and bordered surfaces every other public page now uses. It holds only the Test Course (backlog 2026-09-02-001, unpublish before launch); decide it together: quiet hero, bordered cards, tokens.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-22",
+    "notes": "Found in the 2026-10-22 public-page review."
   }
 ]

@@ -2,22 +2,22 @@
 
 Read first when opening RIM. Updated 2026-10-22 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-22 closed: shorter public pages, the three circles, an integrity pass
+## Active — 2026-10-22 closed: shorter pages, the three circles, an integrity pass; every public page measured and recomposed
 
-Everything is on `main` (`57628ff`, `15736ea`, and the closing docs). Narrative and word counts: `session-log.md`, 2026-10-22. Design record and vocabulary: `RIM_Public_Pages.md`, "Shorter pages and the three circles".
+Everything is on `main` (`57628ff` … `901d362`, and this closing). Narrative, word counts and measurements: `session-log.md`, 2026-10-22 (and its "Later" sections). Design record, vocabulary and rules: `RIM_Public_Pages.md`, "Shorter pages and the three circles". The Oct 21 to 22 Tutorials work is now documented (`RIM_Tutorials.md`; `session-log.md`, 2026-10-21 to 10-22).
 
-**Live:** Jesse's condensation brief (vault `CARE/4 Promotion/08-promotion-site-brief-condensation-2026-10-22.md`), word for word on ten pages: Home, Why We Practice, Taking CARE (eight words as closed items with "Read more"), A Handful of Leaves, New to RIM, About, Our Roots, Diverse Together, Volunteer, Outreach. His two rulings: New to RIM says "It is freely offered" (not "free"); its cost note, Open My Home button and Zoom-link line are gone. Verified live at 1280 and 390; no hits for the retired phrases in code or in a read-only search of production texts.
+**Live:**
+- **The condensation brief** (vault `CARE/4 Promotion/08-promotion-site-brief-condensation-2026-10-22.md`, whose Part B now matches the site) on ten pages, with his rulings: "It is freely offered"; New to RIM's cost note, Open My Home and Zoom-link line gone; Home's Dana keeps where gifts go and the retreat minimum; Calm and ease names the everyday pressures; the Handful keeps the shape of a practice; "and we reduce harm" stays cut.
+- **Every public page measured and recomposed** (1280, 900, 390): text columns on the grid's col-7 line (Home, New to RIM, Diverse Together); Practice for real life's circles as panels named inside; one 13px eyebrow spec; program pages, the registration card and Donate bordered, not lifted; card titles and fact names stepped under their headings; reading measures on long notes; Donate's give cards side by side on tablets, its zig-zag reflections kept (a one-column version was undone by his choice); Diverse Together's motto beside the reading.
 
 **Waiting on Jesse:**
-- **Read-aloud of the ten pages** (provisional until then). Flags: Diverse Together's heading "What we share" sits just under "What we share is the direction."; "Read more" / "Show less"; the lines restored the same day by his approval (Home's Dana with where gifts go and the retreat minimum, `80d56bd`; Calm and ease's everyday pressures and the Handful's practice shape, `85f5d3f`; "and we reduce harm" stays cut); the vault brief's Part B matches the live site; Why We Practice's three circles stay stacked (the brief asked for columns; the 680px column would give about 18 characters a line).
-- **Ways to Give (H11, held):** confirm "supported entirely by the people who practice here" and "Our teachings are offered freely" (backlog `2026-10-22-001`).
-- **The members' Handful introduction** still carries "earliest teachings", "also known as Zen", "all things arise together"; it follows the vault (backlog `2026-10-22-002`).
+- **Read-aloud** of the ten pages and today's new words: "Read more" / "Show less", the screen-reader heading "About this program", eyebrows that repeat their heading ("Welcome" / "New to RIM", "A first gathering" / "A drop-in gathering", "A fuller introduction" / "Foundations"), Diverse Together's "What we share" under "What we share is the direction."; and every tutorial (`RIM_Tutorials.md`).
+- **Ways to Give's two facts** (backlog `2026-10-22-001`); the members' Handful introduction follows the vault (`2026-10-22-002`).
+- **Tutorials:** which move behind sign-in (`2026-10-21-001`); Zoom's phone claim-host steps confirmed in a test meeting.
 
-**Not documented yet:** the Oct 21 to 22 Tutorials work (`/tutorials`, the step-by-step and "Watch it" pages, `0c8be0e` … `c40b5d6`) and `0f2a026` (My Home leads the phone menu; leads see who hasn't signed in) shipped after the Oct 20 closing without one; FEATURES and the session log don't mention them. Backlog `2026-10-21-001` holds the sign-in question and Zoom's phone Claim-host step.
+**Coming up:** the **November 1 sweep** ("begins in November" / "First offered in November", including New to RIM's "Our first offering begins in November"); **Sacred Clarity** (March 16, 2026) still the only Immersion listing. **Queued, small:** Home's program-card titles 32 under 38 (`2026-10-22-003`), the last two 11px labels (`2026-10-22-004`), Courses onto the public system (`2026-10-22-005`), This Week's boxes in boxes (mock first). The design skill has an update (`npx impeccable update`).
 
-**Layout:** the ten pages were measured against the grid (1280, 900, 390) and four defects fixed on Home and New to RIM (`bfd6d2c`; `session-log.md`, 2026-10-22, "Later still"); then the other 24 public routes, six fixes (`4409d8e`, "Then: the rest of the public pages"). The program pages, the registration card and Donate are now bordered, not lifted (`af51904`, his ruling). **Open for Jesse:** Courses' old blue hero and shadowed card; the new screen-reader heading "About this program".
-
-**Next concrete step:** Jesse's read-aloud of the ten pages; then the items still open from Oct 20 below.
+**Next concrete step:** the November 1 sweep, then Jesse's read-aloud; the items still open from Oct 20 below.
 
 ## Earlier — 2026-10-20 (later) closed: My Home without Coming up; Notifications categorized
 
