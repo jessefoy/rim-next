@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CareCircle from "@/components/CareCircle";
+import { TEACHER_SUPPORT } from "@/lib/communityAgreements";
 
 // Lineage terms live in the description for search, stated as RIM states
 // them (Jesse, 2026-10-02): a dharma community grounded in traditional
@@ -507,16 +508,26 @@ export default function HomePage() {
               <div className="pp-intro">
                 <p className="pp-intro__eyebrow">Dana</p>
                 <h2 className="pp-intro__title">A generosity-based approach.</h2>
+                {/* Part B §1's shortened Dana, with two meanings it dropped put
+                    back in Jesse's ratified words (2026-10-22: "We did not want
+                    to change meaning or intentions"): where gifts go (the
+                    2026-10-14 line and TEACHER_SUPPORT, said once site-wide),
+                    and the retreat minimum. */}
                 <p className="pp-intro__body">
                   Our teachings are offered as a gift, and RIM is sustained by the generosity of the
-                  people who practice here. The tradition calls this <em>dana</em>. Most of our
-                  support comes from members who give each month, and those gifts keep the center
-                  open. If you are able, we strongly encourage a financial gift, monthly or when you
-                  take part in a program.
+                  people who practice here. The tradition calls this <em>dana</em>. Gifts to RIM pay
+                  for the center and its operating costs. {TEACHER_SUPPORT}
+                </p>
+                <p className="pp-intro__body">
+                  Most of our support comes from members who give each month, and those gifts keep
+                  the center open. If you are able, we strongly encourage a financial gift, monthly
+                  or when you take part in a program.
                 </p>
                 <p className="pp-intro__body">
                   Programs list a suggested contribution, and for most programs no one is turned away
-                  for being unable to pay. Time, care, and sincere presence are gifts too.
+                  for being unable to pay. A few offerings, such as overnight retreats, require a
+                  minimum contribution to cover the charges from the place that hosts us. Time, care,
+                  and sincere presence are gifts too.
                 </p>
                 <p className="pp-intro__note">RIM is a 501(c)(3) nonprofit.</p>
               </div>
