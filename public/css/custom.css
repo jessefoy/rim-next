@@ -15981,11 +15981,19 @@ input.w-button { -webkit-appearance: button; }
    logistics in one quiet card, and one state-aware next step. */
 .pg-content { padding-bottom: 96px; }
 .pg-page .pg-notes { margin-bottom: 28px; }
+/* Titled panel: the title on the site's blue with white lettering, as
+   Home's circles and New to RIM's fact cards (Jesse, 2026-10-22). */
 .pg-page .pg-details-section {
   margin-bottom: 38px;
-  padding: 30px 30px 0;
+  padding: 0 30px;
+  overflow: hidden;
 }
-.pg-page .pg-details-section .pg-section-heading { margin-bottom: 10px; }
+.pg-page .pg-details-section .pg-section-heading {
+  margin: 0 -30px 10px;
+  padding: 20px 30px 18px;
+  background: var(--rim-blue);
+  color: var(--rim-surface);
+}
 .pg-page .pg-detail-row {
   align-items: flex-start;
   gap: 18px;
@@ -16129,8 +16137,9 @@ input.w-button { -webkit-appearance: button; }
   .pg-page .pg-notes { margin-bottom: 22px; }
   .pg-page .pg-details-section {
     margin-bottom: 32px;
-    padding: 24px 20px 0;
+    padding: 0 20px;
   }
+  .pg-page .pg-details-section .pg-section-heading { margin: 0 -20px 10px; padding: 16px 20px 14px; }
   .pg-page .pg-detail-row { gap: 14px; padding: 16px 0; }
   .pg-details-action { min-height: 0; padding: 20px 0 24px; }
   .pg-page .pg-facilitators-section { margin-bottom: 46px; }
@@ -21836,18 +21845,23 @@ html { scroll-padding-top: 88px; }
 .pp-reading__article .pp-actions { margin-top: var(--space-4); }
 /* The benefits on Why We Practice, as three panels with a heading each. */
 .pp-benefits { display: grid; gap: var(--space-3); margin: var(--space-4) 0; }
+/* Titled panel: the title on the site's blue with white lettering, as
+   Home's circles and New to RIM's fact cards (Jesse, 2026-10-22). */
 .pp-benefit {
   box-sizing: border-box;
   border: 1px solid var(--rim-rule);
   border-radius: 12px;
-  padding: 28px;
+  padding: 0 28px 28px;
+  overflow: hidden;
   background: var(--rim-surface);
 }
 .pp-benefit h3 {
-  margin: 0 0 var(--space-3);
-  color: var(--rim-label);
+  margin: 0 -28px var(--space-3);
+  padding: 20px 28px 18px;
+  background: var(--rim-blue);
+  color: var(--rim-surface);
   font-family: var(--font-serif);
-  font-size: 26px;
+  font-size: var(--text-h3);
   font-weight: 400;
   line-height: 1.3;
 }
@@ -23719,7 +23733,10 @@ html { scroll-padding-top: 88px; }
 @media (max-width: 768px) { .tut-teams { grid-template-columns: minmax(0, 1fr); } }
 .tut-team { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); scroll-margin-top: calc(var(--site-header-h) + var(--space-2)); }
 .tut-team:target { border-color: var(--rim-blue); box-shadow: inset 0 0 0 1px var(--rim-blue); }
-.tut-team h3 { margin: 0; color: var(--rim-heading); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }
+/* Titled panel: the title on the site's blue with white lettering, as
+   Home's circles and New to RIM's fact cards (Jesse, 2026-10-22). */
+.tut-team { overflow: hidden; }
+.tut-team h3 { margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) var(--space-1); padding: 16px var(--space-3) 14px; background: var(--rim-blue); color: var(--rim-surface); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }
 .tut-team__line { margin: 0; color: var(--rim-text-soft); font-size: var(--text-card); }
 .tut-team__list { display: grid; gap: 4px; margin: var(--space-1) 0 0; padding-left: 1.4em; }
 .tut-team__list li { margin: 0; padding-left: 4px; }
