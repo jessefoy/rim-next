@@ -20974,11 +20974,16 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   background: var(--rim-surface);
   overflow: hidden;
 }
+/* The panel's title on the site's blue with white lettering (Jesse,
+   2026-10-22: "the dark blue looks better… consistent with our design"),
+   7.7:1. Used only for a titled panel of items; New to RIM's fact cards
+   share it. */
 .home-theme__label {
   margin: 0;
-  border-bottom: 1px solid var(--rim-rule);
+  border-bottom: 1px solid var(--rim-blue);
   padding: 20px 22px 18px;
-  color: var(--rim-heading);
+  background: var(--rim-blue);
+  color: var(--rim-surface);
   font-family: var(--font-serif);
   font-size: var(--text-h3);
   font-weight: 400;
@@ -21692,14 +21697,24 @@ html { scroll-padding-top: 88px; }
 .nt-section-heading { margin-bottom: 28px; }
 .nt-section-heading h2 { margin-bottom: 12px; }
 .nt-attendance { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+/* A titled panel of facts: its title on the site's blue, as Home's circles
+   (2026-10-22); the facts below it in the card's padding. */
 .nt-visit {
   box-sizing: border-box;
   border: 1px solid var(--rim-rule);
   border-radius: 12px;
-  padding: 30px;
+  padding: 0;
+  overflow: hidden;
   background: var(--rim-surface);
 }
-.nt-visit h3 { margin-bottom: var(--space-3); }
+.nt-page .nt-visit h3 {
+  margin: 0;
+  padding: 20px 30px 18px;
+  background: var(--rim-blue);
+  color: var(--rim-surface);
+}
+.nt-visit .nt-facts { padding: 0 30px 12px; }
+.nt-visit .nt-facts > div:first-child { border-top: 0; }
 .nt-facts { margin: 0; }
 .nt-facts > div { margin: 0; border-top: 1px solid var(--rim-rule); padding: 18px 0; }
 /* Each fact's name is its title, at the card text size in bold over its
@@ -21742,7 +21757,9 @@ html { scroll-padding-top: 88px; }
 .nt-page a:focus-visible,
 .nt-page summary:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 5px; }
 @media (max-width: 900px) {
-  .nt-option, .nt-visit { padding: var(--space-3); }
+  .nt-option { padding: var(--space-3); }
+  .nt-page .nt-visit h3 { padding: 18px var(--space-3) 16px; }
+  .nt-visit .nt-facts { padding: 0 var(--space-3) 8px; }
 }
 @media (max-width: 700px) {
   .nt-split, .nt-options, .nt-attendance { grid-template-columns: 1fr; row-gap: var(--space-3); }
@@ -21755,7 +21772,9 @@ html { scroll-padding-top: 88px; }
   .nt-page .nt-hero .pp-hero__title { font-size: 34px; }
   .nt-page h2 { font-size: var(--text-h2); }
   .nt-page h3 { font-size: var(--text-h3); }
-  .nt-option, .nt-visit { padding: 22px 20px; }
+  .nt-option { padding: 22px 20px; }
+  .nt-page .nt-visit h3 { padding: 16px 20px 14px; }
+  .nt-visit .nt-facts { padding: 0 20px 6px; }
 }
 
 /* ── The reading layout: chapter navigation beside the article ──────────── */
