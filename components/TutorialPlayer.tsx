@@ -65,6 +65,7 @@ export default function TutorialPlayer({
   const [reduced, setReduced] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const controlRef = useRef<HTMLButtonElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   // The reader's kind of screen, before anything shows (no flash of the other).
   useEffect(() => {
@@ -150,8 +151,14 @@ export default function TutorialPlayer({
     setStarted(true);
     setPlaying(true);
     setRun((r) => r + 1);
-    // The cover or end screen goes away; keep the keyboard on Pause.
-    if (fromOverlay) window.setTimeout(() => controlRef.current?.focus(), 0);
+    // The cover or end screen goes away; keep the keyboard on Pause, and bring
+    // the whole player into view so nothing needs scrolling while it plays.
+    if (fromOverlay) {
+      window.setTimeout(() => {
+        stageRef.current?.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+        controlRef.current?.focus({ preventScroll: true });
+      }, 0);
+    }
   }
   function pause() {
     setPlaying(false);
@@ -184,7 +191,7 @@ export default function TutorialPlayer({
         ))}
       </div>
 
-      <div className={`tut-player__stage tut-player__stage--${device}${ready ? "" : " tut-stage--pending"}`}>
+      <div ref={stageRef} className={`tut-player__stage tut-player__stage--${device}${ready ? "" : " tut-stage--pending"}`}>
         <div className={`tut-device tut-device--${device}`}>
           <div className="tut-player__screen">
             <div
