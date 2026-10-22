@@ -23530,7 +23530,6 @@ html { scroll-padding-top: 88px; }
   /* The picture and its caption on one screen together: no scrolling while
      it plays (the drawing keeps its shape; 390:820 plus the frame). */
   .tut-player__stage--phone .tut-device { justify-self: center; width: 100%; max-width: min(380px, calc((100dvh - 400px) * 0.4756 + 20px)); }
-  .tut-player__stage { scroll-margin-top: calc(var(--site-header-h) + 8px); }
   .tut-player__title { font-size: var(--text-h4); }
 }
 @media (prefers-reduced-motion: reduce) {
