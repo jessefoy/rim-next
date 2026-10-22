@@ -19,14 +19,20 @@ export default function OpenOnHash() {
         // A malformed hash (#%E0) names nothing; leave the page as it is.
       }
       const el = id ? document.getElementById(id) : null;
-      if (el instanceof HTMLDetailsElement) el.open = true;
+      if (!(el instanceof HTMLDetailsElement)) return null;
+      el.open = true;
+      return el;
     }
     const fromHash = () => openId(window.location.hash.slice(1));
     const onClick = (e: MouseEvent) => {
       const link = (e.target as Element | null)?.closest?.('a[href^="#"]');
       if (link) openId(link.getAttribute("href")!.slice(1));
     };
-    fromHash();
+    // On arrival the browser's own jump to the hash can land before the page
+    // has settled (measured 2026-10-22: /care#engage ended at the footer), so
+    // bring the opened item to the top once it is open.
+    const arrived = fromHash();
+    if (arrived) requestAnimationFrame(() => arrived.scrollIntoView({ block: "start" }));
     window.addEventListener("hashchange", fromHash);
     document.addEventListener("click", onClick);
     return () => {
