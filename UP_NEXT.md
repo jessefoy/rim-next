@@ -15,7 +15,7 @@ Everything is on `main` (`57628ff`, `15736ea`, and the closing docs). Narrative 
 
 **Not documented yet:** the Oct 21 to 22 Tutorials work (`/tutorials`, the step-by-step and "Watch it" pages, `0c8be0e` … `c40b5d6`) and `0f2a026` (My Home leads the phone menu; leads see who hasn't signed in) shipped after the Oct 20 closing without one; FEATURES and the session log don't mention them. Backlog `2026-10-21-001` holds the sign-in question and Zoom's phone Claim-host step.
 
-**Layout:** the ten pages were measured against the grid (1280, 900, 390) and four defects fixed on Home and New to RIM (`bfd6d2c`; `session-log.md`, 2026-10-22, "Later still").
+**Layout:** the ten pages were measured against the grid (1280, 900, 390) and four defects fixed on Home and New to RIM (`bfd6d2c`; `session-log.md`, 2026-10-22, "Later still"); then the other 24 public routes, six fixes (`4409d8e`, "Then: the rest of the public pages"). **Open for Jesse:** whether the program pages and Donate keep their soft shadows (the October 9 rule says bordered, not lifted) and Courses its old blue hero; the new screen-reader heading "About this program".
 
 **Next concrete step:** Jesse's read-aloud of the ten pages; then the items still open from Oct 20 below.
 

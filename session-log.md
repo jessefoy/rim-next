@@ -56,6 +56,18 @@ Jesse: *"will you look at all of the pages /design to make sure that they follow
 
 Left as they are, named: Home's Programs cards in thirds read 27 to 30 a line (H6 was not to be touched); New to RIM's own split puts its copy on 584, not 652 (consistent within the page); Why We Practice's benefit panels read about 29 a line on phones inside their 28px padding.
 
+### Then: the rest of the public pages, measured the same way (`4409d8e`)
+
+Jesse: *"Yes, run the same grid and reading-flow review on the rest of the public pages."* Twenty-four routes (Programs & Events, This Week, Donate, Foundations, Join, sign-in and its two pages, the agreements and the concern form, the three Kalyana Mitta pages, the volunteer thanks page, Teachers and a profile, Courses, five program pages, a registration form, Tutorials) at 1280, 900 and 390, with the same harness plus heading-outline and shadow checks and a whole-page look at each. No horizontal scroll anywhere. **Fixed, measured after deploy:**
+1. Programs & Events' and This Week's membership note: 900px wide, about 90 a line; now the reading measure (72).
+2. Donate: at 769-1024 the two give cards ran one at a time across 820px (about 103 a line); now side by side, halves of the grid (45 a line), with "Trouble with the donation form?" spanning both and the card titles a step down; the closing note, one 115-character line, now wraps at 38em (58).
+3. Join: the agreements touched the shared vision above them (0px); now a 32px step.
+4. The registration form's agreements read at 13-14px muted; now the card text size (17px), the checkbox label too, under an h3 (was an h4 after an h2).
+5. Program pages: the description's h3s came straight after the h1; an h2 "About this program" now sits above them for screen readers only (new words, for Jesse's ear).
+6. Tutorials: four teams in auto-filled thirds left Audio/Visual alone on its row; now halves (522 each at 1280), one column on phones.
+
+**Found and left for Jesse (each a standing decision, not a slip):** the program pages' quote and details cards and Donate's cards still carry the old soft shadow and 16-18px radius, while the October 9 rule says public surfaces are bordered, not lifted (both pages were recorded as keeping their own grammar); Courses still has the old blue hero and a shadowed card (it holds only the Test Course, `2026-09-02-001`); This Week's day boxes are two boxes deep (already the documented next step); a teacher's profile sits on the left edge with an empty right half (the spine rule for profiles, set when they had portraits); program pages' phone gutter is 24, the container's 20 (known).
+
 ### What comes next
 
 - **Jesse's read-aloud** of the ten published pages (copy provisional until then). Flags for it: Diverse Together now says "What we share" in its heading just below "What we share is the direction."; "Read more" and "Show less"; the restored Dana, Calm and ease, and Many medicines lines.

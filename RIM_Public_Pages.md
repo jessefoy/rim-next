@@ -685,6 +685,8 @@ Readers told Jesse the site was tiring to read: one *"had to take breaks"*, anot
 
 **Measured against the grid the same day** (`bfd6d2c`; numbers in `session-log.md`): Home's Taking CARE section now uses the chapter layout (heading col 1, words col 7) instead of full-width paragraphs; below 1024 the three circles take a row each (label col 1, items col 7) instead of thirds; New to RIM's Where to begin is its own section with the stacked heading; its access note has a 38em measure.
 
+**The rest of the public pages, measured the same day** (`4409d8e`): membership notes and Donate's closing note keep a reading measure; Donate's give cards are halves at 769-1024; Join's agreements step down from the vision; the registration form's agreements read at the card size under an h3; program descriptions get a screen-reader h2; Tutorials' teams are halves. Open for Jesse: the program pages' and Donate's soft shadows against the bordered-not-lifted rule, and Courses' old hero and card.
+
 **Recorded departure: Why We Practice's circles stack.** The brief asked for three columns on desktop. The reading column is 680px, so three across would leave about 18 characters a line at 18px; they are stacked panels in the column, as before. Revisit only with a wider layout for that section, not by narrowing the text.
 
 **Vocabulary and rules (Jesse's approval, 2026-10-22):**
