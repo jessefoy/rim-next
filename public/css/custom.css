@@ -20946,24 +20946,32 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
 }
-/* No rule above a theme: a line inside a section never looks like the line
-   between sections (2026-10-14). */
+/* Each circle is one panel with its name at the top (2026-10-22, Jesse: the
+   section felt "thrown together and disconnected"). The names had floated
+   above the panels at 32px, nearly the 38px heading's size, 60px from their
+   own panel and 24px from the next name, so they read as a run-on line of
+   headings rather than as the panels' titles. Inside, at 24px under a
+   hairline, each name belongs to its items. The panels keep one height and
+   their items sit at the top (four, three and two items). */
 .home-theme {
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  background: var(--rim-surface);
+  overflow: hidden;
 }
 .home-theme__label {
-  min-height: 72px;
-  margin: 0 0 26px;
-  color: var(--rim-label);
+  margin: 0;
+  border-bottom: 1px solid var(--rim-rule);
+  padding: 20px 22px 18px;
+  color: var(--rim-heading);
   font-family: var(--font-serif);
-  font-size: var(--text-h2-lg);
+  font-size: var(--text-h3);
   font-weight: 400;
-  line-height: 1.2;
+  line-height: 1.25;
   text-wrap: balance;
 }
-/* The three circles hold four, three and two items (2026-10-22): the panels
-   keep one height and the items sit at the top of each. */
 .home-theme__items {
   display: grid;
   align-content: start;
@@ -20971,10 +20979,6 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   margin: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid var(--rim-rule);
-  border-radius: 12px;
-  background: var(--rim-surface);
-  overflow: hidden;
 }
 .home-theme__item { margin: 0; padding: 20px 22px; }
 .home-theme__item + .home-theme__item { border-top: 1px solid var(--rim-rule); }
@@ -20995,13 +20999,9 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   line-height: 1.7;
   text-wrap: pretty;
 }
-.home-practice__closing {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-}
+/* The closing words, then their button beneath them on the same edge (it
+   floated alone at the far right, 2026-10-22). */
+.home-practice__closing { margin-top: var(--space-5); }
 .home-practice__closing p {
   max-width: 620px;
   margin: 0;
@@ -21011,7 +21011,7 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   text-wrap: pretty;
 }
 .home-practice__closing p + p { margin-top: var(--space-2); }
-.home-practice__closing .pp-btn { flex-shrink: 0; }
+.home-practice__closing .pp-btn { margin-top: var(--space-4); }
 
 /* ── Our practice is taking care: the circle beside a key of four rows ──── */
 /* The heading on col 1 and its words on col 7, like the sections around it
@@ -21080,26 +21080,17 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
 }
 
 /* ── 1000 and below: the theme and category rows loosen ─────────────────── */
-/* Below 1024 the three circles take a row each, the label on col 1 and its
-   items on col 7 (2026-10-22: in thirds at 900 the items ran about 24
+/* Below 1024 the three circles take a row each, in cols 1-10 as the grid's
+   card rows do (2026-10-22: in thirds at 900 the items ran about 24
    characters a line). */
 @media (min-width: 769px) and (max-width: 1023px) {
-  .home-themes { grid-template-columns: 1fr; gap: var(--space-4); }
-  .home-theme {
-    display: grid;
-    grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
-    column-gap: var(--grid-gutter);
-  }
-  .home-theme__label { grid-column: 1 / span 6; min-height: 0; margin: 0; }
-  .home-theme__items { grid-column: 7 / span 6; }
+  .home-themes { grid-template-columns: minmax(0, calc((100% - 11 * var(--grid-gutter)) / 12 * 10 + 9 * var(--grid-gutter))); gap: var(--space-3); }
 }
 @media (min-width: 769px) and (max-width: 1000px) {
   .home-pathways { gap: var(--space-2); }
-  .home-theme__label { font-size: var(--text-h2); }
   .home-theme__item { padding: 18px; }
   a.home-pathway { padding: 24px 20px; }
   .home-pathway h3 { font-size: var(--text-h2); }
-  .home-practice__closing { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
 }
 
 /* ── 768 and below: one column ──────────────────────────────────────────── */
@@ -21131,7 +21122,6 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
     aspect-ratio: 4 / 3;
   }
   .home-pathways, .home-themes { grid-template-columns: 1fr; gap: var(--space-4); }
-  .home-theme__label { min-height: 0; margin-bottom: var(--space-3); }
   .home-theme__items { grid-template-rows: none; }
   .home-begin { grid-template-columns: 1fr; padding: 24px; }
   .home-begin > div + div {
@@ -21141,7 +21131,7 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
     padding-left: 0;
     padding-top: var(--space-3);
   }
-  .home-practice__closing { flex-direction: column; align-items: flex-start; gap: var(--space-3); margin-top: var(--space-4); }
+  .home-practice__closing { margin-top: var(--space-4); }
   .home-care { grid-template-columns: 1fr; gap: var(--space-4); }
   .home-care-copy { display: block; }
   .home-care-words { display: block; }
@@ -21161,7 +21151,7 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   .home-page .pp-split--flip > .pp-split__body { grid-column: 1 / -1; }
   .home-page .pp-intro__title { font-size: var(--text-h2-lg); }
   .home-page .pp-intro__body { font-size: var(--text-card); }
-  .home-pathway h3, .home-theme__label { font-size: var(--text-h2); }
+  .home-pathway h3 { font-size: var(--text-h2); }
   .home-care-words { font-size: var(--text-h3); }
   .home-lead { font-size: var(--text-h4); }
   a.home-pathway { padding: 26px 24px; }
