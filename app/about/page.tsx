@@ -33,7 +33,6 @@ export const metadata = {
 /** One list feeds "On this page" and the h2 ids, so they cannot drift. */
 const SECTIONS = [
   { id: "our-vision-and-mission", title: "Our vision and mission" },
-  { id: "what-we-practice-and-why", title: "What we practice, and why" },
   { id: "where-it-comes-from", title: "Where it comes from" },
   { id: "held-by-a-community", title: "Held by a community" },
   { id: "our-teachers", title: "Our teachers" },
@@ -60,13 +59,22 @@ export default function AboutPage() {
             <p>
               Rooted in Mindfulness is a community meditation center in Brookfield, Wisconsin,
               serving the Greater Milwaukee area and beyond, in person and online. We are a dharma
-              community. At the heart of our practice is an open, settled awareness that meets
-              whatever arrives with warmth, which the tradition calls silent illumination, and we
-              draw on the breadth of traditional Buddhist wisdom and teachings. Taking CARE, our
-              mindfulness-based approach to meditation and mindful living, is how we practice:
-              plain enough to begin with, and deep enough for a lifetime.
+              community, rooted in the silent illumination of Chan Buddhism, drawing on the breadth
+              of Buddhist teachings, and open to people of every tradition and of none. Taking
+              CARE, our mindfulness-based approach to meditation and mindful living, is how we
+              practice: plain enough to begin with, and deep enough for a lifetime.
             </p>
+          </div>
+          <div className="pp-actions">
+            <Link href="/care" className="pp-btn">
+              Taking CARE: how we practice
+            </Link>
+            <Link href="/why-we-practice" className="pp-btn pp-btn--ghost">
+              Why we practice
+            </Link>
+          </div>
 
+          <div className="pp-prose pp-prose--sections">
             <h2 id="our-vision-and-mission">Our vision and mission</h2>
             <p>
               Our vision is what we hope to see realized in our lives and in the world. Our mission
@@ -83,38 +91,14 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <h2 id="what-we-practice-and-why">What we practice, and why</h2>
-            <p>
-              We practice Taking CARE: eight words that describe one practice from eight sides,
-              Calm, Connect, Aware, Attitude, Recognize, Remember, Embody, and Engage, practiced in
-              the spirit of silent illumination, an open, settled awareness that meets whatever
-              arrives with warmth.
-            </p>
-            <p>
-              We practice to meet our lives with more clarity, freedom, and care: to enjoy what
-              there is to enjoy, to meet what is hard without adding to it, and to care well for
-              the people around us and the world we share.
-            </p>
-          </div>
-          <div className="pp-actions">
-            <Link href="/care" className="pp-btn">
-              Taking CARE: how we practice
-            </Link>
-            <Link href="/why-we-practice" className="pp-btn pp-btn--ghost">
-              Why we practice
-            </Link>
-          </div>
-
-          <div className="pp-prose pp-prose--sections">
             <h2 id="where-it-comes-from">Where it comes from</h2>
             <p>
-              Silent illumination comes to us from Chan, the Chinese school of Buddhism also known
-              as Zen, which teaches that a luminous, wakeful nature is already present in each of
-              us. We honor every Buddhist tradition as part of one living family, and draw on their
-              teachings through <Link href="/handful-of-leaves">A Handful of Leaves</Link>. We
-              teach plainly, for people living full modern lives, and our teaching is informed by
-              mindfulness-based programs, psychology, and modern science. People from every
-              tradition, and from none, find support here.
+              Silent illumination is an open, settled awareness that meets whatever arrives with
+              warmth. It comes to us from Chan, the Chinese school of Buddhism from which Zen grew,
+              which teaches that a luminous, wakeful nature is already present in each of us. We
+              honor every Buddhist tradition as one living family and draw on their teachings
+              through <Link href="/handful-of-leaves">A Handful of Leaves</Link>, and our teaching
+              is informed by mindfulness-based programs, psychology, and modern science.
             </p>
           </div>
           <div className="pp-actions">

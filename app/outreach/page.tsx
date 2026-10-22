@@ -77,8 +77,8 @@ export default function OutreachPage() {
             <h2 id="who-it-supports">Who it supports</h2>
             <p>
               The people your organization serves, and your own people: the staff, volunteers, and
-              leaders who carry your mission. Caring for others is demanding work. The practice helps
-              people meet it with clarity and steadiness, and in a way that can last.
+              leaders who carry your mission. Caring for others is demanding work. The practice can
+              help people meet it with clarity and steadiness, and in a way that can last.
             </p>
 
             <h2 id="what-participants-practice">What participants practice</h2>

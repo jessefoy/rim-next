@@ -117,9 +117,12 @@ export default async function VolunteerPage() {
         <div className="rim-container">
           <blockquote className="pp-quote">
             <p className="pp-quote__text">
-              &ldquo;The best way to find yourself is to lose yourself in the service of others.&rdquo;
+              &ldquo;If sentient beings only knew, as I do, the fruit of giving and sharing, they
+              would not eat without first giving.&rdquo;
             </p>
-            <footer className="pp-quote__attr">Mahatma Gandhi</footer>
+            {/* Itivuttaka 26, Bhikkhu Sujato's translation (public domain);
+                the source is for the record, not shown (2026-10-22). */}
+            <footer className="pp-quote__attr">The Buddha</footer>
           </blockquote>
         </div>
       </section>

@@ -5,38 +5,76 @@ import MemberAreaLink from "@/components/MemberAreaLink";
 export const metadata = {
   title: "A Handful of Leaves - Rooted In Mindfulness",
   description:
-    "A Handful of Leaves: the teachings behind Taking CARE, drawn from the Buddha's earliest teachings and the traditions that grew from them, and ordered as a practicing life.",
+    "A Handful of Leaves: the teachings behind Taking CARE, drawn from the Buddha's early teachings, the ways they grew through centuries of practice, and the living traditions today, and ordered as a practicing life.",
 };
 
 /**
  * /handful-of-leaves — A Handful of Leaves (new, 2026-10-01, the integration
- * brief, A10). It was /what-we-practice until 2026-09-25, which redirects here.
+ * brief, A10; shortened 2026-10-22). It was /what-we-practice until
+ * 2026-09-25, which redirects here.
  *
  * COPY SOURCE OF TRUTH: the Obsidian vault,
- *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/08-promotion-site-drafts-integration-2026-10-01.md
- * (Section 1), built from "A Handful of Leaves: An Introduction". Provisional
- * until Jesse's read-aloud.
+ *   Dharma Study/10 — Dharma Canon/CARE/4 Promotion/08-promotion-site-brief-condensation-2026-10-22.md
+ * (Part B §4, Jesse's approved condensation; it supersedes Section 1 of
+ * 08-promotion-site-drafts-integration-2026-10-01.md), built from "A Handful
+ * of Leaves: An Introduction". Provisional until Jesse's read-aloud.
  *
- * One bracketed [Jesse] note in the draft is left out of the page: name
- * Essential Dharma Study where it is taught, in "Walking it". The other
- * (whether new members receive the introduction and the map) was settled
- * 2026-10-02: they find both in their member area, and "member area" links to
- * sign-in or, for a signed-in member, to the introduction.
+ * The luminous mind is "a teaching preserved in the early discourses" and is
+ * "clouded by what passes through it and able to be freed of it": never
+ * "earliest", never "clouded only" (the 2026-10-22 integrity pass).
  *
  * Layout is Why We Practice's: a reading column, "On this page" over the six
- * sections (one array feeds the list and the h2 ids so they cannot drift), a
- * plain closing line set apart as the page's distillation. Image discipline:
- * the page carries its own images in words (the grove, the medicine cabinet,
- * the gardener and the rose); no photograph.
+ * sections (one array feeds the list and the h2 ids so they cannot drift),
+ * the seven gatherings as a compact list, and the closing couplet set apart.
+ * Image discipline: the page carries its own images in words (the grove, the
+ * medicine cabinet, the gardener and the rose); no photograph.
  */
 
 const SECTIONS = [
   { id: "the-story-of-the-name", title: "The story of the name" },
-  { id: "the-depth-behind-taking-care", title: "The depth behind Taking CARE" },
   { id: "why-a-handful", title: "Why a handful" },
+  { id: "the-depth-behind-taking-care", title: "The depth behind Taking CARE" },
   { id: "a-practicing-life-gathered", title: "A practicing life, gathered" },
-  { id: "one-practice-many-doors", title: "One practice, many doors" },
+  { id: "many-medicines-one-health", title: "Many medicines, one health" },
   { id: "walking-it", title: "Walking it" },
+] as const;
+
+/** The seven gatherings, each named and glossed by what it is for. */
+const GATHERINGS = [
+  {
+    name: "Guiding Aspirations",
+    gloss:
+      "Why we begin. The wish to be free, the wish that others be free, and the intention to live with wisdom and compassion. From the first sit, our practice is already for more than ourselves.",
+  },
+  {
+    name: "The Path as Refuge",
+    gloss:
+      "What holds us. Our wakeful nature, the teachings, and one another, and the eightfold path, lived as a life that stops stirring the pond.",
+  },
+  {
+    name: "Unwholesome States of Mind",
+    gloss:
+      "What clouds the mind. Wanting, resentment, anxiety, and judging, recognized and released without contempt. They are visitors, with causes and no lease.",
+  },
+  {
+    name: "Wholesome States of Mind",
+    gloss:
+      "What helps us realize its clarity. Kindness, patience, gratitude, contentment, and calm, recognized and cultivated until moments become character.",
+  },
+  {
+    name: "Domains of Contemplation",
+    gloss:
+      "Where we look. The body and the breath, feeling tones, the mind and its states, the senses meeting the world, and the luminous mind itself.",
+  },
+  {
+    name: "How to Contemplate",
+    gloss: "How we look. A warm, open knowing that receives experience without adding to it.",
+  },
+  {
+    name: "Liberating Insights",
+    gloss:
+      "What is finally seen. That everything changes, that the self is lighter than the fortress we defend, that everything arises from causes and conditions, and that release is possible. The seeing that frees us returns to the world as care.",
+  },
 ] as const;
 
 function SectionHeading({ id }: { id: (typeof SECTIONS)[number]["id"] }) {
@@ -64,40 +102,18 @@ export default function HandfulOfLeavesPage() {
           <div className="pp-prose pp-prose--sections">
             <SectionHeading id="the-story-of-the-name" />
             <p>
-              One afternoon, some twenty-five centuries ago, the Buddha was walking with his
-              students through a grove of trees. He gathered a few fallen leaves into his hand and
-              asked which were more numerous, the leaves in his hand or the leaves in the forest
-              above them. The answer was obvious, and so was the point. What he had come to
-              understand was vast, like the forest. What he taught was like this handful: only what
-              helps, only what leads onward, to peace, to clear seeing, to the easing of
-              unnecessary suffering, and to lives of wisdom and compassion that benefit ourselves,
-              the people we love, and the world we share.
+              Some twenty-five centuries ago, the Buddha was staying with his students in a grove of
+              simsapa trees. He picked up a few leaves and asked which were more numerous, the
+              leaves in his hand or the leaves in the grove. What he had come to know was vast, like
+              the forest. What he taught was like this handful: only what truly helps, what leads to
+              peace, to clear seeing, and to freedom from suffering.
             </p>
             <p>
-              Our teaching takes its name from that afternoon, and its promise from it too.
-              Everything in the handful was gathered with one question in mind: does this help a
-              person suffer less, see more clearly, and love more capably? It is there because, for
-              countless people across many centuries, the answer has been yes.
-            </p>
-
-            <SectionHeading id="the-depth-behind-taking-care" />
-            <p>
-              Taking CARE is our practice in eight plain words. A Handful of Leaves is the wider
-              body of teaching behind them. It draws on the Buddha&apos;s earliest teachings, on
-              the ways those teachings grew through centuries of practice, and on the living
-              traditions today, and it gathers them into one shape a community can practice
-              together. Each of the eight words opens onto teachings gathered here, so a person can
-              begin with one word and keep finding more behind it for a lifetime.
-            </p>
-            <p>
-              At the center of it all is the understanding our roots begin with: the mind is
-              luminous, clouded only by what passes through it. The handful is ordered around that
-              clarity: what clouds it, what helps us realize it, and how we come to live from it.
-            </p>
-            <p>
-              The handful is open in both directions. When something true reaches us in practice,
-              from any tradition or from none, it finds a place here, and the practice is richer
-              for it.
+              Our teaching takes its name from that day, and its promise too. Everything in the
+              handful was gathered with one question in mind: does this help a person suffer less,
+              see more clearly, and love more capably? Each teaching is here because, across the
+              centuries and in our own community, it has helped people do just that, for
+              themselves, for those they care about, and for our shared world.
             </p>
 
             <SectionHeading id="why-a-handful" />
@@ -106,84 +122,58 @@ export default function HandfulOfLeavesPage() {
               once: a retreat in one lineage, a book from another, a podcast from a third, an app
               adapted from all of them. That is a real gift, and much of the time it is
               overwhelming. We can have all the information we could ever need and still not have
-              what we need. Exposure everywhere, orientation nowhere.
+              what we need.
             </p>
             <p>
-              The traditions did nothing wrong. Each is complete in itself, a whole path able to
-              carry a person all the way. But few of us can live inside a single tradition with a
-              lifetime of immersion, and breadth without roots leaves even sincere practitioners
-              holding valuable pieces with no way to put them together. A Handful of Leaves was
-              gathered for this, and for people with jobs and children and full days. It replaces
-              nothing and ranks nothing. The whole of the Dharma is honored as one living family,
-              and whatever wisdom you bring from elsewhere keeps its place.
+              Each tradition is complete in itself, a whole path able to carry a person all the
+              way. Few of us can live inside one with a lifetime of immersion, and breadth without
+              roots leaves sincere practitioners holding valuable pieces with no way to put them
+              together. A Handful of Leaves was gathered for this, and for people with jobs and
+              children and full days. It replaces nothing and ranks nothing, and whatever wisdom you
+              bring from elsewhere keeps its place.
+            </p>
+
+            <SectionHeading id="the-depth-behind-taking-care" />
+            <p>
+              Taking CARE is our practice in eight plain words. A Handful of Leaves is the wider
+              body of teaching behind them, drawn from the Buddha&rsquo;s early teachings, the ways
+              they grew through centuries of practice, and the living traditions today. Each of the
+              eight words opens onto teachings gathered here, so a person can begin with one word
+              and keep finding more behind it for a lifetime.
+            </p>
+            <p>
+              At its center is the understanding our roots begin with: the mind is luminous,
+              clouded by what passes through it and able to be freed of it. The handful is ordered
+              around that clarity: what clouds it, what helps us realize it, and how we come to live
+              from it. It is open in both directions. When something true reaches us in practice,
+              from any tradition or from none, it finds a place here.
             </p>
 
             <SectionHeading id="a-practicing-life-gathered" />
             <p>
-              The handful&apos;s teachings are ordered by what each is for in a life of practice,
-              and they are best met as the arc of that life. Every one of them is available from
-              the first week, and none is ever finished.
+              The teachings are ordered by what each is for in a life of practice. Every one of them
+              is available from the first week, and none is ever finished.
             </p>
-            <p>
-              <strong>Guiding Aspirations.</strong> Why we begin. The wish to be free, the wish that
-              others be free, the intention to live with wisdom and compassion. From the first sit,
-              our practice is already for more than ourselves.
-            </p>
-            <p>
-              <strong>The Path as Refuge.</strong> What holds us. Refuge in our wakeful nature, in
-              the teachings, and in one another, and the eightfold path, lived as a life that stops
-              stirring the pond.
-            </p>
-            <p>
-              <strong>Unwholesome States of Mind: Recognize and Release.</strong> What clouds the
-              mind. Wanting, resentment, anxiety, and judging, named one by one and without
-              contempt. They are visitors, with causes and no lease.
-            </p>
-            <p>
-              <strong>Wholesome States of Mind: Recognize and Cultivate.</strong> What helps us
-              realize its clarity. Kindness, patience, gratitude, contentment, and calm, recognized
-              when they visit and cultivated with care, until moments become character.
-            </p>
-            <p>
-              <strong>Domains of Contemplation.</strong> Where we look. The body and the breath,
-              feeling tones, the mind and its states, the senses meeting the world, and the
-              luminous mind itself.
-            </p>
-            <p>
-              <strong>How to Contemplate.</strong> How we look. A warm, open knowing that receives
-              experience without adding to it, brightening when practice grows dim and settling
-              when it grows busy.
-            </p>
-            <p>
-              <strong>Liberating Insights.</strong> What is finally seen. That everything changes,
-              that the self is lighter than the fortress we defend, that all things arise together,
-              and that release is possible. The seeing that frees us returns to the world as care.
-            </p>
-            <p>
-              At the heart of the path, the handful and our daily practice share the same plain
-              verbs. We recognize what clouds the mind and let it go, and we recognize, cultivate,
-              and protect what helps us live from its clarity.
-            </p>
+            <ul className="pp-leaves">
+              {GATHERINGS.map((g) => (
+                <li key={g.name}>
+                  <strong className="pp-leaves__name">{g.name}.</strong>{" "}
+                  <span className="pp-leaves__gloss">{g.gloss}</span>
+                </li>
+              ))}
+            </ul>
 
-            <SectionHeading id="one-practice-many-doors" />
-            <p>
-              The handful holds many practices: loving-kindness, attention resting with the breath,
-              contemplation of the body and of change. All of them live inside one practice. The
-              open, settled awareness of silent illumination is not an instrument in the
-              orchestra. It is the hall the music is played in.
-            </p>
-            <p>
-              Each particular practice is a door, taken up for a time, and each follows the same
-              simple shape: we settle first, add the practice gently, recognize that what it
-              reveals was already ours, and let it all return to openness. Whichever door we take,
-              the whole of Taking CARE is there.
-            </p>
+            <SectionHeading id="many-medicines-one-health" />
             <p>
               The old traditions called the teachings medicines: many remedies for the many ways a
-              heart can ache, all in service of one health. And the qualities they meet are both
-              uncovered and cultivated. A gardener cannot manufacture a rose, and the rose does not
-              flourish without the gardener. Our practice is this kind of work: nothing to
-              fabricate, and a garden that needs us.
+              heart can ache, all in service of one health. Loving-kindness, attention resting with
+              the breath, the contemplation of the body and of change: each is a door, taken up for
+              a time, and whichever door we take, the whole of Taking CARE is there.
+            </p>
+            <p>
+              The qualities these practices meet are both uncovered and cultivated. A gardener
+              cannot manufacture a rose, and the rose does not flourish without the gardener. Our
+              practice is this kind of work: nothing to fabricate, and a garden that needs us.
             </p>
 
             <SectionHeading id="walking-it" />
@@ -192,13 +182,9 @@ export default function HandfulOfLeavesPage() {
               <MemberAreaLink>member area</MemberAreaLink>, beginning with{" "}
               <em>A Handful of Leaves: An Introduction</em> and the map of its teachings. The map
               is meant to be returned to, the way one returns to a trusted friend with a question.
-              Something arises in practice or in life, and somewhere on the map is the place where
-              it belongs and the teachings that meet it. One leaf, taken up wholeheartedly, holds
-              the spirit of the whole handful.
-            </p>
-            <p>
               We explore the handful together in our ongoing learning and practice, and Foundations
-              begins with Taking CARE, the plain words the handful stands behind.
+              begins with Taking CARE, the plain words the handful stands behind. One leaf, taken up
+              wholeheartedly, holds the spirit of the whole handful.
             </p>
 
             <p className="pp-distillation">

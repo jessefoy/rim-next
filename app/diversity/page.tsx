@@ -34,7 +34,7 @@ export default function DiversityPage() {
 
             <div className="dv-layout__body">
               <section className="dv-layout__section">
-                <h2 className="dv-layout__section-title">What brings us together</h2>
+                <h2 className="dv-layout__section-title">What we share</h2>
                 <p>
                   What brings us together at RIM is simple, and it is shared: learning and
                   practice. Our aspiration is old and it is large: to suffer less, to see more

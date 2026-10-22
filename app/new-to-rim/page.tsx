@@ -44,7 +44,7 @@ const QUESTIONS: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Is this religious?",
-    a: "Our practice comes from Buddhist meditation and is open to people of every faith and of none. It asks no belief. Its teachings are offered to be explored and tested in experience.",
+    a: "RIM is a Buddhist dharma community, and our practice comes from Buddhist meditation. You do not need to be Buddhist to practice here, and people of every faith and of none take part. It asks no belief; its teachings are offered to be explored and tested in experience.",
   },
   {
     q: "What if difficult feelings come up?",
@@ -60,8 +60,9 @@ const QUESTIONS: { q: string; a: ReactNode }[] = [
       <>
         People come for many reasons: to meet stress, pain, a hard season, or the weight of what
         is happening in the world; to enjoy life more; to be there for the people they love; to
-        live by what matters; and, for some, to walk a path of awakening. There is room for all of these here, and{" "}
-        <Link href="/why-we-practice">Why We Practice</Link> describes how practice helps.
+        live by what matters; and, for some, to walk a path of awakening. There is room for all of
+        these here. <Link href="/why-we-practice#how-practice-benefits">Why We Practice</Link>{" "}
+        describes how practice benefits ourselves, those we care about, and our shared world.
       </>
     ),
   },
@@ -101,6 +102,10 @@ export default function NewToRimPage() {
                 People come for many reasons and at every stage of life, and all of them are
                 welcome.
               </p>
+              <p>
+                If what brings you is a hard season, you are in good company; many of us arrived the
+                same way. No explanation is owed, and none will be asked for.
+              </p>
             </div>
           </div>
 
@@ -113,9 +118,8 @@ export default function NewToRimPage() {
               <p className="nt-eyebrow">A first gathering</p>
               <h3>A drop-in gathering</h3>
               <p>
-                A drop-in is a good place to start, in person or online. Each one is complete in
-                itself, and no experience is needed. This week&rsquo;s schedule shows what is coming
-                up.
+                A drop-in is a good place to start. Each one is complete in itself, and no
+                experience is needed.
               </p>
               <Link href="/this-week" className="pp-btn">
                 This week&rsquo;s schedule <span aria-hidden="true">→</span>
@@ -125,21 +129,15 @@ export default function NewToRimPage() {
               <p className="nt-eyebrow">A fuller introduction</p>
               <h3>Foundations</h3>
               <p>
-                For a fuller introduction, we encourage everyone to take Foundations, our
-                introduction to Taking CARE, our way of practice, through guided meditation,
-                teaching, reflection, and conversation. It is usually offered as a course or
-                workshop, and our first offering begins in November.
+                We encourage everyone to take Foundations, our introduction to Taking CARE through
+                guided meditation, teaching, reflection, and conversation. Our first offering begins
+                in November.
               </p>
               <Link href="/foundations" className="pp-btn">
                 About Foundations <span aria-hidden="true">→</span>
               </Link>
             </div>
           </div>
-          <p className="nt-cost">
-            <strong>A generosity-based community.</strong> Membership is freely offered. For most
-            programs, no one is turned away for being unable to pay. Programs list suggested
-            contributions to help sustain RIM.
-          </p>
         </div>
       </section>
 
@@ -156,22 +154,27 @@ export default function NewToRimPage() {
               </h2>
             </div>
             <div className="nt-copy">
+              {/* "Freely offered", not Part B's "free" (Jesse, 2026-10-22: never
+                  "free" as a price word). */}
               <p>
-                We ask everyone who practices with us to sign up as a member. Membership is freely
-                offered, and it takes a few minutes. Signing up is where each of us agrees to our{" "}
-                <Link href="/community-care-agreements">Community Care Agreements</Link>. For our
-                online gatherings, signing up is required, for the safety and integrity of those
-                gatherings, and we ask everyone who comes to the center to sign up as well.
+                We ask everyone who practices with us, at the center or online, to sign up as a
+                member. It is freely offered, it takes a few minutes, and it is required for our
+                online gatherings, for their safety and integrity.
               </p>
               <p>
-                We ask the same of everyone who comes: to hold the agreements, a short shared
-                vision and three agreements about caring for ourselves, one another, and RIM; to
-                come with a sincere wish to practice; and to help keep RIM a safe place for
-                everyone. The agreements are intentions we share, and holding them is a practice.
+                Signing up is where each of us agrees to our Community Care Agreements: caring for
+                ourselves, for one another, and for RIM, coming with a sincere wish to practice, and
+                helping keep RIM a safe place for everyone. They are intentions we share, and
+                holding them is a practice.
               </p>
-              <Link href="/join" className="pp-btn pp-btn--ghost">
-                Become a member <span aria-hidden="true">→</span>
-              </Link>
+              <div className="pp-actions">
+                <Link href="/join" className="pp-btn">
+                  Become a member <span aria-hidden="true">→</span>
+                </Link>
+                <Link href="/community-care-agreements" className="pp-btn pp-btn--ghost">
+                  Read the agreements
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -198,42 +201,39 @@ export default function NewToRimPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt>Building access</dt>
+                  <dt>Getting upstairs</dt>
                   {/* Said plainly (Jesse, 2026-10-08): an older building, no
-                      elevator; the welcome for those who cannot do stairs is
-                      the note under these cards. */}
+                      elevator, and online as a full way in. */}
                   <dd>
-                    Our rooms are on the top floor, reached by stairs. The building is an older
-                    one and has no elevator.
+                    Our rooms are on the top floor of an older building, reached by stairs, with no
+                    elevator. If stairs are not possible for you, our online gatherings are a full
+                    way to practice with us.
                   </dd>
                 </div>
                 <div>
                   <dt>The rooms</dt>
                   <dd>
-                    Upstairs there is a meditation room and a community room. Cushions and chairs
-                    are available; sit however your body is comfortable.
+                    A meditation room and a community room. Cushions and chairs are available; sit
+                    however your body is comfortable.
                   </dd>
                 </div>
                 <div>
                   <dt>Arriving</dt>
                   <dd>
-                    Volunteers will greet you, help with anything you need, and respect your
-                    privacy. Nobody will ask you to speak or introduce yourself, and arriving late
-                    is fine.
+                    Volunteers will greet you and respect your privacy. Nobody will ask you to speak
+                    or introduce yourself, and arriving late is fine. You are welcome to come early
+                    for a cup of tea and to browse our library. We ask everyone to leave their shoes
+                    on the shoe rack.
+                  </dd>
+                </div>
+                <div>
+                  <dt>Dana</dt>
+                  <dd>
+                    A bowl for donations sits beneath the Bodhi tree wood carving, at the entry to
+                    the community room.
                   </dd>
                 </div>
               </dl>
-              <div className="nt-visit-note">
-                <p>
-                  You are welcome to come early, have a cup of tea in the community room, and
-                  browse our library. We ask everyone to take off their shoes and leave them on or
-                  under the shoe rack.
-                </p>
-                <p>
-                  If you would like to offer a donation, there is a bowl beneath the Bodhi tree wood
-                  carving, in the entryway to the community room.
-                </p>
-              </div>
             </article>
 
             <article className="nt-visit" aria-labelledby="online">
@@ -253,8 +253,8 @@ export default function NewToRimPage() {
                 <div>
                   <dt>When to arrive</dt>
                   <dd>
-                    The room opens ten minutes before the start, and you are welcome to come in any
-                    time after that.
+                    The room opens ten minutes before the start, and you are welcome any time after
+                    that.
                   </dd>
                 </div>
                 <div>
@@ -262,17 +262,11 @@ export default function NewToRimPage() {
                   <dd>Cameras are welcome and never required.</dd>
                 </div>
               </dl>
-              <Link href="/account/dashboard" className="pp-btn nt-account-link">
-                Open My Home <span aria-hidden="true">→</span>
-              </Link>
-              <p className="nt-link-note">Sign in to find your Zoom link.</p>
             </article>
           </div>
           <p className="nt-access-note">
-            If stairs are not possible for you, you are warmly welcome at our online gatherings,
-            which are a full way to practice with us. Some of our gatherings, including days of
-            mindfulness and retreats, take place in other settings; the schedule and our newsletter
-            say where.
+            Some gatherings, including days of mindfulness and retreats, meet in other settings; the
+            schedule and our newsletter say where.
           </p>
         </div>
       </section>
@@ -295,10 +289,6 @@ export default function NewToRimPage() {
               the community a healthy place to learn and practice. People from every walk of life
               practice here, and our differences make us stronger.
             </p>
-            <p>
-              If what brings you is a hard season, you are in good company; many of us arrived the
-              same way. No explanation is owed, and none will be asked for.
-            </p>
             <Link href="/diversity" className="pp-btn pp-btn--ghost">
               Diverse Together <span aria-hidden="true">→</span>
             </Link>
@@ -310,7 +300,6 @@ export default function NewToRimPage() {
       <section className="nt-section" aria-labelledby="questions">
         <div className="rim-container nt-split">
           <div>
-            <p className="nt-eyebrow">A little more reassurance</p>
             <h2 id="questions">
               Questions
               <br />
@@ -344,7 +333,7 @@ export default function NewToRimPage() {
           <div className="nt-copy">
             <p>
               You are always welcome to ask anyone at the center. You can also get in touch before
-              your visit.
+              your visit:
             </p>
             <div className="nt-contact-links">
               <a href={`mailto:${RIM_SUPPORT_EMAIL}?subject=New%20to%20RIM`}>{RIM_SUPPORT_EMAIL}</a>

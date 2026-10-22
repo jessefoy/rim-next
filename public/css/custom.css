@@ -20501,6 +20501,69 @@ a.pp-card.tpr-card {
   text-align: center;
 }
 
+/* The eight words as closed items (2026-10-22): the word and its one line
+   show, the full description opens beneath. Hairlines between items, like
+   the page's other lists (the last needs none: "Learning over time" brings
+   its own); the toggle reads "Read more", then "Show less". Line height
+   matches the reading article's paragraphs. */
+.care-word {
+  border-top: 1px solid var(--rim-rule);
+  scroll-margin-top: 104px;
+}
+.care-word:last-of-type { margin-bottom: var(--space-4); }
+.care-word__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  cursor: pointer;
+  list-style: none;
+}
+.care-word__summary::-webkit-details-marker { display: none; }
+.care-word__summary:focus-visible {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.pp-prose .care-word__title { margin: 0; }
+.care-word__line { color: var(--rim-text); line-height: 1.8; }
+.care-word__toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 44px;
+  color: var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-action);
+  font-weight: 600;
+}
+.care-word__toggle::after { content: "+"; margin-left: var(--space-1); font-weight: 400; }
+.care-word[open] .care-word__toggle::after { content: "–"; }
+.care-word__less,
+.care-word[open] .care-word__more { display: none; }
+.care-word[open] .care-word__less { display: inline; }
+.care-word__summary:hover .care-word__toggle { text-decoration: underline; text-underline-offset: 3px; }
+.care-word__full { padding-bottom: var(--space-3); }
+
+/* A Handful of Leaves' seven gatherings as a compact list (2026-10-22): the
+   name beside its gloss, stacked on narrow screens; hairlines between. */
+.pp-prose .pp-leaves { margin: 0 0 var(--space-4); padding: 0; list-style: none; }
+.pp-prose .pp-leaves li {
+  display: grid;
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--rim-rule);
+  line-height: 1.8;
+}
+.pp-prose .pp-leaves li:last-child { border-bottom: 1px solid var(--rim-rule); }
+.pp-leaves__name { font-weight: 600; }
+@media (max-width: 640px) {
+  .pp-prose .pp-leaves li { grid-template-columns: minmax(0, 1fr); }
+}
+.pp-reading__article .pp-prose .care-word__full p:last-child { margin-bottom: 0; }
+
 /* ============================================================================
    BALANCE PASS — 2026-09-26
    ============================================================================
@@ -20875,9 +20938,11 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   line-height: 1.2;
   text-wrap: balance;
 }
+/* The three circles hold four, three and two items (2026-10-22): the panels
+   keep one height and the items sit at the top of each. */
 .home-theme__items {
   display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  align-content: start;
   flex: 1;
   margin: 0;
   padding: 0;
@@ -20921,6 +20986,7 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   line-height: 1.7;
   text-wrap: pretty;
 }
+.home-practice__closing p + p { margin-top: var(--space-2); }
 .home-practice__closing .pp-btn { flex-shrink: 0; }
 
 /* ── Our practice is taking care: the circle beside a key of four rows ──── */
@@ -21562,14 +21628,6 @@ html { scroll-padding-top: 88px; }
 }
 .nt-option > p:not(.nt-eyebrow) { margin: 0 0 var(--space-3); font-size: var(--text-card); line-height: 1.7; }
 .nt-option > a { margin-top: auto; }
-.nt-cost {
-  max-width: 920px;
-  margin: 22px 0 0;
-  color: var(--rim-text-muted);
-  font-size: var(--text-small);
-  line-height: 1.7;
-}
-.nt-cost strong { color: var(--rim-text); font-weight: 600; }
 .nt-section-heading { margin-bottom: 28px; }
 .nt-section-heading h2 { margin-bottom: 12px; }
 .nt-attendance { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
@@ -21591,11 +21649,6 @@ html { scroll-padding-top: 88px; }
   line-height: 1.5;
 }
 .nt-facts dd { margin: 0; color: var(--rim-text); font-size: var(--text-card); line-height: 1.7; }
-.nt-visit-note { border-top: 1px solid var(--rim-rule); padding-top: 18px; }
-.nt-visit-note p { margin: 0 0 12px; color: var(--rim-text-muted); font-size: var(--text-small); line-height: 1.7; }
-.nt-visit-note p:last-child { margin-bottom: 0; }
-.nt-account-link { margin-top: 12px; }
-.nt-link-note { margin: 0; color: var(--rim-text-muted); font-size: var(--text-xs); line-height: 1.7; }
 .nt-access-note {
   max-width: 940px;
   margin: 22px 0 0;
@@ -21848,7 +21901,6 @@ html { scroll-padding-top: 88px; }
 .pp-reading__article a:not(.pp-btn),
 .home-chapter__body .pp-intro__body a,
 .nt-copy a:not(.pp-btn),
-.nt-cost a,
 .nt-facts a,
 .nt-contact-links a,
 .nt-access-note a,
@@ -21877,7 +21929,6 @@ html { scroll-padding-top: 88px; }
 .pp-reading__article a:not(.pp-btn):hover,
 .home-chapter__body .pp-intro__body a:hover,
 .nt-copy a:not(.pp-btn):hover,
-.nt-cost a:hover,
 .nt-facts a:hover,
 .nt-contact-links a:hover,
 .nt-access-note a:hover,

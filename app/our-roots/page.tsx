@@ -62,7 +62,7 @@ export default function OurRootsPage() {
             <p>
               For twenty-five centuries, Buddhist teachings, the Dharma, have been practiced and
               passed on. Over that time they grew into many traditions across Asia and now the
-              West, each finding its own words for the same understanding. We honor them as one
+              West, each with its own understanding and its own ways of practice. We honor them as one
               living family. Each is complete in itself, and none is lessened by being honored
               alongside the others. We try to hold our own views, Buddhist ones included, lightly
               enough to keep learning and firmly enough to act on what we care about. People from
@@ -74,8 +74,8 @@ export default function OurRootsPage() {
             <p>
               At the heart of our practice is silent illumination: an open, settled awareness that
               meets whatever arrives with warmth. It comes to us from Chan, the Chinese school of
-              Buddhism also known as Zen, where a teacher named Hongzhi gave it its name nine
-              centuries ago.
+              Buddhism from which Zen grew, where the teacher Hongzhi gave it voice nine centuries
+              ago.
             </p>
             <p>
               It is less one technique than the ground under all of them. Loving-kindness,
@@ -84,8 +84,10 @@ export default function OurRootsPage() {
               orchestra. It is the hall the music is played in.
             </p>
             <p>
-              Behind it is one of the Buddha&apos;s earliest teachings: the mind is luminous,
-              clouded only by what passes through it. Chan understands this luminous, wakeful
+              Behind it is a teaching preserved in the early discourses: the mind is luminous. It
+              is clouded by what passes through it, and it can be freed of what clouds it. Knowing
+              this, the Buddha said, is what makes the development of the mind possible. Chan
+              understands this luminous, wakeful
               nature as Buddha nature. It is already present in each of us, clear and free, and it
               is the source of our capacity for wisdom and compassion. Practice is learning to
               recognize what clouds it and let it go, and to recognize, cultivate, and protect what
@@ -108,7 +110,7 @@ export default function OurRootsPage() {
               We draw on the whole of this family through A Handful of Leaves. It takes its name
               from a day the Buddha held a few leaves in his hand and said that what he taught was
               like this handful: only what helps. It gathers teachings from the Buddha&apos;s
-              earliest words, from the ways they grew through centuries of practice, and from the
+              early discourses, from the ways they grew through centuries of practice, and from the
               living traditions today, and orders them as a practicing life.{" "}
               <Link href="/handful-of-leaves">More about A Handful of Leaves</Link>
             </p>
