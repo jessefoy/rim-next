@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TutorialSteps from "@/components/TutorialSteps";
 import { TUTORIALS, findTutorial } from "@/components/tutorials";
-import type { TutorialStepText } from "@/components/tutorials/types";
+import { WATCH_READY, finishFor, stepsFor } from "@/components/tutorials/pageData";
 
 /**
  * /tutorials/[slug]: one tutorial, step by step (components/TutorialSteps).
@@ -31,28 +31,10 @@ export default async function TutorialPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const tutorial = findTutorial(slug);
   if (!tutorial) notFound();
-  const next = tutorial.nextTutorial ? findTutorial(tutorial.nextTutorial) : undefined;
-
-  // The steps as plain text for each screen (a computer may say a few words
-  // differently); the drawings go to the client as rendered markup.
-  const plain = (s: TutorialStepText): TutorialStepText => ({
-    title: s.title,
-    words: s.words,
-    alt: s.alt,
-    ...(s.tip ? { tip: s.tip } : {}),
-    ...(s.next ? { next: s.next } : {}),
-  });
-  const steps = {
-    phone: tutorial.steps.map((s) => plain(s)),
-    computer: tutorial.steps.map((s) => plain({ ...s, ...s.computer })),
-  };
-  // The end of Start here leads on to Find your team.
-  const endOfSeries = !next && tutorial.series && tutorial.series.part === tutorial.series.of;
-  const finish = next
-    ? { href: `/tutorials/${next.slug}`, label: "Next tutorial" }
-    : endOfSeries
-      ? { href: "/tutorials#find-your-team", label: "Find your team" }
-      : { href: "/tutorials", label: "All tutorials" };
+  // The steps as plain text for each screen; the drawings go to the client
+  // as rendered markup. The end of Start here leads on to Find your team.
+  const steps = stepsFor(tutorial);
+  const { next, endOfSeries, finish } = finishFor(tutorial);
 
   return (
     <div className="pp-page pp-page--spine">
@@ -68,6 +50,11 @@ export default async function TutorialPage({ params }: { params: Promise<{ slug:
 
       <section className="pp-section">
         <div className="rim-container">
+          {WATCH_READY.includes(tutorial.slug) && (
+            <p className="tut-watch-link">
+              <Link href={`/tutorials/${tutorial.slug}/watch`} className="pp-btn pp-btn--ghost"><span aria-hidden="true">{"\u25B6\uFE0E"}</span> Watch it as a video</Link>
+            </p>
+          )}
           <p className="tut-note">The pictures are drawings of what you&rsquo;ll see. The names, dates and code in them are examples.</p>
           <TutorialSteps steps={steps} screens={tutorial.screens} finish={finish} />
         </div>
