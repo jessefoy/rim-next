@@ -21608,10 +21608,13 @@ html { scroll-padding-top: 88px; }
 .nt-section { padding: calc(var(--space-1) * 9) 0; border-top: 1px solid var(--rim-rule); }
 .nt-section--white { background: var(--rim-surface); }
 .nt-hero + .nt-section { border-top: 0; }
+/* Halves of the grid, with the card rows' own gap, so the copy column starts
+   on the same line as the second card below it (2026-10-22, Jesse: "the grid
+   is off"; a 5:7 split with a 56px gap put the copy 56-68px short of it). */
 .nt-split {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  column-gap: 56px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-3);
   align-items: start;
 }
 .nt-eyebrow {
@@ -21713,9 +21716,7 @@ html { scroll-padding-top: 88px; }
 .nt-page a:focus-visible,
 .nt-page summary:focus-visible { outline: 3px solid var(--rim-blue); outline-offset: 5px; }
 @media (max-width: 900px) {
-  .nt-split { grid-template-columns: 1fr 1.4fr; column-gap: 30px; }
   .nt-option, .nt-visit { padding: var(--space-3); }
-  .nt-attendance { gap: 20px; }
 }
 @media (max-width: 700px) {
   .nt-split, .nt-options, .nt-attendance { grid-template-columns: 1fr; row-gap: var(--space-3); }
