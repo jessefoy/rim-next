@@ -44,9 +44,11 @@ Jesse, on the flag that Home's Dana no longer said where gifts go: *"yes, we nee
 
 Other removed meanings found by that check, now said nowhere on the public site (brief-approved cuts, for Jesse's ruling): the Handful's shape of each practice ("we settle first, add the practice gently, recognize that what it reveals was already ours, and let it all return to openness"); Home's "The pressures of life and work" item (work, money worries, caregiving, doing too much), only partly carried by "more ease under pressure" and "Caring that lasts"; and Why We Practice's direction no longer names "and we reduce harm" (the garden and the closing verse still carry heal, promote and protect).
 
+**Jesse's ruling ("I approve", on the recommendations; `85f5d3f`):** the Handful's practice shape returns in "Many medicines, one health" in the old page's words; Home's "Calm and ease" now reads "Rest that helps us heal, more ease with a busy day, money worries, and the sense of doing too much, and more calm in illness, pain, and grief." (folded in so the columns keep 4/3/2; caregiving stays in "Caring that lasts"); "and we reduce harm" stays cut (the garden says it, and restoring it would say "heal, promote, and protect" twice on one page). The vault brief's Part B now matches the live site, with a dated revision note under its header.
+
 ### What comes next
 
-- **Jesse's read-aloud** of the ten published pages (copy provisional until then). Flags for it: Diverse Together now says "What we share" in its heading just below "What we share is the direction."; "Read more" and "Show less"; the three removed meanings above.
+- **Jesse's read-aloud** of the ten published pages (copy provisional until then). Flags for it: Diverse Together now says "What we share" in its heading just below "What we share is the direction."; "Read more" and "Show less"; the restored Dana, Calm and ease, and Many medicines lines.
 - **H11, held:** Ways to Give's "supported entirely by the people who practice here" and "Our teachings are offered freely", waiting on his confirmation of the facts.
 - **November 1 sweep** still applies to New to RIM's "Our first offering begins in November."
 
