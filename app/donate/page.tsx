@@ -190,17 +190,37 @@ export default function DonatePage() {
             </div>
           </div>
 
-          {/* The reflections in one column, read in order (Jesse, 2026-10-22:
-              the zig-zag around a centre line left most of the band empty). */}
-          <ol className="pp-timeline">
-            {CONTEMPLATIONS.map((item) => (
-              <li key={item.num} className="pp-timeline__card">
-                <p className="pp-timeline__eyebrow">Reflection {item.num}</p>
-                <h3 className="pp-timeline__title">{item.title}</h3>
-                <p className="pp-timeline__body">{item.body}</p>
-              </li>
-            ))}
-          </ol>
+          <div className="pp-timeline">
+            {CONTEMPLATIONS.map((item, i) => {
+              // The live page opens the sequence on the right.
+              const onRight = i % 2 === 0;
+              const rowClass = [
+                "pp-timeline__row",
+                i === 0 ? "pp-timeline__row--first" : "",
+                i === CONTEMPLATIONS.length - 1 ? "pp-timeline__row--last" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+
+              const card = (
+                <div className="pp-timeline__card">
+                  <p className="pp-timeline__eyebrow">Reflection {item.num}</p>
+                  <h3 className="pp-timeline__title">{item.title}</h3>
+                  <p className="pp-timeline__body">{item.body}</p>
+                </div>
+              );
+
+              return (
+                <div key={item.num} className={rowClass}>
+                  {onRight ? <div className="pp-timeline__gap" aria-hidden="true" /> : card}
+                  <div className="pp-timeline__spine" aria-hidden="true">
+                    <span className="pp-timeline__node" />
+                  </div>
+                  {onRight ? card : <div className="pp-timeline__gap" aria-hidden="true" />}
+                </div>
+              );
+            })}
+          </div>
 
           <div className="pp-actions pp-actions--center">
             <p className="pp-intro__note">

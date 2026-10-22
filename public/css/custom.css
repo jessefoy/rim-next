@@ -19663,26 +19663,72 @@ a.pp-card:hover .pp-card__action {
   .pp-statement__title { font-size: var(--text-h2); margin-bottom: 24px; }
 }
 
-/* ── Contemplation reflections ───────────────────────────────────
-   The five reflections as one numbered column in the reading width,
-   under the note that introduces them (2026-10-22; until then an
-   alternating zig-zag around a connecting spine). */
+/* ── Contemplation timeline ──────────────────────────────────────
+   The alternating stepped sequence from the live page: a connecting
+   spine with a node per contemplation, cards alternating side to side.
+   Collapses to one column below 900px, where an alternating layout
+   stops reading as a sequence and starts reading as a zigzag. */
 
 .pp-timeline {
+  max-width: 1140px;
   display: grid;
-  gap: var(--space-2);
-  max-width: var(--reading-width);
+  gap: 0;
   margin: 0 auto;
-  padding: 0;
-  list-style: none;
+}
+
+.pp-timeline__row {
+  display: grid;
+  grid-template-columns: 1fr minmax(20px, 80px) 1fr;
+  align-items: stretch;
+}
+
+.pp-timeline__spine {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The connecting line. --first / --last stop it short so the spine
+   begins and ends at a node rather than running off the section. */
+.pp-timeline__spine::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--rim-blue);
+}
+.pp-timeline__row--first .pp-timeline__spine::before { top: 50%; }
+.pp-timeline__row--last  .pp-timeline__spine::before { bottom: 50%; }
+
+.pp-timeline__node {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--rim-blue);
+  border-radius: 999px;
+  background: var(--rim-bg-bright);
+}
+.pp-timeline__node::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--rim-blue);
 }
 
 .pp-timeline__card {
   box-sizing: border-box;
   border: 1px solid var(--rim-rule);
   border-radius: 12px;
-  padding: 28px 32px;
-  margin: 0;
+  padding: 32px;
+  margin: 16px 0;
   background: var(--rim-surface);
 }
 
@@ -19716,14 +19762,14 @@ a.pp-card:hover .pp-card__action {
 
 /* The intro block above the sequence. */
 .pp-timeline-intro {
-  max-width: var(--reading-width);
+  max-width: 720px;
   margin: 0 auto 72px;
   text-align: center;
 }
 
 .pp-timeline-intro__note {
   box-sizing: border-box;
-  max-width: var(--reading-width);
+  max-width: 720px;
   margin: 40px auto 0;
   border-radius: 12px;
   padding: 45px 40px;
@@ -19737,7 +19783,12 @@ a.pp-card:hover .pp-card__action {
 .pp-timeline-intro__note p:last-child { margin-bottom: 0; }
 
 @media (max-width: 900px) {
-  .pp-timeline__card { padding: 26px 22px; }
+  .pp-timeline__row,
+  .pp-timeline__row--first,
+  .pp-timeline__row--last { grid-template-columns: 1fr; }
+  .pp-timeline__spine,
+  .pp-timeline__gap { display: none; }
+  .pp-timeline__card { margin: 0 0 16px; padding: 26px 22px; }
   .pp-timeline-intro { margin-bottom: 44px; }
   .pp-timeline-intro__note { padding: 28px 24px; }
 }
