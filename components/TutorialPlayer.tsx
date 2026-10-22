@@ -155,7 +155,8 @@ export default function TutorialPlayer({
     // the whole player into view so nothing needs scrolling while it plays.
     if (fromOverlay) {
       window.setTimeout(() => {
-        stageRef.current?.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+        // An instant jump: a smooth scroll waits on animation frames, which a tab out of view holds.
+        stageRef.current?.scrollIntoView({ block: "start" });
         controlRef.current?.focus({ preventScroll: true });
       }, 0);
     }
