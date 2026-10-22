@@ -38,9 +38,15 @@ Jesse brought the brief `08-promotion-site-brief-condensation-2026-10-22.md` (va
 - **Not touched:** the Community Care Agreements, Ways to Give (H11, waiting on Jesse's confirmation of its facts), program pages and descriptions, Home's Programs section.
 - **Docs:** `RIM_Public_Pages.md` ("Shorter pages and the three circles", the vocabulary rules), `FEATURES.md`.
 
+### Later the same day: Home's Dana, its meaning kept (`80d56bd`)
+
+Jesse, on the flag that Home's Dana no longer said where gifts go: *"yes, we need to be clear that the dana message is clear. thanks for flagging that. We did not want to change meaning or intentions. But it was very important to shorten and make more clear."* Part B's shorter section stays, and two meanings it had dropped return in his already-ratified words: "Gifts to RIM pay for the center and its operating costs." with `TEACHER_SUPPORT` (both ratified 2026-10-14), and the overnight-retreat minimum. Donate already carries the rest (the Teaching Fund, the program split, "what you receive here was given by someone"). **The rule this sets for any condensation:** shorter, never a different meaning; check each removed sentence for a meaning that now lives nowhere on the site, and bring it to Jesse.
+
+Other removed meanings found by that check, now said nowhere on the public site (brief-approved cuts, for Jesse's ruling): the Handful's shape of each practice ("we settle first, add the practice gently, recognize that what it reveals was already ours, and let it all return to openness"); Home's "The pressures of life and work" item (work, money worries, caregiving, doing too much), only partly carried by "more ease under pressure" and "Caring that lasts"; and Why We Practice's direction no longer names "and we reduce harm" (the garden and the closing verse still carry heal, promote and protect).
+
 ### What comes next
 
-- **Jesse's read-aloud** of the ten published pages (copy provisional until then). Flags for it: Diverse Together now says "What we share" in its heading just below "What we share is the direction."; Home's Dana no longer states teacher support; "Read more" and "Show less".
+- **Jesse's read-aloud** of the ten published pages (copy provisional until then). Flags for it: Diverse Together now says "What we share" in its heading just below "What we share is the direction."; "Read more" and "Show less"; the three removed meanings above.
 - **H11, held:** Ways to Give's "supported entirely by the people who practice here" and "Our teachings are offered freely", waiting on his confirmation of the facts.
 - **November 1 sweep** still applies to New to RIM's "Our first offering begins in November."
 

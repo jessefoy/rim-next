@@ -681,6 +681,8 @@ Readers told Jesse the site was tiring to read: one *"had to take breaks"*, anot
 
 **Taking CARE, seen whole.** Each of the eight words is a closed `<details>` (`.care-word`): the word, its one line, "Read more" / "Show less"; the full description behind it is the handout text unchanged. The word's anchor is the item's id, and `components/OpenOnHash.tsx` opens the item a link lands on. Keyboard and no-JavaScript safe (native details).
 
+**Shorter, never a different meaning** (Jesse, 2026-10-22: *"We did not want to change meaning or intentions. But it was very important to shorten and make more clear."*). Part B's Home Dana had dropped where gifts go and the retreat minimum; both returned in his ratified words, so the section is short and says the same thing. When implementing any condensation, check each removed sentence for a meaning that now lives nowhere on the site, and bring it to him before shipping.
+
 **Recorded departure: Why We Practice's circles stack.** The brief asked for three columns on desktop. The reading column is 680px, so three across would leave about 18 characters a line at 18px; they are stacked panels in the column, as before. Revisit only with a wider layout for that section, not by narrowing the text.
 
 **Vocabulary and rules (Jesse's approval, 2026-10-22):**
