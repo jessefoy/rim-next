@@ -1,5 +1,5 @@
 import Link from "next/link";
-import CareCircle from "@/components/CareCircle";
+import CareCircle, { CARE_LETTER_COLORS } from "@/components/CareCircle";
 import { TEACHER_SUPPORT } from "@/lib/communityAgreements";
 
 // Lineage terms live in the description for search, stated as RIM states
@@ -380,7 +380,11 @@ export default function HomePage() {
               <ul className="home-care-words">
                 {CARE_PAIRS.map(([letter, first, second]) => (
                   <li key={letter}>
-                    <strong className="home-care-words__letter" aria-hidden="true">
+                    <strong
+                      className="home-care-words__letter"
+                      aria-hidden="true"
+                      style={{ ["--care-letter" as string]: CARE_LETTER_COLORS[letter] }}
+                    >
                       {letter}
                     </strong>
                     <span>

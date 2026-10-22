@@ -42,6 +42,12 @@ const CENTER_QUADRANTS = [
   { letter: "C", start: 270, color: "#D8CFE6" },
 ];
 
+/** Each letter's colour in the circle's centre, for keys drawn beside the
+ *  circle (Home's four letters, 2026-10-22), so they cannot drift from it. */
+export const CARE_LETTER_COLORS: Record<string, string> = Object.fromEntries(
+  CENTER_QUADRANTS.map((q) => [q.letter, q.color]),
+);
+
 function pt(r: number, deg: number): [number, number] {
   const rad = (deg * Math.PI) / 180;
   return [C + r * Math.sin(rad), C - r * Math.cos(rad)];

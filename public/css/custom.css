@@ -21059,12 +21059,26 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0 12px;
+  gap: 0 20px;
   margin: 0;
   border-top: 1px solid var(--rim-rule);
   padding: var(--space-2) 0;
 }
-.home-care-words__letter { min-width: 1.1em; font-weight: 700; }
+/* Each letter in a square of its colour from the circle's centre, so the key
+   reads as the circle's own (Jesse, 2026-10-22). The ink is the artwork's. */
+.home-care-words__letter {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: var(--care-letter, var(--rim-bg-accent));
+  color: #1f1f1f;
+  font-size: var(--text-h2);
+  font-weight: 700;
+  line-height: 1;
+}
 .home-care-explanation { margin-top: var(--space-4); row-gap: 0; }
 .home-care-explanation > * { grid-column: 7 / span 6; }
 .home-care-explanation > p { margin: 0 0 var(--space-3); }
@@ -21166,6 +21180,7 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   .home-page .pp-intro__body { font-size: var(--text-card); }
   .home-pathway h3 { font-size: var(--text-h2); }
   .home-care-words { font-size: var(--text-h3); }
+  .home-care-words__letter { width: 44px; height: 44px; font-size: var(--text-h3); }
   .home-lead { font-size: var(--text-h4); }
   a.home-pathway { padding: 26px 24px; }
   .home-page .pp-split,
