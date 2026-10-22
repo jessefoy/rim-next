@@ -45,7 +45,7 @@ const PRACTICE_THEMES = [
     items: [
       {
         title: "Calm and ease",
-        body: "Rest that helps us heal, more ease under pressure, and more calm in illness, pain, and grief.",
+        body: "Rest that helps us heal, more ease with a busy day, money worries, and the sense of doing too much, and more calm in illness, pain, and grief.",
       },
       {
         title: "Enjoying the life we have",

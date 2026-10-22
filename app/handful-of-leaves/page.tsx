@@ -168,7 +168,9 @@ export default function HandfulOfLeavesPage() {
               The old traditions called the teachings medicines: many remedies for the many ways a
               heart can ache, all in service of one health. Loving-kindness, attention resting with
               the breath, the contemplation of the body and of change: each is a door, taken up for
-              a time, and whichever door we take, the whole of Taking CARE is there.
+              a time, and each follows the same simple shape: we settle first, add the practice
+              gently, recognize that what it reveals was already ours, and let it all return to
+              openness. Whichever door we take, the whole of Taking CARE is there.
             </p>
             <p>
               The qualities these practices meet are both uncovered and cultivated. A gardener
