@@ -19122,10 +19122,12 @@ a.pp-card:hover .pp-card__action {
   line-height: var(--lh-heading);
 }
 
+/* What the notice asks of the person, at the card text size (15px under a
+   20px title read as fine print, 2026-10-22). */
 .pp-notice__body {
   margin: 0;
   color: var(--rim-text);
-  font-size: var(--text-small);
+  font-size: var(--text-card);
   line-height: 1.6;
 }
 
@@ -21423,11 +21425,13 @@ html { scroll-padding-top: 88px; }
   line-height: var(--lh-body);
 }
 .pl-sub { max-width: var(--reading-width); margin: var(--space-6) 0 var(--space-3); }
+/* The group heading reads above the program names (24px) it gathers, not as
+   one more name (2026-10-22). */
 .pl-sub h3 {
   margin: 0 0 var(--space-1);
   color: var(--rim-heading);
   font-family: var(--font-heading);
-  font-size: var(--text-h3);
+  font-size: var(--text-h2-lg);
   font-weight: 400;
   line-height: 1.3;
 }
@@ -21623,11 +21627,13 @@ html { scroll-padding-top: 88px; }
   font-weight: 400;
   line-height: 1.25;
 }
+/* Card titles a clear step under the 32px section headings (2026-10-22: at
+   28px they read as the same tier, the lesson of Home's circles). */
 .nt-page h3 {
   margin: 0 0 16px;
   color: var(--rim-heading);
   font-family: var(--font-serif);
-  font-size: var(--text-h2);
+  font-size: var(--text-h3);
   font-weight: 400;
   line-height: 1.25;
 }
@@ -21667,10 +21673,13 @@ html { scroll-padding-top: 88px; }
 .nt-visit h3 { margin-bottom: var(--space-3); }
 .nt-facts { margin: 0; }
 .nt-facts > div { margin: 0; border-top: 1px solid var(--rim-rule); padding: 18px 0; }
+/* Each fact's name is its title, at the card text size in bold over its
+   answer, as Home's circle items are (it was 12px grey, the smallest thing
+   in the card, 2026-10-22). */
 .nt-facts dt {
-  margin-bottom: 6px;
-  color: var(--rim-text-muted);
-  font-size: var(--text-label);
+  margin-bottom: 4px;
+  color: var(--rim-text);
+  font-size: var(--text-card);
   font-weight: 600;
   line-height: 1.5;
 }
@@ -21895,11 +21904,13 @@ html { scroll-padding-top: 88px; }
 
 /* New to RIM: the copy column starts level with the heading, not the eyebrow
    above it (the refresh's alignment rule; the reference itself slipped here). */
-.nt-split > .nt-copy,
-.nt-split > .nt-faq { padding-top: calc(var(--text-xs) * 1.5 + 12px); }
+/* Only where the heading has an eyebrow above it: Questions has none, and
+   its list began 31px below its heading (2026-10-22). */
+.nt-split:has(> div:first-child > .nt-eyebrow) > .nt-copy,
+.nt-split:has(> div:first-child > .nt-eyebrow) > .nt-faq { padding-top: calc(var(--text-xs) * 1.5 + 12px); }
 @media (max-width: 700px) {
-  .nt-split > .nt-copy,
-  .nt-split > .nt-faq { padding-top: 0; }
+  .nt-split:has(> div:first-child > .nt-eyebrow) > .nt-copy,
+  .nt-split:has(> div:first-child > .nt-eyebrow) > .nt-faq { padding-top: 0; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
