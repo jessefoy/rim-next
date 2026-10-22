@@ -10,8 +10,10 @@
  * step-by-step page (components/TutorialSteps.tsx), so the two can't drift.
  * CSS prefix tut-.
  *
- * Each step lasts long enough to read its caption slowly (about two words a
- * second, never under eight seconds). Pausing holds the step; playing again
+ * Each step lasts long enough to read its caption at an easy pace (two and a
+ * half words a second, never under seven seconds); the finger moves within
+ * its first few seconds, so the action shows while people read. Pausing holds
+ * the step; playing again
  * starts that step over. With reduced motion asked for, the finger appears in
  * place instead of travelling. The Play cover and the end screen sit beside
  * the drawing (role="img"), not inside it, so they stay real buttons.
@@ -32,7 +34,7 @@ const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayout
 function stepDuration(step: TutorialStepText): number {
   const text = `${step.title} ${step.words} ${step.tip ? `${step.tip.lead} ${step.tip.text}` : ""}`;
   const words = text.trim().split(/\s+/).length;
-  return Math.max(8000, Math.round((words / 2) * 1000) + 2500);
+  return Math.max(7000, Math.round((words / 2.5) * 1000) + 2000);
 }
 
 type Phase = "show" | "move" | "tap";
@@ -99,7 +101,10 @@ export default function TutorialPlayer({
     if (!playing) return;
     const step = steps[device][index];
     const total = stepDuration(step);
-    let frame = 0;
+    // The finger moves soon, then taps; the rest of the step is for reading.
+    const moveAt = Math.min(6000, Math.max(2500, Math.round(total * 0.3)));
+    const tapAt = moveAt + 1600;
+    let slide = 0;
     setPhase("show");
     setFinger(null);
     const timers = [
@@ -108,13 +113,12 @@ export default function TutorialPlayer({
         setPhase("move");
         if (!t) return;
         if (reduced) { setFinger(t); return; }
-        // In from just below and right of the place, so the eye follows it there.
+        // In from just below and right of the place, so the eye follows it
+        // there. A timer, not an animation frame: frames wait in a tab out of view.
         setFinger({ x: t.x + 70, y: t.y + 110 });
-        frame = window.requestAnimationFrame(() => {
-          frame = window.requestAnimationFrame(() => setFinger(t));
-        });
-      }, Math.round(total * 0.35)),
-      window.setTimeout(() => setPhase("tap"), Math.round(total * 0.6)),
+        slide = window.setTimeout(() => setFinger(t), 50);
+      }, moveAt),
+      window.setTimeout(() => setPhase("tap"), tapAt),
       window.setTimeout(() => {
         if (index < count - 1) setIndex(index + 1);
         else { setPlaying(false); setEnded(true); }
@@ -122,7 +126,7 @@ export default function TutorialPlayer({
     ];
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
-      window.cancelAnimationFrame(frame);
+      window.clearTimeout(slide);
     };
   }, [playing, index, device, run, steps, count, findTarget, reduced]);
 
@@ -147,7 +151,7 @@ export default function TutorialPlayer({
     setPlaying(true);
     setRun((r) => r + 1);
     // The cover or end screen goes away; keep the keyboard on Pause.
-    if (fromOverlay) window.requestAnimationFrame(() => controlRef.current?.focus());
+    if (fromOverlay) window.setTimeout(() => controlRef.current?.focus(), 0);
   }
   function pause() {
     setPlaying(false);
