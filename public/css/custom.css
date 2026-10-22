@@ -2560,7 +2560,8 @@ h4 { font-size: var(--text-h4); }
 }
 
 .pl-membership__title { font-size: var(--text-h2); }
-.pl-membership__body { max-width: 900px; }
+/* The reading measure: at 900px it ran about 90 characters a line (2026-10-22). */
+.pl-membership__body { max-width: var(--reading-width); }
 
 .pl-membership__inline-link {
   color: var(--rim-blue);
@@ -4967,11 +4968,13 @@ h4 { font-size: var(--text-h4); }
   margin: 0 0 8px;
 }
 
+/* The agreements are what a registrant commits to, so they read at the card
+   text size, not 13-14px muted (2026-10-22). */
 .pg-form__agreements-text {
   font-family: var(--font-sans);
-  font-size: var(--text-ui);
+  font-size: var(--text-card);
   line-height: var(--lh-body);
-  color: var(--rim-text-muted);
+  color: var(--rim-text-soft);
   margin: 0 0 18px;
 }
 
@@ -4985,9 +4988,9 @@ h4 { font-size: var(--text-h4); }
 
 .pg-form__agreements-item {
   font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font-size: var(--text-card);
   line-height: var(--lh-body);
-  color: var(--rim-text-quote);
+  color: var(--rim-text);
 }
 
 .pg-form__agreements-title {
@@ -5007,7 +5010,7 @@ h4 { font-size: var(--text-h4); }
   gap: 12px;
   min-height: 44px;
   font-family: var(--font-sans);
-  font-size: var(--text-ui);
+  font-size: var(--text-card);
   line-height: 1.6;
   color: var(--rim-text);
   cursor: pointer;
@@ -19086,6 +19089,9 @@ a.pp-card:hover .pp-card__action {
   margin-top: 32px;
 }
 .pp-actions--center { justify-content: center; }
+/* A note centred in an action row keeps a reading measure (Donate's closing
+   line ran about 115 characters on one line, 2026-10-22). */
+.pp-actions--center > .pp-intro__note { max-width: 38em; margin-left: auto; margin-right: auto; text-align: center; }
 
 /* ── Notice ──────────────────────────────────────────────────────
    The calm "you need an account for this" message. A message, not an
@@ -19589,6 +19595,15 @@ a.pp-card:hover .pp-card__action {
   .pp-donate-hero { grid-template-columns: 1fr; gap: 40px; }
   .pp-hero__title--display { max-width: 520px; }
   .pp-donate-hero__lead { padding-top: 0; }
+}
+/* Stacked under the headline, the two give cards sit side by side, halves of
+   the grid, until phones (2026-10-22: one card the full 820px at 900 ran
+   about 103 characters a line). */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .pp-give { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .pp-give__card { padding: 30px 24px; }
+  .pp-give__title { font-size: var(--text-h2); }
+  .pp-give__assist { grid-column: 1 / -1; }
 }
 
 @media (max-width: 768px) {
@@ -20249,6 +20264,9 @@ a.pp-card.tpr-card {
 
 /* The agreements read as content, not as form furniture: full body size on the
    spine, with room between the three so each is its own thought. */
+/* The agreements begin a step below the shared vision they follow (they
+   touched it, 2026-10-22). */
+.pp-prose + .jn-agreements-list { margin-top: var(--space-4); }
 .jn-agreements-list {
   max-width: var(--reading-width);
   /* `outside` markers force the whole list inward to make room for them, which
@@ -23642,7 +23660,10 @@ html { scroll-padding-top: 88px; }
 .tut-path__text { display: grid; gap: 4px; min-width: 0; }
 .tut-path__title { color: var(--rim-heading); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }
 .tut-path__summary { color: var(--rim-text-soft); font-size: var(--text-card); line-height: 1.6; }
-.tut-teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--space-2); }
+/* The teams in halves of the grid (2026-10-22: four teams in auto-filled
+   thirds left Audio/Visual alone on its row); one column on phones. */
+.tut-teams { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+@media (max-width: 768px) { .tut-teams { grid-template-columns: minmax(0, 1fr); } }
 .tut-team { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); scroll-margin-top: calc(var(--site-header-h) + var(--space-2)); }
 .tut-team:target { border-color: var(--rim-blue); box-shadow: inset 0 0 0 1px var(--rim-blue); }
 .tut-team h3 { margin: 0; color: var(--rim-heading); font: 400 var(--text-h4)/var(--lh-heading) var(--font-heading); }

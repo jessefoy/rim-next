@@ -252,8 +252,14 @@ export default async function ProgramDetailPage({
 
 
         {/* ── Program description ── */}
+        {/* The description's own headings are h3s (written in the Program
+            Manager), so the outline needs an h2 above them; read by screen
+            readers only (2026-10-22: the outline went h1 to h3). */}
         {hasDescription && (
-          <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+          <>
+            <h2 className="rim-sr-only">About this program</h2>
+            <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+          </>
         )}
 
         {/* ── Program notes (tan card) ──

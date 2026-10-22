@@ -663,7 +663,7 @@ export default function RegistrationForm({
       {/* ── Community agreements — shown for non-logged-in registrants who haven't agreed yet ── */}
       {!sessionUserId && !(emailCheckStatus === "found" && foundMember?.agreedToTerms) && (
         <div className="pg-form__agreements">
-          <h4 className="pg-form__agreements-heading">Community Care Agreements</h4>
+          <h3 className="pg-form__agreements-heading">Community Care Agreements</h3>
           <p className="pg-form__agreements-text">
             If you don&rsquo;t already have one, registering will also create your RIM
             member account.
