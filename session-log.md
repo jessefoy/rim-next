@@ -1,3 +1,49 @@
+## 2026-10-22 — Shorter pages, the three circles, and an integrity pass
+
+On `main`: `57628ff` (the pages), `15736ea` (a word's link lands on it, opened), and this closing. **Production:** no writes. One read-only search (with Jesse's yes): 73 rows of `programs`, `teacher_profiles`, `courses`, `lessons`, `program_categories`, `course_categories` and `email_templates`, in a `READ ONLY` transaction, for H13's retired phrases: **no hits**.
+
+### The ask
+
+Jesse brought the brief `08-promotion-site-brief-condensation-2026-10-22.md` (vault `CARE/4 Promotion`, with its review `08-promotion-site-condensation-2026-10-22.md` and mockup `08-promotion-site-mockup-2026-10-22.html`): *"I would like to make some updates to the website as discussed with claude code."* Its why: readers found the site tiring to read (one "had to take breaks", another asked for an audio version).
+
+### Jesse's rulings (this session)
+
+- **New to RIM says "It is freely offered"**, not Part B's "It is free" (the never-"free"-as-a-price-word rule).
+- **New to RIM drops** the cost note under the two options, the "Open My Home" button and "Sign in to find your Zoom link." (Part B has none of them; the FAQ answers cost, and "Where we meet" says the link is on My Home).
+- **A read-only production search** for H13 is allowed.
+- The Connections Map was confirmed as drawn.
+
+### What changed
+
+1. **Home** (`app/page.tsx`): Part B §1 in the existing order. Practice for real life is the three circles, **For ourselves / For those we care about / For our shared world** (4, 3, 2 items); "A deeper freedom" left the columns for the sentence after them. The panels keep one height with the items at the top (`.home-theme__items` loses its three equal rows). The last section has Programs & events and Plan your first visit. Dana no longer reads `TEACHER_SUPPORT` (Part B's Dana omits it; Donate and the registration dana step still say it). The Programs section is untouched.
+2. **Why We Practice**: Part B §2. "A whole-life practice" and "Beyond ourselves" folded in; the benefits section keeps `#how-practice-benefits` and holds the three circles as panels, then "A deeper freedom" (h3, `#a-deeper-freedom`). **Recorded departure:** the brief asks for three columns on desktop; the reading column is 680px, so three side by side would leave about 154px of text a line (about 18 characters at 18px). They stay stacked, said in the page's header comment.
+3. **Taking CARE**: the new opening; the rings caption gains "They are the same three our practice is for…" ("practiced", not "contemplated", per Part B); a new h2 "The eight words"; **each word is a closed `<details>`** (`.care-word`): the word (h3), its one line, and "Read more" / "Show less"; behind it the full description, **byte for byte the previous text** (checked mechanically by the reviewer). Anchors stay on the items; `components/OpenOnHash.tsx` opens the item a link lands on (arrival, hashchange, a click on a same-page link) and, on arrival, brings it to the top (measured: `/care#engage` had opened Engage but left the page at the footer). "Learning over time" ends with Part B's shorter paragraph.
+4. **A Handful of Leaves**: Part B §4. The seven gatherings are a compact list (`.pp-leaves`, name beside gloss, stacked under 640px); "One practice, many doors" merged into "Many medicines, one health" (`#many-medicines-one-health`); the couplet kept. **Description (H12)** changed: "drawn from the Buddha's early teachings, the ways they grew through centuries of practice, and the living traditions today, and ordered as a practicing life" (it said "earliest").
+5. **New to RIM**: Part B §5 with the two rulings above; the hard-season lines moved up to "Come as you are."; a Dana fact; Become a member (primary) beside Read the agreements; the FAQ's eyebrow ("A little more reassurance") gone; two answers changed; "Why We Practice" now links `#how-practice-benefits`. Unused `nt-cost`, `nt-visit-note`, `nt-account-link`, `nt-link-note` rules removed.
+6. **About**: the new introduction with Taking CARE / Why we practice under it; "What we practice, and why" removed (no links pointed at it); "Where it comes from" replaced. **Our Roots**: the four sentences. **Diverse Together**: "What we share" (the h2 had no id; nothing linked to it). **Volunteer**: the Buddha's words (Itivuttaka 26, Sujato, in a code comment only). **Outreach**: "can help".
+
+### Checks
+
+- `tsc` clean; member harness 124 checks. Every Part B sentence, label and button found on the live pages (the checker's misses were text split around links, read again in the browser). No em-dashes in changed text. The retired phrases appear nowhere in public code; the one remaining place is `content/handful-of-leaves/introduction.md` (the members' word-for-word copy of the vault introduction: "earliest teachings", "also known as Zen", "all things arise together"), left alone and reported.
+- Live at 1280 and 390: no horizontal scroll on the ten pages; the circles one column on phones; Taking CARE's items open and close with Enter and Space; summaries are the whole tap target.
+- **Word counts** (live, everything inside the page including card labels, buttons and closed text): Home 1,939 → 1,240; Why We Practice 2,173 → 1,605; Taking CARE 1,403 → 1,477 (643 visible with the words closed); Our Roots 798 → 823; A Handful of Leaves 1,186 → 956; New to RIM 1,021 → 904; About 919 → 804; Diverse Together 621 → 620; Volunteer 204 → 210; Outreach 585 → 586.
+- The style script on Part B: five candidates, all Jesse's approved words (a "notice", "truly", two "actually", and the FAQ's "Do I need…", depicted speech); left for his read-aloud.
+- Reviewer sub-agent: no blocking defects; fixed its malformed-hash crash (`/care#%E0`), a doubled rule under the last word, and raw values.
+
+### What this connects to
+
+- **Links that left with the old words:** Why We Practice's links to `/outreach` and `/our-roots#for-the-benefit-of-all`; Taking CARE's to Why We Practice and Our Roots. Links kept wherever the new text names a page (A Handful of Leaves, Community Care Agreements).
+- **`/why-we-practice#how-practice-benefits`** from Home and New to RIM resolves; `/about#vision` (Kalyana Mitta guidelines) and `/about#how-we-began` (Our Roots) unaffected.
+- **Teacher support** is now said on Donate and the registration dana step, not Home (`lib/communityAgreements.ts` unchanged).
+- **Not touched:** the Community Care Agreements, Ways to Give (H11, waiting on Jesse's confirmation of its facts), program pages and descriptions, Home's Programs section.
+- **Docs:** `RIM_Public_Pages.md` ("Shorter pages and the three circles", the vocabulary rules), `FEATURES.md`.
+
+### What comes next
+
+- **Jesse's read-aloud** of the ten published pages (copy provisional until then). Flags for it: Diverse Together now says "What we share" in its heading just below "What we share is the direction."; Home's Dana no longer states teacher support; "Read more" and "Show less".
+- **H11, held:** Ways to Give's "supported entirely by the people who practice here" and "Our teachings are offered freely", waiting on his confirmation of the facts.
+- **November 1 sweep** still applies to New to RIM's "Our first offering begins in November."
+
 ## 2026-10-20 (later) — My Home without Coming up; Notifications categorized like team Updates
 
 On `main`: `5c09dc8`, `bd09b27`, `c610e5f`, `e21acdf`, `183fa34`, and this closing. **Production:** one flag-guarded template change runs on the `bd09b27` deploy (`session_reminder_program_link_2026_10_20_v1`: the `session-reminder` button line swapped only if still as seeded, `programUrl` added to its variables). Its deploy-log line was not read here, so whether it swapped or left an edited line alone is unconfirmed. No production reads or other writes.

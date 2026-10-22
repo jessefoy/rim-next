@@ -1,8 +1,23 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-20, later (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-22 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-20 (later) closed: My Home without Coming up; Notifications categorized
+## Active — 2026-10-22 closed: shorter public pages, the three circles, an integrity pass
+
+Everything is on `main` (`57628ff`, `15736ea`, and the closing docs). Narrative and word counts: `session-log.md`, 2026-10-22. Design record and vocabulary: `RIM_Public_Pages.md`, "Shorter pages and the three circles".
+
+**Live:** Jesse's condensation brief (vault `CARE/4 Promotion/08-promotion-site-brief-condensation-2026-10-22.md`), word for word on ten pages: Home, Why We Practice, Taking CARE (eight words as closed items with "Read more"), A Handful of Leaves, New to RIM, About, Our Roots, Diverse Together, Volunteer, Outreach. His two rulings: New to RIM says "It is freely offered" (not "free"); its cost note, Open My Home button and Zoom-link line are gone. Verified live at 1280 and 390; no hits for the retired phrases in code or in a read-only search of production texts.
+
+**Waiting on Jesse:**
+- **Read-aloud of the ten pages** (provisional until then). Flags: Diverse Together's heading "What we share" sits just under "What we share is the direction."; Home's Dana no longer states teacher support (Donate and registration still do); "Read more" / "Show less"; Why We Practice's three circles stay stacked (the brief asked for columns; the 680px column would give about 18 characters a line).
+- **Ways to Give (H11, held):** confirm "supported entirely by the people who practice here" and "Our teachings are offered freely" (backlog `2026-10-22-001`).
+- **The members' Handful introduction** still carries "earliest teachings", "also known as Zen", "all things arise together"; it follows the vault (backlog `2026-10-22-002`).
+
+**Not documented yet:** the Oct 21 to 22 Tutorials work (`/tutorials`, the step-by-step and "Watch it" pages, `0c8be0e` … `c40b5d6`) and `0f2a026` (My Home leads the phone menu; leads see who hasn't signed in) shipped after the Oct 20 closing without one; FEATURES and the session log don't mention them. Backlog `2026-10-21-001` holds the sign-in question and Zoom's phone Claim-host step.
+
+**Next concrete step:** Jesse's read-aloud of the ten pages; then the items still open from Oct 20 below.
+
+## Earlier — 2026-10-20 (later) closed: My Home without Coming up; Notifications categorized
 
 Everything is on `main` (`5c09dc8` … `183fa34`, and the closing docs; the earlier Oct 20 work `20da9b6` … `af3f4fc`). Narrative: `session-log.md`, 2026-10-20 (later) and 2026-10-19 (later) to 10-20.
 

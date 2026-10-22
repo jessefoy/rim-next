@@ -2002,5 +2002,25 @@
     "status": "open",
     "addedAt": "2026-10-21",
     "notes": "Jesse, 2026-10-21: \"Everyone for now, but this is an unindexed page. Remind me later to figure this out because we will probably want stuff behind the login.\" Related, still open from the same day: Zoom's phone app does not document claiming host with the host key (its article covers only the desktop app: Participants, then Claim host at the bottom of the list), so step 13 of Getting started for guides is unconfirmed on a phone until Jesse or Maria checks it in a test meeting (a screenshot from a phone and a computer would make both drawings exact). Code: components/tutorials/ (one file per tutorial, listed in index.ts), components/TutorialSteps.tsx, app/tutorials/."
+  },
+  {
+    "id": "2026-10-22-001",
+    "title": "Ways to Give: confirm two facts before its copy changes",
+    "description": "The condensation brief of 2026-10-22 (H11) held the donate page's \"supported entirely by the people who practice here\" and \"Our teachings are offered freely\" until Jesse confirms they are accurate (e.g. whether any grant or outside support exists, and how \"freely\" sits beside retreat minimums). Once he confirms or corrects them, bring /donate in line with the shortened pages' dana wording.",
+    "category": "CSS & Design",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-22",
+    "notes": "Public copy, not design; the category list has no copy category. Source: vault CARE/4 Promotion/08-promotion-site-brief-condensation-2026-10-22.md, H11. Home's Dana no longer states TEACHER_SUPPORT (Part B omits it); Donate and the registration dana step still do."
+  },
+  {
+    "id": "2026-10-22-002",
+    "title": "Members' Handful introduction: carry the 2026-10-22 integrity wording",
+    "description": "content/handful-of-leaves/introduction.md (the members' word-for-word copy of the vault's \"A Handful of Leaves: An Introduction\") still says \"from the earliest teachings onward\", \"the Chinese school of Buddhism also known as Zen\" and \"all things arise together\", which the public pages retired on 2026-10-22 (\"the early discourses\", \"from which Zen grew\", \"everything arises from causes and conditions\"). Under the derived-work rule the vault document changes first; then re-derive the copy.",
+    "category": "Courses & Library",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-22",
+    "notes": "Jesse's call whether the introduction should follow the public pages here. See RIM_Public_Pages.md, \"Shorter pages and the three circles\" and \"The derived-work rule\"."
   }
 ]

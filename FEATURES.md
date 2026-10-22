@@ -13,6 +13,15 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 
 ---
 
+## October 22, 2026: shorter public pages, the three circles, an integrity pass
+
+Readers found the site tiring to read; Jesse approved a condensation brief (the vault's `08-promotion-site-brief-condensation-2026-10-22.md`), implemented word for word.
+- **Shorter:** Home, Why We Practice, A Handful of Leaves and New to RIM rewritten shorter (measured live: Home 1,939 to 1,240 words, Why We Practice 2,173 to 1,605, the Handful 1,186 to 956, New to RIM 1,021 to 904).
+- **The three circles** (ourselves, those we care about, our shared world) organize Home's Practice for real life and Why We Practice's benefits; the CARE circle's rings are named as the same three.
+- **Taking CARE:** each of the eight words shows one line, with its full description behind "Read more" (native `<details>`; a link to a word opens it, `components/OpenOnHash.tsx`).
+- **Integrity:** About names RIM as a Buddhist dharma community rooted in Chan; Our Roots attributes the luminous mind to "a teaching preserved in the early discourses"; "from which Zen grew"; well-being is never "does not depend on circumstances"; Volunteer's misattributed Gandhi line is now the Buddha (Itivuttaka 26); Outreach "can help"; Diverse Together's "What we share".
+- Not touched: the Community Care Agreements, Ways to Give (held for Jesse's confirmation, backlog `2026-10-22-001`), program pages, Home's Programs section. Wording provisional until Jesse's read-aloud. See `RIM_Public_Pages.md`, "Shorter pages and the three circles".
+
 ## October 19, 2026 (later): team Updates, read like an inbox
 
 Jesse: *"People should be able to read it like an inbox and by type. It should also go to the item specifically."*
