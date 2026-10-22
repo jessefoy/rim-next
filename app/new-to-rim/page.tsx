@@ -88,8 +88,8 @@ export default function NewToRimPage() {
         </div>
       </section>
 
-      {/* ── A place for you, and where to begin ── */}
-      <section className="nt-section" aria-labelledby="welcome-title">
+      {/* ── A place for you ── */}
+      <section className="nt-section nt-section--white" aria-labelledby="welcome-title">
         <div className="rim-container">
           <div className="nt-split">
             <div>
@@ -108,8 +108,14 @@ export default function NewToRimPage() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="nt-start-heading">
+      {/* ── Where to begin: its own room (2026-10-22, as Part B sets it),
+             on Pampas so the two choices read as cards ── */}
+      <section className="nt-section" aria-labelledby="where-to-begin">
+        <div className="rim-container">
+          <div className="nt-section-heading">
             <h2 id="where-to-begin">Where to begin</h2>
             <p>Two welcoming ways to start, in person or online.</p>
           </div>

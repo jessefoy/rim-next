@@ -20708,6 +20708,8 @@ a.pp-card.tpr-card {
 .home-page .pp-split,
 .home-programs__intro,
 .home-practice__intro,
+.home-care-intro,
+.home-care-explanation,
 .home-care,
 .home-page .pp-hero__inner {
   display: grid;
@@ -20990,10 +20992,12 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
 .home-practice__closing .pp-btn { flex-shrink: 0; }
 
 /* ── Our practice is taking care: the circle beside a key of four rows ──── */
-.home-care-heading > .home-eyebrow { margin-bottom: 12px; }
-.home-care-heading .pp-intro__title { margin: 0; }
-.home-care-introduction { margin-top: var(--space-3); }
-.home-care-introduction > :first-child { margin-top: 0; }
+/* The heading on col 1 and its words on col 7, like the sections around it
+   (2026-10-22: across the full width they ran about 116 characters a line). */
+.home-care-intro { align-items: start; }
+.home-care-intro > .home-eyebrow { grid-column: 1 / -1; margin-bottom: 0; }
+.home-care-intro > h2 { grid-column: 1 / span 6; margin: 0; }
+.home-care-intro > p { grid-column: 7 / span 6; margin: 0; }
 .home-care {
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
@@ -21026,8 +21030,9 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   padding: var(--space-2) 0;
 }
 .home-care-words__letter { min-width: 1.1em; font-weight: 700; }
-.home-care-explanation { margin-top: var(--space-4); }
-.home-care-explanation > :first-child { margin-top: 0; }
+.home-care-explanation { margin-top: var(--space-4); row-gap: 0; }
+.home-care-explanation > * { grid-column: 7 / span 6; }
+.home-care-explanation > p { margin: 0 0 var(--space-3); }
 
 /* ── Splits: Deep roots (image right) and Dana (image left) ─────────────── */
 .home-page .pp-split__body .pp-intro { margin-bottom: 0; }
@@ -21054,9 +21059,22 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
 }
 
 /* ── 1000 and below: the theme and category rows loosen ─────────────────── */
+/* Below 1024 the three circles take a row each, the label on col 1 and its
+   items on col 7 (2026-10-22: in thirds at 900 the items ran about 24
+   characters a line). */
+@media (min-width: 769px) and (max-width: 1023px) {
+  .home-themes { grid-template-columns: 1fr; gap: var(--space-4); }
+  .home-theme {
+    display: grid;
+    grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+    column-gap: var(--grid-gutter);
+  }
+  .home-theme__label { grid-column: 1 / span 6; min-height: 0; margin: 0; }
+  .home-theme__items { grid-column: 7 / span 6; }
+}
 @media (min-width: 769px) and (max-width: 1000px) {
-  .home-themes, .home-pathways { gap: var(--space-2); }
-  .home-theme__label { min-height: 94px; font-size: var(--text-h2); }
+  .home-pathways { gap: var(--space-2); }
+  .home-theme__label { font-size: var(--text-h2); }
   .home-theme__item { padding: 18px; }
   a.home-pathway { padding: 24px 20px; }
   .home-pathway h3 { font-size: var(--text-h2); }
@@ -21076,6 +21094,9 @@ a.home-pathway:hover .home-pathway__cta > span { transform: translateX(2px); }
   .home-programs__intro > p,
   .home-practice__intro > h2,
   .home-practice__intro > p,
+  .home-care-intro > h2,
+  .home-care-intro > p,
+  .home-care-explanation > *,
   .home-care-figure,
   .home-care-copy { grid-column: 1 / -1; }
   .home-page .pp-intro__title { font-size: 34px; }
@@ -21600,15 +21621,6 @@ html { scroll-padding-top: 88px; }
 .nt-copy p { margin: 0 0 16px; }
 .nt-copy p:last-child { margin-bottom: 0; }
 .nt-copy .pp-btn { margin-top: var(--space-1); }
-.nt-start-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-3);
-  margin: 36px 0 var(--space-3);
-}
-.nt-start-heading h2 { font-size: var(--text-h2); }
-.nt-start-heading > p,
 .nt-section-heading > p:not(.nt-eyebrow) {
   margin: 0;
   color: var(--rim-text-muted);
@@ -21649,8 +21661,10 @@ html { scroll-padding-top: 88px; }
   line-height: 1.5;
 }
 .nt-facts dd { margin: 0; color: var(--rim-text); font-size: var(--text-card); line-height: 1.7; }
+/* A measure in ems, so the note keeps about 75 characters a line (it ran
+   127 at 940px, 2026-10-22). */
 .nt-access-note {
-  max-width: 940px;
+  max-width: 38em;
   margin: 22px 0 0;
   color: var(--rim-text-soft);
   font-size: var(--text-small);
@@ -21686,7 +21700,6 @@ html { scroll-padding-top: 88px; }
   .nt-page h2 br { display: none; }
   .nt-page .nt-hero .pp-hero__title { font-size: 40px; }
   .nt-section { padding: calc(var(--space-1) * 7) 0; }
-  .nt-start-heading { margin-top: var(--space-4); }
 }
 @media (max-width: 430px) {
   .nt-page .nt-hero .pp-hero__title { font-size: 34px; }

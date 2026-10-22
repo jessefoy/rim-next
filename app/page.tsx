@@ -360,13 +360,11 @@ export default function HomePage() {
              the circle is RIM's own artwork, Jesse 2026-09-27). ── */}
       <section className="pp-section" id="taking-care" aria-labelledby="home-care-title">
         <div className="rim-container">
-          <div className="home-care-heading">
+          <div className="home-care-intro">
             <p className="home-eyebrow">Our practice</p>
             <h2 className="pp-intro__title" id="home-care-title">
               Our practice is taking care.
             </h2>
-          </div>
-          <div className="home-care-introduction">
             <p className="pp-intro__body">
               Taking CARE is our way of practice: a mindfulness-based approach to meditation and
               mindful living, true to its Buddhist roots, and a program anyone can take part in.
