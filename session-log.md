@@ -46,6 +46,16 @@ Other removed meanings found by that check, now said nowhere on the public site 
 
 **Jesse's ruling ("I approve", on the recommendations; `85f5d3f`):** the Handful's practice shape returns in "Many medicines, one health" in the old page's words; Home's "Calm and ease" now reads "Rest that helps us heal, more ease with a busy day, money worries, and the sense of doing too much, and more calm in illness, pain, and grief." (folded in so the columns keep 4/3/2; caregiving stays in "Caring that lasts"); "and we reduce harm" stays cut (the garden says it, and restoring it would say "heal, promote, and protect" twice on one page). The vault brief's Part B now matches the live site, with a dated revision note under its header.
 
+### Later still: the ten pages measured against the grid (`bfd6d2c`)
+
+Jesse: *"will you look at all of the pages /design to make sure that they follow logical and aesthetic layout conforming to the grid in reading flow and organization"*. Scope: the ten pages changed today, measured live at 1280, 900 and 390 (text left edges outside cards, characters per line by Range line count, section grounds and padding, heading order) plus the design detector's layout scan (clean). **Conforming, unchanged:** the six reading pages (hero on 110, the article on 422 beside "On this page", 44 to 79 characters a line, one heading tier per level), Diverse Together (110 / 587, its own layout), Volunteer (the 290 column), and no horizontal scroll anywhere. **Fixed, each measured before and after:**
+1. **Home, Our practice is taking care:** the introduction and the closing paragraphs ran the full 1060 (91 to 116 characters a line); now the chapter layout like its neighbours, heading cols 1-6, words cols 7-12 (`.home-care-intro`, `.home-care-explanation` on the 12-column grid): 52 to 58 a line at 1280, 34 to 39 at 900.
+2. **Home, the three circles at 769-1023:** thirds left about 24 characters a line; each circle now takes a row, label col 1, items col 7 (about 40 a line at 900), as the strategic grid's card-row rule asks below 1024. Thirds stay from 1024 up (31 to 37, the accepted cost of thirds).
+3. **New to RIM, Where to begin:** shared a section with Come as you are, at a smaller heading size, its sentence on an off-grid edge (316); now its own section, as Part B separates it, with the page's stacked heading (same 32px h2 as its siblings). Grounds alternate white, Pampas, white… with both card sections on Pampas so the white cards still read (`.nt-start-heading` removed).
+4. **New to RIM's access note** ran 940 wide (127 a line); a 38em measure now (64).
+
+Left as they are, named: Home's Programs cards in thirds read 27 to 30 a line (H6 was not to be touched); New to RIM's own split puts its copy on 584, not 652 (consistent within the page); Why We Practice's benefit panels read about 29 a line on phones inside their 28px padding.
+
 ### What comes next
 
 - **Jesse's read-aloud** of the ten published pages (copy provisional until then). Flags for it: Diverse Together now says "What we share" in its heading just below "What we share is the direction."; "Read more" and "Show less"; the restored Dana, Calm and ease, and Many medicines lines.

@@ -683,6 +683,8 @@ Readers told Jesse the site was tiring to read: one *"had to take breaks"*, anot
 
 **Shorter, never a different meaning** (Jesse, 2026-10-22: *"We did not want to change meaning or intentions. But it was very important to shorten and make more clear."*). Part B's Home Dana had dropped where gifts go and the retreat minimum; both returned in his ratified words, so the section is short and says the same thing. When implementing any condensation, check each removed sentence for a meaning that now lives nowhere on the site, and bring it to him before shipping.
 
+**Measured against the grid the same day** (`bfd6d2c`; numbers in `session-log.md`): Home's Taking CARE section now uses the chapter layout (heading col 1, words col 7) instead of full-width paragraphs; below 1024 the three circles take a row each (label col 1, items col 7) instead of thirds; New to RIM's Where to begin is its own section with the stacked heading; its access note has a 38em measure.
+
 **Recorded departure: Why We Practice's circles stack.** The brief asked for three columns on desktop. The reading column is 680px, so three across would leave about 18 characters a line at 18px; they are stacked panels in the column, as before. Revisit only with a wider layout for that section, not by narrowing the text.
 
 **Vocabulary and rules (Jesse's approval, 2026-10-22):**

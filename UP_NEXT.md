@@ -15,6 +15,8 @@ Everything is on `main` (`57628ff`, `15736ea`, and the closing docs). Narrative 
 
 **Not documented yet:** the Oct 21 to 22 Tutorials work (`/tutorials`, the step-by-step and "Watch it" pages, `0c8be0e` … `c40b5d6`) and `0f2a026` (My Home leads the phone menu; leads see who hasn't signed in) shipped after the Oct 20 closing without one; FEATURES and the session log don't mention them. Backlog `2026-10-21-001` holds the sign-in question and Zoom's phone Claim-host step.
 
+**Layout:** the ten pages were measured against the grid (1280, 900, 390) and four defects fixed on Home and New to RIM (`bfd6d2c`; `session-log.md`, 2026-10-22, "Later still").
+
 **Next concrete step:** Jesse's read-aloud of the ten pages; then the items still open from Oct 20 below.
 
 ## Earlier — 2026-10-20 (later) closed: My Home without Coming up; Notifications categorized
