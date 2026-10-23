@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { extractBlockNoteText } from "@/lib/renderRichContent";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canUseRegistration } from "@/lib/toolAuth";
+import { recordRegistrationEvent } from "@/lib/registrationEvents";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session || !canUseProgramManager(session.user.roles)) {
+  if (!session || !canUseRegistration(session.user.roles)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -22,6 +23,11 @@ export async function GET(
     // so they don't belong on the roster or the CSV export.
     where: { programSlug: slug, status: { not: "PENDING_PAYMENT" } },
     orderBy: { createdAt: "asc" },
+    // Never the edit link's key or the Stripe session (2026-10-23).
+    select: {
+      id: true, programId: true, programSlug: true, firstName: true, lastName: true, email: true, phone: true,
+      status: true, donationStatus: true, customFields: true, waitlistPosition: true, notes: true, createdAt: true,
+    },
   });
 
   if (format === "csv") {
@@ -73,6 +79,14 @@ export async function GET(
     });
 
     const csv = [header, ...rows].join("\n");
+    // A download carries everyone's contact details and answers: it is kept
+    // in the program's history (2026-10-23).
+    await recordRegistrationEvent({
+      kind: "downloaded",
+      programId: registrations[0]?.programId ?? null,
+      programSlug: slug,
+      actorId: session.user.id,
+    });
 
     return new NextResponse(csv, {
       headers: {

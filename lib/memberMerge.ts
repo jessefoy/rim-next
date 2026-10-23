@@ -209,6 +209,9 @@ const POINTERS: { table: string; column: string }[] = [
   { table: "course_access", column: "grantedBy" },
   // A member's ban from a session room is kept by id (guests by name).
   { table: "session_bans", column: "identity" },
+  // The Registration app's history and notes (2026-10-23).
+  { table: "registration_events", column: "actorId" },
+  { table: "registration_notes", column: "authorId" },
 ];
 
 /** Reactions are { "👍": [userId, …] } lists: the person appears once, as the kept account. */

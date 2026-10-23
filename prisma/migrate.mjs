@@ -7168,6 +7168,24 @@ Rooted In Mindfulness`,
     console.error("  Session reminder link: failed (template unchanged):", err?.message ?? err);
   }
 
+  // The Registration app (2026-10-23): its history and its notes on people.
+  // Two additive tables, no backfill; old code ignores both. See
+  // RegistrationEvent / RegistrationNote in schema.prisma.
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "registration_events" (
+      "id" TEXT NOT NULL PRIMARY KEY, "programId" TEXT, "programSlug" TEXT NOT NULL,
+      "registrationId" TEXT, "kind" TEXT NOT NULL, "actorId" TEXT, "detail" JSONB,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "registration_events_programSlug_createdAt_idx" ON "registration_events"("programSlug", "createdAt")`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "registration_events_registrationId_createdAt_idx" ON "registration_events"("registrationId", "createdAt")`),
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "registration_notes" (
+      "id" TEXT NOT NULL PRIMARY KEY, "registrationId" TEXT NOT NULL, "authorId" TEXT,
+      "body" TEXT NOT NULL, "forTeacher" BOOLEAN NOT NULL DEFAULT false,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "registration_notes_registrationId_createdAt_idx" ON "registration_notes"("registrationId", "createdAt")`),
+  ]);
+  console.log("  ✔ Registration history and notes tables ready.");
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

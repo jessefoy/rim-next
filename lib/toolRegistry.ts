@@ -8,9 +8,9 @@
  * `slug` must match the toolSlug used in hasToolAccess() and UserToolAccess.
  */
 
-export const TOOL_SLUGS = ["schedule", "programs", "learning"] as const;
+export const TOOL_SLUGS = ["schedule", "programs", "registration", "learning"] as const;
 export type ToolSlug = (typeof TOOL_SLUGS)[number];
-export type ToolIconKey = "calendar" | "programs" | "learning";
+export type ToolIconKey = "calendar" | "programs" | "registration" | "learning";
 
 export interface ToolDefinition {
   slug: ToolSlug;
@@ -59,6 +59,20 @@ export const TOOL_REGISTRY = [
     path: "/tools/programs",
     iconKey: "programs",
     description: "Program CRUD, scheduling, registration settings",
+    spaceMode: "primary-space",
+    primarySpaceSlug: "registrar",
+    canBePrimary: true,
+    spaceContributions: { home: "summary", updates: false, attention: false },
+  },
+  {
+    // The Registration app (2026-10-23): who's coming to each program and
+    // what needs a person. Role-only like the Program Manager
+    // (canUseRegistration), so team membership alone never opens it.
+    slug: "registration",
+    label: "Registration",
+    path: "/tools/registration",
+    iconKey: "registration",
+    description: "Who's coming to each program, what needs a person, dana, notes and history",
     spaceMode: "primary-space",
     primarySpaceSlug: "registrar",
     canBePrimary: true,

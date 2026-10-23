@@ -17,7 +17,7 @@ import { effectiveCoordinator } from "@/lib/hubAuth";
 import { resolveRegisteredTool } from "@/lib/hubApps";
 import { countHubUnreadForYou, readPointOf } from "@/lib/hubActivity";
 import { hubLeadAllowed } from "@/lib/googleFiles";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canSeeInstalledApp } from "@/lib/toolAuth";
 
 export async function GET(
   _req: Request,
@@ -82,11 +82,11 @@ export async function GET(
       return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "—";
     });
 
-  // The Program Manager shows only to the roles that can use it (Jesse,
+  // Programs and Registration show only to the roles that can use them (Jesse,
   // 2026-10-19); a team member without them saw a card and a rail link that
   // opened "You don't have permission".
   const tools = hub.appLinks
-    .filter((link) => link.toolSlug !== "programs" || canUseProgramManager(session.user.roles))
+    .filter((link) => canSeeInstalledApp(link.toolSlug, session.user.roles))
     .map((link) => {
     const registered = resolveRegisteredTool(link);
     return {

@@ -208,10 +208,10 @@ An installation may provide five things: sidebar navigation, active-member tool 
 Current safety rules:
 
 - Scheduler is multi-Space because every query/write already routes by `hubSlug` and the program/resource hub.
-- Program Manager is restricted to `registrar`; Course Manager is restricted to `courses` until their data and permissions are truly multi-Space scoped.
+- Program Manager and Registration are restricted to `registrar`; Course Manager is restricted to `courses` until their data and permissions are truly multi-Space scoped.
 - Admin UI and POST/PATCH APIs both block newly incompatible installs. Ordinary edits preserve an existing incompatible row so an unrelated save cannot break a team.
 - Hub config + app replacement commit in one `$transaction`; never delete all links before a possibly-failing hub update.
-- `hasToolAccess()` grants the app-link pathway only to ACTIVE members of an ACTIVE hub. Custom links never grant access. The Program Manager is the exception: it is role-only (`canUseProgramManager`: Registrar, Admin, Guiding Teacher), on every page and API, and the registrar team's Home and rail show it only to those roles (Jesse, 2026-10-19).
+- `hasToolAccess()` grants the app-link pathway only to ACTIVE members of an ACTIVE hub. Custom links never grant access. The Program Manager and Registration are the exceptions: both are role-only (`canUseProgramManager` and `canUseRegistration`: Registrar, Admin, Guiding Teacher), on every page and API, and a team's Home and rail show them only to those roles through `canSeeInstalledApp` (Jesse, 2026-10-19; Registration 2026-10-23, `RIM_Registration_App.md`).
 - When a Space has enabled registered apps, one is primary (`HubAppLink.isPrimary`); a partial unique index enforces at most one primary per Space. Other registered apps are supporting. Custom links can never be primary.
 - Home renders at most one contribution per app, and only the primary app's: one summary line in the highlighted tool card at the top of team Home (2026-10-13). Supporting apps and custom links are quiet destination rows. No app adds a module, disclosure or second card, and a summary never states a count it cannot compute truthfully (the Scheduler's row count would have; see "Team Home, 2026-10-13").
 - Updates adapters emit only meaningful, visible events (never held Google-file draft activity) and every item names `sourceKey`, `sourceLabel`, and `kind`.

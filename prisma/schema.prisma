@@ -1032,6 +1032,43 @@ model HubEvent {
   @@map("hub_events")
 }
 
+/// The Registration app's history (2026-10-23): who did what to a program's
+/// registrations, and when. No relations, like HubEvent: a deleted
+/// registration keeps its history, and memberMerge moves actorId.
+/// lib/registrationEvents.ts writes it.
+model RegistrationEvent {
+  id             String   @id @default(cuid())
+  programId      String?
+  programSlug    String
+  /// Null for a change to the whole program (a reminder to everyone).
+  registrationId String?
+  kind           String
+  /// Who did it; null when the system did.
+  actorId        String?
+  detail         Json?
+  createdAt      DateTime @default(now())
+
+  @@index([programSlug, createdAt])
+  @@index([registrationId, createdAt])
+  @@map("registration_events")
+}
+
+/// A registration team's note on a person (2026-10-23): written once, with
+/// its author and date, never edited over. `forTeacher` marks a note the
+/// teacher will see on their page (a later phase). The older single notes
+/// field, Registration.notes, stays readable as "an earlier note".
+model RegistrationNote {
+  id             String   @id @default(cuid())
+  registrationId String
+  authorId       String?
+  body           String
+  forTeacher     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([registrationId, createdAt])
+  @@map("registration_notes")
+}
+
 /// A person's notice (2026-10-20): every email about them or their teams is
 /// also written here once, for /account/notifications. lib/notifications.ts.
 model Notification {

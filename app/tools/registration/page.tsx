@@ -1,0 +1,189 @@
+/**
+ * /tools/registration — the Registration app's desk (2026-10-23).
+ * What needs a person across every program, then the programs taking
+ * registration. Gate: canUseRegistration (also in the layout).
+ * Design: mockups/registration-2026-10-23 (the desk screen), BUILD_PLAN.md.
+ */
+
+import { auth } from "@/auth";
+import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { canUseRegistration } from "@/lib/toolAuth";
+import {
+  isOver,
+  placesLine,
+  programNeeds,
+  programWhen,
+  registrationState,
+  type DeskCounts,
+  type DeskProgram,
+} from "@/lib/registrationDesk";
+
+export const metadata = { title: "Registration - Tools" };
+export const dynamic = "force-dynamic";
+
+const PROGRAM_SELECT = {
+  slug: true,
+  name: true,
+  dateText: true,
+  startDatetime: true,
+  endDatetime: true,
+  recurrenceFreq: true,
+  recurrenceInterval: true,
+  recurrenceDays: true,
+  registrationEnabled: true,
+  registrationClosed: true,
+  registrationCapacity: true,
+  registrationDeadline: true,
+  reminderDate: true,
+  archivedAt: true,
+} as const;
+
+export default async function RegistrationDeskPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hub?: string }>;
+}) {
+  const session = await auth();
+  if (!session) redirect("/login");
+  // The layout's gate, repeated: a page can render without its layout re-running.
+  if (!canUseRegistration(session.user.roles)) notFound();
+
+  const { hub } = await searchParams;
+  const hubQs = hub ? `?hub=${encodeURIComponent(hub)}` : "";
+
+  const [programs, byStatus, danaRows, unsentRows] = await Promise.all([
+    db.program.findMany({ select: PROGRAM_SELECT, orderBy: [{ startDatetime: "asc" }, { name: "asc" }] }),
+    db.registration.groupBy({
+      by: ["programSlug", "status"],
+      where: { status: { not: "PENDING_PAYMENT" } },
+      _count: { _all: true },
+    }),
+    db.registration.groupBy({
+      by: ["programSlug"],
+      where: { donationStatus: "PENDING", status: { in: ["REGISTERED", "APPROVED"] } },
+      _count: { _all: true },
+    }),
+    db.registration.groupBy({
+      by: ["programSlug"],
+      where: { reminderSentAt: null, status: { in: ["REGISTERED", "APPROVED"] } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const countsFor = (slug: string): DeskCounts & { any: number } => {
+    const rows = byStatus.filter((r) => r.programSlug === slug);
+    const n = (s: string) => rows.find((r) => r.status === s)?._count._all ?? 0;
+    return {
+      registered: n("REGISTERED") + n("APPROVED"),
+      waiting: n("WAITLISTED"),
+      danaNotFinished: danaRows.find((r) => r.programSlug === slug)?._count._all ?? 0,
+      reminderUnsent: unsentRows.find((r) => r.programSlug === slug)?._count._all ?? 0,
+      any: rows.reduce((sum, r) => sum + r._count._all, 0),
+    };
+  };
+
+  const now = new Date();
+  const rows = programs.map((p) => {
+    const program: DeskProgram = p;
+    const counts = countsFor(p.slug);
+    return {
+      program,
+      archived: !!p.archivedAt,
+      counts,
+      needs: p.archivedAt ? [] : programNeeds(program, counts, now),
+      when: programWhen(program),
+    };
+  });
+
+  const needs = rows.flatMap((r) =>
+    r.needs.map((need) => ({ ...need, slug: r.program.slug, name: r.program.name })),
+  );
+  const taking = rows.filter((r) => r.program.registrationEnabled && !r.archived && !isOver(r.program));
+  const takingSlugs = new Set(taking.map((r) => r.program.slug));
+  const others = rows
+    .filter((r) => !takingSlugs.has(r.program.slug) && r.counts.any > 0)
+    .reverse();
+
+  const programHref = (slug: string, show?: string) =>
+    `/tools/registration/${slug}${hubQs}${show ? `${hubQs ? "&" : "?"}show=${show}` : ""}`;
+  const SHOW: Record<string, string | undefined> = { place: "waiting", dana: "dana", reminder: undefined };
+  const ACT: Record<string, string> = { place: "See who's waiting", dana: "See who", reminder: "Open the program" };
+
+  return (
+    <div className="vol-page">
+      <div className="vol-content">
+        <header className="vol-header">
+          <h1 className="vol-header__title">Registration</h1>
+          <p className="vol-header__sub">What needs a person, then every program taking registration.</p>
+        </header>
+
+        <h2 className="reg-sectitle">Needs you</h2>
+        {needs.length === 0 ? (
+          <p className="reg-quiet">Nothing needs you right now.</p>
+        ) : (
+          <ul className="reg-list">
+            {needs.map((n) => (
+              <li key={`${n.slug}-${n.kind}`} className="reg-item">
+                <div className="reg-item__text">
+                  <span className="reg-item__prog">{n.name}</span>
+                  <strong>{n.text}</strong>
+                </div>
+                <Link className="vol-action-btn" href={programHref(n.slug, SHOW[n.kind])}>
+                  {ACT[n.kind]}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <h2 className="reg-sectitle">Programs taking registration</h2>
+        {taking.length === 0 ? (
+          <p className="reg-quiet">No program is taking registration.</p>
+        ) : (
+          <ul className="reg-list">
+            {taking.map((r) => (
+              <li key={r.program.slug}>
+                <Link className="reg-prog" href={programHref(r.program.slug)}>
+                  <span>
+                    <span className="reg-prog__name">{r.program.name}</span>
+                    <span className="reg-prog__meta">
+                      {[r.when, registrationState(r.program, now), placesLine(r.program, r.counts)].filter(Boolean).join(" · ")}
+                    </span>
+                  </span>
+                  <span className="reg-prog__go" aria-hidden="true">Open &rarr;</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {others.length > 0 && (
+          <details className="reg-fold">
+            <summary>Other programs with registrations ({others.length})</summary>
+            <ul className="reg-list">
+              {others.map((r) => (
+                <li key={r.program.slug}>
+                  <Link className="reg-prog" href={programHref(r.program.slug)}>
+                    <span>
+                      <span className="reg-prog__name">{r.program.name}</span>
+                      <span className="reg-prog__meta">
+                        {[
+                          r.when,
+                          r.archived ? "Archived" : isOver(r.program) ? "Over" : registrationState(r.program, now),
+                          placesLine(r.program, r.counts),
+                        ].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    <span className="reg-prog__go" aria-hidden="true">Open &rarr;</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </div>
+    </div>
+  );
+}

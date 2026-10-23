@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { sendReminderEmail } from "@/lib/email";
 import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canUseRegistration } from "@/lib/toolAuth";
+import { recordRegistrationEvent } from "@/lib/registrationEvents";
 
 // ─── POST /api/programs/[slug]/send-reminder ──────────────────────────────────
 // Sends the program reminder email to all active registrants who haven't
@@ -16,7 +17,7 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session || !canUseProgramManager(session.user.roles)) {
+  if (!session || !canUseRegistration(session.user.roles)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -59,6 +60,16 @@ export async function POST(
     await db.registration.update({
       where: { id: reg.id },
       data: { reminderSentAt: now },
+    });
+  }
+
+  if (registrations.length > 0) {
+    await recordRegistrationEvent({
+      kind: "reminders-sent",
+      programId: pgProgram?.id ?? null,
+      programSlug: slug,
+      actorId: session.user.id,
+      detail: { count: registrations.length },
     });
   }
 

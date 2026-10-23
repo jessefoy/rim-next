@@ -5,7 +5,7 @@
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canUseProgramManager, canUseRegistration } from "@/lib/toolAuth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import VolunteerTable, { SerializedRegistration } from "@/components/registrar/VolunteerTable";
@@ -90,6 +90,12 @@ export default async function ProgramDetailToolPage({
             <Link href={`/tools/programs/${programSlug}/edit`} className="vol-header__edit-link">
               Edit Program Settings &rarr;
             </Link>
+            {/* The Registration app, beside this roster until it replaces it (2026-10-23). */}
+            {canUseRegistration(session.user.roles) && (
+              <Link href={`/tools/registration/${programSlug}`} className="vol-header__edit-link">
+                Open in Registration &rarr;
+              </Link>
+            )}
           </div>
         </div>
 

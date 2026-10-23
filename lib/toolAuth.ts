@@ -14,6 +14,42 @@ export function canUseProgramManager(roles: readonly string[] | null | undefined
 }
 
 /**
+ * Who may use the Registration app and every API that reads or changes a
+ * registration (2026-10-23): the Registrar, Admin and Guiding Teacher roles,
+ * by role only. Today the same people as the Program Manager, but its own
+ * rule: when Programs opens to the teams that set programs up, people's
+ * contact details and answers stay here. Team membership never opens it, so
+ * someone who leaves the role leaves the data.
+ */
+export const REGISTRATION_ROLES = ["REGISTRAR", "ADMIN", "GUIDING_TEACHER"] as const;
+
+export function canUseRegistration(roles: readonly string[] | null | undefined): boolean {
+  return !!roles?.some((r) => (REGISTRATION_ROLES as readonly string[]).includes(r));
+}
+
+/**
+ * Whether a Space shows an installed app to this person. The two role-only
+ * apps (Programs, Registration) hide from a team's rail and Home for members
+ * without the role: a card that opened "You don't have permission" was worse
+ * than none (2026-10-19). Every other app shows to every member.
+ */
+export function canSeeInstalledApp(toolSlug: string | null, roles: readonly string[] | null | undefined): boolean {
+  if (toolSlug === "programs") return canUseProgramManager(roles);
+  if (toolSlug === "registration") return canUseRegistration(roles);
+  return true;
+}
+
+/**
+ * Who may see how much someone gave (Jesse, 2026-10-23: "relatively
+ * private"): the Registrar, Guiding Teacher and Admin roles. Anyone else
+ * helping with a program sees whether dana is finished, never the amount,
+ * and no helper's page shows dana at all.
+ */
+export function canSeeDanaAmounts(roles: readonly string[] | null | undefined): boolean {
+  return !!roles?.some((r) => r === "REGISTRAR" || r === "GUIDING_TEACHER" || r === "ADMIN");
+}
+
+/**
  * Check if a user has access to a tool.
  *
  * Access is granted if the user:

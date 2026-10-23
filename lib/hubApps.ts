@@ -650,6 +650,19 @@ const HUB_APP_PROVIDERS: Record<ToolSlug, HubAppProvider> = {
       };
     },
   },
+  registration: {
+    home: async () => {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const count = await db.registration.count({
+        where: { createdAt: { gte: since }, status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
+      });
+      return {
+        count,
+        countLabel: plural(count, "new registration in the last seven days", "new registrations in the last seven days"),
+        quietText: "No new registrations in the last seven days.",
+      };
+    },
+  },
   learning: {
     home: async () => {
       const count = await db.course.count({ where: { isActive: false } });

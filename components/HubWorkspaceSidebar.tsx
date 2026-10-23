@@ -35,6 +35,7 @@ import {
   FolderOpen,
   CalendarDays,
   ClipboardList,
+  UserRoundCheck,
   GraduationCap,
   Link2,
   UserRound,
@@ -94,6 +95,7 @@ const COLLAPSE_KEY = "rim-hub-sidebar-collapsed";
 const TOOL_ICONS = {
   calendar: CalendarDays,
   programs: ClipboardList,
+  registration: UserRoundCheck,
   learning: GraduationCap,
   link: Link2,
 } as const;

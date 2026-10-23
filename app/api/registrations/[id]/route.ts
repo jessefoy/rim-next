@@ -16,7 +16,8 @@ import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { requiredDanaCents } from "@/lib/programUtils";
 import { addRegistrationToFlodesk, removeRegistrationFromFlodesk } from "@/lib/flodesk";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canUseRegistration } from "@/lib/toolAuth";
+import { recordRegistrationEvent } from "@/lib/registrationEvents";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
@@ -25,7 +26,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session || !canUseProgramManager(session.user.roles)) {
+  if (!session || !canUseRegistration(session.user.roles)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -52,6 +53,7 @@ export async function PATCH(
         programTitle: reg.programTitle,
         token,
       });
+      await recordRegistrationEvent({ kind: "edit-link-sent", programId: reg.programId, programSlug: reg.programSlug, registrationId: id, actorId: session.user.id });
       return NextResponse.json({ ok: true });
     }
 
@@ -85,6 +87,7 @@ export async function PATCH(
         where: { id },
         data: { reminderSentAt: new Date() },
       });
+      await recordRegistrationEvent({ kind: "reminder-sent", programId: reg.programId, programSlug: reg.programSlug, registrationId: id, actorId: session.user.id });
       return NextResponse.json({ ok: true, reminderSentAt: updated.reminderSentAt?.toISOString() });
     }
 
@@ -107,6 +110,7 @@ export async function PATCH(
         programSlug:  reg.programSlug,
         registrationId: reg.id,
       });
+      await recordRegistrationEvent({ kind: "dana-reminder-sent", programId: reg.programId, programSlug: reg.programSlug, registrationId: id, actorId: session.user.id });
       return NextResponse.json({ ok: true });
     }
 
@@ -171,6 +175,7 @@ export async function PATCH(
         googleCalendarUrl,
         icsUrl,
       });
+      await recordRegistrationEvent({ kind: "confirmation-resent", programId: reg.programId, programSlug: reg.programSlug, registrationId: id, actorId: session.user.id });
 
       return NextResponse.json({ ok: true });
     }
@@ -226,7 +231,20 @@ export async function PATCH(
         ...(resolvedDonationStatus && { donationStatus: resolvedDonationStatus }),
         ...(customFields !== undefined && { customFields }),
       },
+      select: { id: true, status: true, donationStatus: true, waitlistPosition: true },
     });
+
+    // The program's history: who changed what (2026-10-23).
+    const who = { programId: current.programId, programSlug: current.programSlug, registrationId: id, actorId: session.user.id };
+    if (status && status !== current.status) {
+      await recordRegistrationEvent({ ...who, kind: "status-changed", detail: { from: current.status, to: status } });
+    }
+    if (donationStatus && donationStatus !== current.donationStatus) {
+      await recordRegistrationEvent({ ...who, kind: "dana-changed", detail: { from: current.donationStatus, to: donationStatus } });
+    }
+    if (customFields !== undefined && JSON.stringify(customFields) !== JSON.stringify(current.customFields)) {
+      await recordRegistrationEvent({ ...who, kind: "answers-edited" });
+    }
 
     // Send approval email when promoted from waitlist
     if (isPromotion) {
@@ -274,7 +292,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session || !canUseProgramManager(session.user.roles)) {
+  if (!session || !canUseRegistration(session.user.roles)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -295,6 +313,18 @@ export async function DELETE(
     }
 
     await db.registration.delete({ where: { id } });
+    // Its notes go with it; its history stays, with this last line.
+    await db.registrationNote.deleteMany({ where: { registrationId: id } }).catch((err) => {
+      console.error("[registrations] notes cleanup failed:", err);
+    });
+    await recordRegistrationEvent({
+      kind: "deleted",
+      programId: registration.programId,
+      programSlug: registration.programSlug,
+      registrationId: id,
+      actorId: session.user.id,
+      detail: { name: `${registration.firstName} ${registration.lastName}`.trim() },
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Delete registration error:", error);
