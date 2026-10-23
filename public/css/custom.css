@@ -3445,7 +3445,8 @@ h4 { font-size: var(--text-h4); }
   /* The roster's phone row is a grid (its card layout above); the programs
      list's later phone rule (.vol-table tr { display: block }) flattened it,
      in the Program Manager's roster too. */
-  .vol-table tr.vol-row { display: grid; }
+  .vol-table tr.vol-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; }
+  .vol-table tr.vol-row .vol-row__email { overflow-wrap: anywhere; }
   .tools-shell .reg-search { width: 100%; }
 }
 @media (max-width: 640px) {
