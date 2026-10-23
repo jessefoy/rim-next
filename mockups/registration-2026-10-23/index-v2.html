@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Programs and Registration, two apps (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<!-- The live stylesheet, so the page opens anywhere (from disk, or as a snapshot). -->
+<link rel="stylesheet" href="https://rim-next.vercel.app/css/custom.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Mockup only (2026-10-23, second pass after the design critique). Tokens from
+   custom.css; nothing here ships. mk- marks what this proposal adds; everything
+   else is the app's own classes. */
+
+/* The guide bar: not part of the app. */
+.mk-guide { background: var(--rim-heading, #1f3a4a); color: #fff; padding: 12px 24px; font-family: var(--font-sans); font-size: 15px; line-height: 1.5; position: sticky; top: 0; z-index: 200; }
+.mk-guide__inner { max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.mk-guide__label { font-weight: 700; margin-right: 4px; }
+.mk-guide__btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.mk-guide button { font: inherit; color: #fff; background: transparent; border: 1px solid rgba(255,255,255,.55); border-radius: 9999px; padding: 6px 14px; min-height: 36px; cursor: pointer; }
+.mk-guide button[aria-pressed="true"] { background: #fff; color: var(--rim-blue); border-color: #fff; font-weight: 600; }
+.mk-guide__note { width: 100%; margin: 0; color: rgba(255,255,255,.9); max-width: 110ch; }
+[hidden] { display: none !important; }
+@media (max-width: 768px) { .mk-guide { position: static; } }
+.mk-page .nav { position: relative; top: auto; }
+
+/* Shared pieces */
+.mk-muted { color: var(--rim-text-soft); }
+.mk-meta { font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+.mk-num { font-variant-numeric: tabular-nums; }
+.mk-btnrow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.mk-link { color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
+.mk-linkbtn { font: inherit; color: var(--rim-blue); background: none; border: 0; padding: 0 2px; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.mk-note-saved { color: var(--color-success); font-weight: 600; }
+.mk-note-error { color: var(--color-error); font-weight: 600; }
+.mk-panel { background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; padding: var(--space-3); margin-bottom: var(--space-3); }
+.mk-panel h3 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h4); color: var(--rim-heading); margin: 0 0 var(--space-2); }
+.mk-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-2); }
+.mk-field > span:first-child, .mk-field legend { font-weight: 600; color: var(--rim-heading); }
+.mk-field input[type="text"], .mk-field input[type="email"], .mk-field input[type="tel"], .mk-field input[type="number"], .mk-field input[type="date"], .mk-field select, .mk-field textarea {
+  font: inherit; font-size: 16px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--rim-rule); border-radius: 8px; background: #fff; color: var(--rim-text); box-sizing: border-box; max-width: 100%; }
+.mk-field textarea { min-height: 88px; width: 100%; }
+.mk-check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.mk-check input { width: 20px; height: 20px; margin: 0; flex: none; }
+fieldset.mk-field { border: 0; padding: 0; margin: 0 0 var(--space-2); }
+
+/* ── Registration list ── */
+.mk-intro { color: var(--rim-text-soft); margin: 0 0 var(--space-3); max-width: 60ch; }
+.mk-proglist { list-style: none; margin: var(--space-3) 0 0; padding: 0; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.mk-proglist li + li { border-top: 1px solid var(--rim-rule); }
+.mk-prog { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 24px; padding: var(--space-2) var(--space-3); color: inherit; text-decoration: none; min-height: 44px; }
+.mk-prog:hover { background: var(--rim-bg-bright, #faf9f7); }
+.mk-prog:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: -2px; }
+.mk-prog__name { font-weight: 600; color: var(--rim-heading); }
+.mk-prog:hover .mk-prog__name { color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
+.mk-prog__state { color: var(--rim-text-soft); }
+.mk-prog__need { grid-column: 1 / -1; color: var(--color-warning); }
+.mk-prog__go { align-self: center; color: var(--rim-blue); white-space: nowrap; }
+@media (max-width: 560px) { .mk-prog { grid-template-columns: 1fr; } .mk-prog__go { display: none; } }
+
+/* ── Roster ── */
+.mk-head { margin-bottom: var(--space-3); }
+.mk-head h2 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h2); line-height: var(--lh-heading); color: var(--rim-heading); margin: 6px 0 6px; }
+.mk-state { font-size: var(--text-app, 16px); color: var(--rim-text); margin: 0 0 4px; }
+.mk-state strong { color: var(--rim-heading); }
+.mk-facts { margin: 0; color: var(--rim-text-soft); }
+
+/* What needs you: actions, one per item */
+.mk-needs { list-style: none; margin: 0 0 var(--space-3); padding: 0; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.mk-needs > li { padding: var(--space-2) var(--space-3); }
+.mk-needs > li + li { border-top: 1px solid var(--rim-rule); }
+.mk-need { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; align-items: center; }
+.mk-need__text strong { color: var(--rim-heading); }
+.mk-need__text .mk-meta { display: block; }
+.mk-confirm { grid-column: 1 / -1; background: var(--rim-bg-bright, #faf9f7); border-radius: 8px; padding: 12px 16px; }
+.mk-confirm p { margin: 0 0 10px; }
+.mk-done { grid-column: 1 / -1; }
+.mk-needs-title { font-weight: 600; color: var(--rim-heading); margin: 0 0 8px; }
+@media (max-width: 640px) { .mk-need { grid-template-columns: 1fr; } }
+
+/* Settings row (the same settings as the program editor's) */
+.mk-settings { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: flex-end; }
+.mk-settings .mk-field { margin-bottom: 0; }
+.mk-settings input[type="number"] { width: 110px; }
+.mk-settings__foot { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; }
+details.mk-settings-wrap > summary { cursor: pointer; font-weight: 600; color: var(--rim-heading); min-height: 44px; display: flex; align-items: center; gap: 8px; list-style: none; }
+details.mk-settings-wrap > summary::-webkit-details-marker { display: none; }
+details.mk-settings-wrap > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-left: 4px; transition: transform .15s; }
+details.mk-settings-wrap[open] > summary::after { transform: rotate(-135deg); }
+.mk-settings-sum { color: var(--rim-text-soft); font-weight: 400; }
+@media (max-width: 560px) { details.mk-settings-wrap > summary { flex-wrap: wrap; } .mk-settings-sum { flex-basis: 100%; order: 2; } }
+
+/* Actions above the people */
+.mk-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: var(--space-3) 0 var(--space-2); }
+.mk-tabs [role="tab"] { min-height: 44px; }
+
+/* People table */
+.mk-rowbtn { font: inherit; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 44px; color: inherit; }
+.mk-rowbtn:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: 2px; border-radius: 4px; }
+.mk-rowbtn__chev { width: 8px; height: 8px; border-right: 2px solid var(--rim-text-soft); border-bottom: 2px solid var(--rim-text-soft); transform: rotate(-45deg); transition: transform .15s; flex: none; }
+.mk-rowbtn[aria-expanded="true"] .mk-rowbtn__chev { transform: rotate(45deg); }
+.mk-inline-move { margin-left: 8px; }
+.mk-answer { margin: 0 0 12px; }
+.mk-answer__q { display: block; font-weight: 600; color: var(--rim-heading); }
+.mk-answer__a { display: block; }
+.mk-tag { font-weight: 400; color: var(--rim-text-soft); font-size: var(--text-app-meta, 15px); }
+.mk-notes { list-style: none; margin: 0 0 12px; padding: 0; }
+.mk-notes li { margin-bottom: 12px; }
+.mk-notes__by { display: block; font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+.mk-actions-col { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+
+/* History */
+.mk-history { list-style: none; margin: 0; padding: 0; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.mk-history li { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 4px 16px; padding: 14px var(--space-3); border-top: 1px solid var(--rim-rule); }
+.mk-history li:first-child { border-top: 0; }
+.mk-history__when { color: var(--rim-text-soft); font-size: var(--text-app-meta, 15px); }
+.mk-history--person { background: none; border: 0; }
+.mk-history--person li { grid-template-columns: 90px minmax(0, 1fr); padding: 6px 0; border-top: 0; }
+@media (max-width: 560px) { .mk-history li { grid-template-columns: 1fr; } }
+
+/* Sharing */
+.mk-shares { list-style: none; margin: 0 0 var(--space-3); padding: 0; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.mk-share { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: center; padding: var(--space-2) var(--space-3); border-top: 1px solid var(--rim-rule); }
+.mk-share:first-child { border-top: 0; }
+.mk-share__who { font-weight: 600; color: var(--rim-heading); }
+.mk-share__what, .mk-share__meta { display: block; }
+.mk-share__meta { color: var(--rim-text-soft); font-size: var(--text-app-meta, 15px); }
+.mk-choice { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 2px 10px; align-items: start; padding: 10px 0; cursor: pointer; }
+.mk-choice input { width: 20px; height: 20px; margin: 2px 0 0; }
+.mk-choice__name { font-weight: 600; color: var(--rim-heading); }
+.mk-choice__desc { grid-column: 2; color: var(--rim-text-soft); font-size: var(--text-app-meta, 15px); }
+.mk-preview { background: var(--rim-bg-bright, #faf9f7); border-radius: 8px; padding: 12px 16px; margin: 0 0 var(--space-2); }
+.mk-preview__title { font-weight: 600; color: var(--rim-heading); margin: 0 0 4px; }
+.mk-preview p { margin: 0; }
+.mk-warn { color: var(--color-warning); margin: 8px 0 0; }
+
+/* Inline panels (add a person, message, print) */
+.mk-inline { margin-bottom: var(--space-3); }
+
+/* Shared, read-only rosters */
+.mk-banner { background: var(--rim-bg-bright, #faf9f7); border: 1px solid var(--rim-rule); border-radius: 12px; padding: 12px 16px; margin: 0 0 var(--space-3); }
+.mk-banner p { margin: 0; }
+.mk-tally dl { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 24px; max-width: 420px; }
+.mk-tally dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.mk-simple { list-style: none; margin: 0; padding: 0; }
+.mk-simple li { padding: 8px 0; border-top: 1px solid var(--rim-rule); }
+.mk-simple li:first-child { border-top: 0; }
+.mk-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+@media (max-width: 860px) { .mk-two { grid-template-columns: 1fr; } }
+
+/* ── Program editor: one page in sections ── */
+.mk-ed-head { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: var(--space-3); }
+.mk-ed-head h2 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h2); line-height: var(--lh-heading); color: var(--rim-heading); margin: 4px 0 0; }
+.mk-ed-label { color: var(--rim-text-soft); }
+.mk-ed { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+.mk-index { position: sticky; top: 16px; }
+.mk-index ol { list-style: none; margin: 0; padding: 0; }
+.mk-index a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--rim-text); text-decoration: none; }
+.mk-index a:hover { background: var(--rim-bg-bright, #faf9f7); }
+.mk-index a[aria-current="true"] { background: var(--rim-surface); color: var(--rim-blue); font-weight: 600; }
+.mk-jump { display: none; }
+@media (max-width: 900px) { .mk-ed { grid-template-columns: 1fr; } .mk-index { display: none; } .mk-jump { display: flex; } }
+.mk-sec { background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); scroll-margin-top: 16px; }
+.mk-sec h3 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h3); color: var(--rim-heading); margin: 0 0 var(--space-2); }
+.mk-sec__sub { font-weight: 600; color: var(--rim-heading); margin: var(--space-3) 0 var(--space-1); }
+@media (max-width: 560px) { .mk-sec { padding: var(--space-3); } }
+.mk-ready { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.mk-ready li { display: flex; gap: 10px; align-items: baseline; }
+.mk-ready__mark { flex: none; width: 1.2em; font-weight: 700; }
+.mk-ready__mark--ok { color: var(--color-success); }
+.mk-ready__mark--todo { color: var(--color-warning); }
+.mk-readonly { background: var(--rim-bg-bright, #faf9f7); border-radius: 8px; padding: 10px 14px; }
+
+/* Questions */
+.mk-q { border: 1px solid var(--rim-rule); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; background: #fff; }
+.mk-q__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; }
+.mk-q__row input[type="text"] { font: inherit; font-size: 16px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--rim-rule); border-radius: 8px; width: 100%; box-sizing: border-box; }
+.mk-q__row select { font: inherit; font-size: 16px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--rim-rule); border-radius: 8px; background: #fff; }
+.mk-q__opts { margin-top: 8px; }
+.mk-q__opts input { font: inherit; font-size: 16px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--rim-rule); border-radius: 8px; width: 100%; box-sizing: border-box; }
+.mk-q__line { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin-top: 8px; }
+.mk-q__reads { color: var(--rim-text); }
+.mk-q__reads-label { font-weight: 600; color: var(--rim-heading); }
+.mk-q__tools { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin-top: 4px; }
+.mk-q__aud { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--rim-rule); }
+@media (max-width: 560px) { .mk-q__row { grid-template-columns: 1fr; } }
+
+/* The public form: the line under a question */
+.mk-reads { display: block; margin-top: 6px; font-size: var(--text-small, 15px); line-height: 1.5; color: var(--rim-text-soft); }
+
+/* Name buttons and person cards (teacher and team pages) */
+.mk-name { font: inherit; font-weight: 600; color: var(--rim-blue); background: none; border: 0; padding: 0 2px; min-height: 44px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-align: left; }
+.mk-name[aria-expanded="true"] { color: var(--rim-heading); }
+.mk-card { border: 1px solid var(--rim-rule); border-radius: 12px; background: #fff; padding: var(--space-2) var(--space-3); margin: 8px 0 12px; }
+.mk-card h4 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h4); color: var(--rim-heading); margin: 0 0 8px; }
+.mk-opt { padding: 10px 0; border-top: 1px solid var(--rim-rule); }
+.mk-opt:first-of-type { border-top: 0; }
+.mk-opt__head { display: flex; justify-content: space-between; gap: 16px; }
+.mk-opt__count { font-weight: 600; font-variant-numeric: tabular-nums; }
+.mk-opt__names { display: flex; flex-wrap: wrap; gap: 0 12px; }
+details.mk-rules { margin-top: var(--space-3); }
+details.mk-rules > summary { cursor: pointer; color: var(--rim-blue); min-height: 44px; display: flex; align-items: center; }
+details.mk-rules ul { padding-left: 1.2em; }
+
+/* Teacher's page */
+.mk-teacher-head { margin-bottom: var(--space-3); }
+.mk-teacher-head h1 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h2); color: var(--rim-heading); margin: 4px 0 6px; }
+.mk-teacher-head p { margin: 0; color: var(--rim-text-soft); }
+.mk-eyebrow { font-size: var(--text-xs, 13px); font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--rim-label, var(--rim-blue)); }
+.mk-people-names { columns: 2; column-gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.mk-people-names li { padding: 4px 0; break-inside: avoid; }
+@media (max-width: 560px) { .mk-people-names { columns: 1; } }
+</style>
+</head>
+<body>
+
+<!-- ═══ Guide bar: not part of the app ═══ -->
+<div class="mk-guide" role="region" aria-label="Mockup guide">
+  <div class="mk-guide__inner">
+    <span class="mk-guide__label">Mockup · sample people, not live</span>
+    <div class="mk-guide__btns" role="group" aria-label="Screens">
+      <button type="button" data-go="list" aria-pressed="true">1 · Registration</button>
+      <button type="button" data-go="roster" aria-pressed="false">2 · A program's people</button>
+      <button type="button" data-go="editor" aria-pressed="false">3 · The program editor</button>
+      <button type="button" data-go="shared" aria-pressed="false">4 · Shared with a team</button>
+      <button type="button" data-go="teacher" aria-pressed="false">5 · The teacher's view</button>
+      <button type="button" data-go="form" aria-pressed="false">6 · The form people fill in</button>
+    </div>
+    <p class="mk-guide__note" id="mk-note"></p>
+  </div>
+</div>
+
+<div class="mk-page">
+<header class="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="#"><img src="https://rim-next.vercel.app/images/Rooted-In-Mindfulness-Logo.png" alt="Rooted In Mindfulness" height="45"><span class="nav__brand-name">Rooted In Mindfulness</span></a>
+    <nav class="nav__desktop" aria-label="Main navigation">
+      <a class="nav__link" href="#">New to RIM</a>
+      <a class="nav__link" href="#">Practice</a>
+      <a class="nav__link" href="#">Programs</a>
+      <a class="nav__link" href="#">About</a>
+      <a class="nav__link" href="#">Get Involved</a>
+      <a class="nav__link" href="#">My Home</a>
+    </nav>
+    <a class="nav__donate" href="#">Donate</a>
+    <button type="button" class="nav__menu-btn" aria-expanded="false"><svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12"></path></svg>Menu</button>
+  </div>
+</header>
+
+<!-- The Registration team's rail, shared by screens 1 and 2 (cloned by script). -->
+<template id="mk-reg-rail">
+  <div class="hub-ws-mobilebar"><button type="button" class="hub-ws-mobilebar__btn" aria-label="Open the team menu"><i data-lucide="menu"></i></button><div class="hub-ws-mobilebar__name">Registration team</div></div>
+  <nav class="hub-ws-sidebar" aria-label="Team navigation">
+    <div class="hub-ws-identity">
+      <div class="hub-ws-identity__type">Team</div>
+      <div class="hub-ws-identity__name">Registration</div>
+      <div class="hub-ws-identity__meta">Led by LoriLee and Pat · 2 members</div>
+    </div>
+    <div class="hub-ws-divider" aria-hidden="true"></div>
+    <div class="hub-ws-group">
+      <a class="hub-ws-link" href="#"><i data-lucide="home" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Home</span></a>
+      <a class="hub-ws-link hub-ws-link--primary hub-ws-link--active" href="#" data-go="list" aria-current="page"><i data-lucide="user-check" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Registration</span></a>
+      <a class="hub-ws-link hub-ws-link--supporting" href="#" data-go="editor"><i data-lucide="clipboard-list" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Programs</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="history" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Updates</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="messages-square" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Conversations</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="folder-open" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Files</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="users-round" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Members</span></a>
+    </div>
+    <div class="hub-ws-footer">
+      <a class="hub-ws-footer__link" href="#"><i data-lucide="chevron-left"></i><span>My Teams</span></a>
+      <a class="hub-ws-footer__link" href="#"><i data-lucide="user-round"></i><span>My Profile</span></a>
+    </div>
+  </nav>
+</template>
+
+<!-- ═══ SCREEN 1 · Registration: the programs taking registration ═══ -->
+<section class="mk-screen" data-screen="list">
+<div class="hub-ws-layout">
+  <div data-rail="reg"></div>
+  <div class="hub-ws-main">
+    <div class="hub-ws-toolhead"><h1 class="hub-ws-toolhead__name">Registration</h1></div>
+    <div class="hub-ws-content hub-ws-content--wide">
+      <p class="mk-intro">The programs taking registration. The ones that need you are first.</p>
+      <div class="hs-filters" role="group" aria-label="Show">
+        <button type="button" class="hs-filter hs-filter--active" aria-pressed="true">Needs you <span class="hs-filter__count">2</span></button>
+        <button type="button" class="hs-filter" aria-pressed="false">Open <span class="hs-filter__count">3</span></button>
+        <button type="button" class="hs-filter" aria-pressed="false">Not open yet <span class="hs-filter__count">1</span></button>
+        <button type="button" class="hs-filter" aria-pressed="false">Closed <span class="hs-filter__count">0</span></button>
+        <button type="button" class="hs-filter" aria-pressed="false">All <span class="hs-filter__count">4</span></button>
+      </div>
+      <ul class="mk-proglist">
+        <li><a class="mk-prog" href="#" data-go="roster">
+          <span><span class="mk-prog__name">Awakening to the Beauty of This Moment</span><br><span class="mk-prog__state">Nov 13 to 15 · Open until Nov 6 · 12 of 14 places · 2 waiting</span></span>
+          <span class="mk-prog__go">Open &rarr;</span>
+          <span class="mk-prog__need">A place opened. Maya Patel is next on the waitlist.</span>
+        </a></li>
+        <li><a class="mk-prog" href="#">
+          <span><span class="mk-prog__name">Taking CARE: Foundations of Meditation and Mindful Living</span><br><span class="mk-prog__state">Begins Nov 4 · Open · 9 of 16 places</span></span>
+          <span class="mk-prog__go">Open &rarr;</span>
+          <span class="mk-prog__need">1 person hasn't finished the dana step.</span>
+        </a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SCREEN 2 · A program's people ═══ -->
+<section class="mk-screen" data-screen="roster" hidden>
+<div class="hub-ws-layout">
+  <div data-rail="reg"></div>
+  <div class="hub-ws-main">
+    <div class="hub-ws-content hub-ws-content--wide">
+      <div class="mk-head">
+        <a href="#" class="vol-back" data-go="list">&larr; Registration</a>
+        <h2>Awakening to the Beauty of This Moment</h2>
+        <p class="mk-state" id="mk-state" aria-live="polite"></p>
+        <p class="mk-facts">Fri, Nov 13 to Sun, Nov 15 · In person at RIM · Jesse Foy · Voluntary dana, $175 suggested · <a href="#" class="mk-link" data-go="editor">Edit the program</a></p>
+      </div>
+
+      <p class="mk-needs-title" id="mk-needs-title">Needs you</p>
+      <ul class="mk-needs" id="mk-needs" aria-labelledby="mk-needs-title"></ul>
+
+      <div class="mk-panel">
+        <details class="mk-settings-wrap" id="mk-settings">
+          <summary>Registration settings <span class="mk-settings-sum" id="mk-settings-sum"></span></summary>
+          <form class="mk-settings" id="mk-settings-form" novalidate style="margin-top: var(--space-2);">
+            <label class="mk-field"><span>Registration</span>
+              <select id="mk-state-sel"><option value="notyet">Not open yet</option><option value="open" selected>Open</option><option value="closed">Closed</option></select>
+            </label>
+            <label class="mk-field"><span>Places</span>
+              <input id="mk-cap" type="number" min="1" value="14" aria-describedby="mk-settings-msg">
+            </label>
+            <label class="mk-field"><span>Closes after</span>
+              <input id="mk-closes" type="date" value="2026-11-06">
+            </label>
+            <label class="mk-field"><span>Mailing list</span>
+              <select><option>Automatic (on)</option><option>On</option><option>Off</option></select>
+            </label>
+            <p class="mk-meta" style="flex-basis:100%;margin:0">Registered people join the Flodesk segment "Awakening to the Beauty of This Moment 11/13/26", for newsletters only. <button type="button" class="mk-linkbtn">Use a different segment</button></p>
+            <div class="mk-settings__foot">
+              <button type="submit" class="pe-btn pe-btn--primary">Save</button>
+              <span id="mk-settings-msg" role="status"></span>
+            </div>
+            <p class="mk-meta" style="flex-basis:100%;margin:0">The same settings as in the program editor; a change here changes the program.</p>
+          </form>
+        </details>
+      </div>
+
+      <div class="mk-toolbar">
+        <div class="hs-viewtabs mk-tabs" role="tablist" aria-label="This program" id="mk-tablist">
+          <button type="button" role="tab" id="tab-people" class="hs-viewtab hs-viewtab--active" aria-selected="true" aria-controls="panel-people" data-tab="people">People</button>
+          <button type="button" role="tab" id="tab-shared" class="hs-viewtab" aria-selected="false" aria-controls="panel-shared" data-tab="shared" tabindex="-1">Shared with <span class="hs-filter__count" id="mk-sharecount">2</span></button>
+          <button type="button" role="tab" id="tab-history" class="hs-viewtab" aria-selected="false" aria-controls="panel-history" data-tab="history" tabindex="-1">History</button>
+        </div>
+        <div class="mk-btnrow">
+          <button type="button" class="pe-btn" data-open="add">Add a person</button>
+          <button type="button" class="pe-btn" data-open="message">Message people</button>
+          <button type="button" class="pe-btn" data-open="print">Print or download</button>
+        </div>
+      </div>
+
+      <!-- Add a person (inline) -->
+      <div class="mk-panel mk-inline" id="mk-add" hidden>
+        <h3>Add a person</h3>
+        <p class="mk-muted" style="margin-top:0">For someone who phoned, wrote, or registered on paper.</p>
+        <form id="mk-add-form" novalidate>
+          <label class="mk-field"><span>Name</span><input type="text" id="mk-add-name" autocomplete="off" placeholder="Search members, or type a new name"></label>
+          <label class="mk-field"><span>Email</span><input type="email" id="mk-add-email"></label>
+          <label class="mk-field"><span>Phone (optional)</span><input type="tel"></label>
+          <fieldset class="mk-field"><legend>Dana</legend>
+            <label class="mk-check"><input type="radio" name="mk-add-dana" checked> They'll give online (we'll send the dana step)</label>
+            <label class="mk-check"><input type="radio" name="mk-add-dana"> Given by cash or check</label>
+            <label class="mk-check"><input type="radio" name="mk-add-dana"> No dana</label>
+          </fieldset>
+          <label class="mk-check"><input type="checkbox" checked> Email them their confirmation</label>
+          <p class="mk-warn" id="mk-add-full" hidden></p>
+          <div class="mk-btnrow" style="margin-top:12px"><button type="submit" class="pe-btn pe-btn--primary">Add to the roster</button><button type="button" class="pe-btn" data-close="add">Cancel</button><span id="mk-add-msg" role="status"></span></div>
+        </form>
+      </div>
+
+      <!-- Message people (inline) -->
+      <div class="mk-panel mk-inline" id="mk-message" hidden>
+        <h3>Message people</h3>
+        <form id="mk-msg-form" novalidate>
+          <label class="mk-field"><span>To</span>
+            <select><option>Everyone registered (12)</option><option>People waiting (2)</option><option>Registered and waiting (14)</option></select></label>
+          <label class="mk-field"><span>Subject</span><input type="text" value="Awakening to the Beauty of This Moment: a note before we begin"></label>
+          <label class="mk-field"><span>Message</span><textarea>Parking is in the north lot this weekend; the south lot is being resurfaced.</textarea></label>
+          <p class="mk-meta" style="margin-top:0">Sent from RIM's own email, not the mailing list, and recorded in each person's history.</p>
+          <div class="mk-btnrow"><button type="submit" class="pe-btn pe-btn--primary">Send to 12 people</button><button type="button" class="pe-btn">Send me a test</button><button type="button" class="pe-btn" data-close="message">Cancel</button><span id="mk-msg-msg" role="status"></span></div>
+        </form>
+      </div>
+
+      <!-- Print or download (inline) -->
+      <div class="mk-panel mk-inline" id="mk-print" hidden>
+        <h3>Print or download</h3>
+        <div class="mk-btnrow">
+          <button type="button" class="pe-btn">Print a sign-in list (names only)</button>
+          <button type="button" class="pe-btn">Download a spreadsheet</button>
+          <button type="button" class="pe-btn" data-close="print">Close</button>
+        </div>
+        <p class="mk-meta" style="margin-bottom:0">The spreadsheet has contact details and answers. Downloads are recorded in History.</p>
+      </div>
+
+      <!-- People -->
+      <div role="tabpanel" id="panel-people" aria-labelledby="tab-people" data-panel="people">
+        <div class="hs-filters" role="group" aria-label="Show people">
+          <button type="button" class="hs-filter hs-filter--active" aria-pressed="true" data-filter="all">All <span class="hs-filter__count" data-count="all"></span></button>
+          <button type="button" class="hs-filter" aria-pressed="false" data-filter="registered">Registered <span class="hs-filter__count" data-count="registered"></span></button>
+          <button type="button" class="hs-filter" aria-pressed="false" data-filter="waiting">Waiting <span class="hs-filter__count" data-count="waiting"></span></button>
+          <button type="button" class="hs-filter" aria-pressed="false" data-filter="dana">Dana not finished <span class="hs-filter__count" data-count="dana"></span></button>
+          <button type="button" class="hs-filter" aria-pressed="false" data-filter="cancelled">Cancelled <span class="hs-filter__count" data-count="cancelled"></span></button>
+        </div>
+        <div class="vol-table-wrap" style="margin-top: var(--space-2);">
+        <table class="vol-table">
+          <thead><tr><th class="vol-table__th">Name</th><th class="vol-table__th">Status</th><th class="vol-table__th">Dana</th><th class="vol-table__th">Registered</th></tr></thead>
+          <tbody id="mk-rows"></tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- Shared with -->
+      <div role="tabpanel" id="panel-shared" aria-labelledby="tab-shared" data-panel="shared" hidden>
+        <p class="mk-intro">Who else can see this program's people, and how much. Dana and the registration team's own notes are never shared.</p>
+        <ul class="mk-shares" id="mk-shares"></ul>
+        <button type="button" class="pe-btn pe-btn--primary" id="mk-open-share" aria-expanded="false" aria-controls="mk-share-panel">Share with a team</button>
+
+        <div class="mk-panel" id="mk-share-panel" hidden style="margin-top: var(--space-3);">
+          <h3>Share with a team</h3>
+          <form id="mk-share-form" novalidate>
+            <label class="mk-field"><span>Team</span>
+              <select id="mk-team"><option value="">Choose a team</option><option>Program Central</option><option>Hosting Team</option><option>Greeters</option><option>Kitchen Team</option></select></label>
+            <fieldset class="mk-field"><legend>Who on the team</legend>
+              <label class="mk-check"><input type="radio" name="mk-who" value="leads" checked> Its leads</label>
+              <label class="mk-check"><input type="radio" name="mk-who" value="all"> Everyone on the team</label>
+            </fieldset>
+            <fieldset class="mk-field"><legend>What they see</legend>
+              <label class="mk-choice"><input type="radio" name="mk-level" value="count" checked><span class="mk-choice__name">How many</span><span class="mk-choice__desc">Registered, waiting and places left. No names.</span></label>
+              <label class="mk-choice"><input type="radio" name="mk-level" value="names"><span class="mk-choice__name">Names</span><span class="mk-choice__desc">Who's coming, and who's waiting.</span></label>
+              <label class="mk-choice"><input type="radio" name="mk-level" value="contact"><span class="mk-choice__name">Names and how to reach them</span><span class="mk-choice__desc">Adds email and phone, for rides, rooms or a change of plan.</span></label>
+            </fieldset>
+            <label class="mk-check"><input type="checkbox" id="mk-answers"> Include the answers set to share with teams</label>
+            <div class="mk-preview" aria-live="polite"><p class="mk-preview__title">They'll see</p><p id="mk-preview-text"></p><p class="mk-warn" id="mk-preview-warn" hidden></p></div>
+            <div class="mk-btnrow"><button type="submit" class="pe-btn pe-btn--primary" id="mk-do-share">Share</button><button type="button" class="pe-btn" id="mk-cancel-share">Cancel</button><span id="mk-share-msg" role="status"></span></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div role="tabpanel" id="panel-history" aria-labelledby="tab-history" data-panel="history" hidden>
+        <ul class="mk-history" id="mk-history"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SCREEN 3 · The program editor: one page in sections (Programs, in Program Central) ═══ -->
+<section class="mk-screen" data-screen="editor" hidden>
+<div class="hub-ws-layout">
+  <div class="hub-ws-mobilebar"><button type="button" class="hub-ws-mobilebar__btn" aria-label="Open the team menu"><i data-lucide="menu"></i></button><div class="hub-ws-mobilebar__name">Program Central</div></div>
+  <nav class="hub-ws-sidebar" aria-label="Team navigation">
+    <div class="hub-ws-identity">
+      <div class="hub-ws-identity__type">Team</div>
+      <div class="hub-ws-identity__name">Program Central</div>
+      <div class="hub-ws-identity__meta">Led by Jesse and LoriLee · 5 members</div>
+    </div>
+    <div class="hub-ws-divider" aria-hidden="true"></div>
+    <div class="hub-ws-group">
+      <a class="hub-ws-link" href="#"><i data-lucide="home" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Home</span></a>
+      <a class="hub-ws-link hub-ws-link--primary hub-ws-link--active" href="#" aria-current="page"><i data-lucide="clipboard-list" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Programs</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="history" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Updates</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="messages-square" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Conversations</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="folder-open" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Files</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="users-round" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Members</span></a>
+    </div>
+    <div class="hub-ws-footer">
+      <a class="hub-ws-footer__link" href="#"><i data-lucide="chevron-left"></i><span>My Teams</span></a>
+      <a class="hub-ws-footer__link" href="#"><i data-lucide="user-round"></i><span>My Profile</span></a>
+    </div>
+  </nav>
+  <div class="hub-ws-main">
+    <div class="hub-ws-content hub-ws-content--wide">
+      <a href="#" class="vol-back">&larr; Programs</a>
+      <div class="mk-ed-head">
+        <div><span class="mk-ed-label">Editing the program</span><h2>Awakening to the Beauty of This Moment</h2></div>
+        <div class="mk-btnrow">
+          <button type="button" class="pe-btn" data-open="notice" aria-expanded="false" aria-controls="mk-notice">Post a notice</button>
+          <a href="#" class="pe-btn">View the program page</a>
+        </div>
+      </div>
+
+      <div class="mk-panel" id="mk-notice" hidden>
+        <h3>Post a notice</h3>
+        <p class="mk-muted" style="margin-top:0">A change people should know: "Cancelled tonight." "We're in the community room." It shows wherever the program is listed and on My Home.</p>
+        <form id="mk-notice-form" novalidate>
+          <label class="mk-field"><span>Notice</span><input type="text" id="mk-notice-text" placeholder="Cancelled this Saturday. We'll meet again next week."></label>
+          <label class="mk-field"><span>Show until</span><input type="date"></label>
+          <label class="mk-check"><input type="checkbox" checked> Also email the 12 people registered</label>
+          <div class="mk-btnrow" style="margin-top:12px"><button type="submit" class="pe-btn pe-btn--primary">Post the notice</button><button type="button" class="pe-btn" data-close="notice">Cancel</button><span id="mk-notice-msg" role="status"></span></div>
+        </form>
+      </div>
+
+      <div class="mk-panel">
+        <h3>Ready to be seen</h3>
+        <ul class="mk-ready">
+          <li><span class="mk-ready__mark mk-ready__mark--ok" aria-hidden="true">✓</span><span>Name, description and image</span></li>
+          <li><span class="mk-ready__mark mk-ready__mark--ok" aria-hidden="true">✓</span><span>When and where: Fri, Nov 13 to Sun, Nov 15, in person at RIM</span></li>
+          <li><span class="mk-ready__mark mk-ready__mark--ok" aria-hidden="true">✓</span><span>How people join: registration open, 14 places</span></li>
+          <li><span class="mk-ready__mark mk-ready__mark--ok" aria-hidden="true">✓</span><span>Listed on Programs &amp; Events under Immersion</span></li>
+          <li><span class="mk-ready__mark mk-ready__mark--todo" aria-hidden="true">!</span><span>No reminder message yet. <a href="#sec-messages" class="mk-link" data-jump="sec-messages">Add one in Messages</a></span></li>
+        </ul>
+      </div>
+
+      <label class="mk-field mk-jump"><span>Jump to</span>
+        <select id="mk-jump"><option value="sec-about">About</option><option value="sec-when">When and where</option><option value="sec-online">Hosting and the online room</option><option value="sec-listing">Category and listing</option><option value="sec-join" selected>How people join</option><option value="sec-messages">Messages</option><option value="sec-dana">Dana</option></select>
+      </label>
+
+      <div class="mk-ed">
+        <nav class="mk-index" aria-label="Sections">
+          <ol id="mk-index">
+            <li><a href="#sec-about" data-jump="sec-about">About</a></li>
+            <li><a href="#sec-when" data-jump="sec-when">When and where</a></li>
+            <li><a href="#sec-online" data-jump="sec-online">Hosting and the online room</a></li>
+            <li><a href="#sec-listing" data-jump="sec-listing">Category and listing</a></li>
+            <li><a href="#sec-join" data-jump="sec-join" aria-current="true">How people join</a></li>
+            <li><a href="#sec-messages" data-jump="sec-messages">Messages</a></li>
+            <li><a href="#sec-dana" data-jump="sec-dana">Dana</a></li>
+          </ol>
+        </nav>
+
+        <div>
+          <section class="mk-sec" id="sec-about" aria-labelledby="h-about"><h3 id="h-about">About</h3>
+            <label class="mk-field"><span>Name</span><input type="text" value="Awakening to the Beauty of This Moment"></label>
+            <div class="mk-field"><span>Web address</span><p class="mk-readonly" style="margin:0">rootedinmindfulness.org/programs/awakening-to-the-beauty-of-this-moment</p><span class="mk-meta">Can't change now: registrations use it.</span></div>
+            <label class="mk-field"><span>One line</span><input type="text" value="A weekend residential retreat in silence."><span class="mk-meta">Under the name on Programs &amp; Events.</span></label>
+            <div class="mk-field"><span>Image</span><p class="mk-readonly" style="margin:0">pine-canopy.webp · <button type="button" class="mk-linkbtn">Replace</button> <button type="button" class="mk-linkbtn">Remove</button></p></div>
+            <label class="mk-field"><span>Description</span><textarea rows="4">Three days of silent practice in the community room…</textarea><span class="mk-meta">The full text editor, as today.</span></label>
+            <label class="mk-field"><span>Quote (optional)</span><input type="text" placeholder="A short line that opens the program page"></label>
+            <label class="mk-field"><span>Quote source</span><input type="text"></label>
+            <label class="mk-field"><span>Notes on the program page</span><textarea rows="2" placeholder="Context, accessibility, background"></textarea></label>
+            <div class="mk-field"><span>Teachers</span><p style="margin:0"><span class="pe-teacher-tag">Jesse Foy <button type="button" class="pe-teacher-tag__remove" aria-label="Remove Jesse Foy">&times;</button></span></p><input type="text" placeholder="Add a teacher by name" aria-label="Add a teacher by name"><span class="mk-meta">Linked teachers see this program's people page, and the Zoom host code for online sessions.</span></div>
+          </section>
+
+          <section class="mk-sec" id="sec-when" aria-labelledby="h-when"><h3 id="h-when">When and where</h3>
+            <fieldset class="mk-field"><legend>How it meets</legend>
+              <div class="mk-btnrow"><label class="mk-check"><input type="radio" name="ed-fmt" checked> In person</label><label class="mk-check"><input type="radio" name="ed-fmt"> Online</label><label class="mk-check"><input type="radio" name="ed-fmt"> Both</label></div></fieldset>
+            <fieldset class="mk-field"><legend>Where</legend>
+              <div class="mk-btnrow"><label class="mk-check"><input type="radio" name="ed-venue" checked> At RIM</label><label class="mk-check"><input type="radio" name="ed-venue"> Somewhere else (name and map link)</label></div></fieldset>
+            <div class="mk-settings">
+              <label class="mk-field"><span>Starts</span><input type="date" value="2026-11-13"></label>
+              <label class="mk-field"><span>at</span><select><option>4:00 PM</option></select></label>
+              <label class="mk-field"><span>Ends</span><input type="date" value="2026-11-15"></label>
+              <label class="mk-field"><span>at</span><select><option>1:00 PM</option></select></label>
+            </div>
+            <fieldset class="mk-field" style="margin-top: var(--space-2)"><legend>Repeats</legend>
+              <div class="mk-btnrow"><label class="mk-check"><input type="radio" name="ed-rep" checked> Once</label><label class="mk-check"><input type="radio" name="ed-rep"> Daily</label><label class="mk-check"><input type="radio" name="ed-rep"> Weekly</label><label class="mk-check"><input type="radio" name="ed-rep"> Monthly</label></div>
+              <span class="mk-meta">Weekly and monthly add: every how many, which days, and how many times.</span></fieldset>
+            <div class="mk-field"><span>Shown as</span><p class="mk-readonly" style="margin:0">November 13–15, 2026 · Begins 4 PM CT</p><span class="mk-meta">Written for you from the dates.</span></div>
+            <label class="mk-field"><span>Session note</span><input type="text" placeholder="Held in noble silence before and during the session."><span class="mk-meta">One quiet line on My Home on the day.</span></label>
+            <p class="mk-meta" style="margin:0">Notices ("Cancelled tonight") are posted with Post a notice, at the top of the page.</p>
+          </section>
+
+          <section class="mk-sec" id="sec-online" aria-labelledby="h-online"><h3 id="h-online">Hosting and the online room</h3>
+            <label class="mk-check"><input type="checkbox"> No host needed (self-led or community-led)</label>
+            <label class="mk-field" style="margin-top: var(--space-2)"><span>Hosting team</span><select><option>Hosting Team (the default)</option><option>Peer-Led Silent Meditation</option></select><span class="mk-meta">The team that runs its sessions, takes cover requests and is told about changes.</span></label>
+            <fieldset class="mk-field"><legend>Supporting teams</legend>
+              <label class="mk-check"><input type="checkbox" checked> Greeters</label>
+              <label class="mk-check"><input type="checkbox"> Audio-Visual</label></fieldset>
+            <p class="mk-readonly" style="margin:0">It meets in person, so the online settings are hidden: where it meets online (RIM's Zoom or an outside link), who can join, recording, and the guest link. Choose Online or Both under How it meets to show them.</p>
+          </section>
+
+          <section class="mk-sec" id="sec-listing" aria-labelledby="h-listing"><h3 id="h-listing">Category and listing</h3>
+            <div class="mk-settings">
+              <label class="mk-field"><span>Category</span><select><option>Immersion</option></select></label>
+              <label class="mk-field"><span>Format</span><select><option>Retreat</option></select></label>
+            </div>
+            <label class="mk-check"><input type="checkbox"> Hosted by volunteers</label>
+            <span class="mk-meta">"Silent meditation" appears here for drop-ins.</span>
+            <div class="pe-readout" style="margin: var(--space-2) 0;">
+              <p class="pe-readout__title">Where this program appears</p>
+              <p class="pe-readout__row">Programs &amp; Events: listed under Immersion.</p>
+              <p class="pe-readout__row">This Week: shown in the weeks it meets.</p>
+              <p class="pe-readout__row">My Home: shown to people registered for it, on the days it meets.</p>
+            </div>
+            <label class="mk-field"><span>Order on the programs page</span><input type="number" value="20" style="width:110px"></label>
+            <label class="mk-check"><input type="checkbox"> Hide from Programs &amp; Events (also hides it from This Week)</label>
+            <label class="mk-check"><input type="checkbox"> Hide from This Week</label>
+            <label class="mk-check"><input type="checkbox" checked> Hide automatically after the date passes</label>
+            <label class="mk-check"><input type="checkbox"> Hide from My Home (with an optional date to show it again)</label>
+          </section>
+
+          <section class="mk-sec" id="sec-join" aria-labelledby="h-join"><h3 id="h-join">How people join</h3>
+            <div class="pe-readout" style="margin-bottom: var(--space-2);">
+              <p class="pe-readout__title">How this appears to visitors</p>
+              <p class="pe-readout__row">Registration is open until Nov 6. Visitors see a Register button; when the 14 places are full, new registrations wait in line.</p>
+            </div>
+            <label class="mk-check"><input type="checkbox"> Open entry: anyone signed in may join without registering</label>
+            <div class="mk-settings" style="margin-top: var(--space-2);">
+              <label class="mk-field"><span>Registration</span><select><option>Not open yet</option><option selected>Open</option><option>Closed</option></select></label>
+              <label class="mk-field"><span>Places</span><input type="number" value="14" min="1"></label>
+              <label class="mk-field"><span>Opens on</span><input type="date"></label>
+              <label class="mk-field"><span>Closes after</span><input type="date" value="2026-11-06"></label>
+            </div>
+            <p class="mk-meta">The registration team can change these in Registration too. 12 people are registered, so places can't be fewer than 12.</p>
+
+            <p class="mk-sec__sub">Questions on the form</p>
+            <p class="mk-meta" style="margin-top:0">Name, email and phone are always asked. For each question, choose who reads the answer; the registration team always does, and the form tells people who will.</p>
+            <div id="mk-questions"></div>
+            <button type="button" class="pe-btn" id="mk-add-q">Add a question</button>
+          </section>
+
+          <section class="mk-sec" id="sec-messages" aria-labelledby="h-messages"><h3 id="h-messages">Messages</h3>
+            <label class="mk-field"><span>In the confirmation email</span><textarea>Bring a cushion if you have a favorite. Lunch is provided each day.</textarea></label>
+            <fieldset class="mk-field"><legend>Reminder</legend>
+              <div class="mk-btnrow"><label class="mk-check"><input type="number" value="1" min="1" style="width:72px;font-size:16px;min-height:44px;padding:8px 10px;border:1px solid var(--rim-rule);border-radius:8px" aria-label="Days before"> day before it begins, at 9 AM</label></div>
+              <span class="mk-meta">Goes to everyone registered who hasn't had it, including people who register late. The registration team can send it sooner.</span>
+            </fieldset>
+            <label class="mk-field"><span>In the reminder</span><textarea placeholder="Anything people need the day before: arrival time, parking, what to bring."></textarea></label>
+          </section>
+
+          <section class="mk-sec" id="sec-dana" aria-labelledby="h-dana"><h3 id="h-dana">Dana</h3>
+            <fieldset class="mk-field"><legend>How dana works for this program</legend>
+              <div class="mk-btnrow"><label class="mk-check"><input type="radio" name="ed-dana"> None</label><label class="mk-check"><input type="radio" name="ed-dana" checked> Voluntary</label><label class="mk-check"><input type="radio" name="ed-dana"> A minimum, plus dana</label><label class="mk-check"><input type="radio" name="ed-dana"> A fixed amount</label></div></fieldset>
+            <label class="mk-field"><span>Suggested amount</span><input type="number" value="175" style="width:110px"></label>
+            <div class="mk-field"><span>Message in the dana step</span>
+              <div class="mk-btnrow"><span class="mk-meta">Start from:</span><button type="button" class="mk-linkbtn">General support</button><button type="button" class="mk-linkbtn">Reciprocity</button><button type="button" class="mk-linkbtn">Sliding scale</button></div>
+              <textarea rows="3">This is an old practice of reciprocity: the teachings are offered freely, and we give back as we are able.</textarea></div>
+            <label class="mk-field"><span>Dana note on the program page</span><input type="text" value="Dana is shared equally between RIM and the Teaching Fund."></label>
+          </section>
+
+          <div class="mk-panel" style="background: var(--rim-bg-bright, #faf9f7)">
+            <h3>Everything from today's editor is here</h3>
+            <p style="margin:0 0 8px">Moved: the mailing list (Flodesk) is in Registration's settings, with the people it sends to. Archive, restore and delete stay on the program list.</p>
+            <p style="margin:0">New: "Opens on", reminders counted from the start, Post a notice with an email, and who reads each answer.</p>
+          </div>
+
+          <div class="pe-actions">
+            <button type="button" class="pe-btn pe-btn--primary" id="mk-ed-save">Save</button>
+            <button type="button" class="pe-btn">Cancel</button>
+            <span id="mk-ed-msg" role="status"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SCREEN 4 · Shared with a team ═══ -->
+<section class="mk-screen" data-screen="shared" hidden>
+<div class="hub-ws-layout">
+  <div class="hub-ws-mobilebar"><button type="button" class="hub-ws-mobilebar__btn" aria-label="Open the team menu"><i data-lucide="menu"></i></button><div class="hub-ws-mobilebar__name">Kitchen Team</div></div>
+  <nav class="hub-ws-sidebar" aria-label="Team navigation">
+    <div class="hub-ws-identity">
+      <div class="hub-ws-identity__type">Team</div>
+      <div class="hub-ws-identity__name">Kitchen Team</div>
+      <div class="hub-ws-identity__meta">Led by Sam · 6 members</div>
+    </div>
+    <div class="hub-ws-divider" aria-hidden="true"></div>
+    <div class="hub-ws-group">
+      <a class="hub-ws-link" href="#"><i data-lucide="home" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Home</span></a>
+      <a class="hub-ws-link hub-ws-link--primary hub-ws-link--active" href="#" aria-current="page"><i data-lucide="user-check" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Registration</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="history" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Updates</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="messages-square" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Conversations</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="users-round" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Members</span></a>
+    </div>
+    <div class="hub-ws-footer">
+      <a class="hub-ws-footer__link" href="#"><i data-lucide="chevron-left"></i><span>My Teams</span></a>
+    </div>
+  </nav>
+  <div class="hub-ws-main">
+    <div class="hub-ws-toolhead"><h1 class="hub-ws-toolhead__name">Registration</h1></div>
+    <div class="hub-ws-content hub-ws-content--wide">
+      <div class="mk-head">
+        <h2>Awakening to the Beauty of This Moment</h2>
+        <p class="mk-state"><strong>12 coming</strong> · 2 waiting · Fri, Nov 13 to Sun, Nov 15</p>
+      </div>
+      <div class="mk-banner"><p id="mk-s-banner"></p></div>
+      <div id="mk-shared-body"></div>
+      <details class="mk-rules"><summary>How this page is made</summary>
+        <p>Nobody writes it. It's built from two things: what the registration team shared with this team (here: names, with the answers set to share), and each question's own setting in the program editor.</p>
+        <ul><li>A question set to share <strong>as totals</strong> shows counts only, never names, even to a team shared at Names.</li>
+        <li>A question set to share <strong>with names</strong> shows counts with the people under each answer, or, for a written answer, each person's words.</li>
+        <li>Questions set for the registration team or teachers don't appear here at all.</li></ul>
+      </details>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SCREEN 5 · The teacher's view ═══ -->
+<section class="mk-screen" data-screen="teacher" hidden>
+<div class="ac-layout">
+  <aside class="ac-sidebar ac-sidebar--site" aria-label="My RIM">
+    <nav class="ac-sidebar__nav">
+      <div class="ac-sidebar__group">
+        <a class="ac-sidebar__link" href="#" aria-current="page"><i data-lucide="home" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">My Home</span></a>
+        <a class="ac-sidebar__link" href="#"><i data-lucide="book-open" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">Library</span></a>
+        <a class="ac-sidebar__link" href="#"><i data-lucide="users" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">My Teams</span></a>
+        <a class="ac-sidebar__link" href="#"><i data-lucide="bell" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">Notifications</span></a>
+      </div>
+      <div class="ac-sidebar__divider"></div>
+      <div class="ac-sidebar__group">
+        <a class="ac-sidebar__link" href="#"><i data-lucide="user-round" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">My Profile</span></a>
+      </div>
+    </nav>
+  </aside>
+  <div class="ac-content"><div class="ac-inner">
+    <a href="#" class="vol-back">&larr; My Home</a>
+    <div class="mk-teacher-head">
+      <div class="mk-eyebrow">You're teaching</div>
+      <h1>Awakening to the Beauty of This Moment</h1>
+      <p>Fri, Nov 13 to Sun, Nov 15 · In person at RIM · <span id="mk-t-count"></span></p>
+    </div>
+    <div id="mk-teacher-body"></div>
+    <details class="mk-rules"><summary>How this page is made</summary>
+      <p>Nobody writes it. It's built from the program's questions: whoever builds the program sets, for each question, whether teachers read the answers.</p>
+      <ul><li><strong>Written answers</strong> to those questions are listed under Worth knowing, by person, with any note the registration team marked for teachers.</li>
+      <li><strong>Choice answers</strong> are counted, with the people under each answer.</li>
+      <li>Click a name to see everything that person shared with teachers. Contact details and dana stay with the registration team.</li></ul>
+    </details>
+  </div></div>
+</div>
+</section>
+
+<!-- ═══ SCREEN 6 · The registration form, as a registrant sees it ═══ -->
+<section class="mk-screen" data-screen="form" hidden>
+<div class="rg-page">
+  <div class="rg-header"><div class="rg-header__inner">
+    <a href="#" class="rg-header__back">&larr; Awakening to the Beauty of This Moment</a>
+    <p class="rg-header__eyebrow">Register</p>
+    <h1 class="rg-header__title">Awakening to the Beauty of This Moment</h1>
+    <p class="rg-header__meta">Fri, Nov 13 to Sun, Nov 15 · In person at RIM</p>
+  </div></div>
+  <div class="rg-content">
+    <form class="rg-card" novalidate>
+      <p class="rg-card__intro">You're signed in, so your name, email and phone are filled in.</p>
+      <div class="pg-form__field"><label class="pg-form__label" for="f-name">Name</label><input class="pg-form__input" id="f-name" value="Carla Ruiz" autocomplete="name"></div>
+      <div class="pg-form__field"><label class="pg-form__label" for="f-email">Email</label><input class="pg-form__input" id="f-email" type="email" value="carla.ruiz@example.org" autocomplete="email"></div>
+      <div class="pg-form__field"><label class="pg-form__label" for="f-phone">Phone</label><input class="pg-form__input" id="f-phone" type="tel" value="(262) 555-0102" autocomplete="tel"></div>
+      <div id="mk-form-questions"></div>
+      <button type="button" class="pp-btn">Continue to dana</button>
+    </form>
+  </div>
+</div>
+</section>
+</div>
+
+<script>
+const NOTES = {
+  list: "The Registration team's app. Only programs that take registration, each with where it stands and what it needs. The whole row opens the program.",
+  roster: "It opens on what needs you, each item with its own button: move Maya in, Frank's dana, the reminder. Try them; each asks first and answers. Registration settings fold away (try Places below 12). Add a person, Message people and Print sit above the list; a person opens with the arrow beside their name. Shared with and History are tabs.",
+  editor: "Every field from today's editor, in sections, with a list on the left to jump between them and what's ready at the top. Post a notice sits in the header. Each question shows one line of who reads its answer; Change opens the choice. Required, Move and Remove are on every question.",
+  shared: "Built only from the share and each question's setting: meals are set to totals, so no names; allergies and rides are set to share names. Click any name for what that person shared with teams. Change a question's setting in the editor and this page follows.",
+  teacher: "Built only from the questions set for teachers: written answers (and notes marked for teachers) under Worth knowing, choice answers counted with the people under each, then everyone's name. Click a name for that person's card. Change a question in the editor and this page follows.",
+  form: "What a registrant sees. Under each question, a line says who will read the answer, written from the question's setting. Optional choice questions offer Prefer not to say.",
+};
+
+/* ── Data ── */
+const QUESTIONS = [
+  { id: "practice", label: "Have you practiced meditation before?", kind: "choice", options: ["New to it", "Some", "Regular practice"], required: true, audience: "teachers" },
+  { id: "teacher", label: "Is there anything the teacher should know?", kind: "long", required: false, audience: "teachers" },
+  { id: "meals", label: "Meals: any dietary needs?", kind: "choice", options: ["No special needs", "Vegetarian", "Vegan", "Gluten-free"], required: true, audience: "teams-totals" },
+  { id: "allergy", label: "Do you have a food allergy? If so, tell us about it.", kind: "short", required: false, audience: "teams-names" },
+  { id: "ride", label: "Would you like a ride?", kind: "yesno", required: false, audience: "teams-names" },
+];
+const AUDIENCES = [
+  { v: "registration", label: "The registration team only" },
+  { v: "teachers", label: "The registration team and teachers" },
+  { v: "teams-totals", label: "Also the teams it's shared with, as totals without names" },
+  { v: "teams-names", label: "Also the teams it's shared with, with names" },
+];
+const KINDS = { choice: "Choice", long: "Long answer", short: "Short answer", yesno: "Yes or no" };
+
+const people = [
+  { n: "Ann Delgado", st: "registered", d: "Gave $175", on: "Oct 2", practice: "Regular practice", meals: "No special needs", ride: "No" },
+  { n: "Ben Okafor", st: "registered", d: "Gave $100", on: "Oct 2", practice: "Some", meals: "Vegetarian", ride: "No" },
+  { n: "Carla Ruiz", st: "registered", d: "Gave $175", on: "Oct 3", practice: "New to it", teacher: "First retreat. A little nervous about the silence.", meals: "No special needs", ride: "Yes" },
+  { n: "David Lindqvist", st: "registered", d: "No dana", on: "Oct 4", practice: "Regular practice", meals: "No special needs", ride: "No" },
+  { n: "Elena Park", st: "registered", d: "Gave $250", on: "Oct 5", practice: "Some", meals: "Vegan", ride: "No" },
+  { n: "Frank Moretti", st: "registered", d: "Not finished", on: "Oct 6", practice: "Some", meals: "No special needs", ride: "No" },
+  { n: "Grace Whitfield", st: "registered", d: "Gave $175", on: "Oct 8", practice: "Regular practice", teacher: "Recovering from a knee injury; will need a chair.", meals: "Gluten-free", ride: "No",
+    notes: [{ by: "Pat Rivera", on: "Oct 16", t: "Called Grace; a chair is set aside by the window.", forTeachers: true }] },
+  { n: "Hannah Bauer", st: "registered", d: "Gave $50", on: "Oct 9", practice: "New to it", meals: "Vegetarian", ride: "Yes" },
+  { n: "Isaac Mensah", st: "registered", d: "Gave $175", on: "Oct 11", practice: "Some", meals: "No special needs", ride: "No" },
+  { n: "June Takahashi", st: "registered", d: "Gave $200", on: "Oct 12", practice: "Regular practice", meals: "Vegetarian", allergy: "Tree nuts", ride: "No" },
+  { n: "Karen O'Neill", st: "registered", d: "Gave $175", on: "Oct 14", practice: "Some", meals: "No special needs", ride: "No" },
+  { n: "Leo Novak", st: "registered", d: "Gave $75", on: "Oct 15", practice: "New to it", meals: "No special needs", ride: "Prefer not to say" },
+  { n: "Maya Patel", st: "waiting", d: "Not yet", on: "Oct 18", practice: "Some", meals: "Vegetarian", ride: "No" },
+  { n: "Noah Fischer", st: "waiting", d: "Not yet", on: "Oct 19", practice: "New to it", meals: "No special needs", ride: "Yes" },
+  { n: "Olivia Grant", st: "cancelled", d: "No dana", on: "Oct 1", practice: "Some", meals: "No special needs", ride: "No" },
+];
+const history = [
+  { when: "Today, 9:12 AM", t: "LoriLee raised the places from 12 to 14." },
+  { when: "Oct 21", t: "Pat Rivera sent Frank Moretti a dana reminder." },
+  { when: "Oct 20", t: "LoriLee shared the roster with the Kitchen Team's leads: names, with the answers set to share." },
+  { when: "Oct 19", t: "Noah Fischer joined the waitlist." },
+  { when: "Oct 18", t: "Maya Patel joined the waitlist. The places were full." },
+  { when: "Oct 16", t: "Pat Rivera added a note to Grace Whitfield's registration, for the teachers too." },
+  { when: "Oct 12", t: "LoriLee cancelled Olivia Grant's registration at Olivia's request, and Olivia was emailed." },
+  { when: "Oct 1", t: "LoriLee opened registration." },
+];
+const shares = [
+  { who: "Teachers: Jesse Foy", what: "Names, the answers meant for teachers, and notes written for teachers", meta: "Given to a program's teachers", auto: true },
+  { who: "Kitchen Team, its leads", what: "Names, with the answers about meals, allergies and rides", meta: "Shared by LoriLee on October 20" },
+];
+const state = { cap: 14, regState: "open", reminderSent: false, frankReminded: false, filter: "all" };
+
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const count = (st) => people.filter((p) => p.st === st).length;
+const first = (name) => name.split(" ")[0];
+const poss = (team) => team.endsWith("s") ? `${team}'` : `${team}'s`;
+const people_ = (n) => n === 1 ? "1 person" : `${n} people`;
+const STATUS = { registered: "Registered", waiting: "Waiting", cancelled: "Cancelled" };
+
+/* ── Rails ── */
+document.querySelectorAll('[data-rail="reg"]').forEach((slot) => {
+  slot.replaceWith(document.getElementById("mk-reg-rail").content.cloneNode(true));
+});
+
+/* ── Roster: where it stands, and what needs you ── */
+function renderState() {
+  const reg = count("registered"), wait = count("waiting");
+  const stateWord = { open: "Open until Nov 6", notyet: "Not open yet", closed: "Closed" }[state.regState];
+  document.getElementById("mk-state").innerHTML = `<strong>${stateWord}</strong> · ${reg} of ${state.cap} places taken${wait ? ` · ${wait} waiting` : ""}`;
+  document.getElementById("mk-settings-sum").textContent = `· ${stateWord} · ${state.cap} places`;
+}
+function renderNeeds() {
+  const reg = count("registered");
+  const next = people.find((p) => p.st === "waiting");
+  const items = [];
+  if (next && reg < state.cap) {
+    items.push({ key: "move", text: `<strong>A place opened. ${esc(next.n)} is next on the waitlist.</strong>`,
+      btn: `Move ${esc(first(next.n))} in`,
+      confirm: `We'll email ${esc(first(next.n))} that their place is confirmed and invite them to the dana step.`,
+      yes: `Yes, move ${esc(first(next.n))} in`, act: () => {
+        next.st = "registered"; next.on = "Today";
+        history.unshift({ when: "Just now", t: `LoriLee moved ${next.n} off the waitlist. ${first(next.n)} was emailed.` });
+        return `${esc(next.n)} is registered. We emailed them.`;
+      } });
+  }
+  const frank = people.find((p) => p.n === "Frank Moretti");
+  if (frank && frank.d === "Not finished") {
+    items.push({ key: "dana", text: `<strong>Frank Moretti hasn't finished the dana step.</strong><span class="mk-meta">${state.frankReminded ? "Reminded just now." : "Reminded Oct 21, by Pat."}</span>`,
+      btn: "Send another reminder", confirm: "We'll email Frank a gentle note with a link to finish or skip the dana step.", yes: "Yes, send it",
+      act: () => { state.frankReminded = true; history.unshift({ when: "Just now", t: "LoriLee sent Frank Moretti a dana reminder." }); return "Sent. Frank was emailed."; } });
+  }
+  if (!state.reminderSent) {
+    items.push({ key: "reminder", text: `<strong>The reminder sends itself Thursday, Nov 12, at 9 AM</strong><span class="mk-meta">To the ${count("registered")} registered who haven't had it. Its wording is set in the program editor.</span>`,
+      btn: "Send it now", confirm: `We'll email the reminder now to the ${count("registered")} people registered. People who register later still get it on Thursday.`, yes: "Yes, send it now",
+      act: () => { state.reminderSent = true; history.unshift({ when: "Just now", t: `LoriLee sent the reminder to ${count("registered")} people.` }); return `Sent to ${count("registered")} people.`; } });
+  }
+  const ul = document.getElementById("mk-needs");
+  document.getElementById("mk-needs-title").hidden = items.length === 0;
+  ul.hidden = items.length === 0;
+  ul.innerHTML = items.map((it, n) => `
+    <li data-need="${it.key}"><div class="mk-need">
+      <div class="mk-need__text">${it.text}</div>
+      <button type="button" class="pe-btn${n === 0 ? " pe-btn--primary" : ""}" data-ask="${it.key}" aria-expanded="false">${it.btn}</button>
+      <div class="mk-confirm" data-confirm="${it.key}" hidden><p>${it.confirm}</p>
+        <div class="mk-btnrow"><button type="button" class="pe-btn pe-btn--primary" data-yes="${it.key}">${it.yes}</button><button type="button" class="pe-btn" data-no="${it.key}">Not now</button></div></div>
+      <p class="mk-done mk-note-saved" data-done="${it.key}" role="status" hidden></p>
+    </div></li>`).join("");
+  items.forEach((it) => {
+    const li = ul.querySelector(`[data-need="${it.key}"]`);
+    const ask = li.querySelector("[data-ask]"), box = li.querySelector("[data-confirm]");
+    ask.addEventListener("click", () => { box.hidden = false; ask.setAttribute("aria-expanded", "true"); li.querySelector("[data-yes]").focus(); });
+    li.querySelector("[data-no]").addEventListener("click", () => { box.hidden = true; ask.setAttribute("aria-expanded", "false"); ask.focus(); });
+    li.querySelector("[data-yes]").addEventListener("click", () => {
+      const msg = it.act();
+      renderAll();
+      const live = document.getElementById("mk-needs");
+      const p = document.createElement("li");
+      p.innerHTML = `<p class="mk-note-saved" role="status" style="margin:0">${msg}</p>`;
+      live.prepend(p); live.hidden = false; document.getElementById("mk-needs-title").hidden = false;
+    });
+  });
+}
+
+/* ── Settings: saved on purpose, with limits ── */
+document.getElementById("mk-settings-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("mk-settings-msg");
+  const cap = Number(document.getElementById("mk-cap").value);
+  const reg = count("registered");
+  const newState = document.getElementById("mk-state-sel").value;
+  if (!cap || cap < reg) {
+    msg.className = "mk-note-error";
+    msg.textContent = `${reg} people are registered, so places can't be fewer than ${reg}.`;
+    document.getElementById("mk-cap").focus();
+    return;
+  }
+  const before = state.cap;
+  state.cap = cap; state.regState = newState;
+  msg.className = "mk-note-saved";
+  msg.textContent = newState === "closed"
+    ? `Saved. Registration is closed: no one new can register, and ${count("waiting") ? `the ${people_(count("waiting"))} waiting stay${count("waiting") === 1 ? "s" : ""} on the list` : "no one is waiting"}.`
+    : `Saved. The program page now shows ${cap} places.`;
+  if (cap !== before) history.unshift({ when: "Just now", t: `LoriLee changed the places from ${before} to ${cap}.` });
+  renderAll();
+});
+
+/* ── Inline panels ── */
+function openPanel(name) {
+  ["add", "message", "print"].forEach((n) => { document.getElementById("mk-" + n).hidden = n !== name || !document.getElementById("mk-" + n).hidden; });
+  const el = document.getElementById("mk-" + name);
+  if (!el.hidden) { const f = el.querySelector("input, select, textarea, button"); if (f) f.focus(); }
+}
+document.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => {
+  if (b.dataset.open === "notice") { const n = document.getElementById("mk-notice"); n.hidden = !n.hidden; b.setAttribute("aria-expanded", String(!n.hidden)); if (!n.hidden) document.getElementById("mk-notice-text").focus(); return; }
+  openPanel(b.dataset.open);
+}));
+document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => {
+  document.getElementById("mk-" + b.dataset.close).hidden = true;
+  const opener = document.querySelector(`[data-open="${b.dataset.close}"]`); if (opener) opener.focus();
+}));
+document.getElementById("mk-add-name").addEventListener("input", () => {
+  const full = count("registered") >= state.cap;
+  const w = document.getElementById("mk-add-full");
+  w.hidden = !full;
+  w.textContent = full ? `All ${state.cap} places are taken. Adding them goes over the limit; or add them to the waitlist instead.` : "";
+});
+document.getElementById("mk-add-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = document.getElementById("mk-add-name").value.trim();
+  const msg = document.getElementById("mk-add-msg");
+  if (!name) { msg.className = "mk-note-error"; msg.textContent = "Add their name first."; document.getElementById("mk-add-name").focus(); return; }
+  people.splice(count("registered"), 0, { n: name, st: "registered", d: "Not finished", on: "Today", practice: "", meals: "" });
+  history.unshift({ when: "Just now", t: `LoriLee added ${name} by phone. ${first(name)} was emailed the confirmation.` });
+  msg.className = "mk-note-saved"; msg.textContent = `${name} is registered and was emailed the confirmation.`;
+  renderAll();
+});
+document.getElementById("mk-msg-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const m = document.getElementById("mk-msg-msg"); m.className = "mk-note-saved"; m.textContent = "Sent to 12 people. It's in each person's history.";
+  history.unshift({ when: "Just now", t: "LoriLee sent a message to the 12 registered: “a note before we begin”." }); renderHistory();
+});
+
+/* ── People table ── */
+function staffTag(q) { return q.audience === "registration" ? "" : q.audience === "teachers" ? " · teachers see this" : q.audience === "teams-totals" ? " · teams see totals" : " · teachers and teams see this"; }
+function renderRows() {
+  const counts = { all: people.length, registered: count("registered"), waiting: count("waiting"), cancelled: count("cancelled"), dana: people.filter((p) => p.d === "Not finished").length };
+  document.querySelectorAll("[data-count]").forEach((s) => { s.textContent = counts[s.dataset.count]; });
+  const shown = people.map((p, i) => [p, i]).filter(([p]) => state.filter === "all" || (state.filter === "dana" ? p.d === "Not finished" : p.st === state.filter));
+  const tb = document.getElementById("mk-rows");
+  tb.innerHTML = shown.map(([p, i]) => {
+    const email = p.n.toLowerCase().replace(/[^a-z ]/g, "").replace(" ", ".") + "@example.org";
+    const statusKey = { registered: "registered", waiting: "waitlisted", cancelled: "cancelled" }[p.st];
+    const danaKey = p.d === "Not finished" ? "pending" : p.d.startsWith("Gave") ? "completed" : "waived";
+    const waitPos = p.st === "waiting" ? people.filter((x) => x.st === "waiting").indexOf(p) + 1 : 0;
+    const answers = QUESTIONS.filter((q) => p[q.id]).map((q) => `<p class="mk-answer"><span class="mk-answer__q">${esc(q.label)}<span class="mk-tag">${staffTag(q)}</span></span><span class="mk-answer__a">${esc(p[q.id])}</span></p>`).join("") || '<p class="mk-muted">No answers yet.</p>';
+    const notes = (p.notes || []).map((n) => `<li>${esc(n.t)}<span class="mk-notes__by">${esc(n.by)} · ${n.on} · ${n.forTeachers ? "registration team and teachers" : "registration team only"}</span></li>`).join("");
+    const actions = p.st === "waiting"
+      ? `<button class="pe-btn pe-btn--primary" type="button" data-move="${i}">Move ${esc(first(p.n))} in</button>`
+      : p.st === "cancelled" ? `<button class="pe-btn" type="button">Restore</button>`
+      : `<button class="pe-btn" type="button">Resend the confirmation</button>${p.d === "Not finished" ? '<button class="pe-btn" type="button">Send a dana reminder</button>' : ""}<button class="mk-linkbtn" type="button" data-cancel="${i}">Cancel the registration</button>`;
+    return `
+    <tr class="vol-row vol-row--${statusKey}">
+      <td><button type="button" class="mk-rowbtn" aria-expanded="false" aria-controls="detail-${i}" data-row="${i}"><span class="mk-rowbtn__chev" aria-hidden="true"></span><span class="vol-row__person"><span class="vol-row__name">${esc(p.n)}</span><span class="vol-row__email">${email}</span></span></button></td>
+      <td class="vol-row__status-cell"><span class="vol-row__status-text vol-row__status-text--${statusKey}">${STATUS[p.st]}${waitPos ? (waitPos === 1 ? " (next)" : ` (${waitPos} in line)`) : ""}</span></td>
+      <td class="vol-row__dana"><span class="vol-badge vol-badge--donation-${danaKey}">${esc(p.d)}</span></td>
+      <td class="vol-row__date">${p.on}</td>
+    </tr>
+    <tr class="vol-row-detail" id="detail-${i}" hidden><td colspan="4"><div class="vol-detail">
+      <div class="vol-detail__contact-col">
+        <p class="vol-detail__col-label">Contact</p>
+        <p class="vol-detail__full-name">${esc(p.n)}</p>
+        <p class="vol-detail__meta-text">${email}<br>(262) 555-01${String(i).padStart(2, "0")}</p>
+      </div>
+      <div class="vol-detail__submission-col">
+        <p class="vol-detail__col-label">Answers</p>
+        ${answers}
+        <p class="vol-detail__col-label" style="margin-top:16px">Notes</p>
+        <ul class="mk-notes">${notes}</ul>
+        <button class="pe-btn" type="button">Add a note</button>
+        <p class="vol-detail__col-label" style="margin-top:20px">History</p>
+        <ul class="mk-history mk-history--person">
+          <li><span class="mk-history__when">${p.on}</span><span>${p.on === "Today" ? "Added by LoriLee" : "Registered online"}</span></li>
+          ${p.d.startsWith("Gave") ? `<li><span class="mk-history__when">${p.on}</span><span>Gave dana through the form</span></li>` : ""}
+          ${p.d === "Not finished" && p.n === "Frank Moretti" ? `<li><span class="mk-history__when">Oct 21</span><span>Pat Rivera sent a dana reminder</span></li>` : ""}
+          ${p.notes ? `<li><span class="mk-history__when">Oct 16</span><span>Pat Rivera added a note</span></li>` : ""}
+          ${p.st === "cancelled" ? `<li><span class="mk-history__when">Oct 12</span><span>LoriLee cancelled it at Olivia's request; Olivia was emailed</span></li>` : ""}
+        </ul>
+      </div>
+      <div class="vol-detail__actions-wrap">
+        <p class="vol-detail__col-label">Actions</p>
+        <div class="mk-actions-col">${actions}</div>
+        <div class="mk-confirm" data-cancel-box="${i}" hidden style="margin-top:12px">
+          <p>Cancel ${esc(first(p.n))}'s registration? Their place opens for the next person waiting.</p>
+          <label class="mk-check"><input type="checkbox" checked> Email ${esc(first(p.n))} that it's cancelled</label>
+          <div class="mk-btnrow"><button class="pe-btn pe-btn--primary" type="button" data-cancel-yes="${i}">Yes, cancel it</button><button class="pe-btn" type="button" data-cancel-no="${i}">Keep it</button></div>
+        </div>
+      </div>
+    </div></td></tr>`;
+  }).join("");
+  tb.querySelectorAll("[data-row]").forEach((b) => b.addEventListener("click", () => {
+    const d = document.getElementById("detail-" + b.dataset.row);
+    d.hidden = !d.hidden; b.setAttribute("aria-expanded", String(!d.hidden));
+  }));
+  tb.querySelectorAll("[data-move]").forEach((b) => b.addEventListener("click", () => {
+    document.getElementById("mk-needs").scrollIntoView({ block: "center" });
+    const ask = document.querySelector('[data-ask="move"]'); if (ask) ask.click();
+  }));
+  tb.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", () => { const box = tb.querySelector(`[data-cancel-box="${b.dataset.cancel}"]`); box.hidden = false; box.querySelector("[data-cancel-yes]").focus(); }));
+  tb.querySelectorAll("[data-cancel-no]").forEach((b) => b.addEventListener("click", () => { tb.querySelector(`[data-cancel-box="${b.dataset.cancelNo}"]`).hidden = true; }));
+  tb.querySelectorAll("[data-cancel-yes]").forEach((b) => b.addEventListener("click", () => {
+    const p = people[Number(b.dataset.cancelYes)]; p.st = "cancelled";
+    history.unshift({ when: "Just now", t: `LoriLee cancelled ${p.n}'s registration. ${first(p.n)} was emailed.` });
+    renderAll();
+  }));
+}
+document.querySelectorAll("[data-filter]").forEach((b) => b.addEventListener("click", () => {
+  state.filter = b.dataset.filter;
+  document.querySelectorAll("[data-filter]").forEach((x) => { const on = x === b; x.classList.toggle("hs-filter--active", on); x.setAttribute("aria-pressed", String(on)); });
+  renderRows();
+}));
+
+/* ── Tabs: arrow keys move between them ── */
+const tabs = [...document.querySelectorAll("#mk-tablist [role=tab]")];
+function selectTab(t, focus) {
+  tabs.forEach((x) => { const on = x === t; x.classList.toggle("hs-viewtab--active", on); x.setAttribute("aria-selected", String(on)); x.tabIndex = on ? 0 : -1; });
+  document.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== t.dataset.tab; });
+  if (focus) t.focus();
+}
+tabs.forEach((t, i) => {
+  t.addEventListener("click", () => selectTab(t));
+  t.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); selectTab(tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length], true); }
+  });
+});
+
+/* ── Sharing ── */
+function renderShares() {
+  document.getElementById("mk-shares").innerHTML = shares.map((s, i) => `
+    <li class="mk-share">
+      <div><span class="mk-share__who">${esc(s.who)}</span><span class="mk-share__what">${esc(s.what)}</span><span class="mk-share__meta">${esc(s.meta)}</span></div>
+      ${s.auto ? "" : `<button type="button" class="pe-btn" data-remove="${i}">Stop sharing</button>`}
+    </li>`).join("");
+  document.getElementById("mk-sharecount").textContent = shares.length;
+  document.querySelectorAll("[data-remove]").forEach((b) => b.addEventListener("click", () => {
+    const s = shares.splice(Number(b.dataset.remove), 1)[0];
+    history.unshift({ when: "Just now", t: `LoriLee stopped sharing with ${s.who.replace(/, .*/, "")}.` });
+    renderShares(); renderHistory();
+  }));
+}
+function previewText() {
+  const team = document.getElementById("mk-team").value;
+  const level = document.querySelector('input[name="mk-level"]:checked').value;
+  const answers = document.getElementById("mk-answers").checked;
+  const warn = document.getElementById("mk-preview-warn");
+  warn.hidden = true;
+  if (!team) return "Choose a team to see what they'll get.";
+  const who = document.querySelector('input[name="mk-who"]:checked').value === "leads" ? `${poss(team)} leads` : `Everyone on ${team}`;
+  const reg = count("registered"), wait = count("waiting");
+  const base = { count: `${reg} registered, ${wait} waiting, ${Math.max(state.cap - reg, 0)} places open. No names.`, names: `The names of the ${reg} registered and the ${wait} waiting.`, contact: `The ${reg} registered and ${wait} waiting, with each person's email and phone.` }[level];
+  let ans = "";
+  if (answers) {
+    const named = QUESTIONS.filter((q) => q.audience === "teams-names").map((q) => q.id === "ride" ? "rides" : "allergies");
+    ans = level === "count" ? " Meals, allergies and rides as totals." : ` Meal totals (that question never shares names), and who has ${named.join(" and who would like ")}.`;
+    if (level === "count") { warn.hidden = false; warn.textContent = "Allergies and rides are set to share names, but at How many the team sees totals only. Choose Names if they need to know who."; }
+  }
+  return `${who}: ${base}${ans} Never dana or the registration team's notes.`;
+}
+const sharePanel = document.getElementById("mk-share-panel");
+function refreshPreview() { document.getElementById("mk-preview-text").textContent = previewText(); document.getElementById("mk-do-share").disabled = !document.getElementById("mk-team").value; }
+sharePanel.addEventListener("change", refreshPreview);
+document.getElementById("mk-open-share").addEventListener("click", (e) => { sharePanel.hidden = false; e.currentTarget.setAttribute("aria-expanded", "true"); refreshPreview(); document.getElementById("mk-team").focus(); });
+document.getElementById("mk-cancel-share").addEventListener("click", () => { sharePanel.hidden = true; const o = document.getElementById("mk-open-share"); o.setAttribute("aria-expanded", "false"); o.focus(); });
+document.getElementById("mk-share-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const team = document.getElementById("mk-team").value; if (!team) return;
+  const level = document.querySelector('input[name="mk-level"]:checked');
+  const leads = document.querySelector('input[name="mk-who"]:checked').value === "leads";
+  const what = level.closest("label").querySelector(".mk-choice__name").textContent + (document.getElementById("mk-answers").checked ? ", with the answers set to share" : "");
+  shares.push({ who: `${team}, ${leads ? "its leads" : "everyone"}`, what, meta: "Shared by LoriLee just now. The team was told." });
+  history.unshift({ when: "Just now", t: `LoriLee shared the roster with ${leads ? `${poss(team)} leads` : `everyone on ${team}`}: ${what.toLowerCase()}.` });
+  renderShares(); renderHistory();
+  sharePanel.hidden = true;
+  const o = document.getElementById("mk-open-share"); o.setAttribute("aria-expanded", "false"); o.focus();
+});
+
+function renderHistory() { document.getElementById("mk-history").innerHTML = history.map((h) => `<li><span class="mk-history__when">${esc(h.when)}</span><span>${esc(h.t)}</span></li>`).join(""); }
+
+/* ── Editor: questions with one line each ── */
+function formLine(q) {
+  return {
+    registration: "Read by the registration team.",
+    teachers: "Read by the registration team and your teacher.",
+    "teams-totals": "Read by the registration team and your teacher. The volunteers preparing the retreat see only totals, never your name.",
+    "teams-names": "Read by the registration team, your teacher, and the volunteers helping with this retreat.",
+  }[q.audience];
+}
+function renderQuestions() {
+  document.getElementById("mk-questions").innerHTML = QUESTIONS.map((q, i) => `
+    <div class="mk-q" data-qi="${i}">
+      <div class="mk-q__row">
+        <input type="text" value="${esc(q.label)}" placeholder="Write the question" aria-label="Question ${i + 1}" data-f="label">
+        <select aria-label="Kind of answer, question ${i + 1}" data-f="kind">${Object.entries(KINDS).map(([k, v]) => `<option value="${k}" ${q.kind === k ? "selected" : ""}>${v}</option>`).join("")}</select>
+      </div>
+      ${q.kind === "choice" ? `<div class="mk-q__opts"><input type="text" value="${esc((q.options || []).join(", "))}" aria-label="Choices for question ${i + 1}, separated by commas" data-f="options"></div>` : ""}
+      <div class="mk-q__line"><span class="mk-q__reads"><span class="mk-q__reads-label">On the form: </span><span data-line>${esc(formLine(q))}</span></span>
+        <button type="button" class="mk-linkbtn" data-change aria-expanded="false" aria-controls="aud-${i}">Change who reads it</button></div>
+      <fieldset class="mk-q__aud" id="aud-${i}" hidden><legend class="mk-q__reads-label">Who reads the answer</legend>
+        ${AUDIENCES.map((a) => { const off = a.v === "teams-totals" && !isChoice(q); return `<label class="mk-check"${off ? ' style="color:var(--rim-text-soft)"' : ""}><input type="radio" name="aud-${i}" value="${a.v}" ${q.audience === a.v ? "checked" : ""} ${off ? "disabled" : ""} data-f="audience"> ${a.label}${off ? " (choice questions only: written answers can't be counted)" : ""}</label>`; }).join("")}
+      </fieldset>
+      <div class="mk-q__tools">
+        <label class="mk-check"><input type="checkbox" ${q.required ? "checked" : ""} data-f="required"> Required</label>
+        <button type="button" class="mk-linkbtn" data-move-q="-1" ${i === 0 ? "disabled" : ""} aria-label="Move question ${i + 1} up">Move up</button>
+        <button type="button" class="mk-linkbtn" data-move-q="1" ${i === QUESTIONS.length - 1 ? "disabled" : ""} aria-label="Move question ${i + 1} down">Move down</button>
+        <button type="button" class="mk-linkbtn" data-remove-q aria-label="Remove question ${i + 1}">Remove</button>
+      </div>
+      ${!q.required && (q.kind === "choice" || q.kind === "yesno") ? '<p class="mk-meta" style="margin:4px 0 0">Optional, so the form also offers "Prefer not to say".</p>' : ""}
+    </div>`).join("");
+}
+const qWrap = document.getElementById("mk-questions");
+qWrap.addEventListener("change", (e) => {
+  const box = e.target.closest("[data-qi]"); if (!box) return;
+  const q = QUESTIONS[Number(box.dataset.qi)], f = e.target.dataset.f;
+  if (f === "required") q.required = e.target.checked;
+  else if (f === "audience") q.audience = e.target.value;
+  else if (f === "kind") { q.kind = e.target.value; if (q.kind === "choice" && !q.options) q.options = []; if (!isChoice(q) && q.audience === "teams-totals") q.audience = "teachers"; }
+  else if (f === "options") q.options = e.target.value.split(",").map((s) => s.trim()).filter(Boolean);
+  if (f === "audience") box.querySelector("[data-line]").textContent = formLine(q);
+  else renderQuestions();
+  renderFormQuestions(); renderRows(); renderShared(); renderTeacher();
+});
+qWrap.addEventListener("input", (e) => { if (e.target.dataset.f === "label") { QUESTIONS[Number(e.target.closest("[data-qi]").dataset.qi)].label = e.target.value; renderFormQuestions(); } });
+qWrap.addEventListener("click", (e) => {
+  const box = e.target.closest("[data-qi]"); if (!box) return;
+  const i = Number(box.dataset.qi);
+  if (e.target.matches("[data-change]")) { const aud = box.querySelector(".mk-q__aud"); aud.hidden = !aud.hidden; e.target.setAttribute("aria-expanded", String(!aud.hidden)); if (!aud.hidden) aud.querySelector("input:checked").focus(); }
+  if (e.target.matches("[data-move-q]")) { const j = i + Number(e.target.dataset.moveQ); [QUESTIONS[i], QUESTIONS[j]] = [QUESTIONS[j], QUESTIONS[i]]; renderQuestions(); renderFormQuestions(); }
+  if (e.target.matches("[data-remove-q]")) { QUESTIONS.splice(i, 1); renderQuestions(); renderFormQuestions(); renderRows(); }
+});
+document.getElementById("mk-add-q").addEventListener("click", () => {
+  QUESTIONS.push({ id: "q" + Date.now(), label: "", kind: "short", required: false, audience: "registration" });
+  renderQuestions();
+  const inputs = qWrap.querySelectorAll('[data-f="label"]'); inputs[inputs.length - 1].focus();
+});
+
+/* Section index: jump, and mark the current section */
+function jumpTo(id) { const s = document.getElementById(id); if (!s) return; s.scrollIntoView({ block: "start" }); markSection(id); }
+function markSection(id) { document.querySelectorAll("#mk-index a").forEach((a) => a.setAttribute("aria-current", String(a.dataset.jump === id))); document.getElementById("mk-jump").value = id; }
+document.querySelectorAll("[data-jump]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); jumpTo(a.dataset.jump); }));
+document.getElementById("mk-jump").addEventListener("change", (e) => jumpTo(e.target.value));
+document.getElementById("mk-notice-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const m = document.getElementById("mk-notice-msg"), t = document.getElementById("mk-notice-text").value.trim();
+  if (!t) { m.className = "mk-note-error"; m.textContent = "Write the notice first."; document.getElementById("mk-notice-text").focus(); return; }
+  m.className = "mk-note-saved"; m.textContent = "Posted. It shows on the program's listings and My Home, and the 12 registered were emailed.";
+});
+document.getElementById("mk-ed-save").addEventListener("click", () => { const m = document.getElementById("mk-ed-msg"); m.className = "mk-note-saved"; m.textContent = "Saved at 2:41 PM."; });
+
+/* ── The public form ── */
+function renderFormQuestions() {
+  document.getElementById("mk-form-questions").innerHTML = QUESTIONS.filter((q) => q.label.trim()).map((q, i) => {
+    const id = "fq-" + i, help = "fq-help-" + i;
+    const optional = !q.required;
+    const opts = q.kind === "yesno" ? ["Yes", "No"] : (q.options || []);
+    const input = q.kind === "long" ? `<textarea class="pg-form__textarea" id="${id}" rows="3" aria-describedby="${help}"></textarea>`
+      : q.kind === "short" ? `<input class="pg-form__input" id="${id}" aria-describedby="${help}">`
+      : `<select class="pg-form__select" id="${id}" aria-describedby="${help}"><option value="">Choose</option>${opts.map((o) => `<option>${esc(o)}</option>`).join("")}${optional ? "<option>Prefer not to say</option>" : ""}</select>`;
+    return `<div class="pg-form__field">
+      <label class="pg-form__label" for="${id}">${esc(q.label)}${optional ? ' <span style="font-weight:400">(optional)</span>' : ""}</label>
+      ${input}
+      <span class="mk-reads" id="${help}">${esc(formLine(q))}</span>
+    </div>`;
+  }).join("");
+}
+
+/* ── Shared and teacher screens: built only from the questions' settings ── */
+const isChoice = (q) => q.kind === "choice" || q.kind === "yesno";
+const forTeachers = (q) => q.audience !== "registration";
+const forTeams = (q) => q.audience === "teams-totals" || q.audience === "teams-names";
+const realAnswer = (a) => a && a !== "Prefer not to say";
+function optionsOf(q) { return q.kind === "yesno" ? ["Yes", "No"] : (q.options || []); }
+/* One block per choice question: each answer with its count, and the people (unless totals only). */
+function choiceBlock(q, list, view, withNames) {
+  const opts = [...optionsOf(q)];
+  list.forEach((p) => { if (p[q.id] && !opts.includes(p[q.id])) opts.push(p[q.id]); });
+  const rows = opts.map((o) => {
+    const who = list.filter((p) => p[q.id] === o);
+    if (!who.length) return "";
+    const names = withNames && o !== "Prefer not to say"
+      ? (who.length <= 5 ? `<div class="mk-opt__names">${who.map((p) => nameBtn(p, view)).join("")}</div>`
+        : `<details><summary class="mk-linkbtn" style="display:inline-flex;align-items:center">Show who</summary><div class="mk-opt__names">${who.map((p) => nameBtn(p, view)).join("")}</div></details>`)
+      : "";
+    return `<div class="mk-opt"><div class="mk-opt__head"><span>${esc(o)}</span><span class="mk-opt__count">${who.length}</span></div>${names}</div>`;
+  }).join("");
+  const unanswered = list.filter((p) => !p[q.id]).length;
+  return `<div class="mk-panel"><h3>${esc(q.label)}</h3>${rows}${unanswered ? `<p class="mk-meta" style="margin:8px 0 0">${people_(unanswered)} didn't answer.</p>` : ""}${withNames ? "" : '<p class="mk-meta" style="margin:8px 0 0">Totals only: this question never shares names.</p>'}</div>`;
+}
+function nameBtn(p, view) { return `<button type="button" class="mk-name" aria-expanded="false" data-person="${people.indexOf(p)}" data-view="${view}">${esc(p.n)}</button>`; }
+/* What one person shared with this viewer. */
+function personCard(p, view) {
+  const qs = QUESTIONS.filter((q) => view === "teacher" ? forTeachers(q) : q.audience === "teams-names");
+  const rows = qs.filter((q) => p[q.id]).map((q) => `<p class="mk-answer"><span class="mk-answer__q">${esc(q.label)}</span><span class="mk-answer__a">${esc(p[q.id])}</span></p>`);
+  if (view === "teacher") (p.notes || []).filter((n) => n.forTeachers).forEach((n) => rows.push(`<p class="mk-answer"><span class="mk-answer__q">Note from ${esc(n.by)}, ${n.on}</span><span class="mk-answer__a">${esc(n.t)}</span></p>`));
+  const status = p.st === "waiting" ? "Waiting for a place" : "Registered";
+  return `<div class="mk-card" role="region" aria-label="${esc(p.n)}"><h4>${esc(p.n)}</h4><p class="mk-meta" style="margin:0 0 8px">${status}</p>${rows.join("") || '<p class="mk-muted" style="margin:0">Nothing shared with you.</p>'}<p class="mk-meta" style="margin:8px 0 0">${view === "teacher" ? "Contact details and dana stay with the registration team." : "To reach them, ask the registration team."}</p></div>`;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".mk-name"); if (!b) return;
+  const open = b.getAttribute("aria-expanded") === "true";
+  document.querySelectorAll("[data-for]").forEach((c) => c.remove());
+  document.querySelectorAll(".mk-name[aria-expanded='true']").forEach((x) => x.setAttribute("aria-expanded", "false"));
+  if (open) return;
+  const card = document.createElement("div");
+  card.dataset.for = b.dataset.person;
+  card.innerHTML = personCard(people[Number(b.dataset.person)], b.dataset.view);
+  const anchor = b.closest("li, .mk-opt, .mk-panel");
+  const placed = anchor.tagName === "LI" ? document.createElement("li") : card.firstElementChild;
+  if (anchor.tagName === "LI") { placed.className = "mk-card-li"; placed.style.cssText = "border-top:0;padding:0;column-span:all"; placed.append(card.firstElementChild); }
+  anchor.after(placed); card.remove();
+  placed.dataset.for = b.dataset.person;
+  placed.querySelectorAll(".mk-card").forEach((c) => c.removeAttribute("data-for"));
+  b.setAttribute("aria-expanded", "true");
+});
+function renderShared() {
+  const reg = people.filter((p) => p.st === "registered");
+  document.getElementById("mk-s-banner").textContent = "Shared with this team's leads by LoriLee on October 20: names, with the answers set to share with teams. To reach someone, ask the registration team.";
+  const qs = QUESTIONS.filter(forTeams);
+  const blocks = qs.map((q) => isChoice(q) ? choiceBlock(q, reg, "team", q.audience === "teams-names")
+    : `<div class="mk-panel"><h3>${esc(q.label)}</h3><ul class="mk-simple">${reg.filter((p) => realAnswer(p[q.id])).map((p) => `<li>${nameBtn(p, "team")}: ${esc(p[q.id])}</li>`).join("") || '<li class="mk-muted">No one has written anything.</li>'}</ul></div>`);
+  blocks.push(`<div class="mk-panel"><h3>Who's coming</h3><p class="mk-meta" style="margin-top:0">${reg.length} registered. People waiting aren't shown until they have a place.</p><ul class="mk-people-names">${reg.map((p) => `<li>${nameBtn(p, "team")}</li>`).join("")}</ul></div>`);
+  document.getElementById("mk-shared-body").innerHTML = qs.length ? `<div class="mk-two">${blocks.join("")}</div>` : `<div class="mk-two">${blocks.join("")}</div><p class="mk-muted">No questions are set to share with teams.</p>`;
+}
+function renderTeacher() {
+  const reg = people.filter((p) => p.st === "registered"), wait = people.filter((p) => p.st === "waiting");
+  document.getElementById("mk-t-count").textContent = `${reg.length} registered, ${wait.length} waiting`;
+  const qs = QUESTIONS.filter(forTeachers);
+  const know = [];
+  reg.forEach((p) => {
+    qs.filter((q) => !isChoice(q) && realAnswer(p[q.id])).forEach((q) => know.push(`<li>${nameBtn(p, "teacher")}: ${esc(p[q.id])}<span class="mk-meta" style="display:block">${esc(q.label)}</span></li>`));
+    (p.notes || []).filter((n) => n.forTeachers).forEach((n) => know.push(`<li>${nameBtn(p, "teacher")}: ${esc(n.t)}<span class="mk-meta" style="display:block">A note from ${esc(n.by)}, registration team</span></li>`));
+  });
+  const parts = [`<div class="mk-panel"><h3>Worth knowing before you teach</h3><ul class="mk-simple">${know.join("") || '<li class="mk-muted">Nothing written yet.</li>'}</ul></div>`];
+  qs.filter(isChoice).forEach((q) => parts.push(choiceBlock(q, reg, "teacher", true)));
+  parts.push(`<div class="mk-panel"><h3>Who's coming</h3><ul class="mk-people-names">${reg.map((p) => `<li>${nameBtn(p, "teacher")}</li>`).join("")}</ul>${wait.length ? `<p class="mk-meta" style="margin:12px 0 0">Waiting for a place: ${wait.map((p) => esc(p.n)).join(", ")}.</p>` : ""}</div>`);
+  document.getElementById("mk-teacher-body").innerHTML = parts.join("");
+}
+
+/* ── Screens ── */
+function renderAll() { renderState(); renderNeeds(); renderRows(); renderShares(); renderHistory(); renderShared(); renderTeacher(); }
+function go(screen) {
+  document.querySelectorAll(".mk-screen").forEach((s) => { s.hidden = s.dataset.screen !== screen; });
+  document.querySelectorAll(".mk-guide [data-go]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.go === screen)));
+  document.getElementById("mk-note").textContent = NOTES[screen];
+  if (screen === "teacher") renderTeacher();
+  if (screen === "shared") renderShared();
+  window.scrollTo(0, 0);
+  try { window.history.replaceState(null, "", "#" + screen); } catch (e) {}
+}
+document.addEventListener("click", (e) => { const el = e.target.closest("[data-go]"); if (el) { e.preventDefault(); go(el.dataset.go); } });
+
+renderQuestions(); renderFormQuestions(); renderAll();
+const start = location.hash.slice(1);
+go(start in NOTES ? start : "list");
+if (window.lucide) lucide.createIcons({ attrs: { width: 18, height: 18, "stroke-width": 1.75 } });
+</script>
+</body>
+</html>

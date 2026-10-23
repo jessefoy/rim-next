@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who's helping, who's asking (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://rim-next.vercel.app/css/custom.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Mockup only (2026-10-23, third version: "who's helping, who's asking").
+   Tokens from custom.css; nothing here ships. See CONCEPT.md. */
+
+/* The guide bar: not part of the app. */
+.mk-guide { background: var(--rim-heading, #1f3a4a); color: #fff; padding: 12px 24px; font-family: var(--font-sans); font-size: 15px; line-height: 1.5; position: sticky; top: 0; z-index: 200; }
+.mk-guide__inner { max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.mk-guide__label { font-weight: 700; margin-right: 4px; }
+.mk-guide__btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.mk-guide button { font: inherit; color: #fff; background: transparent; border: 1px solid rgba(255,255,255,.55); border-radius: 9999px; padding: 6px 14px; min-height: 36px; cursor: pointer; }
+.mk-guide button[aria-pressed="true"] { background: #fff; color: var(--rim-blue); border-color: #fff; font-weight: 600; }
+.mk-guide__note { width: 100%; margin: 0; color: rgba(255,255,255,.9); max-width: 110ch; }
+[hidden] { display: none !important; }
+@media (max-width: 768px) { .mk-guide { position: static; } }
+.mk-page .nav { position: relative; top: auto; }
+
+/* Shared pieces */
+.mk-muted { color: var(--rim-text-soft); }
+.mk-meta { font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+.mk-btnrow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.mk-link { color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
+.mk-linkbtn { font: inherit; color: var(--rim-blue); background: none; border: 0; padding: 0 2px; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.mk-saved { color: var(--color-success); font-weight: 600; }
+.mk-error { color: var(--color-error); font-weight: 600; }
+.mk-panel { background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; padding: var(--space-3); margin-bottom: var(--space-3); }
+.mk-panel h3, .mk-sec h3 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h4); line-height: var(--lh-heading); color: var(--rim-heading); margin: 0 0 var(--space-2); }
+.mk-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-2); }
+.mk-field > span:first-child, .mk-field legend { font-weight: 600; color: var(--rim-heading); }
+.mk-field input:not([type="checkbox"]):not([type="radio"]), .mk-field select, .mk-field textarea, .mk-input {
+  font: inherit; font-size: 16px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--rim-rule); border-radius: 8px; background: #fff; color: var(--rim-text); box-sizing: border-box; max-width: 100%; }
+.mk-field textarea { min-height: 88px; width: 100%; }
+fieldset.mk-field { border: 0; padding: 0; margin: 0 0 var(--space-2); }
+.mk-check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.mk-check input { width: 20px; height: 20px; margin: 0; flex: none; }
+.mk-row { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: flex-end; }
+.mk-row .mk-field { margin-bottom: 0; }
+.mk-readonly { background: var(--rim-bg-bright, #faf9f7); border-radius: 8px; padding: 10px 14px; margin: 0; }
+.mk-head { margin-bottom: var(--space-3); }
+.mk-head h2 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h2); line-height: var(--lh-heading); color: var(--rim-heading); margin: 6px 0; }
+.mk-state { margin: 0 0 4px; }
+.mk-state strong { color: var(--rim-heading); }
+.mk-eyebrow { font-size: var(--text-xs, 13px); font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--rim-label, var(--rim-blue)); }
+.mk-first { display: inline-block; margin-left: 8px; font-size: var(--text-app-meta, 15px); font-weight: 600; color: var(--rim-blue); }
+.mk-simple { list-style: none; margin: 0; padding: 0; }
+.mk-simple > li { padding: 10px 0; border-top: 1px solid var(--rim-rule); }
+.mk-simple > li:first-child { border-top: 0; }
+.mk-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); align-items: start; }
+.mk-two > .mk-panel { margin-bottom: 0; }
+@media (max-width: 900px) { .mk-two { grid-template-columns: 1fr; } }
+details.mk-rules { margin-top: var(--space-3); }
+details.mk-rules > summary { cursor: pointer; color: var(--rim-blue); min-height: 44px; display: flex; align-items: center; }
+
+/* Queue of what needs you */
+.mk-queue { list-style: none; margin: 0 0 var(--space-3); padding: 0; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.mk-queue > li { padding: var(--space-2) var(--space-3); }
+.mk-queue > li + li { border-top: 1px solid var(--rim-rule); }
+.mk-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; align-items: center; }
+.mk-item__text strong { color: var(--rim-heading); }
+.mk-item__text .mk-meta { display: block; }
+.mk-item__prog { display: block; font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+.mk-confirm { grid-column: 1 / -1; background: var(--rim-bg-bright, #faf9f7); border-radius: 8px; padding: 12px 16px; }
+.mk-confirm p { margin: 0 0 10px; }
+.mk-sectitle { font-weight: 600; color: var(--rim-heading); margin: 0 0 8px; }
+@media (max-width: 640px) { .mk-item { grid-template-columns: 1fr; } }
+
+/* Program rows */
+.mk-progs { list-style: none; margin: 0 0 var(--space-3); padding: 0; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.mk-progs li + li { border-top: 1px solid var(--rim-rule); }
+.mk-prog { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 24px; padding: var(--space-2) var(--space-3); color: inherit; text-decoration: none; }
+.mk-prog:hover { background: var(--rim-bg-bright, #faf9f7); }
+.mk-prog:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: -2px; }
+.mk-prog__name { font-weight: 600; color: var(--rim-heading); }
+.mk-prog:hover .mk-prog__name { color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
+.mk-prog__go { align-self: center; color: var(--rim-blue); white-space: nowrap; }
+@media (max-width: 560px) { .mk-prog { grid-template-columns: 1fr; } .mk-prog__go { display: none; } }
+
+/* Settings fold */
+details.mk-fold > summary { cursor: pointer; font-weight: 600; color: var(--rim-heading); min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; list-style: none; }
+details.mk-fold > summary::-webkit-details-marker { display: none; }
+details.mk-fold > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-left: 4px; transition: transform .15s; }
+details.mk-fold[open] > summary::after { transform: rotate(-135deg); }
+.mk-fold__sum { color: var(--rim-text-soft); font-weight: 400; }
+
+/* Roster */
+.mk-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: var(--space-3) 0 var(--space-2); }
+.mk-tabs [role="tab"] { min-height: 44px; }
+.mk-rowbtn { font: inherit; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 44px; color: inherit; }
+.mk-rowbtn:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: 2px; border-radius: 4px; }
+.mk-chev { width: 8px; height: 8px; border-right: 2px solid var(--rim-text-soft); border-bottom: 2px solid var(--rim-text-soft); transform: rotate(-45deg); transition: transform .15s; flex: none; }
+.mk-rowbtn[aria-expanded="true"] .mk-chev { transform: rotate(45deg); }
+.mk-answer { margin: 0 0 12px; }
+.mk-answer__q { display: block; font-weight: 600; color: var(--rim-heading); }
+.mk-answer__a { display: block; }
+.mk-asker { font-weight: 600; color: var(--rim-text-soft); margin: 12px 0 6px; font-size: var(--text-app-meta, 15px); }
+.mk-asker:first-child { margin-top: 0; }
+.mk-notes { list-style: none; margin: 0 0 12px; padding: 0; }
+.mk-notes li { margin-bottom: 12px; }
+.mk-notes__by { display: block; font-size: var(--text-app-meta, 15px); color: var(--rim-text-soft); }
+.mk-actions-col { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.mk-history { list-style: none; margin: 0; padding: 0; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.mk-history li { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 4px 16px; padding: 14px var(--space-3); border-top: 1px solid var(--rim-rule); }
+.mk-history li:first-child { border-top: 0; }
+.mk-history__when { color: var(--rim-text-soft); font-size: var(--text-app-meta, 15px); }
+.mk-history--person { background: none; border: 0; }
+.mk-history--person li { grid-template-columns: 90px minmax(0, 1fr); padding: 6px 0; border-top: 0; }
+@media (max-width: 560px) { .mk-history li { grid-template-columns: 1fr; } }
+
+/* Helpers list (roster tab and editor section) */
+.mk-helpers { list-style: none; margin: 0; padding: 0; }
+.mk-helper { padding: var(--space-2) 0; border-top: 1px solid var(--rim-rule); }
+.mk-helper:first-child { border-top: 0; padding-top: 0; }
+.mk-helper__who { font-weight: 600; color: var(--rim-heading); }
+.mk-helper__role { color: var(--rim-text-soft); font-weight: 400; }
+.mk-helper__sees { margin: 4px 0 0; }
+
+/* Names and person cards */
+.mk-name { font: inherit; font-weight: 600; color: var(--rim-blue); background: none; border: 0; padding: 12px 2px; margin: -12px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-align: left; }
+.mk-name[aria-expanded="true"] { color: var(--rim-heading); }
+.mk-card { border: 1px solid var(--rim-rule); border-radius: 12px; background: #fff; padding: var(--space-2) var(--space-3); margin: 8px 0 12px; }
+.mk-card h4 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h4); color: var(--rim-heading); margin: 0 0 4px; }
+.mk-names { columns: 2; column-gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.mk-names > li { break-inside: avoid; }
+@media (max-width: 560px) { .mk-names { columns: 1; } }
+.mk-opt { padding: 10px 0; border-top: 1px solid var(--rim-rule); }
+.mk-opt:first-of-type { border-top: 0; }
+.mk-opt__head { display: flex; justify-content: space-between; gap: 16px; }
+.mk-opt__count { font-weight: 600; font-variant-numeric: tabular-nums; }
+.mk-opt__names { display: flex; flex-wrap: wrap; gap: 0 12px; }
+
+/* Door list */
+.mk-door > li { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.mk-arrived { min-width: 120px; }
+.mk-arrived[aria-pressed="true"] { background: var(--rim-bg-bright, #faf9f7); color: var(--color-success); border-color: var(--color-success); }
+
+/* Start a program */
+.mk-shapes { list-style: none; margin: 0 0 var(--space-3); padding: 0; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.mk-shapes li + li { border-top: 1px solid var(--rim-rule); }
+.mk-shape { width: 100%; font: inherit; text-align: left; background: none; border: 0; cursor: pointer; display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 4px 24px; align-items: center; padding: var(--space-2) var(--space-3); color: inherit; }
+.mk-shape:hover { background: var(--rim-bg-bright, #faf9f7); }
+.mk-shape:focus-visible { outline: 2px solid var(--rim-blue); outline-offset: -2px; }
+.mk-shape__name { font-weight: 600; color: var(--rim-heading); }
+.mk-shape__sets { color: var(--rim-text-soft); }
+.mk-shape__go { color: var(--rim-blue); white-space: nowrap; }
+@media (max-width: 640px) { .mk-shape { grid-template-columns: 1fr; } .mk-shape__go { display: none; } }
+
+/* Editor */
+.mk-ed-head { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: var(--space-3); }
+.mk-ed-head h2 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h2); line-height: var(--lh-heading); color: var(--rim-heading); margin: 4px 0 0; }
+.mk-ed { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+.mk-index { position: sticky; top: 16px; }
+.mk-index ol { list-style: none; margin: 0; padding: 0; }
+.mk-index a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--rim-text); text-decoration: none; }
+.mk-index a:hover { background: var(--rim-bg-bright, #faf9f7); }
+.mk-index a[aria-current="true"] { background: var(--rim-surface); color: var(--rim-blue); font-weight: 600; }
+.mk-jump { display: none; }
+@media (max-width: 900px) { .mk-ed { grid-template-columns: 1fr; } .mk-index { display: none; } .mk-jump { display: flex; } }
+.mk-sec { background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); scroll-margin-top: 16px; }
+.mk-sec > h3 { font-size: var(--text-h3); }
+.mk-sub { font-weight: 600; color: var(--rim-heading); margin: var(--space-3) 0 var(--space-1); }
+@media (max-width: 560px) { .mk-sec { padding: var(--space-3); } }
+.mk-ready { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.mk-ready li { display: flex; gap: 10px; align-items: baseline; }
+.mk-ready__mark { flex: none; width: 1.2em; font-weight: 700; }
+.mk-ready__mark--ok { color: var(--color-success); }
+.mk-ready__mark--todo { color: var(--color-warning); }
+.mk-group { border: 1px solid var(--rim-rule); border-radius: 12px; padding: var(--space-2) var(--space-3); margin-bottom: var(--space-2); background: var(--rim-bg-bright, #faf9f7); }
+.mk-group__head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.mk-group__title { font-weight: 600; color: var(--rim-heading); }
+.mk-q { border: 1px solid var(--rim-rule); border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; background: #fff; }
+.mk-q__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; }
+.mk-q__row input, .mk-q__row select, .mk-q__opts input { font: inherit; font-size: 16px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--rim-rule); border-radius: 8px; background: #fff; width: 100%; box-sizing: border-box; }
+.mk-q__row select { width: auto; }
+.mk-q__opts { margin-top: 8px; }
+.mk-q__tools { display: flex; flex-wrap: wrap; gap: 0 16px; align-items: center; margin-top: 4px; }
+.mk-q__tools select { font: inherit; font-size: 16px; min-height: 44px; padding: 6px 10px; border: 1px solid var(--rim-rule); border-radius: 8px; background: #fff; }
+@media (max-width: 560px) { .mk-q__row { grid-template-columns: 1fr; } }
+.mk-timeline { list-style: none; margin: 0; padding: 0; }
+.mk-timeline > li { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px var(--space-3); padding: var(--space-2) 0; border-top: 1px solid var(--rim-rule); }
+.mk-timeline > li:first-child { border-top: 0; padding-top: 0; }
+.mk-timeline__when { font-weight: 600; color: var(--rim-heading); }
+@media (max-width: 640px) { .mk-timeline > li { grid-template-columns: 1fr; } }
+
+/* The public form */
+.mk-ask { border: 0; padding: 0; margin: var(--space-4) 0 0; }
+.mk-ask legend { font-family: var(--font-heading); font-size: var(--text-h4); color: var(--rim-heading); padding: 0; margin: 0; }
+.mk-ask__reads { display: block; margin: 4px 0 var(--space-2); font-size: var(--text-small, 15px); color: var(--rim-text-soft); }
+
+/* Personal page heading */
+.mk-ph { margin-bottom: var(--space-3); }
+.mk-ph h1 { font-family: var(--font-heading); font-weight: 400; font-size: var(--text-h2); color: var(--rim-heading); margin: 4px 0 6px; }
+.mk-ph p { margin: 0; color: var(--rim-text-soft); }
+</style>
+</head>
+<body>
+
+<div class="mk-guide" role="region" aria-label="Mockup guide">
+  <div class="mk-guide__inner">
+    <span class="mk-guide__label">Mockup · sample people, not live</span>
+    <div class="mk-guide__btns" role="group" aria-label="Screens">
+      <button type="button" data-go="desk" aria-pressed="true">1 · The desk</button>
+      <button type="button" data-go="roster" aria-pressed="false">2 · A program's people</button>
+      <button type="button" data-go="start" aria-pressed="false">3 · Start a program</button>
+      <button type="button" data-go="editor" aria-pressed="false">4 · The program editor</button>
+      <button type="button" data-go="form" aria-pressed="false">5 · The form</button>
+      <button type="button" data-go="teacher" aria-pressed="false">6 · The teacher</button>
+      <button type="button" data-go="door" aria-pressed="false">7 · At the door</button>
+      <button type="button" data-go="kitchen" aria-pressed="false">8 · Dietary needs</button>
+    </div>
+    <p class="mk-guide__note" id="mk-note"></p>
+  </div>
+</div>
+
+<div class="mk-page">
+<header class="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" href="#"><img src="https://rim-next.vercel.app/images/Rooted-In-Mindfulness-Logo.png" alt="Rooted In Mindfulness" height="45"><span class="nav__brand-name">Rooted In Mindfulness</span></a>
+    <nav class="nav__desktop" aria-label="Main navigation">
+      <a class="nav__link" href="#">New to RIM</a><a class="nav__link" href="#">Practice</a><a class="nav__link" href="#">Programs</a><a class="nav__link" href="#">About</a><a class="nav__link" href="#">Get Involved</a><a class="nav__link" href="#">My Home</a>
+    </nav>
+    <a class="nav__donate" href="#">Donate</a>
+    <button type="button" class="nav__menu-btn" aria-expanded="false"><svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12"></path></svg>Menu</button>
+  </div>
+</header>
+
+<template id="rail-reg">
+  <div class="hub-ws-mobilebar"><button type="button" class="hub-ws-mobilebar__btn" aria-label="Open the team menu"><i data-lucide="menu"></i></button><div class="hub-ws-mobilebar__name">Registration team</div></div>
+  <nav class="hub-ws-sidebar" aria-label="Team navigation">
+    <div class="hub-ws-identity"><div class="hub-ws-identity__type">Team</div><div class="hub-ws-identity__name">Registration</div><div class="hub-ws-identity__meta">Led by LoriLee and Pat · 2 members</div></div>
+    <div class="hub-ws-divider" aria-hidden="true"></div>
+    <div class="hub-ws-group">
+      <a class="hub-ws-link" href="#"><i data-lucide="home" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Home</span></a>
+      <a class="hub-ws-link hub-ws-link--primary hub-ws-link--active" href="#" data-go="desk" aria-current="page"><i data-lucide="user-check" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Registration</span></a>
+      <a class="hub-ws-link hub-ws-link--supporting" href="#" data-go="editor"><i data-lucide="clipboard-list" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Programs</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="history" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Updates</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="messages-square" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Conversations</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="folder-open" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Files</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="users-round" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Members</span></a>
+    </div>
+    <div class="hub-ws-footer"><a class="hub-ws-footer__link" href="#"><i data-lucide="chevron-left"></i><span>My Teams</span></a><a class="hub-ws-footer__link" href="#"><i data-lucide="user-round"></i><span>My Profile</span></a></div>
+  </nav>
+</template>
+<template id="rail-pc">
+  <div class="hub-ws-mobilebar"><button type="button" class="hub-ws-mobilebar__btn" aria-label="Open the team menu"><i data-lucide="menu"></i></button><div class="hub-ws-mobilebar__name">Program Central</div></div>
+  <nav class="hub-ws-sidebar" aria-label="Team navigation">
+    <div class="hub-ws-identity"><div class="hub-ws-identity__type">Team</div><div class="hub-ws-identity__name">Program Central</div><div class="hub-ws-identity__meta">Led by Jesse and LoriLee · 5 members</div></div>
+    <div class="hub-ws-divider" aria-hidden="true"></div>
+    <div class="hub-ws-group">
+      <a class="hub-ws-link" href="#"><i data-lucide="home" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Home</span></a>
+      <a class="hub-ws-link hub-ws-link--primary hub-ws-link--active" href="#" aria-current="page"><i data-lucide="clipboard-list" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Programs</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="history" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Updates</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="messages-square" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Conversations</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="folder-open" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Files</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="users-round" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Members</span></a>
+    </div>
+    <div class="hub-ws-footer"><a class="hub-ws-footer__link" href="#"><i data-lucide="chevron-left"></i><span>My Teams</span></a><a class="hub-ws-footer__link" href="#"><i data-lucide="user-round"></i><span>My Profile</span></a></div>
+  </nav>
+</template>
+<template id="rail-me">
+  <aside class="ac-sidebar ac-sidebar--site" aria-label="My RIM">
+    <nav class="ac-sidebar__nav">
+      <div class="ac-sidebar__group">
+        <a class="ac-sidebar__link" href="#" aria-current="page"><i data-lucide="home" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">My Home</span></a>
+        <a class="ac-sidebar__link" href="#"><i data-lucide="book-open" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">Library</span></a>
+        <a class="ac-sidebar__link" href="#"><i data-lucide="users" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">My Teams</span></a>
+        <a class="ac-sidebar__link" href="#"><i data-lucide="bell" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">Notifications</span></a>
+      </div>
+      <div class="ac-sidebar__divider"></div>
+      <div class="ac-sidebar__group"><a class="ac-sidebar__link" href="#"><i data-lucide="user-round" class="ac-sidebar__icon"></i><span class="ac-sidebar__label">My Profile</span></a></div>
+    </nav>
+  </aside>
+</template>
+
+<!-- ═══ 1 · The desk ═══ -->
+<section class="mk-screen" data-screen="desk">
+<div class="hub-ws-layout"><div data-rail="reg"></div>
+  <div class="hub-ws-main">
+    <div class="hub-ws-toolhead"><h1 class="hub-ws-toolhead__name">Registration</h1></div>
+    <div class="hub-ws-content hub-ws-content--wide">
+      <p class="mk-sectitle">Needs you</p>
+      <ul class="mk-queue" id="desk-queue"></ul>
+      <p class="mk-sectitle">Going out soon</p>
+      <ul class="mk-queue">
+        <li><div class="mk-item"><div class="mk-item__text"><span class="mk-item__prog">Awakening to the Beauty of This Moment</span><strong>The reminder, Thursday, Nov 12, at 9 AM</strong><span class="mk-meta">To the 12 registered who haven't had it</span></div><a class="pe-btn" href="#" data-go="roster">Open the program</a></div></li>
+      </ul>
+      <p class="mk-sectitle">Programs taking registration</p>
+      <ul class="mk-progs">
+        <li><a class="mk-prog" href="#" data-go="roster"><span><span class="mk-prog__name">Awakening to the Beauty of This Moment</span><br><span class="mk-muted">Nov 13 to 15 · Open until Nov 6 · 12 of 14 places · 2 waiting · 3 new to RIM</span></span><span class="mk-prog__go">Open &rarr;</span></a></li>
+        <li><a class="mk-prog" href="#"><span><span class="mk-prog__name">Taking CARE: Foundations of Meditation and Mindful Living</span><br><span class="mk-muted">Begins Nov 4 · Open · 9 of 16 places · 5 new to RIM</span></span><span class="mk-prog__go">Open &rarr;</span></a></li>
+        <li><a class="mk-prog" href="#"><span><span class="mk-prog__name">Essential Dharma Study</span><br><span class="mk-muted">Wednesdays · Open · 14 registered</span></span><span class="mk-prog__go">Open &rarr;</span></a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 2 · A program's people ═══ -->
+<section class="mk-screen" data-screen="roster" hidden>
+<div class="hub-ws-layout"><div data-rail="reg"></div>
+  <div class="hub-ws-main">
+    <div class="hub-ws-content hub-ws-content--wide">
+      <div class="mk-head">
+        <a href="#" class="vol-back" data-go="desk">&larr; Registration</a>
+        <h2>Awakening to the Beauty of This Moment</h2>
+        <p class="mk-state" id="r-state" aria-live="polite"></p>
+        <p class="mk-muted" style="margin:0">Fri, Nov 13 to Sun, Nov 15 · In person at RIM · Taught by Jesse Foy · <a href="#" class="mk-link" data-go="editor">Edit the program</a></p>
+      </div>
+      <p class="mk-sectitle" id="r-needs-title">Needs you</p>
+      <ul class="mk-queue" id="r-needs"></ul>
+
+      <div class="mk-panel">
+        <details class="mk-fold">
+          <summary>Registration settings <span class="mk-fold__sum" id="r-settings-sum"></span></summary>
+          <form id="r-settings-form" novalidate style="margin-top: var(--space-2)">
+            <div class="mk-row">
+              <label class="mk-field"><span>Registration</span><select id="r-state-sel"><option value="notyet">Not open yet</option><option value="open" selected>Open</option><option value="closed">Closed</option></select></label>
+              <label class="mk-field"><span>Places</span><input id="r-cap" type="number" min="1" value="14" style="width:110px"></label>
+              <label class="mk-field"><span>Closes after</span><input type="date" value="2026-11-06"></label>
+              <label class="mk-field"><span>Mailing list</span><select><option>Automatic (on)</option><option>On</option><option>Off</option></select></label>
+            </div>
+            <p class="mk-meta">The mailing list adds registered people to the Flodesk segment "Awakening to the Beauty of This Moment 11/13/26", for newsletters only. These are the program's own settings; changing them here changes the program.</p>
+            <div class="mk-btnrow"><button type="submit" class="pe-btn pe-btn--primary">Save</button><span id="r-settings-msg" role="status"></span></div>
+          </form>
+        </details>
+      </div>
+
+      <div class="mk-toolbar">
+        <div class="hs-viewtabs mk-tabs" role="tablist" aria-label="This program" id="r-tabs">
+          <button type="button" role="tab" id="tab-people" class="hs-viewtab hs-viewtab--active" aria-selected="true" aria-controls="panel-people" data-tab="people">People</button>
+          <button type="button" role="tab" id="tab-helpers" class="hs-viewtab" aria-selected="false" aria-controls="panel-helpers" data-tab="helpers" tabindex="-1">Who's helping</button>
+          <button type="button" role="tab" id="tab-history" class="hs-viewtab" aria-selected="false" aria-controls="panel-history" data-tab="history" tabindex="-1">History</button>
+        </div>
+        <div class="mk-btnrow">
+          <button type="button" class="pe-btn" data-panel-open="add">Add a person</button>
+          <button type="button" class="pe-btn" data-panel-open="message">Message people</button>
+          <button type="button" class="pe-btn" data-panel-open="print">Print or download</button>
+        </div>
+      </div>
+
+      <div class="mk-panel" id="p-add" hidden>
+        <h3>Add a person</h3>
+        <p class="mk-muted" style="margin-top:0">For someone who phoned, wrote, or registered on paper.</p>
+        <form id="add-form" novalidate>
+          <label class="mk-field"><span>Name</span><input type="text" id="add-name" placeholder="Search members, or type a new name"></label>
+          <label class="mk-field"><span>Email</span><input type="email"></label>
+          <fieldset class="mk-field"><legend>Dana</legend>
+            <label class="mk-check"><input type="radio" name="add-dana" checked> They'll give online (we'll send the dana step)</label>
+            <label class="mk-check"><input type="radio" name="add-dana"> Given by cash or check</label>
+            <label class="mk-check"><input type="radio" name="add-dana"> No dana</label>
+          </fieldset>
+          <label class="mk-check"><input type="checkbox" checked> Email them their confirmation, with the form's questions to answer</label>
+          <div class="mk-btnrow" style="margin-top:12px"><button type="submit" class="pe-btn pe-btn--primary">Add to the roster</button><button type="button" class="pe-btn" data-panel-close="add">Cancel</button><span id="add-msg" role="status"></span></div>
+        </form>
+      </div>
+      <div class="mk-panel" id="p-message" hidden>
+        <h3>Message people</h3>
+        <form id="msg-form" novalidate>
+          <label class="mk-field"><span>To</span><select><option>Everyone registered (12)</option><option>People waiting (2)</option><option>Registered and waiting (14)</option></select></label>
+          <label class="mk-field"><span>Subject</span><input type="text" value="Awakening to the Beauty of This Moment: a note before we begin"></label>
+          <label class="mk-field"><span>Message</span><textarea>Parking is in the north lot this weekend.</textarea></label>
+          <div class="mk-btnrow"><button type="submit" class="pe-btn pe-btn--primary">Send to 12 people</button><button type="button" class="pe-btn">Send me a test</button><button type="button" class="pe-btn" data-panel-close="message">Cancel</button><span id="msg-msg" role="status"></span></div>
+        </form>
+      </div>
+      <div class="mk-panel" id="p-print" hidden>
+        <h3>Print or download</h3>
+        <div class="mk-btnrow"><button type="button" class="pe-btn">Print a sign-in list (names only)</button><button type="button" class="pe-btn">Download a spreadsheet</button><button type="button" class="pe-btn" data-panel-close="print">Close</button></div>
+        <p class="mk-meta" style="margin-bottom:0">The spreadsheet has contact details and every answer. Downloads are recorded in History.</p>
+      </div>
+
+      <div role="tabpanel" id="panel-people" aria-labelledby="tab-people" data-tabpanel="people">
+        <div class="hs-filters" role="group" aria-label="Show people">
+          <button type="button" class="hs-filter hs-filter--active" aria-pressed="true" data-filter="all">All <span class="hs-filter__count" data-count="all"></span></button>
+          <button type="button" class="hs-filter" aria-pressed="false" data-filter="registered">Registered <span class="hs-filter__count" data-count="registered"></span></button>
+          <button type="button" class="hs-filter" aria-pressed="false" data-filter="waiting">Waiting <span class="hs-filter__count" data-count="waiting"></span></button>
+          <button type="button" class="hs-filter" aria-pressed="false" data-filter="new">New to RIM <span class="hs-filter__count" data-count="new"></span></button>
+          <button type="button" class="hs-filter" aria-pressed="false" data-filter="dana">Dana not finished <span class="hs-filter__count" data-count="dana"></span></button>
+          <button type="button" class="hs-filter" aria-pressed="false" data-filter="cancelled">Cancelled <span class="hs-filter__count" data-count="cancelled"></span></button>
+        </div>
+        <p class="mk-meta" style="margin:var(--space-2) 0 0">Amounts given are seen only by registrars, the guiding teacher and admins. Anyone else helping here sees whether dana is finished, never how much.</p>
+        <div class="vol-table-wrap" style="margin-top: var(--space-2)">
+          <table class="vol-table"><thead><tr><th class="vol-table__th">Name</th><th class="vol-table__th">Status</th><th class="vol-table__th">Dana</th><th class="vol-table__th">Registered</th></tr></thead><tbody id="r-rows"></tbody></table>
+        </div>
+      </div>
+      <div role="tabpanel" id="panel-helpers" aria-labelledby="tab-helpers" data-tabpanel="helpers" hidden>
+        <div class="mk-panel">
+          <p class="mk-muted" style="margin-top:0">The people and teams helping with this program, and what each one sees. Nobody shares by hand: helpers are set in the program editor, and each sees the answers to the questions they ask.</p>
+          <ul class="mk-helpers" id="r-helpers"></ul>
+          <p style="margin:var(--space-2) 0 0"><a href="#" class="mk-link" data-go="editor" data-then="sec-help">Change who's helping, in the program editor</a></p>
+        </div>
+      </div>
+      <div role="tabpanel" id="panel-history" aria-labelledby="tab-history" data-tabpanel="history" hidden>
+        <ul class="mk-history" id="r-history"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 3 · Start a program ═══ -->
+<section class="mk-screen" data-screen="start" hidden>
+<div class="hub-ws-layout"><div data-rail="pc"></div>
+  <div class="hub-ws-main">
+    <div class="hub-ws-content hub-ws-content--wide">
+      <a href="#" class="vol-back">&larr; Programs</a>
+      <div class="mk-head"><h2>What are you offering?</h2><p class="mk-muted" style="margin:0">Choose a shape to start from. Everything it fills in can be changed.</p></div>
+      <ul class="mk-shapes" id="shapes"></ul>
+      <p class="mk-sectitle">Or start from a past program</p>
+      <ul class="mk-progs">
+        <li><a class="mk-prog" href="#" data-go="editor"><span><span class="mk-prog__name">Awakening to the Beauty of This Moment</span><br><span class="mk-muted">Retreat · Nov 2025 · 14 places, 6 questions, Greeters and the Kitchen Team helping</span></span><span class="mk-prog__go">Copy &rarr;</span></a></li>
+        <li><a class="mk-prog" href="#" data-go="editor"><span><span class="mk-prog__name">Sacred Clarity</span><br><span class="mk-muted">Day of mindfulness · Mar 2026 · 20 places, 2 questions</span></span><span class="mk-prog__go">Copy &rarr;</span></a></li>
+      </ul>
+      <p class="mk-meta">A copy keeps the words, questions, helpers, dana and settings, and asks for the new dates. It never copies people.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 4 · The program editor ═══ -->
+<section class="mk-screen" data-screen="editor" hidden>
+<div class="hub-ws-layout"><div data-rail="pc"></div>
+  <div class="hub-ws-main">
+    <div class="hub-ws-content hub-ws-content--wide">
+      <a href="#" class="vol-back">&larr; Programs</a>
+      <div class="mk-ed-head">
+        <div><span class="mk-muted">Editing the program</span><h2>Awakening to the Beauty of This Moment</h2></div>
+        <div class="mk-btnrow">
+          <button type="button" class="pe-btn" id="notice-open" aria-expanded="false" aria-controls="p-notice">Post a notice</button>
+          <a href="#" class="pe-btn">View the program page</a>
+          <a href="#" class="pe-btn" data-go="roster">See the people</a>
+        </div>
+      </div>
+      <div class="mk-panel" id="p-notice" hidden>
+        <h3>Post a notice</h3>
+        <p class="mk-muted" style="margin-top:0">A change people should know: "Cancelled tonight." "We're in the community room." It shows wherever the program is listed and on My Home.</p>
+        <form id="notice-form" novalidate>
+          <label class="mk-field"><span>Notice</span><input type="text" id="notice-text"></label>
+          <label class="mk-field"><span>Show until</span><input type="date"></label>
+          <label class="mk-check"><input type="checkbox" checked> Also email the 12 people registered</label>
+          <div class="mk-btnrow" style="margin-top:12px"><button type="submit" class="pe-btn pe-btn--primary">Post the notice</button><button type="button" class="pe-btn" id="notice-cancel">Cancel</button><span id="notice-msg" role="status"></span></div>
+        </form>
+      </div>
+      <div class="mk-panel">
+        <h3>Ready to be seen</h3>
+        <ul class="mk-ready">
+          <li><span class="mk-ready__mark mk-ready__mark--ok" aria-hidden="true">✓</span><span>About: name, description, image</span></li>
+          <li><span class="mk-ready__mark mk-ready__mark--ok" aria-hidden="true">✓</span><span>When and where: Fri, Nov 13 to Sun, Nov 15, in person at RIM</span></li>
+          <li><span class="mk-ready__mark mk-ready__mark--ok" aria-hidden="true">✓</span><span>Who's helping: Jesse Foy, Greeters, the Kitchen Team</span></li>
+          <li><span class="mk-ready__mark mk-ready__mark--ok" aria-hidden="true">✓</span><span>How people join: registration open, 14 places, 6 questions</span></li>
+          <li><span class="mk-ready__mark mk-ready__mark--todo" aria-hidden="true">!</span><span>No reminder text yet. <a href="#" class="mk-link" data-jump="sec-tell">Add it in What we tell them</a></span></li>
+          <li><span class="mk-ready__mark mk-ready__mark--ok" aria-hidden="true">✓</span><span>Listed on Programs &amp; Events under Immersion</span></li>
+        </ul>
+      </div>
+      <label class="mk-field mk-jump"><span>Jump to</span><select id="jump"></select></label>
+      <div class="mk-ed">
+        <nav class="mk-index" aria-label="Sections"><ol id="ed-index"></ol></nav>
+        <div>
+          <section class="mk-sec" id="sec-about" data-title="About"><h3>About</h3>
+            <label class="mk-field"><span>Name</span><input type="text" value="Awakening to the Beauty of This Moment"></label>
+            <div class="mk-field"><span>Web address</span><p class="mk-readonly">rootedinmindfulness.org/programs/awakening-to-the-beauty-of-this-moment</p><span class="mk-meta">Can't change now: registrations use it.</span></div>
+            <label class="mk-field"><span>One line</span><input type="text" value="A weekend residential retreat in silence."></label>
+            <div class="mk-field"><span>Image</span><p class="mk-readonly">pine-canopy.webp · <button type="button" class="mk-linkbtn">Replace</button> <button type="button" class="mk-linkbtn">Remove</button></p></div>
+            <label class="mk-field"><span>Description</span><textarea rows="4">Three days of silent practice in the community room…</textarea></label>
+            <div class="mk-row"><label class="mk-field" style="flex:1 1 280px"><span>Quote (optional)</span><input type="text"></label><label class="mk-field" style="flex:1 1 200px"><span>Its source</span><input type="text"></label></div>
+            <label class="mk-field" style="margin-top: var(--space-2)"><span>Notes on the program page</span><textarea rows="2" placeholder="Context, accessibility, background"></textarea></label>
+          </section>
+
+          <section class="mk-sec" id="sec-when" data-title="When and where"><h3>When and where</h3>
+            <fieldset class="mk-field"><legend>How it meets</legend><div class="mk-btnrow"><label class="mk-check"><input type="radio" name="fmt" checked> In person</label><label class="mk-check"><input type="radio" name="fmt"> Online</label><label class="mk-check"><input type="radio" name="fmt"> Both</label></div></fieldset>
+            <fieldset class="mk-field"><legend>Where</legend><div class="mk-btnrow"><label class="mk-check"><input type="radio" name="venue" checked> At RIM</label><label class="mk-check"><input type="radio" name="venue"> Somewhere else (name and map link)</label></div></fieldset>
+            <div class="mk-row">
+              <label class="mk-field"><span>Starts</span><input type="date" value="2026-11-13"></label><label class="mk-field"><span>at</span><select><option>4:00 PM</option></select></label>
+              <label class="mk-field"><span>Ends</span><input type="date" value="2026-11-15"></label><label class="mk-field"><span>at</span><select><option>1:00 PM</option></select></label>
+            </div>
+            <fieldset class="mk-field" style="margin-top: var(--space-2)"><legend>Repeats</legend><div class="mk-btnrow"><label class="mk-check"><input type="radio" name="rep" checked> Once</label><label class="mk-check"><input type="radio" name="rep"> Daily</label><label class="mk-check"><input type="radio" name="rep"> Weekly</label><label class="mk-check"><input type="radio" name="rep"> Monthly</label></div><span class="mk-meta">Weekly and monthly add: every how many, which days, and how many times.</span></fieldset>
+            <div class="mk-field"><span>Shown as</span><p class="mk-readonly">November 13–15, 2026 · Begins 4 PM CT</p><span class="mk-meta">Written for you from the dates.</span></div>
+            <label class="mk-field"><span>Session note</span><input type="text" placeholder="Held in noble silence before and during the session."><span class="mk-meta">One quiet line on My Home on the day.</span></label>
+            <p class="mk-readonly">It meets in person, so the online settings are hidden: RIM's Zoom or an outside link, who can join online, recording, and the guest link. Choose Online or Both to show them.</p>
+          </section>
+
+          <section class="mk-sec" id="sec-help" data-title="Who's helping"><h3>Who's helping</h3>
+            <p class="mk-muted" style="margin-top:0">Everyone who helps with this program, and what each one sees. Each sees the answers to the questions they ask (in How people join). Teachers can reach each person by email and phone; other helpers can too if you tick it. Helpers never see dana. Amounts given are seen only by registrars, the guiding teacher and admins.</p>
+            <ul class="mk-helpers" id="ed-helpers"></ul>
+            <div class="mk-row" style="margin-top: var(--space-2)">
+              <label class="mk-field"><span>Add a team that's helping</span><select id="ed-add-team"><option value="">Choose a team</option><option>Audio-Visual</option><option>Hospitality</option><option>Program Central</option></select></label>
+              <button type="button" class="pe-btn" id="ed-add-team-btn">Add</button>
+            </div>
+          </section>
+
+          <section class="mk-sec" id="sec-join" data-title="How people join"><h3>How people join</h3>
+            <div class="pe-readout" style="margin-bottom: var(--space-2)"><p class="pe-readout__title">How this appears to visitors</p><p class="pe-readout__row">Registration is open until Nov 6. Visitors see a Register button; when the 14 places are full, new registrations wait in line.</p></div>
+            <label class="mk-check"><input type="checkbox"> Open entry: anyone signed in may join without registering</label>
+            <div class="mk-row" style="margin-top: var(--space-2)">
+              <label class="mk-field"><span>Registration</span><select><option>Not open yet</option><option selected>Open</option><option>Closed</option></select></label>
+              <label class="mk-field"><span>Places</span><input type="number" value="14" min="12" style="width:110px"></label>
+              <label class="mk-field"><span>Opens on</span><input type="date"></label>
+              <label class="mk-field"><span>Closes after</span><input type="date" value="2026-11-06"></label>
+            </div>
+            <p class="mk-meta">The registration team can change these in Registration too. 12 people are registered, so places can't be fewer than 12.</p>
+            <p class="mk-sub">Questions on the form</p>
+            <p class="mk-meta" style="margin-top:0">Name, email and phone are always asked. Each question is asked by one of the helpers; the answers go to that helper and to the registration team. The form shows who is asking.</p>
+            <div id="ed-questions"></div>
+          </section>
+
+          <section class="mk-sec" id="sec-tell" data-title="What we tell them"><h3>What we tell them</h3>
+            <ol class="mk-timeline">
+              <li><span class="mk-timeline__when">When they register</span><div><label class="mk-field"><span>The confirmation email</span><textarea>Bring a cushion if you have a favorite. Lunch is provided each day.</textarea></label><span class="mk-meta">The date, place, map, calendar links and how to join are added for you.</span></div></li>
+              <li><span class="mk-timeline__when">Before it begins</span><div><div class="mk-row"><label class="mk-field"><span>Days before</span><input type="number" value="2" min="1" style="width:90px"></label><span class="mk-meta" style="padding-bottom:12px">at 9 AM: Thursday, Nov 12</span></div><label class="mk-field" style="margin-top: var(--space-1)"><span>The reminder</span><textarea placeholder="Arrival time, parking, what to bring."></textarea></label><span class="mk-meta">It reaches everyone registered who hasn't had it, including people who register late.</span></div></li>
+              <li><span class="mk-timeline__when">Any time</span><div><p class="mk-readonly">A notice, posted with Post a notice at the top of this page, with an email if you choose.</p></div></li>
+              <li><span class="mk-timeline__when">After it ends</span><div><label class="mk-check"><input type="checkbox"> Send a note the day after</label><span class="mk-meta">A thank-you, and an invitation to give dana to the teacher for those who wish.</span></div></li>
+            </ol>
+            <p class="mk-meta" style="margin-bottom:0">Messages the registration team sends, and every email each person received, are in Registration.</p>
+          </section>
+
+          <section class="mk-sec" id="sec-dana" data-title="Dana"><h3>Dana</h3>
+            <fieldset class="mk-field"><legend>How dana works for this program</legend><div class="mk-btnrow"><label class="mk-check"><input type="radio" name="dana"> None</label><label class="mk-check"><input type="radio" name="dana" checked> Voluntary</label><label class="mk-check"><input type="radio" name="dana"> A minimum, plus dana</label><label class="mk-check"><input type="radio" name="dana"> A fixed amount</label></div></fieldset>
+            <label class="mk-field"><span>Suggested amount</span><input type="number" value="175" style="width:110px"></label>
+            <div class="mk-field"><span>Message in the dana step</span><div class="mk-btnrow"><span class="mk-meta">Start from:</span><button type="button" class="mk-linkbtn">General support</button><button type="button" class="mk-linkbtn">Reciprocity</button><button type="button" class="mk-linkbtn">Sliding scale</button></div><textarea rows="3">This is an old practice of reciprocity: the teachings are offered freely, and we give back as we are able.</textarea></div>
+            <label class="mk-field"><span>Dana note on the program page</span><input type="text" value="Dana is shared equally between RIM and the Teaching Fund."></label>
+          </section>
+
+          <section class="mk-sec" id="sec-where" data-title="Where it appears"><h3>Where it appears</h3>
+            <div class="mk-row"><label class="mk-field"><span>Category</span><select><option>Immersion</option></select></label><label class="mk-field"><span>Format</span><select><option>Retreat</option></select></label></div>
+            <label class="mk-check"><input type="checkbox"> Hosted by volunteers</label>
+            <div class="pe-readout" style="margin: var(--space-2) 0"><p class="pe-readout__title">Where this program appears</p><p class="pe-readout__row">Programs &amp; Events: listed under Immersion.</p><p class="pe-readout__row">This Week: in the weeks it meets.</p><p class="pe-readout__row">My Home: for people registered and its helpers, on the days it meets.</p></div>
+            <label class="mk-field"><span>Order on the programs page</span><input type="number" value="20" style="width:110px"></label>
+            <label class="mk-check"><input type="checkbox"> Hide from Programs &amp; Events (also hides it from This Week)</label>
+            <label class="mk-check"><input type="checkbox"> Hide from This Week</label>
+            <label class="mk-check"><input type="checkbox" checked> Hide automatically after the date passes</label>
+            <label class="mk-check"><input type="checkbox"> Hide from My Home (with an optional date to show it again)</label>
+          </section>
+
+          <div class="mk-panel" style="background: var(--rim-bg-bright, #faf9f7)">
+            <h3>Everything from today's editor is here</h3>
+            <p style="margin:0 0 8px">Regrouped: teachers, the hosting team, No host needed and the supporting teams are in Who's helping; the notice is Post a notice at the top; the reminder is in What we tell them; category and visibility are in Where it appears. Moved to Registration: the mailing list (Flodesk). On the program list, as now: archive, restore, delete.</p>
+            <p style="margin:0">New: start from a shape or a past program; helpers who prepare (like a kitchen); who's asking each question; "Opens on"; reminders counted from the start; a note after it ends; Post a notice with an email.</p>
+          </div>
+          <div class="pe-actions"><button type="button" class="pe-btn pe-btn--primary" id="ed-save">Save</button><button type="button" class="pe-btn">Cancel</button><span id="ed-msg" role="status"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 5 · The form ═══ -->
+<section class="mk-screen" data-screen="form" hidden>
+<div class="rg-page">
+  <div class="rg-header"><div class="rg-header__inner">
+    <a href="#" class="rg-header__back">&larr; Awakening to the Beauty of This Moment</a>
+    <p class="rg-header__eyebrow">Register</p>
+    <h1 class="rg-header__title">Awakening to the Beauty of This Moment</h1>
+    <p class="rg-header__meta">Fri, Nov 13 to Sun, Nov 15 · In person at RIM</p>
+  </div></div>
+  <div class="rg-content">
+    <form class="rg-card" novalidate>
+      <p class="rg-card__intro">You're signed in, so your name, email and phone are filled in.</p>
+      <div class="pg-form__field"><label class="pg-form__label" for="f-name">Name</label><input class="pg-form__input" id="f-name" value="Carla Ruiz" autocomplete="name"></div>
+      <div class="pg-form__field"><label class="pg-form__label" for="f-email">Email</label><input class="pg-form__input" id="f-email" type="email" value="carla.ruiz@example.org" autocomplete="email"></div>
+      <div class="pg-form__field"><label class="pg-form__label" for="f-phone">Phone</label><input class="pg-form__input" id="f-phone" type="tel" value="(262) 555-0102" autocomplete="tel"></div>
+      <div id="form-asks"></div>
+      <button type="button" class="pp-btn" style="margin-top: var(--space-3)">Continue to dana</button>
+    </form>
+  </div>
+</div>
+</section>
+
+<!-- ═══ 6 · The teacher ═══ -->
+<section class="mk-screen" data-screen="teacher" hidden>
+<div class="ac-layout"><div data-rail="me"></div>
+  <div class="ac-content"><div class="ac-inner">
+    <a href="#" class="vol-back">&larr; My Home</a>
+    <div class="mk-ph"><div class="mk-eyebrow">You're teaching</div><h1>Awakening to the Beauty of This Moment</h1><p>Fri, Nov 13 to Sun, Nov 15 · In person at RIM · <span id="t-count"></span></p></div>
+    <div id="t-body"></div>
+    <details class="mk-rules"><summary>Why you see this</summary><p>You're this program's teacher. You see who's coming, who is new to RIM, how to reach each person, the answers to the questions you ask on the form, and notes the registration team writes for you. Dana stays with the registration team.</p></details>
+  </div></div>
+</div>
+</section>
+
+<!-- ═══ 7 · At the door ═══ -->
+<section class="mk-screen" data-screen="door" hidden>
+<div class="ac-layout"><div data-rail="me"></div>
+  <div class="ac-content"><div class="ac-inner">
+    <a href="#" class="vol-back">&larr; My Home</a>
+    <div class="mk-ph"><div class="mk-eyebrow">You're greeting</div><h1>Awakening to the Beauty of This Moment</h1><p>Friday, Nov 13 · Doors at 3:30 PM · <span id="d-count" aria-live="polite"></span></p></div>
+    <div id="d-body"></div>
+    <div class="mk-panel"><h3>Someone not on the list?</h3><form id="walkin-form" class="mk-row" novalidate><label class="mk-field" style="flex:1 1 220px"><span>Their name</span><input type="text" id="walkin-name"></label><button type="submit" class="pe-btn">Add them</button></form><p class="mk-meta" style="margin:8px 0 0" id="walkin-msg" role="status">The registration team will finish their registration.</p></div>
+    <details class="mk-rules"><summary>Why you see this</summary><p>You signed up to greet this session. You see the names of who's coming and the answers to the greeters' question about arriving, so you can welcome people. Nothing else.</p></details>
+  </div></div>
+</div>
+</section>
+
+<!-- ═══ 8 · The kitchen ═══ -->
+<section class="mk-screen" data-screen="kitchen" hidden>
+<div class="hub-ws-layout">
+  <div class="hub-ws-mobilebar"><button type="button" class="hub-ws-mobilebar__btn" aria-label="Open the team menu"><i data-lucide="menu"></i></button><div class="hub-ws-mobilebar__name">Kitchen Team</div></div>
+  <nav class="hub-ws-sidebar" aria-label="Team navigation">
+    <div class="hub-ws-identity"><div class="hub-ws-identity__type">Team</div><div class="hub-ws-identity__name">Kitchen Team</div><div class="hub-ws-identity__meta">Led by Sam · 6 members</div></div>
+    <div class="hub-ws-divider" aria-hidden="true"></div>
+    <div class="hub-ws-group">
+      <a class="hub-ws-link" href="#"><i data-lucide="home" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Home</span></a>
+      <a class="hub-ws-link hub-ws-link--primary hub-ws-link--active" href="#" aria-current="page"><i data-lucide="hand-heart" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Helping with</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="history" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Updates</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="messages-square" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Conversations</span></a>
+      <a class="hub-ws-link" href="#"><i data-lucide="users-round" class="hub-ws-link__icon"></i><span class="hub-ws-link__label">Members</span></a>
+    </div>
+    <div class="hub-ws-footer"><a class="hub-ws-footer__link" href="#"><i data-lucide="chevron-left"></i><span>My Teams</span></a></div>
+  </nav>
+  <div class="hub-ws-main">
+    <div class="hub-ws-toolhead"><h1 class="hub-ws-toolhead__name">Helping with</h1></div>
+    <div class="hub-ws-content hub-ws-content--wide">
+      <div class="mk-head"><span class="mk-muted">Dietary needs for</span><h2>Awakening to the Beauty of This Moment</h2><p class="mk-state" id="k-state"></p></div>
+      <div id="k-body"></div>
+      <details class="mk-rules"><summary>Why you see this</summary><p>The Kitchen Team is helping with this program. You see how many are coming and the answers to the dietary questions, with names. Contact details stay with the registration team.</p></details>
+    </div>
+  </div>
+</div>
+</section>
+</div>
+
+<script>
+const NOTES = {
+  desk: "The Registration app opens on one calm list across every program: what needs a person, each with its button; what's going out soon; then the programs, with how many are new to RIM.",
+  roster: "A program's people. What needs you comes first. People new to RIM are marked, and the New to RIM filter finds them. Open a person: answers are grouped by who asked. The Who's helping tab shows what each helper sees; nobody shares by hand.",
+  start: "A new program starts from what it is: a shape fills sensible starting settings, or copy a past program (next year's retreat from this year's). Choose one to open the editor.",
+  editor: "One page in sections. Who's helping lists the teacher, greeters and kitchen with what each sees. In How people join, each question is asked by a helper: change who asks a question and the form, the teacher's page and the kitchen's page follow. What we tell them is a timeline.",
+  form: "The form groups questions under whoever is asking, and says who reads the answers. Nothing else to explain.",
+  teacher: "Jesse's page, from My Home: who's new, what people told him, a note the registration team wrote for him, then everyone. Click a name for the person's card, with their email and phone.",
+  door: "A greeter's page on the day: names, the answers that help at the door, and a tap to mark people arrived. Someone not on the list can be added for the registration team to finish.",
+  kitchen: "The Kitchen Team's page, titled Dietary needs: how many are coming and the answers to the dietary questions, with names. On the form these questions sit under \"Dietary needs\".",
+};
+
+/* ── The program: helpers and questions ── */
+const HELPERS = [
+  { key: "registration", name: "The registration team", kind: "registration" },
+  { key: "teacher", name: "Jesse Foy", role: "teacher", kind: "teacher", reach: true },
+  { key: "greeters", name: "Greeters", role: "at the door, from their Scheduler", kind: "door" },
+  { key: "kitchen", name: "Kitchen Team", role: "dietary needs and meals", kind: "prepare", reach: false },
+];
+const ASK = {
+  registration: { heading: "From the registration team", reads: "Read by the registration team." },
+  teacher: { heading: "From Jesse, your teacher", reads: "Read by Jesse and the registration team." },
+  greeters: { heading: "For the greeters at the door", reads: "Read by the greeters and the registration team." },
+  kitchen: { heading: "Dietary needs", reads: "Read by the volunteers preparing meals and the registration team." },
+};
+const QUESTIONS = [
+  { id: "practice", askedBy: "teacher", label: "Have you practiced meditation before?", kind: "choice", options: ["New to it", "Some", "Regular practice"], required: true },
+  { id: "know", askedBy: "teacher", label: "Is there anything I should know before we sit together?", kind: "long", required: false },
+  { id: "arrive", askedBy: "greeters", label: "Would anything make arriving easier? The stairs, a chair, a quiet arrival.", kind: "short", required: false },
+  { id: "meals", askedBy: "kitchen", label: "Any dietary needs?", kind: "choice", options: ["No special needs", "Vegetarian", "Vegan", "Gluten-free"], required: true },
+  { id: "allergy", askedBy: "kitchen", label: "Any food allergy we should know about?", kind: "short", required: false },
+  { id: "ride", askedBy: "registration", label: "Would you like a ride, or can you offer one?", kind: "choice", options: ["I'd like a ride", "I can offer a ride", "Neither"], required: false },
+];
+const KINDS = { choice: "Choice", long: "Long answer", short: "Short answer", yesno: "Yes or no" };
+
+/* past = earlier programs in RIM's records; 0 = first time */
+const people = [
+  { n: "Ann Delgado", st: "registered", d: "Gave $175", on: "Oct 2", past: 6, practice: "Regular practice", meals: "No special needs", ride: "I can offer a ride" },
+  { n: "Ben Okafor", st: "registered", d: "Gave $100", on: "Oct 2", past: 2, practice: "Some", meals: "Vegetarian", ride: "Neither" },
+  { n: "Carla Ruiz", st: "registered", d: "Gave $175", on: "Oct 3", past: 0, practice: "New to it", know: "First retreat. A little nervous about the silence.", meals: "No special needs", ride: "I'd like a ride" },
+  { n: "David Lindqvist", st: "registered", d: "No dana", on: "Oct 4", past: 9, practice: "Regular practice", meals: "No special needs", ride: "Neither" },
+  { n: "Elena Park", st: "registered", d: "Gave $250", on: "Oct 5", past: 3, practice: "Some", meals: "Vegan", arrive: "I'd like to arrive quietly, if that's all right.", ride: "Neither" },
+  { n: "Frank Moretti", st: "registered", d: "Not finished", on: "Oct 6", past: 1, practice: "Some", meals: "No special needs", ride: "Neither" },
+  { n: "Grace Whitfield", st: "registered", d: "Gave $175", on: "Oct 8", past: 5, practice: "Regular practice", know: "Recovering from a knee injury.", arrive: "A chair, please; my knee.", meals: "Gluten-free", ride: "Neither",
+    notes: [{ by: "Pat Rivera", on: "Oct 16", t: "Called Grace; a chair is set aside by the window.", forTeacher: true }] },
+  { n: "Hannah Bauer", st: "registered", d: "Gave $50", on: "Oct 9", past: 0, practice: "New to it", meals: "Vegetarian", ride: "I'd like a ride" },
+  { n: "Isaac Mensah", st: "registered", d: "Gave $175", on: "Oct 11", past: 4, practice: "Some", meals: "No special needs", ride: "Neither" },
+  { n: "June Takahashi", st: "registered", d: "Gave $200", on: "Oct 12", past: 7, practice: "Regular practice", meals: "Vegetarian", allergy: "Tree nuts", ride: "Neither" },
+  { n: "Karen O'Neill", st: "registered", d: "Gave $175", on: "Oct 14", past: 2, practice: "Some", meals: "No special needs", ride: "Neither" },
+  { n: "Leo Novak", st: "registered", d: "Gave $75", on: "Oct 15", past: 0, practice: "New to it", meals: "No special needs", ride: "Prefer not to say" },
+  { n: "Maya Patel", st: "waiting", d: "Not yet", on: "Oct 18", past: 1, practice: "Some", meals: "Vegetarian", ride: "Neither" },
+  { n: "Noah Fischer", st: "waiting", d: "Not yet", on: "Oct 19", past: 0, practice: "New to it", meals: "No special needs", ride: "I'd like a ride" },
+  { n: "Olivia Grant", st: "cancelled", d: "No dana", on: "Oct 1", past: 3, practice: "Some", meals: "No special needs", ride: "Neither" },
+];
+const history = [
+  { when: "Today, 9:12 AM", t: "LoriLee raised the places from 12 to 14." },
+  { when: "Oct 21", t: "Pat Rivera sent Frank Moretti a dana reminder." },
+  { when: "Oct 19", t: "Noah Fischer joined the waitlist." },
+  { when: "Oct 18", t: "Maya Patel joined the waitlist. The places were full." },
+  { when: "Oct 16", t: "Pat Rivera wrote a note on Grace Whitfield's registration, for the teacher." },
+  { when: "Oct 12", t: "LoriLee cancelled Olivia Grant's registration at Olivia's request; Olivia was emailed." },
+  { when: "Oct 1", t: "LoriLee opened registration." },
+];
+const state = { cap: 14, regState: "open", reminderSent: false, frankReminded: false, filter: "all", arrived: new Set() };
+
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const count = (st) => people.filter((p) => p.st === st).length;
+const first = (n) => n.split(" ")[0];
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const ordinal = (n) => { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+const isChoice = (q) => q.kind === "choice" || q.kind === "yesno";
+const real = (a) => a && a !== "Prefer not to say";
+const askerName = (k) => ({ registration: "the registration team", teacher: "the teacher", greeters: "the greeters", kitchen: "the Kitchen Team (dietary needs)" }[k] || (HELPERS.find((h) => h.key === k) || {}).name || k);
+const newToRim = (p) => p.past === 0;
+const visitLine = (p) => p.past === 0 ? "First time at RIM" : `${ordinal(p.past + 1)} program at RIM`;
+
+document.querySelectorAll("[data-rail]").forEach((slot) => slot.replaceWith(document.getElementById("rail-" + slot.dataset.rail).content.cloneNode(true)));
+
+/* ── What each helper sees, said once ── */
+function helperSees(h) {
+  const qs = QUESTIONS.filter((q) => q.askedBy === h.key);
+  const asks = qs.length === 1 ? "the answers to the question they ask" : qs.length ? `the answers to the ${qs.length} questions they ask` : "no questions of their own yet";
+  const base = {
+    registration: "Everyone and everything: contact details, every answer, notes and history, and whether each person's dana is finished. How much someone gave is seen only by registrars, the guiding teacher and admins.",
+    teacher: `Who's coming, who is new to RIM, ${asks}, and notes written for the teacher.`,
+    door: `On the day they greet: the names of who's coming, ${asks}, and a way to mark arrivals.`,
+    prepare: `How many are coming, and ${asks}, with names.`,
+  }[h.kind];
+  return base + (h.kind === "registration" ? "" : h.reach ? " Can reach each person by email and phone. No dana." : " No contact details or dana.");
+}
+function renderHelpersList(el, editable) {
+  el.innerHTML = HELPERS.map((h, i) => `
+    <li class="mk-helper">
+      <div class="mk-helper__who">${esc(h.name)}${h.role ? ` <span class="mk-helper__role">· ${esc(h.role)}</span>` : ""}</div>
+      <p class="mk-helper__sees">${esc(helperSees(h))}</p>
+      ${editable && h.kind !== "registration" ? `<div class="mk-btnrow">
+        ${h.kind === "teacher" ? '<input class="mk-input" type="text" placeholder="Add another teacher" aria-label="Add another teacher" style="flex:1 1 220px">' : ""}
+        ${h.kind === "prepare" || h.kind === "teacher" ? `<label class="mk-check"><input type="checkbox" ${h.reach ? "checked" : ""} data-reach="${i}"> Can reach people (email and phone)</label>` : ""}
+        <button type="button" class="mk-linkbtn" data-remove-helper="${i}">Remove</button></div>` : ""}
+      ${editable && h.kind === "door" ? '<p class="mk-meta" style="margin:4px 0 0">Greeters sign up for each session in their Scheduler, as today.</p>' : ""}
+    </li>`).join("") + (editable ? `<li class="mk-helper"><div class="mk-helper__who">Hosting Team <span class="mk-helper__role">· runs the online room</span></div><p class="mk-helper__sees">This program meets in person, so it has no online host.</p><label class="mk-check"><input type="checkbox"> No host needed (self-led or community-led)</label></li>` : "");
+}
+
+/* ── The desk ── */
+function renderDesk() {
+  const next = people.find((p) => p.st === "waiting");
+  const items = [];
+  if (next && count("registered") < state.cap) items.push({ prog: "Awakening to the Beauty of This Moment", text: `A place opened. ${esc(next.n)} is next on the waitlist.`, btn: `Move ${esc(first(next.n))} in`, go: "roster" });
+  items.push({ prog: "Taking CARE: Foundations of Meditation and Mindful Living", text: "Rosa Diaz hasn't finished the dana step.", meta: "Reminded Oct 20, by LoriLee.", btn: "Send another reminder" });
+  items.push({ prog: "Awakening to the Beauty of This Moment", text: "Carla Ruiz is new to RIM and wrote to the teacher.", meta: "The teacher sees it too. Worth a welcome call?", btn: "Read it", go: "roster" });
+  document.getElementById("desk-queue").innerHTML = items.map((it, n) => `<li><div class="mk-item"><div class="mk-item__text"><span class="mk-item__prog">${esc(it.prog)}</span><strong>${it.text}</strong>${it.meta ? `<span class="mk-meta">${esc(it.meta)}</span>` : ""}</div>${it.go ? `<a href="#" class="pe-btn${n === 0 ? " pe-btn--primary" : ""}" data-go="${it.go}">${it.btn}</a>` : `<button type="button" class="pe-btn${n === 0 ? " pe-btn--primary" : ""}">${it.btn}</button>`}</div></li>`).join("");
+}
+
+/* ── The roster ── */
+function renderState() {
+  const reg = count("registered"), wait = count("waiting"), nw = people.filter((p) => p.st === "registered" && newToRim(p)).length;
+  const word = { open: "Open until Nov 6", notyet: "Not open yet", closed: "Closed" }[state.regState];
+  document.getElementById("r-state").innerHTML = `<strong>${word}</strong> · ${reg} of ${state.cap} places taken${wait ? ` · ${wait} waiting` : ""} · ${nw} new to RIM`;
+  document.getElementById("r-settings-sum").textContent = `${word} · ${state.cap} places`;
+}
+function renderNeeds() {
+  const next = people.find((p) => p.st === "waiting");
+  const items = [];
+  if (next && count("registered") < state.cap) items.push({ key: "move", text: `<strong>A place opened. ${esc(next.n)} is next on the waitlist.</strong>`, btn: `Move ${esc(first(next.n))} in`,
+    confirm: `We'll email ${esc(first(next.n))} that their place is confirmed and invite them to the dana step.`, yes: `Yes, move ${esc(first(next.n))} in`,
+    act: () => { next.st = "registered"; next.on = "Today"; history.unshift({ when: "Just now", t: `LoriLee moved ${next.n} off the waitlist; ${first(next.n)} was emailed.` }); return `${next.n} is registered. We emailed them.`; } });
+  const frank = people.find((p) => p.n === "Frank Moretti");
+  if (frank.d === "Not finished") items.push({ key: "dana", text: `<strong>Frank Moretti hasn't finished the dana step.</strong><span class="mk-meta">${state.frankReminded ? "Reminded just now." : "Reminded Oct 21, by Pat."}</span>`, btn: "Send another reminder",
+    confirm: "We'll email Frank a gentle note with a link to finish or skip the dana step.", yes: "Yes, send it",
+    act: () => { state.frankReminded = true; history.unshift({ when: "Just now", t: "LoriLee sent Frank Moretti a dana reminder." }); return "Sent. Frank was emailed."; } });
+  if (!state.reminderSent) items.push({ key: "rem", text: `<strong>The reminder sends itself Thursday, Nov 12, at 9 AM</strong><span class="mk-meta">To the ${count("registered")} registered who haven't had it. Its words are in the program editor, under What we tell them.</span>`, btn: "Send it now",
+    confirm: `We'll email the reminder now to the ${count("registered")} people registered. Anyone who registers later still gets it on Thursday.`, yes: "Yes, send it now",
+    act: () => { state.reminderSent = true; history.unshift({ when: "Just now", t: `LoriLee sent the reminder to ${count("registered")} people.` }); return `Sent to ${count("registered")} people.`; } });
+  const ul = document.getElementById("r-needs");
+  document.getElementById("r-needs-title").hidden = ul.hidden = !items.length;
+  ul.innerHTML = items.map((it, n) => `<li data-need="${it.key}"><div class="mk-item"><div class="mk-item__text">${it.text}</div>
+    <button type="button" class="pe-btn${n === 0 ? " pe-btn--primary" : ""}" data-ask aria-expanded="false">${it.btn}</button>
+    <div class="mk-confirm" data-confirm hidden><p>${it.confirm}</p><div class="mk-btnrow"><button type="button" class="pe-btn pe-btn--primary" data-yes>${it.yes}</button><button type="button" class="pe-btn" data-no>Not now</button></div></div></div></li>`).join("");
+  items.forEach((it) => {
+    const li = ul.querySelector(`[data-need="${it.key}"]`), ask = li.querySelector("[data-ask]"), box = li.querySelector("[data-confirm]");
+    ask.onclick = () => { box.hidden = false; ask.setAttribute("aria-expanded", "true"); li.querySelector("[data-yes]").focus(); };
+    li.querySelector("[data-no]").onclick = () => { box.hidden = true; ask.setAttribute("aria-expanded", "false"); ask.focus(); };
+    li.querySelector("[data-yes]").onclick = () => { const msg = it.act(); renderAll(); const done = document.createElement("li"); done.innerHTML = `<p class="mk-saved" role="status" style="margin:0">${esc(msg)}</p>`; ul.prepend(done); ul.hidden = false; document.getElementById("r-needs-title").hidden = false; };
+  });
+}
+document.getElementById("r-settings-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("r-settings-msg"), cap = Number(document.getElementById("r-cap").value), reg = count("registered"), st = document.getElementById("r-state-sel").value;
+  if (!cap || cap < reg) { msg.className = "mk-error"; msg.textContent = `${reg} people are registered, so places can't be fewer than ${reg}.`; document.getElementById("r-cap").focus(); return; }
+  if (cap !== state.cap) history.unshift({ when: "Just now", t: `LoriLee changed the places from ${state.cap} to ${cap}.` });
+  state.cap = cap; state.regState = st; msg.className = "mk-saved";
+  const w = count("waiting");
+  msg.textContent = st === "closed" ? `Saved. Registration is closed: no one new can register${w ? `, and the ${plural(w, "person", "people")} waiting stay${w === 1 ? "s" : ""} on the list` : ""}.` : `Saved. The program page now shows ${cap} places.`;
+  renderAll();
+});
+document.querySelectorAll("[data-panel-open]").forEach((b) => b.addEventListener("click", () => {
+  ["add", "message", "print"].forEach((n) => { const el = document.getElementById("p-" + n); el.hidden = n !== b.dataset.panelOpen || !el.hidden; });
+  const el = document.getElementById("p-" + b.dataset.panelOpen); if (!el.hidden) el.querySelector("input, select, button").focus();
+}));
+document.querySelectorAll("[data-panel-close]").forEach((b) => b.addEventListener("click", () => { document.getElementById("p-" + b.dataset.panelClose).hidden = true; document.querySelector(`[data-panel-open="${b.dataset.panelClose}"]`).focus(); }));
+document.getElementById("add-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = document.getElementById("add-name").value.trim(), m = document.getElementById("add-msg");
+  if (!name) { m.className = "mk-error"; m.textContent = "Add their name first."; document.getElementById("add-name").focus(); return; }
+  people.splice(count("registered"), 0, { n: name, st: "registered", d: "Not finished", on: "Today", past: 0 });
+  history.unshift({ when: "Just now", t: `LoriLee added ${name} by phone; ${first(name)} was emailed the confirmation.` });
+  m.className = "mk-saved"; m.textContent = `${name} is registered and was emailed the confirmation.`; renderAll();
+});
+document.getElementById("msg-form").addEventListener("submit", (e) => { e.preventDefault(); const m = document.getElementById("msg-msg"); m.className = "mk-saved"; m.textContent = "Sent to 12 people. It's in each person's history."; history.unshift({ when: "Just now", t: "LoriLee sent the 12 registered a note before the retreat." }); renderHistory(); });
+
+function answersByAsker(p, keys) {
+  return HELPERS.filter((h) => !keys || keys.includes(h.key)).map((h) => {
+    const qs = QUESTIONS.filter((q) => q.askedBy === h.key && p[q.id]);
+    if (!qs.length) return "";
+    return (keys && keys.length === 1 ? "" : `<p class="mk-asker">Asked by ${esc(askerName(h.key))}</p>`) + qs.map((q) => `<p class="mk-answer"><span class="mk-answer__q">${esc(q.label)}</span><span class="mk-answer__a">${esc(p[q.id])}</span></p>`).join("");
+  }).join("");
+}
+function renderRows() {
+  const isNew = (p) => p.st !== "cancelled" && newToRim(p);
+  const counts = { all: people.length, registered: count("registered"), waiting: count("waiting"), cancelled: count("cancelled"), dana: people.filter((p) => p.d === "Not finished").length, new: people.filter(isNew).length };
+  document.querySelectorAll("[data-count]").forEach((s) => { s.textContent = counts[s.dataset.count]; });
+  const shown = people.map((p, i) => [p, i]).filter(([p]) => state.filter === "all" || (state.filter === "dana" ? p.d === "Not finished" : state.filter === "new" ? isNew(p) : p.st === state.filter));
+  const tb = document.getElementById("r-rows");
+  tb.innerHTML = shown.map(([p, i]) => {
+    const email = p.n.toLowerCase().replace(/[^a-z ]/g, "").replace(" ", ".") + "@example.org";
+    const sk = { registered: "registered", waiting: "waitlisted", cancelled: "cancelled" }[p.st];
+    const dk = p.d === "Not finished" ? "pending" : p.d.startsWith("Gave") ? "completed" : "waived";
+    const pos = p.st === "waiting" ? people.filter((x) => x.st === "waiting").indexOf(p) + 1 : 0;
+    const notes = (p.notes || []).map((n) => `<li>${esc(n.t)}<span class="mk-notes__by">${esc(n.by)} · ${n.on} · ${n.forTeacher ? "for the registration team and the teacher" : "for the registration team"}</span></li>`).join("");
+    const actions = p.st === "waiting" ? `<button class="pe-btn pe-btn--primary" type="button" data-move>Move ${esc(first(p.n))} in</button>`
+      : p.st === "cancelled" ? `<button class="pe-btn" type="button">Restore</button>`
+      : `<button class="pe-btn" type="button">Resend the confirmation</button>${p.d === "Not finished" ? '<button class="pe-btn" type="button">Send a dana reminder</button>' : ""}<button class="mk-linkbtn" type="button" data-cancel="${i}">Cancel the registration</button>`;
+    return `<tr class="vol-row vol-row--${sk}">
+      <td><button type="button" class="mk-rowbtn" aria-expanded="false" aria-controls="det-${i}" data-row="${i}"><span class="mk-chev" aria-hidden="true"></span><span class="vol-row__person"><span class="vol-row__name">${esc(p.n)}${isNew(p) ? '<span class="mk-first">New to RIM</span>' : ""}</span><span class="vol-row__email">${email}</span></span></button></td>
+      <td class="vol-row__status-cell"><span class="vol-row__status-text vol-row__status-text--${sk}">${{ registered: "Registered", waiting: "Waiting", cancelled: "Cancelled" }[p.st]}${pos ? (pos === 1 ? " (next)" : ` (${pos} in line)`) : ""}</span></td>
+      <td class="vol-row__dana"><span class="vol-badge vol-badge--donation-${dk}">${esc(p.d)}</span></td>
+      <td class="vol-row__date">${p.on}</td></tr>
+    <tr class="vol-row-detail" id="det-${i}" hidden><td colspan="4"><div class="vol-detail">
+      <div class="vol-detail__contact-col"><p class="vol-detail__col-label">Contact</p><p class="vol-detail__full-name">${esc(p.n)}</p><p class="vol-detail__meta-text">${email}<br>(262) 555-01${String(i).padStart(2, "0")}</p><p class="vol-detail__meta-text" style="margin-top:8px">${visitLine(p)}</p></div>
+      <div class="vol-detail__submission-col"><p class="vol-detail__col-label">Answers</p>${answersByAsker(p) || '<p class="mk-muted">No answers yet.</p>'}
+        <p class="vol-detail__col-label" style="margin-top:16px">Notes</p><ul class="mk-notes">${notes}</ul>
+        <div class="mk-btnrow"><button class="pe-btn" type="button">Add a note</button><span class="mk-meta">A note can be for the registration team, or for the teacher too.</span></div>
+        <p class="vol-detail__col-label" style="margin-top:20px">History</p>
+        <ul class="mk-history mk-history--person"><li><span class="mk-history__when">${p.on}</span><span>${p.on === "Today" ? "Added by LoriLee" : "Registered online"}</span></li>${p.d.startsWith("Gave") ? `<li><span class="mk-history__when">${p.on}</span><span>Gave dana through the form</span></li>` : ""}${p.notes ? '<li><span class="mk-history__when">Oct 16</span><span>Pat Rivera wrote a note</span></li>' : ""}</ul></div>
+      <div class="vol-detail__actions-wrap"><p class="vol-detail__col-label">Actions</p><div class="mk-actions-col">${actions}</div>
+        <div class="mk-confirm" data-cancel-box="${i}" hidden style="margin-top:12px"><p>Cancel ${esc(first(p.n))}'s registration? Their place opens for the next person waiting.</p><label class="mk-check"><input type="checkbox" checked> Email ${esc(first(p.n))} that it's cancelled</label><div class="mk-btnrow"><button class="pe-btn pe-btn--primary" type="button" data-cancel-yes="${i}">Yes, cancel it</button><button class="pe-btn" type="button" data-cancel-no="${i}">Keep it</button></div></div></div>
+    </div></td></tr>`;
+  }).join("");
+  tb.querySelectorAll("[data-row]").forEach((b) => b.onclick = () => { const d = document.getElementById("det-" + b.dataset.row); d.hidden = !d.hidden; b.setAttribute("aria-expanded", String(!d.hidden)); });
+  tb.querySelectorAll("[data-move]").forEach((b) => b.onclick = () => { document.getElementById("r-needs").scrollIntoView({ block: "center" }); const a = document.querySelector('[data-need="move"] [data-ask]'); if (a) a.click(); });
+  tb.querySelectorAll("[data-cancel]").forEach((b) => b.onclick = () => { const box = tb.querySelector(`[data-cancel-box="${b.dataset.cancel}"]`); box.hidden = false; box.querySelector("[data-cancel-yes]").focus(); });
+  tb.querySelectorAll("[data-cancel-no]").forEach((b) => b.onclick = () => { tb.querySelector(`[data-cancel-box="${b.dataset.cancelNo}"]`).hidden = true; });
+  tb.querySelectorAll("[data-cancel-yes]").forEach((b) => b.onclick = () => { const p = people[Number(b.dataset.cancelYes)]; p.st = "cancelled"; history.unshift({ when: "Just now", t: `LoriLee cancelled ${p.n}'s registration; ${first(p.n)} was emailed.` }); renderAll(); });
+}
+document.querySelectorAll("[data-filter]").forEach((b) => b.addEventListener("click", () => {
+  state.filter = b.dataset.filter;
+  document.querySelectorAll("[data-filter]").forEach((x) => { x.classList.toggle("hs-filter--active", x === b); x.setAttribute("aria-pressed", String(x === b)); });
+  renderRows();
+}));
+const tabs = [...document.querySelectorAll("#r-tabs [role=tab]")];
+function selectTab(t, focus) { tabs.forEach((x) => { const on = x === t; x.classList.toggle("hs-viewtab--active", on); x.setAttribute("aria-selected", String(on)); x.tabIndex = on ? 0 : -1; }); document.querySelectorAll("[data-tabpanel]").forEach((p) => { p.hidden = p.dataset.tabpanel !== t.dataset.tab; }); if (focus) t.focus(); }
+tabs.forEach((t, i) => { t.addEventListener("click", () => selectTab(t)); t.addEventListener("keydown", (e) => { if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); selectTab(tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length], true); } }); });
+function renderHistory() { document.getElementById("r-history").innerHTML = history.map((h) => `<li><span class="mk-history__when">${esc(h.when)}</span><span>${esc(h.t)}</span></li>`).join(""); }
+
+/* ── Start a program ── */
+const SHAPES = [
+  ["Drop-in", "Open entry, no registration, no questions, a host on the schedule, dana invited on the page."],
+  ["Class", "Open entry, weekly, a host on the schedule, the teacher's practice question."],
+  ["Course", "Registration for the whole series, places, the teacher's two questions, a reminder 2 days before."],
+  ["Workshop", "Registration, places, the teacher's two questions, a reminder 2 days before."],
+  ["Day of mindfulness", "Registration, places, the dietary questions, greeters, a reminder 2 days before."],
+  ["Retreat", "Registration, places, the teacher's, greeters' and dietary questions, greeters and the kitchen helping, a note after."],
+];
+document.getElementById("shapes").innerHTML = SHAPES.map(([n, s]) => `<li><button type="button" class="mk-shape" data-go="editor"><span class="mk-shape__name">${n}</span><span class="mk-shape__sets">${s}</span><span class="mk-shape__go">Start &rarr;</span></button></li>`).join("");
+
+/* ── Editor ── */
+const SECTIONS = [...document.querySelectorAll(".mk-sec")];
+document.getElementById("ed-index").innerHTML = SECTIONS.map((s) => `<li><a href="#${s.id}" data-jump="${s.id}">${esc(s.dataset.title)}</a></li>`).join("");
+document.getElementById("jump").innerHTML = SECTIONS.map((s) => `<option value="${s.id}">${esc(s.dataset.title)}</option>`).join("");
+function jumpTo(id) { const s = document.getElementById(id); if (!s) return; s.scrollIntoView({ block: "start" }); document.querySelectorAll("#ed-index a").forEach((a) => a.setAttribute("aria-current", String(a.dataset.jump === id))); document.getElementById("jump").value = id; }
+document.addEventListener("click", (e) => { const a = e.target.closest("[data-jump]"); if (a) { e.preventDefault(); jumpTo(a.dataset.jump); } });
+document.getElementById("jump").addEventListener("change", (e) => jumpTo(e.target.value));
+const noticeOpen = document.getElementById("notice-open"), noticeP = document.getElementById("p-notice");
+noticeOpen.onclick = () => { noticeP.hidden = !noticeP.hidden; noticeOpen.setAttribute("aria-expanded", String(!noticeP.hidden)); if (!noticeP.hidden) document.getElementById("notice-text").focus(); };
+document.getElementById("notice-cancel").onclick = () => { noticeP.hidden = true; noticeOpen.setAttribute("aria-expanded", "false"); noticeOpen.focus(); };
+document.getElementById("notice-form").addEventListener("submit", (e) => { e.preventDefault(); const m = document.getElementById("notice-msg"); if (!document.getElementById("notice-text").value.trim()) { m.className = "mk-error"; m.textContent = "Write the notice first."; document.getElementById("notice-text").focus(); return; } m.className = "mk-saved"; m.textContent = "Posted. It shows on the program's listings and My Home, and the 12 registered were emailed."; });
+document.getElementById("ed-save").onclick = () => { const m = document.getElementById("ed-msg"); m.className = "mk-saved"; m.textContent = "Saved at 2:41 PM."; };
+document.getElementById("ed-add-team-btn").onclick = () => {
+  const sel = document.getElementById("ed-add-team"); if (!sel.value) { sel.focus(); return; }
+  const key = sel.value.toLowerCase().replace(/[^a-z]/g, "");
+  HELPERS.push({ key, name: sel.value, role: "preparing", kind: "prepare", reach: false });
+  ASK[key] = { heading: `For ${sel.value}`, reads: `Read by ${sel.value} and the registration team.` };
+  sel.querySelector(`option[value="${sel.value}"]`)?.remove(); sel.value = ""; renderEditor(); renderAll();
+};
+document.getElementById("ed-helpers").addEventListener("change", (e) => { if (e.target.dataset.reach !== undefined) { HELPERS[Number(e.target.dataset.reach)].reach = e.target.checked; renderEditor(); renderAll(); } });
+document.getElementById("ed-helpers").addEventListener("click", (e) => { const b = e.target.closest("[data-remove-helper]"); if (!b) return; const h = HELPERS[Number(b.dataset.removeHelper)]; QUESTIONS.forEach((q) => { if (q.askedBy === h.key) q.askedBy = "registration"; }); HELPERS.splice(Number(b.dataset.removeHelper), 1); renderEditor(); renderAll(); });
+
+function renderQuestionsEditor() {
+  document.getElementById("ed-questions").innerHTML = HELPERS.map((h) => {
+    const qs = QUESTIONS.map((q, i) => [q, i]).filter(([q]) => q.askedBy === h.key);
+    const a = ASK[h.key] || { heading: h.name, reads: "" };
+    return `<div class="mk-group"><div class="mk-group__head"><span class="mk-group__title">Asked by ${esc(askerName(h.key))}</span><span class="mk-meta">On the form: "${esc(a.heading)}". ${esc(a.reads)}</span></div>
+      ${qs.map(([q, i]) => `<div class="mk-q" data-qi="${i}">
+        <div class="mk-q__row"><input type="text" value="${esc(q.label)}" placeholder="Write the question" aria-label="Question" data-f="label"><select aria-label="Kind of answer" data-f="kind">${Object.entries(KINDS).map(([k, v]) => `<option value="${k}" ${q.kind === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+        ${q.kind === "choice" ? `<div class="mk-q__opts"><input type="text" value="${esc((q.options || []).join(", "))}" aria-label="Choices, separated by commas" data-f="options"></div>` : ""}
+        <div class="mk-q__tools">
+          <label class="mk-check"><input type="checkbox" ${q.required ? "checked" : ""} data-f="required"> Required</label>
+          <label class="mk-check">Asked by <select data-f="askedBy" aria-label="Who is asking">${HELPERS.map((x) => `<option value="${x.key}" ${q.askedBy === x.key ? "selected" : ""}>${esc(askerName(x.key))}</option>`).join("")}</select></label>
+          <button type="button" class="mk-linkbtn" data-move-q="-1">Move up</button><button type="button" class="mk-linkbtn" data-move-q="1">Move down</button><button type="button" class="mk-linkbtn" data-remove-q>Remove</button>
+        </div>
+        ${!q.required && isChoice(q) ? '<p class="mk-meta" style="margin:4px 0 0">Optional, so the form also offers "Prefer not to say".</p>' : ""}
+      </div>`).join("") || '<p class="mk-meta" style="margin:0 0 8px">No questions yet.</p>'}
+      <button type="button" class="mk-linkbtn" data-add-q="${h.key}">Add a question asked by ${esc(askerName(h.key))}</button></div>`;
+  }).join("");
+}
+const edQ = document.getElementById("ed-questions");
+edQ.addEventListener("change", (e) => {
+  const box = e.target.closest("[data-qi]"); if (!box) return;
+  const q = QUESTIONS[Number(box.dataset.qi)], f = e.target.dataset.f;
+  if (f === "required") q.required = e.target.checked; else if (f === "askedBy") q.askedBy = e.target.value; else if (f === "kind") { q.kind = e.target.value; if (q.kind === "choice" && !q.options) q.options = []; } else if (f === "options") q.options = e.target.value.split(",").map((s) => s.trim()).filter(Boolean);
+  if (f !== "label") renderEditor(); renderAll();
+});
+edQ.addEventListener("input", (e) => { if (e.target.dataset.f === "label") { QUESTIONS[Number(e.target.closest("[data-qi]").dataset.qi)].label = e.target.value; renderForm(); } });
+edQ.addEventListener("click", (e) => {
+  const add = e.target.closest("[data-add-q]");
+  if (add) { QUESTIONS.push({ id: "q" + Date.now(), askedBy: add.dataset.addQ, label: "", kind: "short", required: false }); renderEditor(); const ins = [...edQ.querySelectorAll('[data-f="label"]')]; const empty = ins.find((i) => !i.value); if (empty) empty.focus(); return; }
+  const box = e.target.closest("[data-qi]"); if (!box) return; const i = Number(box.dataset.qi);
+  if (e.target.matches("[data-move-q]")) { const same = QUESTIONS.map((q, j) => [q, j]).filter(([q]) => q.askedBy === QUESTIONS[i].askedBy).map(([, j]) => j); const pos = same.indexOf(i), to = same[pos + Number(e.target.dataset.moveQ)]; if (to !== undefined) { [QUESTIONS[i], QUESTIONS[to]] = [QUESTIONS[to], QUESTIONS[i]]; renderEditor(); renderAll(); } }
+  if (e.target.matches("[data-remove-q]")) { QUESTIONS.splice(i, 1); renderEditor(); renderAll(); }
+});
+function renderEditor() { renderHelpersList(document.getElementById("ed-helpers"), true); renderQuestionsEditor(); }
+
+/* ── The form ── */
+function renderForm() {
+  let n = 0;
+  document.getElementById("form-asks").innerHTML = HELPERS.map((h) => {
+    const qs = QUESTIONS.filter((q) => q.askedBy === h.key && q.label.trim()); if (!qs.length) return "";
+    const a = ASK[h.key] || { heading: h.name, reads: "" }; const lid = "ask-" + h.key;
+    return `<fieldset class="mk-ask" aria-describedby="${lid}-r"><legend>${esc(a.heading)}</legend><span class="mk-ask__reads" id="${lid}-r">${esc(a.reads)}</span>
+      ${qs.map((q) => { const id = "fq" + (n++); const opt = !q.required; const opts = q.kind === "yesno" ? ["Yes", "No"] : (q.options || []);
+        const input = q.kind === "long" ? `<textarea class="pg-form__textarea" id="${id}" rows="3"></textarea>` : q.kind === "short" ? `<input class="pg-form__input" id="${id}">` : `<select class="pg-form__select" id="${id}"><option value="">Choose</option>${opts.map((o) => `<option>${esc(o)}</option>`).join("")}${opt ? "<option>Prefer not to say</option>" : ""}</select>`;
+        return `<div class="pg-form__field"><label class="pg-form__label" for="${id}">${esc(q.label)}${opt ? ' <span style="font-weight:400">(optional)</span>' : ""}</label>${input}</div>`; }).join("")}</fieldset>`;
+  }).join("");
+}
+
+/* ── Helpers' pages ── */
+function nameBtn(p, view) { return `<button type="button" class="mk-name" aria-expanded="false" data-person="${people.indexOf(p)}" data-view="${view}">${esc(p.n)}</button>`; }
+function card(p, view) {
+  const key = { teacher: "teacher", door: "greeters", kitchen: "kitchen" }[view];
+  const rows = answersByAsker(p, [key]);
+  const notes = view === "teacher" ? (p.notes || []).filter((n) => n.forTeacher).map((n) => `<p class="mk-answer"><span class="mk-answer__q">A note from ${esc(n.by)}, ${n.on}</span><span class="mk-answer__a">${esc(n.t)}</span></p>`).join("") : "";
+  const helper = HELPERS.find((h) => h.key === key);
+  const email = p.n.toLowerCase().replace(/[^a-z ]/g, "").replace(" ", ".") + "@example.org";
+  const reach = helper && helper.reach ? `<p style="margin:0 0 10px"><a class="mk-link" href="#">${email}</a> · (262) 555-01${String(people.indexOf(p)).padStart(2, "0")}</p>` : "";
+  return `<div class="mk-card"><h4>${esc(p.n)}</h4><p class="mk-meta" style="margin:0 0 8px">${p.st === "waiting" ? "Waiting for a place" : "Registered"}${view === "teacher" ? ` · ${visitLine(p)}` : ""}</p>${reach}${rows || notes ? rows + notes : '<p class="mk-muted" style="margin:0">Nothing more to show you.</p>'}</div>`;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".mk-name"); if (!b) return;
+  const wasOpen = b.getAttribute("aria-expanded") === "true";
+  document.querySelectorAll("[data-card]").forEach((c) => c.remove());
+  document.querySelectorAll(".mk-name[aria-expanded='true']").forEach((x) => x.setAttribute("aria-expanded", "false"));
+  if (wasOpen) return;
+  const anchor = b.closest("li, .mk-opt, .mk-panel");
+  const holder = document.createElement(anchor.tagName === "LI" ? "li" : "div");
+  holder.dataset.card = ""; holder.style.cssText = "border-top:0;padding:0;column-span:all;list-style:none;display:block";
+  holder.innerHTML = card(people[Number(b.dataset.person)], b.dataset.view);
+  anchor.after(holder); b.setAttribute("aria-expanded", "true");
+});
+function choiceBlock(q, list, view) {
+  const opts = [...(q.kind === "yesno" ? ["Yes", "No"] : q.options || [])]; list.forEach((p) => { if (p[q.id] && !opts.includes(p[q.id])) opts.push(p[q.id]); });
+  const rows = opts.map((o) => { const who = list.filter((p) => p[q.id] === o); if (!who.length) return "";
+    const names = o === "Prefer not to say" ? "" : who.length <= 5 ? `<div class="mk-opt__names">${who.map((p) => nameBtn(p, view)).join("")}</div>` : `<details><summary class="mk-linkbtn" style="display:inline-flex;align-items:center">Show who</summary><div class="mk-opt__names">${who.map((p) => nameBtn(p, view)).join("")}</div></details>`;
+    return `<div class="mk-opt"><div class="mk-opt__head"><span>${esc(o)}</span><span class="mk-opt__count">${who.length}</span></div>${names}</div>`; }).join("");
+  return `<div class="mk-panel"><h3>${esc(q.label)}</h3>${rows}</div>`;
+}
+function writtenBlock(q, list, view, title) {
+  const items = list.filter((p) => real(p[q.id])).map((p) => `<li>${nameBtn(p, view)}: ${esc(p[q.id])}</li>`);
+  return `<div class="mk-panel"><h3>${esc(title || q.label)}</h3><ul class="mk-simple">${items.join("") || '<li class="mk-muted">No one has written anything.</li>'}</ul></div>`;
+}
+function renderTeacher() {
+  const reg = people.filter((p) => p.st === "registered"), wait = people.filter((p) => p.st === "waiting");
+  document.getElementById("t-count").textContent = `${reg.length} registered, ${wait.length} waiting`;
+  const qs = QUESTIONS.filter((q) => q.askedBy === "teacher");
+  const newcomers = reg.filter(newToRim);
+  const told = [];
+  reg.forEach((p) => {
+    qs.filter((q) => !isChoice(q) && real(p[q.id])).forEach((q) => told.push(`<li>${nameBtn(p, "teacher")}: ${esc(p[q.id])}</li>`));
+    (p.notes || []).filter((n) => n.forTeacher).forEach((n) => told.push(`<li>${nameBtn(p, "teacher")}: ${esc(n.t)}<span class="mk-meta" style="display:block">A note from ${esc(n.by)}, registration team</span></li>`));
+  });
+  document.getElementById("t-body").innerHTML =
+    `<div class="mk-panel"><h3>New to RIM</h3>${newcomers.length ? `<p class="mk-muted" style="margin-top:0">This is their first program here.</p><ul class="mk-simple">${newcomers.map((p) => `<li>${nameBtn(p, "teacher")}</li>`).join("")}</ul>` : '<p class="mk-muted" style="margin:0">Everyone has been to RIM before.</p>'}</div>
+     <div class="mk-panel"><h3>What they told you</h3><ul class="mk-simple">${told.join("") || '<li class="mk-muted">Nothing yet.</li>'}</ul></div>
+     ${qs.filter(isChoice).map((q) => choiceBlock(q, reg, "teacher")).join("")}
+     <div class="mk-panel"><h3>Everyone coming</h3><ul class="mk-names">${reg.map((p) => `<li>${nameBtn(p, "teacher")}</li>`).join("")}</ul>${wait.length ? `<p class="mk-meta" style="margin:12px 0 0">Waiting for a place: ${wait.map((p) => esc(p.n)).join(", ")}.</p>` : ""}</div>`;
+}
+function renderDoor() {
+  const reg = people.filter((p) => p.st === "registered");
+  document.getElementById("d-count").textContent = `${state.arrived.size} of ${reg.length} here`;
+  const qs = QUESTIONS.filter((q) => q.askedBy === "greeters");
+  document.getElementById("d-body").innerHTML =
+    qs.map((q) => isChoice(q) ? choiceBlock(q, reg, "door") : writtenBlock(q, reg, "door", "Worth knowing at the door")).join("") +
+    `<div class="mk-panel"><h3>Who's coming</h3><ul class="mk-simple mk-door">${reg.map((p) => { const i = people.indexOf(p), here = state.arrived.has(i); return `<li><span>${nameBtn(p, "door")}</span><button type="button" class="pe-btn mk-arrived" aria-pressed="${here}" data-arrive="${i}">${here ? "Here ✓" : "Arrived"}</button></li>`; }).join("")}</ul></div>`;
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-arrive]"); if (!b) return; const i = Number(b.dataset.arrive); state.arrived.has(i) ? state.arrived.delete(i) : state.arrived.add(i); renderDoor(); document.querySelector(`[data-arrive="${i}"]`).focus(); });
+document.getElementById("walkin-form").addEventListener("submit", (e) => { e.preventDefault(); const v = document.getElementById("walkin-name").value.trim(); const m = document.getElementById("walkin-msg"); if (!v) { m.className = "mk-error"; m.textContent = "Add their name first."; return; } m.className = "mk-saved"; m.textContent = `${v} is on today's list. The registration team will finish their registration.`; });
+function renderKitchen() {
+  const reg = people.filter((p) => p.st === "registered");
+  document.getElementById("k-state").innerHTML = `<strong>${reg.length} coming</strong> · ${count("waiting")} waiting · Fri, Nov 13 to Sun, Nov 15`;
+  const qs = QUESTIONS.filter((q) => q.askedBy === "kitchen");
+  document.getElementById("k-body").innerHTML = qs.length ? `<div class="mk-two">${qs.map((q) => isChoice(q) ? choiceBlock(q, reg, "kitchen") : writtenBlock(q, reg, "kitchen")).join("")}</div>` : '<p class="mk-muted">No dietary questions on this program\'s form.</p>';
+}
+
+/* ── Screens ── */
+function renderAll() { renderDesk(); renderState(); renderNeeds(); renderRows(); renderHistory(); renderHelpersList(document.getElementById("r-helpers"), false); renderForm(); renderTeacher(); renderDoor(); renderKitchen(); }
+function go(screen, then) {
+  document.querySelectorAll(".mk-screen").forEach((s) => { s.hidden = s.dataset.screen !== screen; });
+  document.querySelectorAll(".mk-guide [data-go]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.go === screen)));
+  document.getElementById("mk-note").textContent = NOTES[screen];
+  window.scrollTo(0, 0);
+  if (then) setTimeout(() => jumpTo(then), 0);
+  try { window.history.replaceState(null, "", "#" + screen); } catch (e) {}
+}
+document.addEventListener("click", (e) => { const el = e.target.closest("[data-go]"); if (el) { e.preventDefault(); go(el.dataset.go, el.dataset.then); } });
+renderEditor(); renderAll();
+const startAt = location.hash.slice(1);
+go(startAt in NOTES ? startAt : "desk");
+if (window.lucide) lucide.createIcons({ attrs: { width: 18, height: 18, "stroke-width": 1.75 } });
+</script>
+</body>
+</html>
