@@ -3436,6 +3436,21 @@ h4 { font-size: var(--text-h4); }
 .reg-history--person { margin: 0; background: none; border: 0; border-radius: 0; }
 .reg-history--person li { grid-template-columns: 180px minmax(0, 1fr); padding: 4px 0; border-top: 0; }
 
+/* Add a person, Message people: a bordered panel under the toolbar. */
+.reg-panel { display: flex; flex-direction: column; gap: 12px; margin: 0 0 var(--space-3); padding: var(--space-3); background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.reg-panel .reg-meta { margin: 0; }
+.reg-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px var(--space-2); }
+.reg-fields--one { grid-template-columns: minmax(0, 1fr); max-width: var(--reading-width); }
+.reg-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-weight: 600; color: var(--rim-heading); }
+.reg-field :is(input, select, textarea) { width: 100%; min-height: 44px; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--rim-rule); border-radius: 8px; background: var(--rim-surface); font-family: var(--font-sans); font-size: var(--text-app); font-weight: 400; color: var(--rim-text); }
+.reg-field textarea { resize: vertical; line-height: var(--lh-body); }
+.reg-field :is(input, select, textarea):focus-visible { outline: 2px solid var(--rim-blue); outline-offset: 1px; border-color: var(--rim-blue); }
+.reg-choices { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; border: 0; }
+.reg-choices legend { margin-bottom: 4px; padding: 0; font-weight: 600; color: var(--rim-heading); }
+.reg-check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding-top: 10px; box-sizing: border-box; cursor: pointer; }
+.reg-check input { flex: none; width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--rim-blue); }
+.reg-error { margin: 0; color: var(--color-error); font-weight: 600; }
+
 .reg-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* The tools shell sets row actions to 40px; the Registration app keeps 44. */
 .tools-shell :is(.reg-actions, .reg-item) :is(.vol-action-btn, .vol-save-btn) { min-height: 44px; }

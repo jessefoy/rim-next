@@ -7186,6 +7186,47 @@ Rooted In Mindfulness`,
   ]);
   console.log("  ✔ Registration history and notes tables ready.");
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: a message from the registration team (2026-10-23), the Registration
+  // app's "Message people" (sendRegistrationMessageEmail). findUnique →
+  // create. Wording provisional until Jesse's read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const existing = await db.emailTemplate.findUnique({ where: { slug: "registration-message" } });
+    if (existing) {
+      console.log("  Email template registration-message already exists, left alone.");
+    } else {
+      await db.emailTemplate.create({
+        data: {
+          slug: "registration-message",
+          name: "Registration: a message from the registration team",
+          description: "Sent from the Registration app's Message people to the people registered for a program, or waiting for a place.",
+          subject: "{{subject}}",
+          variables: ["firstName", "programTitle", "subject", "message", "programUrl", "programButton"],
+          helpText:
+            "The registration team writes {{subject}} and {{message}} in the Registration app; both show exactly as typed. Replies go to the registrar's inbox.\n\n" +
+            "Available variables: {{firstName}}, {{programTitle}}, {{subject}}, {{message}}, {{programUrl}}, {{programButton}} (use triple braces {{{programButton}}}).",
+          body: `Hi {{firstName}},
+
+{{message}}
+
+{{{programButton}}}
+
+With care,
+The registration team at Rooted In Mindfulness
+
+*You're receiving this because you signed up for {{programTitle}}. You can reply to this email.*`,
+          enabled: true,
+          group: "02-registrations",
+          groupLabel: "Registrations",
+        },
+      });
+      console.log("  ✔ Email template registration-message created.");
+    }
+  } catch (err) {
+    console.error("  registration-message seed failed:", err?.message ?? err);
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

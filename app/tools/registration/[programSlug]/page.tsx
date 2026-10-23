@@ -56,6 +56,12 @@ function earlierNoteText(notes: unknown): string | null {
   return text || null;
 }
 
+/** The people a program-wide event reached (a message), from its detail. */
+function idsIn(detail: unknown): string[] {
+  const ids = detail && typeof detail === "object" ? (detail as Record<string, unknown>).registrationIds : null;
+  return Array.isArray(ids) ? ids.filter((x): x is string => typeof x === "string") : [];
+}
+
 /** Their answers, then any of the program's questions they left empty. */
 function answersFor(customFields: unknown, fields: RegistrationField[]) {
   const given = (customFields as Record<string, unknown> | null) ?? {};
@@ -107,6 +113,8 @@ export default async function RegistrationProgramPage({
       registrationFields: true,
       reminderDate: true,
       danaMode: true,
+      danaFixedAmount: true,
+      danaBaseAmount: true,
       archivedAt: true,
     },
   });
@@ -136,11 +144,13 @@ export default async function RegistrationProgramPage({
   const ids = registrations.map((r) => r.id);
   const fields = (program.registrationFields as RegistrationField[] | null) ?? [];
 
-  const [notes, events] = await Promise.all([
+  const [notes, events, heldPlaces] = await Promise.all([
     ids.length
       ? db.registrationNote.findMany({ where: { registrationId: { in: ids } }, orderBy: { createdAt: "asc" } })
       : Promise.resolve([]),
     db.registrationEvent.findMany({ where: { programSlug }, orderBy: { createdAt: "desc" }, take: 300 }),
+    // A place held for someone paying is taken, as the public form counts it.
+    db.registration.count({ where: { programSlug, status: "PENDING_PAYMENT" } }),
   ]);
   const staffIds = [
     ...new Set([...notes.map((n) => n.authorId), ...events.map((e) => e.actorId)].filter((x): x is string => !!x)),
@@ -174,6 +184,8 @@ export default async function RegistrationProgramPage({
   }));
 
   // History: what people did, with each registration's own sign-up moment.
+  // Someone added from the app has that line instead of a sign-up line.
+  const addedIds = new Set(events.filter((e) => e.kind === "added" && e.registrationId).map((e) => e.registrationId as string));
   // Someone offered a place since still joined by waiting.
   const joinedWaiting = new Set(registrations.filter((r) => r.status === "WAITLISTED").map((r) => r.id));
   for (const e of events) {
@@ -187,14 +199,16 @@ export default async function RegistrationProgramPage({
       at: e.createdAt.toISOString(),
       when: fmtWhen(e.createdAt),
       registrationId: e.registrationId,
+      forIds: idsIn(e.detail),
       person: e.registrationId ? nameById.get(e.registrationId) ?? null : null,
       text: `${nameOf(e.actorId)} ${describeRegistrationEvent(e.kind, e.detail)}`,
     })),
-    ...registrations.map((r) => ({
+    ...registrations.filter((r) => !addedIds.has(r.id)).map((r) => ({
       id: `registered-${r.id}`,
       at: r.createdAt.toISOString(),
       when: fmtWhen(r.createdAt),
       registrationId: r.id,
+      forIds: [],
       person: nameById.get(r.id) ?? null,
       text: joinedWaiting.has(r.id) ? "Joined the waiting list" : "Registered",
     })),
@@ -245,6 +259,14 @@ export default async function RegistrationProgramPage({
           needs={needs}
           registrationFields={fields}
           danaMode={program.danaMode}
+          programName={program.name}
+          canAdd={!program.archivedAt && program.registrationEnabled}
+          full={!!program.registrationCapacity && counts.registered + heldPlaces >= program.registrationCapacity}
+          asksDana={
+            program.danaMode === "voluntary" ||
+            (program.danaMode === "fixed" && (program.danaFixedAmount ?? 0) > 0) ||
+            (program.danaMode === "base_plus_dana" && (program.danaBaseAmount ?? 0) > 0)
+          }
           reminderDay={program.reminderDate ? fmtDay(program.reminderDate) : null}
           seeAmounts={seeAmounts}
           initialShow={show ?? null}

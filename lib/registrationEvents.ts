@@ -24,6 +24,8 @@ export const REGISTRATION_EVENT_KINDS = [
   "confirmation-resent",
   "deleted",
   "downloaded",
+  "added",
+  "message-sent",
 ] as const;
 export type RegistrationEventKind = (typeof REGISTRATION_EVENT_KINDS)[number];
 
@@ -116,6 +118,13 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
       return `deleted the record of ${typeof d.name === "string" ? d.name : "a cancelled registration"}`;
     case "downloaded":
       return "downloaded the spreadsheet";
+    case "added":
+      return d.status === "WAITLISTED" ? "added them to the waiting list" : "added them";
+    case "message-sent": {
+      const n = typeof d.count === "number" ? d.count : 0;
+      const subject = typeof d.subject === "string" ? `: ${d.subject}` : "";
+      return `sent a message to ${n === 1 ? "1 person" : `${n} people`}${subject}`;
+    }
     default:
       return kind;
   }

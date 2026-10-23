@@ -44,6 +44,8 @@ export interface HistoryRow {
   at: string;
   when: string;
   registrationId: string | null;
+  /** The people a program-wide event reached (a message). */
+  forIds: string[];
   person: string | null;
   text: string;
 }
@@ -121,6 +123,10 @@ export default function RegistrationPeople({
   needs,
   registrationFields,
   danaMode,
+  programName,
+  canAdd,
+  full,
+  asksDana,
   reminderDay,
   seeAmounts,
   initialShow,
@@ -131,6 +137,13 @@ export default function RegistrationPeople({
   needs: DeskNeed[];
   registrationFields: RegistrationField[];
   danaMode: string | null;
+  programName: string;
+  /** Registration is on and the program isn't archived. */
+  canAdd: boolean;
+  /** Every place is taken: someone added joins the waiting list. */
+  full: boolean;
+  /** The program asks for dana (or a price). */
+  asksDana: boolean;
   reminderDay: string | null;
   seeAmounts: boolean;
   initialShow: string | null;
@@ -152,6 +165,12 @@ export default function RegistrationPeople({
   const [editing, setEditing] = useState<{ id: string; values: Record<string, string> } | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [panel, setPanel] = useState<"add" | "message" | null>(null);
+  const [add, setAdd] = useState({ firstName: "", lastName: "", email: "", phone: "", dana: "online", sendConfirmation: true });
+  const [addError, setAddError] = useState<string | null>(null);
+  const [msg, setMsg] = useState({ to: "registered" as "registered" | "waiting" | "both", subject: "", message: "" });
+  const [msgError, setMsgError] = useState<string | null>(null);
+  const [msgConfirm, setMsgConfirm] = useState(false);
 
   const refresh = () => startRefresh(() => router.refresh());
 
@@ -173,6 +192,12 @@ export default function RegistrationPeople({
     // Cancelled people sink to the bottom of "All".
     .sort((a, b) => Number(a.status === "CANCELLED") - Number(b.status === "CANCELLED"));
   const unsent = rows.filter((r) => isRegistered(r.status) && !r.reminderSentOn);
+  const givesOnline = !full && asksDana && add.dana === "online";
+  const groupSize = {
+    registered: rows.filter((r) => isRegistered(r.status)).length,
+    waiting: rows.filter((r) => r.status === "WAITLISTED").length,
+    both: rows.filter((r) => isRegistered(r.status) || r.status === "WAITLISTED").length,
+  };
 
   // ── Calls ─────────────────────────────────────────────────────────────────
   async function patch(id: string, body: Record<string, unknown>, ok: string, fail: string) {
@@ -262,6 +287,72 @@ export default function RegistrationPeople({
     if (ok) setEditing(null);
   }
 
+  async function addPerson(e: React.FormEvent) {
+    e.preventDefault();
+    setAddError(null);
+    if (!add.firstName.trim() || !add.lastName.trim() || !add.email.trim()) {
+      setAddError("Fill in their first name, last name and email.");
+      return;
+    }
+    setBusy("add");
+    try {
+      const res = await fetch(`/api/programs/${programSlug}/people`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...add, expectPlace: !full }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAddError(json.error || "They weren't added. Please try again.");
+        return;
+      }
+      const where = json.status === "WAITLISTED" ? "is on the waiting list" : "is registered";
+      const emailed = givesOnline ? ` The dana link is on its way to ${json.email}.` : add.sendConfirmation ? ` Their email is on its way to ${json.email}.` : "";
+      say(`${json.name} ${where}.${emailed}`);
+      setAdd({ firstName: "", lastName: "", email: "", phone: "", dana: "online", sendConfirmation: true });
+      setPanel(null);
+      refresh();
+    } catch {
+      setAddError("They weren't added. Please try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function sendMessage(test: boolean) {
+    setMsgError(null);
+    if (!msg.subject.trim() || !msg.message.trim()) {
+      setMsgError("Write a subject and a message.");
+      return;
+    }
+    setBusy(test ? "msg-test" : "msg");
+    try {
+      const res = await fetch(`/api/programs/${programSlug}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...msg, test }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsgError(json.error || "It wasn't sent. Please try again.");
+        return;
+      }
+      if (test) {
+        say(`A test went to ${json.email}.`);
+      } else {
+        say(`Your message is going to ${people(json.count)} now, one at a time.`);
+        setMsg({ to: "registered", subject: "", message: "" });
+        setMsgConfirm(false);
+        setPanel(null);
+        refresh();
+      }
+    } catch {
+      setMsgError("It wasn't sent. Please try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   function showFilter(f: Filter) {
     setTab("people");
     setFilter(f);
@@ -299,7 +390,7 @@ export default function RegistrationPeople({
   }
 
   function personCard(p: PeopleRow) {
-    const mine = history.filter((h) => h.registrationId === p.id);
+    const mine = history.filter((h) => h.registrationId === p.id || h.forIds.includes(p.id));
     const active = p.status !== "CANCELLED";
     return (
       <div className="reg-person">
@@ -506,15 +597,119 @@ export default function RegistrationPeople({
             { key: "history", label: "History" },
           ]}
         />
-        <a
-          href={`/api/programs/${programSlug}/registrations?format=csv`}
-          className="vol-csv-btn"
-          download={`${programSlug}-registrations.csv`}
-          onClick={() => setTimeout(refresh, 1500)}
-        >
-          Download a spreadsheet
-        </a>
+        <div className="reg-actions">
+          {canAdd && (
+            <button type="button" className="vol-action-btn" aria-expanded={panel === "add"}
+              onClick={() => { setPanel(panel === "add" ? null : "add"); setAddError(null); }}>
+              Add a person
+            </button>
+          )}
+          {groupSize.both > 0 && (
+            <button type="button" className="vol-action-btn" aria-expanded={panel === "message"}
+              onClick={() => {
+                setPanel(panel === "message" ? null : "message");
+                setMsgError(null);
+                setMsgConfirm(false);
+                if (groupSize[msg.to] === 0) setMsg({ ...msg, to: groupSize.registered > 0 ? "registered" : "both" });
+              }}>
+              Message people
+            </button>
+          )}
+          <a
+            href={`/api/programs/${programSlug}/registrations?format=csv`}
+            className="vol-csv-btn"
+            download={`${programSlug}-registrations.csv`}
+            onClick={() => setTimeout(refresh, 1500)}
+          >
+            Download a spreadsheet
+          </a>
+        </div>
       </div>
+
+      {panel === "add" && (
+        <form className="reg-panel" onSubmit={addPerson} noValidate>
+          <h3 className="reg-person__title">Add a person</h3>
+          <p className="reg-meta">For someone who phoned, wrote, or signed up on paper. If their email belongs to a member, it&rsquo;s added to their account.</p>
+          <div className="reg-fields">
+            <label className="reg-field"><span>First name</span>
+              <input value={add.firstName} autoComplete="off" onChange={(e) => setAdd({ ...add, firstName: e.target.value })} /></label>
+            <label className="reg-field"><span>Last name</span>
+              <input value={add.lastName} autoComplete="off" onChange={(e) => setAdd({ ...add, lastName: e.target.value })} /></label>
+            <label className="reg-field"><span>Email</span>
+              <input type="email" value={add.email} autoComplete="off" onChange={(e) => setAdd({ ...add, email: e.target.value })} /></label>
+            <label className="reg-field"><span>Phone (optional)</span>
+              <input type="tel" value={add.phone} autoComplete="off" onChange={(e) => setAdd({ ...add, phone: e.target.value })} /></label>
+          </div>
+          {full ? (
+            <p className="reg-meta">Every place is taken, so they&rsquo;ll join the waiting list. You can offer them a place from their card.</p>
+          ) : asksDana && (
+            <fieldset className="reg-choices">
+              <legend>Dana</legend>
+              {([
+                ["online", "They'll give online"],
+                ["given", "Given by cash or check"],
+                ["none", "No dana"],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="reg-check">
+                  <input type="radio" name="add-dana" checked={add.dana === key} onChange={() => setAdd({ ...add, dana: key })} />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
+          {givesOnline ? (
+            <p className="reg-meta">They&rsquo;ll get an email with the link to give. Their confirmation follows once they give or decline.</p>
+          ) : (
+            <label className="reg-check">
+              <input type="checkbox" checked={add.sendConfirmation} onChange={(e) => setAdd({ ...add, sendConfirmation: e.target.checked })} />
+              <span>Email them their {full ? "waiting-list" : "confirmation"} email</span>
+            </label>
+          )}
+          <div className="reg-actions">
+            <button type="submit" className="vol-save-btn" disabled={busy === "add"}>{busy === "add" ? "Adding…" : "Add them"}</button>
+            <button type="button" className="vol-action-btn" onClick={() => setPanel(null)}>Cancel</button>
+          </div>
+          {addError && <p className="reg-error" role="alert">{addError}</p>}
+        </form>
+      )}
+
+      {panel === "message" && (
+        <form className="reg-panel" onSubmit={(e) => { e.preventDefault(); setMsgError(null); if (!msg.subject.trim() || !msg.message.trim()) { setMsgError("Write a subject and a message."); return; } setMsgConfirm(true); }} noValidate>
+          <h3 className="reg-person__title">Message people</h3>
+          <p className="reg-meta">An email from the registration team about {programName}. Replies come to the registrar&rsquo;s inbox, and it&rsquo;s kept in History.</p>
+          <div className="reg-fields reg-fields--one">
+            <label className="reg-field"><span>To</span>
+              <select value={msg.to} onChange={(e) => { setMsg({ ...msg, to: e.target.value as typeof msg.to }); setMsgConfirm(false); }}>
+                <option value="registered" disabled={groupSize.registered === 0}>Everyone registered ({groupSize.registered})</option>
+                <option value="waiting" disabled={groupSize.waiting === 0}>People waiting ({groupSize.waiting})</option>
+                <option value="both">Registered and waiting ({groupSize.both})</option>
+              </select></label>
+            <label className="reg-field"><span>Subject</span>
+              <input value={msg.subject} maxLength={200} onChange={(e) => { setMsg({ ...msg, subject: e.target.value }); setMsgConfirm(false); }} /></label>
+            <label className="reg-field"><span>Message</span>
+              <textarea value={msg.message} maxLength={10000} rows={7} onChange={(e) => { setMsg({ ...msg, message: e.target.value }); setMsgConfirm(false); }} /></label>
+          </div>
+          <p className="reg-meta">It begins &ldquo;Hi&rdquo; and their first name, and ends with a link to the program.</p>
+          {msgConfirm ? (
+            <ConfirmBox
+              text={`Email this to ${people(groupSize[msg.to])} now?`}
+              yes={`Yes, send to ${people(groupSize[msg.to])}`}
+              busy={busy === "msg"}
+              onYes={() => sendMessage(false)}
+              onNo={() => setMsgConfirm(false)}
+            />
+          ) : (
+            <div className="reg-actions">
+              <button type="submit" className="vol-save-btn" disabled={groupSize[msg.to] === 0}>Send to {people(groupSize[msg.to])}</button>
+              <button type="button" className="vol-action-btn" disabled={busy === "msg-test"} onClick={() => sendMessage(true)}>
+                {busy === "msg-test" ? "Sending…" : "Send me a test"}
+              </button>
+              <button type="button" className="vol-action-btn" onClick={() => setPanel(null)}>Cancel</button>
+            </div>
+          )}
+          {msgError && <p className="reg-error" role="alert">{msgError}</p>}
+        </form>
+      )}
 
       {tab === "people" ? (
         <div role="tabpanel" aria-label="People">

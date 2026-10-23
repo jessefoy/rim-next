@@ -10,7 +10,9 @@ The Registration app is the registration team's place: who's coming to each prog
 
 Built and live beside the old roster. The Program Manager's roster (`/tools/programs/[slug]`) still works exactly as before and links to the new page ("Open in Registration"). Nothing is redirected yet; the app is registered but not installed in any Space (installing it in the Registration team's Space is an admin action in `/admin/hubs`).
 
-Still to come in Phase 1: add a person, message people, a printed sign-in list, question ids, history from the public paths (Stripe webhook, cron, decline), the redirect and link updates, the cancellation email to the person, the Programs Home line. See `BUILD_PLAN.md`.
+Slice 2 (same day): **Add a person** and **Message people**.
+
+Still to come in Phase 1: a printed sign-in list, question ids, history from the public paths (Stripe webhook, cron, decline), the redirect and link updates, the cancellation email to the person, the Programs Home line. See `BUILD_PLAN.md`.
 
 ## Routes
 
@@ -30,8 +32,15 @@ Still to come in Phase 1: add a person, message people, a printed sign-in list, 
 | `PATCH /api/registrations/[id]` | `canUseRegistration` | Status, dana status, answers, the old notes field, and the email actions. Records history. Returns only `{ id, status, donationStatus, waitlistPosition }`. |
 | `DELETE /api/registrations/[id]` | `canUseRegistration` | Cancelled only. Deletes its notes; its history stays with a "deleted" line. |
 | `POST /api/registrations/[id]/notes` | `canUseRegistration` | Adds a note (up to 4000 characters). |
+| `POST /api/programs/[slug]/people` | `canUseRegistration` | Add a person. Follows the public POST where it matters: the program's record decides place and dana; an existing account (or former address) is linked and keeps its names; a new person becomes a member (`agreedToTerms: false`, they agree at first sign-in); a place gives course access; the confirmation goes through `sendRegistrationConfirmation` (or, unticked, only the Flodesk add). May add after registration closes; refuses an archived program or one with registration off. Already here by account or address (registered, waiting, cancelled, or a place held while paying online) is a 409 that says where they are. Full: they join the waiting list; if the page's place-or-waiting no longer holds, a 409 asks for a reload. Dana: cash or check is received; no dana; or "they'll give online", which emails the dana link (`dana-reminder`) and leaves the confirmation to the dana choice (webhook, decline, or the 24-hour cron), the system's rule that a registered person with dana not finished hasn't been confirmed yet. Sending the confirmation at once as well sent it twice (review, 2026-10-23). A price still to be paid gets course access on payment, as on the public form. Nobody is charged. |
+| `POST /api/programs/[slug]/message` | `canUseRegistration` | Message people: registered, waiting, or both; `test: true` to the sender only. Sent one at a time in `after()` (`sendEachPaced`), capped at 50 people, well inside `maxDuration = 300`; one email per address; a bigger group belongs to the program's Flodesk segment. One history line with the subject, message and the people it reached (shown on each person's card too). |
 | `POST /api/programs/[slug]/send-reminder` | `canUseRegistration` | The reminder to registered people who haven't had it. Records one history line. |
 | `GET /api/programs/[slug]/registrations` | `canUseRegistration` | The spreadsheet (`?format=csv`). Explicit select. A download is recorded in history. |
+
+## Emails
+
+- `registration-message` (`sendRegistrationMessageEmail`, group 02-registrations): the team's subject and message, shown exactly as typed (`memberText`), Reply-To the registrar's inbox, a notice in the person's Notifications (kind `registration-message`, Programs). The test copy says "[Test]" and records no notice. Wording provisional until Jesse's read-aloud.
+- Add a person sends the existing confirmation or waiting-list email through the choke point (which also notifies support@).
 
 ## Access
 

@@ -283,7 +283,12 @@ function inertMemberText(variables: Record<string, unknown>, keys: string[] | un
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/([\\`*_[\]])/g, "\\$1");
+      .replace(/([\\`*_[\]])/g, "\\$1")
+      // A line that starts like a heading, list or table stays a line of
+      // text (2026-10-23: the registration team's messages are many lines).
+      .replace(/^(\s*)([#+\-=|])/gm, "$1\\$2")
+      .replace(/^(\s*\d+)([.)])/gm, "$1\\$2")
+      .replace(/^ {4,}/gm, "   ");
   }
   return out;
 }
@@ -794,6 +799,56 @@ export async function sendDanaReminderEmail(data: DanaReminderEmailData): Promis
       href: appPath(registrationResumeUrl(programSlug, registrationId)),
       threadKey: `program:${programSlug}`,
     },
+  });
+}
+
+// ─── A message from the registration team (2026-10-23) ───────────────────────
+
+export interface RegistrationMessageEmailData {
+  to: string;
+  firstName: string;
+  programTitle: string;
+  programSlug: string;
+  /** What the registration team typed: shown as typed, never as markup. */
+  subject: string;
+  message: string;
+  /** A test to the sender: "[Test]" in the subject and no notice recorded. */
+  test?: boolean;
+}
+
+/**
+ * The Registration app's "Message people" (2026-10-23): one note from the
+ * registration team to the people registered for (or waiting on) a program.
+ * Replies go to the registrar's inbox. The route sends these one at a time
+ * in after() (sendEachPaced).
+ *
+ * Managed via Email Template Manager — template: "registration-message".
+ * Email Template Gate: matching seed entry in prisma/migrate.mjs ships with
+ * the same commit.
+ */
+export async function sendRegistrationMessageEmail(data: RegistrationMessageEmailData): Promise<void> {
+  const { to, firstName, programTitle, programSlug, subject, message, test } = data;
+  const programUrl = `${BASE_URL}/programs/${programSlug}`;
+  await sendTemplatedEmail("registration-message", to, {
+    firstName,
+    programTitle,
+    subject,
+    message,
+    programUrl,
+    programButton: emailButtonHtml("View the program →", programUrl),
+  }, {
+    memberText: ["firstName", "programTitle", "subject", "message"],
+    replyTo: REGISTRAR_EMAIL,
+    ...(test ? { subject: `[Test] ${subject}` } : {
+      notice: {
+        kind: "registration-message",
+        category: "personal",
+        ...PROGRAMS_SOURCE,
+        title: `${programTitle}: ${subject}`,
+        href: appPath(programUrl),
+        threadKey: `program:${programSlug}`,
+      },
+    }),
   });
 }
 
