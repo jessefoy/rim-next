@@ -83,6 +83,9 @@ function dollars(cents: number): string {
 
 const people = (n: number) => (n === 1 ? "1 person" : `${n} people`);
 
+/** The day the Registration app began keeping history. */
+const HISTORY_SINCE = "Oct 23, 2026";
+
 function ConfirmBox({
   text,
   yes,
@@ -607,7 +610,9 @@ export default function RegistrationPeople({
         </div>
       ) : (
         <div role="tabpanel" aria-label="History">
-          <p className="reg-meta">Everything done here, newest first. Downloads are kept too.</p>
+          <p className="reg-meta">
+            Everything done here, newest first, with each sign-up. Kept since {HISTORY_SINCE}; what was done before then isn&rsquo;t listed.
+          </p>
           {history.length === 0 ? (
             <p className="reg-quiet">Nothing yet.</p>
           ) : (

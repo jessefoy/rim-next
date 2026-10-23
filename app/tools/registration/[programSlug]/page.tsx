@@ -31,6 +31,12 @@ import type { RegistrationField } from "@/components/RegistrationForm";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ params }: { params: Promise<{ programSlug: string }> }) {
+  const { programSlug } = await params;
+  const p = await db.program.findUnique({ where: { slug: programSlug }, select: { name: true } });
+  return { title: p ? `${p.name} - Registration` : "Registration - Tools" };
+}
+
 /** The older single notes field, as plain text: it was Tiptap HTML or BlockNote JSON. */
 function earlierNoteText(notes: unknown): string | null {
   if (notes === null || notes === undefined) return null;
@@ -212,7 +218,7 @@ export default async function RegistrationProgramPage({
     <div className="vol-page">
       <div className="vol-content">
         <div className="vol-header">
-          <Link href={`/tools/registration${hubQs}`} className="vol-back">&larr; Registration</Link>
+          <Link href={`/tools/registration${hubQs}`} className="vol-back">&larr; All programs</Link>
           <h1 className="vol-header__title">{program.name}</h1>
           <p className="reg-state">
             <strong>{program.archivedAt ? "Archived" : registrationState(program)}</strong>
