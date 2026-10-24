@@ -3452,6 +3452,12 @@ h4 { font-size: var(--text-h4); }
 .reg-check input { flex: none; width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--rim-blue); }
 .reg-error { margin: 0; color: var(--color-error); font-weight: 600; }
 
+/* The registration settings fold: its summary says where things stand. */
+.reg-settings > summary { display: list-item; }
+.reg-settings__sum { margin-left: var(--space-1); font-weight: 400; font-size: var(--text-app-meta); color: var(--rim-text-soft); }
+.reg-settings[open] > .reg-panel { margin-top: var(--space-1); }
+.reg-settings__notes { display: flex; flex-direction: column; gap: 4px; margin: 0; padding-left: 1.2em; font-size: var(--text-app-meta); color: var(--rim-text-soft); }
+
 /* The printed sign-in list: names by last name, a box to tick at the door. */
 .reg-print__screen { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
 .reg-signin { width: 100%; max-width: var(--reading-width); margin-top: var(--space-2); border-collapse: collapse; background: var(--rim-surface); }

@@ -128,6 +128,7 @@ export default function RegistrationPeople({
   registrationFields,
   danaMode,
   programName,
+  settingsPanel,
   signInHref,
   canAdd,
   full,
@@ -143,6 +144,8 @@ export default function RegistrationPeople({
   registrationFields: RegistrationField[];
   danaMode: string | null;
   programName: string;
+  /** The registration settings fold, under Needs you (server-built). */
+  settingsPanel?: React.ReactNode;
   /** The printed sign-in list, keeping the team's ?hub=. */
   signInHref: string;
   /** Registration is on and the program isn't archived. */
@@ -616,6 +619,8 @@ export default function RegistrationPeople({
           ))}
         </ul>
       )}
+
+      {settingsPanel}
 
       <div className="reg-toolbar">
         <SectionTabs<Tab>

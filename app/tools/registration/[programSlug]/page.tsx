@@ -28,6 +28,9 @@ import RegistrationPeople, {
   type HistoryRow,
 } from "@/components/registration/RegistrationPeople";
 import type { RegistrationField } from "@/components/RegistrationForm";
+import RegistrationSettings from "@/components/registration/RegistrationSettings";
+import { programUsesFlodesk } from "@/lib/flodeskRules";
+import { toCentralDatetime } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +121,10 @@ export default async function RegistrationProgramPage({
       danaFixedAmount: true,
       danaBaseAmount: true,
       archivedAt: true,
+      updatedAt: true,
+      offeringCategory: true,
+      flodeskSync: true,
+      flodeskSegmentName: true,
     },
   });
   if (!program) notFound();
@@ -233,6 +240,32 @@ export default async function RegistrationProgramPage({
   const when = programWhen(program);
   const where = fmtLabel(program.programFormat, program.outsideMeetingUrl);
 
+  // The settings fold, for a program taking registration.
+  const mailingListByDefault = programUsesFlodesk({ ...program, flodeskSync: null });
+  const mailingListOn = programUsesFlodesk(program);
+  const settingsPanel = !program.archivedAt && program.registrationEnabled ? (
+    <RegistrationSettings
+      programSlug={program.slug}
+      updatedAt={program.updatedAt.toISOString()}
+      initial={{
+        closed: program.registrationClosed,
+        places: program.registrationCapacity ? String(program.registrationCapacity) : "",
+        closes: toCentralDatetime(program.registrationDeadline),
+        mailingList: program.flodeskSync,
+      }}
+      summary={[
+        registrationState(program),
+        program.registrationCapacity ? `${program.registrationCapacity} places` : "no limit on places",
+        `mailing list ${mailingListOn ? "on" : "off"}`,
+      ].filter(Boolean).join(" · ")}
+      taken={counts.registered + heldPlaces}
+      waiting={counts.waiting}
+      mailingListByDefault={mailingListByDefault}
+      segmentName={program.flodeskSegmentName}
+      editHref={canUseProgramManager(roles) ? `/tools/programs/${program.slug}/edit${hubQs}` : null}
+    />
+  ) : null;
+
   return (
     <div className="vol-page">
       <div className="vol-content">
@@ -258,6 +291,7 @@ export default async function RegistrationProgramPage({
         </div>
 
         <RegistrationPeople
+          settingsPanel={settingsPanel}
           programSlug={program.slug}
           people={people}
           history={history}

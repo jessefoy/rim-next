@@ -27,6 +27,7 @@ export const REGISTRATION_EVENT_KINDS = [
   "added",
   "message-sent",
   "printed",
+  "settings-changed",
   // What the person did themselves, or the system did: the history reads
   // these with the person's name (or RIM's) in front.
   "dana-given",
@@ -136,6 +137,21 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
       return "marked no dana: a day passed without a choice";
     case "answers-changed-by-them":
       return "changed their answers from the emailed link";
+    case "settings-changed": {
+      const c = (d.changes && typeof d.changes === "object" ? d.changes : {}) as Record<string, { from?: unknown; to?: unknown }>;
+      const parts: string[] = [];
+      if (c.closed) parts.push(c.closed.to ? "closed registration" : "reopened registration");
+      if (c.places) parts.push(typeof c.places.to === "number" ? `set places to ${c.places.to}` : "removed the limit on places");
+      if (c.closes) {
+        parts.push(typeof c.closes.to === "string"
+          ? `set the closing date to ${new Date(c.closes.to).toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", year: "numeric" })}`
+          : "removed the closing date");
+      }
+      if (c.mailingList) {
+        parts.push(`set the mailing list to ${c.mailingList.to === true ? "on" : c.mailingList.to === false ? "off" : "automatic"}`);
+      }
+      return parts.length ? parts.join(", ") : "changed the registration settings";
+    }
     case "printed":
       return "opened the sign-in list to print";
     case "added":
