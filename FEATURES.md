@@ -20,6 +20,9 @@ Jesse: the program editor and registration should be two apps. Researched, desig
 - **The old roster address redirects** to Registration. The Programs list opens the editor, with a People link.
 - **Programs is open to the teams that set programs up** (Registration team, Program Central). It shows no one's details. Archive, delete, the guest-link reset and categories stay with the three roles.
 - **Safe saves in the program editor:** only what changed is sent. A field someone else changed meanwhile is refused and named; other changes are kept.
+- **The program editor is one page in seven sections** (About, When and where, Who's helping, How people join, What we tell them, Dana, Where it appears), with a section list or Jump to. The mailing list moved to Registration. See `RIM_ProgramEditor.md`.
+- **Opens on:** registration can wait for a date ("Registration opens on Sunday, November 1 at 9:00 AM"), set in the editor or in Registration. One rule (`lib/registrationWindow.ts`) decides everywhere whether a program is taking sign-ups; it never changes who can join a session.
+- **Post a notice** from the top of the editor, with an email to the people registered for the registration team; **Ready to be seen**, a short checklist of what keeps a program from being seen or joined. Wording provisional until Jesse's read-aloud.
 - **Emails:** a message from the registration team, and the cancellation to the person (wording provisional).
 - Smaller: questions keep a stable id; one count of places everywhere; the editor refuses fewer places than are taken; removing every question clears them.
 

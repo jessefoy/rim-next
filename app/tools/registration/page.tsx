@@ -38,6 +38,7 @@ const PROGRAM_SELECT = {
   registrationClosed: true,
   registrationCapacity: true,
   registrationDeadline: true,
+  registrationOpensAt: true,
   reminderDate: true,
   archivedAt: true,
 } as const;

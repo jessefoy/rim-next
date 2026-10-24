@@ -19,6 +19,7 @@
  */
 
 import { db } from "@/lib/db";
+import { takingRegistrationsWhere } from "@/lib/registrationWindow";
 import type { Role } from "@prisma/client";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -147,8 +148,9 @@ export async function getCourseAccessState(args: {
 
   // 4. No self-enroll, no enrollment, no role gate — bundled-only.
   // Resolve the live cohort if one is currently registering:
-  // linked Program, not archived, registration enabled and not closed,
-  // start date in the future, registration deadline (if set) in the future.
+  // linked Program, not archived, taking sign-ups now (on, not closed, before
+  // its deadline, and past its opening date: lib/registrationWindow.ts), start
+  // date in the future.
   let liveCohort: LiveCohort | null = null;
   if (programCourses.length > 0) {
     const now = new Date();
@@ -156,13 +158,8 @@ export async function getCourseAccessState(args: {
       where: {
         id: { in: programCourses.map((pc) => pc.programId) },
         archivedAt: null,
-        registrationEnabled: true,
-        registrationClosed: false,
         startDatetime: { gt: now },
-        OR: [
-          { registrationDeadline: null },
-          { registrationDeadline: { gt: now } },
-        ],
+        ...takingRegistrationsWhere(now),
       },
       orderBy: { startDatetime: "asc" },
       select: { slug: true, name: true },

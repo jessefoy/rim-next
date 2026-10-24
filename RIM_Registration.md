@@ -128,6 +128,8 @@ Drift here is the classic failure: session 136's reviewer pass found three sites
 
 ## Pitfalls
 
+- **Whether a program is taking sign-ups is one rule** (2026-10-24): `lib/registrationWindow.ts` (`registrationWindow`, `takingRegistrationsWhere`). Off, closed by hand, past its closing date, not open yet (`registrationOpensAt` ahead), or open. Never write the rule out again in a page or route; never let the opening date decide who gets into a session.
+
 - **The member comes from the session, never the request** (2026-10-13). `POST /api/registrations` reads the signed-in member from `auth()`; a `userId` in the body was trusted until then, which let an unauthenticated request attach a registration to any account. A signed-in member's registration carries the account's own address, and the response returns it so the form names it.
 - **Guests pass the invisible bot check** (`lib/botCheck.ts`) before anything is written; signed-in members are not checked.
 - **A guest registrant's account is kept** by the 48h incomplete-account sweep (any registration exempts it, 2026-10-13); it used to be deleted.

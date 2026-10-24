@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildSubtitle } from "@/lib/programUtils";
 import { registrationResumeKeyValid } from "@/lib/registrationLink";
+import { fmtOpensAt, registrationWindow } from "@/lib/registrationWindow";
 
 // Always show fresh data — this page is user-specific
 export const dynamic = "force-dynamic";
@@ -113,10 +114,10 @@ export default async function RegisterPage({
   // registration API refuses with (2026-10-19 audit; the page used to check
   // only the deadline). A registrant finishing their dana is not turned away,
   // since that step goes to checkout, not to a new registration.
-  const deadlinePassed =
-    !hasPendingDana &&
-    (pgProgram.registrationClosed ||
-      !!(program.registrationDeadline && new Date(program.registrationDeadline) < new Date()));
+  // One rule (lib/registrationWindow.ts) for closed and not open yet.
+  const regWindow = registrationWindow(pgProgram);
+  const deadlinePassed = !hasPendingDana && regWindow === "closed";
+  const notOpenYet = !hasPendingDana && regWindow === "notYet";
 
   // If already registered (and not here to complete dana), show a friendly message
   // rather than redirect — they may have bookmarked the page or arrived from an old link
@@ -164,6 +165,12 @@ export default async function RegisterPage({
             <div className="rg-already">
               <h2>You&rsquo;re already registered.</h2>
               <p>Your place in this program is confirmed.</p>
+              <Link href={`/programs/${slug}`} className="pp-btn pp-btn--ghost">Return to the program <span aria-hidden="true">→</span></Link>
+            </div>
+          ) : notOpenYet && pgProgram.registrationOpensAt ? (
+            <div className="rg-already">
+              <h2>Registration opens on {fmtOpensAt(pgProgram.registrationOpensAt)}</h2>
+              <p>Come back then to sign up. Times are Central.</p>
               <Link href={`/programs/${slug}`} className="pp-btn pp-btn--ghost">Return to the program <span aria-hidden="true">→</span></Link>
             </div>
           ) : (

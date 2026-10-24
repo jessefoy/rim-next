@@ -10,6 +10,7 @@
 
 import { buildDateLabel } from "@/lib/dateLabel";
 import { hasConcludedOneTime } from "@/lib/programUtils";
+import { registrationWindow } from "@/lib/registrationWindow";
 
 const CT = "America/Chicago";
 
@@ -36,6 +37,7 @@ export interface DeskProgram {
   registrationClosed: boolean;
   registrationCapacity: number | null;
   registrationDeadline: Date | null;
+  registrationOpensAt: Date | null;
   reminderDate: Date | null;
 }
 
@@ -65,12 +67,19 @@ export function programWhen(
   });
 }
 
-/** "Open until Nov 6", "Closed", "Off": where registration stands. */
+/** "Open until Nov 6", "Opens Nov 1", "Closed", "Off": where registration
+ *  stands, by the one rule (lib/registrationWindow.ts). */
 export function registrationState(p: DeskProgram, now = new Date()): string {
-  if (!p.registrationEnabled) return "Registration off";
-  if (p.registrationClosed) return "Closed";
-  if (p.registrationDeadline && p.registrationDeadline < now) return `Closed on ${fmtDay(p.registrationDeadline)}`;
-  return p.registrationDeadline ? `Open until ${fmtDay(p.registrationDeadline)}` : "Open";
+  switch (registrationWindow(p, now)) {
+    case "off":
+      return "Registration off";
+    case "closed":
+      return !p.registrationClosed && p.registrationDeadline ? `Closed on ${fmtDay(p.registrationDeadline)}` : "Closed";
+    case "notYet":
+      return `Opens ${fmtWhen(p.registrationOpensAt!)}`;
+    default:
+      return p.registrationDeadline ? `Open until ${fmtDay(p.registrationDeadline)}` : "Open";
+  }
 }
 
 /** "12 of 14 places taken · 2 waiting", or "14 registered". */

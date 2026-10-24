@@ -11,9 +11,8 @@ import {
   OFFERING_FORMATS,
   categorySectionTitle,
   formatRequiredFor,
-  isOfferingCategory,
 } from "@/lib/programOffering";
-import { DateTimePicker, EditorSection, type Category, type Setter } from "./shared";
+import { DateTimePicker, EditorSection, listingReasonOf, type Category, type Setter } from "./shared";
 
 interface Props {
   canManage: boolean;
@@ -73,21 +72,15 @@ function AppearsSection({
   // Mirror the rules in app/community-programs/page.tsx and
   // app/this-week/page.tsx so the editor says why, instead of the program
   // silently not appearing.
-  const listingReason = useMemo((): "archived" | "hidden" | "noCategory" | "private" | "hiddenCategory" | "past" | null => {
-    if (isArchived) return "archived";
-    if (hideFromProgramPageList) return "hidden";
-    if (!isOfferingCategory(offeringCategory)) return "noCategory";
-    if (offeringCategory === "PRIVATE") return "private";
-    // The old category's "hide from the Programs page" flag keeps its meaning.
-    if (selectedCategory?.hidden) return "hiddenCategory";
-    if (hideWhenPast && !recurrenceFreq && startDatetime) {
-      // Editor datetimes are Central wall-clock strings (YYYY-MM-DDTHH:mm).
-      const lastDay = (endDatetime || startDatetime).slice(0, 10);
-      const todayCt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
-      if (lastDay < todayCt) return "past";
-    }
-    return null;
-  }, [isArchived, hideFromProgramPageList, offeringCategory, selectedCategory, hideWhenPast, recurrenceFreq, startDatetime, endDatetime]);
+  // The rule is shared with Ready to be seen (listingReasonOf in ./shared).
+  const listingReason = useMemo(
+    () => listingReasonOf({
+      isArchived, hideFromProgramPageList, offeringCategory,
+      categoryHidden: !!selectedCategory?.hidden,
+      hideWhenPast, recurrenceFreq, startDatetime, endDatetime,
+    }),
+    [isArchived, hideFromProgramPageList, offeringCategory, selectedCategory, hideWhenPast, recurrenceFreq, startDatetime, endDatetime],
+  );
   // My Home (app/account/(authenticated)/dashboard/page.tsx): online programs
   // appear in Today on the days they meet, unless archived or hidden from the
   // member home (until an optional auto-show date). Who sees them follows the

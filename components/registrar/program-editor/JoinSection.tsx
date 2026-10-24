@@ -7,7 +7,7 @@
 import { memo, useMemo, useState } from "react";
 import { OFFERING_FORMATS, categorySectionTitle, isOfferingCategory } from "@/lib/programOffering";
 import { onlinePhrase } from "@/lib/outsideMeeting";
-import { DateTimePicker, EditorSection, type RegistrationField, type Setter } from "./shared";
+import { DateTimePicker, EditorSection, nowCentral, type RegistrationField, type Setter } from "./shared";
 
 interface Props {
   registrationEnabled: boolean;
@@ -20,6 +20,13 @@ interface Props {
   setRegistrationCapacity: Setter<string>;
   registrationDeadline: string;
   setRegistrationDeadline: Setter<string>;
+  /** "Opens on": a Central "YYYY-MM-DDTHH:mm", or "". */
+  registrationOpensAt: string;
+  setRegistrationOpensAt: Setter<string>;
+  /** "Not open yet" was chosen here: the menu keeps it, even before a date
+   *  (or with one already past), and Save asks for a date still ahead. */
+  notYetPicked: boolean;
+  setNotYetPicked: Setter<boolean>;
   registrationFields: RegistrationField[];
   setRegistrationFields: Setter<RegistrationField[]>;
   /** Read here for the readout: how it meets, and its category and format. */
@@ -37,12 +44,39 @@ function JoinSection({
   openEntry, setOpenEntry,
   registrationCapacity, setRegistrationCapacity,
   registrationDeadline, setRegistrationDeadline,
+  registrationOpensAt, setRegistrationOpensAt,
+  notYetPicked, setNotYetPicked,
   registrationFields, setRegistrationFields,
   programFormat, roomChoice, outsideUrl, offeringCategory, offeringFormat,
   markDirty,
 }: Props) {
   // Raw string drafts for select option inputs — avoids split/join on every keystroke
   const [optionsDraft, setOptionsDraft] = useState<Record<number, string>>({});
+
+  // ── Registration: one menu for the four states (2026-10-24) ──────────────
+  // Off; Not open yet (on, with an opening date still ahead); Open; Closed.
+  // Stored as before (registrationEnabled, registrationClosed) plus the
+  // opening date, read everywhere through lib/registrationWindow.ts.
+  type Choice = "off" | "notYet" | "open" | "closed";
+  const choice: Choice = !registrationEnabled
+    ? "off"
+    : registrationClosed
+      ? "closed"
+      : notYetPicked || (registrationOpensAt && registrationOpensAt > nowCentral())
+        ? "notYet"
+        : "open";
+  function choose(next: Choice) {
+    setNotYetPicked(next === "notYet");
+    if (next === "off") {
+      setRegistrationEnabled(false);
+    } else {
+      setRegistrationEnabled(true);
+      setRegistrationClosed(next === "closed");
+      // Open means open now: an opening date would hold it back.
+      if (next === "open") setRegistrationOpensAt("");
+    }
+    markDirty();
+  }
 
   // ── "How this appears to visitors" ───────────────────────────────────────
   // Mirror the public program page's registration CTA so the volunteer sees the
@@ -71,11 +105,13 @@ function JoinSection({
     return registrationEnabled
       ? regClosedEffective
         ? "Registration is closed — visitors see a “Registration is closed” notice instead of the form."
-        : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
+        : registrationOpensAt && registrationOpensAt > nowCentral()
+          ? "Registration isn’t open yet — visitors see the date it opens, with no sign-up button until then."
+          : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
       : openEntry
         ? "Open entry: visitors see how to join (in person and/or online). No registration needed."
-        : "Registration isn’t open yet — visitors are told that, with no sign-up button. Turn on “Registration enabled” below when you’re ready to take sign-ups.";
-  }, [openEntry, registrationDeadline, registrationClosed, registrationEnabled]);
+        : "Registration is off — visitors are told it isn’t open yet, with no sign-up button. Choose Open below when you’re ready to take sign-ups.";
+  }, [openEntry, registrationDeadline, registrationClosed, registrationEnabled, registrationOpensAt]);
 
   // ── Registration fields management ───────────────────────────────────────
   // A click isn't a change event, so adding, removing and moving a question
@@ -131,29 +167,44 @@ function JoinSection({
           )}
         </div>
 
-        <div className="pe-visibility-option">
-          <label className="pe-checkbox">
-            <input
-              type="checkbox"
-              checked={registrationEnabled}
-              onChange={(e) => setRegistrationEnabled(e.target.checked)}
-            />
-            <span className="pe-checkbox__label">Registration enabled</span>
-          </label>
-          <p className="pe-field__help">When checked, visitors get a registration form. When unchecked, the page shows how to join if Open entry is on, and otherwise &ldquo;Registration isn&rsquo;t open yet&rdquo; (see above).</p>
-        </div>
-
-        <div className="pe-visibility-option">
-          <label className="pe-checkbox">
-            <input
-              type="checkbox"
-              checked={registrationClosed}
-              onChange={(e) => setRegistrationClosed(e.target.checked)}
-            />
-            <span className="pe-checkbox__label">Registration closed</span>
-          </label>
-          <p className="pe-field__help">Manually closes registration. The page shows a &lsquo;Registration is closed&rsquo; notice instead of the form.</p>
-        </div>
+        <fieldset className="pe-field">
+          <legend className="pe-field__label">Registration</legend>
+          <span className="pe-field__help">Whether people sign up for this program, and whether they can right now.</span>
+          <div className="pe-option-cards">
+            {([
+              { value: "off", label: "Off" },
+              { value: "notYet", label: "Not open yet" },
+              { value: "open", label: "Open" },
+              { value: "closed", label: "Closed" },
+            ] as const).map((opt) => (
+              <label key={opt.value} className={`pe-option-card${choice === opt.value ? " pe-option-card--active" : ""}`}>
+                <input type="radio" name="registrationChoice" checked={choice === opt.value} onChange={() => choose(opt.value)} />
+                <span className="pe-option-card__mark" />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+          <span className="pe-field__help">
+            {choice === "off"
+              ? "No sign-up. The page shows how to join if Open entry is on, and otherwise that registration isn’t open yet."
+              : choice === "notYet"
+                ? "Sign-ups start on the date below. Until then the page says when registration opens. Who can join the sessions doesn’t change."
+                : choice === "open"
+                  ? "Visitors get a registration form."
+                  : "The page says registration is closed. The people registered keep their places."}
+          </span>
+          {choice === "notYet" && (
+            <div className="pe-field" style={{ marginTop: 12 }}>
+              <span className="pe-field__label">Opens on</span>
+              <span className="pe-field__help">Central time.</span>
+              <DateTimePicker
+                label="Registration opens on"
+                value={registrationOpensAt}
+                onChange={(v) => { setRegistrationOpensAt(v); markDirty(); }}
+              />
+            </div>
+          )}
+        </fieldset>
 
         <div className="pe-visibility-option">
           <label className="pe-checkbox">

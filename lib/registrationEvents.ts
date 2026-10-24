@@ -28,6 +28,7 @@ export const REGISTRATION_EVENT_KINDS = [
   "message-sent",
   "printed",
   "settings-changed",
+  "notice-posted",
   // What the person did themselves, or the system did: the history reads
   // these with the person's name (or RIM's) in front.
   "dana-given",
@@ -147,6 +148,11 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
           ? `set the closing date to ${new Date(c.closes.to).toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", year: "numeric" })}`
           : "removed the closing date");
       }
+      if (c.opens) {
+        parts.push(typeof c.opens.to === "string"
+          ? `set registration to open on ${new Date(c.opens.to).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}`
+          : "removed the opening date");
+      }
       if (c.mailingList) {
         parts.push(`set the mailing list to ${c.mailingList.to === true ? "on" : c.mailingList.to === false ? "off" : "automatic"}`);
       }
@@ -159,6 +165,12 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
       return "opened the sign-in list to print";
     case "added":
       return d.status === "WAITLISTED" ? "added them to the waiting list" : "added them";
+    case "notice-posted": {
+      const n = typeof d.count === "number" ? d.count : 0;
+      const text = typeof d.notice === "string" && d.notice ? `"${d.notice}"` : "";
+      if (!text) return "took the notice down";
+      return n > 0 ? `posted the notice ${text} and emailed ${n === 1 ? "1 person" : `${n} people`}` : `posted the notice ${text}`;
+    }
     case "message-sent": {
       const n = typeof d.count === "number" ? d.count : 0;
       const subject = typeof d.subject === "string" ? `: ${d.subject}` : "";

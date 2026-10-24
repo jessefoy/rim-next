@@ -299,6 +299,7 @@ model Program {
   registrationClosed   Boolean   @default(false)
   registrationCapacity Int?
   registrationDeadline DateTime?
+  registrationOpensAt  DateTime? // "Opens on" (2026-10-24): registration on, taking sign-ups from then. Null = no opening date. lib/registrationWindow.ts
   registrationFields   Json?     // [{_key, label, fieldType, required, options[]}]; _key set on save (lib/registrationFields.ts)
   confirmationMessage  Json?     // BlockNote JSON (RimProseEditor)
   reminderDate         DateTime?

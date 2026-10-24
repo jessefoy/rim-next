@@ -14,7 +14,7 @@
 import { useState, useEffect, useRef, useCallback, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { cleanOffering } from "@/lib/programOffering";
-import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
+import { activeAnnouncement, monthlyPatternPhrase } from "@/lib/scheduleUtils";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
 import { SaveNote } from "@/components/FormDone";
@@ -24,6 +24,8 @@ import {
   DEFAULT_HOSTING_HUB_SLUG,
   SECTIONS,
   goToSection,
+  listingReasonOf,
+  nowCentral,
   sectionDomId,
   toEditorString,
   type Category,
@@ -39,6 +41,8 @@ import JoinSection from "./program-editor/JoinSection";
 import TellSection from "./program-editor/TellSection";
 import DanaSection from "./program-editor/DanaSection";
 import AppearsSection from "./program-editor/AppearsSection";
+import NoticePanel from "./program-editor/NoticePanel";
+import ReadyPanel from "./program-editor/ReadyPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -86,6 +90,8 @@ export interface ProgramData {
   registrationClosed: boolean;
   registrationCapacity: string;
   registrationDeadline: string;
+  /** "Opens on", a Central "YYYY-MM-DDTHH:mm", or "". */
+  registrationOpensAt: string;
   registrationFields: RegistrationField[];
   confirmationMessage: any;
   reminderDate: string;
@@ -158,6 +164,10 @@ interface Props {
    *  `hostingHubSlug`. Zero or unset means no warning. Only meaningful in
    *  edit mode. */
   futureHostAssignmentCount?: number;
+  /** May email the people registered when posting a notice (canUseRegistration). */
+  canEmailRegistered?: boolean;
+  /** People with a place, for the notice's email box; null when it isn't shown. */
+  registeredCount?: number | null;
 }
 
 function slugify(text: string): string {
@@ -300,6 +310,8 @@ export default function ProgramEditor({
   categories,
   hubs,
   futureHostAssignmentCount = 0,
+  canEmailRegistered = false,
+  registeredCount = null,
 }: Props) {
   const basePath = basePathProp ?? `/account/hub/${hubSlug}/programs`;
   const router = useRouter();
@@ -355,6 +367,8 @@ export default function ProgramEditor({
   // the editor neither shows nor sends it.
   const [registrationCapacity, setRegistrationCapacity] = useState(initialData?.registrationCapacity ?? "");
   const [registrationDeadline, setRegistrationDeadline] = useState(initialData?.registrationDeadline ?? "");
+  const [registrationOpensAt, setRegistrationOpensAt] = useState(initialData?.registrationOpensAt ?? "");
+  const [notYetPicked, setNotYetPicked] = useState(false);
   const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>(
     initialData?.registrationFields ?? []
   );
@@ -369,8 +383,8 @@ export default function ProgramEditor({
   const [danaMessage, setDanaMessage] = useState<string>(toEditorString(initialData?.danaMessage));
   const [danaText, setDanaText] = useState(initialData?.danaText ?? "");
 
-  const [specialAnnouncement, setSpecialAnnouncement] = useState(initialData?.specialAnnouncement ?? "");
-  const [announcementUntil, setAnnouncementUntil] = useState(initialData?.announcementUntil ?? "");
+  // The notice is posted with Post a notice (NoticePanel), apart from Save,
+  // so the editor neither holds nor sends it (2026-10-24).
   const [earlyArrivalMessage, setEarlyArrivalMessage] = useState(initialData?.earlyArrivalMessage ?? "");
   const [hideFromDashboard] = useState(initialData?.hideFromDashboard ?? false);
 
@@ -449,9 +463,9 @@ export default function ProgramEditor({
   // (no dependencies), so passing it never redraws a section.
   const markDirty = useCallback(() => { setDirty(true); setSuccess(false); }, []);
   // Any change inside the editor marks it unsaved, except moving around it
-  // (the Jump to menu).
+  // (the Jump to menu) and Post a notice, which saves on its own.
   const onEdit = useCallback((e: React.SyntheticEvent) => {
-    if ((e.target as HTMLElement).closest?.("[data-pe-nav]")) return;
+    if ((e.target as HTMLElement).closest?.("[data-pe-nav], [data-pe-separate]")) return;
     markDirty();
   }, [markDirty]);
 
@@ -562,6 +576,7 @@ export default function ProgramEditor({
       registrationClosed,
       registrationCapacity: registrationCapacity ? Number(registrationCapacity) : null,
       registrationDeadline: registrationDeadline || null,
+      registrationOpensAt: registrationOpensAt || null,
       registrationFields: registrationFields.length > 0 ? registrationFields : null,
       confirmationMessage,
       reminderDate: reminderDate || null,
@@ -572,8 +587,6 @@ export default function ProgramEditor({
       danaFixedAmount: danaFixedAmount ? Number(danaFixedAmount) : null,
       danaMessage,
       danaText,
-      specialAnnouncement,
-      announcementUntil: announcementUntil || null,
       earlyArrivalMessage,
       hideFromDashboard,
       dayOfWeek: deriveDayOfWeek(recurrenceFreq, recurrenceDays, startDatetime),
@@ -643,6 +656,18 @@ export default function ProgramEditor({
     const offeringCheck = cleanOffering({ offeringCategory, offeringFormat, silentMeditation, hostedByVolunteers });
     if (!offeringCheck.ok) {
       setError(`Under Where it appears: ${offeringCheck.error}`);
+      return;
+    }
+
+    // "Not open yet" needs a date still ahead; one already past would simply
+    // be open.
+    if (registrationEnabled && !registrationClosed && notYetPicked && !(registrationOpensAt && registrationOpensAt > nowCentral())) {
+      setError("Under How people join: choose when registration opens, a date still ahead. Or choose Open.");
+      return;
+    }
+    // It would close before it opened, and never be open.
+    if (registrationEnabled && registrationOpensAt && registrationDeadline && registrationDeadline <= registrationOpensAt) {
+      setError("Under How people join: the closing date comes before registration opens. Move one of them.");
       return;
     }
 
@@ -727,6 +752,8 @@ export default function ProgramEditor({
           setGuestAccessKey("");
         }
         setDirty(false);
+        // Saved: the menu now reads "Not open yet" from the date itself.
+        setNotYetPicked(false);
         setSuccess(true);
         setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
         // The save went through this fetch, not through the router, so the
@@ -856,6 +883,39 @@ export default function ProgramEditor({
         </div>
       )}
 
+      {isEditing && initialData?.slug && (
+        <NoticePanel
+          slug={initialData.slug}
+          // The notice as the public pages show it: one past its last day is
+          // gone (the stored day is a Central "YYYY-MM-DD", read at noon UTC).
+          initialNotice={activeAnnouncement({
+            specialAnnouncement: initialData.specialAnnouncement,
+            announcementUntil: initialData.announcementUntil ? `${initialData.announcementUntil}T12:00:00Z` : null,
+          }) ?? ""}
+          initialUntil={initialData.announcementUntil ?? ""}
+          canEmail={canEmailRegistered}
+          registeredCount={registeredCount}
+        />
+      )}
+
+      <ReadyPanel
+        hasDescription={description.replace(/<[^>]+>/g, "").trim().length > 0}
+        startDatetime={startDatetime} dateText={dateText} timeText={timeText} programFormat={programFormat}
+        teacherNames={selectedTeachers.map((t) => `${t.firstName} ${t.lastName}`.trim()).join(", ")}
+        hostingRequired={hostingRequired}
+        registrationEnabled={registrationEnabled} registrationClosed={registrationClosed}
+        registrationOpensAt={registrationOpensAt} notYetPicked={notYetPicked}
+        registrationDeadline={registrationDeadline}
+        registrationCapacity={registrationCapacity} questionCount={registrationFields.length}
+        openEntry={openEntry} offeringCategory={offeringCategory}
+        listingReason={listingReasonOf({
+          isArchived: initialData?.archived ?? false,
+          hideFromProgramPageList, offeringCategory,
+          categoryHidden: !!categories.find((c) => c.id === categoryId)?.hidden,
+          hideWhenPast, recurrenceFreq, startDatetime, endDatetime,
+        })}
+      />
+
       <div className="pe-layout">
         {/* The sections, beside the form on wide screens; Jump to on phones. */}
         <nav className="pe-index" aria-label="Sections of this program" data-pe-nav>
@@ -945,6 +1005,8 @@ export default function ProgramEditor({
             openEntry={openEntry} setOpenEntry={setOpenEntry}
             registrationCapacity={registrationCapacity} setRegistrationCapacity={setRegistrationCapacity}
             registrationDeadline={registrationDeadline} setRegistrationDeadline={setRegistrationDeadline}
+            registrationOpensAt={registrationOpensAt} setRegistrationOpensAt={setRegistrationOpensAt}
+            notYetPicked={notYetPicked} setNotYetPicked={setNotYetPicked}
             registrationFields={registrationFields} setRegistrationFields={setRegistrationFields}
             programFormat={programFormat} roomChoice={roomChoice} outsideUrl={outsideUrl}
             offeringCategory={offeringCategory} offeringFormat={offeringFormat}
@@ -955,8 +1017,6 @@ export default function ProgramEditor({
             confirmationMessage={confirmationMessage} setConfirmationMessage={setConfirmationMessage}
             reminderDate={reminderDate} setReminderDate={setReminderDate}
             reminderMessage={reminderMessage} setReminderMessage={setReminderMessage}
-            specialAnnouncement={specialAnnouncement} setSpecialAnnouncement={setSpecialAnnouncement}
-            announcementUntil={announcementUntil} setAnnouncementUntil={setAnnouncementUntil}
             markDirty={markDirty}
           />
 

@@ -3073,6 +3073,11 @@ async function main() {
     return;
   }
   console.log("Running migrations...");
+  // "Opens on" (2026-10-24, Phase 2): the date and time registration opens.
+  // Additive, outside any flag, no backfill: null keeps every program as it
+  // is. First, so any later program read that selects every column finds it.
+  // Not caught: the code reads this column, so a failure must stop the deploy.
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "registrationOpensAt" TIMESTAMP(3)`);
   // Ensure flag table exists before any migration runs (some check it before any
   // migration has had a chance to CREATE TABLE IF NOT EXISTS it).
   await db.$executeRawUnsafe(`
@@ -7265,6 +7270,51 @@ The registration team at Rooted In Mindfulness
     }
   } catch (err) {
     console.error("  registration-message seed failed:", err?.message ?? err);
+  }
+
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: a notice about a program (2026-10-24, Phase 2), the program
+  // editor's "Post a notice" with "Also email the people registered"
+  // (sendProgramNoticeEmail). findUnique → create. Wording provisional until
+  // Jesse's read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const existing = await db.emailTemplate.findUnique({ where: { slug: "program-notice" } });
+    if (existing) {
+      console.log("  Email template program-notice already exists, left alone.");
+    } else {
+      await db.emailTemplate.create({
+        data: {
+          slug: "program-notice",
+          name: "Programs: a notice about a program",
+          description: "Sent when someone posts a notice from the program editor and ticks Also email the people registered. Goes to everyone with a place, not the waiting list.",
+          subject: "{{programTitle}}: {{notice}}",
+          variables: ["firstName", "programTitle", "notice", "programUrl", "programButton"],
+          helpText:
+            "{{notice}} is the notice as posted in the program editor, shown exactly as typed. It also shows on the program's page, Programs & Events, This Week and My Home. Replies go to the registrar's inbox.\n\n" +
+            "Available variables: {{firstName}}, {{programTitle}}, {{notice}}, {{programUrl}}, {{programButton}} (use triple braces {{{programButton}}}).",
+          body: `Hi {{firstName}},
+
+A notice about {{programTitle}}:
+
+**{{notice}}**
+
+{{{programButton}}}
+
+With care,
+Rooted In Mindfulness
+
+*You're receiving this because you signed up for {{programTitle}}. You can reply to this email.*`,
+          enabled: true,
+          group: "02-registrations",
+          groupLabel: "Registrations",
+        },
+      });
+      console.log("  ✔ Email template program-notice created.");
+    }
+  } catch (err) {
+    console.error("  program-notice seed failed:", err?.message ?? err);
   }
 
   await db.$disconnect();

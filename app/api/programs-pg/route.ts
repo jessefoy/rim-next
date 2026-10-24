@@ -178,6 +178,8 @@ export async function POST(request: NextRequest) {
       registrationClosed: body.registrationClosed ?? false,
       registrationCapacity: body.registrationCapacity != null ? Number(body.registrationCapacity) : null,
       registrationDeadline: centralToUtc(body.registrationDeadline),
+      // "Opens on" (2026-10-24): taking sign-ups from then (lib/registrationWindow.ts).
+      registrationOpensAt: centralToUtc(body.registrationOpensAt),
       registrationFields: withQuestionIds(body.registrationFields, null) ?? undefined,
       confirmationMessage: body.confirmationMessage || undefined,
       reminderDate: centralToUtc(body.reminderDate),

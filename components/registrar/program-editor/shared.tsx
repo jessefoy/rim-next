@@ -11,6 +11,8 @@
 
 import dynamic from "next/dynamic";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+import { toCentralDatetime } from "@/lib/timezone";
+import { isOfferingCategory } from "@/lib/programOffering";
 
 export const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -58,6 +60,50 @@ export interface EditorHub {
 
 /** A useState setter: stable across renders, so it never breaks a memo. */
 export type Setter<T> = (value: T | ((prev: T) => T)) => void;
+
+/** Now in Central time as the editor writes times ("YYYY-MM-DDTHH:mm"), so
+ *  an editor value compares with it as text. */
+export function nowCentral(): string {
+  return toCentralDatetime(new Date());
+}
+
+/** Why a program isn't on the public Programs & Events page, or null when it
+ *  is. Mirrors app/community-programs/page.tsx and app/this-week/page.tsx;
+ *  read by Where it appears and by Ready to be seen, so they never disagree. */
+export type ListingReason = "archived" | "hidden" | "noCategory" | "private" | "hiddenCategory" | "past";
+export function listingReasonOf(p: {
+  isArchived: boolean;
+  hideFromProgramPageList: boolean;
+  offeringCategory: string;
+  /** The old category's "hide from the Programs page" flag, which keeps its meaning. */
+  categoryHidden: boolean;
+  hideWhenPast: boolean;
+  recurrenceFreq: string;
+  startDatetime: string;
+  endDatetime: string;
+}): ListingReason | null {
+  if (p.isArchived) return "archived";
+  if (p.hideFromProgramPageList) return "hidden";
+  if (!isOfferingCategory(p.offeringCategory)) return "noCategory";
+  if (p.offeringCategory === "PRIVATE") return "private";
+  if (p.categoryHidden) return "hiddenCategory";
+  if (p.hideWhenPast && !p.recurrenceFreq && p.startDatetime) {
+    // Editor datetimes are Central wall-clock strings (YYYY-MM-DDTHH:mm).
+    const lastDay = (p.endDatetime || p.startDatetime).slice(0, 10);
+    if (lastDay < nowCentral().slice(0, 10)) return "past";
+  }
+  return null;
+}
+
+/** A Central "YYYY-MM-DDTHH:mm" as "Sunday, November 1 at 9:00 AM". */
+export function fmtCentralString(v: string): string {
+  const [d, t = "00:00"] = v.split("T");
+  const asUtc = new Date(`${d}T${t}:00Z`);
+  if (isNaN(asUtc.getTime())) return v;
+  const day = asUtc.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" });
+  const time = asUtc.toLocaleTimeString("en-US", { timeZone: "UTC", hour: "numeric", minute: "2-digit" });
+  return `${day} at ${time}`;
+}
 
 /** The implicit default hub when `Program.hostingHubSlug` is null.
  *  Mirrors `lib/programHub.ts::DEFAULT_HOSTING_HUB_SLUG`. */

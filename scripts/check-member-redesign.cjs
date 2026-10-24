@@ -352,5 +352,19 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   facets=await notices.listNoticeFacets({userId:'member-a',type:'schedule'});
   check(plain(facets.sources.map(f=>[f.label,f.unread])),[['Greeters',1],['Hosting Team',1],['Old Team',0]],'teams count within the chosen type');
 
+  // "Opens on" (2026-10-24): one rule for whether a program takes sign-ups.
+  const win = load('lib/registrationWindow.ts');
+  const at = new Date('2026-10-24T15:00:00Z');
+  const p = (o) => ({ registrationEnabled: true, registrationClosed: false, registrationDeadline: null, registrationOpensAt: null, ...o });
+  check(win.registrationWindow(p({ registrationEnabled: false, registrationOpensAt: '2026-11-01T14:00:00Z' }), at), 'off', 'off stays off, whatever the opening date');
+  check(win.registrationWindow(p({}), at), 'open', 'on with no dates is open');
+  check(win.registrationWindow(p({ registrationOpensAt: '2026-11-01T14:00:00Z' }), at), 'notYet', 'an opening date ahead is not open yet');
+  check(win.registrationWindow(p({ registrationOpensAt: '2026-10-24T14:59:00Z' }), at), 'open', 'an opening date passed is open');
+  check(win.registrationWindow(p({ registrationClosed: true, registrationOpensAt: '2026-11-01T14:00:00Z' }), at), 'closed', 'closed by hand wins over an opening date');
+  check(win.registrationWindow(p({ registrationDeadline: '2026-10-20T00:00:00Z' }), at), 'closed', 'a passed closing date closes it');
+  const where = JSON.parse(JSON.stringify(win.takingRegistrationsWhere(at)));
+  check([where.registrationEnabled, where.registrationClosed, where.AND.length], [true, false, 2], 'the Prisma filter asks the same: on, not closed, deadline and opening date');
+  check(win.fmtOpensAt('2026-11-01T14:00:00Z', at), 'Sunday, November 1 at 8:00 AM', 'opening time in Central, after the November time change');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

@@ -49,7 +49,7 @@ export const NOTICE_TYPES: { key: NoticeType; label: string; kinds: string[] }[]
   {
     key: "programs",
     label: "Programs",
-    kinds: ["registration-", "waitlist-", "dana-", "session-reminder", "course-"],
+    kinds: ["registration-", "waitlist-", "dana-", "session-reminder", "course-", "program-notice"],
   },
   {
     key: "account",

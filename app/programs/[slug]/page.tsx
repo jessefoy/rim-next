@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { activeAnnouncement } from "@/lib/scheduleUtils";
+import { fmtOpensAt, registrationWindow } from "@/lib/registrationWindow";
 import { joinOnlineLabel, meetingServiceName, onlinePhrase, outsideRoomUrl } from "@/lib/outsideMeeting";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import {
@@ -81,10 +82,10 @@ export default async function ProgramDetailPage({
   // Format are labels and take no part in it.
   const offering = resolveOffering(program);
   const droppable = hasOpenEntry(program);
-  const registrationClosed = !!(
-    program.registrationClosed ||
-    (program.registrationDeadline && new Date(program.registrationDeadline) < new Date())
-  );
+  // One rule for whether it's taking sign-ups (lib/registrationWindow.ts).
+  const regWindow = registrationWindow(program);
+  const registrationClosed = regWindow === "closed";
+  const notOpenYet = regWindow === "notYet";
 
   // DB queries — only when built-in form is active
   const [activeCount, existingRegistration] = await Promise.all([
@@ -346,6 +347,8 @@ export default async function ProgramDetailPage({
                     </span>
                   ) : registrationClosed ? (
                     <span className="pg-detail-cta__status">Registration is closed.</span>
+                  ) : notOpenYet && program.registrationOpensAt ? (
+                    <span className="pg-detail-cta__status">Registration opens on {fmtOpensAt(program.registrationOpensAt)}.</span>
                   ) : spotsRemaining === 0 ? (
                     <Link href={`/programs/${slug}/register`} className="pg-detail-cta__link">
                       Join the waitlist →

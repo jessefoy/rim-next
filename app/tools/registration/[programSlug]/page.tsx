@@ -117,6 +117,7 @@ export default async function RegistrationProgramPage({
       registrationClosed: true,
       registrationCapacity: true,
       registrationDeadline: true,
+      registrationOpensAt: true,
       registrationFields: true,
       reminderDate: true,
       danaMode: true,
@@ -263,6 +264,7 @@ export default async function RegistrationProgramPage({
         closed: program.registrationClosed,
         places: program.registrationCapacity ? String(program.registrationCapacity) : "",
         closes: toCentralDatetime(program.registrationDeadline),
+        opens: toCentralDatetime(program.registrationOpensAt),
         mailingList: program.flodeskSync,
         segmentId: program.flodeskSegmentId,
       }}

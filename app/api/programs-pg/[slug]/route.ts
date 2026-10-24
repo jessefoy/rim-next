@@ -364,6 +364,16 @@ export async function PUT(
     }
   }
   if (body.registrationDeadline !== undefined) data.registrationDeadline = centralToUtc(body.registrationDeadline);
+  // "Opens on" (2026-10-24): taking sign-ups from then (lib/registrationWindow.ts).
+  if (body.registrationOpensAt !== undefined) data.registrationOpensAt = centralToUtc(body.registrationOpensAt);
+  {
+    // Never closing before it opens: it would never be open.
+    const opens = (data.registrationOpensAt !== undefined ? data.registrationOpensAt : existing.registrationOpensAt) as Date | null;
+    const closes = (data.registrationDeadline !== undefined ? data.registrationDeadline : existing.registrationDeadline) as Date | null;
+    if (opens && closes && closes <= opens) {
+      return NextResponse.json({ error: "The closing date comes before registration opens. Move one of them. Nothing was saved." }, { status: 422 });
+    }
+  }
   // "Anyone may join from the public page" is never kept on a program that
   // takes registrations (the editor, this route, the page and /enter agree).
   if ((data.registrationEnabled ?? existing.registrationEnabled) === true) {

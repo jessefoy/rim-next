@@ -2,7 +2,8 @@
 
 /**
  * A program's registration settings in the Registration app (2026-10-23):
- * open or closed, places, the closing date, the mailing list and its Flodesk
+ * open, not open yet (with its opening date) or closed, places, the closing
+ * date, the mailing list and its Flodesk
  * segment. Folded under Needs you; its summary line says where things stand.
  * Saves through PATCH /api/programs/[slug]/registration-settings, which refuses
  * fewer places than are taken and a save over a change made since the page
@@ -13,6 +14,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SaveNote } from "@/components/FormDone";
+import { toCentralDatetime } from "@/lib/timezone";
 
 export interface SettingsValues {
   closed: boolean;
@@ -20,6 +22,8 @@ export interface SettingsValues {
   places: string;
   /** "YYYY-MM-DDTHH:mm" in Central time, or empty. */
   closes: string;
+  /** When registration opens, "YYYY-MM-DDTHH:mm" in Central time, or empty. */
+  opens: string;
   /** null: the default rule. */
   mailingList: boolean | null;
   /** The linked Flodesk segment, or null until the first registration makes one. */
@@ -77,6 +81,21 @@ export default function RegistrationSettings({
     }
   }
 
+  // Open, not open yet, or closed: "not open yet" is an opening date still
+  // ahead (lib/registrationWindow.ts). Chosen here, it stays chosen until a
+  // date is set, and Save asks for one still ahead.
+  const [notYetPicked, setNotYetPicked] = useState(false);
+  const nowCt = toCentralDatetime(new Date());
+  const state: "open" | "notYet" | "closed" = values.closed
+    ? "closed"
+    : notYetPicked || (values.opens && values.opens > nowCt)
+      ? "notYet"
+      : "open";
+  function chooseState(next: "open" | "notYet" | "closed") {
+    setNotYetPicked(next === "notYet");
+    change(next === "closed" ? { closed: true } : next === "open" ? { closed: false, opens: "" } : { closed: false });
+  }
+
   function change(next: Partial<SettingsValues>) {
     setValues((v) => ({ ...v, ...next }));
     if (status !== "saving") setStatus("idle");
@@ -87,6 +106,16 @@ export default function RegistrationSettings({
     const places = values.places.trim();
     if (places && (!/^\d+$/.test(places) || Number(places) < 1)) {
       setProblem("Places must be a whole number of at least 1, or empty for no limit.");
+      setStatus("error");
+      return;
+    }
+    if (state === "notYet" && !(values.opens && values.opens > nowCt)) {
+      setProblem("Choose when registration opens, a date and time still ahead. Or choose Open.");
+      setStatus("error");
+      return;
+    }
+    if (state !== "closed" && values.opens && values.closes && values.closes <= values.opens) {
+      setProblem("The closing date comes before registration opens. Move one of them.");
       setStatus("error");
       return;
     }
@@ -105,6 +134,7 @@ export default function RegistrationSettings({
           registrationClosed: values.closed,
           registrationCapacity: places ? Number(places) : null,
           registrationDeadline: values.closes || null,
+          registrationOpensAt: values.opens || null,
           flodeskSync: values.mailingList,
           // Sent only when chosen here, so a save can never undo a segment
           // that a first registration made while this page was open.
@@ -145,11 +175,18 @@ export default function RegistrationSettings({
         <div className="reg-fields">
           <label className="reg-field">
             <span>Registration</span>
-            <select value={values.closed ? "closed" : "open"} onChange={(e) => change({ closed: e.target.value === "closed" })}>
+            <select value={state} onChange={(e) => chooseState(e.target.value as "open" | "notYet" | "closed")}>
               <option value="open">Open</option>
+              <option value="notYet">Not open yet</option>
               <option value="closed">Closed</option>
             </select>
           </label>
+          {state === "notYet" && (
+            <label className="reg-field">
+              <span>Opens</span>
+              <input type="datetime-local" value={values.opens} onChange={(e) => change({ opens: e.target.value })} />
+            </label>
+          )}
           <label className="reg-field">
             <span>Places</span>
             <input
@@ -228,7 +265,10 @@ export default function RegistrationSettings({
           {!values.closed && values.closes && new Date(`${values.closes}:00-06:00`) < new Date() && (
             <li>That closing date has passed, so registration stays closed until you move the date or clear it.</li>
           )}
-          <li>Closes is Central time; leave it empty to stay open until you close it.</li>
+          {state === "notYet" && (
+            <li>Until it opens, the program page says when, with no sign-up button. Who can join the sessions doesn&rsquo;t change.</li>
+          )}
+          <li>Opens and Closes are Central time; leave Closes empty to stay open until you close it.</li>
           <li>
             {!mailingListOn
               ? "With the mailing list off, no one is added to Flodesk."

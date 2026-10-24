@@ -9,7 +9,8 @@ import { countPlacesTaken } from "@/lib/registrationPlaces";
 import { getFlodeskSegment } from "@/lib/flodesk";
 
 // ─── PATCH /api/programs/[slug]/registration-settings ────────────────────────
-// The Registration app's settings panel (2026-10-23): open or closed, places,
+// The Registration app's settings panel (2026-10-23): open, not open yet (its
+// opening date, 2026-10-24) or closed, places,
 // the closing date, and the mailing list with its Flodesk segment (the only
 // place the mailing list is set since 2026-10-24). The program's own fields, the same
 // ones the program editor saves; this route writes only them, so none of the
@@ -55,6 +56,7 @@ export async function PATCH(
       registrationClosed: true,
       registrationCapacity: true,
       registrationDeadline: true,
+      registrationOpensAt: true,
       flodeskSync: true,
       flodeskSegmentId: true,
     },
@@ -77,6 +79,7 @@ export async function PATCH(
     registrationClosed?: boolean;
     registrationCapacity?: number | null;
     registrationDeadline?: Date | null;
+    registrationOpensAt?: Date | null;
     flodeskSync?: boolean | null;
     flodeskSegmentId?: string;
     flodeskSegmentName?: string;
@@ -129,6 +132,21 @@ export async function PATCH(
     }
   }
 
+  if (body.registrationOpensAt !== undefined) {
+    const raw = body.registrationOpensAt;
+    let opens: Date | null = null;
+    if (raw !== null && raw !== "") {
+      opens = typeof raw === "string" ? centralToUtc(raw) : null;
+      if (!opens) {
+        return NextResponse.json({ error: "That opening date isn't a date and time." }, { status: 422 });
+      }
+    }
+    if ((opens?.getTime() ?? null) !== (program.registrationOpensAt?.getTime() ?? null)) {
+      data.registrationOpensAt = opens;
+      changes.opens = { from: program.registrationOpensAt?.toISOString() ?? null, to: opens?.toISOString() ?? null };
+    }
+  }
+
   if (body.flodeskSync !== undefined) {
     if (body.flodeskSync !== null && typeof body.flodeskSync !== "boolean") {
       return NextResponse.json({ error: "The mailing list must be automatic, on or off." }, { status: 422 });
@@ -160,6 +178,13 @@ export async function PATCH(
       data.flodeskSegmentName = segment.name;
       changes.segment = { from: program.flodeskSegmentId, to: segment.name };
     }
+  }
+
+  // Never closing before it opens: it would never be open.
+  const opensAfter = data.registrationOpensAt !== undefined ? data.registrationOpensAt : program.registrationOpensAt;
+  const closesAfter = data.registrationDeadline !== undefined ? data.registrationDeadline : program.registrationDeadline;
+  if (opensAfter && closesAfter && closesAfter <= opensAfter) {
+    return NextResponse.json({ error: "The closing date comes before registration opens. Move one of them." }, { status: 422 });
   }
 
   if (Object.keys(data).length === 0) {

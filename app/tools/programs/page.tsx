@@ -8,6 +8,8 @@ import { redirect, notFound } from "next/navigation";
 import { canUseProgramManager, canUsePrograms, canUseRegistration } from "@/lib/toolAuth";
 import { db } from "@/lib/db";
 import { resolveOffering } from "@/lib/programOffering";
+import { registrationWindow } from "@/lib/registrationWindow";
+import { fmtDay } from "@/lib/registrationDesk";
 import ProgramsTableClient, {
   type ProgramRow,
 } from "@/components/registrar/ProgramsTableClient";
@@ -40,6 +42,8 @@ export default async function ProgramsToolPage() {
       programFormat: true,
       registrationEnabled: true,
       registrationClosed: true,
+      registrationDeadline: true,
+      registrationOpensAt: true,
       registrationCapacity: true,
       archivedAt: true,
       offeringCategory: true,
@@ -86,6 +90,9 @@ export default async function ProgramsToolPage() {
       programFormat: p.programFormat,
       registrationEnabled: p.registrationEnabled,
       registrationClosed: p.registrationClosed,
+      // One rule for open, closed and not open yet (lib/registrationWindow.ts).
+      regWindow: registrationWindow(p),
+      opensOn: p.registrationOpensAt ? fmtDay(p.registrationOpensAt) : null,
       registrationCapacity: p.registrationCapacity,
       archivedAt: p.archivedAt?.toISOString() ?? null,
       offeringCategory: resolveOffering(p).category,

@@ -853,6 +853,46 @@ export async function sendRegistrationMessageEmail(data: RegistrationMessageEmai
   });
 }
 
+// ─── A notice about a program (2026-10-24) ───────────────────────────────────
+
+/**
+ * A notice posted from the program editor's "Post a notice" ("Cancelled
+ * tonight", "We're in the community room"), when "Also email the people
+ * registered" is ticked. Sent one at a time by the notice route.
+ *
+ * Managed via Email Template Manager — template: "program-notice".
+ * Email Template Gate: matching seed entry in prisma/migrate.mjs ships with
+ * the same commit.
+ */
+export async function sendProgramNoticeEmail(data: {
+  to: string;
+  firstName: string;
+  programTitle: string;
+  programSlug: string;
+  notice: string;
+}): Promise<void> {
+  const { to, firstName, programTitle, programSlug, notice } = data;
+  const programUrl = `${BASE_URL}/programs/${programSlug}`;
+  await sendTemplatedEmail("program-notice", to, {
+    firstName,
+    programTitle,
+    notice,
+    programUrl,
+    programButton: emailButtonHtml("View the program →", programUrl),
+  }, {
+    memberText: ["firstName", "programTitle", "notice"],
+    replyTo: REGISTRAR_EMAIL,
+    notice: {
+      kind: "program-notice",
+      category: "personal",
+      ...PROGRAMS_SOURCE,
+      title: `${programTitle}: ${notice}`,
+      href: appPath(programUrl),
+      threadKey: `program:${programSlug}`,
+    },
+  });
+}
+
 // ─── Registration cancelled, to the person (2026-10-23) ──────────────────────
 
 /**

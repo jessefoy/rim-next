@@ -11,6 +11,7 @@ import {
 } from "@/lib/enrollment";
 import { toProperName } from "@/lib/nameCase";
 import { countPlacesTaken } from "@/lib/registrationPlaces";
+import { fmtOpensAt, registrationWindow } from "@/lib/registrationWindow";
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
         registrationEnabled: true,
         registrationClosed: true,
         registrationDeadline: true,
+        registrationOpensAt: true,
         registrationCapacity: true,
         danaMode: true,
         danaFixedAmount: true,
@@ -60,15 +62,20 @@ export async function POST(request: NextRequest) {
         { status: 404 },
       );
     }
-    // The same rule the register page shows: closed by the coordinator, or
-    // past its deadline. Checked before anything is written.
-    if (
-      pgProgram.registrationClosed ||
-      (pgProgram.registrationDeadline && pgProgram.registrationDeadline < new Date())
-    ) {
+    // The same rule the register page shows (lib/registrationWindow.ts):
+    // closed by the coordinator or past its deadline, or not open yet.
+    // Checked before anything is written.
+    const regWindow = registrationWindow(pgProgram);
+    if (regWindow === "closed") {
       return NextResponse.json(
         { error: "Registration for this program has closed." },
         // Not 409: the form reads 409 as "already registered".
+        { status: 403 },
+      );
+    }
+    if (regWindow === "notYet" && pgProgram.registrationOpensAt) {
+      return NextResponse.json(
+        { error: `Registration for this program opens on ${fmtOpensAt(pgProgram.registrationOpensAt)}, Central time.` },
         { status: 403 },
       );
     }

@@ -4,6 +4,7 @@ import { countSessionsNeedingSomeone, LOOKAHEAD_DAYS, sessionsNeedingSomeone } f
 import { getHubCoverageConfig, getHubCoverageCopy } from "@/lib/programHub";
 import { ctDateStr } from "@/lib/scheduleUtils";
 import { hasConcludedOneTime } from "@/lib/programUtils";
+import { takingRegistrationsWhere } from "@/lib/registrationWindow";
 import { canSelfClaim } from "@/lib/hubMemberAuth";
 import { HUB_EVENT_KINDS, LEADS_ONLY_EVENT_KINDS, type HubEventKind } from "@/lib/hubEvents";
 import {
@@ -646,15 +647,10 @@ const HUB_APP_PROVIDERS: Record<ToolSlug, HubAppProvider> = {
     home: async () => {
       const now = new Date();
       const open = await db.program.findMany({
-        where: {
-          archivedAt: null,
-          registrationEnabled: true,
-          registrationClosed: false,
-          OR: [{ registrationDeadline: null }, { registrationDeadline: { gt: now } }],
-        },
+        where: { archivedAt: null, ...takingRegistrationsWhere(now) },
         select: { startDatetime: true, endDatetime: true, recurrenceFreq: true },
       });
-      // Open now: on, not closed, before its deadline, and (as on the
+      // Open now: taking sign-ups (lib/registrationWindow.ts), and (as on the
       // Registration desk) not a one-time program that is over. The desk's list
       // is wider: it also shows closed programs that haven't happened yet.
       const count = open.filter((p) => !hasConcludedOneTime(p)).length;

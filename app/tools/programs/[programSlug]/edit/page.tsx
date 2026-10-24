@@ -6,7 +6,7 @@
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
-import { canUseProgramManager, canUsePrograms } from "@/lib/toolAuth";
+import { canUseProgramManager, canUsePrograms, canUseRegistration } from "@/lib/toolAuth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
@@ -106,6 +106,19 @@ export default async function EditProgramToolPage({
 
   const initialData: ProgramData = programToEditorData(program, coverageRows.map((r) => r.hubSlug));
 
+  // Post a notice's "Also email the N people registered": only for those who
+  // can open Registration (Programs shows no one's count otherwise), counted
+  // as the notice route sends: one email per address, everyone with a place.
+  const canEmailRegistered = canUseRegistration(session.user.roles);
+  const registeredCount = canEmailRegistered
+    ? new Set(
+        (await db.registration.findMany({
+          where: { programSlug, status: { in: ["REGISTERED", "APPROVED"] } },
+          select: { email: true },
+        })).map((r) => r.email.trim().toLowerCase()),
+      ).size
+    : null;
+
   return (
     <div className="vol-page">
       <div className="vol-content">
@@ -126,6 +139,8 @@ export default async function EditProgramToolPage({
             usesScheduler: h.appLinks.length > 0,
           }))}
           futureHostAssignmentCount={futureHostAssignmentCount}
+          canEmailRegistered={canEmailRegistered}
+          registeredCount={registeredCount}
         />
       </div>
     </div>

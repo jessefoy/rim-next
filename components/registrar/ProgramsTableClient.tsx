@@ -14,6 +14,10 @@ export type ProgramRow = {
   programFormat: string;
   registrationEnabled: boolean;
   registrationClosed: boolean;
+  /** Where registration stands now, by the one rule (lib/registrationWindow.ts). */
+  regWindow: "off" | "notYet" | "open" | "closed";
+  /** "Nov 1, 2026" when it isn't open yet. */
+  opensOn: string | null;
   registrationCapacity: number | null;
   archivedAt: string | null;
   /** The offering's Category and Format codes (lib/programOffering.ts), or null. */
@@ -88,9 +92,7 @@ export default function ProgramsTableClient({
   } else {
     filtered = active;
     if (filter === "open") {
-      filtered = filtered.filter(
-        (p) => p.registrationEnabled && !p.registrationClosed
-      );
+      filtered = filtered.filter((p) => p.regWindow === "open");
     } else if (filter === "waitlist") {
       filtered = filtered.filter((p) => p.waitlistedCount > 0);
     } else if (filter === "attention") {
@@ -114,8 +116,7 @@ export default function ProgramsTableClient({
   // Filter counts (always from unfiltered list)
   const counts = {
     all: active.length,
-    open: active.filter((p) => p.registrationEnabled && !p.registrationClosed)
-      .length,
+    open: active.filter((p) => p.regWindow === "open").length,
     waitlist: active.filter((p) => p.waitlistedCount > 0).length,
     attention: active.filter((p) => p.needsAttention).length,
     archived: archived.length,
@@ -184,10 +185,12 @@ export default function ProgramsTableClient({
   }
 
   function regBadge(p: ProgramRow) {
-    if (!p.registrationEnabled)
+    if (p.regWindow === "off")
       return <span className="vol-badge vol-badge--disabled">Disabled</span>;
-    if (p.registrationClosed)
+    if (p.regWindow === "closed")
       return <span className="vol-badge vol-badge--closed">Closed</span>;
+    if (p.regWindow === "notYet")
+      return <span className="vol-badge vol-badge--soon">Opens {p.opensOn}</span>;
     return <span className="vol-badge vol-badge--open">Open</span>;
   }
 
