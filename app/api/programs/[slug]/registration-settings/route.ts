@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { canUseRegistration } from "@/lib/toolAuth";
 import { centralToUtc } from "@/lib/timezone";
 import { recordRegistrationEvent } from "@/lib/registrationEvents";
+import { countPlacesTaken } from "@/lib/registrationPlaces";
 
 // ─── PATCH /api/programs/[slug]/registration-settings ────────────────────────
 // The Registration app's settings panel (2026-10-23): open or closed, places,
@@ -95,9 +96,7 @@ export async function PATCH(
     }
     if (places !== program.registrationCapacity) {
       if (places !== null) {
-        const taken = await db.registration.count({
-          where: { programId: program.id, status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] } },
-        });
+        const taken = await countPlacesTaken(program.id);
         if (places < taken) {
           return NextResponse.json(
             { error: `${taken} ${taken === 1 ? "place is" : "places are"} already taken, so places can't be fewer than ${taken}. Cancel someone first if a place has to go.` },

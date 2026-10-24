@@ -134,6 +134,7 @@ export default function RegistrationPeople({
   full,
   asksDana,
   reminderLine,
+  reminderAhead,
   seeAmounts,
   initialShow,
 }: {
@@ -156,6 +157,8 @@ export default function RegistrationPeople({
   asksDana: boolean;
   /** When the automatic reminder goes, or went, in plain words. */
   reminderLine: string | null;
+  /** The automatic reminder is still to come: it can be sent early. */
+  reminderAhead: boolean;
   seeAmounts: boolean;
   initialShow: string | null;
 }) {
@@ -176,6 +179,7 @@ export default function RegistrationPeople({
   const [editing, setEditing] = useState<{ id: string; values: Record<string, string> } | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [earlyConfirm, setEarlyConfirm] = useState(false);
   const [notifyCancel, setNotifyCancel] = useState(true);
   const [panel, setPanel] = useState<"add" | "message" | null>(null);
   const [add, setAdd] = useState({ firstName: "", lastName: "", email: "", phone: "", dana: "online", sendConfirmation: true });
@@ -257,6 +261,7 @@ export default function RegistrationPeople({
       if (!res.ok) throw new Error();
       say(`The reminder went to ${people(json.sent ?? 0)}.`);
       setBulkConfirm(false);
+      setEarlyConfirm(false);
       refresh();
     } catch {
       say("The reminder wasn't sent. Please try again.", "error");
@@ -775,6 +780,23 @@ export default function RegistrationPeople({
             />
           </div>
           {reminderLine && <p className="reg-meta">{reminderLine}</p>}
+          {reminderAhead && unsent.length > 0 && (
+            earlyConfirm ? (
+              <ConfirmBox
+                text={`Email the reminder now to ${unsent.length === 1 ? "this person" : `these ${unsent.length} people`}: ${unsent.map((r) => r.name).join(", ")}? They won't get it again when it goes out by itself.`}
+                yes="Yes, send it now"
+                busy={busy === "bulk"}
+                onYes={sendReminderToUnsent}
+                onNo={() => setEarlyConfirm(false)}
+              />
+            ) : (
+              <div className="reg-actions reg-early">
+                <button type="button" className="vol-action-btn" onClick={() => setEarlyConfirm(true)}>
+                  Send the reminder now to {people(unsent.length)}
+                </button>
+              </div>
+            )
+          )}
           {seeAmounts && danaShown && (
             <p className="reg-meta">Amounts given are seen only by registrars, the guiding teacher and admins.</p>
           )}

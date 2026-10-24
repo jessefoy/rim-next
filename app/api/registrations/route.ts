@@ -10,6 +10,7 @@ import {
   enrollMemberInProgramCourse,
 } from "@/lib/enrollment";
 import { toProperName } from "@/lib/nameCase";
+import { countPlacesTaken } from "@/lib/registrationPlaces";
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,12 +96,7 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     const sessionUserId = session?.user?.id ?? null;
     const [takenCount, ownHolds] = await Promise.all([
-      db.registration.count({
-        where: {
-          programId,
-          status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] },
-        },
-      }),
+      countPlacesTaken(programId),
       db.registration.count({
         where: {
           programId,

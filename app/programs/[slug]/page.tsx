@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { countPlacesTaken } from "@/lib/registrationPlaces";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
@@ -88,11 +89,9 @@ export default async function ProgramDetailPage({
   // DB queries — only when built-in form is active
   const [activeCount, existingRegistration] = await Promise.all([
     useBuiltInForm && program.registrationCapacity
-      ? db.registration.count({
-          // PENDING_PAYMENT holds a seat during checkout — count it so the shown
-          // spots-remaining matches the seats actually held.
-          where: { programId: program.id, status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] } },
-        })
+      ? // The shared count: a place held during checkout is taken, so the
+        // spots shown match the places actually held.
+        countPlacesTaken(program.id)
       : Promise.resolve(0),
     useBuiltInForm && session?.user?.id
       ? db.registration.findFirst({

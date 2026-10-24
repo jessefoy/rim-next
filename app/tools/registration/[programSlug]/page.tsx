@@ -318,6 +318,7 @@ export default async function RegistrationProgramPage({
             (program.danaMode === "base_plus_dana" && (program.danaBaseAmount ?? 0) > 0)
           }
           reminderLine={reminderLine}
+          reminderAhead={!!sendsAt && sendsAt > new Date()}
           seeAmounts={seeAmounts}
           initialShow={show ?? null}
         />

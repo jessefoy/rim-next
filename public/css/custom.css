@@ -3453,6 +3453,7 @@ h4 { font-size: var(--text-h4); }
 .reg-error { margin: 0; color: var(--color-error); font-weight: 600; }
 
 /* The registration settings fold: its summary says where things stand. */
+.reg-early { margin-bottom: var(--space-1); }
 .reg-settings > summary { display: list-item; }
 .reg-settings__sum { margin-left: var(--space-1); font-weight: 400; font-size: var(--text-app-meta); color: var(--rim-text-soft); }
 .reg-settings[open] > .reg-panel { margin-top: var(--space-1); }

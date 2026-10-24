@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { countPlacesTaken } from "@/lib/registrationPlaces";
 import Link from "next/link";
 import RegistrationForm, { RegistrationField } from "@/components/RegistrationForm";
 import { db } from "@/lib/db";
@@ -64,11 +65,9 @@ export default async function RegisterPage({
   // Fetch user-specific data in parallel
   const [activeCount, userProfile, existingRegistration] = await Promise.all([
     program.registrationCapacity
-      ? db.registration.count({
-          // PENDING_PAYMENT holds a seat during checkout — count it so the shown
-          // spots-remaining matches the seats actually held.
-          where: { programId: program._id, status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] } },
-        })
+      ? // The shared count: a place held during checkout is taken, so the
+        // spots shown match the places actually held.
+        countPlacesTaken(program._id)
       : Promise.resolve(0),
     session?.user?.id
       ? db.user.findUnique({

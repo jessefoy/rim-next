@@ -9,6 +9,7 @@ import { enrollMemberInProgramCourse } from "@/lib/enrollment";
 import { addRegistrationToFlodesk } from "@/lib/flodesk";
 import { sendDanaReminderEmail } from "@/lib/email";
 import { recordRegistrationEvent } from "@/lib/registrationEvents";
+import { countPlacesTaken } from "@/lib/registrationPlaces";
 
 // ─── POST /api/programs/[slug]/people ────────────────────────────────────────
 // The Registration app's "Add a person" (2026-10-23): someone who phoned,
@@ -122,9 +123,7 @@ export async function POST(
 
   // The place, counted as the public form counts it: a held place is taken.
   const [taken, waiting] = await Promise.all([
-    db.registration.count({
-      where: { programId: program.id, status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] } },
-    }),
+    countPlacesTaken(program.id),
     db.registration.count({ where: { programId: program.id, status: "WAITLISTED" } }),
   ]);
   const hasPlace = program.registrationCapacity == null || taken < program.registrationCapacity;

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { Prisma } from "@prisma/client";
 import { withQuestionIds } from "@/lib/registrationFields";
+import { countPlacesTaken } from "@/lib/registrationPlaces";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { clearCoverageNoLongerStaffed, clearOffScheduleCoverage, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal, supportingTeamRefusal } from "@/lib/programHub";
@@ -317,9 +318,7 @@ export async function PUT(
     typeof data.registrationCapacity === "number" &&
     data.registrationCapacity !== existing.registrationCapacity
   ) {
-    const taken = await db.registration.count({
-      where: { programId: existing.id, status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] } },
-    });
+    const taken = await countPlacesTaken(existing.id);
     if (data.registrationCapacity < taken) {
       return NextResponse.json(
         // The number only for those who can open Registration: Programs shows no one's count.
