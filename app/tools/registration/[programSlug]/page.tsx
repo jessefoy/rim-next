@@ -21,6 +21,8 @@ import {
   programNeeds,
   programWhen,
   registrationState,
+  reminderSendsAt,
+  fmtSendTime,
   type DeskCounts,
 } from "@/lib/registrationDesk";
 import RegistrationPeople, {
@@ -237,6 +239,14 @@ export default async function RegistrationProgramPage({
     ).length,
   };
   const needs = program.archivedAt ? [] : programNeeds(program, counts);
+  // When the automatic reminder goes (or went), in the desk's words.
+  const sendsAt = program.archivedAt ? null : reminderSendsAt(program);
+  const reminderLine = !sendsAt
+    ? null
+    : sendsAt > new Date()
+    ? `The reminder email goes out ${fmtSendTime(sendsAt)}, to everyone registered who hasn't had it.`
+    : `The reminder email went out ${fmtSendTime(sendsAt)}.`;
+
   const when = programWhen(program);
   const where = fmtLabel(program.programFormat, program.outsideMeetingUrl);
 
@@ -307,7 +317,7 @@ export default async function RegistrationProgramPage({
             (program.danaMode === "fixed" && (program.danaFixedAmount ?? 0) > 0) ||
             (program.danaMode === "base_plus_dana" && (program.danaBaseAmount ?? 0) > 0)
           }
-          reminderDay={program.reminderDate ? fmtDay(program.reminderDate) : null}
+          reminderLine={reminderLine}
           seeAmounts={seeAmounts}
           initialShow={show ?? null}
         />

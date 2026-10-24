@@ -133,7 +133,7 @@ export default function RegistrationPeople({
   canAdd,
   full,
   asksDana,
-  reminderDay,
+  reminderLine,
   seeAmounts,
   initialShow,
 }: {
@@ -154,7 +154,8 @@ export default function RegistrationPeople({
   full: boolean;
   /** The program asks for dana (or a price). */
   asksDana: boolean;
-  reminderDay: string | null;
+  /** When the automatic reminder goes, or went, in plain words. */
+  reminderLine: string | null;
   seeAmounts: boolean;
   initialShow: string | null;
 }) {
@@ -773,7 +774,7 @@ export default function RegistrationPeople({
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          {reminderDay && <p className="reg-meta">The program&rsquo;s reminder email is set for {reminderDay}.</p>}
+          {reminderLine && <p className="reg-meta">{reminderLine}</p>}
           {seeAmounts && danaShown && (
             <p className="reg-meta">Amounts given are seen only by registrars, the guiding teacher and admins.</p>
           )}

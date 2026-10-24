@@ -94,11 +94,24 @@ export function isOver(p: DeskProgram): boolean {
  * before, and only while registration is on.
  */
 export function reminderHasGone(p: DeskProgram, now = new Date()): boolean {
-  if (!p.reminderDate || !p.registrationEnabled) return false;
+  const sendAt = reminderSendsAt(p);
+  return !!sendAt && sendAt <= now;
+}
+
+/** When the daily send will email this program's reminder, or null if it won't. */
+export function reminderSendsAt(p: DeskProgram): Date | null {
+  if (!p.reminderDate || !p.registrationEnabled) return null;
   const sendAt = new Date(p.reminderDate);
   sendAt.setUTCHours(14, 0, 0, 0);
   if (sendAt < p.reminderDate) sendAt.setUTCDate(sendAt.getUTCDate() + 1);
-  return sendAt <= now;
+  return sendAt;
+}
+
+/** "Thursday, Nov 12, at 8 AM": when something goes out, in Central time. */
+export function fmtSendTime(d: Date): string {
+  const day = d.toLocaleDateString("en-US", { timeZone: CT, weekday: "long", month: "short", day: "numeric" });
+  const time = d.toLocaleTimeString("en-US", { timeZone: CT, hour: "numeric", minute: "2-digit" }).replace(":00", "");
+  return `${day}, at ${time}`;
 }
 
 const people = (n: number) => (n === 1 ? "1 person" : `${n} people`);
