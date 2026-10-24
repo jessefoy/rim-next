@@ -473,22 +473,29 @@ export default function ProgramEditor({
 
   // ── Where the reader is: the section nearest the top of the screen ───────
   const [currentSection, setCurrentSection] = useState<SectionId>("about");
+  // The last section whose top has passed a line just under the site header.
+  // (Asking which sections are in view marked the one above after a jump,
+  // since its end was still showing.)
   useEffect(() => {
-    const seen = new Map<string, boolean>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) seen.set(entry.target.id, entry.isIntersecting);
-        const first = SECTIONS.find((s) => seen.get(sectionDomId(s.id)));
-        if (first) setCurrentSection(first.id);
-      },
-      // Below the site header, and in the upper part of the screen.
-      { rootMargin: "-110px 0px -55% 0px" },
-    );
-    for (const s of SECTIONS) {
-      const el = document.getElementById(sectionDomId(s.id));
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      let current: SectionId = SECTIONS[0].id;
+      for (const s of SECTIONS) {
+        const el = document.getElementById(sectionDomId(s.id));
+        if (el && el.getBoundingClientRect().top <= 220) current = s.id;
+      }
+      setCurrentSection(current);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
   const jumpTo = useCallback((id: SectionId, focus = true) => {
     setCurrentSection(id);

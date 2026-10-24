@@ -10819,6 +10819,16 @@ h4 { font-size: var(--text-h4); }
 .pe-sec__title:focus { outline: none; }
 .tools-shell .pe-sec .pe-card { border-radius: 12px; }
 .pe-sec + .pe-actions { margin-top: 32px; }
+/* A fieldset's min-content width let the guest link push Open Access past a
+   phone's edge. */
+.pe-editor fieldset.pe-field { min-width: 0; }
+/* On phones Save and Cancel sit side by side: the stacked bar (shared with the
+   Course editor) took 154px of a long page's screen, this one 74px. */
+@media (max-width: 768px) {
+  .tools-shell .pe-editor--sections .pe-actions { flex-direction: row; flex-wrap: wrap; gap: 12px; padding: 12px 16px; }
+  .tools-shell .pe-editor--sections .pe-actions .pe-btn { flex: 1 1 0; width: auto; }
+  .tools-shell .pe-editor--sections .pe-actions .save-note:not(:empty) { flex-basis: 100%; }
+}
 @media (max-width: 1100px) {
   .pe-layout { grid-template-columns: minmax(0, 1fr); }
   .pe-index { display: none; }
