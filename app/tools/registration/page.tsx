@@ -115,7 +115,8 @@ export default async function RegistrationDeskPage({
     <div className="vol-page">
       <div className="vol-content">
         <header className="vol-header">
-          <h1 className="vol-header__title">Registration</h1>
+          {/* Inside a team the tool's own heading already says Registration. */}
+          {!hub && <h1 className="vol-header__title">Registration</h1>}
           <p className="vol-header__sub">What needs a person, then every program with registration on.</p>
         </header>
 
