@@ -33,6 +33,8 @@ export interface HubHomeApp {
   isRegistered: boolean;
   role: "primary" | "supporting" | "link";
   homeMode: "summary" | "none";
+  /** The Home button's words when the app's own name doesn't take "the". */
+  openLabel?: string | null;
 }
 
 export interface HubAppAttentionItem {
@@ -737,6 +739,8 @@ export async function getHubHomeApps(hubSlug: string, links: HubAppLinkInput[]):
         isRegistered: true,
         role: link.isPrimary ? "primary" as const : "supporting" as const,
         homeMode: tool.spaceContributions.home,
+        // A team that renamed the app keeps "Open the {its name}".
+        openLabel: (!link.label || link.label === tool.label) && "openLabel" in tool ? tool.openLabel ?? null : null,
       };
     }),
   );

@@ -63,7 +63,7 @@ export default function HubHomeClient({
               : primaryApp.quietText}
           </p>
           <Link href={appHref(primaryApp, slug)} className="pp-btn hub-tool__open">
-            Open the {primaryApp.label}
+            {primaryApp.openLabel ?? `Open the ${primaryApp.label}`}
           </Link>
         </section>
       )}

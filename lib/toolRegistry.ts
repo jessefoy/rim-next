@@ -27,6 +27,9 @@ export interface ToolDefinition {
   spaceMode: "multi-space" | "primary-space";
   /** Required when spaceMode is primary-space. */
   primarySpaceSlug?: string;
+  /** The team Home button's words, where "Open the {label}" doesn't read
+   *  ("Open Registration", not "Open the Registration"). */
+  openLabel?: string;
   /** Whether this app may lead a Space Home instead of being supporting-only. */
   canBePrimary: boolean;
   /** Product-level contract. Server providers live in lib/hubApps.ts. */
@@ -72,6 +75,7 @@ export const TOOL_REGISTRY = [
     label: "Registration",
     path: "/tools/registration",
     iconKey: "registration",
+    openLabel: "Open Registration",
     description: "Who's coming to each program, what needs a person, dana, notes and history",
     spaceMode: "primary-space",
     primarySpaceSlug: "registrar",

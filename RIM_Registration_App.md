@@ -16,7 +16,7 @@ Slice 4: **question ids**. `lib/registrationFields.ts` `withQuestionIds` gives e
 
 Slice 5: **history from the public paths.** Giving dana online (the Stripe webhook, inside its once-per-payment guard), declining it, the cleanup cron marking no dana after a day, the scheduled reminder (with the people it reached, so it shows on each card), and someone changing their answers from the emailed link. What a person did themselves reads under their own name (`SELF_EVENT_KINDS`); what the system did reads "RIM …".
 
-Phase 1 is complete with this slice. Left for Jesse: installing Registration in the Registration team's Space (`/admin/hubs`), and his read-aloud of the two new emails. Left for later: pruning the roster's leftover `vol-` CSS (`scripts/css-prune.mjs`), and answers keyed by question id (Phase 3). See `BUILD_PLAN.md`.
+Phase 1 is complete with this slice. Installed 2026-10-23 in the Registration team's Space (`/admin/hubs/registrar/edit`): Registration primary, the Program Manager supporting. Its Home button reads "Open Registration" (`openLabel` in the registry). Left for Jesse: his read-aloud of the two new emails. Left for later: pruning the roster's leftover `vol-` CSS (`scripts/css-prune.mjs`), and answers keyed by question id (Phase 3). See `BUILD_PLAN.md`.
 
 ## Routes
 
