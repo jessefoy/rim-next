@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getToolBySlug } from "@/lib/toolRegistry";
 
 /**
  * Who may use the Program Manager (Jesse, 2026-10-19): the Registrar, Admin
@@ -12,6 +13,45 @@ export const PROGRAM_MANAGER_ROLES = ["REGISTRAR", "ADMIN", "GUIDING_TEACHER"] a
 export function canUseProgramManager(roles: readonly string[] | null | undefined): boolean {
   return !!roles?.some((r) => (PROGRAM_MANAGER_ROLES as readonly string[]).includes(r));
 }
+
+/**
+ * Who may use Programs, to set programs up (Jesse, 2026-10-24): the
+ * Registrar, Admin and Guiding Teacher roles, or an active member of a team
+ * with Programs installed (the Registration team and Program Central;
+ * lib/toolRegistry.ts). Programs shows no one's details: people, answers and
+ * dana live in Registration (canUseRegistration). Archiving, restoring and
+ * deleting programs, the guest-link reset and the categories page stay with
+ * the three roles (canUseProgramManager).
+ */
+export async function canUsePrograms(
+  userId: string | null | undefined,
+  roles: readonly string[] | null | undefined,
+): Promise<boolean> {
+  if (canUseProgramManager(roles)) return true;
+  if (!userId) return false;
+  // Only the teams Programs is made for: an old Programs link left in any
+  // other team, or a hand grant, opens nothing (review, 2026-10-24).
+  const member = await db.hubMember.findFirst({
+    where: {
+      userId,
+      status: "ACTIVE",
+      hub: {
+        status: "ACTIVE",
+        slug: { in: PROGRAMS_TEAMS },
+        appLinks: { some: { toolSlug: "programs", isEnabled: true } },
+      },
+    },
+    select: { id: true },
+  });
+  return !!member;
+}
+
+/** The teams Programs may be installed in (lib/toolRegistry.ts). */
+const PROGRAMS_TEAMS: string[] = (() => {
+  const tool = getToolBySlug("programs");
+  if (!tool) return [];
+  return [tool.primarySpaceSlug, ...(tool.alsoSpaceSlugs ?? [])].filter((s): s is string => !!s);
+})();
 
 /**
  * Who may use the Registration app and every API that reads or changes a
@@ -28,14 +68,23 @@ export function canUseRegistration(roles: readonly string[] | null | undefined):
 }
 
 /**
- * Whether a Space shows an installed app to this person. The two role-only
- * apps (Programs, Registration) hide from a team's rail and Home for members
- * without the role: a card that opened "You don't have permission" was worse
- * than none (2026-10-19). Every other app shows to every member.
+ * Whether a Space shows an installed app to this person. Registration, the
+ * one role-only app, hides from a team's rail and Home for members without
+ * the role: a card that opened "You don't have permission" was worse than
+ * none (2026-10-19). Programs shows to the active members of the teams it is
+ * made for (2026-10-24). Every other app shows to every member.
  */
-export function canSeeInstalledApp(toolSlug: string | null, roles: readonly string[] | null | undefined): boolean {
-  if (toolSlug === "programs") return canUseProgramManager(roles);
+export function canSeeInstalledApp(
+  toolSlug: string | null,
+  roles: readonly string[] | null | undefined,
+  place: { hubSlug: string; memberStatus: string | null | undefined },
+): boolean {
   if (toolSlug === "registration") return canUseRegistration(roles);
+  if (toolSlug === "programs") {
+    // canUsePrograms' rule, for this team: an active member of a team made
+    // for Programs (a paused member, or another team, would get a dead link).
+    return canUseProgramManager(roles) || (PROGRAMS_TEAMS.includes(place.hubSlug) && place.memberStatus === "ACTIVE");
+  }
   return true;
 }
 
@@ -60,9 +109,10 @@ export function canSeeDanaAmounts(roles: readonly string[] | null | undefined): 
  * Pathway 3 is the primary intent: hub membership implies access to that hub's tools.
  * Pathways 1 and 2 remain as safety nets and for edge-case grants.
  *
- * This is the standard gate for the tools, except the Program Manager, which
- * is role-only (canUseProgramManager above). Every other tool layout should use
- * this instead of inline role checks.
+ * This is the standard gate for the tools, except Programs (canUsePrograms:
+ * the roles, or its own two teams only) and Registration (canUseRegistration,
+ * role-only). Every other tool layout should use this instead of inline role
+ * checks.
  *
  * Usage:
  *   const hasAccess = await hasToolAccess(userId, roles, ["TEACHER"], "learning");

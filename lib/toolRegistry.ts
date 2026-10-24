@@ -27,6 +27,8 @@ export interface ToolDefinition {
   spaceMode: "multi-space" | "primary-space";
   /** Required when spaceMode is primary-space. */
   primarySpaceSlug?: string;
+  /** Other Spaces a primary-space app may also be installed in. */
+  alsoSpaceSlugs?: string[];
   /** The team Home button's words, where "Open the {label}" doesn't read
    *  ("Open Registration", not "Open the Registration"). */
   openLabel?: string;
@@ -64,6 +66,10 @@ export const TOOL_REGISTRY = [
     description: "Program CRUD, scheduling, registration settings",
     spaceMode: "primary-space",
     primarySpaceSlug: "registrar",
+    // Programs opens to the teams that set programs up (Jesse, 2026-10-24):
+    // Program Central too. It isn't scoped to a team's own programs, so it
+    // stays out of every other team.
+    alsoSpaceSlugs: ["program-central"],
     canBePrimary: true,
     spaceContributions: { home: "summary", updates: false, attention: false },
   },
@@ -103,12 +109,16 @@ export function getToolBySlug(slug: string): ToolDefinition | null {
 export function isToolCompatibleWithHub(toolSlug: string, hubSlug: string): boolean {
   const tool = getToolBySlug(toolSlug);
   if (!tool) return false;
-  return tool.spaceMode === "multi-space" || tool.primarySpaceSlug === hubSlug;
+  return (
+    tool.spaceMode === "multi-space" ||
+    tool.primarySpaceSlug === hubSlug ||
+    ("alsoSpaceSlugs" in tool && !!tool.alsoSpaceSlugs?.includes(hubSlug))
+  );
 }
 
 /** Human-readable installation guidance for the admin surface. */
 export function toolCompatibilityNote(tool: ToolDefinition): string {
   return tool.spaceMode === "multi-space"
     ? "Can be installed in any Space; its data stays scoped to that Space."
-    : `Designed for the ${tool.primarySpaceSlug} Space; it is not yet multi-Space safe.`;
+    : `Designed for the ${[tool.primarySpaceSlug, ...("alsoSpaceSlugs" in tool ? tool.alsoSpaceSlugs ?? [] : [])].join(" and ")} Space${"alsoSpaceSlugs" in tool && tool.alsoSpaceSlugs?.length ? "s" : ""}; it is not yet multi-Space safe.`;
 }

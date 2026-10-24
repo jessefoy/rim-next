@@ -1,11 +1,11 @@
 /**
  * /tools/programs — Program Manager (full registrar view).
- * Role gate: REGISTRAR | ADMIN (handled by tools/programs/layout.tsx).
+ * Gate: canUsePrograms (also in tools/programs/layout.tsx).
  */
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canUseProgramManager, canUsePrograms, canUseRegistration } from "@/lib/toolAuth";
 import { db } from "@/lib/db";
 import { resolveOffering } from "@/lib/programOffering";
 import ProgramsTableClient, {
@@ -21,11 +21,14 @@ export default async function ProgramsToolPage() {
   if (!session) redirect("/login");
   // The layout's gate, repeated: Next.js can render a page without re-running
   // its layout, so the layout alone doesn't protect this data (2026-10-19 audit).
-  if (!canUseProgramManager(session.user.roles)) notFound();
+  if (!(await canUsePrograms(session.user.id, session.user.roles))) notFound();
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  const isRegistrar = canUseProgramManager(roles);
+  // Programs shows no one's details (2026-10-24): counts of people and dana
+  // only for those who can open Registration; archiving for the three roles.
+  const canSeePeople = canUseRegistration(roles);
+  const canArchive = canUseProgramManager(roles);
 
   const pgPrograms = await db.program.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -87,11 +90,12 @@ export default async function ProgramsToolPage() {
       archivedAt: p.archivedAt?.toISOString() ?? null,
       offeringCategory: resolveOffering(p).category,
       offeringFormat: resolveOffering(p).format,
-      confirmedCount,
-      waitlistedCount,
-      pendingDanaCount,
-      spotOpened,
-      needsAttention,
+      // Never sent to someone who can't open Registration.
+      confirmedCount: canSeePeople ? confirmedCount : 0,
+      waitlistedCount: canSeePeople ? waitlistedCount : 0,
+      pendingDanaCount: canSeePeople ? pendingDanaCount : 0,
+      spotOpened: canSeePeople && spotOpened,
+      needsAttention: canSeePeople && needsAttention,
     };
   });
 
@@ -105,7 +109,8 @@ export default async function ProgramsToolPage() {
         <ProgramsTableClient
           programs={programRows}
           basePath="/tools/programs"
-          isRegistrar={isRegistrar}
+          canSeePeople={canSeePeople}
+          canArchive={canArchive}
           isAdmin={isAdmin}
         />
       </div>

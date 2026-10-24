@@ -160,6 +160,10 @@ interface Props {
   basePath?: string;
   initialData?: ProgramData;
   isEditing: boolean;
+  /** The Registrar, Admin and Guiding Teacher roles (2026-10-24): the
+   *  guest-link reset and the link to Program Categories. A team member
+   *  using Programs sees and copies the guest link. Off unless passed. */
+  canManage?: boolean;
   categories: Category[];
   /** Active hubs for the "Hosting & Access" tab. Filtered by role:
    *  - Hosting team dropdown: hubs where `hasSchedule` is true
@@ -570,6 +574,7 @@ export default function ProgramEditor({
   basePath: basePathProp,
   initialData,
   isEditing,
+  canManage = false,
   categories,
   hubs,
   futureHostAssignmentCount = 0,
@@ -2112,7 +2117,7 @@ export default function ProgramEditor({
                         </button>
                       </div>
                       {/* Reset row: asks first, then answers beside the button. */}
-                      {confirmResetKey ? (
+                      {!canManage ? null : confirmResetKey ? (
                         <div style={{ marginTop: 8 }}>
                           <p className="pe-field__help" style={{ margin: "0 0 8px" }}>
                             Reset the guest link? The old link will stop working right away, so anyone you
@@ -2717,8 +2722,13 @@ export default function ProgramEditor({
                 )}
                 {listingReason === "hiddenCategory" && (
                   <>
-                    <span className="pe-readout__state">Not listed.</span> Its category, {selectedCategory?.name}, is hidden from the public page. You can change that on the{" "}
-                    <Link href="/tools/programs/categories" className="pe-readout__link">Program Categories</Link> page.
+                    <span className="pe-readout__state">Not listed.</span> Its category, {selectedCategory?.name}, is hidden from the public page.{" "}
+                    {canManage ? (
+                      <>You can change that on the{" "}
+                      <Link href="/tools/programs/categories" className="pe-readout__link">Program Categories</Link> page.</>
+                    ) : (
+                      <>The registrar or an admin can change that.</>
+                    )}
                   </>
                 )}
                 {listingReason === "past" && (

@@ -107,11 +107,11 @@ export default async function HubLayout({ children, params }: Props) {
       return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "—";
     });
 
-  // Programs and Registration show only to the roles that can use them (Jesse,
-  // 2026-10-19); a team member without them saw a card and a rail link that
-  // opened "You don't have permission".
+  // Registration shows only to its roles, Programs only to the active members
+  // of its teams (2026-10-19, 2026-10-24): a link that opened "You don't have
+  // permission" was worse than none.
   const tools = hub.appLinks
-    .filter((link) => canSeeInstalledApp(link.toolSlug, session.user.roles))
+    .filter((link) => canSeeInstalledApp(link.toolSlug, session.user.roles, { hubSlug: hub.slug, memberStatus: member?.status }))
     .map((link) => {
     const registered = resolveRegisteredTool(link);
     return {

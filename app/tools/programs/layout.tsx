@@ -1,7 +1,8 @@
 /**
  * Programs tool layout — wraps /tools/programs/* with ToolsProvider.
- * Gate: the Registrar, Admin or Guiding Teacher role (canUseProgramManager),
- * the same rule as every page and API behind it (Jesse, 2026-10-19).
+ * Gate: canUsePrograms, the three roles or a member of a team with Programs
+ * installed (Jesse, 2026-10-24; it was the roles only from 2026-10-19). The
+ * archive, delete, guest-link reset and categories keep the roles' own gate.
  */
 
 import { auth } from "@/auth";
@@ -9,7 +10,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ToolsProvider } from "@/components/ToolsContext";
 import WorkspaceShell from "@/components/WorkspaceShell";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canUsePrograms } from "@/lib/toolAuth";
 
 export default async function ProgramsToolLayout({
   children,
@@ -21,7 +22,7 @@ export default async function ProgramsToolLayout({
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  const hasAccess = canUseProgramManager(roles);
+  const hasAccess = await canUsePrograms(session.user.id, roles);
 
   if (!hasAccess) {
     return (
@@ -31,18 +32,20 @@ export default async function ProgramsToolLayout({
     );
   }
 
-  // Resolve back link: check if user is in the registrar hub
+  // Back to the person's team with Programs: the Registration team, else
+  // Program Central (admins: the Registration team).
   let backHref = "/account/dashboard";
   let backLabel = "My RIM";
-
-  const hub = await db.hub.findUnique({ where: { slug: "registrar" }, select: { id: true, name: true } });
-  if (hub) {
+  for (const slug of ["registrar", "program-central"]) {
+    const hub = await db.hub.findUnique({ where: { slug }, select: { id: true, name: true } });
+    if (!hub) continue;
     const member = await db.hubMember.findUnique({
       where: { hubId_userId: { hubId: hub.id, userId: session.user.id } },
     });
-    if (member || isAdmin) {
-      backHref = "/account/hub/registrar";
+    if (member || (isAdmin && slug === "registrar")) {
+      backHref = `/account/hub/${slug}`;
       backLabel = hub.name;
+      break;
     }
   }
 

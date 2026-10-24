@@ -1,6 +1,6 @@
 /**
  * GET  /api/programs-pg — List all programs (canUseProgramManager: REGISTRAR | ADMIN | GUIDING_TEACHER)
- * POST /api/programs-pg — Create a new program (canUseProgramManager: REGISTRAR | ADMIN | GUIDING_TEACHER)
+ * POST /api/programs-pg — Create a new program (canUsePrograms: the three roles, or a member of a team with Programs)
  */
 
 import { NextRequest, NextResponse, after } from "next/server";
@@ -18,7 +18,7 @@ import { cleanOffering } from "@/lib/programOffering";
 import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { normalizeLinkInput } from "@/lib/linkInput";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canUseProgramManager, canUsePrograms } from "@/lib/toolAuth";
 
 // Team-wide emails go one at a time after the response (sendEachPaced),
 // so the function needs room past the usual limit (2026-10-19).
@@ -40,7 +40,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session || !canUseProgramManager(session.user.roles)) {
+  // Anyone who may use Programs may create one (2026-10-24).
+  if (!session || !(await canUsePrograms(session.user.id, session.user.roles))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

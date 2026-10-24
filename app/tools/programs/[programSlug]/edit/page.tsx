@@ -1,11 +1,12 @@
 /**
  * /tools/programs/[programSlug]/edit — Edit an existing program.
- * Role gate: REGISTRAR | ADMIN (handled by tools/programs/layout.tsx).
+ * Gate: canUsePrograms (also in tools/programs/layout.tsx); the guest-link
+ * reset and the categories link only for canUseProgramManager.
  */
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canUseProgramManager, canUsePrograms } from "@/lib/toolAuth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
@@ -25,7 +26,7 @@ export default async function EditProgramToolPage({
   if (!session) redirect("/login");
   // The layout's gate, repeated: Next.js can render a page without re-running
   // its layout, so the layout alone doesn't protect this data (2026-10-19 audit).
-  if (!canUseProgramManager(session.user.roles)) notFound();
+  if (!(await canUsePrograms(session.user.id, session.user.roles))) notFound();
 
   const [program, categories, hubs, coverageRows] = await Promise.all([
     db.program.findUnique({
@@ -202,6 +203,7 @@ export default async function EditProgramToolPage({
           basePath="/tools/programs"
           initialData={initialData}
           isEditing={true}
+          canManage={canUseProgramManager(session.user.roles)}
           categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name, kind: c.kind ?? null, hidden: c.hideFromProgramsPage }))}
           hubs={hubs.map((h) => ({
             slug: h.slug,

@@ -1,6 +1,6 @@
 /**
  * GET    /api/programs-pg/[slug] — Get single program (canUseProgramManager: REGISTRAR | ADMIN | GUIDING_TEACHER)
- * PUT    /api/programs-pg/[slug] — Update program (canUseProgramManager: REGISTRAR | ADMIN | GUIDING_TEACHER)
+ * PUT    /api/programs-pg/[slug] — Update program (canUsePrograms: the three roles, or a member of a team with Programs)
  * DELETE /api/programs-pg/[slug] — Delete program (ADMIN only, safety check)
  */
 
@@ -22,7 +22,7 @@ import { ctDateStr, parseAnnouncementUntil, shiftToDate } from "@/lib/scheduleUt
 import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { normalizeLinkInput } from "@/lib/linkInput";
-import { canUseProgramManager } from "@/lib/toolAuth";
+import { canUseProgramManager, canUsePrograms, canUseRegistration } from "@/lib/toolAuth";
 
 // Team-wide emails go one at a time after the response (sendEachPaced),
 // so the function needs room past the usual limit (2026-10-19).
@@ -94,7 +94,9 @@ export async function PUT(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session || !canUseProgramManager(session.user.roles)) {
+  // Anyone who may use Programs may save one (2026-10-24); archiving,
+  // restoring and deleting (PATCH, DELETE) stay with the three roles.
+  if (!session || !(await canUsePrograms(session.user.id, session.user.roles))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -309,6 +311,25 @@ export async function PUT(
   if (body.registrationEnabled !== undefined) data.registrationEnabled = body.registrationEnabled;
   if (body.registrationClosed !== undefined) data.registrationClosed = body.registrationClosed;
   if (body.registrationCapacity !== undefined) data.registrationCapacity = body.registrationCapacity != null ? Number(body.registrationCapacity) : null;
+  // Places never fewer than the places taken (registered, and held while
+  // paying), as in the Registration app's settings (2026-10-24).
+  if (
+    typeof data.registrationCapacity === "number" &&
+    data.registrationCapacity !== existing.registrationCapacity
+  ) {
+    const taken = await db.registration.count({
+      where: { programId: existing.id, status: { in: ["REGISTERED", "APPROVED", "PENDING_PAYMENT"] } },
+    });
+    if (data.registrationCapacity < taken) {
+      return NextResponse.json(
+        // The number only for those who can open Registration: Programs shows no one's count.
+        { error: canUseRegistration(session.user.roles)
+            ? `${taken} ${taken === 1 ? "place is" : "places are"} already taken, so Capacity can't be fewer than ${taken}. Nothing was saved.`
+            : "Capacity can't be fewer than the places already taken. Nothing was saved." },
+        { status: 422 },
+      );
+    }
+  }
   if (body.registrationDeadline !== undefined) data.registrationDeadline = centralToUtc(body.registrationDeadline);
   // "Anyone may join from the public page" is never kept on a program that
   // takes registrations (the editor, this route, the page and /enter agree).
@@ -352,8 +373,10 @@ export async function PUT(
     if (body.isOpenAccess && !existing.guestAccessKey) {
       data.guestAccessKey = randomBytes(6).toString("hex");
     }
-    // Clear key when disabling
-    if (!body.isOpenAccess) {
+    // Clear key when disabling. Only for the three roles (2026-10-24): for
+    // anyone else turning guest access off and on keeps the same link, since
+    // a new link is the role-only reset (the door still refuses it while off).
+    if (!body.isOpenAccess && canUseProgramManager(session.user.roles)) {
       data.guestAccessKey = null;
     }
   }

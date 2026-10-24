@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { canUsePrograms } from "@/lib/toolAuth";
 
 /**
  * GET /api/members/search?q=
  * Search active members by name. Returns id, firstName, lastName.
- * TEACHER and ADMIN access only.
+ * The roles below, or anyone who may use Programs (its teacher picker). Only
+ * teachers' names are returned.
  */
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -14,7 +16,10 @@ export async function GET(request: NextRequest) {
   }
 
   const roles = session.user.roles ?? [];
-  if (!roles.some((r: string) => ["ADMIN", "TEACHER", "REGISTRAR", "GUIDING_TEACHER"].includes(r))) {
+  if (
+    !roles.some((r: string) => ["ADMIN", "TEACHER", "REGISTRAR", "GUIDING_TEACHER"].includes(r)) &&
+    !(await canUsePrograms(session.user.id, roles))
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

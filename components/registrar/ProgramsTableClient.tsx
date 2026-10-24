@@ -32,14 +32,19 @@ export default function ProgramsTableClient({
   programs,
   hubBase,
   basePath: basePathProp,
-  isRegistrar,
+  canSeePeople,
+  canArchive,
   isAdmin,
 }: {
   programs: ProgramRow[];
   hubBase?: string;
   /** Base path for program links (e.g. "/tools/programs"). Falls back to hubBase/programs. */
   basePath?: string;
-  isRegistrar: boolean;
+  /** May open Registration: counts of people, waitlists and dana, and the
+   *  People link (2026-10-24). Everyone using Programs may edit. */
+  canSeePeople: boolean;
+  /** Archive and restore: the Registrar, Admin and Guiding Teacher roles. */
+  canArchive: boolean;
   isAdmin: boolean;
 }) {
   const basePath = basePathProp ?? `${hubBase}/programs`;
@@ -331,8 +336,7 @@ export default function ProgramsTableClient({
             [
               ["all", `All (${counts.all})`],
               ["open", "Open"],
-              ["waitlist", "Has waitlist"],
-              ["attention", "Needs attention"],
+              ...(canSeePeople ? [["waitlist", "Has waitlist"], ["attention", "Needs attention"]] : []),
               ["archived", `Archived${counts.archived > 0 ? ` (${counts.archived})` : ""}`],
             ] as [Filter, string][]
           ).map(([key, label]) => (
@@ -378,14 +382,12 @@ export default function ProgramsTableClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {isRegistrar && (
-            <Link
-              href={`${basePath}/new`}
-              className="pe-btn pe-btn--primary vol-add-btn"
-            >
-              + Add Program
-            </Link>
-          )}
+          <Link
+            href={`${basePath}/new`}
+            className="pe-btn pe-btn--primary vol-add-btn"
+          >
+            + Add Program
+          </Link>
         </div>
       </div>
 
@@ -407,12 +409,10 @@ export default function ProgramsTableClient({
               <th className="vol-table__th">Category</th>
               <th className="vol-table__th">Format</th>
               <th className="vol-table__th">Delivery</th>
-              {isRegistrar && <th className="vol-table__th">Registration</th>}
-              <th className="vol-table__th">Capacity</th>
-              {isRegistrar && <th className="vol-table__th">Flags</th>}
-              {isRegistrar && (
-                <th className="vol-table__th vol-table__th--right">Actions</th>
-              )}
+              <th className="vol-table__th">Registration</th>
+              <th className="vol-table__th">{canSeePeople ? "Capacity" : "Places"}</th>
+              {canSeePeople && <th className="vol-table__th">Flags</th>}
+              <th className="vol-table__th vol-table__th--right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -425,7 +425,7 @@ export default function ProgramsTableClient({
               >
                 {/* Program */}
                 <td className="vol-table__td">
-                  {isRegistrar && !p.archivedAt ? (
+                  {!p.archivedAt ? (
                     <Link
                       href={`${basePath}/${p.slug}/edit`}
                       className="vol-table__name"
@@ -447,23 +447,24 @@ export default function ProgramsTableClient({
                 {/* Delivery: in person, virtual, or hybrid (Program.programFormat) */}
                 <td className="vol-table__td">{formatBadge(p.programFormat)}</td>
 
-                {/* Registration (registrar only) */}
-                {isRegistrar && (
-                  <td className="vol-table__td">{regBadge(p)}</td>
-                )}
+                {/* Registration: open, closed or off */}
+                <td className="vol-table__td">{regBadge(p)}</td>
 
-                {/* Capacity */}
-                <td className="vol-table__td">{capacityCell(p)}</td>
+                {/* Capacity: people taken only for those who can open Registration */}
+                <td className="vol-table__td">
+                  {canSeePeople ? capacityCell(p) : (
+                    <span className="vol-cap__text">{p.registrationCapacity ?? "No limit"}</span>
+                  )}
+                </td>
 
-                {/* Flags (registrar only) */}
-                {isRegistrar && (
+                {/* Flags (people and dana) */}
+                {canSeePeople && (
                   <td className="vol-table__td">{flagsCell(p)}</td>
                 )}
 
-                {/* Actions (registrar only) */}
-                {isRegistrar && (
-                  <td className="vol-table__td vol-table__td--right">
+                <td className="vol-table__td vol-table__td--right">
                     {p.archivedAt ? (
+                      canArchive ? (
                       <div className="vol-table__actions">
                         <button
                           className="vol-table__action"
@@ -496,33 +497,37 @@ export default function ProgramsTableClient({
                           )
                         ) : null}
                       </div>
+                      ) : null
                     ) : (
                       <div className="vol-table__actions">
                         {/* Its people live in the Registration app (2026-10-23). */}
-                        <Link
-                          href={`/tools/registration/${p.slug}`}
-                          className="vol-table__action"
-                        >
-                          People
-                        </Link>
+                        {canSeePeople && (
+                          <Link
+                            href={`/tools/registration/${p.slug}`}
+                            className="vol-table__action"
+                          >
+                            People
+                          </Link>
+                        )}
                         <Link
                           href={`${basePath}/${p.slug}/edit`}
                           className="vol-table__action"
                         >
                           Edit
                         </Link>
-                        <button
-                          className="vol-table__action vol-table__action--muted"
-                          onClick={() =>
-                            setConfirming({ slug: p.slug, action: "archive" })
-                          }
-                        >
-                          Archive
-                        </button>
+                        {canArchive && (
+                          <button
+                            className="vol-table__action vol-table__action--muted"
+                            onClick={() =>
+                              setConfirming({ slug: p.slug, action: "archive" })
+                            }
+                          >
+                            Archive
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
-                )}
               </tr>
             ))}
           </tbody>
