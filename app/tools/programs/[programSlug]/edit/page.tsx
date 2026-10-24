@@ -11,8 +11,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
 import type { ProgramData } from "@/components/registrar/ProgramEditor";
-import { toCentralDatetime } from "@/lib/timezone";
-import { hasOpenEntry, resolveOffering } from "@/lib/programOffering";
+import { EDITOR_PROGRAM_INCLUDE, programToEditorData } from "@/lib/programEditorData";
 
 export const dynamic = "force-dynamic";
 
@@ -31,14 +30,7 @@ export default async function EditProgramToolPage({
   const [program, categories, hubs, coverageRows] = await Promise.all([
     db.program.findUnique({
       where: { slug: programSlug },
-      include: {
-        // The old category, for the offering's fallback while its own fields are empty.
-        category: { select: { slug: true, kind: true } },
-        programTeachers: {
-          orderBy: { order: "asc" },
-          include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
-        },
-      },
+      include: EDITOR_PROGRAM_INCLUDE,
     }),
     db.programCategory.findMany({ orderBy: { sortOrder: "asc" } }),
     // Active hubs feed the Hosting & Access tab dropdown. Coordinator
@@ -112,86 +104,7 @@ export default async function EditProgramToolPage({
     },
   });
 
-  const offering = resolveOffering(program);
-
-  const initialData: ProgramData = {
-    id: program.id,
-    slug: program.slug,
-    name: program.name,
-    tagline: program.tagline ?? "",
-    programImage: program.programImage ?? "",
-    description: program.description,
-    pullQuote: program.pullQuote ?? "",
-    pullQuoteSource: program.pullQuoteSource ?? "",
-    teacherFacilitators: program.teacherFacilitators,
-    programTeachers: program.programTeachers?.map((pt) => ({
-      id: pt.user.id,
-      firstName: pt.user.preferredName || pt.user.firstName || "",
-      lastName: pt.user.lastName || "",
-    })) ?? [],
-    categoryId: program.categoryId ?? "",
-    // The offering's own fields, or (until the migration has filled them) the
-    // values its old category implies, so the dropdowns open on a sensible choice.
-    offeringCategory: offering.category ?? "",
-    offeringFormat: offering.format ?? "",
-    silentMeditation: offering.silentMeditation,
-    hostedByVolunteers: offering.hostedByVolunteers,
-    // Its own setting; while still empty, the answer the old rule gave.
-    openEntry: hasOpenEntry(program),
-    flodeskSync: program.flodeskSync ?? null,
-    flodeskSegmentId: program.flodeskSegmentId ?? null,
-    flodeskSegmentName: program.flodeskSegmentName ?? null,
-    offeringFromLegacy: offering.source === "legacy-category",
-    dateText: program.dateText ?? "",
-    timeText: program.timeText ?? "",
-    programFormat: program.programFormat,
-    venue: program.venue,
-    locationText: program.locationText ?? "",
-    locationLink: program.locationLink ?? "",
-    startDatetime: toCentralDatetime(program.startDatetime),
-    endDatetime: toCentralDatetime(program.endDatetime),
-    recurrenceFreq: program.recurrenceFreq ?? "",
-    recurrenceInterval: program.recurrenceInterval?.toString() ?? "",
-    recurrenceDays: program.recurrenceDays,
-    recurrenceCount: program.recurrenceCount?.toString() ?? "",
-    registrationEnabled: program.registrationEnabled,
-    registrationClosed: program.registrationClosed,
-    registrationCapacity: program.registrationCapacity?.toString() ?? "",
-    registrationDeadline: toCentralDatetime(program.registrationDeadline),
-    registrationFields: (program.registrationFields as any[]) ?? [],
-    confirmationMessage: program.confirmationMessage,
-    reminderDate: toCentralDatetime(program.reminderDate),
-    reminderMessage: program.reminderMessage,
-    danaMode: program.danaMode,
-    suggestedDana: program.suggestedDana?.toString() ?? "",
-    danaBaseAmount: program.danaBaseAmount?.toString() ?? "",
-    danaFixedAmount: program.danaFixedAmount?.toString() ?? "",
-    danaMessage: program.danaMessage ?? null,
-    danaText: program.danaText ?? "",
-    specialAnnouncement: program.specialAnnouncement ?? "",
-    announcementUntil: program.announcementUntil
-      ? program.announcementUntil.toLocaleDateString("en-CA", { timeZone: "America/Chicago" })
-      : "",
-    earlyArrivalMessage: program.earlyArrivalMessage ?? "",
-    hideFromDashboard: program.hideFromDashboard,
-    dayOfWeek: program.dayOfWeek,
-    sortOrder: program.sortOrder?.toString() ?? "",
-    removeFromProgramList: program.removeFromProgramList,
-    dashboardShowAt: toCentralDatetime(program.dashboardShowAt),
-    hideFromProgramPageList: program.hideFromProgramPageList,
-    hideFromWeeklySchedule: program.hideFromWeeklySchedule,
-    hideWhenPast: program.hideWhenPast,
-    archived: program.archivedAt !== null,
-    isOpenAccess: program.isOpenAccess,
-    guestAccessKey: program.guestAccessKey ?? "",
-    programNotes: program.programNotes ?? null,
-    hostingHubSlug: program.hostingHubSlug ?? null,
-    hostingRequired: program.hostingRequired ?? true,
-    recordByDefault: program.recordByDefault ?? false,
-    outsideMeetingUrl: program.outsideMeetingUrl ?? "",
-    outsideMeetingPublic: program.outsideMeetingPublic,
-    coverageHubSlugs: coverageRows.map((r) => r.hubSlug),
-  };
+  const initialData: ProgramData = programToEditorData(program, coverageRows.map((r) => r.hubSlug));
 
   return (
     <div className="vol-page">

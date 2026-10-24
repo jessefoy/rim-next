@@ -19,9 +19,9 @@ import { countPlacesTaken } from "@/lib/registrationPlaces";
 // - The page sends the program's updatedAt as it loaded; if the program has
 //   changed since (in the editor, or here in another tab), nothing is saved and
 //   the person is asked to reload, so a save here never undoes a newer change.
-//   The other way round isn't guarded yet: the editor's save sends these fields
-//   without that check, so a stale editor tab can put back an older value
-//   (Phase 2 of the plan gives the editor the same check).
+//   The other way round is guarded by the editor's safe saves (2026-10-24):
+//   it sends only what it changed, and a field changed here meanwhile is
+//   refused there.
 
 const PLACES_MAX = 10000;
 

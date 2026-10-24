@@ -9,6 +9,7 @@ import { randomBytes } from "crypto";
 import { Prisma } from "@prisma/client";
 import { withQuestionIds } from "@/lib/registrationFields";
 import { countPlacesTaken } from "@/lib/registrationPlaces";
+import { EDITOR_FIELD_LABELS, EDITOR_PROGRAM_INCLUDE, editorFieldValue, programToEditorData } from "@/lib/programEditorData";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { clearCoverageNoLongerStaffed, clearOffScheduleCoverage, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal, supportingTeamRefusal } from "@/lib/programHub";
@@ -108,6 +109,39 @@ export async function PUT(
   }
 
   const body = await request.json();
+
+  // Safe saves (2026-10-24, Phase 2). The editor sends only the fields that
+  // changed, with `_base`: each one as it was when the editor opened. If
+  // anyone has changed one of those same fields since (in another editor, or
+  // in Registration's settings), nothing is saved and the editor says which.
+  // Changes to other fields meanwhile are kept: they aren't in this save.
+  const base = body._base && typeof body._base === "object" && !Array.isArray(body._base)
+    ? (body._base as Record<string, unknown>)
+    : null;
+  delete body._base;
+  if (base && Object.keys(base).length > 0) {
+    const [now, coverageNow] = await Promise.all([
+      db.program.findUnique({ where: { id: existing.id }, include: EDITOR_PROGRAM_INCLUDE }),
+      db.programCoverageHub.findMany({ where: { programSlug: slug }, select: { hubSlug: true } }),
+    ]);
+    if (now) {
+      const stored = programToEditorData(now, coverageNow.map((r) => r.hubSlug));
+      const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+      const changedMeanwhile = Object.keys(base).filter((k) => !same(editorFieldValue(stored, k), base[k]));
+      if (changedMeanwhile.length > 0) {
+        const names = [...new Set(changedMeanwhile.map((k) => EDITOR_FIELD_LABELS[k] ?? "a detail"))];
+        const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+        return NextResponse.json(
+          {
+            error: `Someone else changed ${list} since you opened this program, so nothing was saved. Your changes are still here. Reload the page to see theirs, then make yours again.`,
+            conflict: true,
+            fields: changedMeanwhile,
+          },
+          { status: 409 },
+        );
+      }
+    }
+  }
 
   // The pull quote is optional; a source cannot stand without its quote. Both
   // are resolved against what is stored when the request leaves one out.
@@ -825,7 +859,15 @@ export async function PUT(
       })
     : [];
 
-  return NextResponse.json({ ...updated, seatConflicts, scheduleCleared });
+  // The program as the editor now holds it, so its next save compares against
+  // this save rather than against when the page opened.
+  const [forEditor, coverageAfter] = await Promise.all([
+    db.program.findUnique({ where: { id: updated.id }, include: EDITOR_PROGRAM_INCLUDE }),
+    db.programCoverageHub.findMany({ where: { programSlug: updated.slug }, select: { hubSlug: true } }),
+  ]);
+  const editorData = forEditor ? programToEditorData(forEditor, coverageAfter.map((r) => r.hubSlug)) : null;
+
+  return NextResponse.json({ ...updated, seatConflicts, scheduleCleared, editorData });
 }
 
 export async function DELETE(

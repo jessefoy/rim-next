@@ -6,6 +6,10 @@ The Program Manager is the operational application for creating and maintaining 
 
 ---
 
+## Safe saves (Phase 2, 2026-10-24)
+
+The editor sends only the fields that changed since the page opened (or since its last save), each with `_base`: its value then, in the editor's own terms. `PUT /api/programs-pg/[slug]` compares each against the program as stored now, through the same mapping the edit page uses (`lib/programEditorData.ts`: `programToEditorData`, `editorFieldValue`; teachers and supporting teams included). If anyone changed one of those same fields meanwhile (another editor, or the Registration app's settings), nothing is saved; the 409 names the fields in plain words (`EDITOR_FIELD_LABELS`) and the editor keeps its edits. Changes to other fields meanwhile are kept, since this save doesn't carry them. The response's `editorData` becomes the next save's starting point. Saving with nothing changed says Saved and sends nothing. Creating a program still sends everything. The route still accepts a full payload without `_base` (nothing else sends one).
+
 ## Routes and access
 
 - `/tools/programs` — program index

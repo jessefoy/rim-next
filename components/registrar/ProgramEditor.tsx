@@ -26,6 +26,7 @@ import { programUsesFlodesk } from "@/lib/flodeskRules";
 import { cleanOutsideMeetingUrl, onlinePhrase } from "@/lib/outsideMeeting";
 import { EARLY_OPEN_MIN, LATE_GRACE_MIN } from "@/lib/sessionWindowConstants";
 import { SaveNote } from "@/components/FormDone";
+import { editorFieldValue } from "@/lib/programEditorData";
 import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 
 interface TeacherItem {
@@ -893,6 +894,108 @@ export default function ProgramEditor({
     await doSave();
   }
 
+  // ── What a save sends: every field, in the save route's terms ──────────────
+  function buildPayload(): Record<string, unknown> {
+    return {
+      name,
+      slug,
+      tagline,
+      programImage: programImage || null,
+      description,
+      pullQuote: pullQuote.trim(),
+      pullQuoteSource: pullQuoteSource.trim(),
+      programNotes,
+      teacherFacilitators: teacherFacilitatorsText
+        ? teacherFacilitatorsText.split(",").map((s) => s.trim()).filter(Boolean)
+        : [],
+      teacherIds: selectedTeachers.map((t) => t.id),
+      categoryId: categoryId || null,
+      offeringCategory,
+      offeringFormat,
+      silentMeditation,
+      hostedByVolunteers,
+      openEntry,
+      flodeskSync: flodeskChoice === "auto" ? null : flodeskChoice === "on",
+      ...(flodeskSegmentChanged ? { flodeskSegmentId: flodeskSegment?.id ?? null } : {}),
+      dateText,
+      timeText,
+      programFormat,
+      venue,
+      locationText,
+      locationLink,
+      startDatetime: startDatetime || null,
+      endDatetime: endDatetime || null,
+      recurrenceFreq: recurrenceFreq || null,
+      recurrenceInterval: recurrenceInterval ? Number(recurrenceInterval) : null,
+      recurrenceDays,
+      recurrenceCount: recurrenceCount ? Number(recurrenceCount) : null,
+      registrationEnabled,
+      registrationClosed,
+      registrationCapacity: registrationCapacity ? Number(registrationCapacity) : null,
+      registrationDeadline: registrationDeadline || null,
+      registrationFields: registrationFields.length > 0 ? registrationFields : null,
+      confirmationMessage,
+      reminderDate: reminderDate || null,
+      reminderMessage,
+      danaMode,
+      suggestedDana: suggestedDana ? Number(suggestedDana) : null,
+      danaBaseAmount: danaBaseAmount ? Number(danaBaseAmount) : null,
+      danaFixedAmount: danaFixedAmount ? Number(danaFixedAmount) : null,
+      danaMessage,
+      danaText,
+      specialAnnouncement,
+      announcementUntil: announcementUntil || null,
+      earlyArrivalMessage,
+      hideFromDashboard,
+      dayOfWeek: deriveDayOfWeek(recurrenceFreq, recurrenceDays, startDatetime),
+      sortOrder: sortOrder ? Number(sortOrder) : null,
+      removeFromProgramList,
+      dashboardShowAt: dashboardShowAt || null,
+      hideFromProgramPageList,
+      hideFromWeeklySchedule,
+      hideWhenPast,
+      isOpenAccess,
+      // Empty string serialises as null (the implicit "host-team" default).
+      // Server-side `getProgramHubSlug` falls through to host-team when null.
+      hostingHubSlug: hostingHubSlug || null,
+      // "No host needed" toggle (stored as the inverse). When false the
+      // program is self-led and excluded from the Scheduler + rotations.
+      hostingRequired,
+      recordByDefault,
+      // The outside room: empty means RIM's Zoom. Kept as stored for an
+      // in-person program (readers ignore it there), so switching the format
+      // back doesn't lose the link.
+      // An in-person program keeps an unfinished link out of the save
+      // (undefined leaves what is stored) rather than failing on a field
+      // that isn't on screen.
+      outsideMeetingUrl:
+        roomChoice === "outside"
+          ? (() => {
+              const check = cleanOutsideMeetingUrl(outsideUrl);
+              return check.ok ? check.value : undefined;
+            })()
+          : null,
+      outsideMeetingPublic: roomChoice === "outside" && outsidePublic && !registrationEnabled,
+      // Auxiliary hubs providing role coverage. Empty array means no
+      // additional coverage. Server replaces the full set on each save.
+      // Only ticked teams the list still shows: a team hidden by a format
+      // change isn't sent, so it's unticked rather than refused
+      // (2026-10-16 review).
+      coverageHubSlugs: coverageHubSlugs.filter((slug) => {
+        const h = hubs.find((x) => x.slug === slug);
+        return !!h && !h.hasSchedule && !!h.usesScheduler &&
+          h.slug !== (hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG) &&
+          (h.appliesToFormats ?? []).includes(programFormat);
+      }),
+    };
+  }
+  // The payload as last saved (or as the page opened), and the program as the
+  // save route then held it: a save sends only the difference, with each
+  // changed field's value then (Phase 2 safe saves, 2026-10-24).
+  const savedPayloadRef = useRef<Record<string, unknown> | null>(null);
+  if (savedPayloadRef.current === null) savedPayloadRef.current = buildPayload();
+  const loadedDataRef = useRef<ProgramData | null>(initialData ?? null);
+
   async function doSave() {
     setError("");
     setSuccess(false);
@@ -934,98 +1037,31 @@ export default function ProgramEditor({
     setSaving(true);
 
     try {
-      const payload: Record<string, unknown> = {
-        name,
-        slug,
-        tagline,
-        programImage: programImage || null,
-        description,
-        pullQuote: pullQuote.trim(),
-        pullQuoteSource: pullQuoteSource.trim(),
-        programNotes,
-        teacherFacilitators: teacherFacilitatorsText
-          ? teacherFacilitatorsText.split(",").map((s) => s.trim()).filter(Boolean)
-          : [],
-        teacherIds: selectedTeachers.map((t) => t.id),
-        categoryId: categoryId || null,
-        offeringCategory,
-        offeringFormat,
-        silentMeditation,
-        hostedByVolunteers,
-        openEntry,
-        flodeskSync: flodeskChoice === "auto" ? null : flodeskChoice === "on",
-        ...(flodeskSegmentChanged ? { flodeskSegmentId: flodeskSegment?.id ?? null } : {}),
-        dateText,
-        timeText,
-        programFormat,
-        venue,
-        locationText,
-        locationLink,
-        startDatetime: startDatetime || null,
-        endDatetime: endDatetime || null,
-        recurrenceFreq: recurrenceFreq || null,
-        recurrenceInterval: recurrenceInterval ? Number(recurrenceInterval) : null,
-        recurrenceDays,
-        recurrenceCount: recurrenceCount ? Number(recurrenceCount) : null,
-        registrationEnabled,
-        registrationClosed,
-        registrationCapacity: registrationCapacity ? Number(registrationCapacity) : null,
-        registrationDeadline: registrationDeadline || null,
-        registrationFields: registrationFields.length > 0 ? registrationFields : null,
-        confirmationMessage,
-        reminderDate: reminderDate || null,
-        reminderMessage,
-        danaMode,
-        suggestedDana: suggestedDana ? Number(suggestedDana) : null,
-        danaBaseAmount: danaBaseAmount ? Number(danaBaseAmount) : null,
-        danaFixedAmount: danaFixedAmount ? Number(danaFixedAmount) : null,
-        danaMessage,
-        danaText,
-        specialAnnouncement,
-        announcementUntil: announcementUntil || null,
-        earlyArrivalMessage,
-        hideFromDashboard,
-        dayOfWeek: deriveDayOfWeek(recurrenceFreq, recurrenceDays, startDatetime),
-        sortOrder: sortOrder ? Number(sortOrder) : null,
-        removeFromProgramList,
-        dashboardShowAt: dashboardShowAt || null,
-        hideFromProgramPageList,
-        hideFromWeeklySchedule,
-        hideWhenPast,
-        isOpenAccess,
-        // Empty string serialises as null (the implicit "host-team" default).
-        // Server-side `getProgramHubSlug` falls through to host-team when null.
-        hostingHubSlug: hostingHubSlug || null,
-        // "No host needed" toggle (stored as the inverse). When false the
-        // program is self-led and excluded from the Scheduler + rotations.
-        hostingRequired,
-        recordByDefault,
-        // The outside room: empty means RIM's Zoom. Kept as stored for an
-        // in-person program (readers ignore it there), so switching the format
-        // back doesn't lose the link.
-        // An in-person program keeps an unfinished link out of the save
-        // (undefined leaves what is stored) rather than failing on a field
-        // that isn't on screen.
-        outsideMeetingUrl:
-          roomChoice === "outside"
-            ? (() => {
-                const check = cleanOutsideMeetingUrl(outsideUrl);
-                return check.ok ? check.value : undefined;
-              })()
-            : null,
-        outsideMeetingPublic: roomChoice === "outside" && outsidePublic && !registrationEnabled,
-        // Auxiliary hubs providing role coverage. Empty array means no
-        // additional coverage. Server replaces the full set on each save.
-        // Only ticked teams the list still shows: a team hidden by a format
-        // change isn't sent, so it's unticked rather than refused
-        // (2026-10-16 review).
-        coverageHubSlugs: coverageHubSlugs.filter((slug) => {
-          const h = hubs.find((x) => x.slug === slug);
-          return !!h && !h.hasSchedule && !!h.usesScheduler &&
-            h.slug !== (hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG) &&
-            (h.appliesToFormats ?? []).includes(programFormat);
-        }),
-      };
+      const full = buildPayload();
+      let payload: Record<string, unknown> = full;
+      if (isEditing) {
+        // Safe saves (2026-10-24): only what changed since the page opened (or
+        // since the last save), each with its value then, so the save route
+        // can refuse a field someone else changed meanwhile and keep theirs.
+        const before = savedPayloadRef.current ?? {};
+        // The date and time words are worked out by the server from the
+        // schedule (it ignores what's sent), and by this page after it opens,
+        // so they never count as a change.
+        const changed = Object.keys(full).filter(
+          (k) => k !== "dateText" && k !== "timeText" && JSON.stringify(full[k]) !== JSON.stringify(before[k]),
+        );
+        if (changed.length === 0) {
+          setDirty(false);
+          setSuccess(true);
+          setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
+          return;
+        }
+        payload = Object.fromEntries(changed.map((k) => [k, full[k]]));
+        const loaded = loadedDataRef.current;
+        if (loaded) {
+          payload._base = Object.fromEntries(changed.map((k) => [k, editorFieldValue(loaded, k) ?? null]));
+        }
+      }
 
       const url = isEditing ? `/api/programs-pg/${initialData?.slug}` : "/api/programs-pg";
       const method = isEditing ? "PUT" : "POST";
@@ -1045,6 +1081,9 @@ export default function ProgramEditor({
       if (isEditing) {
         // Update guestAccessKey from response if it was generated
         const updated = await res.json();
+        // The next save compares against this one.
+        savedPayloadRef.current = full;
+        if (updated.editorData) loadedDataRef.current = updated.editorData as ProgramData;
         setSeatConflicts(updated.seatConflicts ?? []);
         setScheduleCleared(updated.scheduleCleared ?? null);
         if (updated.guestAccessKey && !guestAccessKey) {
