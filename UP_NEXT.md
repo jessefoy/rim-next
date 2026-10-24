@@ -1,8 +1,26 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-22 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-24 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-22 closed: shorter pages, the three circles, an integrity pass; every public page measured and recomposed
+## Active — 2026-10-24 closed: Programs and Registration are two apps; Phase 1 done, Phase 2 begun
+
+Everything is on `main` (`5339e30` … `5094465`, and this closing). Narrative: `session-log.md`, 2026-10-23 to 10-24. The plan: `mockups/registration-2026-10-23/BUILD_PLAN.md` (four phases) and `CONCEPT.md` ("Who's helping, who's asking"). The app: `RIM_Registration_App.md`. The editor: `RIM_ProgramEditor.md`.
+
+**Live:**
+- **The Registration app** (`/tools/registration`, Registrar/Admin/Guiding Teacher): the desk; each program's people, settings, Add a person, Message people, sign-in list, early reminder, history and notes. It is the Registration team's main app; the old roster address redirects.
+- **Programs open to its teams** (Registration team, Program Central; installed in both), showing no one's details.
+- **Safe saves** in the editor (only what changed; a field someone else changed meanwhile is refused and named).
+
+**Waiting on Jesse:**
+- **Read-aloud:** `registration-message`, `registration-cancelled`, the Registration app's words (desk, Needs you, cards, panels, confirmations, History lines), and the editor's conflict message.
+- **The "give online" email** (backlog `2026-10-24-002`).
+- **Phase 3 decisions** in `BUILD_PLAN.md`: should the teacher see people waiting; "New to RIM" and old-site members; a greeter's "Today's list" button.
+
+**Not yet tried live (no one has used these for real):** a save with a change in the editor, and two people saving at once; Add a person; the cancellation email; a group message; a settings save in Registration. A Program Central member without a role opening Programs.
+
+**Next concrete step:** Phase 2, piece 2: **the editor as one page in sections** (About; When and where; Who's helping; How people join; What we tell them; Dana; Where it appears), with a jump list and the unsaved-changes guard. Then "Opens on" (a new `registrationOpensAt`, read by the program page, register page, registration POST, course access and the desk), Post a notice, and "Ready to be seen". **Queued, small:** prune the old roster's CSS (`2026-10-24-001`).
+
+## Earlier — 2026-10-22 closed: shorter pages, the three circles, an integrity pass; every public page measured and recomposed
 
 Everything is on `main` (`57628ff` … `901d362`, and this closing). Narrative, word counts and measurements: `session-log.md`, 2026-10-22 (and its "Later" sections). Design record, vocabulary and rules: `RIM_Public_Pages.md`, "Shorter pages and the three circles". The Oct 21 to 22 Tutorials work is now documented (`RIM_Tutorials.md`; `session-log.md`, 2026-10-21 to 10-22).
 

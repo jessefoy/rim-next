@@ -1,3 +1,67 @@
+## 2026-10-23 to 10-24 — Programs and Registration become two apps
+
+On `main`: `5339e30` (research, concept, mockups, plan) … `5094465` (safe saves), and this closing. **Production:** no hand writes to the database. Through the app, with Jesse's yes each time: Registration installed in the Registration team's Space (primary, Program Manager supporting) and Programs installed in Program Central (`/admin/hubs`); one test message to jesse@ ("Send me a test", Dummy Test Program). Opening the Dummy Test Program's sign-in list added one History line.
+
+### The ask
+
+Jesse: *"I think we made a mistake in the beginning where we combined the program editor with registration. I think these should be two different things. Two different apps."* Research best practice, design the ideal program editor and registration apps, and don't break anything (*"things are pretty stable right now"*).
+
+### Research, concept and plan (`mockups/registration-2026-10-23/`)
+
+- **Research:** `reports/Registration software feature inventory.md` (Planning Center, Retreat Guru, Eventbrite, CiviCRM and about twenty more), with notes in `research_notes/`. Corrected after review: the automatic reminder reaches late registrants only when sent by hand.
+- **Concept** (`CONCEPT.md`, mockup `index.html`, earlier `index-v2.html`): after a permission-system draft felt wrong to Jesse (*"let's think about it freshly"*), **"Who's helping, who's asking"**. Every question on the form is asked by a helper (the teacher, greeters, a team preparing Dietary needs, the registration team), and each helper has one page that is plainly theirs. This replaced roster sharing and per-question audiences.
+- **Plan** (`BUILD_PLAN.md`, with a Connections Map): four phases. (1) Registration becomes its own app; (2) the editor as one page; (3) helpers and their pages; (4) reminder timing, follow-up, shapes, copy.
+
+### Jesse's rulings
+
+- Setup stays together in the editor (how people join included); registration settings can be changed in both apps.
+- The registrar's program page opens on what needs a person. The editor is one page in sections.
+- The registration team reads every answer; no automatic clearing of answers.
+- Teachers can reach each person by email and phone. "Dietary needs", not "the kitchen".
+- **Dana amounts are seen only by the Registrar, Guiding Teacher and Admin roles**; helpers never see dana.
+- Teacher-written questions and helper comments wait until the first version is used (recommended, accepted).
+- **Programs opens to the teams that set programs up** (2026-10-24): active members of the Registration team and Program Central. People's details stay in Registration.
+- Explain everything in plainer English (memory updated).
+
+### What was built (Phase 1, then Phase 2's first piece)
+
+1. **The Registration app** (`/tools/registration`, `RIM_Registration_App.md`), role-only (`canUseRegistration`). The desk shows Needs you, Going out soon, programs with registration on, and older programs. Each program's page has a state line, Needs you, a settings fold, People and History. The People tab has filters, search, and a card for each person: place, dana (amounts by `canSeeDanaAmounts`), answers (change them, or send the link), notes with author and date, and history. The program page also offers Add a person, Message people (with a test first; up to 50), a printed sign-in list, a spreadsheet download (recorded), and sending the reminder early.
+2. **Data:** `registration_events` and `registration_notes` (additive, in `migrate.mjs`, `memberMerge` pointers). History is recorded at every staff action and at the public paths: dana given or declined, the no-dana sweep, the scheduled reminder, answers changed from the emailed link.
+3. **Emails:** `registration-message` and `registration-cancelled` (seeded, wording provisional). Cancelling asks "Email them to say so" (ticked by default). "They'll give online" sends the existing `dana-reminder` link, and the confirmation follows the choice (sending it at once had double-sent).
+4. **The old roster** `/tools/programs/[slug]` redirects; `VolunteerTable` is removed. The Programs list's name opens the editor, plus a People action. Email links, the Notifications label and the member registry point to Registration.
+5. **Settings in Registration:** open or closed, places, the closing date, the mailing list, through a narrow route with a places guard and a check that nothing changed meanwhile.
+6. **Question ids:** each question gets a stable `_key` on save (`lib/registrationFields.ts`). Removing every question now clears them. Answers stay keyed by wording until Phase 3.
+7. **One count of places** (`lib/registrationPlaces.ts`), used everywhere places are counted.
+8. **Programs opened to its teams** (`canUsePrograms`, `alsoSpaceSlugs: ["program-central"]`). Archive, restore, delete, the guest-link reset and categories stay with the three roles. People counts are sent only to those who can open Registration. For anyone else, turning guest access off and on keeps the same link. The editor refuses fewer places than are taken.
+9. **Phase 2, safe saves:** the editor sends only changed fields with `_base`. The save route refuses a field someone else changed meanwhile and keeps changes to other fields. `lib/programEditorData.ts` is the shared mapping.
+
+### Checks
+
+`tsc` clean and the member harness (124 checks) on every commit. A reviewer sub-agent checked each slice; its findings were fixed before push: a double-sent confirmation, a held place that could double-register, the send-time limit, a stale-deadline summary, old Programs links in other teams, guest-link regeneration, paused members, a false conflict from the date words. Checked live, signed in, at 1280 and 360 to 390: the desk, program pages, cards, the settings fold, both panels, the sign-in list, the redirect, team Home and the rail, the editor loading, and Save with no change sending nothing. Two fixes came from those checks. The roster's phone rows had been flattened by a later programs-list rule, which also affected the old roster. The End of Year Gathering's reminder, set for Dec 2, actually sends Dec 3 at 8 AM, because the daily send runs at 14:00 UTC.
+
+### Closing audits
+
+- **Hub audit, four layers:** the gates follow the registry (Registration role-only; Programs the roles or its two teams); the new emails go to individuals, not team pools; the Registration app is not team-scoped by design (primary-space). **Layer 4 found a gap, fixed in this closing:** the support@ notice, `registration-cancelled-internal`, `responses-updated-internal` and the registrar-role notice linked to `/tools/registration/…` without the team, so they opened outside the Registration team's Space; they now use `hubScopedUrl(…, "registrar")`.
+- **Email templates:** two new, both seeded in the same commits and present in `/admin/emails`: `registration-message`, `registration-cancelled`. Changed in code only (links and a button label): `registration-support-notification`, `registration-cancelled-internal`, `responses-updated-internal`, `registrar-role-assigned`'s notice. No template body changed.
+- **Memory:** plain-English explanations widened to every explanation; new: rethink when uneasy; the live site address.
+
+### What this connects to
+
+- **Registration:** the public form and POST, the Stripe webhook, decline-dana, the cleanup and reminder crons, the update link, `sendRegistrationConfirmation`, Flodesk segments, course access.
+- **Team Spaces:** the app registry and hub app contract (`lib/toolRegistry.ts`, `lib/hubApps.ts`, `canSeeInstalledApp` at the three rail/Home filters), `/admin/hubs`.
+- **Notifications:** `registration-` kinds.
+- **The member registry** and member merge.
+- **The program editor:** save route, guest link, capacity, questions.
+- **Program pages:** places shown on the public program and register pages.
+
+### What comes next
+
+- **Phase 2 continues:** the editor as one page in sections, "Opens on", Post a notice, "Ready to be seen".
+- **Jesse's read-aloud:** the two new emails and the new app's words.
+- **Wording:** the "give online" email.
+- **Live tests not yet run:** a real change save (and two people at once), Add a person, a cancellation email, a group message, a settings save.
+- **Cleanup:** prune the old roster's `vol-` CSS. Phase 3 decisions 3 to 5 in `BUILD_PLAN.md`.
+
 ## 2026-10-22 — Shorter pages, the three circles, and an integrity pass
 
 On `main`: `57628ff` (the pages), `15736ea` (a word's link lands on it, opened), and this closing. **Production:** no writes. One read-only search (with Jesse's yes): 73 rows of `programs`, `teacher_profiles`, `courses`, `lessons`, `program_categories`, `course_categories` and `email_templates`, in a `READ ONLY` transaction, for H13's retired phrases: **no hits**.

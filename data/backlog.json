@@ -2052,5 +2052,25 @@
     "status": "open",
     "addedAt": "2026-10-22",
     "notes": "Found in the 2026-10-22 public-page review."
+  },
+  {
+    "id": "2026-10-24-001",
+    "title": "Prune the old roster's leftover vol- CSS",
+    "description": "components/registrar/VolunteerTable.tsx was removed (2026-10-23, the old roster redirects to the Registration app). About 60 vol- classes were used only by it (vol-stat-bar*, vol-reminder-*, vol-detail*, vol-spot-opened, vol-capacity__*, vol-filters, and the blocks commented \"(VolunteerTable)\" near custom.css ~3699, ~3713, ~11639, ~11866). Many vol- classes are still used by the Programs list and the Registration app, so prune per class, not by prefix (scripts/css-prune.mjs preserves shared selectors).",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-24",
+    "notes": "From the 2026-10-23 review of the roster move."
+  },
+  {
+    "id": "2026-10-24-002",
+    "title": "Its own email for \"They'll give online\" (Add a person)",
+    "description": "When the registration team adds someone who will give dana online, the app sends the existing dana-reminder email (its link lets them give or decline; the confirmation follows the choice). Its subject and opening, \"A gentle reminder\", read oddly as the first email someone gets. A dedicated template (\"Your place in {{programTitle}}, and your dana\") would say what happened. Needs Jesse's words; seed it with the send in one commit.",
+    "category": "Email & Notifications",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-24",
+    "notes": "Jesse to word it (read-aloud)."
   }
 ]

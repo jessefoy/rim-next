@@ -3,6 +3,7 @@ name: Plain-English explanations for design decisions
 description: How Jesse wants decisions explained to him before he makes them — what a thing is, where it shows up, and the decision, not just the technical tradeoff
 type: feedback
 originSessionId: 6e92db7e-914c-41c8-a560-795cfcd2d595
+modified: 2026-10-24T07:45:47.644Z
 ---
 When presenting a design decision for Jesse to make, explain each item in this format:
 
@@ -19,3 +20,5 @@ When presenting a design decision for Jesse to make, explain each item in this f
 - When the decision has downstream implications, name them in the recommendation line — don't make Jesse trace them.
 - Length: one short paragraph per section per item, not a wall of text. Tables work when the items are parallel.
 - This applies any time a design/architecture decision is on the table, not just for editor work. The pattern — what it is, where it shows up, the decision, the recommendation — generalizes.
+
+**Every explanation, not only decisions (2026-10-24).** After I explained "Going out soon" with a cron time in UTC and parenthetical asides, Jesse asked: "Can you explain this in a little more clear English when you're explaining stuff?" So in all explanations and status reports: short sentences, everyday words, one idea per sentence, no code names, UTC times, route paths or field names unless he needs them to act. Say what a person sees or does. Leave the mechanics out unless he asks.

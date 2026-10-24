@@ -629,7 +629,8 @@ const DANA_STATUS_LABEL: Record<string, string> = {
 export async function sendRegistrationSupportNotification(
   data: RegistrationSupportNotificationData
 ): Promise<void> {
-  const manageUrl = `${BASE_URL}/tools/registration/${data.programSlug}`;
+  // In the Registration team's Space, so the link opens with its sidebar.
+  const manageUrl = hubScopedUrl(`/tools/registration/${data.programSlug}`, "registrar");
   await sendTemplatedEmail("registration-support-notification", SUPPORT_EMAIL, {
     registrantName: data.registrantName,
     registrantEmail: data.registrantEmail,
@@ -718,7 +719,7 @@ export async function sendCancellationNotificationEmail(
     registrantName,
     registrantEmail,
     programTitle,
-    volunteerUrl: `${BASE_URL}/tools/registration/${programSlug}`,
+    volunteerUrl: hubScopedUrl(`/tools/registration/${programSlug}`, "registrar"),
   });
 }
 
@@ -765,7 +766,7 @@ export async function sendResponsesUpdatedEmail(data: ResponsesUpdatedEmailData)
   await sendTemplatedEmail("responses-updated-internal", REGISTRAR_EMAIL, {
     registrantName,
     programTitle,
-    volunteerUrl: `${BASE_URL}/tools/registration/${programSlug}`,
+    volunteerUrl: hubScopedUrl(`/tools/registration/${programSlug}`, "registrar"),
   });
 }
 
@@ -1179,7 +1180,7 @@ export async function sendRoleAssignmentEmail(data: RoleAssignmentEmailData): Pr
     firstName:    data.firstName,
     dashboardUrl: `${BASE_URL}/volunteer`,
   }, {
-    notice: { kind: "registrar-role-assigned", category: "personal", ...ACCOUNT_SOURCE, title: "You're now a registrar", href: "/tools/registration" },
+    notice: { kind: "registrar-role-assigned", category: "personal", ...ACCOUNT_SOURCE, title: "You're now a registrar", href: "/tools/registration?hub=registrar" },
   });
 }
 

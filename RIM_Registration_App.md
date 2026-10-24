@@ -49,7 +49,7 @@ Phase 1's pieces are built. "Going out soon" (2026-10-24) lists on the desk each
 
 - `registration-message` (`sendRegistrationMessageEmail`, group 02-registrations): the team's subject and message, shown exactly as typed (`memberText`), Reply-To the registrar's inbox, a notice in the person's Notifications (kind `registration-message`, Programs). The test copy says "[Test]" and records no notice. Wording provisional until Jesse's read-aloud.
 - `registration-cancelled` (`sendRegistrationCancelledEmail`, group 02-registrations): to the person when the team cancels them and leaves "Email them" ticked on the confirmation (the default). `notifyPerson: true` on the PATCH. The registrar's own notice (`registration-cancelled-internal`) is unchanged. Wording provisional.
-- Links: the support@ notice's button ("View in Registration"), `registration-cancelled-internal` and `responses-updated-internal` (`{{volunteerUrl}}`) and the registrar-role notice now open Registration; their template bodies are unchanged.
+- Links: the support@ notice's button ("View in Registration"), `registration-cancelled-internal` and `responses-updated-internal` (`{{volunteerUrl}}`) and the registrar-role notice now open Registration, inside the Registration team's Space (`hubScopedUrl(…, "registrar")`, the hub audit's layer 4); their template bodies are unchanged.
 - Add a person sends the existing confirmation or waiting-list email through the choke point (which also notifies support@).
 
 ## Home lines

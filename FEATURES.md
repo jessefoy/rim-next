@@ -13,6 +13,16 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 
 ---
 
+## October 23 to 24, 2026: Programs and Registration, two apps
+
+Jesse: the program editor and registration should be two apps. Researched, designed ("Who's helping, who's asking"), and built in phases (`mockups/registration-2026-10-23/BUILD_PLAN.md`).
+- **The Registration app** (`/tools/registration`), for the Registrar, Admin and Guiding Teacher roles. **The desk** shows what needs a person across programs, the reminders going out soon, and programs with registration on. **Each program's page** has its state, Needs you, and registration settings (open or closed, places, closing date, mailing list). It has People with filters and a card for each person: place, dana, answers, notes with author and date, and history. It offers Add a person, Message people, a printed sign-in list, a spreadsheet download, and sending the reminder early. Its History tab lists what was done. Dana amounts show only to the three roles. It is the Registration team's main app. See `RIM_Registration_App.md`.
+- **The old roster address redirects** to Registration. The Programs list opens the editor, with a People link.
+- **Programs is open to the teams that set programs up** (Registration team, Program Central). It shows no one's details. Archive, delete, the guest-link reset and categories stay with the three roles.
+- **Safe saves in the program editor:** only what changed is sent. A field someone else changed meanwhile is refused and named; other changes are kept.
+- **Emails:** a message from the registration team, and the cancellation to the person (wording provisional).
+- Smaller: questions keep a stable id; one count of places everywhere; the editor refuses fewer places than are taken; removing every question clears them.
+
 ## October 22, 2026: shorter public pages, the three circles, an integrity pass
 
 Readers found the site tiring to read; Jesse approved a condensation brief (the vault's `08-promotion-site-brief-condensation-2026-10-22.md`), implemented word for word.
@@ -364,15 +374,16 @@ The **offering model** (Programs vs Courses, the orthogonal access flags, Catego
 
 ### Registration
 `Registration` with `RegistrationStatus` (**PENDING_PAYMENT** / REGISTERED / WAITLISTED / APPROVED / CANCELLED) and `DonationStatus` (NOT_REQUIRED / PENDING / COMPLETED / WAIVED). **Completion-follows-the-choice model** (session 136): free → registered + confirmation at submit; voluntary dana → registered at submit, confirmation deferred to give/decline; required payment → a held `PENDING_PAYMENT` row (no account, no email, holds a seat, invisible everywhere) completed by the Stripe webhook on payment, discarded on abandonment. Single confirmation choke point `lib/registrationConfirmation.ts` (also fires the support@ notification).
-- **Routes/API:** `/api/registrations`, `/api/registrations/[id]`, `/api/registrations/[id]/decline-dana`, `/api/programs/[slug]/registrations` (CSV export), `/api/programs/[slug]/ical`, `/api/programs/[slug]/send-reminder`.
+- **Routes/API:** `/api/registrations`, `/api/registrations/[id]` (+ `/notes`), `/api/registrations/[id]/decline-dana`, `/api/programs/[slug]/registrations` (CSV export), `/api/programs/[slug]/ical`, `/api/programs/[slug]/send-reminder`, `/people` (add a person), `/message`, `/registration-settings`.
+- **The Registration app** (2026-10-23, `/tools/registration`) is where the registration team works: see `RIM_Registration_App.md`. History (`registration_events`) and notes (`registration_notes`).
 - **Registration changes:** cancellations are registrar-managed; members can update questionnaire responses only through a registrar-sent tokenized link (`/update/[token]` + `editToken` on `Registration`).
 - **Dana & Stripe:** `danaMode` ∈ none / voluntary / base_plus_dana / fixed; Stripe Checkout (`/api/stripe/checkout` + `/api/stripe/webhook`); `Donation` write-only ledger.
 - **Calendar & reminders:** `lib/calendarLinks.ts` (Google + `.ics`), reminder emails via the `send-reminders` cron.
 - **See:** `RIM_Registration.md`.
 
 ### Program Manager tool
-`/tools/programs` — program CRUD, scheduling, registration settings, categories. REGISTRAR / ADMIN.
-- **Routes:** `/tools/programs`, `/tools/programs/new`, `/tools/programs/[programSlug]`, `/tools/programs/[programSlug]/edit`, `/tools/programs/categories` · **API:** `/api/programs-pg/*`, `/api/programs-pg/categories/*`.
+`/tools/programs` — program CRUD, scheduling, registration settings, categories. The three roles, or active members of the Registration team and Program Central (2026-10-24, `canUsePrograms`); archive, delete, the guest-link reset and categories for the three roles only. Shows no one's details. Saves are safe saves (only what changed; same-field changes refused).
+- **Routes:** `/tools/programs`, `/tools/programs/new`, `/tools/programs/[programSlug]` (redirects to Registration), `/tools/programs/[programSlug]/edit`, `/tools/programs/categories` · **API:** `/api/programs-pg/*`, `/api/programs-pg/categories/*`.
 - ProgramEditor tabs: Content / Schedule / Hosting & Access / Categories / Registration / Dana / Visibility. The Registration tab carries a read-only "How this appears to visitors" readout (session 138).
 - **See:** `RIM_ProgramEditor.md` (full ecosystem trace, access, hub context, editor and design contract).
 

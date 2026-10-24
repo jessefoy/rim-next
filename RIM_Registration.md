@@ -4,6 +4,8 @@
 
 Companion to `RIM_Offering_Model.md` (what the offering/dana shapes *mean*) and `RIM_Email_Engineering.md` (outbound email rules). Established session 136 (2026-06-03).
 
+**The registration team's tool is the Registration app** (2026-10-23, `/tools/registration`): its routes, access, history, notes, Add a person, Message people and settings are in `RIM_Registration_App.md`. Places taken are counted by one helper, `countPlacesTaken` (`lib/registrationPlaces.ts`). Questions carry a stable `_key` (`lib/registrationFields.ts`); answers are still stored by wording. History is recorded at the public paths too: the webhook's dana-given, decline-dana, the no-dana sweep, the scheduled reminder, the update link. "They'll give online" from Add a person sends `dana-reminder`, and the confirmation follows the dana choice like any registered-and-dana-not-finished row.
+
 ---
 
 ## The governing principle
