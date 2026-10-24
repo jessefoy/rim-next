@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useBotTrap } from "@/components/BotTrap";
 import { useArrival } from "@/components/FormDone";
+import { questionKey } from "@/lib/registrationAnswers";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
@@ -413,8 +414,10 @@ export default function RegistrationForm({
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleCustom = (label: string, value: string) => {
-    setCustomAnswers((prev) => ({ ...prev, [label]: value }));
+  // Answers by the question's id, or its wording when it has none
+  // (lib/registrationAnswers.ts); the server keeps only the program's own.
+  const handleCustom = (key: string, value: string) => {
+    setCustomAnswers((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -612,8 +615,8 @@ export default function RegistrationForm({
               id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
               type="text"
               className="pg-form__input"
-              value={customAnswers[field.label] ?? ""}
-              onChange={(e) => handleCustom(field.label, e.target.value)}
+              value={customAnswers[questionKey(field)] ?? ""}
+              onChange={(e) => handleCustom(questionKey(field), e.target.value)}
               required={field.required}
             />
           )}
@@ -622,8 +625,8 @@ export default function RegistrationForm({
             <textarea
               id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
               className="pg-form__textarea"
-              value={customAnswers[field.label] ?? ""}
-              onChange={(e) => handleCustom(field.label, e.target.value)}
+              value={customAnswers[questionKey(field)] ?? ""}
+              onChange={(e) => handleCustom(questionKey(field), e.target.value)}
               required={field.required}
             />
           )}
@@ -632,8 +635,8 @@ export default function RegistrationForm({
             <select
               id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
               className="pg-form__select"
-              value={customAnswers[field.label] ?? ""}
-              onChange={(e) => handleCustom(field.label, e.target.value)}
+              value={customAnswers[questionKey(field)] ?? ""}
+              onChange={(e) => handleCustom(questionKey(field), e.target.value)}
               required={field.required}
             >
               <option value="">Select…</option>
@@ -646,8 +649,8 @@ export default function RegistrationForm({
             <select
               id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
               className="pg-form__select"
-              value={customAnswers[field.label] ?? ""}
-              onChange={(e) => handleCustom(field.label, e.target.value)}
+              value={customAnswers[questionKey(field)] ?? ""}
+              onChange={(e) => handleCustom(questionKey(field), e.target.value)}
               required={field.required}
             >
               <option value="">Select…</option>

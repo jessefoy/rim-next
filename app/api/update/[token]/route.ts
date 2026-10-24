@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { sendResponsesUpdatedEmail } from "@/lib/email";
 import { recordRegistrationEvent } from "@/lib/registrationEvents";
+import { mergeAnswers, type QuestionLike } from "@/lib/registrationAnswers";
 
 // ─── POST — registrant submits their updated responses via self-service link ──
 
@@ -28,18 +30,29 @@ export async function POST(
       return NextResponse.json({ error: "Link expired or invalid" }, { status: 410 });
     }
 
+    // Their changes merged over what's stored, by question id; an old answer
+    // stored by wording is kept, never rewritten (lib/registrationAnswers.ts).
+    const program = await db.program.findUnique({
+      where: { slug: registration.programSlug },
+      select: { registrationFields: true },
+    });
+    const questions = Array.isArray(program?.registrationFields)
+      ? (program.registrationFields as unknown as QuestionLike[]).filter((q) => q && typeof q.label === "string")
+      : [];
+    const merged = customFields !== undefined ? mergeAnswers(registration.customFields, customFields, questions) : undefined;
+
     // Apply the updates and clear the token (single-use)
     await db.registration.update({
       where: { id: registration.id },
       data: {
-        ...(customFields !== undefined && { customFields }),
+        ...(merged !== undefined && { customFields: merged as Prisma.InputJsonObject }),
         editToken:          null,
         editTokenExpiresAt: null,
       },
     });
 
     // History only when something changed (a resubmission of the same answers isn't news).
-    if (customFields !== undefined && JSON.stringify(customFields) !== JSON.stringify(registration.customFields)) await recordRegistrationEvent({
+    if (merged !== undefined && JSON.stringify(merged) !== JSON.stringify(registration.customFields ?? {})) await recordRegistrationEvent({
       kind: "answers-changed-by-them",
       programId: registration.programId,
       programSlug: registration.programSlug,

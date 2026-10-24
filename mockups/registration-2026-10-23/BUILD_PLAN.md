@@ -267,6 +267,7 @@ Jesse, 2026-10-24: everything to look at is saved here for one thorough session 
 - Post a notice, on the Dummy Test Program with one test registrant: post with the email, see the email, the Notifications row, History, the four places it shows; take it down; a Show until day that clears the next morning.
 - The mailing list in Registration: choose an existing segment; see the History line.
 - Ready to be seen on a new program, an open program, and one missing a Category.
+- Answers by question id (Phase 3 slice 1), on the Dummy Test Program: register with an answer; reword the question in the editor and see the answer follow it in Registration and the spreadsheet; change an answer from the emailed link and as the registrar; an older registration (answers stored by wording) still shows its answers in both places.
 - Still owed from Phase 1: Add a person, the cancellation email, a group message, a settings save in Registration, a Program Central member without a role opening Programs.
 
 **Noticed, to decide then:**

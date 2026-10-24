@@ -741,7 +741,22 @@ export default function ProgramEditor({
         const updated = await res.json();
         // The next save compares against this one.
         savedPayloadRef.current = full;
-        if (updated.editorData) loadedDataRef.current = updated.editorData as ProgramData;
+        if (updated.editorData) {
+          loadedDataRef.current = updated.editorData as ProgramData;
+          // Questions keep the ids the save gave them (lib/registrationFields.ts),
+          // so a question added here and reworded before the page reloads keeps
+          // its answers. Matched by position: the save keeps the order.
+          const saved = (updated.editorData as ProgramData).registrationFields ?? [];
+          if (Array.isArray(full.registrationFields) && full.registrationFields.length === saved.length) {
+            const keyed = (full.registrationFields as RegistrationField[]).map((f, i) =>
+              f._key || !saved[i]?._key ? f : { ...f, _key: saved[i]._key },
+            );
+            savedPayloadRef.current = { ...full, registrationFields: keyed };
+            setRegistrationFields((prev) =>
+              prev.length === keyed.length ? prev.map((f, i) => (f._key ? f : { ...f, _key: keyed[i]._key })) : prev,
+            );
+          }
+        }
         setSeatConflicts(updated.seatConflicts ?? []);
         setScheduleCleared(updated.scheduleCleared ?? null);
         if (updated.guestAccessKey && !guestAccessKey) {

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import UpdateForm from "@/components/UpdateForm";
+import { answerFor, oldAnswers, questionKey } from "@/lib/registrationAnswers";
 
 interface PageProps {
   params: Promise<{ token: string }>;
@@ -44,6 +45,13 @@ export default async function UpdateResponsesPage({ params }: PageProps) {
     select: { registrationFields: true },
   });
   const fields: RegistrationField[] = (pgProgram?.registrationFields as RegistrationField[] | null) ?? [];
+  // Their answers by question (stored by id, or by wording before ids:
+  // lib/registrationAnswers.ts), and any old answers no current question has.
+  const old = oldAnswers(registration.customFields, fields);
+  const initialAnswers: Record<string, string> = Object.fromEntries([
+    ...fields.map((f) => [questionKey(f), answerFor(registration.customFields, f)]),
+    ...old.map((o) => [o.key, o.value]),
+  ]);
 
   return (
     <main>
@@ -56,7 +64,8 @@ export default async function UpdateResponsesPage({ params }: PageProps) {
         <UpdateForm
           token={token}
           fields={fields}
-          currentCustomFields={(registration.customFields as Record<string, string>) ?? {}}
+          initialAnswers={initialAnswers}
+          oldAnswers={old.map((o) => ({ key: o.key, label: o.label }))}
         />
       </div>
     </main>

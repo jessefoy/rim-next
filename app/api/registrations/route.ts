@@ -12,6 +12,7 @@ import {
 import { toProperName } from "@/lib/nameCase";
 import { countPlacesTaken } from "@/lib/registrationPlaces";
 import { fmtOpensAt, registrationWindow } from "@/lib/registrationWindow";
+import { answersForNewRegistration, type QuestionLike } from "@/lib/registrationAnswers";
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
         registrationDeadline: true,
         registrationOpensAt: true,
         registrationCapacity: true,
+        registrationFields: true,
         danaMode: true,
         danaFixedAmount: true,
         danaBaseAmount: true,
@@ -81,6 +83,13 @@ export async function POST(request: NextRequest) {
     }
     const programSlug = pgProgram.slug;
     const programTitle = pgProgram.name;
+    // Answers to the program's own questions only, each under the question's
+    // id (lib/registrationAnswers.ts); an older form's answers by wording are
+    // accepted too.
+    const questions = Array.isArray(pgProgram.registrationFields)
+      ? (pgProgram.registrationFields as unknown as QuestionLike[]).filter((q) => q && typeof q.label === "string")
+      : [];
+    const answers = answersForNewRegistration(customFields, questions) as Prisma.InputJsonObject | null;
     const registrationCapacity = pgProgram.registrationCapacity ?? null;
 
     // Dana shape, derived server-side (not from the client body):
@@ -276,7 +285,7 @@ export async function POST(request: NextRequest) {
             firstName: resolvedFirstName,
             lastName: resolvedLastName,
             phone: resolvedPhone,
-            customFields: customFields ?? undefined,
+            customFields: answers ?? undefined,
           },
         });
         return NextResponse.json({
@@ -322,7 +331,7 @@ export async function POST(request: NextRequest) {
         firstName: resolvedFirstName,
         lastName: resolvedLastName,
         phone: resolvedPhone,
-        customFields: customFields ?? undefined,
+        customFields: answers ?? undefined,
         status,
         waitlistPosition,
         donationStatus,

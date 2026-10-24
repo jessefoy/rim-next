@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { answerFor, oldAnswers, type QuestionLike } from "@/lib/registrationAnswers";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { extractBlockNoteText } from "@/lib/renderRichContent";
@@ -31,16 +32,20 @@ export async function GET(
   });
 
   if (format === "csv") {
-    // Collect all unique custom field keys across all registrations (preserves order)
-    const customKeys: string[] = [];
-    const seenKeys = new Set<string>();
+    // A column for each of the program's questions, in order, read by the
+    // question's id or (older) its wording; then a column for each old answer
+    // no current question has, under its wording then (lib/registrationAnswers.ts).
+    const prog = await db.program.findUnique({ where: { slug }, select: { registrationFields: true } });
+    const questions = Array.isArray(prog?.registrationFields)
+      ? (prog.registrationFields as unknown as QuestionLike[]).filter((q) => q && typeof q.label === "string")
+      : [];
+    const oldCols: { key: string; label: string }[] = [];
+    const seenOld = new Set<string>();
     for (const r of registrations) {
-      if (r.customFields) {
-        for (const k of Object.keys(r.customFields as Record<string, unknown>)) {
-          if (!seenKeys.has(k)) {
-            customKeys.push(k);
-            seenKeys.add(k);
-          }
+      for (const { key, label } of oldAnswers(r.customFields, questions)) {
+        if (!seenOld.has(key)) {
+          oldCols.push({ key, label });
+          seenOld.add(key);
         }
       }
     }
@@ -54,7 +59,8 @@ export async function GET(
       "Phone",
       "Status",
       "Donation Status",
-      ...customKeys,
+      ...questions.map((q) => q.label),
+      ...oldCols.map((c) => c.label),
       "Waitlist Position",
       "Notes",
       "Registered At",
@@ -71,7 +77,8 @@ export async function GET(
         csvEscape(r.phone ?? ""),
         csvEscape(r.status),
         csvEscape(r.donationStatus),
-        ...customKeys.map((k) => csvEscape(String(custom[k] ?? ""))),
+        ...questions.map((q) => csvEscape(answerFor(r.customFields, q))),
+        ...oldCols.map((c) => csvEscape(String(custom[c.key] ?? ""))),
         csvEscape(r.waitlistPosition != null ? String(r.waitlistPosition) : ""),
         csvEscape(extractBlockNoteText(r.notes) ?? ""),
         csvEscape(r.createdAt.toISOString()),

@@ -33,6 +33,7 @@ import type { RegistrationField } from "@/components/RegistrationForm";
 import RegistrationSettings from "@/components/registration/RegistrationSettings";
 import { programSegmentName, programUsesFlodesk } from "@/lib/flodeskRules";
 import { toCentralDatetime } from "@/lib/timezone";
+import { answerFor, hasAnswer, oldAnswers, questionKey } from "@/lib/registrationAnswers";
 
 export const dynamic = "force-dynamic";
 
@@ -69,17 +70,24 @@ function idsIn(detail: unknown): string[] {
   return Array.isArray(ids) ? ids.filter((x): x is string => typeof x === "string") : [];
 }
 
-/** Their answers, then any of the program's questions they left empty. */
+/** Each of the program's questions with their answer (stored by the
+ *  question's id, or by its wording before ids), then any old answers no
+ *  current question has, under their stored wording (lib/registrationAnswers.ts). */
 function answersFor(customFields: unknown, fields: RegistrationField[]) {
-  const given = (customFields as Record<string, unknown> | null) ?? {};
-  const answers = Object.entries(given).map(([label, value]) => ({
-    label,
-    value: value === null || value === undefined ? "" : String(value),
-  }));
-  for (const f of fields) {
-    if (f.label && !(f.label in given)) answers.push({ label: f.label, value: "" });
-  }
-  return answers;
+  const questions = fields.filter((f) => f.label);
+  return [
+    ...questions.map((f) => ({ key: questionKey(f), label: f.label, value: answerFor(customFields, f) })),
+    ...oldAnswers(customFields, questions).map((o) => ({ key: o.key, label: o.label, value: o.value })),
+  ];
+}
+
+/** The keys of what they answered, as against questions shown empty. */
+function answeredKeys(customFields: unknown, fields: RegistrationField[]) {
+  const questions = fields.filter((f) => f.label);
+  return [
+    ...questions.filter((f) => hasAnswer(customFields, f)).map((f) => questionKey(f)),
+    ...oldAnswers(customFields, questions).map((o) => o.key),
+  ];
 }
 
 export default async function RegistrationProgramPage({
@@ -188,7 +196,7 @@ export default async function RegistrationProgramPage({
     donationStatus: r.donationStatus,
     donationCents: seeAmounts ? r.donationAmount : null,
     answers: answersFor(r.customFields, fields),
-    answered: Object.keys((r.customFields as Record<string, unknown> | null) ?? {}),
+    answered: answeredKeys(r.customFields, fields),
     earlierNote: earlierNoteText(r.notes),
     notes: notes
       .filter((n) => n.registrationId === r.id)

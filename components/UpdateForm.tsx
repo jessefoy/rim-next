@@ -3,15 +3,21 @@
 import { useState } from "react";
 import type { RegistrationField } from "@/app/update/[token]/page";
 import FormDone from "@/components/FormDone";
+import { questionKey } from "@/lib/registrationAnswers";
 
 interface Props {
   token: string;
   fields: RegistrationField[];
-  currentCustomFields: Record<string, string>;
+  /** Their answers, by the question's id (or wording, before ids), and by
+   *  their stored key for old answers no current question has. */
+  initialAnswers: Record<string, string>;
+  /** Old answers that match no current question: their stored key, and the
+   *  question's wording when they answered it. */
+  oldAnswers: { key: string; label: string }[];
 }
 
-export default function UpdateForm({ token, fields, currentCustomFields }: Props) {
-  const [customAnswers, setCustomAnswers] = useState<Record<string, string>>(currentCustomFields);
+export default function UpdateForm({ token, fields, initialAnswers, oldAnswers }: Props) {
+  const [customAnswers, setCustomAnswers] = useState<Record<string, string>>(initialAnswers);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,18 +53,15 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
     );
   }
 
-  // Build the list of fields to display.
-  // Fields from the program definition take precedence; any stored answers whose
-  // label doesn't match a current field are appended as plain text inputs (edge
-  // case: field was removed from the program after registration).
-  const definedLabels = new Set(fields.map((f) => f.label));
-  const orphanedLabels = Object.keys(currentCustomFields).filter((l) => !definedLabels.has(l));
+  // The program's questions first; then any old answers no current question
+  // has (a question removed or reworded after they registered), as plain text.
 
   return (
     <form onSubmit={handleSubmit}>
       {/* Render defined fields */}
       {fields.map((field, fieldIndex) => {
-        const value = customAnswers[field.label] ?? "";
+        const key = questionKey(field);
+        const value = customAnswers[key] ?? "";
         const id = `field-${field._key ?? `q${fieldIndex}`}`;
 
         return (
@@ -74,7 +77,7 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
                 className="ur-textarea"
                 value={value}
                 onChange={(e) =>
-                  setCustomAnswers((prev) => ({ ...prev, [field.label]: e.target.value }))
+                  setCustomAnswers((prev) => ({ ...prev, [key]: e.target.value }))
                 }
               />
             ) : field.fieldType === "yesNo" ? (
@@ -83,7 +86,7 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
                 className="ur-select"
                 value={value}
                 onChange={(e) =>
-                  setCustomAnswers((prev) => ({ ...prev, [field.label]: e.target.value }))
+                  setCustomAnswers((prev) => ({ ...prev, [key]: e.target.value }))
                 }
               >
                 <option value="">— select —</option>
@@ -96,7 +99,7 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
                 className="ur-select"
                 value={value}
                 onChange={(e) =>
-                  setCustomAnswers((prev) => ({ ...prev, [field.label]: e.target.value }))
+                  setCustomAnswers((prev) => ({ ...prev, [key]: e.target.value }))
                 }
               >
                 <option value="">— select —</option>
@@ -114,7 +117,7 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
                 className="ur-input"
                 value={value}
                 onChange={(e) =>
-                  setCustomAnswers((prev) => ({ ...prev, [field.label]: e.target.value }))
+                  setCustomAnswers((prev) => ({ ...prev, [key]: e.target.value }))
                 }
               />
             )}
@@ -123,18 +126,18 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
       })}
 
       {/* Render orphaned fields (labels no longer in program definition) */}
-      {orphanedLabels.map((label) => (
-        <div className="ur-field" key={label}>
-          <label className="ur-label" htmlFor={`orphan-${label}`}>
+      {oldAnswers.map(({ key, label }) => (
+        <div className="ur-field" key={key}>
+          <label className="ur-label" htmlFor={`orphan-${key}`}>
             {label}
           </label>
           <input
-            id={`orphan-${label}`}
+            id={`orphan-${key}`}
             type="text"
             className="ur-input"
-            value={customAnswers[label] ?? ""}
+            value={customAnswers[key] ?? ""}
             onChange={(e) =>
-              setCustomAnswers((prev) => ({ ...prev, [label]: e.target.value }))
+              setCustomAnswers((prev) => ({ ...prev, [key]: e.target.value }))
             }
           />
         </div>

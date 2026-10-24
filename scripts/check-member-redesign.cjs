@@ -366,5 +366,23 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check([where.registrationEnabled, where.registrationClosed, where.AND.length], [true, false, 2], 'the Prisma filter asks the same: on, not closed, deadline and opening date');
   check(win.fmtOpensAt('2026-11-01T14:00:00Z', at), 'Sunday, November 1 at 8:00 AM', 'opening time in Central, after the November time change');
 
+  // Answers by question id, old answers by wording kept (2026-10-24, Phase 3 slice 1).
+  const ans = load('lib/registrationAnswers.ts');
+  const qs = [{ _key: 'q_diet', label: 'Dietary needs?' }, { label: 'Need a ride?' }];
+  const old = { 'Dietary needs?': 'Vegetarian', 'Need a ride?': 'Yes', 'T-shirt size': 'M' };
+  check(ans.answerFor(old, qs[0]), 'Vegetarian', 'an answer stored by wording is still read');
+  check(ans.answerFor({ q_diet: 'Vegan', 'Dietary needs?': 'Vegetarian' }, qs[0]), 'Vegan', 'the id wins over the wording');
+  check(ans.answerFor({ q_diet: '', 'Dietary needs?': 'Vegetarian' }, qs[0]), '', 'a cleared answer by id stays cleared');
+  check(ans.answerFor({ 'Dietary needs?': 'Vegetarian' }, { _key: 'q_diet', label: 'Any dietary needs?' }), '', 'a reworded question with no id answer reads empty');
+  check(plain(ans.oldAnswers(old, qs)), [{ key: 'T-shirt size', label: 'T-shirt size', value: 'M' }], 'an answer no question has is kept as an old answer');
+  check(plain(ans.oldAnswers({ q_gone: 'x', _labels: { q_gone: 'Gone question?' } }, qs)), [{ key: 'q_gone', label: 'Gone question?', value: 'x' }], 'a removed question shows its wording, never its id');
+  check(plain(ans.answersForNewRegistration({ q_diet: ' Vegan ', 'Need a ride?': 'No', 'Hacked': 'x', other: '' }, qs)), { q_diet: 'Vegan', 'Need a ride?': 'No', _labels: { q_diet: 'Dietary needs?' } }, 'a new registration keeps only its questions, by id with its wording (wording alone without an id)');
+  check(plain(ans.answersForNewRegistration({ 'Dietary needs?': 'Vegan' }, qs)), { q_diet: 'Vegan', _labels: { q_diet: 'Dietary needs?' } }, 'an older form sending wording is stored by id');
+  check(ans.answersForNewRegistration({}, qs), null, 'no answers, nothing stored');
+  const merged = plain(ans.mergeAnswers(old, { q_diet: 'Vegan', 'T-shirt size': 'L', 'Hacked': 'x' }, qs));
+  check(merged, { 'Dietary needs?': 'Vegetarian', 'Need a ride?': 'Yes', 'T-shirt size': 'L', q_diet: 'Vegan', _labels: { q_diet: 'Dietary needs?' } }, 'merging writes by id with its wording, keeps the old wording answer, may change an old answer, adds nothing else');
+  check(plain(ans.mergeAnswers(old, { q_diet: 'Vegetarian', 'Need a ride?': ' Yes', 'T-shirt size': 'M', other: '' }, [...qs, { _key: 'q_new', label: 'New?' }])), old, 'saving with nothing changed leaves the stored answers exactly as they were');
+  check(ans.answerFor(merged, qs[0]), 'Vegan', 'after merging, the new answer is the one read');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

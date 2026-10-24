@@ -13,6 +13,7 @@
  */
 
 import { Fragment, useState, useTransition } from "react";
+import { questionKey } from "@/lib/registrationAnswers";
 import { useRouter } from "next/navigation";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import { FilterPills, SectionTabs } from "@/components/FilterBar";
@@ -30,8 +31,10 @@ export interface PeopleRow {
   donationStatus: string;
   /** Null unless this viewer may see amounts. */
   donationCents: number | null;
-  answers: { label: string; value: string }[];
-  /** The labels they actually answered (stored), as against questions shown empty. */
+  /** Each question with its answer, by the question's key (its id, or its
+   *  wording before ids), then old answers no current question has. */
+  answers: { key: string; label: string; value: string }[];
+  /** The keys they actually answered (stored), as against questions shown empty. */
   answered: string[];
   earlierNote: string | null;
   notes: { id: string; body: string; authorName: string; when: string }[];
@@ -298,7 +301,7 @@ export default function RegistrationPeople({
   async function saveAnswers(p: PeopleRow) {
     if (!editing || editing.id !== p.id) return;
     const values = Object.fromEntries(
-      Object.entries(editing.values).filter(([label, v]) => v !== "" || p.answered.includes(label)),
+      Object.entries(editing.values).filter(([key, v]) => v !== "" || p.answered.includes(key)),
     );
     const ok = await patch(p.id, { customFields: values }, "Their answers are saved.", "Their answers weren't saved. Please try again.");
     if (ok) setEditing(null);
@@ -388,8 +391,8 @@ export default function RegistrationPeople({
       <ConfirmBox text={text} yes={yes} busy={busy === p.id} onYes={onYes} onNo={() => setConfirm(null)} />
     ) : null;
 
-  function answerInput(label: string, value: string, onChange: (v: string) => void, id: string) {
-    const def = registrationFields.find((f) => f.label === label);
+  function answerInput(key: string, value: string, onChange: (v: string) => void, id: string) {
+    const def = registrationFields.find((f) => questionKey(f) === key);
     if (def?.fieldType === "longText") {
       return <textarea id={id} className="vol-field-edit__input vol-field-edit__textarea" value={value} onChange={(e) => onChange(e.target.value)} />;
     }
@@ -499,13 +502,13 @@ export default function RegistrationPeople({
         <section className="reg-person__part reg-person__part--wide" aria-label="Their answers">
           <h3 className="reg-person__title">Their answers</h3>
           {p.answers.length === 0 ? (
-            <p className="reg-quiet">No answers to the program's questions.</p>
+            <p className="reg-quiet">No answers to the program&rsquo;s questions.</p>
           ) : editing?.id === p.id ? (
             <div className="vol-fields-edit">
-              {Object.entries(editing.values).map(([label, value], i) => (
-                <div key={label}>
-                  <label className="vol-field-edit__label" htmlFor={`ans-${p.id}-${i}`}>{label}</label>
-                  {answerInput(label, value, (v) => setEditing((e) => (e ? { ...e, values: { ...e.values, [label]: v } } : e)), `ans-${p.id}-${i}`)}
+              {p.answers.map((a, i) => (
+                <div key={`${a.key}-${i}`}>
+                  <label className="vol-field-edit__label" htmlFor={`ans-${p.id}-${i}`}>{a.label}</label>
+                  {answerInput(a.key, editing.values[a.key] ?? "", (v) => setEditing((e) => (e ? { ...e, values: { ...e.values, [a.key]: v } } : e)), `ans-${p.id}-${i}`)}
                 </div>
               ))}
               <div className="vol-field-edit__actions">
@@ -518,8 +521,8 @@ export default function RegistrationPeople({
           ) : (
             <>
               <dl className="reg-answers">
-                {p.answers.map((a) => (
-                  <div key={a.label} className="reg-answers__row">
+                {p.answers.map((a, i) => (
+                  <div key={`${a.key}-${i}`} className="reg-answers__row">
                     <dt>{a.label}</dt>
                     <dd>{a.value || <span className="reg-quiet">Not answered</span>}</dd>
                   </div>
@@ -527,7 +530,7 @@ export default function RegistrationPeople({
               </dl>
               <div className="reg-actions">
                 <button type="button" className="vol-action-btn"
-                  onClick={() => setEditing({ id: p.id, values: Object.fromEntries(p.answers.map((a) => [a.label, a.value])) })}>
+                  onClick={() => setEditing({ id: p.id, values: Object.fromEntries(p.answers.map((a) => [a.key, a.value])) })}>
                   Change their answers
                 </button>
                 {active && ask(p, "edit-link", "Send them a link to change their answers")}

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { RegistrationStatus, DonationStatus } from "@prisma/client";
+import { RegistrationStatus, DonationStatus, type Prisma } from "@prisma/client";
+import { mergeAnswers, type QuestionLike } from "@/lib/registrationAnswers";
 import {
   sendApprovalEmail,
   sendCancellationNotificationEmail,
@@ -200,6 +201,17 @@ export async function PATCH(
     }
 
     // Detect waitlist promotion (WAITLISTED → APPROVED or REGISTERED)
+    // Changed answers merged over what's stored, by question id; an old
+    // answer stored by wording is kept, never rewritten (lib/registrationAnswers.ts).
+    let mergedAnswers: Prisma.InputJsonObject | undefined;
+    if (customFields !== undefined) {
+      const prog = await db.program.findUnique({ where: { slug: current.programSlug }, select: { registrationFields: true } });
+      const questions = Array.isArray(prog?.registrationFields)
+        ? (prog.registrationFields as unknown as QuestionLike[]).filter((q) => q && typeof q.label === "string")
+        : [];
+      mergedAnswers = mergeAnswers(current.customFields, customFields, questions) as Prisma.InputJsonObject;
+    }
+
     const isPromotion =
       current.status === "WAITLISTED" &&
       (status === "APPROVED" || status === "REGISTERED");
@@ -232,7 +244,7 @@ export async function PATCH(
         ...(status && { status }),
         ...(notes !== undefined && { notes }),
         ...(resolvedDonationStatus && { donationStatus: resolvedDonationStatus }),
-        ...(customFields !== undefined && { customFields }),
+        ...(mergedAnswers !== undefined && { customFields: mergedAnswers }),
       },
       select: { id: true, status: true, donationStatus: true, waitlistPosition: true },
     });
@@ -249,7 +261,7 @@ export async function PATCH(
     if (donationStatus && donationStatus !== current.donationStatus) {
       await recordRegistrationEvent({ ...who, kind: "dana-changed", detail: { from: current.donationStatus, to: donationStatus } });
     }
-    if (customFields !== undefined && JSON.stringify(customFields) !== JSON.stringify(current.customFields)) {
+    if (mergedAnswers !== undefined && JSON.stringify(mergedAnswers) !== JSON.stringify(current.customFields ?? {})) {
       await recordRegistrationEvent({ ...who, kind: "answers-edited" });
     }
 
