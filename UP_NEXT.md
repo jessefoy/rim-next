@@ -20,7 +20,9 @@ Everything is on `main` (`5339e30` … `5094465`, and this closing). Narrative: 
 
 **Phase 2 is done (2026-10-24):** the editor as one page in sections, the mailing list moved to Registration, Opens on (`lib/registrationWindow.ts`), Post a notice, Ready to be seen. **Everything to check, read aloud and try is saved in `BUILD_PLAN.md` → "To check once everything is built"** (Jesse: one thorough session after the last phase; add to it as phases land).
 
-**Next concrete step:** Phase 3, "Who's helping, who's asking", once Jesse answers its three decisions. **Queued, small:** prune the old roster's CSS (`2026-10-24-001`).
+**Phase 3 is done (2026-10-24):** answers by question id; who's asking each question; the teacher's page (Teaching in the menu); Today's list for supporting teams (Arrived); Helping with, the app for teams that prepare. Choosing who asks and which teams prepare is limited to the registration roles (from the slice 5 review; on the check list to confirm). Nothing installs Helping with yet: an admin installs it in a team in /admin/hubs.
+
+**Next concrete step:** Phase 4, "What we tell them, and starting a program" (`BUILD_PLAN.md`): reminders counted in days before (reaching late registrants), a note after a program ends, "Send an update to the N registered", start from a shape, copy a past program. Then the after-build session with Jesse (`BUILD_PLAN.md` → "To check once everything is built"). **Queued, small:** prune the old roster's CSS (`2026-10-24-001`).
 
 ## Earlier — 2026-10-22 closed: shorter pages, the three circles, an integrity pass; every public page measured and recomposed
 
