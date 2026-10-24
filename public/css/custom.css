@@ -3448,8 +3448,26 @@ h4 { font-size: var(--text-h4); }
 .reg-choices { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; border: 0; }
 .reg-choices legend { margin-bottom: 4px; padding: 0; font-weight: 600; color: var(--rim-heading); }
 .reg-check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding-top: 10px; box-sizing: border-box; cursor: pointer; }
+.reg-check span { min-width: 0; overflow-wrap: anywhere; }
 .reg-check input { flex: none; width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--rim-blue); }
 .reg-error { margin: 0; color: var(--color-error); font-weight: 600; }
+
+/* The printed sign-in list: names by last name, a box to tick at the door. */
+.reg-print__screen { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
+.reg-signin { width: 100%; max-width: var(--reading-width); margin-top: var(--space-2); border-collapse: collapse; background: var(--rim-surface); }
+.reg-signin th { padding: 8px 12px; border-bottom: 2px solid var(--rim-rule); font-size: var(--text-app-meta); font-weight: 600; text-align: left; color: var(--rim-heading); }
+.reg-signin td { padding: 12px; border-bottom: 1px solid var(--rim-rule); }
+.reg-signin__here { width: 72px; text-align: center !important; }
+.reg-signin__box { display: inline-block; width: 18px; height: 18px; border: 1.5px solid var(--rim-text); border-radius: 3px; vertical-align: middle; }
+@media print {
+  body:has(.reg-print) { background: var(--rim-surface); }
+  body:has(.reg-print) :is(.nav, .rim-footer, .tools-nav, .hub-ws-sidebar, .hub-ws-mobilebar, .hub-ws-toolhead, .hub-ws-backdrop, .reg-print__screen) { display: none !important; }
+  body:has(.reg-print) :is(.hub-ws-layout, .hub-ws-main, .hub-ws-content, .tools-content, .vol-page, .vol-content) { display: block; max-width: none; margin: 0; padding: 0; background: var(--rim-surface); }
+  .reg-print .vol-header__title { font-size: var(--text-h3); color: var(--rim-text); }
+  .reg-signin { max-width: none; }
+  .reg-signin td, .reg-signin th { color: var(--rim-text); border-color: var(--rim-rule); }
+  .reg-signin tr { break-inside: avoid; }
+}
 
 .reg-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* The tools shell sets row actions to 40px; the Registration app keeps 44. */

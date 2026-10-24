@@ -8,11 +8,15 @@ The Registration app is the registration team's place: who's coming to each prog
 
 ## Where it stands (Phase 1, slice 1, 2026-10-23)
 
-Built and live beside the old roster. The Program Manager's roster (`/tools/programs/[slug]`) still works exactly as before and links to the new page ("Open in Registration"). Nothing is redirected yet; the app is registered but not installed in any Space (installing it in the Registration team's Space is an admin action in `/admin/hubs`).
+Built and live. The old roster address (`/tools/programs/[slug]`) redirects here from its page file, keeping `?hub=`; `VolunteerTable` is gone. The Programs list's name opens the editor, and a People action opens the program here. The app is registered but not installed in any Space: installing it in the Registration team's Space (primary, with Programs supporting) is an admin action in `/admin/hubs`.
 
-Slice 2 (same day): **Add a person** and **Message people**.
+Slice 2 (same day): **Add a person** and **Message people**. Slice 3: the printed sign-in list, the cancellation email to the person, the move from the old roster, Programs' Home line without people.
 
-Still to come in Phase 1: a printed sign-in list, question ids, history from the public paths (Stripe webhook, cron, decline), the redirect and link updates, the cancellation email to the person, the Programs Home line. See `BUILD_PLAN.md`.
+Slice 4: **question ids**. `lib/registrationFields.ts` `withQuestionIds` gives every question in `Program.registrationFields` a stable `_key` on save (`POST /api/programs-pg`, `PUT /api/programs-pg/[slug]`): its own, else the stored question with the same wording, else a new `q_…`. Programs get ids as they are next saved; no stored data was rewritten. The public form and the update page fall back to the question's position for older questions (they all rendered `reg-custom-undefined`). Removing every question now clears them (the save used to keep them). **Answers are still stored by wording**: moving them to ids (`answerFor`) waits for Phase 3, where questions gain who's asking, so the public form, the update page, the spreadsheet and this app change once, together.
+
+Slice 5: **history from the public paths.** Giving dana online (the Stripe webhook, inside its once-per-payment guard), declining it, the cleanup cron marking no dana after a day, the scheduled reminder (with the people it reached, so it shows on each card), and someone changing their answers from the emailed link. What a person did themselves reads under their own name (`SELF_EVENT_KINDS`); what the system did reads "RIM …".
+
+Phase 1 is complete with this slice. Left for Jesse: installing Registration in the Registration team's Space (`/admin/hubs`), and his read-aloud of the two new emails. Left for later: pruning the roster's leftover `vol-` CSS (`scripts/css-prune.mjs`), and answers keyed by question id (Phase 3). See `BUILD_PLAN.md`.
 
 ## Routes
 
@@ -20,6 +24,8 @@ Still to come in Phase 1: a printed sign-in list, question ids, history from the
 |---|---|
 | `app/tools/registration/layout.tsx` | Gate (`canUseRegistration`), ToolsProvider, WorkspaceShell. |
 | `app/tools/registration/page.tsx` | The desk: Needs you across programs, Programs taking registration, then a fold of other programs with registrations. Keeps `?hub=`. |
+| `app/tools/registration/[programSlug]/sign-in/page.tsx` | The printed sign-in list: registered names by last name and a box to tick. No contact details, answers or dana. Opening it is a History line. Print CSS hides the site and team chrome (`body:has(.reg-print)`). |
+| `app/tools/programs/[programSlug]/page.tsx` | Redirects to this app's program page. |
 | `app/tools/registration/[programSlug]/page.tsx` | One program: state line, Needs you, People and History. Explicit select: never `editToken` or `stripeSessionId`; `donationAmount` only when `canSeeDanaAmounts`. `?show=waiting|dana` opens that filter. |
 | `components/registration/RegistrationPeople.tsx` | The client: filters (FilterBar), each person's card, notes, history. Every change calls the APIs below, then `router.refresh()`; nothing is held in client state as truth. |
 | `lib/registrationDesk.ts` | One reading of a program for both pages: `registrationState`, `placesLine`, `programNeeds`, `programWhen`. |
@@ -40,7 +46,13 @@ Still to come in Phase 1: a printed sign-in list, question ids, history from the
 ## Emails
 
 - `registration-message` (`sendRegistrationMessageEmail`, group 02-registrations): the team's subject and message, shown exactly as typed (`memberText`), Reply-To the registrar's inbox, a notice in the person's Notifications (kind `registration-message`, Programs). The test copy says "[Test]" and records no notice. Wording provisional until Jesse's read-aloud.
+- `registration-cancelled` (`sendRegistrationCancelledEmail`, group 02-registrations): to the person when the team cancels them and leaves "Email them" ticked on the confirmation (the default). `notifyPerson: true` on the PATCH. The registrar's own notice (`registration-cancelled-internal`) is unchanged. Wording provisional.
+- Links: the support@ notice's button ("View in Registration"), `registration-cancelled-internal` and `responses-updated-internal` (`{{volunteerUrl}}`) and the registrar-role notice now open Registration; their template bodies are unchanged.
 - Add a person sends the existing confirmation or waiting-list email through the choke point (which also notifies support@).
+
+## Home lines
+
+Registration: new registrations in the last seven days. Programs (2026-10-23): programs taking registration (on, not closed, before the deadline, not over), no people.
 
 ## Access
 

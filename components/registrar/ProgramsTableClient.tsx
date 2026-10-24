@@ -427,7 +427,7 @@ export default function ProgramsTableClient({
                 <td className="vol-table__td">
                   {isRegistrar && !p.archivedAt ? (
                     <Link
-                      href={`${basePath}/${p.slug}`}
+                      href={`${basePath}/${p.slug}/edit`}
                       className="vol-table__name"
                     >
                       {p.name}
@@ -498,6 +498,13 @@ export default function ProgramsTableClient({
                       </div>
                     ) : (
                       <div className="vol-table__actions">
+                        {/* Its people live in the Registration app (2026-10-23). */}
+                        <Link
+                          href={`/tools/registration/${p.slug}`}
+                          className="vol-table__action"
+                        >
+                          People
+                        </Link>
                         <Link
                           href={`${basePath}/${p.slug}/edit`}
                           className="vol-table__action"

@@ -57,12 +57,12 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
   return (
     <form onSubmit={handleSubmit}>
       {/* Render defined fields */}
-      {fields.map((field) => {
+      {fields.map((field, fieldIndex) => {
         const value = customAnswers[field.label] ?? "";
-        const id = `field-${field._key}`;
+        const id = `field-${field._key ?? `q${fieldIndex}`}`;
 
         return (
-          <div className="ur-field" key={field._key}>
+          <div className="ur-field" key={field._key ?? `q${fieldIndex}`}>
             <label className="ur-label" htmlFor={id}>
               {field.label}
               {field.required && <span aria-hidden="true"> *</span>}

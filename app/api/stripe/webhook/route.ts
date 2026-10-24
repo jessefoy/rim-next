@@ -11,6 +11,7 @@ import {
 import { sendCourseDanaReceiptEmail, sendRegistrationDanaReceiptEmail } from "@/lib/email";
 import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
 import { resolveDanaCharge } from "@/lib/programUtils";
+import { recordRegistrationEvent } from "@/lib/registrationEvents";
 
 // POST /api/stripe/webhook
 // Receives Stripe webhook events and updates the database.
@@ -352,6 +353,13 @@ async function handleRegistrationDanaCompleted(
     // while checkout was open (2026-10-19 audit). The receipt still goes.
     const alreadyConfirmed = reg.donationStatus === "WAIVED" || reg.status === "CANCELLED";
     after(async () => {
+      // The program's history (best-effort; never fails the webhook).
+      await recordRegistrationEvent({
+        kind: "dana-given",
+        programId: reg.programId,
+        programSlug: reg.programSlug,
+        registrationId,
+      });
       if (!isAdditionalPayment && !alreadyConfirmed) {
         try {
           await sendRegistrationConfirmation(registrationId);

@@ -94,16 +94,20 @@ function ConfirmBox({
   busy,
   onYes,
   onNo,
+  children,
 }: {
   text: string;
   yes: string;
   busy: boolean;
   onYes: () => void;
   onNo: () => void;
+  /** A choice that belongs to this confirmation (Email them). */
+  children?: React.ReactNode;
 }) {
   return (
     <div className="reg-confirm" role="group" aria-label="Confirm">
       <p className="reg-confirm__text">{text}</p>
+      {children}
       <div className="reg-actions">
         <button type="button" className="vol-save-btn" disabled={busy} onClick={onYes}>
           {busy ? "Working…" : yes}
@@ -124,6 +128,7 @@ export default function RegistrationPeople({
   registrationFields,
   danaMode,
   programName,
+  signInHref,
   canAdd,
   full,
   asksDana,
@@ -138,6 +143,8 @@ export default function RegistrationPeople({
   registrationFields: RegistrationField[];
   danaMode: string | null;
   programName: string;
+  /** The printed sign-in list, keeping the team's ?hub=. */
+  signInHref: string;
   /** Registration is on and the program isn't archived. */
   canAdd: boolean;
   /** Every place is taken: someone added joins the waiting list. */
@@ -165,6 +172,7 @@ export default function RegistrationPeople({
   const [editing, setEditing] = useState<{ id: string; values: Record<string, string> } | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [notifyCancel, setNotifyCancel] = useState(true);
   const [panel, setPanel] = useState<"add" | "message" | null>(null);
   const [add, setAdd] = useState({ firstName: "", lastName: "", email: "", phone: "", dana: "online", sendConfirmation: true });
   const [addError, setAddError] = useState<string | null>(null);
@@ -421,9 +429,31 @@ export default function RegistrationPeople({
               () => patch(p.id, { action: "sendReminder" }, "The reminder went out.", "The reminder wasn't sent. Please try again."))}
             {isRegistered(p.status) && p.reminderSentOn && <p className="reg-meta">Reminder sent {p.reminderSentOn}</p>}
 
-            {active && ask(p, "cancel", "Cancel their registration", "vol-action-btn")}
-            {confirmFor(p, "cancel", `Cancel ${p.name}'s registration? They won't be emailed.`, "Yes, cancel it",
-              () => patch(p.id, { status: "CANCELLED" }, `${p.name}'s registration is cancelled.`, "It wasn't cancelled. Please try again."))}
+            {active && !(confirm?.id === p.id && confirm.kind === "cancel") && (
+              <button type="button" className="vol-action-btn" disabled={busy === p.id}
+                onClick={() => { setNotifyCancel(true); setConfirm({ id: p.id, kind: "cancel" }); }}>
+                Cancel their registration
+              </button>
+            )}
+            {confirm?.id === p.id && confirm.kind === "cancel" && (
+              <ConfirmBox
+                text={`Cancel ${p.name}'s registration?`}
+                yes="Yes, cancel it"
+                busy={busy === p.id}
+                onNo={() => setConfirm(null)}
+                onYes={() => patch(
+                  p.id,
+                  { status: "CANCELLED", notifyPerson: notifyCancel },
+                  `${p.name}'s registration is cancelled.${notifyCancel ? ` An email is on its way to ${p.email}.` : ""}`,
+                  "It wasn't cancelled. Please try again.",
+                )}
+              >
+                <label className="reg-check">
+                  <input type="checkbox" checked={notifyCancel} onChange={(e) => setNotifyCancel(e.target.checked)} />
+                  <span>Email {p.firstName} at {p.email} to say so</span>
+                </label>
+              </ConfirmBox>
+            )}
 
             {!active && ask(p, "restore", "Restore their registration", "vol-save-btn")}
             {confirmFor(p, "restore", `Restore ${p.name} as registered? They won't be emailed.`, "Yes, restore it",
@@ -614,6 +644,9 @@ export default function RegistrationPeople({
               }}>
               Message people
             </button>
+          )}
+          {groupSize.registered > 0 && (
+            <a href={signInHref} className="vol-csv-btn">Print a sign-in list</a>
           )}
           <a
             href={`/api/programs/${programSlug}/registrations?format=csv`}

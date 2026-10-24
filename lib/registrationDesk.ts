@@ -53,7 +53,9 @@ export interface DeskNeed {
 }
 
 /** "Nov 13 to 15", "Wednesdays", or null: the program's own date words. */
-export function programWhen(p: DeskProgram): string | null {
+export function programWhen(
+  p: Pick<DeskProgram, "dateText" | "startDatetime" | "endDatetime" | "recurrenceFreq" | "recurrenceInterval" | "recurrenceDays">,
+): string | null {
   return p.dateText || buildDateLabel({
     startDatetime: p.startDatetime?.toISOString() ?? null,
     endDatetime: p.endDatetime?.toISOString() ?? null,

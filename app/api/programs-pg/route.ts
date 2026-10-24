@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
+import { withQuestionIds } from "@/lib/registrationFields";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
       registrationClosed: body.registrationClosed ?? false,
       registrationCapacity: body.registrationCapacity != null ? Number(body.registrationCapacity) : null,
       registrationDeadline: centralToUtc(body.registrationDeadline),
-      registrationFields: body.registrationFields || undefined,
+      registrationFields: withQuestionIds(body.registrationFields, null) ?? undefined,
       confirmationMessage: body.confirmationMessage || undefined,
       reminderDate: centralToUtc(body.reminderDate),
       reminderMessage: body.reminderMessage || undefined,

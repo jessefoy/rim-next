@@ -26,7 +26,17 @@ export const REGISTRATION_EVENT_KINDS = [
   "downloaded",
   "added",
   "message-sent",
+  "printed",
+  // What the person did themselves, or the system did: the history reads
+  // these with the person's name (or RIM's) in front.
+  "dana-given",
+  "dana-declined",
+  "dana-waived-by-silence",
+  "answers-changed-by-them",
 ] as const;
+
+/** Kinds the person did themselves: the history names them, not an actor. */
+export const SELF_EVENT_KINDS: readonly string[] = ["dana-given", "dana-declined", "answers-changed-by-them"];
 export type RegistrationEventKind = (typeof REGISTRATION_EVENT_KINDS)[number];
 
 export interface RegistrationEventInput {
@@ -93,7 +103,7 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
       const to = STATUS_WORDS[String(d.to)] ?? String(d.to ?? "");
       if (d.from === "WAITLISTED" && (d.to === "REGISTERED" || d.to === "APPROVED")) return "offered a place (emailed)";
       if (d.from === "CANCELLED") return `restored the registration (${to})`;
-      if (d.to === "CANCELLED") return "cancelled the registration";
+      if (d.to === "CANCELLED") return d.emailed ? "cancelled the registration (emailed)" : "cancelled the registration";
       return from ? `changed ${from} to ${to}` : `set it to ${to}`;
     }
     case "dana-changed":
@@ -108,7 +118,7 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
       return "sent the reminder";
     case "reminders-sent": {
       const n = typeof d.count === "number" ? d.count : 0;
-      return `sent the reminder to ${n === 1 ? "1 person" : `${n} people`}`;
+      return `sent the reminder to ${n === 1 ? "1 person" : `${n} people`}${d.scheduled ? ", as scheduled" : ""}`;
     }
     case "dana-reminder-sent":
       return "sent a dana reminder";
@@ -118,6 +128,16 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
       return `deleted the record of ${typeof d.name === "string" ? d.name : "a cancelled registration"}`;
     case "downloaded":
       return "downloaded the spreadsheet";
+    case "dana-given":
+      return "gave dana online";
+    case "dana-declined":
+      return "chose not to give dana";
+    case "dana-waived-by-silence":
+      return "marked no dana: a day passed without a choice";
+    case "answers-changed-by-them":
+      return "changed their answers from the emailed link";
+    case "printed":
+      return "opened the sign-in list to print";
     case "added":
       return d.status === "WAITLISTED" ? "added them to the waiting list" : "added them";
     case "message-sent": {

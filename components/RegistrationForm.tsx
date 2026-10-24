@@ -23,7 +23,8 @@ function formatPhoneInput(value: string): string {
 }
 
 export interface RegistrationField {
-  _key: string;
+  /** Set by the save routes (lib/registrationFields.ts); older questions may lack it. */
+  _key?: string;
   label: string;
   fieldType: "shortText" | "longText" | "yesNo" | "select";
   required: boolean;
@@ -599,16 +600,16 @@ export default function RegistrationForm({
       </div>
 
       {/* ── Dynamic custom fields ── */}
-      {program.registrationFields?.map((field) => (
-        <div key={field._key} className="pg-form__field">
-          <label className="pg-form__label" htmlFor={`reg-custom-${field._key}`}>
+      {program.registrationFields?.map((field, fieldIndex) => (
+        <div key={field._key ?? `q${fieldIndex}`} className="pg-form__field">
+          <label className="pg-form__label" htmlFor={`reg-custom-${field._key ?? `q${fieldIndex}`}`}>
             {field.label}
             {field.required && <span className="pg-form__required"> *</span>}
           </label>
 
           {field.fieldType === "shortText" && (
             <input
-              id={`reg-custom-${field._key}`}
+              id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
               type="text"
               className="pg-form__input"
               value={customAnswers[field.label] ?? ""}
@@ -619,7 +620,7 @@ export default function RegistrationForm({
 
           {field.fieldType === "longText" && (
             <textarea
-              id={`reg-custom-${field._key}`}
+              id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
               className="pg-form__textarea"
               value={customAnswers[field.label] ?? ""}
               onChange={(e) => handleCustom(field.label, e.target.value)}
@@ -629,7 +630,7 @@ export default function RegistrationForm({
 
           {field.fieldType === "yesNo" && (
             <select
-              id={`reg-custom-${field._key}`}
+              id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
               className="pg-form__select"
               value={customAnswers[field.label] ?? ""}
               onChange={(e) => handleCustom(field.label, e.target.value)}
@@ -643,7 +644,7 @@ export default function RegistrationForm({
 
           {field.fieldType === "select" && (
             <select
-              id={`reg-custom-${field._key}`}
+              id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
               className="pg-form__select"
               value={customAnswers[field.label] ?? ""}
               onChange={(e) => handleCustom(field.label, e.target.value)}

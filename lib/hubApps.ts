@@ -3,6 +3,7 @@ import { ctMonthKey, ctStartOfToday, fmtSessionWhen } from "@/lib/timezone";
 import { countSessionsNeedingSomeone, LOOKAHEAD_DAYS, sessionsNeedingSomeone } from "@/lib/coverageNotices";
 import { getHubCoverageConfig, getHubCoverageCopy } from "@/lib/programHub";
 import { ctDateStr } from "@/lib/scheduleUtils";
+import { hasConcludedOneTime } from "@/lib/programUtils";
 import { canSelfClaim } from "@/lib/hubMemberAuth";
 import { HUB_EVENT_KINDS, LEADS_ONLY_EVENT_KINDS, type HubEventKind } from "@/lib/hubEvents";
 import {
@@ -637,16 +638,28 @@ const HUB_APP_PROVIDERS: Record<ToolSlug, HubAppProvider> = {
     needs: scheduleNeeds,
     attention: scheduleAttention,
   },
+  // Programs counts programs, not people (2026-10-23): who registered is
+  // Registration's line, and Programs is meant to open to setup teams.
   programs: {
     home: async () => {
-      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const count = await db.registration.count({
-        where: { createdAt: { gte: since }, status: { notIn: ["CANCELLED", "PENDING_PAYMENT"] } },
+      const now = new Date();
+      const open = await db.program.findMany({
+        where: {
+          archivedAt: null,
+          registrationEnabled: true,
+          registrationClosed: false,
+          OR: [{ registrationDeadline: null }, { registrationDeadline: { gt: now } }],
+        },
+        select: { startDatetime: true, endDatetime: true, recurrenceFreq: true },
       });
+      // Open now: on, not closed, before its deadline, and (as on the
+      // Registration desk) not a one-time program that is over. The desk's list
+      // is wider: it also shows closed programs that haven't happened yet.
+      const count = open.filter((p) => !hasConcludedOneTime(p)).length;
       return {
         count,
-        countLabel: plural(count, "new registration in the last seven days", "new registrations in the last seven days"),
-        quietText: "No new registrations in the last seven days.",
+        countLabel: plural(count, "program taking registration", "programs taking registration"),
+        quietText: "No program is taking registration.",
       };
     },
   },

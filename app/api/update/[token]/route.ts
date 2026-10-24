@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendResponsesUpdatedEmail } from "@/lib/email";
+import { recordRegistrationEvent } from "@/lib/registrationEvents";
 
 // ─── POST — registrant submits their updated responses via self-service link ──
 
@@ -35,6 +36,15 @@ export async function POST(
         editToken:          null,
         editTokenExpiresAt: null,
       },
+    });
+
+    // History only when something changed (a resubmission of the same answers isn't news).
+    if (customFields !== undefined && JSON.stringify(customFields) !== JSON.stringify(registration.customFields)) await recordRegistrationEvent({
+      kind: "answers-changed-by-them",
+      programId: registration.programId,
+      programSlug: registration.programSlug,
+      registrationId: registration.id,
+      actorId: registration.userId,
     });
 
     // Notify registrar — fire-and-forget

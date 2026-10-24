@@ -58,6 +58,8 @@ interface Category {
 }
 
 interface RegistrationField {
+  /** The question's id, set by the save route; kept through edits (lib/registrationFields.ts). */
+  _key?: string;
   label: string;
   fieldType: "shortText" | "longText" | "yesNo" | "select";
   required: boolean;

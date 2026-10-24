@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
 import { requiredDanaCents } from "@/lib/programUtils";
+import { recordRegistrationEvent } from "@/lib/registrationEvents";
 
 // POST /api/registrations/[id]/decline-dana
 //
@@ -31,6 +32,8 @@ export async function POST(
         id: true,
         userId: true,
         email: true,
+        programId: true,
+        programSlug: true,
         status: true,
         donationStatus: true,
         program: { select: { danaMode: true, danaFixedAmount: true, danaBaseAmount: true } },
@@ -82,6 +85,13 @@ export async function POST(
 
     if (result.count > 0) {
       // First transition — the registration is now complete; send the confirmation.
+      await recordRegistrationEvent({
+        kind: "dana-declined",
+        programId: registration.programId,
+        programSlug: registration.programSlug,
+        registrationId: id,
+        actorId: registration.userId,
+      });
       await sendRegistrationConfirmation(id);
     }
 

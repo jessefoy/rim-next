@@ -5,6 +5,7 @@ import { RegistrationStatus, DonationStatus } from "@prisma/client";
 import {
   sendApprovalEmail,
   sendCancellationNotificationEmail,
+  sendRegistrationCancelledEmail,
   sendDanaReminderEmail,
   sendEditRequestEmail,
   sendRegistrationEmail,
@@ -34,6 +35,8 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
     const { action, status, notes, donationStatus, danaMode, customFields } = body;
+    // The Registration app's "Email them to say so" on a cancellation.
+    const notifyPerson = body.notifyPerson === true;
 
     // ── Special action: send self-service edit request email ─────────────────
     if (action === "sendEditRequest") {
@@ -237,7 +240,11 @@ export async function PATCH(
     // The program's history: who changed what (2026-10-23).
     const who = { programId: current.programId, programSlug: current.programSlug, registrationId: id, actorId: session.user.id };
     if (status && status !== current.status) {
-      await recordRegistrationEvent({ ...who, kind: "status-changed", detail: { from: current.status, to: status } });
+      await recordRegistrationEvent({
+        ...who,
+        kind: "status-changed",
+        detail: { from: current.status, to: status, ...(status === "CANCELLED" ? { emailed: notifyPerson } : {}) },
+      });
     }
     if (donationStatus && donationStatus !== current.donationStatus) {
       await recordRegistrationEvent({ ...who, kind: "dana-changed", detail: { from: current.donationStatus, to: donationStatus } });
@@ -276,6 +283,14 @@ export async function PATCH(
         programTitle:    current.programTitle,
         programSlug:     current.programSlug,
       });
+      if (notifyPerson) {
+        await sendRegistrationCancelledEmail({
+          to:           current.email,
+          firstName:    current.firstName,
+          programTitle: current.programTitle,
+          programSlug:  current.programSlug,
+        });
+      }
     }
 
     return NextResponse.json({ success: true, registration });

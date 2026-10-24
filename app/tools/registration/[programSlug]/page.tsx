@@ -1,9 +1,9 @@
 /**
  * /tools/registration/[programSlug] — one program's people (2026-10-23).
  * Opens on what needs a person, then the people, their notes and the
- * program's history. Every action goes through the same APIs as the
- * Program Manager's roster, which keeps working beside it until this page
- * replaces it. Gate: canUseRegistration (also in the layout).
+ * program's history. It replaced the Program Manager's roster (whose address,
+ * /tools/programs/[slug], redirects here), through the same APIs.
+ * Gate: canUseRegistration (also in the layout).
  */
 
 import { auth } from "@/auth";
@@ -11,7 +11,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { canSeeDanaAmounts, canUseProgramManager, canUseRegistration } from "@/lib/toolAuth";
-import { describeRegistrationEvent, staffName } from "@/lib/registrationEvents";
+import { describeRegistrationEvent, SELF_EVENT_KINDS, staffName } from "@/lib/registrationEvents";
 import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 import { fmtLabel } from "@/lib/programUtils";
 import {
@@ -55,6 +55,8 @@ function earlierNoteText(notes: unknown): string | null {
     .trim();
   return text || null;
 }
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** The people a program-wide event reached (a message), from its detail. */
 function idsIn(detail: unknown): string[] {
@@ -201,7 +203,10 @@ export default async function RegistrationProgramPage({
       registrationId: e.registrationId,
       forIds: idsIn(e.detail),
       person: e.registrationId ? nameById.get(e.registrationId) ?? null : null,
-      text: `${nameOf(e.actorId)} ${describeRegistrationEvent(e.kind, e.detail)}`,
+      // What the person did reads under their own name; the rest names who did it.
+      text: SELF_EVENT_KINDS.includes(e.kind)
+        ? capitalize(describeRegistrationEvent(e.kind, e.detail))
+        : `${nameOf(e.actorId)} ${describeRegistrationEvent(e.kind, e.detail)}`,
     })),
     ...registrations.filter((r) => !addedIds.has(r.id)).map((r) => ({
       id: `registered-${r.id}`,
@@ -260,6 +265,7 @@ export default async function RegistrationProgramPage({
           registrationFields={fields}
           danaMode={program.danaMode}
           programName={program.name}
+          signInHref={`/tools/registration/${program.slug}/sign-in${hubQs}`}
           canAdd={!program.archivedAt && program.registrationEnabled}
           full={!!program.registrationCapacity && counts.registered + heldPlaces >= program.registrationCapacity}
           asksDana={

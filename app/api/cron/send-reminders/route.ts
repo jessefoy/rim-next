@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { sendReminderEmail } from "@/lib/email";
 import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
+import { recordRegistrationEvent } from "@/lib/registrationEvents";
 
 // ─── GET /api/cron/send-reminders ─────────────────────────────────────────────
 // Daily cron job (runs at 14:00 UTC via vercel.json schedule).
@@ -69,6 +70,14 @@ export async function GET(req: NextRequest) {
         data: { reminderSentAt: now },
       });
       totalSent++;
+    }
+    if (registrations.length > 0) {
+      await recordRegistrationEvent({
+        kind: "reminders-sent",
+        programId: program.id,
+        programSlug: program.slug,
+        detail: { count: registrations.length, scheduled: true, registrationIds: registrations.map((r) => r.id) },
+      });
     }
   }
 

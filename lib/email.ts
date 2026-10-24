@@ -629,7 +629,7 @@ const DANA_STATUS_LABEL: Record<string, string> = {
 export async function sendRegistrationSupportNotification(
   data: RegistrationSupportNotificationData
 ): Promise<void> {
-  const manageUrl = `${BASE_URL}/tools/programs/${data.programSlug}`;
+  const manageUrl = `${BASE_URL}/tools/registration/${data.programSlug}`;
   await sendTemplatedEmail("registration-support-notification", SUPPORT_EMAIL, {
     registrantName: data.registrantName,
     registrantEmail: data.registrantEmail,
@@ -637,7 +637,7 @@ export async function sendRegistrationSupportNotification(
     status: data.status === "WAITLISTED" ? "Waitlisted" : "Registered",
     danaStatus: DANA_STATUS_LABEL[data.donationStatus] ?? data.donationStatus,
     manageUrl,
-    manageButton: emailButtonHtml("View in Program Manager", manageUrl),
+    manageButton: emailButtonHtml("View in Registration", manageUrl),
   });
 }
 
@@ -718,7 +718,7 @@ export async function sendCancellationNotificationEmail(
     registrantName,
     registrantEmail,
     programTitle,
-    volunteerUrl: `${BASE_URL}/tools/programs/${programSlug}`,
+    volunteerUrl: `${BASE_URL}/tools/registration/${programSlug}`,
   });
 }
 
@@ -765,7 +765,7 @@ export async function sendResponsesUpdatedEmail(data: ResponsesUpdatedEmailData)
   await sendTemplatedEmail("responses-updated-internal", REGISTRAR_EMAIL, {
     registrantName,
     programTitle,
-    volunteerUrl: `${BASE_URL}/tools/programs/${programSlug}`,
+    volunteerUrl: `${BASE_URL}/tools/registration/${programSlug}`,
   });
 }
 
@@ -849,6 +849,44 @@ export async function sendRegistrationMessageEmail(data: RegistrationMessageEmai
         threadKey: `program:${programSlug}`,
       },
     }),
+  });
+}
+
+// ─── Registration cancelled, to the person (2026-10-23) ──────────────────────
+
+/**
+ * Tells someone the registration team cancelled their registration, when the
+ * team ticks "Email them" in the Registration app (the registrar's own notice,
+ * registration-cancelled-internal, is unchanged). Replies go to the
+ * registrar's inbox.
+ *
+ * Managed via Email Template Manager — template: "registration-cancelled".
+ * Email Template Gate: matching seed entry in prisma/migrate.mjs ships with
+ * the same commit.
+ */
+export async function sendRegistrationCancelledEmail(data: {
+  to: string;
+  firstName: string;
+  programTitle: string;
+  programSlug: string;
+}): Promise<void> {
+  const { to, firstName, programTitle, programSlug } = data;
+  const programUrl = `${BASE_URL}/programs/${programSlug}`;
+  await sendTemplatedEmail("registration-cancelled", to, {
+    firstName,
+    programTitle,
+    programUrl,
+    programButton: emailButtonHtml("View the program →", programUrl),
+  }, {
+    replyTo: REGISTRAR_EMAIL,
+    notice: {
+      kind: "registration-cancelled",
+      category: "personal",
+      ...PROGRAMS_SOURCE,
+      title: `Your registration for ${programTitle} is cancelled`,
+      href: appPath(programUrl),
+      threadKey: `program:${programSlug}`,
+    },
   });
 }
 
@@ -1141,7 +1179,7 @@ export async function sendRoleAssignmentEmail(data: RoleAssignmentEmailData): Pr
     firstName:    data.firstName,
     dashboardUrl: `${BASE_URL}/volunteer`,
   }, {
-    notice: { kind: "registrar-role-assigned", category: "personal", ...ACCOUNT_SOURCE, title: "You're now a registrar", href: "/tools/programs" },
+    notice: { kind: "registrar-role-assigned", category: "personal", ...ACCOUNT_SOURCE, title: "You're now a registrar", href: "/tools/registration" },
   });
 }
 

@@ -116,7 +116,7 @@ export default async function RegistrationDeskPage({
       <div className="vol-content">
         <header className="vol-header">
           <h1 className="vol-header__title">Registration</h1>
-          <p className="vol-header__sub">What needs a person, then every program taking registration.</p>
+          <p className="vol-header__sub">What needs a person, then every program with registration on.</p>
         </header>
 
         <h2 className="reg-sectitle">Needs you</h2>
@@ -138,9 +138,9 @@ export default async function RegistrationDeskPage({
           </ul>
         )}
 
-        <h2 className="reg-sectitle">Programs taking registration</h2>
+        <h2 className="reg-sectitle">Programs with registration on</h2>
         {taking.length === 0 ? (
-          <p className="reg-quiet">No program is taking registration.</p>
+          <p className="reg-quiet">No program has registration on.</p>
         ) : (
           <ul className="reg-list">
             {taking.map((r) => (

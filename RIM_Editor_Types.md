@@ -445,8 +445,8 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 
 #### `volunteer-note`
 - **Schema field:** `Registration.notes`
-- **Component:** `components/registrar/VolunteerTable.tsx`
-- **Variant:** message
+- **Component:** none now (2026-10-23): the old roster, `components/registrar/VolunteerTable.tsx`, was removed. The Registration app shows this field read-only as "An earlier note" (`components/registration/RegistrationPeople.tsx`); new notes are plain text in `registration_notes`.
+- **Variant:** message (historical)
 - **Output destination:** interactive web (staff-only)
 - **Output wrapper:** inline row
 

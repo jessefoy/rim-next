@@ -10,7 +10,8 @@ export const metadata = { title: "Update Your Responses - Rooted In Mindfulness"
 // ─── Field definition ────────────────────────────────────────────────────────
 
 export interface RegistrationField {
-  _key: string;
+  /** Set by the save routes (lib/registrationFields.ts); older questions may lack it. */
+  _key?: string;
   label: string;
   fieldType: "shortText" | "longText" | "yesNo" | "select";
   required?: boolean;

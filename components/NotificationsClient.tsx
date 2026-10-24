@@ -64,6 +64,7 @@ function goLabel(href: string): string {
   if (href.startsWith("/tools/schedule")) return "Open the schedule";
   if (href.startsWith("/programs/") || href.startsWith("/course/")) return "See the program";
   if (href.startsWith("/account/hub/")) return "Open the team";
+  if (href.startsWith("/tools/registration")) return "Open Registration";
   if (href.startsWith("/tools/programs")) return "Open the Program Manager";
   return "Open";
 }

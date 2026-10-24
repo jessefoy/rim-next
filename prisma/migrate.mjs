@@ -7187,6 +7187,46 @@ Rooted In Mindfulness`,
   console.log("  ✔ Registration history and notes tables ready.");
 
   // ───────────────────────────────────────────────────────────────────────
+  // Seed: to the person, when the registration team cancels their
+  // registration and ticks "Email them" (2026-10-23,
+  // sendRegistrationCancelledEmail). findUnique → create. Wording
+  // provisional until Jesse's read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const existing = await db.emailTemplate.findUnique({ where: { slug: "registration-cancelled" } });
+    if (existing) {
+      console.log("  Email template registration-cancelled already exists, left alone.");
+    } else {
+      await db.emailTemplate.create({
+        data: {
+          slug: "registration-cancelled",
+          name: "Registration: cancelled, to the person",
+          description: "Sent to someone when the registration team cancels their registration in the Registration app and chooses to tell them.",
+          subject: "Your registration for {{programTitle}} is cancelled",
+          variables: ["firstName", "programTitle", "programUrl", "programButton"],
+          helpText:
+            "Sent when the registration team cancels a registration and leaves \"Email them\" ticked. Replies go to the registrar's inbox.\n\n" +
+            "Available variables: {{firstName}}, {{programTitle}}, {{programUrl}}, {{programButton}} (use triple braces {{{programButton}}}).",
+          body: `Hi {{firstName}},
+
+Your registration for **{{programTitle}}** has been cancelled.
+
+If that's a surprise, or you'd like to come after all, reply to this email and the registration team will help.
+
+With care,
+The registration team at Rooted In Mindfulness`,
+          enabled: true,
+          group: "02-registrations",
+          groupLabel: "Registrations",
+        },
+      });
+      console.log("  ✔ Email template registration-cancelled created.");
+    }
+  } catch (err) {
+    console.error("  registration-cancelled seed failed:", err?.message ?? err);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
   // Seed: a message from the registration team (2026-10-23), the Registration
   // app's "Message people" (sendRegistrationMessageEmail). findUnique →
   // create. Wording provisional until Jesse's read-aloud.

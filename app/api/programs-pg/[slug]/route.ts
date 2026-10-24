@@ -6,6 +6,8 @@
 
 import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
+import { Prisma } from "@prisma/client";
+import { withQuestionIds } from "@/lib/registrationFields";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { clearCoverageNoLongerStaffed, clearOffScheduleCoverage, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal, supportingTeamRefusal } from "@/lib/programHub";
@@ -313,7 +315,11 @@ export async function PUT(
   if ((data.registrationEnabled ?? existing.registrationEnabled) === true) {
     data.outsideMeetingPublic = false;
   }
-  if (body.registrationFields !== undefined) data.registrationFields = body.registrationFields || undefined;
+  // Each question keeps its id (lib/registrationFields.ts). Removing every
+  // question clears them; `|| undefined` used to leave them in place.
+  if (body.registrationFields !== undefined) {
+    data.registrationFields = withQuestionIds(body.registrationFields, existing.registrationFields) ?? Prisma.DbNull;
+  }
   if (body.confirmationMessage !== undefined) data.confirmationMessage = body.confirmationMessage || undefined;
   if (body.reminderDate !== undefined) data.reminderDate = centralToUtc(body.reminderDate);
   if (body.reminderMessage !== undefined) data.reminderMessage = body.reminderMessage || undefined;

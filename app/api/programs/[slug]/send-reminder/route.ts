@@ -69,7 +69,7 @@ export async function POST(
       programId: pgProgram?.id ?? null,
       programSlug: slug,
       actorId: session.user.id,
-      detail: { count: registrations.length },
+      detail: { count: registrations.length, registrationIds: registrations.map((r) => r.id) },
     });
   }
 

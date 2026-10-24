@@ -10,7 +10,7 @@ The Program Manager is the operational application for creating and maintaining 
 
 - `/tools/programs` — program index
 - `/tools/programs/new` — create
-- `/tools/programs/[programSlug]` — operational detail
+- `/tools/programs/[programSlug]` — redirects to the program in the Registration app (2026-10-23; `RIM_Registration_App.md`). The list's People action opens it there.
 - `/tools/programs/[programSlug]/edit` — edit
 - `/tools/programs/categories` — the **old** categories and kinds (legacy: kept until the Category and Format migration is verified; they no longer set a program's public section or its access; hiding a category still hides its programs from the public page)
 - `/api/programs-pg/*` and `/api/programs-pg/categories/*` — write/read routes

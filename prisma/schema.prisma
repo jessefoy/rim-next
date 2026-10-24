@@ -299,7 +299,7 @@ model Program {
   registrationClosed   Boolean   @default(false)
   registrationCapacity Int?
   registrationDeadline DateTime?
-  registrationFields   Json?     // [{label, fieldType, required, options[]}]
+  registrationFields   Json?     // [{_key, label, fieldType, required, options[]}]; _key set on save (lib/registrationFields.ts)
   confirmationMessage  Json?     // BlockNote JSON (RimProseEditor)
   reminderDate         DateTime?
   reminderMessage      Json?     // BlockNote JSON (RimProseEditor)

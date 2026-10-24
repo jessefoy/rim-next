@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
+import { recordRegistrationEvent } from "@/lib/registrationEvents";
 
 // Daily backstop for the registration → dana flow. The real-time mechanisms are
 // the Stripe `checkout.session.expired` webhook (releases a held seat at the
@@ -65,7 +66,7 @@ export async function GET(request: Request) {
         },
       },
     },
-    select: { id: true },
+    select: { id: true, programId: true, programSlug: true },
   });
 
   let finalized = 0;
@@ -77,6 +78,12 @@ export async function GET(request: Request) {
       data: { donationStatus: "WAIVED" },
     });
     if (res.count > 0) {
+      await recordRegistrationEvent({
+        kind: "dana-waived-by-silence",
+        programId: r.programId,
+        programSlug: r.programSlug,
+        registrationId: r.id,
+      });
       try {
         await sendRegistrationConfirmation(r.id);
         finalized++;
