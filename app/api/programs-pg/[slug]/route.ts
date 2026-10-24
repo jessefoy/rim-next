@@ -8,6 +8,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { Prisma } from "@prisma/client";
 import { withQuestionIds } from "@/lib/registrationFields";
+import { withAskers } from "@/lib/questionAskers";
 import { countPlacesTaken } from "@/lib/registrationPlaces";
 import { EDITOR_FIELD_LABELS, EDITOR_PROGRAM_INCLUDE, editorFieldValue, programToEditorData } from "@/lib/programEditorData";
 import { auth } from "@/auth";
@@ -381,8 +382,36 @@ export async function PUT(
   }
   // Each question keeps its id (lib/registrationFields.ts). Removing every
   // question clears them; `|| undefined` used to leave them in place.
+  // Who asks each question (lib/questionAskers.ts) is kept only for a teacher
+  // or a supporting team the program has after this save.
   if (body.registrationFields !== undefined) {
-    data.registrationFields = withQuestionIds(body.registrationFields, existing.registrationFields) ?? Prisma.DbNull;
+    const keyed = withQuestionIds(body.registrationFields, existing.registrationFields);
+    if (keyed) {
+      const teamSlugs = Array.isArray(body.coverageHubSlugs)
+        ? (body.coverageHubSlugs as unknown[]).filter((h): h is string => typeof h === "string" && h.trim().length > 0)
+        : (await db.programCoverageHub.findMany({ where: { programSlug: slug }, select: { hubSlug: true } })).map((r) => r.hubSlug);
+      const teamIds = new Set(
+        teamSlugs.length > 0
+          ? (await db.hub.findMany({ where: { slug: { in: teamSlugs } }, select: { id: true } })).map((h) => h.id)
+          : [],
+      );
+      data.registrationFields = withAskers(keyed as Record<string, unknown>[], teamIds) as Prisma.InputJsonObject[];
+    } else {
+      data.registrationFields = Prisma.DbNull;
+    }
+  } else if (Array.isArray(body.coverageHubSlugs) && Array.isArray(existing.registrationFields)) {
+    // Supporting teams changed without the questions: a team taken off the
+    // program hands its questions to the registration team now, so ticking it
+    // again later doesn't quietly bring them back.
+    const teamSlugs = (body.coverageHubSlugs as unknown[]).filter((h): h is string => typeof h === "string" && h.trim().length > 0);
+    const teamIds = new Set(
+      teamSlugs.length > 0
+        ? (await db.hub.findMany({ where: { slug: { in: teamSlugs } }, select: { id: true } })).map((h) => h.id)
+        : [],
+    );
+    const stored = existing.registrationFields as Record<string, unknown>[];
+    const kept = withAskers(stored, teamIds);
+    if (JSON.stringify(kept) !== JSON.stringify(stored)) data.registrationFields = kept as Prisma.InputJsonObject[];
   }
   if (body.confirmationMessage !== undefined) data.confirmationMessage = body.confirmationMessage || undefined;
   if (body.reminderDate !== undefined) data.reminderDate = centralToUtc(body.reminderDate);

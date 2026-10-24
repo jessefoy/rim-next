@@ -1963,6 +1963,12 @@ h4 { font-size: var(--text-h4); }
 .pg-form__field {
   margin-bottom: 22px;
 }
+/* Questions grouped by who is asking (2026-10-24, Phase 3), shown only when
+   more than the registration team asks. Open groups, no boxes: a title,
+   whose answers these are, then the questions. */
+.pg-form__group { margin: 8px 0 30px; padding: 0; border: 0; min-width: 0; }
+.pg-form__group-title { padding: 0; margin: 0 0 4px; font-family: var(--font-serif); font-size: var(--text-h4); font-weight: 400; color: var(--rim-text); }
+.pg-form__group-note { margin: 0 0 16px; font-size: var(--text-xs); color: var(--rim-text-muted); }
 
 .pg-form__label {
   display: block;
@@ -3675,6 +3681,10 @@ h4 { font-size: var(--text-h4); }
 .ur-sub   { font-size: var(--text-small); color: var(--rim-text-muted); margin: 0 0 36px; line-height: 1.7; }
 
 .ur-field { margin-bottom: 22px; }
+/* Questions grouped by who is asking (2026-10-24, Phase 3), as on the form. */
+.ur-group { margin: 8px 0 28px; padding: 0; border: 0; min-width: 0; }
+.ur-group__title { padding: 0; margin: 0 0 4px; font-family: var(--font-serif); font-size: var(--text-h4); font-weight: 400; color: var(--rim-text); }
+.ur-group__note { margin: 0 0 14px; font-size: var(--text-xs); color: var(--rim-text-muted); }
 .ur-label {
   display: block; font-size: var(--text-label); font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--rim-text-muted); margin-bottom: 6px;
@@ -10819,6 +10829,10 @@ h4 { font-size: var(--text-h4); }
 .pe-sec__title:focus { outline: none; }
 .tools-shell .pe-sec .pe-card { border-radius: 12px; }
 .pe-sec + .pe-actions { margin-top: 32px; }
+/* "Asked by" under each registration question (2026-10-24, Phase 3). */
+.pe-reg-field__asker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
+.pe-reg-field__asker-label { font-size: var(--text-app-meta); font-weight: 600; color: var(--rim-text-muted); }
+.pe-reg-field__asker .pe-select { flex: 1 1 220px; max-width: 420px; }
 /* Post a notice and Ready to be seen, above the sections (2026-10-24). The
    notice up now reads like the notice itself on the public pages: one line
    with a 3px blue edge. */

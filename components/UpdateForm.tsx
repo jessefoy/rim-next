@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { RegistrationField } from "@/app/update/[token]/page";
 import FormDone from "@/components/FormDone";
 import { questionKey } from "@/lib/registrationAnswers";
+import { groupQuestions, type AskerContext } from "@/lib/questionAskers";
 
 interface Props {
   token: string;
@@ -14,9 +15,11 @@ interface Props {
   /** Old answers that match no current question: their stored key, and the
    *  question's wording when they answered it. */
   oldAnswers: { key: string; label: string }[];
+  /** The program's teachers and supporting teams, to group its questions by who asks. */
+  askers: AskerContext;
 }
 
-export default function UpdateForm({ token, fields, initialAnswers, oldAnswers }: Props) {
+export default function UpdateForm({ token, fields, initialAnswers, oldAnswers, askers }: Props) {
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>(initialAnswers);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -45,21 +48,8 @@ export default function UpdateForm({ token, fields, initialAnswers, oldAnswers }
     }
   }
 
-  if (submitted) {
-    return (
-      <FormDone title="Thank you. Your answers have been saved.">
-        <p>You don&rsquo;t need to do anything else. You can close this page.</p>
-      </FormDone>
-    );
-  }
-
-  // The program's questions first; then any old answers no current question
-  // has (a question removed or reworded after they registered), as plain text.
-
-  return (
-    <form onSubmit={handleSubmit}>
-      {/* Render defined fields */}
-      {fields.map((field, fieldIndex) => {
+  // One question's input, its answer by id.
+  const renderQuestion = (field: RegistrationField, fieldIndex: number) => {
         const key = questionKey(field);
         const value = customAnswers[key] ?? "";
         const id = `field-${field._key ?? `q${fieldIndex}`}`;
@@ -123,7 +113,35 @@ export default function UpdateForm({ token, fields, initialAnswers, oldAnswers }
             )}
           </div>
         );
-      })}
+  };
+
+  const questionGroups = groupQuestions(fields, askers);
+
+  if (submitted) {
+    return (
+      <FormDone title="Thank you. Your answers have been saved.">
+        <p>You don&rsquo;t need to do anything else. You can close this page.</p>
+      </FormDone>
+    );
+  }
+
+  // The program's questions first; then any old answers no current question
+  // has (a question removed or reworded after they registered), as plain text.
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Render defined fields */}
+      {/* The program's questions, grouped by who is asking when more than the
+          registration team asks (lib/questionAskers.ts). */}
+      {questionGroups.showHeadings
+        ? questionGroups.groups.map((g) => (
+            <fieldset key={g.key} className="ur-group">
+              <legend className="ur-group__title">{g.heading}</legend>
+              <p className="ur-group__note">{g.readBy}</p>
+              {g.questions.map(({ field, index }) => renderQuestion(field, index))}
+            </fieldset>
+          ))
+        : fields.map((field, fieldIndex) => renderQuestion(field, fieldIndex))}
 
       {/* Render orphaned fields (labels no longer in program definition) */}
       {oldAnswers.map(({ key, label }) => (

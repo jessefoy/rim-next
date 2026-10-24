@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useBotTrap } from "@/components/BotTrap";
 import { useArrival } from "@/components/FormDone";
 import { questionKey } from "@/lib/registrationAnswers";
+import { groupQuestions, type AskerContext } from "@/lib/questionAskers";
 import {
   COMMUNITY_AGREEMENTS,
   COMMUNITY_AGREEMENTS_LEAD_IN,
@@ -26,6 +27,8 @@ function formatPhoneInput(value: string): string {
 export interface RegistrationField {
   /** Set by the save routes (lib/registrationFields.ts); older questions may lack it. */
   _key?: string;
+  /** Who asks it (lib/questionAskers.ts); absent for the registration team. */
+  askedBy?: string;
   label: string;
   fieldType: "shortText" | "longText" | "yesNo" | "select";
   required: boolean;
@@ -49,6 +52,8 @@ interface Props {
     locationText?: string | null;
   };
   spotsRemaining: number | null;
+  /** The program's teachers and supporting teams, to group its questions by who asks. */
+  askers?: AskerContext;
   userProfile?: {
     firstName?: string | null;
     lastName?: string | null;
@@ -76,6 +81,7 @@ type FormState =
 export default function RegistrationForm({
   program,
   spotsRemaining,
+  askers,
   userProfile,
   sessionUserId,
   alreadyRegistered,
@@ -420,6 +426,70 @@ export default function RegistrationForm({
     setCustomAnswers((prev) => ({ ...prev, [key]: value }));
   };
 
+  // One question's input (its label, type and answer by id).
+  const renderQuestion = (field: RegistrationField, fieldIndex: number) => (
+    <div key={field._key ?? `q${fieldIndex}`} className="pg-form__field">
+      <label className="pg-form__label" htmlFor={`reg-custom-${field._key ?? `q${fieldIndex}`}`}>
+        {field.label}
+        {field.required && <span className="pg-form__required"> *</span>}
+      </label>
+
+      {field.fieldType === "shortText" && (
+        <input
+          id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
+          type="text"
+          className="pg-form__input"
+          value={customAnswers[questionKey(field)] ?? ""}
+          onChange={(e) => handleCustom(questionKey(field), e.target.value)}
+          required={field.required}
+        />
+      )}
+
+      {field.fieldType === "longText" && (
+        <textarea
+          id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
+          className="pg-form__textarea"
+          value={customAnswers[questionKey(field)] ?? ""}
+          onChange={(e) => handleCustom(questionKey(field), e.target.value)}
+          required={field.required}
+        />
+      )}
+
+      {field.fieldType === "yesNo" && (
+        <select
+          id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
+          className="pg-form__select"
+          value={customAnswers[questionKey(field)] ?? ""}
+          onChange={(e) => handleCustom(questionKey(field), e.target.value)}
+          required={field.required}
+        >
+          <option value="">Select…</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+      )}
+
+      {field.fieldType === "select" && (
+        <select
+          id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
+          className="pg-form__select"
+          value={customAnswers[questionKey(field)] ?? ""}
+          onChange={(e) => handleCustom(questionKey(field), e.target.value)}
+          required={field.required}
+        >
+          <option value="">Select…</option>
+          {field.options?.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+
+  const questionGroups = groupQuestions(program.registrationFields ?? [], askers ?? { teacherNames: [], teams: [] });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
@@ -602,67 +672,17 @@ export default function RegistrationForm({
         />
       </div>
 
-      {/* ── Dynamic custom fields ── */}
-      {program.registrationFields?.map((field, fieldIndex) => (
-        <div key={field._key ?? `q${fieldIndex}`} className="pg-form__field">
-          <label className="pg-form__label" htmlFor={`reg-custom-${field._key ?? `q${fieldIndex}`}`}>
-            {field.label}
-            {field.required && <span className="pg-form__required"> *</span>}
-          </label>
-
-          {field.fieldType === "shortText" && (
-            <input
-              id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
-              type="text"
-              className="pg-form__input"
-              value={customAnswers[questionKey(field)] ?? ""}
-              onChange={(e) => handleCustom(questionKey(field), e.target.value)}
-              required={field.required}
-            />
-          )}
-
-          {field.fieldType === "longText" && (
-            <textarea
-              id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
-              className="pg-form__textarea"
-              value={customAnswers[questionKey(field)] ?? ""}
-              onChange={(e) => handleCustom(questionKey(field), e.target.value)}
-              required={field.required}
-            />
-          )}
-
-          {field.fieldType === "yesNo" && (
-            <select
-              id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
-              className="pg-form__select"
-              value={customAnswers[questionKey(field)] ?? ""}
-              onChange={(e) => handleCustom(questionKey(field), e.target.value)}
-              required={field.required}
-            >
-              <option value="">Select…</option>
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-            </select>
-          )}
-
-          {field.fieldType === "select" && (
-            <select
-              id={`reg-custom-${field._key ?? `q${fieldIndex}`}`}
-              className="pg-form__select"
-              value={customAnswers[questionKey(field)] ?? ""}
-              onChange={(e) => handleCustom(questionKey(field), e.target.value)}
-              required={field.required}
-            >
-              <option value="">Select…</option>
-              {field.options?.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      ))}
+      {/* ── The program's questions, grouped by who is asking when more than
+          the registration team asks (lib/questionAskers.ts) ── */}
+      {questionGroups.showHeadings
+        ? questionGroups.groups.map((g) => (
+            <fieldset key={g.key} className="pg-form__group">
+              <legend className="pg-form__group-title">{g.heading}</legend>
+              <p className="pg-form__group-note">{g.readBy}</p>
+              {g.questions.map(({ field, index }) => renderQuestion(field, index))}
+            </fieldset>
+          ))
+        : (program.registrationFields ?? []).map((field, fieldIndex) => renderQuestion(field, fieldIndex))}
 
       {/* ── Community agreements — shown for non-logged-in registrants who haven't agreed yet ── */}
       {!sessionUserId && !(emailCheckStatus === "found" && foundMember?.agreedToTerms) && (

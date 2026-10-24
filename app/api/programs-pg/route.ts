@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { withQuestionIds } from "@/lib/registrationFields";
+import { withAskers } from "@/lib/questionAskers";
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
@@ -100,6 +102,17 @@ export async function POST(request: NextRequest) {
       if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
     }
   }
+  // Who asks each question (lib/questionAskers.ts): kept only for a teacher or
+  // one of the supporting teams the program is created with.
+  const createTeamSlugs = Array.isArray(body.coverageHubSlugs)
+    ? (body.coverageHubSlugs as unknown[]).filter((h): h is string => typeof h === "string" && h.trim().length > 0)
+    : [];
+  const createTeamIds = new Set(
+    createTeamSlugs.length > 0
+      ? (await db.hub.findMany({ where: { slug: { in: createTeamSlugs } }, select: { id: true } })).map((h) => h.id)
+      : [],
+  );
+  const createQuestions = withQuestionIds(body.registrationFields, null);
   // As the edit route does: Open entry is on or off, not coerced (2026-10-19).
   if (body.openEntry !== undefined && typeof body.openEntry !== "boolean") {
     return NextResponse.json({ error: "Open entry must be on or off." }, { status: 422 });
@@ -180,7 +193,9 @@ export async function POST(request: NextRequest) {
       registrationDeadline: centralToUtc(body.registrationDeadline),
       // "Opens on" (2026-10-24): taking sign-ups from then (lib/registrationWindow.ts).
       registrationOpensAt: centralToUtc(body.registrationOpensAt),
-      registrationFields: withQuestionIds(body.registrationFields, null) ?? undefined,
+      registrationFields: createQuestions
+        ? (withAskers(createQuestions as Record<string, unknown>[], createTeamIds) as Prisma.InputJsonObject[])
+        : undefined,
       confirmationMessage: body.confirmationMessage || undefined,
       reminderDate: centralToUtc(body.reminderDate),
       reminderMessage: body.reminderMessage || undefined,

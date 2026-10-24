@@ -254,6 +254,7 @@ Jesse, 2026-10-24: everything to look at is saved here for one thorough session 
 
 **Read-aloud (all wording provisional until then):**
 - The program editor: the seven section names; "Two kinds of team." and its lines; the save messages that name a section ("Under About: …", "Under How people join: …", "Under When and where: …", the closing-before-opening refusal); Jump to; the Registration menu (Off, Not open yet, Open, Closed) and its four help lines; Opens on; the visitors readout's new lines; What we tell them's notice line; the corrected reminder help ("goes out on this day, in the morning…"; "What the reminder email says.").
+- Who's asking (Phase 3 slice 2): "Asked by" and its choices ("The registration team", "The teacher, [name]", "The teachers", "The [team]"); the questions' new help line; on the form and the update page, the group titles ("For the registration team", "From [name], your teacher", "From your teachers", "For the [team]") and "Read by … and the registration team." (Note: until the helpers' pages land in slices 3 to 5, only the registration team can actually read the answers; "Read by your teacher" becomes true with slice 3, a team's with slices 4 and 5.)
 - Ready to be seen: its title, "Before it's ready: …", and each line.
 - Post a notice: the button ("Post a notice", "Change the notice"), "Notice up now:", the panel's help, "Also email the N people registered", "Post the notice", "Take the notice down", "Close", and the answers ("Posted. It shows on…", "It's being emailed to N people now.", "The notice is taken down.").
 - The public pages: "Registration opens on [day] at [time]." (program page); "Registration opens on …" and "Come back then to sign up. Times are Central." (register page); the sign-up's refusal before the date.
@@ -268,6 +269,7 @@ Jesse, 2026-10-24: everything to look at is saved here for one thorough session 
 - The mailing list in Registration: choose an existing segment; see the History line.
 - Ready to be seen on a new program, an open program, and one missing a Category.
 - Answers by question id (Phase 3 slice 1), on the Dummy Test Program: register with an answer; reword the question in the editor and see the answer follow it in Registration and the spreadsheet; change an answer from the emailed link and as the registrar; an older registration (answers stored by wording) still shows its answers in both places.
+- Who's asking, on the Dummy Test Program: give one question to the teacher and one to the Greeter Team; see the form and the update page group them, and a program with only registration questions look as before; untick the team and see its question go back under the registration team; rename a team in /admin/hubs and see its question stay with it.
 - Still owed from Phase 1: Add a person, the cancellation email, a group message, a settings save in Registration, a Program Central member without a role opening Programs.
 
 **Noticed, to decide then:**

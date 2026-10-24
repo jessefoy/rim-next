@@ -384,5 +384,22 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(plain(ans.mergeAnswers(old, { q_diet: 'Vegetarian', 'Need a ride?': ' Yes', 'T-shirt size': 'M', other: '' }, [...qs, { _key: 'q_new', label: 'New?' }])), old, 'saving with nothing changed leaves the stored answers exactly as they were');
   check(ans.answerFor(merged, qs[0]), 'Vegan', 'after merging, the new answer is the one read');
 
+  // Who's asking (2026-10-24, Phase 3 slice 2).
+  const ask = load('lib/questionAskers.ts');
+  const ctx = { teacherNames: ['Jesse Foy'], teams: [{ id: 'h1', name: 'Greeter Team' }] };
+  check(plain(ask.askerOf(undefined, ctx)), { kind: 'registration' }, 'no asker is the registration team');
+  check(plain(ask.askerOf('teacher', ctx)), { kind: 'teacher' }, 'the teacher asks when one is linked');
+  check(plain(ask.askerOf('teacher', { teacherNames: [], teams: [] })), { kind: 'registration' }, 'no teacher linked: the registration team');
+  check(plain(ask.askerOf('team:h1', ctx)), { kind: 'team', hubId: 'h1', name: 'Greeter Team' }, 'a supporting team asks by its id');
+  check(plain(ask.askerOf('team:gone', ctx)), { kind: 'registration' }, 'a team no longer on the program: the registration team');
+  const flat = ask.groupQuestions([{ label: 'A' }, { label: 'B', askedBy: 'team:gone' }], ctx);
+  check(flat.showHeadings, false, 'only the registration team asking: the form looks as it always has');
+  const grouped = ask.groupQuestions([{ label: 'A' }, { label: 'B', askedBy: 'team:h1' }, { label: 'C', askedBy: 'teacher' }, { label: 'D' }], ctx);
+  check(grouped.showHeadings, true, 'more than one asker: headings show');
+  check(plain(grouped.groups.map((g) => [g.heading, g.questions.map((q) => q.index)])), [['For the registration team', [0, 3]], ['For the Greeter Team', [1]], ['From Jesse Foy, your teacher', [2]]], 'groups in order of first appearance, questions in their own order');
+  check(plain(ask.withAskers([{ label: 'A', askedBy: 'team:h1' }, { label: 'B', askedBy: 'team:gone' }, { label: 'C', askedBy: 'teacher' }, { label: 'D', askedBy: 'registration' }], new Set(['h1']))), [{ label: 'A', askedBy: 'team:h1' }, { label: 'B' }, { label: 'C', askedBy: 'teacher' }, { label: 'D' }], 'saving keeps a teacher or a team on the program, and drops anything else');
+
+  check(plain(ask.askersUsedBy([{ label: 'A' }, { label: 'B', askedBy: 'team:h1' }], { teacherNames: ['Jesse Foy'], teams: [{ id: 'h1', name: 'Greeter Team' }, { id: 'h2', name: 'AV Team' }] })), { teacherNames: [], teams: [{ id: 'h1', name: 'Greeter Team' }] }, 'only the askers a question uses reach the browser');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

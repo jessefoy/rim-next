@@ -11,7 +11,7 @@
  * CSS prefix: pe-
  */
 
-import { useState, useEffect, useRef, useCallback, type RefObject } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { cleanOffering } from "@/lib/programOffering";
 import { activeAnnouncement, monthlyPatternPhrase } from "@/lib/scheduleUtils";
@@ -28,6 +28,7 @@ import {
   nowCentral,
   sectionDomId,
   toEditorString,
+  type AskerOption,
   type Category,
   type EditorHub,
   type RegistrationField,
@@ -43,6 +44,7 @@ import DanaSection from "./program-editor/DanaSection";
 import AppearsSection from "./program-editor/AppearsSection";
 import NoticePanel from "./program-editor/NoticePanel";
 import ReadyPanel from "./program-editor/ReadyPanel";
+import { ASKED_BY_REGISTRATION, ASKED_BY_TEACHER, askedByTeam } from "@/lib/questionAskers";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -451,6 +453,29 @@ export default function ProgramEditor({
     initialData?.coverageHubSlugs ?? [],
   );
 
+  // Who may ask a registration question (lib/questionAskers.ts): the
+  // registration team, the teacher when one is linked, and each supporting
+  // team ticked under Who's helping that staffs this format.
+  const askerOptions = useMemo((): AskerOption[] => {
+    const options: AskerOption[] = [{ value: ASKED_BY_REGISTRATION, label: "The registration team" }];
+    if (selectedTeachers.length === 1) {
+      const t = selectedTeachers[0];
+      options.push({ value: ASKED_BY_TEACHER, label: `The teacher, ${`${t.firstName} ${t.lastName}`.trim()}` });
+    } else if (selectedTeachers.length > 1) {
+      options.push({ value: ASKED_BY_TEACHER, label: "The teachers" });
+    }
+    for (const h of hubs) {
+      if (
+        coverageHubSlugs.includes(h.slug) && !h.hasSchedule && !!h.usesScheduler &&
+        h.slug !== (hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG) &&
+        (h.appliesToFormats ?? []).includes(programFormat)
+      ) {
+        options.push({ value: askedByTeam(h.id), label: `The ${h.name}` });
+      }
+    }
+    return options;
+  }, [selectedTeachers, hubs, coverageHubSlugs, hostingHubSlug, programFormat]);
+
   // ── Unsaved changes tracking ────────────────────────────────────────────
   const [dirty, setDirty] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
@@ -745,16 +770,23 @@ export default function ProgramEditor({
           loadedDataRef.current = updated.editorData as ProgramData;
           // Questions keep the ids the save gave them (lib/registrationFields.ts),
           // so a question added here and reworded before the page reloads keeps
-          // its answers. Matched by position: the save keeps the order.
-          const saved = (updated.editorData as ProgramData).registrationFields ?? [];
+          // its answers, and who asks each as the server kept it
+          // (lib/questionAskers.ts drops a team no longer on the program).
+          // Matched by position: the save keeps the order.
+          const saved = ((updated.editorData as ProgramData).registrationFields ?? []) as RegistrationField[];
+          const asSaved = (f: RegistrationField, i: number): RegistrationField => {
+            const { askedBy: _drop, ...rest } = f;
+            void _drop;
+            return {
+              ...rest,
+              ...(f._key || saved[i]?._key ? { _key: f._key || saved[i]._key } : {}),
+              ...(saved[i]?.askedBy ? { askedBy: saved[i].askedBy } : {}),
+            };
+          };
           if (Array.isArray(full.registrationFields) && full.registrationFields.length === saved.length) {
-            const keyed = (full.registrationFields as RegistrationField[]).map((f, i) =>
-              f._key || !saved[i]?._key ? f : { ...f, _key: saved[i]._key },
-            );
+            const keyed = (full.registrationFields as RegistrationField[]).map(asSaved);
             savedPayloadRef.current = { ...full, registrationFields: keyed };
-            setRegistrationFields((prev) =>
-              prev.length === keyed.length ? prev.map((f, i) => (f._key ? f : { ...f, _key: keyed[i]._key })) : prev,
-            );
+            setRegistrationFields((prev) => (prev.length === keyed.length ? prev.map(asSaved) : prev));
           }
         }
         setSeatConflicts(updated.seatConflicts ?? []);
@@ -1022,6 +1054,7 @@ export default function ProgramEditor({
             registrationDeadline={registrationDeadline} setRegistrationDeadline={setRegistrationDeadline}
             registrationOpensAt={registrationOpensAt} setRegistrationOpensAt={setRegistrationOpensAt}
             notYetPicked={notYetPicked} setNotYetPicked={setNotYetPicked}
+            askerOptions={askerOptions}
             registrationFields={registrationFields} setRegistrationFields={setRegistrationFields}
             programFormat={programFormat} roomChoice={roomChoice} outsideUrl={outsideUrl}
             offeringCategory={offeringCategory} offeringFormat={offeringFormat}

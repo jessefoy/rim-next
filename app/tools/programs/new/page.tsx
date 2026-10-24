@@ -25,6 +25,7 @@ export default async function NewProgramToolPage() {
     db.hub.findMany({
       where: { status: "ACTIVE" },
       select: {
+        id: true,
         slug: true,
         name: true,
         hasSchedule: true,
@@ -51,6 +52,7 @@ export default async function NewProgramToolPage() {
           canManage={canUseProgramManager(session.user.roles)}
           categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name, kind: c.kind ?? null, hidden: c.hideFromProgramsPage }))}
           hubs={hubs.map((h) => ({
+            id: h.id,
             slug: h.slug,
             name: h.name,
             hasSchedule: h.hasSchedule,

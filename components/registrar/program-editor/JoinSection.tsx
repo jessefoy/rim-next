@@ -7,7 +7,7 @@
 import { memo, useMemo, useState } from "react";
 import { OFFERING_FORMATS, categorySectionTitle, isOfferingCategory } from "@/lib/programOffering";
 import { onlinePhrase } from "@/lib/outsideMeeting";
-import { DateTimePicker, EditorSection, nowCentral, type RegistrationField, type Setter } from "./shared";
+import { DateTimePicker, EditorSection, nowCentral, type AskerOption, type RegistrationField, type Setter } from "./shared";
 
 interface Props {
   registrationEnabled: boolean;
@@ -29,6 +29,8 @@ interface Props {
   setNotYetPicked: Setter<boolean>;
   registrationFields: RegistrationField[];
   setRegistrationFields: Setter<RegistrationField[]>;
+  /** Who may ask a question: the registration team, the teacher, the supporting teams. */
+  askerOptions: AskerOption[];
   /** Read here for the readout: how it meets, and its category and format. */
   programFormat: string;
   roomChoice: "rim" | "outside";
@@ -46,6 +48,7 @@ function JoinSection({
   registrationDeadline, setRegistrationDeadline,
   registrationOpensAt, setRegistrationOpensAt,
   notYetPicked, setNotYetPicked,
+  askerOptions,
   registrationFields, setRegistrationFields,
   programFormat, roomChoice, outsideUrl, offeringCategory, offeringFormat,
   markDirty,
@@ -241,7 +244,7 @@ function JoinSection({
         {/* Custom questions builder */}
         <div className="pe-field">
           <span className="pe-field__label">Custom Questions</span>
-          <span className="pe-field__help">Additional questions shown on the registration form. Answers appear in the registration detail view.</span>
+          <span className="pe-field__help">Questions on the registration form. Each is asked by someone helping with the program: the answers go to them, and always to the registration team. When more than the registration team asks, the form groups the questions under who is asking.</span>
           {registrationFields.map((field, idx) => (
             <div key={idx} className="pe-reg-field">
               <div className="pe-reg-field__row">
@@ -297,6 +300,19 @@ function JoinSection({
                   aria-label={`Choices for question ${idx + 1}, separated by commas`}
                 />
               )}
+              <label className="pe-reg-field__asker">
+                <span className="pe-reg-field__asker-label">Asked by</span>
+                <select
+                  className="pe-select"
+                  value={askerOptions.some((o) => o.value === field.askedBy) ? field.askedBy : "registration"}
+                  onChange={(e) => updateField(idx, { askedBy: e.target.value === "registration" ? undefined : e.target.value })}
+                  aria-label={`Who asks question ${idx + 1}`}
+                >
+                  {askerOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </label>
               <div className="pe-reg-field__actions">
                 <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, -1)} disabled={idx === 0} aria-label={`Move question ${idx + 1} up`}>↑</button>
                 <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, 1)} disabled={idx === registrationFields.length - 1} aria-label={`Move question ${idx + 1} down`}>↓</button>

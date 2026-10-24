@@ -8,6 +8,8 @@ import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildSubtitle } from "@/lib/programUtils";
 import { registrationResumeKeyValid } from "@/lib/registrationLink";
 import { fmtOpensAt, registrationWindow } from "@/lib/registrationWindow";
+import { loadAskerContext } from "@/lib/programAskers";
+import { askersUsedBy } from "@/lib/questionAskers";
 
 // Always show fresh data — this page is user-specific
 export const dynamic = "force-dynamic";
@@ -64,7 +66,7 @@ export default async function RegisterPage({
   };
 
   // Fetch user-specific data in parallel
-  const [activeCount, userProfile, existingRegistration] = await Promise.all([
+  const [activeCount, userProfile, existingRegistration, askers] = await Promise.all([
     program.registrationCapacity
       ? // The shared count: a place held during checkout is taken, so the
         // spots shown match the places actually held.
@@ -100,6 +102,8 @@ export default async function RegisterPage({
           },
         })
       : Promise.resolve(null),
+    // Who asks each question, to group them on the form (lib/questionAskers.ts).
+    loadAskerContext(pgProgram).then((ctx) => askersUsedBy(program.registrationFields ?? [], ctx)),
   ]);
 
   const spotsRemaining = program.registrationCapacity
@@ -187,6 +191,7 @@ export default async function RegisterPage({
               )}
               <RegistrationForm
                 program={program}
+                askers={askers}
                 spotsRemaining={spotsRemaining}
                 userProfile={userProfile}
                 sessionUserId={session?.user?.id ?? null}

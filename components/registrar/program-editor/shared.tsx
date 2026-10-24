@@ -44,6 +44,8 @@ export interface Category {
 export interface RegistrationField {
   /** The question's id, set by the save route; kept through edits (lib/registrationFields.ts). */
   _key?: string;
+  /** Who asks it (lib/questionAskers.ts): "teacher", "team:<hubId>", or absent for the registration team. */
+  askedBy?: string;
   label: string;
   fieldType: "shortText" | "longText" | "yesNo" | "select";
   required: boolean;
@@ -51,11 +53,19 @@ export interface RegistrationField {
 }
 
 export interface EditorHub {
+  /** The team's id: a question asked by a team names it (lib/questionAskers.ts). */
+  id: string;
   slug: string;
   name: string;
   hasSchedule?: boolean;
   appliesToFormats?: string[];
   usesScheduler?: boolean;
+}
+
+/** A choice for a question's "Asked by". */
+export interface AskerOption {
+  value: string;
+  label: string;
 }
 
 /** A useState setter: stable across renders, so it never breaks a memo. */

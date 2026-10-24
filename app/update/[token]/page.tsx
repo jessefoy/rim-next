@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import UpdateForm from "@/components/UpdateForm";
 import { answerFor, oldAnswers, questionKey } from "@/lib/registrationAnswers";
+import { loadAskerContext } from "@/lib/programAskers";
+import { askersUsedBy } from "@/lib/questionAskers";
 
 interface PageProps {
   params: Promise<{ token: string }>;
@@ -13,6 +15,8 @@ export const metadata = { title: "Update Your Responses - Rooted In Mindfulness"
 export interface RegistrationField {
   /** Set by the save routes (lib/registrationFields.ts); older questions may lack it. */
   _key?: string;
+  /** Who asks it (lib/questionAskers.ts); absent for the registration team. */
+  askedBy?: string;
   label: string;
   fieldType: "shortText" | "longText" | "yesNo" | "select";
   required?: boolean;
@@ -42,8 +46,14 @@ export default async function UpdateResponsesPage({ params }: PageProps) {
   // Fetch program's field definitions from Postgres
   const pgProgram = await db.program.findUnique({
     where: { slug: registration.programSlug },
-    select: { registrationFields: true },
+    select: { id: true, slug: true, programFormat: true, hostingHubSlug: true, registrationFields: true },
   });
+  const askers = pgProgram
+    ? askersUsedBy(
+        (pgProgram.registrationFields as { askedBy?: unknown }[] | null) ?? [],
+        await loadAskerContext(pgProgram),
+      )
+    : { teacherNames: [], teams: [] };
   const fields: RegistrationField[] = (pgProgram?.registrationFields as RegistrationField[] | null) ?? [];
   // Their answers by question (stored by id, or by wording before ids:
   // lib/registrationAnswers.ts), and any old answers no current question has.
@@ -65,6 +75,7 @@ export default async function UpdateResponsesPage({ params }: PageProps) {
           token={token}
           fields={fields}
           initialAnswers={initialAnswers}
+          askers={askers}
           oldAnswers={old.map((o) => ({ key: o.key, label: o.label }))}
         />
       </div>
