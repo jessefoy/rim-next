@@ -1070,6 +1070,23 @@ model RegistrationNote {
   @@map("registration_notes")
 }
 
+/// Arrived at the door (2026-10-24, Phase 3 slice 4): a supporting team
+/// (greeters) marks someone with a place as here, once per session day.
+/// `day` is the session's Central date, "YYYY-MM-DD". Goes with the
+/// registration or the program when either is deleted. app/account/greeting.
+model RegistrationAttendance {
+  id             String   @id @default(cuid())
+  programId      String
+  registrationId String
+  day            String
+  markedById     String?
+  createdAt      DateTime @default(now())
+
+  @@unique([registrationId, day])
+  @@index([programId, day])
+  @@map("registration_attendance")
+}
+
 /// A person's notice (2026-10-20): every email about them or their teams is
 /// also written here once, for /account/notifications. lib/notifications.ts.
 model Notification {

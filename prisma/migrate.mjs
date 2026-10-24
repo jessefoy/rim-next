@@ -3078,6 +3078,18 @@ async function main() {
   // is. First, so any later program read that selects every column finds it.
   // Not caught: the code reads this column, so a failure must stop the deploy.
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "registrationOpensAt" TIMESTAMP(3)`);
+  // Arrived at the door (2026-10-24, Phase 3 slice 4): one row per person per
+  // session day, gone with the registration or the program. Additive.
+  await db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "registration_attendance" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "programId" TEXT NOT NULL REFERENCES "programs"("id") ON DELETE CASCADE,
+    "registrationId" TEXT NOT NULL REFERENCES "registrations"("id") ON DELETE CASCADE,
+    "day" TEXT NOT NULL,
+    "markedById" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "registration_attendance_registrationId_day_key" ON "registration_attendance"("registrationId", "day")`);
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "registration_attendance_programId_day_idx" ON "registration_attendance"("programId", "day")`);
   // Ensure flag table exists before any migration runs (some check it before any
   // migration has had a chance to CREATE TABLE IF NOT EXISTS it).
   await db.$executeRawUnsafe(`

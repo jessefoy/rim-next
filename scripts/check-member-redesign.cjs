@@ -197,6 +197,9 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
       registration:{findMany:async query=>{registrationQueries.push(query);return registrations}},
       hubMember:{findMany:async()=>[]},
       hostAssignment:{findMany:async()=>assignments},programTeacher:{findMany:async()=>[]},
+      // Today's list (2026-10-24): the duty's team still on the program, and active.
+      programCoverageHub:{findMany:async()=>assignments.map(x=>({programSlug:x.programSlug,hubSlug:x.hubSlug}))},
+      hub:{findMany:async()=>[...new Set(assignments.map(x=>x.hubSlug))].map(slug=>({slug}))},
       user:{findUnique:async()=>({hostWelcomeSeenAt:new Date()})},
     }},
     // scheduleUtils places a session at its Central wall-clock time through
@@ -238,8 +241,9 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   assignments=[{programSlug:'morning',sessionDate:new Date('2026-09-21T16:00:00Z'),hubSlug:'greeter'}];
   html=await dashboardHtml();check(html.includes('Enter Zoom as host'),false,'a greeter sign-up does not open the room early');
   check(html.includes('Opens at'),true,'a greeter sees the session as a member does (opens at the member time)');
-  // My Home names the duty in the team's words, with no extra button (Jesse, 2026-10-16).
+  // My Home names the duty in the team's words (Jesse, 2026-10-16), and links Today's list (2026-10-24).
   check(html.includes('re greeting'),true,'a greeter sees their duty in Today');
+  check(html.includes('/account/greeting/morning?date='),true,"a greeter's duty line links Today's list");
   assignments=[];now='2026-09-21T15:55:00Z';
   programs[0].category.kind='CLASS';programs[0].registrationEnabled=true;
   html=await dashboardHtml();check(html.includes('Join on Zoom'),false,'registration-required offering hidden from nonregistrant');
@@ -410,6 +414,11 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check([...first.firstRegistrationIds([ana, ben], [ana, ben, { id: 'r1', userId: null, email: 'ben@X.org', createdAt: d('2026-09-01') }])], ['r3'], 'an earlier place under the same address, any capitals, counts');
   check([...first.firstRegistrationIds([ana], [ana, { id: 'r2', userId: 'u1', email: 'old@x.org', createdAt: d('2026-09-01') }])], [], 'an earlier place under the same account counts');
   check([...first.firstRegistrationIds([ana], [ana, { id: 'r9', userId: 'u1', email: 'ana@x.org', createdAt: d('2026-11-01') }])], ['r3'], 'a later place does not count');
+
+  // A supporting team's session page (2026-10-24, Phase 3 slice 4): only a real Central day.
+  const tz = load('lib/timezone.ts');
+  const sh = load('lib/sessionHelpers.ts', { '@/lib/db': { db: {} }, '@/lib/timezone': tz, '@/lib/hubAuth': {} });
+  check([sh.cleanDay('2026-11-01'), sh.cleanDay('2026-11-1'), sh.cleanDay(undefined), sh.cleanDay("2026-11-01' OR 1=1"), sh.cleanDay('2026-02-30')], ['2026-11-01', null, null, null, null], 'the page and the route take only a real YYYY-MM-DD day');
 
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

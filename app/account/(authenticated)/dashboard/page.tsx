@@ -64,6 +64,8 @@ type TodayDisplayItem = {
   programSlug?: string;
   /** The teacher's page, on the row of a program the viewer teaches (2026-10-24). */
   teachingHref?: string;
+  /** A supporting team's list for today's session ("Today's list", Jesse 2026-10-24). */
+  dutyHref?: string;
 };
 
 export default async function DashboardPage({ searchParams }: {
@@ -363,8 +365,9 @@ export default async function DashboardPage({ searchParams }: {
   });
 
   // Today's duties on a supporting team (greeting, AV): a quiet line in the
-  // team's own words, with no button: the work happens in the hall, not the
-  // room (Jesse, 2026-10-16). It joins the program's row when there is one.
+  // team's own words, with no Join: the work happens in the hall, not the
+  // room (Jesse, 2026-10-16). It links "Today's list", the team's page for
+  // the session (Jesse, 2026-10-24). It joins the program's row when there is one.
   const { start: dayStart, end: dayEnd } = ctDayBounds(now);
   const myDutiesRaw = await db.hostAssignment.findMany({
     where: { userId, sessionDate: { gte: dayStart, lte: dayEnd } },
@@ -376,15 +379,38 @@ export default async function DashboardPage({ searchParams }: {
       select: { slug: true, name: true, programFormat: true, hostingHubSlug: true, startDatetime: true, endDatetime: true },
     })).map((p) => [p.slug, p]),
   );
+  // "Today's list" only where that page will open: the team is still one of
+  // the program's supporting teams, and active (lib/sessionHelpers.ts).
+  const listTeams = new Set(
+    myDutiesRaw.length
+      ? (await db.programCoverageHub.findMany({
+          where: { programSlug: { in: [...new Set(myDutiesRaw.map((d) => d.programSlug))] } },
+          select: { programSlug: true, hubSlug: true },
+        }))
+          .map((c) => `${c.programSlug}|${c.hubSlug}`)
+      : [],
+  );
+  const activeTeams = new Set(
+    myDutiesRaw.length
+      ? (await db.hub.findMany({
+          where: { slug: { in: [...new Set(myDutiesRaw.map((d) => d.hubSlug))] }, status: "ACTIVE" },
+          select: { slug: true },
+        })).map((h) => h.slug)
+      : [],
+  );
   const dutyItems: TodayDisplayItem[] = [];
   for (const d of myDutiesRaw) {
     const p = dutyPrograms.get(d.programSlug);
     if (!p?.startDatetime || d.hubSlug === (p.hostingHubSlug ?? "host-team")) continue;
     const copy = await getHubCoverageCopy(d.hubSlug);
     const duty = `You're ${copy.verb}`;
+    const dutyHref = listTeams.has(`${d.programSlug}|${d.hubSlug}`) && activeTeams.has(d.hubSlug)
+      ? `/account/greeting/${d.programSlug}?date=${today}&team=${encodeURIComponent(d.hubSlug)}`
+      : undefined;
     const existing = [...onlineTodayItems, ...inPersonTodayItems, ...dutyItems].find((i) => i.programSlug === d.programSlug);
     if (existing) {
       existing.contextText = existing.contextText ? `${duty} · ${existing.contextText}` : duty;
+      existing.dutyHref = existing.dutyHref ?? dutyHref;
       continue;
     }
     const start = shiftToDate(p.startDatetime.toISOString(), today);
@@ -403,6 +429,7 @@ export default async function DashboardPage({ searchParams }: {
       isRegistered: false,
       stage: now >= start ? "in-person" : "later",
       contextText: duty,
+      dutyHref,
     });
   }
 
@@ -517,6 +544,7 @@ export default async function DashboardPage({ searchParams }: {
                     {item.isRegistered && <span className="today-focus__context">You&rsquo;re registered</span>}
                     {item.contextText && <span className="today-focus__context">{item.contextText}</span>}
                     {item.teachingHref && <Link href={item.teachingHref} className="today-teach-link">Who&rsquo;s coming <span aria-hidden="true">→</span></Link>}
+                    {item.dutyHref && <Link href={item.dutyHref} className="today-teach-link">Today&rsquo;s list <span aria-hidden="true">→</span></Link>}
                   </div>
                 </article>
               ))}
@@ -537,6 +565,7 @@ export default async function DashboardPage({ searchParams }: {
                       <div className="today-list__action">
                         {item.contextText && <span className="today-list__context">{item.contextText}</span>}
                         {item.teachingHref && <Link href={item.teachingHref} className="today-teach-link">Who&rsquo;s coming <span aria-hidden="true">→</span></Link>}
+                        {item.dutyHref && <Link href={item.dutyHref} className="today-teach-link">Today&rsquo;s list <span aria-hidden="true">→</span></Link>}
                       </div>
                     </div>
                   ))}

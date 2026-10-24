@@ -19,6 +19,7 @@ const PERSONAL_PATHS = [
   "/account/courses",
   "/account/teams",
   "/account/teaching",
+  "/account/greeting",
   "/account/community-care",
   "/account/handful-of-leaves",
   "/account/welcome",
