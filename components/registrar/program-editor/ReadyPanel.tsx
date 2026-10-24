@@ -98,10 +98,13 @@ function ReadyPanel(p: Props) {
   );
 
   const todo = items.filter((i) => i.tone === "todo").length;
-  const [open, setOpen] = useState(todo > 0);
+  // Open while something needs a look, folded when not, until the person
+  // opens or folds it themselves.
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const open = chosen ?? todo > 0;
 
   return (
-    <details className="pe-ready" open={open} onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} data-pe-separate>
+    <details className="pe-ready" open={open} onToggle={(e) => { const now = (e.currentTarget as HTMLDetailsElement).open; if (now !== open) setChosen(now); }} data-pe-separate>
       <summary>
         {todo === 0
           ? "Ready to be seen"

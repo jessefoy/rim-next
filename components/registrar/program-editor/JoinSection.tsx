@@ -105,13 +105,13 @@ function JoinSection({
     return registrationEnabled
       ? regClosedEffective
         ? "Registration is closed — visitors see a “Registration is closed” notice instead of the form."
-        : registrationOpensAt && registrationOpensAt > nowCentral()
+        : notYetPicked || (registrationOpensAt && registrationOpensAt > nowCentral())
           ? "Registration isn’t open yet — visitors see the date it opens, with no sign-up button until then."
           : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
       : openEntry
         ? "Open entry: visitors see how to join (in person and/or online). No registration needed."
         : "Registration is off — visitors are told it isn’t open yet, with no sign-up button. Choose Open below when you’re ready to take sign-ups.";
-  }, [openEntry, registrationDeadline, registrationClosed, registrationEnabled, registrationOpensAt]);
+  }, [openEntry, registrationDeadline, registrationClosed, registrationEnabled, registrationOpensAt, notYetPicked]);
 
   // ── Registration fields management ───────────────────────────────────────
   // A click isn't a change event, so adding, removing and moving a question
