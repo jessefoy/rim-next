@@ -18,7 +18,9 @@ Everything is on `main` (`5339e30` … `5094465`, and this closing). Narrative: 
 
 **Not yet tried live (no one has used these for real):** a save with a change in the editor, and two people saving at once; Add a person; the cancellation email; a group message; a settings save in Registration. A Program Central member without a role opening Programs.
 
-**Next concrete step:** Phase 2, piece 2: **the editor as one page in sections** (About; When and where; Who's helping; How people join; What we tell them; Dana; Where it appears), with a jump list and the unsaved-changes guard. Then "Opens on" (a new `registrationOpensAt`, read by the program page, register page, registration POST, course access and the desk), Post a notice, and "Ready to be seen". **Queued, small:** prune the old roster's CSS (`2026-10-24-001`).
+**Phase 2 is done (2026-10-24):** the editor as one page in sections, the mailing list moved to Registration, Opens on (`lib/registrationWindow.ts`), Post a notice, Ready to be seen. **Everything to check, read aloud and try is saved in `BUILD_PLAN.md` → "To check once everything is built"** (Jesse: one thorough session after the last phase; add to it as phases land).
+
+**Next concrete step:** Phase 3, "Who's helping, who's asking", once Jesse answers its three decisions. **Queued, small:** prune the old roster's CSS (`2026-10-24-001`).
 
 ## Earlier — 2026-10-22 closed: shorter pages, the three circles, an integrity pass; every public page measured and recomposed
 

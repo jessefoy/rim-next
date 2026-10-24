@@ -48,13 +48,13 @@ function TellSection({
 
         <div className="pe-field">
           <span className="pe-field__label">Reminder Date</span>
-          <span className="pe-field__help">When set, a reminder email can be sent to all registered participants on or after this date.</span>
+          <span className="pe-field__help">The reminder email goes out on this day, in the morning, to everyone registered by then. The registration team can also send it early, in Registration.</span>
           <DateTimePicker label="Reminder date" value={reminderDate} onChange={setReminderDate} />
         </div>
 
         <div className="pe-field">
           <span className="pe-field__label">Reminder Message</span>
-          <span className="pe-field__help">The content of the reminder email. You&rsquo;ll send it manually from the registration detail page — it doesn&rsquo;t send automatically.</span>
+          <span className="pe-field__help">What the reminder email says.</span>
           <RimTiptapEditor
             value={reminderMessage}
             onChange={(v) => { setReminderMessage(v); markDirty(); }}

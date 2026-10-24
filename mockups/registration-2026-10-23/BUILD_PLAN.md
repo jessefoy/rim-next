@@ -1,6 +1,6 @@
 # Build plan: Programs and Registration, "who's helping, who's asking"
 
-Written 2026-10-23 from `CONCEPT.md` and the mockup (`index.html`) beside it; revised the same day after a review of every claim against the code (27 findings, all folded in below). Not started. Each phase ships on its own, leaves everything that works today working, and can be paused after.
+Written 2026-10-23 from `CONCEPT.md` and the mockup (`index.html`) beside it; revised the same day after a review of every claim against the code (27 findings, all folded in below). Phases 1 and 2 built 2026-10-23 to 24. Each phase ships on its own, leaves everything that works today working, and can be paused after.
 
 ## What we're building, in one paragraph
 
@@ -247,6 +247,33 @@ Done when: moving a question to another helper changes the form, that helper's p
 - The render harness from `UP_NEXT.md` for pages behind sign-in, measured at 1280 and 390.
 - Jesse signed in for the first real save in each phase; nothing written to production by hand.
 - Each new template seeded in the same commit and visible at `/admin/emails`.
+
+## To check once everything is built
+
+Jesse, 2026-10-24: everything to look at is saved here for one thorough session after the last phase, rather than checked piece by piece. Add to it as each phase lands; tick nothing off until that session. Production writes for a test go to the Dummy Test Program (hidden, kept for testing) and only with Jesse's yes.
+
+**Read-aloud (all wording provisional until then):**
+- The program editor: the seven section names; "Two kinds of team." and its lines; the save messages that name a section ("Under About: …", "Under How people join: …", "Under When and where: …", the closing-before-opening refusal); Jump to; the Registration menu (Off, Not open yet, Open, Closed) and its four help lines; Opens on; the visitors readout's new lines; What we tell them's notice line; the corrected reminder help ("goes out on this day, in the morning…"; "What the reminder email says.").
+- Ready to be seen: its title, "Before it's ready: …", and each line.
+- Post a notice: the button ("Post a notice", "Change the notice"), "Notice up now:", the panel's help, "Also email the N people registered", "Post the notice", "Take the notice down", "Close", and the answers ("Posted. It shows on…", "It's being emailed to N people now.", "The notice is taken down.").
+- The public pages: "Registration opens on [day] at [time]." (program page); "Registration opens on …" and "Come back then to sign up. Times are Central." (register page); the sign-up's refusal before the date.
+- The Registration app: Not open yet and Opens in settings, the mailing-list notes and segment picker ("Use an existing segment instead", "Choose a different segment", "Make a new segment at the first registration"), the desk's "Opens …", and History's new lines ("chose the Flodesk segment …", "set registration to open on …", "removed the opening date", "posted the notice …", "took the notice down"); and from Phase 1, the desk, Needs you, cards, panels, confirmations and History lines.
+- Emails: `program-notice` (new); from Phase 1, `registration-message` and `registration-cancelled`; the editor's "someone else changed …" message.
+- Elsewhere: the Scheduler's and Rotations' empty lines ("…under Who's helping → Hosting team"), the old categories page's "under How people join".
+
+**Try for real, signed in (the first real use is the test):**
+- The editor: a real save after the split; two people saving at once (both apps); removing the image and adding, moving or removing a question each mark the page unsaved; leaving with unsaved changes asks first; the section list and Jump to at 1280, 900 and 390.
+- Opens on, on the Dummy Test Program: set a date ahead in the editor, then see the program page, the register page, a sign-up attempt, the Programs list badge, the desk, a linked course; change it in Registration's settings; let it pass and see it open; try a closing date before the opening date in both apps.
+- Post a notice, on the Dummy Test Program with one test registrant: post with the email, see the email, the Notifications row, History, the four places it shows; take it down; a Show until day that clears the next morning.
+- The mailing list in Registration: choose an existing segment; see the History line.
+- Ready to be seen on a new program, an open program, and one missing a Category.
+- Still owed from Phase 1: Add a person, the cancellation email, a group message, a settings save in Registration, a Program Central member without a role opening Programs.
+
+**Noticed, to decide then:**
+- Every tool page carries a hidden second copy of its content (the streamed `#S:0` segment stays in the page); it shows nothing, but doubles the page's markup and repeats ids. Look at why before launch.
+- The editor's option cards (the round choices) show no keyboard focus ring; the pattern predates this work.
+- The Programs list now counts a program past its closing date as Closed (it used to say Open), by the one rule.
+- Programs with registration on but no reminder message: the reminder still goes out on its date; check what it says without one.
 
 ## Not in this plan (waiting, or later)
 
