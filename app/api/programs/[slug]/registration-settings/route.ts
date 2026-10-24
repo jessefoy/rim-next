@@ -6,10 +6,12 @@ import { canUseRegistration } from "@/lib/toolAuth";
 import { centralToUtc } from "@/lib/timezone";
 import { recordRegistrationEvent } from "@/lib/registrationEvents";
 import { countPlacesTaken } from "@/lib/registrationPlaces";
+import { getFlodeskSegment } from "@/lib/flodesk";
 
 // ─── PATCH /api/programs/[slug]/registration-settings ────────────────────────
 // The Registration app's settings panel (2026-10-23): open or closed, places,
-// the closing date, and the mailing list. The program's own fields, the same
+// the closing date, and the mailing list with its Flodesk segment (the only
+// place the mailing list is set since 2026-10-24). The program's own fields, the same
 // ones the program editor saves; this route writes only them, so none of the
 // editor's save side effects (Zoom, the Scheduler, teams) run.
 //
@@ -54,6 +56,7 @@ export async function PATCH(
       registrationCapacity: true,
       registrationDeadline: true,
       flodeskSync: true,
+      flodeskSegmentId: true,
     },
   });
   if (!program) return NextResponse.json({ error: "Program not found" }, { status: 404 });
@@ -75,6 +78,8 @@ export async function PATCH(
     registrationCapacity?: number | null;
     registrationDeadline?: Date | null;
     flodeskSync?: boolean | null;
+    flodeskSegmentId?: string;
+    flodeskSegmentName?: string;
   } = {};
   const changes: Record<string, { from: unknown; to: unknown }> = {};
 
@@ -131,6 +136,29 @@ export async function PATCH(
     if (body.flodeskSync !== program.flodeskSync) {
       data.flodeskSync = body.flodeskSync;
       changes.mailingList = { from: program.flodeskSync, to: body.flodeskSync };
+    }
+  }
+
+  // A segment chosen from Flodesk's list. Its name is read from Flodesk, never
+  // from the request. There is no unlinking: Flodesk can't rename or delete a
+  // segment, so a fresh one would duplicate it.
+  if (body.flodeskSegmentId !== undefined && body.flodeskSegmentId !== null && body.flodeskSegmentId !== "") {
+    if (typeof body.flodeskSegmentId !== "string") {
+      return NextResponse.json({ error: "Choose the segment again from the list." }, { status: 422 });
+    }
+    if (body.flodeskSegmentId !== program.flodeskSegmentId) {
+      let segment: { id: string; name: string } | null;
+      try {
+        segment = await getFlodeskSegment(body.flodeskSegmentId);
+      } catch {
+        return NextResponse.json({ error: "Flodesk didn't answer, so the settings weren't saved. Try again in a moment." }, { status: 503 });
+      }
+      if (!segment) {
+        return NextResponse.json({ error: "That Flodesk segment couldn't be found. Choose it again from the list." }, { status: 422 });
+      }
+      data.flodeskSegmentId = segment.id;
+      data.flodeskSegmentName = segment.name;
+      changes.segment = { from: program.flodeskSegmentId, to: segment.name };
     }
   }
 

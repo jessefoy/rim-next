@@ -1,71 +1,46 @@
 "use client";
 
 /**
- * ProgramEditor — six-tab form for creating and editing programs.
- * Mirrors the Sanity Studio tab layout so LoriLee's muscle memory transfers.
+ * ProgramEditor — creating and editing a program, as one page in seven
+ * sections (Phase 2, 2026-10-24): About; When and where; Who's helping; How
+ * people join; What we tell them; Dana; Where it appears. Each section is its
+ * own memoized component in ./program-editor/, so typing in one redraws only
+ * that one. This file holds the program's state, the save, the section list
+ * and the unsaved-changes guard. RIM_ProgramEditor.md.
  *
  * CSS prefix: pe-
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo, type RefObject } from "react";
+import { useState, useEffect, useRef, useCallback, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import dynamic from "next/dynamic";
-import { upload } from "@vercel/blob/client";
-import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
-import {
-  OFFERING_CATEGORIES,
-  OFFERING_FORMATS,
-  cleanOffering,
-  categorySectionTitle,
-  formatRequiredFor,
-  isOfferingCategory,
-} from "@/lib/programOffering";
+import { cleanOffering } from "@/lib/programOffering";
 import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
-import { programUsesFlodesk } from "@/lib/flodeskRules";
-import { cleanOutsideMeetingUrl, onlinePhrase } from "@/lib/outsideMeeting";
-import { EARLY_OPEN_MIN, LATE_GRACE_MIN } from "@/lib/sessionWindowConstants";
+import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
 import { SaveNote } from "@/components/FormDone";
 import { editorFieldValue } from "@/lib/programEditorData";
 import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
-
-interface TeacherItem {
-  id: string;
-  firstName: string;
-  lastName: string;
-}
-
-const RimTiptapEditor = dynamic(
-  () => import("@/components/rim-tiptap/RimTiptapEditor"),
-  { ssr: false, loading: () => <div style={{ minHeight: 300 }} /> },
-);
-// Phase 4: ProgramEditor's prose editors (danaMessage, confirmationMessage,
-// reminderMessage) are now RimTiptapEditor variant=message. The description
-// editor was migrated to variant=document in Phase 3.
-function toEditorString(value: unknown): string {
-  if (isHtmlString(value)) return value;
-  return renderBlockNoteHtml(value) || "";
-}
+import {
+  DEFAULT_HOSTING_HUB_SLUG,
+  SECTIONS,
+  goToSection,
+  sectionDomId,
+  toEditorString,
+  type Category,
+  type EditorHub,
+  type RegistrationField,
+  type SectionId,
+  type TeacherItem,
+} from "./program-editor/shared";
+import AboutSection from "./program-editor/AboutSection";
+import WhenWhereSection from "./program-editor/WhenWhereSection";
+import HelpingSection from "./program-editor/HelpingSection";
+import JoinSection from "./program-editor/JoinSection";
+import TellSection from "./program-editor/TellSection";
+import DanaSection from "./program-editor/DanaSection";
+import AppearsSection from "./program-editor/AppearsSection";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-interface Category {
-  id: string;
-  slug: string;
-  name: string;
-  kind: string | null;
-  /** ProgramCategory.hideFromProgramsPage: the whole category is off the public listing. */
-  hidden?: boolean;
-}
-
-interface RegistrationField {
-  /** The question's id, set by the save route; kept through edits (lib/registrationFields.ts). */
-  _key?: string;
-  label: string;
-  fieldType: "shortText" | "longText" | "yesNo" | "select";
-  required: boolean;
-  options: string[];
-}
 
 export interface ProgramData {
   id?: string;
@@ -90,7 +65,8 @@ export interface ProgramData {
   openEntry: boolean;
   /** True when the three values above were filled in from the old category rather than saved on the program. */
   offeringFromLegacy?: boolean;
-  /** Flodesk (mass email): null = the default rule; the program's segment once linked or created. */
+  /** Flodesk (mass email): null = the default rule; the program's segment once linked or created.
+   *  Set in the Registration app, not in the editor (2026-10-24); kept for lib/programEditorData.ts. */
   flodeskSync?: boolean | null;
   flodeskSegmentId?: string | null;
   flodeskSegmentName?: string | null;
@@ -137,7 +113,7 @@ export interface ProgramData {
   isOpenAccess: boolean;
   guestAccessKey: string;
   /** Which hub hosts this program. Null = "host-team" (the implicit default).
-   *  Coordinator can transfer hosting to another hub via the Hosting & Access tab. */
+   *  Coordinator can transfer hosting to another hub under Who's helping. */
   hostingHubSlug: string | null;
   /** "No host needed" — when false, the program is self-led / community-led
    *  (Recovery Dharma, drop-in groups) and is excluded from the Scheduler,
@@ -166,7 +142,7 @@ interface Props {
    *  using Programs sees and copies the guest link. Off unless passed. */
   canManage?: boolean;
   categories: Category[];
-  /** Active hubs for the "Hosting & Access" tab. Filtered by role:
+  /** Active hubs for Who's helping. Filtered by role:
    *  - Hosting team dropdown: hubs where `hasSchedule` is true
    *    (hosting-style hubs that run live sessions — host-team,
    *    peer-led-silent-meditation).
@@ -176,13 +152,7 @@ interface Props {
    *    and greeter that staff supporting roles, only relevant to
    *    in-person or hybrid programs).
    *  These two filters give clean, non-overlapping menus. */
-  hubs: {
-    slug: string;
-    name: string;
-    hasSchedule?: boolean;
-    appliesToFormats?: string[];
-    usesScheduler?: boolean;
-  }[];
+  hubs: EditorHub[];
   /** Count of HostAssignment rows for this program with `sessionDate >= now`.
    *  Drives the mid-flight change warning when a coordinator switches
    *  `hostingHubSlug`. Zero or unset means no warning. Only meaningful in
@@ -190,260 +160,11 @@ interface Props {
   futureHostAssignmentCount?: number;
 }
 
-/* ── Dana message templates ────────────────────────────────────────────────
-   Built-in templates are plain strings converted to BlockNote JSON on load.
-   Custom templates are saved as BlockNote JSON to localStorage.
-   ── */
-
-/** Wrap a plain string in a single HTML paragraph. */
-function textToHtml(text: string): string {
-  // Minimal HTML escape for the few characters that matter inside a <p>.
-  const safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return `<p>${safe}</p>`;
-}
-
-const DANA_BUILTIN: { name: string; text: string }[] = [
-  {
-    name: "General support",
-    text: "Your dana makes this program possible. RIM is supported entirely by the generosity of our community. Every amount is welcome.",
-  },
-  {
-    name: "Reciprocity",
-    text: "This is an old practice of reciprocity: the teachings are offered freely, and we give back as we are able. All amounts are welcome.",
-  },
-  {
-    name: "Sliding scale / no one turned away",
-    text: "We offer this program on a sliding scale so it is accessible to everyone. Please offer an amount that reflects both your means and your appreciation for the teaching. No one is turned away for lack of funds.",
-  },
-];
-
-const DANA_LS_KEY = "rim_dana_templates";
-const DANA_LS_HIDDEN_KEY = "rim_dana_templates_hidden";
-
-function loadDanaTemplates(): { name: string; content: string }[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = JSON.parse(localStorage.getItem(DANA_LS_KEY) ?? "[]");
-    if (!Array.isArray(raw)) return [];
-    // Convert any legacy BlockNote-JSON content to HTML strings on read.
-    return raw.map((t: { name: string; content: unknown }) => ({
-      name: t.name,
-      content: isHtmlString(t.content) ? t.content : (renderBlockNoteHtml(t.content) || ""),
-    }));
-  } catch { return []; }
-}
-function loadHiddenBuiltins(): string[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(DANA_LS_HIDDEN_KEY) ?? "[]"); }
-  catch { return []; }
-}
-
-function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: string) => void; value: string }) {
-  const [saved, setSaved] = useState<{ name: string; content: string }[]>([]);
-  const [hiddenBuiltins, setHiddenBuiltins] = useState<string[]>([]);
-  const [showSave, setShowSave] = useState(false);
-  const [saveName, setSaveName] = useState("");
-  const [lastLoadedName, setLastLoadedName] = useState("");
-
-  useEffect(() => {
-    setSaved(loadDanaTemplates());
-    setHiddenBuiltins(loadHiddenBuiltins());
-  }, []);
-
-  const hasContent = value.replace(/<[^>]+>/g, "").trim().length > 0;
-  const visibleBuiltins = DANA_BUILTIN.filter((t) => !hiddenBuiltins.includes(t.name));
-  const allHidden = visibleBuiltins.length === 0;
-
-  function load(content: string, name: string) {
-    setLastLoadedName(name);
-    onLoad(content);
-  }
-
-  function saveTemplate() {
-    const name = saveName.trim();
-    if (!name || !hasContent) return;
-    const base = loadDanaTemplates();
-    const updated = [...base.filter((t) => t.name !== name), { name, content: value }];
-    localStorage.setItem(DANA_LS_KEY, JSON.stringify(updated));
-    setSaved(updated);
-    setSaveName("");
-    setShowSave(false);
-  }
-
-  function deleteCustom(name: string) {
-    const updated = saved.filter((t) => t.name !== name);
-    localStorage.setItem(DANA_LS_KEY, JSON.stringify(updated));
-    setSaved(updated);
-  }
-
-  function hideBuiltin(name: string) {
-    const updated = [...hiddenBuiltins, name];
-    localStorage.setItem(DANA_LS_HIDDEN_KEY, JSON.stringify(updated));
-    setHiddenBuiltins(updated);
-  }
-
-  function restoreBuiltins() {
-    localStorage.removeItem(DANA_LS_HIDDEN_KEY);
-    setHiddenBuiltins([]);
-  }
-
-  const hasAnyTemplates = visibleBuiltins.length > 0 || saved.length > 0;
-
-  return (
-    <div className="pe-template-bar">
-      {/* Header: label + save button */}
-      <div className="pe-template-bar__header">
-        <span className="pe-template-bar__label">Templates</span>
-        <button
-          type="button"
-          className="pe-template-bar__save-btn"
-          onClick={() => { setShowSave((s) => !s); setSaveName(lastLoadedName); }}
-          disabled={!hasContent}
-          title="Save what's currently in the editor as a reusable template"
-        >
-          + Save current
-        </button>
-      </div>
-
-      {/* Save name input */}
-      {showSave && (
-        <div className="pe-template-bar__save-row">
-          <input
-            type="text"
-            value={saveName}
-            onChange={(e) => setSaveName(e.target.value)}
-            placeholder="Template name…"
-            aria-label="Template name"
-            className="pe-input pe-template-bar__name-input"
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveTemplate(); } }}
-            autoFocus
-          />
-          <button type="button" className="pe-btn pe-btn--small" onClick={saveTemplate} disabled={!saveName.trim()}>Save</button>
-          <button type="button" className="pe-btn pe-btn--small pe-btn--ghost" onClick={() => setShowSave(false)}>Cancel</button>
-        </div>
-      )}
-
-      {/* Chips */}
-      {hasAnyTemplates && (
-        <div className="pe-template-bar__chips">
-          {visibleBuiltins.map((t) => (
-            <span key={t.name} className="pe-template-chip pe-template-chip--builtin">
-              <button type="button" className="pe-template-chip__name" onClick={() => load(textToHtml(t.text), t.name)}>{t.name}</button>
-              <button type="button" className="pe-template-chip__delete" onClick={() => hideBuiltin(t.name)} title="Remove" aria-label={`Remove the template ${t.name}`}>×</button>
-            </span>
-          ))}
-          {saved.map((t) => (
-            <span key={t.name} className="pe-template-chip">
-              <button type="button" className="pe-template-chip__name" onClick={() => load(t.content, t.name)}>{t.name}</button>
-              <button type="button" className="pe-template-chip__delete" onClick={() => deleteCustom(t.name)} title="Delete" aria-label={`Delete the template ${t.name}`}>×</button>
-            </span>
-          ))}
-        </div>
-      )}
-      {allHidden && (
-        <button type="button" className="pe-template-bar__restore" onClick={restoreBuiltins}>Restore default templates</button>
-      )}
-    </div>
-  );
-}
-
-/* ── Date + time picker (replaces datetime-local) ─────────────────────────
-   Renders a date input + hour / minute / AM–PM selects.
-   Value and onChange use the same datetime-local string format (YYYY-MM-DDTHH:mm)
-   so the rest of the form and save payload don't change at all.
-   Minutes snap to 15-minute increments. ── */
-// Hoisted to module scope so these option lists aren't reallocated on every
-// render (the editor re-renders on each keystroke) — keeps the selects snappy.
-const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
-const MINUTES = ["00", "15", "30", "45"];
-function DateTimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; /** Names the four controls for screen readers ("Start date and time"). */ label: string }) {
-  const parse = (v: string) => {
-    if (!v) return { date: "", hour: "7", minute: "00", ampm: "PM" };
-    const [datePart, timePart] = v.split("T");
-    if (!timePart) return { date: datePart ?? "", hour: "7", minute: "00", ampm: "PM" };
-    const [hStr, mStr] = timePart.split(":");
-    const h24 = parseInt(hStr ?? "19", 10);
-    const m = parseInt(mStr ?? "0", 10);
-    const ampm = h24 >= 12 ? "PM" : "AM";
-    const h12 = h24 % 12 || 12;
-    // Snap to nearest 15-minute mark
-    const mSnapped = Math.min(45, Math.round(m / 15) * 15);
-    return { date: datePart ?? "", hour: String(h12), minute: String(mSnapped).padStart(2, "0"), ampm };
-  };
-
-  const { date, hour, minute, ampm } = parse(value);
-
-  const emit = (d: string, h: string, mn: string, ap: string) => {
-    if (!d) { onChange(""); return; }
-    const h12 = parseInt(h, 10);
-    const h24 = ap === "AM" ? (h12 === 12 ? 0 : h12) : (h12 === 12 ? 12 : h12 + 12);
-    onChange(`${d}T${String(h24).padStart(2, "0")}:${mn}`);
-  };
-
-  return (
-    <div className="pe-datetime" role="group" aria-label={label}>
-      <input
-        type="date"
-        aria-label={`${label}: date`}
-        value={date}
-        onChange={(e) => emit(e.target.value, hour, minute, ampm)}
-        className="pe-datetime__date"
-      />
-      <div className="pe-datetime__time">
-        <select aria-label={`${label}: hour`} value={hour} onChange={(e) => emit(date, e.target.value, minute, ampm)} className="pe-datetime__select">
-          {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
-        </select>
-        <span className="pe-datetime__colon">:</span>
-        <select aria-label={`${label}: minutes`} value={minute} onChange={(e) => emit(date, hour, e.target.value, ampm)} className="pe-datetime__select">
-          {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <select aria-label={`${label}: AM or PM`} value={ampm} onChange={(e) => emit(date, hour, minute, e.target.value)} className="pe-datetime__select pe-datetime__select--ampm">
-          <option value="AM">AM</option>
-          <option value="PM">PM</option>
-        </select>
-      </div>
-    </div>
-  );
-}
-
-const TABS = [
-  "Content",
-  "Schedule",
-  "Hosting & Access",
-  "Categories",
-  "Registration",
-  "Dana",
-  "Visibility",
-] as const;
-type Tab = (typeof TABS)[number];
-
-/** The implicit default hub when `Program.hostingHubSlug` is null.
- *  Mirrors `lib/programHub.ts::DEFAULT_HOSTING_HUB_SLUG`. */
-const DEFAULT_HOSTING_HUB_SLUG = "host-team" as const;
-
-const DAY_OPTIONS = [
-  { value: "SU", label: "Sun" },
-  { value: "MO", label: "Mon" },
-  { value: "TU", label: "Tue" },
-  { value: "WE", label: "Wed" },
-  { value: "TH", label: "Thu" },
-  { value: "FR", label: "Fri" },
-  { value: "SA", label: "Sat" },
-];
-
 function slugify(text: string): string {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-}
-
-function toLocalDatetime(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  // Format as YYYY-MM-DDTHH:mm for datetime-local input
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 // ─── Schedule auto-generation helpers ────────────────────────────────────────
@@ -582,14 +303,11 @@ export default function ProgramEditor({
 }: Props) {
   const basePath = basePathProp ?? `/account/hub/${hubSlug}/programs`;
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("Content");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState("");
   const [success, setSuccess] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
-  const [slugLocked, setSlugLocked] = useState(isEditing);
-  const [uploading, setUploading] = useState(false);
 
   // ── State ────────────────────────────────────────────────────────────────
   const [name, setName] = useState(initialData?.name ?? "");
@@ -605,14 +323,9 @@ export default function ProgramEditor({
   const [pullQuote, setPullQuote] = useState(initialData?.pullQuote ?? "");
   const [pullQuoteSource, setPullQuoteSource] = useState(initialData?.pullQuoteSource ?? "");
   const [programNotes, setProgramNotes] = useState<string>(toEditorString(initialData?.programNotes));
-  const [teacherFacilitatorsText, setTeacherFacilitatorsText] = useState(
-    initialData?.teacherFacilitators?.join(", ") ?? ""
-  );
+  // No field shows this any more; it's sent as it was loaded.
+  const [teacherFacilitatorsText] = useState(initialData?.teacherFacilitators?.join(", ") ?? "");
   const [selectedTeachers, setSelectedTeachers] = useState<TeacherItem[]>(initialData?.programTeachers ?? []);
-  const [teacherQuery, setTeacherQuery] = useState("");
-  const [teacherResults, setTeacherResults] = useState<TeacherItem[]>([]);
-  const [teacherSearching, setTeacherSearching] = useState(false);
-  const teacherDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [categoryId] = useState(initialData?.categoryId ?? "");
   const [offeringCategory, setOfferingCategory] = useState(initialData?.offeringCategory ?? "");
@@ -620,13 +333,11 @@ export default function ProgramEditor({
   const [silentMeditation, setSilentMeditation] = useState(initialData?.silentMeditation ?? false);
   const [hostedByVolunteers, setHostedByVolunteers] = useState(initialData?.hostedByVolunteers ?? false);
   const [openEntry, setOpenEntry] = useState(initialData?.openEntry ?? false);
+  // dateText / timeText are server-computed on save (always recomputed from
+  // start/end/recurrence). The editor mirrors them locally as a live preview.
   const [dateText, setDateText] = useState(initialData?.dateText ?? "");
   const [timeText, setTimeText] = useState(initialData?.timeText ?? "");
 
-  // Dirty = user typed a custom override. False = keep label in sync with date/recurrence settings.
-  // Initialised by comparing stored value to what the compute functions would produce.
-  // dateText / timeText are server-computed on save (always recomputed from
-  // start/end/recurrence). The editor mirrors them locally as a live preview.
   const [programFormat, setProgramFormat] = useState(initialData?.programFormat ?? "in-person");
   const [venue, setVenue] = useState(initialData?.venue ?? "at-rim");
   const [locationText, setLocationText] = useState(initialData?.locationText ?? "");
@@ -640,25 +351,13 @@ export default function ProgramEditor({
 
   const [registrationEnabled, setRegistrationEnabled] = useState(initialData?.registrationEnabled ?? false);
   const [registrationClosed, setRegistrationClosed] = useState(initialData?.registrationClosed ?? false);
-  // Flodesk: "auto" follows the default rule (lib/flodeskRules.ts).
-  const [flodeskChoice, setFlodeskChoice] = useState<"auto" | "on" | "off">(
-    initialData?.flodeskSync == null ? "auto" : initialData.flodeskSync ? "on" : "off",
-  );
-  const [flodeskSegment, setFlodeskSegment] = useState<{ id: string; name: string } | null>(
-    initialData?.flodeskSegmentId ? { id: initialData.flodeskSegmentId, name: initialData.flodeskSegmentName ?? "" } : null,
-  );
-  // Sent only when changed here, so saving can't erase a segment that a first
-  // registration created while this editor was open.
-  const [flodeskSegmentChanged, setFlodeskSegmentChanged] = useState(false);
-  const [flodeskSegments, setFlodeskSegments] = useState<{ id: string; name: string }[] | null>(null);
-  const [flodeskSegmentsError, setFlodeskSegmentsError] = useState("");
+  // The mailing list (Flodesk) is set in the Registration app (2026-10-24), so
+  // the editor neither shows nor sends it.
   const [registrationCapacity, setRegistrationCapacity] = useState(initialData?.registrationCapacity ?? "");
   const [registrationDeadline, setRegistrationDeadline] = useState(initialData?.registrationDeadline ?? "");
   const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>(
     initialData?.registrationFields ?? []
   );
-  // Raw string drafts for select option inputs — avoids split/join on every keystroke
-  const [optionsDraft, setOptionsDraft] = useState<Record<number, string>>({});
   const [confirmationMessage, setConfirmationMessage] = useState<string>(toEditorString(initialData?.confirmationMessage));
   const [reminderDate, setReminderDate] = useState(initialData?.reminderDate ?? "");
   const [reminderMessage, setReminderMessage] = useState<string>(toEditorString(initialData?.reminderMessage));
@@ -668,14 +367,12 @@ export default function ProgramEditor({
   const [danaBaseAmount, setDanaBaseAmount] = useState(initialData?.danaBaseAmount ?? "");
   const [danaFixedAmount, setDanaFixedAmount] = useState(initialData?.danaFixedAmount ?? "");
   const [danaMessage, setDanaMessage] = useState<string>(toEditorString(initialData?.danaMessage));
-  const [danaEditorKey, setDanaEditorKey] = useState(0);
   const [danaText, setDanaText] = useState(initialData?.danaText ?? "");
 
   const [specialAnnouncement, setSpecialAnnouncement] = useState(initialData?.specialAnnouncement ?? "");
   const [announcementUntil, setAnnouncementUntil] = useState(initialData?.announcementUntil ?? "");
   const [earlyArrivalMessage, setEarlyArrivalMessage] = useState(initialData?.earlyArrivalMessage ?? "");
-  const [hideFromDashboard, setHideFromDashboard] = useState(initialData?.hideFromDashboard ?? false);
-  const [dayOfWeek, setDayOfWeek] = useState<string[]>(initialData?.dayOfWeek ?? []);
+  const [hideFromDashboard] = useState(initialData?.hideFromDashboard ?? false);
 
   const [sortOrder, setSortOrder] = useState(initialData?.sortOrder ?? "");
   const [removeFromProgramList, setRemoveFromProgramList] = useState(initialData?.removeFromProgramList ?? false);
@@ -686,30 +383,22 @@ export default function ProgramEditor({
 
   const [isOpenAccess, setIsOpenAccess] = useState(initialData?.isOpenAccess ?? false);
   const [guestAccessKey, setGuestAccessKey] = useState(initialData?.guestAccessKey ?? "");
-  const [resettingKey, setResettingKey] = useState(false);
-  const [confirmResetKey, setConfirmResetKey] = useState(false);
-  const [resetKeyNote, setResetKeyNote] = useState<{ tone: "ok" | "error"; msg: string } | null>(null);
-  const [copiedLink, setCopiedLink] = useState(false);
 
   // Hosting hub — which volunteer/peer-leader team hosts the live session
   // for this program. Empty string in state represents the "default (host-
   // team)" choice and serialises to null over the wire. Coordinator can
-  // transfer hosting to a different hub via the Hosting & Access tab; the
-  // mid-flight warning fires when the choice changes and future
-  // HostAssignment rows exist on this program.
+  // transfer hosting to a different hub under Who's helping; the mid-flight
+  // warning fires when the choice changes and future HostAssignment rows
+  // exist on this program.
   const initialHostingHubSlug = initialData?.hostingHubSlug ?? "";
   const [hostingHubSlug, setHostingHubSlug] = useState<string>(initialHostingHubSlug);
-  const hostingHubChanged = hostingHubSlug !== initialHostingHubSlug;
 
   // "No host needed" — self-led / community-led programs (Recovery Dharma,
   // drop-in groups). When true, this program is excluded from the Scheduler,
   // rotations, and host notifications. Stored as `hostingRequired` (the
-  // inverse); the checkbox below is phrased positively as "No host needed".
-  const [hostingRequired, setHostingRequired] = useState<boolean>(
-    initialData?.hostingRequired ?? true,
-  );
-  const noHostNeeded = !hostingRequired;
-  const hostingRequiredChanged = hostingRequired !== (initialData?.hostingRequired ?? true);
+  // inverse); the checkbox is phrased positively as "No host needed".
+  const initialHostingRequired = initialData?.hostingRequired ?? true;
+  const [hostingRequired, setHostingRequired] = useState<boolean>(initialHostingRequired);
   const [recordByDefault, setRecordByDefault] = useState<boolean>(initialData?.recordByDefault ?? false);
   // Where it meets online (2026-10-14): RIM's Zoom, or someone else's room. Only
   // the link is stored; the choice is derived from it.
@@ -747,12 +436,6 @@ export default function ProgramEditor({
   const [coverageHubSlugs, setCoverageHubSlugs] = useState<string[]>(
     initialData?.coverageHubSlugs ?? [],
   );
-  function toggleCoverageHub(slug: string, checked: boolean) {
-    setCoverageHubSlugs((prev) =>
-      checked ? [...prev.filter((s) => s !== slug), slug] : prev.filter((s) => s !== slug),
-    );
-    markDirty();
-  }
 
   // ── Unsaved changes tracking ────────────────────────────────────────────
   const [dirty, setDirty] = useState(false);
@@ -762,8 +445,15 @@ export default function ProgramEditor({
   // focus back to whatever opened it.
   const leaveDialogRef = useNavigationDrawer(pendingNav !== null, () => setPendingNav(null));
 
-  // A new edit after a save: "Saved" no longer describes the page.
-  const markDirty = useCallback(() => { if (!dirty) { setDirty(true); setSuccess(false); } }, [dirty]);
+  // A new edit after a save: "Saved" no longer describes the page. Stable
+  // (no dependencies), so passing it never redraws a section.
+  const markDirty = useCallback(() => { setDirty(true); setSuccess(false); }, []);
+  // Any change inside the editor marks it unsaved, except moving around it
+  // (the Jump to menu).
+  const onEdit = useCallback((e: React.SyntheticEvent) => {
+    if ((e.target as HTMLElement).closest?.("[data-pe-nav]")) return;
+    markDirty();
+  }, [markDirty]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -780,6 +470,30 @@ export default function ProgramEditor({
       router.push(href);
     }
   }
+
+  // ── Where the reader is: the section nearest the top of the screen ───────
+  const [currentSection, setCurrentSection] = useState<SectionId>("about");
+  useEffect(() => {
+    const seen = new Map<string, boolean>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) seen.set(entry.target.id, entry.isIntersecting);
+        const first = SECTIONS.find((s) => seen.get(sectionDomId(s.id)));
+        if (first) setCurrentSection(first.id);
+      },
+      // Below the site header, and in the upper part of the screen.
+      { rootMargin: "-110px 0px -55% 0px" },
+    );
+    for (const s of SECTIONS) {
+      const el = document.getElementById(sectionDomId(s.id));
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, []);
+  const jumpTo = useCallback((id: SectionId, focus = true) => {
+    setCurrentSection(id);
+    goToSection(id, { focus });
+  }, []);
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -798,96 +512,6 @@ export default function ProgramEditor({
     const computed = computeTimeText(startDatetime, endDatetime);
     setTimeText(computed);
   }, [startDatetime, endDatetime]);
-
-  // ── Teacher search ───────────────────────────────────────────────────────
-  useEffect(() => {
-    if (teacherDebounceRef.current) clearTimeout(teacherDebounceRef.current);
-    if (!teacherQuery.trim()) {
-      setTeacherResults([]);
-      return;
-    }
-    teacherDebounceRef.current = setTimeout(async () => {
-      setTeacherSearching(true);
-      try {
-        const res = await fetch(`/api/members/search?q=${encodeURIComponent(teacherQuery)}`);
-        if (res.ok) {
-          const data = await res.json();
-          const mapped: TeacherItem[] = data.map((m: { id: string; firstName: string; lastName: string }) => ({
-            id: m.id,
-            firstName: m.firstName,
-            lastName: m.lastName,
-          }));
-          setTeacherResults(mapped.filter((t) => !selectedTeachers.some((s) => s.id === t.id)));
-        }
-      } catch {}
-      setTeacherSearching(false);
-    }, 300);
-  }, [teacherQuery]);
-
-  function addTeacher(teacher: TeacherItem) {
-    setSelectedTeachers((prev) => [...prev, teacher]);
-    setTeacherResults([]);
-    setTeacherQuery("");
-    markDirty();
-  }
-
-  function removeTeacher(id: string) {
-    setSelectedTeachers((prev) => prev.filter((t) => t.id !== id));
-    markDirty();
-  }
-
-  // ── Image upload ─────────────────────────────────────────────────────────
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setError("");
-    try {
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-      });
-      setProgramImage(blob.url);
-      markDirty();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  // ── Registration fields management ───────────────────────────────────────
-  function addField() {
-    setRegistrationFields((prev) => [
-      ...prev,
-      { label: "", fieldType: "shortText", required: false, options: [] },
-    ]);
-  }
-
-  function updateField(idx: number, updates: Partial<RegistrationField>) {
-    setRegistrationFields((prev) =>
-      prev.map((f, i) => (i === idx ? { ...f, ...updates } : f))
-    );
-  }
-
-  function removeField(idx: number) {
-    setRegistrationFields((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function moveField(idx: number, dir: -1 | 1) {
-    setRegistrationFields((prev) => {
-      const next = [...prev];
-      const target = idx + dir;
-      if (target < 0 || target >= next.length) return prev;
-      [next[idx], next[target]] = [next[target], next[idx]];
-      return next;
-    });
-  }
-
-  // ── Day toggle helpers ───────────────────────────────────────────────────
-  function toggleDay(arr: string[], day: string): string[] {
-    return arr.includes(day) ? arr.filter((d) => d !== day) : [...arr, day];
-  }
 
   // ── Save ─────────────────────────────────────────────────────────────────
   async function handleSave() {
@@ -915,8 +539,6 @@ export default function ProgramEditor({
       silentMeditation,
       hostedByVolunteers,
       openEntry,
-      flodeskSync: flodeskChoice === "auto" ? null : flodeskChoice === "on",
-      ...(flodeskSegmentChanged ? { flodeskSegmentId: flodeskSegment?.id ?? null } : {}),
       dateText,
       timeText,
       programFormat,
@@ -1002,8 +624,10 @@ export default function ProgramEditor({
 
     // The quote is optional (2026-10-02): a program without one renders a
     // quote-less hero. A source cannot stand without its quote.
+    // Problems are said beside Save, where the person is looking, naming the
+    // section to go to (the page doesn't scroll away from the answer).
     if (!pullQuote.trim() && pullQuoteSource.trim()) {
-      setError("A quote source needs its quote. Add the quote, or clear the source.");
+      setError("Under About: a quote source needs its quote. Add the quote, or clear the source.");
       return;
     }
 
@@ -1011,8 +635,7 @@ export default function ProgramEditor({
     // Ongoing Learning & Practice, Immersion) and optional otherwise.
     const offeringCheck = cleanOffering({ offeringCategory, offeringFormat, silentMeditation, hostedByVolunteers });
     if (!offeringCheck.ok) {
-      setTab("Categories");
-      setError(offeringCheck.error);
+      setError(`Under Where it appears: ${offeringCheck.error}`);
       return;
     }
 
@@ -1024,12 +647,15 @@ export default function ProgramEditor({
       const problem = !check.ok
         ? check.error
         : !check.value
-          ? "Paste the outside meeting link, or choose RIM\u2019s Zoom."
+          ? "Paste the outside meeting link, or choose RIM’s Zoom."
           : "";
       if (problem) {
+        // Said under the link itself too, so take them there.
         setOutsideUrlError(problem);
-        setTab("Hosting & Access");
-        setError(problem);
+        const field = document.getElementById("pe-outside-url");
+        field?.scrollIntoView({ block: "center" });
+        field?.focus({ preventScroll: true });
+        setError(`Under When and where: ${problem}`);
         return;
       }
     }
@@ -1094,7 +720,6 @@ export default function ProgramEditor({
           setGuestAccessKey("");
         }
         setDirty(false);
-        setFlodeskSegmentChanged(false);
         setSuccess(true);
         setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
         // The save went through this fetch, not through the router, so the
@@ -1127,132 +752,8 @@ export default function ProgramEditor({
     }
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
-  const isVirtual = programFormat === "virtual" || programFormat === "hybrid";
-
-  // ── "How this appears to visitors" ───────────────────────────────────────
-  // Mirror the public program page's registration CTA so the volunteer sees the
-  // consequence of these toggles at edit time (registration and Open entry).
-  // Category and Format are labels and never change access.
-  const selectedCategory = categories.find((c) => c.id === categoryId);
-  // Open entry is its own setting, so what the volunteer sees here is what
-  // visitors get.
-  const droppableNow = openEntry;
-  // Memoized so it recomputes only when its inputs change, not on every
-  // keystroke elsewhere in the editor.
-  // What Open entry means for THIS program's delivery (matches the Visibility tab).
-  const outsideActive = isVirtual && roomChoice === "outside";
-  // The program page offers its own Join (same rule as the page and /enter).
-  const publicJoinOn = outsideActive && outsidePublic && !registrationEnabled;
-  // "on Zoom" / "on Google Meet" / "online": what this program meets on.
-  const onlineWords = onlinePhrase({
-    programFormat,
-    outsideMeetingUrl: outsideActive ? outsideUrl.trim() || null : null,
-  });
-  const openEntryText = openEntry
-    ? programFormat === "in-person"
-      ? "Anyone may simply arrive in person, without registering. It carries the Drop-in mark on This Week."
-      : programFormat === "hybrid"
-        ? `Anyone may simply arrive in person, and anyone signed in may join ${onlineWords}, without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week.`
-        : `Anyone signed in may join ${onlineWords} without registering. On the days it meets it appears on My Home\u2019s Today for everyone (see Visibility) and carries the Drop-in mark on This Week.`
-    : "People join by registering. Hosts and teachers always have access. It carries no Drop-in mark.";
-  // Flodesk: the same rule the server applies (lib/flodeskRules.ts), and the
-  // name a new segment would take ("Name MM/DD/YY"; an ongoing program, name only).
-  const flodeskDefaultOn = programUsesFlodesk({
-    registrationEnabled,
-    offeringCategory: offeringCategory || null,
-    flodeskSync: null,
-  });
-  const flodeskOn = flodeskChoice === "auto" ? flodeskDefaultOn : flodeskChoice === "on";
-  const flodeskNamePreview = (() => {
-    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(startDatetime || "");
-    const ongoing = !!recurrenceFreq && !recurrenceCount;
-    return !m || ongoing ? name.trim() : `${name.trim()} ${m[2]}/${m[3]}/${m[1].slice(2)}`;
-  })();
-  async function loadFlodeskSegments() {
-    setFlodeskSegmentsError("");
-    try {
-      const res = await fetch("/api/flodesk/segments");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Flodesk didn't answer.");
-      setFlodeskSegments(data.segments);
-    } catch (err) {
-      setFlodeskSegmentsError(err instanceof Error ? err.message : "Flodesk didn't answer.");
-    }
-  }
-
-  const appearanceText = useMemo(() => {
-    const deadlinePast = registrationDeadline
-      ? new Date(registrationDeadline) < new Date()
-      : false;
-    const regClosedEffective = registrationClosed || deadlinePast;
-    const isDroppable = droppableNow;
-    return registrationEnabled
-      ? regClosedEffective
-        ? "Registration is closed — visitors see a “Registration is closed” notice instead of the form."
-        : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
-      : isDroppable
-        ? "Open entry: visitors see how to join (in person and/or online). No registration needed."
-        : "Registration isn’t open yet — visitors are told that, with no sign-up button. Turn on “Registration enabled” below when you’re ready to take sign-ups.";
-  }, [droppableNow, registrationDeadline, registrationClosed, registrationEnabled]);
-
-  // ── "Where this program appears" ─────────────────────────────────────────
-  // The public listing leaves a program out for reasons that live outside the
-  // Visibility checkboxes (no category, a hidden category, a passed date,
-  // archived). Mirror the rules in app/community-programs/page.tsx and
-  // app/this-week/page.tsx so the editor says why, instead of the program
-  // silently not appearing.
-  const isArchived = initialData?.archived ?? false;
-  const listingReason = useMemo((): "archived" | "hidden" | "noCategory" | "private" | "hiddenCategory" | "past" | null => {
-    if (isArchived) return "archived";
-    if (hideFromProgramPageList) return "hidden";
-    if (!isOfferingCategory(offeringCategory)) return "noCategory";
-    if (offeringCategory === "PRIVATE") return "private";
-    // The old category's "hide from the Programs page" flag keeps its meaning.
-    if (selectedCategory?.hidden) return "hiddenCategory";
-    if (hideWhenPast && !recurrenceFreq && startDatetime) {
-      // Editor datetimes are Central wall-clock strings (YYYY-MM-DDTHH:mm).
-      const lastDay = (endDatetime || startDatetime).slice(0, 10);
-      const todayCt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
-      if (lastDay < todayCt) return "past";
-    }
-    return null;
-  }, [isArchived, hideFromProgramPageList, offeringCategory, selectedCategory, hideWhenPast, recurrenceFreq, startDatetime, endDatetime]);
-  // My Home (app/account/(authenticated)/dashboard/page.tsx): online programs
-  // appear in Today on the days they meet, unless archived or hidden from the
-  // member home (until an optional auto-show date). Who sees them follows the
-  // Open entry setting: programs with open entry show to everyone; the others
-  // show to registrants, hosts and teachers. In-person programs appear only for
-  // their registrants. Waitlisted members don't get a Join.
-  const homeHiddenUntilLater = useMemo(() => {
-    if (!removeFromProgramList) return false;
-    if (!dashboardShowAt) return true;
-    // Both are Central wall-clock strings, so they compare as text.
-    const nowCt = new Date()
-      .toLocaleString("sv-SE", { timeZone: "America/Chicago" })
-      .replace(" ", "T")
-      .slice(0, 16);
-    return dashboardShowAt.slice(0, 16) > nowCt;
-  }, [removeFromProgramList, dashboardShowAt]);
-  const homeState: "archived" | "hidden" | "hiddenUntil" | "noSchedule" | "inPerson" | "open" | "registrants" =
-    isArchived ? "archived"
-      : !startDatetime ? "noSchedule"
-      // The hide box filters online sessions only; in-person registrants
-      // still see their program on the day.
-      : programFormat === "in-person" ? "inPerson"
-      : homeHiddenUntilLater ? (dashboardShowAt ? "hiddenUntil" : "hidden")
-      : droppableNow ? "open"
-      : "registrants";
-
-  const weeklyReason: "archived" | "hiddenListing" | "hiddenWeekly" | "noSchedule" | null =
-    isArchived ? "archived"
-      : hideFromProgramPageList ? "hiddenListing"
-      : hideFromWeeklySchedule ? "hiddenWeekly"
-      : !startDatetime ? "noSchedule"
-      : null;
-
   return (
-    <div className="pe-editor" onChangeCapture={markDirty} onInputCapture={markDirty}>
+    <div className="pe-editor pe-editor--sections" onChangeCapture={onEdit} onInputCapture={onEdit}>
       {/* ── Unsaved changes confirmation dialog ── */}
       {pendingNav && (
         <div className="pe-overlay" onClick={() => setPendingNav(null)}>
@@ -1348,1586 +849,162 @@ export default function ProgramEditor({
         </div>
       )}
 
-      {/* ── Tab bar ── */}
-      {/* Real tab semantics, mirroring the Scheduler's tablists — the active
-          state was CSS-only, invisible to assistive tech. */}
-      <div className="pe-tabs" role="tablist" aria-label="Program editor sections">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            className={`pe-tabs__tab${tab === t ? " pe-tabs__tab--active" : ""}`}
-            onClick={() => setTab(t)}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════
-         TAB 1 — Content
-         ══════════════════════════════════════════════════════════════════ */}
-      {tab === "Content" && (
-        <div className="pe-card">
-          <div className="pe-card__section">
-            <div className="pe-form">
-              <label className="pe-field">
-                <span className="pe-field__label">Name *</span>
-                <span className="pe-field__help">The program title. This appears on the public site, on the member home, and in all emails.</span>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="pe-input" required />
-              </label>
-
-              <label className="pe-field">
-                <span className="pe-field__label">Slug *</span>
-                <span className="pe-field__help">The URL path for this program (e.g. /programs/morning-sit). Changing this after the program is live will break existing links and host assignments.</span>
-                <div className="pe-slug-row">
-                  <input
-                    type="text"
-                    value={slug}
-                    onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
-                    className="pe-input"
-                    disabled={slugLocked}
-                    required
-                  />
-                  {isEditing && (
-                    <button
-                      type="button"
-                      className="pe-btn pe-btn--small"
-                      onClick={() => setSlugLocked(!slugLocked)}
-                    >
-                      {slugLocked ? "Unlock" : "Lock"}
-                    </button>
-                  )}
-                </div>
-                {isEditing && !slugLocked && (
-                  <span className="pe-field__help pe-field__help--warn">
-                    Changing the slug breaks existing links. Once anyone has registered or the schedule uses it, it can't change.
-                  </span>
-                )}
-              </label>
-
-              <label className="pe-field">
-                <span className="pe-field__label">Tagline</span>
-                <span className="pe-field__help">A one-line description shown below the program name on the Programs page and in search results.</span>
-                <input type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} className="pe-input" />
-              </label>
-
-              <div className="pe-field">
-                <span className="pe-field__label">Program Image</span>
-                <span className="pe-field__help">Shown on the public program page and in the Programs listing. Landscape format works best.</span>
-                {programImage && (
-                  <div className="pe-image-preview">
-                    <img src={programImage} alt="Program" className="pe-image-preview__img" />
-                    <button type="button" className="pe-btn pe-btn--small pe-btn--danger" onClick={() => setProgramImage("")}>
-                      Remove
-                    </button>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="pe-file-input"
-                  disabled={uploading}
-                />
-                {uploading && <span className="pe-muted">Uploading…</span>}
-              </div>
-            </div>
-          </div>
-
-          <div className="pe-card__section">
-            <div className="pe-form">
-              <div className="pe-field">
-                <span className="pe-field__label">Description</span>
-                <span className="pe-field__help">The full program description shown on the public program page. Write for someone who has never been to RIM.</span>
-                <RimTiptapEditor
-                  value={description}
-                  onChange={(v) => { setDescription(v); markDirty(); }}
-                  placeholder="Program description…"
-                  variant="document"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="pe-card__section">
-            <div className="pe-form">
-              <label className="pe-field">
-                <span className="pe-field__label">Pull Quote</span>
-                <span className="pe-field__help">Optional. A short highlighted quote can anchor the public program page. Leave it empty and the page opens straight onto the description.</span>
-                <input type="text" value={pullQuote} onChange={(e) => setPullQuote(e.target.value)} className="pe-input" />
-              </label>
-
-              <label className="pe-field">
-                <span className="pe-field__label">Pull Quote Source</span>
-                <span className="pe-field__help">Attribute the quote whenever possible. The source appears below it in smaller text. Needs a quote above.</span>
-                <input type="text" value={pullQuoteSource} onChange={(e) => setPullQuoteSource(e.target.value)} className="pe-input" />
-              </label>
-            </div>
-          </div>
-
-          <div className="pe-card__section">
-            <div className="pe-form">
-              <div className="pe-field">
-                <span className="pe-field__label">Program Notes</span>
-                <span className="pe-field__help">Additional notes shown on the program&rsquo;s page: scheduling context, accessibility, background. The quiet line shown with a session on the day belongs in Session note, on the Schedule tab.</span>
-                <RimTiptapEditor
-                  value={programNotes}
-                  onChange={(v) => { setProgramNotes(v); markDirty(); }}
-                  placeholder="Program notes…"
-                  variant="message"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="pe-card__section">
-            <div className="pe-form">
-              <div className="pe-field">
-                <span className="pe-field__label">Teacher / Facilitators</span>
-                <span className="pe-field__help">Search by name to link teachers to this program. In online sessions, linked teachers see the Claim Host code, so they can take host controls in Zoom if needed.</span>
-
-                {selectedTeachers.length > 0 && (
-                  <div className="pe-teacher-tags">
-                    {selectedTeachers.map((t) => (
-                      <span key={t.id} className="pe-teacher-tag">
-                        {t.firstName} {t.lastName}
-                        <button
-                          type="button"
-                          className="pe-teacher-tag__remove"
-                          aria-label={`Remove ${t.firstName} ${t.lastName}`}
-                          onClick={() => removeTeacher(t.id)}
-                        >
-                          &times;
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <input
-                  type="text"
-                  value={teacherQuery}
-                  onChange={(e) => setTeacherQuery(e.target.value)}
-                  className="pe-input"
-                  placeholder="Search teachers by name…"
-                  aria-label="Search teachers by name"
-                />
-                {teacherSearching && <span className="pe-field__help">Searching…</span>}
-                {teacherResults.length > 0 && (
-                  <div className="pe-teacher-results">
-                    {teacherResults.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className="pe-teacher-result"
-                        onClick={() => addTeacher(t)}
-                      >
-                        {t.firstName} {t.lastName}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Teacher pill label moved to the "Hosting & Access" tab —
-                  it sits with the other live-session controls (hosting hub,
-                  open-access link) rather than alongside editorial content.
-                  See RIM_System_Architecture.md "Hosting & Access tab
-                  (session 128)". */}
-            </div>
-          </div>
-
-        </div>
-      )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 2 — Schedule
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Schedule" && (
-          <div className="pe-card"><div className="pe-form">
-            <label className="pe-field">
-              <span className="pe-field__label">Schedule Label</span>
-              <span className="pe-field__help">How the schedule appears on the public site. Auto-generated from your recurrence and start date — change those above to update.</span>
-              <input type="text" value={dateText} readOnly className="pe-input pe-input--readonly" />
-            </label>
-
-            <label className="pe-field">
-              <span className="pe-field__label">Time Label</span>
-              <span className="pe-field__help">Shown on program cards and in confirmation emails. Auto-generated from your start and end times — change those above to update.</span>
-              <input type="text" value={timeText} readOnly className="pe-input pe-input--readonly" />
-            </label>
-
-            <div className="pe-field">
-              <span className="pe-field__label">Program Format</span>
-              <span className="pe-field__help">In-person, virtual, or hybrid. Virtual and hybrid programs meet on RIM&rsquo;s Zoom, or in an outside meeting set on the Hosting &amp; Access tab; in-person and hybrid programs show the venue address.</span>
-              <div className="pe-option-cards">
-                {[
-                  { value: "in-person", label: "In-person" },
-                  { value: "virtual", label: "Virtual" },
-                  { value: "hybrid", label: "Hybrid" },
-                ].map((opt) => (
-                  <label key={opt.value} className={`pe-option-card${programFormat === opt.value ? " pe-option-card--active" : ""}`}>
-                    <input type="radio" name="programFormat" checked={programFormat === opt.value} onChange={() => setProgramFormat(opt.value)} />
-                    <span className="pe-option-card__mark" />
-                    {opt.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {programFormat !== "virtual" && (
-              <div className="pe-field">
-                <span className="pe-field__label">Venue</span>
-                <span className="pe-field__help">Where the program takes place. &lsquo;At RIM&rsquo; auto-fills the RIM address. &lsquo;Other&rsquo; lets you enter a custom location.</span>
-                <div className="pe-option-cards">
-                  {[
-                    { value: "at-rim", label: "At RIM" },
-                    { value: "other", label: "Other location" },
-                  ].map((opt) => (
-                    <label key={opt.value} className={`pe-option-card${venue === opt.value ? " pe-option-card--active" : ""}`}>
-                      <input type="radio" name="venue" checked={venue === opt.value} onChange={() => setVenue(opt.value)} />
-                      <span className="pe-option-card__mark" />
-                      {opt.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {programFormat !== "virtual" && venue === "other" && (
-              <>
-                <label className="pe-field">
-                  <span className="pe-field__label">Location Text</span>
-                  <span className="pe-field__help">The venue name and address shown on the program page and in confirmation emails.</span>
-                  <input type="text" value={locationText} onChange={(e) => setLocationText(e.target.value)} className="pe-input" />
-                </label>
-                <label className="pe-field">
-                  <span className="pe-field__label">Location Link</span>
-                  <span className="pe-field__help">A link to the venue: Google Maps, a website, or directions. Shown as a clickable link on the program page, and as &ldquo;Map and directions&rdquo; in the confirmation email.</span>
-                  <input type="url" value={locationLink} onChange={(e) => setLocationLink(e.target.value)} className="pe-input" placeholder="https://…" />
-                </label>
-              </>
-            )}
-
-            <label className="pe-field">
-              <span className="pe-field__label">Session note</span>
-              <span className="pe-field__help">One quiet line shown with the session on My Home on the day: &ldquo;Held in noble silence before and during the session.&rdquo; &ldquo;Doors open ten minutes before.&rdquo; &ldquo;Bring a cushion.&rdquo;</span>
-              <textarea
-                value={earlyArrivalMessage}
-                onChange={(e) => setEarlyArrivalMessage(e.target.value)}
-                className="pe-textarea"
-                rows={2}
-              />
-            </label>
-
-            {/* Open Access (guest link) moved to the "Hosting & Access" tab —
-                it controls who can join a live session, not when/where the
-                program runs. See RIM_System_Architecture.md "Hosting & Access
-                tab (session 128)". */}
-
-            <div className="pe-field">
-              <span className="pe-field__label">Start Date &amp; Time</span>
-              <span className="pe-field__help">The date range for this program. For single-day events, set both to the same date.</span>
-              <DateTimePicker label="Start date and time" value={startDatetime} onChange={(v) => { setStartDatetime(v); markDirty(); }} />
-            </div>
-
-            <div className="pe-field">
-              <span className="pe-field__label">End Date &amp; Time</span>
-              <DateTimePicker label="End date and time" value={endDatetime} onChange={(v) => { setEndDatetime(v); markDirty(); }} />
-            </div>
-
-            <div className="pe-field">
-              <span className="pe-field__label">Recurrence</span>
-              <span className="pe-field__help">For repeating programs. Sets the pattern (weekly, daily, etc.) and how many times it occurs.</span>
-              <div className="pe-option-cards">
-                {[
-                  { value: "", label: "One-time" },
-                  { value: "DAILY", label: "Daily" },
-                  { value: "WEEKLY", label: "Weekly" },
-                  { value: "MONTHLY", label: "Monthly" },
-                ].map((opt) => (
-                  <label key={opt.value} className={`pe-option-card${recurrenceFreq === opt.value ? " pe-option-card--active" : ""}`}>
-                    <input type="radio" name="recurrenceFreq" checked={recurrenceFreq === opt.value} onChange={() => { setRecurrenceFreq(opt.value); markDirty(); }} />
-                    <span className="pe-option-card__mark" />
-                    {opt.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {recurrenceFreq && (
-              <label className="pe-field">
-                <span className="pe-field__label">Repeat every</span>
-                <div className="pe-inline-row">
-                  <input
-                    type="number"
-                    min="1"
-                    max="52"
-                    value={recurrenceInterval}
-                    onChange={(e) => { setRecurrenceInterval(e.target.value); markDirty(); }}
-                    className="pe-input pe-input--narrow"
-                  />
-                  <span>{recurrenceFreq === "DAILY" ? "day(s)" : recurrenceFreq === "WEEKLY" ? "week(s)" : "month(s)"}</span>
-                </div>
-              </label>
-            )}
-
-            {recurrenceFreq === "WEEKLY" && (
-              <div className="pe-field">
-                <span className="pe-field__label">On days</span>
-                <div className="pe-day-grid">
-                  {DAY_OPTIONS.map((d) => (
-                    <label key={d.value} className="pe-day-toggle">
-                      <input
-                        type="checkbox"
-                        checked={recurrenceDays.includes(d.value)}
-                        onChange={() => { setRecurrenceDays(toggleDay(recurrenceDays, d.value)); markDirty(); }}
-                      />
-                      {d.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {recurrenceFreq && (
-              <label className="pe-field">
-                <span className="pe-field__label">Number of occurrences</span>
-                <span className="pe-field__help">Leave blank for ongoing.</span>
-                <input
-                  type="number"
-                  min="2"
-                  value={recurrenceCount}
-                  onChange={(e) => setRecurrenceCount(e.target.value)}
-                  className="pe-input pe-input--narrow"
-                />
-              </label>
-            )}
-
-            <label className="pe-field">
-              <span className="pe-field__label">Notice</span>
-              <span className="pe-field__help">A change: &ldquo;Cancelled this week.&rdquo; &ldquo;Starting at 7:15 tonight.&rdquo; &ldquo;We are in the community room.&rdquo; Shown wherever the program is listed: Programs &amp; Events, This Week, the program&rsquo;s page, and My Home.</span>
-              <textarea
-                value={specialAnnouncement}
-                onChange={(e) => { setSpecialAnnouncement(e.target.value); markDirty(); }}
-                className="pe-textarea"
-                rows={2}
-              />
-            </label>
-
-            <label className="pe-field">
-              <span className="pe-field__label">Show until</span>
-              <span className="pe-field__help">The last day the notice shows; it clears itself the next morning. Leave empty and it stays until you clear the text.</span>
-              <input
-                type="date"
-                value={announcementUntil}
-                onChange={(e) => { setAnnouncementUntil(e.target.value); markDirty(); }}
-                className="pe-input pe-input--narrow"
-              />
-            </label>
-
-          </div></div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 3 — Hosting & Access (session 128 Slice 1; session 129 expanded)
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Hosting & Access" && (
-          <div className="pe-card"><div className="pe-form">
-
-            {/* ── No host needed (self-led / community-led) ──────────── */}
-            <div className="pe-field">
-              <span className="pe-field__label">Host coverage</span>
-              <span className="pe-field__help">
-                Most programs need someone from the hosting team on the
-                schedule. Self-led or community-led offerings, like drop-in
-                community groups, don&rsquo;t: check this and the hosting team
-                won&rsquo;t schedule it, rotate it, or be notified about it.
-                It stays fully visible on the public schedule, the member
-                dashboard, and its program page, and its online room still
-                works. Supporting teams added below still schedule it.
-              </span>
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={noHostNeeded}
-                  onChange={(e) => { setHostingRequired(!e.target.checked); markDirty(); }}
-                />
-                <span>No host needed</span>
-              </label>
-              {noHostNeeded && (
-                <p
-                  style={{
-                    marginTop: 8,
-                    fontSize: "var(--text-xs)",
-                    color: "var(--rim-text-muted)",
-                  }}
+      <div className="pe-layout">
+        {/* The sections, beside the form on wide screens; Jump to on phones. */}
+        <nav className="pe-index" aria-label="Sections of this program" data-pe-nav>
+          <ol className="pe-index__list">
+            {SECTIONS.map((s) => (
+              <li key={s.id}>
+                <a
+                  href={`#${sectionDomId(s.id)}`}
+                  className="pe-index__link"
+                  aria-current={currentSection === s.id ? "location" : undefined}
+                  onClick={(e) => { e.preventDefault(); jumpTo(s.id); }}
                 >
-                  This program is self-led — the hosting settings below
-                  don&rsquo;t apply.
-                </p>
-              )}
-              {isEditing && noHostNeeded && hostingRequiredChanged && futureHostAssignmentCount > 0 && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    background: "var(--color-warning-bg, #fdf6e3)",
-                    color: "var(--color-warning, #8a6d3b)",
-                    fontSize: "var(--text-xs)",
-                    lineHeight: 1.55,
-                  }}
-                >
-                  <strong>Heads up:</strong> {futureHostAssignmentCount} upcoming
-                  {futureHostAssignmentCount === 1 ? " host assignment" : " host assignments"}
-                  {" "}and any standing rotations for this program will be removed
-                  when you save. Past sessions stay on the record.
-                </div>
-              )}
-            </div>
+                  {s.title}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
 
-            {/* ── Where it meets online (2026-10-14) ────────────────────────
-                RIM's Zoom, or someone else's room. The readout beneath says,
-                for the settings chosen, who can get in and how. */}
-            {isVirtual && (
-              <fieldset className="pe-field">
-                <legend className="pe-field__label">Where it meets online</legend>
-                <span className="pe-field__help">
-                  Choose RIM&rsquo;s Zoom for most programs. Choose an outside
-                  meeting link if the program meets in someone else&rsquo;s
-                  Zoom, like Recovery Dharma.
-                </span>
-                <div className="pe-option-cards">
-                  {([
-                    { value: "rim", label: "RIM\u2019s Zoom" },
-                    { value: "outside", label: "An outside meeting link" },
-                  ] as const).map((opt) => (
-                    <label key={opt.value} className={`pe-option-card${roomChoice === opt.value ? " pe-option-card--active" : ""}`}>
-                      <input
-                        type="radio"
-                        name="roomChoice"
-                        checked={roomChoice === opt.value}
-                        onChange={() => { setRoomChoice(opt.value); setOutsideUrlError(""); markDirty(); }}
-                      />
-                      <span className="pe-option-card__mark" />
-                      {opt.label}
-                    </label>
-                  ))}
-                </div>
-
-                {roomChoice === "outside" && (
-                  // pe-field stacks the label above its help, as every other field does
-                  // ("Meeting link" ran into its help text inline).
-                  <div className="pe-field" style={{ marginTop: 16 }}>
-                    <label htmlFor="pe-outside-url" className="pe-field__label">Meeting link</label>
-                    <span className="pe-field__help" id="pe-outside-url-help">
-                      Paste the full link here, passcode and all.
-                    </span>
-                    <input
-                      id="pe-outside-url"
-                      type="url"
-                      inputMode="url"
-                      autoComplete="off"
-                      className="pe-input"
-                      placeholder="https://us06web.zoom.us/j/…"
-                      value={outsideUrl}
-                      aria-invalid={outsideUrlError ? true : undefined}
-                      aria-describedby={outsideUrlError ? "pe-outside-url-help pe-outside-url-error" : "pe-outside-url-help"}
-                      onChange={(e) => { setOutsideUrl(e.target.value); if (outsideUrlError) setOutsideUrlError(""); markDirty(); }}
-                      onBlur={() => {
-                        const check = cleanOutsideMeetingUrl(outsideUrl);
-                        setOutsideUrlError(check.ok ? "" : check.error);
-                      }}
-                    />
-                    {outsideUrlError && (
-                      <p className="pe-field__error" id="pe-outside-url-error" role="alert">{outsideUrlError}</p>
-                    )}
-
-                    <label className="pe-checkbox" style={{ marginTop: 16 }}>
-                      <input
-                        type="checkbox"
-                        checked={outsidePublic && !registrationEnabled}
-                        disabled={registrationEnabled}
-                        aria-describedby="pe-outside-public-help"
-                        onChange={(e) => { setOutsidePublic(e.target.checked); markDirty(); }}
-                      />
-                      <span>Anyone may join from the public program page</span>
-                    </label>
-                    <span className="pe-field__help" id="pe-outside-public-help">
-                      {registrationEnabled
-                        ? "To use this, turn off registration on the Registration tab."
-                        : "Check this if people without a RIM account should be able to join from the program page."}
-                    </span>
-                  </div>
-                )}
-
-                <div className="pe-readout" aria-live="polite" style={{ marginTop: 16 }}>
-                  <p className="pe-readout__title">Who can join, with these settings</p>
-                  {roomChoice === "rim" ? (
-                    <p className="pe-readout__row">
-                      RIM opens a Zoom meeting for each session.
-                    </p>
-                  ) : (
-                    <p className="pe-readout__row">
-                      Join takes everyone to this link, hosts and teachers too.
-                    </p>
-                  )}
-                  <p className="pe-readout__row">
-                    <span className="pe-readout__place">Members: </span>
-                    {openEntry
-                      ? "anyone signed in, from My Home (Member area)."
-                      : registrationEnabled
-                        ? "people who registered, from My Home (Member area)."
-                        : publicJoinOn
-                          ? "anyone, from the program page."
-                          : "no one yet. Turn on registration or Open entry on the Registration tab."}
-                  </p>
-                  <p className="pe-readout__row">
-                    <span className="pe-readout__place">Guests: </span>
-                    {publicJoinOn
-                      ? isOpenAccess
-                        ? "anyone, from the program page or the guest link."
-                        : "anyone, from the program page."
-                      : isOpenAccess
-                        ? "anyone you send the guest link."
-                        : "no one. Turn on the guest link below to let guests in."}
-                  </p>
-                  {roomChoice === "outside" && (
-                    <p className="pe-readout__row">
-                      <span className="pe-readout__place">Program page: </span>
-                      {publicJoinOn
-                        ? "a Join button for anyone."
-                        : registrationEnabled
-                          ? "a Register button."
-                          : "no Join button."}
-                    </p>
-                  )}
-                  <p className="pe-readout__row pe-readout__row--meta">
-                    Join opens {EARLY_OPEN_MIN} minutes before each session and
-                    closes {LATE_GRACE_MIN} minutes after.
-                    {roomChoice === "outside" &&
-                      " Anyone who already has the outside link can still use it whenever the room\u2019s owner allows."}
-                  </p>
-                  {roomChoice === "outside" && !noHostNeeded && (
-                    <p className="pe-readout__row pe-readout__row--meta">
-                      Check &ldquo;No host needed&rdquo; above if this program
-                      doesn&rsquo;t need a RIM host.
-                    </p>
-                  )}
-                </div>
-              </fieldset>
-            )}
-
-            {/* Recording is a setting on RIM's own Zoom meetings, so it only
-                exists for programs that meet online in RIM's Zoom. */}
-            {isVirtual && roomChoice === "rim" && (
-            <div className="pe-field">
-              <span className="pe-field__label">Recording</span>
-              <span className="pe-field__help">
-                Auto-record this program&rsquo;s sessions to the cloud for internal
-                use. Participants see Zoom&rsquo;s recording indicator. Audio-only
-                (and per-speaker tracks) depend on the Zoom account&rsquo;s
-                recording settings. A change applies to upcoming sessions.
-              </span>
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={recordByDefault}
-                  onChange={(e) => { setRecordByDefault(e.target.checked); markDirty(); }}
-                />
-                <span>Record sessions (audio-only)</span>
-              </label>
-            </div>
-            )}
-
-            {/* Intro: two separate sections with different semantics.
-                Spelled out at the top of the tab so coordinators have a
-                mental model before they touch the controls. */}
-            <div
-              style={{
-                marginBottom: 16,
-                padding: "12px 14px",
-                background: "#f5f1ea",
-                borderRadius: 6,
-                fontSize: "var(--text-xs)",
-                lineHeight: 1.6,
-                color: "var(--rim-text)",
-              }}
+        <div className="pe-layout__main">
+          <label className="pe-jump" data-pe-nav>
+            <span className="pe-jump__label">Jump to</span>
+            <select
+              className="pe-select"
+              value={currentSection}
+              onChange={(e) => jumpTo(e.target.value as SectionId, false)}
             >
-              <strong>Two things on this tab.</strong><br />
-              <strong>Hosting team:</strong> the one team that runs the live
-              session. It opens the online room and handles cover requests.<br />
-              <strong>Auxiliary role coverage:</strong> supporting teams, such
-              as AV or greeters, layered on top of the hosting team. Each
-              team&rsquo;s formats decide which programs it can staff.
-            </div>
-
-            {/* ── Hosting team ───────────────────────────────────────── */}
-            <div className="pe-field">
-              <span className="pe-field__label">Hosting team</span>
-              <span className="pe-field__help">
-                Which team runs this program&rsquo;s live sessions: who takes
-                them, handles cover requests, and is notified. The list shows
-                teams that run sessions, have the Scheduler, and staff this
-                program&rsquo;s format.
-              </span>
-              <select
-                className="pe-input"
-                aria-label="Hosting team"
-                value={hostingHubSlug}
-                onChange={(e) => { setHostingHubSlug(e.target.value); markDirty(); }}
-              >
-                <option value="">{(hubs.find((h) => h.slug === DEFAULT_HOSTING_HUB_SLUG)?.name ?? "Hosting Team") + " (default)"}</option>
-                {hubs
-                  // Teams that run sessions AND have the Scheduler installed
-                  // (lib/programHub.ts hostingTeamRefusal, the server's rule).
-                  // The team a program already has stays listed so an
-                  // unrelated edit doesn't silently change it.
-                  .filter((h) =>
-                    h.slug !== DEFAULT_HOSTING_HUB_SLUG &&
-                    ((h.hasSchedule && h.usesScheduler && (h.appliesToFormats ?? []).includes(programFormat)) ||
-                      h.slug === initialHostingHubSlug))
-                  .map((h) => (
-                    <option key={h.slug} value={h.slug}>
-                      {h.name}
-                    </option>
-                  ))}
-              </select>
-
-              {/* Mid-flight change warning. Fires when the editor's current
-                  choice differs from what was loaded AND the current hosting
-                  team has upcoming sessions on this program. Saving clears
-                  them and that team's rotations for it (Jesse, 2026-10-15;
-                  the save in app/api/programs-pg/[slug]/route.ts). */}
-              {isEditing && hostingHubChanged && futureHostAssignmentCount > 0 && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    background: "var(--color-warning-bg, #fdf6e3)",
-                    color: "var(--color-warning, #8a6d3b)",
-                    fontSize: "var(--text-xs)",
-                    lineHeight: 1.55,
-                  }}
-                >
-                  <strong>Heads up:</strong> the current hosting team has{" "}
-                  {futureHostAssignmentCount} upcoming
-                  {futureHostAssignmentCount === 1 ? " session" : " sessions"} scheduled
-                  for this program. Saving with a new hosting team clears{" "}
-                  {futureHostAssignmentCount === 1 ? "it" : "them"}, along with that
-                  team&rsquo;s rotations for this program. The new team schedules
-                  from here.
-                </div>
-              )}
-            </div>
-
-            {/* ── Auxiliary coverage (session 129 — AV + Greeter hubs) ── */}
-            {(() => {
-              // Eligible auxiliary hubs:
-              //   1. NOT a hosting-style hub (hasSchedule=false). The
-              //      Hosting team dropdown above is for those; here we
-              //      list only pure auxiliary hubs.
-              //   2. Uses the Scheduler tool (HubAppLink exists).
-              //   3. Format overlap: the hub's `appliesToFormats` must
-              //      include the program's current `programFormat`.
-              //      A virtual-only program shows no AV/Greeter checks
-              //      because those hubs don't cover virtual; a hybrid
-              //      or in-person program shows them.
-              const primarySlug = hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG;
-              const eligible = hubs.filter((h) => {
-                if (h.hasSchedule) return false;
-                if (!h.usesScheduler) return false;
-                if (h.slug === primarySlug) return false;
-                const formats = h.appliesToFormats ?? [];
-                return formats.includes(programFormat);
-              });
-              if (eligible.length === 0) {
-                // A calm note instead of nothing: the section exists, and no
-                // supporting team staffs this format (each team's formats
-                // are set in /admin/hubs, so no team is named here).
-                const formatWord =
-                  programFormat === "in-person" ? "in-person" : programFormat === "hybrid" ? "hybrid" : "virtual";
-                return (
-                  <fieldset className="pe-field">
-                    <legend className="pe-field__label">Auxiliary role coverage</legend>
-                    <span className="pe-field__help">
-                      No supporting team staffs {formatWord} programs.
-                    </span>
-                  </fieldset>
-                );
-              }
-              return (
-                <fieldset className="pe-field">
-                  <legend className="pe-field__label">Auxiliary role coverage</legend>
-                  <span className="pe-field__help">
-                    Supporting teams for this program, such as AV or
-                    greeters.
-                    Each team gets its own claim/sign-up flow inside its
-                    own hub&rsquo;s Scheduler view; the hub&rsquo;s
-                    configuration decides single-slot (one volunteer) vs.
-                    multi-claimant (open sign-up). Layered on top of the
-                    Hosting team above; not a substitute.
-                  </span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
-                    {eligible.map((h) => {
-                      const checked = coverageHubSlugs.includes(h.slug);
-                      return (
-                        <label key={h.slug} className="pe-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) => toggleCoverageHub(h.slug, e.target.checked)}
-                          />
-                          <span>{h.name}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              );
-            })()}
-
-            {/* ── Open Access guest link (moved from Schedule tab) ────── */}
-            {isVirtual && (
-              <fieldset className="pe-field">
-                <legend className="pe-field__label">Open Access</legend>
-                <span className="pe-field__help">Virtual/hybrid only. A RIM link you can share with people who have no RIM account: it takes anyone who holds it into this program&rsquo;s meeting (RIM&rsquo;s Zoom or the outside room) without registering or signing in, around session times only. Good for drop-in sessions, or a group the facilitator also serves.</span>
-                <label className="pe-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={isOpenAccess}
-                    onChange={(e) => { setIsOpenAccess(e.target.checked); markDirty(); }}
-                  />
-                  <span>Enable guest access link</span>
-                </label>
-
-                {isOpenAccess && isEditing && guestAccessKey && (() => {
-                  const guestUrl = typeof window !== "undefined"
-                    ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}`
-                    : `/session/${slug}?key=${guestAccessKey}`;
-                  return (
-                    <div style={{ marginTop: 12 }}>
-                      <span style={{ display: "block", fontSize: "var(--text-xxs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6b8fa3", marginBottom: 6 }}>
-                        Guest Access Link
-                      </span>
-                      {/* URL row */}
-                      <div style={{ display: "flex", borderRadius: 6, border: "1px solid #d5d5d5", overflow: "hidden", background: "#fff" }}>
-                        <input
-                          type="text"
-                          readOnly
-                          aria-label="Guest access link"
-                          value={guestUrl}
-                          onFocus={(e) => e.target.select()}
-                          style={{
-                            flex: 1, minWidth: 0,
-                            padding: "9px 12px",
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "var(--text-xs)", color: "#333",
-                            border: "none", outline: "none", background: "transparent",
-                            boxShadow: "none",
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(guestUrl);
-                            setCopiedLink(true);
-                            setTimeout(() => setCopiedLink(false), 2000);
-                          }}
-                          style={{
-                            flexShrink: 0,
-                            padding: "0 18px",
-                            background: copiedLink ? "#2d6a4f" : "#39607a",
-                            color: "#fff",
-                            border: "none",
-                            fontFamily: "var(--font-sans)",
-                            fontSize: "var(--text-xs)", fontWeight: 600,
-                            cursor: "pointer",
-                            whiteSpace: "nowrap",
-                            transition: "background 0.15s",
-                          }}
-                        >
-                          {copiedLink ? "✓ Copied" : "Copy"}
-                        </button>
-                      </div>
-                      {/* Reset row: asks first, then answers beside the button. */}
-                      {!canManage ? null : confirmResetKey ? (
-                        <div style={{ marginTop: 8 }}>
-                          <p className="pe-field__help" style={{ margin: "0 0 8px" }}>
-                            Reset the guest link? The old link will stop working right away, so anyone you
-                            shared it with will need the new one.
-                          </p>
-                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                            <button
-                              type="button"
-                              className="pe-btn pe-btn--small pe-btn--danger"
-                              disabled={resettingKey}
-                              onClick={async () => {
-                                setResettingKey(true);
-                                setResetKeyNote(null);
-                                try {
-                                  const res = await fetch(`/api/programs-pg/${slug}/guest-key`, { method: "POST" });
-                                  const data = await res.json().catch(() => ({}));
-                                  if (res.ok && data.guestAccessKey) {
-                                    setGuestAccessKey(data.guestAccessKey);
-                                    setResetKeyNote({ tone: "ok", msg: "The old link no longer works. Share the new one." });
-                                    setConfirmResetKey(false);
-                                  } else {
-                                    setResetKeyNote({ tone: "error", msg: "The link wasn't reset, so the old one still works. Please try again." });
-                                  }
-                                } catch {
-                                  setResetKeyNote({ tone: "error", msg: "The link wasn't reset, so the old one still works. Please check your connection and try again." });
-                                } finally {
-                                  setResettingKey(false);
-                                }
-                              }}
-                            >
-                              {resettingKey ? "Resetting…" : "Yes, reset the link"}
-                            </button>
-                            <button
-                              type="button"
-                              className="pe-btn pe-btn--small pe-btn--ghost"
-                              disabled={resettingKey}
-                              onClick={() => { setConfirmResetKey(false); setResetKeyNote(null); }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
-                        <button
-                          type="button"
-                          onClick={() => { setConfirmResetKey(true); setResetKeyNote(null); }}
-                          style={{
-                            background: "none", border: "none", padding: 0,
-                            fontSize: "var(--text-xs)", color: "var(--rim-text-muted)", cursor: "pointer",
-                            textDecoration: "underline", fontFamily: "var(--font-sans)",
-                          }}
-                        >
-                          Reset link
-                        </button>
-                        <span style={{ fontSize: "var(--text-xs)", color: "var(--rim-text-muted)" }}>This stops the old link from working.</span>
-                      </div>
-                      )}
-                      <p className={`save-note${resetKeyNote?.tone === "ok" ? " save-note--saved" : ""}`} role="status">
-                        {resetKeyNote?.tone === "ok" ? resetKeyNote.msg : ""}
-                      </p>
-                      {resetKeyNote?.tone === "error" && (
-                        <p className="save-note save-note--error" role="alert">{resetKeyNote.msg}</p>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {isOpenAccess && isEditing && !guestAccessKey && (
-                  <p className="pe-field__help">
-                    Save the program to generate the guest access link.
-                  </p>
-                )}
-
-                {isOpenAccess && !isEditing && (
-                  <p className="pe-field__help">
-                    The guest link will be generated after the program is created.
-                  </p>
-                )}
-              </fieldset>
-            )}
-
-          </div></div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 4 — Categories
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Categories" && (
-          <div className="pe-card"><div className="pe-form">
-            <label className="pe-field">
-              <span className="pe-field__label">Category *</span>
-              <span className="pe-field__help">Which way this offering belongs to. Courses belong to Immersion; a drop-in offered as a series stays in Ongoing Learning &amp; Practice. Community groups and special events sit outside the three ways.</span>
-              <select
-                value={offeringCategory}
-                onChange={(e) => {
-                  setOfferingCategory(e.target.value);
-                  markDirty();
-                }}
-                className="pe-select"
-                aria-required="true"
-              >
-                <option value="">— Choose —</option>
-                <optgroup label="The three ways">
-                  {OFFERING_CATEGORIES.filter((c) => c.way).map((c) => (
-                    <option key={c.code} value={c.code}>{c.label}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Outside the three ways">
-                  {OFFERING_CATEGORIES.filter((c) => c.code === "COMMUNITY_GROUP" || c.code === "SPECIAL_EVENT").map((c) => (
-                    <option key={c.code} value={c.code}>{c.label}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Internal">
-                  {OFFERING_CATEGORIES.filter((c) => c.code === "SERVICE" || c.code === "PRIVATE").map((c) => (
-                    <option key={c.code} value={c.code}>{c.label}</option>
-                  ))}
-                </optgroup>
-              </select>
-              {initialData?.offeringFromLegacy && (
-                <span className="pe-field__help" style={{ marginTop: 6 }}>
-                  Filled in from this program&rsquo;s old category. Saving keeps it.
-                </span>
-              )}
-            </label>
-
-            <label className="pe-field">
-              <span className="pe-field__label">
-                Format{formatRequiredFor(offeringCategory) ? " *" : " (optional here)"}
-              </span>
-              <span className="pe-field__help">What kind of offering it is.</span>
-              <select
-                value={offeringFormat}
-                onChange={(e) => {
-                  setOfferingFormat(e.target.value);
-                  // Silent meditation is a kind of drop-in; it only applies to one.
-                  if (e.target.value !== "DROP_IN") setSilentMeditation(false);
-                  markDirty();
-                }}
-                className="pe-select"
-                aria-required={formatRequiredFor(offeringCategory) ? "true" : undefined}
-              >
-                <option value="">— Choose —</option>
-                {OFFERING_FORMATS.map((f) => (
-                  <option key={f.code} value={f.code}>{f.label}</option>
-                ))}
-              </select>
-            </label>
-
-            {offeringFormat === "DROP_IN" && !openEntry && (
-              <div className="pe-field">
-                <span className="pe-field__help">Format is a label. For people to join this without registering, turn on Open entry on the Registration tab.</span>
-              </div>
-            )}
-
-            {offeringFormat === "DROP_IN" && (
-              <div className="pe-field">
-                <label className="pe-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={silentMeditation}
-                    onChange={(e) => { setSilentMeditation(e.target.checked); markDirty(); }}
-                  />
-                  <span>Silent meditation</span>
-                </label>
-                <span className="pe-field__help">A silent sit. The programs page groups these under &ldquo;Silent meditation&rdquo; within Ongoing Learning &amp; Practice.</span>
-              </div>
-            )}
-
-            <div className="pe-field">
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={hostedByVolunteers}
-                  onChange={(e) => { setHostedByVolunteers(e.target.checked); markDirty(); }}
-                />
-                <span>Hosted by volunteers</span>
-              </label>
-              <span className="pe-field__help">Cards and pages carry the label &ldquo;Hosted by volunteers.&rdquo; Community groups are member-led by definition and do not need it.</span>
-            </div>
-
-            {categoryId && selectedCategory && (
-              <div className="pe-field">
-                <span className="pe-field__label">Old category</span>
-                <span className="pe-field__help">
-                  {selectedCategory.name}. Being retired: the public pages no longer read it (only its &ldquo;hide from the Programs page&rdquo; setting still applies).
-                  {selectedCategory.kind ? <> Its kind was {selectedCategory.kind.toLowerCase().replace(/_/g, " ")}.</> : null}
-                </span>
-              </div>
-            )}
-          </div></div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 5 — Registration
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Registration" && (
-          <div className="pe-card">
-          <div className="pe-card__section">
-            <div className="pe-form">
-
-            {/* How this appears to visitors — reflects registration + Open entry
-                so the volunteer sees the consequence of these toggles. Category
-                and Format are shown as labels; they never change access. */}
-            <div className="pe-readout">
-              <p className="pe-readout__title">How this appears to visitors</p>
-              <p className="pe-readout__row">{appearanceText}</p>
-              <p className="pe-readout__row">
-                <span className="pe-readout__state">Open entry: {openEntry ? "on" : "off"}.</span>{" "}
-                {openEntryText}
-              </p>
-              {isOfferingCategory(offeringCategory) && (
-                <p className="pe-readout__row pe-readout__row--meta">
-                  Category: {categorySectionTitle(offeringCategory)}
-                  {offeringFormat ? ` · Format: ${OFFERING_FORMATS.find((f) => f.code === offeringFormat)?.label ?? ""}` : ""}
-                </p>
-              )}
-            </div>
-
-            <div className="pe-visibility-option">
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={registrationEnabled}
-                  onChange={(e) => setRegistrationEnabled(e.target.checked)}
-                />
-                <span className="pe-checkbox__label">Registration enabled</span>
-              </label>
-              <p className="pe-field__help">When checked, visitors get a registration form. When unchecked, the page shows how to join if Open entry is on, and otherwise &ldquo;Registration isn&rsquo;t open yet&rdquo; (see above).</p>
-            </div>
-
-            <div className="pe-visibility-option">
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={registrationClosed}
-                  onChange={(e) => setRegistrationClosed(e.target.checked)}
-                />
-                <span className="pe-checkbox__label">Registration closed</span>
-              </label>
-              <p className="pe-field__help">Manually closes registration. The page shows a &lsquo;Registration is closed&rsquo; notice instead of the form.</p>
-            </div>
-
-            <div className="pe-visibility-option">
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={openEntry}
-                  onChange={(e) => setOpenEntry(e.target.checked)}
-                />
-                <span className="pe-checkbox__label">Open entry</span>
-              </label>
-              <p className="pe-field__help">Anyone signed in may join without registering: simply arrive for an in-person program, or join on Zoom for an online one. Online programs with open entry also appear on My Home&rsquo;s Today for everyone, and every program with open entry carries the Drop-in mark on This Week. A program can have registration and open entry together. This is the only setting that decides access: Category and Format are labels.</p>
-            </div>
-
-            <hr className="pe-section-divider" />
-
-            <label className="pe-field">
-              <span className="pe-field__label">Capacity</span>
-              <span className="pe-field__help">Maximum number of registered participants. Leave blank for unlimited. When full, new registrations are automatically waitlisted.</span>
-              <input
-                type="number"
-                min="1"
-                value={registrationCapacity}
-                onChange={(e) => setRegistrationCapacity(e.target.value)}
-                className="pe-input pe-input--narrow"
-              />
-            </label>
-
-            <div className="pe-field">
-              <span className="pe-field__label">Registration Deadline</span>
-              <span className="pe-field__help">Registration closes automatically after this date. Leave blank if there&rsquo;s no deadline.</span>
-              <DateTimePicker label="Registration deadline" value={registrationDeadline} onChange={setRegistrationDeadline} />
-            </div>
-
-            {/* Custom questions builder */}
-            <div className="pe-field">
-              <span className="pe-field__label">Custom Questions</span>
-              <span className="pe-field__help">Additional questions shown on the registration form. Answers appear in the registration detail view.</span>
-              {registrationFields.map((field, idx) => (
-                <div key={idx} className="pe-reg-field">
-                  <div className="pe-reg-field__row">
-                    <input
-                      type="text"
-                      value={field.label}
-                      onChange={(e) => updateField(idx, { label: e.target.value })}
-                      className="pe-input"
-                      placeholder="Question label"
-                      aria-label={`Question ${idx + 1}`}
-                    />
-                    <select
-                      value={field.fieldType}
-                      onChange={(e) => {
-                        updateField(idx, { fieldType: e.target.value as RegistrationField["fieldType"] });
-                        setOptionsDraft((prev) => { const next = { ...prev }; delete next[idx]; return next; });
-                      }}
-                      className="pe-select pe-select--narrow"
-                      aria-label={`Kind of answer for question ${idx + 1}`}
-                    >
-                      <option value="shortText">Short text</option>
-                      <option value="longText">Long text</option>
-                      <option value="yesNo">Yes / No</option>
-                      <option value="select">Select</option>
-                    </select>
-                    <label className="pe-checkbox pe-checkbox--inline">
-                      <input
-                        type="checkbox"
-                        checked={field.required}
-                        onChange={(e) => updateField(idx, { required: e.target.checked })}
-                      />
-                      Req
-                    </label>
-                  </div>
-                  {field.fieldType === "select" && (
-                    <input
-                      type="text"
-                      value={optionsDraft[idx] ?? field.options.join(", ")}
-                      onChange={(e) =>
-                        setOptionsDraft((prev) => ({ ...prev, [idx]: e.target.value }))
-                      }
-                      onBlur={(e) => {
-                        const parsed = e.target.value.split(",").map((s) => s.trim()).filter(Boolean);
-                        updateField(idx, { options: parsed });
-                        setOptionsDraft((prev) => {
-                          const next = { ...prev };
-                          delete next[idx];
-                          return next;
-                        });
-                      }}
-                      className="pe-input"
-                      placeholder="Option 1, Option 2, Option 3"
-                      aria-label={`Choices for question ${idx + 1}, separated by commas`}
-                    />
-                  )}
-                  <div className="pe-reg-field__actions">
-                    <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, -1)} disabled={idx === 0} aria-label={`Move question ${idx + 1} up`}>↑</button>
-                    <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, 1)} disabled={idx === registrationFields.length - 1} aria-label={`Move question ${idx + 1} down`}>↓</button>
-                    <button type="button" className="pe-btn pe-btn--small pe-btn--danger" onClick={() => removeField(idx)} aria-label={`Remove question ${idx + 1}`}>Remove</button>
-                  </div>
-                </div>
+              {SECTIONS.map((s) => (
+                <option key={s.id} value={s.id}>{s.title}</option>
               ))}
-              <button type="button" className="pe-btn pe-btn--small" onClick={addField}>
-                + Add Question
-              </button>
-            </div>
+            </select>
+          </label>
 
-            <div className="pe-field">
-              <span className="pe-field__label">Confirmation Message</span>
-              <span className="pe-field__help">
-                Shown in the confirmation email after someone registers: what to
-                bring, how to prepare, directions, or a link to a class handout.
-                <strong> To add a link:</strong> type the words people will
-                click (such as &ldquo;Our class handout&rdquo;), select them, then
-                click the chain button in the small bar that appears above them.
-                Paste the address and click OK. For a Google Doc, first set its
-                sharing to &ldquo;Anyone with the link&rdquo; can view, or
-                registrants will be asked to request access.
-              </span>
-              <RimTiptapEditor
-                value={confirmationMessage}
-                onChange={(v) => { setConfirmationMessage(v); markDirty(); }}
-                placeholder="Optional custom message…"
-                variant="message"
-              />
-            </div>
+          <AboutSection
+            isEditing={isEditing}
+            name={name} setName={setName}
+            slug={slug} setSlug={setSlug} setSlugTouched={setSlugTouched}
+            tagline={tagline} setTagline={setTagline}
+            programImage={programImage} setProgramImage={setProgramImage} setError={setError}
+            description={description} setDescription={setDescription}
+            pullQuote={pullQuote} setPullQuote={setPullQuote}
+            pullQuoteSource={pullQuoteSource} setPullQuoteSource={setPullQuoteSource}
+            programNotes={programNotes} setProgramNotes={setProgramNotes}
+            markDirty={markDirty}
+          />
 
-            <div className="pe-field">
-              <span className="pe-field__label">Reminder Date</span>
-              <span className="pe-field__help">When set, a reminder email can be sent to all registered participants on or after this date.</span>
-              <DateTimePicker label="Reminder date" value={reminderDate} onChange={setReminderDate} />
-            </div>
+          <WhenWhereSection
+            isEditing={isEditing} canManage={canManage} savedSlug={initialData?.slug ?? ""}
+            programFormat={programFormat} setProgramFormat={setProgramFormat}
+            venue={venue} setVenue={setVenue}
+            locationText={locationText} setLocationText={setLocationText}
+            locationLink={locationLink} setLocationLink={setLocationLink}
+            earlyArrivalMessage={earlyArrivalMessage} setEarlyArrivalMessage={setEarlyArrivalMessage}
+            startDatetime={startDatetime} setStartDatetime={setStartDatetime}
+            endDatetime={endDatetime} setEndDatetime={setEndDatetime}
+            recurrenceFreq={recurrenceFreq} setRecurrenceFreq={setRecurrenceFreq}
+            recurrenceInterval={recurrenceInterval} setRecurrenceInterval={setRecurrenceInterval}
+            recurrenceDays={recurrenceDays} setRecurrenceDays={setRecurrenceDays}
+            recurrenceCount={recurrenceCount} setRecurrenceCount={setRecurrenceCount}
+            dateText={dateText} timeText={timeText}
+            roomChoice={roomChoice} setRoomChoice={setRoomChoice}
+            outsideUrl={outsideUrl} setOutsideUrl={setOutsideUrl}
+            outsideUrlError={outsideUrlError} setOutsideUrlError={setOutsideUrlError}
+            outsidePublic={outsidePublic} setOutsidePublic={setOutsidePublic}
+            registrationEnabled={registrationEnabled} openEntry={openEntry} noHostNeeded={!hostingRequired}
+            recordByDefault={recordByDefault} setRecordByDefault={setRecordByDefault}
+            isOpenAccess={isOpenAccess} setIsOpenAccess={setIsOpenAccess}
+            guestAccessKey={guestAccessKey} setGuestAccessKey={setGuestAccessKey}
+            markDirty={markDirty}
+          />
 
-            <div className="pe-field">
-              <span className="pe-field__label">Reminder Message</span>
-              <span className="pe-field__help">The content of the reminder email. You&rsquo;ll send it manually from the registration detail page — it doesn&rsquo;t send automatically.</span>
-              <RimTiptapEditor
-                value={reminderMessage}
-                onChange={(v) => { setReminderMessage(v); markDirty(); }}
-                placeholder="Optional reminder message…"
-                variant="message"
-              />
-            </div>
+          <HelpingSection
+            isEditing={isEditing} hubs={hubs} programFormat={programFormat}
+            futureHostAssignmentCount={futureHostAssignmentCount}
+            selectedTeachers={selectedTeachers} setSelectedTeachers={setSelectedTeachers}
+            hostingRequired={hostingRequired} setHostingRequired={setHostingRequired}
+            initialHostingRequired={initialHostingRequired}
+            hostingHubSlug={hostingHubSlug} setHostingHubSlug={setHostingHubSlug}
+            initialHostingHubSlug={initialHostingHubSlug}
+            coverageHubSlugs={coverageHubSlugs} setCoverageHubSlugs={setCoverageHubSlugs}
+            markDirty={markDirty}
+          />
 
-            <hr className="pe-section-divider" />
+          <JoinSection
+            registrationEnabled={registrationEnabled} setRegistrationEnabled={setRegistrationEnabled}
+            registrationClosed={registrationClosed} setRegistrationClosed={setRegistrationClosed}
+            openEntry={openEntry} setOpenEntry={setOpenEntry}
+            registrationCapacity={registrationCapacity} setRegistrationCapacity={setRegistrationCapacity}
+            registrationDeadline={registrationDeadline} setRegistrationDeadline={setRegistrationDeadline}
+            registrationFields={registrationFields} setRegistrationFields={setRegistrationFields}
+            programFormat={programFormat} roomChoice={roomChoice} outsideUrl={outsideUrl}
+            offeringCategory={offeringCategory} offeringFormat={offeringFormat}
+            markDirty={markDirty}
+          />
 
-            {/* Flodesk (2026-10-12): confirmed registrants join a segment for
-                mass email; program details still come from RIM's own emails. */}
-            <div className="pe-field">
-              <span className="pe-field__label">Mailing list (Flodesk)</span>
-              <span className="pe-field__help">For mass email only: program details still come from RIM&rsquo;s own emails. Confirmed registrants join the program&rsquo;s segment; the waitlist joins only when approved, and a cancellation removes them. Anyone who has unsubscribed in Flodesk is never added back.</span>
-              <select
-                value={flodeskChoice}
-                onChange={(e) => { setFlodeskChoice(e.target.value as "auto" | "on" | "off"); markDirty(); }}
-                className="pe-select pe-select--narrow"
-                aria-label="Mailing list (Flodesk)"
-              >
-                <option value="auto">Automatic ({flodeskDefaultOn ? "on" : "off"} for this program)</option>
-                <option value="on">On</option>
-                <option value="off">Off</option>
-              </select>
-            </div>
+          <TellSection
+            confirmationMessage={confirmationMessage} setConfirmationMessage={setConfirmationMessage}
+            reminderDate={reminderDate} setReminderDate={setReminderDate}
+            reminderMessage={reminderMessage} setReminderMessage={setReminderMessage}
+            specialAnnouncement={specialAnnouncement} setSpecialAnnouncement={setSpecialAnnouncement}
+            announcementUntil={announcementUntil} setAnnouncementUntil={setAnnouncementUntil}
+            markDirty={markDirty}
+          />
 
-            <div className="pe-readout">
-              <p className="pe-readout__row">
-                {!flodeskOn
-                  ? "Registrants are not added to Flodesk."
-                  : flodeskSegment
-                    ? <>Confirmed registrants join the Flodesk segment &ldquo;{flodeskSegment.name}&rdquo;.</>
-                    : <>Confirmed registrants will join a new Flodesk segment named &ldquo;{flodeskNamePreview || "this program"}&rdquo;, created at the first registration.</>}
-              </p>
-              {flodeskChoice === "auto" && !flodeskDefaultOn && (
-                <p className="pe-readout__row pe-readout__row--meta">
-                  Automatic is off when registration is off, and for Private and Service programs.
-                </p>
-              )}
-            </div>
+          <DanaSection
+            danaMode={danaMode} setDanaMode={setDanaMode}
+            suggestedDana={suggestedDana} setSuggestedDana={setSuggestedDana}
+            danaBaseAmount={danaBaseAmount} setDanaBaseAmount={setDanaBaseAmount}
+            danaFixedAmount={danaFixedAmount} setDanaFixedAmount={setDanaFixedAmount}
+            danaMessage={danaMessage} setDanaMessage={setDanaMessage}
+            danaText={danaText} setDanaText={setDanaText}
+            markDirty={markDirty}
+          />
 
-            {flodeskOn && (
-              <div className="pe-field">
-                {flodeskSegments === null ? (
-                  <button type="button" className="pe-btn pe-btn--small" onClick={loadFlodeskSegments}>
-                    {flodeskSegment ? "Choose a different segment" : "Use an existing segment instead"}
-                  </button>
-                ) : (
-                  <label className="pe-field">
-                    <span className="pe-field__label">Flodesk segment</span>
-                    <span className="pe-field__help">For a program that already has a segment in Flodesk, so its registrants keep filling the same one.</span>
-                    <select
-                      value={flodeskSegment?.id ?? ""}
-                      onChange={(e) => {
-                        const chosen = flodeskSegments.find((s) => s.id === e.target.value) ?? null;
-                        setFlodeskSegment(chosen);
-                        setFlodeskSegmentChanged(true);
-                        markDirty();
-                      }}
-                      className="pe-select"
-                    >
-                      {!initialData?.flodeskSegmentId && (
-                        <option value="">Create a new segment at the first registration</option>
-                      )}
-                      {flodeskSegment && !flodeskSegments.some((s) => s.id === flodeskSegment.id) && (
-                        <option value={flodeskSegment.id}>{flodeskSegment.name || "The linked segment"}</option>
-                      )}
-                      {flodeskSegments.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                {flodeskSegmentsError && <p className="pe-field__help" role="alert">{flodeskSegmentsError}</p>}
-              </div>
-            )}
+          <AppearsSection
+            canManage={canManage} categories={categories} categoryId={categoryId}
+            offeringFromLegacy={initialData?.offeringFromLegacy ?? false}
+            isArchived={initialData?.archived ?? false}
+            offeringCategory={offeringCategory} setOfferingCategory={setOfferingCategory}
+            offeringFormat={offeringFormat} setOfferingFormat={setOfferingFormat}
+            silentMeditation={silentMeditation} setSilentMeditation={setSilentMeditation}
+            hostedByVolunteers={hostedByVolunteers} setHostedByVolunteers={setHostedByVolunteers}
+            sortOrder={sortOrder} setSortOrder={setSortOrder}
+            hideFromProgramPageList={hideFromProgramPageList} setHideFromProgramPageList={setHideFromProgramPageList}
+            hideFromWeeklySchedule={hideFromWeeklySchedule} setHideFromWeeklySchedule={setHideFromWeeklySchedule}
+            hideWhenPast={hideWhenPast} setHideWhenPast={setHideWhenPast}
+            removeFromProgramList={removeFromProgramList} setRemoveFromProgramList={setRemoveFromProgramList}
+            dashboardShowAt={dashboardShowAt} setDashboardShowAt={setDashboardShowAt}
+            openEntry={openEntry} programFormat={programFormat} recurrenceFreq={recurrenceFreq}
+            startDatetime={startDatetime} endDatetime={endDatetime}
+            markDirty={markDirty}
+          />
 
+          {/* ── Actions bar ── */}
+          <div className="pe-actions">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !name || !slug}
+              className="pe-btn pe-btn--primary"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => guardedNavigate(basePath)}
+              className="pe-btn"
+            >
+              Cancel
+            </button>
+            {/* The answer beside the button, and it stays (2026-10-19: it showed at
+                the top of a long page for three seconds). */}
+            <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={`Saved at ${savedAt}.${scheduleCleared || seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}`} problem={error} />
           </div>
-          </div>
-          </div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 6 — Dana
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Dana" && (
-          <div className="pe-card"><div className="pe-form">
-            <div className="pe-field">
-              <span className="pe-field__label">Dana Mode</span>
-              <span className="pe-field__help">How donations work for this program. &lsquo;Voluntary&rsquo; lets people give any amount. &lsquo;Base + Dana&rsquo; sets a minimum. &lsquo;Fixed&rsquo; sets an exact amount. &lsquo;None&rsquo; skips the donation step entirely.</span>
-              <div className="pe-option-cards">
-                {[
-                  { value: "none", label: "None" },
-                  { value: "voluntary", label: "Voluntary" },
-                  { value: "base_plus_dana", label: "Base + Dana" },
-                  { value: "fixed", label: "Fixed" },
-                ].map((opt) => (
-                  <label key={opt.value} className={`pe-option-card${danaMode === opt.value ? " pe-option-card--active" : ""}`}>
-                    <input type="radio" name="danaMode" checked={danaMode === opt.value} onChange={() => setDanaMode(opt.value)} />
-                    <span className="pe-option-card__mark" />
-                    {opt.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {(danaMode === "voluntary" || danaMode === "base_plus_dana") && (
-              <label className="pe-field">
-                <span className="pe-field__label">Suggested Amount ($)</span>
-                <span className="pe-field__help">Voluntary mode: a suggested donation amount shown during registration. Participants can change it.</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={suggestedDana}
-                  onChange={(e) => setSuggestedDana(e.target.value)}
-                  className="pe-input pe-input--narrow"
-                />
-              </label>
-            )}
-
-            {danaMode === "base_plus_dana" && (
-              <label className="pe-field">
-                <span className="pe-field__label">Base Amount ($)</span>
-                <span className="pe-field__help">Base + Dana mode: the minimum amount. Participants can add more on top of this.</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={danaBaseAmount}
-                  onChange={(e) => setDanaBaseAmount(e.target.value)}
-                  className="pe-input pe-input--narrow"
-                />
-              </label>
-            )}
-
-            {danaMode === "fixed" && (
-              <label className="pe-field">
-                <span className="pe-field__label">Fixed Amount ($)</span>
-                <span className="pe-field__help">Fixed mode: the exact amount charged. Participants cannot change it.</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={danaFixedAmount}
-                  onChange={(e) => setDanaFixedAmount(e.target.value)}
-                  className="pe-input pe-input--narrow"
-                />
-              </label>
-            )}
-
-            {danaMode !== "none" && (
-              <>
-                <div className="pe-field">
-                  <span className="pe-field__label">Dana Step Message</span>
-                  <span className="pe-field__help">Shown during the donation step of registration. Use this to explain how dana supports RIM.</span>
-                  <DanaTemplateSelector
-                    value={danaMessage}
-                    onLoad={(v) => {
-                      setDanaMessage(v);
-                      setDanaEditorKey((k) => k + 1); // remount editor with new content
-                      markDirty();
-                    }}
-                  />
-                  <RimTiptapEditor
-                    key={danaEditorKey}
-                    value={danaMessage}
-                    onChange={(v) => { setDanaMessage(v); markDirty(); }}
-                    placeholder="Describe how dana supports RIM and what participants should know…"
-                    variant="message"
-                  />
-                </div>
-
-                <label className="pe-field">
-                  <span className="pe-field__label">Program Page Dana Note</span>
-                  <span className="pe-field__help">Shown on the public program page near the registration form — a brief note about the dana model for this program.</span>
-                  <textarea
-                    value={danaText}
-                    onChange={(e) => setDanaText(e.target.value)}
-                    className="pe-textarea"
-                    rows={2}
-                  />
-                </label>
-              </>
-            )}
-          </div></div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 8 — Visibility
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Visibility" && (
-          <div className="pe-card"><div className="pe-form">
-
-            {/* Where this program appears: derived from every rule the two
-                public pages apply, not only the checkboxes below. */}
-            <div className="pe-readout" aria-live="polite">
-              <p className="pe-readout__title">Where this program appears</p>
-              <p className={`pe-readout__row${listingReason ? " pe-readout__row--off" : ""}`}>
-                <span className="pe-readout__place">Programs &amp; Events page: </span>
-                {listingReason === null && (
-                  <>Listed under {categorySectionTitle(offeringCategory)}.</>
-                )}
-                {listingReason === "archived" && (
-                  <><span className="pe-readout__state">Not listed.</span> Archived programs don&rsquo;t appear.</>
-                )}
-                {listingReason === "hidden" && (
-                  <><span className="pe-readout__state">Not listed.</span> The first box below is checked.</>
-                )}
-                {listingReason === "noCategory" && (
-                  <>
-                    <span className="pe-readout__state">Not listed.</span> It needs a Category to appear under.{" "}
-                    {/* An inline link, not a <button>: the app shells give every
-                        button a 44px box, which would break the sentence. */}
-                    <a
-                      href="#"
-                      className="pe-readout__link"
-                      onClick={(e) => { e.preventDefault(); setTab("Categories"); }}
-                    >
-                      Choose one on the Categories tab
-                    </a>.
-                  </>
-                )}
-                {listingReason === "private" && (
-                  <><span className="pe-readout__state">Not listed.</span> A Private program is never listed.</>
-                )}
-                {listingReason === "hiddenCategory" && (
-                  <>
-                    <span className="pe-readout__state">Not listed.</span> Its category, {selectedCategory?.name}, is hidden from the public page.{" "}
-                    {canManage ? (
-                      <>You can change that on the{" "}
-                      <Link href="/tools/programs/categories" className="pe-readout__link">Program Categories</Link> page.</>
-                    ) : (
-                      <>The registrar or an admin can change that.</>
-                    )}
-                  </>
-                )}
-                {listingReason === "past" && (
-                  <><span className="pe-readout__state">Not listed.</span> Its date has passed. To keep it listed, uncheck &ldquo;Hide automatically after the date passes&rdquo; below.</>
-                )}
-              </p>
-              <p className={`pe-readout__row${weeklyReason ? " pe-readout__row--off" : ""}`}>
-                <span className="pe-readout__place">This Week&rsquo;s schedule: </span>
-                {weeklyReason === null && <>Shown in the weeks it meets.</>}
-                {weeklyReason === "archived" && (
-                  <><span className="pe-readout__state">Not shown.</span> Archived programs don&rsquo;t appear.</>
-                )}
-                {weeklyReason === "hiddenListing" && (
-                  <><span className="pe-readout__state">Not shown.</span> Hiding it from the Programs &amp; Events page hides it here too.</>
-                )}
-                {weeklyReason === "hiddenWeekly" && (
-                  <><span className="pe-readout__state">Not shown.</span> The second box below is checked.</>
-                )}
-                {weeklyReason === "noSchedule" && (
-                  <><span className="pe-readout__state">Not shown.</span> It needs a start date and time on the Schedule tab.</>
-                )}
-              </p>
-              <p className={`pe-readout__row${["archived", "hidden", "hiddenUntil", "noSchedule"].includes(homeState) ? " pe-readout__row--off" : ""}`}>
-                <span className="pe-readout__place">Member home: </span>
-                {homeState === "archived" && (
-                  <><span className="pe-readout__state">Not shown.</span> Archived programs don&rsquo;t appear.</>
-                )}
-                {homeState === "hidden" && (
-                  <><span className="pe-readout__state">Not shown.</span> &ldquo;Hide from member home&rdquo; is checked below, so no one sees it in Today. Registrants still see its upcoming dates.</>
-                )}
-                {homeState === "hiddenUntil" && (
-                  <><span className="pe-readout__state">Not shown yet.</span> It appears on the auto-show date set below.</>
-                )}
-                {homeState === "noSchedule" && (
-                  <><span className="pe-readout__state">Not shown.</span> It needs a start date and time on the Schedule tab.</>
-                )}
-                {homeState === "inPerson" && (
-                  <>
-                    Shown to people registered for it, on the days it meets.
-                    {removeFromProgramList && <> The &ldquo;Hide from member home&rdquo; box only affects online sessions, so it doesn&rsquo;t change this.</>}
-                  </>
-                )}
-                {homeState === "open" && (
-                  <>Shown to every member on the days it meets, with a Join button.</>
-                )}
-                {homeState === "registrants" && (
-                  <>Shown with a Join button to people registered for it (not the waitlist), and to its hosts and teachers.</>
-                )}
-              </p>
-            </div>
-
-            <label className="pe-field">
-              <span className="pe-field__label">Sort Order</span>
-              <span className="pe-field__help">Controls the display order on the public Programs page. Lower numbers appear first.</span>
-              <input
-                type="number"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className="pe-input pe-input--narrow"
-              />
-            </label>
-
-            <hr className="pe-section-divider" />
-
-            <div className="pe-visibility-option">
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={hideFromProgramPageList}
-                  onChange={(e) => setHideFromProgramPageList(e.target.checked)}
-                />
-                <span className="pe-checkbox__label">Hide from public Programs &amp; Events page</span>
-              </label>
-              <p className="pe-field__help">This program won&rsquo;t appear on the public listing or on This Week&rsquo;s schedule. Still accessible by direct URL.</p>
-            </div>
-
-            <div className="pe-visibility-option">
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={hideFromWeeklySchedule}
-                  onChange={(e) => setHideFromWeeklySchedule(e.target.checked)}
-                />
-                <span className="pe-checkbox__label">Hide from This Week&rsquo;s Schedule</span>
-              </label>
-              <p className="pe-field__help">This program won&rsquo;t appear on the weekly schedule page. Useful for special events or programs that shouldn&rsquo;t clutter the regular calendar.</p>
-            </div>
-
-            {/* One-time programs only: a recurring schedule never "passes." */}
-            {!recurrenceFreq && (
-              <div className="pe-visibility-option">
-                <label className="pe-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={hideWhenPast}
-                    onChange={(e) => setHideWhenPast(e.target.checked)}
-                  />
-                  <span className="pe-checkbox__label">Hide automatically after the date passes</span>
-                </label>
-                <p className="pe-field__help">Once this one-time program&rsquo;s date is behind us, it leaves the public Programs &amp; Events page on its own and is archived for you the next morning. Turn off to keep it listed and active after the date.</p>
-              </div>
-            )}
-
-            <div className="pe-visibility-option">
-              <label className="pe-checkbox">
-                <input
-                  type="checkbox"
-                  checked={removeFromProgramList}
-                  onChange={(e) => {
-                    setRemoveFromProgramList(e.target.checked);
-                    if (!e.target.checked) setDashboardShowAt("");
-                  }}
-                />
-                <span className="pe-checkbox__label">Hide from member home</span>
-              </label>
-              <p className="pe-field__help">This program won&rsquo;t appear on the member home. Still accessible by direct link and on the public site.</p>
-
-              {removeFromProgramList && (
-                <div className="pe-visibility-schedule">
-                  <span className="pe-field__label">Auto-show on member home</span>
-                  <p className="pe-field__help">Optional. On this date the program will automatically reappear on the member home — no manual action needed.</p>
-                  <DateTimePicker label="Auto-show on member home" value={dashboardShowAt} onChange={setDashboardShowAt} />
-                  {dashboardShowAt && (
-                    <button
-                      type="button"
-                      className="pe-visibility-schedule__clear"
-                      onClick={() => setDashboardShowAt("")}
-                    >
-                      Clear scheduled date
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-          </div></div>
-        )}
-
-      {/* ── Actions bar ── */}
-      <div className="pe-actions">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving || !name || !slug}
-          className="pe-btn pe-btn--primary"
-        >
-          {saving ? "Saving…" : "Save"}
-        </button>
-        <button
-          type="button"
-          onClick={() => guardedNavigate(basePath)}
-          className="pe-btn"
-        >
-          Cancel
-        </button>
-        {/* The answer beside the button, and it stays (2026-10-19: it showed at
-            the top of a long page for three seconds). */}
-        <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={`Saved at ${savedAt}.${scheduleCleared || seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}`} problem={error} />
+        </div>
       </div>
-
     </div>
   );
 }

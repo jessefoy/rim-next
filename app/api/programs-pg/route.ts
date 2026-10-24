@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       teacherFacilitators: body.teacherFacilitators ?? [],
       // `hostingHubSlug`: null defaults to host-team at read time. Coordinator
       // can transfer hosting authority to a different hub (Silent Meditation,
-      // etc.) by setting this field via the editor's Hosting & Access tab.
+      // etc.) by setting this field under the editor's Who's helping.
       // Slug validated above; non-existent slugs were already rejected with 422.
       hostingHubSlug: requestedHostingHubSlug,
       // "No host needed" — default true (needs coverage). False = self-led /

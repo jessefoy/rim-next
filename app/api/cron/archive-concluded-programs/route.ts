@@ -5,7 +5,7 @@ import { hasConcludedOneTime } from "@/lib/programUtils";
 // Daily retirement pass for one-time programs (backlog 2026-08-07-008,
 // session 172). A one-time program (no recurrence) whose CT day has fully
 // passed is archived automatically, unless the editor opted out via
-// hideWhenPast on the Visibility tab. The public listings already drop these
+// hideWhenPast under the editor's Where it appears. The public listings already drop these
 // at read time the moment the date passes (hasConcludedOneTime); this cron
 // makes the state true in the database the next morning, so the Program
 // Manager's Active list shows only what's actually alive. Fully reversible —

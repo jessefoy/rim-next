@@ -136,9 +136,9 @@
     "description": "Session 159 did a surgical perf pass on ProgramEditor (hoisted the DateTimePicker option arrays out of the render body; memoized the visitor-preview compute) to address reported input lag where dropdowns needed 2-3 clicks to register. The structural cause remains: ProgramEditor is a ~1800-line single component holding ~48 useState hooks, so every keystroke re-renders the whole active tab. If lag persists on prod, the real fix is to split each tab panel (Content / Schedule / Hosting & Access / Categories / Registration / Dana / Visibility) into its own memoized child receiving only the state + setters it needs, and stabilize the inline onChange callbacks (useCallback). Verify on a PREVIEW deploy (blocked on 2026-06-24-001 preview-login) — the surgical pass could NOT be verified locally (no dev server).",
     "category": "Admin Tools",
     "priority": "medium",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-06-25",
-    "notes": "Surgical pass shipped session 159. This is the deeper fix if the 2-3-click symptom survives. Blocked on a verification path (2026-06-24-001) — don't iterate blind. Higher-risk refactor of a load-bearing editor; reviewer-gate it."
+    "notes": "Surgical pass shipped session 159. This is the deeper fix if the 2-3-click symptom survives. Blocked on a verification path (2026-06-24-001) — don't iterate blind. Higher-risk refactor of a load-bearing editor; reviewer-gate it.\n\nDone 2026-10-24 (Phase 2, the editor as one page in sections): each section is its own memoized component in components/registrar/program-editor/, given only values, useState setters and a stable markDirty, so typing in one section redraws only that section. Not measured on production yet."
   },
   {
     "id": "2026-06-25-003",

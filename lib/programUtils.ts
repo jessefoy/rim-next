@@ -159,7 +159,7 @@ export function computeDateText(
  * of its last moment (endDatetime, else startDatetime) is behind us; it still
  * counts as current on the day itself. Recurring programs never conclude this
  * way. Paired with Program.hideWhenPast: public listings drop a concluded
- * one-time program unless the editor opted out on the Visibility tab.
+ * one-time program unless the editor opted out under Where it appears.
  */
 export function hasConcludedOneTime(p: {
   startDatetime: Date | string | null;

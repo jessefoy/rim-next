@@ -188,7 +188,7 @@ export default function CategoryOrderClient({ categories: initial }: { categorie
         verified. They no longer set a program&rsquo;s section on the public Programs &amp; Events
         page: a program&rsquo;s <strong>Category</strong> and <strong>Format</strong> are set in the
         Program Manager, and who may join without registering is its <strong>Open entry</strong>{" "}
-        setting on the Registration tab. A category&rsquo;s <strong>kind</strong> now decides access
+        setting, under How people join. A category&rsquo;s <strong>kind</strong> now decides access
         only for a program whose Open entry has never been set; hiding a category still hides its
         programs from the public page. Changes save as you go.
       </p>

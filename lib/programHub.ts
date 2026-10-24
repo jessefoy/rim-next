@@ -80,7 +80,7 @@ export async function getProgramHostingHub(
  * Does not include the primary hub. Returns [] when nothing's configured.
  *
  * Used by the Scheduler page to union primary + auxiliary programs for the
- * active hub's view, and by the ProgramEditor's "Hosting & Access" tab to
+ * active hub's view, and by the ProgramEditor's Who's helping section to
  * pre-populate the checkbox list.
  */
 export async function getProgramCoverageHubs(

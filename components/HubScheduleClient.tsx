@@ -1452,8 +1452,8 @@ export default function HubScheduleClient({
     if (filter === "all") {
       if (programs.length === 0) {
         return hostsSessions
-          ? "No programs are hosted by this team yet. In the Program editor, choose this team under Hosting & Access → Hosting team."
-          : "No programs are scheduled with this team yet. A coordinator can add this team in the Program editor under Hosting & Access → Auxiliary role coverage.";
+          ? "No programs are hosted by this team yet. In the Program editor, choose this team under Who’s helping → Hosting team."
+          : "No programs are scheduled with this team yet. A coordinator can add this team in the Program editor under Who’s helping → Auxiliary role coverage.";
       }
       return `No sessions in ${MONTHS[month]}.`;
     }

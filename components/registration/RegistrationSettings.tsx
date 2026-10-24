@@ -2,12 +2,12 @@
 
 /**
  * A program's registration settings in the Registration app (2026-10-23):
- * open or closed, places, the closing date, the mailing list. Folded under
- * Needs you; its summary line says where things stand. Saves through
- * PATCH /api/programs/[slug]/registration-settings, which refuses fewer
- * places than are taken and a save over a change made since the page loaded.
- * Turning registration on or off, and the mailing-list segment, stay in the
- * program editor. CSS: reg-.
+ * open or closed, places, the closing date, the mailing list and its Flodesk
+ * segment. Folded under Needs you; its summary line says where things stand.
+ * Saves through PATCH /api/programs/[slug]/registration-settings, which refuses
+ * fewer places than are taken and a save over a change made since the page
+ * loaded. Turning registration on or off stays in the program editor; the
+ * mailing list lives only here (2026-10-24). CSS: reg-.
  */
 
 import { useState, useTransition } from "react";
@@ -22,6 +22,8 @@ export interface SettingsValues {
   closes: string;
   /** null: the default rule. */
   mailingList: boolean | null;
+  /** The linked Flodesk segment, or null until the first registration makes one. */
+  segmentId: string | null;
 }
 
 export default function RegistrationSettings({
@@ -33,7 +35,7 @@ export default function RegistrationSettings({
   waiting,
   mailingListByDefault,
   segmentName,
-  editHref,
+  newSegmentName,
 }: {
   programSlug: string;
   updatedAt: string;
@@ -46,7 +48,8 @@ export default function RegistrationSettings({
   /** What "Automatic" means for this program today. */
   mailingListByDefault: boolean;
   segmentName: string | null;
-  editHref: string | null;
+  /** The name a new segment takes at the first registration ("Name MM/DD/YY"). */
+  newSegmentName: string;
 }) {
   const router = useRouter();
   const [, startRefresh] = useTransition();
@@ -54,6 +57,25 @@ export default function RegistrationSettings({
   const [loadedAt, setLoadedAt] = useState(updatedAt);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [problem, setProblem] = useState("");
+  // Flodesk's segments, loaded only when someone asks to choose one.
+  const [segments, setSegments] = useState<{ id: string; name: string }[] | null>(null);
+  const [segmentsProblem, setSegmentsProblem] = useState("");
+  const [loadingSegments, setLoadingSegments] = useState(false);
+
+  async function loadSegments() {
+    setSegmentsProblem("");
+    setLoadingSegments(true);
+    try {
+      const res = await fetch("/api/flodesk/segments");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Flodesk didn't answer. Try again in a moment.");
+      setSegments(data.segments);
+    } catch (err) {
+      setSegmentsProblem(err instanceof Error ? err.message : "Flodesk didn't answer. Try again in a moment.");
+    } finally {
+      setLoadingSegments(false);
+    }
+  }
 
   function change(next: Partial<SettingsValues>) {
     setValues((v) => ({ ...v, ...next }));
@@ -84,6 +106,11 @@ export default function RegistrationSettings({
           registrationCapacity: places ? Number(places) : null,
           registrationDeadline: values.closes || null,
           flodeskSync: values.mailingList,
+          // Sent only when chosen here, so a save can never undo a segment
+          // that a first registration made while this page was open.
+          // Only while the mailing list is on: a choice the panel no longer
+          // shows is never saved.
+          ...(mailingListOn && values.segmentId !== initial.segmentId ? { flodeskSegmentId: values.segmentId } : {}),
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -102,6 +129,12 @@ export default function RegistrationSettings({
   }
 
   const people = (n: number) => (n === 1 ? "1 person" : `${n} people`);
+  const mailingListOn = values.mailingList ?? mailingListByDefault;
+  // The segment as chosen now: one picked from the list, or the linked one.
+  const chosenName =
+    values.segmentId === initial.segmentId
+      ? segmentName
+      : segments?.find((s) => s.id === values.segmentId)?.name ?? null;
 
   return (
     <details className="reg-fold reg-settings">
@@ -144,6 +177,40 @@ export default function RegistrationSettings({
             </select>
           </label>
         </div>
+        {mailingListOn && (
+          segments === null ? (
+            <div className="reg-actions">
+              <button type="button" className="vol-action-btn" onClick={loadSegments} disabled={loadingSegments}>
+                {loadingSegments
+                  ? "Asking Flodesk…"
+                  : initial.segmentId ? "Choose a different segment" : "Use an existing segment instead"}
+              </button>
+            </div>
+          ) : (
+            <div className="reg-fields reg-fields--one">
+              <label className="reg-field">
+                <span>Flodesk segment</span>
+                <select
+                  value={values.segmentId ?? ""}
+                  onChange={(e) => change({ segmentId: e.target.value || null })}
+                >
+                  {/* A new segment only while none is linked: Flodesk can't
+                      rename or delete one, so a second would duplicate it. */}
+                  {!initial.segmentId && (
+                    <option value="">Make a new segment at the first registration</option>
+                  )}
+                  {initial.segmentId && !segments.some((s) => s.id === initial.segmentId) && (
+                    <option value={initial.segmentId}>{segmentName || "The linked segment"}</option>
+                  )}
+                  {segments.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )
+        )}
+        {segmentsProblem && <p className="save-note save-note--error" role="alert">{segmentsProblem}</p>}
         <ul className="reg-settings__notes">
           {values.closed && (
             <li>
@@ -163,14 +230,12 @@ export default function RegistrationSettings({
           )}
           <li>Closes is Central time; leave it empty to stay open until you close it.</li>
           <li>
-            With the mailing list on, each person who registers from then on joins the program&rsquo;s Flodesk segment
-            {segmentName ? ` "${segmentName}"` : ""}, for newsletters only.
-            {editHref && (
-              <>
-                {" "}The segment itself is chosen in{" "}
-                <a href={editHref} className="reg-link">the program editor</a>.
-              </>
-            )}
+            {!mailingListOn
+              ? "With the mailing list off, no one is added to Flodesk."
+              : chosenName
+                ? `With the mailing list on, each person who registers from then on joins the Flodesk segment "${chosenName}", for newsletters only.`
+                : `With the mailing list on, each person who registers from then on joins a new Flodesk segment named "${newSegmentName}", made at the first registration, for newsletters only.`}{" "}
+            Use an existing segment for a program that already has one, so its people stay together.
           </li>
         </ul>
         <div className="reg-actions">

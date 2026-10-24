@@ -33,7 +33,7 @@ export default async function EditProgramToolPage({
       include: EDITOR_PROGRAM_INCLUDE,
     }),
     db.programCategory.findMany({ orderBy: { sortOrder: "asc" } }),
-    // Active hubs feed the Hosting & Access tab dropdown. Coordinator
+    // Active hubs feed the Who's helping dropdowns. Coordinator
     // chooses which hub hosts this program's live sessions; the dropdown
     // shows every active hub so the field is discoverable as new hubs
     // come online (Silent Meditation, Recovery Dharma, etc.).

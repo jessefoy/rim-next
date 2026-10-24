@@ -150,6 +150,9 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
       if (c.mailingList) {
         parts.push(`set the mailing list to ${c.mailingList.to === true ? "on" : c.mailingList.to === false ? "off" : "automatic"}`);
       }
+      if (c.segment && typeof c.segment.to === "string") {
+        parts.push(`chose the Flodesk segment "${c.segment.to}"`);
+      }
       return parts.length ? parts.join(", ") : "changed the registration settings";
     }
     case "printed":

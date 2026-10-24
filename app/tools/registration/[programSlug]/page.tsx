@@ -31,7 +31,7 @@ import RegistrationPeople, {
 } from "@/components/registration/RegistrationPeople";
 import type { RegistrationField } from "@/components/RegistrationForm";
 import RegistrationSettings from "@/components/registration/RegistrationSettings";
-import { programUsesFlodesk } from "@/lib/flodeskRules";
+import { programSegmentName, programUsesFlodesk } from "@/lib/flodeskRules";
 import { toCentralDatetime } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
@@ -126,7 +126,9 @@ export default async function RegistrationProgramPage({
       updatedAt: true,
       offeringCategory: true,
       flodeskSync: true,
+      flodeskSegmentId: true,
       flodeskSegmentName: true,
+      recurrenceCount: true,
     },
   });
   if (!program) notFound();
@@ -262,6 +264,7 @@ export default async function RegistrationProgramPage({
         places: program.registrationCapacity ? String(program.registrationCapacity) : "",
         closes: toCentralDatetime(program.registrationDeadline),
         mailingList: program.flodeskSync,
+        segmentId: program.flodeskSegmentId,
       }}
       summary={[
         registrationState(program),
@@ -272,7 +275,7 @@ export default async function RegistrationProgramPage({
       waiting={counts.waiting}
       mailingListByDefault={mailingListByDefault}
       segmentName={program.flodeskSegmentName}
-      editHref={canUseProgramManager(roles) ? `/tools/programs/${program.slug}/edit${hubQs}` : null}
+      newSegmentName={programSegmentName(program)}
     />
   ) : null;
 
