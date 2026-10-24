@@ -10829,6 +10829,33 @@ h4 { font-size: var(--text-h4); }
 .pe-sec__title:focus { outline: none; }
 .tools-shell .pe-sec .pe-card { border-radius: 12px; }
 .pe-sec + .pe-actions { margin-top: 32px; }
+/* My Home: a teacher's Today row links to the teacher's page (2026-10-24). */
+.today-teach-link { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--text-app-meta); font-weight: 600; color: var(--rim-blue); }
+/* ── Helpers' pages (2026-10-24, Phase 3): the teacher's page first. Member
+   area reading sizes; white panels on the warm ground, bordered, no shadow. */
+.hlp-page { max-width: 760px; }
+.hlp-back { margin: 0 0 12px; font-size: var(--text-app-meta); }
+.hlp-back a { color: var(--rim-blue); }
+.hlp-state { margin: 0 0 6px; font-size: var(--text-app); font-weight: 600; color: var(--rim-text); }
+.hlp-why { margin: 0 0 24px; font-size: var(--text-app-meta); color: var(--rim-text-muted); max-width: var(--reading-width); }
+.hlp-panel { margin: 0 0 20px; padding: 20px 24px; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
+.hlp-panel__title { margin: 0 0 10px; font-family: var(--font-serif); font-size: var(--text-h4); font-weight: 400; color: var(--rim-text); }
+.hlp-note { margin: 0 0 8px; font-size: var(--text-app-meta); color: var(--rim-text-muted); }
+.hlp-names { margin: 0; font-size: var(--text-app); color: var(--rim-text); }
+.hlp-question + .hlp-question { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--rim-rule); }
+.hlp-question__label { margin: 0 0 8px; font-family: var(--font-sans); font-size: var(--text-app); font-weight: 600; color: var(--rim-text); }
+.hlp-counts, .hlp-answers, .hlp-people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: var(--text-app); }
+.hlp-counts__names, .hlp-meta { color: var(--rim-text-muted); font-size: var(--text-app-meta); }
+/* list-item keeps the browser's open/closed marker (flex hides it in Chrome and Firefox). */
+.hlp-person > summary { display: list-item; min-height: 44px; padding: 10px 0; box-sizing: border-box; cursor: pointer; color: var(--rim-blue); font-weight: 600; }
+.hlp-mark { margin-left: 12px; font-size: var(--text-app-meta); font-weight: 600; color: var(--rim-text-muted); }
+.hlp-person__body { padding: 4px 0 12px 18px; display: flex; flex-direction: column; gap: 6px; }
+.hlp-contact { margin: 0; overflow-wrap: anywhere; }
+.hlp-contact a { color: var(--rim-blue); }
+.hlp-told { margin: 0; font-size: var(--text-app); }
+.hlp-told__q { display: block; font-size: var(--text-app-meta); color: var(--rim-text-muted); }
+.hlp-waiting { margin-top: 14px; }
+@media (max-width: 768px) { .hlp-panel { padding: 16px; } }
 /* "Asked by" under each registration question (2026-10-24, Phase 3). */
 .pe-reg-field__asker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
 .pe-reg-field__asker-label { font-size: var(--text-app-meta); font-weight: 600; color: var(--rim-text-muted); }

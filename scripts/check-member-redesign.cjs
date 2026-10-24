@@ -401,5 +401,15 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
 
   check(plain(ask.askersUsedBy([{ label: 'A' }, { label: 'B', askedBy: 'team:h1' }], { teacherNames: ['Jesse Foy'], teams: [{ id: 'h1', name: 'Greeter Team' }, { id: 'h2', name: 'AV Team' }] })), { teacherNames: [], teams: [{ id: 'h1', name: 'Greeter Team' }] }, 'only the askers a question uses reach the browser');
 
+  // "First registration here" (2026-10-24, Phase 3 slice 3): only an earlier place counts.
+  const first = load('lib/firstRegistration.ts', { '@/lib/db': { db: {} } });
+  const d = (x) => new Date(x);
+  const ana = { id: 'r3', userId: 'u1', email: 'ana@x.org', createdAt: d('2026-10-20') };
+  const ben = { id: 'r4', userId: null, email: 'Ben@x.org', createdAt: d('2026-10-20') };
+  check([...first.firstRegistrationIds([ana, ben], [ana, ben])], ['r3', 'r4'], 'no earlier place: first registration here');
+  check([...first.firstRegistrationIds([ana, ben], [ana, ben, { id: 'r1', userId: null, email: 'ben@X.org', createdAt: d('2026-09-01') }])], ['r3'], 'an earlier place under the same address, any capitals, counts');
+  check([...first.firstRegistrationIds([ana], [ana, { id: 'r2', userId: 'u1', email: 'old@x.org', createdAt: d('2026-09-01') }])], [], 'an earlier place under the same account counts');
+  check([...first.firstRegistrationIds([ana], [ana, { id: 'r9', userId: 'u1', email: 'ana@x.org', createdAt: d('2026-11-01') }])], ['r3'], 'a later place does not count');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

@@ -33,6 +33,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   UsersRound,
+  Presentation,
   UserRound,
   SlidersHorizontal,
   LogOut,
@@ -40,7 +41,7 @@ import {
   Inbox,
 } from "lucide-react";
 
-interface Props { roles: string[]; showTeams: boolean; notificationsUnread?: number; }
+interface Props { roles: string[]; showTeams: boolean; showTeaching?: boolean; notificationsUnread?: number; }
 
 type LucideIcon = React.ComponentType<{
   size?: number;
@@ -61,6 +62,8 @@ const MEMBER_LINKS: NavLink[] = [
   { label: "Notifications",    href: "/account/notifications",        icon: Bell          },
   { label: "Library",          href: "/account/courses",              icon: BookOpen      },
   { label: "My Teams", href: "/account/teams", icon: UsersRound },
+  // For someone who teaches a current program, and the guiding teacher (2026-10-24).
+  { label: "Teaching", href: "/account/teaching", icon: Presentation },
 ];
 
 const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] = [
@@ -76,7 +79,7 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
 
 const COLLAPSE_KEY = "rim-account-sidebar-collapsed";
 
-export default function AccountSidebar({ roles, showTeams, notificationsUnread = 0 }: Props) {
+export default function AccountSidebar({ roles, showTeams, showTeaching = false, notificationsUnread = 0 }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -111,17 +114,19 @@ export default function AccountSidebar({ roles, showTeams, notificationsUnread =
   // so there the rail and its drawer handle appear only in administration.
   const personal = isPersonalAccountPath(pathname);
   useEffect(() => {
-    setPersonalNav({ showTeams, canManage: hasRegistrar, notifications: notificationsUnread });
+    setPersonalNav({ showTeams, showTeaching, canManage: hasRegistrar, notifications: notificationsUnread });
     return () => setPersonalNav(null);
-  }, [showTeams, hasRegistrar, notificationsUnread]);
+  }, [showTeams, showTeaching, hasRegistrar, notificationsUnread]);
 
   // Files live per-Space (each hub's Files tab + the Community Space); the
   // global finder and the native Documents system were both retired (session
   // 165 — Google Workspace is the document/file system now).
   // My Teams only for someone who belongs to a team (AccountLayout decides).
-  const memberLinks: NavLink[] = showTeams
-    ? MEMBER_LINKS
-    : MEMBER_LINKS.filter((l) => l.href !== "/account/teams");
+  // Teaching only for someone who teaches a current program, or the guiding
+  // teacher (AccountLayout decides; lib/teaching.ts).
+  const memberLinks: NavLink[] = MEMBER_LINKS.filter(
+    (l) => (showTeams || l.href !== "/account/teams") && (showTeaching || l.href !== "/account/teaching"),
+  );
 
   function linkClass(href: string) {
     const active =

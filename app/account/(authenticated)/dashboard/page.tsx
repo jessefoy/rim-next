@@ -62,6 +62,8 @@ type TodayDisplayItem = {
   announcement?: string | null;
   /** The program, so a team duty can join the row it belongs to. */
   programSlug?: string;
+  /** The teacher's page, on the row of a program the viewer teaches (2026-10-24). */
+  teachingHref?: string;
 };
 
 export default async function DashboardPage({ searchParams }: {
@@ -302,6 +304,7 @@ export default async function DashboardPage({ searchParams }: {
     .map((s) => ({
       key: `program-${s._id}`,
       programSlug: s.slug,
+      ...(teacherProgramIds.has(s._id) ? { teachingHref: `/account/teaching/${s.slug}` } : {}),
       note: s.earlyArrivalMessage, announcement: activeAnnouncement(s, now),
       name: s.name,
       startTimeCT: s.startTimeCT,
@@ -513,6 +516,7 @@ export default async function DashboardPage({ searchParams }: {
                     )}
                     {item.isRegistered && <span className="today-focus__context">You&rsquo;re registered</span>}
                     {item.contextText && <span className="today-focus__context">{item.contextText}</span>}
+                    {item.teachingHref && <Link href={item.teachingHref} className="today-teach-link">Who&rsquo;s coming <span aria-hidden="true">→</span></Link>}
                   </div>
                 </article>
               ))}
@@ -532,6 +536,7 @@ export default async function DashboardPage({ searchParams }: {
                       </div>
                       <div className="today-list__action">
                         {item.contextText && <span className="today-list__context">{item.contextText}</span>}
+                        {item.teachingHref && <Link href={item.teachingHref} className="today-teach-link">Who&rsquo;s coming <span aria-hidden="true">→</span></Link>}
                       </div>
                     </div>
                   ))}

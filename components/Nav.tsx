@@ -42,6 +42,8 @@ export default function Nav() {
     isSignedInArea && isLoggedIn && !atThreshold
       ? publishedNav ?? {
           showTeams: pathname?.startsWith("/account/hub/") ?? false,
+          // A plain teacher is known only where the account rail is; the guiding teacher always teaches.
+          showTeaching: session?.user?.roles?.includes("GUIDING_TEACHER") ?? false,
           canManage: session?.user?.roles?.some((role: string) => role === "ADMIN" || role === "REGISTRAR") ?? false,
         }
       : null;
@@ -518,6 +520,7 @@ export function PublicNavSheet({
         },
         { title: "Library", href: "/account/courses" },
         ...(personalNav.showTeams ? [{ title: "My Teams", href: "/account/teams" }] : []),
+        ...(personalNav.showTeaching ? [{ title: "Teaching", href: "/account/teaching" }] : []),
         { title: "Community Care", href: "/account/community-care" },
         { title: "My Profile", href: "/account/dashboard-my-profile" },
         ...(personalNav.canManage ? [{ title: "Manage RIM", href: "/admin/members" }] : []),

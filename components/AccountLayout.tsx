@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import AccountSidebar from "@/components/AccountSidebar";
 import { countUnreadNotices } from "@/lib/notifications";
+import { showsTeaching } from "@/lib/teaching";
 
 /**
  * AccountLayout — wraps all /account/* pages that need the sidebar.
@@ -36,20 +37,22 @@ export default async function AccountLayout({
   }
 
   const userId = session?.user?.id;
-  const showTeams =
-    roles.includes("GUIDING_TEACHER") ||
-    (!!userId &&
-      !!(await db.hubMember.findFirst({
-        where: { userId, hub: { status: "ACTIVE" } },
-        select: { id: true },
-      })));
-
-  // Notifications' number in the rail (2026-10-20): unread notices.
-  const notificationsUnread = userId ? await countUnreadNotices(userId) : 0;
+  // Three questions for the rail, asked together: on a team? (My Teams);
+  // teaching a current program? (Teaching, 2026-10-24, lib/teaching.ts); and
+  // how many unread notices (2026-10-20).
+  const [showTeams, showTeaching, notificationsUnread] = await Promise.all([
+    roles.includes("GUIDING_TEACHER")
+      ? Promise.resolve(true)
+      : userId
+        ? db.hubMember.findFirst({ where: { userId, hub: { status: "ACTIVE" } }, select: { id: true } }).then((m) => !!m)
+        : Promise.resolve(false),
+    userId ? showsTeaching(userId, roles) : Promise.resolve(false),
+    userId ? countUnreadNotices(userId) : Promise.resolve(0),
+  ]);
 
   return (
     <div className="ac-layout">
-      <AccountSidebar roles={roles} showTeams={showTeams} notificationsUnread={notificationsUnread} />
+      <AccountSidebar roles={roles} showTeams={showTeams} showTeaching={showTeaching} notificationsUnread={notificationsUnread} />
       <div className="ac-content">
         <div className="ac-inner">{children}</div>
       </div>
