@@ -208,6 +208,7 @@ An installation may provide five things: sidebar navigation, active-member tool 
 Current safety rules:
 
 - Scheduler is multi-Space because every query/write already routes by `hubSlug` and the program/resource hub.
+- Helping with (2026-10-24) is multi-Space: every read is scoped by the team (`program_helpers.hubId`), so any team that prepares for programs may install it. See "Helping with: the gate and the four-layer audit" below.
 - Registration is restricted to `registrar`, Programs to `registrar` and `program-central` (`alsoSpaceSlugs`, 2026-10-24), and Course Manager to `courses`, until their data and permissions are truly multi-Space scoped.
 - Admin UI and POST/PATCH APIs both block newly incompatible installs. Ordinary edits preserve an existing incompatible row so an unrelated save cannot break a team.
 - Hub config + app replacement commit in one `$transaction`; never delete all links before a possibly-failing hub update.
@@ -235,6 +236,31 @@ Before a new app may be installed through `HubAppLink`, all ten answers must be 
 10. Has the four-layer hub audit passed?
 
 If any answer is missing, restrict the app to its primary Space or ship it as a custom link. Installing an existing compatible app must be an admin configuration action; only building genuinely new app behavior should require engineering.
+
+## Helping with: the gate and the four-layer audit (2026-10-24, Phase 3 slice 5)
+
+Helping with is the app for a team that prepares for programs without being on their schedule (a kitchen team). A program adds the team under Who's helping → Teams that prepare (`program_helpers`, by team id, with `canReach`); the team then sees, in `/tools/helping?hub=<team>`, each program it prepares for, how many are coming, and the answers to the questions it asks (`askedBy: "team:<hubId>"`), with email and phone only when `canReach`. Never dana. Rules: `lib/programHelpers.ts`.
+
+The ten answers:
+1. **Multi-Space.** Any team may install it; nothing is shared across teams.
+2. **May be primary** (a team that only prepares has nothing else to lead with). Icon: `helping` (hand with heart).
+3. **Scoped by the resource Space:** every page derives the team from `?hub=` through `helpingTeamAccess` (active team, app installed, the person an active member or the guiding teacher), and a program page also requires that team's `program_helpers` row. Writes to `program_helpers` happen only in the program editor's save routes (`checkHelperTeams`: a newly added team must be active with the app).
+4. **Home:** one summary line, "N programs to help with", counted from this team's rows only (current programs: not archived, not a one-time program that is over).
+5. **Updates:** none at first.
+6. **Attention:** none at first.
+7. **Counts:** owned by the app (people with a place, per program).
+8. **Install and remove:** removing the app leaves the base Home, Conversations, Files and Members intact. The team's `program_helpers` rows stay; a new one can't be added until the app is back, and `loadAskerContext` keeps the team's questions while the team is active.
+9. **Same Space everywhere:** the rail link, Home line, pages and links all carry the team (`?hub=`); `canSeeInstalledApp` shows it to the team's active members and the guiding teacher, as the pages admit.
+10. **The four layers** (below) pass.
+
+| Layer | Helping with |
+|---|---|
+| Capability | `helpingTeamAccess(userId, roles, hub)` on both pages; the program page also needs the team's `program_helpers` row; Admin alone has no path. |
+| Recipients | None: it sends no email or notice. |
+| UI filter | Programs: `program_helpers.hubId = team.id`. Questions: `askerOf(...)` is this team's id. Contact fields are selected only when `canReach`. |
+| Outbound URLs | Every link carries `?hub=<team>` (list → program → back). No emails. |
+
+Also in Phase 3 (the helpers' pages; recorded in `RIM_Member_Area.md`): the teacher's page (`/account/teaching`, program teachers and the guiding teacher) and a supporting team's Today's list (`/account/greeting`, assigned team members, the team's active coordinators, the guiding teacher). Neither is an installable app; both follow the same rules: derived from the resource (the program, the session), never Admin alone, never dana.
 
 ## Audit at the user-flow layer, not just the code-correctness layer (session 130)
 

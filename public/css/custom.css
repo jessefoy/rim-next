@@ -10836,6 +10836,7 @@ h4 { font-size: var(--text-h4); }
 .hlp-page { max-width: 760px; }
 .hlp-back { margin: 0 0 12px; font-size: var(--text-app-meta); }
 .hlp-back a { color: var(--rim-blue); }
+.hlp-sub { margin: -4px 0 12px; font-size: var(--text-app-meta); color: var(--rim-text-muted); }
 .hlp-state { margin: 0 0 6px; font-size: var(--text-app); font-weight: 600; color: var(--rim-text); }
 .hlp-why { margin: 0 0 24px; font-size: var(--text-app-meta); color: var(--rim-text-muted); max-width: var(--reading-width); }
 .hlp-panel { margin: 0 0 20px; padding: 20px 24px; background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px; }
@@ -10868,6 +10869,8 @@ h4 { font-size: var(--text-h4); }
 .hlp-door__btn:disabled { opacity: 0.7; cursor: default; }
 .hlp-door__row--here .hlp-door__name { color: var(--rim-text-muted); }
 @media (max-width: 768px) { .hlp-panel { padding: 16px; } }
+/* A team that prepares: its "can reach people" sits under it (2026-10-24). */
+.pe-checkbox--nested { margin: 4px 0 0 28px; }
 /* "Asked by" under each registration question (2026-10-24, Phase 3). */
 .pe-reg-field__asker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
 .pe-reg-field__asker-label { font-size: var(--text-app-meta); font-weight: 600; color: var(--rim-text-muted); }

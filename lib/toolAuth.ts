@@ -80,6 +80,9 @@ export function canSeeInstalledApp(
   place: { hubSlug: string; memberStatus: string | null | undefined },
 ): boolean {
   if (toolSlug === "registration") return canUseRegistration(roles);
+  // Helping with: the team's active members (and the guiding teacher), as its
+  // pages admit (app/tools/helping); a paused member would get a dead link.
+  if (toolSlug === "helping") return (roles ?? []).includes("GUIDING_TEACHER") || place.memberStatus === "ACTIVE";
   if (toolSlug === "programs") {
     // canUsePrograms' rule, for this team: an active member of a team made
     // for Programs (a paused member, or another team, would get a dead link).

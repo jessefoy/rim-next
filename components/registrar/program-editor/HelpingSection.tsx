@@ -1,7 +1,8 @@
 "use client";
 
 /** Who's helping: the teachers, whether a host is needed, the hosting team,
- *  and the supporting teams. One of the program editor's seven sections. */
+ *  the supporting teams, and the teams that prepare. One of the program
+ *  editor's seven sections. */
 
 import { memo, useEffect, useRef, useState } from "react";
 import { DEFAULT_HOSTING_HUB_SLUG, EditorSection, type EditorHub, type Setter, type TeacherItem } from "./shared";
@@ -21,6 +22,12 @@ interface Props {
   initialHostingHubSlug: string;
   coverageHubSlugs: string[];
   setCoverageHubSlugs: Setter<string[]>;
+  /** Teams that may prepare (active, with Helping with), and any the program has. */
+  prepTeams: { id: string; slug: string; name: string; active?: boolean }[];
+  /** Registration roles only: choosing teams that prepare decides who sees people's details. */
+  canDecideAskers: boolean;
+  helperTeams: { hubId: string; canReach: boolean }[];
+  setHelperTeams: Setter<{ hubId: string; canReach: boolean }[]>;
   markDirty: () => void;
 }
 
@@ -30,6 +37,7 @@ function HelpingSection({
   hostingRequired, setHostingRequired, initialHostingRequired,
   hostingHubSlug, setHostingHubSlug, initialHostingHubSlug,
   coverageHubSlugs, setCoverageHubSlugs,
+  prepTeams, helperTeams, setHelperTeams, canDecideAskers,
   markDirty,
 }: Props) {
   // "No host needed": self-led / community-led programs (Recovery Dharma,
@@ -88,6 +96,21 @@ function HelpingSection({
     setCoverageHubSlugs((prev) =>
       checked ? [...prev.filter((s) => s !== slug), slug] : prev.filter((s) => s !== slug),
     );
+    markDirty();
+  }
+
+  // Teams that prepare (lib/programHelpers.ts): on or off, and whether they
+  // can reach people. Clicks, so each marks the page unsaved itself.
+  function togglePrep(hubId: string, on: boolean) {
+    setHelperTeams((prev) =>
+      on
+        ? [...prev.filter((h) => h.hubId !== hubId), { hubId, canReach: false }].sort((a, b) => a.hubId.localeCompare(b.hubId))
+        : prev.filter((h) => h.hubId !== hubId),
+    );
+    markDirty();
+  }
+  function toggleReach(hubId: string, canReach: boolean) {
+    setHelperTeams((prev) => prev.map((h) => (h.hubId === hubId ? { ...h, canReach } : h)));
     markDirty();
   }
 
@@ -332,6 +355,46 @@ function HelpingSection({
             </fieldset>
           );
         })()}
+
+        {/* ── Teams that prepare (2026-10-24, Phase 3 slice 5) ─────── */}
+        <fieldset className="pe-field">
+          <legend className="pe-field__label">Teams that prepare</legend>
+          <span className="pe-field__help">
+            Teams that help without being on the schedule, such as a kitchen team. Each
+            sees, in its Helping with app, how many are coming and the answers to the
+            questions it asks, with names. Never dana.
+          </span>
+          {!canDecideAskers && (
+            <span className="pe-field__help">
+              The registration team chooses these, since a team that prepares sees who&rsquo;s coming.
+            </span>
+          )}
+          {prepTeams.length === 0 ? (
+            <span className="pe-field__help">
+              No team has Helping with installed yet. An admin can install it in a team&rsquo;s space.
+            </span>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+              {prepTeams.map((t) => {
+                const row = helperTeams.find((h) => h.hubId === t.id);
+                return (
+                  <div key={t.id}>
+                    <label className="pe-checkbox">
+                      <input type="checkbox" checked={!!row} disabled={!canDecideAskers} onChange={(e) => togglePrep(t.id, e.target.checked)} />
+                      <span>{t.name}{t.active === false ? " (no longer active)" : ""}</span>
+                    </label>
+                    {row && (
+                      <label className="pe-checkbox pe-checkbox--nested">
+                        <input type="checkbox" checked={row.canReach} disabled={!canDecideAskers} onChange={(e) => toggleReach(t.id, e.target.checked)} />
+                        <span>Can reach people: sees their email and phone</span>
+                      </label>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </fieldset>
       </div>
     </EditorSection>
   );

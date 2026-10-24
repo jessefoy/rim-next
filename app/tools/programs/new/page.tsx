@@ -5,10 +5,11 @@
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
-import { canUseProgramManager, canUsePrograms } from "@/lib/toolAuth";
+import { canUseRegistration, canUseProgramManager, canUsePrograms } from "@/lib/toolAuth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
+import { helpingTeams } from "@/lib/programHelpers";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "New Program - Tools" };
@@ -59,6 +60,8 @@ export default async function NewProgramToolPage() {
             appliesToFormats: h.appliesToFormats,
             usesScheduler: h.appLinks.length > 0,
           }))}
+          prepTeams={await helpingTeams()}
+          canDecideAskers={canUseRegistration(session.user.roles)}
         />
       </div>
     </div>

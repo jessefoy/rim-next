@@ -31,6 +31,8 @@ interface Props {
   setRegistrationFields: Setter<RegistrationField[]>;
   /** Who may ask a question: the registration team, the teacher, the supporting teams. */
   askerOptions: AskerOption[];
+  /** Registration roles only: who asks decides who reads the answers. */
+  canDecideAskers: boolean;
   /** Read here for the readout: how it meets, and its category and format. */
   programFormat: string;
   roomChoice: "rim" | "outside";
@@ -48,7 +50,7 @@ function JoinSection({
   registrationDeadline, setRegistrationDeadline,
   registrationOpensAt, setRegistrationOpensAt,
   notYetPicked, setNotYetPicked,
-  askerOptions,
+  askerOptions, canDecideAskers,
   registrationFields, setRegistrationFields,
   programFormat, roomChoice, outsideUrl, offeringCategory, offeringFormat,
   markDirty,
@@ -245,6 +247,9 @@ function JoinSection({
         <div className="pe-field">
           <span className="pe-field__label">Custom Questions</span>
           <span className="pe-field__help">Questions on the registration form. Each is asked by someone helping with the program: the answers go to them, and always to the registration team. When more than the registration team asks, the form groups the questions under who is asking.</span>
+          {!canDecideAskers && (
+            <span className="pe-field__help">The registration team chooses who asks each question, since that decides who reads the answers.</span>
+          )}
           {registrationFields.map((field, idx) => (
             <div key={idx} className="pe-reg-field">
               <div className="pe-reg-field__row">
@@ -304,6 +309,8 @@ function JoinSection({
                 <span className="pe-reg-field__asker-label">Asked by</span>
                 <select
                   className="pe-select"
+                  disabled={!canDecideAskers}
+                  title={canDecideAskers ? undefined : "The registration team chooses who asks each question."}
                   value={askerOptions.some((o) => o.value === field.askedBy) ? field.askedBy : "registration"}
                   onChange={(e) => updateField(idx, { askedBy: e.target.value === "registration" ? undefined : e.target.value })}
                   aria-label={`Who asks question ${idx + 1}`}

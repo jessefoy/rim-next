@@ -137,6 +137,8 @@ export interface ProgramData {
    *  here gets a row in program_coverage_hubs on save. Primary hub
    *  (hostingHubSlug) is implicit and never appears in this list. */
   coverageHubSlugs?: string[];
+  /** Teams that prepare (2026-10-24, lib/programHelpers.ts), sorted by team id. */
+  helperTeams?: { hubId: string; canReach: boolean }[];
 }
 
 interface Props {
@@ -170,6 +172,13 @@ interface Props {
   canEmailRegistered?: boolean;
   /** People with a place, for the notice's email box; null when it isn't shown. */
   registeredCount?: number | null;
+  /** Teams that may prepare (active, with Helping with), and any the program
+   *  has (`active: false` when that team is no longer active). */
+  prepTeams?: { id: string; slug: string; name: string; active?: boolean }[];
+  /** May choose who asks each question and which teams prepare: the
+   *  registration roles (canUseRegistration), since that decides who sees
+   *  people's answers and details (2026-10-24). */
+  canDecideAskers?: boolean;
 }
 
 function slugify(text: string): string {
@@ -301,6 +310,9 @@ function deriveDayOfWeek(freq: string, days: string[], start: string): string[] 
   return [];
 }
 
+/** A stable empty list, so the memoized sections don't redraw. */
+const NO_PREP_TEAMS: { id: string; slug: string; name: string; active?: boolean }[] = [];
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ProgramEditor({
@@ -314,6 +326,8 @@ export default function ProgramEditor({
   futureHostAssignmentCount = 0,
   canEmailRegistered = false,
   registeredCount = null,
+  prepTeams = NO_PREP_TEAMS,
+  canDecideAskers = false,
 }: Props) {
   const basePath = basePathProp ?? `/account/hub/${hubSlug}/programs`;
   const router = useRouter();
@@ -452,6 +466,10 @@ export default function ProgramEditor({
   const [coverageHubSlugs, setCoverageHubSlugs] = useState<string[]>(
     initialData?.coverageHubSlugs ?? [],
   );
+  // Teams that prepare (2026-10-24, lib/programHelpers.ts), sorted by team id.
+  const [helperTeams, setHelperTeams] = useState<{ hubId: string; canReach: boolean }[]>(
+    initialData?.helperTeams ?? [],
+  );
 
   // Who may ask a registration question (lib/questionAskers.ts): the
   // registration team, the teacher when one is linked, and each supporting
@@ -473,8 +491,14 @@ export default function ProgramEditor({
         options.push({ value: askedByTeam(h.id), label: `The ${h.name}` });
       }
     }
+    for (const h of helperTeams) {
+      const team = prepTeams.find((t) => t.id === h.hubId);
+      if (team && team.active !== false && !options.some((o) => o.value === askedByTeam(team.id))) {
+        options.push({ value: askedByTeam(team.id), label: `The ${team.name}` });
+      }
+    }
     return options;
-  }, [selectedTeachers, hubs, coverageHubSlugs, hostingHubSlug, programFormat]);
+  }, [selectedTeachers, hubs, coverageHubSlugs, hostingHubSlug, programFormat, helperTeams, prepTeams]);
 
   // ── Unsaved changes tracking ────────────────────────────────────────────
   const [dirty, setDirty] = useState(false);
@@ -648,6 +672,7 @@ export default function ProgramEditor({
       // Only ticked teams the list still shows: a team hidden by a format
       // change isn't sent, so it's unticked rather than refused
       // (2026-10-16 review).
+      helperTeams: [...helperTeams].sort((a, b) => a.hubId.localeCompare(b.hubId)),
       coverageHubSlugs: coverageHubSlugs.filter((slug) => {
         const h = hubs.find((x) => x.slug === slug);
         return !!h && !h.hasSchedule && !!h.usesScheduler &&
@@ -1043,6 +1068,8 @@ export default function ProgramEditor({
             hostingHubSlug={hostingHubSlug} setHostingHubSlug={setHostingHubSlug}
             initialHostingHubSlug={initialHostingHubSlug}
             coverageHubSlugs={coverageHubSlugs} setCoverageHubSlugs={setCoverageHubSlugs}
+            prepTeams={prepTeams} helperTeams={helperTeams} setHelperTeams={setHelperTeams}
+            canDecideAskers={canDecideAskers}
             markDirty={markDirty}
           />
 
@@ -1055,6 +1082,7 @@ export default function ProgramEditor({
             registrationOpensAt={registrationOpensAt} setRegistrationOpensAt={setRegistrationOpensAt}
             notYetPicked={notYetPicked} setNotYetPicked={setNotYetPicked}
             askerOptions={askerOptions}
+            canDecideAskers={canDecideAskers}
             registrationFields={registrationFields} setRegistrationFields={setRegistrationFields}
             programFormat={programFormat} roomChoice={roomChoice} outsideUrl={outsideUrl}
             offeringCategory={offeringCategory} offeringFormat={offeringFormat}

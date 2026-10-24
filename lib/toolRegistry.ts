@@ -8,9 +8,9 @@
  * `slug` must match the toolSlug used in hasToolAccess() and UserToolAccess.
  */
 
-export const TOOL_SLUGS = ["schedule", "programs", "registration", "learning"] as const;
+export const TOOL_SLUGS = ["schedule", "programs", "registration", "learning", "helping"] as const;
 export type ToolSlug = (typeof TOOL_SLUGS)[number];
-export type ToolIconKey = "calendar" | "programs" | "registration" | "learning";
+export type ToolIconKey = "calendar" | "programs" | "registration" | "learning" | "helping";
 
 export interface ToolDefinition {
   slug: ToolSlug;
@@ -96,6 +96,23 @@ export const TOOL_REGISTRY = [
     description: "Series, lessons, and course content management",
     spaceMode: "primary-space",
     primarySpaceSlug: "courses",
+    canBePrimary: true,
+    spaceContributions: { home: "summary", updates: false, attention: false },
+  },
+  {
+    // Helping with (2026-10-24, Phase 3 slice 5): a team that prepares for
+    // programs without being on their schedule (a kitchen team) sees each
+    // program it helps with, how many are coming, and the answers to its own
+    // questions; contact details only where the program lets it reach people.
+    // Every read is scoped by the team (program_helpers), so any team may
+    // install it; the Home line counts only this team's programs.
+    slug: "helping",
+    label: "Helping with",
+    path: "/tools/helping",
+    iconKey: "helping",
+    openLabel: "Open Helping with",
+    description: "The programs this team prepares for: who's coming and what they told the team",
+    spaceMode: "multi-space",
     canBePrimary: true,
     spaceContributions: { home: "summary", updates: false, attention: false },
   },

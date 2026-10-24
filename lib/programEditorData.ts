@@ -18,6 +18,8 @@ export const EDITOR_PROGRAM_INCLUDE = {
     orderBy: { order: "asc" },
     include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
   },
+  // Teams that prepare (2026-10-24, lib/programHelpers.ts).
+  helpers: { select: { hubId: true, canReach: true } },
 } satisfies Prisma.ProgramInclude;
 
 type EditorProgram = Prisma.ProgramGetPayload<{ include: typeof EDITOR_PROGRAM_INCLUDE }>;
@@ -103,6 +105,9 @@ export function programToEditorData(program: EditorProgram, coverageHubSlugs: st
     outsideMeetingPublic: program.outsideMeetingPublic,
     // Sorted, so the same teams always compare the same.
     coverageHubSlugs: [...coverageHubSlugs].sort(),
+    helperTeams: program.helpers
+      .map((h) => ({ hubId: h.hubId, canReach: h.canReach }))
+      .sort((a, b) => a.hubId.localeCompare(b.hubId)),
   };
 }
 
@@ -145,4 +150,5 @@ export const EDITOR_FIELD_LABELS: Record<string, string> = {
   hideWhenPast: "hiding after its date", isOpenAccess: "guest access", hostingHubSlug: "the hosting team",
   hostingRequired: "No host needed", recordByDefault: "recording", outsideMeetingUrl: "the outside meeting link",
   outsideMeetingPublic: "joining from the public page", coverageHubSlugs: "the supporting teams",
+  helperTeams: "the teams that prepare",
 };

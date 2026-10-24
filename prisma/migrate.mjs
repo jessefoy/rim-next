@@ -3090,6 +3090,17 @@ async function main() {
   )`);
   await db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "registration_attendance_registrationId_day_key" ON "registration_attendance"("registrationId", "day")`);
   await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "registration_attendance_programId_day_idx" ON "registration_attendance"("programId", "day")`);
+  // Teams that prepare (2026-10-24, Phase 3 slice 5): a team helping with a
+  // program without being on its schedule, by the team's id. Additive.
+  await db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "program_helpers" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "programId" TEXT NOT NULL REFERENCES "programs"("id") ON DELETE CASCADE,
+    "hubId" TEXT NOT NULL REFERENCES "hubs"("id") ON DELETE CASCADE,
+    "canReach" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "program_helpers_programId_hubId_key" ON "program_helpers"("programId", "hubId")`);
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "program_helpers_hubId_idx" ON "program_helpers"("hubId")`);
   // Ensure flag table exists before any migration runs (some check it before any
   // migration has had a chance to CREATE TABLE IF NOT EXISTS it).
   await db.$executeRawUnsafe(`

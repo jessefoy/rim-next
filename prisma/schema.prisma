@@ -364,6 +364,7 @@ model Program {
   registrations      Registration[]
   programCourses     ProgramCourse[]
   programTeachers    ProgramTeacher[]
+  helpers            ProgramHelper[] // teams that prepare (2026-10-24, Phase 3 slice 5)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1070,6 +1071,25 @@ model RegistrationNote {
   @@map("registration_notes")
 }
 
+/// A team that prepares for a program without being on its schedule (2026-10-24,
+/// Phase 3 slice 5): a kitchen team, say. By the team's id, so a rename keeps
+/// it. `canReach`: its members see email and phone on Helping with. The team
+/// must be active and have Helping with installed (lib/programHelpers.ts).
+model ProgramHelper {
+  id        String   @id @default(cuid())
+  programId String
+  hubId     String
+  canReach  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  hub     Hub     @relation(fields: [hubId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, hubId])
+  @@index([hubId])
+  @@map("program_helpers")
+}
+
 /// Arrived at the door (2026-10-24, Phase 3 slice 4): a supporting team
 /// (greeters) marks someone with a place as here, once per session day.
 /// `day` is the session's Central date, "YYYY-MM-DD". Goes with the
@@ -1268,6 +1288,7 @@ model Hub {
   members       HubMember[]
   threads       HubConversationThread[]
   appLinks      HubAppLink[]
+  helping       ProgramHelper[]
 
   @@map("hubs")
 }

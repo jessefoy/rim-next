@@ -674,6 +674,22 @@ const HUB_APP_PROVIDERS: Record<ToolSlug, HubAppProvider> = {
       };
     },
   },
+  // Helping with (2026-10-24): this team's programs only, those still current
+  // (not archived, not a one-time program that is over).
+  helping: {
+    home: async (hubSlug: string) => {
+      const rows = await db.programHelper.findMany({
+        where: { hub: { slug: hubSlug }, program: { archivedAt: null } },
+        select: { program: { select: { startDatetime: true, endDatetime: true, recurrenceFreq: true } } },
+      });
+      const count = rows.filter((r) => !hasConcludedOneTime(r.program)).length;
+      return {
+        count,
+        countLabel: plural(count, "program to help with", "programs to help with"),
+        quietText: "No program to help with right now.",
+      };
+    },
+  },
   learning: {
     home: async () => {
       const count = await db.course.count({ where: { isActive: false } });

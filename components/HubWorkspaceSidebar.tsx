@@ -36,6 +36,7 @@ import {
   CalendarDays,
   ClipboardList,
   UserRoundCheck,
+  HandHeart,
   GraduationCap,
   Link2,
   UserRound,
@@ -96,6 +97,7 @@ const TOOL_ICONS = {
   calendar: CalendarDays,
   programs: ClipboardList,
   registration: UserRoundCheck,
+  helping: HandHeart,
   learning: GraduationCap,
   link: Link2,
 } as const;

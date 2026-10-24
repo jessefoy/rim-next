@@ -10,6 +10,7 @@ import { canUseProgramManager, canUsePrograms, canUseRegistration } from "@/lib/
 import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
+import { helpingTeams } from "@/lib/programHelpers";
 import type { ProgramData } from "@/components/registrar/ProgramEditor";
 import { EDITOR_PROGRAM_INCLUDE, programToEditorData } from "@/lib/programEditorData";
 
@@ -107,6 +108,17 @@ export default async function EditProgramToolPage({
 
   const initialData: ProgramData = programToEditorData(program, coverageRows.map((r) => r.hubSlug));
 
+  // Teams that may prepare (active, with Helping with), plus any the program
+  // already has, so a team that lost the app still shows and can be removed.
+  const eligiblePrep = await helpingTeams();
+  const prepTeams = [
+    ...eligiblePrep,
+    ...(await db.hub.findMany({
+      where: { id: { in: program.helpers.map((h) => h.hubId).filter((id) => !eligiblePrep.some((t) => t.id === id)) } },
+      select: { id: true, slug: true, name: true, status: true },
+    })).map((h) => ({ id: h.id, slug: h.slug, name: h.name, active: h.status === "ACTIVE" })),
+  ];
+
   // Post a notice's "Also email the N people registered": only for those who
   // can open Registration (Programs shows no one's count otherwise), counted
   // as the notice route sends: one email per address, everyone with a place.
@@ -142,6 +154,8 @@ export default async function EditProgramToolPage({
           }))}
           futureHostAssignmentCount={futureHostAssignmentCount}
           canEmailRegistered={canEmailRegistered}
+          prepTeams={prepTeams}
+          canDecideAskers={canEmailRegistered}
           registeredCount={registeredCount}
         />
       </div>

@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { withQuestionIds } from "@/lib/registrationFields";
-import { withAskers } from "@/lib/questionAskers";
+import { askersChanged, withAskers } from "@/lib/questionAskers";
+import { checkHelperTeams, cleanHelperTeams, saveHelperTeams } from "@/lib/programHelpers";
 import type { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -20,7 +21,7 @@ import { cleanOffering } from "@/lib/programOffering";
 import { parseAnnouncementUntil } from "@/lib/scheduleUtils";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { normalizeLinkInput } from "@/lib/linkInput";
-import { canUseProgramManager, canUsePrograms } from "@/lib/toolAuth";
+import { canUseProgramManager, canUsePrograms, canUseRegistration } from "@/lib/toolAuth";
 
 // Team-wide emails go one at a time after the response (sendEachPaced),
 // so the function needs room past the usual limit (2026-10-19).
@@ -102,8 +103,15 @@ export async function POST(request: NextRequest) {
       if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
     }
   }
-  // Who asks each question (lib/questionAskers.ts): kept only for a teacher or
-  // one of the supporting teams the program is created with.
+  // Teams that prepare (lib/programHelpers.ts), checked before anything is created.
+  const createHelpers = body.helperTeams !== undefined ? cleanHelperTeams(body.helperTeams) : [];
+  if (!createHelpers) return NextResponse.json({ error: "The teams that prepare weren\u2019t understood. Reload the page and try again." }, { status: 422 });
+  {
+    const refusal = await checkHelperTeams(null, createHelpers);
+    if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
+  }
+  // Who asks each question (lib/questionAskers.ts): kept only for a teacher,
+  // a supporting team or a team that prepares that the program is created with.
   const createTeamSlugs = Array.isArray(body.coverageHubSlugs)
     ? (body.coverageHubSlugs as unknown[]).filter((h): h is string => typeof h === "string" && h.trim().length > 0)
     : [];
@@ -112,7 +120,13 @@ export async function POST(request: NextRequest) {
       ? (await db.hub.findMany({ where: { slug: { in: createTeamSlugs } }, select: { id: true } })).map((h) => h.id)
       : [],
   );
+  for (const h of createHelpers) createTeamIds.add(h.hubId);
   const createQuestions = withQuestionIds(body.registrationFields, null);
+  // Who asks a question, and which teams prepare, decide who sees people's
+  // answers and details: the registration roles only (2026-10-24).
+  if (!canUseRegistration(session.user.roles) && (createHelpers.length > 0 || (createQuestions && askersChanged(createQuestions as { _key?: unknown; label?: unknown; askedBy?: unknown }[], null)))) {
+    return NextResponse.json({ error: "Only the registration team can choose who asks a question or which teams prepare, since that decides who sees people\u2019s answers. Nothing was saved." }, { status: 403 });
+  }
   // As the edit route does: Open entry is on or off, not coerced (2026-10-19).
   if (body.openEntry !== undefined && typeof body.openEntry !== "boolean") {
     return NextResponse.json({ error: "Open entry must be on or off." }, { status: 422 });
@@ -225,6 +239,10 @@ export async function POST(request: NextRequest) {
         !!outsideMeeting.value && body.outsideMeetingPublic === true && body.registrationEnabled !== true,
     },
   });
+
+  // Teams that prepare, right after the program, before any later step that
+  // can still refuse (lib/programHelpers.ts).
+  if (createHelpers.length > 0) await saveHelperTeams(program.id, createHelpers);
 
   // Handle teacher assignments if provided
   const teacherIds: string[] = body.teacherIds ?? [];

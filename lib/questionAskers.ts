@@ -112,6 +112,21 @@ export function askersUsedBy(fields: { askedBy?: unknown }[], ctx: AskerContext)
 }
 
 /**
+ * Whether a save changes who asks any question: a question's asker differs
+ * from the stored question with the same id (or wording, before ids), or a
+ * new question names an asker. Choosing who asks decides who reads the
+ * answers, so only the registration roles may (2026-10-24).
+ */
+export function askersChanged(incoming: { _key?: unknown; label?: unknown; askedBy?: unknown }[], stored: unknown): boolean {
+  const before = Array.isArray(stored) ? (stored as { _key?: unknown; label?: unknown; askedBy?: unknown }[]) : [];
+  const norm = (a: unknown) => (a === undefined || a === null || a === ASKED_BY_REGISTRATION ? undefined : a);
+  return incoming.some((q) => {
+    const match = before.find((b) => (q._key && b._key === q._key) || (!q._key && b.label === q.label));
+    return norm(q.askedBy) !== norm(match?.askedBy);
+  });
+}
+
+/**
  * The questions as saved: each `askedBy` kept only when it names a teacher or
  * a team the program has; otherwise it's removed (the registration team's).
  * `teamIds` are the supporting teams the program has after this save.

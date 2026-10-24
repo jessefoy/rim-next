@@ -420,5 +420,17 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   const sh = load('lib/sessionHelpers.ts', { '@/lib/db': { db: {} }, '@/lib/timezone': tz, '@/lib/hubAuth': {} });
   check([sh.cleanDay('2026-11-01'), sh.cleanDay('2026-11-1'), sh.cleanDay(undefined), sh.cleanDay("2026-11-01' OR 1=1"), sh.cleanDay('2026-02-30')], ['2026-11-01', null, null, null, null], 'the page and the route take only a real YYYY-MM-DD day');
 
+  // Teams that prepare (2026-10-24, Phase 3 slice 5): what the editor sends, read safely.
+  const helpers = load('lib/programHelpers.ts', { '@/lib/db': { db: {} } });
+  check(plain(helpers.cleanHelperTeams([{ hubId: 'b', canReach: true }, { hubId: 'a' }, { hubId: 'b', canReach: false }])), [{ hubId: 'a', canReach: false }, { hubId: 'b', canReach: true }], 'one per team, sorted, can-reach only when said');
+  check([helpers.cleanHelperTeams('x'), helpers.cleanHelperTeams([{ hubId: '' }]), helpers.cleanHelperTeams([null])], [null, null, null], 'anything else is refused');
+
+  // Only the registration roles may change who asks (2026-10-24, slice 5 review).
+  const stored = [{ _key: 'q1', label: 'A', askedBy: 'team:h1' }, { _key: 'q2', label: 'B' }];
+  check(ask.askersChanged([{ _key: 'q1', label: 'A reworded', askedBy: 'team:h1' }, { _key: 'q2', label: 'B', askedBy: 'registration' }], stored), false, 'rewording or naming the registration team is not a change of asker');
+  check(ask.askersChanged([{ _key: 'q2', label: 'B', askedBy: 'team:h1' }], stored), true, 'giving a question to a team is');
+  check(ask.askersChanged([{ _key: 'q9', label: 'New', askedBy: 'teacher' }], stored), true, 'a new question with an asker is');
+  check(ask.askersChanged([{ _key: 'q9', label: 'New' }], null), false, 'a new question for the registration team is not');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

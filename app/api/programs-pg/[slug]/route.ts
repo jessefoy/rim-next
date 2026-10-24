@@ -8,7 +8,8 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { Prisma } from "@prisma/client";
 import { withQuestionIds } from "@/lib/registrationFields";
-import { withAskers } from "@/lib/questionAskers";
+import { askersChanged, withAskers } from "@/lib/questionAskers";
+import { checkHelperTeams, cleanHelperTeams, saveHelperTeams, type HelperTeamInput } from "@/lib/programHelpers";
 import { countPlacesTaken } from "@/lib/registrationPlaces";
 import { EDITOR_FIELD_LABELS, EDITOR_PROGRAM_INCLUDE, editorFieldValue, programToEditorData } from "@/lib/programEditorData";
 import { auth } from "@/auth";
@@ -278,6 +279,26 @@ export async function PUT(
     data.programFormat = body.programFormat;
     // (livekitRoom was set here for the retired LiveKit room; nothing reads it.)
   }
+  // Teams that prepare (2026-10-24, lib/programHelpers.ts): a newly added team
+  // must be active and have Helping with installed. Checked before any write.
+  let helperTeams: HelperTeamInput[] | null = null;
+  if (body.helperTeams !== undefined) {
+    helperTeams = cleanHelperTeams(body.helperTeams);
+    if (!helperTeams) return NextResponse.json({ error: "The teams that prepare weren\u2019t understood. Reload the page and try again." }, { status: 422 });
+    // Which teams prepare, and whether they can reach people, decides who
+    // sees people's details: the registration roles only (2026-10-24;
+    // Programs shows no one's details otherwise).
+    if (!canUseRegistration(session.user.roles)) {
+      const stored = (await db.programHelper.findMany({ where: { programId: existing.id }, select: { hubId: true, canReach: true } }))
+        .map((h) => ({ hubId: h.hubId, canReach: h.canReach }))
+        .sort((a, b) => a.hubId.localeCompare(b.hubId));
+      if (JSON.stringify(stored) !== JSON.stringify(helperTeams)) {
+        return NextResponse.json({ error: "Only the registration team can choose the teams that prepare, since they see who\u2019s coming. Nothing was saved." }, { status: 403 });
+      }
+    }
+    const refusal = await checkHelperTeams(existing.id, helperTeams);
+    if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
+  }
   // A newly ticked supporting team must be one that staffs this format (the
   // editor's rule, enforced here too; 2026-10-16 audit). Checked before any
   // write, so a refusal saves nothing. Teams already ticked are left to the
@@ -382,36 +403,36 @@ export async function PUT(
   }
   // Each question keeps its id (lib/registrationFields.ts). Removing every
   // question clears them; `|| undefined` used to leave them in place.
-  // Who asks each question (lib/questionAskers.ts) is kept only for a teacher
-  // or a supporting team the program has after this save.
-  if (body.registrationFields !== undefined) {
-    const keyed = withQuestionIds(body.registrationFields, existing.registrationFields);
-    if (keyed) {
-      const teamSlugs = Array.isArray(body.coverageHubSlugs)
-        ? (body.coverageHubSlugs as unknown[]).filter((h): h is string => typeof h === "string" && h.trim().length > 0)
-        : (await db.programCoverageHub.findMany({ where: { programSlug: slug }, select: { hubSlug: true } })).map((r) => r.hubSlug);
-      const teamIds = new Set(
-        teamSlugs.length > 0
-          ? (await db.hub.findMany({ where: { slug: { in: teamSlugs } }, select: { id: true } })).map((h) => h.id)
-          : [],
-      );
-      data.registrationFields = withAskers(keyed as Record<string, unknown>[], teamIds) as Prisma.InputJsonObject[];
+  // Who asks each question (lib/questionAskers.ts) is kept only for a teacher,
+  // a supporting team or a team that prepares, as the program has them after
+  // this save. A team taken off hands its questions to the registration team
+  // now, so adding it again later doesn't quietly bring them back.
+  const teamsChange = Array.isArray(body.coverageHubSlugs) || helperTeams !== null;
+  if (body.registrationFields !== undefined || (teamsChange && Array.isArray(existing.registrationFields))) {
+    const coverageSlugs = Array.isArray(body.coverageHubSlugs)
+      ? (body.coverageHubSlugs as unknown[]).filter((h): h is string => typeof h === "string" && h.trim().length > 0)
+      : (await db.programCoverageHub.findMany({ where: { programSlug: slug }, select: { hubSlug: true } })).map((r) => r.hubSlug);
+    const teamIds = new Set([
+      ...(coverageSlugs.length > 0
+        ? (await db.hub.findMany({ where: { slug: { in: coverageSlugs } }, select: { id: true } })).map((h) => h.id)
+        : []),
+      ...(helperTeams ?? (await db.programHelper.findMany({ where: { programId: existing.id }, select: { hubId: true } }))).map((h) => h.hubId),
+    ]);
+    if (body.registrationFields !== undefined) {
+      const keyed = withQuestionIds(body.registrationFields, existing.registrationFields);
+      // Who asks a question decides who reads its answers: the registration
+      // roles only (2026-10-24).
+      if (keyed && !canUseRegistration(session.user.roles) && askersChanged(keyed as { _key?: unknown; label?: unknown; askedBy?: unknown }[], existing.registrationFields)) {
+        return NextResponse.json({ error: "Only the registration team can choose who asks a question, since that decides who reads the answers. Nothing was saved." }, { status: 403 });
+      }
+      data.registrationFields = keyed
+        ? (withAskers(keyed as Record<string, unknown>[], teamIds) as Prisma.InputJsonObject[])
+        : Prisma.DbNull;
     } else {
-      data.registrationFields = Prisma.DbNull;
+      const stored = existing.registrationFields as Record<string, unknown>[];
+      const kept = withAskers(stored, teamIds);
+      if (JSON.stringify(kept) !== JSON.stringify(stored)) data.registrationFields = kept as Prisma.InputJsonObject[];
     }
-  } else if (Array.isArray(body.coverageHubSlugs) && Array.isArray(existing.registrationFields)) {
-    // Supporting teams changed without the questions: a team taken off the
-    // program hands its questions to the registration team now, so ticking it
-    // again later doesn't quietly bring them back.
-    const teamSlugs = (body.coverageHubSlugs as unknown[]).filter((h): h is string => typeof h === "string" && h.trim().length > 0);
-    const teamIds = new Set(
-      teamSlugs.length > 0
-        ? (await db.hub.findMany({ where: { slug: { in: teamSlugs } }, select: { id: true } })).map((h) => h.id)
-        : [],
-    );
-    const stored = existing.registrationFields as Record<string, unknown>[];
-    const kept = withAskers(stored, teamIds);
-    if (JSON.stringify(kept) !== JSON.stringify(stored)) data.registrationFields = kept as Prisma.InputJsonObject[];
   }
   if (body.confirmationMessage !== undefined) data.confirmationMessage = body.confirmationMessage || undefined;
   if (body.reminderDate !== undefined) data.reminderDate = centralToUtc(body.reminderDate);
@@ -565,6 +586,12 @@ export async function PUT(
   } else {
     updated = await db.program.update({ where: { slug }, data });
   }
+
+  // Teams that prepare: the whole set the editor sent, saved right after the
+  // program (by its id, so an address change can't drop them), before any
+  // later step that can still refuse, so the questions they ask and the
+  // teams themselves never disagree.
+  if (helperTeams !== null) await saveHelperTeams(existing.id, helperTeams);
 
   // ── Zoom meeting integrity on save (Layer 1) ────────────────────────────
   // Tear down this program's FUTURE Zoom meetings (fire-and-forget; past stays

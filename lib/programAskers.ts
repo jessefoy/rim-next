@@ -9,7 +9,8 @@
  * hosting-style team, using the Scheduler, not the program's hosting team,
  * and staffing the program's format. A coverage row outside that rule (left
  * by a change to the team's formats) doesn't ask, so the editor and the form
- * always agree.
+ * always agree. Teams that prepare (lib/programHelpers.ts) ask too, while
+ * active.
  */
 
 import { db } from "@/lib/db";
@@ -23,13 +24,17 @@ export async function loadAskerContext(program: {
   programFormat: string;
   hostingHubSlug: string | null;
 }): Promise<AskerContext> {
-  const [teachers, coverage] = await Promise.all([
+  const [teachers, coverage, helpers] = await Promise.all([
     db.programTeacher.findMany({
       where: { programId: program.id },
       orderBy: { order: "asc" },
       select: { user: { select: { firstName: true, lastName: true, preferredName: true } } },
     }),
     db.programCoverageHub.findMany({ where: { programSlug: program.slug }, select: { hubSlug: true } }),
+    db.programHelper.findMany({
+      where: { programId: program.id, hub: { status: "ACTIVE" } },
+      select: { hub: { select: { id: true, name: true } } },
+    }),
   ]);
   const hosting = program.hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG;
   const hubs = coverage.length
@@ -50,8 +55,11 @@ export async function loadAskerContext(program: {
     teacherNames: teachers
       .map((t) => `${t.user.preferredName || t.user.firstName || ""} ${t.user.lastName || ""}`.trim())
       .filter(Boolean),
-    teams: hubs
-      .filter((h) => !h.hasSchedule && h.appLinks.length > 0 && h.slug !== hosting && h.appliesToFormats.includes(program.programFormat))
-      .map((h) => ({ id: h.id, name: h.name })),
+    teams: (() => {
+      const supporting = hubs
+        .filter((h) => !h.hasSchedule && h.appLinks.length > 0 && h.slug !== hosting && h.appliesToFormats.includes(program.programFormat))
+        .map((h) => ({ id: h.id, name: h.name }));
+      return [...supporting, ...helpers.map((h) => h.hub).filter((h) => !supporting.some((x) => x.id === h.id))];
+    })(),
   };
 }
