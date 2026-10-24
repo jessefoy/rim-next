@@ -274,6 +274,7 @@ Jesse, 2026-10-24: everything to look at is saved here for one thorough session 
 - Every tool page carries a hidden second copy of its content (the streamed `#S:0` segment stays in the page); it shows nothing, but doubles the page's markup and repeats ids. Look at why before launch.
 - The editor's option cards (the round choices) show no keyboard focus ring; the pattern predates this work.
 - The Programs list now counts a program past its closing date as Closed (it used to say Open), by the one rule.
+- Answers by id (Phase 3 slice 1): a registration form left open while its questions were removed or reworded (before they had ids) now drops those answers on submit, since the server keeps only the program's own questions; before, they were stored under the old wording. Likely fine; decide then.
 - Programs with registration on but no reminder message: the reminder still goes out on its date; check what it says without one.
 
 ## Not in this plan (waiting, or later)
