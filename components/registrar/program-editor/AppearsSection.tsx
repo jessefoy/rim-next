@@ -380,7 +380,7 @@ function AppearsSection({
           {removeFromProgramList && (
             <div className="pe-visibility-schedule">
               <span className="pe-field__label">Auto-show on member home</span>
-              <p className="pe-field__help">Optional. On this date the program will automatically reappear on the member home — no manual action needed.</p>
+              <p className="pe-field__help">Optional. On this date the program reappears on My Home by itself, with nothing more to do.</p>
               <DateTimePicker label="Auto-show on member home" value={dashboardShowAt} onChange={setDashboardShowAt} />
               {dashboardShowAt && (
                 <button

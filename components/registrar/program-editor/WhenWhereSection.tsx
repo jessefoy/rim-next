@@ -241,13 +241,13 @@ function WhenWhereSection({
 
         <label className="pe-field">
           <span className="pe-field__label">Schedule Label</span>
-          <span className="pe-field__help">How the schedule appears on the public site. Auto-generated from your recurrence and start date — change those above to update.</span>
+          <span className="pe-field__help">How the schedule appears on the public site. It&rsquo;s made from the recurrence and start date; change those above to update it.</span>
           <input type="text" value={dateText} readOnly className="pe-input pe-input--readonly" />
         </label>
 
         <label className="pe-field">
           <span className="pe-field__label">Time Label</span>
-          <span className="pe-field__help">Shown on program cards and in confirmation emails. Auto-generated from your start and end times — change those above to update.</span>
+          <span className="pe-field__help">Shown on program cards and in confirmation emails. It&rsquo;s made from the start and end times; change those above to update it.</span>
           <input type="text" value={timeText} readOnly className="pe-input pe-input--readonly" />
         </label>
 

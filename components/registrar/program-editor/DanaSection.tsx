@@ -283,7 +283,7 @@ function DanaSection({
 
             <label className="pe-field">
               <span className="pe-field__label">Program Page Dana Note</span>
-              <span className="pe-field__help">Shown on the public program page near the registration form — a brief note about the dana model for this program.</span>
+              <span className="pe-field__help">Shown on the public program page near the registration form: a brief note about the dana model for this program.</span>
               <textarea
                 value={danaText}
                 onChange={(e) => setDanaText(e.target.value)}

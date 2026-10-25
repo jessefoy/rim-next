@@ -109,13 +109,13 @@ function JoinSection({
     const regClosedEffective = registrationClosed || deadlinePast;
     return registrationEnabled
       ? regClosedEffective
-        ? "Registration is closed — visitors see a “Registration is closed” notice instead of the form."
+        ? "Registration is closed. Visitors see that it’s closed, with no form."
         : notYetPicked || (registrationOpensAt && registrationOpensAt > nowCentral())
-          ? "Registration isn’t open yet — visitors see the date it opens, with no sign-up button until then."
-          : "Registration is open — visitors see a Register button (it automatically waitlists once you reach capacity)."
+          ? "Registration isn’t open yet. Visitors see the date it opens, with no sign-up button until then."
+          : "Registration is open. Visitors see a Register button. Once it’s full, new sign-ups join the waiting list."
       : openEntry
-        ? "Open entry: visitors see how to join (in person and/or online). No registration needed."
-        : "Registration is off — visitors are told it isn’t open yet, with no sign-up button. Choose Open below when you’re ready to take sign-ups.";
+        ? "Open entry: visitors see how to join. No registration needed."
+        : "Registration is off. Visitors are told it isn’t open yet, with no sign-up button. Choose Open below when you’re ready to take sign-ups.";
   }, [openEntry, registrationDeadline, registrationClosed, registrationEnabled, registrationOpensAt, notYetPicked]);
 
   // ── Registration fields management ───────────────────────────────────────

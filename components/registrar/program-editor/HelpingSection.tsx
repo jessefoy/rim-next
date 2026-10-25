@@ -192,7 +192,7 @@ function HelpingSection({
                 color: "var(--rim-text-muted)",
               }}
             >
-              This program is self-led — the hosting settings below
+              This program is self-led, so the hosting settings below
               don&rsquo;t apply.
             </p>
           )}
