@@ -228,12 +228,15 @@ function HelpingSection({
             color: "var(--rim-text)",
           }}
         >
-          <strong>Two kinds of team.</strong><br />
+          <strong>Three kinds of team.</strong><br />
           <strong>Hosting team:</strong> the one team that runs the live
           session. It opens the online room and handles cover requests.<br />
           <strong>Supporting teams:</strong> teams such
           as AV or greeters, layered on top of the hosting team. Each
-          team&rsquo;s formats decide which programs it can staff.
+          team&rsquo;s formats decide which programs it can staff.<br />
+          <strong>Teams that prepare:</strong> teams that help ahead of time,
+          such as a kitchen team. They see how many are coming and the answers
+          to their own questions.
         </div>
 
         {/* ── Hosting team ───────────────────────────────────────── */}
