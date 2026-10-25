@@ -495,5 +495,28 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check([own(noRole.helperTeams), noRole.registrationFields.every((q) => !('askedBy' in q)), own(noRole.coverageHubSlugs)], [[], true, []], 'without the registration roles: every question the registration team\'s, no team preparing');
   check([ps.isShapeCode('COURSE'), ps.isShapeCode('blank'), ps.isShapeCode(undefined)], [true, false, false], 'a shape by its code only');
 
+  // Copy a program (2026-10-24, Phase 4 slice 5).
+  const pc = load('lib/programCopy.ts');
+  check([pc.freeSlug('fall-retreat', new Set(['fall-retreat'])), pc.freeSlug('fall-retreat-2', new Set(['fall-retreat', 'fall-retreat-2', 'fall-retreat-3'])), pc.freeSlug('winter-retreat-2025', new Set(['winter-retreat-2025']))], ['fall-retreat-2', 'fall-retreat-4', 'winter-retreat-2025-2'], 'the first free address; a year stays');
+  const src = {
+    id: 'p1', slug: 'fall-retreat', name: 'Fall Retreat', description: '<p>Words</p>', confirmationMessage: '<p>Bring a cushion.</p>',
+    startDatetime: '2025-11-14T17:00', endDatetime: '2025-11-16T13:00', dateText: 'Friday, November 14', timeText: '5:00 PM',
+    registrationEnabled: true, registrationClosed: true, registrationCapacity: '14', registrationDeadline: '2025-11-10T12:00', registrationOpensAt: '2025-09-01T09:00',
+    registrationFields: [{ _key: 'q1', askedBy: 'teacher', label: 'Practice?', fieldType: 'shortText', required: false, options: [] }, { _key: 'q2', askedBy: 'team:k1', label: 'Diet?', fieldType: 'shortText', required: false, options: [] }],
+    reminderDate: '2025-11-12T09:00', reminderDaysBefore: '', specialAnnouncement: 'Cancelled', announcementUntil: '2025-11-14', dashboardShowAt: '2025-11-01T00:00',
+    guestAccessKey: 'abc123', isOpenAccess: true, flodeskSegmentId: 'seg', flodeskSegmentName: 'Fall', archived: true, danaMode: 'base_plus_dana', danaBaseAmount: '150',
+    helperTeams: [{ hubId: 'k1', canReach: false }], coverageHubSlugs: ['greeter'], programTeachers: [{ id: 'u1', firstName: 'A', lastName: 'B' }],
+  };
+  const cp = pc.copyForNew(src, { slug: 'fall-retreat-2', canDecideAskers: true });
+  check([cp.id, cp.slug, cp.startDatetime, cp.endDatetime, cp.dateText, cp.registrationClosed, cp.registrationDeadline, cp.registrationOpensAt, cp.reminderDate, cp.specialAnnouncement, cp.announcementUntil, cp.dashboardShowAt, cp.guestAccessKey, cp.flodeskSegmentId, cp.archived],
+    [undefined, 'fall-retreat-2', '', '', '', false, '', '', '', '', '', '', '', null, false], 'never kept: address, dates, closed, deadlines, opening, reminder date, notice, show-from, guest link, segment, archived');
+  check([cp.name, cp.description, cp.confirmationMessage, cp.registrationCapacity, cp.danaMode, cp.danaBaseAmount, cp.isOpenAccess, own(cp.helperTeams), own(cp.coverageHubSlugs), cp.programTeachers.length],
+    ['Fall Retreat', '<p>Words</p>', '<p>Bring a cushion.</p>', '14', 'base_plus_dana', '150', true, [{ hubId: 'k1', canReach: false }], ['greeter'], 1], 'kept: words, places, dana, settings, helpers, teachers');
+  check([own(cp.registrationFields.map((q) => ['_key' in q, q.askedBy])), cp.reminderDaysBefore], [[[false, 'teacher'], [false, 'team:k1']], '2'], 'questions get new ids and keep who asks; a set reminder date becomes 2 days before');
+  const cpNoRole = pc.copyForNew(src, { slug: 'fall-retreat-2', canDecideAskers: false });
+  check([cpNoRole.registrationFields.every((q) => !('askedBy' in q)), own(cpNoRole.helperTeams)], [true, []], 'without the registration roles: the registration team asks, no team prepares');
+  check([pc.copyForNew({ ...src, removeFromProgramList: true }, { slug: 'x', canDecideAskers: true }).removeFromProgramList, pc.copyForNew({ ...src, removeFromProgramList: true, dashboardShowAt: '' }, { slug: 'x', canDecideAskers: true }).removeFromProgramList], [false, true], 'hidden until a date starts shown; hidden for good stays hidden');
+  check(src.slug === 'fall-retreat' && src.registrationFields[0]._key === 'q1', true, 'the original is left as it was');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

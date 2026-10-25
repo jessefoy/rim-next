@@ -186,6 +186,9 @@ interface Props {
    *  registration roles (canUseRegistration), since that decides who sees
    *  people's answers and details (2026-10-24). */
   canDecideAskers?: boolean;
+  /** A new program copied from this one (lib/programCopy.ts, Phase 4): said
+   *  at the top, and Save asks for the new dates. */
+  copiedFrom?: string;
 }
 
 function slugify(text: string): string {
@@ -335,6 +338,7 @@ export default function ProgramEditor({
   registeredCount = null,
   prepTeams = NO_PREP_TEAMS,
   canDecideAskers = false,
+  copiedFrom,
 }: Props) {
   const basePath = basePathProp ?? `/account/hub/${hubSlug}/programs`;
   const router = useRouter();
@@ -604,10 +608,12 @@ export default function ProgramEditor({
 
   // Auto-generate slug from name
   useEffect(() => {
-    if (!isEditing && !slugTouched && name) {
+    // A copy keeps the free address it was given while its name is still the
+    // original's (whose address that name makes), then follows its own.
+    if (!isEditing && !slugTouched && name && !(copiedFrom && name === copiedFrom)) {
       setSlug(slugify(name));
     }
-  }, [name, isEditing, slugTouched]);
+  }, [name, isEditing, slugTouched, copiedFrom]);
 
   // Live preview only — server recomputes these on every save.
   useEffect(() => {
@@ -628,6 +634,10 @@ export default function ProgramEditor({
   // ── What a save sends: every field, in the save route's terms ──────────────
   function buildPayload(): Record<string, unknown> {
     return {
+      // A copy keeps the original's mailing-list choice (set in the
+      // Registration app, so the editor otherwise never sends it): without it
+      // an original kept off the list would copy as on (review, 2026-10-24).
+      ...(!isEditing && typeof initialData?.flodeskSync === "boolean" ? { flodeskSync: initialData.flodeskSync } : {}),
       name,
       slug,
       tagline,
@@ -738,6 +748,12 @@ export default function ProgramEditor({
     // section to go to (the page doesn't scroll away from the answer).
     if (!pullQuote.trim() && pullQuoteSource.trim()) {
       setError("Under About: a quote source needs its quote. Add the quote, or clear the source.");
+      return;
+    }
+
+    // A copy starts without dates (lib/programCopy.ts): it needs its own.
+    if (copiedFrom && !startDatetime) {
+      setError("Under When and where: set this program’s dates. A copy starts without them.");
       return;
     }
 
@@ -1024,6 +1040,18 @@ export default function ProgramEditor({
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {copiedFrom && (
+        <div className="pe-copied" role="note">
+          <p className="pe-copied__title">A copy of {copiedFrom}</p>
+          <p className="pe-copied__text">
+            It keeps the words, questions, teachers, helpers, dana and settings. It starts without the dates,
+            the people registered, the closing and opening dates, the notice and the guest link, and with its own address.
+            Set the new dates under When and where; nothing is created until you save.
+            {(initialData?.coverageHubSlugs ?? []).length > 0 ? " The teams under Who’s helping are told when you save." : ""}
+          </p>
         </div>
       )}
 
