@@ -610,10 +610,10 @@ export default function ProgramEditor({
   useEffect(() => {
     // A copy keeps the free address it was given while its name is still the
     // original's (whose address that name makes), then follows its own.
-    if (!isEditing && !slugTouched && name && !(copiedFrom && name === copiedFrom)) {
-      setSlug(slugify(name));
+    if (!isEditing && !slugTouched && name) {
+      setSlug(copiedFrom && name === copiedFrom ? initialData?.slug ?? slugify(name) : slugify(name));
     }
-  }, [name, isEditing, slugTouched, copiedFrom]);
+  }, [name, isEditing, slugTouched, copiedFrom, initialData?.slug]);
 
   // Live preview only — server recomputes these on every save.
   useEffect(() => {
