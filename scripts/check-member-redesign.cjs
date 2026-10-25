@@ -478,5 +478,22 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(own(pu.updateLines({ ...was, startDatetime: '2026-10-02T00:00:00Z', dateText: 'Thursdays', timeText: '7:00 PM' }, ['when'], was, nowAt)), { when: 'When: Thursdays, 7:00 PM' }, 'a first session already past is not announced');
   check(pu.MESSAGE_MAX_PEOPLE, 50, 'the most sent from here');
 
+  // Start from a shape (2026-10-24, Phase 4 slice 4).
+  const ps = load('lib/programShapes.ts');
+  const shapeTeams = { prepTeams: [{ id: 'k1', slug: 'kitchen-team', name: 'Kitchen Team' }], canDecideAskers: true };
+  const fmtCodes = ['DROP_IN', 'CLASS', 'COURSE', 'WORKSHOP', 'DAY_OF_MINDFULNESS', 'RETREAT'];
+  check(own(ps.SHAPES.map((x) => x.code)), fmtCodes, 'one shape for each Format, in order');
+  check(fmtCodes.every((c) => ps.shapeStart(c, shapeTeams).offeringFormat === c), true, 'each shape sets its own Format');
+  const drop = ps.shapeStart('DROP_IN', shapeTeams);
+  check([drop.openEntry, drop.registrationEnabled, drop.reminderDaysBefore, drop.registrationFields.length], [true, false, '', 0], 'a drop-in: open entry, no registration, no reminder, no questions');
+  const shRetreat = ps.shapeStart('RETREAT', shapeTeams);
+  check(own(shRetreat.registrationFields.map((q) => q.askedBy ?? 'registration')), ['teacher', 'teacher', 'registration', 'team:k1', 'team:k1'], 'a retreat: the teacher and the meals team ask theirs');
+  check([own(shRetreat.coverageHubSlugs), own(shRetreat.helperTeams), shRetreat.followUpEnabled, shRetreat.reminderDaysBefore], [[], [{ hubId: 'k1', canReach: false }], false, '2'], 'the meals team (no contact details), no scheduled team (that emails it), no note without words, a reminder 2 days before');
+  const bare = ps.shapeStart('RETREAT', { prepTeams: [], canDecideAskers: true });
+  check([own(bare.coverageHubSlugs), own(bare.helperTeams), own(bare.registrationFields.map((q) => q.askedBy ?? 'registration'))], [[], [], ['teacher', 'teacher', 'registration', 'registration', 'registration']], 'no team there to tick: the registration team asks');
+  const noRole = ps.shapeStart('RETREAT', { ...shapeTeams, canDecideAskers: false });
+  check([own(noRole.helperTeams), noRole.registrationFields.every((q) => !('askedBy' in q)), own(noRole.coverageHubSlugs)], [[], true, []], 'without the registration roles: every question the registration team\'s, no team preparing');
+  check([ps.isShapeCode('COURSE'), ps.isShapeCode('blank'), ps.isShapeCode(undefined)], [true, false, false], 'a shape by its code only');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

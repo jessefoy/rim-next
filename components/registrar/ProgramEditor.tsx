@@ -411,8 +411,9 @@ export default function ProgramEditor({
   );
   const [confirmationMessage, setConfirmationMessage] = useState<string>(toEditorString(initialData?.confirmationMessage));
   const [reminderDate, setReminderDate] = useState(initialData?.reminderDate ?? "");
-  // Days before the first session (Phase 4): a new program starts at 2.
-  const [reminderDaysBefore, setReminderDaysBefore] = useState(isEditing ? initialData?.reminderDaysBefore ?? "" : "2");
+  // Days before the first session (Phase 4): a new program starts at 2, or
+  // as its shape says (lib/programShapes.ts; none for a drop-in).
+  const [reminderDaysBefore, setReminderDaysBefore] = useState(isEditing ? initialData?.reminderDaysBefore ?? "" : initialData?.reminderDaysBefore ?? "2");
   // The reminder's timing chosen here (TellSection), kept while its box is
   // emptied to retype it; Save asks for the number.
   const [reminderModePicked, setReminderModePicked] = useState<"days" | "date" | "none" | null>(null);
@@ -503,6 +504,11 @@ export default function ProgramEditor({
   // Who may ask a registration question (lib/questionAskers.ts): the
   // registration team, the teacher when one is linked, and each supporting
   // team ticked under Who's helping that staffs this format.
+  // A question given to the teacher before one is linked (a shape's, Phase 4)
+  // keeps saying so, rather than showing the registration team; offered for
+  // as long as the page is open once any question asked the teacher.
+  const [startedAskingTeacher] = useState(() => (initialData?.registrationFields ?? []).some((f) => f.askedBy === ASKED_BY_TEACHER));
+  const asksTeacher = startedAskingTeacher || registrationFields.some((f) => f.askedBy === ASKED_BY_TEACHER);
   const askerOptions = useMemo((): AskerOption[] => {
     const options: AskerOption[] = [{ value: ASKED_BY_REGISTRATION, label: "The registration team" }];
     if (selectedTeachers.length === 1) {
@@ -510,6 +516,8 @@ export default function ProgramEditor({
       options.push({ value: ASKED_BY_TEACHER, label: `The teacher, ${`${t.firstName} ${t.lastName}`.trim()}` });
     } else if (selectedTeachers.length > 1) {
       options.push({ value: ASKED_BY_TEACHER, label: "The teachers" });
+    } else if (asksTeacher) {
+      options.push({ value: ASKED_BY_TEACHER, label: "The teacher, once one is chosen (the registration team until then)" });
     }
     for (const h of hubs) {
       if (
@@ -527,7 +535,7 @@ export default function ProgramEditor({
       }
     }
     return options;
-  }, [selectedTeachers, hubs, coverageHubSlugs, hostingHubSlug, programFormat, helperTeams, prepTeams]);
+  }, [selectedTeachers, asksTeacher, hubs, coverageHubSlugs, hostingHubSlug, programFormat, helperTeams, prepTeams]);
 
   // ── Unsaved changes tracking ────────────────────────────────────────────
   const [dirty, setDirty] = useState(false);
