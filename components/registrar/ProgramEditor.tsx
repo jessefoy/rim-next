@@ -782,14 +782,14 @@ export default function ProgramEditor({
       const n = Number(reminderDaysBefore);
       const daysChosen = reminderModePicked === "days" || (reminderModePicked === null && reminderDaysBefore.trim() !== "");
       if (daysChosen && !(reminderDaysBefore.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= 60)) {
-        setError("Under What we tell them: choose how many days before the first session the reminder goes, from 1 to 60.");
+        setError("Under Messages to those who register: choose how many days before the first session the reminder goes, from 1 to 60.");
         return;
       }
     }
 
     // The note after needs its words.
     if (followUpEnabled && !recurrenceFreq && !followUpMessage.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, "").trim()) {
-      setError("Under What we tell them: write the note sent after the program, or turn it off.");
+      setError("Under Messages to those who register: write the note sent after the program, or turn it off.");
       return;
     }
 
@@ -1050,7 +1050,7 @@ export default function ProgramEditor({
             It keeps the words, questions, teachers, helpers, dana and settings. It starts without the dates,
             the people registered, the closing and opening dates, the notice and the guest link, and with its own address.
             Set the new dates under When and where; nothing is created until you save.
-            {(initialData?.coverageHubSlugs ?? []).length > 0 ? " The teams under Who’s helping are told when you save." : ""}
+            {(initialData?.coverageHubSlugs ?? []).length > 0 ? " The teams under Teachers and teams are told when you save." : ""}
           </p>
         </div>
       )}

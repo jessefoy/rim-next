@@ -239,7 +239,7 @@ If any answer is missing, restrict the app to its primary Space or ship it as a 
 
 ## Helping with: the gate and the four-layer audit (2026-10-24, Phase 3 slice 5)
 
-Helping with is the app for a team that prepares for programs without being on their schedule (a kitchen team). A program adds the team under Who's helping → Teams that prepare (`program_helpers`, by team id, with `canReach`); the team then sees, in `/tools/helping?hub=<team>`, each program it prepares for, how many are coming, and the answers to the questions it asks (`askedBy: "team:<hubId>"`), with email and phone only when `canReach`. Never dana. Rules: `lib/programHelpers.ts`.
+Helping with is the app for a team that prepares for programs without being on their schedule (a kitchen team). A program adds the team under Teachers and teams → Teams that prepare (`program_helpers`, by team id, with `canReach`); the team then sees, in `/tools/helping?hub=<team>`, each program it prepares for, how many are coming, and the answers to the questions it asks (`askedBy: "team:<hubId>"`), with email and phone only when `canReach`. Never dana. Rules: `lib/programHelpers.ts`.
 
 The ten answers:
 1. **Multi-Space.** Any team may install it; nothing is shared across teams.

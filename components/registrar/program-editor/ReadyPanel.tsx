@@ -55,7 +55,7 @@ function ReadyPanel(p: Props) {
 
   items.push({
     section: "helping",
-    label: "Who’s helping",
+    label: "Teachers and teams",
     text: `${p.teacherNames ? `taught by ${p.teacherNames}` : "no teacher linked"}${p.hostingRequired ? "" : "; no host needed"}.`,
     tone: "note",
   });

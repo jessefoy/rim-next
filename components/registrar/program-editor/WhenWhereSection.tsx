@@ -386,7 +386,7 @@ function WhenWhereSection({
               </p>
               {roomChoice === "outside" && !noHostNeeded && (
                 <p className="pe-readout__row pe-readout__row--meta">
-                  Check &ldquo;No host needed&rdquo; under Who&rsquo;s helping if
+                  Check &ldquo;No host needed&rdquo; under Teachers and teams if
                   this program doesn&rsquo;t need a RIM host.
                 </p>
               )}

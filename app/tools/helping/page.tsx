@@ -85,7 +85,7 @@ export default async function HelpingPage({ searchParams }: { searchParams: Prom
         {programs.length === 0 ? (
           <section className="hlp-panel">
             <p className="hlp-state">No program to help with right now.</p>
-            <p className="hlp-note">A program adds this team under Who&rsquo;s helping, in its editor.</p>
+            <p className="hlp-note">A program adds this team under Teachers and teams, in its editor.</p>
           </section>
         ) : (
           <ul className="rim-destination-list">

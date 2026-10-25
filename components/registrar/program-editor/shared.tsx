@@ -124,9 +124,9 @@ export const DEFAULT_HOSTING_HUB_SLUG = "host-team" as const;
 export const SECTIONS = [
   { id: "about", title: "About" },
   { id: "when", title: "When and where" },
-  { id: "helping", title: "Who’s helping" },
+  { id: "helping", title: "Teachers and teams" },
   { id: "join", title: "How people join" },
-  { id: "tell", title: "What we tell them" },
+  { id: "tell", title: "Messages to those who register" },
   { id: "dana", title: "Dana" },
   { id: "where", title: "Where it appears" },
 ] as const;

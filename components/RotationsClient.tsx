@@ -804,8 +804,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       {programs.length === 0 && (
         <p className="hs-rot__empty">
           {hostsSessions
-            ? "No programs are hosted by this team yet. In the Program editor, choose this team under Who’s helping → Hosting team."
-            : "No programs are scheduled with this team yet. A coordinator can add this team in the Program editor under Who’s helping → Auxiliary role coverage."}
+            ? "No programs are hosted by this team yet. In the Program editor, choose this team under Teachers and teams → Hosting team."
+            : "No programs are scheduled with this team yet. A coordinator can add this team in the Program editor under Teachers and teams → Supporting teams."}
         </p>
       )}
 

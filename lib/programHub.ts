@@ -271,7 +271,7 @@ export async function hostingTeamRefusal(hubSlug: string, programFormat?: string
   });
   if (!hub) return `Unknown team: ${hubSlug}`;
   if (hub.status !== "ACTIVE") return `${hub.name} is archived, so it can't host programs.`;
-  if (!hub.hasSchedule) return `${hub.name} staffs a supporting role. Choose it under Auxiliary role coverage instead.`;
+  if (!hub.hasSchedule) return `${hub.name} staffs a supporting role. Choose it under Supporting teams instead.`;
   if (hub.appLinks.length === 0) return `${hub.name} doesn't have the Scheduler installed yet, so it can't host programs.`;
   // The program's format must be one the team staffs, or the program shows
   // on no schedule at all (2026-10-16 audit).

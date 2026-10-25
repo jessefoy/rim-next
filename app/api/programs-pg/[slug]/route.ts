@@ -450,7 +450,7 @@ export async function PUT(
   if (body.reminderDaysBefore !== undefined) {
     const n = body.reminderDaysBefore;
     if (n !== null && !(typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= 60)) {
-      return NextResponse.json({ error: "Under What we tell them: the reminder's days before must be a whole number from 1 to 60. Nothing was saved." }, { status: 422 });
+      return NextResponse.json({ error: "Under Messages to those who register: the reminder's days before must be a whole number from 1 to 60. Nothing was saved." }, { status: 422 });
     }
     data.reminderDaysBefore = n;
   }

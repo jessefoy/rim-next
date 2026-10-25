@@ -231,7 +231,7 @@ function HelpingSection({
           <strong>Two kinds of team.</strong><br />
           <strong>Hosting team:</strong> the one team that runs the live
           session. It opens the online room and handles cover requests.<br />
-          <strong>Auxiliary role coverage:</strong> supporting teams, such
+          <strong>Supporting teams:</strong> teams such
           as AV or greeters, layered on top of the hosting team. Each
           team&rsquo;s formats decide which programs it can staff.
         </div>
@@ -318,7 +318,7 @@ function HelpingSection({
               programFormat === "in-person" ? "in-person" : programFormat === "hybrid" ? "hybrid" : "virtual";
             return (
               <fieldset className="pe-field">
-                <legend className="pe-field__label">Auxiliary role coverage</legend>
+                <legend className="pe-field__label">Supporting teams</legend>
                 <span className="pe-field__help">
                   No supporting team staffs {formatWord} programs.
                 </span>
@@ -327,7 +327,7 @@ function HelpingSection({
           }
           return (
             <fieldset className="pe-field">
-              <legend className="pe-field__label">Auxiliary role coverage</legend>
+              <legend className="pe-field__label">Supporting teams</legend>
               <span className="pe-field__help">
                 Supporting teams for this program, such as AV or
                 greeters.

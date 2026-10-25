@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
   }
   // Reminders counted from the start (lib/reminderSchedule.ts): whole days, or none.
   if (body.reminderDaysBefore != null && !(typeof body.reminderDaysBefore === "number" && Number.isInteger(body.reminderDaysBefore) && body.reminderDaysBefore >= 1 && body.reminderDaysBefore <= 60)) {
-    return NextResponse.json({ error: "Under What we tell them: the reminder's days before must be a whole number from 1 to 60." }, { status: 422 });
+    return NextResponse.json({ error: "Under Messages to those who register: the reminder's days before must be a whole number from 1 to 60." }, { status: 422 });
   }
   // Teams that prepare (lib/programHelpers.ts), checked before anything is created.
   const createHelpers = body.helperTeams !== undefined ? cleanHelperTeams(body.helperTeams) : [];
