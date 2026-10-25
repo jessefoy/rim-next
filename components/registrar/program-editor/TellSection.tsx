@@ -1,6 +1,8 @@
 "use client";
 
-/** What we tell them: the confirmation message and the reminder. One of the
+/** Messages to those who register: three emails in the order people get
+ *  them (Jesse, 2026-10-25): when they register (the confirmation), before it
+ *  begins (the reminder) and after it ends (the note after). One of the
  *  program editor's seven sections. A notice is posted with Post a notice at
  *  the top of the page, apart from Save (2026-10-24). */
 
@@ -84,31 +86,35 @@ function TellSection({
   return (
     <EditorSection id="tell">
       <div className="pe-form">
-        <div className="pe-field">
-          <span className="pe-field__label">Confirmation Message</span>
+        {/* Three emails, in the order people get them (Jesse, 2026-10-25):
+            each a name, when it goes, and its words. */}
+        <p className="pe-field__help">
+          Three emails, in the order people get them. To add a link in any of them: type the words, select
+          them, click the chain button and paste the address. A Google Doc needs its sharing set to
+          &ldquo;Anyone with the link&rdquo;.
+        </p>
+
+        <fieldset className="pe-field">
+          <legend className="pe-field__label">When they register</legend>
           <span className="pe-field__help">
-            Shown in the confirmation email after someone registers: what to
-            bring, how to prepare, directions, or a link to a class handout.
-            <strong> To add a link:</strong> type the words people will
-            click (such as &ldquo;Our class handout&rdquo;), select them, then
-            click the chain button in the small bar that appears above them.
-            Paste the address and click OK. For a Google Doc, first set its
-            sharing to &ldquo;Anyone with the link&rdquo; can view, or
-            registrants will be asked to request access.
+            The confirmation, sent as soon as someone registers. Add what to bring, how to prepare, or directions.
           </span>
           <RimTiptapEditor
             value={confirmationMessage}
             onChange={(v) => { setConfirmationMessage(v); markDirty(); }}
-            placeholder="Optional custom message…"
+            placeholder="What to bring, how to prepare…"
             variant="message"
           />
-        </div>
+        </fieldset>
+
+        <hr className="pe-section-divider" />
 
         <fieldset className="pe-field">
-          <legend className="pe-field__label">The reminder</legend>
+          <legend className="pe-field__label">Before it begins</legend>
+          <span className="pe-field__help">The reminder.</span>
           <div className="pe-option-cards">
             {([
-              { value: "days", label: "Days before it begins" },
+              { value: "days", label: "Days before" },
               { value: "date", label: "On a set date" },
               { value: "none", label: "No reminder" },
             ] as const).map((opt) => (
@@ -120,7 +126,7 @@ function TellSection({
             ))}
           </div>
           {mode === "days" && (
-            <div className="pe-field" style={{ marginTop: 12 }}>
+            <>
               <label className="pe-inline-row">
                 <input
                   type="number"
@@ -141,26 +147,24 @@ function TellSection({
                     : "Nothing goes out until the first session is set, under When and where."}{" "}
                 A program with several sessions is reminded once, before the first.
               </span>
-            </div>
+            </>
           )}
           {mode === "date" && (
-            <div className="pe-field" style={{ marginTop: 12 }}>
-              <span className="pe-field__help">The reminder email goes out on this day, in the morning, to everyone registered by then. The registration team can also send it early, in Registration.</span>
+            <>
+              <span className="pe-field__help">It goes out on this day, in the morning, to everyone registered by then. The registration team can also send it early, in Registration.</span>
               <DateTimePicker label="Reminder date" value={reminderDate} onChange={setReminderDate} />
-            </div>
+            </>
           )}
-        </fieldset>
-
-        <div className="pe-field">
-          <span className="pe-field__label">Reminder Message</span>
-          <span className="pe-field__help">What the reminder email says.</span>
+          {/* Kept with No reminder too: the registration team can send it by hand. */}
           <RimTiptapEditor
             value={reminderMessage}
             onChange={(v) => { setReminderMessage(v); markDirty(); }}
-            placeholder="Optional reminder message…"
+            placeholder="What the reminder adds…"
             variant="message"
           />
-        </div>
+        </fieldset>
+
+        <hr className="pe-section-divider" />
 
         <fieldset className="pe-field">
           <legend className="pe-field__label">After it ends</legend>
@@ -191,8 +195,8 @@ function TellSection({
         </fieldset>
 
         <p className="pe-field__help">
-          For a change people should know (&ldquo;Cancelled tonight&rdquo;), use Post a notice at the top of
-          this page, once the program is saved.
+          Something changed, like &ldquo;Cancelled tonight&rdquo;? Use Post a notice at the top of this page,
+          once the program is saved.
         </p>
       </div>
     </EditorSection>
