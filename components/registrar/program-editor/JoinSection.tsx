@@ -227,7 +227,7 @@ function JoinSection({
 
         <label className="pe-field">
           <span className="pe-field__label">Capacity</span>
-          <span className="pe-field__help">Maximum number of registered participants. Leave blank for unlimited. When full, new registrations are automatically waitlisted.</span>
+          <span className="pe-field__help">The most who can register. Leave blank for no limit. Once it&rsquo;s full, new sign-ups join the waiting list.</span>
           <input
             type="number"
             min="1"
