@@ -278,7 +278,7 @@ export default async function RegistrationProgramPage({
         : placed.length === 0
           ? null
           : followUpDueAt(program, new Date())
-            ? "The note after the program goes out in the next morning run."
+            ? "The note after the program goes out the next morning."
             : "The note after the program didn’t go out.";
   const fullReminderLine = [reminderLine, followLine].filter(Boolean).join(" ") || null;
 
