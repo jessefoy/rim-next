@@ -456,5 +456,27 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(fu.followUpSendsAt({ ...retreat, archivedAt: '2026-11-10T00:00:00Z' }), null, 'archived before it ended (cancelled): no thank-you');
   check([fu.followUpSendsAt({ ...retreat, recurrenceFreq: 'WEEKLY' }), fu.followUpSendsAt({ ...retreat, followUpMessage: '<p></p>' }), fu.followUpSendsAt({ ...retreat, followUpEnabled: false })], [null, null, null], 'repeating, empty, or off: no note');
 
+  // Send an update to the people registered (2026-10-24, Phase 4 slice 3).
+  const pu = load('lib/programUpdate.ts');
+  const own = (v) => JSON.parse(JSON.stringify(v));
+  const was = { startDatetime: '2026-11-05T01:00:00Z', endDatetime: '2026-11-05T02:30:00Z', recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['TH'], recurrenceCount: null, programFormat: 'in-person', place: 'Rooted In Mindfulness, 123 Main St', confirmationMessage: '<p>Bring a cushion.</p>' };
+  check(own(pu.changedForPeople(was, { ...was })), [], 'nothing changed: no update');
+  check(own(pu.changedForPeople(was, { ...was, recurrenceDays: ['TH'], recurrenceInterval: null, confirmationMessage: '<p>Bring a cushion.</p>' })), [], 'same days, interval 1 as empty, same words: no update');
+  check(own(pu.changedForPeople(was, { ...was, startDatetime: '2026-11-05T01:15:00Z', place: 'The community room', confirmationMessage: '<p>Bring a mat.</p>' })), ['when', 'where', 'told'], 'time, place and message, in order');
+  check(own(pu.changedForPeople(was, { ...was, recurrenceDays: ['WE'] })), ['when'], 'a different day is a change of time');
+  check(own(pu.changedForPeople({ ...was, programFormat: 'virtual', place: null }, { ...was, programFormat: 'virtual', place: 'Old address' })), [], 'an online program: its leftover address is no change');
+  check(own(pu.changedForPeople(was, { ...was, programFormat: 'virtual', place: null })), ['where'], 'moving online is a change of place');
+  check(own(pu.updateLines({ ...was, programFormat: 'virtual', dateText: 'Thursdays', timeText: '7:00 – 8:30 PM CT' }, ['when', 'where'], was)), { when: 'When: Thursdays, 7:00 – 8:30 PM CT', where: 'Where: online. You join from the program\u2019s page, by the button below.' }, 'the lines name the program as it now is');
+  const draft = pu.composeUpdate('Good Evening', { when: 'When: Thursdays', told: 'Bring a mat.' });
+  check([draft.subject, draft.message.split('\n\n').length, draft.message.endsWith('let us know.')], ['A change to Good Evening', 4, true], 'the draft: subject, opening, facts, message, closing');
+  check([pu.kindsInWords(['when']), pu.kindsInWords(['when', 'where', 'told'])], ['the time', 'the time, the place and the confirmation message'], 'what changed, in words');
+  check(pu.plainText('<p>One &amp; two</p><ul><li>Cushion</li></ul>'), 'One & two\n- Cushion', 'the message as plain lines');
+  check(pu.changedForPeople(was, { ...was, confirmationMessage: '<p><a href="https://maps.example/new">Directions</a></p>' }).length > 0 && pu.plainText('<p><a href="https://maps.example/new">Directions</a></p>'), 'Directions: https://maps.example/new', 'a link is kept, and a new link is a change');
+  const nowAt = new Date('2026-10-25T12:00:00Z');
+  check(own(pu.updateLines({ ...was, startDatetime: '2026-11-13T01:00:00Z', dateText: 'Thursdays', timeText: '7:00 PM' }, ['when'], was, nowAt)), { when: 'When: Thursdays, 7:00 PM, starting Thursday, November 12' }, 'a repeating program that moved says its first session');
+  check(own(pu.updateLines({ ...was, recurrenceCount: 6, dateText: 'Thursdays', timeText: '7:00 PM' }, ['when'], was, nowAt)), { when: 'When: Thursdays, 7:00 PM, 6 sessions' }, 'and a new number of sessions');
+  check(own(pu.updateLines({ ...was, startDatetime: '2026-10-02T00:00:00Z', dateText: 'Thursdays', timeText: '7:00 PM' }, ['when'], was, nowAt)), { when: 'When: Thursdays, 7:00 PM' }, 'a first session already past is not announced');
+  check(pu.MESSAGE_MAX_PEOPLE, 50, 'the most sent from here');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

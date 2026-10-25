@@ -10896,7 +10896,19 @@ h4 { font-size: var(--text-h4); }
 .pe-ready__item--todo .pe-ready__mark { color: var(--color-warning); }
 .pe-ready__item--note .pe-ready__mark { color: var(--rim-text-muted); }
 .pe-ready__go { margin-left: 4px; }
-@media (max-width: 768px) { .pe-notice__panel, .pe-ready { padding-left: 16px; padding-right: 16px; } }
+/* Send an update to the people registered (2026-10-24, Phase 4 slice 3):
+   under the Save bar after a save changes the time, place or confirmation
+   message. Bordered like the notice panel. */
+.pe-update {
+  max-width: 740px; box-sizing: border-box; margin-top: 16px; padding: 20px 24px;
+  display: flex; flex-direction: column; gap: 16px;
+  background: var(--rim-surface); border: 1px solid var(--rim-rule); border-radius: 12px;
+}
+.pe-update__title { margin: 0; font-size: var(--text-app); font-weight: 700; color: var(--rim-text); }
+.pe-update__text { margin: 0; font-size: var(--text-app); line-height: 1.55; color: var(--rim-text); }
+.pe-update__confirm { display: flex; flex-direction: column; gap: 12px; }
+.pe-update__done { margin: 16px 0 0; font-size: var(--text-app); line-height: 1.55; color: var(--color-success); }
+@media (max-width: 768px) { .pe-notice__panel, .pe-ready, .pe-update { padding-left: 16px; padding-right: 16px; } }
 /* A fieldset's min-content width let the guest link push Open Access past a
    phone's edge. */
 .pe-editor fieldset.pe-field { min-width: 0; }

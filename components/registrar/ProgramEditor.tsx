@@ -44,6 +44,8 @@ import DanaSection from "./program-editor/DanaSection";
 import AppearsSection from "./program-editor/AppearsSection";
 import NoticePanel from "./program-editor/NoticePanel";
 import ReadyPanel from "./program-editor/ReadyPanel";
+import UpdatePanel, { type UpdateOffer } from "./program-editor/UpdatePanel";
+import { UPDATE_KINDS, type UpdateKind } from "@/lib/programUpdate";
 import { ASKED_BY_REGISTRATION, ASKED_BY_TEACHER, askedByTeam } from "@/lib/questionAskers";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -341,6 +343,20 @@ export default function ProgramEditor({
   const [savedAt, setSavedAt] = useState("");
   const [success, setSuccess] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
+  // Send an update to the people registered (Phase 4 slice 3): offered by the
+  // save route when the time, place or confirmation message changed; later
+  // saves add to it until it's sent or closed.
+  const [updateOffer, setUpdateOffer] = useState<(UpdateOffer & { slug: string }) | null>(null);
+  const [updateAnswer, setUpdateAnswer] = useState("");
+  const [updateSeq, setUpdateSeq] = useState(0);
+  const closeUpdate = useCallback((answer: string | null) => {
+    setUpdateOffer(null);
+    setUpdateAnswer(answer ?? "");
+  }, []);
+  // A new or grown offer is brought into view under the Save bar.
+  useEffect(() => {
+    if (updateSeq > 0) document.getElementById("pe-update")?.scrollIntoView({ block: "nearest" });
+  }, [updateSeq]);
 
   // ── State ────────────────────────────────────────────────────────────────
   const [name, setName] = useState(initialData?.name ?? "");
@@ -846,6 +862,22 @@ export default function ProgramEditor({
             setRegistrationFields((prev) => (prev.length === keyed.length ? prev.map(asSaved) : prev));
           }
         }
+        if (updated.updateOffer) {
+          const o = updated.updateOffer as { kinds: UpdateKind[]; count: number | null; lines?: Partial<Record<UpdateKind, string>> };
+          setUpdateAnswer("");
+          setUpdateOffer((prev) => ({
+            kinds: UPDATE_KINDS.filter((k) => prev?.kinds.includes(k) || o.kinds.includes(k)),
+            count: o.count,
+            // Each kind this save changed takes this save's line, or none.
+            lines: Object.fromEntries(
+              UPDATE_KINDS.map((k) => [k, o.kinds.includes(k) ? o.lines?.[k] : prev?.lines[k]]).filter(([, v]) => v),
+            ),
+            programName: updated.name,
+            slug: updated.slug,
+            seq: updateSeq + 1,
+          }));
+          setUpdateSeq((n) => n + 1);
+        }
         setSeatConflicts(updated.seatConflicts ?? []);
         setScheduleCleared(updated.scheduleCleared ?? null);
         if (updated.guestAccessKey && !guestAccessKey) {
@@ -1182,8 +1214,10 @@ export default function ProgramEditor({
             </button>
             {/* The answer beside the button, and it stays (2026-10-19: it showed at
                 the top of a long page for three seconds). */}
-            <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={`Saved at ${savedAt}.${scheduleCleared || seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}`} problem={error} />
+            <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={`Saved at ${savedAt}.${scheduleCleared || seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}${updateOffer ? " The people registered haven’t heard: see below." : ""}`} problem={error} />
           </div>
+          {updateOffer && <UpdatePanel slug={updateOffer.slug} offer={updateOffer} onDone={closeUpdate} />}
+          {updateAnswer && <p className="pe-update__done" role="status">{updateAnswer}</p>}
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { canUseRegistration } from "@/lib/toolAuth";
 import { sendEachPaced, sendRegistrationMessageEmail } from "@/lib/email";
 import { recordRegistrationEvent } from "@/lib/registrationEvents";
+import { MESSAGE_MAX_PEOPLE } from "@/lib/programUpdate";
 
 // ─── POST /api/programs/[slug]/message ───────────────────────────────────────
 // The Registration app's "Message people" (2026-10-23): one note to the people
@@ -16,7 +17,7 @@ import { recordRegistrationEvent } from "@/lib/registrationEvents";
 // 50 people at about a second and a half each, with room to spare.
 export const maxDuration = 300;
 
-const MAX_PEOPLE = 50;
+const MAX_PEOPLE = MESSAGE_MAX_PEOPLE;
 const MAX_SUBJECT = 200;
 const MAX_MESSAGE = 10000;
 

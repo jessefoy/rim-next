@@ -27,6 +27,10 @@ import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { normalizeLinkInput } from "@/lib/linkInput";
 import { canUseProgramManager, canUsePrograms, canUseRegistration } from "@/lib/toolAuth";
+import { emailLocationFor } from "@/lib/locations";
+import { hasConcludedOneTime } from "@/lib/programUtils";
+import { changedForPeople, updateLines, type UpdateProgram } from "@/lib/programUpdate";
+import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 // Team-wide emails go one at a time after the response (sendEachPaced),
 // so the function needs room past the usual limit (2026-10-19).
@@ -947,7 +951,38 @@ export async function PUT(
   ]);
   const editorData = forEditor ? programToEditorData(forEditor, coverageAfter.map((r) => r.hubSlug)) : null;
 
-  return NextResponse.json({ ...updated, seatConflicts, scheduleCleared, editorData });
+  // Send an update to the people registered (Phase 4 slice 3,
+  // lib/programUpdate.ts): when the time, the place or the confirmation
+  // message changed and people have a place, offer a drafted update. The
+  // count and the draft only for those who may send it (Registration's
+  // Message people); anyone else is told the people registered haven't heard.
+  let updateOffer: { kinds: string[]; count: number | null; lines?: Record<string, string> } | null = null;
+  if (!updated.archivedAt && !hasConcludedOneTime(updated)) {
+    const asUpdate = (p: typeof existing): UpdateProgram => ({
+      startDatetime: p.startDatetime, endDatetime: p.endDatetime,
+      recurrenceFreq: p.recurrenceFreq, recurrenceInterval: p.recurrenceInterval,
+      recurrenceDays: p.recurrenceDays, recurrenceCount: p.recurrenceCount,
+      programFormat: p.programFormat, place: emailLocationFor(p).emailText,
+      // An older message (BlockNote JSON) as HTML, so the first save of it
+      // in the new editor isn't taken for a change.
+      confirmationMessage: renderBlockNoteHtml(p.confirmationMessage),
+    });
+    const kinds = changedForPeople(asUpdate(existing), asUpdate(updated));
+    if (kinds.length > 0) {
+      const placed = await db.registration.findMany({
+        where: { programSlug: updated.slug, status: { in: ["REGISTERED", "APPROVED"] } },
+        select: { email: true },
+      });
+      const count = new Set(placed.map((r) => r.email.trim().toLowerCase())).size;
+      if (count > 0) {
+        updateOffer = canUseRegistration(session.user.roles)
+          ? { kinds, count, lines: updateLines({ ...asUpdate(updated), dateText: updated.dateText, timeText: updated.timeText }, kinds, asUpdate(existing)) as Record<string, string> }
+          : { kinds, count: null };
+      }
+    }
+  }
+
+  return NextResponse.json({ ...updated, seatConflicts, scheduleCleared, editorData, updateOffer });
 }
 
 export async function DELETE(
