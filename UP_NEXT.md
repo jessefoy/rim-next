@@ -2,7 +2,7 @@
 
 Read first when opening RIM. Updated 2026-10-24 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-24 closed: Programs and Registration are two apps; Phase 1 done, Phase 2 begun
+## Active — 2026-10-24/25: Programs and Registration are two apps; all four phases built
 
 Everything is on `main` (`5339e30` … `5094465`, and this closing). Narrative: `session-log.md`, 2026-10-23 to 10-24. The plan: `mockups/registration-2026-10-23/BUILD_PLAN.md` (four phases) and `CONCEPT.md` ("Who's helping, who's asking"). The app: `RIM_Registration_App.md`. The editor: `RIM_ProgramEditor.md`.
 
@@ -22,7 +22,9 @@ Everything is on `main` (`5339e30` … `5094465`, and this closing). Narrative: 
 
 **Phase 3 is done (2026-10-24):** answers by question id; who's asking each question; the teacher's page (Teaching in the menu); Today's list for supporting teams (Arrived); Helping with, the app for teams that prepare. Choosing who asks and which teams prepare is limited to the registration roles (from the slice 5 review; on the check list to confirm). Nothing installs Helping with yet: an admin installs it in a team in /admin/hubs.
 
-**Next concrete step:** Phase 4, "What we tell them, and starting a program" (`BUILD_PLAN.md`): reminders counted in days before (reaching late registrants), a note after a program ends, "Send an update to the N registered", start from a shape, copy a past program. Then the after-build session with Jesse (`BUILD_PLAN.md` → "To check once everything is built"). **Queued, small:** prune the old roster's CSS (`2026-10-24-001`).
+**Phase 4 is done (2026-10-24/25):** reminders counted in days before, reaching late registrants (`lib/reminderSchedule.ts`); the note after a one-time program ends (`lib/followUp.ts`, the `send-follow-ups` run, template `program-follow-up`); "Tell the people registered?" after a save changes the time, place or confirmation message (`lib/programUpdate.ts`); "What are you offering?" with six shapes (`lib/programShapes.ts`); copy a program (`lib/programCopy.ts`). The reminder and follow-up runs now mark each person before sending and unmark them if the send fails. All four phases are built.
+
+**Next concrete step:** the after-build session with Jesse, `BUILD_PLAN.md` → "To check once everything is built": the read-aloud, the trials on the Dummy Test Program (production writes only with his yes), and the decisions noticed along the way (Phase 4 added: the past-day wording of the note after; six shape decisions; three copy decisions). **Queued, small:** prune the old roster's CSS (`2026-10-24-001`).
 
 ## Earlier — 2026-10-22 closed: shorter pages, the three circles, an integrity pass; every public page measured and recomposed
 
