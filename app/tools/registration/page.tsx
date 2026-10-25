@@ -21,6 +21,7 @@ import {
   type DeskCounts,
   type DeskProgram,
 } from "@/lib/registrationDesk";
+import { followUpSendsAt } from "@/lib/followUp";
 
 export const metadata = { title: "Registration - Tools" };
 export const dynamic = "force-dynamic";
@@ -41,6 +42,8 @@ const PROGRAM_SELECT = {
   registrationOpensAt: true,
   reminderDate: true,
   reminderDaysBefore: true,
+  followUpEnabled: true,
+  followUpMessage: true,
   archivedAt: true,
 } as const;
 
@@ -107,10 +110,18 @@ export default async function RegistrationDeskPage({
   // What RIM will send by itself in the next two weeks, soonest first, so
   // nothing goes out unseen (the mockup's "Going out soon").
   const soonUntil = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-  const goingOut = rows
-    .filter((r) => !r.archived && !isOver(r.program))
-    .map((r) => ({ r, at: reminderSendsAt(r.program) }))
-    .filter((x): x is { r: (typeof rows)[number]; at: Date } => !!x.at && x.at > now && x.at <= soonUntil)
+  // The reminder for programs still ahead; the note after (lib/followUp.ts)
+  // goes the day after a one-time program ends, by when it's over and most
+  // likely archived, so its own rule decides (Jesse, 2026-10-25).
+  type GoingOut = { r: (typeof rows)[number]; at: Date; kind: "reminder" | "note" };
+  const byProgram = new Map(programs.map((p) => [p.slug, p]));
+  const goingOut: GoingOut[] = [
+    ...rows
+      .filter((r) => !r.archived && !isOver(r.program))
+      .map((r) => ({ r, at: reminderSendsAt(r.program), kind: "reminder" as const })),
+    ...rows.map((r) => ({ r, at: followUpSendsAt(byProgram.get(r.program.slug)!), kind: "note" as const })),
+  ]
+    .filter((x): x is GoingOut => !!x.at && x.at > now && x.at <= soonUntil)
     .sort((a, b) => a.at.getTime() - b.at.getTime());
 
   const taking = rows.filter((r) => r.program.registrationEnabled && !r.archived && !isOver(r.program));
@@ -156,15 +167,27 @@ export default async function RegistrationDeskPage({
           <>
             <h2 className="reg-sectitle">Going out soon</h2>
             <ul className="reg-list">
-              {goingOut.map(({ r, at }) => (
-                <li key={r.program.slug} className="reg-item">
+              {goingOut.map(({ r, at, kind }) => (
+                <li key={`${r.program.slug}-${kind}`} className="reg-item">
                   <div className="reg-item__text">
                     <span className="reg-item__prog">{r.program.name}</span>
-                    <strong>The reminder, {fmtSendTime(at)}</strong>
-                    <span className="reg-meta">
-                      To everyone registered who hasn&rsquo;t had it
-                      {r.counts.reminderUnsent > 0 ? ` (${r.counts.reminderUnsent} now)` : " (no one yet)"}
-                    </span>
+                    {kind === "reminder" ? (
+                      <>
+                        <strong>The reminder, {fmtSendTime(at)}</strong>
+                        <span className="reg-meta">
+                          To everyone registered who hasn&rsquo;t had it
+                          {r.counts.reminderUnsent > 0 ? ` (${r.counts.reminderUnsent} now)` : " (no one yet)"}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <strong>The note after, {fmtSendTime(at)}</strong>
+                        <span className="reg-meta">
+                          To everyone who had a place
+                          {r.counts.registered > 0 ? ` (${r.counts.registered} now)` : " (no one yet)"}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <Link className="vol-action-btn" href={programHref(r.program.slug)}>Open the program</Link>
                 </li>
