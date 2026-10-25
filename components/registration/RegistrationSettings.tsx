@@ -15,6 +15,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SaveNote } from "@/components/FormDone";
 import { toCentralDatetime } from "@/lib/timezone";
+import { centralToUtc } from "@/lib/timezone";
 
 export interface SettingsValues {
   closed: boolean;
@@ -262,7 +263,8 @@ export default function RegistrationSettings({
               ? `${taken} ${taken === 1 ? "place is" : "places are"} taken, so places can't be fewer than ${taken}. Leave it empty for no limit.`
               : "Leave places empty for no limit."}
           </li>
-          {!values.closed && values.closes && new Date(`${values.closes}:00-06:00`) < new Date() && (
+          {/* Central time the year round (lib/timezone.ts), not winter's offset (2026-10-25). */}
+          {!values.closed && values.closes && (centralToUtc(values.closes)?.getTime() ?? Infinity) < Date.now() && (
             <li>That closing date has passed, so registration stays closed until you move the date or clear it.</li>
           )}
           {state === "notYet" && (
