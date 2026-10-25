@@ -893,6 +893,49 @@ export async function sendProgramNoticeEmail(data: {
   });
 }
 
+// ─── The note after a program ends (2026-10-24) ──────────────────────────────
+
+/**
+ * The note the day after a one-time program ends, when its editor turns on
+ * "Send a note the day after" (lib/followUp.ts). Sent once per person by the
+ * daily send-follow-ups run. The message is the editor's HTML, rendered as
+ * the reminder's is.
+ *
+ * Managed via Email Template Manager — template: "program-follow-up".
+ * Email Template Gate: matching seed entry in prisma/migrate.mjs ships with
+ * the same commit.
+ */
+export async function sendFollowUpEmail(data: {
+  to: string;
+  firstName: string;
+  programTitle: string;
+  programSlug: string;
+  followUpMessage: unknown;
+}): Promise<void> {
+  const { to, firstName, programTitle, programSlug } = data;
+  const followUpMessage = data.followUpMessage ? await renderFormattedTextAsync(data.followUpMessage) : "";
+  // No link to the program's page: a finished program is archived the
+  // morning before this goes, and its page is gone. Throws on a failed send
+  // so the run leaves the person unmarked and a later run tries again.
+  await sendTemplatedEmail("program-follow-up", to, {
+    firstName,
+    programTitle,
+    followUpMessage,
+  }, {
+    memberText: ["firstName", "programTitle"],
+    replyTo: REGISTRAR_EMAIL,
+    throwOnFailure: true,
+    notice: {
+      kind: "program-follow-up",
+      category: "personal",
+      ...PROGRAMS_SOURCE,
+      title: `A note after ${programTitle}`,
+      href: "/account/dashboard",
+      threadKey: `program:${programSlug}`,
+    },
+  });
+}
+
 // ─── Registration cancelled, to the person (2026-10-23) ──────────────────────
 
 /**
@@ -1144,6 +1187,8 @@ export interface ReminderEmailData {
   // BlockNote / Portable Text array.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reminderMessage?: any;
+  /** The daily run: throw on a failed send, so the person stays unmarked. */
+  throwOnFailure?: boolean;
 }
 
 /**
@@ -1190,6 +1235,7 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
     programUrl:      `${BASE_URL}/programs/${data.programSlug}`,
     dashboardUrl:    `${BASE_URL}/account/dashboard`,
   }, {
+    throwOnFailure: data.throwOnFailure,
     notice: {
       kind: "session-reminder",
       category: "personal",

@@ -52,6 +52,7 @@ Phase 1's pieces are built. "Going out soon" (2026-10-24) lists on the desk each
 - Links: the support@ notice's button ("View in Registration"), `registration-cancelled-internal` and `responses-updated-internal` (`{{volunteerUrl}}`) and the registrar-role notice now open Registration, inside the Registration team's Space (`hubScopedUrl(…, "registrar")`, the hub audit's layer 4); their template bodies are unchanged.
 - Add a person sends the existing confirmation or waiting-list email through the choke point (which also notifies support@).
 - `program-notice` (`sendProgramNoticeEmail`, group 02-registrations, 2026-10-24): sent from the program editor's Post a notice when "Also email the people registered" is ticked (Registrar, Admin, Guiding Teacher only); to everyone with a place; its History line shows here. Wording provisional.
+- `program-follow-up` (`sendFollowUpEmail`, group 02-registrations, 2026-10-24): the note after a one-time program ends, set in the editor's What we tell them; sent by the daily `send-follow-ups` cron to everyone with a place, once each (`followUpSentAt`). Its History line shows here, and the program page names when it goes. Wording provisional.
 - **Not open yet** (2026-10-24): the settings' Registration menu is Open · Not open yet · Closed; Not open yet shows an Opens date and time (Central) and saves `registrationOpensAt` (History: "set registration to open on …"). The desk reads "Opens Nov 1, 2026, 9:00 AM". Whether a program takes sign-ups is one rule, `lib/registrationWindow.ts` (`RIM_ProgramEditor.md`).
 
 ## Home lines

@@ -32,6 +32,7 @@ import RegistrationPeople, {
 import type { RegistrationField } from "@/components/RegistrationForm";
 import RegistrationSettings from "@/components/registration/RegistrationSettings";
 import { reachesLateRegistrants } from "@/lib/reminderSchedule";
+import { followUpSendsAt, followUpDueAt } from "@/lib/followUp";
 import { programSegmentName, programUsesFlodesk } from "@/lib/flodeskRules";
 import { toCentralDatetime } from "@/lib/timezone";
 import { answerFor, hasAnswer, oldAnswers, questionKey } from "@/lib/registrationAnswers";
@@ -130,6 +131,8 @@ export default async function RegistrationProgramPage({
       registrationFields: true,
       reminderDate: true,
       reminderDaysBefore: true,
+      followUpEnabled: true,
+      followUpMessage: true,
       danaMode: true,
       danaFixedAmount: true,
       danaBaseAmount: true,
@@ -162,6 +165,7 @@ export default async function RegistrationProgramPage({
       customFields: true,
       notes: true,
       reminderSentAt: true,
+      followUpSentAt: true,
       createdAt: true,
     },
   });
@@ -260,6 +264,24 @@ export default async function RegistrationProgramPage({
     ? `The reminder email goes out ${fmtSendTime(sendsAt)}, to everyone registered who hasn't had it${reachesLateRegistrants(program) ? ", and each morning after to anyone who registers later, until it begins" : ""}.`
     : `The reminder email went out ${fmtSendTime(sendsAt)}${reachesLateRegistrants(program) ? "; anyone who registers now gets it the next morning" : ""}.`;
 
+  // The note after a one-time program ends (lib/followUp.ts), said beside the
+  // reminder: once its day has come, what was sent, counted.
+  const followAt = followUpSendsAt(program);
+  const placed = registrations.filter((r) => r.status === "REGISTERED" || r.status === "APPROVED");
+  const followSent = placed.filter((r) => r.followUpSentAt).length;
+  const followLine = !followAt
+    ? null
+    : followSent > 0
+      ? `The note after the program went out to ${followSent === 1 ? "1 person" : `${followSent} people`}.`
+      : followAt > new Date()
+        ? `The note after the program goes out ${fmtSendTime(followAt)}, to everyone who had a place.`
+        : placed.length === 0
+          ? null
+          : followUpDueAt(program, new Date())
+            ? "The note after the program goes out in the next morning run."
+            : "The note after the program didn’t go out.";
+  const fullReminderLine = [reminderLine, followLine].filter(Boolean).join(" ") || null;
+
   const when = programWhen(program);
   const where = fmtLabel(program.programFormat, program.outsideMeetingUrl);
 
@@ -332,7 +354,7 @@ export default async function RegistrationProgramPage({
             (program.danaMode === "fixed" && (program.danaFixedAmount ?? 0) > 0) ||
             (program.danaMode === "base_plus_dana" && (program.danaBaseAmount ?? 0) > 0)
           }
-          reminderLine={reminderLine}
+          reminderLine={fullReminderLine}
           reminderAhead={!!sendsAt && sendsAt > new Date()}
           seeAmounts={seeAmounts}
           initialShow={show ?? null}

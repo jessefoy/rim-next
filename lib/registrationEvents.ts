@@ -29,6 +29,7 @@ export const REGISTRATION_EVENT_KINDS = [
   "printed",
   "settings-changed",
   "notice-posted",
+  "follow-up-sent",
   // What the person did themselves, or the system did: the history reads
   // these with the person's name (or RIM's) in front.
   "dana-given",
@@ -165,6 +166,10 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
       return "opened the sign-in list to print";
     case "added":
       return d.status === "WAITLISTED" ? "added them to the waiting list" : "added them";
+    case "follow-up-sent": {
+      const n = typeof d.count === "number" ? d.count : 0;
+      return `sent the note after the program to ${n === 1 ? "1 person" : `${n} people`}`;
+    }
     case "notice-posted": {
       const n = typeof d.count === "number" ? d.count : 0;
       const text = typeof d.notice === "string" && d.notice ? `"${d.notice}"` : "";

@@ -108,6 +108,10 @@
       "schedule": "0 14 * * *"
     },
     {
+      "path": "/api/cron/send-follow-ups",
+      "schedule": "0 15 * * *"
+    },
+    {
       "path": "/api/cron/cleanup-incomplete-accounts",
       "schedule": "0 5 * * *"
     },

@@ -3082,6 +3082,11 @@ async function main() {
   // first session. Additive, no backfill: null keeps a program on its
   // reminder date, as before.
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "reminderDaysBefore" INTEGER`);
+  // The note after a program ends (2026-10-24, Phase 4 slice 2). Additive:
+  // off for every program until someone turns it on.
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "followUpEnabled" BOOLEAN NOT NULL DEFAULT false`);
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "followUpMessage" JSONB`);
+  await db.$executeRawUnsafe(`ALTER TABLE "registrations" ADD COLUMN IF NOT EXISTS "followUpSentAt" TIMESTAMP(3)`);
   // Arrived at the door (2026-10-24, Phase 3 slice 4): one row per person per
   // session day, gone with the registration or the program. Additive.
   await db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "registration_attendance" (
@@ -7342,6 +7347,47 @@ Rooted In Mindfulness
     }
   } catch (err) {
     console.error("  program-notice seed failed:", err?.message ?? err);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: the note after a program ends (2026-10-24, Phase 4 slice 2),
+  // sendFollowUpEmail, from the daily send-follow-ups run. findUnique →
+  // create. Wording provisional until Jesse's read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const existing = await db.emailTemplate.findUnique({ where: { slug: "program-follow-up" } });
+    if (existing) {
+      console.log("  Email template program-follow-up already exists, left alone.");
+    } else {
+      await db.emailTemplate.create({
+        data: {
+          slug: "program-follow-up",
+          name: "Programs: a note after a program ends",
+          description: "Sent the day after a one-time program ends, when its editor turns on \"Send a note the day after\". Goes once to everyone who had a place.",
+          subject: "Thank you for {{programTitle}}",
+          variables: ["firstName", "programTitle", "followUpMessage"],
+          helpText:
+            "{{followUpMessage}} is the note written in the program editor (What we tell them → After it ends). Replies go to the registrar's inbox.\n\n" +
+            "Available variables: {{firstName}}, {{programTitle}}, {{followUpMessage}}. There is no link to the program: a finished program's page is taken down the morning this goes.",
+          body: `Hi {{firstName}},
+
+{{#if followUpMessage}}
+{{followUpMessage}}
+{{/if}}
+
+With care,
+Rooted In Mindfulness
+
+*You're receiving this because you took part in {{programTitle}}. You can reply to this email.*`,
+          enabled: true,
+          group: "02-registrations",
+          groupLabel: "Registrations",
+        },
+      });
+      console.log("  ✔ Email template program-follow-up created.");
+    }
+  } catch (err) {
+    console.error("  program-follow-up seed failed:", err?.message ?? err);
   }
 
   await db.$disconnect();

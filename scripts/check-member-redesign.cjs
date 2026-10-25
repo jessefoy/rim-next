@@ -447,5 +447,14 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   const evening = prog({ startDatetime: '2026-11-10T01:00:00Z', reminderDaysBefore: 1 });
   check([rs.reachesLateRegistrants(evening, new Date('2026-11-09T13:00:00Z')), rs.reachesLateRegistrants(evening, new Date('2026-11-09T15:00:00Z'))], [true, false], 'after the last morning run before it begins, a late registrant is left to be sent by hand');
 
+  // The note after a program ends (2026-10-24, Phase 4 slice 2).
+  const fu = load('lib/followUp.ts');
+  const retreat = { followUpEnabled: true, followUpMessage: '<p>Thank you.</p>', recurrenceFreq: null, startDatetime: '2026-11-13T22:00:00Z', endDatetime: '2026-11-15T19:00:00Z', archivedAt: null };
+  check(fu.followUpSendsAt(retreat).toISOString(), '2026-11-16T15:00:00.000Z', 'the morning after the last Central day');
+  check([fu.followUpDueAt(retreat, new Date('2026-11-16T15:00:05Z')), fu.followUpDueAt(retreat, new Date('2026-11-18T15:00:05Z')), fu.followUpDueAt(retreat, new Date('2026-11-19T15:00:05Z')), fu.followUpDueAt(retreat, new Date('2026-11-15T15:00:05Z'))], [true, true, false, false], 'that day or the two after, never before or later');
+  check(fu.followUpDueAt({ ...retreat, archivedAt: '2026-11-16T09:15:00Z' }, new Date('2026-11-16T15:00:05Z')), true, 'archived the morning after by the nightly job: still sends');
+  check(fu.followUpSendsAt({ ...retreat, archivedAt: '2026-11-10T00:00:00Z' }), null, 'archived before it ended (cancelled): no thank-you');
+  check([fu.followUpSendsAt({ ...retreat, recurrenceFreq: 'WEEKLY' }), fu.followUpSendsAt({ ...retreat, followUpMessage: '<p></p>' }), fu.followUpSendsAt({ ...retreat, followUpEnabled: false })], [null, null, null], 'repeating, empty, or off: no note');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

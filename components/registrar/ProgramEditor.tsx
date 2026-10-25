@@ -97,6 +97,9 @@ export interface ProgramData {
   registrationFields: RegistrationField[];
   confirmationMessage: any;
   reminderDate: string;
+  /** The note after a one-time program ends (lib/followUp.ts). */
+  followUpEnabled?: boolean;
+  followUpMessage?: any;
   /** Days before the first session, as typed, or "" (lib/reminderSchedule.ts). */
   reminderDaysBefore?: string;
   reminderMessage: any;
@@ -398,6 +401,9 @@ export default function ProgramEditor({
   // emptied to retype it; Save asks for the number.
   const [reminderModePicked, setReminderModePicked] = useState<"days" | "date" | "none" | null>(null);
   const [reminderMessage, setReminderMessage] = useState<string>(toEditorString(initialData?.reminderMessage));
+  // The note after a one-time program ends (Phase 4, lib/followUp.ts).
+  const [followUpEnabled, setFollowUpEnabled] = useState<boolean>(initialData?.followUpEnabled ?? false);
+  const [followUpMessage, setFollowUpMessage] = useState<string>(toEditorString(initialData?.followUpMessage));
 
   const [danaMode, setDanaMode] = useState(initialData?.danaMode ?? "none");
   const [suggestedDana, setSuggestedDana] = useState(initialData?.suggestedDana ?? "");
@@ -638,6 +644,8 @@ export default function ProgramEditor({
       reminderDate: reminderDate || null,
       reminderDaysBefore: reminderDaysBefore.trim() === "" ? null : Number(reminderDaysBefore),
       reminderMessage,
+      followUpEnabled,
+      followUpMessage,
       danaMode,
       suggestedDana: suggestedDana ? Number(suggestedDana) : null,
       danaBaseAmount: danaBaseAmount ? Number(danaBaseAmount) : null,
@@ -737,6 +745,12 @@ export default function ProgramEditor({
         setError("Under What we tell them: choose how many days before the first session the reminder goes, from 1 to 60.");
         return;
       }
+    }
+
+    // The note after needs its words.
+    if (followUpEnabled && !recurrenceFreq && !followUpMessage.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, "").trim()) {
+      setError("Under What we tell them: write the note sent after the program, or turn it off.");
+      return;
     }
 
     // An outside room needs its link, and only an https link is kept.
@@ -1113,6 +1127,9 @@ export default function ProgramEditor({
             reminderDaysBefore={reminderDaysBefore} setReminderDaysBefore={setReminderDaysBefore}
             reminderModePicked={reminderModePicked} setReminderModePicked={setReminderModePicked}
             startDatetime={startDatetime}
+            endDatetime={endDatetime} recurrenceFreq={recurrenceFreq}
+            followUpEnabled={followUpEnabled} setFollowUpEnabled={setFollowUpEnabled}
+            followUpMessage={followUpMessage} setFollowUpMessage={setFollowUpMessage}
             reminderMessage={reminderMessage} setReminderMessage={setReminderMessage}
             markDirty={markDirty}
           />

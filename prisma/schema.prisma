@@ -304,6 +304,8 @@ model Program {
   confirmationMessage  Json?     // BlockNote JSON (RimProseEditor)
   reminderDate         DateTime?
   reminderDaysBefore   Int? // Phase 4 (2026-10-24): days before the first session; wins over reminderDate. lib/reminderSchedule.ts
+  followUpEnabled      Boolean @default(false) // Phase 4 (2026-10-24): a note the day after a one-time program ends. lib/followUp.ts
+  followUpMessage      Json?   // its words (HTML from the editor)
   reminderMessage      Json?     // BlockNote JSON (RimProseEditor)
 
   // ── Dana ───────────────────────────────────────────────
@@ -460,6 +462,7 @@ model Registration {
 
   // Reminder email tracking — set when reminder is sent (auto or manual)
   reminderSentAt     DateTime?
+  followUpSentAt     DateTime? // the note after (Phase 4, 2026-10-24): sent once
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

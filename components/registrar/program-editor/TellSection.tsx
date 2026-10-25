@@ -17,6 +17,13 @@ interface Props {
   setReminderDaysBefore: Setter<string>;
   /** The first session, a Central "YYYY-MM-DDTHH:mm", to say when it goes. */
   startDatetime: string;
+  /** For the note after: the program's last day, and whether it repeats. */
+  endDatetime: string;
+  recurrenceFreq: string;
+  followUpEnabled: boolean;
+  setFollowUpEnabled: Setter<boolean>;
+  followUpMessage: string;
+  setFollowUpMessage: Setter<string>;
   /** The timing chosen here, kept while its box is emptied (Save checks it). */
   reminderModePicked: "days" | "date" | "none" | null;
   setReminderModePicked: Setter<"days" | "date" | "none" | null>;
@@ -30,6 +37,9 @@ function TellSection({
   reminderDate, setReminderDate,
   reminderDaysBefore, setReminderDaysBefore, startDatetime,
   reminderModePicked, setReminderModePicked,
+  endDatetime, recurrenceFreq,
+  followUpEnabled, setFollowUpEnabled,
+  followUpMessage, setFollowUpMessage,
   reminderMessage, setReminderMessage,
   markDirty,
 }: Props) {
@@ -51,6 +61,15 @@ function TellSection({
     }
     markDirty();
   }
+  // The note after: the Central day after the program's last day.
+  const lastDay = (endDatetime || startDatetime).slice(0, 10);
+  const afterDay = lastDay
+    ? (() => {
+        const d = new Date(`${lastDay}T12:00:00Z`);
+        d.setUTCDate(d.getUTCDate() + 1);
+        return d.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" });
+      })()
+    : null;
   // "Thursday, November 12": the Central day it first goes out.
   const n = Number(reminderDaysBefore);
   const sendDay =
@@ -142,6 +161,34 @@ function TellSection({
             variant="message"
           />
         </div>
+
+        <fieldset className="pe-field">
+          <legend className="pe-field__label">After it ends</legend>
+          {recurrenceFreq ? (
+            <span className="pe-field__help">A note after is for one-time programs: a program that repeats doesn&rsquo;t end.</span>
+          ) : (
+            <>
+              <label className="pe-checkbox">
+                <input type="checkbox" checked={followUpEnabled} onChange={(e) => { setFollowUpEnabled(e.target.checked); markDirty(); }} />
+                <span>Send a note the day after</span>
+              </label>
+              <span className="pe-field__help">
+                {afterDay
+                  ? `It goes out on ${afterDay}, in the morning, to everyone who had a place.`
+                  : "It goes out the morning after the program ends, to everyone who had a place."}{" "}
+                A thank-you, a reading, a word about what comes next.
+              </span>
+              {followUpEnabled && (
+                <RimTiptapEditor
+                  value={followUpMessage}
+                  onChange={(v) => { setFollowUpMessage(v); markDirty(); }}
+                  placeholder="The note…"
+                  variant="message"
+                />
+              )}
+            </>
+          )}
+        </fieldset>
 
         <p className="pe-field__help">
           For a change people should know (&ldquo;Cancelled tonight&rdquo;), use Post a notice at the top of

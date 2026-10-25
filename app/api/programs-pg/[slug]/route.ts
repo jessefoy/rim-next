@@ -435,6 +435,12 @@ export async function PUT(
     }
   }
   if (body.confirmationMessage !== undefined) data.confirmationMessage = body.confirmationMessage || undefined;
+  // The note after a program ends (lib/followUp.ts).
+  if (body.followUpEnabled !== undefined) {
+    if (typeof body.followUpEnabled !== "boolean") return NextResponse.json({ error: "The note after must be on or off." }, { status: 422 });
+    data.followUpEnabled = body.followUpEnabled;
+  }
+  if (body.followUpMessage !== undefined) data.followUpMessage = body.followUpMessage || Prisma.DbNull;
   if (body.reminderDate !== undefined) data.reminderDate = centralToUtc(body.reminderDate);
   // Reminders counted from the start (lib/reminderSchedule.ts): whole days, or none.
   if (body.reminderDaysBefore !== undefined) {

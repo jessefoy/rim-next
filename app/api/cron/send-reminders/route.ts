@@ -54,35 +54,46 @@ export async function GET(req: NextRequest) {
     const startIso = program.startDatetime?.toISOString() ?? null;
     const endIso = program.endDatetime?.toISOString() ?? null;
 
+    const sent: string[] = [];
     for (const reg of registrations) {
-      await sendReminderEmail({
-        to:           reg.email,
-        firstName:    reg.firstName,
-        programTitle: reg.programTitle,
-        programSlug:  reg.programSlug,
-        dateText:     program.dateText || buildDateLabel({
-          startDatetime: startIso,
-          endDatetime: endIso,
-          recurrenceFreq: program.recurrenceFreq,
-          recurrenceInterval: program.recurrenceInterval,
-          recurrenceDays: program.recurrenceDays,
-        }),
-        locationText: loc.emailText,
-        locationLink: loc.link,
-        reminderMessage: program.reminderMessage,
-      });
-      await db.registration.update({
-        where: { id: reg.id },
+      // Claim first, so two runs at once can't both send; a failed send
+      // releases the claim and the next run tries again.
+      const claimed = await db.registration.updateMany({
+        where: { id: reg.id, reminderSentAt: null },
         data: { reminderSentAt: now },
       });
-      totalSent++;
+      if (claimed.count !== 1) continue;
+      try {
+        await sendReminderEmail({
+          to:           reg.email,
+          firstName:    reg.firstName,
+          programTitle: reg.programTitle,
+          programSlug:  reg.programSlug,
+          dateText:     program.dateText || buildDateLabel({
+            startDatetime: startIso,
+            endDatetime: endIso,
+            recurrenceFreq: program.recurrenceFreq,
+            recurrenceInterval: program.recurrenceInterval,
+            recurrenceDays: program.recurrenceDays,
+          }),
+          locationText: loc.emailText,
+          locationLink: loc.link,
+          reminderMessage: program.reminderMessage,
+          throwOnFailure: true,
+        });
+        sent.push(reg.id);
+        totalSent++;
+      } catch (err) {
+        console.error(`[cron] send-reminders: ${program.slug} ${reg.id}`, err);
+        await db.registration.update({ where: { id: reg.id }, data: { reminderSentAt: null } }).catch(() => {});
+      }
     }
-    if (registrations.length > 0) {
+    if (sent.length > 0) {
       await recordRegistrationEvent({
         kind: "reminders-sent",
         programId: program.id,
         programSlug: program.slug,
-        detail: { count: registrations.length, scheduled: true, registrationIds: registrations.map((r) => r.id) },
+        detail: { count: sent.length, scheduled: true, registrationIds: sent },
       });
     }
   }

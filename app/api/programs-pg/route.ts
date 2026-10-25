@@ -215,6 +215,8 @@ export async function POST(request: NextRequest) {
         ? (withAskers(createQuestions as Record<string, unknown>[], createTeamIds) as Prisma.InputJsonObject[])
         : undefined,
       confirmationMessage: body.confirmationMessage || undefined,
+      followUpEnabled: body.followUpEnabled === true,
+      followUpMessage: body.followUpMessage || undefined,
       reminderDate: centralToUtc(body.reminderDate),
       reminderDaysBefore: typeof body.reminderDaysBefore === "number" ? body.reminderDaysBefore : null,
       reminderMessage: body.reminderMessage || undefined,
