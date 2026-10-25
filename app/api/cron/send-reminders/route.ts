@@ -4,11 +4,15 @@ import { sendReminderEmail } from "@/lib/email";
 import { emailLocationFor } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { recordRegistrationEvent } from "@/lib/registrationEvents";
+import { reminderDueAt } from "@/lib/reminderSchedule";
 
 // ─── GET /api/cron/send-reminders ─────────────────────────────────────────────
-// Daily cron job (runs at 14:00 UTC via vercel.json schedule).
-// Finds programs whose reminderDate falls in the past 24 hours and sends
-// the reminder email to all active registrants who haven't received it yet.
+// Daily cron job (runs at 14:00 UTC via vercel.json schedule). Sends each
+// program's reminder to everyone with a place who hasn't had it, when the
+// reminder is due (lib/reminderSchedule.ts): for "days before", from the send
+// day until the program begins, so people who register late get it too; for
+// an older program's set date, in the run after it (as before). Archived
+// programs and programs with registration off are skipped.
 //
 // Vercel automatically passes CRON_SECRET as: Authorization: Bearer <secret>
 
@@ -18,24 +22,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const now   = new Date();
-  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const now = new Date();
 
-  // Find all programs with a reminderDate in the past 24-hour window
-  const programs = await db.program.findMany({
+  // Candidates: registration on, not archived, with a reminder of either kind
+  // and a first session not long past; the rule decides which are due.
+  const candidates = await db.program.findMany({
     where: {
-      reminderDate: {
-        gte: since,
-        lte: now,
-      },
       registrationEnabled: true,
+      archivedAt: null,
+      OR: [
+        { reminderDaysBefore: { not: null }, startDatetime: { gt: now } },
+        { reminderDate: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000), lte: now } },
+      ],
     },
   });
+  const programs = candidates.filter((p) => reminderDueAt(p, now));
 
   let totalSent = 0;
 
   for (const program of programs) {
-    // Find registrants for this program who haven't yet received the reminder
+    // Registrants with a place who haven't yet received the reminder
     const registrations = await db.registration.findMany({
       where: {
         programSlug: program.slug,

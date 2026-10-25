@@ -3078,6 +3078,10 @@ async function main() {
   // is. First, so any later program read that selects every column finds it.
   // Not caught: the code reads this column, so a failure must stop the deploy.
   await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "registrationOpensAt" TIMESTAMP(3)`);
+  // Reminders counted from the start (2026-10-24, Phase 4): days before the
+  // first session. Additive, no backfill: null keeps a program on its
+  // reminder date, as before.
+  await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "reminderDaysBefore" INTEGER`);
   // Arrived at the door (2026-10-24, Phase 3 slice 4): one row per person per
   // session day, gone with the registration or the program. Additive.
   await db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "registration_attendance" (

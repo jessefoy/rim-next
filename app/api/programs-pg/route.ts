@@ -103,6 +103,10 @@ export async function POST(request: NextRequest) {
       if (refusal) return NextResponse.json({ error: refusal }, { status: 422 });
     }
   }
+  // Reminders counted from the start (lib/reminderSchedule.ts): whole days, or none.
+  if (body.reminderDaysBefore != null && !(typeof body.reminderDaysBefore === "number" && Number.isInteger(body.reminderDaysBefore) && body.reminderDaysBefore >= 1 && body.reminderDaysBefore <= 60)) {
+    return NextResponse.json({ error: "Under What we tell them: the reminder's days before must be a whole number from 1 to 60." }, { status: 422 });
+  }
   // Teams that prepare (lib/programHelpers.ts), checked before anything is created.
   const createHelpers = body.helperTeams !== undefined ? cleanHelperTeams(body.helperTeams) : [];
   if (!createHelpers) return NextResponse.json({ error: "The teams that prepare weren\u2019t understood. Reload the page and try again." }, { status: 422 });
@@ -212,6 +216,7 @@ export async function POST(request: NextRequest) {
         : undefined,
       confirmationMessage: body.confirmationMessage || undefined,
       reminderDate: centralToUtc(body.reminderDate),
+      reminderDaysBefore: typeof body.reminderDaysBefore === "number" ? body.reminderDaysBefore : null,
       reminderMessage: body.reminderMessage || undefined,
       danaMode: body.danaMode || "none",
       suggestedDana: body.suggestedDana != null ? Number(body.suggestedDana) : null,

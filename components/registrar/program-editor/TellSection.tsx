@@ -12,6 +12,14 @@ interface Props {
   setConfirmationMessage: Setter<string>;
   reminderDate: string;
   setReminderDate: Setter<string>;
+  /** Days before the first session, as typed, or "" (lib/reminderSchedule.ts). */
+  reminderDaysBefore: string;
+  setReminderDaysBefore: Setter<string>;
+  /** The first session, a Central "YYYY-MM-DDTHH:mm", to say when it goes. */
+  startDatetime: string;
+  /** The timing chosen here, kept while its box is emptied (Save checks it). */
+  reminderModePicked: "days" | "date" | "none" | null;
+  setReminderModePicked: Setter<"days" | "date" | "none" | null>;
   reminderMessage: string;
   setReminderMessage: Setter<string>;
   markDirty: () => void;
@@ -20,9 +28,40 @@ interface Props {
 function TellSection({
   confirmationMessage, setConfirmationMessage,
   reminderDate, setReminderDate,
+  reminderDaysBefore, setReminderDaysBefore, startDatetime,
+  reminderModePicked, setReminderModePicked,
   reminderMessage, setReminderMessage,
   markDirty,
 }: Props) {
+  // The reminder's timing (lib/reminderSchedule.ts): days before wins when
+  // both are set, so choosing one clears the other.
+  // A choice made here stays while its box is emptied to retype it.
+  const mode: "days" | "date" | "none" =
+    reminderModePicked ?? (reminderDaysBefore.trim() !== "" ? "days" : reminderDate ? "date" : "none");
+  function chooseMode(next: "days" | "date" | "none") {
+    setReminderModePicked(next);
+    if (next === "days") {
+      setReminderDaysBefore((v) => (v.trim() !== "" ? v : "2"));
+      setReminderDate("");
+    } else if (next === "date") {
+      setReminderDaysBefore("");
+    } else {
+      setReminderDaysBefore("");
+      setReminderDate("");
+    }
+    markDirty();
+  }
+  // "Thursday, November 12": the Central day it first goes out.
+  const n = Number(reminderDaysBefore);
+  const sendDay =
+    mode === "days" && startDatetime && Number.isInteger(n) && n >= 1
+      ? (() => {
+          const d = new Date(`${startDatetime.slice(0, 10)}T12:00:00Z`);
+          d.setUTCDate(d.getUTCDate() - n);
+          return d.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" });
+        })()
+      : null;
+
   return (
     <EditorSection id="tell">
       <div className="pe-form">
@@ -46,11 +85,52 @@ function TellSection({
           />
         </div>
 
-        <div className="pe-field">
-          <span className="pe-field__label">Reminder Date</span>
-          <span className="pe-field__help">The reminder email goes out on this day, in the morning, to everyone registered by then. The registration team can also send it early, in Registration.</span>
-          <DateTimePicker label="Reminder date" value={reminderDate} onChange={setReminderDate} />
-        </div>
+        <fieldset className="pe-field">
+          <legend className="pe-field__label">The reminder</legend>
+          <div className="pe-option-cards">
+            {([
+              { value: "days", label: "Days before it begins" },
+              { value: "date", label: "On a set date" },
+              { value: "none", label: "No reminder" },
+            ] as const).map((opt) => (
+              <label key={opt.value} className={`pe-option-card${mode === opt.value ? " pe-option-card--active" : ""}`}>
+                <input type="radio" name="reminderMode" checked={mode === opt.value} onChange={() => chooseMode(opt.value)} />
+                <span className="pe-option-card__mark" />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+          {mode === "days" && (
+            <div className="pe-field" style={{ marginTop: 12 }}>
+              <label className="pe-inline-row">
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={reminderDaysBefore}
+                  onChange={(e) => setReminderDaysBefore(e.target.value)}
+                  className="pe-input pe-input--narrow"
+                  aria-label="Days before the first session"
+                />
+                <span>days before the first session</span>
+              </label>
+              <span className="pe-field__help">
+                {sendDay
+                  ? `It goes out on ${sendDay}, in the morning, to everyone registered, and each morning after to anyone who registers later, until it begins.`
+                  : startDatetime
+                    ? "It goes out that many days before the first session, in the morning, and to anyone who registers later, until it begins."
+                    : "Nothing goes out until the first session is set, under When and where."}{" "}
+                A program with several sessions is reminded once, before the first.
+              </span>
+            </div>
+          )}
+          {mode === "date" && (
+            <div className="pe-field" style={{ marginTop: 12 }}>
+              <span className="pe-field__help">The reminder email goes out on this day, in the morning, to everyone registered by then. The registration team can also send it early, in Registration.</span>
+              <DateTimePicker label="Reminder date" value={reminderDate} onChange={setReminderDate} />
+            </div>
+          )}
+        </fieldset>
 
         <div className="pe-field">
           <span className="pe-field__label">Reminder Message</span>

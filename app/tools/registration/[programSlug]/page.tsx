@@ -31,6 +31,7 @@ import RegistrationPeople, {
 } from "@/components/registration/RegistrationPeople";
 import type { RegistrationField } from "@/components/RegistrationForm";
 import RegistrationSettings from "@/components/registration/RegistrationSettings";
+import { reachesLateRegistrants } from "@/lib/reminderSchedule";
 import { programSegmentName, programUsesFlodesk } from "@/lib/flodeskRules";
 import { toCentralDatetime } from "@/lib/timezone";
 import { answerFor, hasAnswer, oldAnswers, questionKey } from "@/lib/registrationAnswers";
@@ -128,6 +129,7 @@ export default async function RegistrationProgramPage({
       registrationOpensAt: true,
       registrationFields: true,
       reminderDate: true,
+      reminderDaysBefore: true,
       danaMode: true,
       danaFixedAmount: true,
       danaBaseAmount: true,
@@ -255,8 +257,8 @@ export default async function RegistrationProgramPage({
   const reminderLine = !sendsAt
     ? null
     : sendsAt > new Date()
-    ? `The reminder email goes out ${fmtSendTime(sendsAt)}, to everyone registered who hasn't had it.`
-    : `The reminder email went out ${fmtSendTime(sendsAt)}.`;
+    ? `The reminder email goes out ${fmtSendTime(sendsAt)}, to everyone registered who hasn't had it${reachesLateRegistrants(program) ? ", and each morning after to anyone who registers later, until it begins" : ""}.`
+    : `The reminder email went out ${fmtSendTime(sendsAt)}${reachesLateRegistrants(program) ? "; anyone who registers now gets it the next morning" : ""}.`;
 
   const when = programWhen(program);
   const where = fmtLabel(program.programFormat, program.outsideMeetingUrl);

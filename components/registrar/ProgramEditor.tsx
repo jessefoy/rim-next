@@ -97,6 +97,8 @@ export interface ProgramData {
   registrationFields: RegistrationField[];
   confirmationMessage: any;
   reminderDate: string;
+  /** Days before the first session, as typed, or "" (lib/reminderSchedule.ts). */
+  reminderDaysBefore?: string;
   reminderMessage: any;
   danaMode: string;
   suggestedDana: string;
@@ -390,6 +392,11 @@ export default function ProgramEditor({
   );
   const [confirmationMessage, setConfirmationMessage] = useState<string>(toEditorString(initialData?.confirmationMessage));
   const [reminderDate, setReminderDate] = useState(initialData?.reminderDate ?? "");
+  // Days before the first session (Phase 4): a new program starts at 2.
+  const [reminderDaysBefore, setReminderDaysBefore] = useState(isEditing ? initialData?.reminderDaysBefore ?? "" : "2");
+  // The reminder's timing chosen here (TellSection), kept while its box is
+  // emptied to retype it; Save asks for the number.
+  const [reminderModePicked, setReminderModePicked] = useState<"days" | "date" | "none" | null>(null);
   const [reminderMessage, setReminderMessage] = useState<string>(toEditorString(initialData?.reminderMessage));
 
   const [danaMode, setDanaMode] = useState(initialData?.danaMode ?? "none");
@@ -629,6 +636,7 @@ export default function ProgramEditor({
       registrationFields: registrationFields.length > 0 ? registrationFields : null,
       confirmationMessage,
       reminderDate: reminderDate || null,
+      reminderDaysBefore: reminderDaysBefore.trim() === "" ? null : Number(reminderDaysBefore),
       reminderMessage,
       danaMode,
       suggestedDana: suggestedDana ? Number(suggestedDana) : null,
@@ -719,6 +727,16 @@ export default function ProgramEditor({
     if (registrationEnabled && registrationOpensAt && registrationDeadline && registrationDeadline <= registrationOpensAt) {
       setError("Under How people join: the closing date comes before registration opens. Move one of them.");
       return;
+    }
+
+    // "Days before" needs its number (lib/reminderSchedule.ts).
+    {
+      const n = Number(reminderDaysBefore);
+      const daysChosen = reminderModePicked === "days" || (reminderModePicked === null && reminderDaysBefore.trim() !== "");
+      if (daysChosen && !(reminderDaysBefore.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= 60)) {
+        setError("Under What we tell them: choose how many days before the first session the reminder goes, from 1 to 60.");
+        return;
+      }
     }
 
     // An outside room needs its link, and only an https link is kept.
@@ -1092,6 +1110,9 @@ export default function ProgramEditor({
           <TellSection
             confirmationMessage={confirmationMessage} setConfirmationMessage={setConfirmationMessage}
             reminderDate={reminderDate} setReminderDate={setReminderDate}
+            reminderDaysBefore={reminderDaysBefore} setReminderDaysBefore={setReminderDaysBefore}
+            reminderModePicked={reminderModePicked} setReminderModePicked={setReminderModePicked}
+            startDatetime={startDatetime}
             reminderMessage={reminderMessage} setReminderMessage={setReminderMessage}
             markDirty={markDirty}
           />

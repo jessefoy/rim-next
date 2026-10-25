@@ -11,6 +11,7 @@
 import { buildDateLabel } from "@/lib/dateLabel";
 import { hasConcludedOneTime } from "@/lib/programUtils";
 import { registrationWindow } from "@/lib/registrationWindow";
+import { reachesLateRegistrants, reminderSendsAt as scheduledSend } from "@/lib/reminderSchedule";
 
 const CT = "America/Chicago";
 
@@ -39,6 +40,8 @@ export interface DeskProgram {
   registrationDeadline: Date | null;
   registrationOpensAt: Date | null;
   reminderDate: Date | null;
+  reminderDaysBefore?: number | null;
+  archivedAt?: Date | null;
 }
 
 export interface DeskCounts {
@@ -97,23 +100,17 @@ export function isOver(p: DeskProgram): boolean {
   return hasConcludedOneTime(p);
 }
 
-/**
- * True once the daily reminder send has run for this program: it runs at
- * 14:00 UTC (app/api/cron/send-reminders) for a reminder date in the day
- * before, and only while registration is on.
- */
+/** True once the daily run has first sent this program's reminder
+ *  (lib/reminderSchedule.ts). */
 export function reminderHasGone(p: DeskProgram, now = new Date()): boolean {
   const sendAt = reminderSendsAt(p);
   return !!sendAt && sendAt <= now;
 }
 
-/** When the daily send will email this program's reminder, or null if it won't. */
+/** When the daily run first emails this program's reminder, or null if it
+ *  won't: one rule, lib/reminderSchedule.ts. */
 export function reminderSendsAt(p: DeskProgram): Date | null {
-  if (!p.reminderDate || !p.registrationEnabled) return null;
-  const sendAt = new Date(p.reminderDate);
-  sendAt.setUTCHours(14, 0, 0, 0);
-  if (sendAt < p.reminderDate) sendAt.setUTCDate(sendAt.getUTCDate() + 1);
-  return sendAt;
+  return scheduledSend(p);
 }
 
 /** "Thursday, Nov 12, at 8 AM": when something goes out, in Central time. */
@@ -145,7 +142,9 @@ export function programNeeds(p: DeskProgram, c: DeskCounts, now = new Date()): D
       text: `${people(c.danaNotFinished)} ${c.danaNotFinished === 1 ? "hasn't" : "haven't"} finished their dana.`,
     });
   }
-  if (reminderHasGone(p, now) && c.reminderUnsent > 0) {
+  // Days before reaches late registrants on its own each morning; only a set
+  // date leaves them to be sent by hand.
+  if (reminderHasGone(p, now) && c.reminderUnsent > 0 && !reachesLateRegistrants(p, now)) {
     needs.push({
       kind: "reminder",
       text: `${people(c.reminderUnsent)} registered after the reminder went out.`,

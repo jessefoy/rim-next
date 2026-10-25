@@ -436,6 +436,14 @@ export async function PUT(
   }
   if (body.confirmationMessage !== undefined) data.confirmationMessage = body.confirmationMessage || undefined;
   if (body.reminderDate !== undefined) data.reminderDate = centralToUtc(body.reminderDate);
+  // Reminders counted from the start (lib/reminderSchedule.ts): whole days, or none.
+  if (body.reminderDaysBefore !== undefined) {
+    const n = body.reminderDaysBefore;
+    if (n !== null && !(typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= 60)) {
+      return NextResponse.json({ error: "Under What we tell them: the reminder's days before must be a whole number from 1 to 60. Nothing was saved." }, { status: 422 });
+    }
+    data.reminderDaysBefore = n;
+  }
   if (body.reminderMessage !== undefined) data.reminderMessage = body.reminderMessage || undefined;
   if (body.danaMode !== undefined) data.danaMode = body.danaMode;
   if (body.suggestedDana !== undefined) data.suggestedDana = body.suggestedDana != null ? Number(body.suggestedDana) : null;

@@ -432,5 +432,20 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(ask.askersChanged([{ _key: 'q9', label: 'New', askedBy: 'teacher' }], stored), true, 'a new question with an asker is');
   check(ask.askersChanged([{ _key: 'q9', label: 'New' }], null), false, 'a new question for the registration team is not');
 
+  // Reminders counted from the start (2026-10-24, Phase 4).
+  const rs = load('lib/reminderSchedule.ts');
+  const prog = (o) => ({ registrationEnabled: true, archivedAt: null, startDatetime: null, reminderDate: null, reminderDaysBefore: null, ...o });
+  const nov1 = prog({ startDatetime: '2026-11-01T15:00:00Z', reminderDaysBefore: 2 });
+  check(rs.reminderSendsAt(nov1).toISOString(), '2026-10-30T14:00:00.000Z', 'two days before a first session after the November time change: the Central day, morning run');
+  check([rs.reminderDueAt(nov1, new Date('2026-10-30T14:00:05Z')), rs.reminderDueAt(nov1, new Date('2026-10-31T14:00:05Z')), rs.reminderDueAt(nov1, new Date('2026-11-01T16:00:00Z'))], [true, true, false], 'due from the send day until the program begins, so late registrants get it');
+  check(rs.reminderDueAt(nov1, new Date('2026-10-29T14:00:05Z')), false, 'not before the send day');
+  const setDate = prog({ reminderDate: '2026-11-12T01:00:00Z', startDatetime: '2026-11-14T15:00:00Z' });
+  check([rs.reminderSendsAt(setDate).toISOString(), rs.reminderDueAt(setDate, new Date('2026-11-12T14:00:05Z')), rs.reminderDueAt(setDate, new Date('2026-11-13T14:00:05Z'))], ['2026-11-12T14:00:00.000Z', true, false], 'an older set date: once, in the run after it, as before');
+  check(rs.reminderSendsAt(prog({ ...setDate, reminderDaysBefore: 3 })).toISOString(), '2026-11-11T14:00:00.000Z', 'days before wins over a set date');
+  check([rs.reminderSendsAt(prog({ ...nov1, archivedAt: '2026-10-01T00:00:00Z' })), rs.reminderDueAt(prog({ ...nov1, registrationEnabled: false }), new Date('2026-10-31T14:00:05Z'))], [null, false], 'archived or registration off: no reminder');
+
+  const evening = prog({ startDatetime: '2026-11-10T01:00:00Z', reminderDaysBefore: 1 });
+  check([rs.reachesLateRegistrants(evening, new Date('2026-11-09T13:00:00Z')), rs.reachesLateRegistrants(evening, new Date('2026-11-09T15:00:00Z'))], [true, false], 'after the last morning run before it begins, a late registrant is left to be sent by hand');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

@@ -303,6 +303,7 @@ model Program {
   registrationFields   Json?     // [{_key, label, fieldType, required, options[]}]; _key set on save (lib/registrationFields.ts)
   confirmationMessage  Json?     // BlockNote JSON (RimProseEditor)
   reminderDate         DateTime?
+  reminderDaysBefore   Int? // Phase 4 (2026-10-24): days before the first session; wins over reminderDate. lib/reminderSchedule.ts
   reminderMessage      Json?     // BlockNote JSON (RimProseEditor)
 
   // ── Dana ───────────────────────────────────────────────
