@@ -365,7 +365,7 @@ function HelpingSection({
           <span className="pe-field__help">
             Teams that help without being on the schedule, such as a kitchen team. Each
             sees, in its Helping with app, how many are coming and the answers to the
-            questions it asks, with names. Never dana.
+            questions it asks, with names. Dana is never shown.
           </span>
           {!canDecideAskers && (
             <span className="pe-field__help">
