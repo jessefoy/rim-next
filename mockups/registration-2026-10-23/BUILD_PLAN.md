@@ -314,6 +314,25 @@ Jesse, 2026-10-24: everything to look at is saved here for one thorough session 
 - Copy a program: copy the Dummy Test Program and look at what came across and what didn't (no save needed); copy a past retreat, set new dates and save it as a hidden test program; check its address, that no one is registered, and that its guest link is new; as a Program Central member without a role, copy a program with team questions and save it.
 - Still owed from Phase 1: Add a person, the cancellation email, a group message, a settings save in Registration, a Program Central member without a role opening Programs.
 
+**Decided, 2026-10-26 (Jesse, the after-build session; each the recommended choice):**
+- Who chooses who asks and which teams prepare: **kept to the Registrar, Admin and Guiding Teacher roles**.
+- A teacher's page and a team's Helping with page, with contact details: **close 30 days after the program ends** (the registration team keeps them).
+- Add a person: the dana choice **starts with none chosen** (the coordinator picks); **the program's questions in the panel**.
+- My Home's Today: **in-person teaching days too**, with "Who's coming →".
+- Today's list without a day: **the program's next session**.
+- Walk-ins: **a line under the list**: "Someone not on the list? Welcome them, and tell the registration team their name."
+- Creating a program: **"Created. It's saved."** beside Save when the editor opens on it.
+- Past days in the editor: **say what will happen** (the reminder: "Its day has passed: it goes out the next morning to anyone registered, until it begins."; the note after, for a program that has ended: "This program has ended, so no note goes out.").
+- A notice's answer: **names only where it shows**.
+- The teacher's page: **hide "First registration here" when no one is new; the time in the day line**.
+- Vercel Skew Protection: **turn it on**.
+- Shapes: **Drop-in and Class start Online**; registration **stays Open** in the others; **no places** filled; the Retreat **stays Voluntary**.
+- A copy **keeps** the teachers, the outside link, and the notes, quote and image.
+- The editor's option cards: **a keyboard focus ring**.
+- The hidden second copy on tool pages: **look into it now**.
+- Accepted as they are: Closed for a program past its closing date; an answer dropped from a form left open across a rewording.
+- Still open: name the meals team directly once it exists; check what the reminder says with no message.
+
 **Noticed, to decide then:**
 - Every tool page carries a hidden second copy of its content (the streamed `#S:0` segment stays in the page); it shows nothing, but doubles the page's markup and repeats ids. Look at why before launch.
 - The editor's option cards (the round choices) show no keyboard focus ring; the pattern predates this work.
