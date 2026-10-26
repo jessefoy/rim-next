@@ -26,8 +26,8 @@ export interface Shape {
 }
 
 export const SHAPES: Shape[] = [
-  { code: "DROP_IN", name: "Drop-in", sets: "Open entry: people come as they are, with no registration and no questions." },
-  { code: "CLASS", name: "Class", sets: "Open entry, meeting weekly, with no registration." },
+  { code: "DROP_IN", name: "Drop-in", sets: "Open entry, online: people come as they are, with no registration and no questions." },
+  { code: "CLASS", name: "Class", sets: "Open entry, online, meeting weekly, with no registration." },
   { code: "COURSE", name: "Course", sets: "Registration for the whole series, meeting weekly, the teacher’s two questions, dana invited, a reminder 2 days before." },
   { code: "WORKSHOP", name: "Workshop", sets: "Registration, the teacher’s two questions, dana invited, a reminder 2 days before." },
   { code: "DAY_OF_MINDFULNESS", name: "Day of mindfulness", sets: "Registration, in person, questions about arriving and dietary needs, dana invited, a reminder 2 days before." },
@@ -140,10 +140,11 @@ function fill(code: ShapeCode, teams: ShapeTeams): ShapeStart {
   };
 
   switch (code) {
+    // Most of RIM's drop-ins and classes meet online (Jesse, 2026-10-26).
     case "DROP_IN":
-      return { ...base, openEntry: true, registrationEnabled: false, reminderDaysBefore: "", danaMode: "none" };
+      return { ...base, programFormat: "virtual", openEntry: true, registrationEnabled: false, reminderDaysBefore: "", danaMode: "none" };
     case "CLASS":
-      return { ...base, openEntry: true, registrationEnabled: false, reminderDaysBefore: "", danaMode: "none", recurrenceFreq: "WEEKLY", recurrenceInterval: "1" };
+      return { ...base, programFormat: "virtual", openEntry: true, registrationEnabled: false, reminderDaysBefore: "", danaMode: "none", recurrenceFreq: "WEEKLY", recurrenceInterval: "1" };
     case "COURSE":
       return { ...base, recurrenceFreq: "WEEKLY", recurrenceInterval: "1", registrationFields: [practice, toKnow] };
     case "WORKSHOP":

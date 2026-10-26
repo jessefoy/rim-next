@@ -376,7 +376,7 @@ export default async function DashboardPage({ searchParams }: {
   const dutyPrograms = new Map(
     (await db.program.findMany({
       where: { slug: { in: [...new Set(myDutiesRaw.map((d) => d.programSlug))] }, archivedAt: null },
-      select: { slug: true, name: true, programFormat: true, hostingHubSlug: true, startDatetime: true, endDatetime: true },
+      select: { slug: true, name: true, programFormat: true, hostingHubSlug: true, startDatetime: true, endDatetime: true, specialAnnouncement: true, announcementUntil: true },
     })).map((p) => [p.slug, p]),
   );
   // "Today's list" only where that page will open: the team is still one of
@@ -430,6 +430,48 @@ export default async function DashboardPage({ searchParams }: {
       stage: now >= start ? "in-person" : "later",
       contextText: duty,
       dutyHref,
+      // A posted notice reaches the volunteers on duty too (2026-10-26).
+      announcement: activeAnnouncement(p, now),
+    });
+  }
+
+  // Teaching in person today (Jesse, 2026-10-26): online teaching is already
+  // in Today; an in-person program's teacher gets its row too, with "Who's
+  // coming →" to the teacher's page. It joins the program's row when there is one.
+  const inPersonTaught = await db.program.findMany({
+    where: { programTeachers: { some: { userId } }, programFormat: "in-person", archivedAt: null },
+    select: {
+      id: true, slug: true, name: true, programFormat: true, startDatetime: true, endDatetime: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+      specialAnnouncement: true, announcementUntil: true,
+    },
+  });
+  for (const p of inPersonTaught) {
+    if (!p.startDatetime || !isOccurrenceOnDate(p, today)) continue;
+    const teachingHref = `/account/teaching/${p.slug}`;
+    const existing = [...onlineTodayItems, ...inPersonTodayItems, ...dutyItems].find((i) => i.programSlug === p.slug);
+    if (existing) {
+      existing.teachingHref = existing.teachingHref ?? teachingHref;
+      continue;
+    }
+    const start = shiftToDate(p.startDatetime.toISOString(), today);
+    const end = p.endDatetime
+      ? shiftToDate(p.endDatetime.toISOString(), today)
+      : new Date(start.getTime() + FALLBACK_DURATION_MIN * 60 * 1000);
+    if (now > end) continue;
+    dutyItems.push({
+      key: `teaching-${p.id}`,
+      programSlug: p.slug,
+      name: p.name,
+      startTimeCT: fmtTimeCT(start.toISOString()),
+      endTimeCT: p.endDatetime ? fmtTimeCT(end.toISOString()) : null,
+      startEpoch: start.getTime(),
+      formatLabel: "In person",
+      isRegistered: false,
+      stage: now >= start ? "in-person" : "later",
+      contextText: "You're teaching",
+      teachingHref,
+      announcement: activeAnnouncement(p, now),
     });
   }
 

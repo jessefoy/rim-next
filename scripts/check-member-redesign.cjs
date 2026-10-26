@@ -485,7 +485,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(own(ps.SHAPES.map((x) => x.code)), fmtCodes, 'one shape for each Format, in order');
   check(fmtCodes.every((c) => ps.shapeStart(c, shapeTeams).offeringFormat === c), true, 'each shape sets its own Format');
   const drop = ps.shapeStart('DROP_IN', shapeTeams);
-  check([drop.openEntry, drop.registrationEnabled, drop.reminderDaysBefore, drop.registrationFields.length], [true, false, '', 0], 'a drop-in: open entry, no registration, no reminder, no questions');
+  check([drop.openEntry, drop.registrationEnabled, drop.reminderDaysBefore, drop.registrationFields.length, drop.programFormat, ps.shapeStart('CLASS', shapeTeams).programFormat], [true, false, '', 0, 'virtual', 'virtual'], 'a drop-in: online, open entry, no registration, no reminder, no questions; a class online too');
   const shRetreat = ps.shapeStart('RETREAT', shapeTeams);
   check(own(shRetreat.registrationFields.map((q) => q.askedBy ?? 'registration')), ['teacher', 'teacher', 'registration', 'team:k1', 'team:k1'], 'a retreat: the teacher and the meals team ask theirs');
   check([own(shRetreat.coverageHubSlugs), own(shRetreat.helperTeams), shRetreat.followUpEnabled, shRetreat.reminderDaysBefore], [[], [{ hubId: 'k1', canReach: false }], false, '2'], 'the meals team (no contact details), no scheduled team (that emails it), no note without words, a reminder 2 days before');

@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { cleanOffering } from "@/lib/programOffering";
+import { cleanOffering, isPubliclyListedCategory } from "@/lib/programOffering";
 import { activeAnnouncement, monthlyPatternPhrase } from "@/lib/scheduleUtils";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
@@ -346,6 +346,7 @@ export default function ProgramEditor({
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState("");
   const [success, setSuccess] = useState(false);
+  const [justCreated, setJustCreated] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   // Send an update to the people registered (Phase 4 slice 3): offered by the
   // save route when the time, place or confirmation message changed; later
@@ -363,6 +364,7 @@ export default function ProgramEditor({
   }, [updateSeq]);
 
   // ── State ────────────────────────────────────────────────────────────────
+
   const [name, setName] = useState(initialData?.name ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
   const [tagline, setTagline] = useState(initialData?.tagline ?? "");
@@ -481,6 +483,17 @@ export default function ProgramEditor({
   // branch of save). Read once, then cleared.
   useEffect(() => {
     if (!isEditing || !initialData?.slug) return;
+    // Just created (Jesse, 2026-10-26): said beside Save as the editor opens.
+    try {
+      const createdKey = `pe-created:${initialData.slug}`;
+      if (sessionStorage.getItem(createdKey)) {
+        sessionStorage.removeItem(createdKey);
+        setJustCreated(true);
+        setSuccess(true);
+      }
+    } catch {
+      // Storage unavailable: the editor opening on the program says enough.
+    }
     const key = `pe-seat-conflicts:${initialData.slug}`;
     try {
       const raw = sessionStorage.getItem(key);
@@ -937,6 +950,11 @@ export default function ProgramEditor({
             // Storage unavailable: the warning appears on the next save instead.
           }
         }
+        try {
+          sessionStorage.setItem(`pe-created:${created.slug}`, "1");
+        } catch {
+          // Storage unavailable: no "Created" line, nothing else lost.
+        }
         router.push(`${basePath}/${created.slug}/edit`);
       }
     } catch {
@@ -1055,7 +1073,27 @@ export default function ProgramEditor({
         </div>
       )}
 
-      {isEditing && initialData?.slug && (
+      {isEditing && initialData?.slug && (() => {
+        // Where a notice shows (Jesse, 2026-10-26: only the lists the program
+        // is on): Programs & Events by the editor's own listing rule; This
+        // Week by its own (app/this-week/page.tsx); My Home on the program's
+        // rows for those coming, teaching or helping that day.
+        const onCatalog = listingReasonOf({
+          isArchived: initialData?.archived ?? false,
+          hideFromProgramPageList, offeringCategory,
+          categoryHidden: !!categories.find((c) => c.id === categoryId)?.hidden,
+          hideWhenPast, recurrenceFreq, startDatetime, endDatetime,
+        }) === null;
+        const onWeek = !(initialData?.archived ?? false) && !hideFromProgramPageList && !hideFromWeeklySchedule &&
+          isPubliclyListedCategory(offeringCategory);
+        const where = [
+          "the program’s page",
+          ...(onCatalog ? ["Programs & Events"] : []),
+          ...(onWeek ? ["This Week"] : []),
+          "My Home",
+        ];
+        const noticePlaces = `${where.slice(0, -1).join(", ")} and ${where[where.length - 1]}`;
+        return (
         <NoticePanel
           slug={initialData.slug}
           // The notice as the public pages show it: one past its last day is
@@ -1067,8 +1105,10 @@ export default function ProgramEditor({
           initialUntil={initialData.announcementUntil ?? ""}
           canEmail={canEmailRegistered}
           registeredCount={registeredCount}
+          places={noticePlaces}
         />
-      )}
+        );
+      })()}
 
       <ReadyPanel
         hasDescription={description.replace(/<[^>]+>/g, "").trim().length > 0}
@@ -1250,7 +1290,7 @@ export default function ProgramEditor({
             </button>
             {/* The answer beside the button, and it stays (2026-10-19: it showed at
                 the top of a long page for three seconds). */}
-            <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={`Saved at ${savedAt}.${scheduleCleared || seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}${updateOffer ? " The people registered haven’t heard: see below." : ""}`} problem={error} />
+            <SaveNote status={saving ? "saving" : error ? "error" : success ? "saved" : "idle"} saved={justCreated && !savedAt ? `Created. It’s saved.${seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}` : `Saved at ${savedAt}.${scheduleCleared || seatConflicts.length > 0 ? " Read the note at the top of the page." : ""}${updateOffer ? " The people registered haven’t heard: see below." : ""}`} problem={error} />
           </div>
           {updateOffer && <UpdatePanel slug={updateOffer.slug} offer={updateOffer} onDone={closeUpdate} />}
           {updateAnswer && <p className="pe-update__done" role="status">{updateAnswer}</p>}

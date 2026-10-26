@@ -23,12 +23,15 @@ interface Props {
   canEmail: boolean;
   /** People with a place, for "Also email the N people registered"; null when not shown. */
   registeredCount: number | null;
+  /** Where a notice shows for this program ("the program's page, Programs &
+   *  Events, This Week and My Home"): only the lists it's on (2026-10-26). */
+  places: string;
 }
 
 const fmtDay = (ymd: string) =>
   new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" });
 
-function NoticePanel({ slug, initialNotice, initialUntil, canEmail, registeredCount }: Props) {
+function NoticePanel({ slug, initialNotice, initialUntil, canEmail, registeredCount, places }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   // What is posted now, and what is being written.
@@ -69,7 +72,7 @@ function NoticePanel({ slug, initialNotice, initialUntil, canEmail, registeredCo
         setUntil("");
         setAnswer("The notice is taken down.");
       } else {
-        const where = "It shows on the program’s page, Programs & Events, This Week and My Home";
+        const where = `It shows on ${places}`;
         const when = until ? ` through ${fmtDay(until)}.` : " until you take it down.";
         const sent = json.count > 0 ? ` It’s being emailed to ${json.count === 1 ? "1 person" : `${json.count} people`} now.` : "";
         setAnswer(`Posted. ${where}${when}${sent}`);
@@ -107,8 +110,7 @@ function NoticePanel({ slug, initialNotice, initialUntil, canEmail, registeredCo
         <div className="pe-notice__panel" id="pe-notice-panel">
           <p className="pe-field__help">
             A change people should know: &ldquo;Cancelled tonight.&rdquo; &ldquo;Starting at 7:15.&rdquo;
-            &ldquo;We&rsquo;re in the community room.&rdquo; It shows on the program&rsquo;s page, Programs
-            &amp; Events, This Week and My Home.
+            &ldquo;We&rsquo;re in the community room.&rdquo; It shows on {places}.
           </p>
           <label className="pe-field">
             <span className="pe-field__label">Notice</span>

@@ -52,6 +52,7 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
       slug: true,
       name: true,
       dateText: true,
+      timeText: true,
       startDatetime: true,
       endDatetime: true,
       recurrenceFreq: true,
@@ -157,7 +158,7 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
         <header className="ac-page-head">
           <div>
             <h1 className="ac-page-title">{program.name}</h1>
-            <p className="ac-page-sub">{[when, where].filter(Boolean).join(" · ")}</p>
+            <p className="ac-page-sub">{[when, program.timeText, where].filter(Boolean).join(" · ")}</p>
           </div>
         </header>
 
@@ -170,18 +171,16 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
           {program.archivedAt ? " This program is archived." : ""}
         </p>
 
-        {coming.length > 0 && (
+        {/* The heading only when someone is new (Jesse, 2026-10-26). */}
+        {coming.length > 0 && firstTimers.length > 0 && (
           <section className="hlp-panel" aria-labelledby="hlp-first">
             <h2 id="hlp-first" className="hlp-panel__title">First registration here</h2>
-            {firstTimers.length > 0 ? (
-              <>
-                <p className="hlp-note">Their first registration on this site. The site doesn&rsquo;t know the old site&rsquo;s history, so some may have come before.</p>
-                <p className="hlp-names">{firstTimers.map(name).join(", ")}</p>
-              </>
-            ) : (
-              <p className="hlp-note">Everyone coming has registered here before.</p>
-            )}
+            <p className="hlp-note">Their first registration on this site. The site doesn&rsquo;t know the old site&rsquo;s history, so some may have come before.</p>
+            <p className="hlp-names">{firstTimers.map(name).join(", ")}</p>
           </section>
+        )}
+        {coming.length > 0 && firstTimers.length === 0 && (
+          <p className="hlp-note">Everyone coming has registered here before.</p>
         )}
 
         {coming.length > 0 && (

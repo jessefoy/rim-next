@@ -8,6 +8,8 @@
 
 import { memo } from "react";
 import { DateTimePicker, EditorSection, RimTiptapEditor, type Setter } from "./shared";
+import { nextReminderRun, reminderSendsAt } from "@/lib/reminderSchedule";
+import { centralToUtc } from "@/lib/timezone";
 
 interface Props {
   confirmationMessage: string;
@@ -63,8 +65,18 @@ function TellSection({
     }
     markDirty();
   }
+  // Today in Central, to say what happens once a day has passed (Jesse,
+  // 2026-10-26: never name a past day as if it were ahead).
+  const todayCT = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  const plusDays = (ymd: string, n: number) => {
+    const d = new Date(`${ymd}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
   // The note after: the Central day after the program's last day.
   const lastDay = (endDatetime || startDatetime).slice(0, 10);
+  // Its three mornings (lib/followUp.ts) are all behind it.
+  const noteOver = !!lastDay && plusDays(lastDay, 3) < todayCT;
   const afterDay = lastDay
     ? (() => {
         const d = new Date(`${lastDay}T12:00:00Z`);
@@ -74,6 +86,23 @@ function TellSection({
     : null;
   // "Thursday, November 12": the Central day it first goes out.
   const n = Number(reminderDaysBefore);
+  // Once its first day has passed, what the daily run will actually do
+  // (lib/reminderSchedule.ts, the cron's rule): the next morning while one is
+  // left before it begins, else nothing (review, 2026-10-26).
+  const startAt = startDatetime ? centralToUtc(startDatetime) : null;
+  const reminderRule = mode === "days" && startAt && Number.isInteger(n) && n >= 1
+    ? { registrationEnabled: true, archivedAt: null, startDatetime: startAt, reminderDate: null, reminderDaysBefore: n }
+    : null;
+  const nowAt = new Date();
+  const firstSend = reminderRule ? reminderSendsAt(reminderRule) : null;
+  const sendDayPassed = !!firstSend && firstSend <= nowAt;
+  const morningLeft = !!reminderRule && !!nextReminderRun(reminderRule, nowAt);
+  const begun = !!startAt && startAt <= nowAt;
+  // The note after's three mornings: the first, and the last it may go.
+  const noteStarted = !!lastDay && plusDays(lastDay, 1) < todayCT;
+  const noteLastDay = lastDay
+    ? new Date(`${plusDays(lastDay, 3)}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" })
+    : null;
   const sendDay =
     mode === "days" && startDatetime && Number.isInteger(n) && n >= 1
       ? (() => {
@@ -140,7 +169,13 @@ function TellSection({
                 <span>days before the first session</span>
               </label>
               <span className="pe-field__help">
-                {sendDay
+                {sendDayPassed && morningLeft
+                  ? "Its day has passed: it goes out the next morning to anyone registered, until it begins."
+                  : sendDayPassed && begun
+                  ? "The program has begun, so no reminder goes out now."
+                  : sendDayPassed
+                  ? "No morning is left before it begins, so no reminder goes out now."
+                  : sendDay
                   ? `It goes out on ${sendDay}, in the morning, to everyone registered, and each morning after to anyone who registers later, until it begins.`
                   : startDatetime
                     ? "It goes out that many days before the first session, in the morning, and to anyone who registers later, until it begins."
@@ -177,10 +212,14 @@ function TellSection({
                 <span>Send a note the day after</span>
               </label>
               <span className="pe-field__help">
-                {afterDay
+                {noteOver
+                  ? "This program has ended, so no note goes out."
+                  : noteStarted && afterDay
+                  ? `Its first morning, ${afterDay}, has passed: it goes each morning through ${noteLastDay} to anyone with a place who hasn't had it.`
+                  : afterDay
                   ? `It goes out on ${afterDay}, in the morning, to everyone who had a place.`
-                  : "It goes out the morning after the program ends, to everyone who had a place."}{" "}
-                A thank-you, a reading, a word about what comes next.
+                  : "It goes out the morning after the program ends, to everyone who had a place."}
+                {noteOver ? "" : " A thank-you, a reading, a word about what comes next."}
               </span>
               {followUpEnabled && (
                 <RimTiptapEditor

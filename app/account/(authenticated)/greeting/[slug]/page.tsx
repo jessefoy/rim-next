@@ -9,7 +9,7 @@ import { getHubCoverageCopy } from "@/lib/programHub";
 import { loadAskerContext } from "@/lib/programAskers";
 import { askerOf } from "@/lib/questionAskers";
 import { answerFor, type QuestionLike } from "@/lib/registrationAnswers";
-import { shiftToDate } from "@/lib/scheduleUtils";
+import { nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
 import { toCentralDatetime } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
@@ -44,15 +44,19 @@ export default async function SessionTeamPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const day = cleanDay(date) ?? toCentralDatetime(new Date()).slice(0, 10);
   const program = await db.program.findUnique({
     where: { slug },
     select: {
       id: true, slug: true, name: true, startDatetime: true, programFormat: true, hostingHubSlug: true,
       registrationEnabled: true, registrationFields: true, archivedAt: true,
+      endDatetime: true, recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
     },
   });
   if (!program) notFound();
+  // Without a day (a saved link): the program's next session, from today on
+  // (Jesse, 2026-10-26); today if it has none ahead.
+  const today = toCentralDatetime(new Date()).slice(0, 10);
+  const day = cleanDay(date) ?? nextOccurrenceOnOrAfter(program, today) ?? today;
   const access = await sessionTeamAccess(session.user.id, session.user.roles, program, day, team ?? null);
   if (!access) notFound();
 
@@ -122,6 +126,9 @@ export default async function SessionTeamPage({
           <section className="hlp-panel" aria-label="Who's registered">
             <ArrivalList programSlug={program.slug} day={day} team={access.hub.slug} people={people} />
           </section>
+        )}
+        {program.registrationEnabled && (
+          <p className="hlp-note">Someone not on the list? Welcome them, and tell the registration team their name.</p>
         )}
       </div>
     </AccountLayout>

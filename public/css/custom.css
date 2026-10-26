@@ -11127,6 +11127,8 @@ h4 { font-size: var(--text-h4); }
 }
 .pe-option-card:hover { border-color: #adb8bf; background: #f4f2ef; color: var(--rim-text); }
 .pe-option-card--active { border-color: #39607a; background: #eef3f7; color: #1d3d52; font-weight: 600; }
+/* The choice reached by the keyboard is outlined (2026-10-26): the radio itself is hidden. */
+.pe-option-card:has(input:focus-visible) { outline: 2px solid var(--rim-blue); outline-offset: 2px; }
 .pe-option-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
 .pe-option-card__mark {
   width: 13px; height: 13px;
