@@ -21,13 +21,27 @@ export interface WindowFields {
   registrationClosed: boolean;
   registrationDeadline: Date | string | null;
   registrationOpensAt?: Date | string | null;
+  /** When given: a one-time program closes once it has ended (Jesse,
+   *  2026-10-26: it took sign-ups until the nightly archive). */
+  startDatetime?: Date | string | null;
+  endDatetime?: Date | string | null;
+  recurrenceFreq?: string | null;
 }
 
-/** Off; closed (by hand, or its closing date passed); not open yet; or open. */
+/** Whether a one-time program is over: its end (or start) has passed. */
+export function oneTimeHasEnded(p: WindowFields, now: Date = new Date()): boolean {
+  if (p.recurrenceFreq !== null || p.startDatetime === undefined) return false;
+  const last = p.endDatetime ?? p.startDatetime;
+  return !!last && new Date(last) <= now;
+}
+
+/** Off; closed (by hand, its closing date passed, or a one-time program
+ *  over); not open yet; or open. */
 export function registrationWindow(p: WindowFields, now: Date = new Date()): RegistrationWindow {
   if (!p.registrationEnabled) return "off";
   if (p.registrationClosed) return "closed";
   if (p.registrationDeadline && new Date(p.registrationDeadline) < now) return "closed";
+  if (oneTimeHasEnded(p, now)) return "closed";
   if (p.registrationOpensAt && new Date(p.registrationOpensAt) > now) return "notYet";
   return "open";
 }
@@ -40,6 +54,14 @@ export function takingRegistrationsWhere(now: Date = new Date()): Prisma.Program
     AND: [
       { OR: [{ registrationDeadline: null }, { registrationDeadline: { gt: now } }] },
       { OR: [{ registrationOpensAt: null }, { registrationOpensAt: { lte: now } }] },
+      // A one-time program that has ended takes no more sign-ups.
+      {
+        OR: [
+          { recurrenceFreq: { not: null } },
+          { endDatetime: { gt: now } },
+          { endDatetime: null, OR: [{ startDatetime: null }, { startDatetime: { gt: now } }] },
+        ],
+      },
     ],
   };
 }

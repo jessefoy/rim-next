@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
         registrationClosed: true,
         registrationDeadline: true,
         registrationOpensAt: true,
+        // A one-time program that has ended takes no sign-ups (registrationWindow).
+        startDatetime: true,
+        endDatetime: true,
+        recurrenceFreq: true,
         registrationCapacity: true,
         registrationFields: true,
         danaMode: true,

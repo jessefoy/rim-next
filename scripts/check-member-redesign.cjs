@@ -367,7 +367,7 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(win.registrationWindow(p({ registrationClosed: true, registrationOpensAt: '2026-11-01T14:00:00Z' }), at), 'closed', 'closed by hand wins over an opening date');
   check(win.registrationWindow(p({ registrationDeadline: '2026-10-20T00:00:00Z' }), at), 'closed', 'a passed closing date closes it');
   const where = JSON.parse(JSON.stringify(win.takingRegistrationsWhere(at)));
-  check([where.registrationEnabled, where.registrationClosed, where.AND.length], [true, false, 2], 'the Prisma filter asks the same: on, not closed, deadline and opening date');
+  check([where.registrationEnabled, where.registrationClosed, where.AND.length], [true, false, 3], 'the Prisma filter asks the same: on, not closed, deadline, opening date, and not a one-time program that has ended');
   check(win.fmtOpensAt('2026-11-01T14:00:00Z', at), 'Sunday, November 1 at 8:00 AM', 'opening time in Central, after the November time change');
 
   // Answers by question id, old answers by wording kept (2026-10-24, Phase 3 slice 1).
@@ -546,6 +546,14 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   const series = { startDatetime: '2026-11-05T01:00:00Z', endDatetime: '2026-11-05T02:30:00Z', recurrenceFreq: 'WEEKLY', archivedAt: null };
   check([cw.contactsCloseAt(series, lastEnd).toISOString().slice(0, 10), cw.contactsCloseAt(series, null)], ['2027-01-23', null], 'a counted series closes 30 days after its last class; an open one waits for archiving');
   check([cw.hasEnded(series, new Date('2026-12-24T03:00:00Z'), lastEnd), cw.hasEnded(series, new Date('2026-12-30T12:00:00Z'), lastEnd), cw.hasEnded({ ...series, archivedAt: '2026-12-01T00:00:00Z' }, new Date('2026-12-02T00:00:00Z'), null)], [false, true, true], 'still current on the last class evening; ended after; or once archived');
+
+  // A one-time program that has ended takes no more sign-ups (Jesse, 2026-10-26).
+  const rwx = load('lib/registrationWindow.ts');
+  const tw = { registrationEnabled: true, registrationClosed: false, registrationDeadline: null, registrationOpensAt: null, startDatetime: '2026-10-26T15:15:00Z', endDatetime: '2026-10-26T16:15:00Z', recurrenceFreq: null };
+  check([rwx.registrationWindow(tw, new Date('2026-10-26T16:00:00Z')), rwx.registrationWindow(tw, new Date('2026-10-26T17:00:00Z'))], ['open', 'closed'], 'open until it ends, closed after');
+  check([rwx.registrationWindow({ ...tw, recurrenceFreq: 'WEEKLY' }, new Date('2026-12-01T00:00:00Z')), rwx.registrationWindow({ registrationEnabled: true, registrationClosed: false, registrationDeadline: null }, new Date('2030-01-01T00:00:00Z'))], ['open', 'open'], 'a repeating program, or a caller without dates, unchanged');
+  const tq = JSON.parse(JSON.stringify(rwx.takingRegistrationsWhere(new Date('2026-10-26T17:00:00Z'))));
+  check(JSON.stringify(tq.AND[2]), JSON.stringify({ OR: [{ recurrenceFreq: { not: null } }, { endDatetime: { gt: '2026-10-26T17:00:00.000Z' } }, { endDatetime: null, OR: [{ startDatetime: null }, { startDatetime: { gt: '2026-10-26T17:00:00.000Z' } }] }] }), 'the database filter says the same');
 
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});
