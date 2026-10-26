@@ -2,7 +2,8 @@
  * /tools/registration/[programSlug]/sign-in — a printed sign-in list
  * (2026-10-23): the registered people's names, by last name, with a box to
  * tick at the door. Names only: no contact details, answers or dana, so it can
- * sit on a table. Opening it is kept in the program's History.
+ * sit on a table. Printing it is kept in the program's History (PrintButton,
+ * on the page's print event; 2026-10-25, it was kept on every load).
  * Gate: canUseRegistration (also in the layout).
  */
 
@@ -10,7 +11,6 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { canUseRegistration } from "@/lib/toolAuth";
-import { recordRegistrationEvent } from "@/lib/registrationEvents";
 import { programWhen } from "@/lib/registrationDesk";
 import PrintButton from "@/components/registration/PrintButton";
 
@@ -47,14 +47,6 @@ export default async function SignInListPage({
     (a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName),
   );
 
-  await recordRegistrationEvent({
-    kind: "printed",
-    programId: program.id,
-    programSlug: program.slug,
-    actorId: session.user.id,
-    detail: { count: sorted.length },
-  });
-
   const when = programWhen(program);
   const back = `/tools/registration/${program.slug}${hub ? `?hub=${encodeURIComponent(hub)}` : ""}`;
 
@@ -64,7 +56,7 @@ export default async function SignInListPage({
         <div className="reg-print__screen">
           <a href={back} className="vol-back">&larr; {program.name}</a>
           <div className="reg-actions">
-            <PrintButton />
+            <PrintButton programSlug={program.slug} />
           </div>
         </div>
         <h1 className="vol-header__title">{program.name}</h1>
