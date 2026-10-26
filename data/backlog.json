@@ -2092,5 +2092,25 @@
     "status": "open",
     "addedAt": "2026-10-26",
     "notes": "Found in the review of the last-session rule."
+  },
+  {
+    "id": "2026-10-26-003",
+    "title": "Trim dead class names left inside mixed CSS rules",
+    "description": "The prune script keeps any rule that also names a live class, so retired vol- names (vol-back, vol-action-btn, vol-csv-btn, vol-table__*, vol-pill, vol-badge…) still sit inside the tools-shell :is(…) lists and a few mixed rules, with some empty comment headers near the old roster block. Harmless; remove them by hand in a cleanup pass.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-26",
+    "notes": "Found by the reviewer of the Programs list and button passes (2026-10-26)."
+  },
+  {
+    "id": "2026-10-26-004",
+    "title": "Watch it versions of the Registration Team tutorials",
+    "description": "Setting up a program and Looking after the people have step-by-step pages but no Watch it (the player), which only Signing in has (WATCH_READY). Add them when the player is widened to more tutorials.",
+    "category": "Nav & Layout",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-26",
+    "notes": ""
   }
 ]

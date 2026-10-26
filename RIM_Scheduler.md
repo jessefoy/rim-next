@@ -8,6 +8,8 @@ For broader hub rules see `RIM_Hub_Engineering.md`. For email rules see `RIM_Ema
 
 ---
 
+**Buttons (2026-10-26):** a session's own action stays a filled button ("Yes, I can host this" and its team's words); "Enter room →", "Assign someone…", the Manage coverage choices, the Rotations actions and Cancel are quiet text with a 44px reach (they were outlined pills; Enter room was 40px). The rule: `RIM_Member_Area.md`, "The apps' buttons".
+
 ## What it is
 
 The Scheduler is the team tool for managing live session coverage. Every hub that hosts programs has its own scoped view of the Scheduler — host-team sees host-team programs, peer-led-silent-meditation sees peer-led-silent-meditation programs.

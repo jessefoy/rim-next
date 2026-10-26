@@ -13,6 +13,13 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 
 ---
 
+## October 26, 2026 (later): the Registration Team's tutorials, the Programs list, one button language
+
+- **Tutorials for the Registration Team** (`/tutorials`, a new Registration Team section): **Setting up a program** (11 steps) and **Looking after the people** (12 steps), drawn from the editor, the start page and the Registration app, phone and computer; the team's leads also see Leading your team. Wording read and approved by Jesse. A private web guide with the same content is shared by link (`RIM_Tutorials.md`).
+- **The Programs list** (`/tools/programs`): one calm row per program (name, what needs a look, kind, registration as Off / Open / Closed / Opens…, "12 of 20 places"), People · Edit · Archive as quiet text, the shared filter pills with counts, the kind under the name on tablets, short cards on phones; archived rows readable; a refused Delete says why.
+- **One button language on every signed-in working page** (Programs, Registration, the Scheduler, the Course Manager, team pages, a file's page, administration): the button that does the work is filled; one that opens something or is secondary is quiet text with a 44px reach; the way back is plain text; a confirming delete is filled. Rows whose purpose is one action keep it filled (the Scheduler's "Yes, I can host this", Updates' "Take this session"). Personal pages keep the public site's buttons. Rule: `RIM_Member_Area.md`, "The apps' buttons".
+- **Fixed by measuring:** the program editor's browser tab names the program; faint text on the member profile, sort arrows, Last saved and several badges now pass contrast; Enter room and the Course Manager's row Edit reach 44px; checkboxes are 20px in RIM's blue; Manage categories is an action, not a filter.
+
 ## October 24 to 26, 2026: helpers, what we tell people, starting a program, and the after-build session
 
 Phases 3 and 4 of the plan, then a full read-aloud, live trials and Jesse's decisions (`mockups/registration-2026-10-23/BUILD_PLAN.md` holds every ruling and trial).

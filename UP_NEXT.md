@@ -1,19 +1,26 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-26 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-26, later (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-26 closed: Programs and Registration, built and checked
+## Active — 2026-10-26 (later) closed: tutorials for the Registration Team, the Programs list, one button language
 
-Everything is on `main` (through this closing). Narrative: `session-log.md`, 2026-10-24 to 10-26 (and 10-23 to 10-24 for Phase 1). The plan, every read-aloud ruling, every trial and every decision: `mockups/registration-2026-10-23/BUILD_PLAN.md`. References: `RIM_Registration_App.md`, `RIM_ProgramEditor.md`, `RIM_Registration.md`, `RIM_Member_Area.md` (teacher's page, Today's list), `RIM_Hub_Engineering.md` (Helping with).
+Everything is on `main` (`96f8272` … `5df5954`, and this closing). Narrative: `session-log.md`, 2026-10-26 (later). The button rule: `RIM_Member_Area.md`, "The apps' buttons" (and `CLAUDE.md`, CSS Rules).
 
-**Live and checked:** the Registration app; the program editor as one page ("Teachers and teams", "Messages to those who register"); Opens on; Post a notice; who's asking; the teacher's page; Today's list; Helping with; reminders in days before (with the time); the note after; "Tell the people registered?"; shapes and copies; contact details closing 30 days after a program ends, with "Ended" lists; registration closing when a one-time program ends; This Week skipping Private programs; archived teams' Drive folders in "Archived teams"; Skew Protection on. All wording read aloud and ruled.
+**Live and measured:** the Registration Team's two tutorials on `/tutorials`; the Programs list as one calm row per program; one button language on every signed-in working page (filled for the work, quiet text for the rest, plain back links, filled confirming deletes; the Scheduler's and Updates' one-action rows stay filled); the editor's tab title, contrast fixes across admin and the member profile, 20px checkboxes.
 
 **Waiting on Jesse:**
-- Confirm the Trial Workshop's **note after** arrives Tue Oct 27 ~10 AM CT (checked by preview only).
-- Optional tidy: delete the **Test Program Central** account (jesse+pc@) in Members and the **Trial Kitchen** folder in Drive's "Archived teams".
-- The "give online" email's own wording (backlog `2026-10-24-002`).
+- Share the private guide [Programs and Registration](https://claude.ai/artifact/AZyzvS6VAFFZUc85TvRRRD) with LoriLee (its Share menu).
+- Hear the tutorial lines changed after his approval to match the screens ("It asks first", "Don't see Registration?", "Ticked teams hear when you save", "the notice and the guest link").
+- Confirm or reverse: the Scheduler's "Yes, I can host this" and Updates' "Take this session" kept filled.
+- From the build before: confirm the Trial Workshop's **note after** arrives Tue Oct 27 ~10 AM CT (checked by preview only); optional tidy (the Test Program Central account, the Trial Kitchen folder in Drive's "Archived teams"); the "give online" email's wording (`2026-10-24-002`).
 
-**Next concrete step:** none owed on this build. **Queued, small:** prune the old roster's CSS (`2026-10-24-001`); name the meals team directly once it exists (`2026-10-26-001`); a weekly series with a count but no days ticked (`2026-10-26-002`).
+**Next concrete step:** none owed. **Coming up:** the **November 1 sweep** (see the 2026-10-22 section). **Queued, small:** trim dead class names in mixed CSS rules (`2026-10-26-003`); Watch it for the Registration tutorials (`2026-10-26-004`); prune the old roster's CSS (`2026-10-24-001`); name the meals team directly once it exists (`2026-10-26-001`); a weekly series with a count but no days ticked (`2026-10-26-002`).
+
+**Method, for measuring signed-in pages:** the built-in browser pane holds Jesse's session on rim-next.vercel.app; same-origin iframes measure several pages at once. The pane draws streamed pages twice (React 19 waits for an animation frame the pane never runs), so measure only the visible copy.
+
+## Earlier — 2026-10-26 closed: Programs and Registration, built and checked
+
+Narrative: `session-log.md`, 2026-10-24 to 10-26 (and 10-23 to 10-24 for Phase 1). Plan, rulings, trials: `mockups/registration-2026-10-23/BUILD_PLAN.md`. References: `RIM_Registration_App.md`, `RIM_ProgramEditor.md`, `RIM_Registration.md`, `RIM_Member_Area.md`, `RIM_Hub_Engineering.md`. Its open items are carried in Active above.
 
 ## Earlier — 2026-10-22 closed: shorter pages, the three circles, an integrity pass; every public page measured and recomposed
 
@@ -87,7 +94,7 @@ Everything is on `main` (`6063bf5` … `41e305e`, `fedbecd`, the closing docs). 
 
 **Waiting on Jesse:**
 - **Teams before the sign-in note.** Only 13 people are on the 15 teams (Peer-Led Silent Meditation has two; Course Team none). LoriLee and Cindy gather who serves on each team; I add them in one approved batch (Member Registry → Hub memberships; silent until they sign in); then the drafted note goes out (address: rim-next.vercel.app until launch, help at support@). Not signed in yet: Stacy Isaacson, Daniela Oliveira, Wendy Peche. Program Central has no apps installed, so adding leads (Maria, Marne) gives no editing power.
-- **Look at `/join` signed in** (the built-in browser here is signed out).
+- **Look at `/join` signed in** (the built-in browser pane holds a signed-in session since 2026-10-26, so this can now be checked here).
 - **The fundraiser's donation link** (December 5 gathering): waiting on the fundraising team.
 - **Sacred Clarity**, dated March 16, 2026, still the only Immersion program (wrong date, or hide-when-past off): read its row, propose the fix.
 - **A skim of long templates in `/admin/emails`** for a line now breaking mid-sentence (the edited production bodies weren't read), or allow that read.

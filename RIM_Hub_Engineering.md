@@ -8,6 +8,8 @@ If you're learning the system, read `RIM_Hub_Model.md` first. If you're writing 
 
 ---
 
+**Buttons on team pages (2026-10-26):** the shared `.hub-ws-layout` secondary rule draws quiet text (Mark all as read, Show all, a member's Edit, Cancel, Keep); a confirming delete or removal is a filled red `btn btn--danger` (Delete conversation, Delete reply, Delete category, Discard, Remove, Mark inactive, Take them off their sessions); Updates' "Take this session" stays filled; Manage categories is a quiet action (`.app-act`). Presentation only: no gate, recipient or URL changed. The rule: `RIM_Member_Area.md`, "The apps' buttons".
+
 ## The core principle
 
 > **Shared infrastructure, hub-scoped data.**
