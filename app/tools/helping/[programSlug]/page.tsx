@@ -8,7 +8,8 @@ import { fmtLabel } from "@/lib/programUtils";
 import { loadAskerContext } from "@/lib/programAskers";
 import { askerOf } from "@/lib/questionAskers";
 import { answerFor, type QuestionLike } from "@/lib/registrationAnswers";
-import { CONTACT_DAYS_AFTER, contactsClosed } from "@/lib/contactWindow";
+import { CONTACT_DAYS_AFTER, contactsClosed, hasEnded } from "@/lib/contactWindow";
+import { formatPhone } from "@/lib/phone";
 import { lastOccurrenceEnd } from "@/lib/scheduleUtils";
 import { isGuidingTeacher } from "@/lib/teaching";
 
@@ -104,6 +105,8 @@ export default async function HelpingProgramPage({
   const when = programWhen(program);
   const where = fmtLabel(program.programFormat, program.outsideMeetingUrl);
   const n = registrations.length;
+  // Once it's over, said as past (2026-10-26).
+  const over = !!program.archivedAt || hasEnded(program, new Date(), lastOccurrenceEnd(program));
 
   return (
     <div className="vol-page">
@@ -116,7 +119,9 @@ export default async function HelpingProgramPage({
             ? "People don’t register for this program, so there’s no one to count."
             : n === 0
               ? "No one has registered yet."
-              : `${n === 1 ? "1 person is" : `${n} people are`} coming.`}
+              : over
+                ? `${n === 1 ? "1 person" : `${n} people`} had a place.`
+                : `${n === 1 ? "1 person is" : `${n} people are`} coming.`}
         </p>
         <p className="hlp-why">
           You see this because the {team.name} prepares for this program. It shows how many are coming and what they told the team
@@ -187,7 +192,7 @@ export default async function HelpingProgramPage({
                         <div className="hlp-person__body">
                           <p className="hlp-contact">
                             {contact.email && <a href={`mailto:${contact.email}`}>{contact.email}</a>}
-                            {contact.phone && <> &middot; <a href={telHref(contact.phone)}>{contact.phone}</a></>}
+                            {contact.phone && <> &middot; <a href={telHref(contact.phone)}>{formatPhone(contact.phone)}</a></>}
                           </p>
                         </div>
                       </details>

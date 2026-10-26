@@ -278,9 +278,26 @@ export function lastOccurrenceDate(p: ScheduleProgram): string | null {
   if (!p.startDatetime) return null;
   const anchor = ctDateStr(p.startDatetime.toISOString());
   if (!p.recurrenceFreq) return p.endDatetime ? ctDateStr(p.endDatetime.toISOString()) : anchor;
-  // As isOccurrenceOnDate reads a count: only weekly, only 2 or more, and
-  // only with days ticked (with none, its bound never ends; review 2026-10-26).
-  if (p.recurrenceFreq.toUpperCase() !== "WEEKLY" || !p.recurrenceCount || p.recurrenceCount < 2) return null;
+  if (!p.recurrenceCount || p.recurrenceCount < 2) return null;
+  // Monthly with a count (2026-10-26): its last session falls in the month
+  // (count - 1) x interval after the start's (an Nth or last weekday is in
+  // every month), so only that month is checked against isOccurrenceOnDate.
+  if (p.recurrenceFreq.toUpperCase() === "MONTHLY") {
+    const [ay, am] = anchor.split("-").map(Number);
+    const months = am - 1 + (p.recurrenceCount - 1) * (p.recurrenceInterval ?? 1);
+    const y = ay + Math.floor(months / 12);
+    const m = (months % 12) + 1;
+    let last: string | null = null;
+    for (let d = 1; d <= 31; d++) {
+      const day = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      if (new Date(day + "T12:00:00Z").getUTCMonth() + 1 !== m) break;
+      if (isOccurrenceOnDate(p, day)) last = day;
+    }
+    return last;
+  }
+  // Weekly, as isOccurrenceOnDate reads a count: only with days ticked (with
+  // none, its bound never ends; review 2026-10-26).
+  if (p.recurrenceFreq.toUpperCase() !== "WEEKLY") return null;
   if (!p.recurrenceDays || p.recurrenceDays.length === 0) return null;
   const daysPerCycle = p.recurrenceDays.length;
   const cycles = Math.ceil((p.recurrenceCount - 1) / daysPerCycle);

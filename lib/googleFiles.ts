@@ -229,6 +229,56 @@ export async function provisionHubSpaceStorage(
   return { ok: true, driveId: container.id, rootFolderId: folder.id, alreadyMapped: false };
 }
 
+/** The folder archived teams' folders move into, inside "RIM — Spaces". */
+export const ARCHIVED_TEAMS_FOLDER = "Archived teams";
+
+/**
+ * An archived team's folder moves aside, into "Archived teams" inside the
+ * Spaces drive (made the first time it's needed); restoring the team moves
+ * it back (Jesse, 2026-10-26: old folders lingered among the active ones).
+ * The folder keeps its id, so the team's Files still work if it's restored.
+ * Only a folder RIM made in the Spaces drive is moved; a team mapped to its
+ * own drive is left alone. Best-effort: a Drive failure never blocks the
+ * archive, and is logged.
+ */
+export async function moveHubFolderForArchive(
+  hub: { id: string; googleDriveId: string | null; googleRootFolderId: string | null },
+  archived: boolean,
+  actorUserId: string,
+): Promise<{ moved: boolean; reason?: string }> {
+  if (!googleConfigured() || !hub.googleDriveId || !hub.googleRootFolderId) return { moved: false, reason: "no folder" };
+  const container = await resolveSpacesContainerDrive();
+  if (!container || hub.googleDriveId !== container.id || hub.googleRootFolderId === container.id) {
+    return { moved: false, reason: "not a folder RIM made in the Spaces drive" };
+  }
+  const folder = await getFileOrNull(hub.googleRootFolderId);
+  if (!folder || folder.trashed) return { moved: false, reason: "folder missing" };
+  const rootChildren = await listFiles(container.id, container.id);
+  // Never a team's own folder, even one named "Archived teams" (review,
+  // 2026-10-26): moving folders into a team's folder would open them to it.
+  const teamRoots = new Set(
+    (await db.hub.findMany({ where: { googleRootFolderId: { not: null } }, select: { googleRootFolderId: true } }))
+      .map((h) => h.googleRootFolderId as string),
+  );
+  let archive = rootChildren.find((f) => f.mimeType === GOOGLE_MIME.folder && f.name === ARCHIVED_TEAMS_FOLDER && !teamRoots.has(f.id));
+  const parents = folder.parents ?? [];
+  if (archived) {
+    if (archive && parents.includes(archive.id)) return { moved: false, reason: "already aside" };
+    if (!archive) archive = await createFile({ name: ARCHIVED_TEAMS_FOLDER, mimeType: GOOGLE_MIME.folder, parentId: container.id });
+    await moveFile(folder.id, { addParent: archive.id, removeParent: parents.join(",") || undefined });
+  } else {
+    if (parents.includes(container.id)) return { moved: false, reason: "already in place" };
+    await moveFile(folder.id, { addParent: container.id, removeParent: parents.join(",") || undefined });
+  }
+  await logFileAction({
+    userId: actorUserId,
+    action: archived ? "archive-space-folder" : "restore-space-folder",
+    hubId: hub.id,
+    detail: { folderId: folder.id, to: archived ? ARCHIVED_TEAMS_FOLDER : container.name },
+  });
+  return { moved: true };
+}
+
 function hubPlace(
   h: {
     id: string;

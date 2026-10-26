@@ -6,8 +6,8 @@
  * keeps it as always.
  *
  * A one-time program ends on its last day (its end, or its start), or when
- * it's archived first (cancelled). A weekly series with a set number of
- * classes ends on its last class (Jesse, 2026-10-26; the caller passes it,
+ * it's archived first (cancelled). A weekly or monthly series with a set
+ * number of sessions ends on its last session (Jesse, 2026-10-26; the caller passes it,
  * lib/scheduleUtils.ts lastOccurrenceEnd), or when archived first; any
  * other repeating program when it's archived. Pure, no imports.
  */

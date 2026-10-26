@@ -19,6 +19,7 @@ import { ActionNotice, useActionNotice } from "@/components/FormDone";
 import { FilterPills, SectionTabs } from "@/components/FilterBar";
 import type { RegistrationField } from "@/components/RegistrationForm";
 import type { DeskNeed } from "@/lib/registrationDesk";
+import { formatPhone } from "@/lib/phone";
 
 export interface PeopleRow {
   id: string;
@@ -74,13 +75,6 @@ const DANA_LABELS: Record<string, string> = {
 };
 
 const isRegistered = (s: string) => s === "REGISTERED" || s === "APPROVED";
-
-function formatPhone(raw: string): string {
-  const d = raw.replace(/\D/g, "");
-  if (d.length === 11 && d[0] === "1") return `(${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}`;
-  if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
-  return raw;
-}
 
 function dollars(cents: number): string {
   return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;

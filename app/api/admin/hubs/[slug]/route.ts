@@ -6,7 +6,7 @@ import {
   DEFAULT_HOSTING_HUB_SLUG,
   resolveHostingHubSlug,
 } from "@/lib/programHub";
-import { resolveSpacesContainerDrive } from "@/lib/googleFiles";
+import { moveHubFolderForArchive, resolveSpacesContainerDrive } from "@/lib/googleFiles";
 import { retargetTeamLink } from "@/lib/linkInput";
 import { ctDateStr } from "@/lib/scheduleUtils";
 import { sendCoverageClearedEmails } from "@/lib/email";
@@ -480,6 +480,19 @@ export async function PATCH(
       },
     });
   });
+
+  // Archived or restored: its Drive folder moves aside or back (2026-10-26).
+  if (status !== undefined && status !== hub.status && (status === "ARCHIVED" || hub.status === "ARCHIVED")) {
+    const archivedNow = status === "ARCHIVED";
+    after(async () => {
+      try {
+        const r = await moveHubFolderForArchive(updated, archivedNow, session!.user.id);
+        console.log(`[admin hubs] ${updated.slug}: folder ${archivedNow ? "archive" : "restore"}: ${r.moved ? "moved" : r.reason}`);
+      } catch (e) {
+        console.error(`[admin hubs] ${updated.slug}: folder ${archivedNow ? "archive" : "restore"} failed`, e);
+      }
+    });
+  }
 
   // Tell the people taken off sessions (lib/email.ts sendCoverageClearedEmails).
   if (clearedRows.length) {

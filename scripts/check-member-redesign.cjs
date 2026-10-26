@@ -555,5 +555,11 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   const tq = JSON.parse(JSON.stringify(rwx.takingRegistrationsWhere(new Date('2026-10-26T17:00:00Z'))));
   check(JSON.stringify(tq.AND[2]), JSON.stringify({ OR: [{ recurrenceFreq: { not: null } }, { endDatetime: { gt: '2026-10-26T17:00:00.000Z' } }, { endDatetime: null, OR: [{ startDatetime: null }, { startDatetime: { gt: '2026-10-26T17:00:00.000Z' } }] }] }), 'the database filter says the same');
 
+  // A monthly series with a count ends on its last session; one phone format (2026-10-26).
+  const sixLastSundays = { id: 'm', name: 'M', slug: 'm', programFormat: 'virtual', startDatetime: new Date('2026-10-25T15:00:00Z'), endDatetime: new Date('2026-10-25T16:00:00Z'), recurrenceFreq: 'MONTHLY', recurrenceInterval: 1, recurrenceDays: [], recurrenceCount: 6 };
+  check(su.lastOccurrenceDate(sixLastSundays), '2027-03-28', 'six last-Sundays from Oct 25, 2026 end on the last Sunday of March 2027');
+  const ph = load('lib/phone.ts');
+  check([ph.formatPhone('4143507893'), ph.formatPhone('+1 414 350 7893'), ph.formatPhone('ext 12')], ['(414) 350-7893', '(414) 350-7893', 'ext 12'], 'one phone format; anything else as typed');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

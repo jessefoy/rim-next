@@ -10,8 +10,9 @@ import { loadAskerContext } from "@/lib/programAskers";
 import { askerOf } from "@/lib/questionAskers";
 import { answerFor, type QuestionLike } from "@/lib/registrationAnswers";
 import { loadFirstRegistrationIds } from "@/lib/firstRegistration";
-import { CONTACT_DAYS_AFTER, contactsClosed } from "@/lib/contactWindow";
+import { CONTACT_DAYS_AFTER, contactsClosed, hasEnded } from "@/lib/contactWindow";
 import { lastOccurrenceEnd } from "@/lib/scheduleUtils";
+import { formatPhone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +144,8 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
   const name = (r: { firstName: string; lastName: string }) => `${r.firstName} ${r.lastName}`.trim();
   const when = programWhen(program);
   const where = fmtLabel(program.programFormat, program.outsideMeetingUrl);
+  // Once it's over, said as past (2026-10-26): "1 person had a place."
+  const over = !!program.archivedAt || hasEnded(program, new Date(), lastOccurrenceEnd(program));
   const people = (n: number) => (n === 1 ? "1 person is" : `${n} people are`);
 
   const state = !program.registrationEnabled && coming.length === 0
@@ -151,7 +154,9 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
       ? waiting.length > 0
         ? "No one has a place yet."
         : "No one has registered yet."
-      : `${people(coming.length)} coming.`;
+      : over
+        ? `${coming.length === 1 ? "1 person" : `${coming.length} people`} had a place.`
+        : `${people(coming.length)} coming.`;
 
   return (
     <AccountLayout>
@@ -271,7 +276,7 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
                       <div className="hlp-person__body">
                         <p className="hlp-contact">
                           <a href={`mailto:${r.email}`}>{r.email}</a>
-                          {r.phone && <> &middot; <a href={telHref(r.phone)}>{r.phone}</a></>}
+                          {r.phone && <> &middot; <a href={telHref(r.phone)}>{formatPhone(r.phone)}</a></>}
                         </p>
                         {mine.map(({ q, a }) => (
                           <p key={q._key ?? q.label} className="hlp-told"><span className="hlp-told__q">{q.label}</span> {a}</p>
