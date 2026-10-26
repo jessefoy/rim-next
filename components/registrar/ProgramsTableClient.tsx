@@ -3,6 +3,7 @@
 import { useState, type RefObject } from "react";
 import Link from "next/link";
 import { ActionNotice, useActionNotice } from "@/components/FormDone";
+import { FilterPills } from "@/components/FilterBar";
 import { useNavigationDrawer } from "@/components/hooks/useNavigationDrawer";
 import { OFFERING_CATEGORIES, OFFERING_FORMATS, categorySectionTitle, formatLabel } from "@/lib/programOffering";
 
@@ -174,80 +175,39 @@ export default function ProgramsTableClient({
     }
   }
 
-  function formatBadge(format: string) {
-    const map: Record<string, { label: string; cls: string }> = {
-      "in-person": { label: "In-person", cls: "vol-badge--inperson" },
-      virtual: { label: "Virtual", cls: "vol-badge--virtual" },
-      hybrid: { label: "Hybrid", cls: "vol-badge--hybrid" },
-    };
-    const b = map[format] || { label: format, cls: "" };
-    return <span className={`vol-badge ${b.cls}`}>{b.label}</span>;
+  // The list's words (2026-10-26, Jesse: the list should look professional;
+  // the measured pass): registration in the editor's own words, places in
+  // plain words, how it meets beside its kind.
+  const DELIVERY: Record<string, string> = {
+    "in-person": "In person",
+    virtual: "Online",
+    hybrid: "In person and online",
+  };
+
+  function regState(p: ProgramRow) {
+    const [label, tone] =
+      p.regWindow === "off" ? ["Off", "off"]
+      : p.regWindow === "closed" ? ["Closed", "closed"]
+      : p.regWindow === "notYet" ? [`Opens ${p.opensOn}`, "soon"]
+      : ["Open", "open"];
+    return <span className={`prl-state prl-state--${tone}`}>{label}</span>;
   }
 
-  function regBadge(p: ProgramRow) {
-    if (p.regWindow === "off")
-      return <span className="vol-badge vol-badge--disabled">Disabled</span>;
-    if (p.regWindow === "closed")
-      return <span className="vol-badge vol-badge--closed">Closed</span>;
-    if (p.regWindow === "notYet")
-      return <span className="vol-badge vol-badge--soon">Opens {p.opensOn}</span>;
-    return <span className="vol-badge vol-badge--open">Open</span>;
+  function placesText(p: ProgramRow) {
+    if (!canSeePeople) return p.registrationCapacity ? `${p.registrationCapacity} places` : "No limit";
+    return p.registrationCapacity
+      ? `${p.confirmedCount} of ${p.registrationCapacity} places`
+      : `${p.confirmedCount} registered`;
   }
 
-  function capacityCell(p: ProgramRow) {
-    if (p.registrationCapacity) {
-      const pct = Math.min(
-        100,
-        Math.round((p.confirmedCount / p.registrationCapacity) * 100)
-      );
-      const fillClass =
-        pct >= 100
-          ? " vol-cap__fill--full"
-          : pct >= 60
-          ? " vol-cap__fill--warn"
-          : "";
-      return (
-        <div className="vol-cap">
-          <div className="vol-cap__bar">
-            <div
-              className={`vol-cap__fill${fillClass}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <span className="vol-cap__text">
-            {p.confirmedCount} / {p.registrationCapacity}
-          </span>
-        </div>
-      );
-    }
-    return (
-      <span className="vol-cap__text">
-        {p.confirmedCount} / &infin;
-      </span>
-    );
-  }
-
-  function flagsCell(p: ProgramRow) {
-    const flags = [];
-    if (p.pendingDanaCount > 0)
-      flags.push(
-        <span key="dana" className="vol-flag vol-flag--amber">
-          {p.pendingDanaCount} dana pending
-        </span>
-      );
-    if (p.waitlistedCount > 0)
-      flags.push(
-        <span key="wait" className="vol-flag vol-flag--amber">
-          {p.waitlistedCount} waitlisted
-        </span>
-      );
-    if (p.spotOpened)
-      flags.push(
-        <span key="spot" className="vol-flag vol-flag--spot">
-          Spot opened
-        </span>
-      );
-    return flags.length > 0 ? <>{flags}</> : null;
+  /** What needs a look, under the name: the people and dana counts. */
+  function notes(p: ProgramRow) {
+    if (!canSeePeople) return [];
+    const out: string[] = [];
+    if (p.spotOpened) out.push("A place is open");
+    if (p.waitlistedCount > 0) out.push(`${p.waitlistedCount} waiting`);
+    if (p.pendingDanaCount > 0) out.push(`${p.pendingDanaCount} dana not finished`);
+    return out;
   }
 
   // Confirmation dialog
@@ -332,31 +292,29 @@ export default function ProgramsTableClient({
     <>
       {confirmDialog()}
 
-      {/* ── Toolbar: filters + search + add button ── */}
-      <div className="vol-table-toolbar">
-        <div className="vol-table-pills">
-          {(
-            [
-              ["all", `All (${counts.all})`],
-              ["open", "Open"],
-              ...(canSeePeople ? [["waitlist", "Has waitlist"], ["attention", "Needs attention"]] : []),
-              ["archived", `Archived${counts.archived > 0 ? ` (${counts.archived})` : ""}`],
-            ] as [Filter, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              className={`vol-pill${filter === key ? " vol-pill--active" : ""}`}
-              onClick={() => setFilter(key)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="vol-table-right">
+      {/* ── Filters, then the program's own choices and Add ── */}
+      <div className="prl-toolbar">
+        <FilterPills<Filter>
+          label="Show programs"
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { key: "all", label: "All", count: counts.all },
+            { key: "open", label: "Open", count: counts.open },
+            ...(canSeePeople
+              ? [
+                  { key: "waitlist" as const, label: "Has waitlist", count: counts.waitlist },
+                  { key: "attention" as const, label: "Needs attention", count: counts.attention, alert: counts.attention > 0 },
+                ]
+              : []),
+            { key: "archived", label: "Archived", count: counts.archived },
+          ]}
+        />
+        <div className="prl-controls">
           <label className="rim-sr-only" htmlFor="vol-filter-category">Filter by category</label>
           <select
             id="vol-filter-category"
-            className="vol-table-select"
+            className="prl-select"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
@@ -368,7 +326,7 @@ export default function ProgramsTableClient({
           <label className="rim-sr-only" htmlFor="vol-filter-format">Filter by format</label>
           <select
             id="vol-filter-format"
-            className="vol-table-select"
+            className="prl-select"
             value={formatFilter}
             onChange={(e) => setFormatFilter(e.target.value)}
           >
@@ -378,23 +336,20 @@ export default function ProgramsTableClient({
             ))}
           </select>
           <input
-            className="vol-table-search"
-            type="text"
-            placeholder="Search programs…"
+            className="prl-search"
+            type="search"
+            placeholder="Search programs"
             aria-label="Search programs"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <Link
-            href={`${basePath}/new`}
-            className="pe-btn pe-btn--primary vol-add-btn"
-          >
+          <Link href={`${basePath}/new`} className="pe-btn pe-btn--primary prl-add">
             + Add Program
           </Link>
         </div>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── The list: a table on wide screens, a card a program on narrow ones ── */}
       {filtered.length === 0 ? (
         <p className="vol-empty">
           {search
@@ -404,137 +359,81 @@ export default function ProgramsTableClient({
             : "No programs found."}
         </p>
       ) : (
-        <div className="vol-table-wrap">
-        <table className="vol-table">
-          <thead>
-            <tr>
-              <th className="vol-table__th">Program</th>
-              <th className="vol-table__th">Category</th>
-              <th className="vol-table__th">Format</th>
-              <th className="vol-table__th">Delivery</th>
-              <th className="vol-table__th">Registration</th>
-              <th className="vol-table__th">{canSeePeople ? "Capacity" : "Places"}</th>
-              {canSeePeople && <th className="vol-table__th">Flags</th>}
-              <th className="vol-table__th vol-table__th--right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((p) => (
-              <tr
-                key={p.id}
-                className={`vol-table__row${
-                  p.archivedAt ? " vol-table__row--archived" : ""
-                }`}
-              >
-                {/* Program */}
-                <td className="vol-table__td">
-                  {!p.archivedAt ? (
-                    <Link
-                      href={`${basePath}/${p.slug}/edit`}
-                      className="vol-table__name"
-                    >
-                      {p.name}
-                    </Link>
-                  ) : (
-                    <span className="vol-table__name">{p.name}</span>
-                  )}
-                  {p.tagline && (
-                    <span className="vol-table__tag">{p.tagline}</span>
-                  )}
-                </td>
-
-                {/* Category and Format (the offering) */}
-                <td className="vol-table__td">{categorySectionTitle(p.offeringCategory) ?? "—"}</td>
-                <td className="vol-table__td">{formatLabel(p.offeringFormat) ?? "—"}</td>
-
-                {/* Delivery: in person, virtual, or hybrid (Program.programFormat) */}
-                <td className="vol-table__td">{formatBadge(p.programFormat)}</td>
-
-                {/* Registration: open, closed or off */}
-                <td className="vol-table__td">{regBadge(p)}</td>
-
-                {/* Capacity: people taken only for those who can open Registration */}
-                <td className="vol-table__td">
-                  {canSeePeople ? capacityCell(p) : (
-                    <span className="vol-cap__text">{p.registrationCapacity ?? "No limit"}</span>
-                  )}
-                </td>
-
-                {/* Flags (people and dana) */}
-                {canSeePeople && (
-                  <td className="vol-table__td">{flagsCell(p)}</td>
-                )}
-
-                <td className="vol-table__td vol-table__td--right">
-                    {p.archivedAt ? (
-                      canArchive ? (
-                      <div className="vol-table__actions">
-                        <button
-                          className="vol-table__action"
-                          onClick={() =>
-                            setConfirming({ slug: p.slug, action: "restore" })
-                          }
-                        >
-                          Restore
-                        </button>
-                        {isAdmin ? (
-                          hasActiveRegs(p) ? (
-                            <span
-                              className="vol-table__action vol-table__action--disabled"
-                              title="Cannot delete — active registrations exist. Cancel all registrations first."
-                            >
-                              Delete
-                            </span>
-                          ) : (
-                            <button
-                              className="vol-table__action vol-table__action--danger"
-                              onClick={() =>
-                                setConfirming({
-                                  slug: p.slug,
-                                  action: "delete",
-                                })
-                              }
-                            >
-                              Delete
-                            </button>
-                          )
-                        ) : null}
-                      </div>
-                      ) : null
-                    ) : (
-                      <div className="vol-table__actions">
-                        {/* Its people live in the Registration app (2026-10-23). */}
-                        {canSeePeople && (
-                          <Link
-                            href={`/tools/registration/${p.slug}`}
-                            className="vol-table__action"
-                          >
-                            People
-                          </Link>
-                        )}
-                        <Link
-                          href={`${basePath}/${p.slug}/edit`}
-                          className="vol-table__action"
-                        >
-                          Edit
-                        </Link>
-                        {canArchive && (
-                          <button
-                            className="vol-table__action vol-table__action--muted"
-                            onClick={() =>
-                              setConfirming({ slug: p.slug, action: "archive" })
-                            }
-                          >
-                            Archive
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </td>
+        <div className="prl">
+          <table className="prl-table">
+            <thead>
+              <tr>
+                <th scope="col">Program</th>
+                <th scope="col">Kind</th>
+                <th scope="col">Registration</th>
+                <th scope="col">{canSeePeople ? "Registered" : "Places"}</th>
+                <th scope="col"><span className="rim-sr-only">Actions</span></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((p) => {
+                const needs = notes(p);
+                const kind = [formatLabel(p.offeringFormat), DELIVERY[p.programFormat] ?? p.programFormat].filter(Boolean).join(" · ");
+                return (
+                  <tr key={p.id} className="prl-row">
+                    <td className="prl-cell prl-cell--name">
+                      {!p.archivedAt ? (
+                        <Link href={`${basePath}/${p.slug}/edit`} className="prl-name">{p.name}</Link>
+                      ) : (
+                        <span className="prl-name">{p.name}</span>
+                      )}
+                      {p.tagline && <span className="prl-tag">{p.tagline}</span>}
+                      {/* Its kind, here when the list is too narrow for its own column. */}
+                      <span className="prl-meta prl-kindline">
+                        {[categorySectionTitle(p.offeringCategory) ?? "No category", kind].filter(Boolean).join(" · ")}
+                      </span>
+                      {needs.length > 0 && <span className="prl-needs">{needs.join(" · ")}</span>}
+                    </td>
+                    <td className="prl-cell prl-cell--kind">
+                      <span>{categorySectionTitle(p.offeringCategory) ?? "No category"}</span>
+                      {kind && <span className="prl-meta">{kind}</span>}
+                    </td>
+                    <td className="prl-cell prl-cell--reg">
+                      {p.archivedAt ? <span className="prl-state prl-state--off">Archived</span> : regState(p)}
+                    </td>
+                    <td className="prl-cell prl-cell--places">{placesText(p)}</td>
+                    <td className="prl-cell prl-cell--acts">
+                      {p.archivedAt ? (
+                        canArchive ? (
+                          <div className="prl-acts">
+                            <button type="button" className="prl-act" onClick={() => setConfirming({ slug: p.slug, action: "restore" })}>
+                              Restore
+                            </button>
+                            {isAdmin &&
+                              (hasActiveRegs(p) ? (
+                                <span className="prl-why">People are registered or waiting, so it can&rsquo;t be deleted.</span>
+                              ) : (
+                                <button type="button" className="prl-act prl-act--danger" onClick={() => setConfirming({ slug: p.slug, action: "delete" })}>
+                                  Delete
+                                </button>
+                              ))}
+                          </div>
+                        ) : null
+                      ) : (
+                        <div className="prl-acts">
+                          {/* Its people live in the Registration app (2026-10-23). */}
+                          {canSeePeople && (
+                            <Link href={`/tools/registration/${p.slug}`} className="prl-act">People</Link>
+                          )}
+                          <Link href={`${basePath}/${p.slug}/edit`} className="prl-act">Edit</Link>
+                          {canArchive && (
+                            <button type="button" className="prl-act prl-act--quiet" onClick={() => setConfirming({ slug: p.slug, action: "archive" })}>
+                              Archive
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
       <ActionNotice notice={notice} onClose={() => say(null)} />

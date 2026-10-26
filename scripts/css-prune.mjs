@@ -74,6 +74,11 @@ const DEAD_PREFIXES = [
   // 2026-10-20: My Home's "Coming up" and its full upcoming view removed, to be
   // rethought (backlog 2026-10-20-004).
   "db2-upcoming", "db2-coming-up", "db2-chip", "db2-empty-card",
+  // 2026-10-26: the Programs list moved to its own prl- styles. The Registration
+  // People table keeps vol-table, vol-table-wrap and its vol-row family.
+  "vol-add-btn", "vol-badge", "vol-cap", "vol-flag", "vol-pill",
+  "vol-table-pills", "vol-table-right", "vol-table-search", "vol-table-select",
+  "vol-table-toolbar", "vol-table__",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

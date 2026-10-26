@@ -40,21 +40,22 @@ function teamPage(
 /* ---- Setting up a program ------------------------------------------------ */
 
 function programsList(device: Device) {
+  // The list as redrawn 2026-10-26: the kind under the name, quiet text actions.
   const rows: [string, string][] = [
-    [PROGRAM, "Immersion · Day of mindfulness · Open"],
-    ["Meditation and Dharma Talk", "Ongoing Learning & Practice · Drop-in"],
-    ["Foundations Course", "Foundations · Course · Opens Nov 1, 2026"],
+    [PROGRAM, "Immersion · Day of mindfulness · In person"],
+    ["Meditation and Dharma Talk", "Ongoing Learning & Practice · Drop-in · In person and online"],
+    ["Foundations Course", "Foundations · Course · Online"],
   ];
   return teamPage(device, "Program Manager", (
     <>
       <span className="tut-h1">Programs</span>
       <span className="tut-meta">Every program, with its category, format, delivery and registration.</span>
-      <span className="tut-week"><span className="tut-input tut-input--short">Search programs…</span><span className="tut-btn">+ Add Program</span></span>
+      <span className="tut-week"><span className="tut-input tut-input--short">Search programs</span><span className="tut-btn">+ Add Program</span></span>
       <div className="tut-list">
         {rows.map(([name, facts]) => (
           <span key={name} className="tut-list__row">
             <span><b>{name}</b><small>{facts}</small></span>
-            <span className="tut-actions"><span className="tut-btn tut-btn--ghost tut-btn--sm">People</span><span className="tut-btn tut-btn--ghost tut-btn--sm">Edit</span></span>
+            <span className="tut-actions"><span className="tut-link">People</span><span className="tut-link">Edit</span></span>
           </span>
         ))}
       </div>
@@ -72,8 +73,8 @@ const SHAPES: [string, string][] = [
 ];
 
 function shapesPage(device: Device) {
-  // A computer shows all six. A phone is scrolled down to Day of mindfulness,
-  // past the heading and the first two.
+  // The page lists the shapes as rows, each with Start → at its end. A
+  // computer shows all six; a phone is scrolled down to Day of mindfulness.
   const phone = device === "phone";
   const shown = phone ? SHAPES.slice(2, 5) : SHAPES;
   return teamPage(device, "Program Manager", (
@@ -85,10 +86,11 @@ function shapesPage(device: Device) {
           <span className="tut-meta">Choose a shape to start from. Everything it fills in can be changed before you save.</span>
         </>
       )}
-      <div className={cx(!phone && "tut-cols tut-cols--3")}>
+      <div className="tut-list">
         {shown.map(([name, sets]) => (
-          <span key={name} className={cx("tut-choice", name === "Day of mindfulness" && "hl")}>
-            <b>{name}</b><small>{sets}</small><span className="tut-onward">Start →</span>
+          <span key={name} className={cx("tut-list__row", name === "Day of mindfulness" && "hl")}>
+            <span><b>{name}</b><small>{sets}</small></span>
+            <span className="tut-onward">Start →</span>
           </span>
         ))}
       </div>
