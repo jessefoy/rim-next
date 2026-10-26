@@ -85,9 +85,23 @@ export function PersonalRail({ active, hl }: { active?: string; hl?: string }) {
 
 /** A team's pages. On a computer, the column on the left. On a phone, the
  *  bar under the site header: a ☰ beside the team's name (HubWorkspaceSidebar),
- *  opened as a drawer when `open`. `hl` marks one link, or "☰". */
-export function TeamRail({ team, active, hl, device = "computer", open = false }: { team: string; active: string; hl?: string; device?: "phone" | "computer"; open?: boolean }) {
-  const links = ["Home", "Scheduler", "Updates", "Conversations", "Files", "Members"];
+ *  opened as a drawer when `open`. `hl` marks one link, or "☰". `links` is
+ *  the team's own list: Home, its apps, then the shared pages. */
+export function TeamRail({
+  team,
+  active,
+  hl,
+  device = "computer",
+  open = false,
+  links = ["Home", "Scheduler", "Updates", "Conversations", "Files", "Members"],
+}: {
+  team: string;
+  active: string;
+  hl?: string;
+  device?: "phone" | "computer";
+  open?: boolean;
+  links?: string[];
+}) {
   const foot = ["My Teams", "My Profile", "Sign out"];
   const link = (label: string) => (
     <span key={label} className={cx("tut-rail__link", active === label && "tut-rail__link--on", hl === label && "hl")}>{label}</span>

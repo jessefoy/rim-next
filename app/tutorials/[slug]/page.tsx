@@ -92,7 +92,7 @@ export default async function TutorialPage({ params }: { params: Promise<{ slug:
                 <p className="tut-next__label">Next</p>
                 <Link href="/tutorials#find-your-team" className="tut-next__card">
                   <span className="tut-next__title">Find your team</span>
-                  <span className="tut-next__summary">That&rsquo;s Start here done. Your team&rsquo;s own tutorials are next: the Scheduler, and Zoom if you lead sessions.</span>
+                  <span className="tut-next__summary">That&rsquo;s Start here done. Your team&rsquo;s own tutorials are next.</span>
                   <span className="tut-next__go">Find your team →</span>
                 </Link>
               </div>

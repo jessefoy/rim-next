@@ -23949,6 +23949,16 @@ html { scroll-padding-top: 88px; }
 .tut-saved { display: flex; flex-direction: column; gap: 4px; padding: var(--space-2); border: 1px solid var(--color-success); border-radius: 10px; background: var(--color-success-bg); }
 .tut-saved b { color: var(--color-success); }
 
+/* The Registration Team's drawings (2026-10-26): the program editor's section
+   list beside its sections, the start page's two columns, a short box. */
+.tut-split { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+.tut-sections { display: flex; flex-direction: column; gap: 2px; }
+.tut-sections span { padding: 8px 12px; border-radius: 8px; color: var(--rim-text-soft); font-size: var(--text-app-meta); }
+.tut-sections .on { background: var(--rim-surface); color: var(--rim-blue); font-weight: 600; }
+.tut-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1); }
+.tut-cols--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tut-input--short { width: auto; min-width: 140px; }
+
 /* A team on a phone: the bar under the site header, ☰ beside the team's
    name, and its drawer (HubWorkspaceSidebar). */
 .tut-frame--rail:has(> .tut-teambar-wrap) { flex-direction: column; }

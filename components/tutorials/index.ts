@@ -2,7 +2,8 @@
  * Every tutorial at /tutorials, and the path through them (2026-10-21,
  * Jesse). Start here is the same for everyone, read in order; then each
  * team's own tutorials, in order. Jesse chose the four teams to cover now:
- * Hosting Team, Peer-Led Silent Meditation, Greeter, Audio/Visual.
+ * Hosting Team, Peer-Led Silent Meditation, Greeter, Audio/Visual; the
+ * Registration Team joined them 2026-10-26.
  *
  * A new tutorial is one file beside this one (typed by ./types), added to
  * TUTORIALS and to the teams' paths that need it. Open to everyone but not
@@ -15,8 +16,15 @@ import { START_HERE_TUTORIALS } from "./startHere";
 import { SCHEDULER_TUTORIALS } from "./schedulerTutorials";
 import { ZOOM_TUTORIALS } from "./zoomTutorials";
 import { LEAD_TUTORIALS } from "./leadTutorials";
+import { REGISTRATION_TUTORIALS } from "./registrationTutorials";
 
-export const TUTORIALS: Tutorial[] = [...START_HERE_TUTORIALS, ...SCHEDULER_TUTORIALS, ...ZOOM_TUTORIALS, ...LEAD_TUTORIALS];
+export const TUTORIALS: Tutorial[] = [
+  ...START_HERE_TUTORIALS,
+  ...SCHEDULER_TUTORIALS,
+  ...ZOOM_TUTORIALS,
+  ...LEAD_TUTORIALS,
+  ...REGISTRATION_TUTORIALS,
+];
 
 /** Start here, in reading order. */
 export const START_HERE = START_HERE_TUTORIALS.map((t) => t.slug);
@@ -51,6 +59,14 @@ export const TEAM_PATHS: { slug: string; name: string; line: string; tutorials: 
     line: "You look after sound and video at RIM's in-person sessions.",
     tutorials: ["scheduler-for-av"],
     leads: ["leading-your-team", "scheduler-for-leads"],
+  },
+  {
+    // 2026-10-26, Jesse: the Registration Team's own section.
+    slug: "registrar",
+    name: "Registration Team",
+    line: "You set up programs and look after the people who sign up for them.",
+    tutorials: ["setting-up-a-program", "looking-after-the-people"],
+    leads: ["leading-your-team"],
   },
 ];
 
