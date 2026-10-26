@@ -436,11 +436,11 @@ function WhenWhereSection({
                 : `/session/${savedSlug}?key=${guestAccessKey}`;
               return (
                 <div style={{ marginTop: 12 }}>
-                  <span style={{ display: "block", fontSize: "var(--text-xxs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6b8fa3", marginBottom: 6 }}>
+                  <span style={{ display: "block", fontSize: "var(--text-xxs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-label)", marginBottom: 6 }}>
                     Guest Access Link
                   </span>
                   {/* URL row */}
-                  <div style={{ display: "flex", borderRadius: 6, border: "1px solid #d5d5d5", overflow: "hidden", background: "#fff" }}>
+                  <div style={{ display: "flex", borderRadius: 6, border: "1px solid var(--rim-rule)", overflow: "hidden", background: "var(--rim-surface)" }}>
                     <input
                       type="text"
                       readOnly
@@ -451,7 +451,7 @@ function WhenWhereSection({
                         flex: 1, minWidth: 0,
                         padding: "9px 12px",
                         fontFamily: "var(--font-mono)",
-                        fontSize: "var(--text-xs)", color: "#333",
+                        fontSize: "var(--text-xs)", color: "var(--rim-text)",
                         border: "none", outline: "none", background: "transparent",
                         boxShadow: "none",
                       }}
@@ -466,8 +466,8 @@ function WhenWhereSection({
                       style={{
                         flexShrink: 0,
                         padding: "0 18px",
-                        background: copiedLink ? "#2d6a4f" : "#39607a",
-                        color: "#fff",
+                        background: copiedLink ? "var(--color-success)" : "var(--rim-mid)",
+                        color: "var(--rim-surface)",
                         border: "none",
                         fontFamily: "var(--font-sans)",
                         fontSize: "var(--text-xs)", fontWeight: 600,
@@ -489,7 +489,7 @@ function WhenWhereSection({
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <button
                           type="button"
-                          className="pe-btn pe-btn--small pe-btn--danger"
+                          className="pe-btn pe-btn--primary"
                           disabled={resettingKey}
                           onClick={async () => {
                             setResettingKey(true);
@@ -515,7 +515,7 @@ function WhenWhereSection({
                         </button>
                         <button
                           type="button"
-                          className="pe-btn pe-btn--small pe-btn--ghost"
+                          className="app-act"
                           disabled={resettingKey}
                           onClick={() => { setConfirmResetKey(false); setResetKeyNote(null); }}
                         >
@@ -527,12 +527,8 @@ function WhenWhereSection({
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
                       <button
                         type="button"
+                        className="app-act app-act--quiet"
                         onClick={() => { setConfirmResetKey(true); setResetKeyNote(null); }}
-                        style={{
-                          background: "none", border: "none", padding: 0,
-                          fontSize: "var(--text-xs)", color: "var(--rim-text-muted)", cursor: "pointer",
-                          textDecoration: "underline", fontFamily: "var(--font-sans)",
-                        }}
                       >
                         Reset link
                       </button>

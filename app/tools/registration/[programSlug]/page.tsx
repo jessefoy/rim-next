@@ -334,7 +334,7 @@ export default async function RegistrationProgramPage({
     <div className="vol-page">
       <div className="vol-content">
         <div className="vol-header">
-          <Link href={`/tools/registration${hubQs}`} className="vol-back">&larr; All programs</Link>
+          <Link href={`/tools/registration${hubQs}`} className="app-back">&larr; All programs</Link>
           <h1 className="vol-header__title">{program.name}</h1>
           <p className="reg-state">
             <strong>{program.archivedAt ? "Archived" : registrationState(program)}</strong>

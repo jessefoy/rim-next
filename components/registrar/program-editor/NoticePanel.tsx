@@ -91,7 +91,7 @@ function NoticePanel({ slug, initialNotice, initialUntil, canEmail, registeredCo
       <div className="pe-notice__bar">
         <button
           type="button"
-          className="pe-btn"
+          className="app-act"
           aria-expanded={open}
           aria-controls="pe-notice-panel"
           onClick={() => { setOpen((o) => !o); setStatus("idle"); }}
@@ -142,11 +142,11 @@ function NoticePanel({ slug, initialNotice, initialUntil, canEmail, registeredCo
               {status === "saving" ? "Posting…" : "Post the notice"}
             </button>
             {posted.notice && (
-              <button type="button" className="pe-btn" disabled={status === "saving"} onClick={() => send(true)}>
+              <button type="button" className="app-act" disabled={status === "saving"} onClick={() => send(true)}>
                 Take the notice down
               </button>
             )}
-            <button type="button" className="pe-btn pe-btn--ghost" disabled={status === "saving"} onClick={() => { setOpen(false); setNotice(posted.notice); setUntil(posted.until); setStatus("idle"); }}>
+            <button type="button" className="app-act" disabled={status === "saving"} onClick={() => { setOpen(false); setNotice(posted.notice); setUntil(posted.until); setStatus("idle"); }}>
               Close
             </button>
           </div>

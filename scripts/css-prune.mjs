@@ -79,6 +79,9 @@ const DEAD_PREFIXES = [
   "vol-add-btn", "vol-badge", "vol-cap", "vol-flag", "vol-pill",
   "vol-table-pills", "vol-table-right", "vol-table-search", "vol-table-select",
   "vol-table-toolbar", "vol-table__",
+  // 2026-10-26: Programs and Registration use the shared quiet action
+  // (.app-act) and back link (.app-back).
+  "vol-back", "vol-action-btn", "vol-csv-btn",
 ];
 
 const classRe = /\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)/g;

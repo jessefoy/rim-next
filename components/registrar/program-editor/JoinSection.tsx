@@ -321,13 +321,13 @@ function JoinSection({
                 </select>
               </label>
               <div className="pe-reg-field__actions">
-                <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, -1)} disabled={idx === 0} aria-label={`Move question ${idx + 1} up`}>↑</button>
-                <button type="button" className="pe-btn pe-btn--small" onClick={() => moveField(idx, 1)} disabled={idx === registrationFields.length - 1} aria-label={`Move question ${idx + 1} down`}>↓</button>
-                <button type="button" className="pe-btn pe-btn--small pe-btn--danger" onClick={() => removeField(idx)} aria-label={`Remove question ${idx + 1}`}>Remove</button>
+                <button type="button" className="app-act" onClick={() => moveField(idx, -1)} disabled={idx === 0} aria-label={`Move question ${idx + 1} up`}>↑</button>
+                <button type="button" className="app-act" onClick={() => moveField(idx, 1)} disabled={idx === registrationFields.length - 1} aria-label={`Move question ${idx + 1} down`}>↓</button>
+                <button type="button" className="app-act app-act--danger" onClick={() => removeField(idx)} aria-label={`Remove question ${idx + 1}`}>Remove</button>
               </div>
             </div>
           ))}
-          <button type="button" className="pe-btn pe-btn--small" onClick={addField}>
+          <button type="button" className="app-act" onClick={addField}>
             + Add Question
           </button>
         </div>

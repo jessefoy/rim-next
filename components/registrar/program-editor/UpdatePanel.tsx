@@ -58,7 +58,7 @@ function UpdatePanel({ slug, offer, onDone }: Props) {
           registration team sends them an update.
         </p>
         <div className="pe-notice__actions">
-          <button type="button" className="pe-btn" onClick={() => onDone(null)}>Close</button>
+          <button type="button" className="app-act" onClick={() => onDone(null)}>Close</button>
         </div>
       </div>
     );
@@ -109,7 +109,7 @@ function UpdatePanel({ slug, offer, onDone }: Props) {
           {MESSAGE_MAX_PEOPLE} can be emailed from here: send the update through the program&rsquo;s Flodesk segment.
         </p>
         <div className="pe-notice__actions">
-          <button type="button" className="pe-btn" onClick={() => onDone(null)}>Close</button>
+          <button type="button" className="app-act" onClick={() => onDone(null)}>Close</button>
         </div>
       </div>
     );
@@ -154,7 +154,7 @@ function UpdatePanel({ slug, offer, onDone }: Props) {
             <button type="button" className="pe-btn pe-btn--primary" disabled={status === "saving"} onClick={() => send(false)}>
               {status === "saving" ? "Sending…" : `Yes, send to ${people(n)}`}
             </button>
-            <button type="button" className="pe-btn" disabled={status === "saving"} onClick={() => setConfirming(false)}>Not yet</button>
+            <button type="button" className="app-act" disabled={status === "saving"} onClick={() => setConfirming(false)}>Not yet</button>
           </div>
         </div>
       ) : (
@@ -162,10 +162,10 @@ function UpdatePanel({ slug, offer, onDone }: Props) {
           <button type="button" className="pe-btn pe-btn--primary" onClick={() => { setStatus("idle"); setConfirming(true); }}>
             Send to the {people(n)} registered
           </button>
-          <button type="button" className="pe-btn" disabled={status === "saving"} onClick={() => send(true)}>
+          <button type="button" className="app-act" disabled={status === "saving"} onClick={() => send(true)}>
             {status === "saving" ? "Sending…" : "Send me a test"}
           </button>
-          <button type="button" className="pe-btn pe-btn--ghost" onClick={() => onDone(null)}>Not now</button>
+          <button type="button" className="app-act" onClick={() => onDone(null)}>Not now</button>
         </div>
       )}
       <SaveNote status={status} saved={answer} problem={problem} />

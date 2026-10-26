@@ -263,7 +263,7 @@ export default function ProgramsTableClient({
           <div className="vol-dialog__actions">
             <button
               type="button"
-              className="vol-confirm-btn"
+              className="app-act"
               disabled={busy}
               onClick={closeDialog}
             >
@@ -401,14 +401,14 @@ export default function ProgramsTableClient({
                       {p.archivedAt ? (
                         canArchive ? (
                           <div className="prl-acts">
-                            <button type="button" className="prl-act" onClick={() => setConfirming({ slug: p.slug, action: "restore" })}>
+                            <button type="button" className="app-act" onClick={() => setConfirming({ slug: p.slug, action: "restore" })}>
                               Restore
                             </button>
                             {isAdmin &&
                               (hasActiveRegs(p) ? (
                                 <span className="prl-why">People are registered or waiting, so it can&rsquo;t be deleted.</span>
                               ) : (
-                                <button type="button" className="prl-act prl-act--danger" onClick={() => setConfirming({ slug: p.slug, action: "delete" })}>
+                                <button type="button" className="app-act app-act--danger" onClick={() => setConfirming({ slug: p.slug, action: "delete" })}>
                                   Delete
                                 </button>
                               ))}
@@ -418,11 +418,11 @@ export default function ProgramsTableClient({
                         <div className="prl-acts">
                           {/* Its people live in the Registration app (2026-10-23). */}
                           {canSeePeople && (
-                            <Link href={`/tools/registration/${p.slug}`} className="prl-act">People</Link>
+                            <Link href={`/tools/registration/${p.slug}`} className="app-act">People</Link>
                           )}
-                          <Link href={`${basePath}/${p.slug}/edit`} className="prl-act">Edit</Link>
+                          <Link href={`${basePath}/${p.slug}/edit`} className="app-act">Edit</Link>
                           {canArchive && (
-                            <button type="button" className="prl-act prl-act--quiet" onClick={() => setConfirming({ slug: p.slug, action: "archive" })}>
+                            <button type="button" className="app-act app-act--quiet" onClick={() => setConfirming({ slug: p.slug, action: "archive" })}>
                               Archive
                             </button>
                           )}

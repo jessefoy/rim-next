@@ -218,7 +218,7 @@ export default function RegistrationSettings({
         {mailingListOn && (
           segments === null ? (
             <div className="reg-actions">
-              <button type="button" className="vol-action-btn" onClick={loadSegments} disabled={loadingSegments}>
+              <button type="button" className="app-act" onClick={loadSegments} disabled={loadingSegments}>
                 {loadingSegments
                   ? "Asking Flodesk…"
                   : initial.segmentId ? "Choose a different segment" : "Use an existing segment instead"}

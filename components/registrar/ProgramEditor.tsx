@@ -984,7 +984,7 @@ export default function ProgramEditor({
               </button>
               <button
                 type="button"
-                className="pe-btn"
+                className="app-act"
                 onClick={() => { setDirty(false); router.push(pendingNav); }}
               >
                 Leave without saving
@@ -998,7 +998,7 @@ export default function ProgramEditor({
         <h2 className="pe-editor__title">{isEditing ? "Edit Program" : "New Program"}</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginLeft: "auto" }}>
           {isEditing && slug && (
-            <a href={`/programs/${slug}`} target="_blank" rel="noopener noreferrer" className="pe-link pe-link--view">
+            <a href={`/programs/${slug}`} target="_blank" rel="noopener noreferrer" className="app-act">
               View program page →
             </a>
           )}
@@ -1052,9 +1052,8 @@ export default function ProgramEditor({
           </span>
           <button
             type="button"
-            className="pe-btn"
+            className="app-act"
             onClick={() => setSeatConflicts([])}
-            style={{ fontSize: "var(--text-xs)", padding: "4px 10px" }}
           >
             Dismiss
           </button>
@@ -1284,7 +1283,7 @@ export default function ProgramEditor({
             <button
               type="button"
               onClick={() => guardedNavigate(basePath)}
-              className="pe-btn"
+              className="app-act"
             >
               Cancel
             </button>

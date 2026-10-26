@@ -54,7 +54,7 @@ export default async function SignInListPage({
     <div className="vol-page reg-print">
       <div className="vol-content">
         <div className="reg-print__screen">
-          <a href={back} className="vol-back">&larr; {program.name}</a>
+          <a href={back} className="app-back">&larr; {program.name}</a>
           <div className="reg-actions">
             <PrintButton programSlug={program.slug} />
           </div>

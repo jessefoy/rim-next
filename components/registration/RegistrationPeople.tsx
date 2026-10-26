@@ -109,7 +109,7 @@ function ConfirmBox({
         <button type="button" className="vol-save-btn" disabled={busy} onClick={onYes}>
           {busy ? "Working…" : yes}
         </button>
-        <button type="button" className="vol-action-btn" onClick={onNo}>
+        <button type="button" className="app-act" onClick={onNo}>
           Never mind
         </button>
       </div>
@@ -381,7 +381,7 @@ export default function RegistrationPeople({
   }
 
   // ── Pieces ────────────────────────────────────────────────────────────────
-  const ask = (p: PeopleRow, kind: Confirm, label: string, className = "vol-action-btn") =>
+  const ask = (p: PeopleRow, kind: Confirm, label: string, className = "app-act") =>
     confirm?.id === p.id && confirm.kind === kind ? null : (
       <button type="button" className={className} disabled={busy === p.id} onClick={() => setConfirm({ id: p.id, kind })}>
         {label}
@@ -429,7 +429,7 @@ export default function RegistrationPeople({
             {p.status === "WAITLISTED" && p.waitlistPosition ? `, number ${p.waitlistPosition} in line` : ""}
           </p>
           <div className="reg-actions">
-            {p.status === "WAITLISTED" && ask(p, "offer", "Offer them a place", "vol-save-btn")}
+            {p.status === "WAITLISTED" && ask(p, "offer", "Offer them a place")}
             {confirmFor(p, "offer", `Move ${p.name} from waiting to registered? This emails ${p.firstName} at ${p.email} to say their place is confirmed.`, "Yes, register and email them",
               () => patch(p.id, { status: "REGISTERED", danaMode: danaMode ?? "none" }, `${p.name} is registered. ${p.firstName} will get an email saying their place is confirmed.`, "They weren't moved. Please try again."))}
 
@@ -443,7 +443,7 @@ export default function RegistrationPeople({
             {isRegistered(p.status) && p.reminderSentOn && <p className="reg-meta">Reminder sent {p.reminderSentOn}</p>}
 
             {active && !(confirm?.id === p.id && confirm.kind === "cancel") && (
-              <button type="button" className="vol-action-btn" disabled={busy === p.id}
+              <button type="button" className="app-act" disabled={busy === p.id}
                 onClick={() => { setNotifyCancel(true); setConfirm({ id: p.id, kind: "cancel" }); }}>
                 Cancel their registration
               </button>
@@ -468,11 +468,11 @@ export default function RegistrationPeople({
               </ConfirmBox>
             )}
 
-            {!active && ask(p, "restore", "Restore their registration", "vol-save-btn")}
+            {!active && ask(p, "restore", "Restore their registration")}
             {confirmFor(p, "restore", `Restore ${p.name} as registered? They won't be emailed.`, "Yes, restore it",
               () => patch(p.id, { status: "REGISTERED" }, `${p.name} is registered again.`, "It wasn't restored. Please try again."))}
 
-            {!active && ask(p, "delete", "Delete the record", "vol-action-btn vol-action-btn--danger")}
+            {!active && ask(p, "delete", "Delete the record", "app-act app-act--danger")}
             {confirmFor(p, "delete", `Delete ${p.name}'s record for good? Their answers and notes go with it.`, "Yes, delete it", () => remove(p))}
           </div>
         </section>
@@ -486,7 +486,7 @@ export default function RegistrationPeople({
             </p>
             {p.donationStatus === "PENDING" && (
               <div className="reg-actions">
-                {ask(p, "dana-reminder", "Send a dana reminder", "vol-save-btn")}
+                {ask(p, "dana-reminder", "Send a dana reminder")}
                 {confirmFor(p, "dana-reminder", `Email a dana reminder to ${p.firstName} at ${p.email}?`, "Yes, send it",
                   () => patch(p.id, { action: "sendDanaReminder" }, "The dana reminder went out.", "The dana reminder wasn't sent. Please try again."))}
                 {ask(p, "dana-received", "Given another way")}
@@ -516,7 +516,7 @@ export default function RegistrationPeople({
                 <button type="button" className="vol-save-btn" disabled={busy === p.id} onClick={() => saveAnswers(p)}>
                   {busy === p.id ? "Saving…" : "Save their answers"}
                 </button>
-                <button type="button" className="vol-action-btn" onClick={() => setEditing(null)}>Cancel</button>
+                <button type="button" className="app-act" onClick={() => setEditing(null)}>Cancel</button>
               </div>
             </div>
           ) : (
@@ -530,7 +530,7 @@ export default function RegistrationPeople({
                 ))}
               </dl>
               <div className="reg-actions">
-                <button type="button" className="vol-action-btn"
+                <button type="button" className="app-act"
                   onClick={() => setEditing({ id: p.id, values: Object.fromEntries(p.answers.map((a) => [a.key, a.value])) })}>
                   Change their answers
                 </button>
@@ -607,10 +607,10 @@ export default function RegistrationPeople({
                 )}
               </div>
               {n.kind === "place" && (
-                <button type="button" className="vol-action-btn" onClick={() => showFilter("waiting")}>See who&rsquo;s waiting</button>
+                <button type="button" className="app-act" onClick={() => showFilter("waiting")}>See who&rsquo;s waiting</button>
               )}
               {n.kind === "dana" && (
-                <button type="button" className="vol-action-btn" onClick={() => showFilter("dana")}>See who</button>
+                <button type="button" className="app-act" onClick={() => showFilter("dana")}>See who</button>
               )}
               {n.kind === "reminder" && (bulkConfirm ? (
                 <ConfirmBox
@@ -621,7 +621,7 @@ export default function RegistrationPeople({
                   onNo={() => setBulkConfirm(false)}
                 />
               ) : (
-                <button type="button" className="vol-save-btn" onClick={() => setBulkConfirm(true)}>
+                <button type="button" className="app-act" onClick={() => setBulkConfirm(true)}>
                   Send it to them
                 </button>
               ))}
@@ -644,13 +644,13 @@ export default function RegistrationPeople({
         />
         <div className="reg-actions">
           {canAdd && (
-            <button type="button" className="vol-action-btn" aria-expanded={panel === "add"}
+            <button type="button" className="app-act" aria-expanded={panel === "add"}
               onClick={() => { setPanel(panel === "add" ? null : "add"); setAddError(null); }}>
               Add a person
             </button>
           )}
           {groupSize.both > 0 && (
-            <button type="button" className="vol-action-btn" aria-expanded={panel === "message"}
+            <button type="button" className="app-act" aria-expanded={panel === "message"}
               onClick={() => {
                 setPanel(panel === "message" ? null : "message");
                 setMsgError(null);
@@ -661,11 +661,11 @@ export default function RegistrationPeople({
             </button>
           )}
           {groupSize.registered > 0 && (
-            <a href={signInHref} className="vol-csv-btn">Print a sign-in list</a>
+            <a href={signInHref} className="app-act">Print a sign-in list</a>
           )}
           <a
             href={`/api/programs/${programSlug}/registrations?format=csv`}
-            className="vol-csv-btn"
+            className="app-act"
             download={`${programSlug}-registrations.csv`}
             onClick={() => setTimeout(refresh, 1500)}
           >
@@ -728,7 +728,7 @@ export default function RegistrationPeople({
           )}
           <div className="reg-actions">
             <button type="submit" className="vol-save-btn" disabled={busy === "add"}>{busy === "add" ? "Adding…" : "Add them"}</button>
-            <button type="button" className="vol-action-btn" onClick={() => { setPanel(null); setAdd(emptyAdd); setAddError(null); }}>Cancel</button>
+            <button type="button" className="app-act" onClick={() => { setPanel(null); setAdd(emptyAdd); setAddError(null); }}>Cancel</button>
           </div>
           {addError && <p className="reg-error" role="alert">{addError}</p>}
         </form>
@@ -762,10 +762,10 @@ export default function RegistrationPeople({
           ) : (
             <div className="reg-actions">
               <button type="submit" className="vol-save-btn" disabled={groupSize[msg.to] === 0}>Send to {people(groupSize[msg.to])}</button>
-              <button type="button" className="vol-action-btn" disabled={busy === "msg-test"} onClick={() => sendMessage(true)}>
+              <button type="button" className="app-act" disabled={busy === "msg-test"} onClick={() => sendMessage(true)}>
                 {busy === "msg-test" ? "Sending…" : "Send me a test"}
               </button>
-              <button type="button" className="vol-action-btn" onClick={() => setPanel(null)}>Cancel</button>
+              <button type="button" className="app-act" onClick={() => setPanel(null)}>Cancel</button>
             </div>
           )}
           {msgError && <p className="reg-error" role="alert">{msgError}</p>}
@@ -808,7 +808,7 @@ export default function RegistrationPeople({
               />
             ) : (
               <div className="reg-actions reg-early">
-                <button type="button" className="vol-action-btn" onClick={() => setEarlyConfirm(true)}>
+                <button type="button" className="app-act" onClick={() => setEarlyConfirm(true)}>
                   Send the reminder now to {people(unsent.length)}
                 </button>
               </div>

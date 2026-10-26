@@ -89,7 +89,7 @@ function AboutSection({
               {isEditing && (
                 <button
                   type="button"
-                  className="pe-btn pe-btn--small"
+                  className="app-act"
                   onClick={() => setSlugLocked(!slugLocked)}
                 >
                   {slugLocked ? "Unlock" : "Lock"}
@@ -115,7 +115,7 @@ function AboutSection({
             {programImage && (
               <div className="pe-image-preview">
                 <img src={programImage} alt="Program" className="pe-image-preview__img" />
-                <button type="button" className="pe-btn pe-btn--small pe-btn--danger" onClick={() => { setProgramImage(""); markDirty(); }}>
+                <button type="button" className="app-act app-act--danger" onClick={() => { setProgramImage(""); markDirty(); }}>
                   Remove
                 </button>
               </div>

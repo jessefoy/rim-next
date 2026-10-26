@@ -78,7 +78,7 @@ export default async function NewProgramToolPage({ searchParams }: { searchParam
       <div className="vol-page">
         <div className="vol-content">
           <div className="vol-header">
-            <Link href="/tools/programs" className="vol-back">&larr; Programs</Link>
+            <Link href="/tools/programs" className="app-back">&larr; Programs</Link>
           </div>
           <h1 className="vol-header__title">What are you offering?</h1>
           {copy && <p className="pe-start__missing" role="status">That program wasn&rsquo;t found to copy. Choose another below.</p>}
@@ -126,7 +126,7 @@ export default async function NewProgramToolPage({ searchParams }: { searchParam
                       ))}
                     </select>
                   </label>
-                  <button type="submit" className="pe-btn">Copy</button>
+                  <button type="submit" className="app-act">Copy</button>
                 </form>
               )}
             </section>
@@ -170,7 +170,7 @@ export default async function NewProgramToolPage({ searchParams }: { searchParam
     <div className="vol-page">
       <div className="vol-content">
         <div className="vol-header">
-          <Link href="/tools/programs/new" className="vol-back">&larr; What are you offering?</Link>
+          <Link href="/tools/programs/new" className="app-back">&larr; What are you offering?</Link>
         </div>
         <ProgramEditor
           // A different shape or copy is a different start.

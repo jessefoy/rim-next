@@ -114,7 +114,7 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: string) => void; 
         <span className="pe-template-bar__label">Templates</span>
         <button
           type="button"
-          className="pe-template-bar__save-btn"
+          className="app-act"
           onClick={() => { setShowSave((s) => !s); setSaveName(lastLoadedName); }}
           disabled={!hasContent}
           title="Save what's currently in the editor as a reusable template"
@@ -136,8 +136,8 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: string) => void; 
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveTemplate(); } }}
             autoFocus
           />
-          <button type="button" className="pe-btn pe-btn--small" onClick={saveTemplate} disabled={!saveName.trim()}>Save</button>
-          <button type="button" className="pe-btn pe-btn--small pe-btn--ghost" onClick={() => setShowSave(false)}>Cancel</button>
+          <button type="button" className="pe-btn pe-btn--primary" onClick={saveTemplate} disabled={!saveName.trim()}>Save</button>
+          <button type="button" className="app-act" onClick={() => setShowSave(false)}>Cancel</button>
         </div>
       )}
 
@@ -159,7 +159,7 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: string) => void; 
         </div>
       )}
       {allHidden && (
-        <button type="button" className="pe-template-bar__restore" onClick={restoreBuiltins}>Restore default templates</button>
+        <button type="button" className="app-act" onClick={restoreBuiltins}>Restore default templates</button>
       )}
     </div>
   );

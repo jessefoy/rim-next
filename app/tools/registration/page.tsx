@@ -163,7 +163,7 @@ export default async function RegistrationDeskPage({
                   <span className="reg-item__prog">{n.name}</span>
                   <strong>{n.text}</strong>
                 </div>
-                <Link className="vol-action-btn" href={programHref(n.slug, SHOW[n.kind])}>
+                <Link className="app-act" href={programHref(n.slug, SHOW[n.kind])}>
                   {ACT[n.kind]}
                 </Link>
               </li>
@@ -197,7 +197,7 @@ export default async function RegistrationDeskPage({
                       </>
                     )}
                   </div>
-                  <Link className="vol-action-btn" href={programHref(r.program.slug)}>Open the program</Link>
+                  <Link className="app-act" href={programHref(r.program.slug)}>Open the program</Link>
                 </li>
               ))}
             </ul>

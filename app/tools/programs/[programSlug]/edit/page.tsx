@@ -16,6 +16,13 @@ import { EDITOR_PROGRAM_INCLUDE, programToEditorData } from "@/lib/programEditor
 
 export const dynamic = "force-dynamic";
 
+/** The browser tab names the program being edited (it read only "Rooted In Mindfulness"). */
+export async function generateMetadata({ params }: { params: Promise<{ programSlug: string }> }) {
+  const { programSlug } = await params;
+  const p = await db.program.findUnique({ where: { slug: programSlug }, select: { name: true } });
+  return { title: p ? `${p.name} - Program Manager` : "Program Manager - Tools" };
+}
+
 export default async function EditProgramToolPage({
   params,
 }: {
@@ -136,7 +143,7 @@ export default async function EditProgramToolPage({
     <div className="vol-page">
       <div className="vol-content">
         <div className="vol-header">
-          <Link href="/tools/programs" className="vol-back">&larr; Programs</Link>
+          <Link href="/tools/programs" className="app-back">&larr; Programs</Link>
         </div>
         <ProgramEditor
           basePath="/tools/programs"
