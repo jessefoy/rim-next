@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 import { ctMonthKey, ctStartOfToday, fmtSessionWhen } from "@/lib/timezone";
 import { countSessionsNeedingSomeone, LOOKAHEAD_DAYS, sessionsNeedingSomeone } from "@/lib/coverageNotices";
 import { getHubCoverageConfig, getHubCoverageCopy } from "@/lib/programHub";
-import { ctDateStr } from "@/lib/scheduleUtils";
+import { ctDateStr, lastOccurrenceEnd } from "@/lib/scheduleUtils";
+import { hasEnded } from "@/lib/contactWindow";
 import { hasConcludedOneTime } from "@/lib/programUtils";
 import { takingRegistrationsWhere } from "@/lib/registrationWindow";
 import { canSelfClaim } from "@/lib/hubMemberAuth";
@@ -675,14 +676,23 @@ const HUB_APP_PROVIDERS: Record<ToolSlug, HubAppProvider> = {
     },
   },
   // Helping with (2026-10-24): this team's programs only, those still current
-  // (not archived, not a one-time program that is over).
+  // (not archived, not a one-time program that is over, not a series past its
+  // last class), as its list counts them (2026-10-26).
   helping: {
     home: async (hubSlug: string) => {
       const rows = await db.programHelper.findMany({
         where: { hub: { slug: hubSlug }, program: { archivedAt: null } },
-        select: { program: { select: { startDatetime: true, endDatetime: true, recurrenceFreq: true } } },
+        select: {
+          program: {
+            select: {
+              id: true, name: true, slug: true, programFormat: true, startDatetime: true, endDatetime: true,
+              recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, archivedAt: true,
+            },
+          },
+        },
       });
-      const count = rows.filter((r) => !hasConcludedOneTime(r.program)).length;
+      const now = new Date();
+      const count = rows.filter((r) => !hasConcludedOneTime(r.program) && !hasEnded(r.program, now, lastOccurrenceEnd(r.program))).length;
       return {
         count,
         countLabel: plural(count, "program to help with", "programs to help with"),

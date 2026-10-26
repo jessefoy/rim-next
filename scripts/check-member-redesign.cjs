@@ -536,5 +536,16 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(cw.contactsCloseAt({ ...oneDay, recurrenceFreq: 'WEEKLY' }), null, 'a repeating program, not archived: still open');
   check(cw.contactsCloseAt({ ...oneDay, recurrenceFreq: 'WEEKLY', archivedAt: '2027-01-10T12:00:00Z' }).toISOString(), '2027-02-09T12:00:00.000Z', 'a repeating program: 30 days after it is archived');
 
+  // A series with a set number of classes ends on its last class (Jesse, 2026-10-26).
+  const su = load('lib/scheduleUtils.ts', { './timezone': load('lib/timezone.ts') });
+  const eightWednesdays = { id: 'c', name: 'C', slug: 'c', programFormat: 'in-person', startDatetime: new Date('2026-11-05T01:00:00Z'), endDatetime: new Date('2026-11-05T02:30:00Z'), recurrenceFreq: 'WEEKLY', recurrenceInterval: 1, recurrenceDays: ['WE'], recurrenceCount: 8 };
+  check([su.lastOccurrenceDate(eightWednesdays), su.lastOccurrenceDate({ ...eightWednesdays, recurrenceCount: null }), su.lastOccurrenceDate({ ...eightWednesdays, recurrenceFreq: null })], ['2026-12-23', null, '2026-11-04'], 'eight weekly classes from Nov 4 (Central) end Dec 23; an open series has no end; one-time ends on its day');
+  check([su.lastOccurrenceDate({ ...eightWednesdays, recurrenceDays: [] }), su.lastOccurrenceDate({ ...eightWednesdays, recurrenceCount: 1 })], [null, null], 'no days ticked, or a count of one: read as ongoing, as the schedule reads them (no crash)');
+  const lastEnd = su.lastOccurrenceEnd(eightWednesdays);
+  check(lastEnd.toISOString(), '2026-12-24T05:59:00.000Z', 'the last class day ends at 23:59 Central (so a 7 PM class is still current that evening)');
+  const series = { startDatetime: '2026-11-05T01:00:00Z', endDatetime: '2026-11-05T02:30:00Z', recurrenceFreq: 'WEEKLY', archivedAt: null };
+  check([cw.contactsCloseAt(series, lastEnd).toISOString().slice(0, 10), cw.contactsCloseAt(series, null)], ['2027-01-23', null], 'a counted series closes 30 days after its last class; an open one waits for archiving');
+  check([cw.hasEnded(series, new Date('2026-12-24T03:00:00Z'), lastEnd), cw.hasEnded(series, new Date('2026-12-30T12:00:00Z'), lastEnd), cw.hasEnded({ ...series, archivedAt: '2026-12-01T00:00:00Z' }, new Date('2026-12-02T00:00:00Z'), null)], [false, true, true], 'still current on the last class evening; ended after; or once archived');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

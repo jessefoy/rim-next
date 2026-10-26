@@ -9,6 +9,7 @@ import { loadAskerContext } from "@/lib/programAskers";
 import { askerOf } from "@/lib/questionAskers";
 import { answerFor, type QuestionLike } from "@/lib/registrationAnswers";
 import { CONTACT_DAYS_AFTER, contactsClosed } from "@/lib/contactWindow";
+import { lastOccurrenceEnd } from "@/lib/scheduleUtils";
 import { isGuidingTeacher } from "@/lib/teaching";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export default async function HelpingProgramPage({
     where: { slug: programSlug },
     select: {
       id: true, slug: true, name: true, dateText: true, startDatetime: true, endDatetime: true,
-      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, programFormat: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, programFormat: true,
       outsideMeetingUrl: true, hostingHubSlug: true, registrationEnabled: true, registrationFields: true, archivedAt: true,
     },
   });
@@ -64,7 +65,7 @@ export default async function HelpingProgramPage({
   // 30 days after it ends, the list (with any contact details) closes to the
   // team; the guiding teacher keeps it, as the registration team does
   // (lib/contactWindow.ts, Jesse 2026-10-26).
-  if (!isGuidingTeacher(session.user.roles) && contactsClosed(program)) {
+  if (!isGuidingTeacher(session.user.roles) && contactsClosed(program, new Date(), lastOccurrenceEnd(program))) {
     return (
       <div className="vol-page">
         <div className="vol-content hlp-page">

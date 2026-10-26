@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import AccountLayout from "@/components/AccountLayout";
-import { isGuidingTeacher, programsTaughtBy, programsWithTeachers } from "@/lib/teaching";
+import { endedTaughtBy, isGuidingTeacher, programsTaughtBy, programsWithTeachers } from "@/lib/teaching";
 import { programWhen } from "@/lib/registrationDesk";
 
 export const metadata = { title: "Teaching - Rooted In Mindfulness" };
@@ -38,7 +38,7 @@ export default async function TeachingPage() {
   const userId = session.user.id;
   const guiding = isGuidingTeacher(session.user.roles);
 
-  const mine = await programsTaughtBy(userId);
+  const [mine, ended] = await Promise.all([programsTaughtBy(userId), endedTaughtBy(userId)]);
   const others = guiding
     ? (await programsWithTeachers()).filter((p) => !mine.some((m) => m.id === p.id))
     : [];
@@ -67,7 +67,14 @@ export default async function TeachingPage() {
             <ProgramList programs={others} />
           </section>
         )}
-        {mine.length === 0 && others.length === 0 && (
+        {ended.length > 0 && (
+          <section aria-labelledby="teaching-ended">
+            <h2 id="teaching-ended" className="rim-teams__label">Ended</h2>
+            <p className="ac-page-sub">Each stays here for 30 days after it ends.</p>
+            <ProgramList programs={ended} />
+          </section>
+        )}
+        {mine.length === 0 && others.length === 0 && ended.length === 0 && (
           <section className="rim-empty" aria-labelledby="teaching-empty">
             <h2 id="teaching-empty">You aren&rsquo;t teaching a current program.</h2>
             <p>When you&rsquo;re named as a teacher of a program, it appears here.</p>

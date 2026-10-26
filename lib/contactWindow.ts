@@ -6,8 +6,10 @@
  * keeps it as always.
  *
  * A one-time program ends on its last day (its end, or its start), or when
- * it's archived first (cancelled). A repeating program ends when it's
- * archived. Pure, no imports.
+ * it's archived first (cancelled). A weekly series with a set number of
+ * classes ends on its last class (Jesse, 2026-10-26; the caller passes it,
+ * lib/scheduleUtils.ts lastOccurrenceEnd), or when archived first; any
+ * other repeating program when it's archived. Pure, no imports.
  */
 
 export const CONTACT_DAYS_AFTER = 30;
@@ -21,10 +23,14 @@ export interface ContactWindowProgram {
 
 /** When the list closes to teachers and helping teams, or null while the
  *  program hasn't ended. */
-export function contactsCloseAt(p: ContactWindowProgram): Date | null {
+export function contactsCloseAt(p: ContactWindowProgram, lastSessionEnd?: Date | null): Date | null {
   const archived = p.archivedAt ? new Date(p.archivedAt) : null;
   const last = p.endDatetime ?? p.startDatetime;
-  const lastDay = !p.recurrenceFreq && last ? new Date(last) : null;
+  const lastDay = !p.recurrenceFreq && last
+    ? new Date(last)
+    : p.recurrenceFreq && lastSessionEnd
+      ? lastSessionEnd
+      : null;
   const ended =
     archived && lastDay ? (archived < lastDay ? archived : lastDay) : (archived ?? lastDay);
   if (!ended) return null;
@@ -32,7 +38,17 @@ export function contactsCloseAt(p: ContactWindowProgram): Date | null {
 }
 
 /** Whether the list has closed to teachers and helping teams. */
-export function contactsClosed(p: ContactWindowProgram, now: Date = new Date()): boolean {
-  const at = contactsCloseAt(p);
+export function contactsClosed(p: ContactWindowProgram, now: Date = new Date(), lastSessionEnd?: Date | null): boolean {
+  const at = contactsCloseAt(p, lastSessionEnd);
   return !!at && now >= at;
+}
+
+/** Whether the program has ended (its list may still be open for its 30
+ *  days): archived, past its last day, or past a series' last class. */
+export function hasEnded(p: ContactWindowProgram, now: Date = new Date(), lastSessionEnd?: Date | null): boolean {
+  if (p.archivedAt) return true;
+  const at = contactsCloseAt(p, lastSessionEnd);
+  if (!at) return false;
+  const ended = new Date(at.getTime() - CONTACT_DAYS_AFTER * 24 * 60 * 60 * 1000);
+  return now > ended;
 }

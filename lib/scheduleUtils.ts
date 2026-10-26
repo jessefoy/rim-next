@@ -270,6 +270,38 @@ export function nextOccurrenceOnOrAfter(
 }
 
 /**
+ * The last session of a series with an end, "YYYY-MM-DD" in Central: a
+ * one-time program's last day, or a weekly series' last class by its count
+ * (the bound isOccurrenceOnDate uses). Null for a series that goes on.
+ */
+export function lastOccurrenceDate(p: ScheduleProgram): string | null {
+  if (!p.startDatetime) return null;
+  const anchor = ctDateStr(p.startDatetime.toISOString());
+  if (!p.recurrenceFreq) return p.endDatetime ? ctDateStr(p.endDatetime.toISOString()) : anchor;
+  // As isOccurrenceOnDate reads a count: only weekly, only 2 or more, and
+  // only with days ticked (with none, its bound never ends; review 2026-10-26).
+  if (p.recurrenceFreq.toUpperCase() !== "WEEKLY" || !p.recurrenceCount || p.recurrenceCount < 2) return null;
+  if (!p.recurrenceDays || p.recurrenceDays.length === 0) return null;
+  const daysPerCycle = p.recurrenceDays.length;
+  const cycles = Math.ceil((p.recurrenceCount - 1) / daysPerCycle);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const boundMs = new Date(anchor + "T12:00:00Z").getTime() + cycles * (p.recurrenceInterval ?? 1) * 7 * msPerDay;
+  // Back from the bound to the series' last class.
+  for (let i = 0; i < 7 * (p.recurrenceInterval ?? 1) + 7; i++) {
+    const day = new Date(boundMs - i * msPerDay).toISOString().slice(0, 10);
+    if (isOccurrenceOnDate(p, day)) return day;
+  }
+  return anchor;
+}
+
+/** The end of a series' last class day in Central (23:59), or null while it
+ *  goes on: when its teacher's and teams' 30 days begin (lib/contactWindow.ts). */
+export function lastOccurrenceEnd(p: ScheduleProgram): Date | null {
+  const day = lastOccurrenceDate(p);
+  return day ? centralToUtc(`${day}T23:59`) : null;
+}
+
+/**
  * Does this program have a session on the given date?
  * dateStr must be "YYYY-MM-DD" format.
  */

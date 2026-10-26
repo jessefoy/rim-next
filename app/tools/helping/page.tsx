@@ -4,6 +4,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { helpingTeamAccess, myHelpingTeams } from "@/lib/programHelpers";
 import { hasConcludedOneTime } from "@/lib/programUtils";
+import { contactsClosed, hasEnded } from "@/lib/contactWindow";
+import { lastOccurrenceEnd } from "@/lib/scheduleUtils";
 import { programWhen } from "@/lib/registrationDesk";
 
 export const metadata = { title: "Helping with - Tools" };
@@ -48,21 +50,26 @@ export default async function HelpingPage({ searchParams }: { searchParams: Prom
     );
   }
 
+  const now = new Date();
+  const since = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
   const rows = await db.programHelper.findMany({
-    where: { hubId: team.id, program: { archivedAt: null } },
+    where: { hubId: team.id, program: { OR: [{ archivedAt: null }, { archivedAt: { gte: since } }] } },
     select: {
       program: {
         select: {
-          slug: true, name: true, dateText: true, startDatetime: true, endDatetime: true,
-          recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true,
+          id: true, slug: true, name: true, programFormat: true, dateText: true, startDatetime: true, endDatetime: true,
+          recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, archivedAt: true,
         },
       },
     },
   });
-  const programs = rows
+  const all = rows
     .map((r) => r.program)
-    .filter((p) => !hasConcludedOneTime(p))
     .sort((a, b) => (a.startDatetime?.getTime() ?? Infinity) - (b.startDatetime?.getTime() ?? Infinity));
+  const isOver = (p: (typeof all)[number]) => !!p.archivedAt || hasConcludedOneTime(p) || hasEnded(p, now, lastOccurrenceEnd(p));
+  const programs = all.filter((p) => !isOver(p));
+  // Ended within their 30 days (lib/contactWindow.ts), newest first (Jesse, 2026-10-26).
+  const ended = all.filter((p) => isOver(p) && !contactsClosed(p, now, lastOccurrenceEnd(p))).reverse();
   const counts = new Map(
     (programs.length
       ? await db.registration.groupBy({
@@ -104,6 +111,25 @@ export default async function HelpingPage({ searchParams }: { searchParams: Prom
               );
             })}
           </ul>
+        )}
+        {ended.length > 0 && (
+          <section aria-labelledby="hlp-ended">
+            <h2 id="hlp-ended" className="hlp-panel__title">Ended</h2>
+            <p className="hlp-note">Each stays here for 30 days after it ends.</p>
+            <ul className="rim-destination-list">
+              {ended.map((p) => (
+                <li key={p.slug}>
+                  <Link href={`/tools/helping/${p.slug}${qs}`}>
+                    <span>
+                      {p.name}
+                      {programWhen(p) && <small>{programWhen(p)}</small>}
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </div>
     </div>

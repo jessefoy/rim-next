@@ -11,6 +11,7 @@ import { askerOf } from "@/lib/questionAskers";
 import { answerFor, type QuestionLike } from "@/lib/registrationAnswers";
 import { loadFirstRegistrationIds } from "@/lib/firstRegistration";
 import { CONTACT_DAYS_AFTER, contactsClosed } from "@/lib/contactWindow";
+import { lastOccurrenceEnd } from "@/lib/scheduleUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,7 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
       recurrenceFreq: true,
       recurrenceInterval: true,
       recurrenceDays: true,
+      recurrenceCount: true,
       programFormat: true,
       outsideMeetingUrl: true,
       hostingHubSlug: true,
@@ -74,7 +76,7 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
   // 30 days after it ends, the list (with contact details) closes to its
   // teachers; the guiding teacher keeps it, as the registration team does
   // (lib/contactWindow.ts, Jesse 2026-10-26).
-  if (!isGuidingTeacher(session.user.roles) && contactsClosed(program)) {
+  if (!isGuidingTeacher(session.user.roles) && contactsClosed(program, new Date(), lastOccurrenceEnd(program))) {
     return (
       <AccountLayout>
         <div className="ac-member-page hlp-page">
