@@ -245,7 +245,7 @@ The ten answers:
 1. **Multi-Space.** Any team may install it; nothing is shared across teams.
 2. **May be primary** (a team that only prepares has nothing else to lead with). Icon: `helping` (hand with heart).
 3. **Scoped by the resource Space:** every page derives the team from `?hub=` through `helpingTeamAccess` (active team, app installed, the person an active member or the guiding teacher), and a program page also requires that team's `program_helpers` row. Writes to `program_helpers` happen only in the program editor's save routes (`checkHelperTeams`: a newly added team must be active with the app).
-4. **Home:** one summary line, "N programs to help with", counted from this team's rows only (current programs: not archived, not a one-time program that is over).
+4. **Home:** one summary line, "N programs to help with", counted from this team's rows only (current programs: not archived, not a one-time program that is over, not a counted series past its last session; the same test the list uses, 2026-10-26).
 5. **Updates:** none at first.
 6. **Attention:** none at first.
 7. **Counts:** owned by the app (people with a place, per program).
@@ -259,6 +259,8 @@ The ten answers:
 | Recipients | None: it sends no email or notice. |
 | UI filter | Programs: `program_helpers.hubId = team.id`. Questions: `askerOf(...)` is this team's id. Contact fields are selected only when `canReach`. |
 | Outbound URLs | Every link carries `?hub=<team>` (list → program → back). No emails. |
+
+**After the build (2026-10-26, Jesse):** a program's list closes to the team **30 days after the program ends** (`lib/contactWindow.ts`: a one-time program's last day, a counted series' last session via `lastOccurrenceEnd`, else when archived; the guiding teacher keeps it), and the list keeps such a program under **"Ended"** for those 30 days (`archivedAt` within 90 days are fetched). The same rule closes the teacher's page. Archiving a team moves its Drive folder into "Archived teams" (`moveHubFolderForArchive`, `RIM_GoogleWorkspace.md`); the Home and pages of an archived team aren't reachable, as before. **The four-layer audit for this session's hub-touching changes** (the Home count, the "Ended" lists, the contact window, the folder move): capability unchanged (`helpingTeamAccess`, `canOpenTeachingPage`, `sessionTeamAccess`, each resource-scoped); recipients none (the move and the window send nothing); UI filters still by `program_helpers.hubId = team.id`; outbound URLs carry `?hub=`, and the session's new emails (`program-notice`, `program-follow-up`, the reminder's program link) point only at public program pages, never a hub page.
 
 Also in Phase 3 (the helpers' pages; recorded in `RIM_Member_Area.md`): the teacher's page (`/account/teaching`, program teachers and the guiding teacher) and a supporting team's Today's list (`/account/greeting`, assigned team members, the team's active coordinators, the guiding teacher). Neither is an installable app; both follow the same rules: derived from the resource (the program, the session), never Admin alone, never dana.
 

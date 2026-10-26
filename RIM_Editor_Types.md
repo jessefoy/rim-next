@@ -385,10 +385,10 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 - Removed with the native `HubDocument` model, its `documentId` thread anchor, and `HubDocConversationsClient`. Google Files now uses the separate plain-text `FileComment` conversation on `/account/files/[fileId]`; that surface is not a Tiptap editor placement.
 
 #### `program-message`
-- **Schema fields:** `Program.confirmationMessage`, `Program.reminderMessage`, `Program.danaMessage`
-- **Component:** `components/registrar/ProgramEditor.tsx`
+- **Schema fields:** `Program.confirmationMessage`, `Program.reminderMessage`, `Program.followUpMessage` (the note after a one-time program, 2026-10-24), `Program.danaMessage`
+- **Component:** `components/registrar/ProgramEditor.tsx`, its sections `program-editor/TellSection.tsx` (Messages to those who register: the confirmation, the reminder and the note after, in the order people get them) and `program-editor/DanaSection.tsx`
 - **Variant:** message
-- **Output destination:** web template + transactional email
+- **Output destination:** web template + transactional email (the note after renders through `renderFormattedTextAsync` into `program-follow-up`)
 - **Output wrappers:** varies by surface (`pg-dana__message`, email HTML)
 - **Notes:** `danaMessage` on-page rendering will migrate to a Dana Invitation block in Stage 2d; the email version stays a Message field.
 

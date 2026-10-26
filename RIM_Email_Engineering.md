@@ -258,6 +258,14 @@ An email that can reach a scheduler-hub member must speak that hub's coverage ro
 - **A link in markdown must be made safe:** `emailSafeLink` (tidied by `lib/linkInput.ts`, http(s) only, parentheses encoded) and `markdownLinkText` (escapes `[`, `]`, `\`). The reminder's `[place](link)` uses both; it built the link raw before.
 - **Saved Location Links are tidied** on save (`normalizeLinkInput` in both program routes), so a bare "www.google.com/maps/…" works on the program page too.
 
+## Scheduled sends: claim, send, release (2026-10-24)
+
+A daily run that emails a list of people (`send-reminders`, `send-follow-ups`) marks each person before sending, with a conditional update (`updateMany({ where: { id, reminderSentAt: null } })`, proceed only on count 1), so two runs at once can't both send; it sends with `throwOnFailure: true`, and on a failure clears the mark again so a later run retries. `sendTemplatedEmail` otherwise swallows a provider error, so a run that marks after sending would mark a failed send as sent. History records only the people actually reached.
+
+## Updating a template someone edited (2026-10-26)
+
+When a template's wording must change and Jesse has edited it in `/admin/emails` (as with `session-reminder`'s last two lines: "Your session link and full details are on your dashboard." / "Go to my dashboard →" → the program's page), the change ships as a flag-guarded block in `migrate.mjs` that replaces only the exact lines, only where they're still as found, in `body` and, where it has its own copy, `textBody`; it logs either way and needs his yes for that specific change. The editor stores links in encoded form (`%7B%7BprogramUrl%7D%7D`) for some bodies; replace both forms. Check the result through the template's Preview (sends nothing; fields render as `[name]`). The reminder's `dateText` now carries the program's time ("October 26, 2026, 10:15–11:15 AM CT").
+
 ## Engineering rules in one paragraph
 
 When you send an email: write the slug into both the code and a `prisma/migrate.mjs` seed entry; use `findUnique → create` (never `upsert`; the early flag-guarded seeds, session 96 and the session-113 document templates, used `upsert` before this rule, ran once behind their flags, and are not a pattern to copy); never overwrite an existing template body; build URLs via `hubScopedUrl` / `hubHomeUrl` / `BASE_URL` (never inline `https://`); derive `hubSlug` from the resource (program), not the actor; pass a `{{*Button}}` variable for every CTA URL using `emailButtonHtml(label, url)`; wrap fire-and-forget sends in `after()` from `next/server` (or await them if the caller is a route handler that already awaits); `console.error` on failure (never silent `.catch`); add a one-line JSDoc justification on any hardcoded-HTML email that bypasses the template manager.

@@ -14,6 +14,10 @@ Companion to `RIM_Offering_Model.md` (what the offering/dana shapes *mean*) and 
 
 Before session 136, the POST did everything at submit — DB row, confirmation email, dashboard listing, course enrollment — so a paid program could be "registered + emailed" without payment, and the "You're registered!" moment landed before the dana contemplation. The fix decouples the row's creation from its *completion side-effects* and moves those to where the dana resolves.
 
+## Whether a program takes sign-ups (2026-10-24; widened 2026-10-26)
+
+One rule, `lib/registrationWindow.ts` (`registrationWindow`, and `takingRegistrationsWhere` for queries), read by the program page, the register page, the registration POST, the Programs list, the Registration desk, team Home and course access: **off** (registration off), **closed** (by hand, past its closing date, or **a one-time program that has ended**: Jesse, 2026-10-26, after a trial found a finished workshop still offering "Register" until the nightly archive), **not open yet** (an opening date ahead), or **open**. Repeating programs are unaffected by the end rule. The window never changes who can get into a session (that's Open entry and registration).
+
 ## The two stories (do not conflate them)
 
 - **Required dana** (`fixed` w/ amount, or `base_plus_dana` w/ base) — **payment is the gate.** Registering and paying are one act. No payment → not registered. An abandoned checkout is discarded.

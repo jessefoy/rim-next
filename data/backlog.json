@@ -2072,5 +2072,25 @@
     "status": "open",
     "addedAt": "2026-10-24",
     "notes": "Jesse to word it (read-aloud)."
+  },
+  {
+    "id": "2026-10-26-001",
+    "title": "Name the meals team directly in the Retreat and Day shapes",
+    "description": "The Day of mindfulness and Retreat shapes find a team that prepares meals by a name or address containing \"kitchen\" or \"meal\" (lib/programShapes.ts). Once RIM has a real kitchen team with Helping with, name it directly (by slug) so a renamed team still matches.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-26",
+    "notes": "Waits on the team existing."
+  },
+  {
+    "id": "2026-10-26-002",
+    "title": "A weekly series with a count but no days ticked",
+    "description": "The editor allows a weekly program with a number of sessions and no days ticked. The schedule reads it as meeting every day with no end (isOccurrenceOnDate's count bound is infinite), so its teacher's and teams' lists close only when it's archived (lastOccurrenceDate returns null). Either require a day for a weekly program in the editor, or read no days as the start's weekday everywhere.",
+    "category": "Programs",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-26",
+    "notes": "Found in the review of the last-session rule."
   }
 ]

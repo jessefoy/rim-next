@@ -20,6 +20,15 @@ Slice 6: **registration settings** on the program page (`components/registration
 
 Phase 1's pieces are built. "Going out soon" (2026-10-24) lists on the desk each automatic reminder due in the next two weeks, with its real sending time (the daily send runs at 14:00 UTC: 8 AM Central in winter, 9 AM in summer; `reminderSendsAt`, `fmtSendTime`), and the program page says the same. 2026-10-24: "Send the reminder now to N people" on the program page while the automatic reminder is still to come (asks first, naming them; they don't get it again), and one count of places for every place that counts them (`lib/registrationPlaces.ts` `countPlacesTaken`: the public form and pages, Add a person, the settings, the editor). Installed 2026-10-23 in the Registration team's Space (`/admin/hubs/registrar/edit`): Registration primary, the Program Manager supporting. Its Home button reads "Open Registration" (`openLabel` in the registry). Left for Jesse: his read-aloud of the two new emails. Left for later: pruning the roster's leftover `vol-` CSS (`scripts/css-prune.mjs`), and answers keyed by question id (Phase 3). See `BUILD_PLAN.md`.
 
+## After the build (2026-10-25/26)
+
+From the read-aloud and the live trials (rulings in `mockups/registration-2026-10-23/BUILD_PLAN.md`):
+- **Add a person:** the dana choice starts with none chosen (the route refuses a missing choice when the program asks dana and the person gets a place: "online" emails a payment link and is never assumed); the program's questions are answered in the panel and stored by question id (`answersForNewRegistration`); Cancel clears the panel.
+- **The reminder line** follows when the reminder will next go (`nextReminderRun`, the cron's rule) and counts who has had it ("went out to N people; the M people who haven't had it yet get it [day]"); **Send the reminder now** shows while a morning is left; Going out soon lists that next morning, and the note after (even once the program is archived, by `followUpSendsAt`); Needs you says "N haven't had the reminder." (was "registered after the reminder went out", untrue when nothing had gone).
+- **The sign-in list** is kept in History when it prints (`POST /api/programs/[slug]/sign-in-printed`, on the page's print event, once per visit), not when it loads.
+- **Settings:** "the closing date has passed" reads Central time the year round (`centralToUtc`). **Registration closes once a one-time program has ended** (`registrationWindow`); the desk and Programs say "Closed".
+- **People and phones:** one phone format (`lib/phone.ts`).
+
 ## Routes
 
 | Path | What it does |

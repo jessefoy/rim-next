@@ -1,32 +1,19 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-24 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-26 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-24/25: Programs and Registration are two apps; all four phases built
+## Active — 2026-10-26 closed: Programs and Registration, built and checked
 
-Everything is on `main` (`5339e30` … `5094465`, and this closing). Narrative: `session-log.md`, 2026-10-23 to 10-24. The plan: `mockups/registration-2026-10-23/BUILD_PLAN.md` (four phases) and `CONCEPT.md` ("Who's helping, who's asking"). The app: `RIM_Registration_App.md`. The editor: `RIM_ProgramEditor.md`.
+Everything is on `main` (through this closing). Narrative: `session-log.md`, 2026-10-24 to 10-26 (and 10-23 to 10-24 for Phase 1). The plan, every read-aloud ruling, every trial and every decision: `mockups/registration-2026-10-23/BUILD_PLAN.md`. References: `RIM_Registration_App.md`, `RIM_ProgramEditor.md`, `RIM_Registration.md`, `RIM_Member_Area.md` (teacher's page, Today's list), `RIM_Hub_Engineering.md` (Helping with).
 
-**Live:**
-- **The Registration app** (`/tools/registration`, Registrar/Admin/Guiding Teacher): the desk; each program's people, settings, Add a person, Message people, sign-in list, early reminder, history and notes. It is the Registration team's main app; the old roster address redirects.
-- **Programs open to its teams** (Registration team, Program Central; installed in both), showing no one's details.
-- **Safe saves** in the editor (only what changed; a field someone else changed meanwhile is refused and named).
+**Live and checked:** the Registration app; the program editor as one page ("Teachers and teams", "Messages to those who register"); Opens on; Post a notice; who's asking; the teacher's page; Today's list; Helping with; reminders in days before (with the time); the note after; "Tell the people registered?"; shapes and copies; contact details closing 30 days after a program ends, with "Ended" lists; registration closing when a one-time program ends; This Week skipping Private programs; archived teams' Drive folders in "Archived teams"; Skew Protection on. All wording read aloud and ruled.
 
 **Waiting on Jesse:**
-- **Read-aloud:** `registration-message`, `registration-cancelled`, the Registration app's words (desk, Needs you, cards, panels, confirmations, History lines), and the editor's conflict message.
-- **The "give online" email** (backlog `2026-10-24-002`).
-- **Phase 3 decisions** in `BUILD_PLAN.md`: should the teacher see people waiting; "New to RIM" and old-site members; a greeter's "Today's list" button.
+- Confirm the Trial Workshop's **note after** arrives Tue Oct 27 ~10 AM CT (checked by preview only).
+- Optional tidy: delete the **Test Program Central** account (jesse+pc@) in Members and the **Trial Kitchen** folder in Drive's "Archived teams".
+- The "give online" email's own wording (backlog `2026-10-24-002`).
 
-**Not yet tried live (no one has used these for real):** a save with a change in the editor, and two people saving at once; Add a person; the cancellation email; a group message; a settings save in Registration. A Program Central member without a role opening Programs.
-
-**Phase 2 is done (2026-10-24):** the editor as one page in sections, the mailing list moved to Registration, Opens on (`lib/registrationWindow.ts`), Post a notice, Ready to be seen. **Everything to check, read aloud and try is saved in `BUILD_PLAN.md` → "To check once everything is built"** (Jesse: one thorough session after the last phase; add to it as phases land).
-
-**Phase 3 is done (2026-10-24):** answers by question id; who's asking each question; the teacher's page (Teaching in the menu); Today's list for supporting teams (Arrived); Helping with, the app for teams that prepare. Choosing who asks and which teams prepare is limited to the registration roles (from the slice 5 review; on the check list to confirm). Nothing installs Helping with yet: an admin installs it in a team in /admin/hubs.
-
-**Phase 4 is done (2026-10-24/25):** reminders counted in days before, reaching late registrants (`lib/reminderSchedule.ts`); the note after a one-time program ends (`lib/followUp.ts`, the `send-follow-ups` run, template `program-follow-up`); "Tell the people registered?" after a save changes the time, place or confirmation message (`lib/programUpdate.ts`); "What are you offering?" with six shapes (`lib/programShapes.ts`); copy a program (`lib/programCopy.ts`). The reminder and follow-up runs now mark each person before sending and unmark them if the send fails. All four phases are built.
-
-**The after-build session is complete (2026-10-25/26):** the whole read-aloud (rulings recorded in `BUILD_PLAN.md`, including the renamed sections "Teachers and teams" and "Messages to those who register", the rebuilt Messages section, the Greeter Team / Audio/Visual Team renames); every trial, on a private Trial Workshop (now archived) and a throwaway Trial Kitchen team (archived); every decision built and reviewed (contact details close 30 days after a program ends; "Ended" on the Teaching and Helping with lists; Add a person's dana unchosen and questions in the panel; in-person teaching on Today; Today's list's next session and walk-in line; "Created. It's saved."; registration closes once a one-time program ends; This Week skips Private programs; reminders give the time and point to the program's page; archived teams' Drive folders move into "Archived teams"; Skew Protection on).
-
-**Next concrete step:** none owed on the build. Jesse to confirm the Trial Workshop's note after arrives Tue Oct 27 ~10 AM CT, and to delete the "Test Program Central" account (jesse+pc@) and the Trial Kitchen folder in Drive's "Archived teams" if he likes. **Queued, small:** prune the old roster's CSS (`2026-10-24-001`); name the meals team directly once it exists.
+**Next concrete step:** none owed on this build. **Queued, small:** prune the old roster's CSS (`2026-10-24-001`); name the meals team directly once it exists (`2026-10-26-001`); a weekly series with a count but no days ticked (`2026-10-26-002`).
 
 ## Earlier — 2026-10-22 closed: shorter pages, the three circles, an integrity pass; every public page measured and recomposed
 

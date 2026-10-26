@@ -1,3 +1,35 @@
+## 2026-10-24 to 10-26 — Phases 2 to 4 built, then the after-build session
+
+On `main`: `a0b7534` (the editor as one page) … `6f796b1`, and this closing (61 commits). **Production:** no hand writes to the database (a read-only template read was declined, and done instead through `/admin/emails`). Through the app, each with Jesse's yes: the teams **Greeter → Greeter Team** and **Audio/Visual → Audio/Visual Team** (names only); a private **Trial Workshop** (created from a shape, registered, emailed, cancelled and restored, archived); a throwaway **Trial Kitchen** team (Helping with; archived, its Drive folder in "Archived teams"); a **Test Program Central** account Jesse made (added to Program Central and removed again). One guarded template update in `migrate.mjs`: the last two lines of Jesse's edited `session-reminder`. Vercel Skew Protection switched on (Jesse).
+
+### What was built (BUILD_PLAN.md, phases 2 to 4)
+
+- **Phase 2:** the editor as one page in seven sections (memoized section components, Jump to, a phone Save bar); **Opens on** (`lib/registrationWindow.ts`, one rule for every surface); **Post a notice** with an optional email (`program-notice`); **Ready to be seen**.
+- **Phase 3:** answers by question id (`lib/registrationAnswers.ts`, old answers kept); **who's asking** each question (`lib/questionAskers.ts`: the registration team, the teacher, or a team); **the teacher's page** (`/account/teaching`, "Teaching" in the menu, "First registration here"); **Today's list** for supporting teams (`/account/greeting/[slug]`, Arrived); **Helping with**, the app for teams that prepare (`/tools/helping`, `program_helpers`, "Can reach people").
+- **Phase 4:** reminders counted in days before, reaching late registrants (`lib/reminderSchedule.ts`); **the note after** a one-time program ends (`lib/followUp.ts`, the `send-follow-ups` cron, `program-follow-up`); **Tell the people registered?** after a save changes the time, place or confirmation (`lib/programUpdate.ts`, through Message people); **start from a shape** (`lib/programShapes.ts`); **copy a program** (`lib/programCopy.ts`). Both reminder and note runs claim each person before sending and release on failure.
+
+### The after-build session (2026-10-25/26)
+
+Jesse: *"Let's save all the things that we need to check for after everything is built."* Then: *"walk me through this test, and I'll check in at each point."*
+
+- **Read-aloud, step by step**, rulings recorded verbatim in `BUILD_PLAN.md`: *"'Who's helping?' label doesn't really seem like a team effort label"* → **Teachers and teams**; *"'what we tell them' is a little vague. Tell who?"* → **Messages to those who register**, rebuilt on his ask for a holistic look as three emails in order (When they register / Before it begins / After it ends), seen in a preview first; **Supporting teams** (was Auxiliary role coverage); "Three kinds of team"; the visitor lines and editor help without em-dashes; "CT" on the opening line; and more.
+- **Trials** on the private Trial Workshop (Jesse chose it over the Dummy Test Program: LoriLee is registered there, its mailing list is on, its teams are real): create from a shape, Add a person, an update after a time change, the teacher's page, Post a notice, Opens on, copy, Today's list (opened as lead; a sign-up would email the team when undone), the reminder and the cancellation email (both arrived), the mailing-list segment, Program Central without a role (a second account), Helping with on a throwaway team.
+- **Decisions** (each Jesse's, mostly the recommended choice): contact details on a teacher's and team's page **close 30 days after a program ends** (`lib/contactWindow.ts`; a counted series after its last session, `lastOccurrenceEnd`), with **"Ended"** on the Teaching and Helping with lists; Add a person's **dana starts unchosen** and the **program's questions are in the panel**; **in-person teaching days on Today**; Today's list without a day opens the **next session**, with a **walk-in line**; **"Created. It's saved."**; past days said as what will happen; a notice names only where it shows; Drop-in and Class shapes start **Online**; a focus outline on option cards; **registration closes once a one-time program has ended**; reminders give **the time** and point to **the program's page**; **archived teams' Drive folders move into "Archived teams"** (restore moves them back).
+- **Found and fixed in the trials:** a reminder said to have "gone out" when nothing had (now `nextReminderRun`, counted); the sign-in list recorded a print on every load (now on print); **This Week listed Private programs**; "The 1 person registered still have it"; a closing-date check an hour off in summer; the editor's fieldsets showed the browser's groove border and narrow boxes were full width.
+- **Not real:** the "hidden second copy" on tool pages is the checking browser pane, which runs no animation frames (React 19 waits for one to move streamed content). The "jumps to the home page" were Next.js reloading after a deploy mid-trial (hence Skew Protection).
+
+### What this connects to
+
+Registration (`RIM_Registration_App.md`) and the editor (`RIM_ProgramEditor.md`) share one window rule, one place count, one answers model. The helpers' pages read `lib/programHelpers.ts`, `lib/teaching.ts`, `lib/sessionHelpers.ts` and close by `lib/contactWindow.ts`. My Home's Today gained teaching rows and notices on duty rows. The public program, register and This Week pages follow the window rule and the Private rule. The crons `send-reminders` and `send-follow-ups`. Team admin (`/admin/hubs`) moves Drive folders on archive (`RIM_GoogleWorkspace.md`). The email templates `program-notice`, `program-follow-up`, `session-reminder` (time, last lines).
+
+### Checks
+
+`tsc` clean, the member harness grew from 173 to 227 checks, and a reviewer sub-agent read every slice and every after-build change before push; its findings were fixed or recorded (a crash for a counted weekly series with no days ticked; a privacy gap where a copy dropped the mailing-list choice; the This Week leak's neighbours).
+
+### What comes next
+
+Jesse confirms the Trial Workshop's note after arrives Tue Oct 27 ~10 AM CT. Queued: prune the old roster's CSS; name the meals team directly once it exists.
+
 ## 2026-10-23 to 10-24 — Programs and Registration become two apps
 
 On `main`: `5339e30` (research, concept, mockups, plan) … `5094465` (safe saves), and this closing. **Production:** no hand writes to the database. Through the app, with Jesse's yes each time: Registration installed in the Registration team's Space (primary, Program Manager supporting) and Programs installed in Program Central (`/admin/hubs`); one test message to jesse@ ("Send me a test", Dummy Test Program). Opening the Dummy Test Program's sign-in list added one History line.

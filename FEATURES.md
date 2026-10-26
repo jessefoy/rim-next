@@ -13,6 +13,15 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 
 ---
 
+## October 24 to 26, 2026: helpers, what we tell people, starting a program, and the after-build session
+
+Phases 3 and 4 of the plan, then a full read-aloud, live trials and Jesse's decisions (`mockups/registration-2026-10-23/BUILD_PLAN.md` holds every ruling and trial).
+- **The teacher's page** (`/account/teaching`, "Teaching" in the menu): who's coming, what they told the teacher, how to reach them, "First registration here". **Today's list** (`/account/greeting/[slug]`) for greeters and other supporting teams, with Arrived, and a line for walk-ins; opened without a day it shows the next session. **Helping with** (`/tools/helping`), the app for teams that prepare (a kitchen team): how many are coming and the answers to the team's own questions, with email and phone only when "Can reach people" is ticked. All three close their contact details **30 days after a program ends** and keep it under **"Ended"** meanwhile (`lib/contactWindow.ts`).
+- **Who's asking:** each question is asked by the registration team, the teacher, or a team; the form groups them ("From [teacher], your teacher", "For the Greeter Team").
+- **What we tell people** (the editor's "Messages to those who register": When they register / Before it begins / After it ends): reminders counted in days before, reaching late registrants, with the time; **a note after** a one-time program ends; **Tell the people registered?** after a save changes the time, place or confirmation.
+- **Starting a program:** "What are you offering?" with six shapes, or **copy a program** (never its people, dates, address or notice). "Created. It's saved." on arrival.
+- **From the trials:** registration **closes once a one-time program has ended**; **This Week skips Private programs**; My Home's Today shows **in-person teaching days**; Add a person's dana starts unchosen and asks the program's questions; a notice names only where it shows; the reminder email points to the program's page; archived teams' **Drive folders move into "Archived teams"**; Vercel Skew Protection is on.
+
 ## October 23 to 24, 2026: Programs and Registration, two apps
 
 Jesse: the program editor and registration should be two apps. Researched, designed ("Teachers and teams, who's asking"), and built in phases (`mockups/registration-2026-10-23/BUILD_PLAN.md`).
@@ -382,13 +391,14 @@ The **offering model** (Programs vs Courses, the orthogonal access flags, Catego
 - **The Registration app** (2026-10-23, `/tools/registration`) is where the registration team works: see `RIM_Registration_App.md`. History (`registration_events`) and notes (`registration_notes`).
 - **Registration changes:** cancellations are registrar-managed; members can update questionnaire responses only through a registrar-sent tokenized link (`/update/[token]` + `editToken` on `Registration`).
 - **Dana & Stripe:** `danaMode` ∈ none / voluntary / base_plus_dana / fixed; Stripe Checkout (`/api/stripe/checkout` + `/api/stripe/webhook`); `Donation` write-only ledger.
-- **Calendar & reminders:** `lib/calendarLinks.ts` (Google + `.ics`), reminder emails via the `send-reminders` cron.
+- **Calendar & reminders:** `lib/calendarLinks.ts` (Google + `.ics`); reminder emails via the `send-reminders` cron, counted in days before the start and reaching late registrants (`lib/reminderSchedule.ts`), with the time; the note after a one-time program via the `send-follow-ups` cron (`lib/followUp.ts`).
+- **The window:** whether a program takes sign-ups is one rule (`lib/registrationWindow.ts`): off, not open yet, open, or closed (by hand, past its closing date, or a one-time program that has ended).
 - **See:** `RIM_Registration.md`.
 
 ### Program Manager tool
 `/tools/programs` — program CRUD, scheduling, registration settings, categories. The three roles, or active members of the Registration team and Program Central (2026-10-24, `canUsePrograms`); archive, delete, the guest-link reset and categories for the three roles only. Shows no one's details. Saves are safe saves (only what changed; same-field changes refused).
 - **Routes:** `/tools/programs`, `/tools/programs/new`, `/tools/programs/[programSlug]` (redirects to Registration), `/tools/programs/[programSlug]/edit`, `/tools/programs/categories` · **API:** `/api/programs-pg/*`, `/api/programs-pg/categories/*`.
-- ProgramEditor tabs: Content / Schedule / Hosting & Access / Categories / Registration / Dana / Visibility. The Registration tab carries a read-only "How this appears to visitors" readout (session 138).
+- The editor is one page in seven sections (2026-10-24): About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, Where it appears; Post a notice and Ready to be seen at the top; "How this appears to visitors" under How people join. New programs start from a shape or a copy (`/tools/programs/new`).
 - **See:** `RIM_ProgramEditor.md` (full ecosystem trace, access, hub context, editor and design contract).
 
 ---
