@@ -129,14 +129,14 @@ export function conversationsScreen(device: Device, stage: "list" | "reply" | "n
           <span className="tut-area">Share your thoughts…</span>
           <span className="tut-meta">Coordinators of this team are automatically notified. You can add anyone else who should see this:</span>
           <span className="tut-label">Notify team members</span>
-          <span className="tut-actions"><span className="tut-btn hl">Post topic</span><span className="tut-btn tut-btn--ghost">Cancel</span></span>
+          <span className="tut-actions"><span className="tut-btn hl">Post topic</span><span className="tut-link">Cancel</span></span>
         </div>
       </Page>
     );
   }
   return (
     <Page header={<Header device={device} />} rail={rail}>
-      <span className="tut-week"><span className="tut-h1">Conversations</span><span className="tut-btn tut-btn--ghost">+ New topic</span></span>
+      <span className="tut-week"><span className="tut-h1">Conversations</span><span className="tut-btn">+ New topic</span></span>
       <Pills items={["Active 4", "Archived 2"]} />
       <div className="tut-list">
         <span className="tut-list__row hl"><span><b>Hosting tips</b><small>Sam R. · 2 replies · 3h ago</small></span><span>→</span></span>
@@ -155,7 +155,7 @@ export function filesScreen(device: Device, stage: "list" | "file") {
         <span className="tut-link">← Back to files</span>
         <span className="tut-h1">Host checklist</span>
         <span className="tut-meta">Google Doc · Created by Alex M. · Updated yesterday</span>
-        <span className="tut-actions"><span className="tut-btn hl">Edit in Google Docs</span><span className="tut-btn tut-btn--ghost">Remove</span></span>
+        <span className="tut-actions"><span className="tut-btn hl">Edit in Google Docs</span><span className="tut-link">Remove</span></span>
         <div className="tut-doc"><span /><span /><span /><span /></div>
         <span className="tut-h2">Conversation</span>
         <span className="tut-area">Add a comment…</span>
@@ -164,7 +164,7 @@ export function filesScreen(device: Device, stage: "list" | "file") {
   }
   return (
     <Page header={<Header device={device} />} rail={<TeamRail device={device} team={TEAM} active="Files" />}>
-      <span className="tut-week"><span className="tut-h1">Files</span><span className="tut-btn tut-btn--ghost">+ New</span></span>
+      <span className="tut-week"><span className="tut-h1">Files</span><span className="tut-btn">+ New</span></span>
       <span className="tut-p">{TEAM}&rsquo;s shared files. Documents open right here; editing opens in Google.</span>
       <span className="tut-input">Search file names</span>
       <div className="tut-list">

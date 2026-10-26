@@ -682,7 +682,7 @@ export default function HubConvClient({
                       Cancel
                     </button>
                     <button
-                      className="hub-action-btn hub-action-btn--del"
+                      className="btn btn--danger"
                       onClick={() => deleteCategory(cat)}
                       disabled={catBusy}
                     >
@@ -830,7 +830,7 @@ export default function HubConvClient({
                 <button ref={keepWritingRef} className="btn--ghost" onClick={() => { setConfirmDiscard(false); titleRef.current?.focus(); }}>
                   Keep writing
                 </button>
-                <button className="hub-action-btn hub-action-btn--del" onClick={discardCompose}>
+                <button className="btn btn--danger" onClick={discardCompose}>
                   Discard
                 </button>
               </div>

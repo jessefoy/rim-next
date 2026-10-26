@@ -299,7 +299,7 @@ export default function FileDetailActions({
             >
               Cancel
             </button>
-            <button className="gf-detail__btn" onClick={saveCreator} disabled={busy}>
+            <button className="gf-detail__btn gf-detail__btn--primary" onClick={saveCreator} disabled={busy}>
               {busy ? "Saving…" : "Save"}
             </button>
           </div>

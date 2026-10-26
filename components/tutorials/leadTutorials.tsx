@@ -44,7 +44,7 @@ function person(name: string, opts: { badge?: string; flag?: string; flagHl?: bo
         <span><b>{name}</b>{opts.badge && <span className="tut-pill">{opts.badge}</span>}</span>
         {opts.flag && <small className={cx("tut-flag", opts.flagHl && "hl")}>{opts.flag}</small>}
       </span>
-      {opts.edit !== false && <span className="tut-btn tut-btn--ghost tut-btn--sm">Edit</span>}
+      {opts.edit !== false && <span className="tut-link">Edit</span>}
     </span>
   );
 }
@@ -75,7 +75,7 @@ function leadMembers(device: Device, stage: "list" | "add" | "edit" | "pause") {
   if (stage === "add") {
     return teamPage(device, "Members", (
       <>
-        <span className="tut-week"><span className="tut-h1">Members</span><span className="tut-btn tut-btn--ghost">+ Add Member</span></span>
+        <span className="tut-week"><span className="tut-h1">Members</span><span className="tut-btn">+ Add Member</span></span>
         <span className="tut-input">rob</span>
         <div className="tut-list"><span className="tut-list__row hl"><span><b>Robin T.</b><small>robin@example.com</small></span><span>+</span></span></div>
         <span className="tut-meta">Someone who hasn&rsquo;t signed in to the new site yet won&rsquo;t appear here. An admin or the registrar can add them from the Member Registry.</span>
@@ -105,13 +105,13 @@ function leadMembers(device: Device, stage: "list" | "add" | "edit" | "pause") {
       <>
         <span className="tut-h2 hl">Take Sam R. off the schedule?</span>
         <span className="tut-p">Sam R. has 2 upcoming sessions on this team&rsquo;s schedule. If they keep them, they won&rsquo;t be let into those sessions as host.</span>
-        <span className="tut-actions"><span className="tut-btn tut-btn--ghost">Cancel</span><span className="tut-btn tut-btn--ghost">Keep their sessions</span><span className="tut-btn">Take them off their sessions</span></span>
+        <span className="tut-actions"><span className="tut-link">Cancel</span><span className="tut-btn">Keep their sessions</span><span className="tut-btn">Take them off their sessions</span></span>
       </>
     ));
   }
   return teamPage(device, "Members", (
     <>
-      <span className="tut-week"><span className="tut-h1">Members</span><span className="tut-btn tut-btn--ghost">+ Add Member</span></span>
+      <span className="tut-week"><span className="tut-h1">Members</span><span className="tut-btn">+ Add Member</span></span>
       {list}
     </>
   ));
@@ -137,7 +137,7 @@ function leadFiles(device: Device, stage: "areas" | "pending") {
           <div className="tut-card">
             <span><b>Old sign-up sheet</b></span>
             <span className="tut-meta">Requested by Alex M. · 2 days ago</span>
-            <span className="tut-actions"><span className="tut-btn hl">Approve removal</span><span className="tut-btn tut-btn--ghost">Keep</span></span>
+            <span className="tut-actions"><span className="tut-btn hl">Approve removal</span><span className="tut-link">Keep</span></span>
           </div>
         </>
       )}
@@ -309,7 +309,7 @@ function rotationGrid(hl: "set-up" | "reset" | null, saved = false) {
           : (<><span className="tut-grid__day">Tuesday</span><span>Sam R.</span><span>Alex M.</span><span>Sam R.</span><span>Alex M.</span><span>—</span></>)}
       </div>
       <span className="tut-actions">
-        {hl === "set-up" ? <span className="tut-btn hl">Set up</span> : (<><span className="tut-btn tut-btn--ghost">Edit</span><span className={cx("tut-btn tut-btn--ghost", hl === "reset" && "hl")}>Reset Tuesday</span></>)}
+        {hl === "set-up" ? <span className="tut-link hl">Set up</span> : (<><span className="tut-link">Edit</span><span className={cx("tut-link", hl === "reset" && "hl")}>Reset Tuesday</span></>)}
       </span>
       {saved && (
         <span className="tut-saved hl">
@@ -340,7 +340,7 @@ function rotationForm(device: Device, pattern: "every-week" | "other-week") {
         <>
           <span className="tut-label">Every week</span>
           <span className="tut-input">Sam R. ▾</span>
-          <span className="tut-actions"><span className="tut-btn hl">Save &amp; apply</span><span className="tut-btn tut-btn--ghost">Cancel</span></span>
+          <span className="tut-actions"><span className="tut-btn hl">Save &amp; apply</span><span className="tut-link">Cancel</span></span>
         </>
       ) : (
         <>

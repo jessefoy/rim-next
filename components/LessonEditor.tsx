@@ -520,7 +520,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <button
                           type="button"
-                          className="th-btn th-btn--danger th-btn--small"
+                          className="th-btn th-btn--primary th-btn--small"
                           onClick={() => removeMedia("image")}
                           disabled={removing}
                         >
@@ -577,7 +577,7 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button
                         type="button"
-                        className="th-btn th-btn--danger th-btn--small"
+                        className="th-btn th-btn--primary th-btn--small"
                         onClick={() => removeMedia("audio")}
                         disabled={removing}
                       >

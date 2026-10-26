@@ -644,7 +644,7 @@ export default function HubConvThreadClient({
               Cancel
             </button>
             <button
-              className="hub-action-btn hub-action-btn--del"
+              className="btn btn--danger"
               onClick={softDeleteThread}
               disabled={deletingThread}
             >
@@ -776,7 +776,7 @@ export default function HubConvThreadClient({
                           Cancel
                         </button>
                         <button
-                          className="hub-action-btn hub-action-btn--del"
+                          className="btn btn--danger"
                           onClick={() => deleteReply(r.id)}
                           disabled={deletingReply}
                         >

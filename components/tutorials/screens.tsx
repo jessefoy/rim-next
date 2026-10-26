@@ -175,7 +175,7 @@ export function schedulerScreen(
 /** A dialog's buttons: the one to choose, and the way out. */
 export function DialogActions({ yes, no = "Not yet" }: { yes: string; no?: string }) {
   return (
-    <span className="tut-actions"><span className="tut-btn hl">{yes}</span><span className="tut-btn tut-btn--ghost">{no}</span></span>
+    <span className="tut-actions"><span className="tut-btn hl">{yes}</span><span className="tut-link">{no}</span></span>
   );
 }
 

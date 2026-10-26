@@ -315,7 +315,7 @@ export default function HubMembersClient({
             <p>Permanently remove {displayName(m.user)} from this team? They come off their upcoming sessions and rotations on this team, and we&rsquo;ll let them know which ones. Their position, notes and settings for this team will be lost.</p>
             <div className="hub-mem-confirm__actions">
               <button className="btn--ghost" onClick={() => setConfirmHardRemove(null)} disabled={removing}>Cancel</button>
-              <button className="hub-action-btn hub-action-btn--del" onClick={() => hardRemove(m.userId)} disabled={removing}>
+              <button className="btn btn--danger" onClick={() => hardRemove(m.userId)} disabled={removing}>
                 {removing ? "Removing…" : "Remove"}
               </button>
             </div>
@@ -455,15 +455,15 @@ export default function HubMembersClient({
             <div className="hub-mem-dialog__actions">
               <button className="btn--ghost" onClick={() => setConfirmDialog(null)} disabled={proceeding}>Cancel</button>
               {confirmDialog.inactive ? (
-                <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(false)} disabled={proceeding}>
+                <button className="btn btn--danger" onClick={() => confirmProceed(false)} disabled={proceeding}>
                   {proceeding ? "Saving…" : "Mark inactive and open their sessions"}
                 </button>
               ) : (
                 <>
-                  <button className="btn btn--sm" onClick={() => confirmProceed(false)} disabled={proceeding}>
+                  <button className="btn" onClick={() => confirmProceed(false)} disabled={proceeding}>
                     {proceeding ? "Saving…" : "Keep their sessions"}
                   </button>
-                  <button className="hub-action-btn hub-action-btn--del" onClick={() => confirmProceed(true)} disabled={proceeding}>
+                  <button className="btn btn--danger" onClick={() => confirmProceed(true)} disabled={proceeding}>
                     {proceeding ? "Saving…" : "Take them off their sessions"}
                   </button>
                 </>

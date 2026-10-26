@@ -1023,7 +1023,7 @@ export default function CourseEditor({
                           </span>
                           <button
                             type="button"
-                            className="pe-btn pe-btn--small pe-btn--danger"
+                            className="pe-btn pe-btn--primary"
                             onClick={() => handleDeleteCategory(c.id)}
                             disabled={deletingCat}
                           >

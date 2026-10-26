@@ -22589,12 +22589,15 @@ html { scroll-padding-top: 88px; }
   font-family: var(--font-sans); font-size: var(--text-action); font-weight: 600; line-height: 1.5; text-decoration: none; cursor: pointer;
 }
 .ac-layout .gf-detail__btn--primary:hover:not(:disabled) { background: var(--rim-dark); color: var(--rim-surface); }
+/* A file's secondary actions and the way back: quiet text (2026-10-26, the apps' buttons). */
 .ac-layout :is(.gf-detail__btn--ghost, .gf-detail__back) {
-  min-height: 48px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 12px;
-  border: none; border-radius: 999px; padding: 12px 24px; background: transparent; color: var(--rim-blue); box-shadow: inset 0 0 0 1px var(--rim-blue);
-  font-family: var(--font-sans); font-size: var(--text-action); font-weight: 600; line-height: 1.5; text-decoration: none; cursor: pointer;
+  min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; border-radius: 8px; padding: 0 10px; background: transparent; color: var(--rim-blue); box-shadow: none;
+  font-family: var(--font-sans); font-size: var(--text-app); font-weight: 600; line-height: 1.2; text-decoration: none; cursor: pointer;
 }
-.ac-layout :is(.gf-detail__btn--ghost, .gf-detail__back):hover:not(:disabled) { background: var(--rim-surface); color: var(--rim-dark); }
+.ac-layout :is(.gf-detail__btn--ghost, .gf-detail__back):hover:not(:disabled) { background: var(--rim-bg-accent); color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
+.ac-layout .gf-detail__btn--ghost.gf-detail__btn--danger-text { color: var(--color-error); }
+.ac-layout .gf-detail__btn--ghost.gf-detail__btn--danger-text:hover:not(:disabled) { background: var(--color-error-bg); color: var(--color-error); }
 .ac-layout .gf-detail__btn--danger {
   min-height: 48px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
   border: none; border-radius: 999px; padding: 12px 24px; background: var(--color-error); color: var(--rim-surface);
