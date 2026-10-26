@@ -11,7 +11,7 @@
 import { buildDateLabel } from "@/lib/dateLabel";
 import { hasConcludedOneTime } from "@/lib/programUtils";
 import { registrationWindow } from "@/lib/registrationWindow";
-import { reachesLateRegistrants, reminderSendsAt as scheduledSend } from "@/lib/reminderSchedule";
+import { nextReminderRun, reachesLateRegistrants, reminderSendsAt as scheduledSend } from "@/lib/reminderSchedule";
 
 const CT = "America/Chicago";
 
@@ -113,6 +113,12 @@ export function reminderSendsAt(p: DeskProgram): Date | null {
   return scheduledSend(p);
 }
 
+/** When the daily run next sends this program's reminder, or null
+ *  (lib/reminderSchedule.ts nextReminderRun). */
+export function reminderNextSend(p: DeskProgram, now = new Date()): Date | null {
+  return nextReminderRun(p, now);
+}
+
 /** "Thursday, Nov 12, at 8 AM": when something goes out, in Central time. */
 export function fmtSendTime(d: Date): string {
   const day = d.toLocaleDateString("en-US", { timeZone: CT, weekday: "long", month: "short", day: "numeric" });
@@ -147,7 +153,9 @@ export function programNeeds(p: DeskProgram, c: DeskCounts, now = new Date()): D
   if (reminderHasGone(p, now) && c.reminderUnsent > 0 && !reachesLateRegistrants(p, now)) {
     needs.push({
       kind: "reminder",
-      text: `${people(c.reminderUnsent)} registered after the reminder went out.`,
+      // Said as it is: someone may have joined after it went, or after its
+      // day passed with no one to send to (a trial, 2026-10-25).
+      text: `${people(c.reminderUnsent)} ${c.reminderUnsent === 1 ? "hasn't" : "haven't"} had the reminder.`,
     });
   }
   return needs;

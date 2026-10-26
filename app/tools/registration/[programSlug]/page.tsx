@@ -22,6 +22,7 @@ import {
   programWhen,
   registrationState,
   reminderSendsAt,
+  reminderNextSend,
   fmtSendTime,
   type DeskCounts,
 } from "@/lib/registrationDesk";
@@ -256,13 +257,29 @@ export default async function RegistrationProgramPage({
     ).length,
   };
   const needs = program.archivedAt ? [] : programNeeds(program, counts);
-  // When the automatic reminder goes (or went), in the desk's words.
+  // When the automatic reminder goes, in the desk's words: before its first
+  // day, that day; after it, what was actually sent, counted, and when the
+  // next morning's send reaches anyone still without it (a trial, 2026-10-25:
+  // a program made after its first day said "went out" though nothing had).
   const sendsAt = program.archivedAt ? null : reminderSendsAt(program);
+  const nextSend = program.archivedAt ? null : reminderNextSend(program);
+  const placedNow = registrations.filter((r) => r.status === "REGISTERED" || r.status === "APPROVED");
+  const reminded = placedNow.filter((r) => r.reminderSentAt).length;
+  const unreminded = placedNow.length - reminded;
+  const fmtPeople = (n: number) => (n === 1 ? "1 person" : `${n} people`);
   const reminderLine = !sendsAt
     ? null
     : sendsAt > new Date()
     ? `The reminder email goes out ${fmtSendTime(sendsAt)}, to everyone registered who hasn't had it${reachesLateRegistrants(program) ? ", and each morning after to anyone who registers later, until it begins" : ""}.`
-    : `The reminder email went out ${fmtSendTime(sendsAt)}${reachesLateRegistrants(program) ? "; anyone who registers now gets it the next morning" : ""}.`;
+    : reminded > 0 && unreminded > 0 && nextSend
+    ? `The reminder email went out to ${fmtPeople(reminded)}; ${unreminded === 1 ? "the 1 person who hasn't had it yet gets it" : `the ${unreminded} people who haven't had it yet get it`} ${fmtSendTime(nextSend)}.`
+    : reminded > 0
+    ? `The reminder email went out to ${fmtPeople(reminded)}${nextSend ? "; anyone who registers now gets it the next morning" : ""}.`
+    : unreminded > 0 && nextSend
+    ? `The reminder email goes out ${fmtSendTime(nextSend)}, to everyone registered.`
+    : nextSend
+    ? "The reminder email goes out the morning after someone registers, until it begins."
+    : null;
 
   // The note after a one-time program ends (lib/followUp.ts), said beside the
   // reminder: once its day has come, what was sent, counted.
@@ -355,7 +372,7 @@ export default async function RegistrationProgramPage({
             (program.danaMode === "base_plus_dana" && (program.danaBaseAmount ?? 0) > 0)
           }
           reminderLine={fullReminderLine}
-          reminderAhead={!!sendsAt && sendsAt > new Date()}
+          reminderAhead={!!nextSend}
           seeAmounts={seeAmounts}
           initialShow={show ?? null}
         />

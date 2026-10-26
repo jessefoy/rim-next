@@ -86,6 +86,20 @@ export function nextRunAfter(now: Date): Date {
   return run;
 }
 
+/** The next morning run that sends this program's reminder to anyone who
+ *  hasn't had it, or null: the first send while it's ahead; then, counting
+ *  days before, the next run before the program begins (a program created or
+ *  joined after its first send day is reminded then, 2026-10-25). A set date
+ *  sends only once. */
+export function nextReminderRun(p: ReminderProgram, now: Date = new Date()): Date | null {
+  const first = reminderSendsAt(p);
+  if (!first) return null;
+  if (first > now) return first;
+  if (!usesDaysBefore(p)) return null;
+  const next = nextRunAfter(now);
+  return next < new Date(p.startDatetime!) ? next : null;
+}
+
 /** Whether someone registering now still gets the reminder automatically:
  *  days before, and a morning run still comes before the program begins (an
  *  evening program on its own day, past the run, has none left). */

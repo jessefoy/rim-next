@@ -518,5 +518,14 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check([pc.copyForNew({ ...src, removeFromProgramList: true }, { slug: 'x', canDecideAskers: true }).removeFromProgramList, pc.copyForNew({ ...src, removeFromProgramList: true, dashboardShowAt: '' }, { slug: 'x', canDecideAskers: true }).removeFromProgramList], [false, true], 'hidden until a date starts shown; hidden for good stays hidden');
   check(src.slug === 'fall-retreat' && src.registrationFields[0]._key === 'q1', true, 'the original is left as it was');
 
+  // The next morning that sends a reminder (a trial, 2026-10-25: a program
+  // made after its first send day was said to have been reminded).
+  const rsx = load('lib/reminderSchedule.ts');
+  const trial = { registrationEnabled: true, archivedAt: null, startDatetime: '2026-10-26T15:00:00Z', reminderDate: null, reminderDaysBefore: 2 };
+  check(rsx.nextReminderRun(trial, new Date('2026-10-25T22:00:00Z')).toISOString(), '2026-10-26T14:00:00.000Z', 'made after its first day: the next morning, before it begins');
+  check(rsx.nextReminderRun(trial, new Date('2026-10-23T12:00:00Z')).toISOString(), '2026-10-24T14:00:00.000Z', 'before its first day: that day');
+  check(rsx.nextReminderRun(trial, new Date('2026-10-26T14:30:00Z')), null, 'no morning left before it begins: none');
+  check(rsx.nextReminderRun({ ...trial, reminderDaysBefore: null, reminderDate: '2026-10-24T14:00:00Z' }, new Date('2026-10-25T22:00:00Z')), null, 'a set date past: none (it sends once)');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

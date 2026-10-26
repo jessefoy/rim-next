@@ -18,6 +18,7 @@ import {
   programWhen,
   registrationState,
   reminderSendsAt,
+  reminderNextSend,
   type DeskCounts,
   type DeskProgram,
 } from "@/lib/registrationDesk";
@@ -118,7 +119,14 @@ export default async function RegistrationDeskPage({
   const goingOut: GoingOut[] = [
     ...rows
       .filter((r) => !r.archived && !isOver(r.program))
-      .map((r) => ({ r, at: reminderSendsAt(r.program), kind: "reminder" as const })),
+      // The next morning that sends it: its first day, or after that, the
+      // next morning while anyone registered hasn't had it.
+      .map((r) => {
+        const first = reminderSendsAt(r.program);
+        const at = reminderNextSend(r.program, now);
+        const shown = !!at && (at.getTime() === first?.getTime() || r.counts.reminderUnsent > 0);
+        return { r, at: shown ? at : null, kind: "reminder" as const };
+      }),
     ...rows.map((r) => ({ r, at: followUpSendsAt(byProgram.get(r.program.slug)!), kind: "note" as const })),
   ]
     .filter((x): x is GoingOut => !!x.at && x.at > now && x.at <= soonUntil)
