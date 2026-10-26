@@ -10,6 +10,8 @@ import { addRegistrationToFlodesk } from "@/lib/flodesk";
 import { sendDanaReminderEmail } from "@/lib/email";
 import { recordRegistrationEvent } from "@/lib/registrationEvents";
 import { countPlacesTaken } from "@/lib/registrationPlaces";
+import { answersForNewRegistration, type QuestionLike } from "@/lib/registrationAnswers";
+import { Prisma } from "@prisma/client";
 
 // ─── POST /api/programs/[slug]/people ────────────────────────────────────────
 // The Registration app's "Add a person" (2026-10-23): someone who phoned,
@@ -50,7 +52,8 @@ export async function POST(
   const lastName = toProperName(typeof body.lastName === "string" ? body.lastName : "").trim();
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const phone = typeof body.phone === "string" && body.phone.trim() ? body.phone.trim() : null;
-  const dana = body.dana === "given" || body.dana === "none" ? body.dana : "online";
+  // Chosen by the team, never assumed (2026-10-26: "online" emails a link).
+  const dana = body.dana === "given" || body.dana === "none" || body.dana === "online" ? body.dana : null;
   const sendConfirmation = body.sendConfirmation !== false;
   // What the page showed: a place, or the waiting list. If that changed since
   // it loaded, say so rather than record dana for a place they didn't get.
@@ -75,6 +78,7 @@ export async function POST(
       danaMode: true,
       danaFixedAmount: true,
       danaBaseAmount: true,
+      registrationFields: true,
     },
   });
   if (!program || program.archivedAt || !program.registrationEnabled) {
@@ -140,6 +144,9 @@ export async function POST(
     (program.danaMode === "fixed" && (program.danaFixedAmount ?? 0) > 0) ||
     (program.danaMode === "base_plus_dana" && (program.danaBaseAmount ?? 0) > 0);
   const asksDana = program.danaMode === "voluntary" || requiresPayment;
+  if (hasPlace && asksDana && !dana) {
+    return NextResponse.json({ error: "Choose how they'll give dana." }, { status: 400 });
+  }
   const donationStatus = !hasPlace
     ? "NOT_REQUIRED" // waiting: asked when offered a place
     : !asksDana
@@ -149,6 +156,11 @@ export async function POST(
     : dana === "none"
     ? "WAIVED"
     : "PENDING";
+
+  // The program's questions, as the public form reads them (a malformed entry is skipped).
+  const questions = ((Array.isArray(program.registrationFields) ? program.registrationFields : []) as unknown as (QuestionLike | null)[])
+    .filter((q): q is QuestionLike => !!q && typeof q.label === "string");
+  const answers = answersForNewRegistration(body.customFields, questions) as Prisma.InputJsonObject | null;
 
   // A new person becomes a member, as on the public form; they agree to the
   // agreements themselves when they first sign in.
@@ -180,6 +192,8 @@ export async function POST(
       status,
       waitlistPosition: hasPlace ? null : waiting + 1,
       donationStatus,
+      // What they told the team, by question id, as the public form keeps it.
+      ...(answers ? { customFields: answers } : {}),
     },
     select: { id: true, firstName: true, lastName: true, email: true },
   });

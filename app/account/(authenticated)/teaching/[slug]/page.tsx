@@ -10,6 +10,7 @@ import { loadAskerContext } from "@/lib/programAskers";
 import { askerOf } from "@/lib/questionAskers";
 import { answerFor, type QuestionLike } from "@/lib/registrationAnswers";
 import { loadFirstRegistrationIds } from "@/lib/firstRegistration";
+import { CONTACT_DAYS_AFTER, contactsClosed } from "@/lib/contactWindow";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,26 @@ export default async function TeachingProgramPage({ params }: { params: Promise<
   if (!program) notFound();
   if (!(await canOpenTeachingPage(userId, session.user.roles, program.id))) notFound();
   const teachesIt = program.programTeachers.length > 0;
+
+  // 30 days after it ends, the list (with contact details) closes to its
+  // teachers; the guiding teacher keeps it, as the registration team does
+  // (lib/contactWindow.ts, Jesse 2026-10-26).
+  if (!isGuidingTeacher(session.user.roles) && contactsClosed(program)) {
+    return (
+      <AccountLayout>
+        <div className="ac-member-page hlp-page">
+          <p className="hlp-back"><Link href="/account/teaching">&larr; Teaching</Link></p>
+          <header className="ac-page-head">
+            <div><h1 className="ac-page-title">{program.name}</h1></div>
+          </header>
+          <p className="hlp-why">
+            This program ended more than {CONTACT_DAYS_AFTER} days ago, so its list of who came has closed.
+            The registration team still has it.
+          </p>
+        </div>
+      </AccountLayout>
+    );
+  }
 
   const [registrations, askers] = await Promise.all([
     db.registration.findMany({

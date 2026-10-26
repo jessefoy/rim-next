@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
 import ProgramCardNotices from "@/components/ProgramCardNotices";
-import { hasOpenEntry } from "@/lib/programOffering";
+import { hasOpenEntry, isPubliclyListedCategory, resolveOffering } from "@/lib/programOffering";
 import { fmtLabel } from "@/lib/programUtils";
 import PracticeWithUs from "@/components/PracticeWithUs";
 import { formatTimeRange } from "@/lib/dateLabel";
@@ -88,10 +88,12 @@ export default async function ThisWeekPage({
   sunday.setDate(sunday.getDate() + 6);
   const dateRange = `${formatShortDate(monday)}–${formatShortDate(sunday)}, ${monday.getFullYear()}`;
 
-  const programs = await db.program.findMany({
+  // Private programs are never listed (Programs & Events already skipped
+  // them; This Week didn't: a trial's Private program showed here, 2026-10-26).
+  const programs = (await db.program.findMany({
     where: { archivedAt: null, hideFromProgramPageList: false, hideFromWeeklySchedule: false },
     include: { category: true },
-  });
+  })).filter((p) => isPubliclyListedCategory(resolveOffering(p).category));
 
   /** Extract time-of-day in minutes from midnight (CT) for sorting */
   function timeOfDay(p: { startDatetime: Date | null; timeText: string | null }): number {

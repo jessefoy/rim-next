@@ -527,5 +527,14 @@ const json = { NextResponse: { json: (body, options) => ({ body, status: options
   check(rsx.nextReminderRun(trial, new Date('2026-10-26T14:30:00Z')), null, 'no morning left before it begins: none');
   check(rsx.nextReminderRun({ ...trial, reminderDaysBefore: null, reminderDate: '2026-10-24T14:00:00Z' }, new Date('2026-10-25T22:00:00Z')), null, 'a set date past: none (it sends once)');
 
+  // Contact details close 30 days after a program ends (Jesse, 2026-10-26).
+  const cw = load('lib/contactWindow.ts');
+  const oneDay = { startDatetime: '2026-11-14T16:00:00Z', endDatetime: '2026-11-14T22:00:00Z', recurrenceFreq: null, archivedAt: null };
+  check(cw.contactsCloseAt(oneDay).toISOString(), '2026-12-14T22:00:00.000Z', 'a one-time program: 30 days after its last day');
+  check([cw.contactsClosed(oneDay, new Date('2026-12-14T21:00:00Z')), cw.contactsClosed(oneDay, new Date('2026-12-14T23:00:00Z'))], [false, true], 'open until then, closed after');
+  check(cw.contactsCloseAt({ ...oneDay, archivedAt: '2026-11-01T12:00:00Z' }).toISOString(), '2026-12-01T12:00:00.000Z', 'cancelled (archived first): 30 days after that');
+  check(cw.contactsCloseAt({ ...oneDay, recurrenceFreq: 'WEEKLY' }), null, 'a repeating program, not archived: still open');
+  check(cw.contactsCloseAt({ ...oneDay, recurrenceFreq: 'WEEKLY', archivedAt: '2027-01-10T12:00:00Z' }).toISOString(), '2027-02-09T12:00:00.000Z', 'a repeating program: 30 days after it is archived');
+
   console.log(`Passed ${assertions} member-redesign checks (isolated, no external writes).`);
 })().catch(error=>{console.error(error);process.exit(1)});

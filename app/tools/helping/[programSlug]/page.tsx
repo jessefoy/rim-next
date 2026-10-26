@@ -8,6 +8,8 @@ import { fmtLabel } from "@/lib/programUtils";
 import { loadAskerContext } from "@/lib/programAskers";
 import { askerOf } from "@/lib/questionAskers";
 import { answerFor, type QuestionLike } from "@/lib/registrationAnswers";
+import { CONTACT_DAYS_AFTER, contactsClosed } from "@/lib/contactWindow";
+import { isGuidingTeacher } from "@/lib/teaching";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +60,24 @@ export default async function HelpingProgramPage({
     select: { canReach: true },
   });
   if (!helper) notFound();
+
+  // 30 days after it ends, the list (with any contact details) closes to the
+  // team; the guiding teacher keeps it, as the registration team does
+  // (lib/contactWindow.ts, Jesse 2026-10-26).
+  if (!isGuidingTeacher(session.user.roles) && contactsClosed(program)) {
+    return (
+      <div className="vol-page">
+        <div className="vol-content hlp-page">
+          <p className="hlp-back"><Link href={`/tools/helping?hub=${encodeURIComponent(team.slug)}`}>&larr; Helping with</Link></p>
+          <h1 className="vol-header__title">{program.name}</h1>
+          <p className="hlp-why">
+            This program ended more than {CONTACT_DAYS_AFTER} days ago, so its list of who came has closed.
+            The registration team still has it.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const [registrations, askers] = await Promise.all([
     db.registration.findMany({

@@ -185,7 +185,10 @@ export default function RegistrationPeople({
   const [earlyConfirm, setEarlyConfirm] = useState(false);
   const [notifyCancel, setNotifyCancel] = useState(true);
   const [panel, setPanel] = useState<"add" | "message" | null>(null);
-  const [add, setAdd] = useState({ firstName: "", lastName: "", email: "", phone: "", dana: "online", sendConfirmation: true });
+  // Dana starts unchosen, so nothing is emailed by default (Jesse,
+  // 2026-10-26); the program's questions are answered here too.
+  const emptyAdd = { firstName: "", lastName: "", email: "", phone: "", dana: "", sendConfirmation: true, answers: {} as Record<string, string> };
+  const [add, setAdd] = useState(emptyAdd);
   const [addError, setAddError] = useState<string | null>(null);
   const [msg, setMsg] = useState({ to: "registered" as "registered" | "waiting" | "both", subject: "", message: "" });
   const [msgError, setMsgError] = useState<string | null>(null);
@@ -314,12 +317,16 @@ export default function RegistrationPeople({
       setAddError("Fill in their first name, last name and email.");
       return;
     }
+    if (!full && asksDana && !add.dana) {
+      setAddError("Choose how they'll give dana.");
+      return;
+    }
     setBusy("add");
     try {
       const res = await fetch(`/api/programs/${programSlug}/people`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...add, expectPlace: !full }),
+        body: JSON.stringify({ ...add, customFields: add.answers, expectPlace: !full }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -329,7 +336,7 @@ export default function RegistrationPeople({
       const where = json.status === "WAITLISTED" ? "is on the waiting list" : "is registered";
       const emailed = givesOnline ? ` The dana link is on its way to ${json.email}.` : add.sendConfirmation ? ` Their email is on its way to ${json.email}.` : "";
       say(`${json.name} ${where}.${emailed}`);
-      setAdd({ firstName: "", lastName: "", email: "", phone: "", dana: "online", sendConfirmation: true });
+      setAdd(emptyAdd);
       setPanel(null);
       refresh();
     } catch {
@@ -687,6 +694,19 @@ export default function RegistrationPeople({
             <label className="reg-field"><span>Phone (optional)</span>
               <input type="tel" value={add.phone} autoComplete="off" onChange={(e) => setAdd({ ...add, phone: e.target.value })} /></label>
           </div>
+          {registrationFields.length > 0 && (
+            <div className="reg-fields reg-fields--one">
+              {registrationFields.map((f, i) => {
+                const key = questionKey(f);
+                return (
+                  <div key={key} className="reg-field">
+                    <label htmlFor={`add-ans-${i}`}>{f.label}</label>
+                    {answerInput(key, add.answers[key] ?? "", (v) => setAdd((a) => ({ ...a, answers: { ...a.answers, [key]: v } })), `add-ans-${i}`)}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {full ? (
             <p className="reg-meta">Every place is taken, so they&rsquo;ll join the waiting list. You can offer them a place from their card.</p>
           ) : asksDana && (
@@ -714,7 +734,7 @@ export default function RegistrationPeople({
           )}
           <div className="reg-actions">
             <button type="submit" className="vol-save-btn" disabled={busy === "add"}>{busy === "add" ? "Adding…" : "Add them"}</button>
-            <button type="button" className="vol-action-btn" onClick={() => setPanel(null)}>Cancel</button>
+            <button type="button" className="vol-action-btn" onClick={() => { setPanel(null); setAdd(emptyAdd); setAddError(null); }}>Cancel</button>
           </div>
           {addError && <p className="reg-error" role="alert">{addError}</p>}
         </form>
