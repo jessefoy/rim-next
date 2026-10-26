@@ -7350,6 +7350,50 @@ Rooted In Mindfulness
   }
 
   // ───────────────────────────────────────────────────────────────────────
+  // The reminder's last two lines (Jesse's yes, 2026-10-26, after a trial):
+  // his edited template said "Your session link and full details are on your
+  // dashboard." with "Go to my dashboard →", but My Home no longer lists
+  // upcoming programs and an in-person program has no session link. Only
+  // those two lines change, and only where they are still exactly so;
+  // anything else in the template is his and is left alone. Logged either way.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const flag = "session_reminder_program_page_2026_10_26_v1";
+    const done = await db.$queryRawUnsafe(`SELECT name FROM "_migration_flags" WHERE name = $1`, flag).catch(() => []);
+    if (done.length === 0) {
+      const sentenceFrom = "Your session link and full details are on your dashboard.";
+      const sentenceTo = "Full details are on the program’s page, with the way in for online sessions.";
+      const buttonFrom = "Go to my dashboard →";
+      const buttonTo = "View the program →";
+      const row = await db.emailTemplate.findUnique({ where: { slug: "session-reminder" }, select: { body: true, textBody: true, variables: true } });
+      const swap = (t) => t
+        .replace(sentenceFrom, sentenceTo)
+        .replace(buttonFrom, buttonTo)
+        .split("{{dashboardUrl}}").join("{{programUrl}}")
+        .split("%7B%7BdashboardUrl%7D%7D").join("%7B%7BprogramUrl%7D%7D");
+      if (!row) {
+        console.log("  Session reminder last lines: template not found, skipped.");
+      } else if (!row.body.includes(sentenceFrom) || !row.body.includes(buttonFrom)) {
+        console.log("  Session reminder last lines: not as expected (edited since?), left alone.");
+      } else {
+        const data = {
+          body: swap(row.body),
+          // The plain-text part, when it has its own copy of the same lines.
+          ...(row.textBody && row.textBody.includes(sentenceFrom) ? { textBody: swap(row.textBody) } : {}),
+          ...(row.variables.includes("programUrl") ? {} : { variables: [...row.variables, "programUrl"] }),
+        };
+        const res = await db.emailTemplate.updateMany({ where: { slug: "session-reminder", body: row.body }, data });
+        console.log(res.count
+          ? "  ✔ Session reminder last lines: now point to the program's page."
+          : "  Session reminder last lines: template changed during the update, left alone.");
+      }
+      await db.$executeRawUnsafe('INSERT INTO "_migration_flags" (name) VALUES ($1)', flag);
+    }
+  } catch (err) {
+    console.error("  Session reminder last lines: failed (template unchanged):", err?.message ?? err);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
   // Seed: the note after a program ends (2026-10-24, Phase 4 slice 2),
   // sendFollowUpEmail, from the daily send-follow-ups run. findUnique →
   // create. Wording provisional until Jesse's read-aloud.

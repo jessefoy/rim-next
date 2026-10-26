@@ -1181,6 +1181,8 @@ export interface ReminderEmailData {
   programTitle: string;
   programSlug: string;
   dateText?: string | null;
+  /** The program's time ("10:15–11:15 AM CT"), said with the date (2026-10-26). */
+  timeText?: string | null;
   locationText?: string | null;
   locationLink?: string | null;
   // The editor's HTML string (current), an older Tiptap document, or a legacy
@@ -1224,10 +1226,13 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
     }
   }
 
+  // The day and the time together: a reminder without the time left people
+  // asking when (Jesse, 2026-10-26).
+  const when = [data.dateText, data.timeText].filter(Boolean).join(", ");
   await sendTemplatedEmail("session-reminder", data.to, {
     firstName:       data.firstName,
     programTitle:    data.programTitle,
-    dateText:        data.dateText ?? "",
+    dateText:        when,
     locationText,
     reminderMessage,
     // My Home no longer lists upcoming programs (2026-10-20), so the button
@@ -1240,7 +1245,7 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
       kind: "session-reminder",
       category: "personal",
       ...PROGRAMS_SOURCE,
-      title: `${data.programTitle} is coming up${data.dateText ? `: ${data.dateText}` : ""}`,
+      title: `${data.programTitle} is coming up${when ? `: ${when}` : ""}`,
       detail: data.locationText ?? null,
       href: `/programs/${data.programSlug}`,
       threadKey: `program:${data.programSlug}`,

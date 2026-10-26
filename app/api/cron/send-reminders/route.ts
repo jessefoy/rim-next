@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
             recurrenceInterval: program.recurrenceInterval,
             recurrenceDays: program.recurrenceDays,
           }),
+          timeText: program.timeText,
           locationText: loc.emailText,
           locationLink: loc.link,
           reminderMessage: program.reminderMessage,

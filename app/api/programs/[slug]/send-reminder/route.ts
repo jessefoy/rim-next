@@ -53,6 +53,7 @@ export async function POST(
         recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
         recurrenceDays: pgProgram?.recurrenceDays ?? null,
       }),
+      timeText: pgProgram?.timeText ?? null,
       locationText: loc.emailText,
       locationLink: loc.link,
       reminderMessage: pgProgram?.reminderMessage,

@@ -83,6 +83,7 @@ export async function PATCH(
           recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
           recurrenceDays: pgProgram?.recurrenceDays ?? null,
         }) || undefined,
+        timeText: pgProgram?.timeText ?? null,
         locationText: loc.emailText,
         locationLink: loc.link,
         reminderMessage: pgProgram?.reminderMessage,
