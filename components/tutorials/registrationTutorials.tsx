@@ -223,7 +223,7 @@ function questionsSection() {
         <span className="tut-label">Asked by</span>
         <span className="tut-input hl">The Kitchen Team ▾</span>
       </div>
-      <span className="tut-btn tut-btn--ghost">+ Add Question</span>
+      <span className="tut-link">+ Add Question</span>
     </>
   ));
 }
@@ -251,7 +251,7 @@ function readyAndSave(device: Device) {
           <span className="tut-input">Immersion ▾</span>
         </>
       ))}
-      <span className="tut-actions"><span className="tut-btn hl">Save</span><span className="tut-btn tut-btn--ghost">Cancel</span></span>
+      <span className="tut-actions"><span className="tut-btn hl">Save</span><span className="tut-link">Cancel</span></span>
       <span className="tut-saved"><b>Created. It&rsquo;s saved.</b></span>
     </>
   ), {
@@ -275,7 +275,7 @@ function updatePanel(device: Device) {
         <span className="tut-label">Subject</span>
         <span className="tut-input">A change to {PROGRAM}</span>
         <span className="tut-area">There&rsquo;s a change to {PROGRAM}. When: November 14, 2026, 9:30 AM–4:00 PM CT</span>
-        <span className="tut-actions"><span className="tut-btn">Send to the 12 people registered</span><span className="tut-btn tut-btn--ghost hl">Send me a test</span><span className="tut-btn tut-btn--ghost">Not now</span></span>
+        <span className="tut-actions"><span className="tut-btn">Send to the 12 people registered</span><span className="tut-link hl">Send me a test</span><span className="tut-link">Not now</span></span>
       </div>
     </>
   ), { scrolled: true });
@@ -290,7 +290,7 @@ function noticePanel(device: Device) {
         <span className="tut-label">Show until</span>
         <span className="tut-input tut-input--short">Nov 14, 2026</span>
         <span className="tut-check"><span className="tut-check__box">✓</span>Also email the 12 people registered</span>
-        <span className="tut-actions"><span className="tut-btn hl">Post the notice</span><span className="tut-btn tut-btn--ghost">Close</span></span>
+        <span className="tut-actions"><span className="tut-btn hl">Post the notice</span><span className="tut-link">Close</span></span>
       </div>
     ),
     topOnly: true,
@@ -408,7 +408,7 @@ function deskItem(program: string, text: string, button: string, hl = false) {
   return (
     <span className="tut-list__row">
       <span><small>{program}</small><b>{text}</b></span>
-      <span className={cx("tut-btn tut-btn--ghost tut-btn--sm", hl && "hl")}>{button}</span>
+      <span className={cx("tut-link", hl && "hl")}>{button}</span>
     </span>
   );
 }
@@ -504,7 +504,7 @@ function addPanel(device: Device) {
       <span className="tut-label">Dana</span>
       <span className="tut-pills"><span>They&rsquo;ll give online</span><span className="on">Given by cash or check</span><span>No dana</span></span>
       <span className="tut-check"><span className="tut-check__box">✓</span>Email them their confirmation email</span>
-      <span className="tut-actions"><span className="tut-btn hl">Add them</span><span className="tut-btn tut-btn--ghost">Cancel</span></span>
+      <span className="tut-actions"><span className="tut-btn hl">Add them</span><span className="tut-link">Cancel</span></span>
     </div>
   ));
 }
@@ -519,7 +519,7 @@ function messagePanel(device: Device) {
       <span className="tut-label">Subject</span>
       <span className="tut-input">Parking on the day</span>
       <span className="tut-area">The lot behind the building is open from 8:30.</span>
-      <span className="tut-actions"><span className="tut-btn">Send to 12 people</span><span className="tut-btn tut-btn--ghost hl">Send me a test</span><span className="tut-btn tut-btn--ghost">Cancel</span></span>
+      <span className="tut-actions"><span className="tut-btn">Send to 12 people</span><span className="tut-link hl">Send me a test</span><span className="tut-link">Cancel</span></span>
     </div>
   ), { scrolled: true });
 }
@@ -552,8 +552,8 @@ function historyTab(device: Device) {
     <>
       <span className="tut-tabs"><span>People</span><span className="on">History</span></span>
       <span className="tut-actions">
-        <span className="tut-btn tut-btn--ghost tut-btn--sm hl">Print a sign-in list</span>
-        <span className="tut-btn tut-btn--ghost tut-btn--sm">Download a spreadsheet</span>
+        <span className="tut-link hl">Print a sign-in list</span>
+        <span className="tut-link">Download a spreadsheet</span>
       </span>
       <div className="tut-list">
         {lines.map(([when, text]) => (
@@ -637,7 +637,7 @@ function lookingAfterScreens(device: Device) {
     <span className="tut-hostbox">
       <span className="tut-p">{text}</span>
       {children}
-      <span className="tut-actions"><span className="tut-btn hl">{yes}</span><span className="tut-btn tut-btn--ghost">Never mind</span></span>
+      <span className="tut-actions"><span className="tut-btn hl">{yes}</span><span className="tut-link">Never mind</span></span>
     </span>
   );
   return [
@@ -665,7 +665,7 @@ function lookingAfterScreens(device: Device) {
       place: (
         <>
           <span className="tut-p">Waiting, number 1 in line</span>
-          <span className="tut-btn hl">Offer them a place</span>
+          <span className="tut-link hl">Offer them a place</span>
         </>
       ),
     })),
@@ -673,7 +673,7 @@ function lookingAfterScreens(device: Device) {
       dana: (
         <>
           <span className="tut-p">Not finished</span>
-          <span className="tut-actions"><span className="tut-btn tut-btn--sm">Send a dana reminder</span><span className="tut-btn tut-btn--ghost tut-btn--sm hl">Given another way</span><span className="tut-btn tut-btn--ghost tut-btn--sm">No dana for them</span></span>
+          <span className="tut-actions"><span className="tut-link">Send a dana reminder</span><span className="tut-link hl">Given another way</span><span className="tut-link">No dana for them</span></span>
         </>
       ),
     })),

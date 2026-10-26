@@ -23811,6 +23811,8 @@ html { scroll-padding-top: 88px; }
 .tools-shell .pe-template-chip__delete { color: var(--rim-text-muted); }
 /* Quiet actions where a row or a phone's stacked dialog holds them. */
 .reg-item .app-act { white-space: nowrap; }
+/* A person's card stacks its quiet actions under a label: their text lines up with it. */
+.reg-person__part .reg-actions { margin-left: -10px; }
 @media (max-width: 430px) { .pe-dialog__actions .app-act { justify-content: center; } }
 .tools-shell .pe-template-chip__delete:hover { color: var(--color-error); }
 
