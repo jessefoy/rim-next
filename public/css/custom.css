@@ -6053,7 +6053,7 @@ h4 { font-size: var(--text-h4); }
 .adm-btn--danger-ghost {
   background: none;
   border: none;
-  color: var(--color-error);
+  color: var(--rim-donate-dark); /* --color-error is 4.37:1 on the household card's ground */
   padding: 4px 10px;
   font-size: var(--text-label);
   border-radius: 4px;
@@ -10479,7 +10479,7 @@ h4 { font-size: var(--text-h4); }
 
 /* Badges */
 .th-badge { display: inline-block; font-size: var(--text-xxs); font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
-.th-badge--green { background: #e6f4ea; color: #1a7f37; }
+.th-badge--green { background: var(--color-success-bg); color: var(--color-success); }
 .th-badge--blue { background: #e8f0fe; color: #1a56db; }
 .th-badge--muted { background: var(--rim-bg-accent); color: var(--rim-text); }
 
@@ -13109,8 +13109,8 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   margin-top: 3px;
   flex-shrink: 0;
   accent-color: var(--rim-blue);
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
 }
 
