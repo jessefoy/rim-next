@@ -105,7 +105,7 @@ function UpdatePanel({ slug, offer, onDone }: Props) {
     return (
       <div className="pe-update" id="pe-update" data-pe-separate role="status">
         <p className="pe-update__text">
-          You changed {changed}. The {people(n)} registered still have it as it was. That&rsquo;s more than{" "}
+          You changed {changed}. The {people(n)} registered still {n === 1 ? "has" : "have"} it as it was. That&rsquo;s more than{" "}
           {MESSAGE_MAX_PEOPLE} can be emailed from here: send the update through the program&rsquo;s Flodesk segment.
         </p>
         <div className="pe-notice__actions">
@@ -119,7 +119,7 @@ function UpdatePanel({ slug, offer, onDone }: Props) {
     <div className="pe-update" id="pe-update" data-pe-separate>
       <p className="pe-update__title">Tell the people registered?</p>
       <p className="pe-update__text">
-        You changed {changed}. The {people(n)} registered still have it as it was. Here&rsquo;s an update
+        You changed {changed}. The {people(n)} registered still {n === 1 ? "has" : "have"} it as it was. Here&rsquo;s an update
         to send them; change it as you like.
       </p>
       <label className="pe-field">
