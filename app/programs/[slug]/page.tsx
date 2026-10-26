@@ -348,7 +348,7 @@ export default async function ProgramDetailPage({
                   ) : registrationClosed ? (
                     <span className="pg-detail-cta__status">Registration is closed.</span>
                   ) : notOpenYet && program.registrationOpensAt ? (
-                    <span className="pg-detail-cta__status">Registration opens on {fmtOpensAt(program.registrationOpensAt)}.</span>
+                    <span className="pg-detail-cta__status">Registration opens on {fmtOpensAt(program.registrationOpensAt)} CT.</span>
                   ) : spotsRemaining === 0 ? (
                     <Link href={`/programs/${slug}/register`} className="pg-detail-cta__link">
                       Join the waitlist →
