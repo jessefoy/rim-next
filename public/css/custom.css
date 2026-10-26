@@ -4326,7 +4326,7 @@ h4 { font-size: var(--text-h4); }
 }
 
 .adm-table__sort-dir--inactive {
-  color: var(--rim-rule);
+  color: var(--rim-text-muted);
 }
 
 .adm-table__preferred {
@@ -6052,8 +6052,8 @@ h4 { font-size: var(--text-h4); }
 .adm-btn--ghost:hover { background: var(--rim-bg-accent); }
 .adm-btn--danger-ghost {
   background: none;
-  border: 1px solid #e0b0b0;
-  color: #c44;
+  border: none;
+  color: var(--color-error);
   padding: 4px 10px;
   font-size: var(--text-label);
   border-radius: 4px;
@@ -10247,7 +10247,7 @@ h4 { font-size: var(--text-h4); }
 .em-editor__back:hover { color: var(--rim-blue); text-decoration: underline; }
 .em-editor__title { font-size: var(--text-h3); font-weight: 400; font-family: var(--font-serif); color: var(--rim-blue); margin: 0 0 6px; }
 .em-editor__desc { font-size: var(--text-small); color: var(--rim-text-muted); margin: 0 0 8px; }
-.em-editor__meta { font-size: var(--text-label); color: #a39a93; margin: 0; }
+.em-editor__meta { font-size: var(--text-label); color: var(--rim-text-muted); margin: 0; }
 
 .em-editor__field { margin-bottom: 28px; }
 .em-editor__label {
@@ -10481,7 +10481,7 @@ h4 { font-size: var(--text-h4); }
 .th-badge { display: inline-block; font-size: var(--text-xxs); font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
 .th-badge--green { background: #e6f4ea; color: #1a7f37; }
 .th-badge--blue { background: #e8f0fe; color: #1a56db; }
-.th-badge--muted { background: #f0ede9; color: var(--rim-text-muted); }
+.th-badge--muted { background: var(--rim-bg-accent); color: var(--rim-text); }
 
 /* Buttons */
 .th-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; border: 1px solid #e0dbd6; background: transparent; color: var(--rim-text-muted); font-size: var(--text-ui); font-weight: 500; cursor: pointer; text-decoration: none; transition: all 0.15s; }
@@ -12360,7 +12360,7 @@ h4 { font-size: var(--text-h4); }
   font-size: var(--text-xxs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
 }
 .adm-hubs-status--active { background: #e8f4f0; color: #2a6a54; }
-.adm-hubs-status--archived { background: #f3f4f6; color: #6b7280; }
+.adm-hubs-status--archived { background: var(--rim-bg-accent); color: var(--rim-text); }
 .adm-hubs-row-actions { display: flex; gap: 8px; align-items: center; }
 .adm-hubs-btn-edit {
   font-size: var(--text-xs); color: var(--rim-mid); text-decoration: none; font-weight: 600;
@@ -12854,7 +12854,7 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 }
 
 .adm2-display__value--empty {
-  color: var(--rim-rule);
+  color: var(--rim-text-muted);
   font-style: italic;
 }
 
@@ -13082,7 +13082,7 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--rim-rule);
+  color: var(--rim-label);
   margin: 0 0 10px;
 }
 
@@ -22501,27 +22501,28 @@ html { scroll-padding-top: 88px; }
 }
 .hub-ws-layout :is(.btn:not(.btn--ghost):not(.btn--danger), .hub-welcome__btn, .hub-conv-newbtn, .gf-new-btn, .gf-row__share, .gf-dialog__submit, .hub-home__editor-save, .gf-pending__approve):hover:not(:disabled) { background: var(--rim-dark); color: var(--rim-surface); opacity: 1; }
 .hub-ws-layout :is(.btn--ghost, .hub-action-btn, .gf-dialog__cancel, .hub-home__editor-cancel, .hub-act__load-more, .hub-conv-thread__back, .hub-mem-item__edit-btn, .gf-pending__keep, .hub-conv-iconbtn--text) {
-  min-height: 48px;
+  min-height: 44px;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
+  margin: 0;
   border: none;
-  border-radius: 999px;
-  padding: 12px 24px;
+  border-radius: 8px;
+  padding: 0 10px;
   background: transparent;
   color: var(--rim-blue);
-  box-shadow: inset 0 0 0 1px var(--rim-blue);
+  box-shadow: none;
   font-family: var(--font-sans);
-  font-size: var(--text-action);
+  font-size: var(--text-app);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
   opacity: 1;
 }
-.hub-ws-layout :is(.btn--ghost, .hub-action-btn, .gf-dialog__cancel, .hub-home__editor-cancel, .hub-act__load-more, .hub-conv-thread__back, .hub-mem-item__edit-btn, .gf-pending__keep, .hub-conv-iconbtn--text):hover:not(:disabled) { background: var(--rim-surface); color: var(--rim-dark); opacity: 1; }
+.hub-ws-layout :is(.btn--ghost, .hub-action-btn, .gf-dialog__cancel, .hub-home__editor-cancel, .hub-act__load-more, .hub-conv-thread__back, .hub-mem-item__edit-btn, .gf-pending__keep, .hub-conv-iconbtn--text):hover:not(:disabled) { background: var(--rim-bg-accent); color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
 .hub-ws-layout :is(.btn--danger, .gf-dialog__danger) {
   min-height: 48px;
   box-sizing: border-box;
@@ -22539,13 +22540,13 @@ html { scroll-padding-top: 88px; }
   line-height: 1.5;
   cursor: pointer;
 }
-.hub-ws-layout .hub-action-btn--del { color: var(--color-error); box-shadow: inset 0 0 0 1px var(--color-error); }
+.hub-ws-layout .hub-action-btn--del { color: var(--color-error); box-shadow: none; }
 .hub-ws-layout .hub-action-btn--del:hover:not(:disabled) { background: var(--color-error-bg); color: var(--color-error); }
 .hub-ws-layout :is(.btn, .hub-action-btn, .gf-dialog__cancel, .gf-dialog__submit, .gf-dialog__danger, .hub-home__editor-save, .hub-home__editor-cancel):disabled { opacity: 0.5; cursor: not-allowed; }
 /* Row actions stay small enough to sit beside a name: the pill shape, a tighter pad. */
 .hub-ws-layout .btn.btn--sm:not(.btn--ghost),
 .hub-ws-layout .btn.btn--sm,
-.hub-ws-layout :is(.hub-action-btn, .hub-mem-item__edit-btn, .hub-conv-iconbtn--text) { min-height: 44px; padding: 8px 18px; }
+.hub-ws-layout :is(.hub-action-btn, .hub-mem-item__edit-btn, .hub-conv-iconbtn--text) { min-height: 44px; padding: 0 10px; }
 /* The readability contract (later, (0,2,1)) gives dialog buttons 44px; the
    three in a Files dialog must match each other. */
 .hub-ws-layout .gf-dialog__actions :is(.gf-dialog__cancel, .gf-dialog__submit, .gf-dialog__danger) { height: auto; min-height: 48px; }
@@ -22704,45 +22705,40 @@ html { scroll-padding-top: 88px; }
   transition: background-color 0.15s ease;
 }
 .tools-shell :is(.pe-btn--primary, .th-btn--primary, .vol-add-btn, .vol-save-btn, .vol-confirm-btn--primary, .hs-modal__primary, .hs-rot__add, .hs-rot__form-save, .hs-row__do .lr-btn, .catord__add-btn, .vol-reminder-bulk-btn):hover:not(:disabled) { background: var(--rim-dark); color: var(--rim-surface); box-shadow: none; transform: none; }
-.tools-shell :is(.pe-btn:not(.pe-btn--primary):not(.pe-btn--danger), .th-btn:not(.th-btn--primary):not(.th-btn--danger), .vol-back, .pe-link--view, .vol-header__edit-link, .vol-table__action, .vol-action-btn, .vol-confirm-btn:not(.vol-confirm-btn--primary), .vol-csv-btn, .vol-edit-fields-btn, .hs-monthnav__today, .hs-rot__action, .hs-rot__form-cancel, .hs-modal__cancel, .th-link--view, .pe-template-bar__restore, .pe-template-bar__save-btn, .ps-page__back, .ps-hub__edit-link, .hs-rot__prog-staffing-link) {
-  min-height: 48px;
+.tools-shell :is(.pe-btn:not(.pe-btn--primary):not(.pe-btn--danger), .th-btn:not(.th-btn--primary):not(.th-btn--danger), .vol-back, .pe-link--view, .vol-header__edit-link, .vol-table__action, .vol-action-btn, .vol-confirm-btn:not(.vol-confirm-btn--primary), .vol-csv-btn, .vol-edit-fields-btn, .hs-monthnav__today, .hs-rot__action, .hs-rot__form-cancel, .hs-modal__cancel, .th-link--view, .pe-template-bar__restore, .pe-template-bar__save-btn, .ps-page__back, .ps-hub__edit-link, .hs-rot__prog-staffing-link, .hs-row__join, .hs-row__assign-link, .hs-row__quiet, .hs-row__manager, .th-table .th-link--edit) {
+  min-height: 44px;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   margin: 0;
   border: none;
-  border-radius: 999px;
-  padding: 12px 24px;
+  border-radius: 8px;
+  padding: 0 10px;
   background: transparent;
   color: var(--rim-blue);
-  box-shadow: inset 0 0 0 1px var(--rim-blue);
+  box-shadow: none;
   font-family: var(--font-sans);
-  font-size: var(--text-action);
+  font-size: var(--text-app);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
   opacity: 1;
 }
-.tools-shell :is(.pe-btn:not(.pe-btn--primary):not(.pe-btn--danger), .th-btn:not(.th-btn--primary):not(.th-btn--danger), .vol-back, .pe-link--view, .vol-header__edit-link, .vol-table__action, .vol-action-btn, .vol-confirm-btn:not(.vol-confirm-btn--primary), .vol-csv-btn, .vol-edit-fields-btn, .hs-monthnav__today, .hs-rot__action, .hs-rot__form-cancel, .hs-modal__cancel, .th-link--view, .pe-template-bar__restore, .pe-template-bar__save-btn, .ps-page__back, .ps-hub__edit-link, .hs-rot__prog-staffing-link):hover:not(:disabled) { background: var(--rim-surface); color: var(--rim-dark); text-decoration: none; }
-.tools-shell :is(.pe-btn--danger, .th-btn--danger, .vol-action-btn--danger, .vol-action-btn--delete, .vol-table__action--danger, .hs-rot__action--end) { color: var(--color-error); box-shadow: inset 0 0 0 1px var(--color-error); background: transparent; }
+.tools-shell :is(.pe-btn:not(.pe-btn--primary):not(.pe-btn--danger), .th-btn:not(.th-btn--primary):not(.th-btn--danger), .vol-back, .pe-link--view, .vol-header__edit-link, .vol-table__action, .vol-action-btn, .vol-confirm-btn:not(.vol-confirm-btn--primary), .vol-csv-btn, .vol-edit-fields-btn, .hs-monthnav__today, .hs-rot__action, .hs-rot__form-cancel, .hs-modal__cancel, .th-link--view, .pe-template-bar__restore, .pe-template-bar__save-btn, .ps-page__back, .ps-hub__edit-link, .hs-rot__prog-staffing-link, .hs-row__join, .hs-row__assign-link, .hs-row__quiet, .hs-row__manager, .th-table .th-link--edit):hover:not(:disabled) { background: var(--rim-bg-accent); color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
+.tools-shell :is(.pe-btn--danger, .th-btn--danger, .vol-action-btn--danger, .vol-action-btn--delete, .vol-table__action--danger, .hs-rot__action--end) { color: var(--color-error); box-shadow: none; background: transparent; }
 .tools-shell :is(.pe-btn--danger, .th-btn--danger, .vol-action-btn--danger, .vol-action-btn--delete, .vol-table__action--danger, .hs-rot__action--end):hover:not(:disabled) { background: var(--color-error-bg); color: var(--color-error); }
-/* Row actions and small buttons: the pill, a tighter pad. */
-.tools-shell :is(.vol-table__action, .vol-action-btn, .pe-btn--small, .th-btn--small, .hs-rot__action, .hs-rot__form-cancel, .hs-rot__form-save, .hs-row__do .lr-btn, .th-link--sm, .pe-template-bar__save-btn, .pe-template-bar__restore, .hs-rot__prog-staffing-link) { min-height: 40px; padding: 6px 16px !important; font-size: var(--text-app-meta) !important; }
+/* Small filled buttons in a row: the pill, a tighter pad (quiet ones are text, 2026-10-26). */
+.tools-shell :is(.hs-rot__form-save, .hs-row__do .lr-btn) { min-height: 44px; padding: 6px 16px !important; font-size: var(--text-app-meta) !important; }
 .tools-shell :is(.vol-table__action--disabled, .pe-btn:disabled, .th-btn:disabled, .vol-action-btn:disabled) { opacity: 0.5; cursor: not-allowed; }
 .tools-shell .vol-table__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 /* Measured signed in: a header that holds only the back link carries no rule
    (the editor's own header beneath it does); the Scheduler's row actions and
    the Course Manager's row link are small ghost pills; the email groups'
    labels read at the card tier. */
-.tools-shell :is(.hs-row__join, .hs-row__assign-link, .th-table .th-link--edit) {
-  min-height: 40px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  margin: 6px 0 0; border: none; border-radius: 999px; padding: 6px 16px; background: transparent; color: var(--rim-blue);
-  box-shadow: inset 0 0 0 1px var(--rim-blue); font-family: var(--font-sans); font-size: var(--text-app-meta); font-weight: 600; line-height: 1.5; text-decoration: none; cursor: pointer; opacity: 1;
-}
-.tools-shell :is(.hs-row__join, .hs-row__assign-link, .th-table .th-link--edit):hover { background: var(--rim-surface); color: var(--rim-dark); text-decoration: none; opacity: 1; }
+/* The Scheduler's Enter room and Assign someone…, and the Course Manager's row Edit: quiet actions, in the list above (2026-10-26). */
 /* Tap area 44px, look unchanged (Jesse, 2026-10-16: balance accessibility
    with how it looks). These two pills are 40px to the eye; an invisible 2px
    above and below brings the tap target to the 44px standard. Measured at
@@ -22793,7 +22789,7 @@ html { scroll-padding-top: 88px; }
 /* Badges. */
 .admin-ui :is(.adm-badge, .em-list__badge, .hh-badge) { border-radius: 999px; }
 /* Buttons. */
-.admin-ui :is(.adm-btn--primary, .adm-btn--restore, .adm-hubs-btn-create, .adm-hubs-btn-save, .adm-hubs-btn-add, .em-editor__btn--primary, .hh-btn--primary, .adm2-btn--primary) {
+.admin-ui :is(.adm-btn--primary, .adm-btn--restore, .adm-hubs-btn-create, .adm-hubs-btn-save, .em-editor__btn--primary, .hh-btn--primary, .adm2-btn--primary) {
   min-height: 48px;
   box-sizing: border-box;
   display: inline-flex;
@@ -22813,33 +22809,35 @@ html { scroll-padding-top: 88px; }
   cursor: pointer;
   opacity: 1;
 }
-.admin-ui :is(.adm-btn--primary, .adm-btn--restore, .adm-hubs-btn-create, .adm-hubs-btn-save, .adm-hubs-btn-add, .em-editor__btn--primary, .hh-btn--primary, .adm2-btn--primary):hover:not(:disabled) { background: var(--rim-dark); color: var(--rim-surface); opacity: 1; }
-.admin-ui :is(.adm-btn--neutral, .adm-btn--cancel, .adm-hubs-btn-cancel, .adm-hubs-btn-edit, .adm-hubs-btn-toggle, .em-editor__btn:not(.em-editor__btn--primary), .em-editor__back, .em-list__edit-link, .hh-btn:not(.hh-btn--primary), .adm2-btn:not(.adm2-btn--primary):not(.adm2-btn--danger)) {
-  min-height: 48px;
+.admin-ui :is(.adm-btn--primary, .adm-btn--restore, .adm-hubs-btn-create, .adm-hubs-btn-save, .em-editor__btn--primary, .hh-btn--primary, .adm2-btn--primary):hover:not(:disabled) { background: var(--rim-dark); color: var(--rim-surface); opacity: 1; }
+.admin-ui :is(.adm-btn--neutral, .adm-btn--cancel, .adm-hubs-btn-cancel, .adm-hubs-btn-edit, .adm-hubs-btn-toggle, .em-editor__btn:not(.em-editor__btn--primary), .em-editor__back, .em-list__edit-link, .hh-btn:not(.hh-btn--primary), .adm2-btn:not(.adm2-btn--primary):not(.adm2-btn--danger), .adm-hubs-btn-add) {
+  min-height: 44px;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
+  margin: 0;
   border: none;
-  border-radius: 999px;
-  padding: 12px 24px;
+  border-radius: 8px;
+  padding: 0 10px;
   background: transparent;
   color: var(--rim-blue);
-  box-shadow: inset 0 0 0 1px var(--rim-blue);
+  box-shadow: none;
   font-family: var(--font-sans);
-  font-size: var(--text-action);
+  font-size: var(--text-app);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
+  opacity: 1;
 }
-.admin-ui :is(.adm-btn--neutral, .adm-btn--cancel, .adm-hubs-btn-cancel, .adm-hubs-btn-edit, .adm-hubs-btn-toggle, .em-editor__btn:not(.em-editor__btn--primary), .em-editor__back, .em-list__edit-link, .hh-btn:not(.hh-btn--primary), .adm2-btn:not(.adm2-btn--primary):not(.adm2-btn--danger)):hover:not(:disabled) { background: var(--rim-surface); color: var(--rim-dark); text-decoration: none; }
+.admin-ui :is(.adm-btn--neutral, .adm-btn--cancel, .adm-hubs-btn-cancel, .adm-hubs-btn-edit, .adm-hubs-btn-toggle, .em-editor__btn:not(.em-editor__btn--primary), .em-editor__back, .em-list__edit-link, .hh-btn:not(.hh-btn--primary), .adm2-btn:not(.adm2-btn--primary):not(.adm2-btn--danger), .adm-hubs-btn-add):hover:not(:disabled) { background: var(--rim-bg-accent); color: var(--rim-blue); text-decoration: underline; text-underline-offset: 3px; }
 .admin-ui .adm-btn--danger { min-height: 48px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 999px; padding: 12px 24px; background: var(--color-error); color: var(--rim-surface); font-family: var(--font-sans); font-size: var(--text-action); font-weight: 600; line-height: 1.5; cursor: pointer; }
 .admin-ui .adm-btn--danger:hover:not(:disabled) { background: var(--color-error); opacity: 0.9; }
-.admin-ui .adm-btn--danger.adm-btn--outline { background: transparent; color: var(--color-error); box-shadow: inset 0 0 0 1px var(--color-error); }
+.admin-ui .adm-btn--danger.adm-btn--outline { min-height: 44px; padding: 0 10px; border-radius: 8px; background: transparent; color: var(--color-error); box-shadow: none; font-size: var(--text-app); }
 .admin-ui .adm-btn--danger.adm-btn--outline:hover:not(:disabled) { background: var(--color-error-bg); opacity: 1; }
-.admin-ui :is(.adm-btn--sm, .adm-hubs-btn-edit, .em-list__edit-link, .adm-hubs-btn-toggle) { min-height: 40px; padding: 6px 16px; font-size: var(--text-app-meta); }
+.admin-ui .adm-btn--sm { min-height: 44px; padding: 6px 16px; font-size: var(--text-app-meta); }
 .admin-ui :is(.adm-btn:disabled, .em-editor__btn:disabled) { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 700px) {
@@ -23759,9 +23757,16 @@ html { scroll-padding-top: 88px; }
    - a button that opens something or is secondary is quiet text with a
      44px reach and no box: .app-act (--quiet grey, --danger red);
    - the way back is plain text: .app-back ("← Programs").
-   The tools' shared rule above still draws secondary buttons as outlined
-   pills in the other tools (the Scheduler, the Course Manager).
+   The same day the rest of the signed-in site followed (Jesse: "bring them
+   onto the same button style"): the tools', the team pages' and
+   administration's shared secondary-button rules above now draw quiet text
+   too, and only the button that does the work is a filled pill. A list
+   whose purpose is one action per row keeps that action filled (the
+   Scheduler's "Yes, I can host this", Updates' "Take this session").
    =================================================================== */
+/* Checkboxes on the signed-in working pages: readable, in RIM's blue. Low
+   specificity, so a component's own checkbox style still wins. */
+:where(.tools-shell, .hub-ws-layout, .admin-ui) input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--rim-blue); }
 .app-act {
   box-sizing: border-box;
   display: inline-flex;

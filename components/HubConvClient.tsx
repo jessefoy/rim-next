@@ -608,7 +608,7 @@ export default function HubConvClient({
           )}
           <button
             type="button"
-            className="hs-filter hub-conv-manage-btn"
+            className="app-act"
             onClick={() => { setShowManage((v) => !v); setCatError(null); setRenamingCat(null); setConfirmDeleteCat(null); }}
             aria-expanded={showManage}
           >
