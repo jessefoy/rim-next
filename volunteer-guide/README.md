@@ -12,4 +12,6 @@ What volunteers' shared Claude project ("RIM Guide", in RIM's Claude for Nonprof
 
 **Keeping it current:** when a session changes something a topic describes, update that topic in the same commit. The public pages' words need nothing: the connector reads them live.
 
-**Setup (once):** `GUIDE_CONNECTOR_KEY` (a random string of 24+ characters) is set in Vercel. A workspace owner adds the connector in Claude (Organization settings > Connectors > Add > Custom > Web) at `https://rim-next.vercel.app/api/guide-mcp/<the key>`; after the domain move the address changes with it, and the connector must be re-added. Each volunteer presses **Connect** once (Customize > Connectors).
+**Setup (once):** `GUIDE_CONNECTOR_KEY` (a random string of 24+ characters) is set in Vercel. A workspace owner adds the connector in Claude (Organization settings > Connectors > Add > Custom > Web) at `https://rim-next.vercel.app/api/guide-mcp/<the key>`; after the domain move the address changes with it, and the connector must be re-added. Each volunteer presses **Connect** once (Customize > Connectors). Verified 2026-10-27: the connector works in chats inside the shared project (Anthropic's "connectors are only available in private projects" concerns pulling connector files into a project's knowledge, not using its tools).
+
+**For volunteers:** `Getting started with the RIM Guide.pdf` (made from `getting-started.html` by printing it with headless Chrome) walks someone new to Claude through joining, connecting, opening the project and sending a note.
