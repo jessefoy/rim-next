@@ -1,3 +1,31 @@
+## 2026-10-27 — The RIM Guide for volunteers; settled dana sends the held confirmation
+
+On `main`: `4768649`, `4f516f4`, `8fd55e3`, `83600d2`, `b5e97f2`, and this closing. **Production:** no database reads or writes; no email templates touched. **Vercel:** Jesse added `GUIDE_CONNECTOR_KEY` (Production) and redeployed. **Claude (claude.ai):** LoriLee added as a User, Standard seat, on RIM's Claude for Nonprofits Team workspace; a shared, view-only project "RIM Guide"; the RIM Guide custom connector added by Jesse as owner.
+
+### The ask
+
+Jesse: volunteers, LoriLee especially, *"would like to give greater feedback as they're exploring. But also ask questions about how things are set up"*; her feedback is *"hard to understand… hard for her to articulate."* Could they have a chat as knowledgeable as Claude Code about *"the intentions and the build"*, unable to change anything? And later, a way to edit text without an editor (proposed as suggest-then-approve, in the database like email templates; not built, backlog).
+
+### How it took shape (three turns, each from Jesse)
+
+1. **A shared Claude project with uploaded files.** Seven topic files written from the reference docs by four parallel drafts, fact-checked against the code by a separate reviewer (about 60 claims, 11 wrong and corrected: mostly who sees which buttons on the Programs list), scanned for privacy (no member names but Jesse, no amounts, no code names). One note shape, `RIM FEEDBACK`, one issue per note, emailed to Jesse. A "Send feedback" page in RIM was mapped, not built (email first).
+2. Jesse: *"You just need to be more clear. Do those files point to online files?"* (No: uploaded copies; Anthropic limits GitHub and Drive sync to private projects.) Then: *"that's a little tedious. I'm sure there's a more synergistic way."*
+3. **RIM serves the guide itself.** A read-only remote MCP server at `/api/guide-mcp/<key>` (`lib/guideContent.ts`): `guide_topics`, `search_guide`, `read_guide` over `volunteer-guide/<n>-<name>.md`, and `page_words`, which reads a public page live (sign-in areas and off-site redirects refused). No dependency; stateless JSON. Tested locally through the handler, reviewed (five small fixes taken), then verified live from this session and by Jesse in the shared project (Anthropic's "connectors are only available in private projects" turned out to mean connector files, not tools). The page-words snapshot and its script retired.
+
+Also: a three-page PDF for someone new to Claude (`volunteer-guide/Getting started with the RIM Guide.pdf`, from `getting-started.html`); the sign-in choices checked on Claude's page, the rest from Anthropic's help pages. Answers given from Anthropic's live help pages: project chats are private to each person (the Primary Owner's organization export includes them); "Can view" can't edit; a Standard seat is Pro plus 1.25x usage and the team features; Sonnet 5.5 at Default effort for the guide.
+
+### The confirmation gap (`4768649`)
+
+Found by the fact-check: in Registration, "Given another way" and "No dana for them" on a registered person whose dana was still open closed it silently ("They won't be emailed"), and the cleanup cron finishes only rows still PENDING, so those people were never confirmed. Now the PATCH claims the open dana with the same guarded update as decline and the cron and sends the confirmation once through the choke point; a dana settled meanwhile returns 409 (the card says so) instead of being overwritten; the card's words follow what the server did; "Send the confirmation again" waits until dana is settled; history says "(confirmation emailed)". Reviewed. Not covered: the Stripe webhook decides from its first read, so a settlement landing in the same moment as an online payment could still send twice (backlog). Not tested live (it would email a real registrant). Not checked: whether anyone was already missed (offered a read-only production check; Jesse didn't take it up this session).
+
+### What this connects to
+
+The guide reads `volunteer-guide/`, which describes Programs, Registration, the team spaces, the Scheduler, Notifications, Zoom, the tutorials and the voice; every change to those should update its topic in the same commit (`CLAUDE.md` row added at this closing). `page_words` follows `NEXTAUTH_URL`, so the domain move changes the connector's address: re-add it in Claude then. The confirmation fix joins the registration choke point (`RIM_Registration.md`) beside decline, the webhook and the cron. Found in passing: Mindful Photography is listed publicly with placeholder "Xxxx" text.
+
+### What comes next
+
+LoriLee receives the PDF and the text; her first notes arrive by email. Jesse checks the model shown in a new project chat (Sonnet 5.5 expected). Backlog: the webhook guard, a "Send feedback" page, suggest-an-edit for page text.
+
 ## 2026-10-26 (later) — Registration Team guide and tutorials; the Programs list; one button language across the signed-in site
 
 On `main`: `96f8272` … `5df5954` (7 commits), and this closing. **Production:** no database reads or writes; no email templates touched. Measured signed in through the built-in browser pane (it holds Jesse's session on rim-next.vercel.app), with same-origin iframes for several pages at once.

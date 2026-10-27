@@ -2112,5 +2112,35 @@
     "status": "open",
     "addedAt": "2026-10-26",
     "notes": ""
+  },
+  {
+    "id": "2026-10-27-001",
+    "title": "Stripe webhook: claim the open dana before confirming",
+    "description": "The webhook decides whether to send the confirmation from its first read and writes COMPLETED without a guard. If the registration team settles the dana (Given another way / No dana for them) in the same moment as an online payment, both could send a confirmation. Decline and the cron share the window. Fix: an updateMany guarded on donationStatus PENDING, sending only when it wins (keep the receipt either way).",
+    "category": "Registration",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-27",
+    "notes": "Found by review of the settled-dana fix (4768649). RIM_Registration_App.md notes it."
+  },
+  {
+    "id": "2026-10-27-002",
+    "title": "A 'Send feedback' page for volunteers' RIM Guide notes",
+    "description": "Volunteers paste the RIM Guide's RIM FEEDBACK note into one box on a signed-in page; it is saved as a FormSubmission of a new kind 'site-feedback', emailed to Jesse, and listed at /admin/form-submissions, so Claude Code can read new notes directly. Connections Map approved in principle 2026-10-27; email first until notes start arriving.",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-27",
+    "notes": "Then change the guide's instructions (step 7 of 'Making a note') to point at the page."
+  },
+  {
+    "id": "2026-10-27-003",
+    "title": "Suggest an edit: volunteers propose page text, Jesse approves",
+    "description": "Public page words move into the database by section (like email templates); a volunteer sees plain boxes, changes words and presses Suggest; Jesse sees before and after, reads aloud, approves; it goes live. Words only, no layout; the voice rules checked on save. Try Home first. Differs from the retired Sanity CMS: inside RIM, same sign-in, approval built in.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-27",
+    "notes": "Until then the RIM Guide's notes carry exact 'Now / Change to' lines."
   }
 ]

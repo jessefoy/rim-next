@@ -1,22 +1,31 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-26, later (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-27 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-26 (later) closed: tutorials for the Registration Team, the Programs list, one button language
+## Active — 2026-10-27 closed: the RIM Guide for volunteers; settled dana confirms
 
-Everything is on `main` (`96f8272` … `5df5954`, and this closing). Narrative: `session-log.md`, 2026-10-26 (later). The button rule: `RIM_Member_Area.md`, "The apps' buttons" (and `CLAUDE.md`, CSS Rules).
+Everything is on `main` (`4768649` … `b5e97f2`, and this closing). Narrative: `session-log.md`, 2026-10-27. Reference: `volunteer-guide/README.md` (and the new `CLAUDE.md` row).
 
-**Live and measured:** the Registration Team's two tutorials on `/tutorials`; the Programs list as one calm row per program; one button language on every signed-in working page (filled for the work, quiet text for the rest, plain back links, filled confirming deletes; the Scheduler's and Updates' one-action rows stay filled); the editor's tab title, contrast fixes across admin and the member profile, 20px checkboxes.
+**Live and verified:** the **RIM Guide**, a shared view-only Claude project in RIM's Claude for Nonprofits workspace, answering from the **RIM Guide connector** (`/api/guide-mcp/<key>`, read-only: the `volunteer-guide/` topics and public pages read live). Verified from this session and by Jesse inside the shared project. LoriLee has a User / Standard seat. **Keep the topics current:** any change to a feature the guide describes updates its topic in the same commit (it is served live; a stale topic tells volunteers the old way). **Settling dana in Registration** ("Given another way", "No dana for them") now sends the held confirmation once; reviewed, not tested live.
 
 **Waiting on Jesse:**
-- Share the private guide [Programs and Registration](https://claude.ai/artifact/AZyzvS6VAFFZUc85TvRRRD) with LoriLee (its Share menu).
-- Hear the tutorial lines changed after his approval to match the screens ("It asks first", "Don't see Registration?", "Ticked teams hear when you save", "the notice and the guest link").
-- Confirm or reverse: the Scheduler's "Yes, I can host this" and Updates' "Take this session" kept filled.
-- From the build before: confirm the Trial Workshop's **note after** arrives Tue Oct 27 ~10 AM CT (checked by preview only); optional tidy (the Test Program Central account, the Trial Kitchen folder in Drive's "Archived teams"); the "give online" email's wording (`2026-10-24-002`).
+- Send LoriLee `volunteer-guide/Getting started with the RIM Guide.pdf` and the short text; share is done. Check the model in a new project chat (Sonnet 5.5 at Default expected; if not, one step goes into the PDF).
+- Optional: set the RIM Guide connector's tools to Always allow in Organization settings, so she isn't asked.
+- **Mindful Photography is public with placeholder "Xxxx" text** (its quote, description, facilitator); fix or hide it.
+- Offered, not taken: a read-only production check for anyone the old dana buttons left unconfirmed (registered, dana marked by the team before today, no confirmation).
+- Why members can't cancel their own registration: the reason was never written down; the guide says "ask Jesse" until it is.
+- Read-aloud: the card's new lines ("Their confirmation goes to [email].", "Their confirmation went out.", "Their dana was already settled. Reload the page to see where it stands.") and the PDF.
+- Carried from Oct 26: share the private Programs and Registration guide with LoriLee; the tutorial lines changed after approval; confirm the Scheduler's and Updates' filled row actions; the Trial Workshop's note after (due Oct 27 ~10 AM CT, preview-checked only); the "give online" email's wording (`2026-10-24-002`).
 
-**Next concrete step:** none owed. **Coming up:** the **November 1 sweep** (see the 2026-10-22 section). **Queued, small:** trim dead class names in mixed CSS rules (`2026-10-26-003`); Watch it for the Registration tutorials (`2026-10-26-004`); prune the old roster's CSS (`2026-10-24-001`); name the meals team directly once it exists (`2026-10-26-001`); a weekly series with a count but no days ticked (`2026-10-26-002`).
+**On launch day (add to the list below):** the connector's address moves with `NEXTAUTH_URL`; re-add it in Claude (Organization settings > Connectors) at the new domain and have volunteers press Connect again.
+
+**Next concrete step:** none owed. **Coming up:** the November 1 sweep (see the 2026-10-22 section). **Queued:** `2026-10-27-002` a Send feedback page (once notes start arriving), `2026-10-27-001` the webhook guard, `2026-10-27-003` suggest an edit; and from Oct 26: `2026-10-26-001` to `-004`, `2026-10-24-001`.
 
 **Method, for measuring signed-in pages:** the built-in browser pane holds Jesse's session on rim-next.vercel.app; same-origin iframes measure several pages at once. The pane draws streamed pages twice (React 19 waits for an animation frame the pane never runs), so measure only the visible copy.
+
+## Earlier — 2026-10-26 (later) closed: Registration Team tutorials, the Programs list, one button language
+
+Narrative: `session-log.md`, 2026-10-26 (later). Its open items are carried in Active above.
 
 ## Earlier — 2026-10-26 closed: Programs and Registration, built and checked
 
@@ -106,7 +115,7 @@ Everything is on `main` (`6063bf5` … `41e305e`, `fedbecd`, the closing docs). 
 **Before launch (in order):**
 1. **Self-service email change** with verification, notice and history (`2026-10-12-003`, high); Flodesk can't change an address through its API.
 2. **Launch configuration:** Stripe live (`2026-09-24-001`); with the domain move, change `NEXTAUTH_URL` in Vercel in the same step; rotate the database password.
-3. **On the day the domain moves:** delete the bot contacts in Flodesk (Jesse); run Import members once more, then remove the tool, its rail link and `lib/legacyImport.ts`, delete `MEMBERSTACK_SECRET_KEY` in Vercel and the key in Memberstack (`2026-10-13-001`); export Webflow's Forms history; then cancel Zapier. (The old Webflow Donate page's "Teachers receive no payment or compensation" goes with it.)
+3. **On the day the domain moves:** delete the bot contacts in Flodesk (Jesse); run Import members once more, then remove the tool, its rail link and `lib/legacyImport.ts`, delete `MEMBERSTACK_SECRET_KEY` in Vercel and the key in Memberstack (`2026-10-13-001`); export Webflow's Forms history; then cancel Zapier. (The old Webflow Donate page's "Teachers receive no payment or compensation" goes with it.) Re-add the RIM Guide connector in Claude at the new domain (`volunteer-guide/README.md`).
 4. **Delete the Dummy Test Program** and its test registrations (Jesse, 2026-10-14). Until then it is restored for Nancy and Maria's Zoom testing, hidden: off Programs & Events, This Week and the sitemap, Open entry off (it shows on My Home only to its registrants, hosts and admins); the guest link still admits testers.
 5. **Watch the first real registration** create its Flodesk segment and the first member sign-in join Members (Vercel log).
 

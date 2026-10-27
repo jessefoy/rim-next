@@ -508,3 +508,7 @@ This file is part of the closing ritual for any Claude Code session that touches
 ## /foundations resolves to the program (2026-10-09)
 
 `/foundations` is the permanent public address for Foundations, linked from Home, New to RIM, the catalog's standing card and the nav. The page derives the current Foundations program from the data (`offeringCategory = FOUNDATIONS`, not archived; among several, the soonest upcoming date first, then undated, then past; hidden-from-listing does not exclude) and redirects to `/programs/[slug]`; with no such program it renders the evergreen page. No editor flag marks a "primary" Foundations program; the category is the flag. Filing a second program under Foundations changes where the address lands, so Foundations is for Foundations offerings only.
+
+## The RIM Guide connector (2026-10-27)
+
+A read-only doorway outside the three layers: `/api/guide-mcp/<key>` serves the volunteer guide (`volunteer-guide/`) and the public pages' words to a shared Claude project in RIM's Claude workspace. It reads no database and no member data, so the core principle holds: volunteers still reach member data only through their team or tool. The key (`GUIDE_CONNECTOR_KEY`) keeps the address to RIM's workspace; nothing it serves is private. See `volunteer-guide/README.md`.
