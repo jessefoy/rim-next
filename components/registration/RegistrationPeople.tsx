@@ -216,7 +216,9 @@ export default function RegistrationPeople({
   };
 
   // ── Calls ─────────────────────────────────────────────────────────────────
-  async function patch(id: string, body: Record<string, unknown>, ok: string, fail: string) {
+  /** `ok` may read the server's answer (whether a confirmation went out). A
+   *  409 carries its own plain sentence (the dana was settled meanwhile). */
+  async function patch(id: string, body: Record<string, unknown>, ok: string | ((data: { confirmationSent?: boolean }) => string), fail: string) {
     setBusy(id);
     try {
       const res = await fetch(`/api/registrations/${id}`, {
@@ -224,8 +226,15 @@ export default function RegistrationPeople({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409 && typeof data.error === "string") {
+        say(data.error, "error");
+        setConfirm(null);
+        refresh();
+        return false;
+      }
       if (!res.ok) throw new Error();
-      say(ok);
+      say(typeof ok === "function" ? ok(data) : ok);
       setConfirm(null);
       refresh();
       return true;
@@ -433,7 +442,8 @@ export default function RegistrationPeople({
             {confirmFor(p, "offer", `Move ${p.name} from waiting to registered? This emails ${p.firstName} at ${p.email} to say their place is confirmed.`, "Yes, register and email them",
               () => patch(p.id, { status: "REGISTERED", danaMode: danaMode ?? "none" }, `${p.name} is registered. ${p.firstName} will get an email saying their place is confirmed.`, "They weren't moved. Please try again."))}
 
-            {isRegistered(p.status) && ask(p, "resend", "Send the confirmation again")}
+            {/* While dana is open there's no confirmation yet: it goes when the dana is settled. */}
+            {isRegistered(p.status) && p.donationStatus !== "PENDING" && ask(p, "resend", "Send the confirmation again")}
             {confirmFor(p, "resend", `Email the confirmation to ${p.firstName} at ${p.email} again?`, "Yes, send it",
               () => patch(p.id, { action: "resendConfirmation" }, "The confirmation went out again.", "The confirmation wasn't sent. Please try again."))}
 
@@ -490,11 +500,13 @@ export default function RegistrationPeople({
                 {confirmFor(p, "dana-reminder", `Email a dana reminder to ${p.firstName} at ${p.email}?`, "Yes, send it",
                   () => patch(p.id, { action: "sendDanaReminder" }, "The dana reminder went out.", "The dana reminder wasn't sent. Please try again."))}
                 {ask(p, "dana-received", "Given another way")}
-                {confirmFor(p, "dana-received", `Mark ${p.name}'s dana as received, given by cash or check? They won't be emailed.`, "Yes, mark it received",
-                  () => patch(p.id, { donationStatus: "COMPLETED" }, "Dana marked received.", "It wasn't changed. Please try again."))}
+                {/* A registered person whose dana is open hasn't had their
+                    confirmation yet; settling the dana sends it (2026-10-27). */}
+                {confirmFor(p, "dana-received", `Mark ${p.name}'s dana as received, given by cash or check?${isRegistered(p.status) ? ` Their confirmation goes to ${p.email}.` : ""}`, "Yes, mark it received",
+                  () => patch(p.id, { donationStatus: "COMPLETED" }, (d) => d.confirmationSent ? "Dana marked received. Their confirmation went out." : "Dana marked received.", "It wasn't changed. Please try again."))}
                 {ask(p, "dana-none", "No dana for them")}
-                {confirmFor(p, "dana-none", `Mark ${p.name} as giving no dana? They won't be emailed.`, "Yes, no dana",
-                  () => patch(p.id, { donationStatus: "WAIVED" }, "Marked no dana.", "It wasn't changed. Please try again."))}
+                {confirmFor(p, "dana-none", `Mark ${p.name} as giving no dana?${isRegistered(p.status) ? ` Their confirmation goes to ${p.email}.` : ""}`, "Yes, no dana",
+                  () => patch(p.id, { donationStatus: "WAIVED" }, (d) => d.confirmationSent ? "Marked no dana. Their confirmation went out." : "Marked no dana.", "It wasn't changed. Please try again."))}
               </div>
             )}
           </section>

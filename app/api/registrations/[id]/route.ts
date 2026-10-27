@@ -20,6 +20,7 @@ import { requiredDanaCents } from "@/lib/programUtils";
 import { addRegistrationToFlodesk, removeRegistrationFromFlodesk } from "@/lib/flodesk";
 import { canUseRegistration } from "@/lib/toolAuth";
 import { recordRegistrationEvent } from "@/lib/registrationEvents";
+import { sendRegistrationConfirmation } from "@/lib/registrationConfirmation";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
@@ -239,6 +240,31 @@ export async function PATCH(
         requiredCents > 0 || programDanaMode === "voluntary" ? "PENDING" : "WAIVED";
     }
 
+    // The team settling dana (given another way, or none) finishes a
+    // registration still waiting on its dana choice. Its confirmation was held
+    // until that choice, and the cleanup cron only finishes rows still PENDING,
+    // so without this the person was never confirmed (2026-10-27). Claimed by
+    // a guarded update so the cron, decline, the Stripe webhook or a second
+    // click can't send it twice; a screen that is out of date (the dana was
+    // settled meanwhile) is told so instead of overwriting what happened.
+    const confirmedStatus = (s: string) => s === "REGISTERED" || s === "APPROVED";
+    const alreadySettled = () => NextResponse.json(
+      { error: "Their dana was already settled. Reload the page to see where it stands." },
+      { status: 409 },
+    );
+    let confirmNow = false;
+    if (!isPromotion && !status && (donationStatus === "COMPLETED" || donationStatus === "WAIVED")) {
+      if (current.donationStatus !== "PENDING") return alreadySettled();
+      if (confirmedStatus(current.status)) {
+        const claim = await db.registration.updateMany({
+          where: { id, status: { in: ["REGISTERED", "APPROVED"] }, donationStatus: "PENDING" },
+          data: { donationStatus },
+        });
+        if (claim.count === 0) return alreadySettled();
+        confirmNow = true;
+      }
+    }
+
     const registration = await db.registration.update({
       where: { id },
       data: {
@@ -259,8 +285,18 @@ export async function PATCH(
         detail: { from: current.status, to: status, ...(status === "CANCELLED" ? { emailed: notifyPerson } : {}) },
       });
     }
+    // The held confirmation, through the one choke point (support@'s notice
+    // and the program's mailing list come with it, as from the cron).
+    if (confirmNow) {
+      try {
+        await sendRegistrationConfirmation(id);
+      } catch (err) {
+        confirmNow = false;
+        console.error(`[registrations PATCH] confirmation failed for ${id}`, err);
+      }
+    }
     if (donationStatus && donationStatus !== current.donationStatus) {
-      await recordRegistrationEvent({ ...who, kind: "dana-changed", detail: { from: current.donationStatus, to: donationStatus } });
+      await recordRegistrationEvent({ ...who, kind: "dana-changed", detail: { from: current.donationStatus, to: donationStatus, emailed: confirmNow } });
     }
     if (mergedAnswers !== undefined && JSON.stringify(mergedAnswers) !== JSON.stringify(current.customFields ?? {})) {
       await recordRegistrationEvent({ ...who, kind: "answers-edited" });
@@ -283,8 +319,7 @@ export async function PATCH(
     // status (waitlist promotion, or restoring a cancelled registration)
     // bypasses the confirmation choke point, so it joins here; a cancellation
     // leaves the segment. Best-effort, after the response.
-    const confirmed = (s: string) => s === "REGISTERED" || s === "APPROVED";
-    if (status && confirmed(status) && !confirmed(current.status)) await addRegistrationToFlodesk(id);
+    if (status && confirmedStatus(status) && !confirmedStatus(current.status)) await addRegistrationToFlodesk(id);
 
     // Notify registrar when any registration is cancelled
     const isCancellation = status === "CANCELLED" && current.status !== "CANCELLED";
@@ -306,7 +341,7 @@ export async function PATCH(
       }
     }
 
-    return NextResponse.json({ success: true, registration });
+    return NextResponse.json({ success: true, registration, confirmationSent: confirmNow });
   } catch (error) {
     console.error("Update registration error:", error);
     return NextResponse.json({ error: "Update failed" }, { status: 500 });

@@ -110,7 +110,7 @@ export function describeRegistrationEvent(kind: string, detail: unknown): string
       return from ? `changed ${from} to ${to}` : `set it to ${to}`;
     }
     case "dana-changed":
-      return `marked dana ${DANA_WORDS[String(d.to)] ?? String(d.to ?? "")}`;
+      return `marked dana ${DANA_WORDS[String(d.to)] ?? String(d.to ?? "")}${d.emailed ? " (confirmation emailed)" : ""}`;
     case "answers-edited":
       return "edited the answers";
     case "note-added":
