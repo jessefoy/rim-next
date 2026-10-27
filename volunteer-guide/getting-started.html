@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Getting started with the RIM Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: letter; margin: 0.7in 0.75in 0.7in; }
+  :root { --blue: #31576D; --ink: #2b2b2b; --soft: #5a5a5a; --rule: #d9d4cc; --pampas: #f4f2ee; }
+  * { box-sizing: border-box; }
+  body { font-family: "Open Sans", Arial, sans-serif; color: var(--ink); font-size: 12.5pt; line-height: 1.5; margin: 0; }
+  h1 { font-family: "Libre Baskerville", Georgia, serif; color: var(--blue); font-size: 25pt; font-weight: 400; margin: 0 0 4pt; line-height: 1.2; }
+  .lead { font-size: 14pt; color: var(--soft); margin: 0 0 16pt; }
+  h2 { font-family: "Libre Baskerville", Georgia, serif; color: var(--blue); font-size: 16pt; font-weight: 400; margin: 18pt 0 6pt; break-after: avoid; }
+  h2 .once { font-family: "Open Sans", Arial, sans-serif; font-size: 10.5pt; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); margin-left: 8pt; }
+  p { margin: 0 0 9pt; }
+  ul { margin: 0 0 9pt; padding-left: 18pt; }
+  li { margin: 0 0 5pt; }
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0 0 8pt; }
+  ol.steps > li { counter-increment: s; position: relative; padding-left: 34pt; margin: 0 0 9pt; break-inside: avoid; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 1pt; width: 22pt; height: 22pt; border-radius: 50%; background: var(--blue); color: #fff; font-weight: 700; font-size: 11pt; display: flex; align-items: center; justify-content: center; }
+  b, strong { font-weight: 700; }
+  .ui { font-weight: 700; color: var(--blue); }
+  .ask { font-style: italic; }
+  .panel { border: 1px solid var(--rule); border-radius: 10pt; padding: 12pt 14pt; margin: 10pt 0 12pt; break-inside: avoid; }
+  .panel--soft { background: var(--pampas); border-color: var(--pampas); }
+  .panel h3 { font-size: 12pt; margin: 0 0 6pt; color: var(--blue); }
+  .note { font-family: "Courier New", monospace; font-size: 10pt; line-height: 1.45; background: #f6f6f4; border: 1px solid var(--rule); border-radius: 6pt; padding: 9pt 11pt; white-space: pre-wrap; margin: 6pt 0 8pt; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12pt; }
+  .two .panel { margin: 0; }
+  .foot { margin-top: 18pt; padding-top: 9pt; border-top: 1px solid var(--rule); color: var(--soft); font-size: 11.5pt; }
+  .page-break { break-before: page; }
+</style>
+</head>
+<body>
+
+<h1>Getting started with the RIM Guide</h1>
+<p class="lead">A helper that knows how RIM's new website works, and why we built it the way we did.</p>
+
+<div class="two">
+  <div class="panel panel--soft">
+    <h3>What you can do with it</h3>
+    <ul>
+      <li><b>Ask how to do something.</b> <span class="ask">"How do I mark that someone paid by check?"</span></li>
+      <li><b>Ask what a page is for</b>, or why something works the way it does.</li>
+      <li><b>Tell it what you notice</b>, in your own words. It helps you turn it into a short note for Jesse.</li>
+    </ul>
+  </div>
+  <div class="panel panel--soft">
+    <h3>Good to know</h3>
+    <ul>
+      <li><b>You can't break anything.</b> It can't change the website at all.</li>
+      <li><b>Your chats are private.</b> Jesse only sees what you send him.</li>
+      <li><b>It's always up to date.</b> It reads the guide from the website each time.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>1. Join RIM's Claude <span class="once">Once</span></h2>
+<ol class="steps">
+  <li>Look in your RIM email for a message from <b>Claude</b> inviting you to join <b>Rooted in Mindfulness</b>. Open it and press the button to accept.</li>
+  <li>On Claude's sign-in page, choose <span class="ui">Continue with Google</span> and pick your RIM account. Or type your RIM email address and press <span class="ui">Continue with email</span>: Claude emails you a code to type in.</li>
+  <li>Always sign in with your <b>RIM email</b>. That's how Claude knows you're part of RIM.</li>
+</ol>
+
+<h2>2. Connect the RIM Guide <span class="once">Once</span></h2>
+<ol class="steps">
+  <li>In the menu on the left side of Claude, choose <span class="ui">Customize</span>, then <span class="ui">Connectors</span>.</li>
+  <li>Find <b>RIM Guide</b> in the list and press <span class="ui">Connect</span>. That's all: it doesn't ask for a password.</li>
+</ol>
+
+<h2>3. Open the RIM Guide <span class="once">Each time</span></h2>
+<ol class="steps">
+  <li>Go to <b>claude.ai</b> on your computer, or open the Claude app on your phone.</li>
+  <li>In the menu on the left, choose <span class="ui">Projects</span>, then <b>RIM Guide</b>. (If you don't see it, look under <span class="ui">Shared with me</span>.)</li>
+  <li>Type your question in the box and press <b>Enter</b>. Ask it the way you'd ask a person.</li>
+</ol>
+<div class="panel">
+  <h3>Important: always start inside the RIM Guide project</h3>
+  <p style="margin:0">A chat started anywhere else in Claude is an ordinary chat that doesn't know about RIM. If you aren't sure where you are, go to <span class="ui">Projects</span> → <b>RIM Guide</b> and start again from there.</p>
+</div>
+
+<h2>4. Send Jesse a note</h2>
+<p>When you tell the guide something you'd change, or something that seemed off, it asks a few questions, one at a time. Then it writes a short note in a gray box, like this:</p>
+<div class="note-wrap"><div class="note">RIM FEEDBACK
+From: LoriLee · Tue Oct 27, 2026
+Kind: Confusing
+Where: Programs list, a program's row
+Trying to do: see who registered for a program
+What happened: clicking the program's name opened the editor
+Expected: the list of people
+In their words: "I clicked on the program and it didn't show me the people"</div></div>
+<ol class="steps">
+  <li>Press the <b>copy</b> button at the top right corner of the gray box.</li>
+  <li>Start a new email to <b>jesse@rootedinmindfulness.org</b> and paste the note into it.</li>
+  <li>If you took a screenshot, attach it. Then send.</li>
+</ol>
+<p>One note for each thing. If you mention several, the guide makes a note for each.</p>
+
+<h2>Things to try first</h2>
+<ul>
+  <li class="ask">"What can you help me with?"</li>
+  <li class="ask">"What's the difference between Programs and Registration?"</li>
+  <li class="ask">"How do I add someone who signed up by phone?"</li>
+  <li class="ask">"Why doesn't my new program show on the website yet?"</li>
+</ul>
+
+<h2>If something isn't working</h2>
+<ul>
+  <li><b>Claude asks if it may use the RIM Guide.</b> Choose to allow it. If there's an <span class="ui">Always allow</span> choice, pick that so it won't ask again.</li>
+  <li><b>It says it can't reach the guide.</b> In the chat box, press the <span class="ui">+</span> button at the lower left, then <span class="ui">Connectors</span>, and make sure <b>RIM Guide</b> is turned on. If it's missing, go back to step 2.</li>
+  <li><b>You don't see the RIM Guide project.</b> Check that you signed in with your RIM email, then ask Jesse.</li>
+  <li><b>It doesn't know the answer.</b> It's meant to say so instead of guessing. That's a good question to ask Jesse directly.</li>
+</ul>
+
+<p class="foot">Questions about the guide itself? Ask Jesse. Something personal, or a concern about someone in the community? Please reach Jesse directly rather than through the guide.</p>
+
+</body>
+</html>
