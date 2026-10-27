@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/account/handful-of-leaves": ["./content/handful-of-leaves/**/*"],
     "/account/handful-of-leaves/map": ["./content/handful-of-leaves/**/*"],
+    // The RIM Guide connector reads its topics the same way (lib/guideContent.ts).
+    "/api/guide-mcp/[key]": ["./volunteer-guide/*.md"],
   },
 };
 

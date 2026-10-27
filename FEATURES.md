@@ -13,6 +13,11 @@ This document is the **current-state catalog** of what exists in the live RIM Ne
 
 ---
 
+## October 27, 2026: the RIM Guide, and settled dana confirms
+
+- **The RIM Guide** (for volunteers, outside the site): a shared, view-only Claude project in RIM's Claude for Nonprofits workspace where volunteers ask how the site works and why, and turn what they notice into one clear "RIM FEEDBACK" note for Jesse (emailed for now). It knows only what the **RIM Guide connector** serves (`/api/guide-mcp/<key>`, read-only): the topics in `volunteer-guide/` and the public pages' words, read live, so it is current with every deploy. Keep a topic current in the same commit as the change it describes. See `volunteer-guide/README.md`.
+- **Settling dana sends the held confirmation:** in Registration, "Given another way" and "No dana for them" on a registered person whose dana was open now send their confirmation, once (before, they were never confirmed). A dana settled meanwhile is reported, not overwritten. See `RIM_Registration.md`.
+
 ## October 26, 2026 (later): the Registration Team's tutorials, the Programs list, one button language
 
 - **Tutorials for the Registration Team** (`/tutorials`, a new Registration Team section): **Setting up a program** (11 steps) and **Looking after the people** (12 steps), drawn from the editor, the start page and the Registration app, phone and computer; the team's leads also see Leading your team. Wording read and approved by Jesse. A private web guide with the same content is shared by link (`RIM_Tutorials.md`).
