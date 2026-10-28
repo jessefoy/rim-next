@@ -174,7 +174,7 @@ export default function HomePage() {
             <br />
             Nourish your <span className="home-hero__gold">Life</span>
             <br />
-            &amp;nbsp;Beautify the <span className="home-hero__gold">World</span>
+            Beautify the <span className="home-hero__gold">World</span>
           </h1>
           {/* The handout's practice sentence, verbatim (ratified 2026-09-26;
               Jesse kept it on 2026-10-08 over his spoken "the world we share"). */}
