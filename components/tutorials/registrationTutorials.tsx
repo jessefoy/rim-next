@@ -123,13 +123,13 @@ function copyPage(device: Device) {
 
 /** The walk-through (2026-10-28): one question in a card, and the answers so
  *  far beside it on a computer, folded above it on a phone. */
-function walk(device: Device, where: string, question: string, body: ReactNode, answers: [string, string[]][]) {
+function walk(device: Device, where: string, question: string, body: ReactNode, answers: [string, string[]][], continueHl = false) {
   const card = (
     <div className="tut-card">
       <span className="tut-meta">{where}</span>
       <span className="tut-h2">{question}</span>
       {body}
-      <span className="tut-actions"><span className="tut-btn hl">Continue</span><span className="tut-link">← Back</span></span>
+      <span className="tut-actions"><span className={cx("tut-btn", continueHl && "hl")}>Continue</span><span className="tut-link">← Back</span></span>
     </div>
   );
   const head = (
@@ -175,18 +175,17 @@ function firstQuestion(device: Device) {
       <span className="tut-input hl">{PROGRAM}</span>
       <span className="tut-meta">Its address: rootedinmindfulness.org/programs/autumn-day-of-mindfulness</span>
     </>
-  ), [["About", ["You're here"]]]);
+  ), [["About", ["You're here"]]], true);
 }
 
 function whenQuestion(device: Device) {
   const days = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"];
-  return walk(device, "When and where · 6 of 8", "When is the first session?", (
+  return walk(device, "When and where · 5 of 6", "Which day?", (
     <>
-      <span className="tut-label">First session · November 2026</span>
+      <span className="tut-label">The day · November 2026</span>
       <span className="tut-pills">
-        {days.map((d) => <span key={d} className={cx(d === "14" && "on hl", !["7", "14"].includes(d) && "tut-dim")}>{d}</span>)}
+        {days.map((d) => <span key={d} className={cx(d === "14" && "on hl", Number(d) < 2 && "tut-dim")}>{d}</span>)}
       </span>
-      <span className="tut-meta">Only the days it meets can be chosen: Saturdays.</span>
       <span className="tut-hostbox"><b>What you&rsquo;ve set up</b>Saturday, November 14, 9:30 AM to 4 PM.</span>
     </>
   ), SO_FAR);
@@ -354,7 +353,7 @@ const settingUpSteps: TutorialStep[] = [
     title: "When it meets",
     words: "When and where asks how often it meets, which days, and what time, with the length shown. Then the first session: only the days it meets can be chosen. For a series, it asks how it ends and lists every session.",
     tip: { lead: "Changed your mind?", text: "Go back and change it. What still fits is kept; anything that needs choosing again is marked." },
-    alt: "The first session's calendar with only Saturdays to choose, and Saturday, November 14 marked.",
+    alt: "The calendar for the day, with Saturday, November 14 marked.",
   },
   {
     title: "Teachers and teams",

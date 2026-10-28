@@ -717,7 +717,7 @@ When and where asks how often it meets, which days, and what time, with the leng
 
 Tip: **Changed your mind?** Go back and change it. What still fits is kept; anything that needs choosing again is marked.
 
-[Drawing: The first session's calendar with only Saturdays to choose, and Saturday, November 14 marked.]
+[Drawing: The calendar for the day, with Saturday, November 14 marked.]
 
 **Step 6. Teachers and teams**
 
