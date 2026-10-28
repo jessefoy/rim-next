@@ -223,7 +223,15 @@ export default function ProgramSetup({ draftId, edit, initial: given, teams, can
     const mine = liveSteps(given, edit.section);
     return { ...given, setup: { ...given.setup, at: mine[0]?.id ?? "name", seen: mine.map((x) => x.id), redo: {} } };
   });
-  const [d, setD] = useState<SetupData>(initial);
+  // Changing When and where tidies a schedule saved before these rules (an
+  // end on a later day than a repeating program's first session) into what
+  // its sentences already say, so Before you save shows the fix and one Save
+  // makes it. Patterns the setup no longer offers are left as they are.
+  const [d, setD] = useState<SetupData>(() => {
+    const often = initial.setup.often;
+    const oldPattern = initial.recurrenceFreq === "WEEKLY" && Number(initial.recurrenceInterval || 1) > 2;
+    return edit?.section === "when" && often && !oldPattern && initial.startDatetime ? applySchedule(initial) : initial;
+  });
   const [view, setView] = useState<"walk" | "review" | "confirm">(!edit && initial.setup.at === "review" ? "review" : "walk");
   const [preview, setPreview] = useState<{ effects: string[] } | null>(null);
   const [saving, setSaving] = useState(false);
