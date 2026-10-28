@@ -6,7 +6,7 @@
  */
 
 import type { Prisma } from "@prisma/client";
-import type { ProgramData } from "@/components/registrar/ProgramEditor";
+import type { ProgramData } from "@/lib/programTypes";
 import { toCentralDatetime } from "@/lib/timezone";
 import { hasOpenEntry, resolveOffering } from "@/lib/programOffering";
 
@@ -66,6 +66,9 @@ export function programToEditorData(program: EditorProgram, coverageHubSlugs: st
     recurrenceInterval: program.recurrenceInterval?.toString() ?? "",
     recurrenceDays: program.recurrenceDays,
     recurrenceCount: program.recurrenceCount?.toString() ?? "",
+    // A series' end date and "shown first" (2026-10-28), as the setup holds them.
+    recurrenceUntil: program.recurrenceUntil ? program.recurrenceUntil.toISOString().slice(0, 10) : "",
+    listFirst: program.listFirst != null,
     registrationEnabled: program.registrationEnabled,
     registrationClosed: program.registrationClosed,
     registrationCapacity: program.registrationCapacity?.toString() ?? "",
@@ -139,7 +142,7 @@ export const EDITOR_FIELD_LABELS: Record<string, string> = {
   dateText: "the date words", timeText: "the time words", programFormat: "in person or online",
   venue: "the venue", locationText: "the location", locationLink: "the location link",
   startDatetime: "the start", endDatetime: "the end", recurrenceFreq: "how often it repeats",
-  recurrenceInterval: "how often it repeats", recurrenceDays: "the days", recurrenceCount: "how many times",
+  recurrenceInterval: "how often it repeats", recurrenceDays: "the days", recurrenceCount: "how many times", recurrenceUntil: "when the series ends", listFirst: "shown first",
   registrationEnabled: "registration on or off", registrationClosed: "registration open or closed",
   registrationCapacity: "the places", registrationDeadline: "the closing date", registrationOpensAt: "when registration opens",
   registrationFields: "the questions", confirmationMessage: "the confirmation message",

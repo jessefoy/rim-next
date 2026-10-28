@@ -125,6 +125,7 @@ export default async function ProgramsToolPage() {
         <header className="vol-header">
           <h1 className="vol-header__title">Programs</h1>
           <p className="vol-header__sub">Every program, with its category, format, delivery and registration.</p>
+          <p className="vol-header__sub"><Link className="app-act" href="/tools/programs/order">How each section of Programs &amp; Events is ordered</Link></p>
         </header>
         {drafts.length > 0 && (
           <section className="ps-drafts" aria-labelledby="ps-drafts-title">

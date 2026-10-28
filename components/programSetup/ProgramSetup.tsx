@@ -16,22 +16,36 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import { RimTiptapEditor } from "@/components/registrar/program-editor/shared";
-import type { RegistrationField } from "@/components/registrar/program-editor/shared";
+import type { RegistrationField } from "@/lib/programTypes";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
 import {
   DAY_NAMES, FORMAT_NAMES, SETUP_SECTIONS, applySchedule, fmtLong, fmtShort, inPerson, lengthWords,
   liveSteps, minutesBetween, missingForPublish, online, patternFits, patternWords, registers, repeats,
-  scheduleOf, scheduleSentence, sessionDays, slugFor,
+  scheduleOf, scheduleSentence, sessionDays, setupToBody, slugFor,
   type Often, type SetupChoices, type SetupData, type SetupSection, type SetupStep,
 } from "@/lib/programSetup";
 import { orderKey } from "@/lib/programOrder";
+import { editorFieldValue } from "@/lib/programEditorData";
 import { isOccurrenceOnDate } from "@/lib/scheduleUtils";
 
 export interface SetupTeam { slug: string; name: string; formats: string[] }
 export interface ListedProgram { name: string; category: string; key: string; when: string }
 
+/** What the save answered, for the program's page to say. */
+export type SaveAnswer = Record<string, unknown>;
+
+/** Changing one section of a published program (Phase 3). */
+export interface EditSection {
+  slug: string;
+  section: SetupSection;
+  /** Closed: with the save's answer when it saved, or nothing. */
+  onClose: (saved?: SaveAnswer) => void;
+}
+
 interface Props {
-  draftId: string;
+  /** A draft being set up; or, with `edit`, a published program's section. */
+  draftId?: string;
+  edit?: EditSection;
   initial: SetupData;
   teams: { hosting: SetupTeam[]; supporting: SetupTeam[]; prepare: { id: string; slug: string; name: string }[] };
   canDecideAskers: boolean;
@@ -39,7 +53,7 @@ interface Props {
   listed: ListedProgram[];
   /** Today, "YYYY-MM-DD", Central. */
   today: string;
-  startedAs: string | null;
+  startedAs?: string | null;
 }
 
 const DAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
@@ -199,10 +213,21 @@ function Sessions({ d }: { d: SetupData }) {
 
 // ─── The walk-through ──────────────────────────────────────────────────────
 
-export default function ProgramSetup({ draftId, initial, teams, canDecideAskers, listed, today, startedAs }: Props) {
+export default function ProgramSetup({ draftId, edit, initial: given, teams, canDecideAskers, listed, today, startedAs = null }: Props) {
   const router = useRouter();
+  // Changing a section starts on its first question, with its answers reached.
+  // Frozen as it opens, so the "before" of a change and what's on screen
+  // always come from the same program (a refresh can't shift one alone).
+  const [initial] = useState<SetupData>(() => {
+    if (!edit) return given;
+    const mine = liveSteps(given, edit.section);
+    return { ...given, setup: { ...given.setup, at: mine[0]?.id ?? "name", seen: mine.map((x) => x.id), redo: {} } };
+  });
   const [d, setD] = useState<SetupData>(initial);
-  const [view, setView] = useState<"walk" | "review">(initial.setup.at === "review" ? "review" : "walk");
+  const [view, setView] = useState<"walk" | "review" | "confirm">(!edit && initial.setup.at === "review" ? "review" : "walk");
+  const [preview, setPreview] = useState<{ effects: string[] } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [problem, setProblem] = useState("");
   const [changeMsg, setChangeMsg] = useState("");
   const [fromReview, setFromReview] = useState(false);
@@ -221,7 +246,16 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
   useEffect(() => { if (window.innerWidth <= 1000) setTrailOpen(false); }, []);
   const firstRender = useRef(true);
 
-  const steps = useMemo(() => liveSteps(d), [d]);
+  const steps = useMemo(() => {
+    const mine = liveSteps(d, edit?.section);
+    // Changing to in person or online can leave the hosting team unable to
+    // staff it: then its question joins this change.
+    if (edit?.section === "when" && online(d) && d.setup.host == null) {
+      const host = liveSteps(d, "teams").find((x) => x.id === "host");
+      if (host) mine.push(host);
+    }
+    return mine;
+  }, [d, edit]);
   const step: SetupStep = steps.find((s) => s.id === d.setup.at) ?? steps[0];
   const idx = steps.indexOf(step);
 
@@ -236,11 +270,14 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
       pending.current = false;
       fetch(`/api/program-drafts/${draftId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: latest.current }), keepalive: true }).catch(() => {});
     };
+    if (!draftId) return;
     window.addEventListener("pagehide", flush);
     return () => { window.removeEventListener("pagehide", flush); flush(); };
   }, [draftId]);
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
+    // A published program's change is saved only after "Before you save".
+    if (!draftId) return;
     pending.current = true;
     setSaveState("saving");
     const t = setTimeout(async () => {
@@ -331,6 +368,7 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
   function next(skip = false) {
     const need = !skip && step.need?.(d);
     if (need) { setProblem(need); return; }
+    if (edit && idx === steps.length - 1) { void seeWhatChanges(); return; }
     if (fromReview || idx === steps.length - 1) {
       setFromReview(false);
       setChangeMsg("");
@@ -340,6 +378,73 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
       return;
     }
     go(steps[idx + 1].id);
+  }
+
+  // ── Changing a published program: what changed, what it does, then save ──
+  const hostingTeams = teams.hosting.filter((t) => t.formats.includes(d.programFormat)).map((t) => t.slug);
+  const supportingTeams = teams.supporting.filter((t) => t.formats.includes(d.programFormat)).map((t) => t.slug);
+  /** The save's body: only what changed, with each one as it was (a safe save). */
+  function changedBody(): Record<string, unknown> {
+    // The teams as stored on one side and as they can staff it now on the
+    // other, so a team that can't staff a new format is taken off.
+    const before: Record<string, unknown> = { ...setupToBody(initial, { hostingTeams, supportingTeams: teams.supporting.map((t) => t.slug) }), slug: initial.slug };
+    const after: Record<string, unknown> = { ...setupToBody(d, { hostingTeams, supportingTeams }), slug: initial.slug };
+    // Kept as stored, never wiped by a change elsewhere: registration's
+    // settings and questions when people stop registering (switching back
+    // finds them), and an outside meeting link when it stops meeting online.
+    const keep = [
+      ...(!d.registrationEnabled ? ["registrationFields", "registrationCapacity", "registrationDeadline", "registrationOpensAt", "reminderDate", "reminderDaysBefore", "followUpEnabled"] : []),
+      ...(!online(d) ? ["outsideMeetingUrl", "outsideMeetingPublic", "recordByDefault", "isOpenAccess", "hostingHubSlug"] : []),
+    ];
+    for (const k of keep) { delete before[k]; delete after[k]; }
+    const keys = Object.keys(after).filter((k) => JSON.stringify(after[k]) !== JSON.stringify(before[k]));
+    const body: Record<string, unknown> = Object.fromEntries(keys.map((k) => [k, after[k]]));
+    body._base = Object.fromEntries(keys.map((k) => [k, editorFieldValue(initial, k) ?? null]));
+    return body;
+  }
+  /** The first question in this change still missing something, if any. */
+  function firstGap(): { id: string; need: string } | null {
+    for (const st of steps) {
+      const need = st.need?.(d);
+      if (need) return { id: st.id, need };
+    }
+    return null;
+  }
+  async function seeWhatChanges() {
+    setSaveError("");
+    const gap = firstGap();
+    if (gap) { go(gap.id); setProblem(gap.need); return; }
+    const body = changedBody();
+    if (Object.keys(body).length === 1) { setPreview({ effects: ["Nothing has changed here."] }); setView("confirm"); return; }
+    setPreview(null);
+    setView("confirm");
+    window.scrollTo({ top: 0 });
+    try {
+      const res = await fetch(`/api/programs-pg/${edit!.slug}/preview`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const answer = await res.json().catch(() => ({}));
+      if (!res.ok) { setSaveError(answer.error || "We couldn't work out what this changes. Please try again."); setPreview({ effects: [] }); return; }
+      setPreview({ effects: answer.effects ?? [] });
+    } catch {
+      setSaveError("We couldn't reach the site. Check your connection and try again.");
+      setPreview({ effects: [] });
+    }
+  }
+  async function saveChange() {
+    const gap = firstGap();
+    if (gap) { go(gap.id); setProblem(gap.need); return; }
+    const body = changedBody();
+    if (Object.keys(body).length === 1) { edit!.onClose(); return; }
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch(`/api/programs-pg/${edit!.slug}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const answer = await res.json().catch(() => ({}));
+      if (!res.ok) { setSaveError(answer.error || "It wasn't saved. Please try again."); setSaving(false); return; }
+      edit!.onClose(answer);
+    } catch {
+      setSaveError("We couldn't reach the site, so it wasn't saved. Check your connection and try again.");
+      setSaving(false);
+    }
   }
 
   async function publish() {
@@ -354,7 +459,10 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { setPublishError(body.error || "It wasn't published. Please try again."); setPublishing(false); return; }
-      try { sessionStorage.setItem(`pe-created:${body.slug}`, "1"); } catch { /* the editor opening says enough */ }
+      try {
+        sessionStorage.setItem(`pe-created:${body.slug}`, "1");
+        if (Array.isArray(body.seatConflicts) && body.seatConflicts.length) sessionStorage.setItem(`pe-seat-conflicts:${body.slug}`, JSON.stringify(body.seatConflicts));
+      } catch { /* the program's page opening says enough */ }
       router.push(`/tools/programs/${body.slug}/edit`);
     } catch {
       setPublishError("We couldn't reach the site, so it wasn't published. Check your connection and try again.");
@@ -404,7 +512,7 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
               <label className="ps-label" htmlFor="ps-name">Name</label>
               <input id="ps-name" className="ps-input" value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder="Mindful Photography" />
             </div>
-            <p className="ps-hint">It appears on the public site, on My Home and in every email. Its address: rootedinmindfulness.org/programs/<strong>{slugFor(d) || "…"}</strong></p>
+            <p className="ps-hint">It appears on the public site, on My Home and in every email. {edit ? "Its address stays: " : "Its address: "}rootedinmindfulness.org/programs/<strong>{edit ? initial.slug : slugFor(d) || "…"}</strong></p>
           </>
         );
       case "line":
@@ -1013,6 +1121,43 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
     </div>
   );
 
+  if (edit) {
+    const sec = SETUP_SECTIONS.find((x) => x.id === edit.section)!;
+    const editHead = (
+      <div className="ps-head">
+        <button type="button" className="app-back ps-back" onClick={() => edit.onClose()}>&larr; {initial.name}</button>
+        <h1>Change: {sec.name}</h1>
+        <p className="ps-state">Nothing changes until you&rsquo;ve seen what it does and said yes.</p>
+      </div>
+    );
+    if (view === "confirm") {
+      return (
+        <div className="ps-page">
+          {editHead}
+          <div className="ps-review">
+            <section className="ps-card" aria-labelledby="ps-as-will-be">
+              <div className="ps-card__head"><h2 id="ps-as-will-be">{sec.name}, as it will be</h2></div>
+              <div className="ps-card__body"><SectionSays d={d} section={edit.section} /></div>
+            </section>
+            <section className="ps-card" aria-labelledby="ps-what-changes">
+              <div className="ps-card__head"><h2 id="ps-what-changes">What this changes</h2></div>
+              <div className="ps-card__body">
+                {!preview ? <p>Working out what this changes…</p> : preview.effects.length > 0 && <ul className="ps-effects">{preview.effects.map((e) => <li key={e}>{e}</li>)}</ul>}
+                <p className="ps-hint">Nothing has happened yet.</p>
+                <div className="ps-actions">
+                  <button type="button" className="pe-btn pe-btn--primary" onClick={saveChange} disabled={!preview || saving || !!firstGap() || (!!saveError && !preview.effects.length)}>{saving ? "Saving…" : "Save this change"}</button>
+                  <button type="button" className="app-act" onClick={() => { setView("walk"); setSaveError(""); }}>Back to the questions</button>
+                  <button type="button" className="app-act" onClick={() => edit.onClose()}>Cancel the change</button>
+                </div>
+                {saveError && <p className="ps-problem" role="alert">{saveError}</p>}
+              </div>
+            </section>
+          </div>
+        </div>
+      );
+    }
+  }
+
   if (view === "review") {
     const missing = missingForPublish(d);
     // Who reads people's answers is the registration team's choice: a draft
@@ -1033,11 +1178,7 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
                     <button type="button" className="ps-card__change" onClick={() => go(mine[0].id, true)} aria-label={`Change ${sec.name}`}>Change</button>
                   </div>
                   <div className="ps-card__body">
-                    {sec.id === "when" ? <WhenSays d={d} /> : mine.map((st) => {
-                      const need = st.need?.(d);
-                      const look = st.look?.(d);
-                      return <p key={st.id} className={need || look ? "ps-look" : undefined}>{need || look || (st.says ? st.says(d) : `${st.answer(d)}.`)}</p>;
-                    })}
+                    <SectionSays d={d} section={sec.id as SetupSection} />
                   </div>
                 </section>
               );
@@ -1085,7 +1226,13 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
   const last = idx === steps.length - 1;
   return (
     <div className="ps-page">
-      {head}
+      {edit ? (
+        <div className="ps-head">
+          <button type="button" className="app-back ps-back" onClick={() => edit.onClose()}>&larr; {initial.name}</button>
+          <h1>Change: {SETUP_SECTIONS.find((x) => x.id === edit.section)?.name}</h1>
+          <p className="ps-state">Nothing changes until you&rsquo;ve seen what it does and said yes.</p>
+        </div>
+      ) : head}
       <div className="ps-grid">
         <section className="ps-step" aria-labelledby="ps-q">
           <p className="ps-step__where">{SETUP_SECTIONS.find((x) => x.id === step.sec)?.name} · {secSteps.indexOf(step) + 1} of {secSteps.length}</p>
@@ -1099,7 +1246,7 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
           {problem && <p className="ps-problem" role="alert">{problem}</p>}
           <div className="ps-step__nav">
             <button type="button" className="pe-btn pe-btn--primary" onClick={() => next()}>
-              {fromReview ? "Back to the review" : last ? "Review it all" : "Continue"}
+              {edit && last ? "See what this changes" : fromReview ? "Back to the review" : last ? "Review it all" : "Continue"}
             </button>
             {idx > 0 && !fromReview && <button type="button" className="app-back ps-back" onClick={() => go(steps[idx - 1].id)}>&larr; Back</button>}
             {step.optional && !fromReview && !last && <button type="button" className="app-act ps-skip" onClick={() => next(true)}>Skip this for now</button>}
@@ -1108,6 +1255,20 @@ export default function ProgramSetup({ draftId, initial, teams, canDecideAskers,
         {trail()}
       </div>
     </div>
+  );
+}
+
+/** A section's answers as sentences: the review, Before you save, and the program's page. */
+export function SectionSays({ d, section }: { d: SetupData; section: SetupSection }) {
+  if (section === "when") return <WhenSays d={d} />;
+  return (
+    <>
+      {liveSteps(d, section).map((st) => {
+        const need = st.need?.(d);
+        const look = st.look?.(d);
+        return <p key={st.id} className={need || look ? "ps-look" : undefined}>{need || look || (st.says ? st.says(d) : `${st.answer(d)}.`)}</p>;
+      })}
+    </>
   );
 }
 

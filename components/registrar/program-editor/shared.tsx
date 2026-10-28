@@ -41,16 +41,8 @@ export interface Category {
   hidden?: boolean;
 }
 
-export interface RegistrationField {
-  /** The question's id, set by the save route; kept through edits (lib/registrationFields.ts). */
-  _key?: string;
-  /** Who asks it (lib/questionAskers.ts): "teacher", "team:<hubId>", or absent for the registration team. */
-  askedBy?: string;
-  label: string;
-  fieldType: "shortText" | "longText" | "yesNo" | "select";
-  required: boolean;
-  options: string[];
-}
+export type { RegistrationField } from "@/lib/programTypes";
+import type { RegistrationField } from "@/lib/programTypes";
 
 export interface EditorHub {
   /** The team's id: a question asked by a team names it (lib/questionAskers.ts). */

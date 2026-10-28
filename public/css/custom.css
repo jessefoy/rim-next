@@ -24098,6 +24098,21 @@ a.prl-name:hover { color: var(--rim-blue); text-decoration: underline; text-unde
 .ps-qs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .ps-q { box-sizing: border-box; display: grid; gap: 10px; border: 1px solid var(--rim-rule); border-radius: 10px; padding: 14px; background: var(--rim-surface); }
 
+/* A program's page, and how each section is ordered (Phase 3) */
+.ps-done { box-sizing: border-box; background: var(--color-success-bg); color: var(--color-success); border-radius: 10px; padding: 12px 16px; margin: 0 0 var(--space-3); font-size: var(--text-app); }
+.ps-done p { margin: 0; }
+.ps-done p + p { margin-top: 4px; color: var(--rim-text); }
+.ps-page > .ps-note { margin: 0 0 var(--space-3); }
+.ps-page-acts { margin: 0 0 var(--space-3); }
+.ps-guest { margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--rim-rule); }
+.ps-guest__url { margin: 4px 0; font-family: var(--font-mono); font-size: var(--text-app-meta); overflow-wrap: anywhere; }
+.ps-order { list-style: none; margin: 0; padding: 4px 16px; }
+.ps-order__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 8px 0; border-top: 1px solid var(--rim-rule); font-size: var(--text-app); }
+.ps-order__row:first-child { border-top: 0; }
+.ps-order__name { display: flex; flex-direction: column; gap: 2px; color: var(--rim-heading); font-weight: 600; }
+.ps-order__name .ps-hint { font-weight: 400; }
+.ps-order__acts { display: flex; flex-wrap: wrap; gap: 0 4px; }
+
 /* The Programs list's drafts, and the start page's buttons */
 .ps-drafts { margin: 0 0 var(--space-3); border: 1px solid var(--rim-rule); border-radius: 12px; background: var(--rim-surface); overflow: hidden; }
 .ps-drafts__title { margin: 0; padding: 10px 16px; background: var(--rim-blue); color: #fff; font-family: var(--font-sans); font-size: var(--text-app); font-weight: 600; }

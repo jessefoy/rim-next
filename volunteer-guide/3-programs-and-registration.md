@@ -88,121 +88,48 @@ A new program is set up one question at a time, in the seven sections below, in 
 - **When and where**, so the schedule can't go wrong: **How often** (Once, Several days in a row, Every week, Every other week, Once a month); **which days** (for monthly, which one of the month and which day); **what time**, with the length shown ("That's 45 minutes."); **the first session**, on a calendar where only the days it meets can be chosen, from today on; **when it ends** (It goes on, After a number of sessions, On a date), with the sessions listed as you set them ("Fridays, 7 to 7:45 PM. 4 sessions." and the dates).
 - **Where should people find it?** shows the section of Programs & Events as visitors will see it, with this program in its place, and **Show it first in its section**. My Home can wait for a date ("Only from a date…").
 - **The review** shows every answer as a sentence, each section with **Change**, and **When you publish**: what publishing sets off (where it appears, registration opening, which teams are told, a Zoom meeting for each session). **Publish** stays off while something is missing, and each missing thing links to its question. **Keep it as a draft** leaves it for later; **Discard this draft** asks first.
-- After Publish, the program is changed in the editor, as before (for now).
+- After Publish, the program's page opens on it ("Published. It's saved"), where each section has its own Change.
 
 ---
 
-## The program editor: one page, seven sections
+## A program's page, and changing it
 
-The editor is one long page in seven sections, in the order you'd decide them. On a computer, a list of sections sits beside the page. On a phone or narrow screen, a **Jump to** menu sits at the top. Save and Cancel stay at the bottom of the screen.
+Since October 28, 2026, a published program has its own page in Programs (choose its name, or **Edit**, in the Programs list). It replaced the one long editor. Wording is provisional until Jesse's read-aloud.
 
-If you try to leave with unsaved changes, it asks first.
+- **At the top:** its name, whether it's published or archived, where it's listed ("on Programs & Events and This Week"), and for the registration roles how many people are registered. Below that, **View its page** (opens the public page), **People** (Registration), and **Post a notice**.
+- **Seven cards, one per section**, each saying what's set in plain sentences ("Fridays, 7 to 7:45 PM. 4 sessions." with the dates; "People register first."; "12 places, then a waiting list."). Each card has **Change**.
+- **Worth a look:** anything a program needs and doesn't have yet (no description, no category) is listed above the cards, each one opening its section.
+- **Change** walks just that section's questions, the same ones as when a program is set up (below, "The questions in each section"). Nothing is saved while you go. The last question's button reads **See what this changes**.
+- **Before you save** says what the change will do, before anything happens: sessions that no longer happen and new ones (with dates), the people on sessions that are cleared (they're told), rotations that end (the team's leads set up the new days), the teams that are told, a new time for every session, a new name reaching every copy, and the people registered who haven't heard (with an update offered after saving). When nothing else is affected it says "This changes only what you see above. No one is emailed." Choose **Save this change**, **Back to the questions**, or **Cancel the change**.
+- **Safe saves:** only what you changed is sent. If someone else changed the same thing while you had the page open (another person, or Registration's settings), nothing is saved and the message names it. Changes to other things are kept.
+- After a save, a note at the top says what happened ("Saved at 3:41 PM."), with any sessions cleared, Zoom meetings not yet renamed, or online sessions that overlap on Zoom.
+- **The guest link** (when guests can join) shows in How people join, with **Copy the link**, and for the registrar, admins and the guiding teacher **Reset the link** (it asks first; the old link stops working).
+- **The web address** stays as it was when a program is renamed: it links the program to its people and hosts.
 
-### 1. About
+### The order on Programs & Events
 
-- **Name**: the program's title, shown on the public site, My Home and in every email.
-- **Slug**: the program's web address (`/programs/your-slug`). Once people have registered or the schedule uses it, it can't change, because it links the program to its people and hosts.
-- **Tagline**: one line under the name on the Programs page.
-- **Program Image**: shown on the program's page and in listings. Landscape works best.
-- **Description**: the full description on the program's page. Write for someone who has never been to RIM.
-- **Pull Quote** and **Pull Quote Source**: optional. A source needs a quote above it. Without a quote, the page opens straight onto the description.
-- **Program Notes**: extra notes on the program's page, such as scheduling context or accessibility.
+There's no number to set. Each section lists programs that go on by their first day of the week (Monday first) and time, then programs with an end by their first session. A program can be **shown first** in its section: in its Where it appears ("Show it first in its section"), or on **How each section of Programs & Events is ordered** (a link at the top of the Programs list), which shows every section as visitors see it, with **Show first**, **Stop showing first**, and **Move up** and **Move down** among those shown first. The Kalyana Mitta groups page lists Community Groups the same way.
 
-### 2. When and where
+### The questions in each section
 
-- **Program Format**: in person, virtual (online), or hybrid. This is about delivery, not the Format label in "Where it appears."
-- **Venue**, **Location Text**, **Location Link**: where it happens. "At RIM" fills in RIM's address. The Location Link shows as "Map and directions" in the confirmation email.
-- **Start Date & Time**, **End Date & Time**: for a single-day event, both on the same date. For a repeating program, the end is the time each session ends, not the last date of the series.
-- **Recurrence**: for repeating programs. Choose the pattern, the days and how many times (leave blank for ongoing). A monthly program repeats on the same weekday position as its start, such as "last Sunday" or "2nd Wednesday." The number counts real sessions: 4 sessions on Mondays and Wednesdays is Monday, Wednesday, Monday, Wednesday.
-- **What Save won't take** (since October 28, 2026), so a schedule can't mean something other than it says: a weekly program with no day ticked; a first session on a day it doesn't meet (start it on one of its days); an End date later than the start for a repeating program (the end is the time each session ends, on the first session's day); every 3 weeks or more, or Daily, for a new schedule; a series of fewer than 2 sessions; an end before it begins. Save says which, under When and where, and nothing is saved.
-- **Schedule Label** and **Time Label**: made automatically from the dates. To change them, change the dates.
-- **Session note**: one quiet line shown with the session on My Home on the day, such as "Doors open ten minutes before." It doesn't appear on public pages.
-- **Where it meets online** (virtual and hybrid): RIM's Zoom (the usual choice) or "An outside meeting link" for a program that meets in someone else's room. A **Who can join, with these settings** summary says who gets in and how. **Open Access** is a guest link for people without a RIM account; it works only around session times.
+The same questions set a program up and change it.
 
-Changing the schedule after people have signed up for sessions re-times the upcoming sessions, and a note beside Save says what was cleared.
-
-### 3. Teachers and teams
-
-- **Teacher / Facilitators**: search by name to link teachers. Linked teachers get the teacher's page for this program (see "How helpers see registrations" below).
-- The box reads **"Three kinds of team."**:
-  - **Hosting team**: runs the live session (opens the online room). Usually the Hosting Team.
-  - **Supporting teams**: help on the day, such as greeters or AV.
-  - **Teams that prepare**: help ahead of time, such as a kitchen team. They see how many are coming and the answers to their own questions. Ticking **Can reach people: sees their email and phone** also shows them contact details. Dana is never shown.
-- **Host coverage** and **No host needed**: some programs (self-led groups) don't need a host, so they don't appear as needing one on the Scheduler.
-
-**Ticked teams hear when you save.** Leave the teams off until the program is real. Only the registration roles may choose a team that prepares, because that decides who sees people's details.
-
-### 4. How people join
-
-This section decides how people get in.
-
-**Registration** is one choice of four:
-- **Off**: no sign-up. The page shows how to join if Open entry is on; otherwise it says registration isn't open yet.
-- **Not open yet**: sign-ups start on a date you choose. An **Opens on** date and time appears (Central time). Until then, the page says when registration opens, with no sign-up button.
-- **Open**: visitors get a registration form.
-- **Closed**: the page says registration is closed. The people registered keep their places.
-
-**How this appears to visitors** says in one sentence what a visitor will see. Read it before you save. For example: "Registration is open. Visitors see a Register button. Once it's full, new sign-ups join the waiting list."
-
-**Open entry** is a separate checkbox: anyone signed in may join without registering. They simply arrive for an in-person program, or join on Zoom for an online one. Online programs with Open entry appear on everyone's My Home. Every program with Open entry carries the **Drop-in** mark on This Week. A program can have registration and Open entry together.
-
-**Open entry is the only setting that decides access.** Category and Format (in "Where it appears") are labels only. They never change who can get in.
-
-- **Capacity**: the most who can register. Leave blank for no limit. Once it's full, new sign-ups join the waiting list. The editor won't accept fewer places than are already taken.
-- **Registration Deadline**: registration closes automatically after this date. Leave blank for no deadline.
-- **Custom Questions**: questions on the registration form. Choose **+ Add Question**, type it, and choose its kind: Short text, Long text, Yes / No, or Select (with choices separated by commas). Questions can be moved up or down, or removed.
-- **Asked by**: under each question, who reads the answers. The choices are the registration team, the teacher (once a teacher is linked), or one of the program's teams. **The registration team reads every answer** whoever asks. When someone other than the registration team asks, the form groups the questions under who is asking, such as "For the Greeter Team" or "From [teacher], your teacher." Only the registration roles may change Asked by.
-
-If a team is taken off the program, its questions go back to the registration team. Old answers are never lost or rewritten, even when a question is reworded or removed.
-
-### 5. Messages to those who register
-
-Three emails, in the order people get them. A line at the top says how to add a link in any of them (select the words, choose the link button, paste the address, OK).
-
-- **When they register**: the confirmation message. Its words go into the confirmation email: what to bring, directions, a link to a handout. For a Google Doc, share it as "Anyone with the link" first.
-- **Before it begins**: the reminder. Choose **Days before** (a new program starts at 2), **On a set date**, or **No reminder**, and write its words. The reminder goes out in the morning (8 AM Central in winter, 9 AM in summer) on that day, to everyone registered by then. Anyone who registers later gets it the next morning, until the program begins. A program with several sessions is reminded once, before the first. The registration team can also send it early from Registration. Archived programs and programs with registration off send no reminder.
-- **After it ends**: **Send a note the day after**, a thank-you, a reading, or a word about what comes next. Off unless you turn it on, and it needs words. It goes the morning after the program's last day (9 AM Central in winter, 10 AM in summer) to everyone who had a place, once each. It is only for one-time programs, since a program that repeats doesn't end. It never goes for a program archived before it ended (a cancelled one).
-
-### 6. Dana
-
-- **Dana Mode**:
-  - **Voluntary**: people may give any amount. This is RIM's practice.
-  - **Base + Dana**: a minimum, with more welcome on top.
-  - **Fixed**: an exact amount.
-  - **None**: no donation step.
-- **Suggested Amount**: for Voluntary, shown during registration; people can change it.
-- **Base Amount**, **Fixed Amount**: for those modes.
-- **Dana Step Message**: shown during the donation step of registration.
-- **Program Page Dana Note**: a short note on the program's page.
-- **Templates**: "General support" and "Reciprocity" are starting words you can copy in and edit.
-
-**Dana at RIM is voluntary.** RIM does not charge fees. Program dana is shared equally between RIM and the Teaching Fund. The registration step and the program page already say this, with a link to "How dana works at RIM" on the Donate page, so the dana messages don't need to repeat it. If a program shows a required amount, check with Jesse before assuming it's intended.
-
-### 7. Where it appears
-
-- **Category**: Foundations, Ongoing Learning & Practice, Immersion, Community Group, Special Event, and the internal Service and Private. It decides where the program is grouped on Programs & Events.
-- **Format**: Drop-in, Class, Course, Workshop, Day of mindfulness, Retreat. A label on cards.
-- **Silent meditation** (for drop-ins) and **Hosted by volunteers**: labels.
-- **Where this program appears**: a readout saying whether the program is on Programs & Events, This Week and My Home, and if not, the one reason why.
-- **The order on Programs & Events** (since October 28, 2026): there's no number to set. Each section lists programs that go on by their first day of the week (Monday first) and time, then programs with an end by their first session. The Kalyana Mitta groups page and the Programs list use the same order.
-- **Hide from public Programs & Events page** (this also hides it from This Week), **Hide from This Week's Schedule**, **Hide automatically after the date passes** (one-time programs: it leaves the listings once its day is over and is archived the next morning), **Hide from member home** (affects online sessions on My Home).
+1. **About:** What is it called? (it appears on the site, My Home and every email; its address is made from the name). Say what it is in one line. Tell people about it (the description, written for someone who has never been to RIM, and a picture). Anything more for its page? (a short quote and who said it, notes such as accessibility).
+2. **When and where:** Where does it meet? (In person, Online, Both). Where, in person? (At RIM, or somewhere else with its address and a map link). Which online room? (RIM's Zoom, with **Record the sessions**; or someone else's meeting, with its link). How often does it meet? Which days (or which one of the month)? What time (with its length)? The first session (only days it meets can be chosen). When does it end? A line for the day itself (shown on My Home on the day).
+   - **What a save won't take**, so a schedule can't mean something other than it says: a weekly program with no day; a first session on a day it doesn't meet; an end on a later day than the start for a repeating program; every 3 weeks or more, or Daily, for a new schedule; a series of fewer than 2 sessions; an end before it begins. The number of sessions counts real sessions: 4 on Mondays and Wednesdays is Monday, Wednesday, Monday, Wednesday. A "4th" of the month starts in a month with five of that day (otherwise it's read as the last).
+3. **Teachers and teams:** Who teaches it? (or "No teacher for this one"). Does a host run the online room? (a hosting team, or No host needed: it's self-led). Which teams help at each session? (greeters, AV). Does a team prepare for it? (a kitchen team; "They can reach people" shows them email and phone; only the registration roles choose these, because that decides who sees people's details; dana is never shown). **Teams hear when it's published or saved.**
+4. **How people join:** They just come (open entry: anyone signed in may join, marked Drop-in on This Week), They register first, or Both. **Open entry is the only setting that decides access**; Category and Format are labels. And people without a RIM account? (only members, a guest link that works around session times, or for someone else's meeting a Join button on the program's page when no one registers). When can people register? (as soon as it's published or from a date; until it begins or until a date). How many places? (no limit, or a number, then a waiting list; never fewer than the places taken). What would you like to ask them? (each question's words, its kind of answer (a short answer, a longer answer, yes or no, a choice), whether it needs an answer, and **Asked by**: the registration team, the teacher, or a team that prepares. The registration team reads every answer; only the registration roles change Asked by. Old answers are never lost).
+5. **Messages to those who register** (only when people register): What should the confirmation say? (what to bring, directions, a link; a Google Doc needs "Anyone with the link"). When should the reminder go? (days before the first session, in the morning and to anyone who registers later; on a set date; or no reminder; with anything to add). A note the day after it ends? (for one-time programs only).
+6. **Dana:** How is dana offered? (No dana step; Dana invited, with a suggested amount; A set amount, plus dana; A fixed amount, not RIM's usual practice). What do people read when they give? (starting words to copy in, and a short note near the Register button). **Dana at RIM is voluntary**; program dana is shared equally between RIM and the Teaching Fund, which the registration step and program page already say.
+7. **Where it appears:** Which of RIM's ways does it belong to? (Foundations, Ongoing Learning & Practice, Immersion, Community Group, Special Event; Service and Private are never listed). What kind of offering is it? (Drop-in, Class, Course, Workshop, Day of mindfulness, Retreat; a silent sit; hosted by volunteers). Where should people find it? (Programs & Events, with the section shown and **Show it first**; This Week; My Home on the days it meets, optionally only from a date; for a one-time program, taken down once it's over).
 
 Private programs are left off This Week.
-
-### Ready to be seen
-
-Near the top of the editor, **Ready to be seen** is a short list. A check means something is set. A mark means something would keep the program from being seen or joined: no description, no start date, no way to join, "Not open yet" without a date, no Category, or a date that has passed. A dash marks a choice, such as registration closed or hidden. Each line's name goes to its section. The list opens when something needs a look.
-
-### Saving
-
-- Choose **Save** at the bottom of the screen. If something is missing, the note beside Save says which section to look in, such as "Under When and where: …"
-- **Safe saves:** the editor sends only what you changed. If someone else changed the same field while you had the page open (another editor, or Registration's settings), nothing is saved. The message names the field, and your edits stay on screen. Changes to other fields are kept. This is why two people can work on one program without undoing each other.
 
 ### Tell the people registered?
 
 People who registered have the time, place and confirmation as they were when they signed up. Changing the program doesn't reach them by itself.
 
-So when a save changes the schedule, the format, the place, or the confirmation message, and people have a place, a panel appears below Save: **Tell the people registered?** It names what changed and drafts an email with the new details. The subject is "A change to [program]". You can rewrite both.
+So when a saved change moves the schedule, the format, the place, or the confirmation message, and people have a place, a panel appears at the top of the program's page: **Tell the people registered?** It names what changed and drafts an email with the new details. The subject is "A change to [program]". You can rewrite both.
 
 - **Send me a test**: read it in your own inbox first.
 - **Send to the N people registered**: asks first, then sends. Replies go to the registrar's inbox, and it's kept in History.
@@ -212,9 +139,9 @@ Only registrars, the guiding teacher and admins see the count and the draft. Any
 
 ### Post a notice
 
-For news people need right away, such as "Cancelled tonight," choose **Post a notice** at the top of the editor. Type one line, choose **Show until** (the last day it shows), and choose **Post the notice**.
+For news people need right away, such as "Cancelled tonight," choose **Post a notice** on the program's page. Type one line, choose **Show until** (the last day it shows), and choose **Post the notice**.
 
-The notice shows on the program's page, on Programs & Events and This Week, and on My Home. It clears itself after the Show until day. Registrars can also tick **Also email the N people registered**. The notice saves on its own, apart from Save. An empty notice takes it down.
+The notice shows on the program's page, on Programs & Events and This Week, and on My Home. It clears itself after the Show until day. Registrars can also tick **Also email the N people registered**. The notice saves on its own. An empty notice takes it down.
 
 ---
 
@@ -361,7 +288,7 @@ So a workshop stops offering Register once it's over, even before it's archived 
 - **"Drop-in" on This Week.** The program has Open entry, so anyone signed in can come without registering. A program can show Drop-in and still offer Register, when registration and Open entry are both on.
 - **"Dana not finished."** The person is registered but hasn't given or declined yet. After a day it's marked no dana and their confirmation goes out. The team can also mark it given another way, send a reminder, or choose no dana.
 - **"N haven't had the reminder."** They registered after the reminder went out, or it hasn't gone yet. They'll get it the next morning automatically, or choose Send the reminder now.
-- **The program isn't on Programs & Events.** Open the editor's Where it appears: the readout names the one reason (hidden, no Category, date passed, archived, no start date). Ready to be seen at the top says the same.
+- **The program isn't on Programs & Events.** Open the program's page: the line at the top says whether it's on Programs & Events, its Where it appears card says why not (hidden, Private or Service, no Category), and **Worth a look** lists anything missing. A one-time program whose date has passed leaves the listings by itself.
 - **A save was refused because "someone else changed" a field.** Another person, or Registration's settings, changed that same field while the page was open. Reload to see their change, then make yours again.
 - **The people registered didn't hear about a time change.** Changing the program doesn't email them. Use Tell the people registered? after saving, or Message people in Registration.
 - **The Programs list shows places but not names.** Only the registration roles see how many registered and who. People's details live in Registration.

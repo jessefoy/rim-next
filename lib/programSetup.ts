@@ -15,7 +15,7 @@
  * No server imports: the walk-through runs it in the browser.
  */
 
-import type { ProgramData } from "@/components/registrar/ProgramEditor";
+import type { ProgramData } from "@/lib/programTypes";
 import { centralToUtc } from "@/lib/timezone";
 import { isOccurrenceOnDate, lastOccurrenceDate, monthlyPatternPhrase, type ScheduleProgram } from "@/lib/scheduleUtils";
 import { deriveDayOfWeek, slugify } from "@/lib/programUtils";

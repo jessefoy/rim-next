@@ -13,7 +13,7 @@
  * (and the hiding it ended), and the notice. Pure, no imports.
  */
 
-import type { ProgramData } from "@/components/registrar/ProgramEditor";
+import type { ProgramData } from "@/lib/programTypes";
 
 /** The address for the copy: the original's with the first free number. A
  *  copy's own "-2" is dropped first ("retreat-2" → "retreat-3"); longer

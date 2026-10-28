@@ -17,7 +17,7 @@ import { canUseRegistration } from "@/lib/toolAuth";
 import { EDITOR_PROGRAM_INCLUDE, programToEditorData } from "@/lib/programEditorData";
 import { copyForNew, freeSlug } from "@/lib/programCopy";
 import { toCentralDatetime } from "@/lib/timezone";
-import type { ProgramData } from "@/components/registrar/ProgramEditor";
+import type { ProgramData } from "@/lib/programTypes";
 
 /** The teams a program's setup can offer, by what each does. */
 export async function setupTeams() {

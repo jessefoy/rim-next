@@ -17,7 +17,7 @@ import { checkHelperTeams, cleanHelperTeams, saveHelperTeams, type HelperTeamInp
 import { countPlacesTaken } from "@/lib/registrationPlaces";
 import { EDITOR_FIELD_LABELS, EDITOR_PROGRAM_INCLUDE, editorFieldValue, programToEditorData } from "@/lib/programEditorData";
 import { db } from "@/lib/db";
-import { clearCoverageNoLongerStaffed, clearOffScheduleCoverage, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal, supportingTeamRefusal } from "@/lib/programHub";
+import { clearCoverageNoLongerStaffed, clearOffScheduleCoverage, DEFAULT_HOSTING_HUB_SLUG, getProgramCoverageHubs, hostingTeamRefusal, offScheduleCoverage, supportingTeamRefusal } from "@/lib/programHub";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
 import { computeTimeText, computeDateText } from "@/lib/programUtils";
 import { notifyHubOfNewProgramCoverage, sendCoverageClearedEmails, sendSessionsClearedEmail } from "@/lib/email";
@@ -25,7 +25,7 @@ import { applyProgramMeetingTopic, applyProgramRecordingSetting, teardownProgram
 import { conflictsForProgram } from "@/lib/sessionConflicts";
 import { EARLY_OPEN_MIN } from "@/lib/sessionWindowConstants";
 import { cleanOffering, resolveOffering } from "@/lib/programOffering";
-import { ctDateStr, parseAnnouncementUntil, shiftToDate } from "@/lib/scheduleUtils";
+import { ctDateStr, isOccurrenceOnDate, parseAnnouncementUntil, shiftToDate, type ScheduleProgram } from "@/lib/scheduleUtils";
 import { getFlodeskSegment } from "@/lib/flodesk";
 import { cleanOutsideMeetingUrl } from "@/lib/outsideMeeting";
 import { parseUntil, scheduleRefusal, type SchedulePart } from "@/lib/programSchedule";
@@ -33,7 +33,7 @@ import { normalizeLinkInput } from "@/lib/linkInput";
 import { canUseProgramManager, canUseRegistration } from "@/lib/toolAuth";
 import { emailLocationFor } from "@/lib/locations";
 import { hasConcludedOneTime } from "@/lib/programUtils";
-import { changedForPeople, updateLines, type UpdateProgram } from "@/lib/programUpdate";
+import { changedForPeople, kindsInWords, updateLines, type UpdateProgram } from "@/lib/programUpdate";
 import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 /** Who is saving: their id and roles, read for this request. */
@@ -333,6 +333,15 @@ export async function saveProgram(actor: SaveActor, slug: string, body: any): Pr
     const until = parseUntil(body.recurrenceUntil);
     if (until === undefined) return reply({ error: "Under When and where: the end date wasn't understood. Choose it again. Nothing was saved." }, { status: 422 });
     data.recurrenceUntil = until;
+  }
+  // Shown first in its section (2026-10-28): after any already shown first;
+  // off puts it back in its place by when it meets (lib/programOrder.ts).
+  if (body.listFirst !== undefined) {
+    if (body.listFirst === true) {
+      if (existing.listFirst == null) {
+        data.listFirst = ((await db.program.aggregate({ where: { listFirst: { not: null }, archivedAt: null }, _max: { listFirst: true } }))._max.listFirst ?? 0) + 1;
+      }
+    } else data.listFirst = null;
   }
   // The schedule can't mean something other than it says (lib/programSchedule.ts):
   // checked whenever this save changes it, on the schedule as it would be.
@@ -1330,4 +1339,185 @@ export async function setProgramArchived(slug: string, archived: boolean): Promi
   if (!existing) return reply({ error: "Program not found" }, { status: 404 });
   const updated = await db.program.update({ where: { slug }, data: { archivedAt: archived ? new Date() : null } });
   return reply({ ...updated });
+}
+
+/**
+ * "Before you save" (2026-10-28, Phase 3): what a change to a published
+ * program would do, said before it happens. Reads only. Takes the same body
+ * as the save (only what changed) and answers in plain sentences: sessions
+ * that go or arrive, the people taken off them, rotations that end, teams
+ * told, the people registered who still have it as it was. The schedule
+ * check is the save's own, so a change the save would refuse says so here.
+ */
+export async function previewProgramSave(actor: SaveActor, slug: string, body: any): Promise<SaveReply> {
+  void actor;
+  const existing = await db.program.findUnique({ where: { slug } });
+  if (!existing) return reply({ error: "Program not found" }, { status: 404 });
+  const has = (k: string) => body[k] !== undefined;
+  const effects: string[] = [];
+  const names = async (ids: (string | null)[]) => {
+    const users = await db.user.findMany({
+      where: { id: { in: ids.filter((x): x is string => !!x) } },
+      select: { id: true, firstName: true, lastName: true, preferredName: true },
+    });
+    return new Map(users.map((u) => [u.id, `${u.preferredName || u.firstName || ""} ${u.lastName || ""}`.trim() || "Someone"]));
+  };
+  const hubNames = new Map((await db.hub.findMany({ select: { slug: true, name: true } })).map((h) => [h.slug, h.name]));
+  const team = (s: string) => hubNames.get(s) ?? s;
+  const short = (ymd: string) => new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
+  const list = (days: string[]) => (days.length > 6 ? `${days.slice(0, 6).map(short).join(", ")} and ${days.length - 6} more` : days.map(short).join(", "));
+
+  if (has("name") && String(body.name).trim() !== existing.name) {
+    effects.push("It's renamed everywhere: its page, My Home, the emails from now on, and its Zoom meetings already set up.");
+  }
+
+  // When it meets: the save's own schedule check, then the sessions.
+  const SCHEDULE = ["startDatetime", "endDatetime", "recurrenceFreq", "recurrenceInterval", "recurrenceDays", "recurrenceCount", "recurrenceUntil"];
+  if (SCHEDULE.some(has)) {
+    const startAt = has("startDatetime") ? centralToUtc(body.startDatetime) : existing.startDatetime;
+    const endAt = has("endDatetime") ? centralToUtc(body.endDatetime) : existing.endDatetime;
+    const until = has("recurrenceUntil") ? parseUntil(body.recurrenceUntil) : existing.recurrenceUntil;
+    if (until === undefined) return reply({ error: "Under When and where: the end date wasn't understood. Choose it again." }, { status: 422 });
+    const next: ScheduleProgram = {
+      id: existing.id, name: existing.name, slug, programFormat: existing.programFormat,
+      startDatetime: startAt, endDatetime: endAt,
+      recurrenceFreq: has("recurrenceFreq") ? body.recurrenceFreq || null : existing.recurrenceFreq,
+      recurrenceInterval: has("recurrenceInterval") ? (body.recurrenceInterval != null && body.recurrenceInterval !== "" ? Number(body.recurrenceInterval) : null) : existing.recurrenceInterval,
+      recurrenceDays: has("recurrenceDays") ? body.recurrenceDays : existing.recurrenceDays,
+      recurrenceCount: has("recurrenceCount") ? (body.recurrenceCount != null && body.recurrenceCount !== "" ? Number(body.recurrenceCount) : null) : existing.recurrenceCount,
+      recurrenceUntil: until,
+    };
+    const changed = new Set(SCHEDULE.filter(has).map((f) => ({ startDatetime: "start", endDatetime: "end", recurrenceFreq: "freq", recurrenceInterval: "interval", recurrenceDays: "days", recurrenceCount: "count", recurrenceUntil: "until" }[f] as SchedulePart)));
+    const refusal = scheduleRefusal(
+      {
+        start: startAt ? toCentralDatetime(startAt) : null, end: endAt ? toCentralDatetime(endAt) : null,
+        freq: next.recurrenceFreq, interval: next.recurrenceInterval, days: next.recurrenceDays, count: next.recurrenceCount,
+        until: until ? ctDateStr(until.toISOString()) : null,
+      },
+      { freq: existing.recurrenceFreq, interval: existing.recurrenceInterval },
+      changed,
+    );
+    if (refusal) return reply({ error: refusal }, { status: 422 });
+
+    const today = ctDateStr(new Date().toISOString());
+    const walk = (p: ScheduleProgram) => {
+      const out: string[] = [];
+      const base = Date.parse(`${today}T12:00:00Z`);
+      for (let i = 0; i < 400; i++) {
+        const d = new Date(base + i * 86_400_000).toISOString().slice(0, 10);
+        if (isOccurrenceOnDate(p, d)) out.push(d);
+      }
+      return out;
+    };
+    const before = walk(existing as ScheduleProgram);
+    const after = walk(next);
+    const gone = before.filter((d) => !after.includes(d));
+    const added = after.filter((d) => !before.includes(d));
+    if (gone.length) effects.push(`${gone.length} session${gone.length === 1 ? " no longer happens" : "s no longer happen"}: ${list(gone)}.`);
+    if (added.length) effects.push(`${added.length === 1 ? "A new session" : `${added.length} new sessions`}: ${list(added)}.`);
+    const hm = (d: Date | null) => (d ? toCentralDatetime(d).slice(11, 16) : "");
+    if (hm(startAt) !== hm(existing.startDatetime) || hm(endAt) !== hm(existing.endDatetime)) {
+      effects.push(`Every session's time changes, from ${computeTimeText(toCentralDatetime(existing.startDatetime), toCentralDatetime(existing.endDatetime)) || "as it was"} to ${computeTimeText(startAt ? toCentralDatetime(startAt) : "", endAt ? toCentralDatetime(endAt) : "") || "the new time"}.`);
+    }
+    // Only a change to which days it meets clears sessions, as in the save.
+    const ctDay = (x: Date | null | undefined) => (x ? ctDateStr(x.toISOString()) : null);
+    const daysChanged =
+      ctDay(startAt) !== ctDay(existing.startDatetime) ||
+      (!next.recurrenceFreq && ctDay(endAt) !== ctDay(existing.endDatetime)) ||
+      ["recurrenceFreq", "recurrenceInterval", "recurrenceDays", "recurrenceCount", "recurrenceUntil"].some(has);
+    if (!existing.archivedAt && startAt && daysChanged) {
+      const { offDay, deadRules } = await offScheduleCoverage(slug, next);
+      const who = await names([...offDay.map((a) => a.userId), ...deadRules.map((r) => r.userId)]);
+      const byPerson = new Map<string, { team: string; days: string[] }>();
+      for (const a of offDay) {
+        if (!a.userId) continue;
+        const k = `${a.userId}|${a.hubSlug}`;
+        const e = byPerson.get(k) ?? { team: a.hubSlug, days: [] };
+        e.days.push(ctDateStr(a.sessionDate!.toISOString()));
+        byPerson.set(k, e);
+      }
+      for (const [k, e] of byPerson) {
+        effects.push(`${who.get(k.split("|")[0])} (${team(e.team)}) was on ${list(e.days.sort())}. ${e.days.length === 1 ? "That session is" : "Those sessions are"} cleared, and they're told.`);
+      }
+      for (const r of deadRules) {
+        const n = who.get(r.userId);
+        effects.push(`${n ? `${n}'s rotation` : "A rotation"} on the ${team(r.hubSlug)} no longer fits the new days, so it ends. The team's leads set up the new days in the Scheduler.`);
+      }
+    }
+  }
+
+  // Who runs it, and the teams that help, by the save's own rules: a team
+  // is told when it newly staffs it, and loses its sessions when it can no
+  // longer staff it (another team, No host needed, or in person or online).
+  const formats = new Map((await db.hub.findMany({ select: { slug: true, appliesToFormats: true } })).map((h) => [h.slug, h.appliesToFormats]));
+  const formatBefore = existing.programFormat ?? "";
+  const formatAfter = has("programFormat") ? String(body.programFormat) : formatBefore;
+  const hostingBefore = existing.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
+  const hostingAfter = has("hostingHubSlug") ? (body.hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG) : hostingBefore;
+  const needsHostAfter = has("hostingRequired") ? body.hostingRequired !== false : existing.hostingRequired;
+  const staffs = (hub: string, format: string) => (formats.get(hub) ?? []).includes(format);
+  const staffedBefore = existing.hostingRequired && staffs(hostingBefore, formatBefore);
+  const staffedAfter = needsHostAfter && staffs(hostingAfter, formatAfter);
+  const sessionsOf = async (hub: string) => {
+    const [n, r] = await Promise.all([
+      db.hostAssignment.count({ where: { programSlug: slug, hubSlug: hub, sessionDate: { gte: new Date() }, userId: { not: null } } }),
+      db.standingAssignment.count({ where: { programSlug: slug, hubSlug: hub } }),
+    ]);
+    return { n, r };
+  };
+  const clearedLine = async (hub: string) => {
+    const { n, r } = await sessionsOf(hub);
+    if (!n && !r) return;
+    effects.push(`The ${team(hub)}'s ${[n && `${n} upcoming session${n === 1 ? "" : "s"}`, r && `${r} rotation${r === 1 ? "" : "s"}`].filter(Boolean).join(" and ")} for it ${n + r === 1 ? "is" : "are"} cleared${n ? ", and the people on them are told" : ""}.`);
+  };
+  if (!existing.archivedAt) {
+    if (staffedBefore && (hostingAfter !== hostingBefore || !staffedAfter)) await clearedLine(hostingBefore);
+    if (staffedAfter && (hostingAfter !== hostingBefore || !staffedBefore)) effects.push(`The ${team(hostingAfter)} is told it needs a host.`);
+    const coverageNow = (await db.programCoverageHub.findMany({ where: { programSlug: slug }, select: { hubSlug: true } })).map((r) => r.hubSlug);
+    const coverageAfter = Array.isArray(body.coverageHubSlugs) ? (body.coverageHubSlugs as string[]) : coverageNow;
+    for (const t of coverageAfter.filter((x) => !coverageNow.includes(x))) effects.push(`The ${team(t)} is told, and can sign up for its sessions.`);
+    for (const t of coverageNow) {
+      if (!coverageAfter.includes(t) || (formatAfter !== formatBefore && !staffs(t, formatAfter))) await clearedLine(t);
+    }
+  }
+
+  // How people join, and where it's found.
+  if (has("registrationEnabled") && body.registrationEnabled !== existing.registrationEnabled) {
+    effects.push(body.registrationEnabled ? "Registration opens: its page gets a Register button." : "Registration stops: its page no longer takes sign-ups. The people registered keep their places.");
+  }
+  if (has("openEntry") && body.openEntry !== existing.openEntry) {
+    effects.push(body.openEntry ? "Anyone signed in may now simply come." : "People now join by registering.");
+  }
+  if (has("offeringCategory") && body.offeringCategory !== existing.offeringCategory) {
+    effects.push("It moves to another section of Programs & Events.");
+  }
+  if (has("hideFromProgramPageList") && body.hideFromProgramPageList !== existing.hideFromProgramPageList) {
+    effects.push(body.hideFromProgramPageList ? "It leaves Programs & Events and This Week." : "It's listed on Programs & Events again.");
+  }
+
+  // The people registered, who have the time, place and confirmation as they were.
+  const asUpdate = (p: { startDatetime: Date | null; endDatetime: Date | null; recurrenceFreq: string | null; recurrenceInterval: number | null; recurrenceDays: string[]; recurrenceCount: number | null; recurrenceUntil: Date | null; programFormat: string; place: string | null; confirmationMessage: unknown }): UpdateProgram => p;
+  const merged = {
+    startDatetime: has("startDatetime") ? centralToUtc(body.startDatetime) : existing.startDatetime,
+    endDatetime: has("endDatetime") ? centralToUtc(body.endDatetime) : existing.endDatetime,
+    recurrenceFreq: has("recurrenceFreq") ? body.recurrenceFreq || null : existing.recurrenceFreq,
+    recurrenceInterval: has("recurrenceInterval") ? (body.recurrenceInterval ? Number(body.recurrenceInterval) : null) : existing.recurrenceInterval,
+    recurrenceDays: has("recurrenceDays") ? body.recurrenceDays : existing.recurrenceDays,
+    recurrenceCount: has("recurrenceCount") ? (body.recurrenceCount ? Number(body.recurrenceCount) : null) : existing.recurrenceCount,
+    recurrenceUntil: has("recurrenceUntil") ? parseUntil(body.recurrenceUntil) ?? null : existing.recurrenceUntil,
+    programFormat: has("programFormat") ? body.programFormat : existing.programFormat,
+    place: emailLocationFor({ ...existing, ...Object.fromEntries(["venue", "locationText", "locationLink", "programFormat"].filter(has).map((k) => [k, body[k]])) }).emailText,
+    confirmationMessage: has("confirmationMessage") ? body.confirmationMessage : existing.confirmationMessage,
+  };
+  const kinds = changedForPeople(asUpdate({ ...existing, place: emailLocationFor(existing).emailText }), asUpdate(merged));
+  if (kinds.length && !existing.archivedAt) {
+    const count = new Set(
+      (await db.registration.findMany({ where: { programSlug: slug, status: { in: ["REGISTERED", "APPROVED"] } }, select: { email: true } }))
+        .map((r) => r.email.trim().toLowerCase()),
+    ).size;
+    if (count) effects.push(`${count === 1 ? "The 1 person" : `The ${count} people`} registered haven't heard about the change to ${kindsInWords(kinds)}. After you save, you'll be offered an update to send them.`);
+  }
+
+  if (!effects.length) effects.push("This changes only what you see above. No one is emailed.");
+  return reply({ effects });
 }

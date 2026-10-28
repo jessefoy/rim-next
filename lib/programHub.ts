@@ -391,32 +391,13 @@ export async function clearCoverageNoLongerStaffed(
 }
 
 /**
- * After a program's schedule changes (start date, days, frequency, count),
- * clear what no longer has a session to belong to: every team's upcoming
- * assignments on dates the program no longer meets, with their cover
- * requests (FK-safe: SubClaim → SubRequest → HostAssignment), and rotations
- * that can't match any meeting in the coming year (weekday and week). Jesse,
- * 2026-10-16: "I don't like a lot of junk in our system if it's not being
- * used." A program with no start date, or an archived one, is left alone.
- * Returns the cleared sessions (for telling the people who had them) and
- * the counts.
+ * What a schedule would take off (2026-10-28): the upcoming sessions on days
+ * it no longer meets and the rotations that can't match any meeting in the
+ * coming year. Reads only, so "Before you save" asks it of the schedule being
+ * proposed, and clearOffScheduleCoverage asks it of the one just saved.
  */
-export async function clearOffScheduleCoverage(programSlug: string): Promise<{
-  sessions: { userId: string | null; hubSlug: string; sessionDate: Date }[];
-  rotations: number;
-}> {
-  const program = await db.program.findUnique({
-    where: { slug: programSlug },
-    select: {
-      id: true, name: true, slug: true, programFormat: true, archivedAt: true,
-      startDatetime: true, endDatetime: true,
-      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
-    },
-  });
-  if (!program || program.archivedAt || !program.startDatetime) return { sessions: [], rotations: 0 };
-  const schedule = program as ScheduleProgram;
+export async function offScheduleCoverage(programSlug: string, schedule: ScheduleProgram) {
   const now = new Date();
-
   const future = await db.hostAssignment.findMany({
     where: { programSlug, sessionDate: { gte: now } },
     select: { id: true, userId: true, hubSlug: true, sessionDate: true },
@@ -443,7 +424,7 @@ export async function clearOffScheduleCoverage(programSlug: string): Promise<{
   }
   const deadRules = (await db.standingAssignment.findMany({
     where: { programSlug, dayOfWeek: { not: null } },
-    select: { id: true, dayOfWeek: true, occurrence: true, cycleStart: true, hubSlug: true },
+    select: { id: true, userId: true, dayOfWeek: true, occurrence: true, cycleStart: true, hubSlug: true },
   })).filter((r) =>
     r.occurrence === "ALL"
       ? !canMatch.has(r.dayOfWeek!)
@@ -458,6 +439,35 @@ export async function clearOffScheduleCoverage(programSlug: string): Promise<{
           !meetingDays.some((d) => dateToDayCode(d) === r.dayOfWeek && isCycleWeek(r.occurrence, r.cycleStart, d))
         : !canMatch.has(`${r.dayOfWeek}:${r.occurrence}`),
   );
+
+  return { offDay, deadRules };
+}
+
+/**
+ * After a program's schedule changes (start date, days, frequency, count),
+ * clear what no longer has a session to belong to: every team's upcoming
+ * assignments on dates the program no longer meets, with their cover
+ * requests (FK-safe: SubClaim → SubRequest → HostAssignment), and rotations
+ * that can't match any meeting in the coming year (weekday and week). Jesse,
+ * 2026-10-16: "I don't like a lot of junk in our system if it's not being
+ * used." A program with no start date, or an archived one, is left alone.
+ * Returns the cleared sessions (for telling the people who had them) and
+ * the counts.
+ */
+export async function clearOffScheduleCoverage(programSlug: string): Promise<{
+  sessions: { userId: string | null; hubSlug: string; sessionDate: Date }[];
+  rotations: number;
+}> {
+  const program = await db.program.findUnique({
+    where: { slug: programSlug },
+    select: {
+      id: true, name: true, slug: true, programFormat: true, archivedAt: true,
+      startDatetime: true, endDatetime: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
+    },
+  });
+  if (!program || program.archivedAt || !program.startDatetime) return { sessions: [], rotations: 0 };
+  const { offDay, deadRules } = await offScheduleCoverage(programSlug, program as ScheduleProgram);
 
   if (offDay.length === 0 && deadRules.length === 0) return { sessions: [], rotations: 0 };
   const ids = offDay.map((a) => a.id);

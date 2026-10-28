@@ -1,33 +1,36 @@
 /**
- * /tools/programs/[programSlug]/edit — Edit an existing program.
- * Gate: canUsePrograms (also in tools/programs/layout.tsx); the guest-link
- * reset and the categories link only for canUseProgramManager.
+ * /tools/programs/[programSlug]/edit — a program's page (2026-10-28, Phase
+ * 3): its setup as plain sentences, each section with Change, which walks
+ * that section's questions and says what a change would do before it's saved
+ * (components/programSetup/ProgramPage.tsx). It replaced the one-page editor.
+ * Gate: canUsePrograms (also in tools/programs/layout.tsx).
  */
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
-import { canUseProgramManager, canUsePrograms, canUseRegistration } from "@/lib/toolAuth";
-import { db } from "@/lib/db";
 import Link from "next/link";
-import ProgramEditor from "@/components/registrar/ProgramEditor";
-import { helpingTeams } from "@/lib/programHelpers";
-import type { ProgramData } from "@/components/registrar/ProgramEditor";
+import { db } from "@/lib/db";
+import { canUseProgramManager, canUsePrograms, canUseRegistration } from "@/lib/toolAuth";
 import { EDITOR_PROGRAM_INCLUDE, programToEditorData } from "@/lib/programEditorData";
+import { choicesFrom, type SetupData } from "@/lib/programSetup";
+import { setupTeams } from "@/lib/programDrafts";
+import { loadPublicPrograms } from "@/lib/publicPrograms";
+import { orderKey } from "@/lib/programOrder";
+import { ctDateStr } from "@/lib/scheduleUtils";
+import ProgramPage from "@/components/programSetup/ProgramPage";
 
 export const dynamic = "force-dynamic";
 
-/** The browser tab names the program being edited (it read only "Rooted In Mindfulness"). */
+/** The browser tab names the program. */
 export async function generateMetadata({ params }: { params: Promise<{ programSlug: string }> }) {
+  const session = await auth();
+  if (!session || !(await canUsePrograms(session.user.id, session.user.roles))) return { title: "Programs - Tools" };
   const { programSlug } = await params;
   const p = await db.program.findUnique({ where: { slug: programSlug }, select: { name: true } });
-  return { title: p ? `${p.name} - Program Manager` : "Program Manager - Tools" };
+  return { title: p ? `${p.name} - Programs` : "Programs - Tools" };
 }
 
-export default async function EditProgramToolPage({
-  params,
-}: {
-  params: Promise<{ programSlug: string }>;
-}) {
+export default async function ProgramToolPage({ params }: { params: Promise<{ programSlug: string }> }) {
   const { programSlug } = await params;
   const session = await auth();
   if (!session) redirect("/login");
@@ -35,137 +38,66 @@ export default async function EditProgramToolPage({
   // its layout, so the layout alone doesn't protect this data (2026-10-19 audit).
   if (!(await canUsePrograms(session.user.id, session.user.roles))) notFound();
 
-  const [program, categories, hubs, coverageRows] = await Promise.all([
-    db.program.findUnique({
-      where: { slug: programSlug },
-      include: EDITOR_PROGRAM_INCLUDE,
-    }),
-    db.programCategory.findMany({ orderBy: { sortOrder: "asc" } }),
-    // Active hubs feed the Who's helping dropdowns. Coordinator
-    // chooses which hub hosts this program's live sessions; the dropdown
-    // shows every active hub so the field is discoverable as new hubs
-    // come online (Silent Meditation, Recovery Dharma, etc.).
-    //
-    // The Auxiliary coverage section filters by `usesScheduler` — true
-    // when the hub has an enabled HubAppLink with toolSlug = "schedule".
-    // That's the authoritative source of "this hub uses the Scheduler"
-    // (a coordinator added the link to their sidebar). Slot it as a
-    // derived boolean below the findMany so the editor can filter.
-    db.hub.findMany({
-      where: { status: "ACTIVE" },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        // `hasSchedule` flags hosting-style hubs (host-team, peer-led-
-        // silent-meditation) — those that run the live session, own
-        // LiveKit, hold dharma authority. Only these are valid choices
-        // for the "Hosting team" dropdown.
-        hasSchedule: true,
-        // `appliesToFormats` (virtual/hybrid for hosting hubs, in-person/
-        // hybrid for AV+greeter) lets the Auxiliary fieldset filter
-        // by overlap with the program's `programFormat` so a virtual-
-        // only program doesn't show AV/Greeter checkboxes.
-        appliesToFormats: true,
-        // A Scheduler HubAppLink is the authoritative "uses the
-        // Scheduler tool" signal — required for a hub to appear as
-        // auxiliary coverage.
-        appLinks: {
-          where: { toolSlug: "schedule", isEnabled: true },
-          select: { id: true },
-          take: 1,
-        },
-      },
-      orderBy: { name: "asc" },
-    }),
-    // Auxiliary-coverage rows for this program (session 129). Empty array
-    // when no auxiliary hubs are tagged. Editor renders these as checked
-    // checkboxes in the "Auxiliary role coverage" section.
-    db.programCoverageHub.findMany({
-      where: { programSlug },
-      select: { hubSlug: true },
-    }),
+  const [program, coverageRows] = await Promise.all([
+    db.program.findUnique({ where: { slug: programSlug }, include: EDITOR_PROGRAM_INCLUDE }),
+    db.programCoverageHub.findMany({ where: { programSlug }, select: { hubSlug: true } }),
   ]);
-
+  // The old category's "hide from the Programs page", which keeps its meaning.
+  const oldCategory = program?.categoryId
+    ? await db.programCategory.findUnique({ where: { id: program.categoryId }, select: { hideFromProgramsPage: true } })
+    : null;
   if (!program) {
     return (
-      <div className="vol-page">
-        <div className="vol-content">
-          <p className="vol-empty">Program not found.</p>
+      <div className="ps-page">
+        <div className="ps-head">
+          <Link href="/tools/programs" className="app-back">&larr; Programs</Link>
+          <h1>This program isn&rsquo;t here</h1>
+          <p className="ps-state">Its address may have changed. The Programs list has every program.</p>
         </div>
       </div>
     );
   }
 
-  // Future HostAssignment count drives the mid-flight change warning when
-  // a coordinator transfers hosting to another hub. The grandfather policy
-  // keeps existing future assignments valid; the warning surfaces how many
-  // assignments are about to grandfather so the coordinator's decision is
-  // informed. Standing rotations live in a separate table and aren't part
-  // of this count — they ride forward on the new hub automatically.
-  // Only the current hosting team's assignments move with a hosting-team
-  // change; greeter and AV sign-ups belong to their own teams.
-  const futureHostAssignmentCount = await db.hostAssignment.count({
-    where: {
-      programSlug,
-      hubSlug: program.hostingHubSlug ?? "host-team",
-      sessionDate: { gte: new Date() },
-    },
-  });
+  const [teams, listedPrograms] = await Promise.all([setupTeams(), loadPublicPrograms()]);
+  // Teams that prepare: the eligible ones, plus any the program already has,
+  // so a team that lost the app still shows and can be taken off.
+  const missingPrep = program.helpers.map((h) => h.hubId).filter((id) => !teams.prepare.some((t) => t.id === id));
+  if (missingPrep.length) {
+    teams.prepare.push(...(await db.hub.findMany({ where: { id: { in: missingPrep } }, select: { id: true, slug: true, name: true } })));
+  }
 
-  const initialData: ProgramData = programToEditorData(program, coverageRows.map((r) => r.hubSlug));
+  const values = programToEditorData(program, coverageRows.map((r) => r.hubSlug));
+  const data: SetupData = {
+    ...values,
+    recurrenceUntil: values.recurrenceUntil ?? "",
+    listFirst: values.listFirst ?? false,
+    setup: { ...choicesFrom(values), noTeacher: values.programTeachers.length === 0 },
+  };
 
-  // Teams that may prepare (active, with Helping with), plus any the program
-  // already has, so a team that lost the app still shows and can be removed.
-  const eligiblePrep = await helpingTeams();
-  const prepTeams = [
-    ...eligiblePrep,
-    ...(await db.hub.findMany({
-      where: { id: { in: program.helpers.map((h) => h.hubId).filter((id) => !eligiblePrep.some((t) => t.id === id)) } },
-      select: { id: true, slug: true, name: true, status: true },
-    })).map((h) => ({ id: h.id, slug: h.slug, name: h.name, active: h.status === "ACTIVE" })),
-  ];
-
-  // Post a notice's "Also email the N people registered": only for those who
-  // can open Registration (Programs shows no one's count otherwise), counted
-  // as the notice route sends: one email per address, everyone with a place.
-  const canEmailRegistered = canUseRegistration(session.user.roles);
-  const registeredCount = canEmailRegistered
+  // The people registered, for those who can open Registration (Programs
+  // shows no one's count otherwise), counted as a notice's email goes: one
+  // per address, everyone with a place.
+  const canSeePeople = canUseRegistration(session.user.roles);
+  const registeredCount = canSeePeople
     ? new Set(
-        (await db.registration.findMany({
-          where: { programSlug, status: { in: ["REGISTERED", "APPROVED"] } },
-          select: { email: true },
-        })).map((r) => r.email.trim().toLowerCase()),
+        (await db.registration.findMany({ where: { programSlug, status: { in: ["REGISTERED", "APPROVED"] } }, select: { email: true } }))
+          .map((r) => r.email.trim().toLowerCase()),
       ).size
     : null;
 
   return (
-    <div className="vol-page">
-      <div className="vol-content">
-        <div className="vol-header">
-          <Link href="/tools/programs" className="app-back">&larr; Programs</Link>
-        </div>
-        <ProgramEditor
-          basePath="/tools/programs"
-          initialData={initialData}
-          isEditing={true}
-          canManage={canUseProgramManager(session.user.roles)}
-          categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name, kind: c.kind ?? null, hidden: c.hideFromProgramsPage }))}
-          hubs={hubs.map((h) => ({
-            id: h.id,
-            slug: h.slug,
-            name: h.name,
-            hasSchedule: h.hasSchedule,
-            appliesToFormats: h.appliesToFormats,
-            usesScheduler: h.appLinks.length > 0,
-          }))}
-          futureHostAssignmentCount={futureHostAssignmentCount}
-          canEmailRegistered={canEmailRegistered}
-          prepTeams={prepTeams}
-          canDecideAskers={canEmailRegistered}
-          registeredCount={registeredCount}
-        />
-      </div>
-    </div>
+    <ProgramPage
+      data={data}
+      teams={teams}
+      canDecideAskers={canSeePeople}
+      canManage={canUseProgramManager(session.user.roles)}
+      registeredCount={registeredCount}
+      archived={!!program.archivedAt}
+      categoryHidden={!!oldCategory?.hideFromProgramsPage}
+      listed={listedPrograms
+        .filter((p) => p.slug !== programSlug)
+        .map((p) => ({ name: p.name, category: p.offering.category ?? "", key: orderKey(p), when: p.dateText ?? "" }))}
+      today={ctDateStr(new Date().toISOString())}
+    />
   );
 }

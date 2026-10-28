@@ -6,9 +6,14 @@
     "files": ["app/tools/programs/page.tsx", "components/registrar/ProgramsTableClient.tsx"]
   },
   "program-editor": {
-    "title": "Programs: the program editor (its seven sections, notices, Ready to be seen, Tell the people registered)",
+    "title": "Programs: a program's page (its setup as sentences, Change for each section, Before you save, Post a notice, the guest link, Tell the people registered)",
     "where": "/tools/programs/<program>/edit",
-    "files": ["app/tools/programs/[programSlug]/edit/page.tsx", "components/registrar/ProgramEditor.tsx", "components/registrar/program-editor/", "components/SlugField.tsx"]
+    "files": ["app/tools/programs/[programSlug]/edit/page.tsx", "components/programSetup/", "components/registrar/program-editor/", "lib/programSetup.ts"]
+  },
+  "program-order": {
+    "title": "Programs: how each section of Programs & Events is ordered",
+    "where": "/tools/programs/order",
+    "files": ["app/tools/programs/order/page.tsx", "components/programSetup/OrderClient.tsx"]
   },
   "new-program": {
     "title": "Programs: starting a new program (shapes, copies, drafts being set up)",

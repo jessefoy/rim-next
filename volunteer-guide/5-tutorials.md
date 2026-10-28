@@ -670,6 +670,8 @@ If you lead this team: Leading your team (written out under "For the leads" belo
 
 #### Setting up a program
 
+**Out of date since October 28, 2026, and being redrawn:** this tutorial shows the one-page editor, which was replaced by setting a program up one question at a time and by a program's page with Change for each section. Until it's redrawn, describe the new screens from the Programs and Registration topic ("Setting up a program, step by step" and "A program's page, and changing it").
+
 Address: rim-next.vercel.app/tutorials/setting-up-a-program
 Who it is for: For the Registration Team
 
