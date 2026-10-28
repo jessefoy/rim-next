@@ -190,7 +190,7 @@ export default function HandfulOfLeavesPage() {
             </p>
 
             <p className="pp-distillation">
-              The leaves in our hands are few.&amp;nbsp;
+              The leaves in our hands are few.
               <br />
               The light they are read by has no size.
             </p>
