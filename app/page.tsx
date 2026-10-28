@@ -172,7 +172,7 @@ export default function HomePage() {
             <br />
             Open your <span className="home-hero__gold">Heart</span>
             <br />
-            &amp;nbsp;Nourish your <span className="home-hero__gold">Life</span>
+            Nourish your <span className="home-hero__gold">Life</span>
             <br />
             &amp;nbsp;Beautify the <span className="home-hero__gold">World</span>
           </h1>
