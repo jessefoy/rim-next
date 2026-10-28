@@ -154,7 +154,7 @@ export default function NewToRimPage() {
             <div>
               <p className="nt-eyebrow">Before you join us</p>
               <h2 id="signing-up">
-                A few minutes
+                A few minutes{" "}
                 <br />
                 to become a member.
               </h2>
@@ -283,7 +283,7 @@ export default function NewToRimPage() {
           <div>
             <p className="nt-eyebrow">Practicing together</p>
             <h2 id="community">
-              There is room
+              There is room{" "}
               <br />
               for your way of being.
             </h2>
@@ -307,7 +307,7 @@ export default function NewToRimPage() {
         <div className="rim-container nt-split">
           <div>
             <h2 id="questions">
-              Questions
+              Questions{" "}
               <br />
               you might have.
             </h2>
@@ -331,7 +331,7 @@ export default function NewToRimPage() {
           <div>
             <p className="nt-eyebrow">We are here to help</p>
             <h2 id="contact">
-              Still wondering
+              Still wondering{" "}
               <br />
               about something?
             </h2>

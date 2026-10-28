@@ -5,7 +5,7 @@ import { EDITOR_FIELD_LABELS, EDITOR_PROGRAM_INCLUDE, editorFieldValue, programT
 import { saveProgram, type SaveActor } from "@/lib/programSave";
 import { saveCourse, saveEmailTemplate, saveLesson, saveTeacherProfile } from "@/lib/contentSaves";
 import { recordContentChange, type ChangedPart, type ContentKind } from "@/lib/contentChanges";
-import { changePageWords, findPageWords, NoGithubError, pageAddress, wordsPattern } from "@/lib/pageWords";
+import { changePageWords, findPageWords, NoGithubError, pageAddress, wordsPattern, type WordsChange } from "@/lib/pageWords";
 import { findProgram } from "@/lib/guideData";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 
@@ -470,25 +470,29 @@ export async function findWords(words: string): Promise<string> {
     .join("\n\n");
 }
 
-/** Change words on a page: words only, committed to the site. */
-export async function changeWords(actor: Actor, file: string, find: string, replaceWith: string): Promise<string> {
+/** Change words on the pages: words only, all of them in one commit to the site. */
+export async function changeWords(actor: Actor, changes: WordsChange[]): Promise<string> {
   let r;
   try {
-    r = await changePageWords({ file, find, replaceWith });
+    r = await changePageWords(changes);
   } catch (e) {
     if (e instanceof NoGithubError) return "Changing page words isn't set up yet (the site needs its GitHub key). Nothing changed. Tell Jesse.";
     throw e;
   }
   if (!r.ok) return r.error;
+  const pages = [...new Set(r.changes.map((c) => c.page ?? c.file))];
   const recorded = await keep({
     userId: actor.id,
     userName: actor.name,
     kind: "page",
-    itemKey: file,
-    itemLabel: r.page ?? file,
-    itemHref: r.page,
-    changes: [{ label: "The words", before: r.before, after: r.after }],
+    itemKey: [...new Set(r.changes.map((c) => c.file))].join(", "),
+    itemLabel: pages.length === 1 ? pages[0] : `${pages.slice(0, -1).join(", ")} and ${pages[pages.length - 1]}`,
+    itemHref: r.changes.find((c) => c.page)?.page ?? null,
+    changes: r.changes.map((c) => ({ label: `Words on ${c.page ?? c.file}`, before: c.before, after: c.after })),
     commitUrl: r.commitUrl,
   });
-  return `Changed. The new words are on ${r.page ?? "the site"} in about two minutes, once the site has rebuilt${recorded ? ", and Jesse has been sent the change." : `. ${NOT_RECORDED}`}`;
+  return [
+    `Changed ${r.changes.length === 1 ? "it" : `all ${r.changes.length}`} in one go. The new words are on ${pages.join(", ")} in about two minutes, once the site has rebuilt${recorded ? ", and Jesse has been sent the change." : `. ${NOT_RECORDED}`}`,
+    "Once it has rebuilt, read the page back with page_words to check it reads as intended.",
+  ].join("\n");
 }

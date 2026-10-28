@@ -238,8 +238,14 @@ const EDIT_TOOLS: Tool[] = [
   {
     name: "change_page_words",
     title: "Change words on a page",
-    description: "Changes words written into one of the site's pages. Words only: anything that would change a link, a style or the code is refused. The words must appear once in the file; include more of the words around them if not. It's on the site about two minutes later. Before calling it, show the person the change, before and after, and wait for their yes. Every change is recorded and emailed to Jesse.",
-    inputSchema: obj({ file: s("The file from find_page_words, such as \"app/about/page.tsx\"."), find: s("The words as they are now."), replace_with: s("The new words.") }, ["file", "find", "replace_with"]),
+    description: "Changes words written into the site's pages: one place, or many in one go (put every change the person agreed to in `changes`, so it is one change to the site and one approval). Words only: anything that would change a link, a style or the code is refused, and if any change can't be made, none is. Each find must be page words in one place in its file; include more of the words around it if not. Write new words as plain text: an entity such as &nbsp; is kept as written, and a space at the start or end is kept. It's on the site about two minutes later; then read it back with page_words. Before calling it, show the person every change, before and after, and wait for their yes. Every change is recorded and emailed to Jesse.",
+    inputSchema: obj({
+      changes: {
+        type: "array",
+        description: "The changes, up to 30, all made together.",
+        items: obj({ file: s("The file from find_page_words, such as \"app/about/page.tsx\"."), find: s("The words as they are now."), replace_with: s("The new words.") }, ["file", "find", "replace_with"]),
+      },
+    }, ["changes"]),
     annotations: { ...WRITES, openWorldHint: true },
   },
 ];
@@ -316,8 +322,12 @@ async function callTool(name: string, args: Record<string, unknown>, v: Viewer) 
     }
     case "find_page_words":
       return text(await findWords(str(args.words)));
-    case "change_page_words":
-      return text(await changeWords({ id: v.userId, roles: v.roles, name: v.name }, str(args.file), str(args.find), str(args.replace_with)));
+    case "change_page_words": {
+      // One change may also come as file, find and replace_with on their own.
+      const list = Array.isArray(args.changes) ? (args.changes as Record<string, unknown>[]) : [args];
+      const changes = list.map((c) => ({ file: str(c.file), find: str(c.find), replaceWith: str(c.replace_with) }));
+      return text(await changeWords({ id: v.userId, roles: v.roles, name: v.name }, changes));
+    }
     default:
       return null;
   }

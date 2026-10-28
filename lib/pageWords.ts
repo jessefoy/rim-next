@@ -216,21 +216,29 @@ export function wordsOnlyChange(file: string, before: string, after: string): st
   return changed > 0 ? null : "nothing would change";
 }
 
+/** An ampersand that doesn't already begin an entity (&nbsp;, &rsquo;, &#32; are kept as written). */
+const BARE_AMP = /&(?!#?[a-z0-9]+;)/gi;
+
 /** Words as they must be written where they go: in page text, or inside quotes. */
 function encodeFor(node: ts.Node | undefined, src: string, words: string): string {
   if (node && node.kind === ts.SyntaxKind.JsxText) {
     return words
-      .replace(/&/g, "&amp;")
+      .replace(BARE_AMP, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/\{/g, "&#123;")
       .replace(/\}/g, "&#125;")
       .replace(/'/g, "&rsquo;")
-      .replace(/"/g, "&quot;");
+      .replace(/"/g, "&quot;")
+      .replace(/\n/g, " ")
+      // A space at either end is dropped where page text meets a line break
+      // in the code (before a <br />, say); written as &#32; it stays a space
+      // (2026-10-28: the guide's spaces before line breaks were lost).
+      .replace(/^ +| +$/g, (m) => "&#32;".repeat(m.length));
   }
   // An attribute's quoted words take entities, not backslashes.
   if (node && node.kind === ts.SyntaxKind.StringLiteral && node.parent && ts.isJsxAttribute(node.parent)) {
-    return words.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/\n/g, " ");
+    return words.replace(BARE_AMP, "&amp;").replace(/"/g, "&quot;").replace(/\n/g, " ");
   }
   if (node && ts.isStringLiteralLike(node)) {
     const q = src[node.getStart()];
@@ -245,6 +253,44 @@ function encodeFor(node: ts.Node | undefined, src: string, words: string): strin
 /** The text-ish node holding [start, end), if one holds all of it. */
 function holder(sf: ts.SourceFile, start: number, end: number): ts.Node | undefined {
   return leaves(sf, sf).find((n) => TEXT_KINDS.has(n.kind) && n.getStart(sf) <= start && n.getEnd() >= end);
+}
+
+/**
+ * Where these words may change in this file: matches inside one piece of page
+ * words (and inside its quotes). Matches in code, settings or across tags
+ * don't count, so the same words in a link or a check never block a change
+ * (2026-10-28: "Our programs," couldn't be changed because it also appeared
+ * in code).
+ */
+function editableMatches(file: string, src: string, re: RegExp) {
+  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const all = [...src.matchAll(re)];
+  const ok = all
+    .map((m) => ({ m, start: m.index!, end: m.index! + m[0].length }))
+    .map((x) => ({ ...x, node: holder(sf, x.start, x.end) }))
+    .filter(({ node, start, end }) =>
+      !!node &&
+      !notWords(node) &&
+      (node.kind === ts.SyntaxKind.JsxText || (start > node.getStart(sf) && end < node.getEnd())),
+    );
+  return { all: all.length, ok };
+}
+
+/** One change to one file's text: the file after it, and the words before and after; or why not. */
+function applyOne(file: string, src: string, find: string, replaceWith: string):
+  | { ok: true; src: string; before: string; after: string }
+  | { ok: false; error: string } {
+  const re = wordsPattern(find);
+  if (!re) return { ok: false, error: "Give at least a few words to find." };
+  if (!replaceWith.trim()) return { ok: false, error: "The new words are empty. To remove words, include the words around them and give those without them." };
+  if (replaceWith.length > 4000) return { ok: false, error: "That's more than a passage of words. Change it a paragraph at a time." };
+  const { all, ok } = editableMatches(file, src, re);
+  if (all === 0) return { ok: false, error: `"${find}" isn't in ${file} as the site has it now. Find it again.` };
+  if (ok.length === 0) return { ok: false, error: `"${find}" is in ${file} only where it isn't page words (in code, a setting, or across a link or bold text). Change the words on each side separately, or send Jesse a note.` };
+  if (ok.length > 1) return { ok: false, error: `"${find}" is page words in ${file} ${ok.length} times. Include more of the words around it, so only one place matches.` };
+  const { m, start, end, node } = ok[0];
+  const written = encodeFor(node, src, replaceWith.replace(/^\n+|\n+$/g, ""));
+  return { ok: true, src: src.slice(0, start) + written + src.slice(end), before: m[0], after: written };
 }
 
 // ─── GitHub ─────────────────────────────────────────────────────────────────
@@ -273,77 +319,86 @@ export class NoGithubError extends Error {
   }
 }
 
+export type WordsChange = { file: string; find: string; replaceWith: string };
+export type ChangedWords = { file: string; page: string | null; before: string; after: string };
+
 export type PageChange =
-  | { ok: true; before: string; after: string; commitUrl: string; page: string | null }
+  | { ok: true; changes: ChangedWords[]; commitUrl: string }
   | { ok: false; error: string };
 
+const MAX_CHANGES = 30;
+const ghPath = (file: string) => file.split("/").map(encodeURIComponent).join("/");
+
 /**
- * Change these words in this file, as GitHub has it now, and commit it to
- * main. `find` is the words as a visitor reads them (or as the code has
- * them); they must appear exactly once in the file.
+ * Change words in one or more page files, as GitHub has them now, in one
+ * commit to main (2026-10-28: one change of eleven places was eleven commits,
+ * eleven deploys and eleven approvals). Every change must apply, or nothing
+ * is committed. `find` is the words as a visitor reads them (or as the code
+ * has them); each must be page words in exactly one place in its file.
  */
-export async function changePageWords(input: {
-  file: string;
-  find: string;
-  replaceWith: string;
-}): Promise<PageChange> {
+export async function changePageWords(changes: WordsChange[]): Promise<PageChange> {
   // The repository is public, so the commit names no one: who made the
   // change is kept in RIM's own history (lib/contentChanges.ts).
-  const { file, find, replaceWith } = input;
-  if (!pageFileAllowed(file)) return { ok: false, error: `${file} isn't one of the site's page files.` };
-  const re = wordsPattern(find);
-  if (!re) return { ok: false, error: "Give at least a few words to find." };
-  if (!replaceWith.trim()) return { ok: false, error: "The new words are empty. To remove words, include the words around them and give those without them." };
-  if (replaceWith.length > 4000) return { ok: false, error: "That's more than a passage of words. Change it a paragraph at a time." };
+  if (!changes.length) return { ok: false, error: "No changes were given." };
+  if (changes.length > MAX_CHANGES) return { ok: false, error: `That's more than ${MAX_CHANGES} changes at once. Make them in groups.` };
+  for (const c of changes) if (!pageFileAllowed(c.file)) return { ok: false, error: `${c.file} isn't one of the site's page files, so nothing changed.` };
+  const files = [...new Set(changes.map((c) => c.file))];
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const got = await github<{ content?: string; sha?: string; message?: string }>(
-      `/contents/${file.split("/").map(encodeURIComponent).join("/")}?ref=${BRANCH}`,
-    );
-    if (got.status === 404) return { ok: false, error: `${file} isn't on the site any more.` };
-    if (got.status !== 200 || !got.json.content || !got.json.sha) {
-      console.error("[pageWords] GitHub read failed", got.status, got.json.message);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ref = await github<{ object?: { sha?: string } }>(`/git/ref/heads/${BRANCH}`);
+    const head = ref.json.object?.sha;
+    const commit = head ? await github<{ tree?: { sha?: string } }>(`/git/commits/${head}`) : null;
+    const baseTree = commit?.json.tree?.sha;
+    if (!head || !baseTree) {
+      console.error("[pageWords] GitHub read failed", ref.status);
       return { ok: false, error: "GitHub didn't answer just now, so nothing changed. Try again in a moment." };
     }
-    const before = Buffer.from(got.json.content, "base64").toString("utf8");
-    if (hasServerActions(before)) return { ok: false, error: `${file} runs on the server when a form is sent, so its words are changed by Jesse. Send him a note.` };
-    const matches = [...before.matchAll(re)];
-    if (matches.length === 0) return { ok: false, error: `Those words aren't in ${file} as the site has it now. Find them again.` };
-    if (matches.length > 1) return { ok: false, error: `Those words are in ${file} ${matches.length} times. Include more of the words around them, so only one place matches.` };
-    const m = matches[0];
-    const start = m.index!;
-    const end = start + m[0].length;
-    const sf = ts.createSourceFile(file, before, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-    const node = holder(sf, start, end);
-    // Inside quotes only: a match that takes in a quote mark could swap it (review, 2026-10-28).
-    if (node && node.kind !== ts.SyntaxKind.JsxText && !(start > node.getStart(sf) && end < node.getEnd())) {
-      return { ok: false, error: "Give only the words inside the quotes, not the quote marks." };
-    }
-    if (!node) return { ok: false, error: "Those words run across a link, bold text or a line of code. Change the words on each side of it separately." };
-    const written = encodeFor(node, before, replaceWith.trim());
-    const after = before.slice(0, start) + written + before.slice(end);
-    const why = wordsOnlyChange(file, before, after);
-    if (why) return { ok: false, error: `Nothing changed: ${why}.` };
 
-    const page = pageAddress(file);
-    const put = await github<{ commit?: { html_url?: string }; message?: string }>(
-      `/contents/${file.split("/").map(encodeURIComponent).join("/")}`,
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          message: `Words on ${page ?? file}, changed through the RIM Guide\n\n"${m[0].replace(/\s+/g, " ")}"\n→ "${replaceWith.trim()}"`,
-          content: Buffer.from(after, "utf8").toString("base64"),
-          sha: got.json.sha,
-          branch: BRANCH,
-        }),
-      },
-    );
-    if (put.status === 409 || put.status === 422) continue; // changed meanwhile: read it again
-    if (put.status !== 200 && put.status !== 201) {
-      console.error("[pageWords] GitHub write failed", put.status, put.json.message);
+    const done: ChangedWords[] = [];
+    const tree: { path: string; mode: string; type: string; content: string }[] = [];
+    for (const file of files) {
+      const got = await github<{ content?: string }>(`/contents/${ghPath(file)}?ref=${head}`);
+      if (got.status === 404) return { ok: false, error: `${file} isn't on the site any more, so nothing changed.` };
+      if (got.status !== 200 || !got.json.content) return { ok: false, error: "GitHub didn't answer just now, so nothing changed. Try again in a moment." };
+      const original = Buffer.from(got.json.content, "base64").toString("utf8");
+      if (hasServerActions(original)) return { ok: false, error: `${file} runs on the server when a form is sent, so its words are changed by Jesse. Nothing changed.` };
+      let src = original;
+      for (const c of changes.filter((x) => x.file === file)) {
+        const one = applyOne(file, src, c.find, c.replaceWith);
+        if (!one.ok) return { ok: false, error: `${one.error} Nothing changed.` };
+        src = one.src;
+        done.push({ file, page: pageAddress(file), before: one.before, after: one.after });
+      }
+      const why = wordsOnlyChange(file, original, src);
+      if (why) return { ok: false, error: `In ${file}: ${why}. Nothing changed.` };
+      tree.push({ path: file, mode: "100644", type: "blob", content: src });
+    }
+
+    const pages = [...new Set(done.map((d) => d.page ?? d.file))];
+    const newTree = await github<{ sha?: string }>(`/git/trees`, { method: "POST", body: JSON.stringify({ base_tree: baseTree, tree }) });
+    const made = newTree.json.sha
+      ? await github<{ sha?: string; html_url?: string }>(`/git/commits`, {
+          method: "POST",
+          body: JSON.stringify({
+            message: `Words on ${pages.join(", ")}, changed through the RIM Guide\n\n${done
+              .map((d) => `${d.page ?? d.file}: "${d.before.replace(/\s+/g, " ")}" → "${d.after}"`)
+              .join("\n")}`,
+            tree: newTree.json.sha,
+            parents: [head],
+          }),
+        })
+      : null;
+    if (!made?.json.sha) {
+      console.error("[pageWords] GitHub commit failed", newTree.status, made?.status);
       return { ok: false, error: "GitHub didn't take the change, so nothing changed. Try again in a moment." };
     }
-    return { ok: true, before: m[0], after: written, commitUrl: put.json.commit?.html_url ?? "", page };
+    const moved = await github(`/git/refs/heads/${BRANCH}`, { method: "PATCH", body: JSON.stringify({ sha: made.json.sha, force: false }) });
+    if (moved.status === 422 || moved.status === 409) continue; // main moved meanwhile: start again from it
+    if (moved.status !== 200) {
+      console.error("[pageWords] GitHub ref update failed", moved.status);
+      return { ok: false, error: "GitHub didn't take the change, so nothing changed. Try again in a moment." };
+    }
+    return { ok: true, changes: done, commitUrl: made.json.html_url ?? "" };
   }
-  return { ok: false, error: "That file was changing at the same moment. Try again." };
+  return { ok: false, error: "The site's code was changing at the same moment. Try again." };
 }
