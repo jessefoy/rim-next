@@ -1,0 +1,138 @@
+{
+  "_about": "The signed-in screens the RIM Guide can read the words of (screen_words) and the code behind (screen_code). Each screen names its files; a name ending in / takes the whole folder, so a new section file is read without changing this list. Read at build time by scripts/guide-screens.mjs and at request time by lib/guideContent.ts. Add a screen here when one is built.",
+  "programs-list": {
+    "title": "Programs: the list of programs",
+    "where": "/tools/programs",
+    "files": ["app/tools/programs/page.tsx", "components/registrar/ProgramsTableClient.tsx"]
+  },
+  "program-editor": {
+    "title": "Programs: the program editor (its seven sections, notices, Ready to be seen, Tell the people registered)",
+    "where": "/tools/programs/<program>/edit",
+    "files": ["app/tools/programs/[programSlug]/edit/page.tsx", "components/registrar/ProgramEditor.tsx", "components/registrar/program-editor/", "components/SlugField.tsx"]
+  },
+  "new-program": {
+    "title": "Programs: starting a new program",
+    "where": "/tools/programs/new",
+    "files": ["app/tools/programs/new/page.tsx"]
+  },
+  "program-categories": {
+    "title": "Programs: the categories and their order",
+    "where": "/tools/programs/categories",
+    "files": ["app/tools/programs/categories/page.tsx", "components/registrar/CategoryOrderClient.tsx"]
+  },
+  "registration-list": {
+    "title": "Registration: all programs taking registration",
+    "where": "/tools/registration",
+    "files": ["app/tools/registration/page.tsx"]
+  },
+  "registration-program": {
+    "title": "Registration: one program's people, notes, history and settings",
+    "where": "/tools/registration/<program>",
+    "files": ["app/tools/registration/[programSlug]/page.tsx", "components/registration/"]
+  },
+  "registration-sign-in-sheet": {
+    "title": "Registration: the printable sign-in sheet",
+    "where": "/tools/registration/<program>/sign-in",
+    "files": ["app/tools/registration/[programSlug]/sign-in/page.tsx"]
+  },
+  "registration-form": {
+    "title": "The public registration form people fill in",
+    "where": "/programs/<program>/register",
+    "files": ["components/RegistrationForm.tsx", "components/EnrollButton.tsx", "components/EnrollDanaButton.tsx"]
+  },
+  "helping-with": {
+    "title": "Helping with: what a preparing team sees for its programs",
+    "where": "/tools/helping",
+    "files": ["app/tools/helping/", "components/helpers/"]
+  },
+  "scheduler": {
+    "title": "The Scheduler: who's hosting, rotations, sub requests",
+    "where": "/tools/schedule",
+    "files": ["app/tools/schedule/", "components/HubScheduleClient.tsx", "components/RotationsClient.tsx", "components/RotationConflictModal.tsx"]
+  },
+  "course-manager": {
+    "title": "Course Manager: courses and lessons",
+    "where": "/tools/learning",
+    "files": ["app/tools/learning/", "components/CourseEditor.tsx", "components/LessonEditor.tsx", "components/LessonListClient.tsx"]
+  },
+  "my-home": {
+    "title": "My Home, a member's dashboard",
+    "where": "/account/dashboard",
+    "files": ["app/account/(authenticated)/dashboard/page.tsx", "components/PracticeWithUs.tsx", "components/ProgramCardNotices.tsx"]
+  },
+  "my-profile": {
+    "title": "My profile",
+    "where": "/account/dashboard-my-profile",
+    "files": ["app/account/(authenticated)/dashboard-my-profile/page.tsx", "components/account/", "components/HouseholdSection.tsx"]
+  },
+  "notifications": {
+    "title": "Notifications and the email choice",
+    "where": "/account/notifications",
+    "files": ["app/account/(authenticated)/notifications/page.tsx", "components/NotificationsClient.tsx"]
+  },
+  "teams": {
+    "title": "My teams, the list of a member's teams",
+    "where": "/account/teams",
+    "files": ["app/account/(authenticated)/teams/page.tsx"]
+  },
+  "team-home": {
+    "title": "A team's Home and its side rail",
+    "where": "/account/hub/<team>",
+    "files": ["app/account/(authenticated)/hub/[slug]/page.tsx", "components/HubHomeClient.tsx", "components/HubHomeModules.tsx", "components/HubWorkspaceSidebar.tsx"]
+  },
+  "team-updates": {
+    "title": "A team's Updates",
+    "where": "/account/hub/<team>/activity",
+    "files": ["app/account/(authenticated)/hub/[slug]/activity/page.tsx", "components/HubActivityClient.tsx"]
+  },
+  "team-conversations": {
+    "title": "A team's Conversations",
+    "where": "/account/hub/<team>/conversations",
+    "files": ["app/account/(authenticated)/hub/[slug]/conversations/", "components/HubConvClient.tsx", "components/HubConvThreadClient.tsx", "components/UpdateForm.tsx"]
+  },
+  "team-members": {
+    "title": "A team's Members",
+    "where": "/account/hub/<team>/members",
+    "files": ["app/account/(authenticated)/hub/[slug]/members/page.tsx", "components/HubMembersClient.tsx"]
+  },
+  "team-files": {
+    "title": "Files: a team's files and a file's page",
+    "where": "/account/hub/<team>/files",
+    "files": ["app/account/(authenticated)/hub/[slug]/files/page.tsx", "app/account/(authenticated)/files/", "components/FilesBrowser.tsx", "components/FileDetailActions.tsx", "components/FileConversation.tsx"]
+  },
+  "teaching": {
+    "title": "Teaching: a teacher's programs",
+    "where": "/account/teaching",
+    "files": ["app/account/(authenticated)/teaching/"]
+  },
+  "zoom-door": {
+    "title": "The Zoom door, where people join a session",
+    "where": "/session/<program>/enter",
+    "files": ["app/session/[slug]/enter/"]
+  },
+  "member-registry": {
+    "title": "Member Registry: the members list and a member's record",
+    "where": "/admin/members",
+    "files": ["app/admin/members/", "components/MembersTable.tsx", "components/MemberDetail.tsx", "components/member-sections/"]
+  },
+  "team-settings": {
+    "title": "Team settings: making and changing teams",
+    "where": "/admin/hubs",
+    "files": ["app/admin/hubs/", "components/HubAdminForm.tsx", "components/HubAdminList.tsx"]
+  },
+  "email-templates": {
+    "title": "Emails: the template manager",
+    "where": "/admin/emails",
+    "files": ["app/admin/emails/", "components/EmailTemplateEditor.tsx"]
+  },
+  "sign-in-and-joining": {
+    "title": "Signing in and joining RIM",
+    "where": "/login, /join, /account/welcome",
+    "files": ["app/login/", "components/login/", "components/JoinForm.tsx", "components/WelcomeForm.tsx", "app/account/welcome/page.tsx"]
+  },
+  "guide-connect": {
+    "title": "The RIM Guide's Allow page",
+    "where": "/guide/connect",
+    "files": ["app/guide/connect/page.tsx"]
+  }
+}

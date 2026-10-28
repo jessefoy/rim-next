@@ -60,3 +60,6 @@ next-env.d.ts
 # directive pointing at a skill that isn't there.
 !.claude/skills/closing-ritual/
 !.claude/skills/backlog/
+
+# The RIM Guide's screen words, made by scripts/guide-screens.mjs at build time.
+/volunteer-guide/generated-screen-words.json

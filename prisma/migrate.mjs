@@ -7434,6 +7434,21 @@ Rooted In Mindfulness
     console.error("  program-follow-up seed failed:", err?.message ?? err);
   }
 
+  // The RIM Guide's sign-ins (2026-10-27): one additive table, no backfill;
+  // old code ignores it. See GuideGrant in schema.prisma.
+  await db.$transaction([
+    db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "guide_grants" (
+      "id" TEXT NOT NULL PRIMARY KEY, "kind" TEXT NOT NULL, "tokenHash" TEXT NOT NULL,
+      "userId" TEXT NOT NULL, "clientId" TEXT NOT NULL, "familyId" TEXT NOT NULL,
+      "redirectUri" TEXT, "codeChallenge" TEXT, "expiresAt" TIMESTAMP(3) NOT NULL,
+      "usedAt" TIMESTAMP(3), "revokedAt" TIMESTAMP(3),
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+    db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "guide_grants_tokenHash_key" ON "guide_grants"("tokenHash")`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "guide_grants_familyId_idx" ON "guide_grants"("familyId")`),
+    db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "guide_grants_userId_idx" ON "guide_grants"("userId")`),
+  ]);
+  console.log("  ✔ RIM Guide sign-ins table ready.");
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

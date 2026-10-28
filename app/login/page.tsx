@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { accountForFormerEmail, maskEmail } from "@/lib/formerEmail";
 import { codeSendAllowed } from "@/lib/authRateLimits";
+import { guideReturnPath } from "@/lib/guideAuth";
 
 export const metadata = { title: "Sign in - Rooted In Mindfulness" };
 
@@ -13,7 +14,7 @@ export const metadata = { title: "Sign in - Rooted In Mindfulness" };
  * and the code check maps the old address back to it on the server.
  * redirect() throws NEXT_REDIRECT, so it never sits inside the try/catch.
  */
-async function sendCodeAndContinue(email: string, former?: string): Promise<never> {
+async function sendCodeAndContinue(email: string, former?: string, next?: string | null): Promise<never> {
   if (!(await codeSendAllowed(email))) {
     redirect("/login/error?error=RateLimit");
   }
@@ -38,23 +39,27 @@ async function sendCodeAndContinue(email: string, former?: string): Promise<neve
   if (sendFailed) {
     redirect("/login?error=send-failed");
   }
-  // The code page needs the email to construct the verification URL.
+  // The code page needs the email to construct the verification URL, and
+  // carries the RIM Guide's Allow page back when sign-in started there.
+  const back = next ? `&next=${encodeURIComponent(next)}` : "";
   redirect(
     former
-      ? `/login/check-email?email=${encodeURIComponent(former)}&moved=1`
-      : `/login/check-email?email=${encodeURIComponent(email)}`,
+      ? `/login/check-email?email=${encodeURIComponent(former)}&moved=1${back}`
+      : `/login/check-email?email=${encodeURIComponent(email)}${back}`,
   );
 }
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; email?: string; notMember?: string; moved?: string }>;
+  searchParams: Promise<{ error?: string; email?: string; notMember?: string; moved?: string; next?: string }>;
 }) {
+  const { error, email: prefillEmailRaw, notMember, moved, next } = await searchParams;
+  // Arrived from the RIM Guide's Allow page: sign-in returns there.
+  const guideNext = guideReturnPath(next);
   const session = await auth();
-  if (session) redirect("/account/dashboard");
+  if (session) redirect(guideNext ?? "/account/dashboard");
 
-  const { error, email: prefillEmailRaw, notMember, moved } = await searchParams;
   const errorMessage =
     error === "send-failed"
       ? "We couldn't send the code. Please check your email address and try again."
@@ -132,12 +137,13 @@ export default async function LoginPage({
         console.error("[login] Former address lookup failed", err);
       }
       if (movedAccount) {
-        redirect(`/login?moved=1&email=${encodeURIComponent(email!)}`);
+        const back = guideReturnPath(formData.get("next") as string | null);
+        redirect(`/login?moved=1&email=${encodeURIComponent(email!)}${back ? `&next=${encodeURIComponent(back)}` : ""}`);
       }
       redirect(`/login?notMember=1&email=${encodeURIComponent(email!)}`);
     }
 
-    await sendCodeAndContinue(email!);
+    await sendCodeAndContinue(email!, undefined, guideReturnPath(formData.get("next") as string | null));
   }
 
   // The moved-address button. The current address is looked up again on the
@@ -154,7 +160,7 @@ export default async function LoginPage({
       redirect("/login?error=send-failed");
     }
     if (!account) redirect(`/login?email=${encodeURIComponent(former)}`);
-    await sendCodeAndContinue(account.email, former);
+    await sendCodeAndContinue(account.email, former, guideReturnPath(formData.get("next") as string | null));
   }
 
   return (
@@ -202,6 +208,7 @@ export default async function LoginPage({
               <>
                 <form action={handleSendToCurrent}>
                   <input type="hidden" name="former" value={prefillEmail} />
+                  {guideNext && <input type="hidden" name="next" value={guideNext} />}
                   <button type="submit" className="pp-btn pp-form__submit">
                     Send code to my new email <span aria-hidden="true">&rarr;</span>
                   </button>
@@ -238,6 +245,7 @@ export default async function LoginPage({
               {errorMessage && <p className="pp-form__error" role="alert">{errorMessage}</p>}
 
               <form action={handleSignIn}>
+                {guideNext && <input type="hidden" name="next" value={guideNext} />}
                 <div className="pp-form__field">
                   <label htmlFor="email" className="pp-form__label">
                     Email

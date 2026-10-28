@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import SignInCodeForm from "@/components/login/SignInCodeForm";
 import { accountForFormerEmail, maskEmail } from "@/lib/formerEmail";
 import { codeSendAllowed } from "@/lib/authRateLimits";
+import { guideReturnPath } from "@/lib/guideAuth";
 
 // no-referrer: this page can carry a sign-in code in its URL (?code=), which
 // must not travel to third-party requests (fonts, images) as a Referer.
@@ -36,9 +37,11 @@ function isInPostJoinWindow(
 export default async function CheckEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; resent?: string; code?: string; moved?: string }>;
+  searchParams: Promise<{ email?: string; resent?: string; code?: string; moved?: string; next?: string }>;
 }) {
-  const { email, resent, code, moved } = await searchParams;
+  const { email, resent, code, moved, next } = await searchParams;
+  // Sign-in that started on the RIM Guide's Allow page returns there.
+  const guideNext = guideReturnPath(next);
   // Arrives from the email's "Sign me in from this device" button. Only a
   // well-formed six-digit code pre-fills the form; the member still taps
   // Sign in, so opening the link alone never uses the code up.
@@ -79,7 +82,7 @@ export default async function CheckEmailPage({
   // all set. Welcome to RIM." (Jesse, 2026-10-13). Members who haven't agreed
   // yet go through /account/welcome, which greets them itself.
   const firstArrival = !!user?.agreedAt && user.emailVerified === null;
-  const callbackUrl = firstArrival ? "/account/dashboard?welcome=new" : "/account/dashboard";
+  const callbackUrl = guideNext ?? (firstArrival ? "/account/dashboard?welcome=new" : "/account/dashboard");
 
   async function resendCode(formData: FormData) {
     "use server";
@@ -87,6 +90,7 @@ export default async function CheckEmailPage({
     if (!e) {
       redirect("/login");
     }
+    const resendNext = guideReturnPath(formData.get("next") as string | null);
     // Send only to an account's current address: an old address resends to
     // the address it moved to, and an address with no account goes back to
     // sign-in. Fail-safe on a database error, as on /login.
@@ -127,9 +131,10 @@ export default async function CheckEmailPage({
       redirect("/login?error=send-failed");
     }
     redirect(
-      former
+      (former
         ? `/login/check-email?email=${encodeURIComponent(former)}&moved=1&resent=1`
-        : `/login/check-email?email=${encodeURIComponent(e)}&resent=1`,
+        : `/login/check-email?email=${encodeURIComponent(e)}&resent=1`) +
+        (resendNext ? `&next=${encodeURIComponent(resendNext)}` : ""),
     );
   }
 
@@ -189,6 +194,7 @@ export default async function CheckEmailPage({
               Didn&apos;t receive it? Check your spam folder, or{" "}
               <form action={resendCode} className="lg-inline-form">
                 <input type="hidden" name="email" value={email} />
+                {guideNext && <input type="hidden" name="next" value={guideNext} />}
                 <button type="submit" className="lg-linkbtn">
                   send a new code
                 </button>

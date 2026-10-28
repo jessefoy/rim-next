@@ -217,6 +217,10 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 
 `/login/check-email` sets the code form's `callbackUrl` to `/account/dashboard?welcome=new` when the account has agreed (`agreedAt`) and has never verified an email: a member's first sign-in after /join or a guest registration. My Home greets them once ("You're all set. Welcome to RIM."). NextAuth has no custom redirect callback, so the query survives. Members who haven't agreed still go through `/account/welcome`, which sends them to `?welcome=new|back` itself.
 
+## Returning to the RIM Guide's Allow page (2026-10-27)
+
+`/login?next=` carries one place back through sign-in: the RIM Guide's Allow page (`/guide/connect?…`, where a volunteer connects the guide in Claude). `guideReturnPath` (`lib/guideAuth.ts`) accepts only that path, so it is no open redirect. `/login` passes it to `/login/check-email` (and keeps it through "send a new code"), where it becomes the code form's `callbackUrl`. A signed-in visitor to `/login?next=` goes straight there. The other ways in (the email's "Sign me in from this device" button, the moved-address and not-a-member branches) drop it and land on My Home as before.
+
 ## Key files
 
 | File | Role |

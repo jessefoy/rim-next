@@ -6,8 +6,36 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/account/handful-of-leaves": ["./content/handful-of-leaves/**/*"],
     "/account/handful-of-leaves/map": ["./content/handful-of-leaves/**/*"],
-    // The RIM Guide connector reads its topics the same way (lib/guideContent.ts).
-    "/api/guide-mcp/[key]": ["./volunteer-guide/*.md"],
+    // The RIM Guide connector reads its topics, the screens' words and code,
+    // and the design docs the same way (lib/guideContent.ts).
+    "/api/guide-mcp/[key]": [
+      "./volunteer-guide/*.md",
+      "./volunteer-guide/*.json",
+      "./RIM_*.md",
+      "./components/**/*.{ts,tsx}",
+      "./app/tools/**/*.tsx",
+      "./app/account/**/*.tsx",
+      "./app/admin/**/*.tsx",
+      "./app/session/**/*.tsx",
+      "./app/login/**/*.tsx",
+      "./app/guide/**/*.tsx",
+    ],
+  },
+  // The RIM Guide's Allow page is never shown inside another site's frame.
+  async headers() {
+    return [
+      {
+        source: "/guide/connect",
+        headers: [
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Frame-Options", value: "DENY" },
+        ],
+      },
+    ];
+  },
+  // How Claude finds the RIM Guide's sign-in (lib/guideAuth.ts).
+  async rewrites() {
+    return [{ source: "/.well-known/oauth-authorization-server", destination: "/api/guide-oauth/metadata" }];
   },
 };
 

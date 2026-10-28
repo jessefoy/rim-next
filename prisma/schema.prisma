@@ -1075,6 +1075,31 @@ model RegistrationNote {
   @@map("registration_notes")
 }
 
+/// The RIM Guide's sign-ins (2026-10-27): a one-time code from the Allow page
+/// (/guide/connect), or a refresh grant that renews a volunteer's access from
+/// Claude. Stored by hash only. Access itself is a short signed token
+/// (lib/guideAuth.ts), and the person's roles are read fresh on every call, so
+/// losing a role closes what the guide sees. A family is one connection: a
+/// reused code or refresh grant revokes it.
+model GuideGrant {
+  id            String    @id @default(cuid())
+  kind          String // "code" | "refresh"
+  tokenHash     String    @unique
+  userId        String
+  clientId      String
+  familyId      String
+  redirectUri   String?
+  codeChallenge String?
+  expiresAt     DateTime
+  usedAt        DateTime?
+  revokedAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([familyId])
+  @@index([userId])
+  @@map("guide_grants")
+}
+
 /// A team that prepares for a program without being on its schedule (2026-10-24,
 /// Phase 3 slice 5): a kitchen team, say. By the team's id, so a rename keeps
 /// it. `canReach`: its members see email and phone on Helping with. The team

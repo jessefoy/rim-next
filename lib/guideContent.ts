@@ -10,9 +10,10 @@ import path from "node:path";
  * Claude Code and the volunteers' guide, so a push updates both and nothing is
  * ever re-uploaded. Read by app/api/guide-mcp/[key]/route.ts.
  *
- * Everything here is visible to every volunteer: the topic files hold nothing
- * private (volunteer-guide/README.md), and page words come only from pages a
- * signed-out visitor can read.
+ * Since the guide signs each volunteer in (lib/guideAuth.ts), it also reads
+ * the signed-in screens' words and code and the design docs, below; nothing
+ * here reads the database (people's details come through lib/guideData.ts,
+ * behind the site's own gates). Email addresses are blanked in what it serves.
  */
 
 const GUIDE_DIR = path.join(process.cwd(), "volunteer-guide");
@@ -71,13 +72,26 @@ const SECTION_CAP = 3000;
 
 const STOP = new Set(["the", "and", "not", "can", "can't", "for", "with", "what", "why", "how", "does", "doesn't", "when", "where", "who", "this", "that", "there", "their", "they", "from", "into", "about", "was", "are", "you", "your", "our", "has", "have", "isn't", "don't"]);
 
-/** The sections that mention the most of the query's words, best first. */
-export async function searchGuide(query: string, limit = 6): Promise<string> {
+/** The sections that mention the most of the query's words, best first: the
+ *  guide's topics and the design docs, or only one of them. */
+export async function searchGuide(query: string, limit = 6, within: "guide" | "docs" | "both" = "both"): Promise<string> {
   const words = query.toLowerCase().split(/[^a-z0-9']+/).filter((w) => w.length > 2 && !STOP.has(w));
   if (!words.length) return "Ask with a few words, such as \"waiting list email\".";
   const scored: { score: number; where: string; body: string }[] = [];
-  for (const topic of await listGuideTopics()) {
-    const text = await readFile(path.join(GUIDE_DIR, topic.file), "utf8");
+  const sources: { title: string; slug: string; text: string }[] = [];
+  if (within !== "docs") {
+    for (const topic of await listGuideTopics()) {
+      sources.push({ title: topic.title, slug: topic.slug, text: await readFile(path.join(GUIDE_DIR, topic.file), "utf8") });
+    }
+  }
+  if (within !== "guide") {
+    for (const doc of DESIGN_DOCS) {
+      const text = await designDocText(doc);
+      if (text) sources.push({ title: `Design doc ${doc}`, slug: doc, text });
+    }
+  }
+  for (const topic of sources) {
+    const text = topic.text;
     for (const s of sections(text)) {
       const hay = s.body.toLowerCase();
       const head = s.heading.toLowerCase();
@@ -96,6 +110,154 @@ export async function searchGuide(query: string, limit = 6): Promise<string> {
     .slice(0, limit)
     .map((s) => `From ${s.where}:\n\n${s.body.length > SECTION_CAP ? `${s.body.slice(0, SECTION_CAP)}\n\n(The section goes on: read it with read_guide.)` : s.body}`)
     .join("\n\n---\n\n");
+}
+
+// ─── The design docs: why RIM is built the way it is ─────────────────────────
+
+/**
+ * The project's design references the guide may read (2026-10-27): the
+ * intentions behind each screen. Not served: the session log, UP_NEXT, the
+ * backlog, the stack reference and the sign-in doc, and retired or historical
+ * docs. Email addresses are blanked, Jesse's aside.
+ */
+export const DESIGN_DOCS = [
+  "RIM_Web_Design_Philosophy.md", "RIM_Public_Pages.md", "RIM_System_Architecture.md",
+  "RIM_Feature_Interconnections.md", "RIM_Role_Design.md", "RIM_Offering_Model.md",
+  "RIM_Registration.md", "RIM_Registration_App.md", "RIM_ProgramEditor.md", "RIM_CourseEditor.md",
+  "RIM_Scheduler.md", "RIM_Member_Area.md", "RIM_MemberRegistry.md", "RIM_Hub_Model.md",
+  "RIM_Zoom.md", "RIM_GoogleWorkspace.md", "RIM_Tutorials.md", "RIM_Email_Engineering.md",
+];
+
+const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}/g;
+const KEYISH = /\b(sk|pk|rk)_(test|live)_[A-Za-z0-9]+|\bre_[A-Za-z0-9_]{20,}|\bwhsec_[A-Za-z0-9]+/g;
+/** No one's address and nothing that looks like a key leaves through the guide. */
+export function redactPrivate(text: string): string {
+  return text
+    .replace(EMAIL, (m) => (m.toLowerCase() === "jesse@rootedinmindfulness.org" ? m : "[an email address]"))
+    .replace(KEYISH, "[a key]");
+}
+
+function docName(raw: string): string | null {
+  // "program editor", "RIM_ProgramEditor" and "programeditor.md" are one doc.
+  const key = (s: string) => s.toLowerCase().replace(/\.md$/, "").replace(/^rim[_\s-]*/, "").replace(/[\s_-]+/g, "");
+  return DESIGN_DOCS.find((d) => key(d) === key(raw.trim())) ?? null;
+}
+
+async function designDocText(doc: string): Promise<string | null> {
+  try {
+    return redactPrivate(await readFile(path.join(process.cwd(), doc), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/** Longest a design doc's answer runs before pointing to a narrower section. */
+const DOC_CAP = 14_000;
+
+/** A design doc's opening and its headings, or the sections whose heading has `section`. */
+export async function readDesignDoc(raw: string, section?: string): Promise<string> {
+  const doc = docName(raw);
+  if (!doc) return `There's no design doc "${raw}". They are: ${DESIGN_DOCS.join(", ")}.`;
+  const text = await designDocText(doc);
+  if (!text) return `${doc} can't be read just now.`;
+  const all = sections(text);
+  if (!section?.trim()) {
+    const intro = all[0]?.heading ? "" : all[0]?.body ?? "";
+    const headings = text.split("\n").filter((l) => /^#{2,3}\s/.test(l)).map((l) => l.replace(/^(#+)\s+/, (_m, h: string) => (h.length === 2 ? "- " : "  - ")));
+    return `${doc}\n\n${intro.slice(0, 3000)}${intro.length > 3000 ? "\n\n(The opening goes on.)" : ""}\n\nIts sections (read one by giving words from its heading):\n${headings.join("\n")}`;
+  }
+  const want = section.trim().toLowerCase();
+  const match = all.filter((s) => s.heading.toLowerCase().includes(want));
+  if (!match.length) return `No section of ${doc} has "${section}" in its heading. Read the doc without a section to see its headings.`;
+  const body = match.map((s) => s.body).join("\n\n");
+  return body.length > DOC_CAP ? `${body.slice(0, DOC_CAP)}\n\n(This goes on: ask for a narrower section.)` : body;
+}
+
+// ─── The signed-in screens: their words and the code behind them ─────────────
+
+type Screen = { title: string; where: string; files: string[] };
+
+async function screenList(): Promise<Record<string, Screen>> {
+  const raw = JSON.parse(await readFile(path.join(GUIDE_DIR, "screens.json"), "utf8")) as Record<string, Screen | string>;
+  return Object.fromEntries(Object.entries(raw).filter(([k]) => !k.startsWith("_"))) as Record<string, Screen>;
+}
+
+async function screenFiles(screen: Screen): Promise<string[]> {
+  const out: string[] = [];
+  for (const entry of screen.files) {
+    if (entry.endsWith("/")) {
+      try {
+        const found = (await readdir(path.join(process.cwd(), entry), { recursive: true }))
+          .map((f) => path.join(entry, String(f)))
+          .filter((f) => /\.(tsx|ts)$/.test(f) && !f.endsWith(".d.ts"));
+        out.push(...found.sort());
+      } catch {
+        /* a folder not shipped reads as empty */
+      }
+    } else {
+      out.push(entry);
+    }
+  }
+  return out;
+}
+
+const SCREEN_CAP = 40_000;
+
+/** The screens it can read, or one screen's words with their files and lines. */
+export async function screenWords(slug?: string, part?: string): Promise<string> {
+  const screens = await screenList();
+  if (!slug?.trim()) {
+    return `The signed-in screens whose words can be read:\n${Object.entries(screens).map(([k, s]) => `- ${k}: ${s.title} (${s.where})`).join("\n")}`;
+  }
+  const screen = screens[slug.trim().toLowerCase()];
+  if (!screen) return `There's no screen "${slug}". The screens are: ${Object.keys(screens).join(", ")}.`;
+  let words: { files: Record<string, [number, string][]> };
+  try {
+    words = JSON.parse(await readFile(path.join(GUIDE_DIR, "generated-screen-words.json"), "utf8"));
+  } catch {
+    return "The screens' words can't be read just now (they are made when the site is deployed). Read the code instead with screen_code.";
+  }
+  const want = part?.trim().toLowerCase();
+  const files = (await screenFiles(screen)).filter((f) => !want || f.toLowerCase().includes(want));
+  if (!files.length) return `No file of ${slug} has "${part}" in its name. Its files: ${(await screenFiles(screen)).join(", ")}.`;
+  const blocks = files.map((f) => {
+    const lines = words.files[f] ?? [];
+    return `### ${f}\n${lines.length ? lines.map(([n, t]) => `${n}: ${t}`).join("\n") : "(no words)"}`;
+  });
+  const body = `${screen.title}, at ${screen.where}. Each line is the line in the code where the words are; "…" stands for something filled in, such as a name.\n\n${blocks.join("\n\n")}`;
+  return body.length > SCREEN_CAP
+    ? `${body.slice(0, SCREEN_CAP)}\n\n(This goes on: ask again with part set to one file's name, such as "${files[files.length - 1].split("/").pop()?.replace(/\.tsx?$/, "")}".)`
+    : body;
+}
+
+const CODE_LINES = 160;
+
+/** Lines of code from one screen's file, numbered, around a line or between two. */
+export async function screenCode(file: string, around?: number, from?: number, to?: number): Promise<string> {
+  const clean = file.trim().replace(/^\/+/, "");
+  const screens = await screenList();
+  const allowed = new Set((await Promise.all(Object.values(screens).map(screenFiles))).flat());
+  if (!allowed.has(clean)) {
+    return `${clean} isn't one of the screens' files. Find a screen's files with screen_words, then read one by its full name.`;
+  }
+  let text: string;
+  try {
+    text = await readFile(path.join(process.cwd(), clean), "utf8");
+  } catch {
+    return `${clean} can't be read just now.`;
+  }
+  const lines = redactPrivate(text).split("\n");
+  let start = 1;
+  let end = Math.min(lines.length, CODE_LINES);
+  if (around && around > 0) {
+    start = Math.max(1, Math.floor(around) - 60);
+    end = Math.min(lines.length, start + CODE_LINES - 1);
+  } else if (from && from > 0) {
+    start = Math.floor(from);
+    end = Math.min(lines.length, to && to >= start ? Math.min(Math.floor(to), start + CODE_LINES - 1) : start + CODE_LINES - 1);
+  }
+  const shown = lines.slice(start - 1, end).map((l, i) => `${start + i}: ${l}`).join("\n");
+  return `${clean}, lines ${start} to ${end} of ${lines.length}:\n\n${shown}`;
 }
 
 // ─── A public page's words, read live ────────────────────────────────────────
