@@ -253,7 +253,7 @@ export default function WhyWePracticePage() {
             </p>
 
             <p className="pp-distillation">
-              And so we practice together,&amp;nbsp;
+              And so we practice together,
               <br />
               to bring this wakefulness to as many moments as we can,&amp;nbsp;
               <br />
