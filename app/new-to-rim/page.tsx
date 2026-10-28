@@ -331,7 +331,7 @@ export default function NewToRimPage() {
           <div>
             <p className="nt-eyebrow">We are here to help</p>
             <h2 id="contact">
-              Still wondering
+              Still wondering&amp;nbsp;
               <br />
               about something?
             </h2>
