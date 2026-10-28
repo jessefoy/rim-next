@@ -22,6 +22,10 @@ Slice 1 (session 128) routed the *data* layer correctly. Slice 2.5 (session 128 
 
 ---
 
+## Team actions shared with the RIM Guide (2026-10-28)
+
+The Scheduler's everyday actions and a team's Conversations (start, reply) live in `lib/scheduleActions.ts` and `lib/teamActions.ts`, called by their routes and by the RIM Guide (`lib/guideSchedule.ts`), which acts for a signed-in member as their account may. Each function keeps its own gates on the **resource's** team (`canAccessHubScheduler`, `authorizeSelfClaim`, `canManageHubCoverage`, `canAccessHub` with `conversationsEnabled`), so the four layers below hold for the guide unchanged. Change a step there, never in its route; a step that starts emailing someone new updates the guide's ask-first description (`RIM_Email_Engineering.md`, "Emails and the RIM Guide"). Rotations, resets and team membership are not offered through the guide.
+
 ## The four routing layers
 
 Every hub-related action touches up to four layers. **Every layer must honor the hub for the action to be correctly isolated.**

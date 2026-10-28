@@ -1,38 +1,33 @@
 # Up Next — In-Progress Work
 
-Read first when opening RIM. Updated 2026-10-27 (closing ritual). Full history belongs in `session-log.md`.
+Read first when opening RIM. Updated 2026-10-28 (closing ritual). Full history belongs in `session-log.md`.
 
-## Active — 2026-10-28: Content editors change the site through the RIM Guide
+## Active — 2026-10-28 closed: the RIM Guide signs each volunteer in, edits content, and acts for each person
 
-Built and pushed. **Phases 1 to 3 of the guide acting for each person are in:** programs (start, change, archive), Registration (every action on a person's card, messages, the reminder, settings), and teams (the Scheduler's everyday actions and Conversations; rotations, resets and membership stay on the site), with the ask-first rule for anything that emails others. Jesse gets one email each evening of the changes that shape the site (everyday actions recorded, not emailed). **Phase 4 (creating courses and lessons) is on hold** while Jesse reworks the Course Manager; the guide can already change existing courses and lessons through `lib/contentSaves.ts`, which the rework should keep. Reference: `volunteer-guide/README.md`; role: `RIM_Role_Design.md`, "Content Editor". A **Content editor** (role in Roles & access) can, through the guide, change anything the Programs, Course Manager, email and teacher-page editors save (through those editors' own saves, now in `lib/programSave.ts` and `lib/contentSaves.ts`) and the words on the pages (a words-only commit to `main`). No approval; every change is listed at `/admin/content-changes` and emailed to Jesse. A program's rename now reaches registrations, donations and Zoom (editor too).
+Everything is on `main` (`7a34789` … `9d7d199`, and this closing). Narrative: `session-log.md`, 2026-10-28. Reference: `volunteer-guide/README.md`; the rules: `CLAUDE.md` (the guide row), `RIM_Email_Engineering.md` ("Emails and the RIM Guide"), `RIM_Role_Design.md` ("Content Editor").
+
+**Live (deployed and loading; not yet used live on real records):** each volunteer signs in to the guide and it reads what they can; it **acts for each person** only as their account may on the site, through the site's own steps: programs (start, change, archive), Registration (every card action, messages, the reminder, settings), teams (the Scheduler's everyday actions, Conversations). **Content editors** (a role Jesse gives) also change content in every editor and the words on the pages (a words-only commit to `main`). **Email is never a surprise:** anything that emails others asks first, with a single-use yes. Every change is listed at `/admin/content-changes`; **one email each evening** lists the changes that shape the site (everyday actions recorded, not emailed). Verified by Jesse in Claude: all 18 action tools load after a reconnect.
 
 **Waiting on Jesse:**
-- `GITHUB_CONTENT_TOKEN` is in Vercel (it carried the guide's commits on 2026-10-28); check its end date in GitHub and renew before then.
-- Give the Content editor role (himself included) in Roles & access.
-- Paste the new `volunteer-guide/INSTRUCTIONS.md` into the project's instructions; send the updated PDF if wanted.
-- Try one change of each kind; check the email and the History page. **Content editors commit to `main`: pull before pushing.**
-- Read-aloud: the Allow page's new sentence, the Roles & access line, the email `content-changed`, the History pages, the editor's Zoom-name note.
+- **Paste the latest `volunteer-guide/INSTRUCTIONS.md`** into the RIM Guide project (the volunteer voice, Claude docs, the daily email).
+- The first evening email (tonight, 8 PM Central, if anything shaping the site changed today after the switch).
+- A first live run: `message_people` with test on, then one real change of each kind when ready.
+- `GITHUB_CONTENT_TOKEN`: check its end date in GitHub and renew before then (the guide now says when the key stops working).
+- Give the Content editor role to anyone else he chooses; LoriLee reconnects (Customize > Connectors > RIM Guide) and starts a new chat.
+- Read-aloud: the Allow page's sentence, the Content editor line in Roles & access, `content-changes-daily`, the History pages, the editor's Zoom-name note, the guide's ask-first wording.
+- Carried from Oct 27: send LoriLee the PDF; Mindful Photography's placeholder "Xxxx" text; why members can't cancel their own registration (unwritten); the card's new dana lines; the read-only check for anyone the old dana buttons left unconfirmed (offered); from Oct 26, the private Programs and Registration guide for LoriLee, the tutorial lines, the filled row actions, the "give online" email (`2026-10-24-002`).
+
+**On launch day:** the connector's address moves with `NEXTAUTH_URL`; re-add it in Claude at the new domain and have volunteers press Connect again.
+
+**Working rules from this session:** change an editor's save, create or archive, or a Registration, Scheduler or Conversations action, in its shared `lib/` file, never in its route; a step that starts emailing someone new updates the guide's ask-first prediction in the same commit. **The guide commits page words to `main`: pull before pushing.**
+
+**Next concrete step:** none owed. **Coming up:** the November 1 sweep (see the 2026-10-22 section); phase 4 (`2026-10-28-002`) after the Course Manager rework. **Queued:** `2026-10-28-001` legacy rawHtml, `2026-10-28-003` the sign-in link, `2026-10-27-002` a Send feedback page, `2026-10-27-001` the webhook guard; from Oct 26: `2026-10-26-001` to `-004`, `2026-10-24-001`.
+
+**Method, for measuring signed-in pages:** the built-in browser pane holds Jesse's session on rim-next.vercel.app; same-origin iframes measure several pages at once. The pane draws streamed pages twice (React 19 waits for an animation frame the pane never runs), so measure only the visible copy. Vercel's Security Checkpoint now challenges repeated command-line requests; check live pages in the browser pane.
 
 ## Earlier — 2026-10-27 closed: the RIM Guide for volunteers; settled dana confirms
 
-Everything is on `main` (`4768649` … `b5e97f2`, and this closing). Narrative: `session-log.md`, 2026-10-27. Reference: `volunteer-guide/README.md` (and the new `CLAUDE.md` row).
-
-**Live and verified:** the **RIM Guide**, a shared view-only Claude project in RIM's Claude for Nonprofits workspace, answering from the **RIM Guide connector** (`/api/guide-mcp/<key>`, read-only: the `volunteer-guide/` topics and public pages read live). Verified from this session and by Jesse inside the shared project. LoriLee has a User / Standard seat. **Keep the topics current:** any change to a feature the guide describes updates its topic in the same commit (it is served live; a stale topic tells volunteers the old way). **Settling dana in Registration** ("Given another way", "No dana for them") now sends the held confirmation once; reviewed, not tested live.
-
-**Waiting on Jesse:**
-- Send LoriLee `volunteer-guide/Getting started with the RIM Guide.pdf` and the short text; share is done. Check the model in a new project chat (Sonnet 5.5 at Default expected; if not, one step goes into the PDF).
-- Optional: set the RIM Guide connector's tools to Always allow in Organization settings, so she isn't asked.
-- **Mindful Photography is public with placeholder "Xxxx" text** (its quote, description, facilitator); fix or hide it.
-- Offered, not taken: a read-only production check for anyone the old dana buttons left unconfirmed (registered, dana marked by the team before today, no confirmation).
-- Why members can't cancel their own registration: the reason was never written down; the guide says "ask Jesse" until it is.
-- Read-aloud: the card's new lines ("Their confirmation goes to [email].", "Their confirmation went out.", "Their dana was already settled. Reload the page to see where it stands.") and the PDF.
-- Carried from Oct 26: share the private Programs and Registration guide with LoriLee; the tutorial lines changed after approval; confirm the Scheduler's and Updates' filled row actions; the Trial Workshop's note after (due Oct 27 ~10 AM CT, preview-checked only); the "give online" email's wording (`2026-10-24-002`).
-
-**On launch day (add to the list below):** the connector's address moves with `NEXTAUTH_URL`; re-add it in Claude (Organization settings > Connectors) at the new domain and have volunteers press Connect again.
-
-**Next concrete step:** none owed. **Coming up:** the November 1 sweep (see the 2026-10-22 section). **Queued:** `2026-10-27-002` a Send feedback page (once notes start arriving), `2026-10-27-001` the webhook guard, `2026-10-27-003` suggest an edit; and from Oct 26: `2026-10-26-001` to `-004`, `2026-10-24-001`.
-
-**Method, for measuring signed-in pages:** the built-in browser pane holds Jesse's session on rim-next.vercel.app; same-origin iframes measure several pages at once. The pane draws streamed pages twice (React 19 waits for an animation frame the pane never runs), so measure only the visible copy.
+Narrative: `session-log.md`, 2026-10-27. Its open items are carried in Active above.
 
 ## Earlier — 2026-10-26 (later) closed: Registration Team tutorials, the Programs list, one button language
 

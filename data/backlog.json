@@ -2139,8 +2139,38 @@
     "description": "Public page words move into the database by section (like email templates); a volunteer sees plain boxes, changes words and presses Suggest; Jesse sees before and after, reads aloud, approves; it goes live. Words only, no layout; the voice rules checked on save. Try Home first. Differs from the retired Sanity CMS: inside RIM, same sign-in, approval built in.",
     "category": "Admin Tools",
     "priority": "low",
-    "status": "open",
+    "status": "done",
     "addedAt": "2026-10-27",
-    "notes": "Until then the RIM Guide's notes carry exact 'Now / Change to' lines."
+    "notes": "Until then the RIM Guide's notes carry exact 'Now / Change to' lines. Superseded 2026-10-28 by Content editors through the RIM Guide: trusted people change page words directly (words only, committed to the site), with every change recorded and in Jesse's evening email; no approval step, by Jesse's choice."
+  },
+  {
+    "id": "2026-10-28-001",
+    "title": "Clean legacy rawHtml rich content when shown",
+    "description": "renderContentBodyAsync and renderBlockNoteHtml show a stored { type: \"rawHtml\", html } object exactly as stored, so markup in one would run on the page. Nothing new writes one (the RIM Guide refuses objects; the editors write HTML strings, which are cleaned), but the program, course and lesson save routes still accept any JSON. Either sanitize rawHtml at render (check what legacy content still uses it first) or refuse objects in the saves.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-28",
+    "notes": "Found in the RIM Guide review, 2026-10-28; the block format itself was fixed then."
+  },
+  {
+    "id": "2026-10-28-002",
+    "title": "The RIM Guide creates courses and lessons (phase 4)",
+    "description": "After the Course Manager rework: start a course or lesson through the guide (blank or as a copy), through the Course Manager's own create, as programs do (lib/programSave.ts createProgram). Map it first; the ask-first rule applies to anything that emails.",
+    "category": "Courses & Library",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-10-28",
+    "notes": "On hold by Jesse while he reworks the module. The guide can already change existing courses and lessons through lib/contentSaves.ts; keep the saves there."
+  },
+  {
+    "id": "2026-10-28-003",
+    "title": "The sign-in email's link returns to the guide's Allow page",
+    "description": "Signing in to connect the RIM Guide: the code works, but the email's 'Sign me in from this device' link drops the return to /guide/connect, so the volunteer lands on My Home and has to press Connect in Claude again.",
+    "category": "Member Accounts",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-10-28",
+    "notes": "Known since the signed-in guide (7a34789)."
   }
 ]

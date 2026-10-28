@@ -6,7 +6,7 @@ The Course Manager is the operational application for RIM's persistent learning 
 
 ---
 
-**One save, shared with the RIM Guide (2026-10-28):** the saves of a course and a lesson live in `lib/contentSaves.ts` (`saveCourse`, `saveLesson`); the routes check access and call them, and the RIM Guide calls the same functions for a Content editor. Change a save there, never in the route. A course's new title reaches `Donation.courseTitle`.
+**One save, shared with the RIM Guide (2026-10-28):** the saves of a course and a lesson live in `lib/contentSaves.ts` (`saveCourse`, `saveLesson`); the routes check access and call them, and the RIM Guide calls the same functions, for people with the Course Manager and for Content editors. Creating courses and lessons through the guide waits for the Course Manager's rework (2026-10-28); the rework should keep the saves in this file. Change a save there, never in the route. A course's new title reaches `Donation.courseTitle`.
 
 **Buttons (2026-10-26):** secondary buttons (Cancel, View course page, Unlock, the list's row Edit) are quiet text with a 44px reach; the button that does the work is filled, including the confirms for Delete category and removing a lesson's image or audio; checkboxes are 20px in RIM's blue (shared with the program editor's `.pe-checkbox`). The rule: `RIM_Member_Area.md`, "The apps' buttons".
 

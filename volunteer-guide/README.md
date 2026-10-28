@@ -1,10 +1,10 @@
 # The RIM Guide
 
-What volunteers' shared Claude project ("RIM Guide", in RIM's Claude for Nonprofits workspace) knows, so they can ask how the site works and why, look at it as they see it, and turn what they notice into a clear note for Jesse. Started 2026-10-27.
+What volunteers' shared Claude project ("RIM Guide", in RIM's Claude for Nonprofits workspace) knows and does, so they can ask how the site works and why, look at it as they see it, do their work there as their account allows (since 2026-10-28), and turn what they notice into a clear note for Jesse. Started 2026-10-27.
 
 **How it reaches the project:** the **RIM Guide connector** (`app/api/guide-mcp/[key]/route.ts`) serves everything, read live. The project holds only the instructions. A push to `main` updates the guide; nothing is uploaded by hand.
 
-**Each volunteer signs in (2026-10-27).** The connector asks each person to sign in with their own RIM account (OAuth with PKCE, RIM as its own sign-in: `lib/guideAuth.ts`, `app/api/guide-oauth/*`, the Allow page `app/guide/connect/page.tsx`). It then reads what that person can read on the site, through the site's own gates, with their roles read fresh on every call. Read-only, except for Content editors (below). Sign-ins are kept by hash in `guide_grants`; access lasts an hour and renews itself; a code or renewal used twice ends that connection.
+**Each volunteer signs in (2026-10-27).** The connector asks each person to sign in with their own RIM account (OAuth with PKCE, RIM as its own sign-in: `lib/guideAuth.ts`, `app/api/guide-oauth/*`, the Allow page `app/guide/connect/page.tsx`). It then reads what that person can read on the site, through the site's own gates, with their roles read fresh on every call. Since 2026-10-28 it also acts for them, as their account may on the site (below). Sign-ins are kept by hash in `guide_grants`; access lasts an hour and renews itself; a code or renewal used twice ends that connection.
 
 **What it serves:**
 - The topics here, `1-…` to `6-…` (every `<number>-<name>.md`; the name after the number is the topic's name), and the design docs listed in `DESIGN_DOCS` in `lib/guideContent.ts` (the intentions; not the session log, UP_NEXT, the backlog, the stack reference or the sign-in doc).
