@@ -226,7 +226,7 @@ Every team has the same space. The address starts with `/account/hub/[team]` (th
 Apps open either from a team's rail (they keep the team's rail around them) or directly by address (a slim bar replaces the rail, with My Profile and Sign out).
 
 ### Programs (the Program Manager)
-- **Addresses:** `/tools/programs` (the list), `/tools/programs/new` (start a program), `/tools/programs/[program]/edit` (the editor), `/tools/programs/categories` (categories)
+- **Addresses:** `/tools/programs` (the list), `/tools/programs/new` (start a program), `/tools/programs/drafts/[draft]` (a program being set up), `/tools/programs/[program]/edit` (a program's page), `/tools/programs/order` (how each section is ordered), `/tools/programs/categories` (categories)
 - **Who:** the Registrar, Admin and Guiding Teacher roles, and active members of the Registration Team and Program Central. Archiving, restoring, deleting and the categories page stay with the three roles.
 - **For:** setting programs up. It shows no one's personal details; people live in Registration.
 - **The list:** title **Programs**, "Every program, with its category, format, delivery and registration." Pills **All**, **Open**, **Archived**, with counts; the registration roles also see **Has waitlist** and **Needs attention**. A search ("Search programs"), **All categories** and **All formats** filters. One row per program: the name, what needs a look, the kind, registration as **Off**, **Open**, **Closed** or **Opens …**, and places. Each row has a quiet **Edit**; the registration roles also see **People** and **Archive**, and only they see how many places are taken (others see the capacity, "20 places" or "No limit"). On phones the rows become short cards.

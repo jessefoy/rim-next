@@ -89,7 +89,7 @@ Who can join is its own separate setting, chosen on purpose for each program. Je
 
 ### Open entry
 
-Open entry is that access setting. When it is on, anyone signed in may join the program, in person or on Zoom, without registering. When it is off, people register first. It is set in the program editor, beside registration, and works independently of it.
+Open entry is that access setting. When it is on, anyone signed in may join the program, in person or on Zoom, without registering. When it is off, people register first. It is set in How people join on the program's page ("They just come", or "Both"), and works independently of registration.
 
 Open entry is not the same as the guest link, which lets someone without an account into an online session.
 

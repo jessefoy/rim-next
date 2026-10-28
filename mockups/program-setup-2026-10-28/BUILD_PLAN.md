@@ -89,6 +89,10 @@ Design principles that apply:
 2. "Reset this team" behind admins, if Jesse says so.
 3. The "Setting up a program" tutorial; the guide's topic, screens.json and tools; RIM_ProgramEditor.md, RIM_Scheduler.md, FEATURES.md and the rest at the closing.
 
+## Where it stands (2026-10-28)
+
+Phases 1 to 4 are built and on `main`. Phase 4 as built: the Scheduler's words; the "Setting up a program" tutorial redrawn (14 steps) and the guide's copy of it; the guide's other topics and `INSTRUCTIONS.md` (Jesse pastes it into the RIM Guide project); the guide's `create_program` says a program it makes is live at once and points to + Add Program for the step-by-step way, and drops the sort number. **Not done, by choice:** routing the guide's `create_program` through drafts (the conversation is its review; offered to Jesse as a follow-up). Found and fixed on the way: the walk-through's styles shared the `ps-` prefix with the Scheduler's staffing page and reshaped it from Phase 2 until `607a6f0` (now `psu-`).
+
 ## To check once everything is built (with Jesse)
 
 - Read-aloud of every question, help line, sentence and note in the walk-through, the review and the program's page.

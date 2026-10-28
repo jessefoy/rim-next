@@ -312,7 +312,7 @@ export default async function ProgramStaffingPage({
       </header>
 
       {allHubSlugs.length === 0 ? (
-        <p className="ps-empty">No hubs are currently scheduling this program.</p>
+        <p className="ps-empty">No team is scheduling this program yet.</p>
       ) : (
         <div className="ps-hubs">
           {allHubSlugs.map((hubSlug) => {
@@ -429,7 +429,7 @@ export default async function ProgramStaffingPage({
                                 <td className="ps-grid__day">{DAY_LABEL[d]}</td>
                                 <td className="ps-grid__hosts">
                                   {cells.length === 0 ? (
-                                    <span className="ps-grid__empty-cell">— No rotation set —</span>
+                                    <span className="ps-grid__empty-cell">No rotation set</span>
                                   ) : (
                                     <ul className="ps-grid__host-list">
                                       {cells.map((c) => (

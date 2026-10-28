@@ -235,14 +235,14 @@ If every place is taken, they join the waiting list instead, and you can offer t
 
 Folded under Needs you, **Registration settings** shows a summary such as "Open · 14 places · closes Nov 6, 2026 · mailing list on." Opened, it has:
 
-- **Registration**: Open, Not open yet, or Closed. (Turning registration Off altogether is done in the editor.)
+- **Registration**: Open, Not open yet, or Closed. (Turning registration off altogether is done on the program's page: How people join, "They just come".)
 - **Opens**: for Not open yet, a date and time still ahead.
 - **Places**: leave empty for no limit. It won't go below the places already taken.
 - **Closes**: the closing date. Leave empty to stay open until you close it.
 - **Mailing list**: Automatic, On, or Off, and the **Flodesk segment**. "Make a new segment at the first registration" creates one named "Name MM/DD/YY". "Use an existing segment instead" links one Flodesk already has. With the mailing list off, no one is added to Flodesk.
 - **Save settings**.
 
-Times are Central. Closing never takes anyone's place away ("Everyone registered keeps their place."). The mailing list lives only here, not in the editor.
+Times are Central. Closing never takes anyone's place away ("Everyone registered keeps their place."). The mailing list lives only here, not on the program's page.
 
 ### History, the sign-in list and the spreadsheet
 

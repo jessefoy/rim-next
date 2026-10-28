@@ -108,7 +108,8 @@ const ACCESS_PARTS = new Set([
 
 const PROGRAM_FIELDS: Record<string, string> = Object.fromEntries(
   Object.entries(EDITOR_FIELD_LABELS)
-    .filter(([k]) => !ACCESS_PARTS.has(k))
+    // The sort number isn't read any more (2026-10-28): listFirst says what's first.
+    .filter(([k]) => !ACCESS_PARTS.has(k) && k !== "sortOrder")
     .map(([k, v]) => [k, cap(v)]),
 );
 
@@ -804,10 +805,10 @@ export async function startProgram(
   const recorded = await keep({ userId: actor.id, userName: actor.name, kind: "program", itemKey: made.slug, itemLabel: made.name, itemHref: `/tools/programs/${made.slug}/edit`, changes: parts });
   const conflicts = (result.body.seatConflicts as { message: string }[] | undefined) ?? [];
   return [
-    `Made ${made.name}, started from ${from}. Its address is /programs/${made.slug}; it opens in the editor at /tools/programs/${made.slug}/edit.${recorded ? RECORDED_DAILY : ""}`,
+    `Made ${made.name}, started from ${from}. Its address is /programs/${made.slug}; its page in Programs is /tools/programs/${made.slug}/edit.${recorded ? RECORDED_DAILY : ""}`,
     ...(recorded ? [] : [NOT_RECORDED]),
     ...(conflicts.length ? [`Zoom: ${conflicts.map((c) => c.message).join(" ")}`] : []),
-    "Read it back with program_settings, and show them what's still to fill in (Ready to be seen in the editor lists what a program needs before it shows).",
+    "Read it back with program_settings, and show them what's still to fill in (Worth a look, on the program's page, lists what a program needs).",
   ].join("\n");
 }
 

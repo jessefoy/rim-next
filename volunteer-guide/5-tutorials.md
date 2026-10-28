@@ -670,80 +670,120 @@ If you lead this team: Leading your team (written out under "For the leads" belo
 
 #### Setting up a program
 
-**Out of date since October 28, 2026, and being redrawn:** this tutorial shows the one-page editor, which was replaced by setting a program up one question at a time and by a program's page with Change for each section. Until it's redrawn, describe the new screens from the Programs and Registration topic ("Setting up a program, step by step" and "A program's page, and changing it").
-
 Address: rim-next.vercel.app/tutorials/setting-up-a-program
 Who it is for: For the Registration Team
 
-Starting a program from a shape or a copy, the seven sections, registration and the questions, the three emails, saving, and telling people about a change.
+Starting a program from a shape or a copy, one question at a time, when it meets, registration and the questions, the three emails, the review and Publish, changing it later, and telling people about a change. Redrawn October 28, 2026 for the step-by-step setup and a program's page; wording provisional until Jesse's read-aloud.
 
 **Step 1. Open Programs**
 
-In the Registration Team's space, open the ☰ beside the team's name and choose Program Manager. It opens on every program. Edit opens one to change it, and People opens the same program in Registration.
+In the Registration Team's space, open the ☰ beside the team's name and choose Program Manager. It opens on every program. Choose a program's name to open its page, and People to see the people in Registration.
+
+[Drawing: The team's menu with Program Manager marked, over the list of programs.]
 
 On a computer this step reads:
-In the Registration Team's space, choose Program Manager on the left. It opens on every program. Edit opens one to change it, and People opens the same program in Registration.
+In the Registration Team's space, choose Program Manager on the left. It opens on every program. Choose a program's name to open its page, and People to see the people in Registration.
 
 **Step 2. Start a new program**
 
-Choose + Add Program. The page asks What are you offering? Choose the one closest to yours: a drop-in, a class, a course, a workshop, a day of mindfulness or a retreat. Each fills in sensible starting settings. Nothing is saved until you choose Save.
+Choose + Add Program. The page asks What are you offering? Choose the one closest to yours: a drop-in, a class, a course, a workshop, a day of mindfulness or a retreat. It fills in sensible answers and walks you through each one.
 
-Tip: **Not sure?** Choose Start with a blank program and fill in everything yourself.
+Tip: **Not sure?** Choose Start with a blank program and answer everything yourself.
+
+[Drawing: What are you offering? with Day of mindfulness marked.]
 
 **Step 3. Or copy one**
 
-Under Or copy a program, choose a past program and choose Copy. It's the easiest way to set up next year's retreat. A copy keeps the words, the questions, the teachers, the teams, dana and the settings.
+Under Or copy a program, choose a past program. It's the easiest way to set up next year's retreat. A copy keeps the words, the questions, the teachers, the teams, dana and the settings, and asks for the new dates.
 
-Tip: **Never copied:** the people who registered, the dates, the notice and the guest link. Set new dates before you save.
+Tip: **Never copied:** the people who registered, the dates, the notice and the guest link.
 
-**Step 4. One page, seven sections**
+[Drawing: Or copy a program, with a past retreat marked.]
 
-A program is one page in seven sections, in the order you'd decide them: About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, and Where it appears. Choose Jump to at the top to go straight to one.
+**Step 4. One question at a time**
 
-[Drawing: The program's page with the way to its sections marked.]
+It asks one question at a time, in seven parts: About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, and Where it appears. Answer and choose Continue. ← Back goes to the one before. Your answers so far fold above the question: tap it to see them, and tap any answer to go back to it.
+
+Tip: **It's a draft.** It's saved as you go, so you can stop and come back. No one sees it until you publish.
+
+[Drawing: The first question, What is it called?, with Continue marked.]
 
 On a computer this step reads:
-A program is one page in seven sections, in the order you'd decide them: About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, and Where it appears. The list of sections sits beside the page; choose one to go straight to it.
+It asks one question at a time, in seven parts: About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, and Where it appears. Answer and choose Continue. ← Back goes to the one before. Your answers so far sit beside the question: choose any answer to go back to it.
 
-**Step 5. Teachers and teams**
+**Step 5. When it meets**
 
-Under Teachers and teams, search for the teacher by name. Then tick the teams that help. The hosting team runs the live session. Supporting teams, such as greeters or AV, help on the day. Teams that prepare, such as a kitchen team, help ahead of time.
+When and where asks how often it meets, which days, and what time, with the length shown. Then the first session: only the days it meets can be chosen. For a series, it asks how it ends and lists every session.
 
-Tip: **Ticked teams hear when you save.** Leave the teams off until the program is real.
+Tip: **Changed your mind?** Go back and change it. What still fits is kept; anything that needs choosing again is marked.
 
-**Step 6. Registration: off, not open yet, open or closed**
+[Drawing: The first session's calendar with only Saturdays to choose, and Saturday, November 14 marked.]
 
-Under How people join, choose one: Off, for a program people simply come to; Not open yet, to start sign-ups on a date you choose; Open; or Closed. How this appears to visitors says in a sentence what a visitor will see. Read it before you save.
+**Step 6. Teachers and teams**
 
-Tip: **Capacity** is the most who can register. Once it's full, new sign-ups join the waiting list.
+Teachers and teams asks who teaches it, then which teams help at each session, such as greeters, and whether a team prepares, such as the kitchen.
 
-**Step 7. The questions**
+Tip: **Teams hear when you publish,** not before.
 
-Choose + Add Question, type it, and choose its kind: Short text, Long text, Yes / No, or Select. Under Asked by, choose who reads the answers: the registration team, the teacher, or one of the program's teams.
+[Drawing: Which teams help at each session? with the Greeter Team ticked.]
+
+**Step 7. How people join**
+
+Choose They just come, for a program people simply arrive at; They register first; or Both. If people register, it asks when registration opens and closes, and how many places.
+
+Tip: **Places:** once it's full, new sign-ups join the waiting list.
+
+[Drawing: How do people join? with They register first marked.]
+
+**Step 8. The questions**
+
+Add each question and choose its kind of answer. Under Asked by, choose who reads the answers: the registration team, the teacher, or a team that prepares.
 
 Tip: **Every answer** is read by the registration team too. People see the questions grouped by who is asking.
 
-**Step 8. The three emails**
+[Drawing: A question with Asked by marked.]
 
-Under Messages to those who register are the three emails, in the order people get them. When they register: the confirmation, for what to bring or directions. Before it begins: the reminder, usually 2 days before. After it ends: an optional note the morning after a one-time program.
+**Step 9. The three emails**
 
-**Step 9. Ready to be seen, then Save**
+Messages to those who register asks what the confirmation should say, when the reminder goes (usually 2 days before), and, for a one-time program, whether a note goes the day after.
 
-At the top, Ready to be seen marks anything that would keep the program from being seen or joined. Choose a line to go to its section. Then choose Save at the bottom of the screen. A new program says Created. It's saved.
+[Drawing: When should the reminder go? with Days before marked.]
 
-Tip: **Something missing?** The note beside Save says which section to look in, such as "Under When and where: …"
+**Step 10. Review, then Publish**
 
-**Step 10. Tell the people registered**
+At the end, everything is shown as sentences, each part with Change. When you publish says what publishing sets off: where it's listed, registration opening, the teams told. Choose Publish when it's right, or Keep it as a draft.
+
+Tip: **Something missing?** Publish waits, and says what's missing. Choose the line to go to its question.
+
+[Drawing: The review with When you publish and Publish marked.]
+
+**Step 11. Changing it later**
+
+A program's page shows each part in sentences, with Change. Change asks just that part's questions. At the end, Before you save says what the change will do, such as sessions that move or people who are told, before anything happens. Then choose Save this change.
+
+[Drawing: A program's page with Change marked beside When and where.]
+
+**Step 12. Before you save**
+
+Read what the change does. Save this change makes it; Back to the questions lets you change your answers; nothing happens until you save.
+
+[Drawing: Before you save, with Save this change marked.]
+
+**Step 13. Tell the people registered**
 
 If people have registered and you change the time, the place or the confirmation, they still have the old details. After you save, Tell the people registered? offers an email with the new details written in. Choose Send me a test, read it, then send it.
 
 Tip: **Not a registrar?** You'll be told the registration team needs to send it.
 
-**Step 11. Post a notice**
+[Drawing: Tell the people registered? with Send me a test marked.]
 
-For news people need right away, like "Cancelled tonight", choose Post a notice at the top. Type one line, choose Show until (the last day it shows), and choose Post the notice. It shows on the program's page, in the listings and on My Home.
+**Step 14. Post a notice**
+
+For news people need right away, like "Cancelled tonight", choose Post a notice on the program's page. Type one line, choose Show until (the last day it shows), and choose Post the notice. It shows on the program's page, in the listings and on My Home.
 
 Tip: **Registrars** can also email it to the people registered.
+
+[Drawing: The notice with Post the notice marked.]
 
 **If you need help**
 

@@ -2,8 +2,9 @@
  * For the Registration Team (2026-10-26, Jesse: "a Registration Team section
  * to the site's Tutorials, with the two tutorials drawn from the screens";
  * the wording read and approved the same day). Setting up a program draws the
- * program editor (components/registrar/ProgramEditor.tsx and its sections in
- * program-editor/, the start page app/tools/programs/new); Looking after the
+ * step-by-step setup and a program's page (redrawn 2026-10-28 when they
+ * replaced the one-page editor: components/programSetup/*, the start page
+ * app/tools/programs/new; wording provisional until Jesse's read-aloud); Looking after the
  * people draws the Registration app (app/tools/registration/*,
  * components/registration/*). The words on each screen are the app's own,
  * checked against those files on 2026-10-26. Sample names and a made-up
@@ -83,7 +84,7 @@ function shapesPage(device: Device) {
         <>
           <span className="tut-link">← Programs</span>
           <span className="tut-h1">What are you offering?</span>
-          <span className="tut-meta">Choose a shape to start from. Everything it fills in can be changed before you save.</span>
+          <span className="tut-meta">Choose a shape to start from. It fills in answers, and you&rsquo;ll still see each one as you go. Nothing is published until you say so.</span>
         </>
       )}
       <div className="tut-list">
@@ -119,171 +120,198 @@ function copyPage(device: Device) {
   ));
 }
 
-const SECTION_NAMES = ["About", "When and where", "Teachers and teams", "How people join", "Messages to those who register", "Dana", "Where it appears"];
 
-/** The editor: its header, then on a computer the section list beside the
- *  sections, on a phone Jump to above them. */
-function editor(
-  device: Device,
-  on: string,
-  body: ReactNode,
-  { navHl = false, overlay, top, scrolled = false, topOnly = false }: { navHl?: boolean; overlay?: ReactNode; top?: ReactNode; scrolled?: boolean; topOnly?: boolean } = {},
-) {
+/** The walk-through (2026-10-28): one question in a card, and the answers so
+ *  far beside it on a computer, folded above it on a phone. */
+function walk(device: Device, where: string, question: string, body: ReactNode, answers: [string, string[]][]) {
+  const card = (
+    <div className="tut-card">
+      <span className="tut-meta">{where}</span>
+      <span className="tut-h2">{question}</span>
+      {body}
+      <span className="tut-actions"><span className="tut-btn hl">Continue</span><span className="tut-link">← Back</span></span>
+    </div>
+  );
   const head = (
     <>
-      <span className="tut-week"><span className="tut-h1">Edit Program</span><span className="tut-link">View program page →</span></span>
-      {top}
+      <span className="tut-h1">{PROGRAM}</span>
+      <span className="tut-meta"><b>Draft</b> · Saved as you go. No one sees it, and no team is told, until you publish.</span>
     </>
   );
-  // A phone shows less at once: `scrolled` is the page scrolled down to its
-  // body, `topOnly` the top of the page alone.
   if (device === "phone") {
     return teamPage(device, "Program Manager", (
       <>
-        {!scrolled && head}
-        {!scrolled && !topOnly && (
-          <>
-            <span className="tut-label">Jump to</span>
-            <span className={cx("tut-input", navHl && "hl")}>{on} ▾</span>
-          </>
-        )}
-        {!topOnly && body}
+        {head}
+        <span className="tut-list__row"><span><b>Your answers so far</b></span><span>▾</span></span>
+        {card}
       </>
-    ), { overlay });
+    ));
   }
   return teamPage(device, "Program Manager", (
     <>
       {head}
-      <div className="tut-split">
+      <div className="tut-split tut-split--trail">
+        {card}
         <span className="tut-sections">
-          {SECTION_NAMES.map((s) => <span key={s} className={cx(s === on && "on", s === on && navHl && "hl")}>{s}</span>)}
+          <span className="on">Your answers so far</span>
+          {answers.map(([sec, items]) => (
+            <span key={sec}><b>{sec}</b>{items.map((x) => <small key={x} style={{ display: "block" }}>{x}</small>)}</span>
+          ))}
         </span>
-        <div className="tut-stack">{body}</div>
       </div>
     </>
-  ), { overlay });
+  ));
 }
 
-function section(title: string, children: ReactNode) {
+const SO_FAR: [string, string[]][] = [
+  ["About", [PROGRAM, "A day of practice in silence, together."]],
+  ["When and where", ["In person", "At RIM", "Once"]],
+];
+
+function firstQuestion(device: Device) {
+  return walk(device, "About · 1 of 4", "What is it called?", (
+    <>
+      <span className="tut-label">Name</span>
+      <span className="tut-input hl">{PROGRAM}</span>
+      <span className="tut-meta">Its address: rootedinmindfulness.org/programs/autumn-day-of-mindfulness</span>
+    </>
+  ), [["About", ["You're here"]]]);
+}
+
+function whenQuestion(device: Device) {
+  const days = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"];
+  return walk(device, "When and where · 6 of 8", "When is the first session?", (
+    <>
+      <span className="tut-label">First session · November 2026</span>
+      <span className="tut-pills">
+        {days.map((d) => <span key={d} className={cx(d === "14" && "on hl", !["7", "14"].includes(d) && "tut-dim")}>{d}</span>)}
+      </span>
+      <span className="tut-meta">Only the days it meets can be chosen: Saturdays.</span>
+      <span className="tut-hostbox"><b>What you&rsquo;ve set up</b>Saturday, November 14, 9:30 AM to 4 PM.</span>
+    </>
+  ), SO_FAR);
+}
+
+function teamsQuestion(device: Device) {
+  return walk(device, "Teachers and teams · 3 of 4", "Which teams help at each session?", (
+    <>
+      <span className="tut-check hl"><span className="tut-check__box">✓</span>Greeter Team</span>
+      <span className="tut-check"><span className="tut-check__box"></span>Audio-Visual Team</span>
+      <span className="tut-meta">Each team hears about it when you publish, not before.</span>
+    </>
+  ), [...SO_FAR, ["Teachers and teams", ["Pat L."]]]);
+}
+
+function joinQuestion(device: Device) {
+  return walk(device, "How people join · 1 of 4", "How do people join?", (
+    <>
+      <span className="tut-choice"><b>They just come</b><small>Anyone signed in may join, with no sign-up.</small></span>
+      <span className="tut-choice tut-choice--on hl"><b>They register first</b><small>Each person signs up and gets a place.</small></span>
+      <span className="tut-choice"><b>Both</b><small>People can register, and anyone signed in may also just come.</small></span>
+    </>
+  ), [...SO_FAR, ["Teachers and teams", ["Pat L.", "Greeter Team"]]]);
+}
+
+function questionsQuestion(device: Device) {
+  return walk(device, "How people join · 4 of 4", "What would you like to ask them?", (
+    <>
+      <div className="tut-card">
+        <span className="tut-label">Question 1</span>
+        <span className="tut-input">Any dietary needs?</span>
+        <span className="tut-label">Asked by</span>
+        <span className="tut-input hl">The Kitchen Team ▾</span>
+      </div>
+      <span className="tut-link">+ Add a question</span>
+    </>
+  ), [...SO_FAR, ["How people join", ["They register first", "20 places"]]]);
+}
+
+function reminderQuestion(device: Device) {
+  return walk(device, "Messages to those who register · 2 of 3", "When should the reminder go?", (
+    <>
+      <span className="tut-choice tut-choice--on hl"><b>Days before the first session</b><small>In the morning, and to anyone who registers later.</small></span>
+      <span className="tut-choice"><b>On a set date</b></span>
+      <span className="tut-choice"><b>No reminder</b></span>
+      <span className="tut-input tut-input--short">2</span>
+    </>
+  ), [...SO_FAR, ["Messages to those who register", ["Confirmation written"]]]);
+}
+
+function setupCard(title: string, lines: string[], hl = false) {
   return (
     <div className="tut-card">
-      <span className="tut-h2">{title}</span>
-      {children}
+      <span className="tut-week"><span className="tut-h2">{title}</span><span className={cx("tut-link", hl && "hl")}>Change</span></span>
+      {lines.map((l) => <span key={l} className="tut-meta">{l}</span>)}
     </div>
   );
 }
 
-function aboutSection() {
-  return section("About", (
+function reviewPage(device: Device) {
+  return teamPage(device, "Program Manager", (
     <>
-      <span className="tut-label">Name</span>
-      <span className="tut-input">{PROGRAM}</span>
-      <span className="tut-label">Tagline</span>
-      <span className="tut-input">A day of practice in silence, together.</span>
-    </>
-  ));
-}
-
-function teachersSection() {
-  return section("Teachers and teams", (
-    <>
-      <span className="tut-label">Teacher / Facilitators</span>
-      <span className="tut-input">Search teachers by name…</span>
-      <span className="tut-pill">Pat L. ×</span>
-      <span className="tut-label">Supporting teams</span>
-      <span className="tut-check hl"><span className="tut-check__box">✓</span>Greeter Team</span>
-      <span className="tut-label">Teams that prepare</span>
-      <span className="tut-check"><span className="tut-check__box">✓</span>Kitchen Team</span>
-    </>
-  ));
-}
-
-function joinSection() {
-  return section("How people join", (
-    <>
-      <span className="tut-hostbox"><b>How this appears to visitors</b>Registration is open. Visitors see a Register button. Once it&rsquo;s full, new sign-ups join the waiting list.</span>
-      <span className="tut-label">Registration</span>
-      <span className="tut-pills">
-        <span>Off</span><span>Not open yet</span><span className="on hl">Open</span><span>Closed</span>
-      </span>
-      <span className="tut-meta">Visitors get a registration form.</span>
-      <span className="tut-label">Capacity</span>
-      <span className="tut-input tut-input--short">20</span>
-    </>
-  ));
-}
-
-function questionsSection() {
-  return section("How people join", (
-    <>
-      <span className="tut-label">Custom Questions</span>
+      <span className="tut-h1">{PROGRAM}</span>
+      <span className="tut-meta"><b>Draft</b> · here&rsquo;s everything, as people will see it.</span>
+      {device === "computer" && setupCard("About", [`It's called ${PROGRAM}.`, "The description is written, with a picture."])}
+      {setupCard("When and where", ["In person at RIM.", "Saturday, November 14, 9:30 AM to 4 PM."])}
       <div className="tut-card">
-        <span className="tut-input">Any dietary needs?</span>
-        <span className="tut-input tut-input--short">Short text ▾</span>
-        <span className="tut-label">Asked by</span>
-        <span className="tut-input hl">The Kitchen Team ▾</span>
+        <span className="tut-h2">When you publish</span>
+        <span className="tut-meta">It appears on Programs &amp; Events under Immersion, and on This Week.</span>
+        <span className="tut-meta">Registration opens.</span>
+        <span className="tut-meta">The Greeter Team is told, and can sign up for sessions.</span>
+        <span className="tut-actions"><span className="tut-btn hl">Publish</span><span className="tut-link">Keep it as a draft</span></span>
       </div>
-      <span className="tut-link">+ Add Question</span>
     </>
   ));
 }
 
-function messagesSection() {
-  return section("Messages to those who register", (
+function setupProgramPage(device: Device) {
+  return teamPage(device, "Program Manager", (
     <>
-      <span className="tut-label">When they register</span>
-      <span className="tut-area">What to bring, how to prepare…</span>
-      <span className="tut-label">Before it begins</span>
-      <span className="tut-pills"><span className="on hl">Days before</span><span>On a set date</span><span>No reminder</span></span>
-      <span className="tut-input tut-input--short">2</span>
-      <span className="tut-label">After it ends</span>
-      <span className="tut-check"><span className="tut-check__box">✓</span>Send a note the day after</span>
+      <span className="tut-link">← Programs</span>
+      <span className="tut-h1">{PROGRAM}</span>
+      <span className="tut-meta"><b>Published</b> · on Programs &amp; Events and This Week · 12 people registered</span>
+      <span className="tut-actions"><span className="tut-link">View its page ↗</span><span className="tut-link">People</span><span className="tut-link">Post a notice</span></span>
+      {setupCard("When and where", ["In person at RIM.", "Saturday, November 14, 9:30 AM to 4 PM."], true)}
+      {device === "computer" && setupCard("Teachers and teams", ["Taught by Pat L.", "The Greeter Team helps at each session."])}
     </>
   ));
 }
 
-function readyAndSave(device: Device) {
-  return editor(device, "Where it appears", (
+function beforeYouSave(device: Device) {
+  return teamPage(device, "Program Manager", (
     <>
-      {section("Where it appears", (
-        <>
-          <span className="tut-label">Category</span>
-          <span className="tut-input">Immersion ▾</span>
-        </>
-      ))}
-      <span className="tut-actions"><span className="tut-btn hl">Save</span><span className="tut-link">Cancel</span></span>
-      <span className="tut-saved"><b>Created. It&rsquo;s saved.</b></span>
+      <span className="tut-h1">Before you save</span>
+      <span className="tut-meta">Here&rsquo;s what this change does. Nothing has happened yet.</span>
+      <div className="tut-card">
+        <span className="tut-h2">What this changes</span>
+        <span className="tut-meta">Every session&rsquo;s time changes, from 9:30 AM to 4 PM to 10 AM to 4 PM.</span>
+        <span className="tut-meta">The 12 people registered haven&rsquo;t heard about the change to the time. After you save, you&rsquo;ll be offered an update to send them.</span>
+        <span className="tut-actions"><span className="tut-btn hl">Save this change</span><span className="tut-link">Back to the questions</span></span>
+      </div>
     </>
-  ), {
-    top: (
-      <span className="tut-card">
-        <span className="tut-label">Ready to be seen</span>
-        <span className="tut-meta">✓ About: the name and description are in.</span>
-        <span className="tut-meta">✓ How people join: registration is open; 20 places.</span>
-      </span>
-    ),
-  });
+  ));
 }
 
 function updatePanel(device: Device) {
-  return editor(device, "When and where", (
+  return teamPage(device, "Program Manager", (
     <>
-      <span className="tut-actions"><span className="tut-btn">Save</span><span className="tut-meta">Saved at 2:14 PM. The people registered haven&rsquo;t heard: see below.</span></span>
+      <span className="tut-h1">{PROGRAM}</span>
+      <span className="tut-saved"><b>Saved at 2:14 PM.</b></span>
       <div className="tut-card">
         <span className="tut-h2">Tell the people registered?</span>
         <span className="tut-meta">You changed the time. The 12 people registered still have it as it was. Here&rsquo;s an update to send them; change it as you like.</span>
         <span className="tut-label">Subject</span>
         <span className="tut-input">A change to {PROGRAM}</span>
-        <span className="tut-area">There&rsquo;s a change to {PROGRAM}. When: November 14, 2026, 9:30 AM–4:00 PM CT</span>
         <span className="tut-actions"><span className="tut-btn">Send to the 12 people registered</span><span className="tut-link hl">Send me a test</span><span className="tut-link">Not now</span></span>
       </div>
     </>
-  ), { scrolled: true });
+  ));
 }
 
 function noticePanel(device: Device) {
-  return editor(device, "About", null, {
-    top: (
+  return teamPage(device, "Program Manager", (
+    <>
+      <span className="tut-h1">{PROGRAM}</span>
       <div className="tut-card">
         <span className="tut-label">Notice</span>
         <span className="tut-input">Cancelled tonight.</span>
@@ -292,64 +320,80 @@ function noticePanel(device: Device) {
         <span className="tut-check"><span className="tut-check__box">✓</span>Also email the 12 people registered</span>
         <span className="tut-actions"><span className="tut-btn hl">Post the notice</span><span className="tut-link">Close</span></span>
       </div>
-    ),
-    topOnly: true,
-  });
+    </>
+  ));
 }
 
 const settingUpSteps: TutorialStep[] = [
   {
     title: "Open Programs",
-    words: "In the Registration Team's space, open the ☰ beside the team's name and choose Program Manager. It opens on every program. Edit opens one to change it, and People opens the same program in Registration.",
-    computer: { words: "In the Registration Team's space, choose Program Manager on the left. It opens on every program. Edit opens one to change it, and People opens the same program in Registration." },
+    words: "In the Registration Team's space, open the ☰ beside the team's name and choose Program Manager. It opens on every program. Choose a program's name to open its page, and People to see the people in Registration.",
+    computer: { words: "In the Registration Team's space, choose Program Manager on the left. It opens on every program. Choose a program's name to open its page, and People to see the people in Registration." },
     alt: "The team's menu with Program Manager marked, over the list of programs.",
   },
   {
     title: "Start a new program",
-    words: "Choose + Add Program. The page asks What are you offering? Choose the one closest to yours: a drop-in, a class, a course, a workshop, a day of mindfulness or a retreat. Each fills in sensible starting settings. Nothing is saved until you choose Save.",
-    tip: { lead: "Not sure?", text: "Choose Start with a blank program and fill in everything yourself." },
+    words: "Choose + Add Program. The page asks What are you offering? Choose the one closest to yours: a drop-in, a class, a course, a workshop, a day of mindfulness or a retreat. It fills in sensible answers and walks you through each one.",
+    tip: { lead: "Not sure?", text: "Choose Start with a blank program and answer everything yourself." },
     alt: "What are you offering? with Day of mindfulness marked.",
   },
   {
     title: "Or copy one",
-    words: "Under Or copy a program, choose a past program and choose Copy. It's the easiest way to set up next year's retreat. A copy keeps the words, the questions, the teachers, the teams, dana and the settings.",
-    tip: { lead: "Never copied:", text: "the people who registered, the dates, the notice and the guest link. Set new dates before you save." },
+    words: "Under Or copy a program, choose a past program. It's the easiest way to set up next year's retreat. A copy keeps the words, the questions, the teachers, the teams, dana and the settings, and asks for the new dates.",
+    tip: { lead: "Never copied:", text: "the people who registered, the dates, the notice and the guest link." },
     alt: "Or copy a program, with a past retreat marked.",
   },
   {
-    title: "One page, seven sections",
-    words: "A program is one page in seven sections, in the order you'd decide them: About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, and Where it appears. Choose Jump to at the top to go straight to one.",
-    computer: { words: "A program is one page in seven sections, in the order you'd decide them: About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, and Where it appears. The list of sections sits beside the page; choose one to go straight to it." },
-    alt: "The program's page with the way to its sections marked.",
+    title: "One question at a time",
+    words: "It asks one question at a time, in seven parts: About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, and Where it appears. Answer and choose Continue. ← Back goes to the one before. Your answers so far fold above the question: tap it to see them, and tap any answer to go back to it.",
+    computer: { words: "It asks one question at a time, in seven parts: About, When and where, Teachers and teams, How people join, Messages to those who register, Dana, and Where it appears. Answer and choose Continue. ← Back goes to the one before. Your answers so far sit beside the question: choose any answer to go back to it." },
+    tip: { lead: "It's a draft.", text: "It's saved as you go, so you can stop and come back. No one sees it until you publish." },
+    alt: "The first question, What is it called?, with Continue marked.",
+  },
+  {
+    title: "When it meets",
+    words: "When and where asks how often it meets, which days, and what time, with the length shown. Then the first session: only the days it meets can be chosen. For a series, it asks how it ends and lists every session.",
+    tip: { lead: "Changed your mind?", text: "Go back and change it. What still fits is kept; anything that needs choosing again is marked." },
+    alt: "The first session's calendar with only Saturdays to choose, and Saturday, November 14 marked.",
   },
   {
     title: "Teachers and teams",
-    words: "Under Teachers and teams, search for the teacher by name. Then tick the teams that help. The hosting team runs the live session. Supporting teams, such as greeters or AV, help on the day. Teams that prepare, such as a kitchen team, help ahead of time.",
-    tip: { lead: "Ticked teams hear when you save.", text: "Leave the teams off until the program is real." },
-    alt: "Teachers and teams with the Greeter Team ticked.",
+    words: "Teachers and teams asks who teaches it, then which teams help at each session, such as greeters, and whether a team prepares, such as the kitchen.",
+    tip: { lead: "Teams hear when you publish,", text: "not before." },
+    alt: "Which teams help at each session? with the Greeter Team ticked.",
   },
   {
-    title: "Registration: off, not open yet, open or closed",
-    words: "Under How people join, choose one: Off, for a program people simply come to; Not open yet, to start sign-ups on a date you choose; Open; or Closed. How this appears to visitors says in a sentence what a visitor will see. Read it before you save.",
-    tip: { lead: "Capacity", text: "is the most who can register. Once it's full, new sign-ups join the waiting list." },
-    alt: "The four registration choices with Open marked.",
+    title: "How people join",
+    words: "Choose They just come, for a program people simply arrive at; They register first; or Both. If people register, it asks when registration opens and closes, and how many places.",
+    tip: { lead: "Places:", text: "once it's full, new sign-ups join the waiting list." },
+    alt: "How do people join? with They register first marked.",
   },
   {
     title: "The questions",
-    words: "Choose + Add Question, type it, and choose its kind: Short text, Long text, Yes / No, or Select. Under Asked by, choose who reads the answers: the registration team, the teacher, or one of the program's teams.",
+    words: "Add each question and choose its kind of answer. Under Asked by, choose who reads the answers: the registration team, the teacher, or a team that prepares.",
     tip: { lead: "Every answer", text: "is read by the registration team too. People see the questions grouped by who is asking." },
     alt: "A question with Asked by marked.",
   },
   {
     title: "The three emails",
-    words: "Under Messages to those who register are the three emails, in the order people get them. When they register: the confirmation, for what to bring or directions. Before it begins: the reminder, usually 2 days before. After it ends: an optional note the morning after a one-time program.",
-    alt: "Messages to those who register, with its three emails.",
+    words: "Messages to those who register asks what the confirmation should say, when the reminder goes (usually 2 days before), and, for a one-time program, whether a note goes the day after.",
+    alt: "When should the reminder go? with Days before marked.",
   },
   {
-    title: "Ready to be seen, then Save",
-    words: "At the top, Ready to be seen marks anything that would keep the program from being seen or joined. Choose a line to go to its section. Then choose Save at the bottom of the screen. A new program says Created. It's saved.",
-    tip: { lead: "Something missing?", text: "The note beside Save says which section to look in, such as \"Under When and where: …\"" },
-    alt: "Ready to be seen at the top, and Save marked.",
+    title: "Review, then Publish",
+    words: "At the end, everything is shown as sentences, each part with Change. When you publish says what publishing sets off: where it's listed, registration opening, the teams told. Choose Publish when it's right, or Keep it as a draft.",
+    tip: { lead: "Something missing?", text: "Publish waits, and says what's missing. Choose the line to go to its question." },
+    alt: "The review with When you publish and Publish marked.",
+  },
+  {
+    title: "Changing it later",
+    words: "A program's page shows each part in sentences, with Change. Change asks just that part's questions. At the end, Before you save says what the change will do, such as sessions that move or people who are told, before anything happens. Then choose Save this change.",
+    alt: "A program's page with Change marked beside When and where.",
+  },
+  {
+    title: "Before you save",
+    words: "Read what the change does. Save this change makes it; Back to the questions lets you change your answers; nothing happens until you save.",
+    alt: "Before you save, with Save this change marked.",
   },
   {
     title: "Tell the people registered",
@@ -359,7 +403,7 @@ const settingUpSteps: TutorialStep[] = [
   },
   {
     title: "Post a notice",
-    words: "For news people need right away, like \"Cancelled tonight\", choose Post a notice at the top. Type one line, choose Show until (the last day it shows), and choose Post the notice. It shows on the program's page, in the listings and on My Home.",
+    words: "For news people need right away, like \"Cancelled tonight\", choose Post a notice on the program's page. Type one line, choose Show until (the last day it shows), and choose Post the notice. It shows on the program's page, in the listings and on My Home.",
     tip: { lead: "Registrars", text: "can also email it to the people registered." },
     alt: "The notice with Post the notice marked.",
   },
@@ -370,12 +414,15 @@ function settingUpScreens(device: Device) {
     programsList(device),
     shapesPage(device),
     copyPage(device),
-    editor(device, "About", aboutSection(), { navHl: true }),
-    editor(device, "Teachers and teams", teachersSection()),
-    editor(device, "How people join", joinSection()),
-    editor(device, "How people join", questionsSection()),
-    editor(device, "Messages to those who register", messagesSection()),
-    readyAndSave(device),
+    firstQuestion(device),
+    whenQuestion(device),
+    teamsQuestion(device),
+    joinQuestion(device),
+    questionsQuestion(device),
+    reminderQuestion(device),
+    reviewPage(device),
+    setupProgramPage(device),
+    beforeYouSave(device),
     updatePanel(device),
     noticePanel(device),
   ];
@@ -697,7 +744,7 @@ export const REGISTRATION_TUTORIALS: Tutorial[] = [
     slug: "setting-up-a-program",
     title: "Setting up a program",
     forWhom: "For the Registration Team",
-    summary: "Starting a program from a shape or a copy, the seven sections, registration and the questions, the three emails, saving, and telling people about a change.",
+    summary: "Starting a program from a shape or a copy, one question at a time, when it meets, registration and the questions, the three emails, the review and Publish, changing it later, and telling people about a change.",
     nextTutorial: "looking-after-the-people",
     steps: settingUpSteps,
     screens: { phone: settingUpScreens("phone"), computer: settingUpScreens("computer") },

@@ -23603,6 +23603,9 @@ html { scroll-padding-top: 88px; }
 /* The Registration Team's drawings (2026-10-26): the program editor's section
    list beside its sections, and a short box. */
 .tut-split { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+/* The step-by-step setup (2026-10-28): the question, with the answers so far beside it. */
+.tut-split--trail { grid-template-columns: minmax(0, 1fr) 200px; }
+.tut-split--trail .tut-sections small { color: var(--rim-text-soft); font-weight: 400; }
 .tut-sections { display: flex; flex-direction: column; gap: 2px; }
 .tut-sections span { padding: 8px 12px; border-radius: 8px; color: var(--rim-text-soft); font-size: var(--text-app-meta); }
 .tut-sections .on { background: var(--rim-surface); color: var(--rim-blue); font-weight: 600; }

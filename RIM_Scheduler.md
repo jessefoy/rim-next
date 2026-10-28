@@ -14,6 +14,10 @@ For broader hub rules see `RIM_Hub_Engineering.md`. For email rules see `RIM_Ema
 
 The steps of `POST /api/host/assignments`, `PATCH`/`DELETE /api/host/assignments/[id]`, `POST /api/host/assignments/reassign`, `POST /api/host/sub-requests`, `PATCH /api/host/sub-requests/[id]` and `POST /api/host/sub-requests/[id]/claim` live in `lib/scheduleActions.ts` (`placeOnSession`, `changeAssignment`, `deleteAssignment`, `takeOverSession`, `askForCover`, `cancelCoverRequest`, `coverRequest`); the routes check sign-in and call them, and the RIM Guide calls the same functions (`lib/guideSchedule.ts`). **Change a step there, never in its route**, and if a step starts emailing someone new, update the guide's ask-first description in `lib/guideSchedule.ts` in the same commit. Rotations and resets are not offered through the guide.
 
+## Words on the Rotations screens (2026-10-28)
+
+From the RIM Guide's volunteer review: the Rotations screens and the staffing page say "team", never "hub" ("No team is scheduling this program yet."; Reset reads "Only this team's sessions and rotations are affected. Other teams' stay as they are."); "rotation", not "rotation rule" or "standing rotation"; in the conflict dialog "someone covering (kept)", "put on by hand", and "someone who took the session themselves" in place of "sub-cover (protected)", "manually assigned" and "self-assigned"; no em-dashes in sentences or menu choices ("Choose a person"; "The same person as every week" / "No one: skip 5th weeks"; empty table cells keep a dash); and an error never reads as code ("save failed", "HTTP 500"): each says what didn't happen and to try again. Wording provisional until Jesse's read-aloud. **Still Jesse's call:** whether "Reset this team" (every session and rotation on the team, past and future) stays with the team's leads or moves to admins only.
+
 ## What it is
 
 The Scheduler is the team tool for managing live session coverage. Every hub that hosts programs has its own scoped view of the Scheduler — host-team sees host-team programs, peer-led-silent-meditation sees peer-led-silent-meditation programs.

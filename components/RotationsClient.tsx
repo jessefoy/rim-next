@@ -386,7 +386,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const freed   = data.released ?? 0;
       if (removed > 0 || freed > 0) {
         const parts: string[] = [];
-        if (removed > 0) parts.push(`${removed} rotation rule${removed === 1 ? "" : "s"} removed`);
+        if (removed > 0) parts.push(`${removed} rotation${removed === 1 ? "" : "s"} removed`);
         if (freed > 0)   parts.push(`${freed} upcoming session${freed === 1 ? "" : "s"} freed`);
         showToast(`Done · ${parts.join(" · ")}`);
       } else {
@@ -418,7 +418,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || "set end date failed");
+        throw new Error(body?.error || "The end date wasn't set. Please try again.");
       }
       const data = await res.json().catch(() => ({ removed: 0 }));
       const removed = data.removed ?? 0;
@@ -477,7 +477,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       // eslint-disable-next-line no-console
       console.log("[reset] response body", data);
       if (!res.ok) {
-        const msg = (data && (data.error || data.message)) || `HTTP ${res.status} ${res.statusText}`;
+        const msg = (data && (data.error || data.message)) || "Something went wrong on the site. Please try again.";
         throw new Error(msg);
       }
       const aCount = data?.deletedAssignments ?? 0;
@@ -485,7 +485,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const program = programs.find((p) => p.slug === slug);
       const programName = program?.name ?? slug;
       const teamLabel = ` (${teamName})`;
-      const summary = `Reset · ${programName}${teamLabel} · ${rCount} rotation rule${rCount === 1 ? "" : "s"} and ${aCount} upcoming session${aCount === 1 ? "" : "s"} removed`;
+      const summary = `Reset · ${programName}${teamLabel} · ${rCount} rotation${rCount === 1 ? "" : "s"} and ${aCount} upcoming session${aCount === 1 ? "" : "s"} removed`;
       showToast(summary);
       // Inline result at the click point — survives until next reset attempt.
       setProgResetResult({ slug, kind: "ok", message: summary });
@@ -540,7 +540,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || "clear failed");
+        throw new Error(body?.error || "The sessions weren't cleared. Please try again.");
       }
       const data = await res.json();
       const aCount = data.deletedAssignments ?? 0;
@@ -552,7 +552,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const teamLabel = teamName;
       const summary = mode === "soft"
         ? `Cleared upcoming schedule in ${teamLabel} · ${aCount} session${aCount === 1 ? "" : "s"} removed`
-        : `Reset ${teamLabel} · ${aCount} assignment${aCount === 1 ? "" : "s"} and ${rCount} rotation rule${rCount === 1 ? "" : "s"} removed`;
+        : `Reset ${teamLabel} · ${aCount} session${aCount === 1 ? "" : "s"} and ${rCount} rotation${rCount === 1 ? "" : "s"} removed`;
       showToast(summary);
       setClearConfirm(null);
       // Refresh both: rotations grid (in case rotations were ended) and
@@ -704,7 +704,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       });
       if (!saveRes.ok) {
         const errBody = await saveRes.json().catch(() => null);
-        throw new Error(errBody?.error || "save failed");
+        throw new Error(errBody?.error || "The rotation wasn't saved. Please try again.");
       }
       const data = await saveRes.json();
       const filled        = data.filled        ?? 0;
@@ -957,8 +957,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
 
                           <div className="hs-rot__end-date-section">
                             <p className="hs-rot__end-date-label">
-                              End {DAY_LABEL[d]}&rsquo;s rotation on a specific date — sessions
-                              up to and including that date stay scheduled
+                              End {DAY_LABEL[d]}&rsquo;s rotation on a date. Sessions
+                              up to and including that date stay scheduled.
                             </p>
                             <div className="hs-rot__end-date-row">
                               <input
@@ -983,7 +983,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                           <button className="hs-rot__end-opt hs-rot__end-opt--release" onClick={() => handleEnd(program.slug, d, true)} disabled={saving || releasing || settingEndDate}>
                             <strong>Reset {DAY_LABEL[d]}&rsquo;s rotation.</strong>
                             <span>
-                              Deletes the {DAY_LABEL[d]} rotation rule and clears upcoming
+                              Deletes the {DAY_LABEL[d]} rotation and clears upcoming
                               {" "}{DAY_LABEL[d]}s from everyone&rsquo;s schedule. Other days for
                               {" "}{program.name} are untouched. Past sessions stay on the
                               record. Each person affected is emailed.
@@ -1092,7 +1092,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                     <div className="hs-rot__prog-danger-confirm">
                       <p className="hs-rot__prog-danger-q">
                         <strong>Reset rotations for {program.name}?</strong><br />
-                        Deletes <em>every</em> rotation rule for this program in
+                        Deletes <em>every</em> rotation for this program in
                         {" "}<strong>{teamName}</strong>, and removes
                         every upcoming session this program has in this team.
                         Other teams scheduling this program are unaffected.
@@ -1146,9 +1146,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
           <h3 className="hs-rot__danger-h">Reset</h3>
           <p className="hs-rot__danger-hint">
             For redoing this team&rsquo;s schedule from scratch during
-            setup or testing. Only this hub&rsquo;s assignments and
-            rotations are affected — other teams&rsquo; data stays
-            intact.
+            setup or testing. Only this team&rsquo;s sessions and
+            rotations are affected. Other teams&rsquo; stay as they are.
           </p>
 
           {clearConfirm === null ? (
@@ -1162,11 +1161,10 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
             <div className="hs-rot__danger-confirm">
               <p className="hs-rot__danger-q">
                 <strong>Reset everything for this team?</strong><br />
-                Deletes <em>every</em> assignment in this team (past and
-                future) AND deletes <em>every</em> standing rotation
-                rule in this hub. This hub&rsquo;s schedule and Rotations
-                grid become empty. Other hubs are unaffected. Cannot be
-                undone.
+                Deletes <em>every</em> session on this team&rsquo;s schedule
+                (past and future) and <em>every</em> rotation. The
+                team&rsquo;s schedule and its Rotations become empty. Other
+                teams aren&rsquo;t touched. This can&rsquo;t be undone.
               </p>
               <div className="hs-rot__danger-confirm-actions">
                 <button
@@ -1213,7 +1211,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
   const onRotation = new Set([...Object.values(form.hosts), form.fifthHost].filter(Boolean));
   const personOptions = (
     <>
-      <option value="">— pick a person —</option>
+      <option value="">Choose a person</option>
       {teamMembers.filter((m) => m.canCover !== false || onRotation.has(m.id)).map((m) => (
         <option key={m.id} value={m.id}>
           {m.displayName}{m.isCoordinator ? " ★" : ""}
@@ -1425,7 +1423,7 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
               value={form.fifthHost}
               onChange={(e) => setForm({ ...form, fifthHost: e.target.value })}
             >
-              <option value="">{form.pattern === "same" ? "— Same as every week —" : "— Skip 5th weeks —"}</option>
+              <option value="">{form.pattern === "same" ? "The same person as every week" : "No one: skip 5th weeks"}</option>
               {teamMembers.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.displayName}{m.isCoordinator ? " ★" : ""}

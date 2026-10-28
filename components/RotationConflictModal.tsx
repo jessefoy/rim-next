@@ -65,8 +65,8 @@ interface Props {
 const SOURCE_LABEL: Record<Conflict["source"], string> = {
   "standing-self":  "via this rotation",
   "standing-other": "via another rotation",
-  "manual":         "manually assigned",
-  "sub-cover":      "sub-cover (protected)",
+  "manual":         "put on by hand",
+  "sub-cover":      "someone covering (kept)",
 };
 
 /**
@@ -230,7 +230,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
                 )}
                 {preview.pastIgnored > 0 && (
                   <p className="hs-cmodal__summary-meta">
-                    {preview.pastIgnored} past session{preview.pastIgnored === 1 ? "" : "s"} ignored — past is never modified.
+                    {preview.pastIgnored} past session{preview.pastIgnored === 1 ? "" : "s"} left as they were. Past sessions never change.
                   </p>
                 )}
               </div>
@@ -266,7 +266,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
                       <p className="hs-cmodal__summary-meta">
                         {replaceable} can be replaced
                         {protectedCount > 0
-                          ? ` · ${protectedCount} protected (sub-cover or self-assigned) and kept unless you override them one by one`
+                          ? ` · ${protectedCount} kept (someone covering, or someone who took the session themselves) unless you change them one by one`
                           : ""}.
                       </p>
                     );
@@ -296,7 +296,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
                       />
                       <span className="hs-cmodal__mode-label">
                         <strong>Replace all</strong>
-                        <span className="hs-cmodal__mode-hint">Override every conflict. Sub-cover and manually self-assigned dates are protected — switch to one-by-one to override those.</span>
+                        <span className="hs-cmodal__mode-hint">Replace every conflict. Sessions someone is covering, or took themselves, are kept: choose one by one to change those.</span>
                       </span>
                     </label>
                     <label className={`hs-cmodal__mode${mode === "perDate" ? " hs-cmodal__mode--active" : ""}`}>
@@ -345,7 +345,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
                           ) : (
                             <span className="hs-cmodal__decision">
                               {c.protected
-                                ? "(protected — kept)"
+                                ? "(kept)"
                                 : decision === "replace"
                                   ? `→ ${c.proposedHost.displayName}`
                                   : "(keeping)"}
