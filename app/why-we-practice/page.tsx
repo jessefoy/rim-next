@@ -257,7 +257,7 @@ export default function WhyWePracticePage() {
               <br />
               to bring this wakefulness to as many moments as we can,
               <br />
-              and to heal, promote, and protect well-being&amp;nbsp;
+              and to heal, promote, and protect well-being
               <br />
               for ourselves, those we care about, and our shared world.
             </p>
