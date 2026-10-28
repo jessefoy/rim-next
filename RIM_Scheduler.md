@@ -10,6 +10,10 @@ For broader hub rules see `RIM_Hub_Engineering.md`. For email rules see `RIM_Ema
 
 **Buttons (2026-10-26):** a session's own action stays a filled button ("Yes, I can host this" and its team's words); "Enter room →", "Assign someone…", the Manage coverage choices, the Rotations actions and Cancel are quiet text with a 44px reach (they were outlined pills; Enter room was 40px). The rule: `RIM_Member_Area.md`, "The apps' buttons".
 
+## Shared with the RIM Guide (2026-10-28)
+
+The steps of `POST /api/host/assignments`, `PATCH`/`DELETE /api/host/assignments/[id]`, `POST /api/host/assignments/reassign`, `POST /api/host/sub-requests`, `PATCH /api/host/sub-requests/[id]` and `POST /api/host/sub-requests/[id]/claim` live in `lib/scheduleActions.ts` (`placeOnSession`, `changeAssignment`, `deleteAssignment`, `takeOverSession`, `askForCover`, `cancelCoverRequest`, `coverRequest`); the routes check sign-in and call them, and the RIM Guide calls the same functions (`lib/guideSchedule.ts`). **Change a step there, never in its route**, and if a step starts emailing someone new, update the guide's ask-first description in `lib/guideSchedule.ts` in the same commit. Rotations and resets are not offered through the guide.
+
 ## What it is
 
 The Scheduler is the team tool for managing live session coverage. Every hub that hosts programs has its own scoped view of the Scheduler — host-team sees host-team programs, peer-led-silent-meditation sees peer-led-silent-meditation programs.

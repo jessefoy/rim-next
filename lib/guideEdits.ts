@@ -31,7 +31,7 @@ import { isBlockNoteJSON } from "@/lib/renderRichContent";
  * (lib/contentChanges.ts). Called by app/api/guide-mcp/[key]/route.ts.
  */
 
-export type EditKind = Exclude<ContentKind, "page" | "registration">;
+export type EditKind = Exclude<ContentKind, "page" | "registration" | "schedule" | "conversation">;
 
 /** A change to one part, by finding words in it. */
 export type Replacement = { field: string; find: string; replace_with: string };
@@ -420,7 +420,7 @@ export async function editContent(
       ...(await programChangeEmails(Object.fromEntries(Object.keys(edits.body).map((f) => [f, editorFieldValue(before.data, f)])), edits.body)),
       ...(await scheduledEmails(before.p as unknown as Record<string, unknown> & { id: string; slug: string }, edits.body)),
     ];
-    const ask = emails.length ? confirmOrAsk(actor.id, "edit_content", { kind, item, changes, replace, version }, ["This change may send email.", ...emails], confirm) : null;
+    const ask = emails.length ? await confirmOrAsk(actor.id, "edit_content", { kind, item, changes, replace, version }, ["This change may send email.", ...emails], confirm) : null;
     if (ask) return ask;
     const result = await saveProgram(actor, found.slug, { ...edits.body, _base });
     if (result.status !== 200) return refused(result.status, result.body);
@@ -790,7 +790,7 @@ export async function startProgram(
   const payload = createPayload({ ...draft, ...edits.body }, name, slug);
   // Ask first when it would email anyone (2026-10-28).
   const emails = await newProgramEmails(payload);
-  const ask = emails.length ? confirmOrAsk(actor.id, "create_program", input, emails, input.confirm) : null;
+  const ask = emails.length ? await confirmOrAsk(actor.id, "create_program", input, emails, input.confirm) : null;
   if (ask) return ask;
   const result = await createProgram(actor, payload);
   if (result.status !== 201) return `Nothing was made. The editor said: ${typeof result.body.error === "string" ? result.body.error : `it couldn't save (${result.status}).`}`;

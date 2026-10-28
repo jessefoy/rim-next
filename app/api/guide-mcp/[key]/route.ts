@@ -27,6 +27,7 @@ import {
   viewerCan,
   type GuideViewer,
 } from "@/lib/guideData";
+import { conversationReply, conversationStart, coverAsk, coverCancel, coverTake, sessionAssign, sessionGiveUp, sessionTake, sessionTakeOver } from "@/lib/guideSchedule";
 import { registrationAdd, registrationChange, registrationMessage, registrationNote, registrationReminder, registrationRemove, registrationSettings } from "@/lib/guideRegistration";
 import { archiveProgram, canEditAny, changeWords, editContent, findWords, reachOf, readContent, startProgram, type Replacement } from "@/lib/guideEdits";
 
@@ -369,6 +370,81 @@ const REGISTRATION_ACTION_TOOLS: Tool[] = [
   },
 ];
 
+const TEAM_ARG = s("The team, by the name my_teams gives.");
+const DATE_ARG = s("The session's day, YYYY-MM-DD (Central time).");
+const ASKS = "Anything that would email someone other than the person you're helping asks first: the first call does nothing and says who would be emailed; only after their yes call again with the confirm text it gave.";
+
+/** For members of teams (lib/guideSchedule.ts): their own sessions and requests, and Conversations. */
+const TEAM_ACTION_TOOLS: Tool[] = [
+  {
+    name: "session_take",
+    title: "Take a session",
+    description: "Takes an open session on a team's schedule, or signs up on a team that signs up in numbers (the greeters), as the Scheduler does. Their confirmation is emailed to them. Show what you'll do and wait for their yes.",
+    inputSchema: obj({ team: TEAM_ARG, program: PROGRAM_ARG, date: DATE_ARG }, ["team", "program", "date"]),
+    annotations: WRITES,
+  },
+  {
+    name: "session_give_up",
+    title: "Give up a session",
+    description: `Takes the person off a session they can't make (or cancels their sign-up). A team lead can name someone to take them off. If that leaves the session with nobody within two weeks, the team is told it's open, as on the site. ${ASKS}`,
+    inputSchema: obj({ team: TEAM_ARG, program: PROGRAM_ARG, date: DATE_ARG, person: s("Optional, for a team lead: who to take off, by full name."), confirm: CONFIRM }, ["team", "program", "date"]),
+    annotations: WRITES,
+  },
+  {
+    name: "cover_ask",
+    title: "Ask the team to cover a session",
+    description: `Asks the team to cover the person's session, with an optional note, as the Scheduler's "Ask the team to cover" does (a lead can ask on someone's behalf by naming them). The team's members who can take it are emailed. ${ASKS}`,
+    inputSchema: obj({ team: TEAM_ARG, program: PROGRAM_ARG, date: DATE_ARG, note: s("Optional: a note for the team."), person: s("Optional, for a team lead: whose session, by full name."), confirm: CONFIRM }, ["team", "program", "date"]),
+    annotations: WRITES,
+  },
+  {
+    name: "cover_take",
+    title: "Cover someone's session",
+    description: `Covers a session someone asked the team to cover; the person who asked is emailed that it's covered. ${ASKS}`,
+    inputSchema: obj({ team: TEAM_ARG, program: PROGRAM_ARG, date: DATE_ARG, note: s("Optional: a note to the person who asked."), confirm: CONFIRM }, ["team", "program", "date"]),
+    annotations: WRITES,
+  },
+  {
+    name: "cover_cancel",
+    title: "Clear a cover request",
+    description: "Clears an open cover request (the person's own, or, for a lead, any on their team); the person stays on the session. Emails no one. Show what you'll do and wait for their yes.",
+    inputSchema: obj({ team: TEAM_ARG, program: PROGRAM_ARG, date: DATE_ARG }, ["team", "program", "date"]),
+    annotations: WRITES,
+  },
+  {
+    name: "conversation_start",
+    title: "Start a conversation in a team",
+    description: `Posts a new conversation in a team's Conversations, as the person, emailing the team's leads and anyone named in notify, by their choices. ${ASKS}`,
+    inputSchema: obj({ team: TEAM_ARG, title: s("Its title."), message: s("The message, as plain text (blank lines between paragraphs)."), notify: { type: "array", items: { type: "string" }, description: "Optional: team members to tell, by full name." }, confirm: CONFIRM }, ["team", "title", "message"]),
+    annotations: { ...WRITES, openWorldHint: true },
+  },
+  {
+    name: "conversation_reply",
+    title: "Reply in a team's conversation",
+    description: `Replies in a team's open conversation, found by its title, emailing those following it, by their choices. ${ASKS}`,
+    inputSchema: obj({ team: TEAM_ARG, conversation: s("Words from the conversation's title."), message: s("The reply, as plain text."), notify: { type: "array", items: { type: "string" }, description: "Optional: team members to add, by full name." }, confirm: CONFIRM }, ["team", "conversation", "message"]),
+    annotations: { ...WRITES, openWorldHint: true },
+  },
+];
+
+/** For team leads (their own team), Scheduling managers and admins, as on the site. */
+const LEAD_TOOLS: Tool[] = [
+  {
+    name: "session_assign",
+    title: "Put someone on a session",
+    description: `For a team lead: puts a member of their team on an open session, as the Scheduler's Assign does; they're emailed a confirmation. ${ASKS}`,
+    inputSchema: obj({ team: TEAM_ARG, program: PROGRAM_ARG, date: DATE_ARG, person: s("Who, by full name."), confirm: CONFIRM }, ["team", "program", "date", "person"]),
+    annotations: WRITES,
+  },
+  {
+    name: "session_take_over",
+    title: "Take a session over",
+    description: `For a team lead: takes a session over themselves, as the Scheduler's Reassign does; the person who had it is emailed. ${ASKS}`,
+    inputSchema: obj({ team: TEAM_ARG, program: PROGRAM_ARG, date: DATE_ARG, confirm: CONFIRM }, ["team", "program", "date"]),
+    annotations: WRITES,
+  },
+];
+
 /** Content editors only: the words written into the pages. */
 const PAGE_TOOLS: Tool[] = [
   {
@@ -393,8 +469,20 @@ const PAGE_TOOLS: Tool[] = [
   },
 ];
 
+/** Whether they're on a team (or see every team), and lead one, as the Scheduler decides. */
+async function teamReach(v: GuideViewer): Promise<{ member: boolean; lead: boolean }> {
+  const oversees = v.roles.includes("ADMIN") || v.roles.includes("HOST_MANAGER");
+  const sees = oversees || v.roles.includes("GUIDING_TEACHER");
+  const memberships = await db.hubMember.findMany({ where: { userId: v.userId, status: { in: ["ACTIVE", "PAUSED"] } }, select: { isCoordinator: true, status: true } });
+  return {
+    member: sees || memberships.length > 0,
+    lead: oversees || memberships.some((m) => m.isCoordinator && m.status === "ACTIVE"),
+  };
+}
+
 async function toolsFor(v: GuideViewer): Promise<Tool[]> {
   const reach = await reachOf({ id: v.userId, roles: v.roles });
+  const team = await teamReach(v);
   return [
     ...OPEN_TOOLS,
     ...((await viewerCan.programs(v)) ? PROGRAM_TOOLS : []),
@@ -405,6 +493,8 @@ async function toolsFor(v: GuideViewer): Promise<Tool[]> {
     ...(reach.programs || reach.contentEditor ? START_TOOLS : []),
     ...(reach.programManager ? ARCHIVE_TOOLS : []),
     ...(reach.contentEditor ? PAGE_TOOLS : []),
+    ...(team.member ? TEAM_ACTION_TOOLS : []),
+    ...(team.lead ? LEAD_TOOLS : []),
   ];
 }
 
@@ -414,10 +504,11 @@ const text = (t: string, isError = false) => ({ content: [{ type: "text", text: 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
 
-type Viewer = GuideViewer & { name: string };
+type Viewer = GuideViewer & { name: string; email: string };
 
 /** The person, as the guide acts for them. */
-const me = (v: Viewer) => ({ id: v.userId, roles: v.roles, name: v.name });
+const me = (v: Viewer) => ({ id: v.userId, roles: v.roles, name: v.name, email: v.email });
+const strs = (x: unknown) => (Array.isArray(x) ? x.map((y) => str(y)).filter(Boolean) : undefined);
 const obj2 = (x: unknown) => (x && typeof x === "object" && !Array.isArray(x) ? (x as Record<string, unknown>) : undefined);
 
 async function callTool(name: string, args: Record<string, unknown>, v: Viewer) {
@@ -508,6 +599,24 @@ async function callTool(name: string, args: Record<string, unknown>, v: Viewer) 
         places: args.places === undefined ? undefined : num(args.places) ?? null,
         mailingList: str(args.mailingList) || undefined,
       }));
+    case "session_take":
+      return text(await sessionTake(me(v), { team: str(args.team), program: str(args.program), date: str(args.date) }));
+    case "session_give_up":
+      return text(await sessionGiveUp(me(v), { team: str(args.team), program: str(args.program), date: str(args.date), person: str(args.person) || undefined, confirm: str(args.confirm) || undefined }));
+    case "session_assign":
+      return text(await sessionAssign(me(v), { team: str(args.team), program: str(args.program), date: str(args.date), person: str(args.person), confirm: str(args.confirm) || undefined }));
+    case "session_take_over":
+      return text(await sessionTakeOver(me(v), { team: str(args.team), program: str(args.program), date: str(args.date), confirm: str(args.confirm) || undefined }));
+    case "cover_ask":
+      return text(await coverAsk(me(v), { team: str(args.team), program: str(args.program), date: str(args.date), note: str(args.note) || undefined, person: str(args.person) || undefined, confirm: str(args.confirm) || undefined }));
+    case "cover_take":
+      return text(await coverTake(me(v), { team: str(args.team), program: str(args.program), date: str(args.date), note: str(args.note) || undefined, confirm: str(args.confirm) || undefined }));
+    case "cover_cancel":
+      return text(await coverCancel(me(v), { team: str(args.team), program: str(args.program), date: str(args.date) }));
+    case "conversation_start":
+      return text(await conversationStart(me(v), { team: str(args.team), title: str(args.title), message: str(args.message), notify: strs(args.notify), confirm: str(args.confirm) || undefined }));
+    case "conversation_reply":
+      return text(await conversationReply(me(v), { team: str(args.team), conversation: str(args.conversation), message: str(args.message), notify: strs(args.notify), confirm: str(args.confirm) || undefined }));
     case "find_page_words":
       return text(await findWords(str(args.words)));
     case "change_page_words": {
@@ -581,6 +690,7 @@ async function viewerFrom(request: NextRequest): Promise<Viewer | null> {
     firstName,
     // For the record of a change: who made it.
     name: `${firstName} ${user.lastName ?? ""}`.trim() || user.email,
+    email: user.email,
     roles: user.roles,
     sectionGrants: user.sectionGrants,
   };

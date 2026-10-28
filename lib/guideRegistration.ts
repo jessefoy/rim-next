@@ -1,5 +1,5 @@
 import "server-only";
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { accountForFormerEmail } from "@/lib/formerEmail";
 import { MESSAGE_MAX_PEOPLE } from "@/lib/programUpdate";
@@ -32,6 +32,9 @@ import {
  * back goes ahead, and only if the description, worked out again, is still the
  * same: if the last place filled or the address changed meanwhile, it asks
  * again (review, 2026-10-28: `confirm: true` could be sent on a first call).
+ * Each slip works once (review: a retried message posted twice on one yes):
+ * a used slip is kept, by hash, in guide_grants (kind "confirm") until it
+ * expires.
  */
 
 type Actor = SaveActor & { name: string };
@@ -63,7 +66,7 @@ function sign(key: Buffer, parts: unknown[]): string {
  * details and this exact description, and is fresh, so go ahead. Otherwise the
  * words to show the person, with a new slip for their yes.
  */
-export function confirmOrAsk(actorId: string, tool: string, inputs: Record<string, unknown>, what: string[], given?: string): string | null {
+export async function confirmOrAsk(actorId: string, tool: string, inputs: Record<string, unknown>, what: string[], given?: string): Promise<string | null> {
   const key = slipKey();
   if (!key) return "Nothing was done: the guide's confirmations aren't set up (AUTH_SECRET). Tell Jesse.";
   const parts = (exp: number) => [actorId, tool, canon(inputs), what, exp];
@@ -73,7 +76,24 @@ export function confirmOrAsk(actorId: string, tool: string, inputs: Record<strin
     if (Number.isFinite(exp) && exp > Date.now() && sig) {
       const a = Buffer.from(sig);
       const b = Buffer.from(sign(key, parts(exp)));
-      if (a.length === b.length && timingSafeEqual(a, b)) return null;
+      if (a.length === b.length && timingSafeEqual(a, b)) {
+        // Spend it: the unique hash means a second use finds it taken.
+        try {
+          await db.guideGrant.create({
+            data: {
+              kind: "confirm",
+              tokenHash: createHash("sha256").update(`confirm:${given}`).digest("hex"),
+              userId: actorId,
+              clientId: tool,
+              familyId: `confirm:${createHash("sha256").update(given).digest("hex").slice(0, 16)}`,
+              expiresAt: new Date(exp),
+            },
+          });
+          return null;
+        } catch {
+          return "Nothing was done again: that yes was already used, so this was done once already. Check the result before asking again.";
+        }
+      }
     }
   }
   const exp = Date.now() + SLIP_MS;
@@ -182,7 +202,7 @@ export async function registrationAdd(
       ? `This will register ${name} and email them (${sendTo}) their confirmation; the registrar's inbox is told too.`
       : `The program is full, so this will put ${name} on the waiting list and email them (${sendTo}) to say so; the registrar's inbox is told too.`);
   }
-  const ask = emails.length ? confirmOrAsk(actor.id, "registration_add", input, emails, input.confirm) : null;
+  const ask = emails.length ? await confirmOrAsk(actor.id, "registration_add", input, emails, input.confirm) : null;
   if (ask) return ask;
 
   const r = await addPerson(actor, program.slug, {
@@ -288,7 +308,7 @@ export async function registrationChange(
       after = "answers changed";
       break;
   }
-  const ask = emails.length ? confirmOrAsk(actor.id, "registration_change", input, emails, input.confirm) : null;
+  const ask = emails.length ? await confirmOrAsk(actor.id, "registration_change", input, emails, input.confirm) : null;
   if (ask) return ask;
 
   const r = await changeRegistration(actor, p.id, body);
@@ -306,7 +326,7 @@ export async function registrationRemove(actor: Actor, input: { program: string;
   if (typeof p === "string") return p;
   if (p.status !== "CANCELLED") return `Only a cancelled registration can be removed; ${nameOf(p)} is ${STATUS_WORDS[p.status] ?? p.status}. Cancel it first.`;
   // Can't be undone: asked first too, though it emails no one.
-  const ask = confirmOrAsk(actor.id, "registration_remove", input, [`This will remove ${nameOf(p)}'s cancelled registration for good, with its notes; it can't be undone. Its History stays. No one is emailed.`], input.confirm);
+  const ask = await confirmOrAsk(actor.id, "registration_remove", input, [`This will remove ${nameOf(p)}'s cancelled registration for good, with its notes; it can't be undone. Its History stays. No one is emailed.`], input.confirm);
   if (ask) return ask;
   const r = await deleteRegistration(actor, p.id);
   if (r.status !== 200) return `Nothing was done. ${said(r, "It couldn't be removed.")}`;
@@ -350,7 +370,7 @@ export async function registrationMessage(
   if (count > MESSAGE_MAX_PEOPLE) return `That's ${count} people, more than ${MESSAGE_MAX_PEOPLE} can be sent here. The program's Flodesk segment is for a group this size.`;
   const group = to === "registered" ? "registered" : to === "waiting" ? "on the waiting list" : "registered or on the waiting list";
   {
-    const ask = confirmOrAsk(actor.id, "message_people", input, [
+    const ask = await confirmOrAsk(actor.id, "message_people", input, [
       `This will email ${count} ${count === 1 ? "person" : "people"} ${group} for ${program.name}, one email each, with replies going to the registrar's inbox:`,
       `\nSubject: ${input.subject.trim()}\nMessage:\n${input.message.trim()}\n`,
       "A test copy to themselves first is offered with test: true.",
@@ -369,7 +389,7 @@ export async function registrationReminder(actor: Actor, input: { program: strin
   if (typeof program === "string") return program;
   const waiting = await db.registration.count({ where: { programSlug: program.slug, status: { in: ["REGISTERED", "APPROVED"] }, reminderSentAt: null } });
   if (waiting === 0) return "Everyone registered has had the reminder already.";
-  const ask = confirmOrAsk(actor.id, "send_reminder", input, [`This will email the program's reminder now to the ${waiting} ${waiting === 1 ? "person" : "people"} registered for ${program.name} who haven't had it.`], input.confirm);
+  const ask = await confirmOrAsk(actor.id, "send_reminder", input, [`This will email the program's reminder now to the ${waiting} ${waiting === 1 ? "person" : "people"} registered for ${program.name} who haven't had it.`], input.confirm);
   if (ask) return ask;
   const r = await sendReminderNow(actor, program.slug);
   if (r.status !== 200) return `Nothing was sent. ${said(r, "It couldn't be sent.")}`;

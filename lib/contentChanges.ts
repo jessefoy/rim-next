@@ -19,7 +19,7 @@ export const CONTENT_EDITOR = "CONTENT_EDITOR";
 /** Whether this person may change the site's content through the guide. */
 export const canEditContent = (roles: readonly string[] | null | undefined) => !!roles?.includes(CONTENT_EDITOR);
 
-export type ContentKind = "program" | "course" | "lesson" | "email" | "teacher" | "page" | "registration";
+export type ContentKind = "program" | "course" | "lesson" | "email" | "teacher" | "page" | "registration" | "schedule" | "conversation";
 
 export const CONTENT_KIND_LABEL: Record<ContentKind, string> = {
   program: "Program",
@@ -29,6 +29,8 @@ export const CONTENT_KIND_LABEL: Record<ContentKind, string> = {
   teacher: "Teacher page",
   page: "Page words",
   registration: "Registration",
+  schedule: "Schedule",
+  conversation: "Conversation",
 };
 
 /** How the email's subject names a change: "LoriLee changed the program Qigong". */
@@ -40,6 +42,8 @@ const KIND_PHRASE: Record<ContentKind, string> = {
   teacher: "the teacher page for",
   page: "the words on",
   registration: "the registration for",
+  schedule: "the schedule for",
+  conversation: "a conversation in",
 };
 
 /** One part that changed, as it was and as it is now (stored as given). */
