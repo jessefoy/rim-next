@@ -6,7 +6,7 @@ import {
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { emailLocationFor } from "@/lib/locations";
-import { buildDateLabel } from "@/lib/dateLabel";
+import { programDateWords } from "@/lib/dateLabel";
 import { addRegistrationToFlodesk } from "@/lib/flodesk";
 
 /**
@@ -94,16 +94,16 @@ export async function sendRegistrationConfirmation(
       resolvedLocationText = loc.emailText;
       resolvedLocationUrl = loc.emailLink;
 
-      // Prefer the program's cached display label; fall back to computing it.
-      resolvedDateText = program.dateText?.trim()
-        ? program.dateText
-        : buildDateLabel({
-            startDatetime: program.startDatetime?.toISOString() ?? null,
-            endDatetime: program.endDatetime?.toISOString() ?? null,
-            recurrenceFreq: program.recurrenceFreq,
-            recurrenceInterval: program.recurrenceInterval,
-            recurrenceDays: program.recurrenceDays,
-          });
+      // The program's date words (a series' span built fresh; lib/dateLabel.ts).
+      resolvedDateText = programDateWords(program.dateText, {
+        startDatetime: program.startDatetime?.toISOString() ?? null,
+        endDatetime: program.endDatetime?.toISOString() ?? null,
+        recurrenceFreq: program.recurrenceFreq,
+        recurrenceInterval: program.recurrenceInterval,
+        recurrenceDays: program.recurrenceDays,
+        recurrenceCount: program.recurrenceCount,
+        recurrenceUntil: program.recurrenceUntil,
+      });
 
       // Build calendar links only for confirmed (not waitlisted) registrations
       if (program.startDatetime && !isWaitlisted) {

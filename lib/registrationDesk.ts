@@ -8,7 +8,7 @@
  * and dana "not finished" is PENDING on a real registration.
  */
 
-import { buildDateLabel } from "@/lib/dateLabel";
+import { programDateWords } from "@/lib/dateLabel";
 import { hasConcludedOneTime } from "@/lib/programUtils";
 import { registrationWindow } from "@/lib/registrationWindow";
 import { nextReminderRun, reachesLateRegistrants, reminderSendsAt as scheduledSend } from "@/lib/reminderSchedule";
@@ -34,6 +34,8 @@ export interface DeskProgram {
   recurrenceFreq: string | null;
   recurrenceInterval: number | null;
   recurrenceDays: string[];
+  recurrenceCount: number | null;
+  recurrenceUntil: Date | null;
   registrationEnabled: boolean;
   registrationClosed: boolean;
   registrationCapacity: number | null;
@@ -59,14 +61,16 @@ export interface DeskNeed {
 
 /** "Nov 13 to 15", "Wednesdays", or null: the program's own date words. */
 export function programWhen(
-  p: Pick<DeskProgram, "dateText" | "startDatetime" | "endDatetime" | "recurrenceFreq" | "recurrenceInterval" | "recurrenceDays">,
+  p: Pick<DeskProgram, "dateText" | "startDatetime" | "endDatetime" | "recurrenceFreq" | "recurrenceInterval" | "recurrenceDays" | "recurrenceCount" | "recurrenceUntil">,
 ): string | null {
-  return p.dateText || buildDateLabel({
+  return programDateWords(p.dateText, {
     startDatetime: p.startDatetime?.toISOString() ?? null,
     endDatetime: p.endDatetime?.toISOString() ?? null,
     recurrenceFreq: p.recurrenceFreq,
     recurrenceInterval: p.recurrenceInterval,
     recurrenceDays: p.recurrenceDays,
+    recurrenceCount: p.recurrenceCount,
+    recurrenceUntil: p.recurrenceUntil,
   });
 }
 

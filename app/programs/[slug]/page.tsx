@@ -4,7 +4,7 @@ import { countPlacesTaken } from "@/lib/registrationPlaces";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
-import { buildDateLabel } from "@/lib/dateLabel";
+import { programDateWords } from "@/lib/dateLabel";
 import { activeAnnouncement } from "@/lib/scheduleUtils";
 import { fmtOpensAt, registrationWindow } from "@/lib/registrationWindow";
 import { joinOnlineLabel, meetingServiceName, onlinePhrase, outsideRoomUrl } from "@/lib/outsideMeeting";
@@ -145,15 +145,17 @@ export default async function ProgramDetailPage({
 
   // ── Schedule label (day/recurrence pattern, no time) ──
   const scheduleLabel = (() => {
-    // Manual override → use as-is
-    if (program.dateText) return program.dateText;
-    // Auto-generate from recurrence fields
-    const full = buildDateLabel({
+    // A one-time program's stored words, as they are.
+    if (program.dateText && !program.recurrenceFreq) return program.dateText;
+    // Built fresh: a series' span ("Thursdays, Dec 3 to 17"), or the label.
+    const full = programDateWords(program.dateText, {
       startDatetime: startIso,
       endDatetime: endIso,
       recurrenceFreq: program.recurrenceFreq,
       recurrenceInterval: program.recurrenceInterval,
       recurrenceDays: program.recurrenceDays,
+      recurrenceCount: program.recurrenceCount,
+      recurrenceUntil: program.recurrenceUntil,
     });
     if (!full) return null;
     // When showing time separately, strip the " · time" portion from auto-generated label

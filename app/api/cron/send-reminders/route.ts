@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendReminderEmail } from "@/lib/email";
 import { emailLocationFor } from "@/lib/locations";
-import { buildDateLabel } from "@/lib/dateLabel";
+import { programDateWords } from "@/lib/dateLabel";
 import { recordRegistrationEvent } from "@/lib/registrationEvents";
 import { reminderDueAt } from "@/lib/reminderSchedule";
 
@@ -69,12 +69,14 @@ export async function GET(req: NextRequest) {
           firstName:    reg.firstName,
           programTitle: reg.programTitle,
           programSlug:  reg.programSlug,
-          dateText:     program.dateText || buildDateLabel({
+          dateText:     programDateWords(program.dateText, {
             startDatetime: startIso,
             endDatetime: endIso,
             recurrenceFreq: program.recurrenceFreq,
             recurrenceInterval: program.recurrenceInterval,
             recurrenceDays: program.recurrenceDays,
+            recurrenceCount: program.recurrenceCount,
+            recurrenceUntil: program.recurrenceUntil,
           }),
           timeText: program.timeText,
           locationText: loc.emailText,

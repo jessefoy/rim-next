@@ -25,7 +25,7 @@ import { answersForNewRegistration, mergeAnswers, type QuestionLike } from "@/li
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { emailLocationFor } from "@/lib/locations";
-import { buildDateLabel } from "@/lib/dateLabel";
+import { programDateWords } from "@/lib/dateLabel";
 import { requiredDanaCents } from "@/lib/programUtils";
 import { centralToUtc } from "@/lib/timezone";
 import { MESSAGE_MAX_PEOPLE } from "@/lib/programUpdate";
@@ -290,12 +290,14 @@ export async function changeRegistration(actor: SaveActor, id: string, body: any
       firstName:    reg.firstName,
       programTitle: reg.programTitle,
       programSlug:  reg.programSlug,
-      dateText:     pgProgram?.dateText || buildDateLabel({
+      dateText:     programDateWords(pgProgram?.dateText, {
         startDatetime: startIso,
         endDatetime: endIso,
         recurrenceFreq: pgProgram?.recurrenceFreq ?? null,
         recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
         recurrenceDays: pgProgram?.recurrenceDays ?? null,
+        recurrenceCount: pgProgram?.recurrenceCount ?? null,
+        recurrenceUntil: pgProgram?.recurrenceUntil ?? null,
       }) || undefined,
       timeText: pgProgram?.timeText ?? null,
       locationText: loc.emailText,
@@ -381,12 +383,14 @@ export async function changeRegistration(actor: SaveActor, id: string, body: any
       programSlug:   reg.programSlug,
       status:        reg.status === "WAITLISTED" ? "WAITLISTED" : "REGISTERED",
       waitlistPosition: reg.waitlistPosition,
-      dateText:      pgProgram?.dateText || buildDateLabel({
+      dateText:      programDateWords(pgProgram?.dateText, {
         startDatetime: startIso,
         endDatetime: endIso,
         recurrenceFreq: pgProgram?.recurrenceFreq ?? null,
         recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
         recurrenceDays: pgProgram?.recurrenceDays ?? null,
+        recurrenceCount: pgProgram?.recurrenceCount ?? null,
+        recurrenceUntil: pgProgram?.recurrenceUntil ?? null,
       }) || undefined,
       locationText:  loc.emailText,
       locationUrl:   loc.emailLink,
@@ -762,12 +766,14 @@ export async function sendReminderNow(actor: SaveActor, slug: string): Promise<S
       firstName:    reg.firstName,
       programTitle: reg.programTitle,
       programSlug:  reg.programSlug,
-      dateText:     pgProgram?.dateText || buildDateLabel({
+      dateText:     programDateWords(pgProgram?.dateText, {
         startDatetime: startIso,
         endDatetime: endIso,
         recurrenceFreq: pgProgram?.recurrenceFreq ?? null,
         recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
         recurrenceDays: pgProgram?.recurrenceDays ?? null,
+        recurrenceCount: pgProgram?.recurrenceCount ?? null,
+        recurrenceUntil: pgProgram?.recurrenceUntil ?? null,
       }),
       timeText: pgProgram?.timeText ?? null,
       locationText: loc.emailText,

@@ -36,6 +36,8 @@ const PROGRAM_SELECT = {
   recurrenceFreq: true,
   recurrenceInterval: true,
   recurrenceDays: true,
+  recurrenceCount: true,
+  recurrenceUntil: true,
   registrationEnabled: true,
   registrationClosed: true,
   registrationCapacity: true,

@@ -1,4 +1,4 @@
-import { buildDateLabel, formatTimeRange } from "@/lib/dateLabel";
+import { buildDateLabel, formatTimeRange, programDateWords } from "@/lib/dateLabel";
 import { toCentralDatetime } from "@/lib/timezone";
 import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
 import { meetingServiceName } from "@/lib/outsideMeeting";
@@ -213,6 +213,8 @@ export function buildSubtitle(program: {
   recurrenceFreq: string | null;
   recurrenceInterval: number | null;
   recurrenceDays: string[];
+  recurrenceCount?: number | null;
+  recurrenceUntil?: Date | string | null;
 }): string | null {
   const fmt = fmtLabel(program.programFormat, program.outsideMeetingUrl);
 
@@ -228,8 +230,19 @@ export function buildSubtitle(program: {
       : program.endDatetime.toISOString()
     : null;
 
-  if (program.dateText) {
-    let label = program.dateText;
+  const dateParams = {
+    startDatetime,
+    endDatetime,
+    recurrenceFreq: program.recurrenceFreq,
+    recurrenceInterval: program.recurrenceInterval,
+    recurrenceDays: program.recurrenceDays,
+    recurrenceCount: program.recurrenceCount,
+    recurrenceUntil: program.recurrenceUntil,
+  };
+  // A repeating program's words are built fresh (its span); others keep theirs.
+  const dateWords = program.recurrenceFreq ? programDateWords(program.dateText, dateParams) : program.dateText;
+  if (dateWords) {
+    let label = dateWords;
     if (startDatetime) {
       const timeStr =
         program.timeText ||
@@ -239,13 +252,7 @@ export function buildSubtitle(program: {
     return `${label} | ${fmt}`;
   }
 
-  const autoLabel = buildDateLabel({
-    startDatetime,
-    endDatetime,
-    recurrenceFreq: program.recurrenceFreq,
-    recurrenceInterval: program.recurrenceInterval,
-    recurrenceDays: program.recurrenceDays,
-  });
+  const autoLabel = buildDateLabel(dateParams);
 
   if (autoLabel) return `${autoLabel} | ${fmt}`;
   return fmt || null;

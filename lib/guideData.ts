@@ -89,7 +89,7 @@ export async function findProgram(raw: string): Promise<{ slug: string } | strin
 
 const DESK_SELECT = {
   slug: true, name: true, dateText: true, startDatetime: true, endDatetime: true, recurrenceFreq: true,
-  recurrenceInterval: true, recurrenceDays: true, registrationEnabled: true, registrationClosed: true,
+  recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true, registrationEnabled: true, registrationClosed: true,
   registrationCapacity: true, registrationDeadline: true, registrationOpensAt: true, reminderDate: true,
   reminderDaysBefore: true, archivedAt: true,
 } as const;

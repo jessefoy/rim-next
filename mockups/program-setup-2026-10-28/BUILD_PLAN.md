@@ -100,7 +100,7 @@ Phases 1 to 4 are built and on `main`. Phase 4 as built: the Scheduler's words; 
 - A live trial: set up a private test program from each shape, change its schedule after publishing, and watch what the Scheduler, My Home and the emails do.
 - ~~"Reset this team": admins only, or as it is.~~ Ruled 2026-10-28: leads, the guiding teacher and admins; the guiding teacher now holds every lead power on the Scheduler.
 - **The Publish trial ran 2026-10-28 and passed:** a private, in-person test program ("Publish Trial Test") from the Workshop shape, published, its time changed (Before you save said only "Every session's time changes, from 7–8 PM CT to 6–7 PM CT."), archived. No emails, notifications or team events; every team's sessions and rotations unchanged. Found on the way:
-  - The public page of a series with an end reads only "Thursdays": no first or last date.
+  - ~~The public page of a series with an end reads only "Thursdays": no first or last date.~~ Fixed 2026-10-28: a repeating program's date words are built fresh (`programDateWords`, lib/dateLabel.ts): "Thursdays, Dec 3 to 17", or "Thursdays, from Dec 3" before an ongoing series begins, on its page, the cards, the confirmation and reminder emails, Registration and the guide.
   - Archive is only on the Programs list, not on a program's page (the mockup had both).
   - "On This Week" comes ticked for a Private program, which This Week never shows.
   - For the read-aloud: "Next, you'll say when it ends." still shows on the step that asks it; "Teachers can take host controls in Zoom" shows for an in-person program.

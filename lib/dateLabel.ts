@@ -5,6 +5,8 @@
  * datetime + recurrence fields; get back a string like:
  *   "Thursdays · 7–9pm CT"
  *   "Mondays & Wednesdays · 6:30–8pm CT"
+ *   "Thursdays, Dec 3 to 17 · 7–8pm CT" (a series with an end)
+ *   "Thursdays, from Dec 3 · 7–8pm CT" (an ongoing series not yet begun)
  *   "Saturday, June 14 · 10am–4pm CT"
  *   "Fri, Jun 13 – Sun, Jun 15 CT"
  *   "Monthly · 7–9pm CT"
@@ -12,7 +14,7 @@
  * Returns null if startDatetime is not set.
  */
 
-import { monthlyPatternPhrase } from "@/lib/scheduleUtils";
+import { ctDateStr, lastOccurrenceDate, monthlyPatternPhrase } from "@/lib/scheduleUtils";
 
 const TZ = "America/Chicago";
 
@@ -66,6 +68,45 @@ export interface DateLabelParams {
   recurrenceFreq?: string | null;
   recurrenceInterval?: number | null;
   recurrenceDays?: string[] | null;
+  /** How a series ends (2026-10-28): after a number of sessions, or on a
+   *  date (an ISO string or a Date). Without them a series reads as ongoing. */
+  recurrenceCount?: number | null;
+  recurrenceUntil?: string | Date | null;
+}
+
+/** "Dec 3" from "2026-12-03". */
+function shortDay(ymd: string, withYear = false): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC", month: "short", day: "numeric", ...(withYear ? { year: "numeric" } : {}),
+  }).format(new Date(Date.UTC(y, m - 1, d, 12)));
+}
+
+/**
+ * When a series runs (2026-10-28, the Publish trial: a three-week series read
+ * only "Thursdays"): "Dec 3 to 17" when it has an end, "from Dec 3" while its
+ * first session is still ahead, nothing for one that is already going on.
+ */
+function seriesSpan(p: DateLabelParams, start: Date): string | null {
+  const first = ctDateStr(start.toISOString());
+  const last = lastOccurrenceDate({
+    id: "", name: "", slug: "", programFormat: null,
+    startDatetime: start,
+    endDatetime: p.endDatetime ? new Date(p.endDatetime) : null,
+    recurrenceFreq: p.recurrenceFreq ?? null,
+    recurrenceInterval: p.recurrenceInterval ?? null,
+    recurrenceDays: p.recurrenceDays ?? [],
+    recurrenceCount: p.recurrenceCount ?? null,
+    recurrenceUntil: p.recurrenceUntil ? new Date(p.recurrenceUntil) : null,
+  });
+  if (last && last > first) {
+    const years = first.slice(0, 4) !== last.slice(0, 4);
+    const sameMonth = !years && first.slice(0, 7) === last.slice(0, 7);
+    const to = sameMonth ? String(Number(last.slice(8))) : shortDay(last, years);
+    return `${shortDay(first, years)} to ${to}`;
+  }
+  if (!last && first > ctDateStr(new Date().toISOString())) return `from ${shortDay(first)}`;
+  return null;
 }
 
 export function buildDateLabel(p: DateLabelParams): string | null {
@@ -95,7 +136,8 @@ export function buildDateLabel(p: DateLabelParams): string | null {
       prefix = `Every ${n} weeks on ${dayName}`;
     }
 
-    return `${prefix} · ${timeRange}`;
+    const span = seriesSpan(p, start);
+    return `${span ? `${prefix}, ${span}` : prefix} · ${timeRange}`;
   }
 
   // ── Daily ───────────────────────────────────────────────────────────────────
@@ -114,10 +156,12 @@ export function buildDateLabel(p: DateLabelParams): string | null {
     if (phrase) {
       const cap = phrase.charAt(0).toUpperCase() + phrase.slice(1);
       const base = n === 1 ? `${cap} of the month` : `Every ${n} months on the ${phrase}`;
-      return `${base} · ${timeRange}`;
+      const span = seriesSpan(p, start);
+      return `${span ? `${base}, ${span}` : base} · ${timeRange}`;
     }
     const prefix = n === 1 ? "Monthly" : `Every ${n} months`;
-    return `${prefix} · ${timeRange}`;
+    const span = seriesSpan(p, start);
+    return `${span ? `${prefix}, ${span}` : prefix} · ${timeRange}`;
   }
 
   // ── Single event ────────────────────────────────────────────────────────────
@@ -138,4 +182,19 @@ export function buildDateLabel(p: DateLabelParams): string | null {
   // Single-day: "Saturday, June 14 · 10am–4pm CT"
   const dateStr = fmt(start, { weekday: "long", month: "long", day: "numeric" });
   return `${dateStr} · ${timeRange}`;
+}
+
+/**
+ * A program's date words, without the time: "Thursdays, Dec 3 to 17",
+ * "Saturday, June 14". A repeating program's are built fresh each time, as
+ * "from Dec 3" depends on today; its stored dateText (the save's own
+ * "Thursdays", never anyone's wording) is only the fallback. Anything else
+ * keeps its stored words, as before.
+ */
+export function programDateWords(stored: string | null | undefined, p: DateLabelParams): string | null {
+  if (p.recurrenceFreq) {
+    const full = buildDateLabel(p);
+    if (full) return full.split(" · ")[0];
+  }
+  return stored?.trim() ? stored : buildDateLabel(p);
 }

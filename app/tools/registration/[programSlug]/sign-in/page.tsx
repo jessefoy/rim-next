@@ -34,7 +34,7 @@ export default async function SignInListPage({
     where: { slug: programSlug },
     select: {
       id: true, slug: true, name: true, dateText: true, startDatetime: true, endDatetime: true,
-      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true,
+      recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true, recurrenceUntil: true,
     },
   });
   if (!program) notFound();
