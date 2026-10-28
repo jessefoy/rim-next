@@ -1105,7 +1105,8 @@ model GuideGrant {
 /// lib/contentChanges.ts): who, when, what, and each part before and after.
 /// `kind`: "program" | "course" | "lesson" | "email" | "teacher" | "page".
 /// A page change is a commit to the site's code on GitHub (words only), with
-/// its address. Listed at /admin/content-changes; each one is emailed to Jesse.
+/// its address. Listed at /admin/content-changes; Jesse's daily email lists
+/// the ones that shape the site.
 model ContentChange {
   id        String   @id @default(cuid())
   userId    String
@@ -1116,9 +1117,16 @@ model ContentChange {
   itemHref  String?
   changes   Json // [{ label, before, after }]
   commitUrl String?
-  createdAt DateTime @default(now())
+  /// In Jesse's daily email (2026-10-28): changes that shape the site. False
+  /// for the everyday actions people do in the apps (sessions, cover requests,
+  /// conversations, Registration actions on a person), which stay in the list.
+  inDaily   Boolean   @default(true)
+  /// When the daily email that listed it went; null = not sent yet.
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([createdAt])
+  @@index([inDaily, sentAt])
   @@map("content_changes")
 }
 

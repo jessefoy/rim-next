@@ -220,7 +220,7 @@ const EDIT_TOOLS: Tool[] = [
   {
     name: "edit_content",
     title: "Change content",
-    description: "Changes a program, course, lesson, email or teacher page through its editor's own save, so it does exactly what saving in the editor does (a program's new name reaches its registrations, donations and Zoom meetings; a schedule change clears sessions on days it no longer meets). Give `replace` to change some words inside a part, or `changes` (with the version read_content gave) to set whole parts, by the names read_content shows. The sign-in emails can't be changed. Before calling it, show the person the change, before and after, and wait for their yes. A program change that may email teams or hosts asks first: the first call does nothing and says who may be emailed; only after their yes call again with the confirm text it gave. Every change is recorded and emailed to Jesse.",
+    description: "Changes a program, course, lesson, email or teacher page through its editor's own save, so it does exactly what saving in the editor does (a program's new name reaches its registrations, donations and Zoom meetings; a schedule change clears sessions on days it no longer meets). Give `replace` to change some words inside a part, or `changes` (with the version read_content gave) to set whole parts, by the names read_content shows. The sign-in emails can't be changed. Before calling it, show the person the change, before and after, and wait for their yes. A program change that may email teams or hosts asks first: the first call does nothing and says who may be emailed; only after their yes call again with the confirm text it gave. Every change is recorded, and listed in Jesse's email that evening.",
     inputSchema: obj(
       {
         kind: KIND,
@@ -245,7 +245,7 @@ const START_TOOLS: Tool[] = [
   {
     name: "create_program",
     title: "Start a new program",
-    description: `Starts a new program as the program editor does: blank, from a shape, or as a copy of another program, with any parts set at once (the names program_settings and read_content show; rich text is HTML). It goes through the editor's own create, so its team hears about it as from the editor. A category is required: offeringCategory, one of ${OFFERING_CATEGORIES.map((c) => `${c.code} (${c.label})`).join(", ")}; Dates and times are YYYY-MM-DDTHH:MM in Central time (startDatetime, endDatetime and the rest); teachers (teacherIds) are given by name. A shape sets the format (offeringFormat, one of ${OFFERING_FORMATS.map((f) => f.code).join(", ")}). Before calling it, show the person what you will make and wait for their yes. If it would email its teams, the first call does nothing and says who; only after their yes call again with the confirm text it gave. Afterwards read it back with program_settings and fill in the rest with edit_content. Every change is recorded and emailed to Jesse.`,
+    description: `Starts a new program as the program editor does: blank, from a shape, or as a copy of another program, with any parts set at once (the names program_settings and read_content show; rich text is HTML). It goes through the editor's own create, so its team hears about it as from the editor. A category is required: offeringCategory, one of ${OFFERING_CATEGORIES.map((c) => `${c.code} (${c.label})`).join(", ")}; Dates and times are YYYY-MM-DDTHH:MM in Central time (startDatetime, endDatetime and the rest); teachers (teacherIds) are given by name. A shape sets the format (offeringFormat, one of ${OFFERING_FORMATS.map((f) => f.code).join(", ")}). Before calling it, show the person what you will make and wait for their yes. If it would email its teams, the first call does nothing and says who; only after their yes call again with the confirm text it gave. Afterwards read it back with program_settings and fill in the rest with edit_content. Every change is recorded, and listed in Jesse's email that evening.`,
     inputSchema: obj(
       {
         name: s("The program's name."),
@@ -265,7 +265,7 @@ const ARCHIVE_TOOLS: Tool[] = [
   {
     name: "archive_program",
     title: "Archive or restore a program",
-    description: "Archives a program, or restores an archived one, as Programs' Archive does. Before calling it, say which program and wait for their yes. Recorded and emailed to Jesse.",
+    description: "Archives a program, or restores an archived one, as Programs' Archive does. Before calling it, say which program and wait for their yes. Recorded, and listed in Jesse's email that evening.",
     inputSchema: obj({ program: s("The program's name or web address."), restore: { type: "boolean", description: "True to restore an archived program." } }, ["program"]),
     annotations: WRITES,
   },
@@ -457,7 +457,7 @@ const PAGE_TOOLS: Tool[] = [
   {
     name: "change_page_words",
     title: "Change words on a page",
-    description: "Changes words written into the site's pages: one place, or many in one go (put every change the person agreed to in `changes`, so it is one change to the site and one approval). Words only: anything that would change a link, a style or the code is refused, and if any change can't be made, none is. Each find must be page words in one place in its file; include more of the words around it if not. Write new words as plain text: an entity such as &nbsp; is kept as written, and a space at the start or end is kept. It's on the site about two minutes later; then read it back with page_words. Before calling it, show the person every change, before and after, and wait for their yes. Every change is recorded and emailed to Jesse.",
+    description: "Changes words written into the site's pages: one place, or many in one go (put every change the person agreed to in `changes`, so it is one change to the site and one approval). Words only: anything that would change a link, a style or the code is refused, and if any change can't be made, none is. Each find must be page words in one place in its file; include more of the words around it if not. Write new words as plain text: an entity such as &nbsp; is kept as written, and a space at the start or end is kept. It's on the site about two minutes later; then read it back with page_words. Before calling it, show the person every change, before and after, and wait for their yes. Every change is recorded, and listed in Jesse's email that evening.",
     inputSchema: obj({
       changes: {
         type: "array",

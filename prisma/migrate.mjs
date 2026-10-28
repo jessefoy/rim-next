@@ -7463,6 +7463,63 @@ Rooted In Mindfulness
   ]);
   console.log("  ✔ Content editor role and content changes table ready.");
 
+  // Jesse's daily email of changes (2026-10-28): whether a change is in it,
+  // and when it went. Added once: the changes made before were each emailed
+  // as they happened, so they are marked sent and tonight's email doesn't
+  // repeat them. Additive; old code ignores both columns.
+  const hasDaily = await db.$queryRawUnsafe(
+    `SELECT 1 FROM information_schema.columns WHERE table_name = 'content_changes' AND column_name = 'sentAt'`,
+  );
+  if (hasDaily.length === 0) {
+    await db.$transaction([
+      db.$executeRawUnsafe(`ALTER TABLE "content_changes" ADD COLUMN IF NOT EXISTS "inDaily" BOOLEAN NOT NULL DEFAULT true`),
+      db.$executeRawUnsafe(`ALTER TABLE "content_changes" ADD COLUMN IF NOT EXISTS "sentAt" TIMESTAMP(3)`),
+      db.$executeRawUnsafe(`UPDATE "content_changes" SET "sentAt" = "createdAt" WHERE "sentAt" IS NULL`),
+      db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "content_changes_inDaily_sentAt_idx" ON "content_changes"("inDaily", "sentAt")`),
+    ]);
+    console.log("  ✔ Content changes: daily email columns added; earlier changes marked sent.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Seed: the daily email of changes made through the RIM Guide (2026-10-28,
+  // Jesse: "an email once a day"), sent each evening by
+  // /api/cron/content-changes-daily. It replaces content-changed, which no
+  // code sends now (its row stays in /admin/emails, unused). findUnique →
+  // create. Wording provisional until Jesse's read-aloud.
+  // ───────────────────────────────────────────────────────────────────────
+  try {
+    const existing = await db.emailTemplate.findUnique({ where: { slug: "content-changes-daily" } });
+    if (existing) {
+      console.log("  Email template content-changes-daily already exists, left alone.");
+    } else {
+      await db.emailTemplate.create({
+        data: {
+          slug: "content-changes-daily",
+          name: "Admin: the day's changes made through the RIM Guide",
+          description: "Sent to Jesse each evening when changes that shape the site were made through the RIM Guide that day (programs, courses, lessons, emails, teacher pages, page words, registration settings). Everyday actions (sessions, cover requests, conversations, Registration actions on a person) are left out; every change is listed under Content changes.",
+          subject: "{{summaryLine}}",
+          variables: ["summaryLine", "changesList", "historyUrl", "historyButton"],
+          helpText:
+            "{{summaryLine}} is \"3 changes made through the RIM Guide today\". {{changesList}} is each change in order: when, who, what, and a link to it (use triple braces {{{changesList}}}). {{historyUrl}} is the whole list.\n\n" +
+            "Available variables: {{summaryLine}}, {{changesList}}, {{historyUrl}}, {{historyButton}} (use triple braces {{{historyButton}}}).",
+          body: `{{summaryLine}}, in the order they were made:
+
+{{{changesList}}}
+
+{{{historyButton}}}
+
+Everything changed through the guide, the everyday actions too, is listed at {{historyUrl}}.`,
+          enabled: true,
+          group: "09-admin",
+          groupLabel: "Admin",
+        },
+      });
+      console.log("  ✔ Email template content-changes-daily created.");
+    }
+  } catch (err) {
+    console.error("  content-changes-daily seed failed:", err?.message ?? err);
+  }
+
   // ───────────────────────────────────────────────────────────────────────
   // Seed: a change made through the RIM Guide (2026-10-28), emailed to Jesse
   // after every change (lib/contentChanges.ts). findUnique → create. Wording

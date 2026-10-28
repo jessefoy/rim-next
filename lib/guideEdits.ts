@@ -15,8 +15,8 @@ import { nextReminderRun, nextRunAfter } from "@/lib/reminderSchedule";
 import { followUpDueAt } from "@/lib/followUp";
 import { centralToUtc } from "@/lib/timezone";
 import { saveCourse, saveEmailTemplate, saveLesson, saveTeacherProfile } from "@/lib/contentSaves";
-import { recordContentChange, type ChangedPart, type ContentKind } from "@/lib/contentChanges";
-import { changePageWords, findPageWords, NoGithubError, pageAddress, wordsPattern, type WordsChange } from "@/lib/pageWords";
+import { recordContentChange, RECORDED_DAILY, type ChangedPart, type ContentKind } from "@/lib/contentChanges";
+import { changePageWords, findPageWords, GithubKeyError, NoGithubError, pageAddress, wordsPattern, type WordsChange } from "@/lib/pageWords";
 import { findProgram } from "@/lib/guideData";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 
@@ -27,7 +27,7 @@ import { isBlockNoteJSON } from "@/lib/renderRichContent";
  * (lib/programSave.ts, lib/contentSaves.ts), so a change does exactly what the
  * button does. A Content editor may also change content in every editor (the
  * content parts, not who may see or reach things) and the words on the pages
- * (lib/pageWords.ts). Every change is recorded and emailed to Jesse
+ * (lib/pageWords.ts). Every change is recorded and listed in Jesse's daily email
  * (lib/contentChanges.ts). Called by app/api/guide-mcp/[key]/route.ts.
  */
 
@@ -521,13 +521,13 @@ export async function editContent(
   if (!parts.length) return "Saved, but nothing was different from before, so there was nothing to record.";
   const recorded = await keep({ userId: actor.id, userName: actor.name, kind: k, itemKey: key, itemLabel: label, itemHref: href, changes: parts });
   return [
-    `Saved: ${parts.map((p) => p.label.toLowerCase()).join(", ")} of ${label}. It's on the site now${href ? ` (${href})` : ""}${recorded ? ", and Jesse has been sent the change." : "."}`,
+    `Saved: ${parts.map((p) => p.label.toLowerCase()).join(", ")} of ${label}. It's on the site now${href ? ` (${href})` : ""}.${recorded ? RECORDED_DAILY : ""}`,
     ...(recorded ? [] : [NOT_RECORDED]),
     ...notes,
   ].join("\n");
 }
 
-const NOT_RECORDED = "The change was made, but its record didn't save, so Jesse hasn't been told. Tell him what changed.";
+const NOT_RECORDED = "The change was made, but its record didn't save, so it isn't in the Content changes list or Jesse's email. Tell him what changed.";
 
 /** Keep the change and tell Jesse; false if the record couldn't be written. */
 async function keep(input: Parameters<typeof recordContentChange>[0]): Promise<boolean> {
@@ -557,6 +557,7 @@ export async function changeWords(actor: Actor, changes: WordsChange[]): Promise
     r = await changePageWords(changes);
   } catch (e) {
     if (e instanceof NoGithubError) return "Changing page words isn't set up yet (the site needs its GitHub key). Nothing changed. Tell Jesse.";
+    if (e instanceof GithubKeyError) return "Nothing changed: the site's GitHub key no longer works (it may have expired). Tell Jesse it needs renewing (GITHUB_CONTENT_TOKEN in Vercel).";
     throw e;
   }
   if (!r.ok) return r.error;
@@ -572,7 +573,7 @@ export async function changeWords(actor: Actor, changes: WordsChange[]): Promise
     commitUrl: r.commitUrl,
   });
   return [
-    `Changed ${r.changes.length === 1 ? "it" : `all ${r.changes.length}`} in one go. The new words are on ${pages.join(", ")} in about two minutes, once the site has rebuilt${recorded ? ", and Jesse has been sent the change." : `. ${NOT_RECORDED}`}`,
+    `Changed ${r.changes.length === 1 ? "it" : `all ${r.changes.length}`} in one go. The new words are on ${pages.join(", ")} in about two minutes, once the site has rebuilt.${recorded ? RECORDED_DAILY : ` ${NOT_RECORDED}`}`,
     "Once it has rebuilt, read the page back with page_words to check it reads as intended.",
   ].join("\n");
 }
@@ -803,7 +804,7 @@ export async function startProgram(
   const recorded = await keep({ userId: actor.id, userName: actor.name, kind: "program", itemKey: made.slug, itemLabel: made.name, itemHref: `/tools/programs/${made.slug}/edit`, changes: parts });
   const conflicts = (result.body.seatConflicts as { message: string }[] | undefined) ?? [];
   return [
-    `Made ${made.name}, started from ${from}. Its address is /programs/${made.slug}; it opens in the editor at /tools/programs/${made.slug}/edit${recorded ? ", and Jesse has been sent the change." : "."}`,
+    `Made ${made.name}, started from ${from}. Its address is /programs/${made.slug}; it opens in the editor at /tools/programs/${made.slug}/edit.${recorded ? RECORDED_DAILY : ""}`,
     ...(recorded ? [] : [NOT_RECORDED]),
     ...(conflicts.length ? [`Zoom: ${conflicts.map((c) => c.message).join(" ")}`] : []),
     "Read it back with program_settings, and show them what's still to fill in (Ready to be seen in the editor lists what a program needs before it shows).",
@@ -829,5 +830,5 @@ export async function archiveProgram(actor: SaveActor & { name: string }, item: 
     itemHref: `/tools/programs/${found.slug}/edit`,
     changes: [{ label: "Archived", before: !archive, after: archive }],
   });
-  return `${p.name} is ${archive ? "archived (it can be restored)" : "restored"}${recorded ? ", and Jesse has been sent the change." : `. ${NOT_RECORDED}`}`;
+  return `${p.name} is ${archive ? "archived (it can be restored)" : "restored"}.${recorded ? RECORDED_DAILY : ` ${NOT_RECORDED}`}`;
 }

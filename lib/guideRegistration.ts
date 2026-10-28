@@ -6,7 +6,7 @@ import { MESSAGE_MAX_PEOPLE } from "@/lib/programUpdate";
 import type { SaveActor, SaveReply } from "@/lib/programSave";
 import { canUseRegistration } from "@/lib/toolAuth";
 import { countPlacesTaken } from "@/lib/registrationPlaces";
-import { recordContentChange, type ChangedPart } from "@/lib/contentChanges";
+import { recordContentChange, RECORDED_DAILY, RECORDED_ONLY, type ChangedPart } from "@/lib/contentChanges";
 import { findProgram } from "@/lib/guideData";
 import {
   addPerson,
@@ -105,7 +105,12 @@ export async function confirmOrAsk(actorId: string, tool: string, inputs: Record
 
 const said = (r: SaveReply, fallback: string) => (typeof r.body.error === "string" ? r.body.error : fallback);
 
-async function keep(actor: Actor, program: { slug: string; name: string }, parts: ChangedPart[]): Promise<string> {
+/**
+ * Keep the change. Actions on a person, messages and the reminder are the
+ * registrar's everyday work, so they stay in the list only; registration
+ * settings go in Jesse's daily email (Jesse, 2026-10-28).
+ */
+async function keep(actor: Actor, program: { slug: string; name: string }, parts: ChangedPart[], inDaily = false): Promise<string> {
   try {
     await recordContentChange({
       userId: actor.id,
@@ -115,11 +120,12 @@ async function keep(actor: Actor, program: { slug: string; name: string }, parts
       itemLabel: program.name,
       itemHref: `/tools/registration/${program.slug}`,
       changes: parts,
+      inDaily,
     });
-    return " It's in the program's History, and Jesse has been sent the change.";
+    return ` It's in the program's History.${inDaily ? RECORDED_DAILY : RECORDED_ONLY}`;
   } catch (e) {
     console.error("[guideRegistration] recording a change failed", e);
-    return " It's in the program's History. Its record for Jesse didn't save, so tell him what changed.";
+    return " It's in the program's History, but its Content changes record didn't save.";
   }
 }
 
@@ -438,6 +444,6 @@ export async function registrationSettings(
   const r = await saveRegistrationSettings(actor, program.slug, body);
   if (r.status !== 200) return `Nothing was saved. ${said(r, "It couldn't be saved.")}`;
   if (r.body.unchanged) return "That's how it is already, so nothing changed.";
-  const kept = await keep(actor, program, parts);
+  const kept = await keep(actor, program, parts, true);
   return `Saved for ${program.name}: ${parts.map((p) => `${p.label.toLowerCase()} ${String(p.after)}`).join("; ")}.${kept}`;
 }

@@ -8,7 +8,7 @@ import { ctDateStr } from "@/lib/scheduleUtils";
 import { ctDayBounds, fmtSessionDay } from "@/lib/timezone";
 import { teamCannotStaff } from "@/lib/programHub";
 import { COVERAGE_LOOKAHEAD_DAYS } from "@/lib/sessionWindowConstants";
-import { recordContentChange, type ChangedPart, type ContentKind } from "@/lib/contentChanges";
+import { recordContentChange, RECORDED_ONLY, type ChangedPart, type ContentKind } from "@/lib/contentChanges";
 import { findProgram } from "@/lib/guideData";
 import { confirmOrAsk } from "@/lib/guideRegistration";
 import {
@@ -44,11 +44,12 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 async function keep(actor: Actor, kind: ContentKind, hub: { slug: string; name: string }, href: string, parts: ChangedPart[]): Promise<string> {
   try {
-    await recordContentChange({ userId: actor.id, userName: actor.name, kind, itemKey: hub.slug, itemLabel: hub.name, itemHref: href, changes: parts });
-    return " Jesse has been sent the change.";
+    // Everyday team work: in the list, not Jesse's daily email (Jesse, 2026-10-28).
+    await recordContentChange({ userId: actor.id, userName: actor.name, kind, itemKey: hub.slug, itemLabel: hub.name, itemHref: href, changes: parts, inDaily: false });
+    return RECORDED_ONLY;
   } catch (e) {
     console.error("[guideSchedule] recording a change failed", e);
-    return " Its record for Jesse didn't save, so tell him what changed.";
+    return " Its Content changes record didn't save.";
   }
 }
 

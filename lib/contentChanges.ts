@@ -1,5 +1,4 @@
 import "server-only";
-import { after } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { emailButtonHtml, sendTemplatedEmail } from "@/lib/email";
@@ -10,8 +9,9 @@ import { plain } from "@/lib/guideData";
  * (2026-10-28, Jesse: "we should store the history, and I should be
  * notified"). Content editors (the CONTENT_EDITOR role, given by hand) need no
  * approval; each change is kept in content_changes, listed newest first at
- * /admin/content-changes with a page for each, and emailed to Jesse right
- * after it is made (the content-changed template).
+ * /admin/content-changes with a page for each. The ones that shape the site
+ * go in Jesse's email each evening (sendDailyChanges, the
+ * content-changes-daily template).
  */
 
 export const CONTENT_EDITOR = "CONTENT_EDITOR";
@@ -78,9 +78,10 @@ const when = new Intl.DateTimeFormat("en-US", {
 });
 
 /**
- * Keep a change and email Jesse about it. Called after the change is saved;
- * the record is written first, so a failed email still leaves it in the
- * history. Returns the change's id.
+ * Keep a change. `inDaily` (the default) puts it in Jesse's evening email
+ * of the day's changes (sendDailyChanges); the everyday actions people do in
+ * the apps pass false and stay in the list only (Jesse, 2026-10-28: "an email
+ * once a day, and we can skip the small changes"). Returns the change's id.
  */
 export async function recordContentChange(input: {
   userId: string;
@@ -91,6 +92,7 @@ export async function recordContentChange(input: {
   itemHref?: string | null;
   changes: ChangedPart[];
   commitUrl?: string | null;
+  inDaily?: boolean;
 }): Promise<string> {
   const row = await db.contentChange.create({
     data: {
@@ -102,36 +104,52 @@ export async function recordContentChange(input: {
       itemHref: input.itemHref ?? null,
       changes: input.changes.map((c) => ({ label: c.label, before: c.before ?? null, after: c.after ?? null })) as Prisma.InputJsonValue,
       commitUrl: input.commitUrl ?? null,
+      inDaily: input.inDaily !== false,
     },
   });
-
-  const changeUrl = `${BASE_URL}/admin/content-changes/${row.id}`;
-  const itemUrl = input.itemHref ? (input.itemHref.startsWith("http") ? input.itemHref : `${BASE_URL}${input.itemHref}`) : changeUrl;
-  // Each part in order: its name, then before and after as plain words.
-  const changesList = input.changes
-    .map(
-      (c) =>
-        `<p><strong>${escape(c.label)}</strong></p>` +
-        `<blockquote><p>Before: ${escape(clip(shownValue(c.before))).replace(/\n/g, "<br>")}</p>` +
-        `<p>After: ${escape(clip(shownValue(c.after))).replace(/\n/g, "<br>")}</p></blockquote>`,
-    )
-    .join("");
-  after(() =>
-    sendTemplatedEmail(
-      "content-changed",
-      notifyTo(),
-      {
-        editorName: input.userName,
-        itemLabel: `${KIND_PHRASE[input.kind]} ${input.itemLabel}`,
-        changedAt: when.format(row.createdAt),
-        changesList,
-        itemUrl,
-        changeUrl,
-        changeButton: emailButtonHtml("See this change", changeUrl),
-        historyUrl: `${BASE_URL}/admin/content-changes`,
-      },
-      { memberText: ["editorName", "itemLabel"] },
-    ),
-  );
   return row.id;
+}
+
+/** What a guide answer says about the record, so the person knows where it went. */
+export const RECORDED_DAILY = " It's in the Content changes list and on Jesse's email of today's changes.";
+export const RECORDED_ONLY = " It's in the Content changes list.";
+
+/**
+ * The evening email (the content-changes-daily template, from
+ * /api/cron/content-changes-daily): every change for the daily email not yet
+ * sent, in the order made. Marked sent only after the email is accepted, so a
+ * failed send is tried the next evening. Returns how many it listed.
+ */
+export async function sendDailyChanges(): Promise<number> {
+  const rows = await db.contentChange.findMany({
+    where: { inDaily: true, sentAt: null },
+    orderBy: { createdAt: "asc" },
+    take: 200,
+  });
+  if (!rows.length) return 0;
+  const changesList = rows
+    .map((r) => {
+      const parts = Array.isArray(r.changes) ? (r.changes as { label?: string }[]).map((p) => p.label).filter(Boolean) : [];
+      const url = `${BASE_URL}/admin/content-changes/${r.id}`;
+      return (
+        `<p><strong>${escape(when.format(r.createdAt))}</strong>: ${escape(r.userName)} changed ${escape(KIND_PHRASE[r.kind as ContentKind] ?? r.kind)} ${escape(r.itemLabel)}` +
+        `${parts.length ? ` (${escape(clip(parts.join(", "), 200))})` : ""}. <a href="${url}">See the change</a></p>`
+      );
+    })
+    .join("");
+  const historyUrl = `${BASE_URL}/admin/content-changes`;
+  await sendTemplatedEmail(
+    "content-changes-daily",
+    notifyTo(),
+    {
+      // "today", unless an evening was missed and older ones waited.
+      summaryLine: `${rows.length} ${rows.length === 1 ? "change" : "changes"} made through the RIM Guide ${Date.now() - rows[0].createdAt.getTime() < 26 * 60 * 60 * 1000 ? "today" : "since the last email"}`,
+      changesList,
+      historyUrl,
+      historyButton: emailButtonHtml("See every change", historyUrl),
+    },
+    { throwOnFailure: true },
+  );
+  await db.contentChange.updateMany({ where: { id: { in: rows.map((r) => r.id) } }, data: { sentAt: new Date() } });
+  return rows.length;
 }

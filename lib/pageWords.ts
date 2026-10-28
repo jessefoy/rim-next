@@ -308,6 +308,8 @@ async function github<T>(url: string, init: RequestInit = {}): Promise<{ status:
     },
     cache: "no-store",
   });
+  // The key refused (expired or revoked): say so, rather than "GitHub didn't answer".
+  if (res.status === 401) throw new GithubKeyError();
   const json = (await res.json().catch(() => ({}))) as T;
   return { status: res.status, json };
 }
@@ -316,6 +318,13 @@ export class NoGithubError extends Error {
   constructor() {
     super("GITHUB_CONTENT_TOKEN isn't set");
     this.name = "NoGithubError";
+  }
+}
+
+export class GithubKeyError extends Error {
+  constructor() {
+    super("GitHub refused GITHUB_CONTENT_TOKEN");
+    this.name = "GithubKeyError";
   }
 }
 
