@@ -323,3 +323,30 @@ export function resolveDanaCharge(
 
   return { ok: false, error: "This program doesn't take dana online." };
 }
+
+const DAYS_FROM_INDEX = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+
+/**
+ * Derive dayOfWeek array from recurrence or start date — never manually set.
+ * Shared by the program editor and the RIM Guide's create (2026-10-28).
+ */
+export function deriveDayOfWeek(freq: string, days: string[], start: string): string[] {
+  if (freq === "WEEKLY" && days.length > 0) return days;
+  if (freq === "DAILY") return DAYS_FROM_INDEX; // every day
+  if (start) {
+    const datePart = start.split("T")[0];
+    if (datePart) {
+      const [y, m, d] = datePart.split("-").map(Number);
+      return [DAYS_FROM_INDEX[new Date(y, m - 1, d).getDay()]];
+    }
+  }
+  return [];
+}
+
+/** A program's web address from its name, as the editor and the RIM Guide make it. */
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}

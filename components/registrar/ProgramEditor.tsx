@@ -47,6 +47,7 @@ import ReadyPanel from "./program-editor/ReadyPanel";
 import UpdatePanel, { type UpdateOffer } from "./program-editor/UpdatePanel";
 import { UPDATE_KINDS, type UpdateKind } from "@/lib/programUpdate";
 import { ASKED_BY_REGISTRATION, ASKED_BY_TEACHER, askedByTeam } from "@/lib/questionAskers";
+import { deriveDayOfWeek, slugify } from "@/lib/programUtils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -191,13 +192,6 @@ interface Props {
   copiedFrom?: string;
 }
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
 // ─── Schedule auto-generation helpers ────────────────────────────────────────
 
 const DAY_FULL: Record<string, string> = {
@@ -205,7 +199,6 @@ const DAY_FULL: Record<string, string> = {
   TH: "Thursdays", FR: "Fridays", SA: "Saturdays",
 };
 const DAY_ORDER = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
-const DAY_ABBR_FROM_INDEX = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
 /** Format CT calendar parts as "September 10, 2026" (withYear) or "September 10". */
 function fmtCalendarDate(y: number, m: number, d: number, withYear: boolean): string {
@@ -304,20 +297,6 @@ function computeDateText(start: string, freq: string, days: string[], interval: 
     return fmtDateRange({ y: sy, m: sm, d: sd }, { y: ey, m: em, d: ed });
   }
   return fmtCalendarDate(sy, sm, sd, true);
-}
-
-/** Derive dayOfWeek array from recurrence or start date — never manually set. */
-function deriveDayOfWeek(freq: string, days: string[], start: string): string[] {
-  if (freq === "WEEKLY" && days.length > 0) return days;
-  if (freq === "DAILY") return DAY_ABBR_FROM_INDEX; // every day
-  if (start) {
-    const datePart = start.split("T")[0];
-    if (datePart) {
-      const [y, m, d] = datePart.split("-").map(Number);
-      return [DAY_ABBR_FROM_INDEX[new Date(y, m - 1, d).getDay()]];
-    }
-  }
-  return [];
 }
 
 /** A stable empty list, so the memoized sections don't redraw. */

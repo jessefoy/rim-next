@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { OFFERING_CATEGORIES, OFFERING_FORMATS } from "@/lib/programOffering";
 import { db } from "@/lib/db";
 import { readAccess, SITE_ORIGIN } from "@/lib/guideAuth";
 import { keyMatches } from "@/lib/guideConnector";
@@ -26,8 +27,7 @@ import {
   viewerCan,
   type GuideViewer,
 } from "@/lib/guideData";
-import { canEditContent } from "@/lib/contentChanges";
-import { changeWords, editContent, findWords, readContent, type Replacement } from "@/lib/guideEdits";
+import { archiveProgram, canEditAny, changeWords, editContent, findWords, reachOf, readContent, startProgram, type Replacement } from "@/lib/guideEdits";
 
 /**
  * The RIM Guide connector (2026-10-27): a read-only remote MCP server that the
@@ -35,10 +35,11 @@ import { changeWords, editContent, findWords, readContent, type Replacement } fr
  * signs in with their own RIM account (lib/guideAuth.ts) and the guide reads
  * what they can read on the site: the guide's topics, the design docs, every
  * signed-in screen's words and code (lib/guideContent.ts), and RIM's data
- * through the site's own gates (lib/guideData.ts). Read-only, except for
- * Content editors (the CONTENT_EDITOR role, 2026-10-28): they also change the
- * site's content through the editors' own saves and the pages' words
- * (lib/guideEdits.ts), and each change is recorded and emailed to Jesse.
+ * through the site's own gates (lib/guideData.ts). It also acts for them
+ * (2026-10-28): what their account may do on the site, through the site's own
+ * steps, and for Content editors (CONTENT_EDITOR) content in every editor and
+ * the pages' words (lib/guideEdits.ts). Each change is recorded and emailed
+ * to Jesse.
  *
  * Added once by a workspace owner (Organization settings > Connectors > Add >
  * Custom > Web) at https://<site>/api/guide-mcp/<GUIDE_CONNECTOR_KEY>; each
@@ -199,7 +200,11 @@ const REGISTRY_TOOLS: Tool[] = [
 const WRITES = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
 const KIND = { type: "string", enum: ["program", "course", "lesson", "email", "teacher"], description: "What kind of thing." };
 
-/** Content editors only: change the site's content (lib/guideEdits.ts). */
+/**
+ * Acting for the person (lib/guideEdits.ts): read_content and edit_content
+ * for anyone who changes something on the site (Programs, the Course
+ * Manager, Admin) or is a Content editor; each kind as they may on the site.
+ */
 const EDIT_TOOLS: Tool[] = [
   {
     name: "read_content",
@@ -221,13 +226,47 @@ const EDIT_TOOLS: Tool[] = [
           description: "Words to change inside a part: each must appear exactly once in that part.",
           items: obj({ field: s("The part, such as \"description\" or \"tagline\"."), find: s("The words as they are now."), replace_with: s("The new words.") }, ["field", "find", "replace_with"]),
         },
-        changes: { type: "object", description: "Whole parts to set, by name: { \"tagline\": \"…\" }. Rich text is HTML. Values take the forms read_content shows. Needs version." },
+        changes: { type: "object", description: "Whole parts to set, by name: { \"tagline\": \"…\" }. Rich text is HTML. Values take the forms read_content shows (dates as YYYY-MM-DDTHH:MM, Central time; teachers by name). Needs version." },
         version: s("With changes: the version read_content gave, so nothing saved since is overwritten."),
       },
       ["kind", "item"],
     ),
     annotations: WRITES,
   },
+];
+
+/** For anyone who may start programs on the site (Programs), or a Content editor. */
+const START_TOOLS: Tool[] = [
+  {
+    name: "create_program",
+    title: "Start a new program",
+    description: `Starts a new program as the program editor does: blank, from a shape, or as a copy of another program, with any parts set at once (the names program_settings and read_content show; rich text is HTML). It goes through the editor's own create, so its team hears about it as from the editor. A category is required: offeringCategory, one of ${OFFERING_CATEGORIES.map((c) => `${c.code} (${c.label})`).join(", ")}; Dates and times are YYYY-MM-DDTHH:MM in Central time (startDatetime, endDatetime and the rest); teachers (teacherIds) are given by name. A shape sets the format (offeringFormat, one of ${OFFERING_FORMATS.map((f) => f.code).join(", ")}). Before calling it, show the person what you will make and wait for their yes; afterwards read it back with program_settings and fill in the rest with edit_content. Every change is recorded and emailed to Jesse.`,
+    inputSchema: obj(
+      {
+        name: s("The program's name."),
+        start: s("Optional: \"blank\" (the default), or a shape: DROP_IN, CLASS, COURSE, WORKSHOP, DAY_OF_MINDFULNESS or RETREAT."),
+        copy: s("Optional: a program's name or web address, to start as a copy of it (new dates are then needed)."),
+        changes: { type: "object", description: "Optional: parts to set at once, by name, such as { \"tagline\": \"…\", \"offeringCategory\": \"…\" }." },
+      },
+      ["name"],
+    ),
+    annotations: WRITES,
+  },
+];
+
+/** For the registrar, admins and the guiding teacher, as on the site. */
+const ARCHIVE_TOOLS: Tool[] = [
+  {
+    name: "archive_program",
+    title: "Archive or restore a program",
+    description: "Archives a program, or restores an archived one, as Programs' Archive does. Before calling it, say which program and wait for their yes. Recorded and emailed to Jesse.",
+    inputSchema: obj({ program: s("The program's name or web address."), restore: { type: "boolean", description: "True to restore an archived program." } }, ["program"]),
+    annotations: WRITES,
+  },
+];
+
+/** Content editors only: the words written into the pages. */
+const PAGE_TOOLS: Tool[] = [
   {
     name: "find_page_words",
     title: "Find words on the site's pages",
@@ -251,13 +290,17 @@ const EDIT_TOOLS: Tool[] = [
 ];
 
 async function toolsFor(v: GuideViewer): Promise<Tool[]> {
+  const reach = await reachOf({ id: v.userId, roles: v.roles });
   return [
     ...OPEN_TOOLS,
     ...((await viewerCan.programs(v)) ? PROGRAM_TOOLS : []),
     ...(viewerCan.registration(v) ? REGISTRATION_TOOLS : []),
     ...(viewerCan.emails(v) ? EMAIL_TOOLS : []),
     ...(viewerCan.registry(v) ? REGISTRY_TOOLS : []),
-    ...(canEditContent(v.roles) ? EDIT_TOOLS : []),
+    ...(canEditAny(reach) ? EDIT_TOOLS : []),
+    ...(reach.programs || reach.contentEditor ? START_TOOLS : []),
+    ...(reach.programManager ? ARCHIVE_TOOLS : []),
+    ...(reach.contentEditor ? PAGE_TOOLS : []),
   ];
 }
 
@@ -314,12 +357,18 @@ async function callTool(name: string, args: Record<string, unknown>, v: Viewer) 
     case "member_record":
       return text(await memberRecord(v, str(args.email)));
     case "read_content":
-      return text(await readContent(str(args.kind), str(args.item) || undefined, str(args.field) || undefined));
+      return text(await readContent({ id: v.userId, roles: v.roles }, str(args.kind), str(args.item) || undefined, str(args.field) || undefined));
     case "edit_content": {
       const changes = args.changes && typeof args.changes === "object" && !Array.isArray(args.changes) ? (args.changes as Record<string, unknown>) : undefined;
       const replace = Array.isArray(args.replace) ? (args.replace as Replacement[]) : undefined;
       return text(await editContent({ id: v.userId, roles: v.roles, name: v.name }, str(args.kind), str(args.item), changes, replace, str(args.version) || undefined));
     }
+    case "create_program": {
+      const changes = args.changes && typeof args.changes === "object" && !Array.isArray(args.changes) ? (args.changes as Record<string, unknown>) : undefined;
+      return text(await startProgram({ id: v.userId, roles: v.roles, name: v.name }, { name: str(args.name), start: str(args.start) || undefined, copy: str(args.copy) || undefined, changes }));
+    }
+    case "archive_program":
+      return text(await archiveProgram({ id: v.userId, roles: v.roles, name: v.name }, str(args.program), args.restore !== true));
     case "find_page_words":
       return text(await findWords(str(args.words)));
     case "change_page_words": {
@@ -349,7 +398,7 @@ async function answer(msg: RpcMessage, v: Viewer): Promise<object | null> {
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "rim-guide", title: "RIM Guide", version: "2.0.0" },
-        instructions: `How Rooted in Mindfulness's website and apps work and why, for RIM's volunteers, read as ${v.firstName || "the signed-in volunteer"} with what their account can see. Search the guide and design docs before answering; quote a screen's exact words with screen_words; read RIM's data with the program, registration, team and member tools. ${canEditContent(v.roles) ? "As a Content editor they may also change the site's content (edit_content, change_page_words): show each change before and after and wait for their yes." : "Read-only."}`,
+        instructions: `How Rooted in Mindfulness's website and apps work and why, for RIM's volunteers, read as ${v.firstName || "the signed-in volunteer"} with what their account can see. Search the guide and design docs before answering; quote a screen's exact words with screen_words; read RIM's data with the program, registration, team and member tools. The guide can also act for them, doing what their account may do on the site (and, for a Content editor, changing content and page words): show each change before and after and wait for their yes.`,
       });
     }
     case "ping":

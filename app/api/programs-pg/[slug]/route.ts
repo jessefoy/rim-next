@@ -9,7 +9,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { teardownProgramMeetings } from "@/lib/sessionMeeting";
 import { canUseProgramManager, canUsePrograms } from "@/lib/toolAuth";
-import { saveProgram } from "@/lib/programSave";
+import { saveProgram, setProgramArchived } from "@/lib/programSave";
 
 // Team-wide emails go one at a time after the response (sendEachPaced),
 // so the function needs room past the usual limit (2026-10-19).
@@ -56,21 +56,10 @@ export async function PATCH(
   const { slug } = await params;
   const body = await request.json();
 
-  // ── Archive / Restore actions ──
-  if (body.action === "archive") {
-    const updated = await db.program.update({
-      where: { slug },
-      data: { archivedAt: new Date() },
-    });
-    return NextResponse.json(updated);
-  }
-
-  if (body.action === "restore") {
-    const updated = await db.program.update({
-      where: { slug },
-      data: { archivedAt: null },
-    });
-    return NextResponse.json(updated);
+  // ── Archive / Restore actions ── (shared with the RIM Guide, lib/programSave.ts)
+  if (body.action === "archive" || body.action === "restore") {
+    const result = await setProgramArchived(slug, body.action === "archive");
+    return NextResponse.json(result.body, { status: result.status });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });

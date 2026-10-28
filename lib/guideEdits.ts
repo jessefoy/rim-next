@@ -2,7 +2,13 @@ import "server-only";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { EDITOR_FIELD_LABELS, EDITOR_PROGRAM_INCLUDE, editorFieldValue, programToEditorData } from "@/lib/programEditorData";
-import { saveProgram, type SaveActor } from "@/lib/programSave";
+import { createProgram, saveProgram, setProgramArchived, type SaveActor } from "@/lib/programSave";
+import { canUseProgramManager, canUsePrograms, canUseRegistration, hasToolAccess } from "@/lib/toolAuth";
+import { canEditContent } from "@/lib/contentChanges";
+import { copyForNew, freeSlug } from "@/lib/programCopy";
+import { isShapeCode, SHAPES, shapeStart } from "@/lib/programShapes";
+import { helpingTeams } from "@/lib/programHelpers";
+import { deriveDayOfWeek, slugify } from "@/lib/programUtils";
 import { saveCourse, saveEmailTemplate, saveLesson, saveTeacherProfile } from "@/lib/contentSaves";
 import { recordContentChange, type ChangedPart, type ContentKind } from "@/lib/contentChanges";
 import { changePageWords, findPageWords, NoGithubError, pageAddress, wordsPattern, type WordsChange } from "@/lib/pageWords";
@@ -10,13 +16,14 @@ import { findProgram } from "@/lib/guideData";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 
 /**
- * What a Content editor changes through the RIM Guide (2026-10-28): anything
- * the Programs, Course Manager, email and teacher-page editors save, through
- * those editors' own saves (lib/programSave.ts, lib/contentSaves.ts), so a
- * change does exactly what it does when made on the site; and the words on
- * any page (lib/pageWords.ts). No approval: each change is recorded and
- * emailed to Jesse (lib/contentChanges.ts). Called by
- * app/api/guide-mcp/[key]/route.ts only for the CONTENT_EDITOR role.
+ * What the RIM Guide changes for a person (2026-10-28). It acts as them
+ * (phase 1, Jesse: "an alternative interface for the whole RIM Next
+ * webapp"): what they may do on the site, through the site's own steps
+ * (lib/programSave.ts, lib/contentSaves.ts), so a change does exactly what the
+ * button does. A Content editor may also change content in every editor (the
+ * content parts, not who may see or reach things) and the words on the pages
+ * (lib/pageWords.ts). Every change is recorded and emailed to Jesse
+ * (lib/contentChanges.ts). Called by app/api/guide-mcp/[key]/route.ts.
  */
 
 export type EditKind = Exclude<ContentKind, "page">;
@@ -71,7 +78,10 @@ const RICH: Record<EditKind, string[]> = {
 };
 
 /** The parts that take a list; every other part takes words, a number, on/off or empty. */
-const LIST_PARTS = new Set(["recurrenceDays", "registrationFields", "lessonOrder", "resources"]);
+const LIST_PARTS = new Set([
+  "recurrenceDays", "registrationFields", "lessonOrder", "resources", "teacherIds", "coverageHubSlugs",
+  "helperTeams", "teacherFacilitators", "requiredRoles", "dayOfWeek",
+]);
 
 /** A short fingerprint of an item as read, so a whole-part change can't overwrite a newer save. */
 const versionOf = (v: unknown) => createHash("sha256").update(JSON.stringify(v ?? null)).digest("hex").slice(0, 10);
@@ -104,6 +114,52 @@ export const FIELDS: Record<EditKind, Record<string, string>> = {
   email: EMAIL_FIELDS,
   teacher: TEACHER_FIELDS,
 };
+
+/**
+ * Every part an editor sets, for someone who uses that editor on the site:
+ * the guide acts as them, so it may set what they may set there (the save
+ * still refuses what only the registration roles choose). The mailing list
+ * is set in Registration, not the editor.
+ */
+const FULL_FIELDS: Record<EditKind, Record<string, string>> = {
+  program: Object.fromEntries(
+    Object.entries(EDITOR_FIELD_LABELS)
+      .filter(([k]) => !["dateText", "timeText", "flodeskSync", "flodeskSegmentId"].includes(k))
+      .map(([k, v]) => [k, cap(v)]),
+  ),
+  course: { ...COURSE_FIELDS, allowSelfEnroll: "Self-enroll", isOnboarding: "Onboarding", requiredRoles: "The roles that may see it" },
+  lesson: { ...LESSON_FIELDS, accessLevel: "Who may open it", teacherIds: "The teachers" },
+  email: EMAIL_FIELDS,
+  teacher: TEACHER_FIELDS,
+};
+
+/** What this person may do on the site, read now. */
+export type Reach = { contentEditor: boolean; programs: boolean; programManager: boolean; learning: boolean; admin: boolean };
+
+export async function reachOf(actor: SaveActor): Promise<Reach> {
+  const roles = [...actor.roles];
+  return {
+    contentEditor: canEditContent(roles),
+    programs: await canUsePrograms(actor.id, roles),
+    programManager: canUseProgramManager(roles),
+    learning: await hasToolAccess(actor.id, roles, ["TEACHER"], "learning"),
+    admin: roles.includes("ADMIN"),
+  };
+}
+
+/**
+ * The parts this person may change of this kind: all of them where they use
+ * that editor on the site (Programs, the Course Manager, Admin for emails and
+ * teacher pages); a Content editor's content parts otherwise; none if neither.
+ */
+export function fieldsFor(kind: EditKind, r: Reach): Record<string, string> | null {
+  const onSite = kind === "program" ? r.programs : kind === "course" || kind === "lesson" ? r.learning : r.admin;
+  if (onSite) return FULL_FIELDS[kind];
+  return r.contentEditor ? FIELDS[kind] : null;
+}
+
+/** Whether this person may change anything through the guide's edit tool. */
+export const canEditAny = (r: Reach) => r.contentEditor || r.programs || r.learning || r.admin;
 
 // ─── Finding words inside a value ───────────────────────────────────────────
 
@@ -216,7 +272,10 @@ const lessonState = async (l: { id: string }) => ({ row: l, teachers: await less
 const versionLine = (v: string) => `\nVersion: ${v} (give it to edit_content when setting whole parts with changes).`;
 
 /** Items exactly as stored, so a change keeps everything it doesn't touch. */
-export async function readContent(kind: string, item?: string, field?: string): Promise<string> {
+export async function readContent(actor: SaveActor, kind: string, item?: string, field?: string): Promise<string> {
+  if (!["program", "course", "lesson", "email", "teacher"].includes(kind)) return "Read a program, course, lesson, email or teacher.";
+  const allowed = fieldsFor(kind as EditKind, await reachOf(actor));
+  if (!allowed) return "That isn't something your account changes on the site, so the guide reads it with the other tools instead.";
   switch (kind) {
     case "program": {
       if (!item) return "Which program? Use list_programs to find it.";
@@ -226,8 +285,8 @@ export async function readContent(kind: string, item?: string, field?: string): 
       if (!loaded) return "That program isn't there any more.";
       const { p, data } = loaded;
       const version = versionLine(versionOf(data));
-      if (!field || !owns(PROGRAM_FIELDS, field)) return `${p.name} (${p.slug}). Give one of these parts to read it exactly: ${Object.keys(PROGRAM_FIELDS).join(", ")}. program_settings shows them all as words.${version}`;
-      return `${p.name} (${p.slug}), ${PROGRAM_FIELDS[field].toLowerCase()} [${field}], exactly as stored (rich text is HTML):\n\n${show(editorFieldValue(data, field))}\n${version}`;
+      if (!field || !owns(allowed, field)) return `${p.name} (${p.slug}). Give one of these parts to read it exactly: ${Object.keys(allowed).join(", ")}. program_settings shows them all as words.${version}`;
+      return `${p.name} (${p.slug}), ${allowed[field].toLowerCase()} [${field}], exactly as stored (rich text is HTML):\n\n${show(editorFieldValue(data, field))}\n${version}`;
     }
     case "course": {
       if (!item) {
@@ -238,7 +297,7 @@ export async function readContent(kind: string, item?: string, field?: string): 
       if (typeof c === "string") return c;
       const state = await courseState(c);
       const titles = new Map((await db.lesson.findMany({ where: { id: { in: state.lessons.map((l) => l.id) } }, select: { id: true, slug: true, titleDisplayed: true } })).map((l) => [l.id, l]));
-      const parts = Object.keys(COURSE_FIELDS).filter((k) => k !== "lessonOrder").map((k) => `- ${COURSE_FIELDS[k]} [${k}]: ${show((c as Record<string, unknown>)[k])}`);
+      const parts = Object.keys(allowed).filter((k) => k !== "lessonOrder").map((k) => `- ${allowed[k]} [${k}]: ${show((c as Record<string, unknown>)[k])}`);
       return `${c.title} (${c.slug}), exactly as stored (rich text is HTML):\n${parts.join("\n")}\n\nIts lessons in order (lessonOrder takes [{ id, groupLabel }] in this order):\n${state.lessons.map((l, i) => `${i + 1}. ${titles.get(l.id)?.titleDisplayed ?? "?"} (${titles.get(l.id)?.slug ?? "?"}) id ${l.id}${l.groupLabel ? `, under "${l.groupLabel}"` : ""}`).join("\n")}\n${versionLine(versionOf(state))}`;
     }
     case "lesson": {
@@ -246,7 +305,7 @@ export async function readContent(kind: string, item?: string, field?: string): 
       const l = await findLesson(item);
       if (typeof l === "string") return l;
       const state = await lessonState(l);
-      const parts = Object.keys(LESSON_FIELDS).map((k) => `- ${LESSON_FIELDS[k]} [${k}]: ${show(k === "teacherIds" ? state.teachers : (l as Record<string, unknown>)[k])}`);
+      const parts = Object.keys(allowed).map((k) => `- ${allowed[k]} [${k}]: ${show(k === "teacherIds" ? state.teachers : (l as Record<string, unknown>)[k])}`);
       return `${l.titleDisplayed} (${l.slug}), exactly as stored (rich text is HTML):\n${parts.join("\n")}\n${versionLine(versionOf(state))}`;
     }
     case "email": {
@@ -277,11 +336,11 @@ type Actor = SaveActor & { name: string };
 /** The parts as given, after any finding of words; or why not. */
 function applyEdits(
   kind: EditKind,
+  allowed: Record<string, string>,
   current: (key: string) => unknown,
   changes: Record<string, unknown> | undefined,
   replace: Replacement[] | undefined,
 ): { body: Record<string, unknown> } | { error: string } {
-  const allowed = FIELDS[kind];
   const body: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(changes ?? {})) {
     if (!owns(allowed, k)) return { error: `"${k}" isn't something the ${kind} editor saves. The parts are: ${Object.keys(allowed).join(", ")}.` };
@@ -329,6 +388,8 @@ export async function editContent(
 ): Promise<string> {
   if (!["program", "course", "lesson", "email", "teacher"].includes(kind)) return "Change a program, course, lesson, email or teacher.";
   const k = kind as EditKind;
+  const allowed = fieldsFor(k, await reachOf(actor));
+  if (!allowed) return `You can't change ${k === "teacher" ? "teacher pages" : `${k}s`} on the site with your account, so the guide can't either. If you think you should, ask Jesse.`;
   let parts: ChangedPart[] = [];
   let label = "";
   let key = "";
@@ -340,8 +401,10 @@ export async function editContent(
     if (typeof found === "string") return found;
     const before = await loadProgram(found.slug);
     if (!before) return "That program isn't there any more.";
-    const edits = applyEdits(k, (f) => editorFieldValue(before.data, f), changes, replace);
+    const edits = applyEdits(k, allowed, (f) => editorFieldValue(before.data, f), changes, replace);
     if ("error" in edits) return `Nothing was saved. ${edits.error}`;
+    const bad = await checkParts(edits.body);
+    if (bad) return `Nothing was saved. ${bad}`;
     const old = stale(changes, version, versionOf(before.data));
     if (old) return old;
     // The editor's own check too: refused if someone changed these parts meanwhile.
@@ -351,7 +414,7 @@ export async function editContent(
     const slugNow = (result.body.slug as string) ?? found.slug;
     const afterData = (result.body.editorData as typeof before.data | null) ?? (await loadProgram(slugNow))?.data ?? null;
     parts = Object.keys(edits.body)
-      .map((f) => ({ label: PROGRAM_FIELDS[f], before: editorFieldValue(before.data, f), after: afterData ? editorFieldValue(afterData, f) : edits.body[f] }))
+      .map((f) => ({ label: allowed[f], before: editorFieldValue(before.data, f), after: afterData ? editorFieldValue(afterData, f) : edits.body[f] }))
       .filter((c) => !same(c.before, c.after));
     label = (result.body.name as string) ?? before.p.name;
     key = slugNow;
@@ -369,8 +432,10 @@ export async function editContent(
     if (typeof c === "string") return c;
     const state = await courseState(c);
     const before = c as Record<string, unknown>;
-    const edits = applyEdits(k, (f) => before[f], changes, replace);
+    const edits = applyEdits(k, allowed, (f) => before[f], changes, replace);
     if ("error" in edits) return `Nothing was saved. ${edits.error}`;
+    const bad = await checkParts(edits.body);
+    if (bad) return `Nothing was saved. ${bad}`;
     const old = stale(changes, version, versionOf(state));
     if (old) return old;
     const result = await saveCourse(c.slug, edits.body);
@@ -378,7 +443,7 @@ export async function editContent(
     const now = (await db.course.findUnique({ where: { id: c.id } })) as Record<string, unknown> | null;
     const orderNow = await courseLessons(c.id);
     parts = Object.keys(edits.body)
-      .map((f) => ({ label: COURSE_FIELDS[f], before: f === "lessonOrder" ? state.lessons : before[f], after: f === "lessonOrder" ? orderNow : now?.[f] }))
+      .map((f) => ({ label: allowed[f], before: f === "lessonOrder" ? state.lessons : before[f], after: f === "lessonOrder" ? orderNow : now?.[f] }))
       .filter((p) => !same(p.before, p.after));
     label = (now?.title as string) ?? c.title;
     key = (now?.slug as string) ?? c.slug;
@@ -388,8 +453,10 @@ export async function editContent(
     if (typeof l === "string") return l;
     const state = await lessonState(l);
     const before = l as Record<string, unknown>;
-    const edits = applyEdits(k, (f) => (f === "teacherIds" ? state.teachers : before[f]), changes, replace);
+    const edits = applyEdits(k, allowed, (f) => (f === "teacherIds" ? state.teachers : before[f]), changes, replace);
     if ("error" in edits) return `Nothing was saved. ${edits.error}`;
+    const bad = await checkParts(edits.body);
+    if (bad) return `Nothing was saved. ${bad}`;
     const old = stale(changes, version, versionOf(state));
     if (old) return old;
     const result = await saveLesson(l.slug, edits.body);
@@ -397,7 +464,7 @@ export async function editContent(
     const now = (await db.lesson.findUnique({ where: { id: l.id } })) as Record<string, unknown> | null;
     const teachersNow = await lessonTeachers(l.id);
     parts = Object.keys(edits.body)
-      .map((f) => ({ label: LESSON_FIELDS[f], before: f === "teacherIds" ? state.teachers : before[f], after: f === "teacherIds" ? teachersNow : now?.[f] }))
+      .map((f) => ({ label: allowed[f], before: f === "teacherIds" ? state.teachers : before[f], after: f === "teacherIds" ? teachersNow : now?.[f] }))
       .filter((p) => !same(p.before, p.after));
     label = (now?.titleDisplayed as string) ?? l.titleDisplayed;
     key = (now?.slug as string) ?? l.slug;
@@ -407,7 +474,7 @@ export async function editContent(
     if (!t) return `There's no email "${item}". email_templates lists them.`;
     if (emailClosed(t)) return "Nothing was saved. The sign-in emails and the email about content changes can't be changed through the guide; admins change them on the site.";
     const before = t as Record<string, unknown>;
-    const edits = applyEdits(k, (f) => before[f], changes, replace);
+    const edits = applyEdits(k, allowed, (f) => before[f], changes, replace);
     if ("error" in edits) return `Nothing was saved. ${edits.error}`;
     const old = stale(changes, version, versionOf(t));
     if (old) return old;
@@ -418,7 +485,7 @@ export async function editContent(
       updatedById: actor.id,
     });
     if (result.status !== 200) return refused(result.status, result.body);
-    parts = Object.keys(b).map((f) => ({ label: EMAIL_FIELDS[f], before: before[f], after: result.body[f] })).filter((p) => !same(p.before, p.after));
+    parts = Object.keys(b).map((f) => ({ label: allowed[f], before: before[f], after: result.body[f] })).filter((p) => !same(p.before, p.after));
     label = t.name;
     key = t.slug;
     href = `/admin/emails/${t.slug}`;
@@ -426,13 +493,13 @@ export async function editContent(
     const t = await findTeacher(item);
     if (typeof t === "string") return t;
     const before = t as unknown as Record<string, unknown>;
-    const edits = applyEdits(k, (f) => before[f], changes, replace);
+    const edits = applyEdits(k, allowed, (f) => before[f], changes, replace);
     if ("error" in edits) return `Nothing was saved. ${edits.error}`;
     const old = stale(changes, version, versionOf(t));
     if (old) return old;
     const result = await saveTeacherProfile(t.userId, edits.body);
     if (result.status !== 200) return refused(result.status, result.body);
-    parts = Object.keys(edits.body).map((f) => ({ label: TEACHER_FIELDS[f], before: before[f], after: result.body[f] })).filter((p) => !same(p.before, p.after));
+    parts = Object.keys(edits.body).map((f) => ({ label: allowed[f], before: before[f], after: result.body[f] })).filter((p) => !same(p.before, p.after));
     label = teacherName(t);
     key = t.userId;
     href = t.slug ? `/teachers/${t.slug}` : null;
@@ -495,4 +562,171 @@ export async function changeWords(actor: Actor, changes: WordsChange[]): Promise
     `Changed ${r.changes.length === 1 ? "it" : `all ${r.changes.length}`} in one go. The new words are on ${pages.join(", ")} in about two minutes, once the site has rebuilt${recorded ? ", and Jesse has been sent the change." : `. ${NOT_RECORDED}`}`,
     "Once it has rebuilt, read the page back with page_words to check it reads as intended.",
   ].join("\n");
+}
+
+// ─── Starting and archiving programs ────────────────────────────────────────
+
+/**
+ * Parts checked before anything is written (review, 2026-10-28): teachers
+ * given by name or id become the ids the editor's picker would give (active
+ * members marked as teachers, as /api/members/search), each once; dates are
+ * the editor's "YYYY-MM-DDTHH:MM" in Central time; numbers are numbers. An
+ * unknown teacher used to fail after the old teachers were removed.
+ */
+async function checkParts(body: Record<string, unknown>): Promise<string | null> {
+  if (body.teacherIds !== undefined) {
+    if (!Array.isArray(body.teacherIds)) return "The teachers take a list of names.";
+    const ids: string[] = [];
+    for (const raw of body.teacherIds) {
+      const q = String(raw ?? "").trim();
+      const pickable = { archivedAt: null, agreedToTerms: true, isTeacher: true, isLegacyUnclaimed: false };
+      const byId = q ? await db.user.findFirst({ where: { id: q, ...pickable }, select: { id: true } }) : null;
+      const found = byId
+        ? [byId]
+        : await db.user.findMany({
+            where: {
+              ...pickable,
+              AND: q.split(/\s+/).filter(Boolean).map((w) => ({
+                OR: [{ firstName: { contains: w, mode: "insensitive" as const } }, { lastName: { contains: w, mode: "insensitive" as const } }, { preferredName: { contains: w, mode: "insensitive" as const } }],
+              })),
+            },
+            select: { id: true, firstName: true, lastName: true, preferredName: true },
+            take: 6,
+          });
+      if (!q || found.length === 0) return `No teacher matches "${q}". Teachers are members marked as teachers in the Member Registry.`;
+      if (found.length > 1) return `More than one teacher matches "${q}"; give the full name.`;
+      if (ids.includes(found[0].id)) return `"${q}" is in the teachers twice.`;
+      ids.push(found[0].id);
+    }
+    body.teacherIds = ids;
+  }
+  // A course's lessons in order: lessons that exist, each once (the save
+  // removes the old order before writing the new).
+  if (body.lessonOrder !== undefined) {
+    if (!Array.isArray(body.lessonOrder)) return "The lessons take a list.";
+    const ids = body.lessonOrder.map((x) => (typeof x === "string" ? x : String((x as { id?: unknown })?.id ?? "")));
+    if (new Set(ids).size !== ids.length) return "A lesson is in the list twice.";
+    const known = await db.lesson.count({ where: { id: { in: ids } } });
+    if (known !== ids.length) return "Some of those lessons aren't known. Read the course again with read_content and use the ids it lists.";
+  }
+  for (const k of DATE_PARTS) {
+    const v = body[k];
+    if (v !== undefined && v !== null && v !== "" && !(typeof v === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v))) {
+      return `${k} takes a date and time as YYYY-MM-DDTHH:MM in Central time, such as 2026-11-05T19:00.`;
+    }
+  }
+  for (const k of NUMBER_PARTS) {
+    const v = body[k];
+    if (v !== undefined && v !== null && v !== "" && !Number.isFinite(Number(v))) return `${k} takes a number.`;
+  }
+  return null;
+}
+
+/** The editor's numbers and dates, as its create sends them (ProgramEditor buildPayload). */
+const NUMBER_PARTS = ["recurrenceInterval", "recurrenceCount", "registrationCapacity", "reminderDaysBefore", "suggestedDana", "danaBaseAmount", "danaFixedAmount", "sortOrder"];
+const DATE_PARTS = ["startDatetime", "endDatetime", "registrationDeadline", "registrationOpensAt", "reminderDate", "dashboardShowAt"];
+
+/** A program as the editor holds it, turned into what the editor's Save sends for a new one. */
+function createPayload(data: Record<string, unknown>, name: string, slug: string): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...data, name, slug };
+  for (const k of ["id", "archived", "offeringFromLegacy", "flodeskSegmentName", "dateText", "timeText", "guestAccessKey", "programTeachers"]) delete out[k];
+  if (Array.isArray(data.programTeachers) && out.teacherIds === undefined) out.teacherIds = (data.programTeachers as { id: string }[]).map((t) => t.id);
+  for (const k of NUMBER_PARTS) {
+    const v = out[k];
+    out[k] = v === "" || v === null || v === undefined ? null : Number(v);
+  }
+  for (const k of DATE_PARTS) if (out[k] === "") out[k] = null;
+  if (Array.isArray(out.registrationFields) && out.registrationFields.length === 0) out.registrationFields = null;
+  out.dayOfWeek = deriveDayOfWeek(String(out.recurrenceFreq ?? ""), (out.recurrenceDays as string[]) ?? [], String(out.startDatetime ?? ""));
+  return out;
+}
+
+/**
+ * Start a new program as the editor does: blank, from a shape, or as a copy,
+ * with any parts set at once, through the editor's own create. For someone
+ * who uses Programs on the site, or a Content editor (who sets the content
+ * parts only; a copy keeps no teachers or teams for them).
+ */
+export async function startProgram(
+  actor: SaveActor & { name: string },
+  input: { name: string; start?: string; copy?: string; changes?: Record<string, unknown> },
+): Promise<string> {
+  const reach = await reachOf(actor);
+  const allowed = fieldsFor("program", reach);
+  if (!allowed) return "You can't start programs on the site with your account, so the guide can't either. If you think you should, ask Jesse.";
+  const name = input.name.trim();
+  if (name.length < 2) return "What is the program called?";
+  const canDecideAskers = canUseRegistration(actor.roles);
+  const prepTeams = await helpingTeams();
+
+  let draft: Record<string, unknown> = {};
+  let from = "blank";
+  if (input.copy?.trim()) {
+    const found = await findProgram(input.copy);
+    if (typeof found === "string") return found;
+    const source = await loadProgram(found.slug);
+    if (!source) return "That program isn't there any more.";
+    draft = copyForNew(source.data, { slug: "", canDecideAskers }) as unknown as Record<string, unknown>;
+    draft.helperTeams = ((draft.helperTeams as { hubId: string }[]) ?? []).filter((h) => prepTeams.some((t) => t.id === h.hubId));
+    from = `a copy of ${source.p.name}`;
+  } else if (input.start && input.start !== "blank") {
+    const code = input.start.trim().toUpperCase().replace(/[\s-]+/g, "_");
+    if (!isShapeCode(code)) return `Start from one of these shapes, or blank: ${SHAPES.map((s) => `${s.code} (${s.name}: ${s.sets})`).join("; ")}.`;
+    draft = shapeStart(code, { prepTeams, canDecideAskers }) as unknown as Record<string, unknown>;
+    from = `the ${SHAPES.find((s) => s.code === code)!.name} shape`;
+  }
+  // A Content editor who doesn't use Programs sets content only: a copy
+  // brings no teachers, guest access or teams.
+  // (The original's hosting team and "No host needed" stay: they are its own
+  // arrangement, not a choice, and dropping them would send the copy to the
+  // Hosting Team. Review, 2026-10-28.)
+  if (!reach.programs) {
+    for (const k of [...ACCESS_PARTS, "programTeachers"]) if (k !== "hostingHubSlug" && k !== "hostingRequired") delete draft[k];
+  }
+  const edits = input.changes && Object.keys(input.changes).length ? applyEdits("program", allowed, (f) => draft[f], input.changes, undefined) : { body: {} };
+  if ("error" in edits) return `Nothing was made. ${edits.error}`;
+  const bad = await checkParts(edits.body);
+  if (bad) return `Nothing was made. ${bad}`;
+
+  const taken = new Set((await db.program.findMany({ where: { slug: { startsWith: slugify(name) || "program" } }, select: { slug: true } })).map((p) => p.slug));
+  const base = slugify(name) || "program";
+  const slug = typeof edits.body.slug === "string" && edits.body.slug ? String(edits.body.slug) : taken.has(base) ? freeSlug(base, taken) : base;
+  const result = await createProgram(actor, createPayload({ ...draft, ...edits.body }, name, slug));
+  if (result.status !== 201) return `Nothing was made. The editor said: ${typeof result.body.error === "string" ? result.body.error : `it couldn't save (${result.status}).`}`;
+
+  const made = result.body as { slug: string; name: string };
+  const parts: ChangedPart[] = [
+    { label: "A new program", before: null, after: `${made.name}, started from ${from}` },
+    ...Object.keys(edits.body).map((f) => ({ label: allowed[f] ?? f, before: null, after: edits.body[f] })),
+  ];
+  const recorded = await keep({ userId: actor.id, userName: actor.name, kind: "program", itemKey: made.slug, itemLabel: made.name, itemHref: `/tools/programs/${made.slug}/edit`, changes: parts });
+  const conflicts = (result.body.seatConflicts as { message: string }[] | undefined) ?? [];
+  return [
+    `Made ${made.name}, started from ${from}. Its address is /programs/${made.slug}; it opens in the editor at /tools/programs/${made.slug}/edit${recorded ? ", and Jesse has been sent the change." : "."}`,
+    ...(recorded ? [] : [NOT_RECORDED]),
+    ...(conflicts.length ? [`Zoom: ${conflicts.map((c) => c.message).join(" ")}`] : []),
+    "Read it back with program_settings, and show them what's still to fill in (Ready to be seen in the editor lists what a program needs before it shows).",
+  ].join("\n");
+}
+
+/** Archive or restore a program, as Programs' Archive does (the three roles). */
+export async function archiveProgram(actor: SaveActor & { name: string }, item: string, archive: boolean): Promise<string> {
+  if (!canUseProgramManager(actor.roles)) return "Archiving is for the registrar, admins and the guiding teacher on the site, so the guide can't do it for you.";
+  const found = await findProgram(item);
+  if (typeof found === "string") return found;
+  const p = await db.program.findUnique({ where: { slug: found.slug }, select: { name: true, archivedAt: true } });
+  if (!p) return "That program isn't there any more.";
+  if (!!p.archivedAt === archive) return `${p.name} is already ${archive ? "archived" : "not archived"}.`;
+  const result = await setProgramArchived(found.slug, archive);
+  if (result.status !== 200) return `Nothing changed. ${typeof result.body.error === "string" ? result.body.error : ""}`;
+  const recorded = await keep({
+    userId: actor.id,
+    userName: actor.name,
+    kind: "program",
+    itemKey: found.slug,
+    itemLabel: p.name,
+    itemHref: `/tools/programs/${found.slug}/edit`,
+    changes: [{ label: "Archived", before: !archive, after: archive }],
+  });
+  return `${p.name} is ${archive ? "archived (it can be restored)" : "restored"}${recorded ? ", and Jesse has been sent the change." : `. ${NOT_RECORDED}`}`;
 }
