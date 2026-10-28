@@ -154,7 +154,7 @@ export default function NewToRimPage() {
             <div>
               <p className="nt-eyebrow">Before you join us</p>
               <h2 id="signing-up">
-                A few minutes
+                A few minutes&amp;nbsp;
                 <br />
                 to become a member.
               </h2>
