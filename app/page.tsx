@@ -170,7 +170,7 @@ export default function HomePage() {
           <h1 className="pp-hero__title">
             Awaken your <span className="home-hero__gold">Mind</span>
             <br />
-            Open your <span className="home-hero__gold">Heart</span>
+            &amp;nbsp;Open your <span className="home-hero__gold">Heart</span>
             <br />
             Nourish your <span className="home-hero__gold">Life</span>
             <br />
