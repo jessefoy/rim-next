@@ -15,3 +15,5 @@ When a stored field is conceptually a cache of source fields (e.g. `Program.time
 - Add a one-shot drift-recovery migration that recomputes for every existing row and writes only when the cached value disagrees. Cheap, idempotent — safe to leave in place as ongoing insurance.
 
 **Code to mirror:** `lib/programUtils.ts` (`computeTimeText`, `computeDateText`), `app/api/programs-pg/route.ts` (POST), `app/api/programs-pg/[slug]/route.ts` (PUT), `prisma/migrate.mjs` (`recache_program_date_time_text` entry).
+
+**The reading side (2026-10-28):** a stored cache is read *before* the code that builds it. Every reader did `p.dateText || buildDateLabel(...)`, and every save writes `dateText`, so a change to `buildDateLabel` (a series' "Dec 3 to 17") would never have shown; the reviewer sub-agent caught it before push. When changing how a cached label is built, grep its readers; a label that depends on today ("from Dec 3") belongs in a read-time helper (`programDateWords`, `lib/dateLabel.ts`), never in the stored field.

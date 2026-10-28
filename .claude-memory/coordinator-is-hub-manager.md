@@ -1,6 +1,6 @@
 ---
 name: coordinator-is-hub-manager
-description: "A hub coordinator holds the FULL coverage-management authority for their own hub — assign/remove/reassign/clear/request-sub, hub-scoped — not a lesser tier than HOST_MANAGER/ADMIN"
+description: "A hub coordinator holds the FULL coverage-management authority for their own hub, hub-scoped; the guiding teacher holds every lead power on every team, but is never shown or emailed as a lead"
 metadata: 
   node_type: memory
   type: feedback
@@ -12,3 +12,7 @@ A hub coordinator carries responsibility for their own team's coverage and shoul
 **Why:** `RIM_Role_Design.md` frames the host coordinator as the *team steward* — "be the go-to person, not Jesse." If a coordinator can put someone on a session, they can also take them off it, hand it to someone else, or ask the team to cover — the responsibility and the authority are the same thing. Splitting them (coordinator can assign but not remove) was the exact gap Nancy hit in session 140; session 142 closed remove/reassign/clear; session 143 closed the last one (request-sub-on-behalf).
 
 **How to apply:** gate every coverage mutation on `isManager(roles) || isHubCoordinator(resource.hubSlug)`, scoped to the *resource's own hub* (the assignment's `hubSlug`, never a hardcoded hub) — so a coordinator only acts on their own team and there's no privilege escalation; a plain host still acts only on their own. Authorize per-action AFTER loading the resource so the gate can read its hub (the PATCH-unclaim shadowing bug, s142). The Scheduler is one surface shared by hubs that behave differently, so check both directions on any change — see [[feedback-shared-surface-audit]].
+
+**The guiding teacher is a lead on every team, quietly (Jesse 2026-10-28).** *"I think the guiding teacher always has the full powers. This is already built into our system."* Then: *"a guiding teacher is a lead, but not in a way that is visible to everyone."* So every lead gate includes `GUIDING_TEACHER` (`effectiveCoordinator`, `canManageHubCoverage`, the Scheduler page's `isManager`, the guide's `teamReach`), but the guiding teacher is never shown as a team's lead and never joins a lead recipient pool (those read `HubMember.isCoordinator`). On 2026-10-28 the Scheduler's rule had left the guiding teacher out, unnoticed because Jesse is also ADMIN.
+
+**How to apply:** a new lead gate names the guiding teacher in its powers; a list of a team's leads, or who gets a lead's email, does not.
