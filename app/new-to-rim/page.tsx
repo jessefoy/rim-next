@@ -285,7 +285,7 @@ export default function NewToRimPage() {
             <h2 id="community">
               There is room
               <br />
-              &amp;nbsp;for your way of being.
+              for your way of being.
             </h2>
           </div>
           <div className="nt-copy">
