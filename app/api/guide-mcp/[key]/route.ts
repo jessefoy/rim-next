@@ -471,11 +471,11 @@ const PAGE_TOOLS: Tool[] = [
 
 /** Whether they're on a team (or see every team), and lead one, as the Scheduler decides. */
 async function teamReach(v: GuideViewer): Promise<{ member: boolean; lead: boolean }> {
-  const oversees = v.roles.includes("ADMIN") || v.roles.includes("HOST_MANAGER");
-  const sees = oversees || v.roles.includes("GUIDING_TEACHER");
+  // The guiding teacher leads every team, as on the Scheduler (lib/hubAuth.ts).
+  const oversees = v.roles.includes("ADMIN") || v.roles.includes("HOST_MANAGER") || v.roles.includes("GUIDING_TEACHER");
   const memberships = await db.hubMember.findMany({ where: { userId: v.userId, status: { in: ["ACTIVE", "PAUSED"] } }, select: { isCoordinator: true, status: true } });
   return {
-    member: sees || memberships.length > 0,
+    member: oversees || memberships.length > 0,
     lead: oversees || memberships.some((m) => m.isCoordinator && m.status === "ACTIVE"),
   };
 }

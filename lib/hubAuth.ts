@@ -233,9 +233,11 @@ export function canManageTrash(
  * coordinator. The one rule for every coverage-management route (2026-10-15:
  * some routes also demanded the coordinator's own hosting be on, so a
  * coordinator who doesn't host could save a rotation but not end one, and
- * "Reset this team" refused HOST_MANAGER).
+ * "Reset this team" refused HOST_MANAGER). The guiding teacher too, a lead
+ * on every team as in effectiveCoordinator (2026-10-28: left out here, so the
+ * guiding teacher had no Rotations tab and no Reset).
  */
 export async function canManageHubCoverage(userId: string, roles: string[], hubSlug: string): Promise<boolean> {
-  if (roles.includes("HOST_MANAGER") || roles.includes("ADMIN")) return true;
+  if (roles.includes("HOST_MANAGER") || roles.includes("ADMIN") || roles.includes("GUIDING_TEACHER")) return true;
   return isHubCoordinator(userId, hubSlug);
 }

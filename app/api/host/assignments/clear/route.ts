@@ -1,7 +1,8 @@
 /**
  * POST /api/host/assignments/clear
  *
- * Hub-scoped nuclear reset for the Scheduler. Hub coordinator OR ADMIN.
+ * Hub-scoped nuclear reset for the Scheduler. Hub coordinator, guiding teacher,
+ * HOST_MANAGER or ADMIN (canManageHubCoverage).
  *
  * Body:
  *   { hubSlug: string,
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   // team's active coordinator). It left out HOST_MANAGER, whom the button showed.
   if (!(await canManageHubCoverage(session.user.id, roles, hubSlug))) {
     return Response.json(
-      { error: "Only this team's coordinator or an admin can do that." },
+      { error: "Only this team's leads, the guiding teacher or an admin can reset it." },
       { status: 403 },
     );
   }

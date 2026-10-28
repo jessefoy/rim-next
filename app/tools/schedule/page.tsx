@@ -19,6 +19,7 @@ import HubScheduleClient from "@/components/HubScheduleClient";
 import { buildHubMonthSessions } from "@/lib/scheduleSessions";
 import { DEFAULT_HOSTING_HUB_SLUG, getHubCoverageCopy } from "@/lib/programHub";
 import { canSelfClaim } from "@/lib/hubMemberAuth";
+import { canManageHubCoverage } from "@/lib/hubAuth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Scheduler - Tools" };
@@ -65,14 +66,11 @@ export default async function ScheduleToolPage({
   }
   const activeHubSlug = hubSlug || DEFAULT_HOSTING_HUB_SLUG;
 
-  // isManager = HOST_MANAGER/ADMIN OR a coordinator of *this* hub. Routed by
-  // active hub so a Silent Meditation coordinator sees rotation controls
-  // there without holding HOST_MANAGER globally.
-  const coordinatorRecord = await db.hubMember.findFirst({
-    where: { userId: session.user.id, hub: { slug: activeHubSlug }, isCoordinator: true, status: "ACTIVE" },
-    select: { id: true },
-  });
-  const isManager = isHostManager || !!coordinatorRecord;
+  // isManager: the routes' own rule (HOST_MANAGER, ADMIN, the guiding teacher,
+  // or a coordinator of *this* hub). Routed by active hub so a Silent
+  // Meditation coordinator sees rotation controls there without holding
+  // HOST_MANAGER globally.
+  const isManager = await canManageHubCoverage(session.user.id, roles, activeHubSlug);
 
   // Fetch hub context (members, coordinator) for the active hub
   const hubContext = await getToolHubContext(activeHubSlug);

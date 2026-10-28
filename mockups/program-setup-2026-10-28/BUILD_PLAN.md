@@ -86,7 +86,7 @@ Design principles that apply:
 
 **Phase 4, the words around it**
 1. The Scheduler's words from the review (team, plain words for "sub-cover" and "self-assigned", no em-dashes, errors that sound like a person).
-2. "Reset this team" behind admins, if Jesse says so.
+2. "Reset this team": Jesse ruled leads, the guiding teacher and admins (2026-10-28).
 3. The "Setting up a program" tutorial; the guide's topic, screens.json and tools; RIM_ProgramEditor.md, RIM_Scheduler.md, FEATURES.md and the rest at the closing.
 
 ## Where it stands (2026-10-28)
@@ -98,4 +98,9 @@ Phases 1 to 4 are built and on `main`. Phase 4 as built: the Scheduler's words; 
 - Read-aloud of every question, help line, sentence and note in the walk-through, the review and the program's page.
 - Mindful Photography's End fixed in the editor (Jesse), and Private Teacher Meetings archived (Jesse).
 - A live trial: set up a private test program from each shape, change its schedule after publishing, and watch what the Scheduler, My Home and the emails do.
-- "Reset this team": admins only, or as it is.
+- ~~"Reset this team": admins only, or as it is.~~ Ruled 2026-10-28: leads, the guiding teacher and admins; the guiding teacher now holds every lead power on the Scheduler.
+- **The Publish trial ran 2026-10-28 and passed:** a private, in-person test program ("Publish Trial Test") from the Workshop shape, published, its time changed (Before you save said only "Every session's time changes, from 7–8 PM CT to 6–7 PM CT."), archived. No emails, notifications or team events; every team's sessions and rotations unchanged. Found on the way:
+  - The public page of a series with an end reads only "Thursdays": no first or last date.
+  - Archive is only on the Programs list, not on a program's page (the mockup had both).
+  - "On This Week" comes ticked for a Private program, which This Week never shows.
+  - For the read-aloud: "Next, you'll say when it ends." still shows on the step that asks it; "Teachers can take host controls in Zoom" shows for an in-person program.
